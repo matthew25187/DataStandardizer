@@ -1,0 +1,13 @@
+parameters:
+  - name: userName
+    type: string
+    default: "Build Service"
+  - name: userEmail
+    type: string
+    default: "buildservice@example.com"
+
+steps:
+  - bash: |
+      git config --global user.email ${{ parameters.userEmail }}
+      git config --global user.name ${{ parameters.userName }}
+    displayName: "Set Git account identity"

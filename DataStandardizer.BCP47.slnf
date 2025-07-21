@@ -1,0 +1,14 @@
+{
+  "solution": {
+    "path": "DataStandardizer.sln",
+    "projects": [
+      "src\\DataStandardizer.BCP47\\DataStandardizer.BCP47.csproj",
+      "src\\DataStandardizer.Core\\DataStandardizer.Core.csproj",
+      "src\\DataStandardizer.ISO15924\\DataStandardizer.ISO15924.csproj",
+      "src\\DataStandardizer.ISO3166\\DataStandardizer.ISO3166.csproj",
+      "src\\DataStandardizer.ISO639\\DataStandardizer.ISO639.csproj",
+      "src\\DataStandardizer.UNM49\\DataStandardizer.UNM49.csproj",
+      "tests\\DataStandardizer.BCP47.Tests\\DataStandardizer.BCP47.Tests.csproj"
+    ]
+  }
+}
