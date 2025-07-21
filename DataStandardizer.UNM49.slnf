@@ -1,0 +1,9 @@
+{
+  "solution": {
+    "path": "DataStandardizer.sln",
+    "projects": [
+      "src\\DataStandardizer.UNM49\\DataStandardizer.UNM49.csproj",
+      "tests\\DataStandardizer.UNM49.Tests\\DataStandardizer.UNM49.Tests.csproj"
+    ]
+  }
+}

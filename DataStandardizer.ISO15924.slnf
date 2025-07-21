@@ -1,0 +1,10 @@
+{
+  "solution": {
+    "path": "DataStandardizer.sln",
+    "projects": [
+      "src\\DataStandardizer.Core\\DataStandardizer.Core.csproj",
+      "src\\DataStandardizer.ISO15924\\DataStandardizer.ISO15924.csproj",
+      "tests\\DataStandardizer.ISO15924.Tests\\DataStandardizer.ISO15924.Tests.csproj"
+    ]
+  }
+}

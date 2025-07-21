@@ -1,0 +1,83 @@
+parameters:
+- name: requirePackageDataStandardizerCore
+  type: string
+  default: Build
+- name: requirePackageDataStandardizerBcp47
+  type: string
+  default: None
+- name: requirePackageDataStandardizerIso15924
+  type: string
+  default: None
+- name: requirePackageDataStandardizerIso3166
+  type: string
+  default: None
+- name: requirePackageDataStandardizerIso4217
+  type: string
+  default: None
+- name: requirePackageDataStandardizerIso639
+  type: string
+  default: None
+- name: requirePackageDataStandardizerUnM49
+  type: string
+  default: None
+- name: packageNames
+  type: object
+  default:
+    - DataStandardizer.Core
+    - DataStandardizer.BCP47
+    - DataStandardizer.ISO15924
+    - DataStandardizer.ISO3166
+    - DataStandardizer.ISO4217
+    - DataStandardizer.ISO639
+    - DataStandardizer.UNM49
+- name: packages
+  type: object
+  default:
+  - packageName: DataStandardizer.Core
+    variableGroupId: 20
+    packageSourcePath: src/DataStandardizer.Core
+    enableTests: 1
+  - packageName: DataStandardizer.BCP47
+    variableGroupId: 26
+    packageSourcePath: src/DataStandardizer.BCP47
+    enableTests: 1
+  - packageName: DataStandardizer.ISO15924
+    variableGroupId: 24
+    packageSourcePath: src/DataStandardizer.ISO15924
+    enableTests: 1
+  - packageName: DataStandardizer.ISO3166
+    variableGroupId: 23
+    packageSourcePath: src/DataStandardizer.ISO3166
+    enableTests: 1
+  - packageName: DataStandardizer.ISO4217
+    variableGroupId: 22
+    packageSourcePath: src/DataStandardizer.ISO4217
+    enableTests: 1
+  - packageName: DataStandardizer.ISO639
+    variableGroupId: 21
+    packageSourcePath: src/DataStandardizer.ISO639
+    enableTests: 1
+  - packageName: DataStandardizer.UNM49
+    variableGroupId: 25
+    packageSourcePath: src/DataStandardizer.UNM49
+    enableTests: 1
+
+variables:
+- name: solution
+  value: "**/DataStandardizer.sln"
+  readonly: true
+- name: packageInfos
+  value: ${{ convertToJson(parameters.packages) }}
+  readonly: true
+- name: packageNames
+  value: ${{ replace('PACKAGE_NAMES,^Z', 'PACKAGE_NAMES', join(',',parameters.packageNames)) }}  # this variable value MUST terminate with trailing comma and ^Z character sequence
+  readonly: true
+- name: allPackageNames
+  value: ${{ replace(replace(replace(replace(replace(replace(replace(replace(replace(variables.packageNames, 'DataStandardizer.UNM49,', iif(contains(variables.packageInfos, 'DataStandardizer.UNM49'), 'DataStandardizer.UNM49,', '')), 'DataStandardizer.ISO639,', iif(contains(variables.packageInfos, 'DataStandardizer.ISO639'), 'DataStandardizer.ISO639,', '')), 'DataStandardizer.ISO4217,', iif(contains(variables.packageInfos, 'DataStandardizer.ISO4217'), 'DataStandardizer.ISO4217,', '')), 'DataStandardizer.ISO3166,', iif(contains(variables.packageInfos, 'DataStandardizer.ISO3166'), 'DataStandardizer.ISO3166,', '')), 'DataStandardizer.ISO15924,', iif(contains(variables.packageInfos, 'DataStandardizer.ISO15924'), 'DataStandardizer.ISO15924,', '')), 'DataStandardizer.BCP47,', iif(contains(variables.packageInfos, 'DataStandardizer.BCP47'), 'DataStandardizer.BCP47,', '')), 'DataStandardizer.Core,', iif(contains(variables.packageInfos, 'DataStandardizer.Core'), 'DataStandardizer.Core,', '')), ',^Z', ''), '^Z', '') }}
+  readonly: true
+- name: buildRequiredPackageNames
+  value: ${{ replace(replace(replace(replace(replace(replace(replace(replace(replace(variables.packageNames, 'DataStandardizer.UNM49,', iif(eq(parameters.requirePackageDataStandardizerUnM49, 'Build'), 'DataStandardizer.UNM49,', '')), 'DataStandardizer.ISO639,', iif(eq(parameters.requirePackageDataStandardizerIso639, 'Build'), 'DataStandardizer.ISO639,', '')), 'DataStandardizer.ISO4217,', iif(eq(parameters.requirePackageDataStandardizerIso4217, 'Build'), 'DataStandardizer.ISO4217,', '')), 'DataStandardizer.ISO3166,', iif(eq(parameters.requirePackageDataStandardizerIso3166, 'Build'), 'DataStandardizer.ISO3166,', '')), 'DataStandardizer.ISO15924,', iif(eq(parameters.requirePackageDataStandardizerIso15924, 'Build'), 'DataStandardizer.ISO15924,', '')), 'DataStandardizer.BCP47,', iif(eq(parameters.requirePackageDataStandardizerBcp47, 'Build'), 'DataStandardizer.BCP47,', '')), 'DataStandardizer.Core,', iif(eq(parameters.requirePackageDataStandardizerCore, 'Build'), 'DataStandardizer.Core,', '')), ',^Z', ''), '^Z', '') }}
+  readonly: true
+- name: publicationRequiredPackageNames
+  value: ${{ replace(replace(replace(replace(replace(replace(replace(replace(replace(variables.packageNames, 'DataStandardizer.UNM49,', iif(eq(parameters.requirePackageDataStandardizerUnM49, 'Publication'), 'DataStandardizer.UNM49,', '')), 'DataStandardizer.ISO639,', iif(eq(parameters.requirePackageDataStandardizerIso639, 'Publication'), 'DataStandardizer.ISO639,', '')), 'DataStandardizer.ISO4217,', iif(eq(parameters.requirePackageDataStandardizerIso4217, 'Publication'), 'DataStandardizer.ISO4217,', '')), 'DataStandardizer.ISO3166,', iif(eq(parameters.requirePackageDataStandardizerIso3166, 'Publication'), 'DataStandardizer.ISO3166,', '')), 'DataStandardizer.ISO15924,', iif(eq(parameters.requirePackageDataStandardizerIso15924, 'Publication'), 'DataStandardizer.ISO15924,', '')), 'DataStandardizer.BCP47,', iif(eq(parameters.requirePackageDataStandardizerBcp47, 'Publication'), 'DataStandardizer.BCP47,', '')), 'DataStandardizer.Core,', iif(eq(parameters.requirePackageDataStandardizerCore, 'Publication'), 'DataStandardizer.Core,', '')), ',^Z', ''), '^Z', '') }}
+  readonly: true
