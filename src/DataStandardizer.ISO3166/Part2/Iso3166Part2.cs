@@ -41,7 +41,7 @@ namespace DataStandardizer.ISO3166
         
         #region Constructors
 
-        internal Iso3166Part2(string value)
+        private Iso3166Part2(string value)
         {
             if ((value == null))
             {
