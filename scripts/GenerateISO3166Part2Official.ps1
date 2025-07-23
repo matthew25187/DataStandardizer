@@ -199,7 +199,7 @@ function Out-SourceCode {
             Write-Progress -Activity $activity -CurrentOperation 'Declaring constructor' -PercentComplete -1
     
             $structConstructor = [System.CodeDom.CodeConstructor]::new()
-            $structConstructor.Attributes = ($structConstructor.Attributes -band -bnot [System.CodeDom.MemberAttributes]::AccessMask) -bor [System.CodeDom.MemberAttributes]::Public
+            $structConstructor.Attributes = ($structConstructor.Attributes -band -bnot [System.CodeDom.MemberAttributes]::AccessMask) -bor [System.CodeDom.MemberAttributes]::Private
             [void]$structConstructor.Parameters.Add([System.CodeDom.CodeParameterDeclarationExpression]::new([string], 'value'))
             $argumentCheckStatement = [System.CodeDom.CodeConditionStatement]::new(
                 [System.CodeDom.CodeBinaryOperatorExpression]::new(
