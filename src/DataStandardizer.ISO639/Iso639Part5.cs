@@ -37,7 +37,7 @@ namespace DataStandardizer.ISO639
         
         #region Constructors
 
-        internal Iso639Part5(string value)
+        private Iso639Part5(string value)
         {
             if ((value == null))
             {

@@ -144,7 +144,7 @@ public class Bcp47LanguageTagBuilderTests
     public void UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsNotDefinedMemberOfIso639Part3_ThrowsArgumentException()
     {
         // arrange
-        var testValue = new Iso639Part3("test");
+        var testValue = (Iso639Part3)"test";
         var builder = new Bcp47LanguageTagBuilder();
 
         // act
