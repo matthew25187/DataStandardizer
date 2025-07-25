@@ -59,6 +59,13 @@ Supports use of IETF BCP 47 language tags as defined by RFC 5646.</Description>
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\DataStandardizer.ISO15924\DataStandardizer.ISO15924.csproj" />
     <ProjectReference Include="..\DataStandardizer.ISO3166\DataStandardizer.ISO3166.csproj" />
     <ProjectReference Include="..\DataStandardizer.ISO639\DataStandardizer.ISO639.csproj" />

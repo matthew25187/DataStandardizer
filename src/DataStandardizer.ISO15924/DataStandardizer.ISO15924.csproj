@@ -58,6 +58,13 @@ Supports use of ISO 15924, "Codes for the representation of names of scripts".</
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
       <ProjectReference Include="..\DataStandardizer.Core\DataStandardizer.Core.csproj" />
     </ItemGroup>
     

@@ -602,9 +602,9 @@ stages:
             #SymbolsFolder: '$(Build.SourcesDirectory)' # string. Path to symbols folder. Default: $(Build.SourcesDirectory).
             SearchPattern: 'src/**/bin/**/$(BuildConfiguration)/**/*.pdb' # string. Required. Search pattern. Default: **/bin/**/*.pdb.
             #Manifest: # string. Manifest. 
-            #IndexSources: true # boolean. Index sources. Default: true.
-            PublishSymbols: false # boolean. Publish symbols. Default: true.
-            # SymbolServerType: # 'TeamServices' | 'FileShare'. Required when PublishSymbols = true. Symbol server type. 
+            IndexSources: false  # boolean. Index sources. Default: true. # Disable indexing since GitHub is unsupported 
+            PublishSymbols: true # boolean. Publish symbols. Default: true.
+            SymbolServerType: 'TeamServices'  # Or 'FileShare'. Required when PublishSymbols = true. Symbol server type. 
             #SymbolsPath: # string. Optional. Use when PublishSymbols = true && SymbolServerType = FileShare. Path to publish symbols. 
             #CompressSymbols: false # boolean. Optional. Use when SymbolServerType = FileShare. Compress symbols. Default: false.
             #SymbolExpirationInDays: '36530' # string. Optional. Use when PublishSymbols = true && SymbolServerType = TeamServices. Symbol Expiration (in days). Default: 36530.
