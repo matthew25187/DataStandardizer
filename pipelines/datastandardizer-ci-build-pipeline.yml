@@ -600,7 +600,7 @@ stages:
         - task: PublishSymbols@2
           inputs:
             #SymbolsFolder: '$(Build.SourcesDirectory)' # string. Path to symbols folder. Default: $(Build.SourcesDirectory).
-            SearchPattern: 'src\\**\\bin\\**\\$(BuildConfiguration\\**\\*.pdb' # string. Required. Search pattern. Default: **/bin/**/*.pdb.
+            SearchPattern: 'src/**/bin/**/$(BuildConfiguration)/**/*.pdb' # string. Required. Search pattern. Default: **/bin/**/*.pdb.
             #Manifest: # string. Manifest. 
             #IndexSources: true # boolean. Index sources. Default: true.
             PublishSymbols: false # boolean. Publish symbols. Default: true.
