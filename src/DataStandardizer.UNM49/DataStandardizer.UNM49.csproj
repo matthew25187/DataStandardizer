@@ -58,6 +58,13 @@ Supports use of UN M49 or the "Standard Country or Area Codes for Statistical Us
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\DataStandardizer.Core\DataStandardizer.Core.csproj" />
   </ItemGroup>
 
