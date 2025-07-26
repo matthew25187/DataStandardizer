@@ -60,7 +60,7 @@ public class Bcp47LanguageTagBuilderTests
     public void UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsNotDefinedMemberOfIso639Part1_ThrowsArgumentException()
     {
         // arrange
-        var testValue = new Iso639Part1("test");
+        var testValue = (Iso639Part1)"test";
         var builder = new Bcp47LanguageTagBuilder();
 
         // act
@@ -102,7 +102,7 @@ public class Bcp47LanguageTagBuilderTests
     public void UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsNotDefinedMemberOfIso639Part2T_ThrowsArgumentException()
     {
         // arrange
-        var testValue = new Iso639Part2T("test");
+        var testValue = (Iso639Part2T)"test";
         var builder = new Bcp47LanguageTagBuilder();
 
         // act
@@ -144,7 +144,7 @@ public class Bcp47LanguageTagBuilderTests
     public void UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsNotDefinedMemberOfIso639Part3_ThrowsArgumentException()
     {
         // arrange
-        var testValue = new Iso639Part3("test");
+        var testValue = (Iso639Part3)"test";
         var builder = new Bcp47LanguageTagBuilder();
 
         // act
@@ -186,7 +186,7 @@ public class Bcp47LanguageTagBuilderTests
     public void UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsNotDefinedMemberOfIso639Part5_ThrowsArgumentException()
     {
         // arrange
-        var testValue = new Iso639Part5("test");
+        var testValue = (Iso639Part5)"test";
         var builder = new Bcp47LanguageTagBuilder();
 
         // act

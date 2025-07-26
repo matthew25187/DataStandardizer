@@ -36,7 +36,8 @@ namespace DataStandardizer.ISO639
         #endregion
         
         #region Constructors
-        public Iso639Part2T(string value)
+
+        private Iso639Part2T(string value)
         {
             if ((value == null))
             {

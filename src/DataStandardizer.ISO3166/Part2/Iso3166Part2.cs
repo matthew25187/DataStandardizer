@@ -40,7 +40,8 @@ namespace DataStandardizer.ISO3166
         #endregion
         
         #region Constructors
-        public Iso3166Part2(string value)
+
+        private Iso3166Part2(string value)
         {
             if ((value == null))
             {
