@@ -15,7 +15,7 @@ namespace DataStandardizer.ISO4217
     /// Codes for the representation of currencies
     /// </summary>
     /// <remarks>
-    /// Based on official ISO 4217 currency codes as at 2025-03-31.
+    /// Based on official ISO 4217 currency codes as at 2025-05-12.
     /// </remarks>
     public enum Iso4217Current : ushort
     {
@@ -2491,6 +2491,20 @@ namespace DataStandardizer.ISO4217
         #endregion
         
         #region Public Fields: Special purpose currency codes
+        /// <summary>
+        /// Arab Accounting Dinar
+        /// </summary>
+        /// <remarks>
+        /// Used by:
+        /// <list type="bullet">
+        /// 	<item>
+        /// 		<description>ARAB MONETARY FUND</description>
+        /// 	</item>
+        /// </list>
+        /// </remarks>
+        [DataStandardizer.ISO4217.Iso4217CodeAttribute("Arab Accounting Dinar", 2)]
+        XAD = 396,
+        
         /// <summary>
         /// CFA Franc BEAC
         /// </summary>
