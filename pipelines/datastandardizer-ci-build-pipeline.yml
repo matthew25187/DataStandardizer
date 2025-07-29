@@ -925,20 +925,8 @@ stages:
                   $projectPath = Join-Path -Path "$(Build.SourcesDirectory)" -ChildPath $packageInfo.packageSourcePath
                   Write-Host "##vso[task.setvariable variable=packageProjectPath]$projectPath"
                 displayName: "[${{packageName}}] Set version arguments"
-                condition: |
-                  and
-                  (
-                    succeeded(), 
-                    or(containsValue(split(variables.publicationRequiredPackageNames, ','), '${{packageName}}'), and(gt(length(coalesce(variables['changedPackageNames'], '')), 0), containsValue(split(variables['changedPackageNames'], ','), '${{packageName}}')))
-                  )                
               - task: VersionDotNetCoreAssemblies@3
                 displayName: "[${{ packageName }}] Apply package version numbers"
-                condition: |
-                  and
-                  (
-                    succeeded(), 
-                    or(containsValue(split(variables.publicationRequiredPackageNames, ','), '${{packageName}}'), and(gt(length(coalesce(variables['changedPackageNames'], '')), 0), containsValue(split(variables['changedPackageNames'], ','), '${{packageName}}')))
-                  )                
                 inputs:
                   Path: $(packageProjectPath)
                   VersionNumber: "$(majorNumber).$(minorNumber).$(patchNumber)-preview.$(previewNumber)"
