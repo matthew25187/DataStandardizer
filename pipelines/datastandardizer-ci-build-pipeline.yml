@@ -66,6 +66,14 @@ parameters:
     - None
     - Build
     - Publication
+  - name: requirePackageDataStandardizerMoney
+    displayName: 'Force DataStandardizer.Money package'
+    type: string
+    default: None
+    values:
+    - None
+    - Build
+    - Publication
   - name: requirePackageDataStandardizerUnM49
     displayName: 'Force DataStandardizer.UNM49 package'
     type: string
@@ -124,6 +132,7 @@ variables:
       requirePackageDataStandardizerIso3166: ${{ parameters.requirePackageDataStandardizerIso3166 }}
       requirePackageDataStandardizerIso4217: ${{ parameters.requirePackageDataStandardizerIso4217 }}
       requirePackageDataStandardizerIso639: ${{ parameters.requirePackageDataStandardizerIso639 }}
+      requirePackageDataStandardizerMoney: ${{ parameters.requirePackageDataStandardizerMoney }}
       requirePackageDataStandardizerUnM49: ${{ parameters.requirePackageDataStandardizerUnM49 }}
 
 stages:
