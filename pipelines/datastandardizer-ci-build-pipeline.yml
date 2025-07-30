@@ -1001,7 +1001,7 @@ stages:
                   # publishWebProjects: true  # Required  # If true, the task will try to find the web projects in the repository and run the publish command on them. Web projects are identified by presence of either a web.config file or wwwroot folder in the directory.
                   #projects:  # Optional  # The path to the csproj file(s) to use. You can use wildcards (e.g. **/*.csproj for all .csproj files in all subfolders). **This field follows glob pattern, and is run against root of the repository at all times irrespective of Working Directory.**
                   # custom:   # Required when command = custom  # The command to pass to dotnet.exe for execution.
-                  # arguments:  # Optional  # Arguments to the selected command. For example, build configuration, output folder, runtime. The arguments depend on the command selected.
+                  arguments: "-p:Version=$(OutputedVersion)" # Optional  # Arguments to the selected command. For example, build configuration, output folder, runtime. The arguments depend on the command selected.
                   #restoreArguments:  # Optional  # Write the additional arguments to be passed to **restore** command.
                   #publishTestResults:  # Optional  # Enabling this option will generate a test results TRX file in `$(Agent.TempDirectory)` and results will be published to the server. <br>This option appends `--logger trx --results-directory $(Agent.TempDirectory)` to the command line arguments. <br><br>Code coverage can be collected by adding `--collect "Code coverage"` option to the command line arguments. This is currently only available on the Windows platform.
                   #testRunTitle:  # Optional  # Provide a name for the test run.
