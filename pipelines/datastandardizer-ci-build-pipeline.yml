@@ -921,10 +921,11 @@ stages:
                       $previewNumber = $packageCurrentVersionNumberInfo.PackageVersion.Revision
                   }
 
-                  Write-Host "##vso[task.setvariable variable=majorNumber]$majorNumber"
-                  Write-Host "##vso[task.setvariable variable=minorNumber]$minorNumber"
-                  Write-Host "##vso[task.setvariable variable=patchNumber]$patchNumber"
-                  Write-Host "##vso[task.setvariable variable=previewNumber]$previewNumber"
+                  $packageVersion="$($majorNumber).$($minorNumber).$($patchNumber)"
+                  if ($previewNumber -gt 0) {
+                      $packageVersion+="-preview.$($previewNumber)"
+                  }
+                  Write-Host "##vso[task.setvariable variable=packageVersion]$packageVersion"
 
                   $projectPath = Join-Path -Path "$(Build.SourcesDirectory)" -ChildPath $packageInfo.packageSourcePath
                   Write-Host "##vso[task.setvariable variable=packageProjectPath]$projectPath"
@@ -933,7 +934,7 @@ stages:
                 displayName: "[${{ packageName }}] Apply package version numbers"
                 inputs:
                   Path: $(packageProjectPath)
-                  VersionNumber: "$(majorNumber).$(minorNumber).$(patchNumber)-preview.$(previewNumber)"
+                  VersionNumber: $(packageVersion)
                   Injectversion: true
                   FilenamePattern: ".csproj"
                   AddDefault: true
