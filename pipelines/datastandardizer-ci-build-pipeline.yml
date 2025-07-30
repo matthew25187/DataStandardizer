@@ -939,7 +939,7 @@ stages:
                   FilenamePattern: ".csproj"
                   AddDefault: true
                   OutputVersion: "OutputedVersion"
-              - script: type $(packageProjectPath)/${{packageName}}.csproj
+              - script: type $(packageProjectPath)\${{packageName}}.csproj
                 displayName: "Verify version injection for ${{packageName}}"
           # Create NuGet packages
           - ${{ each packageName in split(variables.allPackageNames, ',') }}:
