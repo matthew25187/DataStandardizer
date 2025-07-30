@@ -902,9 +902,9 @@ stages:
                   $packageInfo = '${{ variables.packageInfos }}' | ConvertFrom-Json | Where-Object -Property packageName -EQ ${{ packageName }}
                   $packageCurrentVersionNumberInfo = "$(packageCurrentVersionNumbersList)" | ConvertFrom-Base64String | ConvertFrom-Json | Where-Object -Property PackageName -EQ $packageInfo.packageName
                   $packageNewVersionNumberInfo = "$(packageNewVersionNumbersList)" | ConvertFrom-Base64String | ConvertFrom-Json | Where-Object -Property PackageName -EQ $packageInfo.packageName
-                  $publicationRequiredPackageCount = '${{ variables.publicationRequiredPackageNames }}' | Where-Object { $_ -eq '${{ packageName }}' } | Measure-Object | Select-Object -ExpandProperty Count
+                  $publicationRequiredPackageCount = '${{ variables.publicationRequiredPackageNames }}' -split ',' | Where-Object { $_ -eq '${{ packageName }}' } | Measure-Object | Select-Object -ExpandProperty Count
                   $isPublicationRequiredPackage = [System.Convert]::ToBoolean($publicationRequiredPackageCount)
-                  $changedPackageCount = "$(changedPackageNames)" || Where-Object { $_ -eq '${{ packageName }}' } | Measure-Object | Select-Object -ExpandProperty Count
+                  $changedPackageCount = "$(changedPackageNames)" -split ',' | Where-Object { $_ -eq '${{ packageName }}' } | Measure-Object | Select-Object -ExpandProperty Count
                   $isChangedPackage = [System.Convert]::ToBoolean($changedPackageCount)
 
                   [int] $majorNumber, $minorNumber, $patchNumber, $previewNumber
