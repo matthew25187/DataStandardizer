@@ -816,6 +816,8 @@ stages:
     jobs:
       - job: Create_Packages
         displayName: "Create NuGet packages"
+        variables:
+          packageVersions: ''
         pool:
           vmImage: windows-latest
         strategy:
