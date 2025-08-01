@@ -951,7 +951,7 @@ stages:
                           [Parameter(Mandatory, ValueFromPipeline)]
                           [string]    $InputObject
                       )
-                                                      
+                                                                        
                       process {
                           $inputBytes = [System.Convert]::FromBase64String($InputObject)
                           return [System.Text.Encoding]::UTF8.GetString($inputBytes)
@@ -964,7 +964,7 @@ stages:
                           [Parameter(Mandatory, ValueFromPipeline)]
                           [string]    $InputObject
                       )
-                                                      
+                                                                        
                       process {
                           $inputBytes = [System.Text.Encoding]::UTF8.GetBytes($InputObject)
                           return [System.Convert]::ToBase64String($inputBytes)
@@ -981,7 +981,7 @@ stages:
                   }
 
                   #   Retrieve collection of package versions
-                  [PSCustomObject[]] $packageVersions
+                  [PSCustomObject[]] $packageVersions = @()
                   if (-not [string]::IsNullOrEmpty("$(packageVersions)")) {
                       $packageVersions = "$(packageVersions)" | ConvertFrom-Base64String | ConvertFrom-Json
                   }
@@ -997,7 +997,7 @@ stages:
                       PackageVersion = "$(OutputedVersion)"
                   }
                   $packageVersions += $packageVersion
-                  $serializedPackageVersions = $packageVersions | ConvertTo-Json | ConvertTo-Base64String
+                  $serializedPackageVersions = @($packageVersions) | ConvertTo-Json -Depth 10 | ConvertTo-Base64String
                   Write-Host "##vso[task.setvariable variable=packageVersions]$serializedPackageVersions"
 
                   Write-Information "Added package ${{packageName}} version $(OutputedVersion)."
