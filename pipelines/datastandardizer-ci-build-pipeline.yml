@@ -991,6 +991,10 @@ stages:
                   pwsh: true # boolean. Use PowerShell Core. Default: false.
                   #workingDirectory: # string. Working Directory. 
                   #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.                
+              - powershell: |
+                  Get-ChildItem -Path "$(Build.SourcesDirectory)\src\DataStandardizer.ISO4217" -Filter '*.csproj' |
+                  foreach { Get-Content $_.FullName }
+                displayName: 'Verify injected version in Publication stage'
               - task: DotNetCoreCLI@2
                 displayName: "[${{packageName}}] Create NuGet package"
                 condition: |
