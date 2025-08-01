@@ -942,6 +942,61 @@ stages:
               - pwsh: |
                   Get-ChildItem -Path "$(packageProjectPath)" -Filter '*.csproj' | foreach {$filePath = Join-Path $_.Directory $_.Name; Get-Content $filePath;}
                 displayName: "Verify version injection for ${{packageName}}"
+              - pwsh: |
+                  function ConvertFrom-Base64String {
+                      param (
+                          # Input.
+                          [Parameter(Mandatory, ValueFromPipeline)]
+                          [string]    $InputObject
+                      )
+                                    
+                      process {
+                          $inputBytes = [System.Convert]::FromBase64String($InputObject)
+                          return [System.Text.Encoding]::UTF8.GetString($inputBytes)
+                      }
+                  }
+
+                  function ConvertTo-Base64String {
+                      param (
+                          # Input.
+                          [Parameter(Mandatory, ValueFromPipeline)]
+                          [string]    $InputObject
+                      )
+                                    
+                      process {
+                          $inputBytes = [System.Text.Encoding]::UTF8.GetBytes($InputObject)
+                          return [System.Convert]::ToBase64String($inputBytes)
+                      }
+                  }
+
+                  if (${{parameters.traceLevel}} -gt 0) {
+                      Set-PSDebug -Trace ${{parameters.traceLevel}}
+                  }
+
+                  if ([string]::IsNullOrWhiteSpace("$(OutputedVersion)")) {
+                      Write-Information 'No version found for package ${{packageName}}.'
+                      exit;
+                  }
+
+                  #   Retrieve collection of package versions
+                  [PSCustomObject[]] $packageVersions = "$(packageVersions)" | ConvertFrom-Base64String | ConvertFrom-Json
+                  $packageVersion = $packageVersions | Where-Object -Property PackageName -EQ '${{packageName}}' | Select-Object -First 1
+                  if ($null -ne $packageVersion) {
+                      Write-Information "Found existing version $($packageVersion.PackageVersion) for package ${{packageName}}; skipping addition of version $(OutputedVersion)."
+                      exit;
+                  }
+
+                  #  Add version of current package to collection
+                  $packageVersion = [PSCustomObject]@{
+                      PackageName    = '${{packageName}}'
+                      PackageVersion = "$(OutputedVersion)"
+                  }
+                  $packageVersions += $packageVersion
+                  $serializedPackageVersions = $packageVersions | ConvertTo-Json | ConvertTo-Base64String
+                  Write-Host "##vso[task.setvariable variable=packageVersions]$serializedPackageVersions"
+
+                  Write-Information "Added package ${{packageName}} version $(OutputedVersion)."
+                displayName: '[${{packageName}}] Collect package version number'
           # Create NuGet packages
           - ${{ each packageName in split(variables.allPackageNames, ',') }}:
               - pwsh: |
@@ -991,6 +1046,39 @@ stages:
                   pwsh: true # boolean. Use PowerShell Core. Default: false.
                   #workingDirectory: # string. Working Directory. 
                   #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.                
+              - pwsh: |
+                  function ConvertFrom-Base64String {
+                      param (
+                          # Input.
+                          [Parameter(Mandatory, ValueFromPipeline)]
+                          [string]    $InputObject
+                      )
+                                    
+                      process {
+                          $inputBytes = [System.Convert]::FromBase64String($InputObject)
+                          return [System.Text.Encoding]::UTF8.GetString($inputBytes)
+                      }
+                  }
+
+                  if (${{parameters.traceLevel}} -gt 0) {
+                      Set-PSDebug -Trace ${{parameters.traceLevel}}
+                  }
+
+                  $packageVersions = "$(packageVersions)" | ConvertFrom-Base64String | ConvertFrom-Json
+                  $packageVersion = $packageVersions | Where-Object -Property PackageName -EQ '${{packageName}}'
+                  if ($null -eq $packageVersion) {
+                      Write-Error 'Failed to find version for package ${{packageName}}.'
+                      exit;
+                  }
+
+                  Write-Host "##vso[task.setvariable variable=packageVersion]$($packageVersion.PackageVersion)"
+                displayName: '[${{packageName}}] Set package version argument'
+                condition: |
+                  and
+                  (
+                    succeeded(), 
+                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'))
+                  )                
               - powershell: |
                   Get-ChildItem -Path "$(Build.SourcesDirectory)\src\DataStandardizer.ISO4217" -Filter '*.csproj' |
                   foreach { Get-Content $_.FullName }
@@ -1008,7 +1096,7 @@ stages:
                   # publishWebProjects: true  # Required  # If true, the task will try to find the web projects in the repository and run the publish command on them. Web projects are identified by presence of either a web.config file or wwwroot folder in the directory.
                   #projects:  # Optional  # The path to the csproj file(s) to use. You can use wildcards (e.g. **/*.csproj for all .csproj files in all subfolders). **This field follows glob pattern, and is run against root of the repository at all times irrespective of Working Directory.**
                   # custom:   # Required when command = custom  # The command to pass to dotnet.exe for execution.
-                  # arguments:  # Optional  # Arguments to the selected command. For example, build configuration, output folder, runtime. The arguments depend on the command selected.
+                  arguments: "-p:Version=$(packageVersion)" # Optional  # Arguments to the selected command. For example, build configuration, output folder, runtime. The arguments depend on the command selected.
                   #restoreArguments:  # Optional  # Write the additional arguments to be passed to **restore** command.
                   #publishTestResults:  # Optional  # Enabling this option will generate a test results TRX file in `$(Agent.TempDirectory)` and results will be published to the server. <br>This option appends `--logger trx --results-directory $(Agent.TempDirectory)` to the command line arguments. <br><br>Code coverage can be collected by adding `--collect "Code coverage"` option to the command line arguments. This is currently only available on the Windows platform.
                   #testRunTitle:  # Optional  # Provide a name for the test run.
