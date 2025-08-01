@@ -939,7 +939,8 @@ stages:
                   FilenamePattern: ".csproj"
                   AddDefault: true
                   OutputVersion: "OutputedVersion"
-              - script: type $(packageProjectPath)\${{packageName}}.csproj
+              - pwsh: |
+                  Get-ChildItem -Path "$(packageProjectPath)" -Filter '*.csproj' | foreach {$filePath = Join-Path $_.Directory $_.Name; Get-Content $filePath;}
                 displayName: "Verify version injection for ${{packageName}}"
           # Create NuGet packages
           - ${{ each packageName in split(variables.allPackageNames, ',') }}:
