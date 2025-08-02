@@ -35,6 +35,8 @@ Supports use of ISO 639, "Codes for the representation of names of languages" pa
 
   <ItemGroup>
     <None Remove="DataStandardizer.ISO639.csproj.DotSettings" />
+    <None Remove="DataStandardizer.ISO639.nuspec" />
+    <None Remove="global.json" />
   </ItemGroup>
 
   <ItemGroup>

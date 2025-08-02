@@ -33,6 +33,11 @@ Supports use of UN M49 or the "Standard Country or Area Codes for Statistical Us
   <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
     <Nullable>enable</Nullable>
   </PropertyGroup>
+  
+  <ItemGroup>
+    <None Remove="DataStandardizer.UNM49.nuspec" />
+    <None Remove="global.json" />
+  </ItemGroup>
 
   <ItemGroup>
     <Compile Include="..\GlobalAssemblyInfo.cs" Link="Properties\GlobalAssemblyInfo.cs" />

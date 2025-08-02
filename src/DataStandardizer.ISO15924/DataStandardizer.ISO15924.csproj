@@ -35,6 +35,11 @@ Supports use of ISO 15924, "Codes for the representation of names of scripts".</
     </PropertyGroup>
 
     <ItemGroup>
+      <None Remove="DataStandardizer.ISO15924.nuspec" />
+      <None Remove="global.json" />
+    </ItemGroup>
+
+    <ItemGroup>
       <Compile Include="..\GlobalAssemblyInfo.cs" Link="Properties\GlobalAssemblyInfo.cs" />
     </ItemGroup>
 
