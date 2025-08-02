@@ -1101,7 +1101,7 @@ stages:
                   # publishWebProjects: true  # Required  # If true, the task will try to find the web projects in the repository and run the publish command on them. Web projects are identified by presence of either a web.config file or wwwroot folder in the directory.
                   #projects:  # Optional  # The path to the csproj file(s) to use. You can use wildcards (e.g. **/*.csproj for all .csproj files in all subfolders). **This field follows glob pattern, and is run against root of the repository at all times irrespective of Working Directory.**
                   # custom:   # Required when command = custom  # The command to pass to dotnet.exe for execution.
-                  arguments: "-p:Version=$(packageVersion)" # Optional  # Arguments to the selected command. For example, build configuration, output folder, runtime. The arguments depend on the command selected.
+                  # arguments: "-p:Version=$(packageVersion)" # Optional  # Arguments to the selected command. For example, build configuration, output folder, runtime. The arguments depend on the command selected.
                   #restoreArguments:  # Optional  # Write the additional arguments to be passed to **restore** command.
                   #publishTestResults:  # Optional  # Enabling this option will generate a test results TRX file in `$(Agent.TempDirectory)` and results will be published to the server. <br>This option appends `--logger trx --results-directory $(Agent.TempDirectory)` to the command line arguments. <br><br>Code coverage can be collected by adding `--collect "Code coverage"` option to the command line arguments. This is currently only available on the Windows platform.
                   #testRunTitle:  # Optional  # Provide a name for the test run.
@@ -1120,7 +1120,7 @@ stages:
                   # feedPublish:   # Required when command = push && nuGetFeedType = internal  # Select a feed hosted in this organization. You must have Azure Artifacts installed and licensed to select a feed here.
                   #publishPackageMetadata:  # Optional  # Associate this build/release pipeline’s metadata (run #, source code information) with the package
                   # externalEndpoint:   # Required when command = push && nuGetFeedType = external  # The NuGet service connection that contains the external NuGet server’s credentials.
-                  searchPatternPack: "$(searchPattern)" # Required  # Pattern to search for csproj or nuspec files to pack.You can separate multiple patterns with a semicolon, and you can make a pattern negative by prefixing it with '!'. Example: `**/*.csproj;!**/*.Tests.csproj`
+                  searchPatternPack: "$(Build.SourcesDirectory)/${{packageName}}.slnf" # Required  # Pattern to search for csproj or nuspec files to pack.You can separate multiple patterns with a semicolon, and you can make a pattern negative by prefixing it with '!'. Example: `**/*.csproj;!**/*.Tests.csproj`
                   # configurationToPack:  # Optional  # When using a csproj file this specifies the configuration to package
                   outputDir: "$(Build.ArtifactStagingDirectory)/packages/$(BuildConfiguration)" # Optional  # Folder where packages will be created. If empty, packages will be created alongside the csproj file.
                   nobuild: true # Optional  # Don't build the project before packing. Corresponds to the --no-build command line parameter.
