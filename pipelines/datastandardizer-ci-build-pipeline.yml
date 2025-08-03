@@ -1044,7 +1044,7 @@ stages:
                       New-Item $tempPackagePath -ItemType Directory
                   }
 
-                  & dotnet pack $packageProjectFilePath -OutputDirectory $tempPackagePath
+                  & dotnet pack $packageProjectFilePath --output $tempPackagePath
 
                   $tempPackageFileName = [System.IO.Path]::ChangeExtension(($packageProjectFilePath | Split-Path -Leaf), 'nupkg')
                   $tempPackageFilePath = $tempPackagePath | Join-Path -ChildPath $tempPackageFileName
