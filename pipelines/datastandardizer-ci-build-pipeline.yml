@@ -1011,7 +1011,7 @@ stages:
                           [Parameter(Mandatory, ValueFromPipeline)]
                           [string]    $InputObject
                       )
-                                                      
+                                                                        
                       process {
                           $inputBytes = [System.Convert]::FromBase64String($InputObject)
                           return [System.Text.Encoding]::UTF8.GetString($inputBytes)
@@ -1046,15 +1046,15 @@ stages:
 
                   & dotnet pack $packageProjectFilePath --output $tempPackagePath
 
-                  $tempPackageFileName = [System.IO.Path]::ChangeExtension(($packageProjectFilePath | Split-Path -Leaf), 'nupkg')
+                  $tempPackageFileName = Get-ChildItem $tempPackagePath -Filter '${{packageName}}*.nupkg' | Select-Object -First 1 -ExpandProperty Name
                   $tempPackageFilePath = $tempPackagePath | Join-Path -ChildPath $tempPackageFileName
                   $tempPackageFileExpandPath = $tempPackagePath | Join-Path -ChildPath ($tempPackageFileName | Split-Path -LeafBase)
                   Expand-Archive -Path $tempPackageFilePath -DestinationPath $tempPackageFileExpandPath
 
                   # Update .nuspec file with dependency references.
-                  $tempPackageNuspecFilePath = $tempPackageFileExpandPath | Join-Path -ChildPath '${{packageName}}.nuspec'
+                  $tempPackageNuspecFilePath = Get-ChildItem $tempPackageFileExpandPath -Filter '${{packageName}}*.nuspec' | Select-Object -First 1 -ExpandProperty FullName
                   $tempPackageNuspecDocument = [xml](Get-Content $tempPackageNuspecFilePath)
-                                  
+                                                    
                   $packageNuspecFilePath = $packageProjectFilePath | Split-Path -Parent | Join-Path -ChildPath '${{packageName}}.nuspec'
                   $packageNuspecDocument = [xml](Get-Content $packageNuspecFilePath)
 
@@ -1086,7 +1086,7 @@ stages:
                           if ($dependencyNode.Attributes['id'].Value -ne $packageVersion.PackageName) {
                               continue;
                           }
-                          
+                                            
                           $dependencyNode.Attributes['version'].Value = $packageVersion.PackageVersion
                       }
                   }
