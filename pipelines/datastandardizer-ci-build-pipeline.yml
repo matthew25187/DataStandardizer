@@ -1054,6 +1054,7 @@ stages:
                   # Update .nuspec file with dependency references.
                   $tempPackageNuspecFilePath = Get-ChildItem $tempPackageFileExpandPath -Filter '${{packageName}}*.nuspec' | Select-Object -First 1 -ExpandProperty FullName
                   $tempPackageNuspecDocument = [xml](Get-Content $tempPackageNuspecFilePath)
+                  Get-Content $tempPackageNuspecFilePath
                                                     
                   $packageNuspecFilePath = $packageProjectFilePath | Split-Path -Parent | Join-Path -ChildPath '${{packageName}}.nuspec'
                   $packageNuspecDocument = [xml](Get-Content $packageNuspecFilePath)
