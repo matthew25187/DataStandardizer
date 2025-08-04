@@ -1011,7 +1011,7 @@ stages:
                           [Parameter(Mandatory, ValueFromPipeline)]
                           [string]    $InputObject
                       )
-                                                                        
+                                                                                          
                       process {
                           $inputBytes = [System.Convert]::FromBase64String($InputObject)
                           return [System.Text.Encoding]::UTF8.GetString($inputBytes)
@@ -1055,17 +1055,20 @@ stages:
                   $tempPackageNuspecFilePath = Get-ChildItem $tempPackageFileExpandPath -Filter '${{packageName}}*.nuspec' | Select-Object -First 1 -ExpandProperty FullName
                   $tempPackageNuspecDocument = [xml](Get-Content $tempPackageNuspecFilePath)
                   Get-Content $tempPackageNuspecFilePath
-                                                    
+                                                                      
                   $packageNuspecFilePath = $packageProjectFilePath | Split-Path -Parent | Join-Path -ChildPath '${{packageName}}.nuspec'
                   $packageNuspecDocument = [xml](Get-Content $packageNuspecFilePath)
 
-                  $dependenciesNode = $tempPackageNuspecDocument.SelectSingleNode('/package/metadata/dependencies')
+                  $nsMgr = New-Object System.Xml.XmlNamespaceManager($tempPackageNuspecDocument.NameTable)
+                  $nsMgr.AddNamespace("ns", "http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd")
+
+                  $dependenciesNode = $tempPackageNuspecDocument.SelectSingleNode('/ns:package/ns:metadata/ns:dependencies', $nsMgr)
                   if ($dependenciesNode -ne $null) {
                       # Import the node into the target document
                       $importedNode = $packageNuspecDocument.ImportNode($dependenciesNode, $true)
 
                       # Find the <metadata> node in the target document
-                      $targetMetadata = $packageNuspecDocument.SelectSingleNode('/package/metadata')
+                      $targetMetadata = $packageNuspecDocument.SelectSingleNode('/ns:package/ns:metadata', $nsMgr)
                       if ($targetMetadata -ne $null) {
                           # Append the imported <dependencies> node
                           $targetMetadata.AppendChild($importedNode)
@@ -1087,7 +1090,7 @@ stages:
                           if ($dependencyNode.Attributes['id'].Value -ne $packageVersion.PackageName) {
                               continue;
                           }
-                                            
+                                                              
                           $dependencyNode.Attributes['version'].Value = $packageVersion.PackageVersion
                       }
                   }
