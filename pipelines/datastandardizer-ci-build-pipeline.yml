@@ -1096,6 +1096,7 @@ stages:
                   }
 
                   $packageNuspecDocument.Save($packageNuspecFilePath)
+                  Get-Content $packageNuspecFilePath
                 displayName: '[${{packageName}}] Update dependency versions'
                 condition: |
                   and
