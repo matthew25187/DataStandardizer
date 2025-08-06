@@ -1192,7 +1192,7 @@ stages:
                   }
 
                   $packageNuspecDocument.Save($packageNuspecFilePath)
-                  Compress-Archive $packageNuspecFilePath -DestinationPath $packageFilePath
+                  Compress-Archive $packageNuspecFilePath -DestinationPath $packageFilePath -Update
                 displayName: '[${{packageName}}] Update dependency versions'
                 condition: |
                   and
