@@ -31,6 +31,10 @@ Supports use of strongly-typed monetary values.</Description>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="global.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Include="..\GlobalAssemblyInfo.cs" Link="Properties\GlobalAssemblyInfo.cs" />
   </ItemGroup>
 

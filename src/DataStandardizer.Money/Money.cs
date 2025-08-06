@@ -1,47 +1,57 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Linq;
+using System.Text.RegularExpressions;
 using DataStandardizer.ISO4217;
-#if NETSTANDARD
-using JetBrains.Annotations; 
-#endif
 
 namespace DataStandardizer.Money
 {
-    public struct Money : IComparable, IComparable<Money>, IEquatable<Money>
+    public struct Money : IComparable, IComparable<Money>, IEquatable<Money>, IFormattable
 #if NETSTANDARD1_3_OR_GREATER||NET
         , IConvertible
 #endif
     {
-        private static CultureInfo _defaultCulture = CultureInfo.InvariantCulture;
+        private static class GroupName
+        {
+            internal const string CurrencyCode = "code";
+            internal const string CurrencyAmount = "amount";
+        }
+
+        private static class ErrorMessage
+        {
+            internal const string DifferentCurrenciesComparisonTemplate = "Unable to compare {0} values with different currencies.";
+        }
+
+        private static readonly Regex CurrencyFormatExpression;
         private const Iso4217Current DefaultCurrency = Iso4217Current.XXX;
 
         private readonly decimal _amount;
-#if NETCOREAPP3_0_OR_GREATER
-        private readonly CultureInfo? _culture;
-#else
-        [CanBeNull] private readonly CultureInfo _culture;
-#endif
         private Iso4217Current? _currency;
-        private readonly int? _minorUnits;
-        private readonly MidpointRounding? _roundingMethod;
-
+        static Money()
+        {
+            var options = RegexOptions.None;
+#if NETSTANDARD1_3_OR_GREATER||NET
+            options |= RegexOptions.Compiled;
+#endif
+            CurrencyFormatExpression = new Regex(@"^[Cc](\d*)$", options, TimeSpan.FromSeconds(1));
+        }
 #if NETCOREAPP3_0_OR_GREATER
-        public Money(decimal amount, CultureInfo? culture = null)
+        public Money(decimal amount)
 #else
-        public Money(decimal amount, CultureInfo culture = null)
+        public Money(decimal amount)
 #endif
         {
             _amount = amount;
-            _culture = culture;
             _currency = null;
-            _minorUnits = null;
-            _roundingMethod = null;
+            RoundingPrecision = null;
+            RoundingMethod = null;
         }
 
 #if NETCOREAPP3_0_OR_GREATER
-        public Money(decimal amount, Iso4217Current currency, CultureInfo? culture = null)
+        public Money(decimal amount, Iso4217Current currency)
 #else
-        public Money(decimal amount, Iso4217Current currency, CultureInfo culture = null)
+        public Money(decimal amount, Iso4217Current currency)
 #endif
             : this(amount)
         {
@@ -52,39 +62,36 @@ namespace DataStandardizer.Money
                 throw new ArgumentException("Expected a national currency code.", nameof(currency));
 
             _currency = currency;
-            _culture = culture;
         }
 
 #if NETCOREAPP3_0_OR_GREATER
-        public Money(decimal amount, Iso4217Current currency, int minorUnits, CultureInfo? culture = null)
+        public Money(decimal amount, Iso4217Current currency, int roundingPrecision)
 #else
-        public Money(decimal amount, Iso4217Current currency, int minorUnits, CultureInfo culture = null)
+        public Money(decimal amount, Iso4217Current currency, int roundingPrecision)
 #endif
             : this(amount, currency)
         {
-            _minorUnits = minorUnits;
-            _culture = culture;
+            RoundingPrecision = roundingPrecision;
         }
 
 #if NETCOREAPP3_0_OR_GREATER
-        public Money(decimal amount, Iso4217Current currency, int minorUnits, MidpointRounding roundingMethod, CultureInfo? culture = null)
+        public Money(decimal amount, Iso4217Current currency, int roundingPrecision, MidpointRounding roundingMethod)
 #else
-        public Money(decimal amount, Iso4217Current currency, int minorUnits, MidpointRounding roundingMethod, CultureInfo culture = null)
+        public Money(decimal amount, Iso4217Current currency, int roundingPrecision, MidpointRounding roundingMethod)
 #endif
-            : this(amount, currency, minorUnits)
+            : this(amount, currency, roundingPrecision)
         {
-            _roundingMethod = roundingMethod;
-            _culture = culture;
+            RoundingMethod = roundingMethod;
         }
 
         public static implicit operator decimal(Money value)
         {
             var result = value._amount;
-            if (value._minorUnits.HasValue)
+            if (value.RoundingPrecision.HasValue)
             {
-                result = !value._roundingMethod.HasValue
-                    ? Math.Round(value._amount, value._minorUnits.Value)
-                    : Math.Round(value._amount, value._minorUnits.Value, value._roundingMethod.Value);
+                result = !value.RoundingMethod.HasValue
+                    ? Math.Round(value._amount, value.RoundingPrecision.Value)
+                    : Math.Round(value._amount, value.RoundingPrecision.Value, value.RoundingMethod.Value);
             }
 
             return result;
@@ -95,10 +102,160 @@ namespace DataStandardizer.Money
             return new Money(value);
         }
 
+        public static Money operator +(Money moneyValue, decimal decimalValue)
+        {
+            var result = decimal.Add(moneyValue._amount, decimalValue);
+            if (moneyValue.RoundingPrecision.HasValue && moneyValue.RoundingMethod.HasValue)
+            {
+                return new Money(result, moneyValue.IsoCurrencyCode, moneyValue.RoundingPrecision.Value, moneyValue.RoundingMethod.Value);
+            }
+
+            if (moneyValue.RoundingPrecision.HasValue)
+            {
+                return new Money(result, moneyValue.IsoCurrencyCode, moneyValue.RoundingPrecision.Value);
+            }
+
+            if (moneyValue.IsoCurrencyCode != Iso4217Current.XXX)
+            {
+                return new Money(result, moneyValue.IsoCurrencyCode);
+            }
+
+            return new Money(result);
+        }
+
+        public static Money operator -(Money moneyValue, decimal decimalValue)
+        {
+            var result = decimal.Subtract(moneyValue._amount, decimalValue);
+            if (moneyValue.RoundingPrecision.HasValue && moneyValue.RoundingMethod.HasValue)
+            {
+                return new Money(result, moneyValue.IsoCurrencyCode, moneyValue.RoundingPrecision.Value, moneyValue.RoundingMethod.Value);
+            }
+
+            if (moneyValue.RoundingPrecision.HasValue)
+            {
+                return new Money(result, moneyValue.IsoCurrencyCode, moneyValue.RoundingPrecision.Value);
+            }
+
+            if (moneyValue.IsoCurrencyCode != Iso4217Current.XXX)
+            {
+                return new Money(result, moneyValue.IsoCurrencyCode);
+            }
+
+            return new Money(result);
+        }
+
+        public static Money operator *(Money moneyValue, decimal decimalValue)
+        {
+            var result = decimal.Multiply(moneyValue._amount, decimalValue);
+            if (moneyValue.RoundingPrecision.HasValue && moneyValue.RoundingMethod.HasValue)
+            {
+                return new Money(result, moneyValue.IsoCurrencyCode, moneyValue.RoundingPrecision.Value, moneyValue.RoundingMethod.Value);
+            }
+
+            if (moneyValue.RoundingPrecision.HasValue)
+            {
+                return new Money(result, moneyValue.IsoCurrencyCode, moneyValue.RoundingPrecision.Value);
+            }
+
+            if (moneyValue.IsoCurrencyCode != Iso4217Current.XXX)
+            {
+                return new Money(result, moneyValue.IsoCurrencyCode);
+            }
+
+            return new Money(result);
+        }
+
+        public static Money operator /(Money moneyValue, decimal decimalValue)
+        {
+            var result = decimal.Divide(moneyValue._amount, decimalValue);
+            if (moneyValue.RoundingPrecision.HasValue && moneyValue.RoundingMethod.HasValue)
+            {
+                return new Money(result, moneyValue.IsoCurrencyCode, moneyValue.RoundingPrecision.Value, moneyValue.RoundingMethod.Value);
+            }
+
+            if (moneyValue.RoundingPrecision.HasValue)
+            {
+                return new Money(result, moneyValue.IsoCurrencyCode, moneyValue.RoundingPrecision.Value);
+            }
+
+            if (moneyValue.IsoCurrencyCode != Iso4217Current.XXX)
+            {
+                return new Money(result, moneyValue.IsoCurrencyCode);
+            }
+
+            return new Money(result);
+        }
+
+        public static bool operator ==(Money left, Money right)
+        {
+            if (left.IsoCurrencyCode != right.IsoCurrencyCode)
+            {
+                var errorMessage = string.Format(ErrorMessage.DifferentCurrenciesComparisonTemplate, nameof(Money));
+                throw new InvalidOperationException(errorMessage);
+            }
+
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(Money left, Money right)
+        {
+            if (left.IsoCurrencyCode != right.IsoCurrencyCode)
+            {
+                var errorMessage = string.Format(ErrorMessage.DifferentCurrenciesComparisonTemplate, nameof(Money));
+                throw new InvalidOperationException(errorMessage);
+            }
+
+            return !left.Equals(right);
+        }
+
+        public static bool operator <(Money left, Money right)
+        {
+            if (left.IsoCurrencyCode != right.IsoCurrencyCode)
+            {
+                var errorMessage = string.Format(ErrorMessage.DifferentCurrenciesComparisonTemplate, nameof(Money));
+                throw new InvalidOperationException(errorMessage);
+            }
+
+            return left.CompareTo(right) < 0;
+        }
+
+        public static bool operator >(Money left, Money right)
+        {
+            if (left.IsoCurrencyCode != right.IsoCurrencyCode)
+            {
+                var errorMessage = string.Format(ErrorMessage.DifferentCurrenciesComparisonTemplate, nameof(Money));
+                throw new InvalidOperationException(errorMessage);
+            }
+
+            return left.CompareTo(right) > 0;
+        }
+
+        public static bool operator <=(Money left, Money right)
+        {
+            if (left.IsoCurrencyCode != right.IsoCurrencyCode)
+            {
+                var errorMessage = string.Format(ErrorMessage.DifferentCurrenciesComparisonTemplate, nameof(Money));
+                throw new InvalidOperationException(errorMessage);
+            }
+
+            return left.CompareTo(right) <= 0;
+        }
+
+        public static bool operator >=(Money left, Money right)
+        {
+            if (left.IsoCurrencyCode != right.IsoCurrencyCode)
+            {
+                var errorMessage = string.Format(ErrorMessage.DifferentCurrenciesComparisonTemplate, nameof(Money));
+                throw new InvalidOperationException(errorMessage);
+            }
+
+            return left.CompareTo(right) >= 0;
+        }
+
         /// <summary>
-        /// Gets the culture used for formatting the current value.
+        /// Gets the number of digits used for the minor units of the currency.
         /// </summary>
-        public CultureInfo Culture => _culture ?? _defaultCulture;
+        public byte? CurrencyMinorUnits => _currency?.GetMinorUnits();
 
         /// <summary>
         /// Gets the ISO 4217 currency code for the current value.
@@ -106,9 +263,14 @@ namespace DataStandardizer.Money
         public Iso4217Current IsoCurrencyCode => _currency ?? (_currency = DefaultCurrency).Value;
 
         /// <summary>
-        /// Gets the number of digits of precision specified for the current value.
+        /// Gets the method of rounding applied to the amount.
         /// </summary>
-        public int? MinorUnits => _minorUnits;
+        public MidpointRounding? RoundingMethod { get; }
+
+        /// <summary>
+        /// Gets the number of digits of precision to which the current value will be rounded.
+        /// </summary>
+        public int? RoundingPrecision { get; }
 #if NETCOREAPP3_0_OR_GREATER
         public int CompareTo(object? obj)
         {
@@ -131,63 +293,235 @@ namespace DataStandardizer.Money
             return _amount.CompareTo(other._amount);
         }
 
+#if NETCOREAPP3_0_OR_GREATER
+        public override bool Equals([NotNullWhen(true)] object? obj)
+        {
+            return base.Equals(obj);
+        }
+#else
+        public override bool Equals(object obj)
+        {
+            return obj is Money other && Equals(other);
+        }
+#endif
+
         public bool Equals(Money other)
         {
             return decimal.Equals(_amount, other._amount) && Nullable.Equals(_currency, other._currency);
         }
 
-        /// <summary>
-        /// Get the number of digits of precision to use for formatting the output of this value.
-        /// </summary>
-        /// <returns>Digits of precision to use or <c>null</c> if the precision could not be determined.</returns>
-        public int? GetMinorUnits()
+        public override int GetHashCode()
         {
-            var culture = _culture ?? _defaultCulture;
-            return GetMinorUnits(culture);
+            unchecked
+            {
+                return (_amount.GetHashCode() * 397) ^ _currency.GetHashCode();
+            }
         }
 
         /// <summary>
-        /// Set the default culture to use for monetary values not having their own culture.
+        /// Converts the string representation of a number to its <see cref="Money"/> equivalent.
         /// </summary>
-        /// <param name="culture">Culture to use as the default.</param>
+        /// <param name="s">The string representation of the number to convert.</param>
+        /// <returns>The <see cref="Money"/> number equivalent to the number contained in <paramref name="s"/>.</returns>
+        public static Money Parse(string s)
+        {
+            if (s is null)
+                throw new ArgumentNullException(nameof(s));
+
+            IFormatProvider provider = CultureInfo.CurrentCulture;
+
+            var currencyNegativePattern = BuildCurrencyNegativePattern(provider);
+            var (currencyCode, currencyAmount) = ExtractValue(s, currencyNegativePattern, provider);
+            if (currencyAmount.HasValue)
+            {
+                return currencyCode.HasValue ? new Money(-currencyAmount.Value, currencyCode.Value) : new Money(-currencyAmount.Value);
+            }
+
+            var currencyPositivePattern = BuildCurrencyPositivePattern(provider);
+            (currencyCode, currencyAmount) = ExtractValue(s, currencyPositivePattern, provider);
+            if (currencyAmount.HasValue)
+            {
+                return currencyCode.HasValue ? new Money(currencyAmount.Value, currencyCode.Value) : new Money(currencyAmount.Value);
+            }
+
+            throw new FormatException($"{nameof(s)} is not in the correct format.");
+        }
+
+        /// <summary>
+        /// Converts the string representation of a number to its <see cref="Money"/> equivalent using the specified culture-specific format information.
+        /// </summary>
+        /// <param name="s">The string representation of the number to convert.</param>
+        /// <param name="provider">An <see cref="IFormatProvider"/> that supplies culture-specific parsing information about <paramref name="s"/>.</param>
+        /// <returns>The <see cref="Money"/> number equivalent to the number contained in <paramref name="s"/> as specified by <paramref name="provider"/>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static void SetDefaultCulture(CultureInfo culture)
+        public static Money Parse(string s, IFormatProvider? provider)
 #else
-        public static void SetDefaultCulture([NotNull] CultureInfo culture)
+        public static Money Parse(string s, IFormatProvider provider)
 #endif
         {
-            _defaultCulture = culture;
-        }
+            if (s is null)
+                throw new ArgumentNullException(nameof(s));
 
-        /// <summary>
-        /// Return a string representing the current value as a monetary amount with the currency code in place of the currency symbol.
-        /// </summary>
-        /// <returns>String representation of the monetary amount.</returns>
-        public string ToCurrencyWithCurrencyCodeString()
-        {
-            var currencyCode = Enum.GetName(IsoCurrencyCode.GetType(), IsoCurrencyCode);
-            var currencyCulture = _culture ?? _defaultCulture;
-            var currencyMinorDigits = GetMinorUnits(currencyCulture);
-            var currencyString = _amount.ToString($"C{currencyMinorDigits}", currencyCulture)
-                .Replace(currencyCulture.NumberFormat.CurrencySymbol, currencyCode);
-            return currencyString;
-        }
+            var useProvider = provider ?? CultureInfo.CurrentCulture;
 
-        /// <summary>
-        /// Return a string representing the current value as a monetary amount.
-        /// </summary>
-        /// <returns>String representation of the monetary amount.</returns>
-        public string ToCurrencyWithCurrencySymbolString()
-        {
-            var currencyCulture = _culture ?? _defaultCulture;
-            return _amount.ToString("C", currencyCulture);
+            var currencyNegativePattern = BuildCurrencyNegativePattern(useProvider);
+            var (currencyCode, currencyAmount) = ExtractValue(s, currencyNegativePattern, useProvider);
+            if (currencyAmount.HasValue)
+            {
+                return currencyCode.HasValue ? new Money(-currencyAmount.Value, currencyCode.Value) : new Money(currencyAmount.Value);
+            }
+
+            var currencyPositivePattern = BuildCurrencyPositivePattern(useProvider);
+            (currencyCode, currencyAmount) = ExtractValue(s, currencyPositivePattern, useProvider);
+            if (currencyAmount.HasValue)
+            {
+                return currencyCode.HasValue ? new Money(currencyAmount.Value, currencyCode.Value) : new Money(currencyAmount.Value);
+            }
+
+            throw new FormatException($"{nameof(s)} is not in the correct format.");
         }
 
         public override string ToString()
         {
-            return $"{nameof(_amount)}: {_amount}";
+            return _amount.ToString();
         }
 
+        /// <summary>
+        /// Converts the numeric value of this instance to its equivalent string representation using the specified culture-specific format information.
+        /// </summary>
+        /// <param name="provider">An <see cref="IFormatProvider"/> that supplies culture-specific formatting information.</param>
+        /// <returns>The string representation of the value of this instance as specified by <paramref name="provider"/>.</returns>
+#if NETCOREAPP3_0_OR_GREATER
+        public string ToString(IFormatProvider? provider)
+#else
+        public string ToString(IFormatProvider provider)
+#endif
+        {
+            return _amount.ToString(provider);
+        }
+
+        /// <summary>
+        /// Converts the numeric value of this instance to its equivalent string representation, using the specified format.
+        /// </summary>
+        /// <param name="format">A standard or custom numeric format string.</param>
+        /// <returns>The string representation of the value of this instance as specified by <paramref name="format"/>.</returns>
+#if NETCOREAPP3_0_OR_GREATER
+        public string ToString(string? format)
+#else
+        public string ToString(string format)
+#endif
+        {
+            if (!string.IsNullOrEmpty(format) && CurrencyFormatExpression.IsMatch(format) && IsoCurrencyCode != Iso4217Current.XXX)
+            {
+                var result = _amount.ToString(format);
+                var currencyCode = Enum.GetName(typeof(Iso4217Current), IsoCurrencyCode);
+                return result.Replace(CultureInfo.CurrentCulture.NumberFormat.CurrencySymbol, currencyCode);
+            }
+
+            return _amount.ToString(format);
+        }
+#if NETCOREAPP3_0_OR_GREATER
+        public string ToString(string? format, IFormatProvider? formatProvider)
+#else
+        public string ToString(string format, IFormatProvider formatProvider)
+#endif
+        {
+            if (!string.IsNullOrEmpty(format) && CurrencyFormatExpression.IsMatch(format) && IsoCurrencyCode != Iso4217Current.XXX)
+            {
+                var result = _amount.ToString(format, formatProvider);
+
+                if (formatProvider?.GetFormat(typeof(NumberFormatInfo)) is NumberFormatInfo numberFormatInfo)
+                {
+                    var currencyCode = Enum.GetName(typeof(Iso4217Current), IsoCurrencyCode);
+                    result = result.Replace(numberFormatInfo.CurrencySymbol, currencyCode);
+                }
+
+                return result;
+            }
+
+            return _amount.ToString(format, formatProvider);
+        }
+
+        /// <summary>
+        /// Converts the string representation of a number to its <see cref="Money"/> equivalent. A return value indicates whether the conversion succeeded or failed.
+        /// </summary>
+        /// <param name="s">The string representation of the number to convert.</param>
+        /// <param name="result">When this method returns, contains the <see cref="Money"/> number that is equivalent to the numeric value contained in <paramref name="s"/>, if the conversion succeeded, or is zero if the conversion failed.</param>
+        /// <returns><c>true</c> if <paramref name="s"/> was converted successfully; otherwise, <c>false</c>.</returns>
+#if NETCOREAPP3_0_OR_GREATER
+        public static bool TryParse(string? s, out Money result)
+#else
+        public static bool TryParse(string s, out Money result)
+#endif
+        {
+            if (string.IsNullOrEmpty(s))
+            {
+                result = default;
+                return false;
+            }
+
+            IFormatProvider provider = CultureInfo.CurrentCulture;
+
+            var currencyNegativePattern = BuildCurrencyNegativePattern(provider);
+            var (currencyCode, currencyAmount) = ExtractValue(s, currencyNegativePattern, provider);
+            if (currencyAmount.HasValue)
+            {
+                result = currencyCode.HasValue ? new Money(-currencyAmount.Value, currencyCode.Value) : new Money(-currencyAmount.Value);
+                return true;
+            }
+
+            var currencyPositivePattern = BuildCurrencyPositivePattern(provider);
+            (currencyCode, currencyAmount) = ExtractValue(s, currencyPositivePattern, provider);
+            if (currencyAmount.HasValue)
+            {
+                result = currencyCode.HasValue ? new Money(currencyAmount.Value, currencyCode.Value) : new Money(currencyAmount.Value);
+                return true;
+            }
+
+            result = default;
+            return false;
+        }
+
+        /// <summary>
+        /// Converts the string representation of a number to its <see cref="Money"/> equivalent using the specified style and culture-specific format. A return value indicates whether the conversion succeeded or failed.
+        /// </summary>
+        /// <param name="s">The string representation of the number to convert.</param>
+        /// <param name="provider">An <see cref="IFormatProvider"/> object that supplies culture-specific parsing information about <paramref name="s"/>.</param>
+        /// <param name="result">When this method returns, contains the <see cref="Money"/> number that is equivalent to the numeric value contained in <paramref name="s"/>, if the conversion succeeded, or is zero if the conversion failed.</param>
+        /// <returns><c>true</c> if <paramref name="s"/> was converted successfully; otherwise, <c>false</c>.</returns>
+#if NETCOREAPP3_0_OR_GREATER
+        public static bool TryParse(string? s, IFormatProvider? provider, out Money result)
+#else
+        public static bool TryParse(string s, IFormatProvider provider, out Money result)
+#endif
+        {
+            if (string.IsNullOrEmpty(s))
+            {
+                result = default;
+                return false;
+            }
+
+            IFormatProvider useProvider = provider ?? CultureInfo.CurrentCulture;
+
+            var currencyNegativePattern = BuildCurrencyNegativePattern(useProvider);
+            var (currencyCode, currencyAmount) = ExtractValue(s, currencyNegativePattern, useProvider);
+            if (currencyAmount.HasValue)
+            {
+                result = currencyCode.HasValue ? new Money(-currencyAmount.Value, currencyCode.Value) : new Money(-currencyAmount.Value);
+                return true;
+            }
+
+            var currencyPositivePattern = BuildCurrencyPositivePattern(useProvider);
+            (currencyCode, currencyAmount) = ExtractValue(s, currencyPositivePattern, useProvider);
+            if (currencyAmount.HasValue)
+            {
+                result = currencyCode.HasValue ? new Money(currencyAmount.Value, currencyCode.Value) : new Money(currencyAmount.Value);
+                return true;
+            }
+
+            result = default;
+            return false;
+        }
 #if NETCOREAPP3_0_OR_GREATER
         TypeCode IConvertible.GetTypeCode()
         {
@@ -273,7 +607,7 @@ namespace DataStandardizer.Money
         {
             return ((IConvertible)_amount).ToUInt64(provider);
         }
-#elif NETSTANDARD1_3_OR_GREATER||NET
+#elif NETSTANDARD1_3_OR_GREATER || NET
         TypeCode IConvertible.GetTypeCode()
         {
             return _amount.GetTypeCode();
@@ -359,6 +693,94 @@ namespace DataStandardizer.Money
             return ((IConvertible)_amount).ToUInt64(provider);
         }
 #endif
-        private int? GetMinorUnits(CultureInfo culture) => _minorUnits ?? IsoCurrencyCode.GetMinorUnits() ?? culture.NumberFormat.CurrencyDecimalDigits;
+#if NETCOREAPP3_0_OR_GREATER
+        private static string BuildCurrencyNegativePattern(IFormatProvider? provider)
+#else
+        private static string BuildCurrencyNegativePattern(IFormatProvider provider)
+#endif
+        {
+            var amountPattern = GetCurrencyAmountPattern(provider);
+            var currencyCodePattern = GetCurrencyCodePattern();
+            var currencyNegativePatterns = new[]
+            {
+                $@"\({currencyCodePattern}{amountPattern}\)",
+                $"-{currencyCodePattern}{amountPattern}",
+                $"{currencyCodePattern}-{amountPattern}",
+                $"{currencyCodePattern}{amountPattern}-",
+                $@"\({amountPattern}{currencyCodePattern}\)",
+                $"-{amountPattern}{currencyCodePattern}",
+                $"{amountPattern}-{currencyCodePattern}",
+                $"{amountPattern}{currencyCodePattern}-",
+                $"-{amountPattern} {currencyCodePattern}",
+                $"-{currencyCodePattern} {amountPattern}",
+                $"{amountPattern} {currencyCodePattern}-",
+                $"{currencyCodePattern} {amountPattern}-",
+                $"{currencyCodePattern} -{amountPattern}",
+                $"{amountPattern}- {currencyCodePattern}",
+                $@"\({currencyCodePattern} {amountPattern}\)",
+                $@"\({amountPattern} {currencyCodePattern}\)"
+            };
+            return string.Join("|", currencyNegativePatterns);
+        }
+
+#if NETCOREAPP3_0_OR_GREATER
+        private static string BuildCurrencyPositivePattern(IFormatProvider? provider)
+#else
+        private static string BuildCurrencyPositivePattern(IFormatProvider provider)
+#endif
+        {
+            var amountPattern = GetCurrencyAmountPattern(provider);
+            var currencyCodePattern = GetCurrencyCodePattern();
+            var currencyPositivePatterns = new[]
+            {
+                $"{currencyCodePattern}{amountPattern}",
+                $"{amountPattern}{currencyCodePattern}",
+                $"{currencyCodePattern} {amountPattern}",
+                $"{amountPattern} {currencyCodePattern}"
+            };
+            return string.Join("|", currencyPositivePatterns);
+        }
+
+#if NETCOREAPP3_0_OR_GREATER
+        private static (Iso4217Current? CurrencyCode, decimal? CurrencyAmount) ExtractValue(string input, string pattern, IFormatProvider? provider)
+#else
+        private static (Iso4217Current? CurrencyCode, decimal? CurrencyAmount) ExtractValue(string input, string pattern, IFormatProvider provider)
+#endif
+        {
+            Iso4217Current? currencyCode = null;
+            Decimal? currencyAmount = null;
+
+            var valueMatch = Regex.Match(input, pattern);
+            if (valueMatch.Success)
+            {
+                currencyCode = Enum.TryParse(valueMatch.Groups[GroupName.CurrencyCode].Value, out Iso4217Current useCurrencyCode)
+                    ? useCurrencyCode
+                    : (Iso4217Current?)null;
+                currencyAmount = decimal.TryParse(valueMatch.Groups[GroupName.CurrencyAmount].Value, NumberStyles.Currency, provider, out var useCurrencyAmount)
+                    ? useCurrencyAmount
+                    : (decimal?)null;
+            }
+
+            return (currencyCode, currencyAmount);
+        }
+
+#if NETCOREAPP3_0_OR_GREATER
+        private static string GetCurrencyAmountPattern(IFormatProvider? provider)
+#else
+        private static string GetCurrencyAmountPattern(IFormatProvider provider)
+#endif
+        {
+            var numberFormatInfo = provider?.GetFormat(typeof(NumberFormatInfo)) as NumberFormatInfo ?? CultureInfo.CurrentCulture.NumberFormat;
+            return $@"(?<{GroupName.CurrencyAmount}>\d+(?:{numberFormatInfo.CurrencyDecimalSeparator}\d+)?)";
+        }
+
+        private static string GetCurrencyCodePattern()
+        {
+            var currencyCodes = Enum.GetValues(typeof(Iso4217Current))
+                .Cast<Iso4217Current>()
+                .Where(code => code.IsNationalCurrency() || code.IsSupranationalCurrency() || code == Iso4217Current.XTS)
+                .Select(code => Enum.GetName(typeof(Iso4217Current), code));
+            return string.Concat("(?<", GroupName.CurrencyCode, ">", string.Join("|", currencyCodes), ")");
+        }
     }
 }
