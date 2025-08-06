@@ -1005,106 +1005,6 @@ stages:
           # Create NuGet packages
           - ${{ each packageName in split(variables.allPackageNames, ',') }}:
               - pwsh: |
-                  function ConvertFrom-Base64String {
-                      param (
-                          # Input.
-                          [Parameter(Mandatory, ValueFromPipeline)]
-                          [string]    $InputObject
-                      )
-                                                                                          
-                      process {
-                          $inputBytes = [System.Convert]::FromBase64String($InputObject)
-                          return [System.Text.Encoding]::UTF8.GetString($inputBytes)
-                      }
-                  }
-
-                  if (${{parameters.traceLevel}} -gt 0) {
-                      Set-PSDebug -Trace ${{parameters.traceLevel}}
-                  }
-
-                  #   Get a path to the project root folder.
-                  $packageInfo = '${{ variables.packageInfos }}' | ConvertFrom-Json | Where-Object -Property packageName -EQ '${{packageName}}'
-                  if ($null -eq $packageInfo) {
-                      Write-Error 'Package information not found for ${{packageName}}'
-                      exit;
-                  }
-
-                  $packageProjectFilePath = Get-ChildItem "$(Build.SourcesDirectory)/$($packageInfo.packageSourcePath)" -Filter '${{packageName}}.csproj' | Select-Object -ExpandProperty FullName
-                  if (-not (Test-Path $packageProjectFilePath -PathType Leaf)) {
-                      Write-Warning 'Project file for package ${{packageName}} not found.  Dependencies not included.'
-                      exit;
-                  }
-
-                  # Retrieve the collection of package versions.
-                  $packageVersions = "$(packageVersions)" | ConvertFrom-Base64String | ConvertFrom-Json
-
-                  #   Generate a temporary package file.
-                  $tempPackagePath = "$(Agent.TempDirectory)/${{packageName}}"
-                  if (-not (Test-Path $tempPackagePath -PathType Container)) {
-                      New-Item $tempPackagePath -ItemType Directory
-                  }
-
-                  & dotnet pack $packageProjectFilePath --output $tempPackagePath
-
-                  $tempPackageFileName = Get-ChildItem $tempPackagePath -Filter '${{packageName}}*.nupkg' | Select-Object -First 1 -ExpandProperty Name
-                  $tempPackageFilePath = $tempPackagePath | Join-Path -ChildPath $tempPackageFileName
-                  $tempPackageFileExpandPath = $tempPackagePath | Join-Path -ChildPath ($tempPackageFileName | Split-Path -LeafBase)
-                  Expand-Archive -Path $tempPackageFilePath -DestinationPath $tempPackageFileExpandPath
-
-                  # Update .nuspec file with dependency references.
-                  $tempPackageNuspecFilePath = Get-ChildItem $tempPackageFileExpandPath -Filter '${{packageName}}*.nuspec' | Select-Object -First 1 -ExpandProperty FullName
-                  $tempPackageNuspecDocument = [xml](Get-Content $tempPackageNuspecFilePath)
-                  Get-Content $tempPackageNuspecFilePath
-                                                                      
-                  $packageNuspecFilePath = $packageProjectFilePath | Split-Path -Parent | Join-Path -ChildPath '${{packageName}}.nuspec'
-                  $packageNuspecDocument = [xml](Get-Content $packageNuspecFilePath)
-
-                  $nsMgr = New-Object System.Xml.XmlNamespaceManager($tempPackageNuspecDocument.NameTable)
-                  $nsMgr.AddNamespace("ns", "http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd")
-
-                  $dependenciesNode = $tempPackageNuspecDocument.SelectSingleNode('/ns:package/ns:metadata/ns:dependencies', $nsMgr)
-                  if ($dependenciesNode -ne $null) {
-                      # Import the node into the target document
-                      $importedNode = $packageNuspecDocument.ImportNode($dependenciesNode, $true)
-
-                      # Find the <metadata> node in the target document
-                      $targetMetadata = $packageNuspecDocument.SelectSingleNode('/ns:package/ns:metadata', $nsMgr)
-                      if ($targetMetadata -ne $null) {
-                          # Append the imported <dependencies> node
-                          $targetMetadata.AppendChild($importedNode)
-                      }
-                      else {
-                          Write-Warning "Metadata not found in package specification $packageNuspecFilePath.  Package dependencies not imported."
-                          exit;
-                      }
-                  }
-                  else {
-                      Write-Warning "Dependencies not found in package specification $tempPackageNuspecFilePath.  Package dependencies not imported."
-                      exit;
-                  }
-
-                  # Update <dependency> nodes in the .nuspec document with pre-calculated dependency package version numbers.
-                  foreach ($packageVersion in $packageVersions) {
-                      $dependencyNodes = $packageNuspecDocument.SelectNodes('//dependency')
-                      foreach ($dependencyNode in $dependencyNodes) {
-                          if ($dependencyNode.Attributes['id'].Value -ne $packageVersion.PackageName) {
-                              continue;
-                          }
-                                                              
-                          $dependencyNode.Attributes['version'].Value = $packageVersion.PackageVersion
-                      }
-                  }
-
-                  $packageNuspecDocument.Save($packageNuspecFilePath)
-                  Get-Content $packageNuspecFilePath
-                displayName: '[${{packageName}}] Update dependency versions'
-                condition: |
-                  and
-                  (
-                    succeeded(), 
-                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'))
-                  )                
-              - pwsh: |
                   if (${{parameters.traceLevel}} -gt 0) {
                       Set-PSDebug -Trace ${{parameters.traceLevel}}
                   }
@@ -1234,6 +1134,72 @@ stages:
                   buildProperties: 'PackageReleaseNotes="$(releaseNotes)"' # Optional  # Specifies a list of token = value pairs, separated by semicolons, where each occurrence of token$ in the .nuspec file will be replaced with the given value. Values can be strings in quotation marks.
                   verbosityPack: Normal # Options: '-', 'Quiet', 'Minimal', 'Normal', 'Detailed', 'Diagnostic' # Required  # Specifies the amount of detail displayed in the output.
                   # workingDirectory:   # Required when command != restore && command != push && command != pack  # Current working directory where the script is run. Empty is the root of the repo (build) or artifacts (release), which is $(System.DefaultWorkingDirectory). The project search pattern is **NOT** relative to working directory.
+              - pwsh: |
+                  function ConvertFrom-Base64String {
+                      param (
+                          # Input.
+                          [Parameter(Mandatory, ValueFromPipeline)]
+                          [string]    $InputObject
+                      )
+                                                                                                            
+                      process {
+                          $inputBytes = [System.Convert]::FromBase64String($InputObject)
+                          return [System.Text.Encoding]::UTF8.GetString($inputBytes)
+                      }
+                  }
+
+                  if (${{parameters.traceLevel}} -gt 0) {
+                      Set-PSDebug -Trace ${{parameters.traceLevel}}
+                  }
+
+                  # Retrieve the collection of package versions.
+                  $packageVersions = "$(packageVersions)" | ConvertFrom-Base64String | ConvertFrom-Json
+
+                  #   Extract the package file to temporary location.
+                  $packageFilePath = Get-ChildItem "$(Build.ArtifactStagingDirectory)/packages/$(BuildConfiguration)" -Recurse -Filter '${{packageName}}*.nupkg' | Select-Object -First 1 -ExpandProperty FullName
+
+                  $tempPackagePath = "$(Agent.TempDirectory)/${{packageName}}"
+                  if (-not (Test-Path $tempPackagePath -PathType Container)) {
+                      New-Item $tempPackagePath -ItemType Directory
+                  }
+
+                  Expand-Archive -Path $packageFilePath -DestinationPath $tempPackagePath
+
+                  # Load .nuspec file extracted from package.
+                  $packageNuspecFilePath = Get-ChildItem $tempPackagePath -Filter '${{packageName}}.nuspec' | Select-Object -First 1 -ExpandProperty FullName
+                  $packageNuspecDocument = [xml](Get-Content $packageNuspecFilePath)
+
+                  # Update <dependency> nodes in the .nuspec document with pre-calculated dependency package version numbers.
+                  $dependencyNodes = $packageNuspecDocument.SelectNodes('//dependency')
+                  foreach ($packageVersion in $packageVersions) {
+                      $dependenciesUpdatedCount = 0
+
+                      foreach ($dependencyNode in $dependencyNodes) {
+                          if ($dependencyNode.Attributes['id'].Value -ne $packageVersion.PackageName) {
+                              continue;
+                          }
+                                                                                
+                          $dependencyNode.Attributes['version'].Value = $packageVersion.PackageVersion
+                          $dependenciesUpdatedCount++
+                      }
+
+                      if ($dependenciesUpdatedCount -gt 0) {
+                          Write-Information "Updated $dependenciesUpdatedCount dependencies on package $($packageVersion.PackageName)."
+                      }
+                      else {
+                          Write-Information "Found no dependencies on package $($packageVersion.PackageName)."
+                      }
+                  }
+
+                  $packageNuspecDocument.Save($packageNuspecFilePath)
+                  Compress-Archive $packageNuspecFilePath -DestinationPath $packageFilePath
+                displayName: '[${{packageName}}] Update dependency versions'
+                condition: |
+                  and
+                  (
+                    succeeded(), 
+                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'))
+                  )                
           # Publish NuGet packages to pipeline
           - task: PublishBuildArtifacts@1
             condition: |
