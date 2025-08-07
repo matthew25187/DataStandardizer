@@ -1141,7 +1141,7 @@ stages:
                           [Parameter(Mandatory, ValueFromPipeline)]
                           [string]    $InputObject
                       )
-                                                                                                                              
+                                                                                                                                                
                       process {
                           $inputBytes = [System.Convert]::FromBase64String($InputObject)
                           return [System.Text.Encoding]::UTF8.GetString($inputBytes)
@@ -1161,7 +1161,7 @@ stages:
 
                   #   Extract the package file to temporary location.
                   $packageFilePath = Get-ChildItem "$(Build.ArtifactStagingDirectory)/packages/$(BuildConfiguration)" -Recurse -Filter '${{packageName}}*.nupkg' | Select-Object -First 1 -ExpandProperty FullName
-                  Write-Information "Found package file at $packageFilePath." -InformationAction SilentlyContinue
+                  Write-Information "Found package file at $packageFilePath." -InformationAction Continue
 
                   $tempPackagePath = "$(Agent.TempDirectory)/${{packageName}}"
                   if (-not (Test-Path $tempPackagePath -PathType Container)) {
@@ -1175,7 +1175,10 @@ stages:
                   $packageNuspecDocument = [xml](Get-Content $packageNuspecFilePath)
 
                   # Update <dependency> nodes in the .nuspec document with pre-calculated dependency package version numbers.
-                  $dependencyNodes = $packageNuspecDocument.SelectNodes('//dependency')
+                  $namespaceManager = New-Object System.Xml.XmlNamespaceManager($packageNuspecDocument.NameTable)
+                  $namespaceManager.AddNamespace("ns", "http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd")
+
+                  $dependencyNodes = $packageNuspecDocument.SelectNodes('//ns:dependency', $namespaceManager)
                   foreach ($packageVersion in $packageVersions) {
                       $dependenciesUpdatedCount = 0
 
@@ -1183,22 +1186,26 @@ stages:
                           if ($dependencyNode.Attributes['id'].Value -ne $packageVersion.PackageName) {
                               continue;
                           }
-                                                                                                  
+                                                                                                                    
                           $dependencyNode.Attributes['version'].Value = $packageVersion.PackageVersion
                           $dependenciesUpdatedCount++
                       }
 
                       if ($dependenciesUpdatedCount -gt 0) {
-                          Write-Information "Updated $dependenciesUpdatedCount dependencies on package $($packageVersion.PackageName)." -InformationAction SilentlyContinue
+                          Write-Information "Updated $dependenciesUpdatedCount dependencies on package $($packageVersion.PackageName)." -InformationAction Continue
                       }
                       else {
-                          Write-Information "Found no dependencies on package $($packageVersion.PackageName)." -InformationAction SilentlyContinue
+                          Write-Information "Found no dependencies on package $($packageVersion.PackageName)." -InformationAction Continue
                       }
+                  }
+
+                  if ($dependencyNodes.Count -eq 0) {
+                      Write-Warning "Found $($dependencyNodes.Count) dependencies to process."
                   }
 
                   $packageNuspecDocument.Save($packageNuspecFilePath)
                   Get-Content $packageNuspecFilePath
-                  Compress-Archive $packageNuspecFilePath -DestinationPath $packageFilePath -Update
+                  Compress-Archive $packageNuspecFilePath -DestinationPath $packageFilePath -Update -PassThru
                 displayName: '[${{packageName}}] Update dependency versions'
                 condition: |
                   and
