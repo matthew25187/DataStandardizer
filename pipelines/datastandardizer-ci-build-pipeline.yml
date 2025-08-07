@@ -1022,7 +1022,7 @@ stages:
                   and
                   (
                     succeeded(), 
-                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'))
+                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
                   )                
               - task: PowerShell@2
                 displayName: '[${{packageName}}] Set release notes argument'
@@ -1030,7 +1030,7 @@ stages:
                   and
                   (
                     succeeded(), 
-                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'))
+                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
                   )                
                 inputs:
                   #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
@@ -1082,7 +1082,7 @@ stages:
                   and
                   (
                     succeeded(), 
-                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'))
+                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
                   )                
               - powershell: |
                   Get-ChildItem -Path "$(Build.SourcesDirectory)\src\DataStandardizer.ISO4217" -Filter '*.csproj' |
@@ -1094,7 +1094,7 @@ stages:
                   and
                   (
                     succeeded(), 
-                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'))
+                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
                   )                
                 inputs:
                   command: pack # Options: 'build', 'push', 'pack', 'publish', 'restore', 'run', 'test', 'custom' # Required  # The dotnet command to run. Select 'Custom' to add arguments or use a command not listed here.
@@ -1152,6 +1152,9 @@ stages:
                       Set-PSDebug -Trace ${{parameters.traceLevel}}
                   }
 
+                  $PSVersionTable
+                  Get-Module Microsoft.PowerShell.Archive
+
                   # Retrieve the collection of package versions.
                   $packageVersions = "$(packageVersions)" | ConvertFrom-Base64String | ConvertFrom-Json
                   $packageVersions
@@ -1195,13 +1198,13 @@ stages:
 
                   $packageNuspecDocument.Save($packageNuspecFilePath)
                   Get-Content $packageNuspecFilePath
-                  Compress-Archive $packageNuspecFilePath -DestinationPath $packageFilePath -Update -Force
+                  Compress-Archive $packageNuspecFilePath -DestinationPath $packageFilePath -Update
                 displayName: '[${{packageName}}] Update dependency versions'
                 condition: |
                   and
                   (
                     succeeded(), 
-                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'))
+                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
                   )                
           # Publish NuGet packages to pipeline
           - task: PublishBuildArtifacts@1
