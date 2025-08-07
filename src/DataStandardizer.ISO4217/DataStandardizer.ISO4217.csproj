@@ -34,7 +34,6 @@ Supports use of ISO 4217, "Codes for the representation of currencies and funds"
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="DataStandardizer.ISO4217.nuspec" />
     <None Remove="global.json" />
   </ItemGroup>
 

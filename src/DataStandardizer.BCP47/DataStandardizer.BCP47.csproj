@@ -35,7 +35,6 @@ Supports use of IETF BCP 47 language tags as defined by RFC 5646.</Description>
     </PropertyGroup>
   
     <ItemGroup>
-      <None Remove="DataStandardizer.BCP47.nuspec" />
       <None Remove="global.json" />
     </ItemGroup>
   

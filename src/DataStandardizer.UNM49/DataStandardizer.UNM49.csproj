@@ -35,7 +35,6 @@ Supports use of UN M49 or the "Standard Country or Area Codes for Statistical Us
   </PropertyGroup>
   
   <ItemGroup>
-    <None Remove="DataStandardizer.UNM49.nuspec" />
     <None Remove="global.json" />
   </ItemGroup>
 
