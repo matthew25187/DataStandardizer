@@ -34,6 +34,10 @@ Common types used to implement standards in the other packages.</Description>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="global.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Include="..\GlobalAssemblyInfo.cs" Link="Properties\GlobalAssemblyInfo.cs" />
   </ItemGroup>
 

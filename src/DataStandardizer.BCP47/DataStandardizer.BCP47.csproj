@@ -34,6 +34,10 @@ Supports use of IETF BCP 47 language tags as defined by RFC 5646.</Description>
       <Nullable>enable</Nullable>
     </PropertyGroup>
   
+    <ItemGroup>
+      <None Remove="global.json" />
+    </ItemGroup>
+  
   <ItemGroup>
     <Compile Include="..\GlobalAssemblyInfo.cs" Link="Properties\GlobalAssemblyInfo.cs" />
   </ItemGroup>
