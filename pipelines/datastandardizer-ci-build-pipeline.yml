@@ -890,7 +890,7 @@ stages:
                           [Parameter(Mandatory, ValueFromPipeline)]
                           [string]    $InputObject
                       )
-                                        
+                                                          
                       process {
                           $inputBytes = [System.Convert]::FromBase64String($InputObject)
                           return [System.Text.Encoding]::UTF8.GetString($inputBytes)
@@ -908,9 +908,11 @@ stages:
                   $isPublicationRequiredPackage = [System.Convert]::ToBoolean($publicationRequiredPackageCount)
                   $changedPackageCount = "$(changedPackageNames)" -split ',' | Where-Object { $_ -eq '${{ packageName }}' } | Measure-Object | Select-Object -ExpandProperty Count
                   $isChangedPackage = [System.Convert]::ToBoolean($changedPackageCount)
+                  [bool]$isDevelopBranchResult
+                  $isDevelopBranch = [bool]::TryParse("$(isDevelopBranch)", [ref]$isDevelopBranchResult) ? $isDevelopBranchResult : $false
 
                   [int] $majorNumber, $minorNumber, $patchNumber, $previewNumber
-                  if ($null -ne $packageNewVersionNumberInfo -and ($isPublicationRequiredPackage -or $isChangedPackage)) {
+                  if ($null -ne $packageNewVersionNumberInfo -and ($isPublicationRequiredPackage -or ($isChangedPackage -and $isDevelopBranch))) {
                       $majorNumber = $packageNewVersionNumberInfo.PackageVersion.Major
                       $minorNumber = $packageNewVersionNumberInfo.PackageVersion.Minor
                       $patchNumber = $packageNewVersionNumberInfo.PackageVersion.Build
@@ -923,9 +925,9 @@ stages:
                       $previewNumber = $packageCurrentVersionNumberInfo.PackageVersion.Revision
                   }
 
-                  $packageVersion="$($majorNumber).$($minorNumber).$($patchNumber)"
+                  $packageVersion = "$($majorNumber).$($minorNumber).$($patchNumber)"
                   if ($previewNumber -gt 0) {
-                      $packageVersion+="-preview.$($previewNumber)"
+                      $packageVersion += "-preview.$($previewNumber)"
                   }
                   Write-Host "##vso[task.setvariable variable=packageVersion]$packageVersion"
 
