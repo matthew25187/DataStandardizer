@@ -917,12 +917,16 @@ stages:
                       $minorNumber = $packageNewVersionNumberInfo.PackageVersion.Minor
                       $patchNumber = $packageNewVersionNumberInfo.PackageVersion.Build
                       $previewNumber = $packageNewVersionNumberInfo.PackageVersion.Revision
+
+                      Write-Information "Using new version number $($packageNewVersionNumberInfo.PackageVersion.ToString()) for package ${{ packageName }}." -InformationAction Continue
                   }
                   elseif ($null -ne $packageCurrentVersionNumberInfo) {
                       $majorNumber = $packageCurrentVersionNumberInfo.PackageVersion.Major
                       $minorNumber = $packageCurrentVersionNumberInfo.PackageVersion.Minor
                       $patchNumber = $packageCurrentVersionNumberInfo.PackageVersion.Build
                       $previewNumber = $packageCurrentVersionNumberInfo.PackageVersion.Revision
+
+                      Write-Information "Using current version number $($packageCurrentVersionNumberInfo.PackageVersion.ToString()) for package ${{ packageName }}." -InformationAction Continue
                   }
 
                   $packageVersion = "$($majorNumber).$($minorNumber).$($patchNumber)"
