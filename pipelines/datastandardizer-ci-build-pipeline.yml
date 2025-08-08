@@ -890,7 +890,7 @@ stages:
                           [Parameter(Mandatory, ValueFromPipeline)]
                           [string]    $InputObject
                       )
-                                        
+
                       process {
                           $inputBytes = [System.Convert]::FromBase64String($InputObject)
                           return [System.Text.Encoding]::UTF8.GetString($inputBytes)
@@ -908,24 +908,30 @@ stages:
                   $isPublicationRequiredPackage = [System.Convert]::ToBoolean($publicationRequiredPackageCount)
                   $changedPackageCount = "$(changedPackageNames)" -split ',' | Where-Object { $_ -eq '${{ packageName }}' } | Measure-Object | Select-Object -ExpandProperty Count
                   $isChangedPackage = [System.Convert]::ToBoolean($changedPackageCount)
+                  [bool]$isDevelopBranchResult
+                  $isDevelopBranch = [bool]::TryParse("$(isDevelopBranch)", [ref]$isDevelopBranchResult) ? $isDevelopBranchResult : $false
 
                   [int] $majorNumber, $minorNumber, $patchNumber, $previewNumber
-                  if ($null -ne $packageNewVersionNumberInfo -and ($isPublicationRequiredPackage -or $isChangedPackage)) {
+                  if ($null -ne $packageNewVersionNumberInfo -and ($isPublicationRequiredPackage -or ($isChangedPackage -and $isDevelopBranch))) {
                       $majorNumber = $packageNewVersionNumberInfo.PackageVersion.Major
                       $minorNumber = $packageNewVersionNumberInfo.PackageVersion.Minor
                       $patchNumber = $packageNewVersionNumberInfo.PackageVersion.Build
                       $previewNumber = $packageNewVersionNumberInfo.PackageVersion.Revision
+
+                      Write-Information "Using new version number $($packageNewVersionNumberInfo.PackageVersion.ToString()) for package ${{ packageName }}." -InformationAction Continue
                   }
                   elseif ($null -ne $packageCurrentVersionNumberInfo) {
                       $majorNumber = $packageCurrentVersionNumberInfo.PackageVersion.Major
                       $minorNumber = $packageCurrentVersionNumberInfo.PackageVersion.Minor
                       $patchNumber = $packageCurrentVersionNumberInfo.PackageVersion.Build
                       $previewNumber = $packageCurrentVersionNumberInfo.PackageVersion.Revision
+
+                      Write-Information "Using current version number $($packageCurrentVersionNumberInfo.PackageVersion.ToString()) for package ${{ packageName }}." -InformationAction Continue
                   }
 
-                  $packageVersion="$($majorNumber).$($minorNumber).$($patchNumber)"
+                  $packageVersion = "$($majorNumber).$($minorNumber).$($patchNumber)"
                   if ($previewNumber -gt 0) {
-                      $packageVersion+="-preview.$($previewNumber)"
+                      $packageVersion += "-preview.$($previewNumber)"
                   }
                   Write-Host "##vso[task.setvariable variable=packageVersion]$packageVersion"
 
