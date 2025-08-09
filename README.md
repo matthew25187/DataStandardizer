@@ -16,6 +16,7 @@ Supported target platforms include (modern) .Net and .Net Standard.  *Data Stand
 | **DataStandardizer.ISO3166** | Supports **ISO 3166, *Codes for the representation of names of countries and their subdivisions*** parts 1 & 2. |
 | **DataStandardizer.ISO4217** | Supports **ISO 4217, *Codes for the representation of currencies and funds***. |
 | **DataStandardizer.ISO639** | Supports **ISO 639, *Codes for the representation of names of languages*** parts 1, 2, 3 & 5. |
+| **DataStandardizer.Money** | Provides a data type for handling monetary values. |
 | **DataStandardizer.UNM49** | Supports **UN M49** or the **Standard Country or Area Codes for Statistical Use (Series M, No. 49)**. |
 
 To use a particular standard in your application, find the corresponding package from the above list and add it as a dependency to your project.  Instructions for doing so will depend on what development tooling you are using.
@@ -119,6 +120,12 @@ Though each package contains many types, typically there will be only a few that
 | `Iso639Part2T` | An enum containing the terminological alpha-3 language codes from ISO 639-2. |
 | `Iso639Part3` | An enum containing the alpha-3 language codes from ISO 639-3. |
 | `Iso639Part5` | An enum containing the alpha-3 language family codes from ISO 639-5. |
+
+## DataStandardizer.Money
+
+| Type | Description |
+| --- | --- |
+| `Money` | A data type for handling a monetary value comprising an amount and a currency code.  Optionally supports user-specified rounding that is applied on conversion to a `decimal` value. |
 
 ## DataStandardizer.UNM49
 
