@@ -816,6 +816,8 @@ stages:
     jobs:
       - job: Create_Packages
         displayName: "Create NuGet packages"
+        variables:
+          packageVersions: ''
         pool:
           vmImage: windows-latest
         strategy:
@@ -888,7 +890,7 @@ stages:
                           [Parameter(Mandatory, ValueFromPipeline)]
                           [string]    $InputObject
                       )
-                      
+
                       process {
                           $inputBytes = [System.Convert]::FromBase64String($InputObject)
                           return [System.Text.Encoding]::UTF8.GetString($inputBytes)
@@ -902,50 +904,107 @@ stages:
                   $packageInfo = '${{ variables.packageInfos }}' | ConvertFrom-Json | Where-Object -Property packageName -EQ ${{ packageName }}
                   $packageCurrentVersionNumberInfo = "$(packageCurrentVersionNumbersList)" | ConvertFrom-Base64String | ConvertFrom-Json | Where-Object -Property PackageName -EQ $packageInfo.packageName
                   $packageNewVersionNumberInfo = "$(packageNewVersionNumbersList)" | ConvertFrom-Base64String | ConvertFrom-Json | Where-Object -Property PackageName -EQ $packageInfo.packageName
+                  $publicationRequiredPackageCount = '${{ variables.publicationRequiredPackageNames }}' -split ',' | Where-Object { $_ -eq '${{ packageName }}' } | Measure-Object | Select-Object -ExpandProperty Count
+                  $isPublicationRequiredPackage = [System.Convert]::ToBoolean($publicationRequiredPackageCount)
+                  $changedPackageCount = "$(changedPackageNames)" -split ',' | Where-Object { $_ -eq '${{ packageName }}' } | Measure-Object | Select-Object -ExpandProperty Count
+                  $isChangedPackage = [System.Convert]::ToBoolean($changedPackageCount)
+                  [bool]$isDevelopBranchResult
+                  $isDevelopBranch = [bool]::TryParse("$(isDevelopBranch)", [ref]$isDevelopBranchResult) ? $isDevelopBranchResult : $false
 
                   [int] $majorNumber, $minorNumber, $patchNumber, $previewNumber
-                  if ($null -ne $packageNewVersionNumberInfo) {
+                  if ($null -ne $packageNewVersionNumberInfo -and ($isPublicationRequiredPackage -or ($isChangedPackage -and $isDevelopBranch))) {
                       $majorNumber = $packageNewVersionNumberInfo.PackageVersion.Major
                       $minorNumber = $packageNewVersionNumberInfo.PackageVersion.Minor
                       $patchNumber = $packageNewVersionNumberInfo.PackageVersion.Build
                       $previewNumber = $packageNewVersionNumberInfo.PackageVersion.Revision
+
+                      Write-Information "Using new version number $($packageNewVersionNumberInfo.PackageVersion.ToString()) for package ${{ packageName }}." -InformationAction Continue
                   }
                   elseif ($null -ne $packageCurrentVersionNumberInfo) {
                       $majorNumber = $packageCurrentVersionNumberInfo.PackageVersion.Major
                       $minorNumber = $packageCurrentVersionNumberInfo.PackageVersion.Minor
                       $patchNumber = $packageCurrentVersionNumberInfo.PackageVersion.Build
                       $previewNumber = $packageCurrentVersionNumberInfo.PackageVersion.Revision
+
+                      Write-Information "Using current version number $($packageCurrentVersionNumberInfo.PackageVersion.ToString()) for package ${{ packageName }}." -InformationAction Continue
                   }
 
-                  Write-Host "##vso[task.setvariable variable=majorNumber]$majorNumber"
-                  Write-Host "##vso[task.setvariable variable=minorNumber]$minorNumber"
-                  Write-Host "##vso[task.setvariable variable=patchNumber]$patchNumber"
-                  Write-Host "##vso[task.setvariable variable=previewNumber]$previewNumber"
+                  $packageVersion = "$($majorNumber).$($minorNumber).$($patchNumber)"
+                  if ($previewNumber -gt 0) {
+                      $packageVersion += "-preview.$($previewNumber)"
+                  }
+                  Write-Host "##vso[task.setvariable variable=packageVersion]$packageVersion"
 
                   $projectPath = Join-Path -Path "$(Build.SourcesDirectory)" -ChildPath $packageInfo.packageSourcePath
                   Write-Host "##vso[task.setvariable variable=packageProjectPath]$projectPath"
                 displayName: "[${{packageName}}] Set version arguments"
-                condition: |
-                  and
-                  (
-                    succeeded(), 
-                    or(containsValue(split(variables.publicationRequiredPackageNames, ','), '${{packageName}}'), and(gt(length(coalesce(variables['changedPackageNames'], '')), 0), containsValue(split(variables['changedPackageNames'], ','), '${{packageName}}')))
-                  )                
               - task: VersionDotNetCoreAssemblies@3
                 displayName: "[${{ packageName }}] Apply package version numbers"
-                condition: |
-                  and
-                  (
-                    succeeded(), 
-                    or(containsValue(split(variables.publicationRequiredPackageNames, ','), '${{packageName}}'), and(gt(length(coalesce(variables['changedPackageNames'], '')), 0), containsValue(split(variables['changedPackageNames'], ','), '${{packageName}}')))
-                  )                
                 inputs:
                   Path: $(packageProjectPath)
-                  VersionNumber: "$(majorNumber).$(minorNumber).$(patchNumber)-preview.$(previewNumber)"
+                  VersionNumber: $(packageVersion)
                   Injectversion: true
                   FilenamePattern: ".csproj"
                   AddDefault: true
                   OutputVersion: "OutputedVersion"
+              - pwsh: |
+                  function ConvertFrom-Base64String {
+                      param (
+                          # Input.
+                          [Parameter(Mandatory, ValueFromPipeline)]
+                          [string]    $InputObject
+                      )
+                                                                        
+                      process {
+                          $inputBytes = [System.Convert]::FromBase64String($InputObject)
+                          return [System.Text.Encoding]::UTF8.GetString($inputBytes)
+                      }
+                  }
+
+                  function ConvertTo-Base64String {
+                      param (
+                          # Input.
+                          [Parameter(Mandatory, ValueFromPipeline)]
+                          [string]    $InputObject
+                      )
+                                                                        
+                      process {
+                          $inputBytes = [System.Text.Encoding]::UTF8.GetBytes($InputObject)
+                          return [System.Convert]::ToBase64String($inputBytes)
+                      }
+                  }
+
+                  if (${{parameters.traceLevel}} -gt 0) {
+                      Set-PSDebug -Trace ${{parameters.traceLevel}}
+                  }
+
+                  if ([string]::IsNullOrWhiteSpace("$(OutputedVersion)")) {
+                      Write-Warning 'No version found for package ${{packageName}}.'
+                      exit;
+                  }
+
+                  #   Retrieve collection of package versions
+                  [PSCustomObject[]] $packageVersions = @()
+                  if (-not [string]::IsNullOrEmpty("$(packageVersions)")) {
+                      $packageVersions = "$(packageVersions)" | ConvertFrom-Base64String | ConvertFrom-Json
+                  }
+                  $packageVersion = $packageVersions | Where-Object -Property PackageName -EQ '${{packageName}}' | Select-Object -First 1
+                  if ($null -ne $packageVersion) {
+                      Write-Information "Found existing version $($packageVersion.PackageVersion) for package ${{packageName}}; skipping addition of version $(OutputedVersion)." -InformationAction Continue
+                      exit;
+                  }
+
+                  #  Add version of current package to collection
+                  $packageVersion = [PSCustomObject]@{
+                      PackageName    = '${{packageName}}'
+                      PackageVersion = "$(OutputedVersion)"
+                  }
+                  $packageVersions += $packageVersion
+                  $serializedPackageVersions = @($packageVersions) | ConvertTo-Json -Depth 10 | ConvertTo-Base64String
+                  Write-Host "##vso[task.setvariable variable=packageVersions]$serializedPackageVersions"
+
+                  Write-Information "Added package ${{packageName}} version $(OutputedVersion)." -InformationAction Continue
+                displayName: '[${{packageName}}] Collect package version number'
           # Create NuGet packages
           - ${{ each packageName in split(variables.allPackageNames, ',') }}:
               - pwsh: |
@@ -966,7 +1025,7 @@ stages:
                   and
                   (
                     succeeded(), 
-                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'))
+                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
                   )                
               - task: PowerShell@2
                 displayName: '[${{packageName}}] Set release notes argument'
@@ -974,7 +1033,7 @@ stages:
                   and
                   (
                     succeeded(), 
-                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'))
+                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
                   )                
                 inputs:
                   #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
@@ -1001,7 +1060,7 @@ stages:
                   and
                   (
                     succeeded(), 
-                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'))
+                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
                   )                
                 inputs:
                   command: pack # Options: 'build', 'push', 'pack', 'publish', 'restore', 'run', 'test', 'custom' # Required  # The dotnet command to run. Select 'Custom' to add arguments or use a command not listed here.
@@ -1041,6 +1100,33 @@ stages:
                   buildProperties: 'PackageReleaseNotes="$(releaseNotes)"' # Optional  # Specifies a list of token = value pairs, separated by semicolons, where each occurrence of token$ in the .nuspec file will be replaced with the given value. Values can be strings in quotation marks.
                   verbosityPack: Normal # Options: '-', 'Quiet', 'Minimal', 'Normal', 'Detailed', 'Diagnostic' # Required  # Specifies the amount of detail displayed in the output.
                   # workingDirectory:   # Required when command != restore && command != push && command != pack  # Current working directory where the script is run. Empty is the root of the repo (build) or artifacts (release), which is $(System.DefaultWorkingDirectory). The project search pattern is **NOT** relative to working directory.
+              - task: PowerShell@2
+                displayName: '[${{packageName}}] Update dependency versions'
+                condition: |
+                  and
+                  (
+                    succeeded(), 
+                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
+                  )
+                inputs:
+                  #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
+                  filePath: 'scripts/UpdatePackageDependencyVersions.ps1' # string. Required when targetType = filePath. Script Path. 
+                  arguments: "-PackageName '${{packageName}}' -PackageVersionList '$(packageVersions)' -PackageSearchRootPath '$(Build.ArtifactStagingDirectory)' -BuildConfiguration $(BuildConfiguration) -TempPath '$(Agent.TempDirectory)' -TraceLevel ${{parameters.traceLevel}}" # string. Optional. Use when targetType = filePath. Arguments. 
+                  #script: # string. Required when targetType = inline. Script. 
+                # Preference Variables
+                  #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
+                  #warningPreference: 'default' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. WarningPreference. Default: default.
+                  informationPreference: 'continue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. InformationPreference. Default: default.
+                  verbosePreference: ${{ iif(eq(parameters.enableVerboseOutput, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. VerbosePreference. Default: default.
+                  debugPreference: ${{ iif(eq(parameters.enableDebug, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. DebugPreference. Default: default.
+                  #progressPreference: 'silentlyContinue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ProgressPreference. Default: silentlyContinue.
+                # Advanced
+                  #failOnStderr: false # boolean. Fail on Standard Error. Default: false.
+                  #showWarnings: false # boolean. Show warnings as Azure DevOps warnings. Default: false.
+                  #ignoreLASTEXITCODE: false # boolean. Ignore $LASTEXITCODE. Default: false.
+                  pwsh: true # boolean. Use PowerShell Core. Default: false.
+                  #workingDirectory: # string. Working Directory. 
+                  #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.                  
           # Publish NuGet packages to pipeline
           - task: PublishBuildArtifacts@1
             condition: |
