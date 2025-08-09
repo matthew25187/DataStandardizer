@@ -11,7 +11,7 @@ namespace DataStandardizer.Money.Tests
         {
             // arrange
             const decimal testAmount = 1234, testAdditionOperand = 13;
-            var testValue = new Money(testAmount);
+            var testValue = Money.Create(testAmount);
 
             var expectedResult = testAmount + testAdditionOperand;
 
@@ -31,7 +31,7 @@ namespace DataStandardizer.Money.Tests
             // arrange
             const decimal testAmount = 1357, testAdditionOperand = 24;
             const Iso4217Current testCurrency = Iso4217Current.USD;
-            var testValue = new Money(testAmount, testCurrency);
+            var testValue = Money.Create(testAmount, testCurrency);
 
             var expectedResult = testAmount + testAdditionOperand;
 
@@ -52,7 +52,7 @@ namespace DataStandardizer.Money.Tests
             const decimal testAmount = 2468, testAdditionOperand = 57;
             const Iso4217Current testCurrency = Iso4217Current.USD;
             const int testRoundingPrecision = 4;
-            var testValue = new Money(testAmount, testCurrency, testRoundingPrecision);
+            var testValue = Money.Create(testAmount, testCurrency, testRoundingPrecision);
 
             var expectedResult = testAmount + testAdditionOperand;
 
@@ -74,7 +74,7 @@ namespace DataStandardizer.Money.Tests
             const Iso4217Current testCurrency = Iso4217Current.USD;
             const int testRoundingPrecision = 3;
             const MidpointRounding testRoundingMethod = MidpointRounding.AwayFromZero;
-            var testValue = new Money(testAmount, testCurrency, testRoundingPrecision, testRoundingMethod);
+            var testValue = Money.Create(testAmount, testCurrency, testRoundingPrecision, testRoundingMethod);
 
             var expectedResult = testAmount + testAdditionOperand;
 
@@ -93,7 +93,7 @@ namespace DataStandardizer.Money.Tests
         {
             // arrange
             const decimal testAmount = 1234, testSubtractionOperand = 12;
-            var testValue = new Money(testAmount);
+            var testValue = Money.Create(testAmount);
 
             var expectedResult = testAmount - testSubtractionOperand;
 
@@ -113,7 +113,7 @@ namespace DataStandardizer.Money.Tests
             // arrange
             const decimal testAmount = 5678, testSubtractionOperand = 34;
             const Iso4217Current testCurrency = Iso4217Current.USD;
-            var testValue = new Money(testAmount, testCurrency);
+            var testValue = Money.Create(testAmount, testCurrency);
 
             var expectedResult = testAmount - testSubtractionOperand;
 
@@ -134,7 +134,7 @@ namespace DataStandardizer.Money.Tests
             const decimal testAmount = 1357, testSubtractionOperand = 56;
             const Iso4217Current testCurrency = Iso4217Current.USD;
             const int testRoundingPrecision = 4;
-            var testValue = new Money(testAmount, testCurrency, testRoundingPrecision);
+            var testValue = Money.Create(testAmount, testCurrency, testRoundingPrecision);
 
             var expectedResult = testAmount - testSubtractionOperand;
 
@@ -156,7 +156,7 @@ namespace DataStandardizer.Money.Tests
             const Iso4217Current testCurrency = Iso4217Current.USD;
             const int testRoundingPrecision = 3;
             const MidpointRounding testRoundingMethod = MidpointRounding.ToEven;
-            var testValue = new Money(testAmount, testCurrency, testRoundingPrecision, testRoundingMethod);
+            var testValue = Money.Create(testAmount, testCurrency, testRoundingPrecision, testRoundingMethod);
 
             var expectedResult = testAmount - testSubtractionOperand;
 
@@ -175,7 +175,7 @@ namespace DataStandardizer.Money.Tests
         {
             // arrange
             const decimal testAmount = 1234, testMultiplicationOperand = 12;
-            var testValue = new Money(testAmount);
+            var testValue = Money.Create(testAmount);
 
             var expectedResult = testAmount * testMultiplicationOperand;
 
@@ -195,7 +195,7 @@ namespace DataStandardizer.Money.Tests
             // arrange
             const decimal testAmount = 5678, testMultiplicationOperand = 34;
             const Iso4217Current testCurrency = Iso4217Current.USD;
-            var testValue = new Money(testAmount, testCurrency);
+            var testValue = Money.Create(testAmount, testCurrency);
 
             var expectedResult = testAmount * testMultiplicationOperand;
 
@@ -216,7 +216,7 @@ namespace DataStandardizer.Money.Tests
             const decimal testAmount = 1357, testMultiplicationOperand = 56;
             const Iso4217Current testCurrency = Iso4217Current.USD;
             const int testRoundingPrecision = 4;
-            var testValue = new Money(testAmount, testCurrency, testRoundingPrecision);
+            var testValue = Money.Create(testAmount, testCurrency, testRoundingPrecision);
 
             var expectedResult = testAmount * testMultiplicationOperand;
 
@@ -238,7 +238,7 @@ namespace DataStandardizer.Money.Tests
             const Iso4217Current testCurrency = Iso4217Current.USD;
             const int testRoundingPrecision = 3;
             const MidpointRounding testRoundingMethod = MidpointRounding.AwayFromZero;
-            var testValue = new Money(testAmount, testCurrency, testRoundingPrecision, testRoundingMethod);
+            var testValue = Money.Create(testAmount, testCurrency, testRoundingPrecision, testRoundingMethod);
 
             var expectedResult = testAmount * testMultiplicationOperand;
 
@@ -257,7 +257,7 @@ namespace DataStandardizer.Money.Tests
         {
             // arrange
             const decimal testAmount = 2677, testDivisionOperand = 63;
-            var testValue = new Money(testAmount);
+            var testValue = Money.Create(testAmount);
 
             var expectedResult = testAmount / testDivisionOperand;
 
@@ -277,7 +277,7 @@ namespace DataStandardizer.Money.Tests
             // arrange
             const decimal testAmount = 1553, testDivisionOperand = 25;
             const Iso4217Current testCurrency = Iso4217Current.USD;
-            var testValue = new Money(testAmount, testCurrency);
+            var testValue = Money.Create(testAmount, testCurrency);
 
             var expectedResult = testAmount / testDivisionOperand;
 
@@ -298,7 +298,7 @@ namespace DataStandardizer.Money.Tests
             const decimal testAmount = 2542, testDivisionOperand = 25;
             const Iso4217Current testCurrency = Iso4217Current.USD;
             const int testRoundingPrecision = 4;
-            var testValue = new Money(testAmount, testCurrency, testRoundingPrecision);
+            var testValue = Money.Create(testAmount, testCurrency, testRoundingPrecision);
 
             var expectedResult = testAmount / testDivisionOperand;
 
@@ -320,7 +320,7 @@ namespace DataStandardizer.Money.Tests
             const Iso4217Current testCurrency = Iso4217Current.USD;
             const int testRoundingPrecision = 3;
             const MidpointRounding testRoundingMethod = MidpointRounding.AwayFromZero;
-            var testValue = new Money(testAmount, testCurrency, testRoundingPrecision, testRoundingMethod);
+            var testValue = Money.Create(testAmount, testCurrency, testRoundingPrecision, testRoundingMethod);
 
             var expectedResult = testAmount / testDivisionOperand;
 
@@ -338,7 +338,7 @@ namespace DataStandardizer.Money.Tests
         public void LessThanOperator_OperandCurrenciesDifferent_ThrowsInvalidOperationException()
         {
             // arrange
-            Money testValue1 = new Money(1535m, Iso4217Current.USD), testValue2 = new Money(8127m, Iso4217Current.GBP);
+            Money testValue1 = Money.Create(1535m, Iso4217Current.USD), testValue2 = Money.Create(8127m, Iso4217Current.GBP);
 
             // act
             Func<bool> testAction = () => testValue1 < testValue2;
@@ -351,7 +351,7 @@ namespace DataStandardizer.Money.Tests
         public void LessThanOperator_MoneyValueLessThanOperand_ReturnsTrue()
         {
             // arrange
-            Money testValueLeft = new Money(13), testValueRight = new Money(57);
+            Money testValueLeft = Money.Create(13), testValueRight = Money.Create(57);
 
             // act
             var testResult = testValueLeft < testValueRight;
@@ -364,7 +364,7 @@ namespace DataStandardizer.Money.Tests
         public void LessThanOperator_MoneyValueEqualToOperand_ReturnsFalse()
         {
             // arrange
-            Money testValueLeft = new Money(45), testValueRight = new Money(45);
+            Money testValueLeft = Money.Create(45), testValueRight = Money.Create(45);
 
             // act
             var testResult = testValueLeft < testValueRight;
@@ -377,7 +377,7 @@ namespace DataStandardizer.Money.Tests
         public void LessThanOperator_MoneyValueGreaterThanOperand_ReturnsFalse()
         {
             // arrange
-            Money testValueLeft = new Money(36), testValueRight = new Money(14);
+            Money testValueLeft = Money.Create(36), testValueRight = Money.Create(14);
 
             // act
             var testResult = testValueLeft < testValueRight;
@@ -390,7 +390,7 @@ namespace DataStandardizer.Money.Tests
         public void LessThanOrEqualToOperator_OperandCurrenciesDifferent_ThrowsInvalidOperationException()
         {
             // arrange
-            Money testValueLeft = new Money(235, Iso4217Current.USD), testValueRight = new Money(165, ISO4217.Iso4217Current.GBP);
+            Money testValueLeft = Money.Create(235, Iso4217Current.USD), testValueRight = Money.Create(165, ISO4217.Iso4217Current.GBP);
 
             // act
             Func<bool> testAction = () => testValueLeft <= testValueRight;
@@ -403,7 +403,7 @@ namespace DataStandardizer.Money.Tests
         public void LessThanOrEqualToOperator_MoneyValueLessThanOperand_ReturnsTrue()
         {
             // arrange
-            Money testValueLeft = new Money(134), testValueRight = new Money(7226);
+            Money testValueLeft = Money.Create(134), testValueRight = Money.Create(7226);
 
             // act
             var testResult = testValueLeft <= testValueRight;
@@ -416,7 +416,7 @@ namespace DataStandardizer.Money.Tests
         public void LessThanOrEqualToOperator_MoneyValueEqualToOperand_ReturnsTrue()
         {
             // arrange
-            Money testValueLeft = new Money(142), testValueRight = new Money(142);
+            Money testValueLeft = Money.Create(142), testValueRight = Money.Create(142);
 
             // act
             var testResult = testValueLeft <= testValueRight;
@@ -429,7 +429,7 @@ namespace DataStandardizer.Money.Tests
         public void LessThanOrEqualToOperator_MoneyValueGreaterThanOperand_ReturnsFalse()
         {
             // arrange
-            Money testValueLeft = new Money(721), testValueRight = new Money(124);
+            Money testValueLeft = Money.Create(721), testValueRight = Money.Create(124);
 
             // act
             var testResult = testValueLeft <= testValueRight;
@@ -442,7 +442,7 @@ namespace DataStandardizer.Money.Tests
         public void GreaterThanOperator_OperandCurrenciesDifferent_ThrowsInvalidOperationException()
         {
             // arrange
-            Money testValueLeft = new Money(1356, Iso4217Current.USD), testValueRight = new Money(176, Iso4217Current.GBP);
+            Money testValueLeft = Money.Create(1356, Iso4217Current.USD), testValueRight = Money.Create(176, Iso4217Current.GBP);
 
             // act
             Func<bool> testAction = () => testValueLeft > testValueRight;
@@ -455,7 +455,7 @@ namespace DataStandardizer.Money.Tests
         public void GreaterThanOperator_MoneyValueLessThanOperand_ReturnsFalse()
         {
             // arrange
-            Money testValueLeft = new Money(52), testValueRight = new Money(924);
+            Money testValueLeft = Money.Create(52), testValueRight = Money.Create(924);
 
             // act
             var testResult = testValueLeft > testValueRight;
@@ -468,7 +468,7 @@ namespace DataStandardizer.Money.Tests
         public void GreaterThanOperator_MoneyValueEqualToOperand_ReturnsFalse()
         {
             // arrange
-            Money testValueLeft = new Money(62), testValueRight = new Money(62);
+            Money testValueLeft = Money.Create(62), testValueRight = Money.Create(62);
 
             // act
             var testResult = testValueLeft > testValueRight;
@@ -481,7 +481,7 @@ namespace DataStandardizer.Money.Tests
         public void GreaterThanOperator_MoneyValueGreaterThanOperand_ReturnsTrue()
         {
             // arrange
-            Money testValueLeft = new Money(924), testValueRight = new Money(13);
+            Money testValueLeft = Money.Create(924), testValueRight = Money.Create(13);
 
             // act
             var testResult = testValueLeft > testValueRight;
@@ -494,7 +494,7 @@ namespace DataStandardizer.Money.Tests
         public void GreaterThanOrEqualToOperator_OperandCurrenciesDifferent_ThrowsInvalidOperationException()
         {
             // arrange
-            Money testValueLeft = new Money(14, Iso4217Current.USD), testValueRight = new Money(9124, Iso4217Current.GBP);
+            Money testValueLeft = Money.Create(14, Iso4217Current.USD), testValueRight = Money.Create(9124, Iso4217Current.GBP);
 
             // act
             Func<bool> testAction = () => testValueLeft >= testValueRight;
@@ -507,7 +507,7 @@ namespace DataStandardizer.Money.Tests
         public void GreaterThanOrEqualToOperator_MoneyValueLessThanOperand_ReturnsFalse()
         {
             // arrange
-            Money testValueLeft = new Money(123), testValueRight = new Money(139);
+            Money testValueLeft = Money.Create(123), testValueRight = Money.Create(139);
 
             // act
             var testResult = testValueLeft >= testValueRight;
@@ -520,7 +520,7 @@ namespace DataStandardizer.Money.Tests
         public void GreaterThanOrEqualToOperator_MoneyValueEqualToOperand_ReturnsTrue()
         {
             // arrange
-            Money testValueLeft = new Money(198), testValueRight = new Money(198);
+            Money testValueLeft = Money.Create(198), testValueRight = Money.Create(198);
 
             // act
             var testResult = testValueLeft >= testValueRight;
@@ -533,7 +533,7 @@ namespace DataStandardizer.Money.Tests
         public void GreaterThanOrEqualToOperator_MoneyValueGreaterThanOperand_ReturnsTrue()
         {
             // arrange
-            Money testValueLeft = new Money(12789), testValueRight = new Money(1454);
+            Money testValueLeft = Money.Create(12789), testValueRight = Money.Create(1454);
 
             // act
             var testResult = testValueLeft >= testValueRight;
@@ -546,7 +546,7 @@ namespace DataStandardizer.Money.Tests
         public void EqualsOperator_OperandsAreEqual_ReturnsTrue()
         {
             // arrange
-            Money testValueLeft = new Money(2734), testValueRight = new Money(2734);
+            Money testValueLeft = Money.Create(2734), testValueRight = Money.Create(2734);
 
             // act
             var testResult = testValueLeft == testValueRight;
@@ -559,7 +559,7 @@ namespace DataStandardizer.Money.Tests
         public void EqualsOperator_OperandsNotEqual_ReturnsFalse()
         {
             // arrange
-            Money testValueLeft = new Money(1235), testValueRight = new Money(856);
+            Money testValueLeft = Money.Create(1235), testValueRight = Money.Create(856);
 
             // act
             var testResult = testValueLeft == testValueRight;
@@ -572,7 +572,7 @@ namespace DataStandardizer.Money.Tests
         public void NotEqualsOperator_OperandsAreEqual_ReturnsFalse()
         {
             // arrange
-            Money testValueLeft = new Money(1223), testValueRight = new Money(1223);
+            Money testValueLeft = Money.Create(1223), testValueRight = Money.Create(1223);
 
             // act
             var testResult = testValueLeft != testValueRight;
@@ -585,7 +585,7 @@ namespace DataStandardizer.Money.Tests
         public void NotEqualsOperator_OperandsNotEqual_ReturnsTrue()
         {
             // arrange
-            Money testValueLeft = new Money(092), testValueRight = new Money(3);
+            Money testValueLeft = Money.Create(092), testValueRight = Money.Create(3);
 
             // act
             var testResult = testValueLeft != testValueRight;
@@ -599,7 +599,7 @@ namespace DataStandardizer.Money.Tests
         {
             // arrange
             const Iso4217Current currency = Iso4217Current.USD;
-            var testValue = new Money(10, currency);
+            var testValue = Money.Create(10, currency);
 
             // act
             var testResult = testValue.CurrencyMinorUnits;
@@ -613,7 +613,7 @@ namespace DataStandardizer.Money.Tests
         {
             // arrange
             const Iso4217Current currency = Iso4217Current.XTS;
-            var testValue = new Money(20, currency);
+            var testValue = Money.Create(20, currency);
 
             // act
             var testResult = testValue.CurrencyMinorUnits;
@@ -627,7 +627,7 @@ namespace DataStandardizer.Money.Tests
         {
             // arrange
             const Iso4217Current currency = Iso4217Current.USD;
-            var testValue = new Money(30, currency);
+            var testValue = Money.Create(30, currency);
 
             // act
             var testResult = testValue.IsoCurrencyCode;
@@ -640,7 +640,7 @@ namespace DataStandardizer.Money.Tests
         public void IsoCurrencyCode_MoneyValueNoCurrency_ReturnsNoCurrencyCode()
         {
             // arrange
-            var testValue = new Money(40);
+            var testValue = Money.Create(40);
 
             // act
             var testResult = testValue.IsoCurrencyCode;
@@ -654,7 +654,7 @@ namespace DataStandardizer.Money.Tests
         {
             // arrange
             const MidpointRounding roundingMethod = MidpointRounding.ToEven;
-            var testValue = new Money(50, Iso4217Current.USD, 2, roundingMethod);
+            var testValue = Money.Create(50, Iso4217Current.USD, 2, roundingMethod);
 
             // act
             var testResult = testValue.RoundingMethod;
@@ -667,7 +667,7 @@ namespace DataStandardizer.Money.Tests
         public void RoundingMethod_MoneyValueNoRounding_ReturnsNull()
         {
             // arrange
-            var testValue = new Money(60, Iso4217Current.USD);
+            var testValue = Money.Create(60, Iso4217Current.USD);
 
             // act
             var testResult = testValue.RoundingMethod;
@@ -681,7 +681,7 @@ namespace DataStandardizer.Money.Tests
         {
             // arrange
             const int roundingPrecision = 4;
-            var testValue = new Money(70, Iso4217Current.USD, roundingPrecision);
+            var testValue = Money.Create(70, Iso4217Current.USD, roundingPrecision);
 
             // act
             var testResult = testValue.RoundingPrecision;
@@ -694,7 +694,7 @@ namespace DataStandardizer.Money.Tests
         public void RoundingPrecision_MoneyValueNoRounding_ReturnsNull()
         {
             // arrange
-            var testValue = new Money(80, Iso4217Current.USD);
+            var testValue = Money.Create(80, Iso4217Current.USD);
 
             // act
             var testResult = testValue.RoundingPrecision;
@@ -707,7 +707,7 @@ namespace DataStandardizer.Money.Tests
         public void CompareTo_ArgumentGreaterThanMoneyValue_ReturnsNegativeOne()
         {
             // arrange
-            var testValue = new Money(24);
+            var testValue = Money.Create(24);
 
             // act
             var testResult = testValue.CompareTo(234);
@@ -720,7 +720,7 @@ namespace DataStandardizer.Money.Tests
         public void CompareTo_ArgumentEqualToMoneyValue_ReturnsZero()
         {
             // arrange
-            var testValue = new Money(46);
+            var testValue = Money.Create(46);
 
             // act
             var testResult = testValue.CompareTo(46);
@@ -733,7 +733,7 @@ namespace DataStandardizer.Money.Tests
         public void CompareTo_ArgumentLessThanMoneyValue_ReturnsOne()
         {
             // arrange
-            var testValue = new Money(8245);
+            var testValue = Money.Create(8245);
 
             // act
             var testResult = testValue.CompareTo(3245);
@@ -746,7 +746,7 @@ namespace DataStandardizer.Money.Tests
         public void Equals_ArgumentEqualToMoneyValue_ReturnsTrue()
         {
             // arrange
-            var testValue = new Money(23);
+            var testValue = Money.Create(23);
 
             // act
             var testResult = testValue.Equals(23);
@@ -759,7 +759,7 @@ namespace DataStandardizer.Money.Tests
         public void Equals_ArgumentNotEqualToMoneyValue_ReturnsFalse()
         {
             // arrange
-            var testValue = new Money(36);
+            var testValue = Money.Create(36);
 
             // act
             var testResult = testValue.Equals(634);
