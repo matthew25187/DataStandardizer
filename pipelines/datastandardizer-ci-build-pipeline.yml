@@ -979,7 +979,7 @@ stages:
                   }
 
                   if ([string]::IsNullOrWhiteSpace("$(OutputedVersion)")) {
-                      Write-Information 'No version found for package ${{packageName}}.'
+                      Write-Warning 'No version found for package ${{packageName}}.'
                       exit;
                   }
 
@@ -990,7 +990,7 @@ stages:
                   }
                   $packageVersion = $packageVersions | Where-Object -Property PackageName -EQ '${{packageName}}' | Select-Object -First 1
                   if ($null -ne $packageVersion) {
-                      Write-Information "Found existing version $($packageVersion.PackageVersion) for package ${{packageName}}; skipping addition of version $(OutputedVersion)."
+                      Write-Information "Found existing version $($packageVersion.PackageVersion) for package ${{packageName}}; skipping addition of version $(OutputedVersion)." -InformationAction Continue
                       exit;
                   }
 
@@ -1003,7 +1003,7 @@ stages:
                   $serializedPackageVersions = @($packageVersions) | ConvertTo-Json -Depth 10 | ConvertTo-Base64String
                   Write-Host "##vso[task.setvariable variable=packageVersions]$serializedPackageVersions"
 
-                  Write-Information "Added package ${{packageName}} version $(OutputedVersion)."
+                  Write-Information "Added package ${{packageName}} version $(OutputedVersion)." -InformationAction Continue
                 displayName: '[${{packageName}}] Collect package version number'
           # Create NuGet packages
           - ${{ each packageName in split(variables.allPackageNames, ',') }}:
