@@ -927,7 +927,8 @@ stages:
                       $patchNumber = $packageNewVersionNumberInfo.PackageVersion.Build
                       $previewNumber = $packageNewVersionNumberInfo.PackageVersion.Revision
 
-                      Write-Information "Using new version number $($packageNewVersionNumberInfo.PackageVersion.ToString()) for package ${{ packageName }}." -InformationAction Continue
+                      $versionDisplayText = @($majorNumber, $minorNumber, $patchNumber, $previewNumber) -join '.'
+                      Write-Information "Using new version number $versionDisplayText for package ${{ packageName }}." -InformationAction Continue
                   }
                   elseif ($null -ne $packageCurrentVersionNumberInfo) {
                       $majorNumber = $packageCurrentVersionNumberInfo.PackageVersion.Major
@@ -935,7 +936,8 @@ stages:
                       $patchNumber = $packageCurrentVersionNumberInfo.PackageVersion.Build
                       $previewNumber = $packageCurrentVersionNumberInfo.PackageVersion.Revision
 
-                      Write-Information "Using current version number $($packageCurrentVersionNumberInfo.PackageVersion.ToString()) for package ${{ packageName }}." -InformationAction Continue
+                      $versionDisplayText = @($majorNumber, $minorNumber, $patchNumber, $previewNumber) -join '.'
+                      Write-Information "Using current version number $versionDisplayText for package ${{ packageName }}." -InformationAction Continue
                   }
 
                   $packageVersion = "$($majorNumber).$($minorNumber).$($patchNumber)"
@@ -1062,7 +1064,38 @@ stages:
                   #ignoreLASTEXITCODE: false # boolean. Ignore $LASTEXITCODE. Default: false.
                   pwsh: true # boolean. Use PowerShell Core. Default: false.
                   #workingDirectory: # string. Working Directory. 
-                  #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.                
+                  #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.
+              - pwsh: |
+                  function ConvertFrom-Base64String {
+                      param (
+                          # Input.
+                          [Parameter(Mandatory, ValueFromPipeline)]
+                          [string]    $InputObject
+                      )
+
+                      process {
+                          $inputBytes = [System.Convert]::FromBase64String($InputObject)
+                          return [System.Text.Encoding]::UTF8.GetString($inputBytes)
+                      }
+                  }
+
+                  if (${{parameters.traceLevel}} -gt 0) {
+                      Set-PSDebug -Trace ${{parameters.traceLevel}}
+                  }
+
+                  $packageVersion = "$(packageVersions)" | 
+                  ConvertFrom-Base64String | 
+                  ConvertFrom-Json | 
+                  Where-Object -Property PackageName -EQ '${{packageName}}' | 
+                  Select-Object -First 1 -ExpandProperty PackageVersion
+                  Write-Host "##vso[task.setvariable variable=packageVersion]$packageVersion"
+                displayName: "[${{packageName}}] Set package version argument"
+                condition: |
+                  and
+                  (
+                    succeeded(), 
+                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
+                  )                
               - task: DotNetCoreCLI@2
                 displayName: "[${{packageName}}] Create NuGet package"
                 condition: |
@@ -1106,7 +1139,7 @@ stages:
                   # requestedMajorVersion: 1  # Required  # The 'X' in version [X.Y.Z](http://semver.org/spec/v1.0.0.html)
                   # requestedMinorVersion: 0  # Required  # The 'Y' in version [X.Y.Z](http://semver.org/spec/v1.0.0.html)
                   # requestedPatchVersion: 0  # Required  # The 'Z' in version [X.Y.Z](http://semver.org/spec/v1.0.0.html)
-                  buildProperties: 'PackageReleaseNotes="$(releaseNotes)"' # Optional  # Specifies a list of token = value pairs, separated by semicolons, where each occurrence of token$ in the .nuspec file will be replaced with the given value. Values can be strings in quotation marks.
+                  buildProperties: 'PackageReleaseNotes="$(releaseNotes)";PackageVersion="$(packageVersion)"' # Optional  # Specifies a list of token = value pairs, separated by semicolons, where each occurrence of token$ in the .nuspec file will be replaced with the given value. Values can be strings in quotation marks.
                   verbosityPack: Normal # Options: '-', 'Quiet', 'Minimal', 'Normal', 'Detailed', 'Diagnostic' # Required  # Specifies the amount of detail displayed in the output.
                   # workingDirectory:   # Required when command != restore && command != push && command != pack  # Current working directory where the script is run. Empty is the root of the repo (build) or artifacts (release), which is $(System.DefaultWorkingDirectory). The project search pattern is **NOT** relative to working directory.
               - task: PowerShell@2
