@@ -917,7 +917,7 @@ stages:
                   $isPublicationRequiredPackage = [System.Convert]::ToBoolean($publicationRequiredPackageCount)
                   $changedPackageCount = "$(changedPackageNames)" -split ',' | Where-Object { $_ -eq '${{ packageName }}' } | Measure-Object | Select-Object -ExpandProperty Count
                   $isChangedPackage = [System.Convert]::ToBoolean($changedPackageCount)
-                  [bool]$isDevelopBranchResult
+                  $isDevelopBranchResult = $false
                   $isDevelopBranch = [bool]::TryParse("$(isDevelopBranch)", [ref]$isDevelopBranchResult) ? $isDevelopBranchResult : $false
 
                   [int] $majorNumber, $minorNumber, $patchNumber, $previewNumber
