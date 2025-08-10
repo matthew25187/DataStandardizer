@@ -927,7 +927,7 @@ stages:
                       $patchNumber = $packageNewVersionNumberInfo.PackageVersion.Build
                       $previewNumber = $packageNewVersionNumberInfo.PackageVersion.Revision
 
-                      $versionDisplayText = $packageNewVersionNumberInfo.PackageVersion.ToString()
+                      $versionDisplayText = @($majorNumber, $minorNumber, $patchNumber, $previewNumber) -join '.'
                       Write-Information "Using new version number $versionDisplayText for package ${{ packageName }}." -InformationAction Continue
                   }
                   elseif ($null -ne $packageCurrentVersionNumberInfo) {
@@ -936,7 +936,7 @@ stages:
                       $patchNumber = $packageCurrentVersionNumberInfo.PackageVersion.Build
                       $previewNumber = $packageCurrentVersionNumberInfo.PackageVersion.Revision
 
-                      $versionDisplayText = $packageCurrentVersionNumberInfo.PackageVersion.ToString()
+                      $versionDisplayText = @($majorNumber, $minorNumber, $patchNumber, $previewNumber) -join '.'
                       Write-Information "Using current version number $versionDisplayText for package ${{ packageName }}." -InformationAction Continue
                   }
 
