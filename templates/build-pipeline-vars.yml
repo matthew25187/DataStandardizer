@@ -64,7 +64,7 @@ parameters:
   - packageName: DataStandardizer.Money
     variableGroupId: 63
     packageSourcePath: src/DataStandardizer.Money
-    enableTests: 0
+    enableTests: 1
   - packageName: DataStandardizer.UNM49
     variableGroupId: 25
     packageSourcePath: src/DataStandardizer.UNM49
