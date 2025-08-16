@@ -8,7 +8,7 @@ using JetBrains.Annotations;
 namespace DataStandardizer.UNM49
 {
     /// <summary>
-    /// Describes a <see cref="UnM49"/> code with metadata.
+    /// Describes a UN M49 code with metadata.
     /// </summary>
     [AttributeUsage(AttributeTargets.Field)]
     public sealed class UnM49AreaCodeAttribute : CodeAttributeBase
@@ -68,7 +68,7 @@ namespace DataStandardizer.UNM49
         #region Public Properties
 
         /// <summary>
-        /// Gets the global code related to this <see cref="UnM49"/> code.
+        /// Gets the global code related to this UN M49 code.
         /// </summary>
         public ushort? GlobalCode { get; }
 
@@ -157,7 +157,7 @@ namespace DataStandardizer.UNM49
         }
 
         /// <summary>
-        /// Gets the region code related to this <see cref="UnM49"/> code.
+        /// Gets the region code related to this UN M49 code.
         /// </summary>
         public ushort? RegionCode { get; }
 
@@ -246,7 +246,7 @@ namespace DataStandardizer.UNM49
         }
 
         /// <summary>
-        /// Gets the sub-region code related to this <see cref="UnM49"/> code.
+        /// Gets the sub-region code related to this UN M49 code.
         /// </summary>
         public ushort? SubRegionCode { get; }
 
@@ -335,7 +335,7 @@ namespace DataStandardizer.UNM49
         }
 
         /// <summary>
-        /// Gets the intermediate region code related to this <see cref="UnM49"/> code.
+        /// Gets the intermediate region code related to this UN M49 code.
         /// </summary>
         public ushort? IntermediateRegionCode { get; }
 

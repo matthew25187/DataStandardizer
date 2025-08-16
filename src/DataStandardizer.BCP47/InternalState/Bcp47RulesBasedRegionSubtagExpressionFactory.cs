@@ -10,7 +10,7 @@ namespace DataStandardizer.BCP47.InternalState
     internal class Bcp47RulesBasedRegionSubtagExpressionFactory : IBcp47ExpressionFactory
     {
         private static readonly RegexOptions ExpressionOptions;
-        internal static readonly string Pattern;
+        internal static readonly string pattern;
 
         static Bcp47RulesBasedRegionSubtagExpressionFactory()
         {
@@ -19,17 +19,17 @@ namespace DataStandardizer.BCP47.InternalState
             ExpressionOptions |= RegexOptions.Compiled;
 #endif
 
-            Pattern = ComposePattern();
+            pattern = ComposePattern();
         }
 
         public Regex Create()
         {
-            return new Regex($"^{Pattern}$", ExpressionOptions);
+            return new Regex($"^{pattern}$", ExpressionOptions);
         }
 
         public string GetPattern()
         {
-            return Pattern;
+            return pattern;
         }
 
         private static string ComposePattern()

@@ -94,7 +94,7 @@ Though each package contains many types, typically there will be only a few that
 
 | Type | Description |
 | --- | --- |
-| `Iso15924` | An enum containing script codes from ISO 15924.  Includes both the four-letter alpha codes and three-digit numeric codes from the standard as the name and value of the members, respectively. |
+| `Iso15924Script` | An enum containing script codes from ISO 15924.  Includes both the four-letter alpha codes and three-digit numeric codes from the standard as the name and value of the members, respectively. |
 
 ## DataStandardizer.ISO3166
 

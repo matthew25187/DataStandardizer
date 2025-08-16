@@ -15,7 +15,6 @@ using DataStandardizer.ISO3166;
 using DataStandardizer.ISO639;
 using DataStandardizer.UNM49;
 using static DataStandardizer.BCP47.Bcp47Constants;
-using Bcp47LanguageTagRegistryState = DataStandardizer.BCP47.InternalState.Bcp47LanguageTagRegistryState;
 using UnM49 = DataStandardizer.UNM49.UnM49AreaByAlpha2CountryCode;
 
 namespace DataStandardizer.BCP47

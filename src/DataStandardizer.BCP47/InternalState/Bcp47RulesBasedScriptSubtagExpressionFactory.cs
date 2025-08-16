@@ -9,7 +9,7 @@ namespace DataStandardizer.BCP47.InternalState
     internal class Bcp47RulesBasedScriptSubtagExpressionFactory : IBcp47ExpressionFactory
     {
         private static readonly RegexOptions ExpressionOptions;
-        internal static readonly string Pattern;
+        internal static readonly string pattern;
 
         static Bcp47RulesBasedScriptSubtagExpressionFactory()
         {
@@ -18,17 +18,17 @@ namespace DataStandardizer.BCP47.InternalState
             ExpressionOptions |= RegexOptions.Compiled;
 #endif
 
-            Pattern = ComposeScriptSubtagPattern();
+            pattern = ComposeScriptSubtagPattern();
         }
 
         public Regex Create()
         {
-            return new Regex($"^{Pattern}$", ExpressionOptions);
+            return new Regex($"^{pattern}$", ExpressionOptions);
         }
 
         public string GetPattern()
         {
-            return Pattern;
+            return pattern;
         }
 
         private static string ComposeScriptSubtagPattern()

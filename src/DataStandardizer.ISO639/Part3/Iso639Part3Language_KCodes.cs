@@ -15,7 +15,7 @@ namespace DataStandardizer.ISO639
 {
     
     
-    public partial struct Iso639Part3Language : DataStandardizer.Core.IStringEnum, System.IEquatable<DataStandardizer.ISO639.Iso639Part3Language>
+    public readonly partial struct Iso639Part3Language : DataStandardizer.Core.IStringEnum, System.IEquatable<DataStandardizer.ISO639.Iso639Part3Language>
     {
         
         #region Public Fields

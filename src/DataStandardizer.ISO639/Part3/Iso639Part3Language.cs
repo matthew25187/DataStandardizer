@@ -22,7 +22,7 @@ namespace DataStandardizer.ISO639
     /// <remarks>
     /// Based on official ISO 639 Part 3 language codes as at 2025-04-15.
     /// </remarks>
-    public partial struct Iso639Part3Language : DataStandardizer.Core.IStringEnum, System.IEquatable<DataStandardizer.ISO639.Iso639Part3Language>
+    public readonly partial struct Iso639Part3Language : DataStandardizer.Core.IStringEnum, System.IEquatable<DataStandardizer.ISO639.Iso639Part3Language>
     {
         
         #region Declarations
