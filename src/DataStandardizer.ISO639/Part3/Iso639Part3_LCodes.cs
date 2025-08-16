@@ -22,2101 +22,2101 @@ namespace DataStandardizer.ISO639
         /// <summary>
         /// Southern Subanen
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Southern Subanen", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Southern Subanen", InvertedName="Subanen, Southern")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Southern Subanen", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Southern Subanen", InvertedName="Subanen, Southern")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @laa = new DataStandardizer.ISO639.Iso639Part3("laa");
         
         /// <summary>
         /// Linear A
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Linear A", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Historical, PrintName="Linear A", InvertedName="Linear A")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Linear A", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Historical, PrintName="Linear A", InvertedName="Linear A")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lab = new DataStandardizer.ISO639.Iso639Part3("lab");
         
         /// <summary>
         /// Lacandon
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lacandon", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lacandon", InvertedName="Lacandon")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lacandon", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lacandon", InvertedName="Lacandon")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lac = new DataStandardizer.ISO639.Iso639Part3("lac");
         
         /// <summary>
         /// Ladino
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Ladino", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Ladino", InvertedName="Ladino", Part2BCode="lad", Part2TCode="lad")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Ladino", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Ladino", InvertedName="Ladino", Part2BCode="lad", Part2TCode="lad")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lad = new DataStandardizer.ISO639.Iso639Part3("lad");
         
         /// <summary>
         /// Pattani
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Pattani", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Pattani", InvertedName="Pattani")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Pattani", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Pattani", InvertedName="Pattani")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lae = new DataStandardizer.ISO639.Iso639Part3("lae");
         
         /// <summary>
         /// Lafofa
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lafofa", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lafofa", InvertedName="Lafofa")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lafofa", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lafofa", InvertedName="Lafofa")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @laf = new DataStandardizer.ISO639.Iso639Part3("laf");
         
         /// <summary>
         /// Rangi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Rangi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Rangi", InvertedName="Rangi")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Rangi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Rangi", InvertedName="Rangi")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lag = new DataStandardizer.ISO639.Iso639Part3("lag");
         
         /// <summary>
         /// Lahnda
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lahnda", DataStandardizer.ISO639.Iso639LanguageScope.Macrolanguage, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lahnda", InvertedName="Lahnda", Part2BCode="lah", Part2TCode="lah")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lahnda", DataStandardizer.ISO639.Iso639LanguageScope.Macrolanguage, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lahnda", InvertedName="Lahnda", Part2BCode="lah", Part2TCode="lah")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lah = new DataStandardizer.ISO639.Iso639Part3("lah");
         
         /// <summary>
         /// Lambya
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lambya", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lambya", InvertedName="Lambya")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lambya", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lambya", InvertedName="Lambya")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lai = new DataStandardizer.ISO639.Iso639Part3("lai");
         
         /// <summary>
         /// Lango (Uganda)
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lango (Uganda)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lango (Uganda)", InvertedName="Lango (Uganda)")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lango (Uganda)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lango (Uganda)", InvertedName="Lango (Uganda)")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @laj = new DataStandardizer.ISO639.Iso639Part3("laj");
         
         /// <summary>
         /// Lalia
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lalia", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lalia", InvertedName="Lalia")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lalia", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lalia", InvertedName="Lalia")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lal = new DataStandardizer.ISO639.Iso639Part3("lal");
         
         /// <summary>
         /// Lamba
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lamba", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lamba", InvertedName="Lamba", Part2BCode="lam", Part2TCode="lam")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lamba", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lamba", InvertedName="Lamba", Part2BCode="lam", Part2TCode="lam")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lam = new DataStandardizer.ISO639.Iso639Part3("lam");
         
         /// <summary>
         /// Laru
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Laru", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laru", InvertedName="Laru")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Laru", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laru", InvertedName="Laru")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lan = new DataStandardizer.ISO639.Iso639Part3("lan");
         
         /// <summary>
         /// Lao
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lao", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lao", InvertedName="Lao", Part1Code="lo", Part2BCode="lao", Part2TCode="lao")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lao", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lao", InvertedName="Lao", Part1Code="lo", Part2BCode="lao", Part2TCode="lao")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lao = new DataStandardizer.ISO639.Iso639Part3("lao");
         
         /// <summary>
         /// Laka (Chad)
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Laka (Chad)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laka (Chad)", InvertedName="Laka (Chad)")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Laka (Chad)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laka (Chad)", InvertedName="Laka (Chad)")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lap = new DataStandardizer.ISO639.Iso639Part3("lap");
         
         /// <summary>
         /// Qabiao
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Qabiao", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Qabiao", InvertedName="Qabiao")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Qabiao", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Qabiao", InvertedName="Qabiao")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @laq = new DataStandardizer.ISO639.Iso639Part3("laq");
         
         /// <summary>
         /// Larteh
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Larteh", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Larteh", InvertedName="Larteh")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Larteh", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Larteh", InvertedName="Larteh")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lar = new DataStandardizer.ISO639.Iso639Part3("lar");
         
         /// <summary>
         /// Lama (Togo)
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lama (Togo)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lama (Togo)", InvertedName="Lama (Togo)")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lama (Togo)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lama (Togo)", InvertedName="Lama (Togo)")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @las = new DataStandardizer.ISO639.Iso639Part3("las");
         
         /// <summary>
         /// Latin
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Latin", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Historical, PrintName="Latin", InvertedName="Latin", Part1Code="la", Part2BCode="lat", Part2TCode="lat")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Latin", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Historical, PrintName="Latin", InvertedName="Latin", Part1Code="la", Part2BCode="lat", Part2TCode="lat")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lat = new DataStandardizer.ISO639.Iso639Part3("lat");
         
         /// <summary>
         /// Laba
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Laba", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laba", InvertedName="Laba")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Laba", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laba", InvertedName="Laba")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lau = new DataStandardizer.ISO639.Iso639Part3("lau");
         
         /// <summary>
         /// Latvian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Latvian", DataStandardizer.ISO639.Iso639LanguageScope.Macrolanguage, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Latvian", InvertedName="Latvian", Part1Code="lv", Part2BCode="lav", Part2TCode="lav")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Latvian", DataStandardizer.ISO639.Iso639LanguageScope.Macrolanguage, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Latvian", InvertedName="Latvian", Part1Code="lv", Part2BCode="lav", Part2TCode="lav")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lav = new DataStandardizer.ISO639.Iso639Part3("lav");
         
         /// <summary>
         /// Lauje
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lauje", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lauje", InvertedName="Lauje")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lauje", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lauje", InvertedName="Lauje")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @law = new DataStandardizer.ISO639.Iso639Part3("law");
         
         /// <summary>
         /// Tiwa
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Tiwa", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Tiwa", InvertedName="Tiwa")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Tiwa", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Tiwa", InvertedName="Tiwa")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lax = new DataStandardizer.ISO639.Iso639Part3("lax");
         
         /// <summary>
         /// Lama Bai
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lama Bai", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lama Bai", InvertedName="Bai, Lama")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lama Bai", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lama Bai", InvertedName="Bai, Lama")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lay = new DataStandardizer.ISO639.Iso639Part3("lay");
         
         /// <summary>
         /// Aribwatsa
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Aribwatsa", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Aribwatsa", InvertedName="Aribwatsa")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Aribwatsa", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Aribwatsa", InvertedName="Aribwatsa")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @laz = new DataStandardizer.ISO639.Iso639Part3("laz");
         
         /// <summary>
         /// Label
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Label", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Label", InvertedName="Label")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Label", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Label", InvertedName="Label")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lbb = new DataStandardizer.ISO639.Iso639Part3("lbb");
         
         /// <summary>
         /// Lakkia
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lakkia", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lakkia", InvertedName="Lakkia")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lakkia", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lakkia", InvertedName="Lakkia")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lbc = new DataStandardizer.ISO639.Iso639Part3("lbc");
         
         /// <summary>
         /// Lak
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lak", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lak", InvertedName="Lak")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lak", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lak", InvertedName="Lak")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lbe = new DataStandardizer.ISO639.Iso639Part3("lbe");
         
         /// <summary>
         /// Tinani
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Tinani", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Tinani", InvertedName="Tinani")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Tinani", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Tinani", InvertedName="Tinani")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lbf = new DataStandardizer.ISO639.Iso639Part3("lbf");
         
         /// <summary>
         /// Laopang
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Laopang", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laopang", InvertedName="Laopang")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Laopang", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laopang", InvertedName="Laopang")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lbg = new DataStandardizer.ISO639.Iso639Part3("lbg");
         
         /// <summary>
         /// La'bi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("La\'bi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="La\'bi", InvertedName="La\'bi")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("La\'bi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="La\'bi", InvertedName="La\'bi")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lbi = new DataStandardizer.ISO639.Iso639Part3("lbi");
         
         /// <summary>
         /// Ladakhi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Ladakhi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Ladakhi", InvertedName="Ladakhi")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Ladakhi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Ladakhi", InvertedName="Ladakhi")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lbj = new DataStandardizer.ISO639.Iso639Part3("lbj");
         
         /// <summary>
         /// Central Bontok
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Central Bontok", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Central Bontok", InvertedName="Bontok, Central", MacrolanguageCode="bnc")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Central Bontok", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Central Bontok", InvertedName="Bontok, Central", MacrolanguageCode="bnc")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lbk = new DataStandardizer.ISO639.Iso639Part3("lbk");
         
         /// <summary>
         /// Libon Bikol
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Libon Bikol", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Libon Bikol", InvertedName="Bikol, Libon", MacrolanguageCode="bik")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Libon Bikol", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Libon Bikol", InvertedName="Bikol, Libon", MacrolanguageCode="bik")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lbl = new DataStandardizer.ISO639.Iso639Part3("lbl");
         
         /// <summary>
         /// Lodhi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lodhi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lodhi", InvertedName="Lodhi")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lodhi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lodhi", InvertedName="Lodhi")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lbm = new DataStandardizer.ISO639.Iso639Part3("lbm");
         
         /// <summary>
         /// Rmeet
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Rmeet", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Rmeet", InvertedName="Rmeet")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Rmeet", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Rmeet", InvertedName="Rmeet")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lbn = new DataStandardizer.ISO639.Iso639Part3("lbn");
         
         /// <summary>
         /// Laven
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Laven", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laven", InvertedName="Laven")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Laven", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laven", InvertedName="Laven")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lbo = new DataStandardizer.ISO639.Iso639Part3("lbo");
         
         /// <summary>
         /// Wampar
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Wampar", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Wampar", InvertedName="Wampar")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Wampar", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Wampar", InvertedName="Wampar")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lbq = new DataStandardizer.ISO639.Iso639Part3("lbq");
         
         /// <summary>
         /// Lohorung
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lohorung", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lohorung", InvertedName="Lohorung")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lohorung", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lohorung", InvertedName="Lohorung")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lbr = new DataStandardizer.ISO639.Iso639Part3("lbr");
         
         /// <summary>
         /// Libyan Sign Language
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Libyan Sign Language", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Libyan Sign Language", InvertedName="Libyan Sign Language")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Libyan Sign Language", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Libyan Sign Language", InvertedName="Libyan Sign Language")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lbs = new DataStandardizer.ISO639.Iso639Part3("lbs");
         
         /// <summary>
         /// Lachi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lachi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lachi", InvertedName="Lachi")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lachi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lachi", InvertedName="Lachi")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lbt = new DataStandardizer.ISO639.Iso639Part3("lbt");
         
         /// <summary>
         /// Labu
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Labu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Labu", InvertedName="Labu")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Labu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Labu", InvertedName="Labu")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lbu = new DataStandardizer.ISO639.Iso639Part3("lbu");
         
         /// <summary>
         /// Lavatbura-Lamusong
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lavatbura-Lamusong", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lavatbura-Lamusong", InvertedName="Lavatbura-Lamusong")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lavatbura-Lamusong", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lavatbura-Lamusong", InvertedName="Lavatbura-Lamusong")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lbv = new DataStandardizer.ISO639.Iso639Part3("lbv");
         
         /// <summary>
         /// Tolaki
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Tolaki", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Tolaki", InvertedName="Tolaki")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Tolaki", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Tolaki", InvertedName="Tolaki")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lbw = new DataStandardizer.ISO639.Iso639Part3("lbw");
         
         /// <summary>
         /// Lawangan
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lawangan", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lawangan", InvertedName="Lawangan")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lawangan", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lawangan", InvertedName="Lawangan")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lbx = new DataStandardizer.ISO639.Iso639Part3("lbx");
         
         /// <summary>
         /// Lamalama
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lamalama", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Lamalama Lamu-Lamu", InvertedName="Lamalama Lamu-Lamu")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lamalama", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Lamalama Lamu-Lamu", InvertedName="Lamalama Lamu-Lamu")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lby = new DataStandardizer.ISO639.Iso639Part3("lby");
         
         /// <summary>
         /// Lardil
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lardil", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lardil", InvertedName="Lardil")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lardil", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lardil", InvertedName="Lardil")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lbz = new DataStandardizer.ISO639.Iso639Part3("lbz");
         
         /// <summary>
         /// Legenyem
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Legenyem", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Legenyem", InvertedName="Legenyem")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Legenyem", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Legenyem", InvertedName="Legenyem")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lcc = new DataStandardizer.ISO639.Iso639Part3("lcc");
         
         /// <summary>
         /// Lola
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lola", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lola", InvertedName="Lola")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lola", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lola", InvertedName="Lola")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lcd = new DataStandardizer.ISO639.Iso639Part3("lcd");
         
         /// <summary>
         /// Loncong
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Loncong", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Loncong Sekak", InvertedName="Loncong Sekak", MacrolanguageCode="msa")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Loncong", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Loncong Sekak", InvertedName="Loncong Sekak", MacrolanguageCode="msa")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lce = new DataStandardizer.ISO639.Iso639Part3("lce");
         
         /// <summary>
         /// Lubu
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lubu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lubu", InvertedName="Lubu", MacrolanguageCode="msa")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lubu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lubu", InvertedName="Lubu", MacrolanguageCode="msa")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lcf = new DataStandardizer.ISO639.Iso639Part3("lcf");
         
         /// <summary>
         /// Luchazi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Luchazi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Luchazi", InvertedName="Luchazi")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Luchazi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Luchazi", InvertedName="Luchazi")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lch = new DataStandardizer.ISO639.Iso639Part3("lch");
         
         /// <summary>
         /// Lisela
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lisela", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lisela", InvertedName="Lisela")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lisela", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lisela", InvertedName="Lisela")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lcl = new DataStandardizer.ISO639.Iso639Part3("lcl");
         
         /// <summary>
         /// Tungag
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Tungag", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Tungag", InvertedName="Tungag")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Tungag", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Tungag", InvertedName="Tungag")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lcm = new DataStandardizer.ISO639.Iso639Part3("lcm");
         
         /// <summary>
         /// Western Lawa
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Western Lawa", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Western Lawa", InvertedName="Lawa, Western")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Western Lawa", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Western Lawa", InvertedName="Lawa, Western")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lcp = new DataStandardizer.ISO639.Iso639Part3("lcp");
         
         /// <summary>
         /// Luhu
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Luhu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Luhu", InvertedName="Luhu")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Luhu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Luhu", InvertedName="Luhu")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lcq = new DataStandardizer.ISO639.Iso639Part3("lcq");
         
         /// <summary>
         /// Lisabata-Nuniali
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lisabata-Nuniali", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lisabata-Nuniali", InvertedName="Lisabata-Nuniali")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lisabata-Nuniali", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lisabata-Nuniali", InvertedName="Lisabata-Nuniali")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lcs = new DataStandardizer.ISO639.Iso639Part3("lcs");
         
         /// <summary>
         /// Kla-Dan
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Kla-Dan", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Kla-Dan", InvertedName="Kla-Dan")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Kla-Dan", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Kla-Dan", InvertedName="Kla-Dan")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lda = new DataStandardizer.ISO639.Iso639Part3("lda");
         
         /// <summary>
         /// Dũya
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Dũya", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Dũya", InvertedName="Dũya")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Dũya", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Dũya", InvertedName="Dũya")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @ldb = new DataStandardizer.ISO639.Iso639Part3("ldb");
         
         /// <summary>
         /// Luri
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Luri", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Luri", InvertedName="Luri")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Luri", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Luri", InvertedName="Luri")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @ldd = new DataStandardizer.ISO639.Iso639Part3("ldd");
         
         /// <summary>
         /// Lenyima
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lenyima", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lenyima", InvertedName="Lenyima")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lenyima", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lenyima", InvertedName="Lenyima")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @ldg = new DataStandardizer.ISO639.Iso639Part3("ldg");
         
         /// <summary>
         /// Lamja-Dengsa-Tola
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lamja-Dengsa-Tola", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lamja-Dengsa-Tola", InvertedName="Lamja-Dengsa-Tola")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lamja-Dengsa-Tola", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lamja-Dengsa-Tola", InvertedName="Lamja-Dengsa-Tola")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @ldh = new DataStandardizer.ISO639.Iso639Part3("ldh");
         
         /// <summary>
         /// Laari
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Laari", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laari", InvertedName="Laari", MacrolanguageCode="kon")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Laari", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laari", InvertedName="Laari", MacrolanguageCode="kon")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @ldi = new DataStandardizer.ISO639.Iso639Part3("ldi");
         
         /// <summary>
         /// Lemoro
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lemoro", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lemoro", InvertedName="Lemoro")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lemoro", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lemoro", InvertedName="Lemoro")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @ldj = new DataStandardizer.ISO639.Iso639Part3("ldj");
         
         /// <summary>
         /// Leelau
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Leelau", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Leelau", InvertedName="Leelau")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Leelau", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Leelau", InvertedName="Leelau")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @ldk = new DataStandardizer.ISO639.Iso639Part3("ldk");
         
         /// <summary>
         /// Kaan
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Kaan", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Kaan", InvertedName="Kaan")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Kaan", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Kaan", InvertedName="Kaan")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @ldl = new DataStandardizer.ISO639.Iso639Part3("ldl");
         
         /// <summary>
         /// Landoma
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Landoma", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Landoma", InvertedName="Landoma")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Landoma", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Landoma", InvertedName="Landoma")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @ldm = new DataStandardizer.ISO639.Iso639Part3("ldm");
         
         /// <summary>
         /// Láadan
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Láadan", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Constructed, PrintName="Láadan", InvertedName="Láadan")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Láadan", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Constructed, PrintName="Láadan", InvertedName="Láadan")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @ldn = new DataStandardizer.ISO639.Iso639Part3("ldn");
         
         /// <summary>
         /// Loo
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Loo", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Loo", InvertedName="Loo")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Loo", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Loo", InvertedName="Loo")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @ldo = new DataStandardizer.ISO639.Iso639Part3("ldo");
         
         /// <summary>
         /// Tso
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Tso", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Tso", InvertedName="Tso")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Tso", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Tso", InvertedName="Tso")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @ldp = new DataStandardizer.ISO639.Iso639Part3("ldp");
         
         /// <summary>
         /// Lufu
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lufu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lufu", InvertedName="Lufu")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lufu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lufu", InvertedName="Lufu")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @ldq = new DataStandardizer.ISO639.Iso639Part3("ldq");
         
         /// <summary>
         /// Lega-Shabunda
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lega-Shabunda", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lega-Shabunda", InvertedName="Lega-Shabunda")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lega-Shabunda", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lega-Shabunda", InvertedName="Lega-Shabunda")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lea = new DataStandardizer.ISO639.Iso639Part3("lea");
         
         /// <summary>
         /// Lala-Bisa
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lala-Bisa", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lala-Bisa", InvertedName="Lala-Bisa")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lala-Bisa", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lala-Bisa", InvertedName="Lala-Bisa")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @leb = new DataStandardizer.ISO639.Iso639Part3("leb");
         
         /// <summary>
         /// Leco
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Leco", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Leco", InvertedName="Leco")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Leco", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Leco", InvertedName="Leco")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lec = new DataStandardizer.ISO639.Iso639Part3("lec");
         
         /// <summary>
         /// Lendu
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lendu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lendu", InvertedName="Lendu")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lendu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lendu", InvertedName="Lendu")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @led = new DataStandardizer.ISO639.Iso639Part3("led");
         
         /// <summary>
         /// Lyélé
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lyélé", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lyélé", InvertedName="Lyélé")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lyélé", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lyélé", InvertedName="Lyélé")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lee = new DataStandardizer.ISO639.Iso639Part3("lee");
         
         /// <summary>
         /// Lelemi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lelemi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lelemi", InvertedName="Lelemi")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lelemi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lelemi", InvertedName="Lelemi")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lef = new DataStandardizer.ISO639.Iso639Part3("lef");
         
         /// <summary>
         /// Lenje
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lenje", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lenje", InvertedName="Lenje")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lenje", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lenje", InvertedName="Lenje")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @leh = new DataStandardizer.ISO639.Iso639Part3("leh");
         
         /// <summary>
         /// Lemio
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lemio", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lemio", InvertedName="Lemio")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lemio", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lemio", InvertedName="Lemio")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lei = new DataStandardizer.ISO639.Iso639Part3("lei");
         
         /// <summary>
         /// Lengola
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lengola", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lengola", InvertedName="Lengola")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lengola", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lengola", InvertedName="Lengola")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lej = new DataStandardizer.ISO639.Iso639Part3("lej");
         
         /// <summary>
         /// Leipon
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Leipon", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Leipon", InvertedName="Leipon")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Leipon", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Leipon", InvertedName="Leipon")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lek = new DataStandardizer.ISO639.Iso639Part3("lek");
         
         /// <summary>
         /// Lele (Democratic Republic of Congo)
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lele (Democratic Republic of Congo)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lele (Democratic Republic of Congo)", InvertedName="Lele (Democratic Republic of Congo)")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lele (Democratic Republic of Congo)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lele (Democratic Republic of Congo)", InvertedName="Lele (Democratic Republic of Congo)")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lel = new DataStandardizer.ISO639.Iso639Part3("lel");
         
         /// <summary>
         /// Nomaande
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Nomaande", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Nomaande", InvertedName="Nomaande")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Nomaande", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Nomaande", InvertedName="Nomaande")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lem = new DataStandardizer.ISO639.Iso639Part3("lem");
         
         /// <summary>
         /// Lenca
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lenca", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Lenca", InvertedName="Lenca")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lenca", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Lenca", InvertedName="Lenca")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @len = new DataStandardizer.ISO639.Iso639Part3("len");
         
         /// <summary>
         /// Leti (Cameroon)
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Leti (Cameroon)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Leti (Cameroon)", InvertedName="Leti (Cameroon)")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Leti (Cameroon)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Leti (Cameroon)", InvertedName="Leti (Cameroon)")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @leo = new DataStandardizer.ISO639.Iso639Part3("leo");
         
         /// <summary>
         /// Lepcha
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lepcha", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lepcha", InvertedName="Lepcha")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lepcha", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lepcha", InvertedName="Lepcha")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lep = new DataStandardizer.ISO639.Iso639Part3("lep");
         
         /// <summary>
         /// Lembena
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lembena", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lembena", InvertedName="Lembena")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lembena", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lembena", InvertedName="Lembena")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @leq = new DataStandardizer.ISO639.Iso639Part3("leq");
         
         /// <summary>
         /// Lenkau
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lenkau", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lenkau", InvertedName="Lenkau")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lenkau", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lenkau", InvertedName="Lenkau")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @ler = new DataStandardizer.ISO639.Iso639Part3("ler");
         
         /// <summary>
         /// Lese
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lese", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lese", InvertedName="Lese")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lese", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lese", InvertedName="Lese")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @les = new DataStandardizer.ISO639.Iso639Part3("les");
         
         /// <summary>
         /// Lesing-Gelimi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lesing-Gelimi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Amio-Gelimi Lesing-Gelimi", InvertedName="Amio-Gelimi Lesing-Gelimi")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lesing-Gelimi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Amio-Gelimi Lesing-Gelimi", InvertedName="Amio-Gelimi Lesing-Gelimi")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @let = new DataStandardizer.ISO639.Iso639Part3("let");
         
         /// <summary>
         /// Kara (Papua New Guinea)
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Kara (Papua New Guinea)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Kara (Papua New Guinea)", InvertedName="Kara (Papua New Guinea)")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Kara (Papua New Guinea)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Kara (Papua New Guinea)", InvertedName="Kara (Papua New Guinea)")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @leu = new DataStandardizer.ISO639.Iso639Part3("leu");
         
         /// <summary>
         /// Lamma
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lamma", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lamma", InvertedName="Lamma")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lamma", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lamma", InvertedName="Lamma")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lev = new DataStandardizer.ISO639.Iso639Part3("lev");
         
         /// <summary>
         /// Ledo Kaili
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Ledo Kaili", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Ledo Kaili", InvertedName="Kaili, Ledo")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Ledo Kaili", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Ledo Kaili", InvertedName="Kaili, Ledo")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lew = new DataStandardizer.ISO639.Iso639Part3("lew");
         
         /// <summary>
         /// Luang
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Luang", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Luang", InvertedName="Luang")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Luang", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Luang", InvertedName="Luang")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lex = new DataStandardizer.ISO639.Iso639Part3("lex");
         
         /// <summary>
         /// Lemolang
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lemolang", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lemolang", InvertedName="Lemolang")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lemolang", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lemolang", InvertedName="Lemolang")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @ley = new DataStandardizer.ISO639.Iso639Part3("ley");
         
         /// <summary>
         /// Lezghian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lezghian", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lezghian", InvertedName="Lezghian", Part2BCode="lez", Part2TCode="lez")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lezghian", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lezghian", InvertedName="Lezghian", Part2BCode="lez", Part2TCode="lez")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lez = new DataStandardizer.ISO639.Iso639Part3("lez");
         
         /// <summary>
         /// Lefa
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lefa", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lefa", InvertedName="Lefa")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lefa", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lefa", InvertedName="Lefa")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lfa = new DataStandardizer.ISO639.Iso639Part3("lfa");
         
         /// <summary>
         /// Lingua Franca Nova
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lingua Franca Nova", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Constructed, PrintName="Lingua Franca Nova", InvertedName="Lingua Franca Nova")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lingua Franca Nova", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Constructed, PrintName="Lingua Franca Nova", InvertedName="Lingua Franca Nova")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lfn = new DataStandardizer.ISO639.Iso639Part3("lfn");
         
         /// <summary>
         /// Lungga
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lungga", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lungga", InvertedName="Lungga")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lungga", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lungga", InvertedName="Lungga")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lga = new DataStandardizer.ISO639.Iso639Part3("lga");
         
         /// <summary>
         /// Laghu
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Laghu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laghu", InvertedName="Laghu")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Laghu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laghu", InvertedName="Laghu")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lgb = new DataStandardizer.ISO639.Iso639Part3("lgb");
         
         /// <summary>
         /// Lugbara
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lugbara", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lugbara", InvertedName="Lugbara")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lugbara", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lugbara", InvertedName="Lugbara")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lgg = new DataStandardizer.ISO639.Iso639Part3("lgg");
         
         /// <summary>
         /// Laghuu
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Laghuu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laghuu", InvertedName="Laghuu")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Laghuu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laghuu", InvertedName="Laghuu")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lgh = new DataStandardizer.ISO639.Iso639Part3("lgh");
         
         /// <summary>
         /// Lengilu
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lengilu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lengilu", InvertedName="Lengilu")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lengilu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lengilu", InvertedName="Lengilu")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lgi = new DataStandardizer.ISO639.Iso639Part3("lgi");
         
         /// <summary>
         /// Lingarak
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lingarak", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lingarak Neverver", InvertedName="Lingarak Neverver")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lingarak", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lingarak Neverver", InvertedName="Lingarak Neverver")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lgk = new DataStandardizer.ISO639.Iso639Part3("lgk");
         
         /// <summary>
         /// Wala
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Wala", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Wala", InvertedName="Wala")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Wala", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Wala", InvertedName="Wala")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lgl = new DataStandardizer.ISO639.Iso639Part3("lgl");
         
         /// <summary>
         /// Lega-Mwenga
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lega-Mwenga", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lega-Mwenga", InvertedName="Lega-Mwenga")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lega-Mwenga", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lega-Mwenga", InvertedName="Lega-Mwenga")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lgm = new DataStandardizer.ISO639.Iso639Part3("lgm");
         
         /// <summary>
         /// T'apo
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("T\'apo", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Opuuo T\'apo", InvertedName="Opuuo T\'apo")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("T\'apo", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Opuuo T\'apo", InvertedName="Opuuo T\'apo")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lgn = new DataStandardizer.ISO639.Iso639Part3("lgn");
         
         /// <summary>
         /// Lango (South Sudan)
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lango (South Sudan)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lango (South Sudan)", InvertedName="Lango (South Sudan)")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lango (South Sudan)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lango (South Sudan)", InvertedName="Lango (South Sudan)")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lgo = new DataStandardizer.ISO639.Iso639Part3("lgo");
         
         /// <summary>
         /// Logba
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Logba", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Logba", InvertedName="Logba")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Logba", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Logba", InvertedName="Logba")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lgq = new DataStandardizer.ISO639.Iso639Part3("lgq");
         
         /// <summary>
         /// Lengo
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lengo", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lengo", InvertedName="Lengo")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lengo", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lengo", InvertedName="Lengo")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lgr = new DataStandardizer.ISO639.Iso639Part3("lgr");
         
         /// <summary>
         /// Guinea-Bissau Sign Language
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Guinea-Bissau Sign Language", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Guinea-Bissau Sign Language Língua Gestual Guineense", InvertedName="Guinea-Bissau Sign Language Língua Gestual Guineense")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Guinea-Bissau Sign Language", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Guinea-Bissau Sign Language Língua Gestual Guineense", InvertedName="Guinea-Bissau Sign Language Língua Gestual Guineense")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lgs = new DataStandardizer.ISO639.Iso639Part3("lgs");
         
         /// <summary>
         /// Pahi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Pahi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Pahi", InvertedName="Pahi")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Pahi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Pahi", InvertedName="Pahi")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lgt = new DataStandardizer.ISO639.Iso639Part3("lgt");
         
         /// <summary>
         /// Longgu
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Longgu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Longgu", InvertedName="Longgu")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Longgu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Longgu", InvertedName="Longgu")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lgu = new DataStandardizer.ISO639.Iso639Part3("lgu");
         
         /// <summary>
         /// Ligenza
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Ligenza", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Ligenza", InvertedName="Ligenza")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Ligenza", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Ligenza", InvertedName="Ligenza")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lgz = new DataStandardizer.ISO639.Iso639Part3("lgz");
         
         /// <summary>
         /// Laha (Viet Nam)
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Laha (Viet Nam)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laha (Viet Nam)", InvertedName="Laha (Viet Nam)")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Laha (Viet Nam)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laha (Viet Nam)", InvertedName="Laha (Viet Nam)")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lha = new DataStandardizer.ISO639.Iso639Part3("lha");
         
         /// <summary>
         /// Laha (Indonesia)
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Laha (Indonesia)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laha (Indonesia)", InvertedName="Laha (Indonesia)")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Laha (Indonesia)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laha (Indonesia)", InvertedName="Laha (Indonesia)")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lhh = new DataStandardizer.ISO639.Iso639Part3("lhh");
         
         /// <summary>
         /// Lahu Shi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lahu Shi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lahu Shi", InvertedName="Lahu Shi")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lahu Shi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lahu Shi", InvertedName="Lahu Shi")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lhi = new DataStandardizer.ISO639.Iso639Part3("lhi");
         
         /// <summary>
         /// Lahul Lohar
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lahul Lohar", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lahul Lohar", InvertedName="Lohar, Lahul")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lahul Lohar", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lahul Lohar", InvertedName="Lohar, Lahul")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lhl = new DataStandardizer.ISO639.Iso639Part3("lhl");
         
         /// <summary>
         /// Lhomi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lhomi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lhomi", InvertedName="Lhomi")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lhomi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lhomi", InvertedName="Lhomi")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lhm = new DataStandardizer.ISO639.Iso639Part3("lhm");
         
         /// <summary>
         /// Lahanan
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lahanan", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lahanan", InvertedName="Lahanan")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lahanan", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lahanan", InvertedName="Lahanan")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lhn = new DataStandardizer.ISO639.Iso639Part3("lhn");
         
         /// <summary>
         /// Lhokpu
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lhokpu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lhokpu", InvertedName="Lhokpu")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lhokpu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lhokpu", InvertedName="Lhokpu")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lhp = new DataStandardizer.ISO639.Iso639Part3("lhp");
         
         /// <summary>
         /// Mlahsö
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Mlahsö", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Mlahsö", InvertedName="Mlahsö")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Mlahsö", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Mlahsö", InvertedName="Mlahsö")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lhs = new DataStandardizer.ISO639.Iso639Part3("lhs");
         
         /// <summary>
         /// Lo-Toga
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lo-Toga", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lo-Toga", InvertedName="Lo-Toga")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lo-Toga", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lo-Toga", InvertedName="Lo-Toga")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lht = new DataStandardizer.ISO639.Iso639Part3("lht");
         
         /// <summary>
         /// Lahu
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lahu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lahu", InvertedName="Lahu")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lahu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lahu", InvertedName="Lahu")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lhu = new DataStandardizer.ISO639.Iso639Part3("lhu");
         
         /// <summary>
         /// West-Central Limba
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("West-Central Limba", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="West-Central Limba", InvertedName="Limba, West-Central")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("West-Central Limba", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="West-Central Limba", InvertedName="Limba, West-Central")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lia = new DataStandardizer.ISO639.Iso639Part3("lia");
         
         /// <summary>
         /// Likum
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Likum", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Likum", InvertedName="Likum")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Likum", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Likum", InvertedName="Likum")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lib = new DataStandardizer.ISO639.Iso639Part3("lib");
         
         /// <summary>
         /// Hlai
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Hlai", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Hlai", InvertedName="Hlai")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Hlai", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Hlai", InvertedName="Hlai")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lic = new DataStandardizer.ISO639.Iso639Part3("lic");
         
         /// <summary>
         /// Nyindrou
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Nyindrou", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Nyindrou", InvertedName="Nyindrou")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Nyindrou", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Nyindrou", InvertedName="Nyindrou")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lid = new DataStandardizer.ISO639.Iso639Part3("lid");
         
         /// <summary>
         /// Likila
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Likila", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Likila", InvertedName="Likila")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Likila", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Likila", InvertedName="Likila")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lie = new DataStandardizer.ISO639.Iso639Part3("lie");
         
         /// <summary>
         /// Limbu
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Limbu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Limbu", InvertedName="Limbu")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Limbu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Limbu", InvertedName="Limbu")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lif = new DataStandardizer.ISO639.Iso639Part3("lif");
         
         /// <summary>
         /// Ligbi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Ligbi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Ligbi", InvertedName="Ligbi")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Ligbi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Ligbi", InvertedName="Ligbi")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lig = new DataStandardizer.ISO639.Iso639Part3("lig");
         
         /// <summary>
         /// Lihir
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lihir", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lihir", InvertedName="Lihir")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lihir", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lihir", InvertedName="Lihir")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lih = new DataStandardizer.ISO639.Iso639Part3("lih");
         
         /// <summary>
         /// Ligurian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Ligurian", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Ligurian", InvertedName="Ligurian")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Ligurian", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Ligurian", InvertedName="Ligurian")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lij = new DataStandardizer.ISO639.Iso639Part3("lij");
         
         /// <summary>
         /// Lika
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lika", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lika", InvertedName="Lika")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lika", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lika", InvertedName="Lika")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lik = new DataStandardizer.ISO639.Iso639Part3("lik");
         
         /// <summary>
         /// Lillooet
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lillooet", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lillooet", InvertedName="Lillooet")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lillooet", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lillooet", InvertedName="Lillooet")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lil = new DataStandardizer.ISO639.Iso639Part3("lil");
         
         /// <summary>
         /// Limburgan
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Limburgan", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Limburgan Limburger Limburgish", InvertedName="Limburgan Limburger Limburgish", Part1Code="li", Part2BCode="lim", Part2TCode="lim")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Limburgan", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Limburgan Limburger Limburgish", InvertedName="Limburgan Limburger Limburgish", Part1Code="li", Part2BCode="lim", Part2TCode="lim")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lim = new DataStandardizer.ISO639.Iso639Part3("lim");
         
         /// <summary>
         /// Lingala
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lingala", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lingala", InvertedName="Lingala", Part1Code="ln", Part2BCode="lin", Part2TCode="lin")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lingala", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lingala", InvertedName="Lingala", Part1Code="ln", Part2BCode="lin", Part2TCode="lin")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lin = new DataStandardizer.ISO639.Iso639Part3("lin");
         
         /// <summary>
         /// Liki
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Liki", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Liki", InvertedName="Liki")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Liki", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Liki", InvertedName="Liki")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lio = new DataStandardizer.ISO639.Iso639Part3("lio");
         
         /// <summary>
         /// Sekpele
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Sekpele", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Sekpele", InvertedName="Sekpele")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Sekpele", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Sekpele", InvertedName="Sekpele")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lip = new DataStandardizer.ISO639.Iso639Part3("lip");
         
         /// <summary>
         /// Libido
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Libido", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Libido", InvertedName="Libido")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Libido", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Libido", InvertedName="Libido")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @liq = new DataStandardizer.ISO639.Iso639Part3("liq");
         
         /// <summary>
         /// Liberian English
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Liberian English", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Liberian English", InvertedName="English, Liberian")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Liberian English", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Liberian English", InvertedName="English, Liberian")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lir = new DataStandardizer.ISO639.Iso639Part3("lir");
         
         /// <summary>
         /// Lisu
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lisu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lisu", InvertedName="Lisu")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lisu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lisu", InvertedName="Lisu")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lis = new DataStandardizer.ISO639.Iso639Part3("lis");
         
         /// <summary>
         /// Lithuanian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lithuanian", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lithuanian", InvertedName="Lithuanian", Part1Code="lt", Part2BCode="lit", Part2TCode="lit")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lithuanian", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lithuanian", InvertedName="Lithuanian", Part1Code="lt", Part2BCode="lit", Part2TCode="lit")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lit = new DataStandardizer.ISO639.Iso639Part3("lit");
         
         /// <summary>
         /// Logorik
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Logorik", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Logorik", InvertedName="Logorik")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Logorik", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Logorik", InvertedName="Logorik")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @liu = new DataStandardizer.ISO639.Iso639Part3("liu");
         
         /// <summary>
         /// Liv
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Liv", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Liv", InvertedName="Liv")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Liv", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Liv", InvertedName="Liv")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @liv = new DataStandardizer.ISO639.Iso639Part3("liv");
         
         /// <summary>
         /// Col
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Col", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Col", InvertedName="Col", MacrolanguageCode="msa")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Col", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Col", InvertedName="Col", MacrolanguageCode="msa")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @liw = new DataStandardizer.ISO639.Iso639Part3("liw");
         
         /// <summary>
         /// Liabuku
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Liabuku", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Liabuku", InvertedName="Liabuku")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Liabuku", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Liabuku", InvertedName="Liabuku")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lix = new DataStandardizer.ISO639.Iso639Part3("lix");
         
         /// <summary>
         /// Banda-Bambari
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Banda-Bambari", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Banda-Bambari", InvertedName="Banda-Bambari")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Banda-Bambari", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Banda-Bambari", InvertedName="Banda-Bambari")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @liy = new DataStandardizer.ISO639.Iso639Part3("liy");
         
         /// <summary>
         /// Libinza
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Libinza", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Libinza", InvertedName="Libinza")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Libinza", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Libinza", InvertedName="Libinza")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @liz = new DataStandardizer.ISO639.Iso639Part3("liz");
         
         /// <summary>
         /// Golpa
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Golpa", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Golpa", InvertedName="Golpa")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Golpa", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Golpa", InvertedName="Golpa")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lja = new DataStandardizer.ISO639.Iso639Part3("lja");
         
         /// <summary>
         /// Rampi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Rampi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Rampi", InvertedName="Rampi")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Rampi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Rampi", InvertedName="Rampi")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lje = new DataStandardizer.ISO639.Iso639Part3("lje");
         
         /// <summary>
         /// Laiyolo
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Laiyolo", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laiyolo", InvertedName="Laiyolo")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Laiyolo", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laiyolo", InvertedName="Laiyolo")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lji = new DataStandardizer.ISO639.Iso639Part3("lji");
         
         /// <summary>
         /// Li'o
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Li\'o", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Li\'o", InvertedName="Li\'o")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Li\'o", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Li\'o", InvertedName="Li\'o")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @ljl = new DataStandardizer.ISO639.Iso639Part3("ljl");
         
         /// <summary>
         /// Lampung Api
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lampung Api", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lampung Api", InvertedName="Lampung Api")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lampung Api", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lampung Api", InvertedName="Lampung Api")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @ljp = new DataStandardizer.ISO639.Iso639Part3("ljp");
         
         /// <summary>
         /// Yirandali
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Yirandali", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Yirandali", InvertedName="Yirandali")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Yirandali", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Yirandali", InvertedName="Yirandali")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @ljw = new DataStandardizer.ISO639.Iso639Part3("ljw");
         
         /// <summary>
         /// Yuru
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Yuru", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Yuru", InvertedName="Yuru")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Yuru", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Yuru", InvertedName="Yuru")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @ljx = new DataStandardizer.ISO639.Iso639Part3("ljx");
         
         /// <summary>
         /// Lakalei
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lakalei", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lakalei", InvertedName="Lakalei")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lakalei", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lakalei", InvertedName="Lakalei")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lka = new DataStandardizer.ISO639.Iso639Part3("lka");
         
         /// <summary>
         /// Kabras
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Kabras", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Kabras Lukabaras", InvertedName="Kabras Lukabaras", MacrolanguageCode="luy")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Kabras", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Kabras Lukabaras", InvertedName="Kabras Lukabaras", MacrolanguageCode="luy")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lkb = new DataStandardizer.ISO639.Iso639Part3("lkb");
         
         /// <summary>
         /// Kucong
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Kucong", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Kucong", InvertedName="Kucong")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Kucong", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Kucong", InvertedName="Kucong")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lkc = new DataStandardizer.ISO639.Iso639Part3("lkc");
         
         /// <summary>
         /// Lakondê
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lakondê", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lakondê", InvertedName="Lakondê")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lakondê", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lakondê", InvertedName="Lakondê")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lkd = new DataStandardizer.ISO639.Iso639Part3("lkd");
         
         /// <summary>
         /// Kenyi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Kenyi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Kenyi", InvertedName="Kenyi")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Kenyi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Kenyi", InvertedName="Kenyi")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lke = new DataStandardizer.ISO639.Iso639Part3("lke");
         
         /// <summary>
         /// Lakha
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lakha", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lakha", InvertedName="Lakha")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lakha", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lakha", InvertedName="Lakha")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lkh = new DataStandardizer.ISO639.Iso639Part3("lkh");
         
         /// <summary>
         /// Laki
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Laki", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laki", InvertedName="Laki")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Laki", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laki", InvertedName="Laki")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lki = new DataStandardizer.ISO639.Iso639Part3("lki");
         
         /// <summary>
         /// Remun
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Remun", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Remun", InvertedName="Remun")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Remun", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Remun", InvertedName="Remun")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lkj = new DataStandardizer.ISO639.Iso639Part3("lkj");
         
         /// <summary>
         /// Laeko-Libuat
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Laeko-Libuat", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laeko-Libuat", InvertedName="Laeko-Libuat")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Laeko-Libuat", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laeko-Libuat", InvertedName="Laeko-Libuat")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lkl = new DataStandardizer.ISO639.Iso639Part3("lkl");
         
         /// <summary>
         /// Kalaamaya
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Kalaamaya", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Kalaamaya", InvertedName="Kalaamaya")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Kalaamaya", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Kalaamaya", InvertedName="Kalaamaya")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lkm = new DataStandardizer.ISO639.Iso639Part3("lkm");
         
         /// <summary>
         /// Lakon
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lakon", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lakon Vure", InvertedName="Lakon Vure")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lakon", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lakon Vure", InvertedName="Lakon Vure")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lkn = new DataStandardizer.ISO639.Iso639Part3("lkn");
         
         /// <summary>
         /// Khayo
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Khayo", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Khayo Olukhayo", InvertedName="Khayo Olukhayo", MacrolanguageCode="luy")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Khayo", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Khayo Olukhayo", InvertedName="Khayo Olukhayo", MacrolanguageCode="luy")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lko = new DataStandardizer.ISO639.Iso639Part3("lko");
         
         /// <summary>
         /// Päri
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Päri", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Päri", InvertedName="Päri")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Päri", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Päri", InvertedName="Päri")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lkr = new DataStandardizer.ISO639.Iso639Part3("lkr");
         
         /// <summary>
         /// Kisa
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Kisa", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Kisa Olushisa", InvertedName="Kisa Olushisa", MacrolanguageCode="luy")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Kisa", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Kisa Olushisa", InvertedName="Kisa Olushisa", MacrolanguageCode="luy")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lks = new DataStandardizer.ISO639.Iso639Part3("lks");
         
         /// <summary>
         /// Lakota
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lakota", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lakota", InvertedName="Lakota")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lakota", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lakota", InvertedName="Lakota")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lkt = new DataStandardizer.ISO639.Iso639Part3("lkt");
         
         /// <summary>
         /// Kungkari
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Kungkari", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Kungkari", InvertedName="Kungkari")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Kungkari", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Kungkari", InvertedName="Kungkari")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lku = new DataStandardizer.ISO639.Iso639Part3("lku");
         
         /// <summary>
         /// Lokoya
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lokoya", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lokoya", InvertedName="Lokoya")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lokoya", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lokoya", InvertedName="Lokoya")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lky = new DataStandardizer.ISO639.Iso639Part3("lky");
         
         /// <summary>
         /// Lala-Roba
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lala-Roba", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lala-Roba", InvertedName="Lala-Roba")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lala-Roba", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lala-Roba", InvertedName="Lala-Roba")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lla = new DataStandardizer.ISO639.Iso639Part3("lla");
         
         /// <summary>
         /// Lolo
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lolo", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lolo", InvertedName="Lolo")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lolo", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lolo", InvertedName="Lolo")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @llb = new DataStandardizer.ISO639.Iso639Part3("llb");
         
         /// <summary>
         /// Lele (Guinea)
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lele (Guinea)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lele (Guinea)", InvertedName="Lele (Guinea)")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lele (Guinea)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lele (Guinea)", InvertedName="Lele (Guinea)")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @llc = new DataStandardizer.ISO639.Iso639Part3("llc");
         
         /// <summary>
         /// Ladin
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Ladin", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Ladin", InvertedName="Ladin")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Ladin", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Ladin", InvertedName="Ladin")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lld = new DataStandardizer.ISO639.Iso639Part3("lld");
         
         /// <summary>
         /// Lele (Papua New Guinea)
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lele (Papua New Guinea)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lele (Papua New Guinea)", InvertedName="Lele (Papua New Guinea)")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lele (Papua New Guinea)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lele (Papua New Guinea)", InvertedName="Lele (Papua New Guinea)")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lle = new DataStandardizer.ISO639.Iso639Part3("lle");
         
         /// <summary>
         /// Hermit
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Hermit", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Hermit", InvertedName="Hermit")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Hermit", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Hermit", InvertedName="Hermit")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @llf = new DataStandardizer.ISO639.Iso639Part3("llf");
         
         /// <summary>
         /// Lole
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lole", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lole", InvertedName="Lole")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lole", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lole", InvertedName="Lole")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @llg = new DataStandardizer.ISO639.Iso639Part3("llg");
         
         /// <summary>
         /// Lamu
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lamu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lamu", InvertedName="Lamu")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lamu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lamu", InvertedName="Lamu")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @llh = new DataStandardizer.ISO639.Iso639Part3("llh");
         
         /// <summary>
         /// Teke-Laali
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Teke-Laali", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Teke-Laali", InvertedName="Teke-Laali")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Teke-Laali", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Teke-Laali", InvertedName="Teke-Laali")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lli = new DataStandardizer.ISO639.Iso639Part3("lli");
         
         /// <summary>
         /// Ladji Ladji
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Ladji Ladji", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Ladji Ladji", InvertedName="Ladji Ladji")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Ladji Ladji", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Ladji Ladji", InvertedName="Ladji Ladji")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @llj = new DataStandardizer.ISO639.Iso639Part3("llj");
         
         /// <summary>
         /// Lelak
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lelak", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Lelak", InvertedName="Lelak")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lelak", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Lelak", InvertedName="Lelak")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @llk = new DataStandardizer.ISO639.Iso639Part3("llk");
         
         /// <summary>
         /// Lilau
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lilau", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lilau", InvertedName="Lilau")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lilau", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lilau", InvertedName="Lilau")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lll = new DataStandardizer.ISO639.Iso639Part3("lll");
         
         /// <summary>
         /// Lasalimu
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lasalimu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lasalimu", InvertedName="Lasalimu")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lasalimu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lasalimu", InvertedName="Lasalimu")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @llm = new DataStandardizer.ISO639.Iso639Part3("llm");
         
         /// <summary>
         /// Lele (Chad)
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lele (Chad)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lele (Chad)", InvertedName="Lele (Chad)")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lele (Chad)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lele (Chad)", InvertedName="Lele (Chad)")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lln = new DataStandardizer.ISO639.Iso639Part3("lln");
         
         /// <summary>
         /// North Efate
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("North Efate", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="North Efate", InvertedName="Efate, North")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("North Efate", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="North Efate", InvertedName="Efate, North")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @llp = new DataStandardizer.ISO639.Iso639Part3("llp");
         
         /// <summary>
         /// Lolak
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lolak", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lolak", InvertedName="Lolak")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lolak", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lolak", InvertedName="Lolak")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @llq = new DataStandardizer.ISO639.Iso639Part3("llq");
         
         /// <summary>
         /// Lithuanian Sign Language
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lithuanian Sign Language", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lithuanian Sign Language", InvertedName="Lithuanian Sign Language")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lithuanian Sign Language", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lithuanian Sign Language", InvertedName="Lithuanian Sign Language")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lls = new DataStandardizer.ISO639.Iso639Part3("lls");
         
         /// <summary>
         /// Lau
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lau", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lau", InvertedName="Lau")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lau", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lau", InvertedName="Lau")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @llu = new DataStandardizer.ISO639.Iso639Part3("llu");
         
         /// <summary>
         /// Lauan
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lauan", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lauan", InvertedName="Lauan")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lauan", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lauan", InvertedName="Lauan")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @llx = new DataStandardizer.ISO639.Iso639Part3("llx");
         
         /// <summary>
         /// East Limba
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("East Limba", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="East Limba", InvertedName="Limba, East")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("East Limba", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="East Limba", InvertedName="Limba, East")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lma = new DataStandardizer.ISO639.Iso639Part3("lma");
         
         /// <summary>
         /// Merei
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Merei", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Merei", InvertedName="Merei")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Merei", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Merei", InvertedName="Merei")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lmb = new DataStandardizer.ISO639.Iso639Part3("lmb");
         
         /// <summary>
         /// Limilngan
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Limilngan", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Limilngan", InvertedName="Limilngan")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Limilngan", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Limilngan", InvertedName="Limilngan")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lmc = new DataStandardizer.ISO639.Iso639Part3("lmc");
         
         /// <summary>
         /// Lumun
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lumun", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lumun", InvertedName="Lumun")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lumun", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lumun", InvertedName="Lumun")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lmd = new DataStandardizer.ISO639.Iso639Part3("lmd");
         
         /// <summary>
         /// Pévé
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Pévé", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Pévé", InvertedName="Pévé")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Pévé", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Pévé", InvertedName="Pévé")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lme = new DataStandardizer.ISO639.Iso639Part3("lme");
         
         /// <summary>
         /// South Lembata
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("South Lembata", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="South Lembata", InvertedName="Lembata, South")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("South Lembata", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="South Lembata", InvertedName="Lembata, South")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lmf = new DataStandardizer.ISO639.Iso639Part3("lmf");
         
         /// <summary>
         /// Lamogai
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lamogai", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lamogai", InvertedName="Lamogai")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lamogai", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lamogai", InvertedName="Lamogai")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lmg = new DataStandardizer.ISO639.Iso639Part3("lmg");
         
         /// <summary>
         /// Lambichhong
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lambichhong", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lambichhong", InvertedName="Lambichhong")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lambichhong", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lambichhong", InvertedName="Lambichhong")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lmh = new DataStandardizer.ISO639.Iso639Part3("lmh");
         
         /// <summary>
         /// Lombi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lombi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lombi", InvertedName="Lombi")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lombi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lombi", InvertedName="Lombi")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lmi = new DataStandardizer.ISO639.Iso639Part3("lmi");
         
         /// <summary>
         /// West Lembata
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("West Lembata", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="West Lembata", InvertedName="Lembata, West")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("West Lembata", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="West Lembata", InvertedName="Lembata, West")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lmj = new DataStandardizer.ISO639.Iso639Part3("lmj");
         
         /// <summary>
         /// Lamkang
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lamkang", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lamkang", InvertedName="Lamkang")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lamkang", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lamkang", InvertedName="Lamkang")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lmk = new DataStandardizer.ISO639.Iso639Part3("lmk");
         
         /// <summary>
         /// Hano
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Hano", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Hano", InvertedName="Hano")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Hano", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Hano", InvertedName="Hano")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lml = new DataStandardizer.ISO639.Iso639Part3("lml");
         
         /// <summary>
         /// Lambadi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lambadi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lambadi", InvertedName="Lambadi")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lambadi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lambadi", InvertedName="Lambadi")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lmn = new DataStandardizer.ISO639.Iso639Part3("lmn");
         
         /// <summary>
         /// Lombard
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lombard", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lombard", InvertedName="Lombard")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lombard", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lombard", InvertedName="Lombard")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lmo = new DataStandardizer.ISO639.Iso639Part3("lmo");
         
         /// <summary>
         /// Limbum
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Limbum", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Limbum", InvertedName="Limbum")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Limbum", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Limbum", InvertedName="Limbum")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lmp = new DataStandardizer.ISO639.Iso639Part3("lmp");
         
         /// <summary>
         /// Lamatuka
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lamatuka", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lamatuka", InvertedName="Lamatuka")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lamatuka", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lamatuka", InvertedName="Lamatuka")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lmq = new DataStandardizer.ISO639.Iso639Part3("lmq");
         
         /// <summary>
         /// Lamalera
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lamalera", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lamalera", InvertedName="Lamalera")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lamalera", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lamalera", InvertedName="Lamalera")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lmr = new DataStandardizer.ISO639.Iso639Part3("lmr");
         
         /// <summary>
         /// Lamenu
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lamenu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lamenu", InvertedName="Lamenu")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lamenu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lamenu", InvertedName="Lamenu")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lmu = new DataStandardizer.ISO639.Iso639Part3("lmu");
         
         /// <summary>
         /// Lomaiviti
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lomaiviti", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lomaiviti", InvertedName="Lomaiviti")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lomaiviti", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lomaiviti", InvertedName="Lomaiviti")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lmv = new DataStandardizer.ISO639.Iso639Part3("lmv");
         
         /// <summary>
         /// Lake Miwok
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lake Miwok", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lake Miwok", InvertedName="Miwok, Lake")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lake Miwok", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lake Miwok", InvertedName="Miwok, Lake")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lmw = new DataStandardizer.ISO639.Iso639Part3("lmw");
         
         /// <summary>
         /// Laimbue
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Laimbue", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laimbue", InvertedName="Laimbue")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Laimbue", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laimbue", InvertedName="Laimbue")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lmx = new DataStandardizer.ISO639.Iso639Part3("lmx");
         
         /// <summary>
         /// Lamboya
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lamboya", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lamboya", InvertedName="Lamboya")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lamboya", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lamboya", InvertedName="Lamboya")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lmy = new DataStandardizer.ISO639.Iso639Part3("lmy");
         
         /// <summary>
         /// Langbashe
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Langbashe", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Langbashe", InvertedName="Langbashe")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Langbashe", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Langbashe", InvertedName="Langbashe")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lna = new DataStandardizer.ISO639.Iso639Part3("lna");
         
         /// <summary>
         /// Mbalanhu
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Mbalanhu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Mbalanhu", InvertedName="Mbalanhu")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Mbalanhu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Mbalanhu", InvertedName="Mbalanhu")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lnb = new DataStandardizer.ISO639.Iso639Part3("lnb");
         
         /// <summary>
         /// Lundayeh
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lundayeh", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lun Bawang Lundayeh", InvertedName="Lun Bawang Lundayeh")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lundayeh", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lun Bawang Lundayeh", InvertedName="Lun Bawang Lundayeh")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lnd = new DataStandardizer.ISO639.Iso639Part3("lnd");
         
         /// <summary>
         /// Langobardic
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Langobardic", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Historical, PrintName="Langobardic", InvertedName="Langobardic")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Langobardic", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Historical, PrintName="Langobardic", InvertedName="Langobardic")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lng = new DataStandardizer.ISO639.Iso639Part3("lng");
         
         /// <summary>
         /// Lanoh
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lanoh", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lanoh", InvertedName="Lanoh")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lanoh", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lanoh", InvertedName="Lanoh")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lnh = new DataStandardizer.ISO639.Iso639Part3("lnh");
         
         /// <summary>
         /// Daantanai'
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Daantanai\'", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Daantanai\'", InvertedName="Daantanai\'")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Daantanai\'", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Daantanai\'", InvertedName="Daantanai\'")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lni = new DataStandardizer.ISO639.Iso639Part3("lni");
         
         /// <summary>
         /// Leningitij
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Leningitij", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Leningitij", InvertedName="Leningitij")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Leningitij", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Leningitij", InvertedName="Leningitij")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lnj = new DataStandardizer.ISO639.Iso639Part3("lnj");
         
         /// <summary>
         /// South Central Banda
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("South Central Banda", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="South Central Banda", InvertedName="Banda, South Central")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("South Central Banda", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="South Central Banda", InvertedName="Banda, South Central")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lnl = new DataStandardizer.ISO639.Iso639Part3("lnl");
         
         /// <summary>
         /// Langam
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Langam", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Langam", InvertedName="Langam")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Langam", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Langam", InvertedName="Langam")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lnm = new DataStandardizer.ISO639.Iso639Part3("lnm");
         
         /// <summary>
         /// Lorediakarkar
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lorediakarkar", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lorediakarkar", InvertedName="Lorediakarkar")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lorediakarkar", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lorediakarkar", InvertedName="Lorediakarkar")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lnn = new DataStandardizer.ISO639.Iso639Part3("lnn");
         
         /// <summary>
         /// Lamnso'
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lamnso\'", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lamnso\'", InvertedName="Lamnso\'")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lamnso\'", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lamnso\'", InvertedName="Lamnso\'")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lns = new DataStandardizer.ISO639.Iso639Part3("lns");
         
         /// <summary>
         /// Longuda
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Longuda", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Longuda", InvertedName="Longuda")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Longuda", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Longuda", InvertedName="Longuda")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lnu = new DataStandardizer.ISO639.Iso639Part3("lnu");
         
         /// <summary>
         /// Lanima
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lanima", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Lanima", InvertedName="Lanima")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lanima", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Lanima", InvertedName="Lanima")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lnw = new DataStandardizer.ISO639.Iso639Part3("lnw");
         
         /// <summary>
         /// Lonzo
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lonzo", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lonzo", InvertedName="Lonzo")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lonzo", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lonzo", InvertedName="Lonzo")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lnz = new DataStandardizer.ISO639.Iso639Part3("lnz");
         
         /// <summary>
         /// Loloda
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Loloda", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Loloda", InvertedName="Loloda")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Loloda", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Loloda", InvertedName="Loloda")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @loa = new DataStandardizer.ISO639.Iso639Part3("loa");
         
         /// <summary>
         /// Lobi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lobi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lobi", InvertedName="Lobi")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lobi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lobi", InvertedName="Lobi")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lob = new DataStandardizer.ISO639.Iso639Part3("lob");
         
         /// <summary>
         /// Inonhan
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Inonhan", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Inonhan", InvertedName="Inonhan")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Inonhan", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Inonhan", InvertedName="Inonhan")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @loc = new DataStandardizer.ISO639.Iso639Part3("loc");
         
         /// <summary>
         /// Saluan
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Saluan", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Saluan", InvertedName="Saluan")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Saluan", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Saluan", InvertedName="Saluan")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @loe = new DataStandardizer.ISO639.Iso639Part3("loe");
         
         /// <summary>
         /// Logol
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Logol", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Logol", InvertedName="Logol")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Logol", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Logol", InvertedName="Logol")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lof = new DataStandardizer.ISO639.Iso639Part3("lof");
         
         /// <summary>
         /// Logo
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Logo", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Logo", InvertedName="Logo")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Logo", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Logo", InvertedName="Logo")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @log = new DataStandardizer.ISO639.Iso639Part3("log");
         
         /// <summary>
         /// Laarim
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Laarim", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laarim Narim", InvertedName="Laarim Narim")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Laarim", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laarim Narim", InvertedName="Laarim Narim")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @loh = new DataStandardizer.ISO639.Iso639Part3("loh");
         
         /// <summary>
         /// Loma (Côte d'Ivoire)
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Loma (Côte d\'Ivoire)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Loma (Côte d\'Ivoire)", InvertedName="Loma (Côte d\'Ivoire)")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Loma (Côte d\'Ivoire)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Loma (Côte d\'Ivoire)", InvertedName="Loma (Côte d\'Ivoire)")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @loi = new DataStandardizer.ISO639.Iso639Part3("loi");
         
         /// <summary>
         /// Lou
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lou", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lou", InvertedName="Lou")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lou", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lou", InvertedName="Lou")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @loj = new DataStandardizer.ISO639.Iso639Part3("loj");
         
         /// <summary>
         /// Loko
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Loko", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Loko", InvertedName="Loko")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Loko", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Loko", InvertedName="Loko")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lok = new DataStandardizer.ISO639.Iso639Part3("lok");
         
         /// <summary>
         /// Mongo
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Mongo", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Mongo", InvertedName="Mongo", Part2BCode="lol", Part2TCode="lol")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Mongo", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Mongo", InvertedName="Mongo", Part2BCode="lol", Part2TCode="lol")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lol = new DataStandardizer.ISO639.Iso639Part3("lol");
         
         /// <summary>
         /// Loma (Liberia)
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Loma (Liberia)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Loma (Liberia)", InvertedName="Loma (Liberia)")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Loma (Liberia)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Loma (Liberia)", InvertedName="Loma (Liberia)")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lom = new DataStandardizer.ISO639.Iso639Part3("lom");
         
         /// <summary>
         /// Malawi Lomwe
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Malawi Lomwe", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Malawi Lomwe", InvertedName="Lomwe, Malawi")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Malawi Lomwe", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Malawi Lomwe", InvertedName="Lomwe, Malawi")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lon = new DataStandardizer.ISO639.Iso639Part3("lon");
         
         /// <summary>
         /// Lombo
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lombo", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lombo", InvertedName="Lombo")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lombo", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lombo", InvertedName="Lombo")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @loo = new DataStandardizer.ISO639.Iso639Part3("loo");
         
         /// <summary>
         /// Lopa
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lopa", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lopa", InvertedName="Lopa")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lopa", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lopa", InvertedName="Lopa")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lop = new DataStandardizer.ISO639.Iso639Part3("lop");
         
         /// <summary>
         /// Lobala
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lobala", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lobala", InvertedName="Lobala")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lobala", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lobala", InvertedName="Lobala")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @loq = new DataStandardizer.ISO639.Iso639Part3("loq");
         
         /// <summary>
         /// Téén
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Téén", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Téén", InvertedName="Téén")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Téén", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Téén", InvertedName="Téén")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lor = new DataStandardizer.ISO639.Iso639Part3("lor");
         
         /// <summary>
         /// Loniu
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Loniu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Loniu", InvertedName="Loniu")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Loniu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Loniu", InvertedName="Loniu")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @los = new DataStandardizer.ISO639.Iso639Part3("los");
         
         /// <summary>
         /// Otuho
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Otuho", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Otuho", InvertedName="Otuho")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Otuho", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Otuho", InvertedName="Otuho")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lot = new DataStandardizer.ISO639.Iso639Part3("lot");
         
         /// <summary>
         /// Louisiana Creole
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Louisiana Creole", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Louisiana Creole", InvertedName="Creole, Louisiana")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Louisiana Creole", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Louisiana Creole", InvertedName="Creole, Louisiana")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lou = new DataStandardizer.ISO639.Iso639Part3("lou");
         
         /// <summary>
         /// Lopi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lopi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lopi", InvertedName="Lopi")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lopi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lopi", InvertedName="Lopi")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lov = new DataStandardizer.ISO639.Iso639Part3("lov");
         
         /// <summary>
         /// Tampias Lobu
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Tampias Lobu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Tampias Lobu", InvertedName="Lobu, Tampias")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Tampias Lobu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Tampias Lobu", InvertedName="Lobu, Tampias")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @low = new DataStandardizer.ISO639.Iso639Part3("low");
         
         /// <summary>
         /// Loun
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Loun", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Loun", InvertedName="Loun")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Loun", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Loun", InvertedName="Loun")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lox = new DataStandardizer.ISO639.Iso639Part3("lox");
         
         /// <summary>
         /// Loke
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Loke", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Loke", InvertedName="Loke")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Loke", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Loke", InvertedName="Loke")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @loy = new DataStandardizer.ISO639.Iso639Part3("loy");
         
         /// <summary>
         /// Lozi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lozi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lozi", InvertedName="Lozi", Part2BCode="loz", Part2TCode="loz")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lozi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lozi", InvertedName="Lozi", Part2BCode="loz", Part2TCode="loz")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @loz = new DataStandardizer.ISO639.Iso639Part3("loz");
         
         /// <summary>
         /// Lelepa
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lelepa", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lelepa", InvertedName="Lelepa")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lelepa", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lelepa", InvertedName="Lelepa")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lpa = new DataStandardizer.ISO639.Iso639Part3("lpa");
         
         /// <summary>
         /// Lepki
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lepki", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lepki", InvertedName="Lepki")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lepki", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lepki", InvertedName="Lepki")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lpe = new DataStandardizer.ISO639.Iso639Part3("lpe");
         
         /// <summary>
         /// Long Phuri Naga
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Long Phuri Naga", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Long Phuri Naga", InvertedName="Naga, Long Phuri")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Long Phuri Naga", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Long Phuri Naga", InvertedName="Naga, Long Phuri")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lpn = new DataStandardizer.ISO639.Iso639Part3("lpn");
         
         /// <summary>
         /// Lipo
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lipo", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lipo", InvertedName="Lipo")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lipo", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lipo", InvertedName="Lipo")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lpo = new DataStandardizer.ISO639.Iso639Part3("lpo");
         
         /// <summary>
         /// Lopit
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lopit", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lopit", InvertedName="Lopit")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lopit", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lopit", InvertedName="Lopit")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lpx = new DataStandardizer.ISO639.Iso639Part3("lpx");
         
         /// <summary>
         /// Logir
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Logir", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Logir", InvertedName="Logir")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Logir", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Logir", InvertedName="Logir")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lqr = new DataStandardizer.ISO639.Iso639Part3("lqr");
         
         /// <summary>
         /// Rara Bakati'
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Rara Bakati\'", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Rara Bakati\'", InvertedName="Rara Bakati\'")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Rara Bakati\'", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Rara Bakati\'", InvertedName="Rara Bakati\'")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lra = new DataStandardizer.ISO639.Iso639Part3("lra");
         
         /// <summary>
         /// Northern Luri
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Northern Luri", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Northern Luri", InvertedName="Luri, Northern")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Northern Luri", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Northern Luri", InvertedName="Luri, Northern")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lrc = new DataStandardizer.ISO639.Iso639Part3("lrc");
         
         /// <summary>
         /// Laurentian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Laurentian", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Laurentian", InvertedName="Laurentian")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Laurentian", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Laurentian", InvertedName="Laurentian")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lre = new DataStandardizer.ISO639.Iso639Part3("lre");
         
         /// <summary>
         /// Laragia
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Laragia", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Laragia", InvertedName="Laragia")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Laragia", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Laragia", InvertedName="Laragia")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lrg = new DataStandardizer.ISO639.Iso639Part3("lrg");
         
         /// <summary>
         /// Marachi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Marachi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Marachi Olumarachi", InvertedName="Marachi Olumarachi", MacrolanguageCode="luy")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Marachi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Marachi Olumarachi", InvertedName="Marachi Olumarachi", MacrolanguageCode="luy")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lri = new DataStandardizer.ISO639.Iso639Part3("lri");
         
         /// <summary>
         /// Loarki
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Loarki", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Loarki", InvertedName="Loarki")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Loarki", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Loarki", InvertedName="Loarki")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lrk = new DataStandardizer.ISO639.Iso639Part3("lrk");
         
         /// <summary>
         /// Lari
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lari", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lari", InvertedName="Lari")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lari", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lari", InvertedName="Lari")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lrl = new DataStandardizer.ISO639.Iso639Part3("lrl");
         
         /// <summary>
         /// Marama
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Marama", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Marama Olumarama", InvertedName="Marama Olumarama", MacrolanguageCode="luy")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Marama", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Marama Olumarama", InvertedName="Marama Olumarama", MacrolanguageCode="luy")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lrm = new DataStandardizer.ISO639.Iso639Part3("lrm");
         
         /// <summary>
         /// Lorang
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lorang", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lorang", InvertedName="Lorang")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lorang", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lorang", InvertedName="Lorang")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lrn = new DataStandardizer.ISO639.Iso639Part3("lrn");
         
         /// <summary>
         /// Laro
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Laro", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laro", InvertedName="Laro")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Laro", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laro", InvertedName="Laro")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lro = new DataStandardizer.ISO639.Iso639Part3("lro");
         
         /// <summary>
         /// Southern Yamphu
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Southern Yamphu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Southern Yamphu", InvertedName="Yamphu, Southern")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Southern Yamphu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Southern Yamphu", InvertedName="Yamphu, Southern")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lrr = new DataStandardizer.ISO639.Iso639Part3("lrr");
         
         /// <summary>
         /// Larantuka Malay
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Larantuka Malay", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Larantuka Malay", InvertedName="Malay, Larantuka")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Larantuka Malay", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Larantuka Malay", InvertedName="Malay, Larantuka")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lrt = new DataStandardizer.ISO639.Iso639Part3("lrt");
         
         /// <summary>
         /// Larevat
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Larevat", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Larevat", InvertedName="Larevat")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Larevat", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Larevat", InvertedName="Larevat")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lrv = new DataStandardizer.ISO639.Iso639Part3("lrv");
         
         /// <summary>
         /// Lemerig
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lemerig", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lemerig", InvertedName="Lemerig")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lemerig", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lemerig", InvertedName="Lemerig")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lrz = new DataStandardizer.ISO639.Iso639Part3("lrz");
         
         /// <summary>
         /// Lasgerdi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lasgerdi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lasgerdi", InvertedName="Lasgerdi")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lasgerdi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lasgerdi", InvertedName="Lasgerdi")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lsa = new DataStandardizer.ISO639.Iso639Part3("lsa");
         
         /// <summary>
         /// Burundian Sign Language
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Burundian Sign Language", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Burundian Sign Language Langue des Signes Burundaise", InvertedName="Burundian Sign Language Langue des Signes Burundaise")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Burundian Sign Language", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Burundian Sign Language Langue des Signes Burundaise", InvertedName="Burundian Sign Language Langue des Signes Burundaise")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lsb = new DataStandardizer.ISO639.Iso639Part3("lsb");
         
         /// <summary>
         /// Albarradas Sign Language
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Albarradas Sign Language", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Albarradas Sign Language Lengua de señas Albarradas", InvertedName="Albarradas Sign Language Lengua de señas Albarradas")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Albarradas Sign Language", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Albarradas Sign Language Lengua de señas Albarradas", InvertedName="Albarradas Sign Language Lengua de señas Albarradas")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lsc = new DataStandardizer.ISO639.Iso639Part3("lsc");
         
         /// <summary>
         /// Lishana Deni
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lishana Deni", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lishana Deni", InvertedName="Lishana Deni")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lishana Deni", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lishana Deni", InvertedName="Lishana Deni")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lsd = new DataStandardizer.ISO639.Iso639Part3("lsd");
         
         /// <summary>
         /// Lusengo
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lusengo", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lusengo", InvertedName="Lusengo")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lusengo", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lusengo", InvertedName="Lusengo")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lse = new DataStandardizer.ISO639.Iso639Part3("lse");
         
         /// <summary>
         /// Lish
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lish", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lish", InvertedName="Lish")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lish", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lish", InvertedName="Lish")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lsh = new DataStandardizer.ISO639.Iso639Part3("lsh");
         
         /// <summary>
         /// Lashi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lashi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lashi", InvertedName="Lashi")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lashi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lashi", InvertedName="Lashi")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lsi = new DataStandardizer.ISO639.Iso639Part3("lsi");
         
         /// <summary>
         /// Latvian Sign Language
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Latvian Sign Language", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Latvian Sign Language", InvertedName="Latvian Sign Language")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Latvian Sign Language", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Latvian Sign Language", InvertedName="Latvian Sign Language")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lsl = new DataStandardizer.ISO639.Iso639Part3("lsl");
         
         /// <summary>
         /// Saamia
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Saamia", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Olusamia Saamia", InvertedName="Olusamia Saamia", MacrolanguageCode="luy")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Saamia", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Olusamia Saamia", InvertedName="Olusamia Saamia", MacrolanguageCode="luy")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lsm = new DataStandardizer.ISO639.Iso639Part3("lsm");
         
         /// <summary>
         /// Tibetan Sign Language
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Tibetan Sign Language", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Tibetan Sign Language", InvertedName="Tibetan Sign Language")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Tibetan Sign Language", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Tibetan Sign Language", InvertedName="Tibetan Sign Language")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lsn = new DataStandardizer.ISO639.Iso639Part3("lsn");
         
         /// <summary>
         /// Laos Sign Language
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Laos Sign Language", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laos Sign Language", InvertedName="Laos Sign Language")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Laos Sign Language", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laos Sign Language", InvertedName="Laos Sign Language")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lso = new DataStandardizer.ISO639.Iso639Part3("lso");
         
         /// <summary>
         /// Panamanian Sign Language
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Panamanian Sign Language", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lengua de Señas Panameñas Panamanian Sign Language", InvertedName="Lengua de Señas Panameñas Panamanian Sign Language")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Panamanian Sign Language", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lengua de Señas Panameñas Panamanian Sign Language", InvertedName="Lengua de Señas Panameñas Panamanian Sign Language")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lsp = new DataStandardizer.ISO639.Iso639Part3("lsp");
         
         /// <summary>
         /// Aruop
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Aruop", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Aruop", InvertedName="Aruop")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Aruop", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Aruop", InvertedName="Aruop")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lsr = new DataStandardizer.ISO639.Iso639Part3("lsr");
         
         /// <summary>
         /// Lasi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lasi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lasi", InvertedName="Lasi")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lasi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lasi", InvertedName="Lasi")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lss = new DataStandardizer.ISO639.Iso639Part3("lss");
         
         /// <summary>
         /// Trinidad and Tobago Sign Language
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Trinidad and Tobago Sign Language", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Trinidad and Tobago Sign Language", InvertedName="Trinidad and Tobago Sign Language")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Trinidad and Tobago Sign Language", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Trinidad and Tobago Sign Language", InvertedName="Trinidad and Tobago Sign Language")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lst = new DataStandardizer.ISO639.Iso639Part3("lst");
         
         /// <summary>
         /// Sivia Sign Language
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Sivia Sign Language", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Sivia Sign Language", InvertedName="Sivia Sign Language")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Sivia Sign Language", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Sivia Sign Language", InvertedName="Sivia Sign Language")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lsv = new DataStandardizer.ISO639.Iso639Part3("lsv");
         
         /// <summary>
         /// Seychelles Sign Language
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Seychelles Sign Language", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lalang Siny Seselwa Langue des Signes Seychelloise Seychelles Sign Language", InvertedName="Lalang Siny Seselwa Langue des Signes Seychelloise Seychelles Sign Language")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Seychelles Sign Language", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lalang Siny Seselwa Langue des Signes Seychelloise Seychelles Sign Language", InvertedName="Lalang Siny Seselwa Langue des Signes Seychelloise Seychelles Sign Language")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lsw = new DataStandardizer.ISO639.Iso639Part3("lsw");
         
         /// <summary>
         /// Mauritian Sign Language
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Mauritian Sign Language", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Mauritian Sign Language", InvertedName="Mauritian Sign Language")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Mauritian Sign Language", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Mauritian Sign Language", InvertedName="Mauritian Sign Language")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lsy = new DataStandardizer.ISO639.Iso639Part3("lsy");
         
         /// <summary>
         /// Late Middle Chinese
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Late Middle Chinese", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Historical, PrintName="Late Middle Chinese", InvertedName="Chinese, Late Middle")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Late Middle Chinese", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Historical, PrintName="Late Middle Chinese", InvertedName="Chinese, Late Middle")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @ltc = new DataStandardizer.ISO639.Iso639Part3("ltc");
         
         /// <summary>
         /// Latgalian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Latgalian", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Latgalian", InvertedName="Latgalian", MacrolanguageCode="lav")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Latgalian", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Latgalian", InvertedName="Latgalian", MacrolanguageCode="lav")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @ltg = new DataStandardizer.ISO639.Iso639Part3("ltg");
         
         /// <summary>
         /// Thur
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Thur", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Thur", InvertedName="Thur")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Thur", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Thur", InvertedName="Thur")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lth = new DataStandardizer.ISO639.Iso639Part3("lth");
         
         /// <summary>
         /// Leti (Indonesia)
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Leti (Indonesia)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Leti (Indonesia)", InvertedName="Leti (Indonesia)")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Leti (Indonesia)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Leti (Indonesia)", InvertedName="Leti (Indonesia)")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lti = new DataStandardizer.ISO639.Iso639Part3("lti");
         
         /// <summary>
         /// Latundê
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Latundê", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Latundê", InvertedName="Latundê")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Latundê", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Latundê", InvertedName="Latundê")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @ltn = new DataStandardizer.ISO639.Iso639Part3("ltn");
         
         /// <summary>
         /// Tsotso
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Tsotso", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Olutsotso Tsotso", InvertedName="Olutsotso Tsotso", MacrolanguageCode="luy")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Tsotso", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Olutsotso Tsotso", InvertedName="Olutsotso Tsotso", MacrolanguageCode="luy")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lto = new DataStandardizer.ISO639.Iso639Part3("lto");
         
         /// <summary>
         /// Tachoni
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Tachoni", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lutachoni Tachoni", InvertedName="Lutachoni Tachoni", MacrolanguageCode="luy")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Tachoni", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lutachoni Tachoni", InvertedName="Lutachoni Tachoni", MacrolanguageCode="luy")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lts = new DataStandardizer.ISO639.Iso639Part3("lts");
         
         /// <summary>
         /// Latu
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Latu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Latu", InvertedName="Latu")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Latu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Latu", InvertedName="Latu")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @ltu = new DataStandardizer.ISO639.Iso639Part3("ltu");
         
         /// <summary>
         /// Luxembourgish
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Luxembourgish", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Letzeburgesch Luxembourgish", InvertedName="Letzeburgesch Luxembourgish", Part1Code="lb", Part2BCode="ltz", Part2TCode="ltz")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Luxembourgish", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Letzeburgesch Luxembourgish", InvertedName="Letzeburgesch Luxembourgish", Part1Code="lb", Part2BCode="ltz", Part2TCode="ltz")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @ltz = new DataStandardizer.ISO639.Iso639Part3("ltz");
         
         /// <summary>
         /// Luba-Lulua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Luba-Lulua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Luba-Lulua", InvertedName="Luba-Lulua", Part2BCode="lua", Part2TCode="lua")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Luba-Lulua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Luba-Lulua", InvertedName="Luba-Lulua", Part2BCode="lua", Part2TCode="lua")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lua = new DataStandardizer.ISO639.Iso639Part3("lua");
         
         /// <summary>
         /// Luba-Katanga
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Luba-Katanga", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Luba-Katanga", InvertedName="Luba-Katanga", Part1Code="lu", Part2BCode="lub", Part2TCode="lub")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Luba-Katanga", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Luba-Katanga", InvertedName="Luba-Katanga", Part1Code="lu", Part2BCode="lub", Part2TCode="lub")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lub = new DataStandardizer.ISO639.Iso639Part3("lub");
         
         /// <summary>
         /// Aringa
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Aringa", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Aringa", InvertedName="Aringa")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Aringa", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Aringa", InvertedName="Aringa")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @luc = new DataStandardizer.ISO639.Iso639Part3("luc");
         
         /// <summary>
         /// Ludian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Ludian", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Ludian", InvertedName="Ludian")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Ludian", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Ludian", InvertedName="Ludian")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lud = new DataStandardizer.ISO639.Iso639Part3("lud");
         
         /// <summary>
         /// Luvale
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Luvale", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Luvale", InvertedName="Luvale")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Luvale", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Luvale", InvertedName="Luvale")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lue = new DataStandardizer.ISO639.Iso639Part3("lue");
         
         /// <summary>
         /// Laua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Laua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laua", InvertedName="Laua")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Laua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laua", InvertedName="Laua")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @luf = new DataStandardizer.ISO639.Iso639Part3("luf");
         
         /// <summary>
         /// Ganda
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Ganda", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Ganda", InvertedName="Ganda", Part1Code="lg", Part2BCode="lug", Part2TCode="lug")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Ganda", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Ganda", InvertedName="Ganda", Part1Code="lg", Part2BCode="lug", Part2TCode="lug")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lug = new DataStandardizer.ISO639.Iso639Part3("lug");
         
         /// <summary>
         /// Leizhou Chinese
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Leizhou Chinese", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Leizhou Chinese", InvertedName="Chinese, Leizhou", MacrolanguageCode="zho")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Leizhou Chinese", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Leizhou Chinese", InvertedName="Chinese, Leizhou", MacrolanguageCode="zho")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @luh = new DataStandardizer.ISO639.Iso639Part3("luh");
         
         /// <summary>
         /// Luiseno
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Luiseno", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Luiseno", InvertedName="Luiseno", Part2BCode="lui", Part2TCode="lui")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Luiseno", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Luiseno", InvertedName="Luiseno", Part2BCode="lui", Part2TCode="lui")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lui = new DataStandardizer.ISO639.Iso639Part3("lui");
         
         /// <summary>
         /// Luna
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Luna", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Luna", InvertedName="Luna")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Luna", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Luna", InvertedName="Luna")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @luj = new DataStandardizer.ISO639.Iso639Part3("luj");
         
         /// <summary>
         /// Lunanakha
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lunanakha", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lunanakha", InvertedName="Lunanakha")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lunanakha", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lunanakha", InvertedName="Lunanakha")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @luk = new DataStandardizer.ISO639.Iso639Part3("luk");
         
         /// <summary>
         /// Olu'bo
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Olu\'bo", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Olu\'bo", InvertedName="Olu\'bo")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Olu\'bo", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Olu\'bo", InvertedName="Olu\'bo")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lul = new DataStandardizer.ISO639.Iso639Part3("lul");
         
         /// <summary>
         /// Luimbi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Luimbi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Luimbi", InvertedName="Luimbi")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Luimbi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Luimbi", InvertedName="Luimbi")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lum = new DataStandardizer.ISO639.Iso639Part3("lum");
         
         /// <summary>
         /// Lunda
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lunda", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lunda", InvertedName="Lunda", Part2BCode="lun", Part2TCode="lun")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lunda", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lunda", InvertedName="Lunda", Part2BCode="lun", Part2TCode="lun")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lun = new DataStandardizer.ISO639.Iso639Part3("lun");
         
         /// <summary>
         /// Luo (Kenya and Tanzania)
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Luo (Kenya and Tanzania)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Dholuo Luo (Kenya and Tanzania)", InvertedName="Dholuo Luo (Kenya and Tanzania)", Part2BCode="luo", Part2TCode="luo")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Luo (Kenya and Tanzania)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Dholuo Luo (Kenya and Tanzania)", InvertedName="Dholuo Luo (Kenya and Tanzania)", Part2BCode="luo", Part2TCode="luo")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @luo = new DataStandardizer.ISO639.Iso639Part3("luo");
         
         /// <summary>
         /// Lumbu
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lumbu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lumbu", InvertedName="Lumbu")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lumbu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lumbu", InvertedName="Lumbu")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lup = new DataStandardizer.ISO639.Iso639Part3("lup");
         
         /// <summary>
         /// Lucumi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lucumi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lucumi", InvertedName="Lucumi")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lucumi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lucumi", InvertedName="Lucumi")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @luq = new DataStandardizer.ISO639.Iso639Part3("luq");
         
         /// <summary>
         /// Laura
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Laura", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laura", InvertedName="Laura")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Laura", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laura", InvertedName="Laura")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lur = new DataStandardizer.ISO639.Iso639Part3("lur");
         
         /// <summary>
         /// Lushai
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lushai", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lushai", InvertedName="Lushai", Part2BCode="lus", Part2TCode="lus")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lushai", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lushai", InvertedName="Lushai", Part2BCode="lus", Part2TCode="lus")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lus = new DataStandardizer.ISO639.Iso639Part3("lus");
         
         /// <summary>
         /// Lushootseed
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lushootseed", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lushootseed", InvertedName="Lushootseed")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lushootseed", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lushootseed", InvertedName="Lushootseed")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lut = new DataStandardizer.ISO639.Iso639Part3("lut");
         
         /// <summary>
         /// Lumba-Yakkha
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lumba-Yakkha", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lumba-Yakkha", InvertedName="Lumba-Yakkha")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lumba-Yakkha", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lumba-Yakkha", InvertedName="Lumba-Yakkha")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @luu = new DataStandardizer.ISO639.Iso639Part3("luu");
         
         /// <summary>
         /// Luwati
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Luwati", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Luwati", InvertedName="Luwati")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Luwati", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Luwati", InvertedName="Luwati")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @luv = new DataStandardizer.ISO639.Iso639Part3("luv");
         
         /// <summary>
         /// Luo (Cameroon)
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Luo (Cameroon)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Luo (Cameroon)", InvertedName="Luo (Cameroon)")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Luo (Cameroon)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Luo (Cameroon)", InvertedName="Luo (Cameroon)")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @luw = new DataStandardizer.ISO639.Iso639Part3("luw");
         
         /// <summary>
         /// Luyia
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Luyia", DataStandardizer.ISO639.Iso639LanguageScope.Macrolanguage, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Luyia Oluluyia", InvertedName="Luyia Oluluyia")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Luyia", DataStandardizer.ISO639.Iso639LanguageScope.Macrolanguage, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Luyia Oluluyia", InvertedName="Luyia Oluluyia")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @luy = new DataStandardizer.ISO639.Iso639Part3("luy");
         
         /// <summary>
         /// Southern Luri
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Southern Luri", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Southern Luri", InvertedName="Luri, Southern")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Southern Luri", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Southern Luri", InvertedName="Luri, Southern")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @luz = new DataStandardizer.ISO639.Iso639Part3("luz");
         
         /// <summary>
         /// Maku'a
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Maku\'a", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Maku\'a", InvertedName="Maku\'a")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Maku\'a", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Maku\'a", InvertedName="Maku\'a")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lva = new DataStandardizer.ISO639.Iso639Part3("lva");
         
         /// <summary>
         /// Lavi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lavi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lavi", InvertedName="Lavi")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lavi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lavi", InvertedName="Lavi")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lvi = new DataStandardizer.ISO639.Iso639Part3("lvi");
         
         /// <summary>
         /// Lavukaleve
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lavukaleve", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lavukaleve", InvertedName="Lavukaleve")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lavukaleve", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lavukaleve", InvertedName="Lavukaleve")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lvk = new DataStandardizer.ISO639.Iso639Part3("lvk");
         
         /// <summary>
         /// Lwel
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lwel", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lwel", InvertedName="Lwel")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lwel", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lwel", InvertedName="Lwel")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lvl = new DataStandardizer.ISO639.Iso639Part3("lvl");
         
         /// <summary>
         /// Standard Latvian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Standard Latvian", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Standard Latvian", InvertedName="Latvian, Standard", MacrolanguageCode="lav")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Standard Latvian", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Standard Latvian", InvertedName="Latvian, Standard", MacrolanguageCode="lav")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lvs = new DataStandardizer.ISO639.Iso639Part3("lvs");
         
         /// <summary>
         /// Levuka
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Levuka", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Levuka", InvertedName="Levuka")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Levuka", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Levuka", InvertedName="Levuka")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lvu = new DataStandardizer.ISO639.Iso639Part3("lvu");
         
         /// <summary>
         /// Lwalu
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lwalu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lwalu", InvertedName="Lwalu")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lwalu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lwalu", InvertedName="Lwalu")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lwa = new DataStandardizer.ISO639.Iso639Part3("lwa");
         
         /// <summary>
         /// Lewo Eleng
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lewo Eleng", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lewo Eleng", InvertedName="Lewo Eleng")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lewo Eleng", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lewo Eleng", InvertedName="Lewo Eleng")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lwe = new DataStandardizer.ISO639.Iso639Part3("lwe");
         
         /// <summary>
         /// Wanga
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Wanga", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Oluwanga Wanga", InvertedName="Oluwanga Wanga", MacrolanguageCode="luy")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Wanga", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Oluwanga Wanga", InvertedName="Oluwanga Wanga", MacrolanguageCode="luy")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lwg = new DataStandardizer.ISO639.Iso639Part3("lwg");
         
         /// <summary>
         /// White Lachi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("White Lachi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="White Lachi", InvertedName="Lachi, White")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("White Lachi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="White Lachi", InvertedName="Lachi, White")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lwh = new DataStandardizer.ISO639.Iso639Part3("lwh");
         
         /// <summary>
         /// Eastern Lawa
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Eastern Lawa", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Eastern Lawa", InvertedName="Lawa, Eastern")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Eastern Lawa", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Eastern Lawa", InvertedName="Lawa, Eastern")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lwl = new DataStandardizer.ISO639.Iso639Part3("lwl");
         
         /// <summary>
         /// Laomian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Laomian", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laomian", InvertedName="Laomian")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Laomian", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laomian", InvertedName="Laomian")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lwm = new DataStandardizer.ISO639.Iso639Part3("lwm");
         
         /// <summary>
         /// Luwo
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Luwo", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Luwo", InvertedName="Luwo")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Luwo", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Luwo", InvertedName="Luwo")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lwo = new DataStandardizer.ISO639.Iso639Part3("lwo");
         
         /// <summary>
         /// Malawian Sign Language
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Malawian Sign Language", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Malawian Sign Language", InvertedName="Malawian Sign Language")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Malawian Sign Language", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Malawian Sign Language", InvertedName="Malawian Sign Language")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lws = new DataStandardizer.ISO639.Iso639Part3("lws");
         
         /// <summary>
         /// Lewotobi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lewotobi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lewotobi", InvertedName="Lewotobi")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lewotobi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lewotobi", InvertedName="Lewotobi")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lwt = new DataStandardizer.ISO639.Iso639Part3("lwt");
         
         /// <summary>
         /// Lawu
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lawu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lawu", InvertedName="Lawu")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lawu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lawu", InvertedName="Lawu")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lwu = new DataStandardizer.ISO639.Iso639Part3("lwu");
         
         /// <summary>
         /// Lewo
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lewo", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lewo", InvertedName="Lewo")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lewo", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lewo", InvertedName="Lewo")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lww = new DataStandardizer.ISO639.Iso639Part3("lww");
         
         /// <summary>
         /// Lakurumau
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lakurumau", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lakurumau", InvertedName="Lakurumau")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lakurumau", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lakurumau", InvertedName="Lakurumau")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lxm = new DataStandardizer.ISO639.Iso639Part3("lxm");
         
         /// <summary>
         /// Layakha
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Layakha", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Layakha", InvertedName="Layakha")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Layakha", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Layakha", InvertedName="Layakha")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lya = new DataStandardizer.ISO639.Iso639Part3("lya");
         
         /// <summary>
         /// Lyngngam
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lyngngam", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lyngngam", InvertedName="Lyngngam")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lyngngam", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lyngngam", InvertedName="Lyngngam")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lyg = new DataStandardizer.ISO639.Iso639Part3("lyg");
         
         /// <summary>
         /// Luyana
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Luyana", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Luyana", InvertedName="Luyana")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Luyana", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Luyana", InvertedName="Luyana")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lyn = new DataStandardizer.ISO639.Iso639Part3("lyn");
         
         /// <summary>
         /// Literary Chinese
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Literary Chinese", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Historical, PrintName="Literary Chinese", InvertedName="Chinese, Literary", MacrolanguageCode="zho")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Literary Chinese", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Historical, PrintName="Literary Chinese", InvertedName="Chinese, Literary", MacrolanguageCode="zho")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lzh = new DataStandardizer.ISO639.Iso639Part3("lzh");
         
         /// <summary>
         /// Litzlitz
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Litzlitz", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Litzlitz", InvertedName="Litzlitz")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Litzlitz", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Litzlitz", InvertedName="Litzlitz")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lzl = new DataStandardizer.ISO639.Iso639Part3("lzl");
         
         /// <summary>
         /// Leinong Naga
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Leinong Naga", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Leinong Naga", InvertedName="Naga, Leinong")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Leinong Naga", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Leinong Naga", InvertedName="Naga, Leinong")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lzn = new DataStandardizer.ISO639.Iso639Part3("lzn");
         
         /// <summary>
         /// Laz
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Laz", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laz", InvertedName="Laz")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Laz", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Laz", InvertedName="Laz")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @lzz = new DataStandardizer.ISO639.Iso639Part3("lzz");
         #endregion
     }

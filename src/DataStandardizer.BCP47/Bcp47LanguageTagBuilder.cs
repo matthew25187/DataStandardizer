@@ -100,7 +100,7 @@ namespace DataStandardizer.BCP47
 
         /// <inheritdoc />
         /// <exception cref="ArgumentException">The subtag code is undefined.</exception>
-        public IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag(Iso639Part1 primaryLanguageSubtag)
+        public IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag(Iso639Part1Language primaryLanguageSubtag)
         {
 #if NETCOREAPP3_0_OR_GREATER
             string? primaryLanguageSubtagString = primaryLanguageSubtag;
@@ -108,7 +108,7 @@ namespace DataStandardizer.BCP47
             string primaryLanguageSubtagString = primaryLanguageSubtag;
 #endif
             if (primaryLanguageSubtagString is null) throw new ArgumentException(string.Format(ErrorMessage.UnspecifiedCodeUndefinedTemplate, "ISO 639-1"), nameof(primaryLanguageSubtag));
-            if (!StringEnum.IsDefined<Iso639Part1>(primaryLanguageSubtagString)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "ISO 639-1", primaryLanguageSubtagString), nameof(primaryLanguageSubtag));
+            if (!StringEnum.IsDefined<Iso639Part1Language>(primaryLanguageSubtagString)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "ISO 639-1", primaryLanguageSubtagString), nameof(primaryLanguageSubtag));
 
             _primaryLanguageSubtag = primaryLanguageSubtag;
 
@@ -117,7 +117,7 @@ namespace DataStandardizer.BCP47
 
         /// <inheritdoc />
         /// <exception cref="ArgumentException">The subtag code is undefined.</exception>
-        public IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag(Iso639Part2T primaryLanguageSubtag)
+        public IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag(Iso639Part2TLanguage primaryLanguageSubtag)
         {
 #if NETCOREAPP3_0_OR_GREATER
             string? primaryLanguageSubtagString = primaryLanguageSubtag;
@@ -125,7 +125,7 @@ namespace DataStandardizer.BCP47
             string primaryLanguageSubtagString = primaryLanguageSubtag;
 #endif
             if (primaryLanguageSubtagString is null) throw new ArgumentException(string.Format(ErrorMessage.UnspecifiedCodeUndefinedTemplate, "ISO 639-2T"), nameof(primaryLanguageSubtag));
-            if (!StringEnum.IsDefined<Iso639Part2T>(primaryLanguageSubtagString)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "ISO 639-2T", primaryLanguageSubtagString), nameof(primaryLanguageSubtag));
+            if (!StringEnum.IsDefined<Iso639Part2TLanguage>(primaryLanguageSubtagString)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "ISO 639-2T", primaryLanguageSubtagString), nameof(primaryLanguageSubtag));
 
             _primaryLanguageSubtag = primaryLanguageSubtag;
 
@@ -134,7 +134,7 @@ namespace DataStandardizer.BCP47
 
         /// <inheritdoc />
         /// <exception cref="ArgumentException">The subtag code is undefined.</exception>
-        public IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag(Iso639Part3 primaryLanguageSubtag)
+        public IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag(Iso639Part3Language primaryLanguageSubtag)
         {
 #if NETCOREAPP3_0_OR_GREATER
             string? primaryLanguageSubtagString = primaryLanguageSubtag;
@@ -142,7 +142,7 @@ namespace DataStandardizer.BCP47
             string primaryLanguageSubtagString = primaryLanguageSubtag;
 #endif
             if (primaryLanguageSubtagString is null) throw new ArgumentException(string.Format(ErrorMessage.UnspecifiedCodeUndefinedTemplate, "ISO 639-3"), nameof(primaryLanguageSubtag));
-            if (!StringEnum.IsDefined<Iso639Part3>(primaryLanguageSubtagString)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "ISO 639-3", primaryLanguageSubtagString), nameof(primaryLanguageSubtag));
+            if (!StringEnum.IsDefined<Iso639Part3Language>(primaryLanguageSubtagString)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "ISO 639-3", primaryLanguageSubtagString), nameof(primaryLanguageSubtag));
 
             _primaryLanguageSubtag = primaryLanguageSubtag;
 
@@ -151,7 +151,7 @@ namespace DataStandardizer.BCP47
 
         /// <inheritdoc />
         /// <exception cref="ArgumentException">The subtag code is undefined.</exception>
-        public IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag(Iso639Part5 primaryLanguageSubtag)
+        public IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag(Iso639Part5LanguageFamily primaryLanguageSubtag)
         {
 #if NETCOREAPP3_0_OR_GREATER
             string? primaryLanguageSubtagString = primaryLanguageSubtag;
@@ -159,7 +159,7 @@ namespace DataStandardizer.BCP47
             string primaryLanguageSubtagString = primaryLanguageSubtag;
 #endif
             if (primaryLanguageSubtagString is null) throw new ArgumentException(string.Format(ErrorMessage.UnspecifiedCodeUndefinedTemplate, "ISO 639-5"), nameof(primaryLanguageSubtag));
-            if (!StringEnum.IsDefined<Iso639Part5>(primaryLanguageSubtagString)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "ISO 639-5", primaryLanguageSubtagString), nameof(primaryLanguageSubtag));
+            if (!StringEnum.IsDefined<Iso639Part5LanguageFamily>(primaryLanguageSubtagString)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "ISO 639-5", primaryLanguageSubtagString), nameof(primaryLanguageSubtag));
 
             _primaryLanguageSubtag = primaryLanguageSubtag;
 
@@ -239,7 +239,7 @@ namespace DataStandardizer.BCP47
 
         /// <inheritdoc />
         /// <exception cref="ArgumentException">The subtag code is undefined.</exception>
-        IBcp47LanguageTagBuilderStepUsingScriptSubtagNext IBcp47LanguageTagBuilderStepUsingScriptSubtag.UsingScriptSubtag(Iso15924 scriptSubtag)
+        IBcp47LanguageTagBuilderStepUsingScriptSubtagNext IBcp47LanguageTagBuilderStepUsingScriptSubtag.UsingScriptSubtag(Iso15924Script scriptSubtag)
         {
             if (!Enum.IsDefined(scriptSubtag.GetType(), scriptSubtag)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "ISO 15924", scriptSubtag), nameof(scriptSubtag));
 
@@ -264,7 +264,7 @@ namespace DataStandardizer.BCP47
 
         /// <inheritdoc />
         /// <exception cref="ArgumentException">The subtag code is undefined.</exception>
-        IBcp47LanguageTagBuilderStepUsingRegionSubtagNext IBcp47LanguageTagBuilderStepUsingRegionSubtag.UsingRegionSubtag(Iso3166Part1Alpha2 regionSubtag)
+        IBcp47LanguageTagBuilderStepUsingRegionSubtagNext IBcp47LanguageTagBuilderStepUsingRegionSubtag.UsingRegionSubtag(Iso3166Part1Alpha2Country regionSubtag)
         {
             if (!Enum.IsDefined(regionSubtag.GetType(), regionSubtag)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "ISO 3166-1 Alpha-2", regionSubtag), nameof(regionSubtag));
 
@@ -275,7 +275,7 @@ namespace DataStandardizer.BCP47
 
         /// <inheritdoc />
         /// <exception cref="ArgumentException">The subtag code is undefined.</exception>
-        IBcp47LanguageTagBuilderStepUsingRegionSubtagNext IBcp47LanguageTagBuilderStepUsingRegionSubtag.UsingRegionSubtag(UnM49ByAlpha2Code regionSubtag)
+        IBcp47LanguageTagBuilderStepUsingRegionSubtagNext IBcp47LanguageTagBuilderStepUsingRegionSubtag.UsingRegionSubtag(UnM49AreaByAlpha2CountryCode regionSubtag)
         {
             if (!IsValidRegionCodeFromUnM49((ushort)regionSubtag)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "UN M49", ((ushort)regionSubtag).ToString("000")), nameof(regionSubtag));
 
@@ -286,7 +286,7 @@ namespace DataStandardizer.BCP47
 
         /// <inheritdoc />
         /// <exception cref="ArgumentException">The subtag code is undefined.</exception>
-        IBcp47LanguageTagBuilderStepUsingRegionSubtagNext IBcp47LanguageTagBuilderStepUsingRegionSubtag.UsingRegionSubtag(UnM49ByAlpha3Code regionSubtag)
+        IBcp47LanguageTagBuilderStepUsingRegionSubtagNext IBcp47LanguageTagBuilderStepUsingRegionSubtag.UsingRegionSubtag(UnM49AreaByAlpha3CountryCode regionSubtag)
         {
             if (!IsValidRegionCodeFromUnM49((ushort)regionSubtag)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "UN M49", ((ushort)regionSubtag).ToString("000")), nameof(regionSubtag));
 
@@ -481,19 +481,19 @@ namespace DataStandardizer.BCP47
 
         private void AppendPrimaryLanguageSubtag(StringBuilder languageTagBuilder, object primaryLanguageSubtag)
         {
-            if (primaryLanguageSubtag is Iso639Part1 primaryLanguageSubtagFromIso639Part1)
+            if (primaryLanguageSubtag is Iso639Part1Language primaryLanguageSubtagFromIso639Part1)
             {
                 languageTagBuilder.Append(primaryLanguageSubtagFromIso639Part1);
             }
-            else if (primaryLanguageSubtag is Iso639Part2T primaryLanguageSubtagFromIso639Part2T)
+            else if (primaryLanguageSubtag is Iso639Part2TLanguage primaryLanguageSubtagFromIso639Part2T)
             {
                 languageTagBuilder.Append(primaryLanguageSubtagFromIso639Part2T);
             }
-            else if (primaryLanguageSubtag is Iso639Part3 primaryLanguageSubtagFromIso639Part3)
+            else if (primaryLanguageSubtag is Iso639Part3Language primaryLanguageSubtagFromIso639Part3)
             {
                 languageTagBuilder.Append(primaryLanguageSubtagFromIso639Part3);
             }
-            else if (primaryLanguageSubtag is Iso639Part5 primaryLanguageSubtagFromIso639Part5)
+            else if (primaryLanguageSubtag is Iso639Part5LanguageFamily primaryLanguageSubtagFromIso639Part5)
             {
                 languageTagBuilder.Append(primaryLanguageSubtagFromIso639Part5);
             }
@@ -515,15 +515,15 @@ namespace DataStandardizer.BCP47
 
         private void AppendRegionSubtag(StringBuilder languageTagBuilder, object regionSubtag)
         {
-            if (regionSubtag is Iso3166Part1Alpha2 regionSubtagFromIso3166Part1)
+            if (regionSubtag is Iso3166Part1Alpha2Country regionSubtagFromIso3166Part1)
             {
                 languageTagBuilder.AppendFormat("-{0}", Enum.GetName(regionSubtagFromIso3166Part1.GetType(), regionSubtagFromIso3166Part1));
             }
-            else if (regionSubtag is UnM49ByAlpha2Code regionSubtagFromUnM49ByAlpha2Code)
+            else if (regionSubtag is UnM49AreaByAlpha2CountryCode regionSubtagFromUnM49ByAlpha2Code)
             {
                 languageTagBuilder.AppendFormat("-{0:000}", (ushort)regionSubtagFromUnM49ByAlpha2Code);
             }
-            else if (regionSubtag is UnM49ByAlpha3Code regionSubtagFromUnM49ByAlpha3Code)
+            else if (regionSubtag is UnM49AreaByAlpha3CountryCode regionSubtagFromUnM49ByAlpha3Code)
             {
                 languageTagBuilder.AppendFormat("-{0:000}", (ushort)regionSubtagFromUnM49ByAlpha3Code);
             }
@@ -539,7 +539,7 @@ namespace DataStandardizer.BCP47
 
         private void AppendScriptSubtag(StringBuilder languageTagBuilder, object scriptSubtag)
         {
-            if (scriptSubtag is Iso15924 scriptSubtagFromIso15924)
+            if (scriptSubtag is Iso15924Script scriptSubtagFromIso15924)
             {
                 languageTagBuilder.AppendFormat("-{0}", Enum.GetName(scriptSubtagFromIso15924.GetType(), scriptSubtagFromIso15924));
             }
@@ -577,10 +577,10 @@ namespace DataStandardizer.BCP47
 
         private bool IsValidRegionCodeFromUnM49(ushort candidateCode)
         {
-            var globalCodes = Enum.GetValues(typeof(UnM49ByAlpha2Code)).Cast<UnM49ByAlpha2Code>().Select(code => code.GetGlobalCode()).Where(code => code.HasValue).Cast<ushort>();
-            var regionCodes = Enum.GetValues(typeof(UnM49ByAlpha2Code)).Cast<UnM49ByAlpha2Code>().Select(code => code.GetRegionCode()).Where(code => code.HasValue).Cast<ushort>();
-            var subRegionCodes = Enum.GetValues(typeof(UnM49ByAlpha2Code)).Cast<UnM49ByAlpha2Code>().Select(code => code.GetSubRegionCode()).Where(code => code.HasValue).Cast<ushort>();
-            var intermediateRegionCodes = Enum.GetValues(typeof(UnM49ByAlpha2Code)).Cast<UnM49ByAlpha2Code>().Select(code => code.GetIntermediateRegionCode()).Where(code => code.HasValue).Cast<ushort>();
+            var globalCodes = Enum.GetValues(typeof(UnM49AreaByAlpha2CountryCode)).Cast<UnM49AreaByAlpha2CountryCode>().Select(code => code.GetGlobalCode()).Where(code => code.HasValue).Cast<ushort>();
+            var regionCodes = Enum.GetValues(typeof(UnM49AreaByAlpha2CountryCode)).Cast<UnM49AreaByAlpha2CountryCode>().Select(code => code.GetRegionCode()).Where(code => code.HasValue).Cast<ushort>();
+            var subRegionCodes = Enum.GetValues(typeof(UnM49AreaByAlpha2CountryCode)).Cast<UnM49AreaByAlpha2CountryCode>().Select(code => code.GetSubRegionCode()).Where(code => code.HasValue).Cast<ushort>();
+            var intermediateRegionCodes = Enum.GetValues(typeof(UnM49AreaByAlpha2CountryCode)).Cast<UnM49AreaByAlpha2CountryCode>().Select(code => code.GetIntermediateRegionCode()).Where(code => code.HasValue).Cast<ushort>();
             var m49Codes = globalCodes.Union(regionCodes).Union(subRegionCodes).Union(intermediateRegionCodes);
             return m49Codes.Contains(candidateCode);
         }

@@ -10,7 +10,7 @@ namespace DataStandardizer.ISO639.Tests
 
         [Theory]
         [MemberData(nameof(GetEnglishName_OnIso639Part1LanguageCode_TestCaseGenerator.TestCases), MemberType = typeof(GetEnglishName_OnIso639Part1LanguageCode_TestCaseGenerator))]
-        public void GetEnglishName_OnIso639Part1LanguageCode_ReturnsEnglishName(Iso639Part1 testCode, string? expectedResult)
+        public void GetEnglishName_OnIso639Part1LanguageCode_ReturnsEnglishName(Iso639Part1Language testCode, string? expectedResult)
         {
             // act
             var testResult = testCode.GetEnglishName();
@@ -23,7 +23,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part1.en, "English" }; }
+                get { yield return new object[] { Iso639Part1Language.en, "English" }; }
             }
         }
 
@@ -33,7 +33,7 @@ namespace DataStandardizer.ISO639.Tests
 
         [Theory]
         [MemberData(nameof(GetEnglishName_OnIso639Part2BLanguageCode_TestCaseGenerator.TestCases), MemberType = typeof(GetEnglishName_OnIso639Part2BLanguageCode_TestCaseGenerator))]
-        public void GetEnglishName_OnIso639Part2BLanguageCode_ReturnsEnglishName(Iso639Part2B testCode, string? expectedResult)
+        public void GetEnglishName_OnIso639Part2BLanguageCode_ReturnsEnglishName(Iso639Part2BLanguage testCode, string? expectedResult)
         {
             // act
             var testResult = testCode.GetEnglishName();
@@ -46,7 +46,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part2B.eng, "English" }; }
+                get { yield return new object[] { Iso639Part2BLanguage.eng, "English" }; }
             }
         }
 
@@ -56,7 +56,7 @@ namespace DataStandardizer.ISO639.Tests
 
         [Theory]
         [MemberData(nameof(GetEnglishName_OnIso639Part2TLanguageCode_TestCaseGenerator.TestCases), MemberType = typeof(GetEnglishName_OnIso639Part2TLanguageCode_TestCaseGenerator))]
-        public void GetEnglishName_OnIso639Part2TLanguageCode_ReturnsEnglishName(Iso639Part2T testCode, string? expectedResult)
+        public void GetEnglishName_OnIso639Part2TLanguageCode_ReturnsEnglishName(Iso639Part2TLanguage testCode, string? expectedResult)
         {
             // act
             var testResult = testCode.GetEnglishName();
@@ -69,7 +69,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part2T.eng, "English" }; }
+                get { yield return new object[] { Iso639Part2TLanguage.eng, "English" }; }
             }
         }
 
@@ -79,7 +79,7 @@ namespace DataStandardizer.ISO639.Tests
 
         [Theory]
         [MemberData(nameof(GetEnglishName_OnIso639Part3LanguageCode_TestCaseGenerator.TestCases), MemberType = typeof(GetEnglishName_OnIso639Part3LanguageCode_TestCaseGenerator))]
-        public void GetEnglishName_OnIso639Part3LanguageCode_ReturnsEnglishName(Iso639Part3 testCode, string? expectedResult)
+        public void GetEnglishName_OnIso639Part3LanguageCode_ReturnsEnglishName(Iso639Part3Language testCode, string? expectedResult)
         {
             // act
             var testResult = testCode.GetEnglishName();
@@ -92,7 +92,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part3.eng, "English" }; }
+                get { yield return new object[] { Iso639Part3Language.eng, "English" }; }
             }
         }
 
@@ -102,7 +102,7 @@ namespace DataStandardizer.ISO639.Tests
 
         [Theory]
         [MemberData(nameof(GetEnglishName_OnIso639Part5LanguageCode_TestCaseGenerator.TestCases), MemberType = typeof(GetEnglishName_OnIso639Part5LanguageCode_TestCaseGenerator))]
-        public void GetEnglishName_OnIso639Part5LanguageCode_ReturnsEnglishName(Iso639Part5 testCode, string? expectedResult)
+        public void GetEnglishName_OnIso639Part5LanguageCode_ReturnsEnglishName(Iso639Part5LanguageFamily testCode, string? expectedResult)
         {
             // act
             var testResult = testCode.GetEnglishName();
@@ -115,7 +115,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part5.gem, "Germanic languages" }; }
+                get { yield return new object[] { Iso639Part5LanguageFamily.gem, "Germanic languages" }; }
             }
         }
 
@@ -125,7 +125,7 @@ namespace DataStandardizer.ISO639.Tests
 
         [Theory]
         [MemberData(nameof(GetEnglishNames_OnIso639Part1LanguageCode_TestCaseGenerator.TestCases), MemberType = typeof(GetEnglishNames_OnIso639Part1LanguageCode_TestCaseGenerator))]
-        public void GetEnglishNames_OnIso639Part1LanguageCode_ReturnsEnglishNames(Iso639Part1 testCode, string[] expectedResult)
+        public void GetEnglishNames_OnIso639Part1LanguageCode_ReturnsEnglishNames(Iso639Part1Language testCode, string[] expectedResult)
         {
             // act
             var testResult = testCode.GetEnglishNames();
@@ -138,7 +138,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part1.ca, new String[] { "Catalan", "Valencian" } }; }
+                get { yield return new object[] { Iso639Part1Language.ca, new[] { "Catalan", "Valencian" } }; }
             }
         }
 
@@ -148,7 +148,7 @@ namespace DataStandardizer.ISO639.Tests
 
         [Theory]
         [MemberData(nameof(GetEnglishNames_OnIso639Part2BLanguageCode_TestCaseGenerator.TestCases), MemberType = typeof(GetEnglishNames_OnIso639Part2BLanguageCode_TestCaseGenerator))]
-        public void GetEnglishNames_OnIso639Part2BLanguageCode_ReturnsEnglishNames(Iso639Part2B testCode, string[] expectedResult)
+        public void GetEnglishNames_OnIso639Part2BLanguageCode_ReturnsEnglishNames(Iso639Part2BLanguage testCode, string[] expectedResult)
         {
             // act
             var testResult = testCode.GetEnglishNames();
@@ -161,7 +161,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part2B.cat, new String[] { "Catalan", "Valencian" } }; }
+                get { yield return new object[] { Iso639Part2BLanguage.cat, new[] { "Catalan", "Valencian" } }; }
             }
         }
 
@@ -171,7 +171,7 @@ namespace DataStandardizer.ISO639.Tests
 
         [Theory]
         [MemberData(nameof(GetEnglishNames_OnIso639Part2TLanguageCode_TestCaseGenerator.TestCases), MemberType = typeof(GetEnglishNames_OnIso639Part2TLanguageCode_TestCaseGenerator))]
-        public void GetEnglishNames_OnIso639Part2TLanguageCode_ReturnsEnglishNames(Iso639Part2T testCode, string[] expectedResult)
+        public void GetEnglishNames_OnIso639Part2TLanguageCode_ReturnsEnglishNames(Iso639Part2TLanguage testCode, string[] expectedResult)
         {
             // act
             var testResult = testCode.GetEnglishNames();
@@ -184,7 +184,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part2T.cat, new String[] { "Catalan", "Valencian" } }; }
+                get { yield return new object[] { Iso639Part2TLanguage.cat, new[] { "Catalan", "Valencian" } }; }
             }
         }
 
@@ -194,7 +194,7 @@ namespace DataStandardizer.ISO639.Tests
 
         [Theory]
         [MemberData(nameof(GetEnglishNames_OnIso639Part5LanguageCode_TestCaseGenerator.TestCases), MemberType = typeof(GetEnglishNames_OnIso639Part5LanguageCode_TestCaseGenerator))]
-        public void GetEnglishNames_OnIso639Part5LanguageCode_ReturnsEnglishNames(Iso639Part5 testCode, string[] expectedResult)
+        public void GetEnglishNames_OnIso639Part5LanguageCode_ReturnsEnglishNames(Iso639Part5LanguageFamily testCode, string[] expectedResult)
         {
             // act
             var testResult = testCode.GetEnglishNames();
@@ -207,7 +207,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part5.gem, new string[] { "Germanic languages" } }; }
+                get { yield return new object[] { Iso639Part5LanguageFamily.gem, new[] { "Germanic languages" } }; }
             }
         }
 
@@ -217,7 +217,7 @@ namespace DataStandardizer.ISO639.Tests
 
         [Theory]
         [MemberData(nameof(GetFrenchName_OnIso639Part1LanguageCode_TestCaseGenerator.TestCases), MemberType = typeof(GetFrenchName_OnIso639Part1LanguageCode_TestCaseGenerator))]
-        public void GetFrenchName_OnIso639Part1LanguageCode_ReturnsFrenchName(Iso639Part1 testCode, string? expectedResult)
+        public void GetFrenchName_OnIso639Part1LanguageCode_ReturnsFrenchName(Iso639Part1Language testCode, string? expectedResult)
         {
             // act
             var testResult = testCode.GetFrenchName();
@@ -230,7 +230,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part1.fr, "français" }; }
+                get { yield return new object[] { Iso639Part1Language.fr, "français" }; }
             }
         }
 
@@ -240,7 +240,7 @@ namespace DataStandardizer.ISO639.Tests
 
         [Theory]
         [MemberData(nameof(GetFrenchName_OnIso639Part2BLanguageCode_TestCaseGenerator.TestCases), MemberType = typeof(GetFrenchName_OnIso639Part2BLanguageCode_TestCaseGenerator))]
-        public void GetFrenchName_OnIso639Part2BLanguageCode_ReturnsFrenchName(Iso639Part2B testCode, string? expectedResult)
+        public void GetFrenchName_OnIso639Part2BLanguageCode_ReturnsFrenchName(Iso639Part2BLanguage testCode, string? expectedResult)
         {
             // act
             var testResult = testCode.GetFrenchName();
@@ -253,7 +253,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part2B.fre, "français" }; }
+                get { yield return new object[] { Iso639Part2BLanguage.fre, "français" }; }
             }
         }
 
@@ -263,7 +263,7 @@ namespace DataStandardizer.ISO639.Tests
 
         [Theory]
         [MemberData(nameof(GetFrenchName_OnIso639Part2TLanguageCode_TestCaseGenerator.TestCases), MemberType = typeof(GetFrenchName_OnIso639Part2TLanguageCode_TestCaseGenerator))]
-        public void GetFrenchName_OnIso639Part2TLanguageCode_ReturnsFrenchName(Iso639Part2T testCode, string? expectedResult)
+        public void GetFrenchName_OnIso639Part2TLanguageCode_ReturnsFrenchName(Iso639Part2TLanguage testCode, string? expectedResult)
         {
             // act
             var testResult = testCode.GetFrenchName();
@@ -276,7 +276,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part2T.fra, "français" }; }
+                get { yield return new object[] { Iso639Part2TLanguage.fra, "français" }; }
             }
         }
 
@@ -286,7 +286,7 @@ namespace DataStandardizer.ISO639.Tests
 
         [Theory]
         [MemberData(nameof(GetFrenchName_OnIso639Part5LanguageCode_TestCaseGenerator.TestCases), MemberType = typeof(GetFrenchName_OnIso639Part5LanguageCode_TestCaseGenerator))]
-        public void GetFrenchName_OnIso639Part5LanguageCode_ReturnsFrenchName(Iso639Part5 testCode, string? expectedResult)
+        public void GetFrenchName_OnIso639Part5LanguageCode_ReturnsFrenchName(Iso639Part5LanguageFamily testCode, string? expectedResult)
         {
             // act
             var testResult = testCode.GetFrenchName();
@@ -299,7 +299,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part5.ine, "indo-européennes, langues" }; }
+                get { yield return new object[] { Iso639Part5LanguageFamily.ine, "indo-européennes, langues" }; }
             }
         }
 
@@ -309,7 +309,7 @@ namespace DataStandardizer.ISO639.Tests
 
         [Theory]
         [MemberData(nameof(GetFrenchNames_OnIso639Part1LanguageCode_TestCaseGenerator.TestCases), MemberType = typeof(GetFrenchNames_OnIso639Part1LanguageCode_TestCaseGenerator))]
-        public void GetFrenchNames_OnIso639Part1LanguageCode_ReturnsFrenchNames(Iso639Part1 testCode, string[] expectedResult)
+        public void GetFrenchNames_OnIso639Part1LanguageCode_ReturnsFrenchNames(Iso639Part1Language testCode, string[] expectedResult)
         {
             // act
             var testResult = testCode.GetFrenchNames();
@@ -322,7 +322,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part1.gd, new string[] { "gaélique", "gaélique écossais" } }; }
+                get { yield return new object[] { Iso639Part1Language.gd, new[] { "gaélique", "gaélique écossais" } }; }
             }
         }
 
@@ -332,7 +332,7 @@ namespace DataStandardizer.ISO639.Tests
 
         [Theory]
         [MemberData(nameof(GetFrenchNames_OnIso639Part2BLanguageCode_TestCaseGenerator.TestCases), MemberType = typeof(GetFrenchNames_OnIso639Part2BLanguageCode_TestCaseGenerator))]
-        public void GetFrenchNames_OnIso639Part2BLanguageCode_ReturnsFrenchNames(Iso639Part2B testCode, string[] expectedResult)
+        public void GetFrenchNames_OnIso639Part2BLanguageCode_ReturnsFrenchNames(Iso639Part2BLanguage testCode, string[] expectedResult)
         {
             // act
             var testResult = testCode.GetFrenchNames();
@@ -345,7 +345,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part2B.gsw, new string[] { "suisse alémanique", "alémanique", "alsacien" } }; }
+                get { yield return new object[] { Iso639Part2BLanguage.gsw, new[] { "suisse alémanique", "alémanique", "alsacien" } }; }
             }
         }
 
@@ -355,7 +355,7 @@ namespace DataStandardizer.ISO639.Tests
 
         [Theory]
         [MemberData(nameof(GetFrenchNames_OnIso639Part2TLanguageCode_TestCaseGenerator.TestCases), MemberType = typeof(GetFrenchNames_OnIso639Part2TLanguageCode_TestCaseGenerator))]
-        public void GetFrenchNames_OnIso639Part2TLanguageCode_ReturnsFrenchNames(Iso639Part2T testCode, string[] expectedResult)
+        public void GetFrenchNames_OnIso639Part2TLanguageCode_ReturnsFrenchNames(Iso639Part2TLanguage testCode, string[] expectedResult)
         {
             // act
             var testResult = testCode.GetFrenchNames();
@@ -368,7 +368,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part2T.nno, new string[] { "norvégien nynorsk", "nynorsk, norvégien" } }; }
+                get { yield return new object[] { Iso639Part2TLanguage.nno, new[] { "norvégien nynorsk", "nynorsk, norvégien" } }; }
             }
         }
 
@@ -378,7 +378,7 @@ namespace DataStandardizer.ISO639.Tests
 
         [Theory]
         [MemberData(nameof(GetFrenchNames_OnIso639Part5LanguageCode_TestCaseGenerator.TestCases), MemberType = typeof(GetFrenchNames_OnIso639Part5LanguageCode_TestCaseGenerator))]
-        public void GetFrenchNames_OnIso639Part5LanguageCode_ReturnsFrenchNames(Iso639Part5 testCode, string[] expectedResult)
+        public void GetFrenchNames_OnIso639Part5LanguageCode_ReturnsFrenchNames(Iso639Part5LanguageFamily testCode, string[] expectedResult)
         {
             // act
             var testResult = testCode.GetFrenchNames();
@@ -391,7 +391,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part5.cel, new string[] { "celtiques, langues", "celtes, langues" } }; }
+                get { yield return new object[] { Iso639Part5LanguageFamily.cel, new[] { "celtiques, langues", "celtes, langues" } }; }
             }
         }
 
@@ -401,7 +401,7 @@ namespace DataStandardizer.ISO639.Tests
 
         [Theory]
         [MemberData(nameof(GetInvertedName_OnIso639Part3LanguageCode_TestCaseGenerator.TestCases), MemberType = typeof(GetInvertedName_OnIso639Part3LanguageCode_TestCaseGenerator))]
-        public void GetInvertedName_OnIso639Part3LanguageCode_ReturnsInvertedName(Iso639Part3 testCode, string? expectedResult)
+        public void GetInvertedName_OnIso639Part3LanguageCode_ReturnsInvertedName(Iso639Part3Language testCode, string? expectedResult)
         {
             // act
             var testResult = testCode.GetInvertedName();
@@ -414,7 +414,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part3.rcf, "Creole French, Réunion" }; }
+                get { yield return new object[] { Iso639Part3Language.rcf, "Creole French, Réunion" }; }
             }
         }
 
@@ -424,7 +424,7 @@ namespace DataStandardizer.ISO639.Tests
 
         [Theory]
         [MemberData(nameof(GetLanguageType_OnIso639Part3LanguageCode_TestCaseGenerator.TestCases), MemberType = typeof(GetLanguageType_OnIso639Part3LanguageCode_TestCaseGenerator))]
-        public void GetLanguageType_OnIso639Part3LanguageCode_ReturnsLanguageType(Iso639Part3 testCode, Iso639LanguageType expectedResult)
+        public void GetLanguageType_OnIso639Part3LanguageCode_ReturnsLanguageType(Iso639Part3Language testCode, Iso639LanguageType expectedResult)
         {
             // act
             var testResult = testCode.GetLanguageType();
@@ -439,11 +439,11 @@ namespace DataStandardizer.ISO639.Tests
             {
                 get
                 {
-                    yield return new object[] { Iso639Part3.deu, Iso639LanguageType.Living };
-                    yield return new object[] { Iso639Part3.arc, Iso639LanguageType.Historical };
-                    yield return new object[] { Iso639Part3.chh, Iso639LanguageType.Extinct };
-                    yield return new object[] { Iso639Part3.epo, Iso639LanguageType.Constructed };
-                    yield return new object[] { Iso639Part3.und, Iso639LanguageType.Special };
+                    yield return new object[] { Iso639Part3Language.deu, Iso639LanguageType.Living };
+                    yield return new object[] { Iso639Part3Language.arc, Iso639LanguageType.Historical };
+                    yield return new object[] { Iso639Part3Language.chh, Iso639LanguageType.Extinct };
+                    yield return new object[] { Iso639Part3Language.epo, Iso639LanguageType.Constructed };
+                    yield return new object[] { Iso639Part3Language.und, Iso639LanguageType.Special };
                 }
             }
         }
@@ -454,7 +454,7 @@ namespace DataStandardizer.ISO639.Tests
 
         [Theory]
         [MemberData(nameof(GetMacrolanguageCode_OnIso639Part3LanguageCode_TestCaseGenerator.TestCases), MemberType = typeof(GetMacrolanguageCode_OnIso639Part3LanguageCode_TestCaseGenerator))]
-        public void GetMacrolanguageCode_OnIso639Part3LanguageCode_ReturnsMacroLanguageCode(Iso639Part3 testCode, string? expectedResult)
+        public void GetMacrolanguageCode_OnIso639Part3LanguageCode_ReturnsMacroLanguageCode(Iso639Part3Language testCode, string? expectedResult)
         {
             // act
             var testResult = testCode.GetMacrolanguageCode();
@@ -467,7 +467,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part3.ind, "msa" }; }
+                get { yield return new object[] { Iso639Part3Language.ind, "msa" }; }
             }
         }
 
@@ -477,7 +477,7 @@ namespace DataStandardizer.ISO639.Tests
 
         [Theory]
         [MemberData(nameof(GetPart1Code_OnIso639Part2BLanguageCode_TestCaseGenerator.TestCases), MemberType = typeof(GetPart1Code_OnIso639Part2BLanguageCode_TestCaseGenerator))]
-        public void GetPart1Code_OnIso639Part2BLanguageCode_ReturnsPart1LanguageCode(Iso639Part2B testCode, string? expectedResult)
+        public void GetPart1Code_OnIso639Part2BLanguageCode_ReturnsPart1LanguageCode(Iso639Part2BLanguage testCode, string? expectedResult)
         {
             // act
             var testResult = testCode.GetPart1Code();
@@ -490,7 +490,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part2B.arm, "hy" }; }
+                get { yield return new object[] { Iso639Part2BLanguage.arm, "hy" }; }
             }
         }
 
@@ -500,7 +500,7 @@ namespace DataStandardizer.ISO639.Tests
 
         [Theory]
         [MemberData(nameof(GetPart1Code_OnIso639Part2TLanguageCode_TestCaseGenerator.TestCases), MemberType = typeof(GetPart1Code_OnIso639Part2TLanguageCode_TestCaseGenerator))]
-        public void GetPart1Code_OnIso639Part2TLanguageCode_ReturnsPart1LanguageCode(Iso639Part2T testCode, string? expectedResult)
+        public void GetPart1Code_OnIso639Part2TLanguageCode_ReturnsPart1LanguageCode(Iso639Part2TLanguage testCode, string? expectedResult)
         {
             // act
             var testResult = testCode.GetPart1Code();
@@ -513,7 +513,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part2T.hye, "hy" }; }
+                get { yield return new object[] { Iso639Part2TLanguage.hye, "hy" }; }
             }
         }
 
@@ -523,7 +523,7 @@ namespace DataStandardizer.ISO639.Tests
 
         [Theory]
         [MemberData(nameof(GetPart1Code_OnIso639Part3LanguageCode_TestCaseGenerator.TestCases), MemberType = typeof(GetPart1Code_OnIso639Part3LanguageCode_TestCaseGenerator))]
-        public void GetPart1Code_OnIso639Part3LanguageCode_ReturnsPart1LanguageCode(Iso639Part3 testCode, string? expectedResult)
+        public void GetPart1Code_OnIso639Part3LanguageCode_ReturnsPart1LanguageCode(Iso639Part3Language testCode, string? expectedResult)
         {
             // act
             var testResult = testCode.GetPart1Code();
@@ -536,7 +536,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part3.mri, "mi" }; }
+                get { yield return new object[] { Iso639Part3Language.mri, "mi" }; }
             }
         }
 
@@ -546,7 +546,7 @@ namespace DataStandardizer.ISO639.Tests
 
         [Theory]
         [MemberData(nameof(GetPart2BCode_OnIso639Part1LanguageCode_TestCaseGenerator.TestCases), MemberType = typeof(GetPart2BCode_OnIso639Part1LanguageCode_TestCaseGenerator))]
-        public void GetPart2BCode_OnIso639Part1LanguageCode_ReturnsPart2BLanguageCode(Iso639Part1 testCode, string? expectedResult)
+        public void GetPart2BCode_OnIso639Part1LanguageCode_ReturnsPart2BLanguageCode(Iso639Part1Language testCode, string? expectedResult)
         {
             // act
             var testResult = testCode.GetPart2BCode();
@@ -559,7 +559,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part1.mi, "mao" }; }
+                get { yield return new object[] { Iso639Part1Language.mi, "mao" }; }
             }
         }
 
@@ -569,7 +569,7 @@ namespace DataStandardizer.ISO639.Tests
 
         [Theory]
         [MemberData(nameof(GetPart2BCode_OnIso639Part3LanguageCode_TestCaseGenerator.TestCases), MemberType = typeof(GetPart2BCode_OnIso639Part3LanguageCode_TestCaseGenerator))]
-        public void GetPart2BCode_OnIso639Part3LanguageCode_ReturnsPart3LanguageCode(Iso639Part3 testCode, string? expectedResult)
+        public void GetPart2BCode_OnIso639Part3LanguageCode_ReturnsPart3LanguageCode(Iso639Part3Language testCode, string? expectedResult)
         {
             // act
             var testResult = testCode.GetPart2BCode();
@@ -582,7 +582,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part3.mri, "mao" }; }
+                get { yield return new object[] { Iso639Part3Language.mri, "mao" }; }
             }
         }
 
@@ -592,7 +592,7 @@ namespace DataStandardizer.ISO639.Tests
 
         [Theory]
         [MemberData(nameof(GetPart2TCode_OnIso639Part1LanguageCode_TestCaseGenerator.TestCases), MemberType = typeof(GetPart2TCode_OnIso639Part1LanguageCode_TestCaseGenerator))]
-        public void GetPart2TCode_OnIso639Part1LanguageCode_ReturnsPart2TLanguageCode(Iso639Part1 testCode, string? expectedResult)
+        public void GetPart2TCode_OnIso639Part1LanguageCode_ReturnsPart2TLanguageCode(Iso639Part1Language testCode, string? expectedResult)
         {
             // act
             var testResult = testCode.GetPart2TCode();
@@ -605,7 +605,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part1.mi, "mri" }; }
+                get { yield return new object[] { Iso639Part1Language.mi, "mri" }; }
             }
         }
 
@@ -615,7 +615,7 @@ namespace DataStandardizer.ISO639.Tests
 
         [Theory]
         [MemberData(nameof(GetPart2TCode_OnIso639Part3LanguageCode_TestCaseGenerator.TestCases), MemberType = typeof(GetPart2TCode_OnIso639Part3LanguageCode_TestCaseGenerator))]
-        public void GetPart2TCode_OnIso639Part3LanguageCode_ReturnsPart2TLanguageCode(Iso639Part3 testCode, string? expectedResult)
+        public void GetPart2TCode_OnIso639Part3LanguageCode_ReturnsPart2TLanguageCode(Iso639Part3Language testCode, string? expectedResult)
         {
             // act
             var testResult = testCode.GetPart2TCode();
@@ -628,7 +628,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part3.mri, "mri" }; }
+                get { yield return new object[] { Iso639Part3Language.mri, "mri" }; }
             }
         }
 
@@ -638,7 +638,7 @@ namespace DataStandardizer.ISO639.Tests
 
         [Theory]
         [MemberData(nameof(GetPrintName_OnIso639Part3LanguageCode_TestCaseGenerator.TestCases), MemberType = typeof(GetPrintName_OnIso639Part3LanguageCode_TestCaseGenerator))]
-        public void GetPrintName_OnIso639Part3LanguageCode_ReturnsPrintName(Iso639Part3 testCode, string? expectedResult)
+        public void GetPrintName_OnIso639Part3LanguageCode_ReturnsPrintName(Iso639Part3Language testCode, string? expectedResult)
         {
             // act
             var testResult = testCode.GetPrintName();
@@ -651,7 +651,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part3.hun, "Hungarian" }; }
+                get { yield return new object[] { Iso639Part3Language.hun, "Hungarian" }; }
             }
         }
 
@@ -661,7 +661,7 @@ namespace DataStandardizer.ISO639.Tests
 
         [Theory]
         [MemberData(nameof(GetScope_OnIso639Part3LanguageCode_TestCaseGenerator.TestCases), MemberType = typeof(GetScope_OnIso639Part3LanguageCode_TestCaseGenerator))]
-        public void GetScope_OnIso639Part3LanguageCode_ReturnsScope(Iso639Part3 testCode, Iso639LanguageScope expectedResult)
+        public void GetScope_OnIso639Part3LanguageCode_ReturnsScope(Iso639Part3Language testCode, Iso639LanguageScope expectedResult)
         {
             // act
             var testResult = testCode.GetScope();
@@ -676,9 +676,9 @@ namespace DataStandardizer.ISO639.Tests
             {
                 get
                 {
-                    yield return new object[] { Iso639Part3.eng, Iso639LanguageScope.Individual };
-                    yield return new object[] { Iso639Part3.est, Iso639LanguageScope.Macrolanguage };
-                    yield return new object[] { Iso639Part3.und, Iso639LanguageScope.Special };
+                    yield return new object[] { Iso639Part3Language.eng, Iso639LanguageScope.Individual };
+                    yield return new object[] { Iso639Part3Language.est, Iso639LanguageScope.Macrolanguage };
+                    yield return new object[] { Iso639Part3Language.und, Iso639LanguageScope.Special };
                 }
             }
         }

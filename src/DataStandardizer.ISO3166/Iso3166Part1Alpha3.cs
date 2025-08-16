@@ -7,13 +7,16 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
+using System;
+
 namespace DataStandardizer.ISO3166
 {
-    
-    
+
+
     /// <summary>
     /// Codes for the representation of names of countries and their subdivisions – Part 1: Country code
     /// </summary>
+    [Obsolete("It is recommended to use the " + nameof(Iso3166Part1Alpha3Country) + " type instead.  Refer to Bulletin 202508-01 (https://github.com/matthew25187/DataStandardizer/discussions/17) for more information.")]
     public enum Iso3166Part1Alpha3 : ushort
     {
         

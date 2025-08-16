@@ -159,7 +159,7 @@ function Out-SourceCode {
         $enumField.InitExpression = [System.CodeDom.CodePrimitiveExpression]::new($currencyNumericCode ?? -1)
 
         $codeAttributeArgument = [System.CodeDom.CodeAttributeArgument]::new([System.CodeDom.CodePrimitiveExpression]::new($currencyName))
-        $codeAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.ISO4217.Iso4217CodeAttribute', @($codeAttributeArgument))
+        $codeAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.ISO4217.Iso4217CurrencyCodeAttribute', @($codeAttributeArgument))
         [void]$enumField.CustomAttributes.Add($codeAttribute)
     
         $enumFieldOpenSummaryComment = [System.CodeDom.CodeCommentStatement]::new('<summary>', $true)

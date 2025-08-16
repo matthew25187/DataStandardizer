@@ -22,349 +22,349 @@ namespace DataStandardizer.ISO639
         /// <summary>
         /// Quapaw
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Quapaw", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Quapaw", InvertedName="Quapaw")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Quapaw", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Quapaw", InvertedName="Quapaw")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qua = new DataStandardizer.ISO639.Iso639Part3("qua");
         
         /// <summary>
         /// Huallaga Huánuco Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Huallaga Huánuco Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Huallaga Huánuco Quechua", InvertedName="Quechua, Huallaga Huánuco", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Huallaga Huánuco Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Huallaga Huánuco Quechua", InvertedName="Quechua, Huallaga Huánuco", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qub = new DataStandardizer.ISO639.Iso639Part3("qub");
         
         /// <summary>
         /// K'iche'
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("K\'iche\'", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="K\'iche\' Quiché", InvertedName="K\'iche\' Quiché")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("K\'iche\'", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="K\'iche\' Quiché", InvertedName="K\'iche\' Quiché")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @quc = new DataStandardizer.ISO639.Iso639Part3("quc");
         
         /// <summary>
         /// Calderón Highland Quichua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Calderón Highland Quichua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Calderón Highland Quichua", InvertedName="Quichua, Calderón Highland", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Calderón Highland Quichua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Calderón Highland Quichua", InvertedName="Quichua, Calderón Highland", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qud = new DataStandardizer.ISO639.Iso639Part3("qud");
         
         /// <summary>
         /// Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Macrolanguage, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Quechua", InvertedName="Quechua", Part1Code="qu", Part2BCode="que", Part2TCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Macrolanguage, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Quechua", InvertedName="Quechua", Part1Code="qu", Part2BCode="que", Part2TCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @que = new DataStandardizer.ISO639.Iso639Part3("que");
         
         /// <summary>
         /// Lambayeque Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lambayeque Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lambayeque Quechua", InvertedName="Quechua, Lambayeque", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lambayeque Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Lambayeque Quechua", InvertedName="Quechua, Lambayeque", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @quf = new DataStandardizer.ISO639.Iso639Part3("quf");
         
         /// <summary>
         /// Chimborazo Highland Quichua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Chimborazo Highland Quichua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Chimborazo Highland Quichua", InvertedName="Quichua, Chimborazo Highland", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Chimborazo Highland Quichua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Chimborazo Highland Quichua", InvertedName="Quichua, Chimborazo Highland", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qug = new DataStandardizer.ISO639.Iso639Part3("qug");
         
         /// <summary>
         /// South Bolivian Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("South Bolivian Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="South Bolivian Quechua", InvertedName="Quechua, South Bolivian", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("South Bolivian Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="South Bolivian Quechua", InvertedName="Quechua, South Bolivian", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @quh = new DataStandardizer.ISO639.Iso639Part3("quh");
         
         /// <summary>
         /// Quileute
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Quileute", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Quileute", InvertedName="Quileute")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Quileute", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Quileute", InvertedName="Quileute")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qui = new DataStandardizer.ISO639.Iso639Part3("qui");
         
         /// <summary>
         /// Chachapoyas Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Chachapoyas Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Chachapoyas Quechua", InvertedName="Quechua, Chachapoyas", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Chachapoyas Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Chachapoyas Quechua", InvertedName="Quechua, Chachapoyas", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @quk = new DataStandardizer.ISO639.Iso639Part3("quk");
         
         /// <summary>
         /// North Bolivian Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("North Bolivian Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="North Bolivian Quechua", InvertedName="Quechua, North Bolivian", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("North Bolivian Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="North Bolivian Quechua", InvertedName="Quechua, North Bolivian", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qul = new DataStandardizer.ISO639.Iso639Part3("qul");
         
         /// <summary>
         /// Sipacapense
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Sipacapense", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Sipacapense", InvertedName="Sipacapense")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Sipacapense", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Sipacapense", InvertedName="Sipacapense")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qum = new DataStandardizer.ISO639.Iso639Part3("qum");
         
         /// <summary>
         /// Quinault
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Quinault", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Quinault", InvertedName="Quinault")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Quinault", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Quinault", InvertedName="Quinault")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qun = new DataStandardizer.ISO639.Iso639Part3("qun");
         
         /// <summary>
         /// Southern Pastaza Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Southern Pastaza Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Southern Pastaza Quechua", InvertedName="Quechua, Southern Pastaza", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Southern Pastaza Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Southern Pastaza Quechua", InvertedName="Quechua, Southern Pastaza", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qup = new DataStandardizer.ISO639.Iso639Part3("qup");
         
         /// <summary>
         /// Quinqui
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Quinqui", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Quinqui", InvertedName="Quinqui")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Quinqui", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Quinqui", InvertedName="Quinqui")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @quq = new DataStandardizer.ISO639.Iso639Part3("quq");
         
         /// <summary>
         /// Yanahuanca Pasco Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Yanahuanca Pasco Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Yanahuanca Pasco Quechua", InvertedName="Quechua, Yanahuanca Pasco", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Yanahuanca Pasco Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Yanahuanca Pasco Quechua", InvertedName="Quechua, Yanahuanca Pasco", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qur = new DataStandardizer.ISO639.Iso639Part3("qur");
         
         /// <summary>
         /// Santiago del Estero Quichua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Santiago del Estero Quichua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Santiago del Estero Quichua", InvertedName="Quichua, Santiago del Estero", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Santiago del Estero Quichua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Santiago del Estero Quichua", InvertedName="Quichua, Santiago del Estero", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qus = new DataStandardizer.ISO639.Iso639Part3("qus");
         
         /// <summary>
         /// Sacapulteco
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Sacapulteco", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Sacapulteco", InvertedName="Sacapulteco")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Sacapulteco", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Sacapulteco", InvertedName="Sacapulteco")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @quv = new DataStandardizer.ISO639.Iso639Part3("quv");
         
         /// <summary>
         /// Tena Lowland Quichua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Tena Lowland Quichua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Tena Lowland Quichua", InvertedName="Quichua, Tena Lowland", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Tena Lowland Quichua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Tena Lowland Quichua", InvertedName="Quichua, Tena Lowland", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @quw = new DataStandardizer.ISO639.Iso639Part3("quw");
         
         /// <summary>
         /// Yauyos Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Yauyos Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Yauyos Quechua", InvertedName="Quechua, Yauyos", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Yauyos Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Yauyos Quechua", InvertedName="Quechua, Yauyos", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qux = new DataStandardizer.ISO639.Iso639Part3("qux");
         
         /// <summary>
         /// Ayacucho Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Ayacucho Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Ayacucho Quechua", InvertedName="Quechua, Ayacucho", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Ayacucho Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Ayacucho Quechua", InvertedName="Quechua, Ayacucho", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @quy = new DataStandardizer.ISO639.Iso639Part3("quy");
         
         /// <summary>
         /// Cusco Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Cusco Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Cusco Quechua", InvertedName="Quechua, Cusco", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Cusco Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Cusco Quechua", InvertedName="Quechua, Cusco", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @quz = new DataStandardizer.ISO639.Iso639Part3("quz");
         
         /// <summary>
         /// Ambo-Pasco Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Ambo-Pasco Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Ambo-Pasco Quechua", InvertedName="Quechua, Ambo-Pasco", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Ambo-Pasco Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Ambo-Pasco Quechua", InvertedName="Quechua, Ambo-Pasco", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qva = new DataStandardizer.ISO639.Iso639Part3("qva");
         
         /// <summary>
         /// Cajamarca Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Cajamarca Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Cajamarca Quechua", InvertedName="Quechua, Cajamarca", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Cajamarca Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Cajamarca Quechua", InvertedName="Quechua, Cajamarca", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qvc = new DataStandardizer.ISO639.Iso639Part3("qvc");
         
         /// <summary>
         /// Eastern Apurímac Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Eastern Apurímac Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Eastern Apurímac Quechua", InvertedName="Quechua, Eastern Apurímac", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Eastern Apurímac Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Eastern Apurímac Quechua", InvertedName="Quechua, Eastern Apurímac", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qve = new DataStandardizer.ISO639.Iso639Part3("qve");
         
         /// <summary>
         /// Huamalíes-Dos de Mayo Huánuco Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Huamalíes-Dos de Mayo Huánuco Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Huamalíes-Dos de Mayo Huánuco Quechua", InvertedName="Quechua, Huamalíes-Dos de Mayo Huánuco", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Huamalíes-Dos de Mayo Huánuco Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Huamalíes-Dos de Mayo Huánuco Quechua", InvertedName="Quechua, Huamalíes-Dos de Mayo Huánuco", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qvh = new DataStandardizer.ISO639.Iso639Part3("qvh");
         
         /// <summary>
         /// Imbabura Highland Quichua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Imbabura Highland Quichua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Imbabura Highland Quichua", InvertedName="Quichua, Imbabura Highland", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Imbabura Highland Quichua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Imbabura Highland Quichua", InvertedName="Quichua, Imbabura Highland", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qvi = new DataStandardizer.ISO639.Iso639Part3("qvi");
         
         /// <summary>
         /// Loja Highland Quichua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Loja Highland Quichua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Loja Highland Quichua", InvertedName="Quichua, Loja Highland", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Loja Highland Quichua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Loja Highland Quichua", InvertedName="Quichua, Loja Highland", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qvj = new DataStandardizer.ISO639.Iso639Part3("qvj");
         
         /// <summary>
         /// Cajatambo North Lima Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Cajatambo North Lima Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Cajatambo North Lima Quechua", InvertedName="Quechua, Cajatambo North Lima", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Cajatambo North Lima Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Cajatambo North Lima Quechua", InvertedName="Quechua, Cajatambo North Lima", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qvl = new DataStandardizer.ISO639.Iso639Part3("qvl");
         
         /// <summary>
         /// Margos-Yarowilca-Lauricocha Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Margos-Yarowilca-Lauricocha Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Margos-Yarowilca-Lauricocha Quechua", InvertedName="Quechua, Margos-Yarowilca-Lauricocha", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Margos-Yarowilca-Lauricocha Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Margos-Yarowilca-Lauricocha Quechua", InvertedName="Quechua, Margos-Yarowilca-Lauricocha", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qvm = new DataStandardizer.ISO639.Iso639Part3("qvm");
         
         /// <summary>
         /// North Junín Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("North Junín Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="North Junín Quechua", InvertedName="Quechua, North Junín", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("North Junín Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="North Junín Quechua", InvertedName="Quechua, North Junín", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qvn = new DataStandardizer.ISO639.Iso639Part3("qvn");
         
         /// <summary>
         /// Napo Lowland Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Napo Lowland Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Napo Lowland Quechua", InvertedName="Quechua, Napo Lowland", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Napo Lowland Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Napo Lowland Quechua", InvertedName="Quechua, Napo Lowland", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qvo = new DataStandardizer.ISO639.Iso639Part3("qvo");
         
         /// <summary>
         /// Pacaraos Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Pacaraos Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Pacaraos Quechua", InvertedName="Quechua, Pacaraos", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Pacaraos Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Pacaraos Quechua", InvertedName="Quechua, Pacaraos", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qvp = new DataStandardizer.ISO639.Iso639Part3("qvp");
         
         /// <summary>
         /// San Martín Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("San Martín Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="San Martín Quechua", InvertedName="Quechua, San Martín", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("San Martín Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="San Martín Quechua", InvertedName="Quechua, San Martín", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qvs = new DataStandardizer.ISO639.Iso639Part3("qvs");
         
         /// <summary>
         /// Huaylla Wanca Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Huaylla Wanca Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Huaylla Wanca Quechua", InvertedName="Quechua, Huaylla Wanca", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Huaylla Wanca Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Huaylla Wanca Quechua", InvertedName="Quechua, Huaylla Wanca", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qvw = new DataStandardizer.ISO639.Iso639Part3("qvw");
         
         /// <summary>
         /// Queyu
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Queyu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Queyu", InvertedName="Queyu")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Queyu", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Queyu", InvertedName="Queyu")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qvy = new DataStandardizer.ISO639.Iso639Part3("qvy");
         
         /// <summary>
         /// Northern Pastaza Quichua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Northern Pastaza Quichua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Northern Pastaza Quichua", InvertedName="Quichua, Northern Pastaza", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Northern Pastaza Quichua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Northern Pastaza Quichua", InvertedName="Quichua, Northern Pastaza", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qvz = new DataStandardizer.ISO639.Iso639Part3("qvz");
         
         /// <summary>
         /// Corongo Ancash Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Corongo Ancash Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Corongo Ancash Quechua", InvertedName="Quechua, Corongo Ancash", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Corongo Ancash Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Corongo Ancash Quechua", InvertedName="Quechua, Corongo Ancash", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qwa = new DataStandardizer.ISO639.Iso639Part3("qwa");
         
         /// <summary>
         /// Classical Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Classical Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Historical, PrintName="Classical Quechua", InvertedName="Quechua, Classical", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Classical Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Historical, PrintName="Classical Quechua", InvertedName="Quechua, Classical", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qwc = new DataStandardizer.ISO639.Iso639Part3("qwc");
         
         /// <summary>
         /// Huaylas Ancash Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Huaylas Ancash Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Huaylas Ancash Quechua", InvertedName="Quechua, Huaylas Ancash", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Huaylas Ancash Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Huaylas Ancash Quechua", InvertedName="Quechua, Huaylas Ancash", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qwh = new DataStandardizer.ISO639.Iso639Part3("qwh");
         
         /// <summary>
         /// Kuman (Russia)
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Kuman (Russia)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Kuman (Russia)", InvertedName="Kuman (Russia)")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Kuman (Russia)", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Kuman (Russia)", InvertedName="Kuman (Russia)")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qwm = new DataStandardizer.ISO639.Iso639Part3("qwm");
         
         /// <summary>
         /// Sihuas Ancash Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Sihuas Ancash Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Sihuas Ancash Quechua", InvertedName="Quechua, Sihuas Ancash", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Sihuas Ancash Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Sihuas Ancash Quechua", InvertedName="Quechua, Sihuas Ancash", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qws = new DataStandardizer.ISO639.Iso639Part3("qws");
         
         /// <summary>
         /// Kwalhioqua-Tlatskanai
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Kwalhioqua-Tlatskanai", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Kwalhioqua-Tlatskanai", InvertedName="Kwalhioqua-Tlatskanai")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Kwalhioqua-Tlatskanai", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Kwalhioqua-Tlatskanai", InvertedName="Kwalhioqua-Tlatskanai")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qwt = new DataStandardizer.ISO639.Iso639Part3("qwt");
         
         /// <summary>
         /// Chiquián Ancash Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Chiquián Ancash Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Chiquián Ancash Quechua", InvertedName="Quechua, Chiquián Ancash", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Chiquián Ancash Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Chiquián Ancash Quechua", InvertedName="Quechua, Chiquián Ancash", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qxa = new DataStandardizer.ISO639.Iso639Part3("qxa");
         
         /// <summary>
         /// Chincha Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Chincha Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Chincha Quechua", InvertedName="Quechua, Chincha", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Chincha Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Chincha Quechua", InvertedName="Quechua, Chincha", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qxc = new DataStandardizer.ISO639.Iso639Part3("qxc");
         
         /// <summary>
         /// Panao Huánuco Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Panao Huánuco Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Panao Huánuco Quechua", InvertedName="Quechua, Panao Huánuco", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Panao Huánuco Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Panao Huánuco Quechua", InvertedName="Quechua, Panao Huánuco", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qxh = new DataStandardizer.ISO639.Iso639Part3("qxh");
         
         /// <summary>
         /// Salasaca Highland Quichua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Salasaca Highland Quichua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Salasaca Highland Quichua", InvertedName="Quichua, Salasaca Highland", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Salasaca Highland Quichua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Salasaca Highland Quichua", InvertedName="Quichua, Salasaca Highland", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qxl = new DataStandardizer.ISO639.Iso639Part3("qxl");
         
         /// <summary>
         /// Northern Conchucos Ancash Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Northern Conchucos Ancash Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Northern Conchucos Ancash Quechua", InvertedName="Quechua, Northern Conchucos Ancash", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Northern Conchucos Ancash Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Northern Conchucos Ancash Quechua", InvertedName="Quechua, Northern Conchucos Ancash", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qxn = new DataStandardizer.ISO639.Iso639Part3("qxn");
         
         /// <summary>
         /// Southern Conchucos Ancash Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Southern Conchucos Ancash Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Southern Conchucos Ancash Quechua", InvertedName="Quechua, Southern Conchucos Ancash", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Southern Conchucos Ancash Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Southern Conchucos Ancash Quechua", InvertedName="Quechua, Southern Conchucos Ancash", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qxo = new DataStandardizer.ISO639.Iso639Part3("qxo");
         
         /// <summary>
         /// Puno Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Puno Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Puno Quechua", InvertedName="Quechua, Puno", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Puno Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Puno Quechua", InvertedName="Quechua, Puno", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qxp = new DataStandardizer.ISO639.Iso639Part3("qxp");
         
         /// <summary>
         /// Qashqa'i
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Qashqa\'i", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Qashqa\'i", InvertedName="Qashqa\'i")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Qashqa\'i", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Qashqa\'i", InvertedName="Qashqa\'i")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qxq = new DataStandardizer.ISO639.Iso639Part3("qxq");
         
         /// <summary>
         /// Cañar Highland Quichua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Cañar Highland Quichua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Cañar Highland Quichua", InvertedName="Quichua, Cañar Highland", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Cañar Highland Quichua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Cañar Highland Quichua", InvertedName="Quichua, Cañar Highland", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qxr = new DataStandardizer.ISO639.Iso639Part3("qxr");
         
         /// <summary>
         /// Southern Qiang
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Southern Qiang", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Southern Qiang", InvertedName="Qiang, Southern")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Southern Qiang", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Southern Qiang", InvertedName="Qiang, Southern")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qxs = new DataStandardizer.ISO639.Iso639Part3("qxs");
         
         /// <summary>
         /// Santa Ana de Tusi Pasco Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Santa Ana de Tusi Pasco Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Santa Ana de Tusi Pasco Quechua", InvertedName="Quechua, Santa Ana de Tusi Pasco", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Santa Ana de Tusi Pasco Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Santa Ana de Tusi Pasco Quechua", InvertedName="Quechua, Santa Ana de Tusi Pasco", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qxt = new DataStandardizer.ISO639.Iso639Part3("qxt");
         
         /// <summary>
         /// Arequipa-La Unión Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Arequipa-La Unión Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Arequipa-La Unión Quechua", InvertedName="Quechua, Arequipa-La Unión", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Arequipa-La Unión Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Arequipa-La Unión Quechua", InvertedName="Quechua, Arequipa-La Unión", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qxu = new DataStandardizer.ISO639.Iso639Part3("qxu");
         
         /// <summary>
         /// Jauja Wanca Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Jauja Wanca Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Jauja Wanca Quechua", InvertedName="Quechua, Jauja Wanca", MacrolanguageCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Jauja Wanca Quechua", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Living, PrintName="Jauja Wanca Quechua", InvertedName="Quechua, Jauja Wanca", MacrolanguageCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qxw = new DataStandardizer.ISO639.Iso639Part3("qxw");
         
         /// <summary>
         /// Quenya
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Quenya", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Constructed, PrintName="Quenya", InvertedName="Quenya")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Quenya", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Constructed, PrintName="Quenya", InvertedName="Quenya")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qya = new DataStandardizer.ISO639.Iso639Part3("qya");
         
         /// <summary>
         /// Quiripi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Quiripi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Quiripi", InvertedName="Quiripi")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Quiripi", DataStandardizer.ISO639.Iso639LanguageScope.Individual, DataStandardizer.ISO639.Iso639LanguageType.Extinct, PrintName="Quiripi", InvertedName="Quiripi")]
         public static readonly DataStandardizer.ISO639.Iso639Part3 @qyp = new DataStandardizer.ISO639.Iso639Part3("qyp");
         #endregion
     }

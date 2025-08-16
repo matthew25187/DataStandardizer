@@ -7,7 +7,7 @@ using JetBrains.Annotations;
 namespace DataStandardizer.ISO3166
 {
     /// <summary>
-    /// Describes an <see cref="Iso3166Part2"/> code with metadata.
+    /// Describes an <see cref="Iso3166Part2Subdivision"/> code with metadata.
     /// </summary>
     [AttributeUsage(AttributeTargets.Field)]
     public sealed class Iso3166SubdivisionCodeAttribute : CodeAttributeBase

@@ -7,7 +7,7 @@ using JetBrains.Annotations;
 namespace DataStandardizer.ISO3166
 {
     /// <summary>
-    /// Describes a <see cref="Iso3166Part1Alpha2"/> or <see cref="Iso3166Part1Alpha3"/> code with metadata.
+    /// Describes a <see cref="Iso3166Part1Alpha2Country"/> or <see cref="Iso3166Part1Alpha3Country"/> code with metadata.
     /// </summary>
     [AttributeUsage(AttributeTargets.Field, AllowMultiple = true)]
     public sealed class Iso3166CountryNameAttribute : Iso3166LanguageAttributeBase

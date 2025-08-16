@@ -34,7 +34,7 @@ namespace DataStandardizer.BCP47.InternalState
         private static string ComposeScriptSubtagPattern()
         {
             // Include alpha-4 codes from ISO 15924 (ref. RFC 5646 §2.2.3¶2)
-            var iso15924Names = Enum.GetNames(typeof(Iso15924));
+            var iso15924Names = Enum.GetNames(typeof(Iso15924Script));
 
             // Include alpha-4 codes reserved for private use (ref. RFC 5646 §2.2.3¶3)
             var iso15924ReservedNames = new List<string>();

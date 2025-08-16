@@ -10,7 +10,7 @@ namespace DataStandardizer.ISO15924.Tests
 
         [Theory]
         [MemberData(nameof(GetAge_OnScriptCode_TestCaseGenerator.TestCases), MemberType = typeof(GetAge_OnScriptCode_TestCaseGenerator))]
-        public void GetAge_OnScriptCode_ReturnsScriptAge(Iso15924 testCode, double? expectedResult)
+        public void GetAge_OnScriptCode_ReturnsScriptAge(Iso15924Script testCode, double? expectedResult)
         {
             // act
             var testResult = testCode.GetAge();
@@ -25,9 +25,9 @@ namespace DataStandardizer.ISO15924.Tests
             {
                 get
                 {
-                    yield return new object[] { Iso15924.Adlm, 9.0 };
-                    yield return new object?[] { Iso15924.Afak, null };
-                    yield return new object[] { Iso15924.Arab, 1.1 };
+                    yield return new object[] { Iso15924Script.Adlm, 9.0 };
+                    yield return new object?[] { Iso15924Script.Afak, null };
+                    yield return new object[] { Iso15924Script.Arab, 1.1 };
                 }
             }
         }
@@ -38,7 +38,7 @@ namespace DataStandardizer.ISO15924.Tests
 
         [Theory]
         [MemberData(nameof(GetAlias_OnScriptCode_TestCaseGenerator.TestCases), MemberType = typeof(GetAlias_OnScriptCode_TestCaseGenerator))]
-        public void GetAlias_OnScriptCode_ReturnsScriptAlias(Iso15924 testCode, string? expectedResult)
+        public void GetAlias_OnScriptCode_ReturnsScriptAlias(Iso15924Script testCode, string? expectedResult)
         {
             // act
             var testResult = testCode.GetAlias();
@@ -53,10 +53,10 @@ namespace DataStandardizer.ISO15924.Tests
             {
                 get
                 {
-                    yield return new object[] { Iso15924.Ahom, "Ahom" };
-                    yield return new object[] { Iso15924.Arab, "Arabic" };
-                    yield return new object[] { Iso15924.Aghb, "Caucasian_Albanian" };
-                    yield return new object?[] { Iso15924.Berf, null };
+                    yield return new object[] { Iso15924Script.Ahom, "Ahom" };
+                    yield return new object[] { Iso15924Script.Arab, "Arabic" };
+                    yield return new object[] { Iso15924Script.Aghb, "Caucasian_Albanian" };
+                    yield return new object?[] { Iso15924Script.Berf, null };
                 }
             }
         }
@@ -67,7 +67,7 @@ namespace DataStandardizer.ISO15924.Tests
 
         [Theory]
         [MemberData(nameof(GetDate_OnScriptCode_TestCaseGenerator.TestCases), MemberType = typeof(GetDate_OnScriptCode_TestCaseGenerator))]
-        public void GetDate_OnScriptCode_ReturnsScriptDate(Iso15924 testCode, DateOnly expectedResult)
+        public void GetDate_OnScriptCode_ReturnsScriptDate(Iso15924Script testCode, DateOnly expectedResult)
         {
             // act
             var testResult = testCode.GetDate();
@@ -82,8 +82,8 @@ namespace DataStandardizer.ISO15924.Tests
             {
                 get
                 {
-                    yield return new object[] { Iso15924.Chis, new DateOnly(2023, 09, 12) };
-                    yield return new object[] { Iso15924.Bopo, new DateOnly(2004, 05, 01) };
+                    yield return new object[] { Iso15924Script.Chis, new DateOnly(2023, 09, 12) };
+                    yield return new object[] { Iso15924Script.Bopo, new DateOnly(2004, 05, 01) };
                 }
             }
         }
@@ -94,7 +94,7 @@ namespace DataStandardizer.ISO15924.Tests
 
         [Theory]
         [MemberData(nameof(GetEnglishName_OnScriptCode_TestCaseGenerator.TestCases), MemberType = typeof(GetEnglishName_OnScriptCode_TestCaseGenerator))]
-        public void GetEnglishName_OnScriptCode_ReturnsEnglishName(Iso15924 testCode, string expectedResult)
+        public void GetEnglishName_OnScriptCode_ReturnsEnglishName(Iso15924Script testCode, string expectedResult)
         {
             // act
             var testResult = testCode.GetEnglishName();
@@ -109,10 +109,10 @@ namespace DataStandardizer.ISO15924.Tests
             {
                 get
                 {
-                    yield return new object[] { Iso15924.Cham, "Cham" };
-                    yield return new object[] { Iso15924.Chrs, "Chorasmian" };
-                    yield return new object[] { Iso15924.Cans, "Unified Canadian Aboriginal Syllabics" };
-                    yield return new object[] { Iso15924.Ahom, "Ahom, Tai Ahom" };
+                    yield return new object[] { Iso15924Script.Cham, "Cham" };
+                    yield return new object[] { Iso15924Script.Chrs, "Chorasmian" };
+                    yield return new object[] { Iso15924Script.Cans, "Unified Canadian Aboriginal Syllabics" };
+                    yield return new object[] { Iso15924Script.Ahom, "Ahom, Tai Ahom" };
                 }
             }
         }
@@ -123,7 +123,7 @@ namespace DataStandardizer.ISO15924.Tests
 
         [Theory]
         [MemberData(nameof(GetFrenchName_OnScriptCode_TestCaseGenerator.TestCases), MemberType = typeof(GetFrenchName_OnScriptCode_TestCaseGenerator))]
-        public void GetFrenchName_OnScriptCode_ReturnsFrenchName(Iso15924 testCode, string expectedResult)
+        public void GetFrenchName_OnScriptCode_ReturnsFrenchName(Iso15924Script testCode, string expectedResult)
         {
             // act
             var testResult = testCode.GetFrenchName();
@@ -138,10 +138,10 @@ namespace DataStandardizer.ISO15924.Tests
             {
                 get
                 {
-                    yield return new object[] { Iso15924.Ahom, "âhom" };
-                    yield return new object[] { Iso15924.Bopo, "bopomofo" };
-                    yield return new object[] { Iso15924.Blis, "symboles Bliss" };
-                    yield return new object[] { Iso15924.Aran, "arabe (variante nastalique)" };
+                    yield return new object[] { Iso15924Script.Ahom, "âhom" };
+                    yield return new object[] { Iso15924Script.Bopo, "bopomofo" };
+                    yield return new object[] { Iso15924Script.Blis, "symboles Bliss" };
+                    yield return new object[] { Iso15924Script.Aran, "arabe (variante nastalique)" };
                 }
             }
         }

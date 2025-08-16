@@ -6,7 +6,7 @@ using JetBrains.Annotations;
 namespace DataStandardizer.ISO3166
 {
     /// <summary>
-    /// Describes a <see cref="Iso3166Part2"/> name with metadata.
+    /// Describes a <see cref="Iso3166Part2Subdivision"/> name with metadata.
     /// </summary>
     [AttributeUsage(AttributeTargets.Field, AllowMultiple = true)]
     public sealed class Iso3166SubdivisionNameAttribute : Iso3166LanguageAttributeBase
