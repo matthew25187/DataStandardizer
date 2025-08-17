@@ -1005,7 +1005,7 @@ stages:
                   (
                     succeeded(), 
                     or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'))
-                  )                
+                  )
                 inputs:
                   #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
                   filePath: 'scripts/SetReleaseNotesArgument.ps1' # string. Required when targetType = filePath. Script Path. 
@@ -1054,8 +1054,8 @@ stages:
                   and
                   (
                     succeeded(), 
-                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
-                  )                
+                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'))
+                  )
               - task: DotNetCoreCLI@2
                 displayName: "[${{packageName}}] Create NuGet package"
                 condition: |
