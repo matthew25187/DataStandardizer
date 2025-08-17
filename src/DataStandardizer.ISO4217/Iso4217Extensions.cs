@@ -14,14 +14,14 @@ namespace DataStandardizer.ISO4217
         /// <param name="currencyCode">Code of the currency.</param>
         /// <returns>Name of the currency, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetCurrencyName(this Iso4217Current currencyCode)
+        public static string? GetCurrencyName(this Iso4217CurrencyCurrent currencyCode)
 #else
         [CanBeNull]
-        public static string GetCurrencyName(this Iso4217Current currencyCode)
+        public static string GetCurrencyName(this Iso4217CurrencyCurrent currencyCode)
 #endif
         {
             var currencyCodeName = Enum.GetName(currencyCode.GetType(), currencyCode);
-            var currencyCodeAttribute = currencyCode.GetType().GetTypeInfo().GetDeclaredField(currencyCodeName ?? string.Empty)?.GetCustomAttribute<Iso4217CodeAttribute>();
+            var currencyCodeAttribute = currencyCode.GetType().GetTypeInfo().GetDeclaredField(currencyCodeName ?? string.Empty)?.GetCustomAttribute<Iso4217CurrencyCodeAttribute>();
             return currencyCodeAttribute?.CurrencyName;
         }
 
@@ -31,14 +31,14 @@ namespace DataStandardizer.ISO4217
         /// <param name="currencyCode">Code of the currency.</param>
         /// <returns>Name of the currency, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetCurrencyName(this Iso4217Historic currencyCode)
+        public static string? GetCurrencyName(this Iso4217CurrencyHistoric currencyCode)
 #else
         [CanBeNull]
-        public static string GetCurrencyName(this Iso4217Historic currencyCode)
+        public static string GetCurrencyName(this Iso4217CurrencyHistoric currencyCode)
 #endif
         {
             var currencyCodeName = Enum.GetName(currencyCode.GetType(), currencyCode);
-            var currencyCodeAttribute = currencyCode.GetType().GetTypeInfo().GetDeclaredField(currencyCodeName ?? string.Empty)?.GetCustomAttribute<Iso4217CodeAttribute>();
+            var currencyCodeAttribute = currencyCode.GetType().GetTypeInfo().GetDeclaredField(currencyCodeName ?? string.Empty)?.GetCustomAttribute<Iso4217CurrencyCodeAttribute>();
             return currencyCodeAttribute?.CurrencyName;
         }
 
@@ -47,10 +47,10 @@ namespace DataStandardizer.ISO4217
         /// </summary>
         /// <param name="currencyCode">Code of the currency.</param>
         /// <returns>Number of minor unit digits, if found; otherwise <c>null</c>.</returns>
-        public static byte? GetMinorUnits(this Iso4217Current currencyCode)
+        public static byte? GetMinorUnits(this Iso4217CurrencyCurrent currencyCode)
         {
             var currencyCodeName = Enum.GetName(currencyCode.GetType(), currencyCode);
-            var currencyCodeAttribute = currencyCode.GetType().GetTypeInfo().GetDeclaredField(currencyCodeName ?? string.Empty)?.GetCustomAttribute<Iso4217CodeAttribute>();
+            var currencyCodeAttribute = currencyCode.GetType().GetTypeInfo().GetDeclaredField(currencyCodeName ?? string.Empty)?.GetCustomAttribute<Iso4217CurrencyCodeAttribute>();
             return currencyCodeAttribute?.MinorUnits;
         }
 
@@ -59,10 +59,10 @@ namespace DataStandardizer.ISO4217
         /// </summary>
         /// <param name="currencyCode">Code of the currency.</param>
         /// <returns><c>true</c> if the code is a funds code, otherwise <c>false</c>.</returns>
-        public static bool IsFundCode(this Iso4217Current currencyCode)
+        public static bool IsFundCode(this Iso4217CurrencyCurrent currencyCode)
         {
             var currencyCodeName = Enum.GetName(currencyCode.GetType(), currencyCode);
-            var currencyCodeAttribute = currencyCode.GetType().GetTypeInfo().GetDeclaredField(currencyCodeName ?? string.Empty)?.GetCustomAttribute<Iso4217CodeAttribute>();
+            var currencyCodeAttribute = currencyCode.GetType().GetTypeInfo().GetDeclaredField(currencyCodeName ?? string.Empty)?.GetCustomAttribute<Iso4217CurrencyCodeAttribute>();
             return currencyCodeAttribute?.IsFundsCode ?? false;
         }
 
@@ -71,10 +71,10 @@ namespace DataStandardizer.ISO4217
         /// </summary>
         /// <param name="currencyCode">Code of the currency.</param>
         /// <returns><c>true</c> if the code represents a national currency or <c>false</c> if not.</returns>
-        public static bool IsNationalCurrency(this Iso4217Current currencyCode)
+        public static bool IsNationalCurrency(this Iso4217CurrencyCurrent currencyCode)
         {
             var currencyCodeName = Enum.GetName(currencyCode.GetType(), currencyCode);
-            var currencyCodeAttribute = currencyCode.GetType().GetTypeInfo().GetDeclaredField(currencyCodeName ?? string.Empty)?.GetCustomAttribute<Iso4217CodeAttribute>();
+            var currencyCodeAttribute = currencyCode.GetType().GetTypeInfo().GetDeclaredField(currencyCodeName ?? string.Empty)?.GetCustomAttribute<Iso4217CurrencyCodeAttribute>();
             if (currencyCodeName is null || currencyCodeAttribute is null) return false;
 
             return !currencyCodeName.StartsWith("X") && currencyCodeAttribute.MinorUnits.HasValue;
@@ -85,10 +85,10 @@ namespace DataStandardizer.ISO4217
         /// </summary>
         /// <param name="currencyCode">Code of the currency.</param>
         /// <returns><c>true</c> if the code represents a supranational currency or <c>false</c> if not.</returns>
-        public static bool IsSupranationalCurrency(this Iso4217Current currencyCode)
+        public static bool IsSupranationalCurrency(this Iso4217CurrencyCurrent currencyCode)
         {
             var currencyCodeName = Enum.GetName(currencyCode.GetType(), currencyCode);
-            var currencyCodeAttribute = currencyCode.GetType().GetTypeInfo().GetDeclaredField(currencyCodeName ?? string.Empty)?.GetCustomAttribute<Iso4217CodeAttribute>();
+            var currencyCodeAttribute = currencyCode.GetType().GetTypeInfo().GetDeclaredField(currencyCodeName ?? string.Empty)?.GetCustomAttribute<Iso4217CurrencyCodeAttribute>();
             if (currencyCodeName is null || currencyCodeAttribute is null) return false;
 
             return currencyCodeName.StartsWith("X") && currencyCodeAttribute.MinorUnits.HasValue;

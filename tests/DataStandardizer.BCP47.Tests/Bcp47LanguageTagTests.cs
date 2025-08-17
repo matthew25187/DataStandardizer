@@ -7,7 +7,7 @@ using DataStandardizer.ISO3166;
 using DataStandardizer.ISO639;
 using DataStandardizer.UNM49;
 using FluentAssertions;
-using UnM49= DataStandardizer.UNM49.UnM49ByAlpha2Code;
+using UnM49= DataStandardizer.UNM49.UnM49AreaByAlpha2CountryCode;
 
 namespace DataStandardizer.BCP47.Tests
 {
@@ -211,7 +211,7 @@ namespace DataStandardizer.BCP47.Tests
         {
             public IEnumerator<object[]> GetEnumerator()
             {
-                foreach (var testSubtag in StringEnum.GetNames<Iso639Part1>())
+                foreach (var testSubtag in StringEnum.GetNames<Iso639Part1Language>())
                 {
                     yield return new object[] { testSubtag };
                 }
@@ -242,7 +242,7 @@ namespace DataStandardizer.BCP47.Tests
         {
             public IEnumerator<object[]> GetEnumerator()
             {
-                foreach (var testSubtag in StringEnum.GetNames<Iso639Part2T>())
+                foreach (var testSubtag in StringEnum.GetNames<Iso639Part2TLanguage>())
                 {
                     yield return new object[] { testSubtag };
                 }
@@ -273,7 +273,7 @@ namespace DataStandardizer.BCP47.Tests
         {
             public IEnumerator<object[]> GetEnumerator()
             {
-                foreach (var testSubtag in StringEnum.GetNames<Iso639Part3>())
+                foreach (var testSubtag in StringEnum.GetNames<Iso639Part3Language>())
                 {
                     yield return new object[] { testSubtag };
                 }
@@ -304,7 +304,7 @@ namespace DataStandardizer.BCP47.Tests
         {
             public IEnumerator<object[]> GetEnumerator()
             {
-                foreach (var testSubtag in StringEnum.GetNames<Iso639Part5>())
+                foreach (var testSubtag in StringEnum.GetNames<Iso639Part5LanguageFamily>())
                 {
                     yield return new object[] { testSubtag };
                 }
@@ -414,7 +414,7 @@ namespace DataStandardizer.BCP47.Tests
         {
             public IEnumerator<object[]> GetEnumerator()
             {
-                foreach (var testSubtag in Enum.GetNames<Iso3166Part1Alpha2>())
+                foreach (var testSubtag in Enum.GetNames<Iso3166Part1Alpha2Country>())
                 {
                     yield return new object[] { testSubtag };
                 }
@@ -499,7 +499,7 @@ namespace DataStandardizer.BCP47.Tests
         {
             public IEnumerator<object[]> GetEnumerator()
             {
-                foreach (var testSubtag in Enum.GetNames<Iso15924>())
+                foreach (var testSubtag in Enum.GetNames<Iso15924Script>())
                 {
                     yield return new object[] { testSubtag };
                 }
@@ -803,7 +803,7 @@ namespace DataStandardizer.BCP47.Tests
 
             static PrimaryLanguageSubtag_WhenIso639Part1Code_TestCaseFactory()
             {
-                _testCases = StringEnum.GetNames<Iso639Part1>().Select(code => new object[] { $"{code}-x-test", code }).AsEnumerable();
+                _testCases = StringEnum.GetNames<Iso639Part1Language>().Select(code => new object[] { $"{code}-x-test", code }).AsEnumerable();
             }
 
             public IEnumerator<object[]> GetEnumerator()
@@ -841,7 +841,7 @@ namespace DataStandardizer.BCP47.Tests
 
             static PrimaryLanguageSubtag_WhenIso639Part2TCode_TestCaseFactory()
             {
-                _testCases = StringEnum.GetNames<Iso639Part2T>().Select(code => new object[] { $"{code}-x-test", code }).AsEnumerable();
+                _testCases = StringEnum.GetNames<Iso639Part2TLanguage>().Select(code => new object[] { $"{code}-x-test", code }).AsEnumerable();
             }
 
             public IEnumerator<object[]> GetEnumerator()
@@ -879,7 +879,7 @@ namespace DataStandardizer.BCP47.Tests
 
             static PrimaryLanguageSubtag_WhenIso639Part3Code_TestCaseFactory()
             {
-                _testCases = StringEnum.GetNames<Iso639Part3>().Select(code => new object[] { $"{code}-x-test", code }).AsEnumerable();
+                _testCases = StringEnum.GetNames<Iso639Part3Language>().Select(code => new object[] { $"{code}-x-test", code }).AsEnumerable();
             }
 
             public IEnumerator<object[]> GetEnumerator()
@@ -917,7 +917,7 @@ namespace DataStandardizer.BCP47.Tests
 
             static PrimaryLanguageSubtag_WhenIso639Part5Code_TestCaseFactory()
             {
-                _testCases = StringEnum.GetNames<Iso639Part5>().Select(code => new object[] { $"{code}-x-test", code }).AsEnumerable();
+                _testCases = StringEnum.GetNames<Iso639Part5LanguageFamily>().Select(code => new object[] { $"{code}-x-test", code }).AsEnumerable();
             }
 
             public IEnumerator<object[]> GetEnumerator()
@@ -1106,7 +1106,7 @@ namespace DataStandardizer.BCP47.Tests
 
             static RegionSubtag_WhenIso3166Part1Code_TestCaseFactory()
             {
-                _testCases = Enum.GetValues<Iso3166Part1Alpha2>().Select(code => new object[] { $"en-{code}", code.ToString() }).AsEnumerable();
+                _testCases = Enum.GetValues<Iso3166Part1Alpha2Country>().Select(code => new object[] { $"en-{code}", code.ToString() }).AsEnumerable();
             }
 
             public IEnumerator<object[]> GetEnumerator()
@@ -1307,7 +1307,7 @@ namespace DataStandardizer.BCP47.Tests
 
             static ScriptSubtag_WhenIso15924Code_TestCaseFactory()
             {
-                _testCases = Enum.GetValues<Iso15924>().Select(code => new object[] { $"en-{code}", code.ToString() }).AsEnumerable();
+                _testCases = Enum.GetValues<Iso15924Script>().Select(code => new object[] { $"en-{code}", code.ToString() }).AsEnumerable();
             }
 
             public IEnumerator<object[]> GetEnumerator()
@@ -1439,7 +1439,7 @@ namespace DataStandardizer.BCP47.Tests
             var testResult = testLanguageTag.ToIso15924();
 
             // assert
-            testResult.Should().Be(Iso15924.Cyrl);
+            testResult.Should().Be(Iso15924Script.Cyrl);
         }
 
         #endregion
@@ -1473,7 +1473,7 @@ namespace DataStandardizer.BCP47.Tests
             var testResult = testLanguageTag.ToIso3166Part1Alpha2();
 
             // assert
-            testResult.Should().Be(Iso3166Part1Alpha2.HK);
+            testResult.Should().Be(Iso3166Part1Alpha2Country.HK);
         }
 
         #endregion
@@ -1507,7 +1507,7 @@ namespace DataStandardizer.BCP47.Tests
             var testResult = testLanguageTag.ToIso639Part1();
 
             // assert
-            testResult.Should().Be(Iso639Part1.es);
+            testResult.Should().Be(Iso639Part1Language.es);
         }
 
         #endregion
@@ -1541,7 +1541,7 @@ namespace DataStandardizer.BCP47.Tests
             var testResult = testLanguageTag.ToIso639Part2T();
 
             // assert
-            testResult.Should().Be(Iso639Part2T.hye);
+            testResult.Should().Be(Iso639Part2TLanguage.hye);
         }
 
         #endregion
@@ -1575,7 +1575,7 @@ namespace DataStandardizer.BCP47.Tests
             var testResult = testLanguageTag.ToIso639Part3();
 
             // assert
-            testResult.Should().Be(Iso639Part3.nan);
+            testResult.Should().Be(Iso639Part3Language.nan);
         }
 
         #endregion
@@ -1609,7 +1609,7 @@ namespace DataStandardizer.BCP47.Tests
             var testResult = testLanguageTag.ToIso639Part5();
 
             // assert
-            testResult.Should().Be(Iso639Part5.sla);
+            testResult.Should().Be(Iso639Part5LanguageFamily.sla);
         }
 
         #endregion

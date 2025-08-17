@@ -5,6 +5,7 @@ using DataStandardizer.ISO3166;
 using DataStandardizer.ISO639;
 using DataStandardizer.UNM49;
 using FluentAssertions;
+// ReSharper disable InconsistentNaming
 
 namespace DataStandardizer.BCP47.Tests;
 
@@ -209,7 +210,7 @@ public class Bcp47LanguageTagBuilderTests_Build
 
     [Theory]
     [MemberData(nameof(Build_ForPrimaryLanguageSubtagFromIso639Part1_TestCaseGenerator.TestCases), MemberType = typeof(Build_ForPrimaryLanguageSubtagFromIso639Part1_TestCaseGenerator))]
-    public void Build_ForPrimaryLanguageSubtagFromIso639Part1_ProducesBcp47LanguageTag(Iso639Part1 testValue, Bcp47LanguageTag expectedResult)
+    public void Build_ForPrimaryLanguageSubtagFromIso639Part1_ProducesBcp47LanguageTag(Iso639Part1Language testValue, Bcp47LanguageTag expectedResult)
     {
         // arrange
         var builder = new Bcp47LanguageTagBuilder();
@@ -227,7 +228,7 @@ public class Bcp47LanguageTagBuilderTests_Build
         {
             get
             {
-                foreach (var testValue in StringEnum.GetValues<Iso639Part1>())
+                foreach (var testValue in StringEnum.GetValues<Iso639Part1Language>())
                 {
                     var languageTag = StringEnum.GetName(testValue);
                     yield return new object[] { testValue, Bcp47LanguageTag.Create(languageTag!) };
@@ -242,7 +243,7 @@ public class Bcp47LanguageTagBuilderTests_Build
 
     [Theory]
     [MemberData(nameof(Build_ForPrimaryLanguageSubtagFromIso639Part2T_TestCaseGenerator.TestCases), MemberType = typeof(Build_ForPrimaryLanguageSubtagFromIso639Part2T_TestCaseGenerator))]
-    public void Build_ForPrimaryLanguageSubtagFromIso639Part2T_ProducesBcp47LanguageTag(Iso639Part2T testValue, Bcp47LanguageTag expectedResult)
+    public void Build_ForPrimaryLanguageSubtagFromIso639Part2T_ProducesBcp47LanguageTag(Iso639Part2TLanguage testValue, Bcp47LanguageTag expectedResult)
     {
         // arrange
         var builder = new Bcp47LanguageTagBuilder();
@@ -260,7 +261,7 @@ public class Bcp47LanguageTagBuilderTests_Build
         {
             get
             {
-                foreach (var testValue in StringEnum.GetValues<Iso639Part2T>())
+                foreach (var testValue in StringEnum.GetValues<Iso639Part2TLanguage>())
                 {
                     var languageTag = StringEnum.GetName(testValue);
                     yield return new object[] { testValue, Bcp47LanguageTag.Create(languageTag!) };
@@ -275,7 +276,7 @@ public class Bcp47LanguageTagBuilderTests_Build
 
     [Theory]
     [ClassData(typeof(Build_ForPrimaryLanguageSubtagFromIso639Part3_TestCaseFactory))]
-    public void Build_ForPrimaryLanguageSubtagFromIso639Part3_ProducesBcp47LanguageTag(Iso639Part3 testValue, Bcp47LanguageTag expectedResult)
+    public void Build_ForPrimaryLanguageSubtagFromIso639Part3_ProducesBcp47LanguageTag(Iso639Part3Language testValue, Bcp47LanguageTag expectedResult)
     {
         // arrange
         var builder = new Bcp47LanguageTagBuilder();
@@ -293,10 +294,10 @@ public class Bcp47LanguageTagBuilderTests_Build
 
         static Build_ForPrimaryLanguageSubtagFromIso639Part3_TestCaseFactory()
         {
-            TestCases = typeof(Iso639Part3)
+            TestCases = typeof(Iso639Part3Language)
                 .GetFields()
-                .Where(field => field.IsStatic && field.FieldType == typeof(Iso639Part3))
-                .Select(field => new object[] { field.GetValue(null)!, Bcp47LanguageTag.Create(field.Name) })
+                .Where(field => field.IsStatic && field.FieldType == typeof(Iso639Part3Language))
+                .Select(field => new[] { field.GetValue(null)!, Bcp47LanguageTag.Create(field.Name) })
                 .AsEnumerable();
         }
 
@@ -317,7 +318,7 @@ public class Bcp47LanguageTagBuilderTests_Build
 
     [Theory]
     [MemberData(nameof(Build_ForPrimaryLanguageSubtagFromIso639Part5_TestCaseGenerator.TestCases), MemberType = typeof(Build_ForPrimaryLanguageSubtagFromIso639Part5_TestCaseGenerator))]
-    public void Build_ForPrimaryLanguageSubtagFromIso639Part5_ProducesBcp47LanguageTag(Iso639Part5 testValue, Bcp47LanguageTag expectedResult)
+    public void Build_ForPrimaryLanguageSubtagFromIso639Part5_ProducesBcp47LanguageTag(Iso639Part5LanguageFamily testValue, Bcp47LanguageTag expectedResult)
     {
         // arrange
         var builder = new Bcp47LanguageTagBuilder();
@@ -335,7 +336,7 @@ public class Bcp47LanguageTagBuilderTests_Build
         {
             get
             {
-                foreach (var testValue in StringEnum.GetValues<Iso639Part5>())
+                foreach (var testValue in StringEnum.GetValues<Iso639Part5LanguageFamily>())
                 {
                     var languageTag = StringEnum.GetName(testValue);
                     yield return new object[] { testValue, Bcp47LanguageTag.Create(languageTag!) };
@@ -353,7 +354,7 @@ public class Bcp47LanguageTagBuilderTests_Build
     {
         // arrange
         const string testValue = "aaa";
-        var expectedResult = Bcp47LanguageTag.Create($"{Iso639Part1.en}-{testValue}");
+        var expectedResult = Bcp47LanguageTag.Create($"{Iso639Part1Language.en}-{testValue}");
 
         var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
 
@@ -373,7 +374,7 @@ public class Bcp47LanguageTagBuilderTests_Build
     {
         // arrange
         var expectedResult = Bcp47LanguageTag.Create("zh-Hans");
-        var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(Iso639Part1.zh);
+        var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(Iso639Part1Language.zh);
 
         // act
         var testResult = builder.UsingScriptSubtag("Hans").Build();
@@ -388,7 +389,7 @@ public class Bcp47LanguageTagBuilderTests_Build
 
     [Theory]
     [MemberData(nameof(Build_ForScriptSubtagFromIso15924_TestCaseGenerator.TestCases), MemberType = typeof(Build_ForScriptSubtagFromIso15924_TestCaseGenerator))]
-    public void Build_ForScriptSubtagFromIso15924_ProducesBcp47LanguageTag(Iso15924 testValue, Bcp47LanguageTag expectedResult)
+    public void Build_ForScriptSubtagFromIso15924_ProducesBcp47LanguageTag(Iso15924Script testValue, Bcp47LanguageTag expectedResult)
     {
         // arrange
         var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
@@ -406,9 +407,9 @@ public class Bcp47LanguageTagBuilderTests_Build
         {
             get
             {
-                foreach (var testValue in Enum.GetValues<Iso15924>())
+                foreach (var testValue in Enum.GetValues<Iso15924Script>())
                 {
-                    yield return new object[] { testValue, Bcp47LanguageTag.Create($"{Iso639Part1.en}-{testValue}") };
+                    yield return new object[] { testValue, Bcp47LanguageTag.Create($"{Iso639Part1Language.en}-{testValue}") };
                 }
             }
         }
@@ -450,7 +451,7 @@ public class Bcp47LanguageTagBuilderTests_Build
 
     [Theory]
     [MemberData(nameof(Build_ForRegionSubtagFromIso3166Part1Alpha2_TestCaseGenerator.TestCases), MemberType = typeof(Build_ForRegionSubtagFromIso3166Part1Alpha2_TestCaseGenerator))]
-    public void Build_ForRegionSubtagFromIso3166Part1Alpha2_ProducesBcp47LanguageTag(Iso3166Part1Alpha2 testValue, Bcp47LanguageTag expectedResult)
+    public void Build_ForRegionSubtagFromIso3166Part1Alpha2_ProducesBcp47LanguageTag(Iso3166Part1Alpha2Country testValue, Bcp47LanguageTag expectedResult)
     {
         // arrange
         var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
@@ -468,9 +469,9 @@ public class Bcp47LanguageTagBuilderTests_Build
         {
             get
             {
-                foreach (var testValue in Enum.GetValues<Iso3166Part1Alpha2>())
+                foreach (var testValue in Enum.GetValues<Iso3166Part1Alpha2Country>())
                 {
-                    yield return new object[] { testValue, Bcp47LanguageTag.Create($"{Iso639Part1.en}-{testValue}") };
+                    yield return new object[] { testValue, Bcp47LanguageTag.Create($"{Iso639Part1Language.en}-{testValue}") };
                 }
             }
         }
@@ -482,7 +483,7 @@ public class Bcp47LanguageTagBuilderTests_Build
 
     [Theory]
     [ClassData(typeof(Build_ForRegionSubtagFromUnM49ByAlpha2Code_TestCaseFactory))]
-    public void Build_ForRegionSubtagFromUnM49ByAlpha2Code_ProducesBcp47LanguageTag(UnM49ByAlpha2Code testValue, Bcp47LanguageTag expectedResult)
+    public void Build_ForRegionSubtagFromUnM49ByAlpha2Code_ProducesBcp47LanguageTag(UnM49AreaByAlpha2CountryCode testValue, Bcp47LanguageTag expectedResult)
     {
         // arrange
         var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
@@ -500,11 +501,11 @@ public class Bcp47LanguageTagBuilderTests_Build
 
         static Build_ForRegionSubtagFromUnM49ByAlpha2Code_TestCaseFactory()
         {
-            var globalCodes = Enum.GetValues<UnM49ByAlpha2Code>().Select(code => code.GetGlobalCode()).Where(code => code is not null).Cast<ushort>();
-            var regionCodes = Enum.GetValues<UnM49ByAlpha2Code>().Select(code => code.GetRegionCode()).Where(code => code is not null).Cast<ushort>();
-            var subRegionCodes = Enum.GetValues<UnM49ByAlpha2Code>().Select(code => code.GetSubRegionCode()).Where(code => code is not null).Cast<ushort>();
-            var intermediateRegionCodes = Enum.GetValues<UnM49ByAlpha2Code>().Select(code => code.GetIntermediateRegionCode()).Where(code => code is not null).Cast<ushort>();
-            TestCases = globalCodes.Union(regionCodes).Union(subRegionCodes).Union(intermediateRegionCodes).Select(code => new object[] { code, Bcp47LanguageTag.Create($"{Iso639Part1.en}-{code:000}") }).AsEnumerable();
+            var globalCodes = Enum.GetValues<UnM49AreaByAlpha2CountryCode>().Select(code => code.GetGlobalCode()).Where(code => code is not null).Cast<ushort>();
+            var regionCodes = Enum.GetValues<UnM49AreaByAlpha2CountryCode>().Select(code => code.GetRegionCode()).Where(code => code is not null).Cast<ushort>();
+            var subRegionCodes = Enum.GetValues<UnM49AreaByAlpha2CountryCode>().Select(code => code.GetSubRegionCode()).Where(code => code is not null).Cast<ushort>();
+            var intermediateRegionCodes = Enum.GetValues<UnM49AreaByAlpha2CountryCode>().Select(code => code.GetIntermediateRegionCode()).Where(code => code is not null).Cast<ushort>();
+            TestCases = globalCodes.Union(regionCodes).Union(subRegionCodes).Union(intermediateRegionCodes).Select(code => new object[] { code, Bcp47LanguageTag.Create($"{Iso639Part1Language.en}-{code:000}") }).AsEnumerable();
         }
 
         public IEnumerator<object[]> GetEnumerator()
@@ -524,7 +525,7 @@ public class Bcp47LanguageTagBuilderTests_Build
 
     [Theory]
     [ClassData(typeof(Build_ForRegionSubtagFromUnM49ByAlpha3Code_TestCaseFactory))]
-    public void Build_ForRegionSubtagFromUnM49ByAlpha3Code_ProducesBcp47LanguageTag(UnM49ByAlpha3Code testValue, Bcp47LanguageTag expectedResult)
+    public void Build_ForRegionSubtagFromUnM49ByAlpha3Code_ProducesBcp47LanguageTag(UnM49AreaByAlpha3CountryCode testValue, Bcp47LanguageTag expectedResult)
     {
         // arrange
         var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
@@ -542,11 +543,11 @@ public class Bcp47LanguageTagBuilderTests_Build
 
         static Build_ForRegionSubtagFromUnM49ByAlpha3Code_TestCaseFactory()
         {
-            var globalCodes = Enum.GetValues<UnM49ByAlpha3Code>().Select(code => code.GetGlobalCode()).Where(code => code is not null).Cast<ushort>();
-            var regionCodes = Enum.GetValues<UnM49ByAlpha3Code>().Select(code => code.GetRegionCode()).Where(code => code is not null).Cast<ushort>();
-            var subRegionCodes = Enum.GetValues<UnM49ByAlpha3Code>().Select(code => code.GetSubRegionCode()).Where(code => code is not null).Cast<ushort>();
-            var intermediateRegionCodes = Enum.GetValues<UnM49ByAlpha3Code>().Select(code => code.GetIntermediateRegionCode()).Where(code => code is not null).Cast<ushort>();
-            TestCases = globalCodes.Union(regionCodes).Union(subRegionCodes).Union(intermediateRegionCodes).Select(code => new object[] { code, Bcp47LanguageTag.Create($"{Iso639Part1.en}-{code:000}") }).AsEnumerable();
+            var globalCodes = Enum.GetValues<UnM49AreaByAlpha3CountryCode>().Select(code => code.GetGlobalCode()).Where(code => code is not null).Cast<ushort>();
+            var regionCodes = Enum.GetValues<UnM49AreaByAlpha3CountryCode>().Select(code => code.GetRegionCode()).Where(code => code is not null).Cast<ushort>();
+            var subRegionCodes = Enum.GetValues<UnM49AreaByAlpha3CountryCode>().Select(code => code.GetSubRegionCode()).Where(code => code is not null).Cast<ushort>();
+            var intermediateRegionCodes = Enum.GetValues<UnM49AreaByAlpha3CountryCode>().Select(code => code.GetIntermediateRegionCode()).Where(code => code is not null).Cast<ushort>();
+            TestCases = globalCodes.Union(regionCodes).Union(subRegionCodes).Union(intermediateRegionCodes).Select(code => new object[] { code, Bcp47LanguageTag.Create($"{Iso639Part1Language.en}-{code:000}") }).AsEnumerable();
         }
 
         public IEnumerator<object[]> GetEnumerator()
@@ -580,7 +581,7 @@ public class Bcp47LanguageTagBuilderTests_Build
 
     private class Build_ForVariantSubtag_TestCaseGenerator
     {
-        internal static readonly Iso639Part1 PrimaryLanguageSubtag = Iso639Part1.en;
+        internal static readonly Iso639Part1Language PrimaryLanguageSubtag = Iso639Part1Language.en;
         private static readonly string[] TestValues;
 
         static Build_ForVariantSubtag_TestCaseGenerator()
@@ -654,7 +655,7 @@ public class Bcp47LanguageTagBuilderTests_Build
     {
         // arrange
         const string testValue = "x-private-use-subtag";
-        var expectedResult = Bcp47LanguageTag.Create($"{Iso639Part1.en}-{testValue}");
+        var expectedResult = Bcp47LanguageTag.Create($"{Iso639Part1Language.en}-{testValue}");
 
         var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
 

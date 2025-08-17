@@ -20,7 +20,7 @@ namespace DataStandardizer.Money.Tests
 
             // assert
             ((decimal)testResult).Should().Be(expectedResult, "the result of the addition operation is {0}", expectedResult);
-            testResult.IsoCurrencyCode.Should().Be(Iso4217Current.XXX, "the currency of the result is not set");
+            testResult.IsoCurrencyCode.Should().Be(Iso4217CurrencyCurrent.XXX, "the currency of the result is not set");
             testResult.RoundingPrecision.Should().BeNull("the rounding precision of the result is not set");
             testResult.RoundingMethod.Should().BeNull("the rounding method of the result is not set");
         }
@@ -30,7 +30,7 @@ namespace DataStandardizer.Money.Tests
         {
             // arrange
             const decimal testAmount = 1357, testAdditionOperand = 24;
-            const Iso4217Current testCurrency = Iso4217Current.USD;
+            const Iso4217CurrencyCurrent testCurrency = Iso4217CurrencyCurrent.USD;
             var testValue = Money.Create(testAmount, testCurrency);
 
             var expectedResult = testAmount + testAdditionOperand;
@@ -50,7 +50,7 @@ namespace DataStandardizer.Money.Tests
         {
             // arrange
             const decimal testAmount = 2468, testAdditionOperand = 57;
-            const Iso4217Current testCurrency = Iso4217Current.USD;
+            const Iso4217CurrencyCurrent testCurrency = Iso4217CurrencyCurrent.USD;
             const int testRoundingPrecision = 4;
             var testValue = Money.Create(testAmount, testCurrency, testRoundingPrecision);
 
@@ -71,7 +71,7 @@ namespace DataStandardizer.Money.Tests
         {
             // arrange
             const decimal testAmount = 3579, testAdditionOperand = 68;
-            const Iso4217Current testCurrency = Iso4217Current.USD;
+            const Iso4217CurrencyCurrent testCurrency = Iso4217CurrencyCurrent.USD;
             const int testRoundingPrecision = 3;
             const MidpointRounding testRoundingMethod = MidpointRounding.AwayFromZero;
             var testValue = Money.Create(testAmount, testCurrency, testRoundingPrecision, testRoundingMethod);
@@ -102,7 +102,7 @@ namespace DataStandardizer.Money.Tests
 
             // assert
             ((decimal)testResult).Should().Be(expectedResult, "the result of the subtraction operation is {0}", expectedResult);
-            testResult.IsoCurrencyCode.Should().Be(Iso4217Current.XXX, "the currency of the result is not set");
+            testResult.IsoCurrencyCode.Should().Be(Iso4217CurrencyCurrent.XXX, "the currency of the result is not set");
             testResult.RoundingPrecision.Should().BeNull("the rounding precision of the result is not set");
             testResult.RoundingMethod.Should().BeNull("the rounding method of the result is not set");
         }
@@ -112,7 +112,7 @@ namespace DataStandardizer.Money.Tests
         {
             // arrange
             const decimal testAmount = 5678, testSubtractionOperand = 34;
-            const Iso4217Current testCurrency = Iso4217Current.USD;
+            const Iso4217CurrencyCurrent testCurrency = Iso4217CurrencyCurrent.USD;
             var testValue = Money.Create(testAmount, testCurrency);
 
             var expectedResult = testAmount - testSubtractionOperand;
@@ -132,7 +132,7 @@ namespace DataStandardizer.Money.Tests
         {
             // arrange
             const decimal testAmount = 1357, testSubtractionOperand = 56;
-            const Iso4217Current testCurrency = Iso4217Current.USD;
+            const Iso4217CurrencyCurrent testCurrency = Iso4217CurrencyCurrent.USD;
             const int testRoundingPrecision = 4;
             var testValue = Money.Create(testAmount, testCurrency, testRoundingPrecision);
 
@@ -153,7 +153,7 @@ namespace DataStandardizer.Money.Tests
         {
             // arrange
             const decimal testAmount = 2468, testSubtractionOperand = 78;
-            const Iso4217Current testCurrency = Iso4217Current.USD;
+            const Iso4217CurrencyCurrent testCurrency = Iso4217CurrencyCurrent.USD;
             const int testRoundingPrecision = 3;
             const MidpointRounding testRoundingMethod = MidpointRounding.ToEven;
             var testValue = Money.Create(testAmount, testCurrency, testRoundingPrecision, testRoundingMethod);
@@ -184,7 +184,7 @@ namespace DataStandardizer.Money.Tests
 
             // assert
             ((decimal)testResult).Should().Be(expectedResult, "the result of the multiplication operation is {0}", expectedResult);
-            testResult.IsoCurrencyCode.Should().Be(Iso4217Current.XXX, "the currency of the result is not set");
+            testResult.IsoCurrencyCode.Should().Be(Iso4217CurrencyCurrent.XXX, "the currency of the result is not set");
             testResult.RoundingPrecision.Should().BeNull("the rounding precision of the result is not set");
             testResult.RoundingMethod.Should().BeNull("the rounding method of the result is not set");
         }
@@ -194,7 +194,7 @@ namespace DataStandardizer.Money.Tests
         {
             // arrange
             const decimal testAmount = 5678, testMultiplicationOperand = 34;
-            const Iso4217Current testCurrency = Iso4217Current.USD;
+            const Iso4217CurrencyCurrent testCurrency = Iso4217CurrencyCurrent.USD;
             var testValue = Money.Create(testAmount, testCurrency);
 
             var expectedResult = testAmount * testMultiplicationOperand;
@@ -214,7 +214,7 @@ namespace DataStandardizer.Money.Tests
         {
             // arrange
             const decimal testAmount = 1357, testMultiplicationOperand = 56;
-            const Iso4217Current testCurrency = Iso4217Current.USD;
+            const Iso4217CurrencyCurrent testCurrency = Iso4217CurrencyCurrent.USD;
             const int testRoundingPrecision = 4;
             var testValue = Money.Create(testAmount, testCurrency, testRoundingPrecision);
 
@@ -235,7 +235,7 @@ namespace DataStandardizer.Money.Tests
         {
             // arrange
             const decimal testAmount = 2468, testMultiplicationOperand = 78;
-            const Iso4217Current testCurrency = Iso4217Current.USD;
+            const Iso4217CurrencyCurrent testCurrency = Iso4217CurrencyCurrent.USD;
             const int testRoundingPrecision = 3;
             const MidpointRounding testRoundingMethod = MidpointRounding.AwayFromZero;
             var testValue = Money.Create(testAmount, testCurrency, testRoundingPrecision, testRoundingMethod);
@@ -266,7 +266,7 @@ namespace DataStandardizer.Money.Tests
 
             // assert
             ((decimal)testResult).Should().Be(expectedResult, "the result of the division operation is {0}", expectedResult);
-            testResult.IsoCurrencyCode.Should().Be(Iso4217Current.XXX, "the currency of the result is not set");
+            testResult.IsoCurrencyCode.Should().Be(Iso4217CurrencyCurrent.XXX, "the currency of the result is not set");
             testResult.RoundingPrecision.Should().BeNull("the rounding precision of the result is not set");
             testResult.RoundingMethod.Should().BeNull("the rounding method of the result is not set");
         }
@@ -276,7 +276,7 @@ namespace DataStandardizer.Money.Tests
         {
             // arrange
             const decimal testAmount = 1553, testDivisionOperand = 25;
-            const Iso4217Current testCurrency = Iso4217Current.USD;
+            const Iso4217CurrencyCurrent testCurrency = Iso4217CurrencyCurrent.USD;
             var testValue = Money.Create(testAmount, testCurrency);
 
             var expectedResult = testAmount / testDivisionOperand;
@@ -296,7 +296,7 @@ namespace DataStandardizer.Money.Tests
         {
             // arrange
             const decimal testAmount = 2542, testDivisionOperand = 25;
-            const Iso4217Current testCurrency = Iso4217Current.USD;
+            const Iso4217CurrencyCurrent testCurrency = Iso4217CurrencyCurrent.USD;
             const int testRoundingPrecision = 4;
             var testValue = Money.Create(testAmount, testCurrency, testRoundingPrecision);
 
@@ -317,7 +317,7 @@ namespace DataStandardizer.Money.Tests
         {
             // arrange
             const decimal testAmount = 8127, testDivisionOperand = 36;
-            const Iso4217Current testCurrency = Iso4217Current.USD;
+            const Iso4217CurrencyCurrent testCurrency = Iso4217CurrencyCurrent.USD;
             const int testRoundingPrecision = 3;
             const MidpointRounding testRoundingMethod = MidpointRounding.AwayFromZero;
             var testValue = Money.Create(testAmount, testCurrency, testRoundingPrecision, testRoundingMethod);
@@ -338,7 +338,7 @@ namespace DataStandardizer.Money.Tests
         public void LessThanOperator_OperandCurrenciesDifferent_ThrowsInvalidOperationException()
         {
             // arrange
-            Money testValue1 = Money.Create(1535m, Iso4217Current.USD), testValue2 = Money.Create(8127m, Iso4217Current.GBP);
+            Money testValue1 = Money.Create(1535m, Iso4217CurrencyCurrent.USD), testValue2 = Money.Create(8127m, Iso4217CurrencyCurrent.GBP);
 
             // act
             Func<bool> testAction = () => testValue1 < testValue2;
@@ -390,7 +390,7 @@ namespace DataStandardizer.Money.Tests
         public void LessThanOrEqualToOperator_OperandCurrenciesDifferent_ThrowsInvalidOperationException()
         {
             // arrange
-            Money testValueLeft = Money.Create(235, Iso4217Current.USD), testValueRight = Money.Create(165, ISO4217.Iso4217Current.GBP);
+            Money testValueLeft = Money.Create(235, Iso4217CurrencyCurrent.USD), testValueRight = Money.Create(165, Iso4217CurrencyCurrent.GBP);
 
             // act
             Func<bool> testAction = () => testValueLeft <= testValueRight;
@@ -442,7 +442,7 @@ namespace DataStandardizer.Money.Tests
         public void GreaterThanOperator_OperandCurrenciesDifferent_ThrowsInvalidOperationException()
         {
             // arrange
-            Money testValueLeft = Money.Create(1356, Iso4217Current.USD), testValueRight = Money.Create(176, Iso4217Current.GBP);
+            Money testValueLeft = Money.Create(1356, Iso4217CurrencyCurrent.USD), testValueRight = Money.Create(176, Iso4217CurrencyCurrent.GBP);
 
             // act
             Func<bool> testAction = () => testValueLeft > testValueRight;
@@ -494,7 +494,7 @@ namespace DataStandardizer.Money.Tests
         public void GreaterThanOrEqualToOperator_OperandCurrenciesDifferent_ThrowsInvalidOperationException()
         {
             // arrange
-            Money testValueLeft = Money.Create(14, Iso4217Current.USD), testValueRight = Money.Create(9124, Iso4217Current.GBP);
+            Money testValueLeft = Money.Create(14, Iso4217CurrencyCurrent.USD), testValueRight = Money.Create(9124, Iso4217CurrencyCurrent.GBP);
 
             // act
             Func<bool> testAction = () => testValueLeft >= testValueRight;
@@ -598,7 +598,7 @@ namespace DataStandardizer.Money.Tests
         public void CurrencyMinorUnits_MoneyValueWithCurrency_ReturnsMinorUnitsOfCurrency()
         {
             // arrange
-            const Iso4217Current currency = Iso4217Current.USD;
+            const Iso4217CurrencyCurrent currency = Iso4217CurrencyCurrent.USD;
             var testValue = Money.Create(10, currency);
 
             // act
@@ -612,7 +612,7 @@ namespace DataStandardizer.Money.Tests
         public void CurrencyMinorUnits_MoneyValueNoCurrency_ReturnsNull()
         {
             // arrange
-            const Iso4217Current currency = Iso4217Current.XTS;
+            const Iso4217CurrencyCurrent currency = Iso4217CurrencyCurrent.XTS;
             var testValue = Money.Create(20, currency);
 
             // act
@@ -626,7 +626,7 @@ namespace DataStandardizer.Money.Tests
         public void IsoCurrencyCode_MoneyValueWithCurrency_ReturnsCurrencyCode()
         {
             // arrange
-            const Iso4217Current currency = Iso4217Current.USD;
+            const Iso4217CurrencyCurrent currency = Iso4217CurrencyCurrent.USD;
             var testValue = Money.Create(30, currency);
 
             // act
@@ -646,7 +646,7 @@ namespace DataStandardizer.Money.Tests
             var testResult = testValue.IsoCurrencyCode;
 
             // assert
-            testResult.Should().Be(Iso4217Current.XXX, "the money value has no currency");
+            testResult.Should().Be(Iso4217CurrencyCurrent.XXX, "the money value has no currency");
         }
 
         [Fact]
@@ -654,7 +654,7 @@ namespace DataStandardizer.Money.Tests
         {
             // arrange
             const MidpointRounding roundingMethod = MidpointRounding.ToEven;
-            var testValue = Money.Create(50, Iso4217Current.USD, 2, roundingMethod);
+            var testValue = Money.Create(50, Iso4217CurrencyCurrent.USD, 2, roundingMethod);
 
             // act
             var testResult = testValue.RoundingMethod;
@@ -667,7 +667,7 @@ namespace DataStandardizer.Money.Tests
         public void RoundingMethod_MoneyValueNoRounding_ReturnsNull()
         {
             // arrange
-            var testValue = Money.Create(60, Iso4217Current.USD);
+            var testValue = Money.Create(60, Iso4217CurrencyCurrent.USD);
 
             // act
             var testResult = testValue.RoundingMethod;
@@ -681,7 +681,7 @@ namespace DataStandardizer.Money.Tests
         {
             // arrange
             const int roundingPrecision = 4;
-            var testValue = Money.Create(70, Iso4217Current.USD, roundingPrecision);
+            var testValue = Money.Create(70, Iso4217CurrencyCurrent.USD, roundingPrecision);
 
             // act
             var testResult = testValue.RoundingPrecision;
@@ -694,7 +694,7 @@ namespace DataStandardizer.Money.Tests
         public void RoundingPrecision_MoneyValueNoRounding_ReturnsNull()
         {
             // arrange
-            var testValue = Money.Create(80, Iso4217Current.USD);
+            var testValue = Money.Create(80, Iso4217CurrencyCurrent.USD);
 
             // act
             var testResult = testValue.RoundingPrecision;

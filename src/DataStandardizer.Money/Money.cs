@@ -27,11 +27,11 @@ namespace DataStandardizer.Money
         }
 
         private static readonly Regex CurrencyFormatExpression;
-        private const Iso4217Current DefaultCurrency = Iso4217Current.XXX;
+        private const Iso4217CurrencyCurrent DefaultCurrency = Iso4217CurrencyCurrent.XXX;
         private static readonly TimeSpan ExpressionTimeout = TimeSpan.FromSeconds(1);
 
         private readonly decimal _amount;
-        private readonly Iso4217Current? _currency;
+        private readonly Iso4217CurrencyCurrent? _currency;
         
         static Money()
         {
@@ -54,9 +54,9 @@ namespace DataStandardizer.Money
         }
 
 #if NETCOREAPP3_0_OR_GREATER
-        private Money(decimal amount, Iso4217Current currency)
+        private Money(decimal amount, Iso4217CurrencyCurrent currency)
 #else
-        private Money(decimal amount, Iso4217Current currency)
+        private Money(decimal amount, Iso4217CurrencyCurrent currency)
 #endif
             : this(amount)
         {
@@ -64,9 +64,9 @@ namespace DataStandardizer.Money
         }
 
 #if NETCOREAPP3_0_OR_GREATER
-        private Money(decimal amount, Iso4217Current currency, int roundingPrecision)
+        private Money(decimal amount, Iso4217CurrencyCurrent currency, int roundingPrecision)
 #else
-        private Money(decimal amount, Iso4217Current currency, int roundingPrecision)
+        private Money(decimal amount, Iso4217CurrencyCurrent currency, int roundingPrecision)
 #endif
             : this(amount, currency)
         {
@@ -74,9 +74,9 @@ namespace DataStandardizer.Money
         }
 
 #if NETCOREAPP3_0_OR_GREATER
-        private Money(decimal amount, Iso4217Current currency, int roundingPrecision, MidpointRounding roundingMethod)
+        private Money(decimal amount, Iso4217CurrencyCurrent currency, int roundingPrecision, MidpointRounding roundingMethod)
 #else
-        private Money(decimal amount, Iso4217Current currency, int roundingPrecision, MidpointRounding roundingMethod)
+        private Money(decimal amount, Iso4217CurrencyCurrent currency, int roundingPrecision, MidpointRounding roundingMethod)
 #endif
             : this(amount, currency, roundingPrecision)
         {
@@ -259,7 +259,7 @@ namespace DataStandardizer.Money
         /// <summary>
         /// Gets the ISO 4217 currency code for the current value.
         /// </summary>
-        public Iso4217Current IsoCurrencyCode => _currency ?? DefaultCurrency;
+        public Iso4217CurrencyCurrent IsoCurrencyCode => _currency ?? DefaultCurrency;
 
         /// <summary>
         /// Gets the method of rounding applied to the amount.
@@ -313,7 +313,7 @@ namespace DataStandardizer.Money
         /// -or-
         /// <paramref name="currency"/> is not a national currency code or testing code.
         /// </exception>
-        public static Money Create(decimal amount, Iso4217Current currency)
+        public static Money Create(decimal amount, Iso4217CurrencyCurrent currency)
         {
             if (!Enum.IsDefined(currency.GetType(), currency))
                 throw new ArgumentException(string.Format(ErrorMessage.ExpectedCurrencyCodeTemplate, currency.GetType().Name), nameof(currency));
@@ -336,7 +336,7 @@ namespace DataStandardizer.Money
         /// -or-
         /// <paramref name="currency"/> is not a national currency code or testing code.
         /// </exception>
-        public static Money Create(decimal amount, Iso4217Current currency, int roundingPrecision)
+        public static Money Create(decimal amount, Iso4217CurrencyCurrent currency, int roundingPrecision)
         {
             if (!Enum.IsDefined(currency.GetType(), currency))
                 throw new ArgumentException(string.Format(ErrorMessage.ExpectedCurrencyCodeTemplate, currency.GetType().Name), nameof(currency));
@@ -360,7 +360,7 @@ namespace DataStandardizer.Money
         /// -or-
         /// <paramref name="currency"/> is not a national currency code or testing code.
         /// </exception>
-        public static Money Create(decimal amount, Iso4217Current currency, int roundingPrecision, MidpointRounding roundingMethod)
+        public static Money Create(decimal amount, Iso4217CurrencyCurrent currency, int roundingPrecision, MidpointRounding roundingMethod)
         {
             if (!Enum.IsDefined(currency.GetType(), currency))
                 throw new ArgumentException(string.Format(ErrorMessage.ExpectedCurrencyCodeTemplate, currency.GetType().Name), nameof(currency));
@@ -492,7 +492,7 @@ namespace DataStandardizer.Money
             if (!string.IsNullOrEmpty(format) && CurrencyFormatExpression.IsMatch(format) && IsoCurrencyCode != DefaultCurrency)
             {
                 var result = _amount.ToString(format);
-                var currencyCode = Enum.GetName(typeof(Iso4217Current), IsoCurrencyCode);
+                var currencyCode = Enum.GetName(typeof(Iso4217CurrencyCurrent), IsoCurrencyCode);
                 return result.Replace(CultureInfo.CurrentCulture.NumberFormat.CurrencySymbol, currencyCode);
             }
 
@@ -509,7 +509,7 @@ namespace DataStandardizer.Money
                 var result = _amount.ToString(format, formatProvider);
 
                 var numberFormatInfo = formatProvider?.GetFormat(typeof(NumberFormatInfo)) as NumberFormatInfo ?? CultureInfo.CurrentCulture.NumberFormat;
-                var currencyCode = Enum.GetName(typeof(Iso4217Current), IsoCurrencyCode);
+                var currencyCode = Enum.GetName(typeof(Iso4217CurrencyCurrent), IsoCurrencyCode);
                 result = result.Replace(numberFormatInfo.CurrencySymbol, currencyCode);
 
                 return result;
@@ -818,20 +818,20 @@ namespace DataStandardizer.Money
         }
 
 #if NETCOREAPP3_0_OR_GREATER
-        private static (Iso4217Current? CurrencyCode, decimal? CurrencyAmount) ExtractValue(string input, string pattern, IFormatProvider? provider)
+        private static (Iso4217CurrencyCurrent? CurrencyCode, decimal? CurrencyAmount) ExtractValue(string input, string pattern, IFormatProvider? provider)
 #else
-        private static (Iso4217Current? CurrencyCode, decimal? CurrencyAmount) ExtractValue(string input, string pattern, IFormatProvider provider)
+        private static (Iso4217CurrencyCurrent? CurrencyCode, decimal? CurrencyAmount) ExtractValue(string input, string pattern, IFormatProvider provider)
 #endif
         {
-            Iso4217Current? currencyCode = null;
+            Iso4217CurrencyCurrent? currencyCode = null;
             Decimal? currencyAmount = null;
 
             var valueMatch = Regex.Match(input, pattern, RegexOptions.None, ExpressionTimeout);
             if (valueMatch.Success)
             {
-                currencyCode = Enum.TryParse(valueMatch.Groups[GroupName.CurrencyCode].Value, out Iso4217Current useCurrencyCode)
+                currencyCode = Enum.TryParse(valueMatch.Groups[GroupName.CurrencyCode].Value, out Iso4217CurrencyCurrent useCurrencyCode)
                     ? useCurrencyCode
-                    : (Iso4217Current?)null;
+                    : (Iso4217CurrencyCurrent?)null;
                 currencyAmount = decimal.TryParse(valueMatch.Groups[GroupName.CurrencyAmount].Value, NumberStyles.Currency, provider, out var useCurrencyAmount)
                     ? useCurrencyAmount
                     : (decimal?)null;
@@ -852,16 +852,16 @@ namespace DataStandardizer.Money
 
         private static string GetCurrencyCodePattern()
         {
-            var currencyCodes = Enum.GetValues(typeof(Iso4217Current))
-                .Cast<Iso4217Current>()
-                .Where(code => code.IsNationalCurrency() || code.IsSupranationalCurrency() || code == Iso4217Current.XTS)
-                .Select(code => Enum.GetName(typeof(Iso4217Current), code));
+            var currencyCodes = Enum.GetValues(typeof(Iso4217CurrencyCurrent))
+                .Cast<Iso4217CurrencyCurrent>()
+                .Where(code => code.IsNationalCurrency() || code.IsSupranationalCurrency() || code == Iso4217CurrencyCurrent.XTS)
+                .Select(code => Enum.GetName(typeof(Iso4217CurrencyCurrent), code));
             return string.Concat("(?<", GroupName.CurrencyCode, ">", string.Join("|", currencyCodes), ")");
         }
 
-        private static bool IsValidCurrencyCodeForMoneyValue(Iso4217Current currency)
+        private static bool IsValidCurrencyCodeForMoneyValue(Iso4217CurrencyCurrent currency)
         {
-            return currency.IsNationalCurrency() || currency.IsSupranationalCurrency() || currency == Iso4217Current.XTS;
+            return currency.IsNationalCurrency() || currency.IsSupranationalCurrency() || currency == Iso4217CurrencyCurrent.XTS;
         }
     }
 }

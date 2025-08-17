@@ -15,8 +15,7 @@ using DataStandardizer.ISO3166;
 using DataStandardizer.ISO639;
 using DataStandardizer.UNM49;
 using static DataStandardizer.BCP47.Bcp47Constants;
-using Bcp47LanguageTagRegistryState = DataStandardizer.BCP47.InternalState.Bcp47LanguageTagRegistryState;
-using UnM49 = DataStandardizer.UNM49.UnM49ByAlpha2Code;
+using UnM49 = DataStandardizer.UNM49.UnM49AreaByAlpha2CountryCode;
 
 namespace DataStandardizer.BCP47
 {
@@ -259,67 +258,67 @@ namespace DataStandardizer.BCP47
         }
 
         /// <summary>
-        /// Convert the Script subtag of the language tag to a <see cref="Iso15924"/> enum.
+        /// Convert the Script subtag of the language tag to a <see cref="Iso15924Script"/> enum.
         /// </summary>
-        /// <returns>A <see cref="Iso15924"/> enum representing the Script subtag, if compatible; <c>null</c> if the Script subtag does not exist or is not an ISO 15924 code.</returns>
-        public Iso15924? ToIso15924()
+        /// <returns>A <see cref="Iso15924Script"/> enum representing the Script subtag, if compatible; <c>null</c> if the Script subtag does not exist or is not an ISO 15924 code.</returns>
+        public Iso15924Script? ToIso15924()
         {
-            if (!Enum.TryParse<Iso15924>(ScriptSubtag, true, out var result)) return null;
+            if (!Enum.TryParse<Iso15924Script>(ScriptSubtag, true, out var result)) return null;
             return result;
 
         }
 
         /// <summary>
-        /// Convert the Region subtag of the language tag to a <see cref="Iso3166Part1Alpha2"/> enum.
+        /// Convert the Region subtag of the language tag to a <see cref="Iso3166Part1Alpha2Country"/> enum.
         /// </summary>
-        /// <returns>A <see cref="Iso3166Part1Alpha2"/> enum representing the Region subtag, if compatible; <c>null</c> if the Region subtag does not exist or is not an ISO 3166-1 alpha-2 code.</returns>
-        public Iso3166Part1Alpha2? ToIso3166Part1Alpha2()
+        /// <returns>A <see cref="Iso3166Part1Alpha2Country"/> enum representing the Region subtag, if compatible; <c>null</c> if the Region subtag does not exist or is not an ISO 3166-1 alpha-2 code.</returns>
+        public Iso3166Part1Alpha2Country? ToIso3166Part1Alpha2()
         {
-            if (!Enum.TryParse<Iso3166Part1Alpha2>(RegionSubtag, true, out var result)) return null;
+            if (!Enum.TryParse<Iso3166Part1Alpha2Country>(RegionSubtag, true, out var result)) return null;
             return result;
 
         }
 
         /// <summary>
-        /// Convert the Primary Language subtag of the language tag to a <see cref="Iso639Part1"/> enum.
+        /// Convert the Primary Language subtag of the language tag to a <see cref="Iso639Part1Language"/> enum.
         /// </summary>
-        /// <returns>A <see cref="Iso639Part1"/> enum representing the Primary Language subtag, if compatible; <c>null</c> if the Primary Language subtag is not an ISO 639-1 code.</returns>
-        public Iso639Part1? ToIso639Part1()
+        /// <returns>A <see cref="Iso639Part1Language"/> enum representing the Primary Language subtag, if compatible; <c>null</c> if the Primary Language subtag is not an ISO 639-1 code.</returns>
+        public Iso639Part1Language? ToIso639Part1()
         {
-            if (!StringEnum.TryParse<Iso639Part1>(PrimaryLanguageSubtag, true, out var result)) return null;
+            if (!StringEnum.TryParse<Iso639Part1Language>(PrimaryLanguageSubtag, true, out var result)) return null;
             return result;
 
         }
 
         /// <summary>
-        /// Convert the Primary Language subtag of the language tag to a <see cref="Iso639Part2T"/> enum.
+        /// Convert the Primary Language subtag of the language tag to a <see cref="Iso639Part2TLanguage"/> enum.
         /// </summary>
-        /// <returns>A <see cref="Iso639Part2T"/> enum representing the Primary Language subtag, if compatible; <c>null</c> if the Primary Language subtag is not an ISO 639-2/T code.</returns>
-        public Iso639Part2T? ToIso639Part2T()
+        /// <returns>A <see cref="Iso639Part2TLanguage"/> enum representing the Primary Language subtag, if compatible; <c>null</c> if the Primary Language subtag is not an ISO 639-2/T code.</returns>
+        public Iso639Part2TLanguage? ToIso639Part2T()
         {
-            if (!StringEnum.TryParse<Iso639Part2T>(PrimaryLanguageSubtag, true, out var result)) return null;
+            if (!StringEnum.TryParse<Iso639Part2TLanguage>(PrimaryLanguageSubtag, true, out var result)) return null;
             return result;
 
         }
 
         /// <summary>
-        /// Convert the Primary Language subtag of the language tag to a <see cref="Iso639Part3"/> enum.
+        /// Convert the Primary Language subtag of the language tag to a <see cref="Iso639Part3Language"/> enum.
         /// </summary>
-        /// <returns>A <see cref="Iso639Part3"/> enum representing the Primary Language subtag, if compatible; <c>null</c> if the Primary Language subtag is not an ISO 639-3 code.</returns>
-        public Iso639Part3? ToIso639Part3()
+        /// <returns>A <see cref="Iso639Part3Language"/> enum representing the Primary Language subtag, if compatible; <c>null</c> if the Primary Language subtag is not an ISO 639-3 code.</returns>
+        public Iso639Part3Language? ToIso639Part3()
         {
-            if (!StringEnum.TryParse<Iso639Part3>(PrimaryLanguageSubtag, true, out var result)) return null;
+            if (!StringEnum.TryParse<Iso639Part3Language>(PrimaryLanguageSubtag, true, out var result)) return null;
             return result;
 
         }
 
         /// <summary>
-        /// Convert the Primary Language subtag of the language tag to a <see cref="Iso639Part5"/> enum.
+        /// Convert the Primary Language subtag of the language tag to a <see cref="Iso639Part5LanguageFamily"/> enum.
         /// </summary>
-        /// <returns>A <see cref="Iso639Part5"/> enum representing the Primary Language subtag, if compatible; <c>null</c> if the Primary Language subtag is not an ISO 639-5 code.</returns>
-        public Iso639Part5? ToIso639Part5()
+        /// <returns>A <see cref="Iso639Part5LanguageFamily"/> enum representing the Primary Language subtag, if compatible; <c>null</c> if the Primary Language subtag is not an ISO 639-5 code.</returns>
+        public Iso639Part5LanguageFamily? ToIso639Part5()
         {
-            if (!StringEnum.TryParse<Iso639Part5>(PrimaryLanguageSubtag, true, out var result)) return null;
+            if (!StringEnum.TryParse<Iso639Part5LanguageFamily>(PrimaryLanguageSubtag, true, out var result)) return null;
             return result;
 
         }

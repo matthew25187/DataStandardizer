@@ -7,6 +7,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
+using System;
 #if NETCOREAPP3_0_OR_GREATER
 #nullable enable
 #endif
@@ -14,14 +15,15 @@
 namespace DataStandardizer.ISO639
 {
     using System.Reflection;
-    
-    
+
+
     /// <summary>
     /// Codes for the representation of names of languages – Part 3: Alpha-3 code for comprehensive coverage of languages
     /// </summary>
     /// <remarks>
     /// Based on official ISO 639 Part 3 language codes as at 2025-04-15.
     /// </remarks>
+    [Obsolete("It is recommended to use the " + nameof(Iso639Part3Language) + " type instead.  Refer to Bulletin 202508-01 (https://github.com/matthew25187/DataStandardizer/discussions/17) for more information.")]
     public readonly partial struct Iso639Part3 : DataStandardizer.Core.IStringEnum, System.IEquatable<DataStandardizer.ISO639.Iso639Part3>
     {
         

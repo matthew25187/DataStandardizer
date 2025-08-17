@@ -12,7 +12,7 @@ namespace DataStandardizer.ISO3166.Tests
 
         [Theory]
         [MemberData(nameof(GetEnglishName_OnIso3166Part1Alpha2CountryCode_TestCaseGenerator.TestCases), MemberType = typeof(GetEnglishName_OnIso3166Part1Alpha2CountryCode_TestCaseGenerator))]
-        public void GetEnglishName_OnIso3166Part1Alpha2CountryCode_ReturnsEnglishName(Iso3166Part1Alpha2 testCode, Iso3166CountryName nameType, string expectedResult)
+        public void GetEnglishName_OnIso3166Part1Alpha2CountryCode_ReturnsEnglishName(Iso3166Part1Alpha2Country testCode, Iso3166CountryName nameType, string expectedResult)
         {
             // act
             var testResult = testCode.GetEnglishName(nameType);
@@ -27,9 +27,9 @@ namespace DataStandardizer.ISO3166.Tests
             {
                 get
                 {
-                    yield return new object[] { Iso3166Part1Alpha2.BO, Iso3166CountryName.Short, "Bolivia (Plurinational State of)" };
-                    yield return new object[] { Iso3166Part1Alpha2.BO, Iso3166CountryName.ShortUpper, "BOLIVIA, PLURINATIONAL STATE OF" };
-                    yield return new object[] { Iso3166Part1Alpha2.BO, Iso3166CountryName.Full, "the Plurinational State of Bolivia" };
+                    yield return new object[] { Iso3166Part1Alpha2Country.BO, Iso3166CountryName.Short, "Bolivia (Plurinational State of)" };
+                    yield return new object[] { Iso3166Part1Alpha2Country.BO, Iso3166CountryName.ShortUpper, "BOLIVIA, PLURINATIONAL STATE OF" };
+                    yield return new object[] { Iso3166Part1Alpha2Country.BO, Iso3166CountryName.Full, "the Plurinational State of Bolivia" };
                 }
             }
         }
@@ -40,7 +40,7 @@ namespace DataStandardizer.ISO3166.Tests
 
         [Theory]
         [MemberData(nameof(GetNativeName_OnIso3166Part1Alpha2CountryCode_TestCaseGenerator.TestCases), MemberType = typeof(GetNativeName_OnIso3166Part1Alpha2CountryCode_TestCaseGenerator))]
-        public void GetNativeName_OnIso3166Part1Alpha2CountryCode_ReturnsNativeName(Iso3166Part1Alpha2 testCode, string languageCode, Iso3166CountryName nameType, string? expectedResult)
+        public void GetNativeName_OnIso3166Part1Alpha2CountryCode_ReturnsNativeName(Iso3166Part1Alpha2Country testCode, string languageCode, Iso3166CountryName nameType, string? expectedResult)
         {
             // act
             var testResult = testCode.GetNativeName(languageCode, nameType);
@@ -55,14 +55,14 @@ namespace DataStandardizer.ISO3166.Tests
             {
                 get
                 {
-                    yield return new object[] { Iso3166Part1Alpha2.BO, "en", Iso3166CountryName.Short, "Bolivia (Plurinational State of)" };
-                    yield return new object[] { Iso3166Part1Alpha2.BO, "en", Iso3166CountryName.ShortUpper, "BOLIVIA, PLURINATIONAL STATE OF" };
-                    yield return new object[] { Iso3166Part1Alpha2.BO, "en", Iso3166CountryName.Full, "the Plurinational State of Bolivia" };
-                    yield return new object[] { Iso3166Part1Alpha2.BO, "fra", Iso3166CountryName.Short, "Bolivie (État plurinational de)" };
-                    yield return new object[] { Iso3166Part1Alpha2.BO, "fra", Iso3166CountryName.ShortUpper, "BOLIVIE, ÉTAT PLURINATIONAL DE" };
-                    yield return new object[] { Iso3166Part1Alpha2.BO, "fra", Iso3166CountryName.Full, "l'État plurinational de Bolivie" };
-                    yield return new object?[] { Iso3166Part1Alpha2.BO, "es", Iso3166CountryName.Full, null };
-                    yield return new object?[] { Iso3166Part1Alpha2.BO, "spa", Iso3166CountryName.Full, null };
+                    yield return new object[] { Iso3166Part1Alpha2Country.BO, "en", Iso3166CountryName.Short, "Bolivia (Plurinational State of)" };
+                    yield return new object[] { Iso3166Part1Alpha2Country.BO, "en", Iso3166CountryName.ShortUpper, "BOLIVIA, PLURINATIONAL STATE OF" };
+                    yield return new object[] { Iso3166Part1Alpha2Country.BO, "en", Iso3166CountryName.Full, "the Plurinational State of Bolivia" };
+                    yield return new object[] { Iso3166Part1Alpha2Country.BO, "fra", Iso3166CountryName.Short, "Bolivie (État plurinational de)" };
+                    yield return new object[] { Iso3166Part1Alpha2Country.BO, "fra", Iso3166CountryName.ShortUpper, "BOLIVIE, ÉTAT PLURINATIONAL DE" };
+                    yield return new object[] { Iso3166Part1Alpha2Country.BO, "fra", Iso3166CountryName.Full, "l'État plurinational de Bolivie" };
+                    yield return new object?[] { Iso3166Part1Alpha2Country.BO, "es", Iso3166CountryName.Full, null };
+                    yield return new object?[] { Iso3166Part1Alpha2Country.BO, "spa", Iso3166CountryName.Full, null };
                 }
             }
         }
@@ -73,7 +73,7 @@ namespace DataStandardizer.ISO3166.Tests
 
         [Theory]
         [MemberData(nameof(IsIndependent_OnIso3166Part1Alpha2CountryCode_TestCaseGenerator.TestCases), MemberType = typeof(IsIndependent_OnIso3166Part1Alpha2CountryCode_TestCaseGenerator))]
-        public void IsIndependent_OnIso3166Part1Alpha2CountryCode_ReturnsIndependenceFlag(Iso3166Part1Alpha2 testCode, bool expectedResult)
+        public void IsIndependent_OnIso3166Part1Alpha2CountryCode_ReturnsIndependenceFlag(Iso3166Part1Alpha2Country testCode, bool expectedResult)
         {
             // act
             var testResult = testCode.IsIndependent();
@@ -88,8 +88,8 @@ namespace DataStandardizer.ISO3166.Tests
             {
                 get
                 {
-                    yield return new object[] { Iso3166Part1Alpha2.AR, true };
-                    yield return new object[] { Iso3166Part1Alpha2.AS, false };
+                    yield return new object[] { Iso3166Part1Alpha2Country.AR, true };
+                    yield return new object[] { Iso3166Part1Alpha2Country.AS, false };
                 }
             }
         }
@@ -100,7 +100,7 @@ namespace DataStandardizer.ISO3166.Tests
 
         [Theory]
         [MemberData(nameof(GetEnglishName_OnIso3166Part1Alpha3CountryCode_TestCaseGenerator.TestCases), MemberType = typeof(GetEnglishName_OnIso3166Part1Alpha3CountryCode_TestCaseGenerator))]
-        public void GetEnglishName_OnIso3166Part1Alpha3CountryCode_ReturnsEnglishName(Iso3166Part1Alpha3 testCode, Iso3166CountryName nameType, string expectedResult)
+        public void GetEnglishName_OnIso3166Part1Alpha3CountryCode_ReturnsEnglishName(Iso3166Part1Alpha3Country testCode, Iso3166CountryName nameType, string expectedResult)
         {
             // act
             var testResult = testCode.GetEnglishName(nameType);
@@ -115,9 +115,9 @@ namespace DataStandardizer.ISO3166.Tests
             {
                 get
                 {
-                    yield return new object[] { Iso3166Part1Alpha3.DEU, Iso3166CountryName.Short, "Germany" };
-                    yield return new object[] { Iso3166Part1Alpha3.DEU, Iso3166CountryName.ShortUpper, "GERMANY" };
-                    yield return new object[] { Iso3166Part1Alpha3.DEU, Iso3166CountryName.Full, "the Federal Republic of Germany" };
+                    yield return new object[] { Iso3166Part1Alpha3Country.DEU, Iso3166CountryName.Short, "Germany" };
+                    yield return new object[] { Iso3166Part1Alpha3Country.DEU, Iso3166CountryName.ShortUpper, "GERMANY" };
+                    yield return new object[] { Iso3166Part1Alpha3Country.DEU, Iso3166CountryName.Full, "the Federal Republic of Germany" };
                 }
             }
         }
@@ -128,7 +128,7 @@ namespace DataStandardizer.ISO3166.Tests
 
         [Theory]
         [MemberData(nameof(GetNativeName_OnIso3166Part1Alpha3CountryCode_TestCaseGenerator.TestCases), MemberType = typeof(GetNativeName_OnIso3166Part1Alpha3CountryCode_TestCaseGenerator))]
-        public void GetNativeName_OnIso3166Part1Alpha3CountryCode_ReturnsNativeName(Iso3166Part1Alpha3 testCode, string languageCode, Iso3166CountryName nameType, string? expectedResult)
+        public void GetNativeName_OnIso3166Part1Alpha3CountryCode_ReturnsNativeName(Iso3166Part1Alpha3Country testCode, string languageCode, Iso3166CountryName nameType, string? expectedResult)
         {
             // act
             var testResult = testCode.GetNativeName(languageCode, nameType);
@@ -143,14 +143,14 @@ namespace DataStandardizer.ISO3166.Tests
             {
                 get
                 {
-                    yield return new object[] { Iso3166Part1Alpha3.ITA, "en", Iso3166CountryName.Short, "Italy" };
-                    yield return new object[] { Iso3166Part1Alpha3.ITA, "en", Iso3166CountryName.ShortUpper, "ITALY" };
-                    yield return new object[] { Iso3166Part1Alpha3.ITA, "en", Iso3166CountryName.Full, "the Republic of Italy" };
-                    yield return new object[] { Iso3166Part1Alpha3.ITA, "fra", Iso3166CountryName.Short, "Italie (l')" };
-                    yield return new object[] { Iso3166Part1Alpha3.ITA, "fra", Iso3166CountryName.ShortUpper, "ITALIE" };
-                    yield return new object[] { Iso3166Part1Alpha3.ITA, "fra", Iso3166CountryName.Full, "la République italienne" };
-                    yield return new object?[] { Iso3166Part1Alpha3.ITA, "it", Iso3166CountryName.Full, null };
-                    yield return new object?[] { Iso3166Part1Alpha3.ITA, "ita", Iso3166CountryName.Full, null };
+                    yield return new object[] { Iso3166Part1Alpha3Country.ITA, "en", Iso3166CountryName.Short, "Italy" };
+                    yield return new object[] { Iso3166Part1Alpha3Country.ITA, "en", Iso3166CountryName.ShortUpper, "ITALY" };
+                    yield return new object[] { Iso3166Part1Alpha3Country.ITA, "en", Iso3166CountryName.Full, "the Republic of Italy" };
+                    yield return new object[] { Iso3166Part1Alpha3Country.ITA, "fra", Iso3166CountryName.Short, "Italie (l')" };
+                    yield return new object[] { Iso3166Part1Alpha3Country.ITA, "fra", Iso3166CountryName.ShortUpper, "ITALIE" };
+                    yield return new object[] { Iso3166Part1Alpha3Country.ITA, "fra", Iso3166CountryName.Full, "la République italienne" };
+                    yield return new object?[] { Iso3166Part1Alpha3Country.ITA, "it", Iso3166CountryName.Full, null };
+                    yield return new object?[] { Iso3166Part1Alpha3Country.ITA, "ita", Iso3166CountryName.Full, null };
                 }
             }
         }
@@ -161,7 +161,7 @@ namespace DataStandardizer.ISO3166.Tests
 
         [Theory]
         [MemberData(nameof(IsIndependent_OnIso3166Part1Alpha3CountryCode_TestCaseGenerator.TestCases), MemberType = typeof(IsIndependent_OnIso3166Part1Alpha3CountryCode_TestCaseGenerator))]
-        public void IsIndependent_OnIso3166Part1Alpha3CountryCode_ReturnsIndependenceFlag(Iso3166Part1Alpha3 testCode, bool expectedResult)
+        public void IsIndependent_OnIso3166Part1Alpha3CountryCode_ReturnsIndependenceFlag(Iso3166Part1Alpha3Country testCode, bool expectedResult)
         {
             // act
             var testResult = testCode.IsIndependent();
@@ -176,8 +176,8 @@ namespace DataStandardizer.ISO3166.Tests
             {
                 get
                 {
-                    yield return new object[] { Iso3166Part1Alpha3.FRA, true };
-                    yield return new object[] { Iso3166Part1Alpha3.ATF, false };
+                    yield return new object[] { Iso3166Part1Alpha3Country.FRA, true };
+                    yield return new object[] { Iso3166Part1Alpha3Country.ATF, false };
                 }
             }
         }
@@ -188,7 +188,7 @@ namespace DataStandardizer.ISO3166.Tests
 
         [Theory]
         [MemberData(nameof(GetSubdivisionCategoryIdentifier_OnIso3166Part2SubdivisionCode_TestCaseGenerator.TestCases), MemberType = typeof(GetSubdivisionCategoryIdentifier_OnIso3166Part2SubdivisionCode_TestCaseGenerator))]
-        public void GetSubdivisionCategoryIdentifier_OnIso3166Part2SubdivisionCode_ReturnsCategoryIdentifier(Iso3166Part2 testCode, ushort expectedResult)
+        public void GetSubdivisionCategoryIdentifier_OnIso3166Part2SubdivisionCode_ReturnsCategoryIdentifier(Iso3166Part2Subdivision testCode, ushort expectedResult)
         {
             // act
             var testResult = testCode.GetSubdivisionCategoryIdentifier();
@@ -203,9 +203,9 @@ namespace DataStandardizer.ISO3166.Tests
             {
                 get
                 {
-                    yield return new object[] { Iso3166Part2.BZ._BZ, 297 };
-                    yield return new object[] { Iso3166Part2.AR._C, 182 };
-                    yield return new object[] { Iso3166Part2.AR._A, 107 };
+                    yield return new object[] { Iso3166Part2Subdivision.BZ._BZ, 297 };
+                    yield return new object[] { Iso3166Part2Subdivision.AR._C, 182 };
+                    yield return new object[] { Iso3166Part2Subdivision.AR._A, 107 };
                 }
             }
         }
@@ -216,7 +216,7 @@ namespace DataStandardizer.ISO3166.Tests
 
         [Theory]
         [MemberData(nameof(GetSubdivisionCategoryName_OnIso3166Part2SubdivisionCode_TestCaseGenerator.TestCases), MemberType = typeof(GetSubdivisionCategoryName_OnIso3166Part2SubdivisionCode_TestCaseGenerator))]
-        public void GetSubdivisionCategoryName_OnIso3166Part2SubdivisionCode_ReturnsCategoryName(Iso3166Part2 testCode, string languageCode, string? expectedResult)
+        public void GetSubdivisionCategoryName_OnIso3166Part2SubdivisionCode_ReturnsCategoryName(Iso3166Part2Subdivision testCode, string languageCode, string? expectedResult)
         {
             // act
             var testResult = testCode.GetSubdivisionCategoryName(languageCode);
@@ -231,11 +231,11 @@ namespace DataStandardizer.ISO3166.Tests
             {
                 get
                 {
-                    yield return new object[] { Iso3166Part2.CY._01, "el", "eparchia" };
-                    yield return new object[] { Iso3166Part2.CY._02, "eng", "district" };
-                    yield return new object[] { Iso3166Part2.CY._03, "fr", "district" };
-                    yield return new object[] { Iso3166Part2.CY._04, "tur", "kaza" };
-                    yield return new object?[] { Iso3166Part2.CY._05, "de", null };
+                    yield return new object[] { Iso3166Part2Subdivision.CY._01, "el", "eparchia" };
+                    yield return new object[] { Iso3166Part2Subdivision.CY._02, "eng", "district" };
+                    yield return new object[] { Iso3166Part2Subdivision.CY._03, "fr", "district" };
+                    yield return new object[] { Iso3166Part2Subdivision.CY._04, "tur", "kaza" };
+                    yield return new object?[] { Iso3166Part2Subdivision.CY._05, "de", null };
                 }
             }
         }
@@ -246,7 +246,7 @@ namespace DataStandardizer.ISO3166.Tests
 
         [Theory]
         [MemberData(nameof(GetSubdivisionCategoryNamePlural_OnIso3166Part2SubdivisionCode_TestCaseGenerator.TestCases), MemberType = typeof(GetSubdivisionCategoryNamePlural_OnIso3166Part2SubdivisionCode_TestCaseGenerator))]
-        public void GetSubdivisionCategoryNamePlural_OnIso3166Part2SubdivisionCode_ReturnsCategoryNamePlural(Iso3166Part2 testCode, string languageCode, string? expectedResult)
+        public void GetSubdivisionCategoryNamePlural_OnIso3166Part2SubdivisionCode_ReturnsCategoryNamePlural(Iso3166Part2Subdivision testCode, string languageCode, string? expectedResult)
         {
             // act
             var testResult = testCode.GetSubdivisionCategoryNamePlural(languageCode);
@@ -261,9 +261,9 @@ namespace DataStandardizer.ISO3166.Tests
             {
                 get
                 {
-                    yield return new object[] { Iso3166Part2.FR._NOR, "en", "metropolitan regions" };
-                    yield return new object?[] { Iso3166Part2.FR._NOR, "fra", null };
-                    yield return new object?[] { Iso3166Part2.FR._NOR, "ar", null };
+                    yield return new object[] { Iso3166Part2Subdivision.FR._NOR, "en", "metropolitan regions" };
+                    yield return new object?[] { Iso3166Part2Subdivision.FR._NOR, "fra", null };
+                    yield return new object?[] { Iso3166Part2Subdivision.FR._NOR, "ar", null };
                 }
             }
         }
@@ -274,7 +274,7 @@ namespace DataStandardizer.ISO3166.Tests
 
         [Theory]
         [MemberData(nameof(GetSubdivisionCode_OnIso3166Part2SubdivisionCode_TestCaseGenerator.TestCases), MemberType = typeof(GetSubdivisionCode_OnIso3166Part2SubdivisionCode_TestCaseGenerator))]
-        public void GetSubdivisionCode_OnIso3166Part2SubdivisionCode_ReturnsSubdivisionCode(Iso3166Part2 testCode, string expectedResult)
+        public void GetSubdivisionCode_OnIso3166Part2SubdivisionCode_ReturnsSubdivisionCode(Iso3166Part2Subdivision testCode, string expectedResult)
         {
             // act
             var testResult = testCode.GetSubdivisionCode();
@@ -289,8 +289,8 @@ namespace DataStandardizer.ISO3166.Tests
             {
                 get
                 {
-                    yield return new object[] { Iso3166Part2.GR._69, "GR-69" };
-                    yield return new object[] { Iso3166Part2.GR._A, "GR-A" };
+                    yield return new object[] { Iso3166Part2Subdivision.GR._69, "GR-69" };
+                    yield return new object[] { Iso3166Part2Subdivision.GR._A, "GR-A" };
                 }
             }
         }
@@ -301,10 +301,10 @@ namespace DataStandardizer.ISO3166.Tests
 
         [Theory]
         [MemberData(nameof(GetSubdivisionNativeName_OnIso3166Part2SubdivisionCode_TestCaseGenerator.TestCases), MemberType = typeof(GetSubdivisionNativeName_OnIso3166Part2SubdivisionCode_TestCaseGenerator))]
-        public void GetSubdivisionNativeName_OnIso3166Part2SubdivisionCode_ReturnsNativeName(Iso3166Part2 testCode, string languageCode, string? romanizationSystem, string? expectedResult)
+        public void GetSubdivisionNativeName_OnIso3166Part2SubdivisionCode_ReturnsNativeName(Iso3166Part2Subdivision testCode, string languageCode, string? romanizationSystem, string? expectedResult)
         {
             // act
-            var testResult = testCode.GetSubdivisionNativeName(languageCode, romanizationSystem);
+            var testResult = testCode.GetSubdivisionNativeName(languageCode, romanizationSystem: romanizationSystem);
 
             // assert
             testResult.Should().Be(expectedResult);
@@ -316,12 +316,12 @@ namespace DataStandardizer.ISO3166.Tests
             {
                 get
                 {
-                    yield return new object?[] { Iso3166Part2.CA._NT, "en", null, "Northwest Territories" };
-                    yield return new object?[] { Iso3166Part2.CA._NT, "fra", null, "Territoires du Nord-Ouest" };
-                    yield return new object?[] { Iso3166Part2.CA._NS, "la", null, null };
+                    yield return new object?[] { Iso3166Part2Subdivision.CA._NT, "en", null, "Northwest Territories" };
+                    yield return new object?[] { Iso3166Part2Subdivision.CA._NT, "fra", null, "Territoires du Nord-Ouest" };
+                    yield return new object?[] { Iso3166Part2Subdivision.CA._NS, "la", null, null };
 
-                    yield return new object[] { Iso3166Part2.KM._A, "ar", "BGN/PCGN 1956", "Anjwān" };
-                    yield return new object[] { Iso3166Part2.KM._A, "ara", "conventional names", "Andjouân" };
+                    yield return new object[] { Iso3166Part2Subdivision.KM._A, "ar", "BGN/PCGN 1956", "Anjwān" };
+                    yield return new object[] { Iso3166Part2Subdivision.KM._A, "ara", "conventional names", "Andjouân" };
                 }
             }
         }
@@ -332,7 +332,7 @@ namespace DataStandardizer.ISO3166.Tests
 
         [Theory]
         [MemberData(nameof(GetSubdivisionNativeNameLocalVariant_OnIso3166Part2SubdivisionCode_TestCaseGenerator.TestCases), MemberType = typeof(GetSubdivisionNativeNameLocalVariant_OnIso3166Part2SubdivisionCode_TestCaseGenerator))]
-        public void GetSubdivisionNativeNameLocalVariant_OnIso3166Part2SubdivisionCode_ReturnsNativeNamePlural(Iso3166Part2 testCode, string languageCode, string? expectedResult)
+        public void GetSubdivisionNativeNameLocalVariant_OnIso3166Part2SubdivisionCode_ReturnsNativeNamePlural(Iso3166Part2Subdivision testCode, string languageCode, string? expectedResult)
         {
             // act
             var testResult = testCode.GetSubdivisionNativeNameLocalVariant(languageCode);
@@ -347,9 +347,9 @@ namespace DataStandardizer.ISO3166.Tests
             {
                 get
                 {
-                    yield return new object[] { Iso3166Part2.CL._LI, "es", "O'Higgins" };
-                    yield return new object?[] { Iso3166Part2.CL._RM, "spa", null };
-                    yield return new object?[] { Iso3166Part2.CL._TA, "de", null };
+                    yield return new object[] { Iso3166Part2Subdivision.CL._LI, "es", "O'Higgins" };
+                    yield return new object?[] { Iso3166Part2Subdivision.CL._RM, "spa", null };
+                    yield return new object?[] { Iso3166Part2Subdivision.CL._TA, "de", null };
                 }
             }
         }
@@ -360,7 +360,7 @@ namespace DataStandardizer.ISO3166.Tests
 
         [Theory]
         [MemberData(nameof(GetSubdivisionParentCode_OnIso3166Part2SubdivisionCode_TestCaseGenerator.TestCases), MemberType = typeof(GetSubdivisionParentCode_OnIso3166Part2SubdivisionCode_TestCaseGenerator))]
-        public void GetSubdivisionParentCode_OnIso3166Part2SubdivisionCode_ReturnsParentCode(Iso3166Part2 testCode, string? expectedResult)
+        public void GetSubdivisionParentCode_OnIso3166Part2SubdivisionCode_ReturnsParentCode(Iso3166Part2Subdivision testCode, string? expectedResult)
         {
             // act
             var testResult = testCode.GetSubdivisionParentCode();
@@ -375,13 +375,13 @@ namespace DataStandardizer.ISO3166.Tests
             {
                 get
                 {
-                    yield return new object?[] { Iso3166Part2.FI._11, null };
-                    yield return new object?[] { Iso3166Part2.GB._ENG, null };
-                    yield return new object?[] { Iso3166Part2.GB._NIR, null };
-                    yield return new object[] { Iso3166Part2.GB._DEV, "GB-ENG" };
-                    yield return new object[] { Iso3166Part2.GB._BFS, "GB-NIR" };
-                    yield return new object[] { Iso3166Part2.GB._ANS, "GB-SCT" };
-                    yield return new object[] { Iso3166Part2.GB._CRF, "GB-WLS" };
+                    yield return new object?[] { Iso3166Part2Subdivision.FI._11, null };
+                    yield return new object?[] { Iso3166Part2Subdivision.GB._ENG, null };
+                    yield return new object?[] { Iso3166Part2Subdivision.GB._NIR, null };
+                    yield return new object[] { Iso3166Part2Subdivision.GB._DEV, "GB-ENG" };
+                    yield return new object[] { Iso3166Part2Subdivision.GB._BFS, "GB-NIR" };
+                    yield return new object[] { Iso3166Part2Subdivision.GB._ANS, "GB-SCT" };
+                    yield return new object[] { Iso3166Part2Subdivision.GB._CRF, "GB-WLS" };
                 }
             }
         }

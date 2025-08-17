@@ -17,7 +17,7 @@ namespace DataStandardizer.UNM49.Tests
 
         [Theory]
         [MemberData(nameof(GetCountryOrAreaName_WithM49CodeByAlpha2Code_TestCaseGenerator.TestCases), MemberType = typeof(GetCountryOrAreaName_WithM49CodeByAlpha2Code_TestCaseGenerator))]
-        public void GetCountryOrAreaName_WithM49CodeByAlpha2Code_ReturnsCountryOrAreaName(UnM49ByAlpha2Code testCode, string languageCode, string expectedResult)
+        public void GetCountryOrAreaName_WithM49CodeByAlpha2Code_ReturnsCountryOrAreaName(UnM49AreaByAlpha2CountryCode testCode, string languageCode, string expectedResult)
         {
             // act
             var testResult = testCode.GetCountryOrAreaName(languageCode);
@@ -32,12 +32,12 @@ namespace DataStandardizer.UNM49.Tests
             {
                 get
                 {
-                    yield return new object[] { UnM49ByAlpha2Code.DO, "en", "Dominican Republic" };
-                    yield return new object[] { UnM49ByAlpha2Code.MS, "zh", "蒙特塞拉特" };
-                    yield return new object[] { UnM49ByAlpha2Code.PH, "ru", "Филиппины" };
-                    yield return new object[] { UnM49ByAlpha2Code.UA, "fr", "Ukraine" };
-                    yield return new object[] { UnM49ByAlpha2Code.NL, "es", "Países Bajos (Reino de los)" };
-                    yield return new object[] { UnM49ByAlpha2Code.NC, "ar", "كاليدونيا الجديدة" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.DO, "en", "Dominican Republic" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.MS, "zh", "蒙特塞拉特" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.PH, "ru", "Филиппины" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.UA, "fr", "Ukraine" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.NL, "es", "Países Bajos (Reino de los)" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.NC, "ar", "كاليدونيا الجديدة" };
                 }
             }
         }
@@ -48,7 +48,7 @@ namespace DataStandardizer.UNM49.Tests
 
         [Theory]
         [MemberData(nameof(GetCountryOrAreaName_WithM49CodeByAlpha3Code_TestCaseGenerator.TestCases), MemberType = typeof(GetCountryOrAreaName_WithM49CodeByAlpha3Code_TestCaseGenerator))]
-        public void GetCountryOrAreaName_WithM49CodeByAlpha3Code_ReturnsCountryOrAreaName(UnM49ByAlpha3Code testCode, string languageCode, string expectedResult)
+        public void GetCountryOrAreaName_WithM49CodeByAlpha3Code_ReturnsCountryOrAreaName(UnM49AreaByAlpha3CountryCode testCode, string languageCode, string expectedResult)
         {
             // act
             var testResult = testCode.GetCountryOrAreaName(languageCode);
@@ -63,12 +63,12 @@ namespace DataStandardizer.UNM49.Tests
             {
                 get
                 {
-                    yield return new object[] { UnM49ByAlpha3Code.DOM, "en", "Dominican Republic" };
-                    yield return new object[] { UnM49ByAlpha3Code.MSR, "zh", "蒙特塞拉特" };
-                    yield return new object[] { UnM49ByAlpha3Code.PHL, "ru", "Филиппины" };
-                    yield return new object[] { UnM49ByAlpha3Code.UKR, "fr", "Ukraine" };
-                    yield return new object[] { UnM49ByAlpha3Code.NLD, "es", "Países Bajos (Reino de los)" };
-                    yield return new object[] { UnM49ByAlpha3Code.NCL, "ar", "كاليدونيا الجديدة" };
+                    yield return new object[] { UnM49AreaByAlpha3CountryCode.DOM, "en", "Dominican Republic" };
+                    yield return new object[] { UnM49AreaByAlpha3CountryCode.MSR, "zh", "蒙特塞拉特" };
+                    yield return new object[] { UnM49AreaByAlpha3CountryCode.PHL, "ru", "Филиппины" };
+                    yield return new object[] { UnM49AreaByAlpha3CountryCode.UKR, "fr", "Ukraine" };
+                    yield return new object[] { UnM49AreaByAlpha3CountryCode.NLD, "es", "Países Bajos (Reino de los)" };
+                    yield return new object[] { UnM49AreaByAlpha3CountryCode.NCL, "ar", "كاليدونيا الجديدة" };
                 }
             }
         }
@@ -79,7 +79,7 @@ namespace DataStandardizer.UNM49.Tests
 
         [Theory]
         [MemberData(nameof(GetGlobalCode_WithM49CodeByAlpha2Code_TestCaseGenerator.TestCases), MemberType = typeof(GetGlobalCode_WithM49CodeByAlpha2Code_TestCaseGenerator))]
-        public void GetGlobalCode_WithM49CodeByAlpha2Code_ReturnsGlobalCode(UnM49ByAlpha2Code testCode, ushort expectedResult)
+        public void GetGlobalCode_WithM49CodeByAlpha2Code_ReturnsGlobalCode(UnM49AreaByAlpha2CountryCode testCode, ushort expectedResult)
         {
             // act
             var testResult = testCode.GetGlobalCode();
@@ -92,7 +92,7 @@ namespace DataStandardizer.UNM49.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { UnM49ByAlpha2Code.AT, 1 }; }
+                get { yield return new object[] { UnM49AreaByAlpha2CountryCode.AT, 1 }; }
             }
         }
 
@@ -102,7 +102,7 @@ namespace DataStandardizer.UNM49.Tests
 
         [Theory]
         [MemberData(nameof(GetGlobalCode_WithM49CodeByAlpha3Code_TestCaseGenerator.TestCases), MemberType = typeof(GetGlobalCode_WithM49CodeByAlpha3Code_TestCaseGenerator))]
-        public void GetGlobalCode_WithM49CodeByAlpha3Code_ReturnsGlobalCode(UnM49ByAlpha3Code testCode, ushort expectedResult)
+        public void GetGlobalCode_WithM49CodeByAlpha3Code_ReturnsGlobalCode(UnM49AreaByAlpha3CountryCode testCode, ushort expectedResult)
         {
             // act
             var testResult = testCode.GetGlobalCode();
@@ -115,7 +115,7 @@ namespace DataStandardizer.UNM49.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { UnM49ByAlpha3Code.AUT, 1 }; }
+                get { yield return new object[] { UnM49AreaByAlpha3CountryCode.AUT, 1 }; }
             }
         }
 
@@ -125,7 +125,7 @@ namespace DataStandardizer.UNM49.Tests
 
         [Theory]
         [MemberData(nameof(GetGlobalName_WithM49CodeByAlpha2Code_TestCaseGenerator.TestCases), MemberType = typeof(GetGlobalName_WithM49CodeByAlpha2Code_TestCaseGenerator))]
-        public void GetGlobalName_WithM49CodeByAlpha2Code_ReturnsGlobalName(UnM49ByAlpha2Code testCode, string languageCode, string expectedResult)
+        public void GetGlobalName_WithM49CodeByAlpha2Code_ReturnsGlobalName(UnM49AreaByAlpha2CountryCode testCode, string languageCode, string expectedResult)
         {
             // act
             var testResult = testCode.GetGlobalName(languageCode);
@@ -140,12 +140,12 @@ namespace DataStandardizer.UNM49.Tests
             {
                 get
                 {
-                    yield return new object[] { UnM49ByAlpha2Code.AT, "en", "World" };
-                    yield return new object[] { UnM49ByAlpha2Code.AT, "zh", "世界" };
-                    yield return new object[] { UnM49ByAlpha2Code.AT, "ru", "Весь мир" };
-                    yield return new object[] { UnM49ByAlpha2Code.AT, "fr", "Monde" };
-                    yield return new object[] { UnM49ByAlpha2Code.AT, "es", "Mundo" };
-                    yield return new object[] { UnM49ByAlpha2Code.AT, "ar", "العالم" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.AT, "en", "World" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.AT, "zh", "世界" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.AT, "ru", "Весь мир" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.AT, "fr", "Monde" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.AT, "es", "Mundo" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.AT, "ar", "العالم" };
                 }
             }
         }
@@ -156,7 +156,7 @@ namespace DataStandardizer.UNM49.Tests
 
         [Theory]
         [MemberData(nameof(GetGlobalName_WithM49CodeByAlpha3Code_TestCaseGenerator.TestCases), MemberType = typeof(GetGlobalName_WithM49CodeByAlpha3Code_TestCaseGenerator))]
-        public void GetGlobalName_WithM49CodeByAlpha3Code_ReturnsGlobalName(UnM49ByAlpha3Code testCode, string languageCode, string expectedResult)
+        public void GetGlobalName_WithM49CodeByAlpha3Code_ReturnsGlobalName(UnM49AreaByAlpha3CountryCode testCode, string languageCode, string expectedResult)
         {
             // act
             var testResult = testCode.GetGlobalName(languageCode);
@@ -171,12 +171,12 @@ namespace DataStandardizer.UNM49.Tests
             {
                 get
                 {
-                    yield return new object[] { UnM49ByAlpha3Code.AUT, "en", "World" };
-                    yield return new object[] { UnM49ByAlpha3Code.AUT, "zh", "世界" };
-                    yield return new object[] { UnM49ByAlpha3Code.AUT, "ru", "Весь мир" };
-                    yield return new object[] { UnM49ByAlpha3Code.AUT, "fr", "Monde" };
-                    yield return new object[] { UnM49ByAlpha3Code.AUT, "es", "Mundo" };
-                    yield return new object[] { UnM49ByAlpha3Code.AUT, "ar", "العالم" };
+                    yield return new object[] { UnM49AreaByAlpha3CountryCode.AUT, "en", "World" };
+                    yield return new object[] { UnM49AreaByAlpha3CountryCode.AUT, "zh", "世界" };
+                    yield return new object[] { UnM49AreaByAlpha3CountryCode.AUT, "ru", "Весь мир" };
+                    yield return new object[] { UnM49AreaByAlpha3CountryCode.AUT, "fr", "Monde" };
+                    yield return new object[] { UnM49AreaByAlpha3CountryCode.AUT, "es", "Mundo" };
+                    yield return new object[] { UnM49AreaByAlpha3CountryCode.AUT, "ar", "العالم" };
                 }
             }
         }
@@ -187,7 +187,7 @@ namespace DataStandardizer.UNM49.Tests
 
         [Theory]
         [MemberData(nameof(GetIntermediateRegionCode_WithM49CodeByAlpha2Code_TestCaseGenerator.TestCases), MemberType = typeof(GetIntermediateRegionCode_WithM49CodeByAlpha2Code_TestCaseGenerator))]
-        public void GetIntermediateRegionCode_WithM49CodeByAlpha2Code_ReturnsIntermediateRegionCode(UnM49ByAlpha2Code testCode, ushort expectedResult)
+        public void GetIntermediateRegionCode_WithM49CodeByAlpha2Code_ReturnsIntermediateRegionCode(UnM49AreaByAlpha2CountryCode testCode, ushort expectedResult)
         {
             // act
             var testResult = testCode.GetIntermediateRegionCode();
@@ -200,7 +200,7 @@ namespace DataStandardizer.UNM49.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { UnM49ByAlpha2Code.GY, 005 }; }
+                get { yield return new object[] { UnM49AreaByAlpha2CountryCode.GY, 005 }; }
             }
         }
 
@@ -210,7 +210,7 @@ namespace DataStandardizer.UNM49.Tests
 
         [Theory]
         [MemberData(nameof(GetIntermediateRegionCode_WithM49CodeByAlpha3Code_TestCaseGenerator.TestCases), MemberType = typeof(GetIntermediateRegionCode_WithM49CodeByAlpha3Code_TestCaseGenerator))]
-        public void GetIntermediateRegionCode_WithM49CodeByAlpha3Code_ReturnsIntermediateRegionCode(UnM49ByAlpha3Code testCode, ushort expectedResult)
+        public void GetIntermediateRegionCode_WithM49CodeByAlpha3Code_ReturnsIntermediateRegionCode(UnM49AreaByAlpha3CountryCode testCode, ushort expectedResult)
         {
             // act
             var testResult = testCode.GetIntermediateRegionCode();
@@ -223,7 +223,7 @@ namespace DataStandardizer.UNM49.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { UnM49ByAlpha3Code.GUY, 005 }; }
+                get { yield return new object[] { UnM49AreaByAlpha3CountryCode.GUY, 005 }; }
             }
         }
 
@@ -233,7 +233,7 @@ namespace DataStandardizer.UNM49.Tests
 
         [Theory]
         [MemberData(nameof(GetIntermediateRegionName_WithM49CodeByAlpha2Code_TestCaseGenerator.TestCases), MemberType = typeof(GetIntermediateRegionName_WithM49CodeByAlpha2Code_TestCaseGenerator))]
-        public void GetIntermediateRegionName_WithM49CodeByAlpha2Code_ReturnsIntermediateRegionName(UnM49ByAlpha2Code testCode, string languageCode, string expectedResult)
+        public void GetIntermediateRegionName_WithM49CodeByAlpha2Code_ReturnsIntermediateRegionName(UnM49AreaByAlpha2CountryCode testCode, string languageCode, string expectedResult)
         {
             // act
             var testResult = testCode.GetIntermediateRegionName(languageCode);
@@ -248,12 +248,12 @@ namespace DataStandardizer.UNM49.Tests
             {
                 get
                 {
-                    yield return new object[] { UnM49ByAlpha2Code.GY, "en", "South America" };
-                    yield return new object[] { UnM49ByAlpha2Code.GY, "zh", "南美洲" };
-                    yield return new object[] { UnM49ByAlpha2Code.GY, "ru", "Южная Америка" };
-                    yield return new object[] { UnM49ByAlpha2Code.GY, "fr", "Amérique du Sud" };
-                    yield return new object[] { UnM49ByAlpha2Code.GY, "es", "América del Sur" };
-                    yield return new object[] { UnM49ByAlpha2Code.GY, "ar", "أمريكا الجنوبية" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.GY, "en", "South America" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.GY, "zh", "南美洲" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.GY, "ru", "Южная Америка" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.GY, "fr", "Amérique du Sud" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.GY, "es", "América del Sur" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.GY, "ar", "أمريكا الجنوبية" };
                 }
             }
         }
@@ -264,7 +264,7 @@ namespace DataStandardizer.UNM49.Tests
 
         [Theory]
         [MemberData(nameof(GetIntermediateRegionName_WithM49CodeByAlpha3Code_TestCaseGenerator.TestCases), MemberType = typeof(GetIntermediateRegionName_WithM49CodeByAlpha3Code_TestCaseGenerator))]
-        public void GetIntermediateRegionName_WithM49CodeByAlpha3Code_ReturnsIntermediateRegionName(UnM49ByAlpha3Code testCode, string languageCode, string expectedResult)
+        public void GetIntermediateRegionName_WithM49CodeByAlpha3Code_ReturnsIntermediateRegionName(UnM49AreaByAlpha3CountryCode testCode, string languageCode, string expectedResult)
         {
             // act
             var testResult = testCode.GetIntermediateRegionName(languageCode);
@@ -279,12 +279,12 @@ namespace DataStandardizer.UNM49.Tests
             {
                 get
                 {
-                    yield return new object[] { UnM49ByAlpha3Code.GUY, "en", "South America" };
-                    yield return new object[] { UnM49ByAlpha3Code.GUY, "zh", "南美洲" };
-                    yield return new object[] { UnM49ByAlpha3Code.GUY, "ru", "Южная Америка" };
-                    yield return new object[] { UnM49ByAlpha3Code.GUY, "fr", "Amérique du Sud" };
-                    yield return new object[] { UnM49ByAlpha3Code.GUY, "es", "América del Sur" };
-                    yield return new object[] { UnM49ByAlpha3Code.GUY, "ar", "أمريكا الجنوبية" };
+                    yield return new object[] { UnM49AreaByAlpha3CountryCode.GUY, "en", "South America" };
+                    yield return new object[] { UnM49AreaByAlpha3CountryCode.GUY, "zh", "南美洲" };
+                    yield return new object[] { UnM49AreaByAlpha3CountryCode.GUY, "ru", "Южная Америка" };
+                    yield return new object[] { UnM49AreaByAlpha3CountryCode.GUY, "fr", "Amérique du Sud" };
+                    yield return new object[] { UnM49AreaByAlpha3CountryCode.GUY, "es", "América del Sur" };
+                    yield return new object[] { UnM49AreaByAlpha3CountryCode.GUY, "ar", "أمريكا الجنوبية" };
                 }
             }
         }
@@ -295,11 +295,11 @@ namespace DataStandardizer.UNM49.Tests
         public void GetM49Codes_WithM49CodesFromByAlpha2CodeEnum_ReturnsAllM49Codes()
         {
             // arrange
-            var m49Codes = Enum.GetValues<UnM49ByAlpha2Code>().Cast<ushort>();
+            var m49Codes = Enum.GetValues<UnM49AreaByAlpha2CountryCode>().Cast<ushort>();
             var expectedResult = _hierarchicalM49Codes.Union(m49Codes);
 
             // act
-            var testResult = UnM49Extensions.GetM49Codes(typeof(UnM49ByAlpha2Code));
+            var testResult = UnM49Extensions.GetM49Codes(typeof(UnM49AreaByAlpha2CountryCode));
 
             // assert
             testResult.Should().BeEquivalentTo(expectedResult);
@@ -309,11 +309,11 @@ namespace DataStandardizer.UNM49.Tests
         public void GetM49Codes_WithM49CodesFromByAlpha3CodeEnum_ReturnsAllM49Codes()
         {
             // arrange
-            var m49Codes = Enum.GetValues<UnM49ByAlpha3Code>().Cast<ushort>();
+            var m49Codes = Enum.GetValues<UnM49AreaByAlpha3CountryCode>().Cast<ushort>();
             var expectedResult = _hierarchicalM49Codes.Union(m49Codes);
 
             // act
-            var testResult = UnM49Extensions.GetM49Codes(typeof(UnM49ByAlpha3Code));
+            var testResult = UnM49Extensions.GetM49Codes(typeof(UnM49AreaByAlpha3CountryCode));
 
             // assert
             testResult.Should().BeEquivalentTo(expectedResult);
@@ -323,7 +323,7 @@ namespace DataStandardizer.UNM49.Tests
 
         [Theory]
         [MemberData(nameof(GetRegionCode_WithM49CodeByAlpha2Code_TestCaseGenerator.TestCases), MemberType = typeof(GetRegionCode_WithM49CodeByAlpha2Code_TestCaseGenerator))]
-        public void GetRegionCode_WithM49CodeByAlpha2Code_ReturnsRegionCode(UnM49ByAlpha2Code testCode, ushort expectedResult)
+        public void GetRegionCode_WithM49CodeByAlpha2Code_ReturnsRegionCode(UnM49AreaByAlpha2CountryCode testCode, ushort expectedResult)
         {
             // act
             var testResult = testCode.GetRegionCode();
@@ -336,7 +336,7 @@ namespace DataStandardizer.UNM49.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { UnM49ByAlpha2Code.CG, 2 }; }
+                get { yield return new object[] { UnM49AreaByAlpha2CountryCode.CG, 2 }; }
             }
         }
 
@@ -346,7 +346,7 @@ namespace DataStandardizer.UNM49.Tests
 
         [Theory]
         [MemberData(nameof(GetRegionCode_WithM49CodeByAlpha3Code_TestCaseGenerator.TestCases), MemberType = typeof(GetRegionCode_WithM49CodeByAlpha3Code_TestCaseGenerator))]
-        public void GetRegionCode_WithM49CodeByAlpha3Code_ReturnsRegionCode(UnM49ByAlpha3Code testCode, ushort expectedResult)
+        public void GetRegionCode_WithM49CodeByAlpha3Code_ReturnsRegionCode(UnM49AreaByAlpha3CountryCode testCode, ushort expectedResult)
         {
             // act
             var testResult = testCode.GetRegionCode();
@@ -359,7 +359,7 @@ namespace DataStandardizer.UNM49.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { UnM49ByAlpha3Code.COG, 2 }; }
+                get { yield return new object[] { UnM49AreaByAlpha3CountryCode.COG, 2 }; }
             }
         }
 
@@ -369,7 +369,7 @@ namespace DataStandardizer.UNM49.Tests
 
         [Theory]
         [MemberData(nameof(GetRegionName_WithM49CodeByAlpha2Code_TestCaseGenerator.TestCases), MemberType = typeof(GetRegionName_WithM49CodeByAlpha2Code_TestCaseGenerator))]
-        public void GetRegionName_WithM49CodeByAlpha2Code_ReturnsRegionName(UnM49ByAlpha2Code testCode, string languageCode, string expectedResult)
+        public void GetRegionName_WithM49CodeByAlpha2Code_ReturnsRegionName(UnM49AreaByAlpha2CountryCode testCode, string languageCode, string expectedResult)
         {
             // act
             var testResult = testCode.GetRegionName(languageCode);
@@ -384,12 +384,12 @@ namespace DataStandardizer.UNM49.Tests
             {
                 get
                 {
-                    yield return new object[] { UnM49ByAlpha2Code.CG, "en", "Africa" };
-                    yield return new object[] { UnM49ByAlpha2Code.CG, "zh", "非洲" };
-                    yield return new object[] { UnM49ByAlpha2Code.CG, "ru", "Африка" };
-                    yield return new object[] { UnM49ByAlpha2Code.CG, "fr", "Afrique" };
-                    yield return new object[] { UnM49ByAlpha2Code.CG, "es", "África" };
-                    yield return new object[] { UnM49ByAlpha2Code.CG, "ar", "أفريقيا" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.CG, "en", "Africa" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.CG, "zh", "非洲" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.CG, "ru", "Африка" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.CG, "fr", "Afrique" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.CG, "es", "África" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.CG, "ar", "أفريقيا" };
                 }
             }
         }
@@ -400,7 +400,7 @@ namespace DataStandardizer.UNM49.Tests
 
         [Theory]
         [MemberData(nameof(GetRegionName_WithM49CodeByAlpha3Code_TestCaseGenerator.TestCases), MemberType = typeof(GetRegionName_WithM49CodeByAlpha3Code_TestCaseGenerator))]
-        public void GetRegionName_WithM49CodeByAlpha3Code_ReturnsRegionName(UnM49ByAlpha3Code testCode, string languageCode, string expectedResult)
+        public void GetRegionName_WithM49CodeByAlpha3Code_ReturnsRegionName(UnM49AreaByAlpha3CountryCode testCode, string languageCode, string expectedResult)
         {
             // act
             var testResult = testCode.GetRegionName(languageCode);
@@ -415,12 +415,12 @@ namespace DataStandardizer.UNM49.Tests
             {
                 get
                 {
-                    yield return new object[] { UnM49ByAlpha3Code.COG, "en", "Africa" };
-                    yield return new object[] { UnM49ByAlpha3Code.COG, "zh", "非洲" };
-                    yield return new object[] { UnM49ByAlpha3Code.COG, "ru", "Африка" };
-                    yield return new object[] { UnM49ByAlpha3Code.COG, "fr", "Afrique" };
-                    yield return new object[] { UnM49ByAlpha3Code.COG, "es", "África" };
-                    yield return new object[] { UnM49ByAlpha3Code.COG, "ar", "أفريقيا" };
+                    yield return new object[] { UnM49AreaByAlpha3CountryCode.COG, "en", "Africa" };
+                    yield return new object[] { UnM49AreaByAlpha3CountryCode.COG, "zh", "非洲" };
+                    yield return new object[] { UnM49AreaByAlpha3CountryCode.COG, "ru", "Африка" };
+                    yield return new object[] { UnM49AreaByAlpha3CountryCode.COG, "fr", "Afrique" };
+                    yield return new object[] { UnM49AreaByAlpha3CountryCode.COG, "es", "África" };
+                    yield return new object[] { UnM49AreaByAlpha3CountryCode.COG, "ar", "أفريقيا" };
                 }
             }
         }
@@ -431,7 +431,7 @@ namespace DataStandardizer.UNM49.Tests
 
         [Theory]
         [MemberData(nameof(GetSubRegionCode_WithM49CodeByAlpha2Code_TestCaseGenerator.TestCases), MemberType = typeof(GetSubRegionCode_WithM49CodeByAlpha2Code_TestCaseGenerator))]
-        public void GetSubRegionCode_WithM49CodeByAlpha2Code_ReturnsSubRegionCode(UnM49ByAlpha2Code testCode, ushort expectedResult)
+        public void GetSubRegionCode_WithM49CodeByAlpha2Code_ReturnsSubRegionCode(UnM49AreaByAlpha2CountryCode testCode, ushort expectedResult)
         {
             // act
             var testResult = testCode.GetSubRegionCode();
@@ -444,7 +444,7 @@ namespace DataStandardizer.UNM49.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { UnM49ByAlpha2Code.PA, 419 }; }
+                get { yield return new object[] { UnM49AreaByAlpha2CountryCode.PA, 419 }; }
             }
         }
 
@@ -454,7 +454,7 @@ namespace DataStandardizer.UNM49.Tests
 
         [Theory]
         [MemberData(nameof(GetSubRegionCode_WithM49CodeByAlpha3Code_TestCaseGenerator.TestCases), MemberType = typeof(GetSubRegionCode_WithM49CodeByAlpha3Code_TestCaseGenerator))]
-        public void GetSubRegionCode_WithM49CodeByAlpha3Code_ReturnsSubRegionCode(UnM49ByAlpha3Code testCode, ushort expectedResult)
+        public void GetSubRegionCode_WithM49CodeByAlpha3Code_ReturnsSubRegionCode(UnM49AreaByAlpha3CountryCode testCode, ushort expectedResult)
         {
             // act
             var testResult = testCode.GetSubRegionCode();
@@ -467,7 +467,7 @@ namespace DataStandardizer.UNM49.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { UnM49ByAlpha3Code.PAN, 419 }; }
+                get { yield return new object[] { UnM49AreaByAlpha3CountryCode.PAN, 419 }; }
             }
         }
 
@@ -477,7 +477,7 @@ namespace DataStandardizer.UNM49.Tests
 
         [Theory]
         [MemberData(nameof(GetSubRegionName_WithM49CodeByAlpha2Code_TestCaseGenerator.TestCases), MemberType = typeof(GetSubRegionName_WithM49CodeByAlpha2Code_TestCaseGenerator))]
-        public void GetSubRegionName_WithM49CodeByAlpha2Code_ReturnsSubRegionName(UnM49ByAlpha2Code testCode, string languageCode, string expectedResult)
+        public void GetSubRegionName_WithM49CodeByAlpha2Code_ReturnsSubRegionName(UnM49AreaByAlpha2CountryCode testCode, string languageCode, string expectedResult)
         {
             // act
             var testResult = testCode.GetSubRegionName(languageCode);
@@ -492,12 +492,12 @@ namespace DataStandardizer.UNM49.Tests
             {
                 get
                 {
-                    yield return new object[] { UnM49ByAlpha2Code.PA, "en", "Latin America and the Caribbean" };
-                    yield return new object[] { UnM49ByAlpha2Code.PA, "zh", "拉丁美洲和加勒比" };
-                    yield return new object[] { UnM49ByAlpha2Code.PA, "ru", "Латинская Америка и Карибский бассейн" };
-                    yield return new object[] { UnM49ByAlpha2Code.PA, "fr", "Amérique latine et Caraïbes" };
-                    yield return new object[] { UnM49ByAlpha2Code.PA, "es", "América Latina y el Caribe" };
-                    yield return new object[] { UnM49ByAlpha2Code.PA, "ar", "أمريكا اللاتينية ومنطقة البحر الكاريبي" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.PA, "en", "Latin America and the Caribbean" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.PA, "zh", "拉丁美洲和加勒比" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.PA, "ru", "Латинская Америка и Карибский бассейн" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.PA, "fr", "Amérique latine et Caraïbes" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.PA, "es", "América Latina y el Caribe" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.PA, "ar", "أمريكا اللاتينية ومنطقة البحر الكاريبي" };
                 }
             }
         }
@@ -508,7 +508,7 @@ namespace DataStandardizer.UNM49.Tests
 
         [Theory]
         [MemberData(nameof(GetSubRegionName_WithM49CodeByAlpha3Code_TestCaseGenerator.TestCases), MemberType = typeof(GetSubRegionName_WithM49CodeByAlpha3Code_TestCaseGenerator))]
-        public void GetSubRegionName_WithM49CodeByAlpha3Code_ReturnsSubRegionName(UnM49ByAlpha3Code testCode, string languageCode, string expectedResult)
+        public void GetSubRegionName_WithM49CodeByAlpha3Code_ReturnsSubRegionName(UnM49AreaByAlpha3CountryCode testCode, string languageCode, string expectedResult)
         {
             // act
             var testResult = testCode.GetSubRegionName(languageCode);
@@ -523,12 +523,12 @@ namespace DataStandardizer.UNM49.Tests
             {
                 get
                 {
-                    yield return new object[] { UnM49ByAlpha2Code.PA, "en", "Latin America and the Caribbean" };
-                    yield return new object[] { UnM49ByAlpha2Code.PA, "zh", "拉丁美洲和加勒比" };
-                    yield return new object[] { UnM49ByAlpha2Code.PA, "ru", "Латинская Америка и Карибский бассейн" };
-                    yield return new object[] { UnM49ByAlpha2Code.PA, "fr", "Amérique latine et Caraïbes" };
-                    yield return new object[] { UnM49ByAlpha2Code.PA, "es", "América Latina y el Caribe" };
-                    yield return new object[] { UnM49ByAlpha2Code.PA, "ar", "أمريكا اللاتينية ومنطقة البحر الكاريبي" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.PA, "en", "Latin America and the Caribbean" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.PA, "zh", "拉丁美洲和加勒比" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.PA, "ru", "Латинская Америка и Карибский бассейн" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.PA, "fr", "Amérique latine et Caraïbes" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.PA, "es", "América Latina y el Caribe" };
+                    yield return new object[] { UnM49AreaByAlpha2CountryCode.PA, "ar", "أمريكا اللاتينية ومنطقة البحر الكاريبي" };
                 }
             }
         }

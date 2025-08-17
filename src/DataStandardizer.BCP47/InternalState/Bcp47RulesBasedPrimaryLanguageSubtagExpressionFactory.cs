@@ -9,7 +9,7 @@ namespace DataStandardizer.BCP47.InternalState
     internal class Bcp47RulesBasedPrimaryLanguageSubtagExpressionFactory : IBcp47ExpressionFactory
     {
         private static readonly RegexOptions ExpressionOptions;
-        internal static readonly string Pattern;
+        internal static readonly string pattern;
 
         static Bcp47RulesBasedPrimaryLanguageSubtagExpressionFactory()
         {
@@ -18,32 +18,32 @@ namespace DataStandardizer.BCP47.InternalState
             ExpressionOptions |= RegexOptions.Compiled;
 #endif
 
-            Pattern = ComposePattern();
+            pattern = ComposePattern();
         }
 
         public Regex Create()
         {
-            return new Regex($"^{Pattern}$", ExpressionOptions);
+            return new Regex($"^{pattern}$", ExpressionOptions);
         }
 
         public string GetPattern()
         {
-            return Pattern;
+            return pattern;
         }
 
         private static string ComposePattern()
         {
             // Include alpha-2 codes from ISO 639-1:2002 (ref. RFC 5646 §2.2.1¶1)
-            var iso639Part1Names = StringEnum.GetNames<Iso639Part1>();
+            var iso639Part1Names = StringEnum.GetNames<Iso639Part1Language>();
 
             // Include alpha-3 codes from ISO 639-2:1998 (ref. RFC 5646 §2.2.1¶2A)
-            var iso639Part2Names = StringEnum.GetNames<Iso639Part2T>();
+            var iso639Part2Names = StringEnum.GetNames<Iso639Part2TLanguage>();
 
             // Include alpha-3 codes from ISO 639-3:2007 (ref. RFC 5646 §2.2.1¶2B)
-            var iso639Part3Names = StringEnum.GetNames<Iso639Part3>();
+            var iso639Part3Names = StringEnum.GetNames<Iso639Part3Language>();
 
             // Include alpha-3 codes from ISO 639-5:2008 (ref. RFC 5646 §2.2.1¶2C)
-            var iso639Part5Names = StringEnum.GetNames<Iso639Part5>();
+            var iso639Part5Names = StringEnum.GetNames<Iso639Part5LanguageFamily>();
 
             // Include alpha-3 codes reserved for local use (ref. RFC 5646 §2.2.1¶3)
             var iso639Part2ReservedNames = new List<string>();

@@ -7,6 +7,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
+using System;
 #if NETCOREAPP3_0_OR_GREATER
 #nullable enable
 #endif
@@ -15,11 +16,12 @@ namespace DataStandardizer.ISO3166
 {
     using System.Linq;
     using System.Reflection;
-    
-    
+
+
     /// <summary>
     /// Codes for the representation of names of countries and their subdivisions – Part 2: Country subdivision code
     /// </summary>
+    [Obsolete("It is recommended to use the " + nameof(Iso3166Part2Subdivision) + " type instead.  Refer to Bulletin 202508-01 (https://github.com/matthew25187/DataStandardizer/discussions/17) for more information.")]
     public readonly partial struct Iso3166Part2 : System.IComparable, System.IEquatable<DataStandardizer.ISO3166.Iso3166Part2>
 #if NETSTANDARD1_3_OR_GREATER||NET
 , System.IConvertible

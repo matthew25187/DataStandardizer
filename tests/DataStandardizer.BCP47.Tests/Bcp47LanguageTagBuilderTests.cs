@@ -39,7 +39,7 @@ public class Bcp47LanguageTagBuilderTests
     public void UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsNotInitialisedInstanceOfIso639Part1_ThrowsArgumentException()
     {
         // arrange
-        var testValue = new Iso639Part1();
+        var testValue = new Iso639Part1Language();
         var builder = new Bcp47LanguageTagBuilder();
 
         // act
@@ -60,7 +60,7 @@ public class Bcp47LanguageTagBuilderTests
     public void UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsNotDefinedMemberOfIso639Part1_ThrowsArgumentException()
     {
         // arrange
-        var testValue = (Iso639Part1)"test";
+        var testValue = (Iso639Part1Language)"test";
         var builder = new Bcp47LanguageTagBuilder();
 
         // act
@@ -68,7 +68,7 @@ public class Bcp47LanguageTagBuilderTests
 
         // assert
         testAction.Should()
-            .Throw<ArgumentException>("the code must be a member of {0}", nameof(Iso639Part1))
+            .Throw<ArgumentException>("the code must be a member of {0}", nameof(Iso639Part1Language))
             .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SpecifiedCodeUndefinedTemplate + "*", "ISO 639-1", testValue))
             .WithParameterName("primaryLanguageSubtag");
     }
@@ -81,7 +81,7 @@ public class Bcp47LanguageTagBuilderTests
     public void UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsNotInitialisedInstanceOfIso639Part2T_ThrowsArgumentException()
     {
         // arrange
-        var testValue = new Iso639Part2T();
+        var testValue = new Iso639Part2TLanguage();
         var builder = new Bcp47LanguageTagBuilder();
 
         // act
@@ -102,7 +102,7 @@ public class Bcp47LanguageTagBuilderTests
     public void UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsNotDefinedMemberOfIso639Part2T_ThrowsArgumentException()
     {
         // arrange
-        var testValue = (Iso639Part2T)"test";
+        var testValue = (Iso639Part2TLanguage)"test";
         var builder = new Bcp47LanguageTagBuilder();
 
         // act
@@ -110,7 +110,7 @@ public class Bcp47LanguageTagBuilderTests
 
         // assert
         testAction.Should()
-            .Throw<ArgumentException>("the code must be a member of {0}", nameof(Iso639Part2T))
+            .Throw<ArgumentException>("the code must be a member of {0}", nameof(Iso639Part2TLanguage))
             .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SpecifiedCodeUndefinedTemplate + "*", "ISO 639-2T", testValue))
             .WithParameterName("primaryLanguageSubtag");
     }
@@ -123,7 +123,7 @@ public class Bcp47LanguageTagBuilderTests
     public void UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsNotInitialisedInstanceOfIso639Part3_ThrowsArgumentException()
     {
         // arrange
-        var testValue = new Iso639Part3();
+        var testValue = new Iso639Part3Language();
         var builder = new Bcp47LanguageTagBuilder();
 
         // act
@@ -144,7 +144,7 @@ public class Bcp47LanguageTagBuilderTests
     public void UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsNotDefinedMemberOfIso639Part3_ThrowsArgumentException()
     {
         // arrange
-        var testValue = (Iso639Part3)"test";
+        var testValue = (Iso639Part3Language)"test";
         var builder = new Bcp47LanguageTagBuilder();
 
         // act
@@ -152,7 +152,7 @@ public class Bcp47LanguageTagBuilderTests
 
         // assert
         testAction.Should()
-            .Throw<ArgumentException>("the code must be a member of {0}", nameof(Iso639Part3))
+            .Throw<ArgumentException>("the code must be a member of {0}", nameof(Iso639Part3Language))
             .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SpecifiedCodeUndefinedTemplate + "*", "ISO 639-3", testValue))
             .WithParameterName("primaryLanguageSubtag");
     }
@@ -165,7 +165,7 @@ public class Bcp47LanguageTagBuilderTests
     public void UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsNotInitialisedInstanceOfIso639Part5_ThrowsArgumentException()
     {
         // arrange
-        var testValue = new Iso639Part5();
+        var testValue = new Iso639Part5LanguageFamily();
         var builder = new Bcp47LanguageTagBuilder();
 
         // act
@@ -186,7 +186,7 @@ public class Bcp47LanguageTagBuilderTests
     public void UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsNotDefinedMemberOfIso639Part5_ThrowsArgumentException()
     {
         // arrange
-        var testValue = (Iso639Part5)"test";
+        var testValue = (Iso639Part5LanguageFamily)"test";
         var builder = new Bcp47LanguageTagBuilder();
 
         // act
@@ -194,7 +194,7 @@ public class Bcp47LanguageTagBuilderTests
 
         // assert
         testAction.Should()
-            .Throw<ArgumentException>("the code must be a member of {0}", nameof(Iso639Part5))
+            .Throw<ArgumentException>("the code must be a member of {0}", nameof(Iso639Part5LanguageFamily))
             .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SpecifiedCodeUndefinedTemplate + "*", "ISO 639-5", testValue))
             .WithParameterName("primaryLanguageSubtag");
     }
@@ -378,7 +378,7 @@ public class Bcp47LanguageTagBuilderTests
     public void UsingScriptSubtag_WhenScriptSubtagIsNotDefinedMemberOfIso15924_ThrowsArgumentException()
     {
         // arrange
-        var testValue = (Iso15924)0;
+        var testValue = (Iso15924Script)0;
         var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
 
         // act
@@ -386,7 +386,7 @@ public class Bcp47LanguageTagBuilderTests
 
         // assert
         testAction.Should()
-            .Throw<ArgumentException>("the code must be a member of {0}", nameof(Iso15924))
+            .Throw<ArgumentException>("the code must be a member of {0}", nameof(Iso15924Script))
             .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SpecifiedCodeUndefinedTemplate + "*", "ISO 15924", testValue))
             .WithParameterName("scriptSubtag");
     }
@@ -439,7 +439,7 @@ public class Bcp47LanguageTagBuilderTests
     public void UsingRegionSubtag_WhenRegionSubtagIsNotDefinedMemberOfIso3166Part1Alpha2_ThrowsArgumentException()
     {
         // arrange
-        var testValue = (Iso3166Part1Alpha2)0;
+        var testValue = (Iso3166Part1Alpha2Country)0;
         var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
 
         // act
@@ -447,7 +447,7 @@ public class Bcp47LanguageTagBuilderTests
 
         // assert
         testAction.Should()
-            .Throw<ArgumentException>("the code must be a member of {0}", nameof(Iso3166Part1Alpha2))
+            .Throw<ArgumentException>("the code must be a member of {0}", nameof(Iso3166Part1Alpha2Country))
             .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SpecifiedCodeUndefinedTemplate + "*", "ISO 3166-1 Alpha-2", testValue))
             .WithParameterName("regionSubtag");
     }
@@ -460,7 +460,7 @@ public class Bcp47LanguageTagBuilderTests
     public void UsingRegionSubtag_WhenRegionSubtagIsNotDefinedMemberOfUnM49ByAlpha2Code_ThrowsArgumentException()
     {
         // arrange
-        var testValue = (UnM49ByAlpha2Code)0;
+        var testValue = (UnM49AreaByAlpha2CountryCode)0;
         var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
 
         // act
@@ -468,7 +468,7 @@ public class Bcp47LanguageTagBuilderTests
 
         // assert
         testAction.Should()
-            .Throw<ArgumentException>("the code must be a member of {0}", nameof(UnM49ByAlpha2Code))
+            .Throw<ArgumentException>("the code must be a member of {0}", nameof(UnM49AreaByAlpha2CountryCode))
             .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SpecifiedCodeUndefinedTemplate + "*", "UN M49", ((ushort)testValue).ToString("000")))
             .WithParameterName("regionSubtag");
     }
@@ -481,7 +481,7 @@ public class Bcp47LanguageTagBuilderTests
     public void UsingRegionSubtag_WhenRegionSubtagIsNotDefinedMemberOfUnM49ByAlpha3Code_ThrowsArgumentException()
     {
         // arrange
-        var testValue = (UnM49ByAlpha3Code)0;
+        var testValue = (UnM49AreaByAlpha3CountryCode)0;
         var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
 
         // act

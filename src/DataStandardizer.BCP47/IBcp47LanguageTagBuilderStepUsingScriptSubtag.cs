@@ -16,10 +16,10 @@ namespace DataStandardizer.BCP47
         /// <param name="scriptSubtag">ISO 15924 code to use for the Script subtag.</param>
         /// <returns>Language tag builder.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        IBcp47LanguageTagBuilderStepUsingScriptSubtagNext UsingScriptSubtag(Iso15924 scriptSubtag); 
+        IBcp47LanguageTagBuilderStepUsingScriptSubtagNext UsingScriptSubtag(Iso15924Script scriptSubtag); 
 #else
         [NotNull]
-        IBcp47LanguageTagBuilderStepUsingScriptSubtagNext UsingScriptSubtag(Iso15924 scriptSubtag); 
+        IBcp47LanguageTagBuilderStepUsingScriptSubtagNext UsingScriptSubtag(Iso15924Script scriptSubtag); 
 #endif
 
         /// <summary>
