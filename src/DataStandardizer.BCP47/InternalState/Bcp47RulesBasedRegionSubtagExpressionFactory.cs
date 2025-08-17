@@ -10,7 +10,7 @@ namespace DataStandardizer.BCP47.InternalState
     internal class Bcp47RulesBasedRegionSubtagExpressionFactory : IBcp47ExpressionFactory
     {
         private static readonly RegexOptions ExpressionOptions;
-        internal static readonly string Pattern;
+        internal static readonly string pattern;
 
         static Bcp47RulesBasedRegionSubtagExpressionFactory()
         {
@@ -19,23 +19,23 @@ namespace DataStandardizer.BCP47.InternalState
             ExpressionOptions |= RegexOptions.Compiled;
 #endif
 
-            Pattern = ComposePattern();
+            pattern = ComposePattern();
         }
 
         public Regex Create()
         {
-            return new Regex($"^{Pattern}$", ExpressionOptions);
+            return new Regex($"^{pattern}$", ExpressionOptions);
         }
 
         public string GetPattern()
         {
-            return Pattern;
+            return pattern;
         }
 
         private static string ComposePattern()
         {
             // Include alpha-2 codes from ISO 3166-1 (ref. RFC 5646 §2.2.4¶2)
-            var iso3166Part1Codes = Enum.GetNames(typeof(Iso3166Part1Alpha2));
+            var iso3166Part1Codes = Enum.GetNames(typeof(Iso3166Part1Alpha2Country));
 
             // Include reserved subtags (ref. RFC 5646 §2.2.4¶3)
             var iso3166QReservedCodes = new List<string>();
@@ -55,17 +55,17 @@ namespace DataStandardizer.BCP47.InternalState
             iso3166ReservedCodes.InsertRange(1, iso3166QReservedCodes);
 
             // Include digit-3 region codes from UN M.49 (ref. RFC 5646 §2.2.4¶4A)
-            var globalCodes = Enum.GetValues(typeof(UnM49ByAlpha2Code)).Cast<UnM49ByAlpha2Code>().Select(code => code.GetGlobalCode()).Where(code => code.HasValue).Cast<ushort>();
-            var regionCodes = Enum.GetValues(typeof(UnM49ByAlpha2Code)).Cast<UnM49ByAlpha2Code>().Select(code => code.GetRegionCode()).Where(code => code.HasValue).Cast<ushort>();
-            var subRegionCodes = Enum.GetValues(typeof(UnM49ByAlpha2Code)).Cast<UnM49ByAlpha2Code>().Select(code => code.GetSubRegionCode()).Where(code => code.HasValue).Cast<ushort>();
-            var intermediateRegionCodes = Enum.GetValues(typeof(UnM49ByAlpha2Code)).Cast<UnM49ByAlpha2Code>().Select(code => code.GetIntermediateRegionCode()).Where(code => code.HasValue).Cast<ushort>();
+            var globalCodes = Enum.GetValues(typeof(UnM49AreaByAlpha2CountryCode)).Cast<UnM49AreaByAlpha2CountryCode>().Select(code => code.GetGlobalCode()).Where(code => code.HasValue).Cast<ushort>();
+            var regionCodes = Enum.GetValues(typeof(UnM49AreaByAlpha2CountryCode)).Cast<UnM49AreaByAlpha2CountryCode>().Select(code => code.GetRegionCode()).Where(code => code.HasValue).Cast<ushort>();
+            var subRegionCodes = Enum.GetValues(typeof(UnM49AreaByAlpha2CountryCode)).Cast<UnM49AreaByAlpha2CountryCode>().Select(code => code.GetSubRegionCode()).Where(code => code.HasValue).Cast<ushort>();
+            var intermediateRegionCodes = Enum.GetValues(typeof(UnM49AreaByAlpha2CountryCode)).Cast<UnM49AreaByAlpha2CountryCode>().Select(code => code.GetIntermediateRegionCode()).Where(code => code.HasValue).Cast<ushort>();
             var numericRegionSubtags = globalCodes.Union(regionCodes).Union(subRegionCodes).Union(intermediateRegionCodes).Select(code => $"{code:000}");
 
             // Include Channel Islands code (ref. RFC 5646 §2.2.4¶4E)
-            UnM49ByAlpha2Code? channelIslandsSubtag = null;
-            if (!Enum.GetValues(typeof(UnM49ByAlpha2Code)).Cast<ushort>().Contains<ushort>(830))
+            UnM49AreaByAlpha2CountryCode? channelIslandsSubtag = null;
+            if (!Enum.GetValues(typeof(UnM49AreaByAlpha2CountryCode)).Cast<ushort>().Contains<ushort>(830))
             {
-                channelIslandsSubtag = (UnM49ByAlpha2Code?)Enum.ToObject(typeof(UnM49ByAlpha2Code), 830);
+                channelIslandsSubtag = (UnM49AreaByAlpha2CountryCode?)Enum.ToObject(typeof(UnM49AreaByAlpha2CountryCode), 830);
             }
 
             return string.Concat("(?:", string.Join("|", iso3166Part1Codes.Concat(iso3166ReservedCodes).Concat(numericRegionSubtags).Select(Regex.Escape)), channelIslandsSubtag.HasValue ? $"|{(ushort)channelIslandsSubtag.Value}" : string.Empty, ")");

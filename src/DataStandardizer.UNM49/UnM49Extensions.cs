@@ -27,7 +27,7 @@ namespace DataStandardizer.UNM49
             if (!enumType.GetTypeInfo().IsEnum)
                 throw new ArgumentException($"{nameof(enumType)} is not an {nameof(Enum)}.", nameof(enumType));
 
-            var codeAttributes = enumType.GetTypeInfo().DeclaredFields.Select(field => field.GetCustomAttribute<UnM49CodeAttribute>()).Where(attribute => attribute != null).ToArray();
+            var codeAttributes = enumType.GetTypeInfo().DeclaredFields.Select(field => field.GetCustomAttribute<UnM49AreaCodeAttribute>()).Where(attribute => attribute != null).ToArray();
             var globalCodes = codeAttributes.Select(attribute => attribute?.GlobalCode).Where(code => code.HasValue).Cast<ushort>();
             var regionCodes = codeAttributes.Select(attribute => attribute?.RegionCode).Where(code => code.HasValue).Cast<ushort>();
             var subRegionCodes = codeAttributes.Select(attribute => attribute?.SubRegionCode).Where(code => code.HasValue).Cast<ushort>();
@@ -47,11 +47,11 @@ namespace DataStandardizer.UNM49
         }
 
         /// <summary>
-        /// Get the global code related to a <see cref="UnM49ByAlpha2Code"/> code.
+        /// Get the global code related to a <see cref="UnM49AreaByAlpha2CountryCode"/> code.
         /// </summary>
         /// <param name="m49Code">UN M49 code.</param>
         /// <returns>Global code for the M49 code, if found; otherwise <c>null</c>.</returns>
-        public static ushort? GetGlobalCode(this UnM49ByAlpha2Code m49Code)
+        public static ushort? GetGlobalCode(this UnM49AreaByAlpha2CountryCode m49Code)
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
             {
@@ -62,11 +62,11 @@ namespace DataStandardizer.UNM49
         }
 
         /// <summary>
-        /// Get the global code related to a <see cref="UnM49ByAlpha3Code"/> code.
+        /// Get the global code related to a <see cref="UnM49AreaByAlpha3CountryCode"/> code.
         /// </summary>
         /// <param name="m49Code">UN M49 code.</param>
         /// <returns>Global code for the M49 code, if found; otherwise <c>null</c>.</returns>
-        public static ushort? GetGlobalCode(this UnM49ByAlpha3Code m49Code)
+        public static ushort? GetGlobalCode(this UnM49AreaByAlpha3CountryCode m49Code)
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
             {
@@ -77,16 +77,16 @@ namespace DataStandardizer.UNM49
         }
 
         /// <summary>
-        /// Get the name for the global code related to a <see cref="UnM49ByAlpha2Code"/> code.
+        /// Get the name for the global code related to a <see cref="UnM49AreaByAlpha2CountryCode"/> code.
         /// </summary>
         /// <param name="m49Code">UN M49 code.</param>
         /// <param name="languageCode">ISO 639 language code for the language of the name.</param>
-        /// <returns>Global name for the <see cref="UnM49ByAlpha2Code"/> code, if found; otherwise <c>null</c>.</returns>
+        /// <returns>Global name for the <see cref="UnM49AreaByAlpha2CountryCode"/> code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetGlobalName(this UnM49ByAlpha2Code m49Code, string languageCode)
+        public static string? GetGlobalName(this UnM49AreaByAlpha2CountryCode m49Code, string languageCode)
 #else
         [CanBeNull]
-        public static string GetGlobalName(this UnM49ByAlpha2Code m49Code, [NotNull] string languageCode)
+        public static string GetGlobalName(this UnM49AreaByAlpha2CountryCode m49Code, [NotNull] string languageCode)
 #endif
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
@@ -98,16 +98,16 @@ namespace DataStandardizer.UNM49
         }
 
         /// <summary>
-        /// Get the name for the global code related to a <see cref="UnM49ByAlpha3Code"/> code.
+        /// Get the name for the global code related to a <see cref="UnM49AreaByAlpha3CountryCode"/> code.
         /// </summary>
         /// <param name="m49Code">UN M49 code.</param>
         /// <param name="languageCode">ISO 639 language code for the language of the name.</param>
         /// <returns>Global name for the M49 code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetGlobalName(this UnM49ByAlpha3Code m49Code, string languageCode)
+        public static string? GetGlobalName(this UnM49AreaByAlpha3CountryCode m49Code, string languageCode)
 #else
         [CanBeNull]
-        public static string GetGlobalName(this UnM49ByAlpha3Code m49Code, [NotNull] string languageCode)
+        public static string GetGlobalName(this UnM49AreaByAlpha3CountryCode m49Code, [NotNull] string languageCode)
 #endif
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
@@ -119,11 +119,11 @@ namespace DataStandardizer.UNM49
         }
 
         /// <summary>
-        /// Get the region code related to a <see cref="UnM49ByAlpha2Code"/> code.
+        /// Get the region code related to a <see cref="UnM49AreaByAlpha2CountryCode"/> code.
         /// </summary>
         /// <param name="m49Code">UN M49 code.</param>
         /// <returns>Region code for the M49 code, if found; otherwise <c>null</c>.</returns>
-        public static ushort? GetRegionCode(this UnM49ByAlpha2Code m49Code)
+        public static ushort? GetRegionCode(this UnM49AreaByAlpha2CountryCode m49Code)
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
             {
@@ -134,11 +134,11 @@ namespace DataStandardizer.UNM49
         }
 
         /// <summary>
-        /// Get the region code related to a <see cref="UnM49ByAlpha3Code"/> code.
+        /// Get the region code related to a <see cref="UnM49AreaByAlpha3CountryCode"/> code.
         /// </summary>
         /// <param name="m49Code">UN M49 code.</param>
         /// <returns>Region code for the M49 code, if found; otherwise <c>null</c>.</returns>
-        public static ushort? GetRegionCode(this UnM49ByAlpha3Code m49Code)
+        public static ushort? GetRegionCode(this UnM49AreaByAlpha3CountryCode m49Code)
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
             {
@@ -149,16 +149,16 @@ namespace DataStandardizer.UNM49
         }
 
         /// <summary>
-        /// Get the name for the region code related to a <see cref="UnM49ByAlpha2Code"/> code.
+        /// Get the name for the region code related to a <see cref="UnM49AreaByAlpha2CountryCode"/> code.
         /// </summary>
         /// <param name="m49Code">UN M49 code.</param>
         /// <param name="languageCode">ISO 639 language code for the language of the name.</param>
         /// <returns>Region name for the M49 code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetRegionName(this UnM49ByAlpha2Code m49Code, string languageCode)
+        public static string? GetRegionName(this UnM49AreaByAlpha2CountryCode m49Code, string languageCode)
 #else
         [CanBeNull]
-        public static string GetRegionName(this UnM49ByAlpha2Code m49Code, [NotNull] string languageCode)
+        public static string GetRegionName(this UnM49AreaByAlpha2CountryCode m49Code, [NotNull] string languageCode)
 #endif
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
@@ -170,16 +170,16 @@ namespace DataStandardizer.UNM49
         }
 
         /// <summary>
-        /// Get the name for the region code related to a <see cref="UnM49ByAlpha3Code"/> code.
+        /// Get the name for the region code related to a <see cref="UnM49AreaByAlpha3CountryCode"/> code.
         /// </summary>
         /// <param name="m49Code">UN M49 code.</param>
         /// <param name="languageCode">ISO 639 language code for the language of the name.</param>
         /// <returns>Region name for the M49 code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetRegionName(this UnM49ByAlpha3Code m49Code, string languageCode)
+        public static string? GetRegionName(this UnM49AreaByAlpha3CountryCode m49Code, string languageCode)
 #else
         [CanBeNull]
-        public static string GetRegionName(this UnM49ByAlpha3Code m49Code, [NotNull] string languageCode)
+        public static string GetRegionName(this UnM49AreaByAlpha3CountryCode m49Code, [NotNull] string languageCode)
 #endif
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
@@ -191,11 +191,11 @@ namespace DataStandardizer.UNM49
         }
 
         /// <summary>
-        /// Get the sub-region code related to a <see cref="UnM49ByAlpha2Code"/> code.
+        /// Get the sub-region code related to a <see cref="UnM49AreaByAlpha2CountryCode"/> code.
         /// </summary>
         /// <param name="m49Code">UN M49 code.</param>
         /// <returns>Sub-region code for the M49 code, if found; otherwise <c>null</c>.</returns>
-        public static ushort? GetSubRegionCode(this UnM49ByAlpha2Code m49Code)
+        public static ushort? GetSubRegionCode(this UnM49AreaByAlpha2CountryCode m49Code)
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
             {
@@ -206,11 +206,11 @@ namespace DataStandardizer.UNM49
         }
 
         /// <summary>
-        /// Get the sub-region code related to a <see cref="UnM49ByAlpha3Code"/> code.
+        /// Get the sub-region code related to a <see cref="UnM49AreaByAlpha3CountryCode"/> code.
         /// </summary>
         /// <param name="m49Code">UN M49 code.</param>
         /// <returns>Sub-region code for the M49 code, if found; otherwise <c>null</c>.</returns>
-        public static ushort? GetSubRegionCode(this UnM49ByAlpha3Code m49Code)
+        public static ushort? GetSubRegionCode(this UnM49AreaByAlpha3CountryCode m49Code)
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
             {
@@ -221,16 +221,16 @@ namespace DataStandardizer.UNM49
         }
 
         /// <summary>
-        /// Get the name for the sub-region code related to a <see cref="UnM49ByAlpha2Code"/> code.
+        /// Get the name for the sub-region code related to a <see cref="UnM49AreaByAlpha2CountryCode"/> code.
         /// </summary>
         /// <param name="m49Code">UN M49 code.</param>
         /// <param name="languageCode">ISO 639 language code for the language of the name.</param>
         /// <returns>Sub-region name for the M49 code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetSubRegionName(this UnM49ByAlpha2Code m49Code, string languageCode)
+        public static string? GetSubRegionName(this UnM49AreaByAlpha2CountryCode m49Code, string languageCode)
 #else
         [CanBeNull]
-        public static string GetSubRegionName(this UnM49ByAlpha2Code m49Code, [NotNull] string languageCode)
+        public static string GetSubRegionName(this UnM49AreaByAlpha2CountryCode m49Code, [NotNull] string languageCode)
 #endif
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
@@ -242,16 +242,16 @@ namespace DataStandardizer.UNM49
         }
 
         /// <summary>
-        /// Get the name for the sub-region code related to a <see cref="UnM49ByAlpha3Code"/> code.
+        /// Get the name for the sub-region code related to a <see cref="UnM49AreaByAlpha3CountryCode"/> code.
         /// </summary>
         /// <param name="m49Code">UN M49 code.</param>
         /// <param name="languageCode">ISO 639 language code for the language of the name.</param>
         /// <returns>Sub-region name for the M49 code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetSubRegionName(this UnM49ByAlpha3Code m49Code, string languageCode)
+        public static string? GetSubRegionName(this UnM49AreaByAlpha3CountryCode m49Code, string languageCode)
 #else
         [CanBeNull]
-        public static string GetSubRegionName(this UnM49ByAlpha3Code m49Code, [NotNull] string languageCode)
+        public static string GetSubRegionName(this UnM49AreaByAlpha3CountryCode m49Code, [NotNull] string languageCode)
 #endif
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
@@ -263,11 +263,11 @@ namespace DataStandardizer.UNM49
         }
 
         /// <summary>
-        /// Get the intermediate region code related to a <see cref="UnM49ByAlpha2Code"/> code.
+        /// Get the intermediate region code related to a <see cref="UnM49AreaByAlpha2CountryCode"/> code.
         /// </summary>
         /// <param name="m49Code">UN M49 code.</param>
         /// <returns>Intermediate region code for the M49 code, if found; otherwise <c>null</c>.</returns>
-        public static ushort? GetIntermediateRegionCode(this UnM49ByAlpha2Code m49Code)
+        public static ushort? GetIntermediateRegionCode(this UnM49AreaByAlpha2CountryCode m49Code)
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
             {
@@ -278,11 +278,11 @@ namespace DataStandardizer.UNM49
         }
 
         /// <summary>
-        /// Get the intermediate region code related to a <see cref="UnM49ByAlpha3Code"/> code.
+        /// Get the intermediate region code related to a <see cref="UnM49AreaByAlpha3CountryCode"/> code.
         /// </summary>
         /// <param name="m49Code">UN M49 code.</param>
         /// <returns>Intermediate region code for the M49 code, if found; otherwise <c>null</c>.</returns>
-        public static ushort? GetIntermediateRegionCode(this UnM49ByAlpha3Code m49Code)
+        public static ushort? GetIntermediateRegionCode(this UnM49AreaByAlpha3CountryCode m49Code)
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
             {
@@ -293,16 +293,16 @@ namespace DataStandardizer.UNM49
         }
 
         /// <summary>
-        /// Get the name for the intermediate region code related to a <see cref="UnM49ByAlpha2Code"/> code.
+        /// Get the name for the intermediate region code related to a <see cref="UnM49AreaByAlpha2CountryCode"/> code.
         /// </summary>
         /// <param name="m49Code">UN M49 code.</param>
         /// <param name="languageCode">ISO 639 language code for the language of the name.</param>
         /// <returns>Intermediate region name for the M49 code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetIntermediateRegionName(this UnM49ByAlpha2Code m49Code, string languageCode)
+        public static string? GetIntermediateRegionName(this UnM49AreaByAlpha2CountryCode m49Code, string languageCode)
 #else
         [CanBeNull]
-        public static string GetIntermediateRegionName(this UnM49ByAlpha2Code m49Code, [NotNull] string languageCode)
+        public static string GetIntermediateRegionName(this UnM49AreaByAlpha2CountryCode m49Code, [NotNull] string languageCode)
 #endif
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
@@ -314,16 +314,16 @@ namespace DataStandardizer.UNM49
         }
 
         /// <summary>
-        /// Get the name for the intermediate region code related to a <see cref="UnM49ByAlpha3Code"/> code.
+        /// Get the name for the intermediate region code related to a <see cref="UnM49AreaByAlpha3CountryCode"/> code.
         /// </summary>
         /// <param name="m49Code">UN M49 code.</param>
         /// <param name="languageCode">ISO 639 language code for the language of the name.</param>
         /// <returns>Intermediate region name for the M49 code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetIntermediateRegionName(this UnM49ByAlpha3Code m49Code, string languageCode)
+        public static string? GetIntermediateRegionName(this UnM49AreaByAlpha3CountryCode m49Code, string languageCode)
 #else
         [CanBeNull]
-        public static string GetIntermediateRegionName(this UnM49ByAlpha3Code m49Code, [NotNull] string languageCode)
+        public static string GetIntermediateRegionName(this UnM49AreaByAlpha3CountryCode m49Code, [NotNull] string languageCode)
 #endif
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
@@ -341,10 +341,10 @@ namespace DataStandardizer.UNM49
         /// <param name="languageCode">ISO 639 language code for the language of the name.</param>
         /// <returns>Country or area name for the M49 code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetCountryOrAreaName(this UnM49ByAlpha2Code m49Code, string languageCode)
+        public static string? GetCountryOrAreaName(this UnM49AreaByAlpha2CountryCode m49Code, string languageCode)
 #else
         [CanBeNull]
-        public static string GetCountryOrAreaName(this UnM49ByAlpha2Code m49Code, [NotNull] string languageCode)
+        public static string GetCountryOrAreaName(this UnM49AreaByAlpha2CountryCode m49Code, [NotNull] string languageCode)
 #endif
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
@@ -362,10 +362,10 @@ namespace DataStandardizer.UNM49
         /// <param name="languageCode">ISO 639 language code for the language of the name.</param>
         /// <returns>Country or area name for the M49 code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetCountryOrAreaName(this UnM49ByAlpha3Code m49Code, string languageCode)
+        public static string? GetCountryOrAreaName(this UnM49AreaByAlpha3CountryCode m49Code, string languageCode)
 #else
         [CanBeNull]
-        public static string GetCountryOrAreaName(this UnM49ByAlpha3Code m49Code, [NotNull] string languageCode)
+        public static string GetCountryOrAreaName(this UnM49AreaByAlpha3CountryCode m49Code, [NotNull] string languageCode)
 #endif
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
@@ -387,7 +387,7 @@ namespace DataStandardizer.UNM49
             where T : struct, Enum
         {
             var m49CodeName = Enum.GetName(m49Code.GetType(), m49Code);
-            var codeAttribute = m49Code.GetType().GetTypeInfo().GetDeclaredField(m49CodeName ?? string.Empty)?.GetCustomAttribute<UnM49CodeAttribute>();
+            var codeAttribute = m49Code.GetType().GetTypeInfo().GetDeclaredField(m49CodeName ?? string.Empty)?.GetCustomAttribute<UnM49AreaCodeAttribute>();
             switch (languageCode)
             {
                 case "en":
@@ -416,7 +416,7 @@ namespace DataStandardizer.UNM49
         private static ushort? DoGetGlobalCode<T>(T m49Code) where T : struct, Enum
         {
             var m49CodeName = Enum.GetName(m49Code.GetType(), m49Code);
-            var codeAttribute = m49Code.GetType().GetTypeInfo().GetDeclaredField(m49CodeName ?? string.Empty)?.GetCustomAttribute<UnM49CodeAttribute>();
+            var codeAttribute = m49Code.GetType().GetTypeInfo().GetDeclaredField(m49CodeName ?? string.Empty)?.GetCustomAttribute<UnM49AreaCodeAttribute>();
             return codeAttribute?.GlobalCode;
         }
 
@@ -429,7 +429,7 @@ namespace DataStandardizer.UNM49
             where T : struct, Enum
         {
             var m49CodeName = Enum.GetName(m49Code.GetType(), m49Code);
-            var codeAttribute = m49Code.GetType().GetTypeInfo().GetDeclaredField(m49CodeName ?? string.Empty)?.GetCustomAttribute<UnM49CodeAttribute>();
+            var codeAttribute = m49Code.GetType().GetTypeInfo().GetDeclaredField(m49CodeName ?? string.Empty)?.GetCustomAttribute<UnM49AreaCodeAttribute>();
             switch (languageCode)
             {
                 case "en":
@@ -458,7 +458,7 @@ namespace DataStandardizer.UNM49
         private static ushort? DoGetIntermediateRegionCode<T>(T m49Code) where T : struct, Enum
         {
             var m49CodeName = Enum.GetName(m49Code.GetType(), m49Code);
-            var codeAttribute = m49Code.GetType().GetTypeInfo().GetDeclaredField(m49CodeName ?? string.Empty)?.GetCustomAttribute<UnM49CodeAttribute>();
+            var codeAttribute = m49Code.GetType().GetTypeInfo().GetDeclaredField(m49CodeName ?? string.Empty)?.GetCustomAttribute<UnM49AreaCodeAttribute>();
             return codeAttribute?.IntermediateRegionCode;
         }
 
@@ -471,7 +471,7 @@ namespace DataStandardizer.UNM49
             where T : struct, Enum
         {
             var m49CodeName = Enum.GetName(m49Code.GetType(), m49Code);
-            var codeAttribute = m49Code.GetType().GetTypeInfo().GetDeclaredField(m49CodeName ?? string.Empty)?.GetCustomAttribute<UnM49CodeAttribute>();
+            var codeAttribute = m49Code.GetType().GetTypeInfo().GetDeclaredField(m49CodeName ?? string.Empty)?.GetCustomAttribute<UnM49AreaCodeAttribute>();
             switch (languageCode)
             {
                 case "en":
@@ -500,7 +500,7 @@ namespace DataStandardizer.UNM49
         private static ushort? DoGetRegionCode<T>(T m49Code) where T : struct, Enum
         {
             var m49CodeName = Enum.GetName(m49Code.GetType(), m49Code);
-            var codeAttribute = m49Code.GetType().GetTypeInfo().GetDeclaredField(m49CodeName ?? string.Empty)?.GetCustomAttribute<UnM49CodeAttribute>();
+            var codeAttribute = m49Code.GetType().GetTypeInfo().GetDeclaredField(m49CodeName ?? string.Empty)?.GetCustomAttribute<UnM49AreaCodeAttribute>();
             return codeAttribute?.RegionCode;
         }
 
@@ -513,7 +513,7 @@ namespace DataStandardizer.UNM49
             where T : struct, Enum
         {
             var m49CodeName = Enum.GetName(m49Code.GetType(), m49Code);
-            var codeAttribute = m49Code.GetType().GetTypeInfo().GetDeclaredField(m49CodeName ?? string.Empty)?.GetCustomAttribute<UnM49CodeAttribute>();
+            var codeAttribute = m49Code.GetType().GetTypeInfo().GetDeclaredField(m49CodeName ?? string.Empty)?.GetCustomAttribute<UnM49AreaCodeAttribute>();
             switch (languageCode)
             {
                 case "en":
@@ -542,7 +542,7 @@ namespace DataStandardizer.UNM49
         private static ushort? DoGetSubRegionCode<T>(T m49Code) where T : struct, Enum
         {
             var m49CodeName = Enum.GetName(m49Code.GetType(), m49Code);
-            var codeAttribute = m49Code.GetType().GetTypeInfo().GetDeclaredField(m49CodeName ?? string.Empty)?.GetCustomAttribute<UnM49CodeAttribute>();
+            var codeAttribute = m49Code.GetType().GetTypeInfo().GetDeclaredField(m49CodeName ?? string.Empty)?.GetCustomAttribute<UnM49AreaCodeAttribute>();
             return codeAttribute?.SubRegionCode;
         }
 
@@ -555,7 +555,7 @@ namespace DataStandardizer.UNM49
             where T : struct, Enum
         {
             var m49CodeName = Enum.GetName(m49Code.GetType(), m49Code);
-            var codeAttribute = m49Code.GetType().GetTypeInfo().GetDeclaredField(m49CodeName ?? string.Empty)?.GetCustomAttribute<UnM49CodeAttribute>();
+            var codeAttribute = m49Code.GetType().GetTypeInfo().GetDeclaredField(m49CodeName ?? string.Empty)?.GetCustomAttribute<UnM49AreaCodeAttribute>();
             switch (languageCode)
             {
                 case "en":

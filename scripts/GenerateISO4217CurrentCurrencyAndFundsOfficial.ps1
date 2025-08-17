@@ -187,7 +187,7 @@ function Out-SourceCode {
         if ($_.IsFundsCode) {
             $codeAttributeArguments += [System.CodeDom.CodeAttributeArgument]::new('IsFundsCode', [System.CodeDom.CodePrimitiveExpression]::new($_.IsFundsCode))
         }
-        $codeAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.ISO4217.Iso4217CodeAttribute', $codeAttributeArguments)
+        $codeAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.ISO4217.Iso4217CurrencyCodeAttribute', $codeAttributeArguments)
         [void]$enumField.CustomAttributes.Add($codeAttribute)
 
         $enumFieldOpenSummaryComment = [System.CodeDom.CodeCommentStatement]::new('<summary>', $true)

@@ -18,14 +18,14 @@ namespace DataStandardizer.ISO639
         /// <param name="languageCode">Language code.</param>
         /// <returns>English name of the language code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetEnglishName(this Iso639Part1 languageCode)
+        public static string? GetEnglishName(this Iso639Part1Language languageCode)
 #else
         [CanBeNull]
-        public static string GetEnglishName(this Iso639Part1 languageCode)
+        public static string GetEnglishName(this Iso639Part1Language languageCode)
 #endif
         {
             var memberField = GetMemberField(languageCode);
-            var codeAttribute = memberField?.GetCustomAttribute<Iso639CodeAttribute>();
+            var codeAttribute = memberField?.GetCustomAttribute<Iso639LanguageCodeAttribute>();
             return codeAttribute?.EnglishName;
         }
 
@@ -34,10 +34,10 @@ namespace DataStandardizer.ISO639
         /// </summary>
         /// <param name="languageCode">Language code.</param>
         /// <returns>Collection of English names, if found; otherwise <c>null</c>.</returns>
-        public static string[] GetEnglishNames(this Iso639Part1 languageCode)
+        public static string[] GetEnglishNames(this Iso639Part1Language languageCode)
         {
             var memberField = GetMemberField(languageCode);
-            var codeAttribute = memberField?.GetCustomAttribute<Iso639CodeAttribute>();
+            var codeAttribute = memberField?.GetCustomAttribute<Iso639LanguageCodeAttribute>();
 #if NETSTANDARD1_3_OR_GREATER||NET
             return codeAttribute?.EnglishNames ?? Array.Empty<string>();
 #else
@@ -51,14 +51,14 @@ namespace DataStandardizer.ISO639
         /// <param name="languageCode">Language code.</param>
         /// <returns>English name of the language code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetEnglishName(this Iso639Part2B languageCode)
+        public static string? GetEnglishName(this Iso639Part2BLanguage languageCode)
 #else
         [CanBeNull]
-        public static string GetEnglishName(this Iso639Part2B languageCode)
+        public static string GetEnglishName(this Iso639Part2BLanguage languageCode)
 #endif
         {
             var memberField = GetMemberField(languageCode);
-            var codeAttribute = memberField?.GetCustomAttribute<Iso639CodeAttribute>();
+            var codeAttribute = memberField?.GetCustomAttribute<Iso639LanguageCodeAttribute>();
             return codeAttribute?.EnglishName;
         }
 
@@ -67,10 +67,10 @@ namespace DataStandardizer.ISO639
         /// </summary>
         /// <param name="languageCode">Language codes.</param>
         /// <returns>Collection of English names, if found; otherwise <c>null</c>.</returns>
-        public static string[] GetEnglishNames(this Iso639Part2B languageCode)
+        public static string[] GetEnglishNames(this Iso639Part2BLanguage languageCode)
         {
             var memberField = GetMemberField(languageCode);
-            var codeAttribute = memberField?.GetCustomAttribute<Iso639CodeAttribute>();
+            var codeAttribute = memberField?.GetCustomAttribute<Iso639LanguageCodeAttribute>();
 #if NETSTANDARD1_3_OR_GREATER || NET
             return codeAttribute?.EnglishNames ?? Array.Empty<string>();
 #else
@@ -84,14 +84,14 @@ namespace DataStandardizer.ISO639
         /// <param name="languageCode">Language code.</param>
         /// <returns>English name of the language code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetEnglishName(this Iso639Part2T languageCode)
+        public static string? GetEnglishName(this Iso639Part2TLanguage languageCode)
 #else
         [CanBeNull]
-        public static string GetEnglishName(this Iso639Part2T languageCode)
+        public static string GetEnglishName(this Iso639Part2TLanguage languageCode)
 #endif
         {
             var memberField = GetMemberField(languageCode);
-            var codeAttribute = memberField?.GetCustomAttribute<Iso639CodeAttribute>();
+            var codeAttribute = memberField?.GetCustomAttribute<Iso639LanguageCodeAttribute>();
             return codeAttribute?.EnglishName;
         }
 
@@ -100,10 +100,10 @@ namespace DataStandardizer.ISO639
         /// </summary>
         /// <param name="languageCode">Language code.</param>
         /// <returns>Collection of English names, if found; otherwise <c>null</c>.</returns>
-        public static string[] GetEnglishNames(this Iso639Part2T languageCode)
+        public static string[] GetEnglishNames(this Iso639Part2TLanguage languageCode)
         {
             var memberField = GetMemberField(languageCode);
-            var codeAttribute = memberField?.GetCustomAttribute<Iso639CodeAttribute>();
+            var codeAttribute = memberField?.GetCustomAttribute<Iso639LanguageCodeAttribute>();
 #if NETSTANDARD1_3_OR_GREATER || NET
             return codeAttribute?.EnglishNames ?? Array.Empty<string>();
 #else
@@ -117,14 +117,14 @@ namespace DataStandardizer.ISO639
         /// <param name="languageCode">Language code.</param>
         /// <returns>English name of the language code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetEnglishName(this Iso639Part3 languageCode)
+        public static string? GetEnglishName(this Iso639Part3Language languageCode)
 #else
         [CanBeNull]
-        public static string GetEnglishName(this Iso639Part3 languageCode)
+        public static string GetEnglishName(this Iso639Part3Language languageCode)
 #endif
         {
             var memberField = GetMemberField(languageCode);
-            var codeAttribute = memberField?.GetCustomAttribute<Iso639CodeAttribute>();
+            var codeAttribute = memberField?.GetCustomAttribute<Iso639LanguageCodeAttribute>();
             return codeAttribute?.EnglishName;
         }
 
@@ -134,14 +134,14 @@ namespace DataStandardizer.ISO639
         /// <param name="languageCode">Language family code.</param>
         /// <returns>English name of the language family code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetEnglishName(this Iso639Part5 languageCode)
+        public static string? GetEnglishName(this Iso639Part5LanguageFamily languageCode)
 #else
         [CanBeNull]
-        public static string GetEnglishName(this Iso639Part5 languageCode)
+        public static string GetEnglishName(this Iso639Part5LanguageFamily languageCode)
 #endif
         {
             var memberField = GetMemberField(languageCode);
-            var codeAttribute = memberField?.GetCustomAttribute<Iso639CodeAttribute>();
+            var codeAttribute = memberField?.GetCustomAttribute<Iso639LanguageCodeAttribute>();
             return codeAttribute?.EnglishName;
         }
 
@@ -150,10 +150,10 @@ namespace DataStandardizer.ISO639
         /// </summary>
         /// <param name="languageCode">Language code.</param>
         /// <returns>Collection of English names, if found; otherwise <c>null</c>.</returns>
-        public static string[] GetEnglishNames(this Iso639Part5 languageCode)
+        public static string[] GetEnglishNames(this Iso639Part5LanguageFamily languageCode)
         {
             var memberField = GetMemberField(languageCode);
-            var codeAttribute = memberField?.GetCustomAttribute<Iso639CodeAttribute>();
+            var codeAttribute = memberField?.GetCustomAttribute<Iso639LanguageCodeAttribute>();
 #if NETSTANDARD1_3_OR_GREATER||NET
             return codeAttribute?.EnglishNames ?? Array.Empty<string>();
 #else
@@ -167,14 +167,14 @@ namespace DataStandardizer.ISO639
         /// <param name="languageCode">Language code.</param>
         /// <returns>French name of the language code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetFrenchName(this Iso639Part1 languageCode)
+        public static string? GetFrenchName(this Iso639Part1Language languageCode)
 #else
         [CanBeNull]
-        public static string GetFrenchName(this Iso639Part1 languageCode)
+        public static string GetFrenchName(this Iso639Part1Language languageCode)
 #endif
         {
             var memberField = GetMemberField(languageCode);
-            var codeAttribute = memberField?.GetCustomAttribute<Iso639CodeAttribute>();
+            var codeAttribute = memberField?.GetCustomAttribute<Iso639LanguageCodeAttribute>();
             return codeAttribute?.FrenchName;
         }
 
@@ -183,10 +183,10 @@ namespace DataStandardizer.ISO639
         /// </summary>
         /// <param name="languageCode">Language code.</param>
         /// <returns>Collection of French names, if found; otherwise <c>null</c>.</returns>
-        public static string[] GetFrenchNames(this Iso639Part1 languageCode)
+        public static string[] GetFrenchNames(this Iso639Part1Language languageCode)
         {
             var memberField = GetMemberField(languageCode);
-            var codeAttribute = memberField?.GetCustomAttribute<Iso639CodeAttribute>();
+            var codeAttribute = memberField?.GetCustomAttribute<Iso639LanguageCodeAttribute>();
 #if NETSTANDARD1_3_OR_GREATER||NET
             return codeAttribute?.FrenchNames ?? Array.Empty<string>();
 #else
@@ -200,14 +200,14 @@ namespace DataStandardizer.ISO639
         /// <param name="languageCode">Language code.</param>
         /// <returns>French name of the language code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetFrenchName(this Iso639Part2B languageCode)
+        public static string? GetFrenchName(this Iso639Part2BLanguage languageCode)
 #else
         [CanBeNull]
-        public static string GetFrenchName(this Iso639Part2B languageCode)
+        public static string GetFrenchName(this Iso639Part2BLanguage languageCode)
 #endif
         {
             var memberField = GetMemberField(languageCode);
-            var codeAttribute = memberField?.GetCustomAttribute<Iso639CodeAttribute>();
+            var codeAttribute = memberField?.GetCustomAttribute<Iso639LanguageCodeAttribute>();
             return codeAttribute?.FrenchName;
         }
 
@@ -216,10 +216,10 @@ namespace DataStandardizer.ISO639
         /// </summary>
         /// <param name="languageCode">Language code.</param>
         /// <returns>Collection of French names, if found; otherwise <c>null</c>.</returns>
-        public static string[] GetFrenchNames(this Iso639Part2B languageCode)
+        public static string[] GetFrenchNames(this Iso639Part2BLanguage languageCode)
         {
             var memberField = GetMemberField(languageCode);
-            var codeAttribute = memberField?.GetCustomAttribute<Iso639CodeAttribute>();
+            var codeAttribute = memberField?.GetCustomAttribute<Iso639LanguageCodeAttribute>();
 #if NETSTANDARD1_3_OR_GREATER||NET
             return codeAttribute?.FrenchNames ?? Array.Empty<string>();
 #else
@@ -233,14 +233,14 @@ namespace DataStandardizer.ISO639
         /// <param name="languageCode">Language code.</param>
         /// <returns>French name of the language code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetFrenchName(this Iso639Part2T languageCode)
+        public static string? GetFrenchName(this Iso639Part2TLanguage languageCode)
 #else
         [CanBeNull]
-        public static string GetFrenchName(this Iso639Part2T languageCode)
+        public static string GetFrenchName(this Iso639Part2TLanguage languageCode)
 #endif
         {
             var memberField = GetMemberField(languageCode);
-            var codeAttribute = memberField?.GetCustomAttribute<Iso639CodeAttribute>();
+            var codeAttribute = memberField?.GetCustomAttribute<Iso639LanguageCodeAttribute>();
             return codeAttribute?.FrenchName;
         }
 
@@ -249,10 +249,10 @@ namespace DataStandardizer.ISO639
         /// </summary>
         /// <param name="languageCode">Language code.</param>
         /// <returns>Collection of French names, if found; otherwise <c>null</c>.</returns>
-        public static string[] GetFrenchNames(this Iso639Part2T languageCode)
+        public static string[] GetFrenchNames(this Iso639Part2TLanguage languageCode)
         {
             var memberField = GetMemberField(languageCode);
-            var codeAttribute = memberField?.GetCustomAttribute<Iso639CodeAttribute>();
+            var codeAttribute = memberField?.GetCustomAttribute<Iso639LanguageCodeAttribute>();
 #if NETSTANDARD1_3_OR_GREATER||NET
             return codeAttribute?.FrenchNames ?? Array.Empty<string>();
 #else
@@ -266,14 +266,14 @@ namespace DataStandardizer.ISO639
         /// <param name="languageCode">Language code.</param>
         /// <returns>French name of the language code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetFrenchName(this Iso639Part5 languageCode)
+        public static string? GetFrenchName(this Iso639Part5LanguageFamily languageCode)
 #else
         [CanBeNull]
-        public static string GetFrenchName(this Iso639Part5 languageCode)
+        public static string GetFrenchName(this Iso639Part5LanguageFamily languageCode)
 #endif
         {
             var memberField = GetMemberField(languageCode);
-            var codeAttribute = memberField?.GetCustomAttribute<Iso639CodeAttribute>();
+            var codeAttribute = memberField?.GetCustomAttribute<Iso639LanguageCodeAttribute>();
             return codeAttribute?.FrenchName;
         }
 
@@ -282,10 +282,10 @@ namespace DataStandardizer.ISO639
         /// </summary>
         /// <param name="languageCode">Language code.</param>
         /// <returns>Collection of French names, if found; otherwise <c>null</c>.</returns>
-        public static string[] GetFrenchNames(this Iso639Part5 languageCode)
+        public static string[] GetFrenchNames(this Iso639Part5LanguageFamily languageCode)
         {
             var memberField = GetMemberField(languageCode);
-            var codeAttribute = memberField?.GetCustomAttribute<Iso639CodeAttribute>();
+            var codeAttribute = memberField?.GetCustomAttribute<Iso639LanguageCodeAttribute>();
 #if NETSTANDARD1_3_OR_GREATER||NET
             return codeAttribute?.FrenchNames ?? Array.Empty<string>();
 #else
@@ -299,14 +299,14 @@ namespace DataStandardizer.ISO639
         /// <param name="languageCode">Language code.</param>
         /// <returns>Print name of the language code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetPrintName(this Iso639Part3 languageCode)
+        public static string? GetPrintName(this Iso639Part3Language languageCode)
 #else
         [CanBeNull]
-        public static string GetPrintName(this Iso639Part3 languageCode)
+        public static string GetPrintName(this Iso639Part3Language languageCode)
 #endif
         {
             var memberField = GetMemberField(languageCode);
-            var codeAttribute = memberField?.GetCustomAttribute<Iso639CodeAttribute>();
+            var codeAttribute = memberField?.GetCustomAttribute<Iso639LanguageCodeAttribute>();
             return codeAttribute?.PrintName;
         }
 
@@ -316,14 +316,14 @@ namespace DataStandardizer.ISO639
         /// <param name="languageCode">Language code.</param>
         /// <returns>Inverted name of the language code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetInvertedName(this Iso639Part3 languageCode)
+        public static string? GetInvertedName(this Iso639Part3Language languageCode)
 #else
         [CanBeNull]
-        public static string GetInvertedName(this Iso639Part3 languageCode)
+        public static string GetInvertedName(this Iso639Part3Language languageCode)
 #endif
         {
             var memberField = GetMemberField(languageCode);
-            var codeAttribute = memberField?.GetCustomAttribute<Iso639CodeAttribute>();
+            var codeAttribute = memberField?.GetCustomAttribute<Iso639LanguageCodeAttribute>();
             return codeAttribute?.InvertedName;
         }
 
@@ -333,14 +333,14 @@ namespace DataStandardizer.ISO639
         /// <param name="languageCode">Language code.</param>
         /// <returns>Part 1 Alpha-2 code related to this language code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetPart1Code(this Iso639Part2B languageCode)
+        public static string? GetPart1Code(this Iso639Part2BLanguage languageCode)
 #else
         [CanBeNull]
-        public static string GetPart1Code(this Iso639Part2B languageCode)
+        public static string GetPart1Code(this Iso639Part2BLanguage languageCode)
 #endif
         {
             var memberField = GetMemberField(languageCode);
-            var codeAttribute = memberField?.GetCustomAttribute<Iso639CodeAttribute>();
+            var codeAttribute = memberField?.GetCustomAttribute<Iso639LanguageCodeAttribute>();
             return codeAttribute?.Part1Code;
         }
 
@@ -350,14 +350,14 @@ namespace DataStandardizer.ISO639
         /// <param name="languageCode">Language code.</param>
         /// <returns>Part 1 Alpha-2 code related to this language code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetPart1Code(this Iso639Part2T languageCode)
+        public static string? GetPart1Code(this Iso639Part2TLanguage languageCode)
 #else
         [CanBeNull]
-        public static string GetPart1Code(this Iso639Part2T languageCode)
+        public static string GetPart1Code(this Iso639Part2TLanguage languageCode)
 #endif
         {
             var memberField = GetMemberField(languageCode);
-            var codeAttribute = memberField?.GetCustomAttribute<Iso639CodeAttribute>();
+            var codeAttribute = memberField?.GetCustomAttribute<Iso639LanguageCodeAttribute>();
             return codeAttribute?.Part1Code;
         }
 
@@ -367,14 +367,14 @@ namespace DataStandardizer.ISO639
         /// <param name="languageCode">Language code.</param>
         /// <returns>Part 1 Alpha-2 code related to this language code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetPart1Code(this Iso639Part3 languageCode)
+        public static string? GetPart1Code(this Iso639Part3Language languageCode)
 #else
         [CanBeNull]
-        public static string GetPart1Code(this Iso639Part3 languageCode)
+        public static string GetPart1Code(this Iso639Part3Language languageCode)
 #endif
         {
             var memberField = GetMemberField(languageCode);
-            var codeAttribute = memberField?.GetCustomAttribute<Iso639CodeAttribute>();
+            var codeAttribute = memberField?.GetCustomAttribute<Iso639LanguageCodeAttribute>();
             return codeAttribute?.Part1Code;
         }
 
@@ -384,14 +384,14 @@ namespace DataStandardizer.ISO639
         /// <param name="languageCode">Language code.</param>
         /// <returns>Part 2B Alpha-3 code related to this language code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetPart2BCode(this Iso639Part1 languageCode)
+        public static string? GetPart2BCode(this Iso639Part1Language languageCode)
 #else
         [CanBeNull]
-        public static string GetPart2BCode(this Iso639Part1 languageCode)
+        public static string GetPart2BCode(this Iso639Part1Language languageCode)
 #endif
         {
             var memberField = GetMemberField(languageCode);
-            var codeAttribute = memberField?.GetCustomAttribute<Iso639CodeAttribute>();
+            var codeAttribute = memberField?.GetCustomAttribute<Iso639LanguageCodeAttribute>();
             return codeAttribute?.Part2BCode;
         }
 
@@ -401,14 +401,14 @@ namespace DataStandardizer.ISO639
         /// <param name="languageCode">Language code.</param>
         /// <returns>Part 2B Alpha-3 code related to this language code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetPart2BCode(this Iso639Part3 languageCode)
+        public static string? GetPart2BCode(this Iso639Part3Language languageCode)
 #else
         [CanBeNull]
-        public static string GetPart2BCode(this Iso639Part3 languageCode)
+        public static string GetPart2BCode(this Iso639Part3Language languageCode)
 #endif
         {
             var memberField = GetMemberField(languageCode);
-            var codeAttribute = memberField?.GetCustomAttribute<Iso639CodeAttribute>();
+            var codeAttribute = memberField?.GetCustomAttribute<Iso639LanguageCodeAttribute>();
             return codeAttribute?.Part2BCode;
         }
 
@@ -418,14 +418,14 @@ namespace DataStandardizer.ISO639
         /// <param name="languageCode">Language code.</param>
         /// <returns>Part 2T Alpha-3 code related to this language code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetPart2TCode(this Iso639Part1 languageCode)
+        public static string? GetPart2TCode(this Iso639Part1Language languageCode)
 #else
         [CanBeNull]
-        public static string GetPart2TCode(this Iso639Part1 languageCode)
+        public static string GetPart2TCode(this Iso639Part1Language languageCode)
 #endif
         {
             var memberField = GetMemberField(languageCode);
-            var codeAttribute = memberField?.GetCustomAttribute<Iso639CodeAttribute>();
+            var codeAttribute = memberField?.GetCustomAttribute<Iso639LanguageCodeAttribute>();
             return codeAttribute?.Part2TCode;
         }
 
@@ -435,14 +435,14 @@ namespace DataStandardizer.ISO639
         /// <param name="languageCode">Language code.</param>
         /// <returns>Part 2T Alpha-3 code related to this language code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetPart2TCode(this Iso639Part3 languageCode)
+        public static string? GetPart2TCode(this Iso639Part3Language languageCode)
 #else
         [CanBeNull]
-        public static string GetPart2TCode(this Iso639Part3 languageCode)
+        public static string GetPart2TCode(this Iso639Part3Language languageCode)
 #endif
         {
             var memberField = GetMemberField(languageCode);
-            var codeAttribute = memberField?.GetCustomAttribute<Iso639CodeAttribute>();
+            var codeAttribute = memberField?.GetCustomAttribute<Iso639LanguageCodeAttribute>();
             return codeAttribute?.Part2TCode;
         }
 
@@ -452,14 +452,14 @@ namespace DataStandardizer.ISO639
         /// <param name="languageCode">Language code.</param>
         /// <returns>Macrolanguage code for this language code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetMacrolanguageCode(this Iso639Part3 languageCode)
+        public static string? GetMacrolanguageCode(this Iso639Part3Language languageCode)
 #else
         [CanBeNull]
-        public static string GetMacrolanguageCode(this Iso639Part3 languageCode)
+        public static string GetMacrolanguageCode(this Iso639Part3Language languageCode)
 #endif
         {
             var memberField = GetMemberField(languageCode);
-            var codeAttribute = memberField?.GetCustomAttribute<Iso639CodeAttribute>();
+            var codeAttribute = memberField?.GetCustomAttribute<Iso639LanguageCodeAttribute>();
             return codeAttribute?.MacrolanguageCode;
         }
 
@@ -468,10 +468,10 @@ namespace DataStandardizer.ISO639
         /// </summary>
         /// <param name="languageCode">Language code.</param>
         /// <returns>Scope of the language, if found; otherwise <c>null</c>.</returns>
-        public static Iso639LanguageScope? GetScope(this Iso639Part3 languageCode)
+        public static Iso639LanguageScope? GetScope(this Iso639Part3Language languageCode)
         {
             var memberField = GetMemberField(languageCode);
-            var codeAttribute = memberField?.GetCustomAttribute<Iso639CodeAttribute>();
+            var codeAttribute = memberField?.GetCustomAttribute<Iso639LanguageCodeAttribute>();
             return codeAttribute?.Scope;
         }
 
@@ -480,10 +480,10 @@ namespace DataStandardizer.ISO639
         /// </summary>
         /// <param name="languageCode">Language code.</param>
         /// <returns>Type of the language, if found; otherwise <c>null</c>.</returns>
-        public static Iso639LanguageType? GetLanguageType(this Iso639Part3 languageCode)
+        public static Iso639LanguageType? GetLanguageType(this Iso639Part3Language languageCode)
         {
             var memberField = GetMemberField(languageCode);
-            var codeAttribute = memberField?.GetCustomAttribute<Iso639CodeAttribute>();
+            var codeAttribute = memberField?.GetCustomAttribute<Iso639LanguageCodeAttribute>();
             return codeAttribute?.LanguageType;
         }
 

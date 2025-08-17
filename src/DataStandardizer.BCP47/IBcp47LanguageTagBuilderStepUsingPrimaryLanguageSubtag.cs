@@ -16,10 +16,10 @@ namespace DataStandardizer.BCP47
         /// <param name="primaryLanguageSubtag">ISO 639-1 code to use for the Primary Language subtag.</param>
         /// <returns>Language tag builder.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag(Iso639Part1 primaryLanguageSubtag); 
+        IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag(Iso639Part1Language primaryLanguageSubtag); 
 #else
         [NotNull]
-        IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag(Iso639Part1 primaryLanguageSubtag); 
+        IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag(Iso639Part1Language primaryLanguageSubtag); 
 #endif
 
         /// <summary>
@@ -28,10 +28,10 @@ namespace DataStandardizer.BCP47
         /// <param name="primaryLanguageSubtag">ISO 639-2T code to use for the Primary Language subtag.</param>
         /// <returns>Language tag builder.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag(Iso639Part2T primaryLanguageSubtag);
+        IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag(Iso639Part2TLanguage primaryLanguageSubtag);
 #else
         [NotNull]
-        IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag(Iso639Part2T primaryLanguageSubtag); 
+        IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag(Iso639Part2TLanguage primaryLanguageSubtag); 
 #endif
 
         /// <summary>
@@ -40,10 +40,10 @@ namespace DataStandardizer.BCP47
         /// <param name="primaryLanguageSubtag">ISO 639-3 code to use for the Primary Language subtag.</param>
         /// <returns>Language tag builder.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag(Iso639Part3 primaryLanguageSubtag); 
+        IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag(Iso639Part3Language primaryLanguageSubtag); 
 #else
         [NotNull]
-        IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag(Iso639Part3 primaryLanguageSubtag); 
+        IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag(Iso639Part3Language primaryLanguageSubtag); 
 #endif
 
         /// <summary>
@@ -52,10 +52,10 @@ namespace DataStandardizer.BCP47
         /// <param name="primaryLanguageSubtag">ISO 639-5 code to use for the Primary Language subtag.</param>
         /// <returns>Language tag builder.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag(Iso639Part5 primaryLanguageSubtag); 
+        IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag(Iso639Part5LanguageFamily primaryLanguageSubtag); 
 #else
         [NotNull]
-        IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag(Iso639Part5 primaryLanguageSubtag); 
+        IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext UsingPrimaryLanguageSubtag(Iso639Part5LanguageFamily primaryLanguageSubtag); 
 #endif
 
         /// <summary>

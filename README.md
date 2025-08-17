@@ -16,6 +16,7 @@ Supported target platforms include (modern) .Net and .Net Standard.  *Data Stand
 | **DataStandardizer.ISO3166** | Supports **ISO 3166, *Codes for the representation of names of countries and their subdivisions*** parts 1 & 2. |
 | **DataStandardizer.ISO4217** | Supports **ISO 4217, *Codes for the representation of currencies and funds***. |
 | **DataStandardizer.ISO639** | Supports **ISO 639, *Codes for the representation of names of languages*** parts 1, 2, 3 & 5. |
+| **DataStandardizer.Money** | Provides a data type for handling monetary values. |
 | **DataStandardizer.UNM49** | Supports **UN M49** or the **Standard Country or Area Codes for Statistical Use (Series M, No. 49)**. |
 
 To use a particular standard in your application, find the corresponding package from the above list and add it as a dependency to your project.  Instructions for doing so will depend on what development tooling you are using.
@@ -93,38 +94,44 @@ Though each package contains many types, typically there will be only a few that
 
 | Type | Description |
 | --- | --- |
-| `Iso15924` | An enum containing script codes from ISO 15924.  Includes both the four-letter alpha codes and three-digit numeric codes from the standard as the name and value of the members, respectively. |
+| `Iso15924Script` | An enum containing script codes from ISO 15924.  Includes both the four-letter alpha codes and three-digit numeric codes from the standard as the name and value of the members, respectively. |
 
 ## DataStandardizer.ISO3166
 
 | Type | Description |
 | --- | --- |
-| `Iso3166Part1Alpha2` | An enum containing the country codes from ISO 3166-1 Alpha-2.  Includes both the two-letter alpha codes and numeric codes from the standard as the name and value of the members, respectively. |
-| `Iso3166Part1Alpha3` | An enum containing the country codes from ISO 3166-1 Alpha-3.  Includes both the three-letter alpha codes and numeric codes from the standard as the name and value of the members, respectively. |
-| `Iso3166Part2` | An enum containing the subdivision codes from ISO 3166-2.  Given the hierarchical nature of these codes, this implementation uses a nested structure to access the codes so that each group of subdivision codes is grouped under a nested type named after the country code of the country the subdivision codes belong to. |
+| `Iso3166Part1Alpha2Country` | An enum containing the country codes from ISO 3166-1 Alpha-2.  Includes both the two-letter alpha codes and numeric codes from the standard as the name and value of the members, respectively. |
+| `Iso3166Part1Alpha3Country` | An enum containing the country codes from ISO 3166-1 Alpha-3.  Includes both the three-letter alpha codes and numeric codes from the standard as the name and value of the members, respectively. |
+| `Iso3166Part2Subdivision` | An enum containing the subdivision codes from ISO 3166-2.  Given the hierarchical nature of these codes, this implementation uses a nested structure to access the codes so that each group of subdivision codes is grouped under a nested type named after the country code of the country the subdivision codes belong to. |
 
 ## DataStandardizer.ISO4217
 
 | Type | Description |
 | --- | --- |
-| `Iso4217Current` | An enum containing active currency codes from ISO 4217.  Includes both the three-letter alpha codes and numeric codes from the standard as the name and value of each member, respectively. |
-| `Iso4217Historic` | An enum containing retired currency codes from ISO 4217.  Includes both the three-letter alpha codes and numeric codes from the standard as the name and value of each member, respectively. |
+| `Iso4217CurrencyCurrent` | An enum containing active currency codes from ISO 4217.  Includes both the three-letter alpha codes and numeric codes from the standard as the name and value of each member, respectively. |
+| `Iso4217CurrencyHistoric` | An enum containing retired currency codes from ISO 4217.  Includes both the three-letter alpha codes and numeric codes from the standard as the name and value of each member, respectively. |
 
 ## DataStandardizer.ISO639
 
 | Type | Description |
 | --- | --- |
-| `Iso639Part1` | An enum containing the alpha-2 language codes from ISO 639-1. |
-| `Iso639Part2B` | An enum containing the bibliographic alpha-3 language codes from ISO 639-2. |
-| `Iso639Part2T` | An enum containing the terminological alpha-3 language codes from ISO 639-2. |
-| `Iso639Part3` | An enum containing the alpha-3 language codes from ISO 639-3. |
-| `Iso639Part5` | An enum containing the alpha-3 language family codes from ISO 639-5. |
+| `Iso639Part1Language` | An enum containing the alpha-2 language codes from ISO 639-1. |
+| `Iso639Part2BLanguage` | An enum containing the bibliographic alpha-3 language codes from ISO 639-2. |
+| `Iso639Part2TLanguage` | An enum containing the terminological alpha-3 language codes from ISO 639-2. |
+| `Iso639Part3Language` | An enum containing the alpha-3 language codes from ISO 639-3. |
+| `Iso639Part5LanguageFamily` | An enum containing the alpha-3 language family codes from ISO 639-5. |
+
+## DataStandardizer.Money
+
+| Type | Description |
+| --- | --- |
+| `Money` | A data type for handling a monetary value comprising an amount and a currency code.  Optionally supports user-specified rounding that is applied on conversion to a `decimal` value. |
 
 ## DataStandardizer.UNM49
 
 | Type | Description |
 | --- | --- |
-| `UnM49ByAlpha2Code` | An enum containing the numeric M49 codes from standard UN M49.  Because of technical requirements on the naming of members, each code is keyed on its corresponding ISO 3166-1 alpha-2 code. |
-| `UnM49ByAlpha3Code` | An enum containing the numeric M49 codes from standard UN M49.  Because of technical requirements on the naming of members, each code is keyed on its corresponding ISO 3166-1 alpha-3 code. |
+| `UnM49AreaByAlpha2CountryCode` | An enum containing the numeric M49 codes from standard UN M49.  Because of technical requirements on the naming of members, each code is keyed on its corresponding ISO 3166-1 alpha-2 code. |
+| `UnM49AreaByAlpha3CountryCode` | An enum containing the numeric M49 codes from standard UN M49.  Because of technical requirements on the naming of members, each code is keyed on its corresponding ISO 3166-1 alpha-3 code. |
 
 N.B. Because of the way the source data is arranged, the above enums only directly include members representing M.49 codes that have a corresponding alpha-2 or alpha-3 code from ISO 3166-1.  There are additional M.49 codes representing supra-national regions or other areas that are included as metadata on these enum members, and can be retrieved using provided extension methods.

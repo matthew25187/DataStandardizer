@@ -30,10 +30,10 @@ namespace DataStandardizer.ISO3166
         /// <param name="nameType">Type of name to retrieve.</param>
         /// <returns>English name of the country, if found; otherwise, <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetEnglishName(this Iso3166Part1Alpha2 countryCode, Iso3166CountryName nameType)
+        public static string? GetEnglishName(this Iso3166Part1Alpha2Country countryCode, Iso3166CountryName nameType)
 #else
         [CanBeNull]
-        public static string GetEnglishName(this Iso3166Part1Alpha2 countryCode, Iso3166CountryName nameType)
+        public static string GetEnglishName(this Iso3166Part1Alpha2Country countryCode, Iso3166CountryName nameType)
 #endif
         {
             if (!Enum.IsDefined(countryCode.GetType(), countryCode))
@@ -52,10 +52,10 @@ namespace DataStandardizer.ISO3166
         /// <param name="nameType">Type of name to retrieve.</param>
         /// <returns>Native name of the country, if found; otherwise, <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetNativeName(this Iso3166Part1Alpha2 countryCode, string iso639LanguageCode, Iso3166CountryName nameType)
+        public static string? GetNativeName(this Iso3166Part1Alpha2Country countryCode, string iso639LanguageCode, Iso3166CountryName nameType)
 #else
         [CanBeNull]
-        public static string GetNativeName(this Iso3166Part1Alpha2 countryCode, [NotNull] string iso639LanguageCode, Iso3166CountryName nameType)
+        public static string GetNativeName(this Iso3166Part1Alpha2Country countryCode, [NotNull] string iso639LanguageCode, Iso3166CountryName nameType)
 #endif
         {
             if (!Enum.IsDefined(countryCode.GetType(), countryCode))
@@ -71,7 +71,7 @@ namespace DataStandardizer.ISO3166
         /// </summary>
         /// <param name="countryCode">Country or place code.</param>
         /// <returns><c>true</c> if the country or place is independent; <c>false</c> if not.</returns>
-        public static bool IsIndependent(this Iso3166Part1Alpha2 countryCode)
+        public static bool IsIndependent(this Iso3166Part1Alpha2Country countryCode)
         {
             if (!Enum.IsDefined(countryCode.GetType(), countryCode))
             {
@@ -98,10 +98,10 @@ namespace DataStandardizer.ISO3166
         /// <param name="nameType">Type of name to retrieve.</param>
         /// <returns>English name of the country, if found; otherwise, <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetEnglishName(this Iso3166Part1Alpha3 countryCode, Iso3166CountryName nameType)
+        public static string? GetEnglishName(this Iso3166Part1Alpha3Country countryCode, Iso3166CountryName nameType)
 #else
         [CanBeNull]
-        public static string GetEnglishName(this Iso3166Part1Alpha3 countryCode, Iso3166CountryName nameType)
+        public static string GetEnglishName(this Iso3166Part1Alpha3Country countryCode, Iso3166CountryName nameType)
 #endif
         {
             if (!Enum.IsDefined(countryCode.GetType(), countryCode))
@@ -120,10 +120,10 @@ namespace DataStandardizer.ISO3166
         /// <param name="nameType">Type of name to retrieve.</param>
         /// <returns>Native name of the country, if found; otherwise, <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetNativeName(this Iso3166Part1Alpha3 countryCode, string iso639LanguageCode, Iso3166CountryName nameType)
+        public static string? GetNativeName(this Iso3166Part1Alpha3Country countryCode, string iso639LanguageCode, Iso3166CountryName nameType)
 #else
         [CanBeNull]
-        public static string GetNativeName(this Iso3166Part1Alpha3 countryCode, [NotNull] string iso639LanguageCode, Iso3166CountryName nameType)
+        public static string GetNativeName(this Iso3166Part1Alpha3Country countryCode, [NotNull] string iso639LanguageCode, Iso3166CountryName nameType)
 #endif
         {
             if (!Enum.IsDefined(countryCode.GetType(), countryCode))
@@ -140,7 +140,7 @@ namespace DataStandardizer.ISO3166
         /// </summary>
         /// <param name="countryCode">Country or place code.</param>
         /// <returns><c>true</c> if the country or place is independent; <c>false</c> if not.</returns>
-        public static bool IsIndependent(this Iso3166Part1Alpha3 countryCode)
+        public static bool IsIndependent(this Iso3166Part1Alpha3Country countryCode)
         {
             if (!Enum.IsDefined(countryCode.GetType(), countryCode))
             {
@@ -165,7 +165,7 @@ namespace DataStandardizer.ISO3166
         /// </summary>
         /// <param name="subdivisionCode">Subdivision code.</param>
         /// <returns>Identifier of the subdivision's category, if found; otherwise <c>null</c>.</returns>
-        public static ushort? GetSubdivisionCategoryIdentifier(this Iso3166Part2 subdivisionCode)
+        public static ushort? GetSubdivisionCategoryIdentifier(this Iso3166Part2Subdivision subdivisionCode)
         {
             var countrySubdivisionCodeInformation = GetCountrySubdivisionCodeField(subdivisionCode);
             var subdivisionCodeAttribute = countrySubdivisionCodeInformation?.SubdivisionCodeField.GetCustomAttribute<Iso3166SubdivisionCodeAttribute>();
@@ -179,10 +179,10 @@ namespace DataStandardizer.ISO3166
         /// <param name="iso639LanguageCode">ISO 639 language code for the language of the name to retrieve.</param>
         /// <returns>Name of the category, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetSubdivisionCategoryName(this Iso3166Part2 subdivisionCode, string iso639LanguageCode)
+        public static string? GetSubdivisionCategoryName(this Iso3166Part2Subdivision subdivisionCode, string iso639LanguageCode)
 #else
         [CanBeNull]
-        public static string GetSubdivisionCategoryName(this Iso3166Part2 subdivisionCode, [NotNull] string iso639LanguageCode)
+        public static string GetSubdivisionCategoryName(this Iso3166Part2Subdivision subdivisionCode, [NotNull] string iso639LanguageCode)
 #endif
         {
             var countrySubdivisionCodeInformation = GetCountrySubdivisionCodeField(subdivisionCode);
@@ -206,10 +206,10 @@ namespace DataStandardizer.ISO3166
         /// <param name="iso639LanguageCode">ISO 639 language code for the language of the name to retrieve.</param>
         /// <returns>Plural-form name of the category, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetSubdivisionCategoryNamePlural(this Iso3166Part2 subdivisionCode, string iso639LanguageCode)
+        public static string? GetSubdivisionCategoryNamePlural(this Iso3166Part2Subdivision subdivisionCode, string iso639LanguageCode)
 #else
         [CanBeNull]
-        public static string GetSubdivisionCategoryNamePlural(this Iso3166Part2 subdivisionCode, [NotNull] string iso639LanguageCode)
+        public static string GetSubdivisionCategoryNamePlural(this Iso3166Part2Subdivision subdivisionCode, [NotNull] string iso639LanguageCode)
 #endif
         {
             var countrySubdivisionCodeInformation = GetCountrySubdivisionCodeField(subdivisionCode);
@@ -232,10 +232,10 @@ namespace DataStandardizer.ISO3166
         /// <param name="subdivisionCode">Subdivision code.</param>
         /// <returns>Subdivision code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetSubdivisionCode(this Iso3166Part2 subdivisionCode)
+        public static string? GetSubdivisionCode(this Iso3166Part2Subdivision subdivisionCode)
 #else
         [CanBeNull]
-        public static string GetSubdivisionCode(this Iso3166Part2 subdivisionCode)
+        public static string GetSubdivisionCode(this Iso3166Part2Subdivision subdivisionCode)
 #endif
         {
             var countrySubdivisionCodeInformation = GetCountrySubdivisionCodeField(subdivisionCode);
@@ -249,9 +249,9 @@ namespace DataStandardizer.ISO3166
         /// <param name="subdivisionCode">Subdivision code.</param>
         /// <returns>Parent subdivision code, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetSubdivisionParentCode(this Iso3166Part2 subdivisionCode)
+        public static string? GetSubdivisionParentCode(this Iso3166Part2Subdivision subdivisionCode)
 #else
-        public static string GetSubdivisionParentCode(this Iso3166Part2 subdivisionCode)
+        public static string GetSubdivisionParentCode(this Iso3166Part2Subdivision subdivisionCode)
 #endif
         {
             var countrySubdivisionCodeInformation = GetCountrySubdivisionCodeField(subdivisionCode);
@@ -267,10 +267,10 @@ namespace DataStandardizer.ISO3166
         /// <param name="romanizationSystem">System by which the written form of the name was converted from native script to Latin script.</param>
         /// <returns>Native name of the country subdivision, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetSubdivisionNativeName(this Iso3166Part2 subdivisionCode, string iso639LanguageCode, string? romanizationSystem = null)
+        public static string? GetSubdivisionNativeName(this Iso3166Part2Subdivision subdivisionCode, string iso639LanguageCode, string? romanizationSystem = null)
 #else
         [CanBeNull]
-        public static string GetSubdivisionNativeName(this Iso3166Part2 subdivisionCode, [NotNull] string iso639LanguageCode, string romanizationSystem = null)
+        public static string GetSubdivisionNativeName(this Iso3166Part2Subdivision subdivisionCode, [NotNull] string iso639LanguageCode, string romanizationSystem = null)
 #endif
         {
             var countrySubdivisionCodeInformation = GetCountrySubdivisionCodeField(subdivisionCode);
@@ -294,10 +294,10 @@ namespace DataStandardizer.ISO3166
         /// <param name="romanizationSystem">System by which the written form of the name was converted from native script to Latin script.</param>
         /// <returns>Local variant of the country subdivision's native name, if found; otherwise <c>null</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static string? GetSubdivisionNativeNameLocalVariant(this Iso3166Part2 subdivisionCode, string iso639LanguageCode, string? romanizationSystem = null)
+        public static string? GetSubdivisionNativeNameLocalVariant(this Iso3166Part2Subdivision subdivisionCode, string iso639LanguageCode, string? romanizationSystem = null)
 #else
         [CanBeNull]
-        public static string GetSubdivisionNativeNameLocalVariant(this Iso3166Part2 subdivisionCode, [NotNull] string iso639LanguageCode, string romanizationSystem = null)
+        public static string GetSubdivisionNativeNameLocalVariant(this Iso3166Part2Subdivision subdivisionCode, [NotNull] string iso639LanguageCode, string romanizationSystem = null)
 #endif
         {
             var countrySubdivisionCodeInformation = GetCountrySubdivisionCodeField(subdivisionCode);
@@ -317,7 +317,7 @@ namespace DataStandardizer.ISO3166
 
         #region Private Methods
 
-        private static CountrySubdivisionCodeField? GetCountrySubdivisionCodeField(Iso3166Part2 countrySubdivisionCode)
+        private static CountrySubdivisionCodeField? GetCountrySubdivisionCodeField(Iso3166Part2Subdivision countrySubdivisionCode)
         {
 #if NETCOREAPP3_0_OR_GREATER
             var countrySubdivisionCodeString = (string?)countrySubdivisionCode;

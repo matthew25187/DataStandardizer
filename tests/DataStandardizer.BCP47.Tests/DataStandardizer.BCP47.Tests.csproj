@@ -35,6 +35,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\DataStandardizer.BCP47\DataStandardizer.BCP47.csproj" />
+    <ProjectReference Include="..\..\src\DataStandardizer.ISO639\DataStandardizer.ISO639.csproj" />
   </ItemGroup>
 
   <ItemGroup>

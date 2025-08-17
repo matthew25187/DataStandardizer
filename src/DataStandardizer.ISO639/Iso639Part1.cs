@@ -7,6 +7,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
+using System;
 #if NETCOREAPP3_0_OR_GREATER
 #nullable enable
 #endif
@@ -14,11 +15,12 @@
 namespace DataStandardizer.ISO639
 {
     using System.Reflection;
-    
-    
+
+
     /// <summary>
     /// Codes for the representation of names of languages—Part 1: Alpha-2 code
     /// </summary>
+    [Obsolete("It is recommended to use the " + nameof(Iso639Part1Language) + " type instead.  Refer to Bulletin 202508-01 (https://github.com/matthew25187/DataStandardizer/discussions/17) for more information.")]
     public readonly struct Iso639Part1 : DataStandardizer.Core.IStringEnum, System.IEquatable<DataStandardizer.ISO639.Iso639Part1>
     {
         
@@ -82,151 +84,151 @@ namespace DataStandardizer.ISO639
         /// <summary>
         /// Afar
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Afar", "afar", Part2BCode="aar", Part2TCode="aar")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Afar", "afar", Part2BCode="aar", Part2TCode="aar")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @aa = new DataStandardizer.ISO639.Iso639Part1("aa");
         
         /// <summary>
         /// Abkhazian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Abkhazian", "abkhaze", Part2BCode="abk", Part2TCode="abk")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Abkhazian", "abkhaze", Part2BCode="abk", Part2TCode="abk")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @ab = new DataStandardizer.ISO639.Iso639Part1("ab");
         
         /// <summary>
         /// Afrikaans
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Afrikaans", "afrikaans", Part2BCode="afr", Part2TCode="afr")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Afrikaans", "afrikaans", Part2BCode="afr", Part2TCode="afr")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @af = new DataStandardizer.ISO639.Iso639Part1("af");
         
         /// <summary>
         /// Akan
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Akan", "akan", Part2BCode="aka", Part2TCode="aka")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Akan", "akan", Part2BCode="aka", Part2TCode="aka")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @ak = new DataStandardizer.ISO639.Iso639Part1("ak");
         
         /// <summary>
         /// Albanian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Albanian", "albanais", Part2BCode="alb", Part2TCode="sqi")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Albanian", "albanais", Part2BCode="alb", Part2TCode="sqi")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @sq = new DataStandardizer.ISO639.Iso639Part1("sq");
         
         /// <summary>
         /// Amharic
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Amharic", "amharique", Part2BCode="amh", Part2TCode="amh")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Amharic", "amharique", Part2BCode="amh", Part2TCode="amh")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @am = new DataStandardizer.ISO639.Iso639Part1("am");
         
         /// <summary>
         /// Arabic
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Arabic", "arabe", Part2BCode="ara", Part2TCode="ara")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Arabic", "arabe", Part2BCode="ara", Part2TCode="ara")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @ar = new DataStandardizer.ISO639.Iso639Part1("ar");
         
         /// <summary>
         /// Aragonese
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Aragonese", "aragonais", Part2BCode="arg", Part2TCode="arg")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Aragonese", "aragonais", Part2BCode="arg", Part2TCode="arg")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @an = new DataStandardizer.ISO639.Iso639Part1("an");
         
         /// <summary>
         /// Armenian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Armenian", "arménien", Part2BCode="arm", Part2TCode="hye")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Armenian", "arménien", Part2BCode="arm", Part2TCode="hye")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @hy = new DataStandardizer.ISO639.Iso639Part1("hy");
         
         /// <summary>
         /// Assamese
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Assamese", "assamais", Part2BCode="asm", Part2TCode="asm")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Assamese", "assamais", Part2BCode="asm", Part2TCode="asm")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @as = new DataStandardizer.ISO639.Iso639Part1("as");
         
         /// <summary>
         /// Avaric
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Avaric", "avar", Part2BCode="ava", Part2TCode="ava")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Avaric", "avar", Part2BCode="ava", Part2TCode="ava")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @av = new DataStandardizer.ISO639.Iso639Part1("av");
         
         /// <summary>
         /// Avestan
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Avestan", "avestique", Part2BCode="ave", Part2TCode="ave")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Avestan", "avestique", Part2BCode="ave", Part2TCode="ave")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @ae = new DataStandardizer.ISO639.Iso639Part1("ae");
         
         /// <summary>
         /// Aymara
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Aymara", "aymara", Part2BCode="aym", Part2TCode="aym")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Aymara", "aymara", Part2BCode="aym", Part2TCode="aym")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @ay = new DataStandardizer.ISO639.Iso639Part1("ay");
         
         /// <summary>
         /// Azerbaijani
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Azerbaijani", "azéri", Part2BCode="aze", Part2TCode="aze")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Azerbaijani", "azéri", Part2BCode="aze", Part2TCode="aze")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @az = new DataStandardizer.ISO639.Iso639Part1("az");
         
         /// <summary>
         /// Bashkir
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Bashkir", "bachkir", Part2BCode="bak", Part2TCode="bak")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Bashkir", "bachkir", Part2BCode="bak", Part2TCode="bak")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @ba = new DataStandardizer.ISO639.Iso639Part1("ba");
         
         /// <summary>
         /// Bambara
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Bambara", "bambara", Part2BCode="bam", Part2TCode="bam")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Bambara", "bambara", Part2BCode="bam", Part2TCode="bam")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @bm = new DataStandardizer.ISO639.Iso639Part1("bm");
         
         /// <summary>
         /// Basque
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Basque", "basque", Part2BCode="baq", Part2TCode="eus")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Basque", "basque", Part2BCode="baq", Part2TCode="eus")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @eu = new DataStandardizer.ISO639.Iso639Part1("eu");
         
         /// <summary>
         /// Belarusian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Belarusian", "biélorusse", Part2BCode="bel", Part2TCode="bel")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Belarusian", "biélorusse", Part2BCode="bel", Part2TCode="bel")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @be = new DataStandardizer.ISO639.Iso639Part1("be");
         
         /// <summary>
         /// Bengali
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Bengali", "bengali", Part2BCode="ben", Part2TCode="ben")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Bengali", "bengali", Part2BCode="ben", Part2TCode="ben")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @bn = new DataStandardizer.ISO639.Iso639Part1("bn");
         
         /// <summary>
         /// Bislama
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Bislama", "bichlamar", Part2BCode="bis", Part2TCode="bis")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Bislama", "bichlamar", Part2BCode="bis", Part2TCode="bis")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @bi = new DataStandardizer.ISO639.Iso639Part1("bi");
         
         /// <summary>
         /// Bosnian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Bosnian", "bosniaque", Part2BCode="bos", Part2TCode="bos")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Bosnian", "bosniaque", Part2BCode="bos", Part2TCode="bos")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @bs = new DataStandardizer.ISO639.Iso639Part1("bs");
         
         /// <summary>
         /// Breton
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Breton", "breton", Part2BCode="bre", Part2TCode="bre")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Breton", "breton", Part2BCode="bre", Part2TCode="bre")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @br = new DataStandardizer.ISO639.Iso639Part1("br");
         
         /// <summary>
         /// Bulgarian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Bulgarian", "bulgare", Part2BCode="bul", Part2TCode="bul")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Bulgarian", "bulgare", Part2BCode="bul", Part2TCode="bul")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @bg = new DataStandardizer.ISO639.Iso639Part1("bg");
         
         /// <summary>
         /// Burmese
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Burmese", "birman", Part2BCode="bur", Part2TCode="mya")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Burmese", "birman", Part2BCode="bur", Part2TCode="mya")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @my = new DataStandardizer.ISO639.Iso639Part1("my");
         
         /// <summary>
         /// Catalan; Valencian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute(new string[] {
+        [DataStandardizer.ISO639.Iso639LanguageCode(new string[] {
                 "Catalan",
                 "Valencian"}, new string[] {
                 "catalan",
@@ -236,25 +238,25 @@ namespace DataStandardizer.ISO639
         /// <summary>
         /// Chamorro
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Chamorro", "chamorro", Part2BCode="cha", Part2TCode="cha")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Chamorro", "chamorro", Part2BCode="cha", Part2TCode="cha")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @ch = new DataStandardizer.ISO639.Iso639Part1("ch");
         
         /// <summary>
         /// Chechen
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Chechen", "tchétchène", Part2BCode="che", Part2TCode="che")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Chechen", "tchétchène", Part2BCode="che", Part2TCode="che")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @ce = new DataStandardizer.ISO639.Iso639Part1("ce");
         
         /// <summary>
         /// Chinese
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Chinese", "chinois", Part2BCode="chi", Part2TCode="zho")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Chinese", "chinois", Part2BCode="chi", Part2TCode="zho")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @zh = new DataStandardizer.ISO639.Iso639Part1("zh");
         
         /// <summary>
         /// Church Slavic; Old Slavonic; Church Slavonic; Old Bulgarian; Old Church Slavonic
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute(new string[] {
+        [DataStandardizer.ISO639.Iso639LanguageCode(new string[] {
                 "Church Slavic",
                 "Old Slavonic",
                 "Church Slavonic",
@@ -269,43 +271,43 @@ namespace DataStandardizer.ISO639
         /// <summary>
         /// Chuvash
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Chuvash", "tchouvache", Part2BCode="chv", Part2TCode="chv")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Chuvash", "tchouvache", Part2BCode="chv", Part2TCode="chv")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @cv = new DataStandardizer.ISO639.Iso639Part1("cv");
         
         /// <summary>
         /// Cornish
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Cornish", "cornique", Part2BCode="cor", Part2TCode="cor")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Cornish", "cornique", Part2BCode="cor", Part2TCode="cor")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @kw = new DataStandardizer.ISO639.Iso639Part1("kw");
         
         /// <summary>
         /// Corsican
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Corsican", "corse", Part2BCode="cos", Part2TCode="cos")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Corsican", "corse", Part2BCode="cos", Part2TCode="cos")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @co = new DataStandardizer.ISO639.Iso639Part1("co");
         
         /// <summary>
         /// Cree
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Cree", "cree", Part2BCode="cre", Part2TCode="cre")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Cree", "cree", Part2BCode="cre", Part2TCode="cre")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @cr = new DataStandardizer.ISO639.Iso639Part1("cr");
         
         /// <summary>
         /// Czech
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Czech", "tchèque", Part2BCode="cze", Part2TCode="ces")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Czech", "tchèque", Part2BCode="cze", Part2TCode="ces")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @cs = new DataStandardizer.ISO639.Iso639Part1("cs");
         
         /// <summary>
         /// Danish
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Danish", "danois", Part2BCode="dan", Part2TCode="dan")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Danish", "danois", Part2BCode="dan", Part2TCode="dan")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @da = new DataStandardizer.ISO639.Iso639Part1("da");
         
         /// <summary>
         /// Divehi; Dhivehi; Maldivian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute(new string[] {
+        [DataStandardizer.ISO639.Iso639LanguageCode(new string[] {
                 "Divehi",
                 "Dhivehi",
                 "Maldivian"}, new string[] {
@@ -315,7 +317,7 @@ namespace DataStandardizer.ISO639
         /// <summary>
         /// Dutch; Flemish
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute(new string[] {
+        [DataStandardizer.ISO639.Iso639LanguageCode(new string[] {
                 "Dutch",
                 "Flemish"}, new string[] {
                 "néerlandais",
@@ -325,85 +327,85 @@ namespace DataStandardizer.ISO639
         /// <summary>
         /// Dzongkha
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Dzongkha", "dzongkha", Part2BCode="dzo", Part2TCode="dzo")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Dzongkha", "dzongkha", Part2BCode="dzo", Part2TCode="dzo")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @dz = new DataStandardizer.ISO639.Iso639Part1("dz");
         
         /// <summary>
         /// English
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("English", "anglais", Part2BCode="eng", Part2TCode="eng")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("English", "anglais", Part2BCode="eng", Part2TCode="eng")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @en = new DataStandardizer.ISO639.Iso639Part1("en");
         
         /// <summary>
         /// Esperanto
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Esperanto", "espéranto", Part2BCode="epo", Part2TCode="epo")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Esperanto", "espéranto", Part2BCode="epo", Part2TCode="epo")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @eo = new DataStandardizer.ISO639.Iso639Part1("eo");
         
         /// <summary>
         /// Estonian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Estonian", "estonien", Part2BCode="est", Part2TCode="est")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Estonian", "estonien", Part2BCode="est", Part2TCode="est")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @et = new DataStandardizer.ISO639.Iso639Part1("et");
         
         /// <summary>
         /// Ewe
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Ewe", "éwé", Part2BCode="ewe", Part2TCode="ewe")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Ewe", "éwé", Part2BCode="ewe", Part2TCode="ewe")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @ee = new DataStandardizer.ISO639.Iso639Part1("ee");
         
         /// <summary>
         /// Faroese
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Faroese", "féroïen", Part2BCode="fao", Part2TCode="fao")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Faroese", "féroïen", Part2BCode="fao", Part2TCode="fao")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @fo = new DataStandardizer.ISO639.Iso639Part1("fo");
         
         /// <summary>
         /// Fijian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Fijian", "fidjien", Part2BCode="fij", Part2TCode="fij")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Fijian", "fidjien", Part2BCode="fij", Part2TCode="fij")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @fj = new DataStandardizer.ISO639.Iso639Part1("fj");
         
         /// <summary>
         /// Finnish
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Finnish", "finnois", Part2BCode="fin", Part2TCode="fin")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Finnish", "finnois", Part2BCode="fin", Part2TCode="fin")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @fi = new DataStandardizer.ISO639.Iso639Part1("fi");
         
         /// <summary>
         /// French
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("French", "français", Part2BCode="fre", Part2TCode="fra")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("French", "français", Part2BCode="fre", Part2TCode="fra")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @fr = new DataStandardizer.ISO639.Iso639Part1("fr");
         
         /// <summary>
         /// Western Frisian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Western Frisian", "frison occidental", Part2BCode="fry", Part2TCode="fry")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Western Frisian", "frison occidental", Part2BCode="fry", Part2TCode="fry")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @fy = new DataStandardizer.ISO639.Iso639Part1("fy");
         
         /// <summary>
         /// Fulah
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Fulah", "peul", Part2BCode="ful", Part2TCode="ful")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Fulah", "peul", Part2BCode="ful", Part2TCode="ful")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @ff = new DataStandardizer.ISO639.Iso639Part1("ff");
         
         /// <summary>
         /// Georgian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Georgian", "géorgien", Part2BCode="geo", Part2TCode="kat")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Georgian", "géorgien", Part2BCode="geo", Part2TCode="kat")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @ka = new DataStandardizer.ISO639.Iso639Part1("ka");
         
         /// <summary>
         /// German
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("German", "allemand", Part2BCode="ger", Part2TCode="deu")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("German", "allemand", Part2BCode="ger", Part2TCode="deu")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @de = new DataStandardizer.ISO639.Iso639Part1("de");
         
         /// <summary>
         /// Gaelic; Scottish Gaelic
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute(new string[] {
+        [DataStandardizer.ISO639.Iso639LanguageCode(new string[] {
                 "Gaelic",
                 "Scottish Gaelic"}, new string[] {
                 "gaélique",
@@ -413,19 +415,19 @@ namespace DataStandardizer.ISO639
         /// <summary>
         /// Irish
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Irish", "irlandais", Part2BCode="gle", Part2TCode="gle")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Irish", "irlandais", Part2BCode="gle", Part2TCode="gle")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @ga = new DataStandardizer.ISO639.Iso639Part1("ga");
         
         /// <summary>
         /// Galician
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Galician", "galicien", Part2BCode="glg", Part2TCode="glg")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Galician", "galicien", Part2BCode="glg", Part2TCode="glg")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @gl = new DataStandardizer.ISO639.Iso639Part1("gl");
         
         /// <summary>
         /// Manx
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute(new string[] {
+        [DataStandardizer.ISO639.Iso639LanguageCode(new string[] {
                 "Manx"}, new string[] {
                 "manx",
                 "mannois"}, Part2BCode="glv", Part2TCode="glv")]
@@ -434,25 +436,25 @@ namespace DataStandardizer.ISO639
         /// <summary>
         /// Greek, Modern (1453-)
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Greek, Modern (1453-)", "grec moderne (après 1453)", Part2BCode="gre", Part2TCode="ell")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Greek, Modern (1453-)", "grec moderne (après 1453)", Part2BCode="gre", Part2TCode="ell")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @el = new DataStandardizer.ISO639.Iso639Part1("el");
         
         /// <summary>
         /// Guarani
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Guarani", "guarani", Part2BCode="grn", Part2TCode="grn")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Guarani", "guarani", Part2BCode="grn", Part2TCode="grn")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @gn = new DataStandardizer.ISO639.Iso639Part1("gn");
         
         /// <summary>
         /// Gujarati
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Gujarati", "goudjrati", Part2BCode="guj", Part2TCode="guj")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Gujarati", "goudjrati", Part2BCode="guj", Part2TCode="guj")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @gu = new DataStandardizer.ISO639.Iso639Part1("gu");
         
         /// <summary>
         /// Haitian; Haitian Creole
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute(new string[] {
+        [DataStandardizer.ISO639.Iso639LanguageCode(new string[] {
                 "Haitian",
                 "Haitian Creole"}, new string[] {
                 "haïtien",
@@ -462,67 +464,67 @@ namespace DataStandardizer.ISO639
         /// <summary>
         /// Hausa
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Hausa", "haoussa", Part2BCode="hau", Part2TCode="hau")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Hausa", "haoussa", Part2BCode="hau", Part2TCode="hau")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @ha = new DataStandardizer.ISO639.Iso639Part1("ha");
         
         /// <summary>
         /// Hebrew
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Hebrew", "hébreu", Part2BCode="heb", Part2TCode="heb")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Hebrew", "hébreu", Part2BCode="heb", Part2TCode="heb")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @he = new DataStandardizer.ISO639.Iso639Part1("he");
         
         /// <summary>
         /// Herero
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Herero", "herero", Part2BCode="her", Part2TCode="her")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Herero", "herero", Part2BCode="her", Part2TCode="her")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @hz = new DataStandardizer.ISO639.Iso639Part1("hz");
         
         /// <summary>
         /// Hindi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Hindi", "hindi", Part2BCode="hin", Part2TCode="hin")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Hindi", "hindi", Part2BCode="hin", Part2TCode="hin")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @hi = new DataStandardizer.ISO639.Iso639Part1("hi");
         
         /// <summary>
         /// Hiri Motu
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Hiri Motu", "hiri motu", Part2BCode="hmo", Part2TCode="hmo")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Hiri Motu", "hiri motu", Part2BCode="hmo", Part2TCode="hmo")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @ho = new DataStandardizer.ISO639.Iso639Part1("ho");
         
         /// <summary>
         /// Croatian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Croatian", "croate", Part2BCode="hrv", Part2TCode="hrv")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Croatian", "croate", Part2BCode="hrv", Part2TCode="hrv")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @hr = new DataStandardizer.ISO639.Iso639Part1("hr");
         
         /// <summary>
         /// Hungarian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Hungarian", "hongrois", Part2BCode="hun", Part2TCode="hun")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Hungarian", "hongrois", Part2BCode="hun", Part2TCode="hun")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @hu = new DataStandardizer.ISO639.Iso639Part1("hu");
         
         /// <summary>
         /// Igbo
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Igbo", "igbo", Part2BCode="ibo", Part2TCode="ibo")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Igbo", "igbo", Part2BCode="ibo", Part2TCode="ibo")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @ig = new DataStandardizer.ISO639.Iso639Part1("ig");
         
         /// <summary>
         /// Icelandic
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Icelandic", "islandais", Part2BCode="ice", Part2TCode="isl")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Icelandic", "islandais", Part2BCode="ice", Part2TCode="isl")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @is = new DataStandardizer.ISO639.Iso639Part1("is");
         
         /// <summary>
         /// Ido
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Ido", "ido", Part2BCode="ido", Part2TCode="ido")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Ido", "ido", Part2BCode="ido", Part2TCode="ido")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @io = new DataStandardizer.ISO639.Iso639Part1("io");
         
         /// <summary>
         /// Sichuan Yi; Nuosu
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute(new string[] {
+        [DataStandardizer.ISO639.Iso639LanguageCode(new string[] {
                 "Sichuan Yi",
                 "Nuosu"}, new string[] {
                 "yi de Sichuan"}, Part2BCode="iii", Part2TCode="iii")]
@@ -531,13 +533,13 @@ namespace DataStandardizer.ISO639
         /// <summary>
         /// Inuktitut
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Inuktitut", "inuktitut", Part2BCode="iku", Part2TCode="iku")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Inuktitut", "inuktitut", Part2BCode="iku", Part2TCode="iku")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @iu = new DataStandardizer.ISO639.Iso639Part1("iu");
         
         /// <summary>
         /// Interlingue; Occidental
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute(new string[] {
+        [DataStandardizer.ISO639.Iso639LanguageCode(new string[] {
                 "Interlingue",
                 "Occidental"}, new string[] {
                 "interlingue"}, Part2BCode="ile", Part2TCode="ile")]
@@ -546,43 +548,43 @@ namespace DataStandardizer.ISO639
         /// <summary>
         /// Interlingua (International Auxiliary Language Association)
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Interlingua (International Auxiliary Language Association)", "interlingua (langue auxiliaire internationale)", Part2BCode="ina", Part2TCode="ina")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Interlingua (International Auxiliary Language Association)", "interlingua (langue auxiliaire internationale)", Part2BCode="ina", Part2TCode="ina")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @ia = new DataStandardizer.ISO639.Iso639Part1("ia");
         
         /// <summary>
         /// Indonesian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Indonesian", "indonésien", Part2BCode="ind", Part2TCode="ind")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Indonesian", "indonésien", Part2BCode="ind", Part2TCode="ind")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @id = new DataStandardizer.ISO639.Iso639Part1("id");
         
         /// <summary>
         /// Inupiaq
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Inupiaq", "inupiaq", Part2BCode="ipk", Part2TCode="ipk")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Inupiaq", "inupiaq", Part2BCode="ipk", Part2TCode="ipk")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @ik = new DataStandardizer.ISO639.Iso639Part1("ik");
         
         /// <summary>
         /// Italian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Italian", "italien", Part2BCode="ita", Part2TCode="ita")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Italian", "italien", Part2BCode="ita", Part2TCode="ita")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @it = new DataStandardizer.ISO639.Iso639Part1("it");
         
         /// <summary>
         /// Javanese
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Javanese", "javanais", Part2BCode="jav", Part2TCode="jav")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Javanese", "javanais", Part2BCode="jav", Part2TCode="jav")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @jv = new DataStandardizer.ISO639.Iso639Part1("jv");
         
         /// <summary>
         /// Japanese
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Japanese", "japonais", Part2BCode="jpn", Part2TCode="jpn")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Japanese", "japonais", Part2BCode="jpn", Part2TCode="jpn")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @ja = new DataStandardizer.ISO639.Iso639Part1("ja");
         
         /// <summary>
         /// Kalaallisut; Greenlandic
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute(new string[] {
+        [DataStandardizer.ISO639.Iso639LanguageCode(new string[] {
                 "Kalaallisut",
                 "Greenlandic"}, new string[] {
                 "groenlandais"}, Part2BCode="kal", Part2TCode="kal")]
@@ -591,37 +593,37 @@ namespace DataStandardizer.ISO639
         /// <summary>
         /// Kannada
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Kannada", "kannada", Part2BCode="kan", Part2TCode="kan")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Kannada", "kannada", Part2BCode="kan", Part2TCode="kan")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @kn = new DataStandardizer.ISO639.Iso639Part1("kn");
         
         /// <summary>
         /// Kashmiri
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Kashmiri", "kashmiri", Part2BCode="kas", Part2TCode="kas")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Kashmiri", "kashmiri", Part2BCode="kas", Part2TCode="kas")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @ks = new DataStandardizer.ISO639.Iso639Part1("ks");
         
         /// <summary>
         /// Kanuri
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Kanuri", "kanouri", Part2BCode="kau", Part2TCode="kau")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Kanuri", "kanouri", Part2BCode="kau", Part2TCode="kau")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @kr = new DataStandardizer.ISO639.Iso639Part1("kr");
         
         /// <summary>
         /// Kazakh
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Kazakh", "kazakh", Part2BCode="kaz", Part2TCode="kaz")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Kazakh", "kazakh", Part2BCode="kaz", Part2TCode="kaz")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @kk = new DataStandardizer.ISO639.Iso639Part1("kk");
         
         /// <summary>
         /// Central Khmer
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Central Khmer", "khmer central", Part2BCode="khm", Part2TCode="khm")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Central Khmer", "khmer central", Part2BCode="khm", Part2TCode="khm")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @km = new DataStandardizer.ISO639.Iso639Part1("km");
         
         /// <summary>
         /// Kikuyu; Gikuyu
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute(new string[] {
+        [DataStandardizer.ISO639.Iso639LanguageCode(new string[] {
                 "Kikuyu",
                 "Gikuyu"}, new string[] {
                 "kikuyu"}, Part2BCode="kik", Part2TCode="kik")]
@@ -630,13 +632,13 @@ namespace DataStandardizer.ISO639
         /// <summary>
         /// Kinyarwanda
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Kinyarwanda", "rwanda", Part2BCode="kin", Part2TCode="kin")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Kinyarwanda", "rwanda", Part2BCode="kin", Part2TCode="kin")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @rw = new DataStandardizer.ISO639.Iso639Part1("rw");
         
         /// <summary>
         /// Kirghiz; Kyrgyz
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute(new string[] {
+        [DataStandardizer.ISO639.Iso639LanguageCode(new string[] {
                 "Kirghiz",
                 "Kyrgyz"}, new string[] {
                 "kirghiz"}, Part2BCode="kir", Part2TCode="kir")]
@@ -645,25 +647,25 @@ namespace DataStandardizer.ISO639
         /// <summary>
         /// Komi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Komi", "kom", Part2BCode="kom", Part2TCode="kom")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Komi", "kom", Part2BCode="kom", Part2TCode="kom")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @kv = new DataStandardizer.ISO639.Iso639Part1("kv");
         
         /// <summary>
         /// Kongo
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Kongo", "kongo", Part2BCode="kon", Part2TCode="kon")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Kongo", "kongo", Part2BCode="kon", Part2TCode="kon")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @kg = new DataStandardizer.ISO639.Iso639Part1("kg");
         
         /// <summary>
         /// Korean
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Korean", "coréen", Part2BCode="kor", Part2TCode="kor")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Korean", "coréen", Part2BCode="kor", Part2TCode="kor")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @ko = new DataStandardizer.ISO639.Iso639Part1("ko");
         
         /// <summary>
         /// Kuanyama; Kwanyama
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute(new string[] {
+        [DataStandardizer.ISO639.Iso639LanguageCode(new string[] {
                 "Kuanyama",
                 "Kwanyama"}, new string[] {
                 "kuanyama",
@@ -673,31 +675,31 @@ namespace DataStandardizer.ISO639
         /// <summary>
         /// Kurdish
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Kurdish", "kurde", Part2BCode="kur", Part2TCode="kur")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Kurdish", "kurde", Part2BCode="kur", Part2TCode="kur")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @ku = new DataStandardizer.ISO639.Iso639Part1("ku");
         
         /// <summary>
         /// Lao
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lao", "lao", Part2BCode="lao", Part2TCode="lao")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lao", "lao", Part2BCode="lao", Part2TCode="lao")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @lo = new DataStandardizer.ISO639.Iso639Part1("lo");
         
         /// <summary>
         /// Latin
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Latin", "latin", Part2BCode="lat", Part2TCode="lat")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Latin", "latin", Part2BCode="lat", Part2TCode="lat")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @la = new DataStandardizer.ISO639.Iso639Part1("la");
         
         /// <summary>
         /// Latvian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Latvian", "letton", Part2BCode="lav", Part2TCode="lav")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Latvian", "letton", Part2BCode="lav", Part2TCode="lav")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @lv = new DataStandardizer.ISO639.Iso639Part1("lv");
         
         /// <summary>
         /// Limburgan; Limburger; Limburgish
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute(new string[] {
+        [DataStandardizer.ISO639.Iso639LanguageCode(new string[] {
                 "Limburgan",
                 "Limburger",
                 "Limburgish"}, new string[] {
@@ -707,19 +709,19 @@ namespace DataStandardizer.ISO639
         /// <summary>
         /// Lingala
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lingala", "lingala", Part2BCode="lin", Part2TCode="lin")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lingala", "lingala", Part2BCode="lin", Part2TCode="lin")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @ln = new DataStandardizer.ISO639.Iso639Part1("ln");
         
         /// <summary>
         /// Lithuanian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Lithuanian", "lituanien", Part2BCode="lit", Part2TCode="lit")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Lithuanian", "lituanien", Part2BCode="lit", Part2TCode="lit")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @lt = new DataStandardizer.ISO639.Iso639Part1("lt");
         
         /// <summary>
         /// Luxembourgish; Letzeburgesch
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute(new string[] {
+        [DataStandardizer.ISO639.Iso639LanguageCode(new string[] {
                 "Luxembourgish",
                 "Letzeburgesch"}, new string[] {
                 "luxembourgeois"}, Part2BCode="ltz", Part2TCode="ltz")]
@@ -728,79 +730,79 @@ namespace DataStandardizer.ISO639
         /// <summary>
         /// Luba-Katanga
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Luba-Katanga", "luba-katanga", Part2BCode="lub", Part2TCode="lub")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Luba-Katanga", "luba-katanga", Part2BCode="lub", Part2TCode="lub")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @lu = new DataStandardizer.ISO639.Iso639Part1("lu");
         
         /// <summary>
         /// Ganda
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Ganda", "ganda", Part2BCode="lug", Part2TCode="lug")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Ganda", "ganda", Part2BCode="lug", Part2TCode="lug")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @lg = new DataStandardizer.ISO639.Iso639Part1("lg");
         
         /// <summary>
         /// Macedonian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Macedonian", "macédonien", Part2BCode="mac", Part2TCode="mkd")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Macedonian", "macédonien", Part2BCode="mac", Part2TCode="mkd")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @mk = new DataStandardizer.ISO639.Iso639Part1("mk");
         
         /// <summary>
         /// Marshallese
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Marshallese", "marshall", Part2BCode="mah", Part2TCode="mah")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Marshallese", "marshall", Part2BCode="mah", Part2TCode="mah")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @mh = new DataStandardizer.ISO639.Iso639Part1("mh");
         
         /// <summary>
         /// Malayalam
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Malayalam", "malayalam", Part2BCode="mal", Part2TCode="mal")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Malayalam", "malayalam", Part2BCode="mal", Part2TCode="mal")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @ml = new DataStandardizer.ISO639.Iso639Part1("ml");
         
         /// <summary>
         /// Maori
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Maori", "maori", Part2BCode="mao", Part2TCode="mri")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Maori", "maori", Part2BCode="mao", Part2TCode="mri")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @mi = new DataStandardizer.ISO639.Iso639Part1("mi");
         
         /// <summary>
         /// Marathi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Marathi", "marathe", Part2BCode="mar", Part2TCode="mar")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Marathi", "marathe", Part2BCode="mar", Part2TCode="mar")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @mr = new DataStandardizer.ISO639.Iso639Part1("mr");
         
         /// <summary>
         /// Malay
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Malay", "malais", Part2BCode="may", Part2TCode="msa")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Malay", "malais", Part2BCode="may", Part2TCode="msa")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @ms = new DataStandardizer.ISO639.Iso639Part1("ms");
         
         /// <summary>
         /// Malagasy
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Malagasy", "malgache", Part2BCode="mlg", Part2TCode="mlg")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Malagasy", "malgache", Part2BCode="mlg", Part2TCode="mlg")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @mg = new DataStandardizer.ISO639.Iso639Part1("mg");
         
         /// <summary>
         /// Maltese
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Maltese", "maltais", Part2BCode="mlt", Part2TCode="mlt")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Maltese", "maltais", Part2BCode="mlt", Part2TCode="mlt")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @mt = new DataStandardizer.ISO639.Iso639Part1("mt");
         
         /// <summary>
         /// Mongolian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Mongolian", "mongol", Part2BCode="mon", Part2TCode="mon")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Mongolian", "mongol", Part2BCode="mon", Part2TCode="mon")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @mn = new DataStandardizer.ISO639.Iso639Part1("mn");
         
         /// <summary>
         /// Nauru
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Nauru", "nauruan", Part2BCode="nau", Part2TCode="nau")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Nauru", "nauruan", Part2BCode="nau", Part2TCode="nau")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @na = new DataStandardizer.ISO639.Iso639Part1("na");
         
         /// <summary>
         /// Navajo; Navaho
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute(new string[] {
+        [DataStandardizer.ISO639.Iso639LanguageCode(new string[] {
                 "Navajo",
                 "Navaho"}, new string[] {
                 "navaho"}, Part2BCode="nav", Part2TCode="nav")]
@@ -809,7 +811,7 @@ namespace DataStandardizer.ISO639
         /// <summary>
         /// Ndebele, South; South Ndebele
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute(new string[] {
+        [DataStandardizer.ISO639.Iso639LanguageCode(new string[] {
                 "Ndebele, South",
                 "South Ndebele"}, new string[] {
                 "ndébélé du Sud"}, Part2BCode="nbl", Part2TCode="nbl")]
@@ -818,7 +820,7 @@ namespace DataStandardizer.ISO639
         /// <summary>
         /// Ndebele, North; North Ndebele
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute(new string[] {
+        [DataStandardizer.ISO639.Iso639LanguageCode(new string[] {
                 "Ndebele, North",
                 "North Ndebele"}, new string[] {
                 "ndébélé du Nord"}, Part2BCode="nde", Part2TCode="nde")]
@@ -827,19 +829,19 @@ namespace DataStandardizer.ISO639
         /// <summary>
         /// Ndonga
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Ndonga", "ndonga", Part2BCode="ndo", Part2TCode="ndo")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Ndonga", "ndonga", Part2BCode="ndo", Part2TCode="ndo")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @ng = new DataStandardizer.ISO639.Iso639Part1("ng");
         
         /// <summary>
         /// Nepali
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Nepali", "népalais", Part2BCode="nep", Part2TCode="nep")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Nepali", "népalais", Part2BCode="nep", Part2TCode="nep")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @ne = new DataStandardizer.ISO639.Iso639Part1("ne");
         
         /// <summary>
         /// Norwegian Nynorsk; Nynorsk, Norwegian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute(new string[] {
+        [DataStandardizer.ISO639.Iso639LanguageCode(new string[] {
                 "Norwegian Nynorsk",
                 "Nynorsk, Norwegian"}, new string[] {
                 "norvégien nynorsk",
@@ -849,7 +851,7 @@ namespace DataStandardizer.ISO639
         /// <summary>
         /// Bokmål, Norwegian; Norwegian Bokmål
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute(new string[] {
+        [DataStandardizer.ISO639.Iso639LanguageCode(new string[] {
                 "Bokmål, Norwegian",
                 "Norwegian Bokmål"}, new string[] {
                 "norvégien bokmål"}, Part2BCode="nob", Part2TCode="nob")]
@@ -858,13 +860,13 @@ namespace DataStandardizer.ISO639
         /// <summary>
         /// Norwegian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Norwegian", "norvégien", Part2BCode="nor", Part2TCode="nor")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Norwegian", "norvégien", Part2BCode="nor", Part2TCode="nor")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @no = new DataStandardizer.ISO639.Iso639Part1("no");
         
         /// <summary>
         /// Chichewa; Chewa; Nyanja
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute(new string[] {
+        [DataStandardizer.ISO639.Iso639LanguageCode(new string[] {
                 "Chichewa",
                 "Chewa",
                 "Nyanja"}, new string[] {
@@ -876,31 +878,31 @@ namespace DataStandardizer.ISO639
         /// <summary>
         /// Occitan (post 1500)
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Occitan (post 1500)", "occitan (après 1500)", Part2BCode="oci", Part2TCode="oci")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Occitan (post 1500)", "occitan (après 1500)", Part2BCode="oci", Part2TCode="oci")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @oc = new DataStandardizer.ISO639.Iso639Part1("oc");
         
         /// <summary>
         /// Ojibwa
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Ojibwa", "ojibwa", Part2BCode="oji", Part2TCode="oji")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Ojibwa", "ojibwa", Part2BCode="oji", Part2TCode="oji")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @oj = new DataStandardizer.ISO639.Iso639Part1("oj");
         
         /// <summary>
         /// Oriya
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Oriya", "oriya", Part2BCode="ori", Part2TCode="ori")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Oriya", "oriya", Part2BCode="ori", Part2TCode="ori")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @or = new DataStandardizer.ISO639.Iso639Part1("or");
         
         /// <summary>
         /// Oromo
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Oromo", "galla", Part2BCode="orm", Part2TCode="orm")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Oromo", "galla", Part2BCode="orm", Part2TCode="orm")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @om = new DataStandardizer.ISO639.Iso639Part1("om");
         
         /// <summary>
         /// Ossetian; Ossetic
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute(new string[] {
+        [DataStandardizer.ISO639.Iso639LanguageCode(new string[] {
                 "Ossetian",
                 "Ossetic"}, new string[] {
                 "ossète"}, Part2BCode="oss", Part2TCode="oss")]
@@ -909,7 +911,7 @@ namespace DataStandardizer.ISO639
         /// <summary>
         /// Panjabi; Punjabi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute(new string[] {
+        [DataStandardizer.ISO639.Iso639LanguageCode(new string[] {
                 "Panjabi",
                 "Punjabi"}, new string[] {
                 "pendjabi"}, Part2BCode="pan", Part2TCode="pan")]
@@ -918,31 +920,31 @@ namespace DataStandardizer.ISO639
         /// <summary>
         /// Persian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Persian", "persan", Part2BCode="per", Part2TCode="fas")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Persian", "persan", Part2BCode="per", Part2TCode="fas")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @fa = new DataStandardizer.ISO639.Iso639Part1("fa");
         
         /// <summary>
         /// Pali
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Pali", "pali", Part2BCode="pli", Part2TCode="pli")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Pali", "pali", Part2BCode="pli", Part2TCode="pli")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @pi = new DataStandardizer.ISO639.Iso639Part1("pi");
         
         /// <summary>
         /// Polish
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Polish", "polonais", Part2BCode="pol", Part2TCode="pol")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Polish", "polonais", Part2BCode="pol", Part2TCode="pol")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @pl = new DataStandardizer.ISO639.Iso639Part1("pl");
         
         /// <summary>
         /// Portuguese
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Portuguese", "portugais", Part2BCode="por", Part2TCode="por")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Portuguese", "portugais", Part2BCode="por", Part2TCode="por")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @pt = new DataStandardizer.ISO639.Iso639Part1("pt");
         
         /// <summary>
         /// Pushto; Pashto
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute(new string[] {
+        [DataStandardizer.ISO639.Iso639LanguageCode(new string[] {
                 "Pushto",
                 "Pashto"}, new string[] {
                 "pachto"}, Part2BCode="pus", Part2TCode="pus")]
@@ -951,19 +953,19 @@ namespace DataStandardizer.ISO639
         /// <summary>
         /// Quechua
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Quechua", "quechua", Part2BCode="que", Part2TCode="que")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Quechua", "quechua", Part2BCode="que", Part2TCode="que")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @qu = new DataStandardizer.ISO639.Iso639Part1("qu");
         
         /// <summary>
         /// Romansh
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Romansh", "romanche", Part2BCode="roh", Part2TCode="roh")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Romansh", "romanche", Part2BCode="roh", Part2TCode="roh")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @rm = new DataStandardizer.ISO639.Iso639Part1("rm");
         
         /// <summary>
         /// Romanian; Moldavian; Moldovan
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute(new string[] {
+        [DataStandardizer.ISO639.Iso639LanguageCode(new string[] {
                 "Romanian",
                 "Moldavian",
                 "Moldovan"}, new string[] {
@@ -974,31 +976,31 @@ namespace DataStandardizer.ISO639
         /// <summary>
         /// Rundi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Rundi", "rundi", Part2BCode="run", Part2TCode="run")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Rundi", "rundi", Part2BCode="run", Part2TCode="run")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @rn = new DataStandardizer.ISO639.Iso639Part1("rn");
         
         /// <summary>
         /// Russian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Russian", "russe", Part2BCode="rus", Part2TCode="rus")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Russian", "russe", Part2BCode="rus", Part2TCode="rus")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @ru = new DataStandardizer.ISO639.Iso639Part1("ru");
         
         /// <summary>
         /// Sango
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Sango", "sango", Part2BCode="sag", Part2TCode="sag")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Sango", "sango", Part2BCode="sag", Part2TCode="sag")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @sg = new DataStandardizer.ISO639.Iso639Part1("sg");
         
         /// <summary>
         /// Sanskrit
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Sanskrit", "sanskrit", Part2BCode="san", Part2TCode="san")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Sanskrit", "sanskrit", Part2BCode="san", Part2TCode="san")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @sa = new DataStandardizer.ISO639.Iso639Part1("sa");
         
         /// <summary>
         /// Sinhala; Sinhalese
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute(new string[] {
+        [DataStandardizer.ISO639.Iso639LanguageCode(new string[] {
                 "Sinhala",
                 "Sinhalese"}, new string[] {
                 "singhalais"}, Part2BCode="sin", Part2TCode="sin")]
@@ -1007,55 +1009,55 @@ namespace DataStandardizer.ISO639
         /// <summary>
         /// Slovak
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Slovak", "slovaque", Part2BCode="slo", Part2TCode="slk")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Slovak", "slovaque", Part2BCode="slo", Part2TCode="slk")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @sk = new DataStandardizer.ISO639.Iso639Part1("sk");
         
         /// <summary>
         /// Slovenian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Slovenian", "slovène", Part2BCode="slv", Part2TCode="slv")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Slovenian", "slovène", Part2BCode="slv", Part2TCode="slv")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @sl = new DataStandardizer.ISO639.Iso639Part1("sl");
         
         /// <summary>
         /// Northern Sami
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Northern Sami", "sami du Nord", Part2BCode="sme", Part2TCode="sme")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Northern Sami", "sami du Nord", Part2BCode="sme", Part2TCode="sme")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @se = new DataStandardizer.ISO639.Iso639Part1("se");
         
         /// <summary>
         /// Samoan
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Samoan", "samoan", Part2BCode="smo", Part2TCode="smo")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Samoan", "samoan", Part2BCode="smo", Part2TCode="smo")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @sm = new DataStandardizer.ISO639.Iso639Part1("sm");
         
         /// <summary>
         /// Shona
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Shona", "shona", Part2BCode="sna", Part2TCode="sna")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Shona", "shona", Part2BCode="sna", Part2TCode="sna")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @sn = new DataStandardizer.ISO639.Iso639Part1("sn");
         
         /// <summary>
         /// Sindhi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Sindhi", "sindhi", Part2BCode="snd", Part2TCode="snd")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Sindhi", "sindhi", Part2BCode="snd", Part2TCode="snd")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @sd = new DataStandardizer.ISO639.Iso639Part1("sd");
         
         /// <summary>
         /// Somali
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Somali", "somali", Part2BCode="som", Part2TCode="som")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Somali", "somali", Part2BCode="som", Part2TCode="som")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @so = new DataStandardizer.ISO639.Iso639Part1("so");
         
         /// <summary>
         /// Sotho, Southern
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Sotho, Southern", "sotho du Sud", Part2BCode="sot", Part2TCode="sot")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Sotho, Southern", "sotho du Sud", Part2BCode="sot", Part2TCode="sot")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @st = new DataStandardizer.ISO639.Iso639Part1("st");
         
         /// <summary>
         /// Spanish; Castilian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute(new string[] {
+        [DataStandardizer.ISO639.Iso639LanguageCode(new string[] {
                 "Spanish",
                 "Castilian"}, new string[] {
                 "espagnol",
@@ -1065,133 +1067,133 @@ namespace DataStandardizer.ISO639
         /// <summary>
         /// Sardinian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Sardinian", "sarde", Part2BCode="srd", Part2TCode="srd")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Sardinian", "sarde", Part2BCode="srd", Part2TCode="srd")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @sc = new DataStandardizer.ISO639.Iso639Part1("sc");
         
         /// <summary>
         /// Serbian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Serbian", "serbe", Part2BCode="srp", Part2TCode="srp")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Serbian", "serbe", Part2BCode="srp", Part2TCode="srp")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @sr = new DataStandardizer.ISO639.Iso639Part1("sr");
         
         /// <summary>
         /// Swati
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Swati", "swati", Part2BCode="ssw", Part2TCode="ssw")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Swati", "swati", Part2BCode="ssw", Part2TCode="ssw")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @ss = new DataStandardizer.ISO639.Iso639Part1("ss");
         
         /// <summary>
         /// Sundanese
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Sundanese", "soundanais", Part2BCode="sun", Part2TCode="sun")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Sundanese", "soundanais", Part2BCode="sun", Part2TCode="sun")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @su = new DataStandardizer.ISO639.Iso639Part1("su");
         
         /// <summary>
         /// Swahili
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Swahili", "swahili", Part2BCode="swa", Part2TCode="swa")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Swahili", "swahili", Part2BCode="swa", Part2TCode="swa")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @sw = new DataStandardizer.ISO639.Iso639Part1("sw");
         
         /// <summary>
         /// Swedish
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Swedish", "suédois", Part2BCode="swe", Part2TCode="swe")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Swedish", "suédois", Part2BCode="swe", Part2TCode="swe")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @sv = new DataStandardizer.ISO639.Iso639Part1("sv");
         
         /// <summary>
         /// Tahitian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Tahitian", "tahitien", Part2BCode="tah", Part2TCode="tah")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Tahitian", "tahitien", Part2BCode="tah", Part2TCode="tah")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @ty = new DataStandardizer.ISO639.Iso639Part1("ty");
         
         /// <summary>
         /// Tamil
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Tamil", "tamoul", Part2BCode="tam", Part2TCode="tam")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Tamil", "tamoul", Part2BCode="tam", Part2TCode="tam")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @ta = new DataStandardizer.ISO639.Iso639Part1("ta");
         
         /// <summary>
         /// Tatar
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Tatar", "tatar", Part2BCode="tat", Part2TCode="tat")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Tatar", "tatar", Part2BCode="tat", Part2TCode="tat")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @tt = new DataStandardizer.ISO639.Iso639Part1("tt");
         
         /// <summary>
         /// Telugu
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Telugu", "télougou", Part2BCode="tel", Part2TCode="tel")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Telugu", "télougou", Part2BCode="tel", Part2TCode="tel")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @te = new DataStandardizer.ISO639.Iso639Part1("te");
         
         /// <summary>
         /// Tajik
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Tajik", "tadjik", Part2BCode="tgk", Part2TCode="tgk")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Tajik", "tadjik", Part2BCode="tgk", Part2TCode="tgk")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @tg = new DataStandardizer.ISO639.Iso639Part1("tg");
         
         /// <summary>
         /// Tagalog
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Tagalog", "tagalog", Part2BCode="tgl", Part2TCode="tgl")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Tagalog", "tagalog", Part2BCode="tgl", Part2TCode="tgl")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @tl = new DataStandardizer.ISO639.Iso639Part1("tl");
         
         /// <summary>
         /// Thai
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Thai", "thaï", Part2BCode="tha", Part2TCode="tha")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Thai", "thaï", Part2BCode="tha", Part2TCode="tha")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @th = new DataStandardizer.ISO639.Iso639Part1("th");
         
         /// <summary>
         /// Tibetan
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Tibetan", "tibétain", Part2BCode="tib", Part2TCode="bod")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Tibetan", "tibétain", Part2BCode="tib", Part2TCode="bod")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @bo = new DataStandardizer.ISO639.Iso639Part1("bo");
         
         /// <summary>
         /// Tigrinya
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Tigrinya", "tigrigna", Part2BCode="tir", Part2TCode="tir")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Tigrinya", "tigrigna", Part2BCode="tir", Part2TCode="tir")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @ti = new DataStandardizer.ISO639.Iso639Part1("ti");
         
         /// <summary>
         /// Tonga (Tonga Islands)
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Tonga (Tonga Islands)", "tongan (Îles Tonga)", Part2BCode="ton", Part2TCode="ton")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Tonga (Tonga Islands)", "tongan (Îles Tonga)", Part2BCode="ton", Part2TCode="ton")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @to = new DataStandardizer.ISO639.Iso639Part1("to");
         
         /// <summary>
         /// Tswana
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Tswana", "tswana", Part2BCode="tsn", Part2TCode="tsn")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Tswana", "tswana", Part2BCode="tsn", Part2TCode="tsn")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @tn = new DataStandardizer.ISO639.Iso639Part1("tn");
         
         /// <summary>
         /// Tsonga
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Tsonga", "tsonga", Part2BCode="tso", Part2TCode="tso")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Tsonga", "tsonga", Part2BCode="tso", Part2TCode="tso")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @ts = new DataStandardizer.ISO639.Iso639Part1("ts");
         
         /// <summary>
         /// Turkmen
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Turkmen", "turkmène", Part2BCode="tuk", Part2TCode="tuk")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Turkmen", "turkmène", Part2BCode="tuk", Part2TCode="tuk")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @tk = new DataStandardizer.ISO639.Iso639Part1("tk");
         
         /// <summary>
         /// Turkish
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Turkish", "turc", Part2BCode="tur", Part2TCode="tur")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Turkish", "turc", Part2BCode="tur", Part2TCode="tur")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @tr = new DataStandardizer.ISO639.Iso639Part1("tr");
         
         /// <summary>
         /// Twi
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Twi", "twi", Part2BCode="twi", Part2TCode="twi")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Twi", "twi", Part2BCode="twi", Part2TCode="twi")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @tw = new DataStandardizer.ISO639.Iso639Part1("tw");
         
         /// <summary>
         /// Uighur; Uyghur
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute(new string[] {
+        [DataStandardizer.ISO639.Iso639LanguageCode(new string[] {
                 "Uighur",
                 "Uyghur"}, new string[] {
                 "ouïgour"}, Part2BCode="uig", Part2TCode="uig")]
@@ -1200,79 +1202,79 @@ namespace DataStandardizer.ISO639
         /// <summary>
         /// Ukrainian
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Ukrainian", "ukrainien", Part2BCode="ukr", Part2TCode="ukr")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Ukrainian", "ukrainien", Part2BCode="ukr", Part2TCode="ukr")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @uk = new DataStandardizer.ISO639.Iso639Part1("uk");
         
         /// <summary>
         /// Urdu
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Urdu", "ourdou", Part2BCode="urd", Part2TCode="urd")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Urdu", "ourdou", Part2BCode="urd", Part2TCode="urd")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @ur = new DataStandardizer.ISO639.Iso639Part1("ur");
         
         /// <summary>
         /// Uzbek
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Uzbek", "ouszbek", Part2BCode="uzb", Part2TCode="uzb")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Uzbek", "ouszbek", Part2BCode="uzb", Part2TCode="uzb")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @uz = new DataStandardizer.ISO639.Iso639Part1("uz");
         
         /// <summary>
         /// Venda
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Venda", "venda", Part2BCode="ven", Part2TCode="ven")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Venda", "venda", Part2BCode="ven", Part2TCode="ven")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @ve = new DataStandardizer.ISO639.Iso639Part1("ve");
         
         /// <summary>
         /// Vietnamese
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Vietnamese", "vietnamien", Part2BCode="vie", Part2TCode="vie")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Vietnamese", "vietnamien", Part2BCode="vie", Part2TCode="vie")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @vi = new DataStandardizer.ISO639.Iso639Part1("vi");
         
         /// <summary>
         /// Volapük
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Volapük", "volapük", Part2BCode="vol", Part2TCode="vol")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Volapük", "volapük", Part2BCode="vol", Part2TCode="vol")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @vo = new DataStandardizer.ISO639.Iso639Part1("vo");
         
         /// <summary>
         /// Welsh
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Welsh", "gallois", Part2BCode="wel", Part2TCode="cym")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Welsh", "gallois", Part2BCode="wel", Part2TCode="cym")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @cy = new DataStandardizer.ISO639.Iso639Part1("cy");
         
         /// <summary>
         /// Walloon
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Walloon", "wallon", Part2BCode="wln", Part2TCode="wln")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Walloon", "wallon", Part2BCode="wln", Part2TCode="wln")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @wa = new DataStandardizer.ISO639.Iso639Part1("wa");
         
         /// <summary>
         /// Wolof
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Wolof", "wolof", Part2BCode="wol", Part2TCode="wol")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Wolof", "wolof", Part2BCode="wol", Part2TCode="wol")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @wo = new DataStandardizer.ISO639.Iso639Part1("wo");
         
         /// <summary>
         /// Xhosa
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Xhosa", "xhosa", Part2BCode="xho", Part2TCode="xho")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Xhosa", "xhosa", Part2BCode="xho", Part2TCode="xho")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @xh = new DataStandardizer.ISO639.Iso639Part1("xh");
         
         /// <summary>
         /// Yiddish
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Yiddish", "yiddish", Part2BCode="yid", Part2TCode="yid")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Yiddish", "yiddish", Part2BCode="yid", Part2TCode="yid")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @yi = new DataStandardizer.ISO639.Iso639Part1("yi");
         
         /// <summary>
         /// Yoruba
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Yoruba", "yoruba", Part2BCode="yor", Part2TCode="yor")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Yoruba", "yoruba", Part2BCode="yor", Part2TCode="yor")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @yo = new DataStandardizer.ISO639.Iso639Part1("yo");
         
         /// <summary>
         /// Zhuang; Chuang
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute(new string[] {
+        [DataStandardizer.ISO639.Iso639LanguageCode(new string[] {
                 "Zhuang",
                 "Chuang"}, new string[] {
                 "zhuang",
@@ -1282,7 +1284,7 @@ namespace DataStandardizer.ISO639
         /// <summary>
         /// Zulu
         /// </summary>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Zulu", "zoulou", Part2BCode="zul", Part2TCode="zul")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Zulu", "zoulou", Part2BCode="zul", Part2TCode="zul")]
         public static readonly DataStandardizer.ISO639.Iso639Part1 @zu = new DataStandardizer.ISO639.Iso639Part1("zu");
         #endregion
         

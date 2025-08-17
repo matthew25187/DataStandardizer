@@ -7,6 +7,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
+using System;
 #if NETCOREAPP3_0_OR_GREATER
 #nullable enable
 #endif
@@ -14,11 +15,12 @@
 namespace DataStandardizer.ISO639
 {
     using System.Reflection;
-    
-    
+
+
     /// <summary>
     /// Codes for the representation of names of languages—Part 5: Alpha-3 code for language families and groups
     /// </summary>
+    [Obsolete("It is recommended to use the "+nameof(Iso639Part5LanguageFamily)+ " type instead.  Refer to Bulletin 202508-01 (https://github.com/matthew25187/DataStandardizer/discussions/17) for more information.")]
     public readonly struct Iso639Part5 : DataStandardizer.Core.IStringEnum, System.IEquatable<DataStandardizer.ISO639.Iso639Part5>
     {
         
@@ -83,196 +85,196 @@ namespace DataStandardizer.ISO639
         /// Austro-Asiatic languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/aav">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Austro-Asiatic languages", "austro-asiatiques, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Austro-Asiatic languages", "austro-asiatiques, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @aav = new DataStandardizer.ISO639.Iso639Part5("aav");
         
         /// <summary>
         /// Afro-Asiatic languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/afa">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Afro-Asiatic languages", "afro-asiatiques, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Afro-Asiatic languages", "afro-asiatiques, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @afa = new DataStandardizer.ISO639.Iso639Part5("afa");
         
         /// <summary>
         /// Algonquian languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/alg">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Algonquian languages", "algonquines, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Algonquian languages", "algonquines, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @alg = new DataStandardizer.ISO639.Iso639Part5("alg");
         
         /// <summary>
         /// Atlantic-Congo languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/alv">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Atlantic-Congo languages", "atlantique-congo, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Atlantic-Congo languages", "atlantique-congo, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @alv = new DataStandardizer.ISO639.Iso639Part5("alv");
         
         /// <summary>
         /// Apache languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/apa">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Apache languages", "apaches, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Apache languages", "apaches, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @apa = new DataStandardizer.ISO639.Iso639Part5("apa");
         
         /// <summary>
         /// Alacalufan languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/aqa">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Alacalufan languages", "alacalufanes, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Alacalufan languages", "alacalufanes, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @aqa = new DataStandardizer.ISO639.Iso639Part5("aqa");
         
         /// <summary>
         /// Algic languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/aql">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Algic languages", "algiques, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Algic languages", "algiques, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @aql = new DataStandardizer.ISO639.Iso639Part5("aql");
         
         /// <summary>
         /// Artificial languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/art">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Artificial languages", "artificielles, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Artificial languages", "artificielles, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @art = new DataStandardizer.ISO639.Iso639Part5("art");
         
         /// <summary>
         /// Athapascan languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/ath">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Athapascan languages", "athapascanes, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Athapascan languages", "athapascanes, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @ath = new DataStandardizer.ISO639.Iso639Part5("ath");
         
         /// <summary>
         /// Arauan languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/auf">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Arauan languages", "arauanes, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Arauan languages", "arauanes, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @auf = new DataStandardizer.ISO639.Iso639Part5("auf");
         
         /// <summary>
         /// Australian languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/aus">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Australian languages", "australiennes, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Australian languages", "australiennes, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @aus = new DataStandardizer.ISO639.Iso639Part5("aus");
         
         /// <summary>
         /// Arawakan languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/awd">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Arawakan languages", "arawak, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Arawakan languages", "arawak, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @awd = new DataStandardizer.ISO639.Iso639Part5("awd");
         
         /// <summary>
         /// Uto-Aztecan languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/azc">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Uto-Aztecan languages", "uto-aztèques, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Uto-Aztecan languages", "uto-aztèques, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @azc = new DataStandardizer.ISO639.Iso639Part5("azc");
         
         /// <summary>
         /// Banda languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/bad">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Banda languages", "banda, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Banda languages", "banda, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @bad = new DataStandardizer.ISO639.Iso639Part5("bad");
         
         /// <summary>
         /// Bamileke languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/bai">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Bamileke languages", "bamiléké, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Bamileke languages", "bamiléké, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @bai = new DataStandardizer.ISO639.Iso639Part5("bai");
         
         /// <summary>
         /// Baltic languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/bat">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Baltic languages", "baltes, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Baltic languages", "baltes, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @bat = new DataStandardizer.ISO639.Iso639Part5("bat");
         
         /// <summary>
         /// Berber languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/ber">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Berber languages", "berbères, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Berber languages", "berbères, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @ber = new DataStandardizer.ISO639.Iso639Part5("ber");
         
         /// <summary>
         /// Bihari languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/bih">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Bihari languages", "langues biharis")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Bihari languages", "langues biharis")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @bih = new DataStandardizer.ISO639.Iso639Part5("bih");
         
         /// <summary>
         /// Bantu languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/bnt">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Bantu languages", "bantou, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Bantu languages", "bantou, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @bnt = new DataStandardizer.ISO639.Iso639Part5("bnt");
         
         /// <summary>
         /// Batak languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/btk">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Batak languages", "batak, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Batak languages", "batak, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @btk = new DataStandardizer.ISO639.Iso639Part5("btk");
         
         /// <summary>
         /// Central American Indian languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/cai">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Central American Indian languages", "amérindiennes de l\'Amérique centrale, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Central American Indian languages", "amérindiennes de l\'Amérique centrale, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @cai = new DataStandardizer.ISO639.Iso639Part5("cai");
         
         /// <summary>
         /// Caucasian languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/cau">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Caucasian languages", "caucasiennes, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Caucasian languages", "caucasiennes, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @cau = new DataStandardizer.ISO639.Iso639Part5("cau");
         
         /// <summary>
         /// Chibchan languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/cba">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Chibchan languages", "chibcha, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Chibchan languages", "chibcha, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @cba = new DataStandardizer.ISO639.Iso639Part5("cba");
         
         /// <summary>
         /// North Caucasian languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/ccn">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("North Caucasian languages", "caucasiennes du Nord, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("North Caucasian languages", "caucasiennes du Nord, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @ccn = new DataStandardizer.ISO639.Iso639Part5("ccn");
         
         /// <summary>
         /// South Caucasian languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/ccs">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("South Caucasian languages", "caucasiennes du Sud, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("South Caucasian languages", "caucasiennes du Sud, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @ccs = new DataStandardizer.ISO639.Iso639Part5("ccs");
         
         /// <summary>
         /// Chadic languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/cdc">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Chadic languages", "tchadiques, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Chadic languages", "tchadiques, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @cdc = new DataStandardizer.ISO639.Iso639Part5("cdc");
         
         /// <summary>
         /// Caddoan languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/cdd">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Caddoan languages", "caddoanes, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Caddoan languages", "caddoanes, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @cdd = new DataStandardizer.ISO639.Iso639Part5("cdd");
         
         /// <summary>
         /// Celtic languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/cel">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute(new string[] {
+        [DataStandardizer.ISO639.Iso639LanguageCode(new string[] {
                 "Celtic languages"}, new string[] {
                 "celtiques, langues",
                 "celtes, langues"})]
@@ -282,609 +284,609 @@ namespace DataStandardizer.ISO639
         /// Chamic languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/cmc">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Chamic languages", "chames, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Chamic languages", "chames, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @cmc = new DataStandardizer.ISO639.Iso639Part5("cmc");
         
         /// <summary>
         /// Creoles and pidgins, English‑based
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/cpe">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Creoles and pidgins, English‑based", "créoles et pidgins basés sur l\'anglais")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Creoles and pidgins, English‑based", "créoles et pidgins basés sur l\'anglais")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @cpe = new DataStandardizer.ISO639.Iso639Part5("cpe");
         
         /// <summary>
         /// Creoles and pidgins, French‑based
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/cpf">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Creoles and pidgins, French‑based", "créoles et pidgins basés sur le français")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Creoles and pidgins, French‑based", "créoles et pidgins basés sur le français")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @cpf = new DataStandardizer.ISO639.Iso639Part5("cpf");
         
         /// <summary>
         /// Creoles and pidgins, Portuguese-based
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/cpp">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Creoles and pidgins, Portuguese-based", "créoles et pidgins basés sur le portugais")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Creoles and pidgins, Portuguese-based", "créoles et pidgins basés sur le portugais")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @cpp = new DataStandardizer.ISO639.Iso639Part5("cpp");
         
         /// <summary>
         /// Creoles and pidgins
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/crp">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Creoles and pidgins", "créoles et pidgins")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Creoles and pidgins", "créoles et pidgins")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @crp = new DataStandardizer.ISO639.Iso639Part5("crp");
         
         /// <summary>
         /// Central Sudanic languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/csu">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Central Sudanic languages", "soudaniques centrales, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Central Sudanic languages", "soudaniques centrales, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @csu = new DataStandardizer.ISO639.Iso639Part5("csu");
         
         /// <summary>
         /// Cushitic languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/cus">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Cushitic languages", "couchitiques, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Cushitic languages", "couchitiques, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @cus = new DataStandardizer.ISO639.Iso639Part5("cus");
         
         /// <summary>
         /// Land Dayak languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/day">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Land Dayak languages", "dayak, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Land Dayak languages", "dayak, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @day = new DataStandardizer.ISO639.Iso639Part5("day");
         
         /// <summary>
         /// Mande languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/dmn">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Mande languages", "mandé, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Mande languages", "mandé, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @dmn = new DataStandardizer.ISO639.Iso639Part5("dmn");
         
         /// <summary>
         /// Dravidian languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/dra">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Dravidian languages", "dravidiennes, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Dravidian languages", "dravidiennes, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @dra = new DataStandardizer.ISO639.Iso639Part5("dra");
         
         /// <summary>
         /// Egyptian languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/egx">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Egyptian languages", "égyptiennes, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Egyptian languages", "égyptiennes, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @egx = new DataStandardizer.ISO639.Iso639Part5("egx");
         
         /// <summary>
         /// Eskimo-Aleut languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/esx">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Eskimo-Aleut languages", "esquimaudes-aléoutiennes, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Eskimo-Aleut languages", "esquimaudes-aléoutiennes, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @esx = new DataStandardizer.ISO639.Iso639Part5("esx");
         
         /// <summary>
         /// Basque (family)
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/euq">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Basque (family)", "basque (famille)")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Basque (family)", "basque (famille)")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @euq = new DataStandardizer.ISO639.Iso639Part5("euq");
         
         /// <summary>
         /// Finno-Ugrian languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/fiu">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Finno-Ugrian languages", "finno-ougriennes, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Finno-Ugrian languages", "finno-ougriennes, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @fiu = new DataStandardizer.ISO639.Iso639Part5("fiu");
         
         /// <summary>
         /// Formosan languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/fox">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Formosan languages", "formosanes, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Formosan languages", "formosanes, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @fox = new DataStandardizer.ISO639.Iso639Part5("fox");
         
         /// <summary>
         /// Germanic languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/gem">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Germanic languages", "germaniques, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Germanic languages", "germaniques, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @gem = new DataStandardizer.ISO639.Iso639Part5("gem");
         
         /// <summary>
         /// East Germanic languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/gme">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("East Germanic languages", "germaniques orientales, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("East Germanic languages", "germaniques orientales, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @gme = new DataStandardizer.ISO639.Iso639Part5("gme");
         
         /// <summary>
         /// North Germanic languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/gmq">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("North Germanic languages", "germaniques septentrionales, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("North Germanic languages", "germaniques septentrionales, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @gmq = new DataStandardizer.ISO639.Iso639Part5("gmq");
         
         /// <summary>
         /// West Germanic languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/gmw">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("West Germanic languages", "germaniques occidentales, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("West Germanic languages", "germaniques occidentales, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @gmw = new DataStandardizer.ISO639.Iso639Part5("gmw");
         
         /// <summary>
         /// Greek languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/grk">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Greek languages", "grecques, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Greek languages", "grecques, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @grk = new DataStandardizer.ISO639.Iso639Part5("grk");
         
         /// <summary>
         /// Hmong-Mien languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/hmx">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Hmong-Mien languages", "hmong-mien, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Hmong-Mien languages", "hmong-mien, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @hmx = new DataStandardizer.ISO639.Iso639Part5("hmx");
         
         /// <summary>
         /// Hokan languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/hok">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Hokan languages", "hoka, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Hokan languages", "hoka, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @hok = new DataStandardizer.ISO639.Iso639Part5("hok");
         
         /// <summary>
         /// Armenian (family)
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/hyx">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Armenian (family)", "arménien (famille)")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Armenian (family)", "arménien (famille)")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @hyx = new DataStandardizer.ISO639.Iso639Part5("hyx");
         
         /// <summary>
         /// Indo-Iranian languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/iir">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Indo-Iranian languages", "indo-iraniennes, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Indo-Iranian languages", "indo-iraniennes, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @iir = new DataStandardizer.ISO639.Iso639Part5("iir");
         
         /// <summary>
         /// Ijo languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/ijo">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Ijo languages", "ijo, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Ijo languages", "ijo, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @ijo = new DataStandardizer.ISO639.Iso639Part5("ijo");
         
         /// <summary>
         /// Indic languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/inc">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Indic languages", "indo-aryennes, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Indic languages", "indo-aryennes, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @inc = new DataStandardizer.ISO639.Iso639Part5("inc");
         
         /// <summary>
         /// Indo-European languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/ine">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Indo-European languages", "indo-européennes, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Indo-European languages", "indo-européennes, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @ine = new DataStandardizer.ISO639.Iso639Part5("ine");
         
         /// <summary>
         /// Iranian languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/ira">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Iranian languages", "iraniennes, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Iranian languages", "iraniennes, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @ira = new DataStandardizer.ISO639.Iso639Part5("ira");
         
         /// <summary>
         /// Iroquoian languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/iro">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Iroquoian languages", "iroquoises, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Iroquoian languages", "iroquoises, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @iro = new DataStandardizer.ISO639.Iso639Part5("iro");
         
         /// <summary>
         /// Italic languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/itc">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Italic languages", "italiques, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Italic languages", "italiques, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @itc = new DataStandardizer.ISO639.Iso639Part5("itc");
         
         /// <summary>
         /// Japanese (family)
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/jpx">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Japanese (family)", "japonais (famille)")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Japanese (family)", "japonais (famille)")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @jpx = new DataStandardizer.ISO639.Iso639Part5("jpx");
         
         /// <summary>
         /// Karen languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/kar">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Karen languages", "karen, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Karen languages", "karen, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @kar = new DataStandardizer.ISO639.Iso639Part5("kar");
         
         /// <summary>
         /// Kordofanian languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/kdo">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Kordofanian languages", "kordofaniennes, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Kordofanian languages", "kordofaniennes, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @kdo = new DataStandardizer.ISO639.Iso639Part5("kdo");
         
         /// <summary>
         /// Khoisan languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/khi">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Khoisan languages", "khoïsan, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Khoisan languages", "khoïsan, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @khi = new DataStandardizer.ISO639.Iso639Part5("khi");
         
         /// <summary>
         /// Kru languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/kro">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Kru languages", "krou, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Kru languages", "krou, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @kro = new DataStandardizer.ISO639.Iso639Part5("kro");
         
         /// <summary>
         /// Austronesian languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/map">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Austronesian languages", "austronésiennes, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Austronesian languages", "austronésiennes, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @map = new DataStandardizer.ISO639.Iso639Part5("map");
         
         /// <summary>
         /// Mon-Khmer languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/mkh">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Mon-Khmer languages", "môn-khmer, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Mon-Khmer languages", "môn-khmer, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @mkh = new DataStandardizer.ISO639.Iso639Part5("mkh");
         
         /// <summary>
         /// Manobo languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/mno">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Manobo languages", "manobo, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Manobo languages", "manobo, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @mno = new DataStandardizer.ISO639.Iso639Part5("mno");
         
         /// <summary>
         /// Munda languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/mun">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Munda languages", "mounda, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Munda languages", "mounda, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @mun = new DataStandardizer.ISO639.Iso639Part5("mun");
         
         /// <summary>
         /// Mayan languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/myn">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Mayan languages", "maya, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Mayan languages", "maya, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @myn = new DataStandardizer.ISO639.Iso639Part5("myn");
         
         /// <summary>
         /// Nahuatl languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/nah">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Nahuatl languages", "nahuatl, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Nahuatl languages", "nahuatl, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @nah = new DataStandardizer.ISO639.Iso639Part5("nah");
         
         /// <summary>
         /// North American Indian languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/nai">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("North American Indian languages", "nord-amérindiennes, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("North American Indian languages", "nord-amérindiennes, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @nai = new DataStandardizer.ISO639.Iso639Part5("nai");
         
         /// <summary>
         /// Trans-New Guinea languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/ngf">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Trans-New Guinea languages", "trans-nouvelle-guinée, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Trans-New Guinea languages", "trans-nouvelle-guinée, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @ngf = new DataStandardizer.ISO639.Iso639Part5("ngf");
         
         /// <summary>
         /// Niger-Kordofanian languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/nic">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Niger-Kordofanian languages", "nigéro-kordofaniennes, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Niger-Kordofanian languages", "nigéro-kordofaniennes, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @nic = new DataStandardizer.ISO639.Iso639Part5("nic");
         
         /// <summary>
         /// Nubian languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/nub">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Nubian languages", "nubiennes, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Nubian languages", "nubiennes, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @nub = new DataStandardizer.ISO639.Iso639Part5("nub");
         
         /// <summary>
         /// Oto-Manguean languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/omq">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Oto-Manguean languages", "otomangue, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Oto-Manguean languages", "otomangue, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @omq = new DataStandardizer.ISO639.Iso639Part5("omq");
         
         /// <summary>
         /// Omotic languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/omv">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Omotic languages", "omotiques, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Omotic languages", "omotiques, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @omv = new DataStandardizer.ISO639.Iso639Part5("omv");
         
         /// <summary>
         /// Otomian languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/oto">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Otomian languages", "otomi, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Otomian languages", "otomi, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @oto = new DataStandardizer.ISO639.Iso639Part5("oto");
         
         /// <summary>
         /// Papuan languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/paa">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Papuan languages", "papoues, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Papuan languages", "papoues, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @paa = new DataStandardizer.ISO639.Iso639Part5("paa");
         
         /// <summary>
         /// Philippine languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/phi">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Philippine languages", "philippines, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Philippine languages", "philippines, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @phi = new DataStandardizer.ISO639.Iso639Part5("phi");
         
         /// <summary>
         /// Central Malayo-Polynesian languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/plf">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Central Malayo-Polynesian languages", "malayo-polynésiennes centrales, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Central Malayo-Polynesian languages", "malayo-polynésiennes centrales, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @plf = new DataStandardizer.ISO639.Iso639Part5("plf");
         
         /// <summary>
         /// Malayo-Polynesian languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/poz">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Malayo-Polynesian languages", "malayo-polynésiennes, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Malayo-Polynesian languages", "malayo-polynésiennes, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @poz = new DataStandardizer.ISO639.Iso639Part5("poz");
         
         /// <summary>
         /// Eastern Malayo-Polynesian languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/pqe">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Eastern Malayo-Polynesian languages", "malayo-polynésiennes orientales, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Eastern Malayo-Polynesian languages", "malayo-polynésiennes orientales, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @pqe = new DataStandardizer.ISO639.Iso639Part5("pqe");
         
         /// <summary>
         /// Western Malayo-Polynesian languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/pqw">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Western Malayo-Polynesian languages", "malayo-polynésiennes occidentales, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Western Malayo-Polynesian languages", "malayo-polynésiennes occidentales, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @pqw = new DataStandardizer.ISO639.Iso639Part5("pqw");
         
         /// <summary>
         /// Prakrit languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/pra">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Prakrit languages", "prâkrit, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Prakrit languages", "prâkrit, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @pra = new DataStandardizer.ISO639.Iso639Part5("pra");
         
         /// <summary>
         /// Quechuan (family)
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/qwe">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Quechuan (family)", "quechua (famille)")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Quechuan (family)", "quechua (famille)")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @qwe = new DataStandardizer.ISO639.Iso639Part5("qwe");
         
         /// <summary>
         /// Romance languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/roa">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Romance languages", "romanes, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Romance languages", "romanes, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @roa = new DataStandardizer.ISO639.Iso639Part5("roa");
         
         /// <summary>
         /// South American Indian languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/sai">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("South American Indian languages", "sud-amérindiennes, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("South American Indian languages", "sud-amérindiennes, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @sai = new DataStandardizer.ISO639.Iso639Part5("sai");
         
         /// <summary>
         /// Salishan languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/sal">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Salishan languages", "salishennes, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Salishan languages", "salishennes, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @sal = new DataStandardizer.ISO639.Iso639Part5("sal");
         
         /// <summary>
         /// Eastern Sudanic languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/sdv">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Eastern Sudanic languages", "soudaniques orientales, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Eastern Sudanic languages", "soudaniques orientales, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @sdv = new DataStandardizer.ISO639.Iso639Part5("sdv");
         
         /// <summary>
         /// Semitic languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/sem">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Semitic languages", "sémitiques, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Semitic languages", "sémitiques, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @sem = new DataStandardizer.ISO639.Iso639Part5("sem");
         
         /// <summary>
         /// sign languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/sgn">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("sign languages", "langues des signes")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("sign languages", "langues des signes")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @sgn = new DataStandardizer.ISO639.Iso639Part5("sgn");
         
         /// <summary>
         /// Siouan languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/sio">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Siouan languages", "sioux, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Siouan languages", "sioux, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @sio = new DataStandardizer.ISO639.Iso639Part5("sio");
         
         /// <summary>
         /// Sino-Tibetan languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/sit">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Sino-Tibetan languages", "sino-tibétaines, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Sino-Tibetan languages", "sino-tibétaines, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @sit = new DataStandardizer.ISO639.Iso639Part5("sit");
         
         /// <summary>
         /// Slavic languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/sla">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Slavic languages", "slaves, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Slavic languages", "slaves, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @sla = new DataStandardizer.ISO639.Iso639Part5("sla");
         
         /// <summary>
         /// Sami languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/smi">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Sami languages", "sames, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Sami languages", "sames, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @smi = new DataStandardizer.ISO639.Iso639Part5("smi");
         
         /// <summary>
         /// Songhai languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/son">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Songhai languages", "songhai, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Songhai languages", "songhai, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @son = new DataStandardizer.ISO639.Iso639Part5("son");
         
         /// <summary>
         /// Albanian languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/sqj">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Albanian languages", "albanaises, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Albanian languages", "albanaises, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @sqj = new DataStandardizer.ISO639.Iso639Part5("sqj");
         
         /// <summary>
         /// Nilo-Saharan languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/ssa">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Nilo-Saharan languages", "nilo-sahariennes, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Nilo-Saharan languages", "nilo-sahariennes, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @ssa = new DataStandardizer.ISO639.Iso639Part5("ssa");
         
         /// <summary>
         /// Samoyedic languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/syd">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Samoyedic languages", "samoyèdes, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Samoyedic languages", "samoyèdes, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @syd = new DataStandardizer.ISO639.Iso639Part5("syd");
         
         /// <summary>
         /// Tai languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/tai">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Tai languages", "tai, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Tai languages", "tai, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @tai = new DataStandardizer.ISO639.Iso639Part5("tai");
         
         /// <summary>
         /// Tibeto-Burman languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/tbq">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Tibeto-Burman languages", "tibéto-birmanes, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Tibeto-Burman languages", "tibéto-birmanes, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @tbq = new DataStandardizer.ISO639.Iso639Part5("tbq");
         
         /// <summary>
         /// Turkic languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/trk">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Turkic languages", "turques, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Turkic languages", "turques, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @trk = new DataStandardizer.ISO639.Iso639Part5("trk");
         
         /// <summary>
         /// Tupi languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/tup">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Tupi languages", "tupi, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Tupi languages", "tupi, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @tup = new DataStandardizer.ISO639.Iso639Part5("tup");
         
         /// <summary>
         /// Altaic languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/tut">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Altaic languages", "altaïques, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Altaic languages", "altaïques, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @tut = new DataStandardizer.ISO639.Iso639Part5("tut");
         
         /// <summary>
         /// Tungus languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/tuw">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Tungus languages", "toungouses, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Tungus languages", "toungouses, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @tuw = new DataStandardizer.ISO639.Iso639Part5("tuw");
         
         /// <summary>
         /// Uralic languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/urj">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Uralic languages", "ouraliennes, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Uralic languages", "ouraliennes, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @urj = new DataStandardizer.ISO639.Iso639Part5("urj");
         
         /// <summary>
         /// Wakashan languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/wak">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Wakashan languages", "wakashanes, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Wakashan languages", "wakashanes, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @wak = new DataStandardizer.ISO639.Iso639Part5("wak");
         
         /// <summary>
         /// Sorbian languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/wen">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Sorbian languages", "sorabes, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Sorbian languages", "sorabes, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @wen = new DataStandardizer.ISO639.Iso639Part5("wen");
         
         /// <summary>
         /// Mongolian languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/xgn">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Mongolian languages", "mongoles, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Mongolian languages", "mongoles, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @xgn = new DataStandardizer.ISO639.Iso639Part5("xgn");
         
         /// <summary>
         /// Na-Dene languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/xnd">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Na-Dene languages", "na-déné, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Na-Dene languages", "na-déné, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @xnd = new DataStandardizer.ISO639.Iso639Part5("xnd");
         
         /// <summary>
         /// Yupik languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/ypk">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Yupik languages", "yupik, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Yupik languages", "yupik, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @ypk = new DataStandardizer.ISO639.Iso639Part5("ypk");
         
         /// <summary>
         /// Chinese (family)
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/zhx">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Chinese (family)", "chinois (famille)")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Chinese (family)", "chinois (famille)")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @zhx = new DataStandardizer.ISO639.Iso639Part5("zhx");
         
         /// <summary>
         /// East Slavic languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/zle">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("East Slavic languages", "slaves orientales, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("East Slavic languages", "slaves orientales, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @zle = new DataStandardizer.ISO639.Iso639Part5("zle");
         
         /// <summary>
         /// South Slavic languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/zls">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("South Slavic languages", "slaves méridionales, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("South Slavic languages", "slaves méridionales, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @zls = new DataStandardizer.ISO639.Iso639Part5("zls");
         
         /// <summary>
         /// West Slavic languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/zlw">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("West Slavic languages", "slaves occidentales, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("West Slavic languages", "slaves occidentales, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @zlw = new DataStandardizer.ISO639.Iso639Part5("zlw");
         
         /// <summary>
         /// Zande languages
         /// </summary>
         /// <seealso href="http://id.loc.gov/vocabulary/iso639-5/znd">Library of Congress</seealso>
-        [DataStandardizer.ISO639.Iso639CodeAttribute("Zande languages", "zandé, langues")]
+        [DataStandardizer.ISO639.Iso639LanguageCode("Zande languages", "zandé, langues")]
         public static readonly DataStandardizer.ISO639.Iso639Part5 @znd = new DataStandardizer.ISO639.Iso639Part5("znd");
         #endregion
         
