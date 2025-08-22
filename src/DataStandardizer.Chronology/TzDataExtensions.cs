@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Reflection;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using JetBrains.Annotations;
 #endif
 
 namespace DataStandardizer.Chronology
@@ -33,7 +33,9 @@ namespace DataStandardizer.Chronology
         public static string[] GetIsoCountryCodes(this TzDataTimezone timezone)
         {
             var timezoneAttribute = GetTimezoneAttribute(timezone);
-#if NETSTANDARD1_3_OR_GREATER
+#if NET8_0_OR_GREATER
+            return timezoneAttribute?.IsoCountryCodes ?? [];
+#elif NETSTANDARD1_3_OR_GREATER || NET
             return timezoneAttribute?.IsoCountryCodes ?? Array.Empty<string>();
 #else
             return timezoneAttribute?.IsoCountryCodes ?? new string[] { };
@@ -77,13 +79,15 @@ namespace DataStandardizer.Chronology
         private static FieldInfo[] GetTimezoneFields(Type hostType)
         {
             var timezoneFields = hostType.GetTypeInfo().DeclaredFields
-                .Where(field => field.FieldType == typeof(TzDataTimezone))
+                .Where(field => field.IsPublic && field.IsStatic && field.FieldType == typeof(TzDataTimezone))
                 .ToList();
 
-            var nestedTypes = hostType.GetTypeInfo().DeclaredNestedTypes;
+            var nestedTypes = hostType.GetTypeInfo().DeclaredNestedTypes
+                .Where(typeInfo => typeInfo.IsNestedPublic && typeInfo.IsClass && typeInfo.IsAbstract && typeInfo.IsSealed)
+                .Select(typeInfo => typeInfo.AsType());
             foreach (var nestedType in nestedTypes)
             {
-                var nestedTimezoneFields = GetTimezoneFields(nestedType.AsType());
+                var nestedTimezoneFields = GetTimezoneFields(nestedType);
                 timezoneFields.AddRange(nestedTimezoneFields);
             }
 
