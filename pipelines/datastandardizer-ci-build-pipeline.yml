@@ -34,6 +34,14 @@ parameters:
     - None
     - Build
     - Publication
+  - name: requirePackageDataStandardizerChronology
+    displayName: 'Force DataStandardizer.Chronology package'
+    type: string
+    default: None
+    values:
+    - None
+    - Build
+    - Publication
   - name: requirePackageDataStandardizerIso15924
     displayName: 'Force DataStandardizer.ISO15924 package'
     type: string
@@ -128,6 +136,7 @@ variables:
     parameters:
       requirePackageDataStandardizerCore: ${{ parameters.requirePackageDataStandardizerCore }}
       requirePackageDataStandardizerBcp47: ${{ parameters.requirePackageDataStandardizerBcp47 }}
+      requirePackageDataStandardizerChronology: ${{ parameters.requirePackageDataStandardizerChronology }}
       requirePackageDataStandardizerIso15924: ${{ parameters.requirePackageDataStandardizerIso15924 }}
       requirePackageDataStandardizerIso3166: ${{ parameters.requirePackageDataStandardizerIso3166 }}
       requirePackageDataStandardizerIso4217: ${{ parameters.requirePackageDataStandardizerIso4217 }}
