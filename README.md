@@ -12,6 +12,7 @@ Supported target platforms include (modern) .Net and .Net Standard.  *Data Stand
 | --- | --- |
 | **DataStandardizer.Core** | Common types used to implement standards in the other packages.  You should not need to link to this package directly. |
 | **DataStandardizer.BCP47** | Supports **IETF BCP 47** language tags. |
+| **DataStandardizer.Chronology** | Provides support for the TZ Database. |
 | **DataStandardizer.ISO15924** | Supports **ISO 15924, *Codes for the representation of names of scripts***. |
 | **DataStandardizer.ISO3166** | Supports **ISO 3166, *Codes for the representation of names of countries and their subdivisions*** parts 1 & 2. |
 | **DataStandardizer.ISO4217** | Supports **ISO 4217, *Codes for the representation of currencies and funds***. |
@@ -89,6 +90,12 @@ Though each package contains many types, typically there will be only a few that
 | `SubtagRegistryFileDateRecord` | Represents a "File-Date" record from the subtag registry. |
 | `SubtagRegistrySubtagRecord` | Represents a "Subtag" record from the subtag registry. |
 | `SubtagRegistryTagRecord` | Represents a "Tag" record from the subtag registry. |
+
+## DataStandardizer.Chronology
+
+| Type | Description |
+| --- | --- |
+| `TzDataTimezone` | An enum containing the timezones defined by the TZ Database. |
 
 ## DataStandardizer.ISO15924
 
