@@ -4,7 +4,7 @@
 Supported target platforms include (modern) .Net and .Net Standard.  *Data Standardizer* can be used in modern application software, but is also available as an option for older codebases that are being upgraded more gradually or may remain on older frameworks indefinitely.
 
 # Supporting the project
-If you derive a commercial benefit from use of *Data Standardizer* or feel it otherwise adds value to yor project, you are asked to please consider supporting the project.  You can do this by becoming a [GitHub sponsor](https://github.com/sponsors/matthew25187) to make a financial contribution.  *Data Standardizer* is maintained and enhanced by [@matthew25187](https://github.com/matthew25187) in his personal time and made available for free for all to use.
+If you derive a commercial benefit from use of *Data Standardizer* or feel it otherwise adds value to your project, you are asked to please consider supporting the project.  You can do this by becoming a [GitHub sponsor](https://github.com/sponsors/matthew25187) to make a financial contribution.  *Data Standardizer* is maintained and enhanced by [@matthew25187](https://github.com/matthew25187) in his personal time and made available for free for all to use.
 
 # Getting Started
 
