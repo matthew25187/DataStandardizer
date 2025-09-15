@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Text;
 using DataStandardizer.File.Csv;
 using FluentAssertions;
@@ -48,7 +49,7 @@ namespace DataStandardizer.File.Tests
             AddTestFileLine(testFileLines, null, "1", "2", "3");
             var testFile = string.Join(CsvLineBreak, testFileLines);
 
-            var options = new CsvFileOptions() { HasHeaderLine = true };
+            var options = new CsvFileOptions { HasHeaderLine = true };
 
             var testFileBytes = Encoding.Default.GetBytes(testFile);
             using var testFileStream = new MemoryStream(testFileBytes);
@@ -311,6 +312,141 @@ namespace DataStandardizer.File.Tests
 
             // assert
             testAction.Should().Throw<CsvFileException>().WithMessage("Encountered invalid value at field index 1.");
+        }
+
+        [Fact]
+        public void ReadLine_RecordLineWithFirstIndexMapper_ReadsCsvFieldsInOrderByMapping()
+        {
+            // arrange
+            const string recordLineFieldValue2 = "One", recordLineFieldValue3 = "This is the first record";
+            var testFileLines = new List<string>();
+            AddTestFileLine(testFileLines,null,"1",recordLineFieldValue2,recordLineFieldValue3);
+            var testFile = string.Join(CsvLineBreak, testFileLines);
+
+            var testFileBytes = Encoding.Default.GetBytes(testFile);
+            using var testFileStream = new MemoryStream(testFileBytes);
+            using var csvReader = new CsvFileReader<TestLine>(testFileStream);
+            csvReader.RegisterMapper<TestLineFirstIndexMapper>();
+            
+            // act
+            var testResult = csvReader.ReadLine() as TestLine;
+            
+            // assert
+            testResult.Should().NotBeNull();
+            testResult!.Id.Should().Be(1);
+            testResult.Name.Should().Be(recordLineFieldValue2);
+            testResult.Description.Should().Be(recordLineFieldValue3);
+        }
+
+        [Fact]
+        public void ReadLine_RecordLineWithLastIndexMapper_ReadsCsvFieldsInOrderByMapping()
+        {
+            // arrange
+            const string recordLineFieldValue2 = "One", recordLineFieldValue3 = "This is the first record";
+            var testFileLines = new List<string>();
+            AddTestFileLine(testFileLines, null, "1", recordLineFieldValue2, recordLineFieldValue3);
+            var testFile = string.Join(CsvLineBreak, testFileLines);
+
+            var testFileBytes = Encoding.Default.GetBytes(testFile);
+            using var testFileStream = new MemoryStream(testFileBytes);
+            using var csvReader = new CsvFileReader<TestLine>(testFileStream);
+            csvReader.RegisterMapper<TestLineLastIndexMapper>();
+
+            // act
+            var testResult = csvReader.ReadLine() as TestLine;
+
+            // assert
+            testResult.Should().NotBeNull();
+            testResult!.Id.Should().Be(1);
+            testResult.Name.Should().Be(recordLineFieldValue2);
+            testResult.Description.Should().Be(recordLineFieldValue3);
+        }
+
+        [Fact]
+        public void ReadLine_RecordLineWithGapIndexMapper_ReadsCsvFieldsInOrderByMapping()
+        {
+            // arrange
+            const string recordLineFieldValue2 = "One", recordLineFieldValue3 = "This is the first record";
+            var testFileLines = new List<string>();
+            AddTestFileLine(testFileLines, null, "1", recordLineFieldValue2, recordLineFieldValue3);
+            var testFile = string.Join(CsvLineBreak, testFileLines);
+
+            var testFileBytes = Encoding.Default.GetBytes(testFile);
+            using var testFileStream = new MemoryStream(testFileBytes);
+            using var csvReader = new CsvFileReader<TestLine>(testFileStream);
+            csvReader.RegisterMapper<TestLineGapIndexMapper>();
+
+            // act
+            var testResult = csvReader.ReadLine() as TestLine;
+
+            // assert
+            testResult.Should().NotBeNull();
+            testResult!.Id.Should().Be(1);
+            testResult.Name.Should().Be(recordLineFieldValue2);
+            testResult.Description.Should().Be(recordLineFieldValue3);
+        }
+
+        private class TestLine : CsvFileRecordLine
+        {
+            public int Id
+            {
+                get => GetPropertyValue<int>();
+                set => SetPropertyValue(value);
+            }
+
+            public string? Name
+            {
+                get => GetPropertyValue<string?>();
+                set => SetPropertyValue(value);
+            }
+
+            public string? Description
+            {
+                get => GetPropertyValue<string?>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private class TestLineFirstIndexMapper : CsvFileMapperBase<TestLine>
+        {
+            public TestLineFirstIndexMapper()
+            {
+                this.Map()
+                    .Property(x => x.Id)
+                    .HasFieldIndex(0)
+                    .ConvertUsing(typeof(Int32Converter));
+                this.Map().Property(x => x.Name);
+                this.Map().Property(x => x.Description);
+            }
+        }
+
+        private class TestLineLastIndexMapper : CsvFileMapperBase<TestLine>
+        {
+            public TestLineLastIndexMapper()
+            {
+                this.Map()
+                    .Property(x => x.Id)
+                    .ConvertUsing(typeof(Int32Converter));
+                this.Map().Property(x => x.Name);
+                this.Map()
+                    .Property(x => x.Description)
+                    .HasFieldIndex(2);
+            }
+        }
+
+        private class TestLineGapIndexMapper : CsvFileMapperBase<TestLine>
+        {
+            public TestLineGapIndexMapper()
+            {
+                this.Map()
+                    .Property(x => x.Id)
+                    .HasFieldIndex(0)
+                    .ConvertUsing(typeof(Int32Converter));
+                this.Map().Property(x => x.Name);
+                this.Map()
+                    .Property(x => x.Description)
+                    .HasFieldIndex(10);
+            }
         }
 
         private void AddTestFileLine(List<string> testFileLines, string? fieldDelimiter, params string[] testValues)

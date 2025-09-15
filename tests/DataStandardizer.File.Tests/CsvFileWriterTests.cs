@@ -118,7 +118,7 @@ public class CsvFileWriterTests : IDisposable
         testLine.Add("One", "One");
         testLine.Add("Two", "Two");
 
-        var options = new CsvFileOptions() { FieldDelimiterCharacter = ';' };
+        var options = new CsvFileOptions { FieldDelimiterCharacter = ';' };
 
         var buffer = new StringBuilder();
         using var stringWriter = new StringWriter(buffer);
@@ -217,16 +217,15 @@ public class CsvFileWriterTests : IDisposable
     {
         // arrange
         const int firstFieldValue = 1;
-        ICsvFileLine testLine = new TestLine();
-        testLine.Add("One", firstFieldValue);
+        ICsvFileLine testLine = new TestLine { Id = firstFieldValue };
 
-        var options = new CsvFileOptions() { Culture = null };
+        var options = new CsvFileOptions { Culture = null };
 
         var buffer = new StringBuilder();
         using var stringWriter = new StringWriter(buffer);
         using var csvWriter = new CsvFileWriter<TestLine>(stringWriter, options);
 
-        csvWriter.RegisterMapper<TestLineMapper>();
+        csvWriter.RegisterMapper<TestLineMapperAllIndexed>();
 
         var expectedResult = firstFieldValue.ToString(CultureInfo.InvariantCulture) + "\r\n";
 
@@ -243,15 +242,14 @@ public class CsvFileWriterTests : IDisposable
     {
         // arrange
         const int firstFieldValue = 100;
-        ICsvFileLine testLine = new TestLine();
-        testLine.Add("One", firstFieldValue);
+        ICsvFileLine testLine = new TestLine { Id = firstFieldValue };
 
-        var options = new CsvFileOptions { Culture = new CultureInfo("he-IL") };
+        var options = new CsvFileOptions { Culture = new CultureInfo("ru-RU") };
 
         var buffer = new StringBuilder();
         using var stringWriter = new StringWriter(buffer);
         using var csvWriter = new CsvFileWriter<TestLine>(stringWriter, options);
-        csvWriter.RegisterMapper<TestLineMapper>();
+        csvWriter.RegisterMapper<TestLineMapperAllIndexed>();
 
         var expectedResult = firstFieldValue.ToString(options.Culture) + "\r\n";
 
@@ -443,7 +441,7 @@ public class CsvFileWriterTests : IDisposable
         testHeaderLine.Add(fieldName3, fieldName3);
 
         const string recordLineFieldValue2 = "One", recordLineFieldValue3 = "This is the first record";
-        ICsvFileLine testRecordLine = new TestItemLine()
+        ICsvFileLine testRecordLine = new TestLine
         {
             Description = recordLineFieldValue3,
             Name = recordLineFieldValue2,
@@ -452,8 +450,8 @@ public class CsvFileWriterTests : IDisposable
 
         var buffer = new StringBuilder();
         using var stringWriter = new StringWriter(buffer);
-        using var csvWriter = new CsvFileWriter<TestItemLine>(stringWriter);
-        csvWriter.RegisterMapper<TestItemLineMapperAllIndexed>();
+        using var csvWriter = new CsvFileWriter<TestLine>(stringWriter);
+        csvWriter.RegisterMapper<TestLineMapperAllIndexed>();
 
         const string expectedResult = $"{fieldName1},{fieldName2},{fieldName3}\r\n1,{recordLineFieldValue2},{recordLineFieldValue3}\r\n";
 
@@ -471,12 +469,12 @@ public class CsvFileWriterTests : IDisposable
     {
         // arrange
         const string recordLineFieldValue2 = "One", recordLineFieldValue3 = "This is the first record";
-        ICsvFileLine testRecordLine = new TestItemLine() { Description = recordLineFieldValue3, Name = recordLineFieldValue2, Id = 1 };
+        ICsvFileLine testRecordLine = new TestLine { Description = recordLineFieldValue3, Name = recordLineFieldValue2, Id = 1 };
 
         var buffer = new StringBuilder();
         using var stringWriter = new StringWriter(buffer);
-        using var csvWriter = new CsvFileWriter<TestItemLine>(stringWriter);
-        csvWriter.RegisterMapper<TestItemLineMapperAllIndexed>();
+        using var csvWriter = new CsvFileWriter<TestLine>(stringWriter);
+        csvWriter.RegisterMapper<TestLineMapperAllIndexed>();
 
         const string expectedResult = $"1,{recordLineFieldValue2},{recordLineFieldValue3}\r\n";
 
@@ -493,12 +491,12 @@ public class CsvFileWriterTests : IDisposable
     {
         // arrange
         const string recordLineFieldValue2 = "One", recordLineFieldValue3 = "This is the first record";
-        ICsvFileLine testRecordLine = new TestItemLine() { Description = recordLineFieldValue3, Name = recordLineFieldValue2, Id = 1 };
+        ICsvFileLine testRecordLine = new TestLine { Description = recordLineFieldValue3, Name = recordLineFieldValue2, Id = 1 };
 
         var buffer = new StringBuilder();
         using var stringWriter = new StringWriter(buffer);
-        using var csvWriter = new CsvFileWriter<TestItemLine>(stringWriter);
-        csvWriter.RegisterMapper<TestItemLineMapperFirstIndexed>();
+        using var csvWriter = new CsvFileWriter<TestLine>(stringWriter);
+        csvWriter.RegisterMapper<TestLineMapperFirstIndexed>();
 
         const string expectedResult = $"1,{recordLineFieldValue2},{recordLineFieldValue3}\r\n";
 
@@ -515,12 +513,12 @@ public class CsvFileWriterTests : IDisposable
     {
         // arrange
         const string recordLineFieldValue2 = "One", recordLineFieldValue3 = "This is the first record";
-        ICsvFileLine testRecordLine = new TestItemLine() { Description = recordLineFieldValue3, Name = recordLineFieldValue2, Id = 1 };
+        ICsvFileLine testRecordLine = new TestLine { Description = recordLineFieldValue3, Name = recordLineFieldValue2, Id = 1 };
 
         var buffer = new StringBuilder();
         using var stringWriter = new StringWriter(buffer);
-        using var csvWriter = new CsvFileWriter<TestItemLine>(stringWriter);
-        csvWriter.RegisterMapper<TestItemLineMapperLastIndexed>();
+        using var csvWriter = new CsvFileWriter<TestLine>(stringWriter);
+        csvWriter.RegisterMapper<TestLineMapperLastIndexed>();
 
         const string expectedResult = $"1,{recordLineFieldValue2},{recordLineFieldValue3}\r\n";
 
@@ -532,27 +530,30 @@ public class CsvFileWriterTests : IDisposable
         testResult.Should().Be(expectedResult);
     }
 
+    [Fact]
+    public void WriteLine_RecordLineWithGapInIndexMapping_WritesCsvFieldsInOrderByIndexAndNameMapping()
+    {
+        // arrange
+        const int recordLineFieldValue1 = 1;
+        const string recordLineFieldValue2 = "One", recordLineFieldValue3 = "This is the first record";
+        ICsvFileLine testRecordLine = new TestLine { Name = recordLineFieldValue2, Description = recordLineFieldValue3, Id = recordLineFieldValue1 };
+
+        var buffer = new StringBuilder();
+        using var stringWriter=new StringWriter(buffer);
+        using var csvWriter = new CsvFileWriter<TestLine>(stringWriter);
+        csvWriter.RegisterMapper<TestLineMapperGapIndexed>();
+
+        string expectedResult = $"{recordLineFieldValue1},{recordLineFieldValue2},{recordLineFieldValue3}\r\n";
+        
+        // act
+        csvWriter.WriteLine(testRecordLine);
+        var testResult = buffer.ToString();
+        
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
     private class TestLine : CsvFileRecordLine
-    {
-        public int One
-        {
-            get => GetPropertyValue<int>();
-            set => SetPropertyValue(value);
-        }
-    }
-
-    private class TestLineMapper : CsvFileMapperBase<TestLine>
-    {
-        public TestLineMapper()
-        {
-            this.Map()
-                .Property(x => x.One)
-                .HasFieldName("One")
-                .ConvertUsing(typeof(Int32Converter));
-        }
-    }
-
-    private class TestItemLine : CsvFileRecordLine
     {
         public int Id
         {
@@ -560,22 +561,22 @@ public class CsvFileWriterTests : IDisposable
             init => SetPropertyValue(value);
         }
 
-        public required string Name
+        public string? Name
         {
-            get => GetPropertyValue<string>()!;
+            get => GetPropertyValue<string?>();
             init => SetPropertyValue(value);
         }
 
-        public required string Description
+        public string? Description
         {
-            get => GetPropertyValue<string>()!;
+            get => GetPropertyValue<string?>();
             init => SetPropertyValue(value);
         }
     }
 
-    private class TestItemLineMapperAllIndexed : CsvFileMapperBase<TestItemLine>
+    private class TestLineMapperAllIndexed : CsvFileMapperBase<TestLine>
     {
-        public TestItemLineMapperAllIndexed()
+        public TestLineMapperAllIndexed()
         {
             this.Map()
                 .Property(x => x.Id)
@@ -590,9 +591,9 @@ public class CsvFileWriterTests : IDisposable
         }
     }
 
-    private class TestItemLineMapperFirstIndexed : CsvFileMapperBase<TestItemLine>
+    private class TestLineMapperFirstIndexed : CsvFileMapperBase<TestLine>
     {
-        public TestItemLineMapperFirstIndexed()
+        public TestLineMapperFirstIndexed()
         {
             this.Map()
                 .Property(x => x.Id)
@@ -605,9 +606,9 @@ public class CsvFileWriterTests : IDisposable
         }
     }
 
-    private class TestItemLineMapperLastIndexed : CsvFileMapperBase<TestItemLine>
+    private class TestLineMapperLastIndexed : CsvFileMapperBase<TestLine>
     {
-        public TestItemLineMapperLastIndexed()
+        public TestLineMapperLastIndexed()
         {
             this.Map()
                 .Property(x => x.Id)
@@ -618,6 +619,22 @@ public class CsvFileWriterTests : IDisposable
             this.Map()
                 .Property(x => x.Description)
                 .HasFieldIndex(2);
+        }
+    }
+
+    private class TestLineMapperGapIndexed : CsvFileMapperBase<TestLine>
+    {
+        public TestLineMapperGapIndexed()
+        {
+            this.Map()
+                .Property(x => x.Id)
+                .HasFieldIndex(0)
+                .ConvertUsing(typeof(Int32Converter));
+            this.Map()
+                .Property(x => x.Name);
+            this.Map()
+                .Property(x => x.Description)
+                .HasFieldIndex(10);
         }
     }
 

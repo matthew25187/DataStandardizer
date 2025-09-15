@@ -88,7 +88,7 @@ public class CsvFileLineExtensionsTests
     {
         // arrange
         const int identifier = 100;
-        var testLine = new TestLine() { Id = identifier ,Name = "One"};
+        var testLine = new TestLine { Id = identifier ,Name = "One"};
 
         var mapper = new TestModelMapper();
 
@@ -104,7 +104,7 @@ public class CsvFileLineExtensionsTests
     {
         // arrange
         const string secondValue = "Hello, World!";
-        var testLine = new TestLine() { Name = secondValue };
+        var testLine = new TestLine { Name = secondValue };
 
         var mapper = new TestModelMapper();
 
@@ -119,7 +119,7 @@ public class CsvFileLineExtensionsTests
     public void ToObject_OptionalPropertyNotMappedToField_SkipsCopyingPropertyValue()
     {
         // arrange
-        var testLine = new TestLine() { Id = 10 };
+        var testLine = new TestLine { Id = 10 };
 
         var mapper = new TestModelMapper();
 
@@ -152,7 +152,7 @@ public class CsvFileLineExtensionsTests
     {
         // arrange
         const int identifier = 49;
-        var testModel = new TestModel() { Id = identifier };
+        var testModel = new TestModel { Id = identifier };
 
         var mapper = new TestLineMapper();
 
@@ -185,7 +185,7 @@ public class CsvFileLineExtensionsTests
     public void ToCsvLine_OptionalPropertyNotMappedToField_SkipsCopyingPropertyValue()
     {
         // arrange
-        var testModel = new TestModel() { Id = 10 };
+        var testModel = new TestModel { Id = 10 };
 
         var mapper = new TestLineMapper();
 

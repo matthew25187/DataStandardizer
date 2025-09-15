@@ -60,6 +60,14 @@ namespace DataStandardizer.File.Csv
         bool HasHeaderLine { get; }
 
         /// <summary>
+        /// Gets the delegate that will be called when the header for a CSV file is being prepared.
+        /// </summary>
+#if NETCOREAPP3_0_OR_GREATER
+        Delegate? HeaderHandler { get; }
+#else
+        Delegate HeaderHandler { get; }
+#endif
+        /// <summary>
         /// Gets the delegate that will be called when a line has a field count inconsistent with other lines in the CSV file.
         /// </summary>
 #if NETCOREAPP3_0_OR_GREATER
@@ -172,6 +180,21 @@ set;
             set;
 #endif
         }
+
+
+#if NETCOREAPP3_0_OR_GREATER
+        public Delegate? HeaderHandler
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+set;
+#endif
+        }
+#else
+        public Delegate HeaderHandler { get; set; }
+#endif
 
 #if NETCOREAPP3_0_OR_GREATER
         public Delegate? InconsistentFieldCountHandler

@@ -11,6 +11,10 @@ namespace DataStandardizer.File.Csv
     [AttributeUsage(AttributeTargets.Property)]
     public sealed class CsvFieldAttribute : Attribute
     {
+        public CsvFieldAttribute()
+        {
+            
+        }
         public CsvFieldAttribute(int fieldIndex)
         {
             if (fieldIndex < 0)

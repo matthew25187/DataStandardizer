@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 #if NETSTANDARD
 using JetBrains.Annotations;
@@ -184,11 +182,24 @@ namespace DataStandardizer.File.Csv
                 {
                     csvLine = new TRecordLine();
 
+                    var mapper = GetMapper((TRecordLine)csvLine);
+                    var defaultFieldNames = CsvMappingService.GetSortedFieldNamesFromMapper(mapper);
+
+                    IReadOnlyList<string> headerFieldNames;
+                    if (_options.HeaderHandler is CsvFileHeader headerHandler)
+                    {
+                        headerFieldNames = headerHandler(_headerLine);
+                    }
+                    else
+                    {
+                        headerFieldNames = _headerLine?.FieldNames ?? Array.Empty<string>();
+                    }
+
                     var fieldIndex = 0;
                     foreach (var rawFieldValue in rawFieldValues)
                     {
-                        var defaultFieldName = $"Field {++fieldIndex}";
-                        var fieldName = _headerLine?.FieldNames.ElementAtOrDefault(fieldIndex - 1);
+                        var defaultFieldName = defaultFieldNames.ElementAtOrDefault(fieldIndex++) ?? $"Field {fieldIndex}";
+                        var fieldName = headerFieldNames.ElementAtOrDefault(fieldIndex - 1);
                         csvLine.Add(fieldName ?? defaultFieldName, rawFieldValue);
                     }
 
@@ -259,26 +270,12 @@ namespace DataStandardizer.File.Csv
 
                 if (mappedFieldName is null)
                 {
-                    mappedFieldName = fieldMapping.Value.FieldName;
+                    mappedFieldName = CsvMappingService.GetFieldNameFromMapping(fieldMapping);
                 }
 
-                if (mappedFieldName is null)
+                if (!csvLine.Contains(mappedFieldName) && fieldMapping.Value.IsOptional)
                 {
-                    if (fieldMapping.Value.IsOptional)
-                    {
-                        continue;
-                    }
-
-                    var message = $"Property '{fieldMapping.Key}' not mapped to CSV field {string.Join(",", fieldMapping.Value.FieldName)}.";
-                    var dataItems = new Dictionary<string, object>
-                    {
-                        { DataItemName.PropertyName, fieldMapping.Key },
-                    };
-                    if (!string.IsNullOrWhiteSpace(fieldMapping.Value.FieldName))
-                    {
-                        dataItems.Add(DataItemName.FieldName, fieldMapping.Value.FieldName);
-                    }
-                    throw BuildException(message, dataItems);
+                    continue;
                 }
 
                 var fieldIndex = fieldNames
@@ -317,12 +314,12 @@ namespace DataStandardizer.File.Csv
                 }
 
                 // Deserialize the field value.
-                var deserializeFieldValueMethodDefinition = this.GetType().GetTypeInfo().DeclaredMethods
-                    .Single(method => method.Name == nameof(DeserializeCsvLineFieldValue))
-                    .GetGenericMethodDefinition();
-                var deserializeFieldValueMethod = deserializeFieldValueMethodDefinition.MakeGenericMethod(fieldMapping.Value.PropertyType);
+                var deserializeFieldValueMethodDefinition = this
+                    .GetMethod(nameof(DeserializeCsvLineFieldValue), isProtected: true)
+                    ?.GetGenericMethodDefinition();
+                var deserializeFieldValueMethod = deserializeFieldValueMethodDefinition?.MakeGenericMethod(fieldMapping.Value.PropertyType);
 #if NETCOREAPP3_0_OR_GREATER
-                var deserializedFieldValue = deserializeFieldValueMethod.Invoke(this, new object?[] { _headerLine, recordLine, _options, mappedFieldName });
+                var deserializedFieldValue = deserializeFieldValueMethod?.Invoke(this, new object?[] { _headerLine, recordLine, _options, mappedFieldName });
 #else
                 var deserializedFieldValue = deserializeFieldValueMethod.Invoke(this, new object[] { _headerLine, recordLine, _options, mappedFieldName });
 #endif
