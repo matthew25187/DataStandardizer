@@ -22,7 +22,7 @@ namespace DataStandardizer.File.Csv
         /// <returns>Mapper containing collection of field mappings.</returns>
         public static ICsvFileMapper CreateMapper<TRecordLine>(this TRecordLine recordLine) where TRecordLine : CsvFileRecordLine
         {
-            var fieldMappings = new Dictionary<string, CsvFieldMapping>();
+            var propertyFieldMappings = new Dictionary<string, CsvFieldMapping>();
 
             var properties = recordLine.GetType().GetTypeInfo().DeclaredProperties;
             foreach (var pi in properties)
@@ -44,10 +44,10 @@ namespace DataStandardizer.File.Csv
                     IsOptional = fieldAttribute.IsOptional,
                     TypeConverterType = typeConverterType,
                 };
-                fieldMappings.Add(pi.Name, fieldMapping);
+                propertyFieldMappings.Add(pi.Name, fieldMapping);
             }
 
-            return new CsvFileMapper(fieldMappings);
+            return new CsvFileMapper(propertyFieldMappings);
         }
 
         /// <summary>

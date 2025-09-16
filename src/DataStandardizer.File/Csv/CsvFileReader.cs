@@ -253,8 +253,8 @@ namespace DataStandardizer.File.Csv
         {
             ICsvFileLine csvLine = recordLine;
 
-            string[] fieldNames = csvLine.Keys.Cast<string>().ToArray();
             var mapper = GetMapper(recordLine);
+            var fieldNames = CsvMappingService.GetSortedFieldNames(csvLine, mapper);
             foreach (var fieldMapping in mapper)
             {
                 // Determine the name of the field the property is mapped to.
@@ -321,7 +321,7 @@ namespace DataStandardizer.File.Csv
 #if NETCOREAPP3_0_OR_GREATER
                 var deserializedFieldValue = deserializeFieldValueMethod?.Invoke(this, new object?[] { _headerLine, recordLine, _options, mappedFieldName });
 #else
-                var deserializedFieldValue = deserializeFieldValueMethod.Invoke(this, new object[] { _headerLine, recordLine, _options, mappedFieldName });
+                var deserializedFieldValue = deserializeFieldValueMethod?.Invoke(this, new object[] { _headerLine, recordLine, _options, mappedFieldName });
 #endif
                 csvLine[mappedFieldName] = deserializedFieldValue;
             }

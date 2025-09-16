@@ -227,7 +227,7 @@ public class CsvFileWriterTests : IDisposable
 
         csvWriter.RegisterMapper<TestLineMapperAllIndexed>();
 
-        var expectedResult = firstFieldValue.ToString(CultureInfo.InvariantCulture) + "\r\n";
+        var expectedResult = firstFieldValue.ToString(CultureInfo.InvariantCulture) + ",,\r\n";
 
         // act
         csvWriter.WriteLine(testLine);
@@ -251,7 +251,7 @@ public class CsvFileWriterTests : IDisposable
         using var csvWriter = new CsvFileWriter<TestLine>(stringWriter, options);
         csvWriter.RegisterMapper<TestLineMapperAllIndexed>();
 
-        var expectedResult = firstFieldValue.ToString(options.Culture) + "\r\n";
+        var expectedResult = firstFieldValue.ToString(options.Culture) + ",,\r\n";
 
         // act
         csvWriter.WriteLine(testLine);
@@ -434,7 +434,7 @@ public class CsvFileWriterTests : IDisposable
     public void WriteLine_HeaderLineAndRecordLineWithMapper_WritesCsvFieldsInOrderByMapping()
     {
         // arrange
-        const string fieldName1 = "ID", fieldName2 = "Name", fieldName3 = "Description";
+        const string fieldName1 = nameof(TestLine.Id), fieldName2 = nameof(TestLine.Name), fieldName3 = nameof(TestLine.Description);
         ICsvFileLine testHeaderLine = new CsvFileHeaderLine();
         testHeaderLine.Add(fieldName1, fieldName1);
         testHeaderLine.Add(fieldName2, fieldName2);
@@ -539,16 +539,38 @@ public class CsvFileWriterTests : IDisposable
         ICsvFileLine testRecordLine = new TestLine { Name = recordLineFieldValue2, Description = recordLineFieldValue3, Id = recordLineFieldValue1 };
 
         var buffer = new StringBuilder();
-        using var stringWriter=new StringWriter(buffer);
+        using var stringWriter = new StringWriter(buffer);
         using var csvWriter = new CsvFileWriter<TestLine>(stringWriter);
         csvWriter.RegisterMapper<TestLineMapperGapIndexed>();
 
         string expectedResult = $"{recordLineFieldValue1},{recordLineFieldValue2},{recordLineFieldValue3}\r\n";
-        
+
         // act
         csvWriter.WriteLine(testRecordLine);
         var testResult = buffer.ToString();
-        
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    [Fact]
+    public void WriteLine_RecordLineWithIncompleteFieldList_WritesAvailableCsvFieldsInOrderByMapping()
+    {
+        // arrange
+        const string recordLineFieldValue3 = "This is the first record";
+        var testRecordLine = new TestLine() { Description = recordLineFieldValue3 };
+
+        var buffer = new StringBuilder();
+        using var stringWriter = new StringWriter(buffer);
+        using var csvWriter = new CsvFileWriter<TestLine>(stringWriter);
+        csvWriter.RegisterMapper<TestLineMapperAllIndexed>();
+
+        const string expectedResult = $",,{recordLineFieldValue3}\r\n";
+
+        // act
+        csvWriter.WriteLine(testRecordLine);
+        var testResult = buffer.ToString();
+
         // assert
         testResult.Should().Be(expectedResult);
     }
@@ -612,7 +634,6 @@ public class CsvFileWriterTests : IDisposable
         {
             this.Map()
                 .Property(x => x.Id)
-                .HasFieldName("ID")
                 .ConvertUsing(typeof(Int32Converter));
             this.Map()
                 .Property(x => x.Name);

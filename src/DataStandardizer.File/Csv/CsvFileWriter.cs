@@ -147,6 +147,8 @@ namespace DataStandardizer.File.Csv
                     break;
                 case TRecordLine recordLine:
                 {
+                    var mapper = GetMapper(recordLine);
+                    
                     // Get a collection of the names of fields to include in the output.
                     string[] fieldNames;
                     if (_headerLineFieldNames.Length > 0)
@@ -164,22 +166,22 @@ namespace DataStandardizer.File.Csv
                         fieldNames = _fieldNames;
                     }
 
-                    var mapper = GetMapper(recordLine);
                     if (mapper.Count > 0 && _headerLineFieldNames.Length == 0)
                     {
                         fieldNames = CsvMappingService.GetSortedFieldNamesFromMapper(mapper);
                     }
 
                     // Extract serialized field values.
-                    var fieldNameIndexMap = fieldNames
-                        .Select((key, index) => new { key, index })
-                        .ToDictionary(item => item.key.ToLowerInvariant(), item => item.index);
-                    var sortedFields = csvLine
-                        .Cast<DictionaryEntry>()
-                        .OrderBy(kvp => fieldNameIndexMap.TryGetValue(((string)kvp.Key).ToLowerInvariant(), out int index) ? index : int.MaxValue);
                     var fieldIndex = 0;
-                    foreach (DictionaryEntry field in sortedFields)
+                    foreach (var fieldName in fieldNames)
                     {
+                        // If a value has not been set for the current field, add a blank value.
+                        if (!csvLine.Contains(fieldName))
+                        {
+                            rawFieldValues.Add(String.Empty);
+                            continue;
+                        }
+
                         // If the remaining field values are empty, stop here.
                         if (lastFieldIndex > -1 && fieldIndex++ > lastFieldIndex)
                         {
@@ -187,7 +189,7 @@ namespace DataStandardizer.File.Csv
                         }
 
                         // Convert the field value to a string.
-                        var rawFieldValue = SerializeCsvLineFieldValue(_headerLine, recordLine, _options, (string)field.Key);
+                        var rawFieldValue = SerializeCsvLineFieldValue(_headerLine, recordLine, _options, fieldName);
 
                         // Apply embedded line break on field value.
                         if (_options.EmbeddedLineBreak != null && !string.IsNullOrEmpty(rawFieldValue))

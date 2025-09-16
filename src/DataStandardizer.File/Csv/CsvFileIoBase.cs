@@ -128,7 +128,8 @@ namespace DataStandardizer.File.Csv
 #else
             T result = default;
 #endif
-            var fieldIndex = csvLine.Keys.Cast<string>().ToList().IndexOf(fieldName);
+            var fieldNames = CsvMappingService.GetSortedFieldNames(csvLine, mapper);
+            var fieldIndex = Array.IndexOf(fieldNames, fieldName);
             if (fieldMapping?.FromStringConverter != null)
             {
                 var converterMethodDefinition = this.GetType().GetTypeInfo().DeclaredMethods
@@ -261,7 +262,8 @@ namespace DataStandardizer.File.Csv
             }
 
             // Serialize the field value to a string.
-            var fieldIndex = csvLine.Keys.Cast<string>().ToList().IndexOf(fieldName);
+            var fieldNames = CsvMappingService.GetSortedFieldNames(csvLine, mapper);
+            var fieldIndex = Array.IndexOf(fieldNames, fieldName);
             if (fieldMapping?.ToStringConverter is CsvFieldConvertToString<TRecordLine> converter)
             {
                 var context = new CsvFieldContext<TRecordLine>(options)

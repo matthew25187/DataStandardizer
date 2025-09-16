@@ -10,46 +10,46 @@ namespace DataStandardizer.File.Csv
     /// </summary>
     public class CsvFileMapper : ICsvFileMapper
     {
-        private readonly IReadOnlyDictionary<string, CsvFieldMapping> _fieldMappingsWrapper;
+        private readonly IReadOnlyDictionary<string, CsvFieldMapping> _propertyFieldMappingsWrapper;
 
-        internal CsvFileMapper(IDictionary<string, CsvFieldMapping> fieldMappings)
+        internal CsvFileMapper(IDictionary<string, CsvFieldMapping> propertyFieldMappings)
         {
-            _fieldMappingsWrapper = new ReadOnlyDictionary<string, CsvFieldMapping>(fieldMappings);
+            _propertyFieldMappingsWrapper = new ReadOnlyDictionary<string, CsvFieldMapping>(propertyFieldMappings);
         }
 
         IEnumerator<KeyValuePair<string, CsvFieldMapping>> IEnumerable<KeyValuePair<string, CsvFieldMapping>>.GetEnumerator()
         {
-            return _fieldMappingsWrapper.GetEnumerator();
+            return _propertyFieldMappingsWrapper.GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return ((IEnumerable)_fieldMappingsWrapper).GetEnumerator();
+            return ((IEnumerable)_propertyFieldMappingsWrapper).GetEnumerator();
         }
 
-        int IReadOnlyCollection<KeyValuePair<string, CsvFieldMapping>>.Count => _fieldMappingsWrapper.Count;
+        int IReadOnlyCollection<KeyValuePair<string, CsvFieldMapping>>.Count => _propertyFieldMappingsWrapper.Count;
 
         bool IReadOnlyDictionary<string, CsvFieldMapping>.ContainsKey(string key)
         {
-            return _fieldMappingsWrapper.ContainsKey(key);
+            return _propertyFieldMappingsWrapper.ContainsKey(key);
         }
 
 #if NETCOREAPP3_0_OR_GREATER
         bool IReadOnlyDictionary<string, CsvFieldMapping>.TryGetValue(string key, [MaybeNullWhen(false)] out CsvFieldMapping value)
         {
-            return _fieldMappingsWrapper.TryGetValue(key, out value);
+            return _propertyFieldMappingsWrapper.TryGetValue(key, out value);
         } 
 #else
         bool IReadOnlyDictionary<string, CsvFieldMapping>.TryGetValue(string key, out CsvFieldMapping value)
         {
-            return _fieldMappingsWrapper.TryGetValue(key, out value);
+            return _propertyFieldMappingsWrapper.TryGetValue(key, out value);
         } 
 #endif
 
-        CsvFieldMapping IReadOnlyDictionary<string, CsvFieldMapping>.this[string key] => _fieldMappingsWrapper[key];
+        CsvFieldMapping IReadOnlyDictionary<string, CsvFieldMapping>.this[string key] => _propertyFieldMappingsWrapper[key];
 
-        IEnumerable<string> IReadOnlyDictionary<string, CsvFieldMapping>.Keys => _fieldMappingsWrapper.Keys;
+        IEnumerable<string> IReadOnlyDictionary<string, CsvFieldMapping>.Keys => _propertyFieldMappingsWrapper.Keys;
 
-        IEnumerable<CsvFieldMapping> IReadOnlyDictionary<string, CsvFieldMapping>.Values => _fieldMappingsWrapper.Values;
+        IEnumerable<CsvFieldMapping> IReadOnlyDictionary<string, CsvFieldMapping>.Values => _propertyFieldMappingsWrapper.Values;
     }
 }
