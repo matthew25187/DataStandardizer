@@ -147,8 +147,6 @@ namespace DataStandardizer.File.Csv
                     break;
                 case TRecordLine recordLine:
                 {
-                    var mapper = GetMapper(recordLine);
-                    
                     // Get a collection of the names of fields to include in the output.
                     string[] fieldNames;
                     if (_headerLineFieldNames.Length > 0)
@@ -166,6 +164,7 @@ namespace DataStandardizer.File.Csv
                         fieldNames = _fieldNames;
                     }
 
+                    var mapper = GetMapper(recordLine);
                     if (mapper.Count > 0 && _headerLineFieldNames.Length == 0)
                     {
                         fieldNames = CsvMappingService.GetSortedFieldNamesFromMapper(mapper);
@@ -189,7 +188,21 @@ namespace DataStandardizer.File.Csv
                         }
 
                         // Convert the field value to a string.
-                        var rawFieldValue = SerializeCsvLineFieldValue(_headerLine, recordLine, _options, fieldName);
+#if NETCOREAPP3_0_OR_GREATER
+                        string? rawFieldValue = null;
+#else
+                        string rawFieldValue = null;
+#endif
+                        var propertyFieldMapping = mapper.FirstOrDefault(mapping => CsvMappingService.GetFieldNameFromMapping(mapping) == fieldName);
+                        if (!string.IsNullOrEmpty(propertyFieldMapping.Key))
+                        {
+                            var fieldValue = GetCsvLineMappedFieldValue(recordLine, propertyFieldMapping);
+                            rawFieldValue = SerializeCsvLineFieldValue(_headerLine, recordLine, _options, propertyFieldMapping, fieldValue);
+                        }
+                        else if (csvLine.Contains(fieldName))
+                        {
+                            rawFieldValue = csvLine[fieldName] as string ?? csvLine[fieldName]?.ToString();
+                        }
 
                         // Apply embedded line break on field value.
                         if (_options.EmbeddedLineBreak != null && !string.IsNullOrEmpty(rawFieldValue))

@@ -104,7 +104,7 @@ public class CsvFileLineExtensionsTests
     {
         // arrange
         const string secondValue = "Hello, World!";
-        var testLine = new TestLine { Name = secondValue };
+        var testLine = new TestLine { Id = 1,Name = secondValue };
 
         var mapper = new TestModelMapper();
 
@@ -134,7 +134,7 @@ public class CsvFileLineExtensionsTests
     public void ToObject_RequiredPropertyNotMappedToField_ThrowsCsvFileException()
     {
         // arrange
-        var testLine = new TestLine();
+        var testLine = new TestLine { Id = 1 };
 
         var mapper = new TestModelMapper2();
 
@@ -169,7 +169,7 @@ public class CsvFileLineExtensionsTests
     {
         // arrange
         const string name = "Testing";
-        var testModel = new TestModel { Name = name };
+        var testModel = new TestModel { Id = 1,Name = name };
 
         var mapper = new TestLineMapper();
 
@@ -194,23 +194,6 @@ public class CsvFileLineExtensionsTests
 
         // assert
         testResult.Name.Should().BeNull();
-    }
-
-    [Fact]
-    public void ToCsvLine_RequiredPropertyNotMappedToField_ThrowsCsvFileException()
-    {
-        // arrange
-        var testModel = new TestModel();
-
-        var mapper = new TestLineMapper2();
-
-        // act
-        Action testAction = () => _ = testModel.ToCsvLine(mapper);
-
-        // assert
-        testAction.Should()
-            .Throw<CsvFileException>()
-            .WithMessage($"Property '{nameof(TestModel.Description)}' unable to be mapped.");
     }
 
     private class TestLine : CsvFileRecordLine

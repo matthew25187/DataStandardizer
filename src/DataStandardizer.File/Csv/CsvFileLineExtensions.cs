@@ -65,7 +65,6 @@ namespace DataStandardizer.File.Csv
             ICsvFileLine csvLine = sourceLine;
             var targetModel = new TModel();
 
-            var fieldNames = CsvMappingService.GetSortedFieldNamesFromMapper(mapper);
             var properties = targetModel.GetType().GetTypeInfo().DeclaredProperties;
             foreach (var pi in properties)
             {
@@ -77,26 +76,14 @@ namespace DataStandardizer.File.Csv
                 // Get the field mapping for the current property.
                 var fieldMapping = ((ICsvFileMapper)mapper)[pi.Name];
 
-#if NETCOREAPP3_0_OR_GREATER
-                string? mappedFieldName = null;
-#else
-                string mappedFieldName = null;
-#endif
-
-                // Find the field name matching the property by its mapped index.
-                if (fieldMapping.FieldIndex.HasValue)
+                var fieldKey = CsvMappingService.GetFieldNameFromMapping(new KeyValuePair<string, CsvFieldMapping>(pi.Name, fieldMapping));
+                if (!csvLine.Contains(fieldKey) && csvLine.Contains(pi.Name))
                 {
-                    mappedFieldName = fieldNames.ElementAtOrDefault(fieldMapping.FieldIndex.Value);
-                }
-
-                // Find the field name matching the property by its mapped name.
-                if (mappedFieldName is null)
-                {
-                    mappedFieldName = fieldMapping.FieldName;
+                    fieldKey = pi.Name;
                 }
 
                 // If a field name was not found for the property, do not attempt to set the property on the custom model.
-                if (mappedFieldName is null)
+                if (!csvLine.Contains(fieldKey))
                 {
                     if (fieldMapping.IsOptional)
                     {
@@ -112,7 +99,7 @@ namespace DataStandardizer.File.Csv
 
                 // Copy the field value from the CSV line to the corresponding property on the custom model.
                 // Assumes that the raw string value from the CSV file has already been converted in the CSV line.
-                var fieldValue = csvLine[mappedFieldName];
+                var fieldValue = csvLine[fieldKey];
                 pi.SetValue(targetModel, fieldValue);
             }
 
@@ -134,7 +121,6 @@ namespace DataStandardizer.File.Csv
             var targetLine = new TRecordLine();
             ICsvFileLine csvLine = targetLine;
 
-            var fieldNames = CsvMappingService.GetSortedFieldNamesFromMapper(mapper);
             var properties = sourceModel.GetType().GetTypeInfo().DeclaredProperties;
             foreach (var pi in properties)
             {
@@ -145,43 +131,11 @@ namespace DataStandardizer.File.Csv
 
                 // Get the field mapping for the current property.
                 var fieldMapping = ((ICsvFileMapper)mapper)[pi.Name];
-
-#if NETCOREAPP3_0_OR_GREATER
-                string? mappedFieldName = null;
-#else
-                string mappedFieldName = null;
-#endif
-
-                // Find the field name matching the property by its mapped index.
-                if (fieldMapping.FieldIndex.HasValue)
-                {
-                    mappedFieldName = fieldNames.ElementAtOrDefault(fieldMapping.FieldIndex.Value);
-                }
-
-                // Find the field name matching the property by its mapped name.
-                if (mappedFieldName is null)
-                {
-                    mappedFieldName = fieldMapping.FieldName;
-                }
-
-                // If a field name was not found for the property, do not attempt to set the property on the custom model.
-                if (mappedFieldName is null)
-                {
-                    if (fieldMapping.IsOptional)
-                    {
-                        continue;
-                    }
-
-                    var exception = new CsvFileException($"Property '{pi.Name}' unable to be mapped.");
-                    exception.Data.Add(DataItemName.PropertyName, pi.Name);
-                    exception.Data.Add(DataItemName.FieldIndex, fieldMapping.FieldIndex);
-                    exception.Data.Add(DataItemName.FieldName, fieldMapping.FieldName);
-                    throw exception;
-                }
+                var fieldKey = CsvMappingService.GetFieldNameFromMapping(new KeyValuePair<string, CsvFieldMapping>(pi.Name, fieldMapping));
 
                 // Copy the field value from the CSV line to the corresponding property on the custom model.
                 var fieldValue = pi.GetValue(sourceModel);
-                csvLine[mappedFieldName] = fieldValue;
+                csvLine[fieldKey] = fieldValue;
             }
 
             return targetLine;

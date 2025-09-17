@@ -558,7 +558,7 @@ public class CsvFileWriterTests : IDisposable
     {
         // arrange
         const string recordLineFieldValue3 = "This is the first record";
-        var testRecordLine = new TestLine() { Description = recordLineFieldValue3 };
+        var testRecordLine = new TestLine { Description = recordLineFieldValue3 };
 
         var buffer = new StringBuilder();
         using var stringWriter = new StringWriter(buffer);

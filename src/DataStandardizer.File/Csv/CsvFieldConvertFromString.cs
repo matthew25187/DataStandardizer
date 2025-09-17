@@ -7,6 +7,6 @@
     /// <typeparam name="T">Type of the property representing the CSV field.</typeparam>
     /// <param name="context">Context for the CSV field being processed.</param>
     /// <returns>Deserialized CSV field value.</returns>
-    public delegate T CsvFieldConvertFromString<TModel,out T>(CsvFieldContext<TModel>context) 
+    public delegate T CsvFieldConvertFromString<TModel, out T>(CsvFieldContext<TModel> context)
         where TModel : class;
 }

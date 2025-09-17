@@ -80,33 +80,13 @@ namespace DataStandardizer.File.Csv
         }
 
 #if NETCOREAPP3_0_OR_GREATER
-        protected T? DeserializeCsvLineFieldValue<T>(CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, string fieldName)
+        protected T? DeserializeCsvLineFieldValue<T>(CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, object? fieldValue)
 #else
         [CanBeNull]
-        protected T DeserializeCsvLineFieldValue<T>([CanBeNull] CsvFileHeaderLine headerLine, [NotNull] TRecordLine recordLine, [NotNull] CsvFileOptions options, [NotNull] string fieldName)
+        protected T DeserializeCsvLineFieldValue<T>([CanBeNull] CsvFileHeaderLine headerLine, [NotNull] TRecordLine recordLine, [NotNull] CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
+            [CanBeNull] object fieldValue)
 #endif
         {
-            ICsvFileLine csvLine = recordLine;
-
-            // Get a mapping for the field.
-            var mapper = GetMapper(recordLine);
-            var fieldMapping = mapper.TryGetValue(fieldName, out var mapping) ? mapping : null;
-
-            // Get the mapped field value.
-            var fieldValue = csvLine[fieldName];
-            if (fieldValue is null && fieldMapping?.ConstantValue != null)
-            {
-                fieldValue = fieldMapping.ConstantValue;
-            }
-            else if (fieldValue is null && fieldMapping?.VariableValueGenerator != null)
-            {
-                var generatorMethodDefinition = this.GetType().GetTypeInfo().DeclaredMethods
-                    .Single(method => method.Name == nameof(GetGeneratedFieldValue))
-                    .GetGenericMethodDefinition();
-                var generatorMethod = generatorMethodDefinition.MakeGenericMethod(fieldMapping.PropertyType);
-                fieldValue = generatorMethod.Invoke(this, new object[] { fieldMapping.VariableValueGenerator });
-            }
-
             if (fieldValue is null)
             {
                 return default; // if there is no field value then there is nothing to deserialize
@@ -123,35 +103,36 @@ namespace DataStandardizer.File.Csv
                 return default; // if the field value is not a string at this point then it can't be deserialized
             }
 
+            // Attempt to convert the field value to the target data type.
 #if NETCOREAPP3_0_OR_GREATER
             T? result = default;
 #else
             T result = default;
 #endif
-            var fieldNames = CsvMappingService.GetSortedFieldNames(csvLine, mapper);
-            var fieldIndex = Array.IndexOf(fieldNames, fieldName);
-            if (fieldMapping?.FromStringConverter != null)
+            if (propertyFieldMapping.Value.FromStringConverter != null)
             {
                 var converterMethodDefinition = this.GetType().GetTypeInfo().DeclaredMethods
                     .Single(method => method.Name == nameof(GetConvertedFieldValue))
                     .GetGenericMethodDefinition();
                 var converterMethod = converterMethodDefinition.MakeGenericMethod(typeof(T));
+
+                var mappedFieldName = CsvMappingService.GetFieldNameFromMapping(propertyFieldMapping);
                 var context = new CsvFieldContext<TRecordLine>(options)
                 {
-                    FieldIndex = fieldIndex,
-                    FieldName = fieldName,
-                    HeaderLine = headerLine, 
-                    Model = recordLine
+                    HeaderLine = headerLine,
+                    Model = recordLine,
+                    FieldName = mappedFieldName,
+                    FieldIndex = propertyFieldMapping.Value.FieldIndex
                 };
 #if NETCOREAPP3_0_OR_GREATER
-                result = (T?)converterMethod.Invoke(this, new object[] { fieldMapping.FromStringConverter, context });
+                result = (T?)converterMethod.Invoke(this, new object?[] { propertyFieldMapping.Value.FromStringConverter, context });
 #else
-                result = (T)converterMethod.Invoke(this, new object[] { fieldMapping.FromStringConverter, context });
+                result = (T)converterMethod.Invoke(this, new object[] { propertyFieldMapping.Value.FromStringConverter, context });
 #endif
             }
-            else if (fieldMapping?.TypeConverterType != null)
+            else if (propertyFieldMapping.Value.TypeConverterType != null)
             {
-                var typeConverter = GetTypeConverter(fieldMapping.TypeConverterType);
+                var typeConverter = GetTypeConverter(propertyFieldMapping.Value.TypeConverterType);
                 if ((typeConverter?.CanConvertFrom(typeof(string))).GetValueOrDefault())
                 {
                     result = options.Culture != null
@@ -168,6 +149,45 @@ namespace DataStandardizer.File.Csv
             return result;
         }
 
+#if NETCOREAPP3_0_OR_GREATER
+        protected object? GetCsvLineMappedFieldValue(TRecordLine recordLine, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping) 
+        #else
+        [CanBeNull]
+        protected object GetCsvLineMappedFieldValue([NotNull] TRecordLine recordLine, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping)
+#endif
+        {
+            ICsvFileLine csvLine = recordLine;
+
+            // Get the lookup key for the field on the CSV line.
+            var mappedFieldName = CsvMappingService.GetFieldNameFromMapping(propertyFieldMapping);
+            var fieldKey = mappedFieldName;
+            if (!csvLine.Contains(fieldKey) && csvLine.Contains(propertyFieldMapping.Key))
+            {
+                fieldKey = propertyFieldMapping.Key;
+            }
+
+            // Get the mapped field value.
+            var fieldValue = csvLine[fieldKey];
+            if (propertyFieldMapping.Value.ConstantValue != null)
+            {
+                fieldValue = propertyFieldMapping.Value.ConstantValue;
+            }
+            else if (propertyFieldMapping.Value.VariableValueGenerator != null)
+            {
+                var generatorMethodDefinition = this.GetType().GetTypeInfo().DeclaredMethods
+                    .Single(method => method.Name == nameof(GetGeneratedFieldValue))
+                    .GetGenericMethodDefinition();
+                var generatorMethod = generatorMethodDefinition.MakeGenericMethod(propertyFieldMapping.Value.PropertyType);
+#if NETCOREAPP3_0_OR_GREATER
+                fieldValue = generatorMethod.Invoke(this, new object?[] { propertyFieldMapping.Value.VariableValueGenerator });
+#else
+                fieldValue = generatorMethod.Invoke(this, new object[] { propertyFieldMapping.Value.VariableValueGenerator });
+#endif
+            }
+
+            return fieldValue;
+        }
+
         protected ICsvFileMapper GetMapper(TRecordLine recordLine)
         {
             ICsvFileMapper mapper;
@@ -182,7 +202,7 @@ namespace DataStandardizer.File.Csv
             else
             {
                 mapper = recordLine.CreateMapper();
-                if (mapper.Count>0)
+                if (mapper.Count > 0)
                 {
                     DeclarativeMapperCache.Add(typeof(TRecordLine), mapper);
                 }
@@ -196,17 +216,17 @@ namespace DataStandardizer.File.Csv
             var hasTrailingLineBreak = fieldValue.TrimEnd('\n', '\r').Length < fieldValue.Length;
 
             var fieldValueBuilder = new StringBuilder();
-            using(var lineReader=new StringReader(fieldValue))
+            using (var lineReader = new StringReader(fieldValue))
             using (var lineWriter = new StringWriter(fieldValueBuilder))
             {
                 var line = lineReader.ReadLine();
-                while (line!=null)
+                while (line != null)
                 {
                     lineWriter.Write(line);
 
                     line = lineReader.ReadLine();
 
-                    if (line!=null)
+                    if (line != null)
                     {
                         lineWriter.Write(options.EmbeddedLineBreak);
                     }
@@ -222,71 +242,56 @@ namespace DataStandardizer.File.Csv
         }
 
 #if NETCOREAPP3_0_OR_GREATER
-        protected string? SerializeCsvLineFieldValue(CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, string fieldName)
-#else
+        protected string? SerializeCsvLineFieldValue(CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, object? fieldValue) 
+        #else
         [CanBeNull]
-        protected string SerializeCsvLineFieldValue([CanBeNull] CsvFileHeaderLine headerLine, [NotNull] TRecordLine recordLine, [NotNull] CsvFileOptions options, [NotNull] string fieldName)
+        protected string SerializeCsvLineFieldValue([CanBeNull] CsvFileHeaderLine headerLine, [NotNull] TRecordLine recordLine, [NotNull] CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
+            [CanBeNull] object fieldValue)
 #endif
         {
-            ICsvFileLine csvLine = recordLine;
-
-            // If the field value is already a string, return that.
-            var serializedFieldValue = csvLine[fieldName] as string;
-            if (serializedFieldValue != null)
-            {
-                return serializedFieldValue;
-            }
-
-            // Get a mapping for the field.
-            var mapper = GetMapper(recordLine);
-            var fieldMapping = mapper.TryGetValue(fieldName, out var mapping) ? mapping : null;
-
-            // Get the mapped field value.
-            var fieldValue = csvLine[fieldName];
-            if (fieldValue is null && fieldMapping?.ConstantValue != null)
-            {
-                fieldValue = fieldMapping.ConstantValue;
-            }
-            else if (fieldValue is null && fieldMapping?.VariableValueGenerator != null)
-            {
-                var generatorMethodDefinition = this.GetType().GetTypeInfo().DeclaredMethods
-                    .Single(method => method.Name == nameof(GetGeneratedFieldValue))
-                    .GetGenericMethodDefinition();
-                var generatorMethod = generatorMethodDefinition.MakeGenericMethod(fieldMapping.PropertyType);
-                fieldValue = generatorMethod.Invoke(this, new object[] { fieldMapping.VariableValueGenerator });
-            }
-
             if (fieldValue is null)
             {
-                return null;    // if there is no field value then there is nothing to serialize
+                return null; // if there is no field value then there is nothing to serialize
+            }
+            else if (fieldValue is string serializedFieldValue)
+            {
+                return serializedFieldValue; // if the field value is already of the target type then just return it
             }
 
-            // Serialize the field value to a string.
-            var fieldNames = CsvMappingService.GetSortedFieldNames(csvLine, mapper);
-            var fieldIndex = Array.IndexOf(fieldNames, fieldName);
-            if (fieldMapping?.ToStringConverter is CsvFieldConvertToString<TRecordLine> converter)
+            // Attempt to convert the field value to the target data type.
+#if NETCOREAPP3_0_OR_GREATER
+            string? result = fieldValue.ToString();
+#else
+            string result = fieldValue.ToString();
+#endif
+
+            if (!string.IsNullOrEmpty(propertyFieldMapping.Key))
             {
-                var context = new CsvFieldContext<TRecordLine>(options)
+                var mappedFieldName = CsvMappingService.GetFieldNameFromMapping(propertyFieldMapping);
+                if (propertyFieldMapping.Value.ToStringConverter is CsvFieldConvertToString<TRecordLine> converter)
                 {
-                    FieldIndex = fieldIndex, 
-                    FieldName = fieldName, 
-                    HeaderLine = headerLine,
-                    Model = recordLine
-                };
-                serializedFieldValue = converter(context);
-            }
-            else if (fieldMapping?.TypeConverterType != null)
-            {
-                var typeConverter = GetTypeConverter(fieldMapping.TypeConverterType);
-                if ((typeConverter?.CanConvertTo(null, typeof(string))).GetValueOrDefault())
+                    var context = new CsvFieldContext<TRecordLine>(options)
+                    {
+                        HeaderLine = headerLine,
+                        Model = recordLine,
+                        FieldName = mappedFieldName,
+                        FieldIndex = propertyFieldMapping.Value.FieldIndex
+                    };
+                    result = converter(context);
+                }
+                else if (propertyFieldMapping.Value.TypeConverterType != null)
                 {
-                    serializedFieldValue = options.Culture != null
-                        ? typeConverter?.ConvertToString(null, options.Culture, fieldValue)
-                        : typeConverter?.ConvertToInvariantString(fieldValue);
+                    var typeConverter = GetTypeConverter(propertyFieldMapping.Value.TypeConverterType);
+                    if ((typeConverter?.CanConvertTo(typeof(string))).GetValueOrDefault())
+                    {
+                        result = options.Culture != null
+                            ? typeConverter?.ConvertToString(null, options.Culture, fieldValue)
+                            : typeConverter?.ConvertToInvariantString(fieldValue);
+                    }
                 }
             }
 
-            return serializedFieldValue;
+            return result;
         }
 
         private T GetConvertedFieldValue<T>(Delegate converterDelegate, CsvFieldContext<TRecordLine> context)
