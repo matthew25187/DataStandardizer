@@ -259,11 +259,9 @@ namespace DataStandardizer.File.Csv
             }
 
             // Attempt to convert the field value to the target data type.
-#if NETCOREAPP3_0_OR_GREATER
-            string? result = fieldValue.ToString();
-#else
-            string result = fieldValue.ToString();
-#endif
+            var result = options.Culture != null && fieldValue is IFormattable formattableFieldValue 
+                ? formattableFieldValue.ToString(String.Empty, options.Culture) 
+                : fieldValue.ToString();
 
             if (!string.IsNullOrEmpty(propertyFieldMapping.Key))
             {

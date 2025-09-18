@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Reflection;
 #if NETSTANDARD
@@ -12,7 +11,6 @@ namespace DataStandardizer.File.Csv
     public abstract class CsvFileLineBase : ICsvFileLine
     {
         private readonly IOrderedDictionary _fieldBag = new OrderedDictionary();
-        private readonly Dictionary<string, string> _propertyNameMapping = new Dictionary<string, string>();
 
         protected int GetFieldCount()
         {
@@ -63,29 +61,11 @@ namespace DataStandardizer.File.Csv
         }
 #endif
 
-        protected string GetFieldNameForPropertyName(string propertyName)
+        protected string GetPropertyKey(string propertyName)
         {
-            // If the property's field name has not been cached, attempt to retrieve it from the property's metadata.
-            if (!_propertyNameMapping.TryGetValue(propertyName, out var fieldName))
-            {
-                var propertyInfo = this.GetType().GetTypeInfo().GetDeclaredProperty(propertyName);
-                var fieldAttribute = propertyInfo?.GetCustomAttribute<CsvFieldAttribute>();
-                fieldName = fieldAttribute?.FieldName;
-            }
-
-            // If the property's field name was not found, assume it is the same as the property name.
-            if (string.IsNullOrEmpty(fieldName))
-            {
-                fieldName = propertyName;
-            }
-
-            // Add the property's field name to the mapping cache.
-            if (!_propertyNameMapping.ContainsKey(propertyName) && !string.IsNullOrEmpty(fieldName))
-            {
-                _propertyNameMapping.Add(propertyName, fieldName);
-            }
-
-            return fieldName;
+            var pi = this.GetType().GetTypeInfo().GetDeclaredProperty(propertyName);
+            var fieldAttribute = pi?.GetCustomAttribute<CsvFieldAttribute>();
+            return fieldAttribute?.FieldName ?? pi?.Name ?? propertyName;
         }
 
 #if NETCOREAPP3_0_OR_GREATER

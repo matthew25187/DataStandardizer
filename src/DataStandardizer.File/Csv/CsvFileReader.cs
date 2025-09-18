@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 #if NETSTANDARD
 using JetBrains.Annotations;
@@ -33,18 +34,30 @@ namespace DataStandardizer.File.Csv
 #if NETCOREAPP3_0_OR_GREATER
         private CsvContext? _context;
         private IEnumerable<IList<string>>? _csvSource;
+        private readonly MethodInfo? _deserializeFieldValueMethodDefinition;
+        private IReadOnlyList<string>? _headerFieldNames;
         private CsvFileHeaderLine? _headerLine;
+        private readonly TextReader _reader = null!;
 #else
         [CanBeNull] private CsvContext _context;
         [CanBeNull] private IEnumerable<IList<string>> _csvSource;
+        [CanBeNull] private readonly MethodInfo _deserializeFieldValueMethodDefinition;
+        [CanBeNull] private IReadOnlyList<string> _headerFieldNames;
         [CanBeNull] private CsvFileHeaderLine _headerLine;
+        [NotNull] private readonly TextReader _reader;
 #endif
         private readonly bool _isInternalReader;
         private int _expectedFieldCount;
         private readonly CsvFileOptions _options = new CsvFileOptions();
-        private readonly TextReader _reader;
 
-        public CsvFileReader(Stream csvStream)
+        private CsvFileReader()
+        {
+            _deserializeFieldValueMethodDefinition = this
+                .GetMethod(nameof(DeserializeCsvLineFieldValue), isProtected: true)
+                ?.GetGenericMethodDefinition();
+        }
+
+        public CsvFileReader(Stream csvStream) : this()
         {
             if (csvStream is null)
                 throw new ArgumentNullException(nameof(csvStream));
@@ -69,7 +82,7 @@ namespace DataStandardizer.File.Csv
         }
 
 #if NETSTANDARD2_0_OR_GREATER||NETCOREAPP2_0_OR_GREATER
-        public CsvFileReader(string csvFilePath)
+        public CsvFileReader(string csvFilePath) : this()
         {
             if (csvFilePath is null)
                 throw new ArgumentNullException(nameof(csvFilePath));
@@ -83,7 +96,7 @@ namespace DataStandardizer.File.Csv
         }
 #endif
 
-        public CsvFileReader(TextReader reader)
+        public CsvFileReader(TextReader reader) : this()
         {
             if (reader is null)
                 throw new ArgumentNullException(nameof(reader));
@@ -140,7 +153,7 @@ namespace DataStandardizer.File.Csv
                 if (rawFieldValues.Count == 0)
                 {
                     // ref. RFC 4180§2¶4
-                    var dataItems = new Dictionary<string, object>() { { DataItemName.ActualFieldCount, rawFieldValues.Count } };
+                    var dataItems = new Dictionary<string, object> { { DataItemName.ActualFieldCount, rawFieldValues.Count } };
                     throw BuildException("Expected one or more fields.", dataItems);
                 }
 
@@ -161,9 +174,9 @@ namespace DataStandardizer.File.Csv
                     if (duplicateFieldNames.Length > 0)
                     {
                         var message = $"Duplicate field names detected: {string.Join(", ", duplicateFieldNames)}";
-                        var dataItems = new Dictionary<string, object>()
+                        var dataItems = new Dictionary<string, object>
                         {
-                            { DataItemName.ActualFieldCount, duplicateFieldNames.Length }, 
+                            { DataItemName.ActualFieldCount, duplicateFieldNames.Length },
                             { DataItemName.FieldNames, duplicateFieldNames }
                         };
                         throw BuildException(message, dataItems);
@@ -185,14 +198,17 @@ namespace DataStandardizer.File.Csv
                     var mapper = GetMapper((TRecordLine)csvLine);
                     var defaultFieldNames = CsvMappingService.GetSortedFieldNamesFromMapper(mapper);
 
-                    IReadOnlyList<string> headerFieldNames;
-                    if (_options.HeaderHandler is CsvFileHeader headerHandler)
+                    var headerFieldNames = _headerFieldNames;
+                    if (headerFieldNames is null)
                     {
-                        headerFieldNames = headerHandler(_headerLine);
-                    }
-                    else
-                    {
-                        headerFieldNames = _headerLine?.FieldNames ?? Array.Empty<string>();
+                        if (_options.HeaderHandler is CsvFileHeader headerHandler)
+                        {
+                            headerFieldNames = _headerFieldNames = headerHandler(_headerLine);
+                        }
+                        else
+                        {
+                            headerFieldNames = _headerFieldNames = _headerLine?.FieldNames ?? Array.Empty<string>();
+                        }
                     }
 
                     var fieldIndex = 0;
@@ -229,12 +245,12 @@ namespace DataStandardizer.File.Csv
                         };
                         throw BuildException(message, dataItems);
                     }
-                }
 
-                // Map CSV fields to model properties.
-                if (csvLine is TRecordLine recordLine)
-                {
-                    MapCsvFieldsToProperties(recordLine);
+                    // Map CSV fields to model properties.
+                    if (mapper.Count > 0)
+                    {
+                        MapCsvFieldsToProperties((TRecordLine)csvLine);
+                    }
                 }
 
                 return csvLine;
@@ -288,7 +304,7 @@ namespace DataStandardizer.File.Csv
                     FieldName = mappedFieldName,
                     HeaderLine = _headerLine
                 };
-                
+
                 var fieldKey = mappedFieldName;
                 if (!csvLine.Contains(fieldKey) && csvLine.Contains(fieldMapping.Key))
                 {
@@ -322,14 +338,11 @@ namespace DataStandardizer.File.Csv
 
                 // Deserialize the field value.
                 var fieldValue = GetCsvLineMappedFieldValue(recordLine, fieldMapping);
-                var deserializeFieldValueMethodDefinition = this
-                    .GetMethod(nameof(DeserializeCsvLineFieldValue), isProtected: true)
-                    ?.GetGenericMethodDefinition();
-                var deserializeFieldValueMethod = deserializeFieldValueMethodDefinition?.MakeGenericMethod(fieldMapping.Value.PropertyType);
+                var deserializeFieldValueMethod = _deserializeFieldValueMethodDefinition?.MakeGenericMethod(fieldMapping.Value.PropertyType);
 #if NETCOREAPP3_0_OR_GREATER
-                var deserializedFieldValue = deserializeFieldValueMethod?.Invoke(this, new object?[] { _headerLine, recordLine, _options, fieldMapping,fieldValue });
+                var deserializedFieldValue = deserializeFieldValueMethod?.Invoke(this, new object?[] { _headerLine, recordLine, _options, fieldMapping, fieldValue });
 #else
-                var deserializedFieldValue = deserializeFieldValueMethod?.Invoke(this, new object[] { _headerLine, recordLine, _options, fieldMapping,fieldValue });
+                var deserializedFieldValue = deserializeFieldValueMethod?.Invoke(this, new object[] { _headerLine, recordLine, _options, fieldMapping, fieldValue });
 #endif
                 csvLine[fieldKey] = deserializedFieldValue;
             }

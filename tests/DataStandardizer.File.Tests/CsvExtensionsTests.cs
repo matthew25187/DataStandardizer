@@ -4,7 +4,7 @@ using FluentAssertions;
 
 namespace DataStandardizer.File.Tests;
 
-public class CsvFileLineExtensionsTests
+public class CsvExtensionsTests
 {
     private const int TestMappingConstantValue = 100;
 
@@ -219,7 +219,7 @@ public class CsvFileLineExtensionsTests
 
     private class TestMappedLine : CsvFileRecordLine
     {
-        [CsvField(0, ConstantValue = TestMappingConstantValue)]
+        [CsvFieldMapping(0, ConstantValue = TestMappingConstantValue)]
         [TypeConverter(typeof(Int32Converter))]
         public int Id
         {
@@ -227,14 +227,14 @@ public class CsvFileLineExtensionsTests
             set => SetPropertyValue(value);
         }
 
-        [CsvField("Name", IsOptional = true)]
+        [CsvFieldMapping("Name", IsOptional = true)]
         public string? Name
         {
             get => GetPropertyValue<string>();
             set => SetPropertyValue(value);
         }
 
-        [CsvField("Description", IsOptional = true)]
+        [CsvFieldMapping("Description", IsOptional = true)]
         public string? Description
         {
             get => GetPropertyValue<string>();

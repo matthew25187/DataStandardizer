@@ -11,6 +11,11 @@ namespace DataStandardizer.File.Csv
             return propertyFieldMapping.Value.FieldName ?? propertyFieldMapping.Key;
         }
 
+        internal static string GetFieldNameFromMapping(string propertyKey, CsvFieldMapping fieldMapping)
+        {
+            return fieldMapping.FieldName ?? propertyKey;
+        }
+
         internal static string[] GetSortedFieldNames(ICsvFileLine csvLine, ICsvFileMapper mapper)
         {
             var lineFieldNames = csvLine.Keys.Cast<string>();

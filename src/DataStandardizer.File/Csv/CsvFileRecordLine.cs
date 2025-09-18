@@ -13,7 +13,7 @@ namespace DataStandardizer.File.Csv
 #if NETCOREAPP3_0_OR_GREATER
         protected virtual T? GetPropertyValue<T>([CallerMemberName] string? propertyName = null)
         {
-            var fieldName = GetFieldNameForPropertyName(propertyName!);
+            var fieldName = GetPropertyKey(propertyName!);
 
             // Get the field value in a form it can be returned as the property value.
             T? propertyValue = default;
@@ -28,7 +28,7 @@ namespace DataStandardizer.File.Csv
 
         protected virtual void SetPropertyValue<T>(T value, [CallerMemberName] string? propertyName = null)
         {
-            var fieldName = GetFieldNameForPropertyName(propertyName!);
+            var fieldName = GetPropertyKey(propertyName!);
 
             SetFieldValue(fieldName, value);
         } 
@@ -36,7 +36,7 @@ namespace DataStandardizer.File.Csv
         [CanBeNull]
         protected virtual T GetPropertyValue<T>([CallerMemberName] string propertyName = null)
         {
-            var fieldName = GetFieldNameForPropertyName(propertyName);
+            var fieldName = GetPropertyKey(propertyName);
 
             // Get the field value in a form it can be returned as the property value.
             T propertyValue = default;
@@ -51,7 +51,7 @@ namespace DataStandardizer.File.Csv
 
         protected virtual void SetPropertyValue<T>(T value, [CallerMemberName] string propertyName = null)
         {
-            var fieldName = GetFieldNameForPropertyName(propertyName);
+            var fieldName = GetPropertyKey(propertyName);
             
             SetFieldValue(fieldName, value);
         }
