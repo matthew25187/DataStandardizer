@@ -12,6 +12,24 @@ namespace DataStandardizer.File.Csv
 {
     public abstract class CsvFileIoBase<TRecordLine> : CsvFileCacheRepositoryBase where TRecordLine : CsvFileRecordLine
     {
+#if NETCOREAPP3_0_OR_GREATER
+        private readonly MethodInfo? _converterMethodDefinition;
+        private readonly MethodInfo? _generatorMethodDefinition; 
+#else
+        [CanBeNull] private readonly MethodInfo _converterMethodDefinition;
+        [CanBeNull] private readonly MethodInfo _generatorMethodDefinition; 
+#endif
+
+        protected CsvFileIoBase()
+        {
+            _converterMethodDefinition = this
+                .GetMethod(nameof(GetConvertedFieldValue), isPrivate: true)
+                ?.GetGenericMethodDefinition();
+            _generatorMethodDefinition = this
+                .GetMethod(nameof(GetGeneratedFieldValue), isPrivate: true)
+                ?.GetGenericMethodDefinition();
+        }
+
         /// <summary>
         /// Register a mapper for CSV lines.
         /// </summary>
@@ -111,10 +129,7 @@ namespace DataStandardizer.File.Csv
 #endif
             if (propertyFieldMapping.Value.FromStringConverter != null)
             {
-                var converterMethodDefinition = this.GetType().GetTypeInfo().DeclaredMethods
-                    .Single(method => method.Name == nameof(GetConvertedFieldValue))
-                    .GetGenericMethodDefinition();
-                var converterMethod = converterMethodDefinition.MakeGenericMethod(typeof(T));
+                var converterMethod = _converterMethodDefinition?.MakeGenericMethod(typeof(T));
 
                 var mappedFieldName = CsvMappingService.GetFieldNameFromMapping(propertyFieldMapping);
                 var context = new CsvFieldContext<TRecordLine>(options)
@@ -125,9 +140,9 @@ namespace DataStandardizer.File.Csv
                     FieldIndex = propertyFieldMapping.Value.FieldIndex
                 };
 #if NETCOREAPP3_0_OR_GREATER
-                result = (T?)converterMethod.Invoke(this, new object?[] { propertyFieldMapping.Value.FromStringConverter, context });
+                result = (T?)converterMethod?.Invoke(this, new object?[] { propertyFieldMapping.Value.FromStringConverter, context });
 #else
-                result = (T)converterMethod.Invoke(this, new object[] { propertyFieldMapping.Value.FromStringConverter, context });
+                result = (T)converterMethod?.Invoke(this, new object[] { propertyFieldMapping.Value.FromStringConverter, context });
 #endif
             }
             else if (propertyFieldMapping.Value.TypeConverterType != null)
@@ -174,14 +189,11 @@ namespace DataStandardizer.File.Csv
             }
             else if (propertyFieldMapping.Value.VariableValueGenerator != null)
             {
-                var generatorMethodDefinition = this.GetType().GetTypeInfo().DeclaredMethods
-                    .Single(method => method.Name == nameof(GetGeneratedFieldValue))
-                    .GetGenericMethodDefinition();
-                var generatorMethod = generatorMethodDefinition.MakeGenericMethod(propertyFieldMapping.Value.PropertyType);
+                var generatorMethod = _generatorMethodDefinition?.MakeGenericMethod(propertyFieldMapping.Value.PropertyType);
 #if NETCOREAPP3_0_OR_GREATER
-                fieldValue = generatorMethod.Invoke(this, new object?[] { propertyFieldMapping.Value.VariableValueGenerator });
+                fieldValue = generatorMethod?.Invoke(this, new object?[] { propertyFieldMapping.Value.VariableValueGenerator });
 #else
-                fieldValue = generatorMethod.Invoke(this, new object[] { propertyFieldMapping.Value.VariableValueGenerator });
+                fieldValue = generatorMethod?.Invoke(this, new object[] { propertyFieldMapping.Value.VariableValueGenerator });
 #endif
             }
 

@@ -102,9 +102,9 @@ namespace DataStandardizer.File.Csv
     /// The default settings for all options ensure behaviour consistent with RFC 4180.
     /// </remarks>
 #if NET5_0_OR_GREATER
-    public record CsvFileOptions
+    public sealed record CsvFileOptions
 #else
-    public class CsvFileOptions
+    public sealed class CsvFileOptions
 #endif
         : ICsvFileOptions
     {

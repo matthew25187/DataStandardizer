@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Linq.Expressions;
-using System.Reflection;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using JetBrains.Annotations;
 #endif
 
 namespace DataStandardizer.File.Csv
 {
-    public class CsvFileMappingBuilder<TModel> where TModel : class
+    public sealed class CsvFileMappingBuilder<TModel> where TModel : class
     {
 #if NETCOREAPP3_0_OR_GREATER
         private readonly CsvFieldMapping? _fieldMapping;
@@ -29,12 +28,12 @@ namespace DataStandardizer.File.Csv
             _mappingCreatedDelegate = mappingCreatedDelegate;
         }
 #else
-        public CsvFileMappingBuilder(Action<string, CsvFieldMapping> mappingCreatedDelegate = null)
+        internal CsvFileMappingBuilder(Action<string, CsvFieldMapping> mappingCreatedDelegate = null)
         {
             _mappingCreatedDelegate = mappingCreatedDelegate;
         }
 
-        public CsvFileMappingBuilder(CsvFieldMapping fieldMapping, Action<string, CsvFieldMapping> mappingCreatedDelegate = null)
+        internal CsvFileMappingBuilder(CsvFieldMapping fieldMapping, Action<string, CsvFieldMapping> mappingCreatedDelegate = null)
         {
             _fieldMapping = fieldMapping;
             _mappingCreatedDelegate = mappingCreatedDelegate;

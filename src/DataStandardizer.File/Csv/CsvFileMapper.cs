@@ -8,7 +8,7 @@ namespace DataStandardizer.File.Csv
     /// <summary>
     /// Collection of mappings from model object properties to CSV fields.
     /// </summary>
-    public class CsvFileMapper : ICsvFileMapper
+    public sealed class CsvFileMapper : ICsvFileMapper
     {
         private readonly IReadOnlyDictionary<string, CsvFieldMapping> _propertyFieldMappingsWrapper;
 

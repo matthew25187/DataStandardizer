@@ -109,7 +109,7 @@ namespace DataStandardizer.File.Csv
         void HasVariableValue(CsvFieldGenerate<T> valueGenerator);
     }
 
-    public class CsvFieldMappingBuilder<TModel, T> : ICsvFieldMappingInitialBuilder<TModel,T>, ICsvFieldMappingIdentityNextBuilder<TModel, T>, ICsvFieldMappingTransformationNextBuilder<TModel>, ICsvFieldMappingValidationNextBuilder
+    public sealed class CsvFieldMappingBuilder<TModel, T> : ICsvFieldMappingInitialBuilder<TModel,T>, ICsvFieldMappingIdentityNextBuilder<TModel, T>, ICsvFieldMappingTransformationNextBuilder<TModel>, ICsvFieldMappingValidationNextBuilder
         where TModel : class
     {
         private readonly CsvFieldMapping _fieldMapping;

@@ -9,9 +9,9 @@ namespace DataStandardizer.File.Csv
     /// </summary>
     /// <typeparam name="TModel">Type of the CSV line model.</typeparam>
 #if NET5_0_OR_GREATER
-    public record CsvFieldContext<TModel>
+    public sealed record CsvFieldContext<TModel>
 #else
-    public class CsvFieldContext<TModel>
+    public sealed class CsvFieldContext<TModel>
 #endif
         where TModel : class
     {

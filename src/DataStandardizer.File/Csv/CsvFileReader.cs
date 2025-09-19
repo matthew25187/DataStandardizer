@@ -13,7 +13,7 @@ namespace DataStandardizer.File.Csv
     /// <summary>
     /// Represents a reader that provides fast, non-cached, forward-only access to CSV data.
     /// </summary>
-    public class CsvFileReader<TRecordLine> : CsvFileIoBase<TRecordLine>, IDisposable
+    public sealed class CsvFileReader<TRecordLine> : CsvFileIoBase<TRecordLine>, IDisposable
         where TRecordLine : CsvFileRecordLine, new()
     {
         private static class DataItemName

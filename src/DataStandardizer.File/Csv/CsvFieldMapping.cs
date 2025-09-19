@@ -8,7 +8,7 @@ namespace DataStandardizer.File.Csv
     /// <summary>
     /// Details of the mapping between a CSV field and a model property.
     /// </summary>
-    public class CsvFieldMapping
+    public sealed class CsvFieldMapping
     {
         private int? _fieldIndex;
 

@@ -7,7 +7,7 @@ namespace DataStandardizer.File.Csv
     /// <summary>
     /// Represents a header line from a CSV file.
     /// </summary>
-    public class CsvFileHeaderLine : CsvFileLineBase
+    public sealed class CsvFileHeaderLine : CsvFileLineBase
     {
         private int _fieldCount;
         private string[] _fieldNames = Array.Empty<string>();

@@ -9,7 +9,7 @@ using JetBrains.Annotations;
 
 namespace DataStandardizer.File.Csv
 {
-    public class CsvFileWriter<TRecordLine> : CsvFileIoBase<TRecordLine>, IDisposable
+    public sealed class CsvFileWriter<TRecordLine> : CsvFileIoBase<TRecordLine>, IDisposable
         where TRecordLine : CsvFileRecordLine
     {
         private static class DataItemName

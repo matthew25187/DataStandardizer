@@ -7,7 +7,7 @@ namespace DataStandardizer.File.Csv
     /// <summary>
     /// State of a CSV reader or writer.
     /// </summary>
-    public class CsvContext
+    public sealed class CsvContext
     {
         private readonly ReadOnlyDictionary<Type, ICsvFileMapper> _mappersWrapper;
 

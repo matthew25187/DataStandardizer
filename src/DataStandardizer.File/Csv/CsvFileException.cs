@@ -8,7 +8,7 @@ namespace DataStandardizer.File.Csv
     /// <summary>
     /// Exception to normal processing of a CSV file.
     /// </summary>
-    public class CsvFileException : Exception
+    public sealed class CsvFileException : Exception
     {
         public CsvFileException()
         {
