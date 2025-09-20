@@ -23,7 +23,7 @@ namespace DataStandardizer.File.Csv
             {
                 _fieldNames = ((ICsvFileLine)this).Values
                     .Cast<object>()
-                    .Select(fieldValue => fieldValue as string ?? String.Empty)
+                    .Select(fieldValue => fieldValue as string ?? string.Empty)
                     .ToArray();
                 _fieldCount = _fieldNames.Length;
             }

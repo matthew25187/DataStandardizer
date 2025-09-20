@@ -23,7 +23,7 @@ namespace DataStandardizer.File.Tests
             AddTestFileLine(testFileLines, null, "1", "2", "3");
             var testFile = string.Join(CsvLineBreak, testFileLines);
 
-            var options = new CsvFileOptions { HasHeaderLine = true };
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
 
             var testFileBytes = Encoding.Default.GetBytes(testFile);
             using var testFileStream = new MemoryStream(testFileBytes);
@@ -49,7 +49,7 @@ namespace DataStandardizer.File.Tests
             AddTestFileLine(testFileLines, null, "1", "2", "3");
             var testFile = string.Join(CsvLineBreak, testFileLines);
 
-            var options = new CsvFileOptions { HasHeaderLine = true };
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
 
             var testFileBytes = Encoding.Default.GetBytes(testFile);
             using var testFileStream = new MemoryStream(testFileBytes);
@@ -67,6 +67,61 @@ namespace DataStandardizer.File.Tests
         }
 
         [Fact]
+        public void ReadLine_HeaderLineIgnored_ReturnsRecordLine()
+        {
+            // arrange
+            var testFileLines = new List<string>();
+            AddTestFileLine(testFileLines, null, "ID", "Name", "Description");
+            AddTestFileLine(testFileLines, null, "1", "One", "This is the first");
+            var testFile = string.Join(CsvLineBreak, testFileLines);
+
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Ignore };
+
+            var testFileBytes = Encoding.Default.GetBytes(testFile);
+            using var testFileStream = new MemoryStream(testFileBytes);
+            using var csvReader = new CsvFileReader<CsvFileRecordLine>(testFileStream, options);
+
+            // act
+            var testResult = csvReader.ReadLine();
+
+            // assert
+            testResult.Should().BeOfType<CsvFileRecordLine>();
+            testResult!.Count.Should().Be(3);
+            testResult[0].Should().Be("1");
+            testResult[1].Should().Be("One");
+            testResult[2].Should().Be("This is the first");
+        }
+
+        [Fact]
+        public void ReadLine_HeaderLineIgnoredAndUsingHeaderDelegate_ReturnsRecordLineWithCustomFieldNames()
+        {
+            // arrange
+            const string fieldName1 = "identifier", fieldName2 = "person_name", fieldName3 = "person_description";
+            
+            var testFileLines = new List<string>();
+            AddTestFileLine(testFileLines, null, "ID", "Name", "Description");
+            AddTestFileLine(testFileLines, null, "1", "One", "This is the first");
+            var testFile = string.Join(CsvLineBreak, testFileLines);
+
+            var headerHandler = new CsvFileHeader(_ => [fieldName1, fieldName2, fieldName3]);
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Ignore, HeaderHandler = headerHandler };
+
+            var testFileBytes = Encoding.Default.GetBytes(testFile);
+            using var testFileStream = new MemoryStream(testFileBytes);
+            using var csvReader = new CsvFileReader<CsvFileRecordLine>(testFileStream, options);
+
+            // act
+            var testResult = csvReader.ReadLine();
+
+            // assert
+            testResult.Should().BeOfType<CsvFileRecordLine>();
+            testResult!.Count.Should().Be(3);
+            testResult[fieldName1].Should().Be("1");
+            testResult[fieldName2].Should().Be("One");
+            testResult[fieldName3].Should().Be("This is the first");
+        }
+
+        [Fact]
         public void ReadLine_RecordLineWithQuotedValues_ReturnsRecordLine()
         {
             // arrange
@@ -74,7 +129,7 @@ namespace DataStandardizer.File.Tests
             AddTestFileLine(testFileLines, null, "\"1\"", "\"2\"", "\"3\"");
             var testFile = string.Join(CsvLineBreak, testFileLines);
 
-            var options = new CsvFileOptions { HasHeaderLine = false };
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.None };
 
             var testFileBytes = Encoding.Default.GetBytes(testFile);
             using var testFileStream = new MemoryStream(testFileBytes);
@@ -99,7 +154,7 @@ namespace DataStandardizer.File.Tests
             AddTestFileLine(testFileLines, null, "1", "2", "3");
             var testFile = string.Join(CsvLineBreak, testFileLines);
 
-            var options = new CsvFileOptions { HasHeaderLine = false };
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.None };
 
             var testFileBytes = Encoding.Default.GetBytes(testFile);
             using var testFileStream = new MemoryStream(testFileBytes);
@@ -126,7 +181,7 @@ namespace DataStandardizer.File.Tests
             AddTestFileLine(testFileLines, null, "4", "5", "6");
             var testFile = string.Join(lineBreak, testFileLines);
 
-            var options = new CsvFileOptions { HasHeaderLine = false, TerminatorLineBreak = lineBreak };
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.None, TerminatorLineBreak = lineBreak };
 
             var testFileBytes = Encoding.Default.GetBytes(testFile);
             using var testFileStream = new MemoryStream(testFileBytes);
@@ -182,7 +237,7 @@ namespace DataStandardizer.File.Tests
             var handlerCalled = false;
             var handler = new CsvFieldCount<CsvFileRecordLine>(_ => handlerCalled = true);
 
-            var options = new CsvFileOptions { HasHeaderLine = true, InconsistentFieldCountHandler = handler };
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use, InconsistentFieldCountHandler = handler };
 
             var testFileBytes = Encoding.Default.GetBytes(testFile);
             using var testFileStream = new MemoryStream(testFileBytes);
@@ -206,7 +261,7 @@ namespace DataStandardizer.File.Tests
             AddTestFileLine(testFileLines, null, "1", "2");
             var testFile = string.Join(CsvLineBreak, testFileLines);
 
-            var options = new CsvFileOptions { HasHeaderLine = true, InconsistentFieldCountHandler = null };
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use, InconsistentFieldCountHandler = null };
 
             var testFileBytes = Encoding.Default.GetBytes(testFile);
             using var testFileStream = new MemoryStream(testFileBytes);
@@ -232,7 +287,7 @@ namespace DataStandardizer.File.Tests
             var handlerCalled = false;
             var handler = new CsvFieldCount<CsvFileRecordLine>(_ => handlerCalled = true);
 
-            var options = new CsvFileOptions { HasHeaderLine = false, InconsistentFieldCountHandler = handler };
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.None, InconsistentFieldCountHandler = handler };
 
             var testFileBytes = Encoding.Default.GetBytes(testFile);
             using var testFileStream = new MemoryStream(testFileBytes);
@@ -256,7 +311,7 @@ namespace DataStandardizer.File.Tests
             AddTestFileLine(testFileLines, null, "4", "5");
             var testFile = string.Join(CsvLineBreak, testFileLines);
 
-            var options = new CsvFileOptions { HasHeaderLine = false, InconsistentFieldCountHandler = null };
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.None, InconsistentFieldCountHandler = null };
 
             var testFileBytes = Encoding.Default.GetBytes(testFile);
             using var testFileStream = new MemoryStream(testFileBytes);
@@ -280,7 +335,7 @@ namespace DataStandardizer.File.Tests
 
             var handlerCalled = false;
             var handler = new CsvFieldBadValue<CsvFileRecordLine>(_ => handlerCalled = true);
-            var options = new CsvFileOptions { HasHeaderLine = false, BadValueHandler = handler };
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.None, BadValueHandler = handler };
 
             var testFileBytes = Encoding.Default.GetBytes(testFile);
             using var testFileStream = new MemoryStream(testFileBytes);
@@ -301,7 +356,7 @@ namespace DataStandardizer.File.Tests
             AddTestFileLine(testFileLines, null, "One Two", "Three\"Four", "Five Six");
             var testFile = string.Join(CsvLineBreak, testFileLines);
 
-            var options = new CsvFileOptions { HasHeaderLine = false, BadValueHandler = null };
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.None, BadValueHandler = null };
 
             var testFileBytes = Encoding.Default.GetBytes(testFile);
             using var testFileStream = new MemoryStream(testFileBytes);

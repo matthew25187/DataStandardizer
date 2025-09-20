@@ -262,6 +262,52 @@ public class CsvFileWriterTests : IDisposable
     }
 
     [Fact]
+    public void WriteLine_RecordLineWithDeserializedValueNoCultureNoMapper_WritesRecordWithSerializedValueUsingInvariantCulture()
+    {
+        // arrange
+        const int firstFieldValue = 47;
+        const string secondFieldValue = "One", thirdFieldValue = "First";
+        ICsvFileLine testLine = new TestLine { Id = firstFieldValue, Name = secondFieldValue, Description = thirdFieldValue};
+
+        var buffer = new StringBuilder();
+        using var stringWriter = new StringWriter(buffer);
+        using var csvWriter = new CsvFileWriter<TestLine>(stringWriter);
+
+        var expectedResult = string.Join(",", firstFieldValue.ToString(CultureInfo.InvariantCulture), secondFieldValue, thirdFieldValue) + "\r\n";
+
+        // act
+        csvWriter.WriteLine(testLine);
+        var testResult = buffer.ToString();
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    [Fact]
+    public void WriteLine_RecordLineWithDeserializedValueCultureNoMapper_WritesRecordWithSerializedValueUsingSpecifiedCulture()
+    {
+        // arrange
+        const int firstFieldValue = 49;
+        const string secondFieldValue = "One", thirdFieldValue = "First";
+        ICsvFileLine testLine = new TestLine { Id = firstFieldValue, Name = secondFieldValue, Description = thirdFieldValue};
+
+        var options = new CsvFileOptions { Culture = new CultureInfo("he-IL") };
+
+        var buffer = new StringBuilder();
+        using var stringWriter = new StringWriter(buffer);
+        using var csvWriter = new CsvFileWriter<TestLine>(stringWriter);
+
+        var expectedResult = string.Join(",", firstFieldValue.ToString(options.Culture), secondFieldValue, thirdFieldValue) + "\r\n";
+
+        // act
+        csvWriter.WriteLine(testLine);
+        var testResult = buffer.ToString();
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    [Fact]
     public void WriteLine_RecordLineAndSuppressTrailingBlankFields_WritesRecordWithoutTrailingBlankFields()
     {
         // arrange
@@ -573,6 +619,53 @@ public class CsvFileWriterTests : IDisposable
 
         // assert
         testResult.Should().Be(expectedResult);
+    }
+
+    [Fact]
+    public void WriteLine_RecordLinesWithInconsistentFieldCountsAndFieldCountDelegate_CallsFieldCountDelegate()
+    {
+        // arrange
+        var recordLine1 = new TestLine { Id = 1, Name = "One" };
+        var recordLine2 = new TestLine { Id = 2, Name = "Two", Description = "Second" };
+
+        bool handled = false;
+
+        void HandleInconsistentFieldCount(CsvFieldContext<TestLine> context)
+        {
+            handled = true;
+        }
+
+        var options = new CsvFileOptions { InconsistentFieldCountHandler = new CsvFieldCount<TestLine>(HandleInconsistentFieldCount) };
+
+        var buffer = new StringBuilder();
+        using var stringWriter = new StringWriter(buffer);
+        using var csvWriter = new CsvFileWriter<TestLine>(stringWriter, options);
+
+        // act
+        csvWriter.WriteLine(recordLine1);
+        csvWriter.WriteLine(recordLine2);
+
+        // assert
+        handled.Should().BeTrue();
+    }
+
+    [Fact]
+    public void WriteLine_RecordLinesWithInconsistentFieldCountsAndNoFieldCountDelegate_ThrowsCsvFileException()
+    {
+        // arrange
+        var recordLine1 = new TestLine { Id = 1, Name = "One" };
+        var recordLine2 = new TestLine { Id = 2, Name = "Two", Description = "Second" };
+
+        var buffer = new StringBuilder();
+        using var stringWriter = new StringWriter(buffer);
+        using var csvWriter = new CsvFileWriter<TestLine>(stringWriter);
+
+        // act
+        csvWriter.WriteLine(recordLine1);
+        Action testAction = () => csvWriter.WriteLine(recordLine2);
+
+        // assert
+        testAction.Should().Throw<CsvFileException>().WithMessage("Expected 2 fields; found 3 fields.");
     }
 
     private class TestLine : CsvFileRecordLine

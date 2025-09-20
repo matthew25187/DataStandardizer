@@ -15,7 +15,7 @@ namespace DataStandardizer.File.Csv
 #endif
         where TModel : class
     {
-        internal CsvFieldContext(CsvFileOptions options)
+        internal CsvFieldContext(ICsvFileOptions options)
         {
             Options = options;
         }
@@ -89,7 +89,7 @@ internal set;
         /// <summary>
         /// Gets the options used to configure the reader or writer.
         /// </summary>
-        public CsvFileOptions Options { get; }
+        public ICsvFileOptions Options { get; }
 
         /// <summary>
         /// Gets the raw value of the CSV field.

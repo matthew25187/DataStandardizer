@@ -43,7 +43,7 @@ namespace DataStandardizer.File.Csv
             return source
                 .Select(item =>
                 {
-                    var index = item.Item2 ?? Enumerable.Range(nextAvailableIndex, Int32.MaxValue - nextAvailableIndex).First(idx => !usedIndices.Contains(idx));
+                    var index = item.Item2 ?? Enumerable.Range(nextAvailableIndex, int.MaxValue - nextAvailableIndex).First(idx => !usedIndices.Contains(idx));
                     usedIndices.Add(index);
                     nextAvailableIndex = index + 1;
                     return Tuple.Create(item.Item1, index);

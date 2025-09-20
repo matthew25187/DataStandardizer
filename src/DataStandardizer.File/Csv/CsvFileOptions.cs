@@ -10,7 +10,7 @@ namespace DataStandardizer.File.Csv
     public interface ICsvFileOptions
     {
         /// <summary>
-        /// Gets the delegate that will be called when a bad value is found in a CSV field.
+        /// Gets the <see cref="CsvFieldBadValue{TModel}"/> delegate that will be called when a bad value is found in a CSV field.
         /// </summary>
 #if NETCOREAPP3_0_OR_GREATER
         Delegate? BadValueHandler { get; }
@@ -52,15 +52,7 @@ namespace DataStandardizer.File.Csv
         char FieldDelimiterCharacter { get; }
 
         /// <summary>
-        /// Gets a flag indicating if the reader should expect to find a header line in the CSV file.
-        /// </summary>
-        /// <remarks>
-        /// Applies to reading lines only.
-        /// </remarks>
-        bool HasHeaderLine { get; }
-
-        /// <summary>
-        /// Gets the delegate that will be called when the header for a CSV file is being prepared.
+        /// Gets the <see cref="CsvFileHeader"/> delegate that will be called to provide field names in lieu of a header line from the file.
         /// </summary>
 #if NETCOREAPP3_0_OR_GREATER
         Delegate? HeaderHandler { get; }
@@ -68,7 +60,15 @@ namespace DataStandardizer.File.Csv
         Delegate HeaderHandler { get; }
 #endif
         /// <summary>
-        /// Gets the delegate that will be called when a line has a field count inconsistent with other lines in the CSV file.
+        /// Gets the method for handling file header lines.
+        /// </summary>
+        /// <remarks>
+        /// Applies to reading lines only.
+        /// </remarks>
+        CsvFileHeaderHandling HeaderHandling { get; }
+
+        /// <summary>
+        /// Gets the <see cref="CsvFieldCount{TModel}"/> delegate that will be called when a line has a field count inconsistent with other lines in the CSV file.
         /// </summary>
 #if NETCOREAPP3_0_OR_GREATER
         Delegate? InconsistentFieldCountHandler { get; }
@@ -171,16 +171,6 @@ set;
 #endif
         } = ',';
 
-        public bool HasHeaderLine
-        {
-            get;
-#if NET5_0_OR_GREATER
-            init;
-#else
-            set;
-#endif
-        }
-
 
 #if NETCOREAPP3_0_OR_GREATER
         public Delegate? HeaderHandler
@@ -195,6 +185,15 @@ set;
 #else
         public Delegate HeaderHandler { get; set; }
 #endif
+        public CsvFileHeaderHandling HeaderHandling
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        } = CsvFileHeaderHandling.None;
 
 #if NETCOREAPP3_0_OR_GREATER
         public Delegate? InconsistentFieldCountHandler

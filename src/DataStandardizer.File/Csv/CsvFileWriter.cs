@@ -14,6 +14,8 @@ namespace DataStandardizer.File.Csv
     {
         private static class DataItemName
         {
+            internal const string ActualFieldCount = "ActualFieldCount";
+            internal const string ExpectedFieldCount = "ExpectedFieldCount";
             internal const string FieldValue = "FieldValue";
         }
 #if NETCOREAPP3_0_OR_GREATER
@@ -25,6 +27,7 @@ namespace DataStandardizer.File.Csv
         private string[] _headerLineFieldNames = Array.Empty<string>();
         private readonly bool _isInternalWriter;
         private readonly CsvFileOptions _options = new CsvFileOptions();
+        private int _previousLineFieldCount;
         private readonly TextWriter _writer;
 
         public CsvFileWriter(Stream csvStream)
@@ -97,6 +100,9 @@ namespace DataStandardizer.File.Csv
         /// Write a line to a CSV file.
         /// </summary>
         /// <param name="csvLine">Line containing fields to be written.</param>
+        /// <exception cref="CsvFileException">
+        /// Invalid field name detected.
+        /// </exception>
         public void WriteLine(ICsvFileLine csvLine)
         {
             // Check the line for the last non-empty field value.
@@ -170,6 +176,24 @@ namespace DataStandardizer.File.Csv
                         fieldNames = CsvMappingService.GetSortedFieldNamesFromMapper(mapper);
                     }
 
+                    // Check for an inconsistent field count.
+                    // ref. RFC 4180§2¶4
+                    if (_previousLineFieldCount > 0 && fieldNames.Length != _previousLineFieldCount)
+                    {
+                        if (_options.InconsistentFieldCountHandler is CsvFieldCount<TRecordLine> fieldCountHandler)
+                        {
+                            var context = new CsvFieldContext<TRecordLine>(_options) { HeaderLine = _headerLine, Model = recordLine };
+                            fieldCountHandler(context);
+                            break;
+                        }
+
+                        var message = $"Expected {_previousLineFieldCount} fields; found {fieldNames.Length} fields.";
+                        var dataItems = new Dictionary<string, object> { { DataItemName.ExpectedFieldCount, _previousLineFieldCount }, { DataItemName.ActualFieldCount, fieldNames.Length } };
+                        throw BuildException(message, dataItems);
+                    }
+
+                    _previousLineFieldCount = fieldNames.Length;
+
                     // Extract serialized field values.
                     var fieldIndex = 0;
                     foreach (var fieldName in fieldNames)
@@ -177,7 +201,7 @@ namespace DataStandardizer.File.Csv
                         // If a value has not been set for the current field, add a blank value.
                         if (!csvLine.Contains(fieldName))
                         {
-                            rawFieldValues.Add(String.Empty);
+                            rawFieldValues.Add(string.Empty);
                             continue;
                         }
 
@@ -201,7 +225,10 @@ namespace DataStandardizer.File.Csv
                         }
                         else if (csvLine.Contains(fieldName))
                         {
-                            rawFieldValue = csvLine[fieldName] as string ?? csvLine[fieldName]?.ToString();
+                            var serializedFieldValue = _options.Culture != null && csvLine[fieldName] is IFormattable formattableFieldValue
+                                ? formattableFieldValue.ToString(null, _options.Culture)
+                                : csvLine[fieldName]?.ToString();
+                            rawFieldValue = csvLine[fieldName] as string ?? serializedFieldValue;
                         }
 
                         // Apply embedded line break on field value.

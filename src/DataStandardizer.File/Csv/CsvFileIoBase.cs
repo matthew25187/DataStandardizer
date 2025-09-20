@@ -223,7 +223,7 @@ namespace DataStandardizer.File.Csv
             return mapper;
         }
 
-        protected string NormalizeFieldValueLineBreaks(string fieldValue, CsvFileOptions options)
+        protected string NormalizeFieldValueLineBreaks(string fieldValue, ICsvFileOptions options)
         {
             var hasTrailingLineBreak = fieldValue.TrimEnd('\n', '\r').Length < fieldValue.Length;
 
@@ -272,7 +272,7 @@ namespace DataStandardizer.File.Csv
 
             // Attempt to convert the field value to the target data type.
             var result = options.Culture != null && fieldValue is IFormattable formattableFieldValue 
-                ? formattableFieldValue.ToString(String.Empty, options.Culture) 
+                ? formattableFieldValue.ToString(null, options.Culture) 
                 : fieldValue.ToString();
 
             if (!string.IsNullOrEmpty(propertyFieldMapping.Key))
