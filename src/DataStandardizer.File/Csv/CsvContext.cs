@@ -11,7 +11,7 @@ namespace DataStandardizer.File.Csv
     {
         private readonly ReadOnlyDictionary<Type, ICsvFileMapper> _mappersWrapper;
 
-        public CsvContext(IDictionary<Type, ICsvFileMapper> mappers, ICsvFileOptions options)
+        internal CsvContext(IDictionary<Type, ICsvFileMapper> mappers, ICsvFileOptions options)
         {
             Options = options;
             _mappersWrapper = new ReadOnlyDictionary<Type, ICsvFileMapper>(mappers);

@@ -69,7 +69,7 @@ namespace DataStandardizer.File.Csv
         }
 
 #if NETCOREAPP3_0_OR_GREATER
-        void IDictionary.Add(object key, object? value)
+        public void Add(object key, object? value)
         {
             _fieldBag.Add(key, value);
         }
@@ -145,7 +145,7 @@ namespace DataStandardizer.File.Csv
 
         object ICollection.SyncRoot => _fieldBag.SyncRoot; 
 #else
-        void IDictionary.Add(object key, object value)
+        public void Add(object key, object value)
         {
             _fieldBag.Add(key, value);
         }

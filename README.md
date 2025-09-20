@@ -146,7 +146,7 @@ Once you have loaded a line from the file, you can access its individual fields 
 The behaviour of the reader (or writer) can be configured by using an options object.  Here, we can tell the reader to expect the file to have a header line.
 
         var lines = new List<ICsvFileLine>();
-        var options = new CsvFileOptions { HasHeaderLine = true };
+        var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
 
         using (var reader = new StreamReader(@"file_name.csv"))
         using (var csvReader = new CsvFileReader<CsvFileRecordLine>(reader, options))
@@ -261,20 +261,22 @@ Note that due to technical limitations, certain mapping functionality is unavail
 
 Writing CSV files is very similar to reading them.
 
-        ICsvFileLine line = new CsvFileRecordLine();
-        line.Add("identifier", "1");
-        line.Add("person_name", "John Doe");
-        line.Add("person_description", "Male");
-        var lines = new List<ICsvFileLine> { line };
-
-        using (var writer = new StreamWriter(@"file_name.csv"))
-        using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(writer))
-        {
-            foreach (var line in lines)
+            ICsvFileLine recordLine = new CsvFileRecordLine
             {
-                csvWriter.WriteLine(line);
+                { "identifier", "1" },
+                { "person_name", "John Doe" },
+                { "person_description", "Male" }
+            };
+            var lines = new List<ICsvFileLine> { recordLine };
+
+            using (var writer = new StreamWriter(@"file_name.csv"))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(writer))
+            {
+                foreach (var line in lines)
+                {
+                    csvWriter.WriteLine(line);
+                }
             }
-        }
 
 Note that if your file should contain a header line, it is up to you to make sure that the first line you write to the file is a `CsvFileHeaderLine` followed by `CsvFileRecordLine` objects (or derivative implementations) for the record lines.
 
