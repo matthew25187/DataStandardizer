@@ -16,6 +16,7 @@ If you derive a commercial benefit from use of *Data Standardizer* or feel it ot
 | **DataStandardizer.BCP47** | Supports **IETF BCP 47** language tags. |
 | **DataStandardizer.Chronology** | Provides support for the TZ Database. |
 | **DataStandardizer.Core** | Common types used to implement standards in the other packages.  You should not need to link to this package directly. |
+| **DataStandardizer.File** | Provides implementations of standards-based file formats. |
 | **DataStandardizer.ISO15924** | Supports **ISO 15924, *Codes for the representation of names of scripts***. |
 | **DataStandardizer.ISO3166** | Supports **ISO 3166, *Codes for the representation of names of countries and their subdivisions*** parts 1 & 2. |
 | **DataStandardizer.ISO4217** | Supports **ISO 4217, *Codes for the representation of currencies and funds***. |
@@ -101,6 +102,186 @@ Though each package contains many types, typically there will be only a few that
 | Type | Description |
 | --- | --- |
 | `TzDataTimezone` | An enum containing the timezones defined by the TZ Database. |
+
+## DataStandardizer.File
+
+| Type | Description |
+| --- | --- |
+| `CsvFieldMappingAttribute` | Declares the mapping of a property to a CSV field. |
+| `CsvFileHeaderLine` | Represents a header line from a CSV file. |
+| `CsvFileOptions` | Options for configuring the behaviour of a CSV reader or writer. |
+| `CsvFileReader` | Reader of a CSV file sourced from a `Stream`, `TextReader` or file. |
+| `CsvFileRecordLine` | Represents a record line from a CSV file. |
+| `CsvFileWriter` | Writes a CSV file to a `Stream`, `TextReader` or file. |
+
+### Usage
+
+Included here is a brief primer on the basic functionality of the *Data Standardizer* CSV implementation.  Certain advanced topics will not be covered here.
+
+Reading and writing of CSV files is handled in much the same way as you would read or write a regular text file.  The difference being, the `CsvFileReader` and `CsvFileWriter` will interpret the text of each line using the rules of RFC 4180 and any configuration options you supply.
+
+To read a CSV file into memory (without a header line), you can process the file in a simple loop.
+
+        var lines = new List<ICsvFileLine>();
+
+        using (var reader = new StreamReader(@"file_name.csv"))
+        using (var csvReader = new CsvFileReader<CsvFileRecordLine>(reader))
+        {
+            var line = csvReader.ReadLine();
+            while (line != null)
+            {
+                lines.Add(line);
+
+                line = csvReader.ReadLine();
+            }
+        }
+
+Once you have loaded a line from the file, you can access its individual fields through the `ICsvFileLine` interface.  By default, the values of each of the fields on a line will be the raw string values extracted from the file.
+
+        foreach (var line in lines)
+        {
+            if ((line["field_name"]?.Equals("some_field_value")).GetValueOrDefault())
+            {
+                // Process the line if a field contains a specific value.
+            }
+        }
+
+The behaviour of the reader (or writer) can be configured by using an options object.  Here, we can tell the reader to expect the file to have a header line.
+
+        var lines = new List<ICsvFileLine>();
+        var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+
+        using (var reader = new StreamReader(@"file_name.csv"))
+        using (var csvReader = new CsvFileReader<CsvFileRecordLine>(reader, options))
+        {
+            var line = csvReader.ReadLine();
+            while (line != null)
+            {
+                lines.Add(line);
+
+                line = csvReader.ReadLine();
+            }
+        }
+
+Note that as each line is loaded (or afterwards if you are storing the lines in a collection) you will be able to tell if it is a header line or a record line by checking the type of the line.  For example,
+
+        ICsvFileLine line = ...;
+        
+        if (line is CsvFileHeaderLine headerLine)
+        {
+            // This is a header line.
+        }
+
+When checking for a record line, the type you compare against should generally be the same as the generic type argument used for instantiating the `CsvFileReader` (or `CsvFileWriter`).
+
+        ICsvFileLine line = ...;
+
+        if (line is CsvFileRecordLine recordLine)
+        {
+            // This is a record line.
+        }
+
+The reader will automatically return a line of the appropriate type depending on how it was configured and what it was expecting.
+
+You can define your own record line model that uses properties to access indivisual fields.  These custom record line models will derive from the base `CsvFileRecordLine` implementation.
+```
+public class MyCustomRecordLine : CsvFileRecordLine
+{
+    public int Id
+    {
+        get => GetPropertyValue<int>();
+        set => SetPropertyValue(value);
+    }
+
+    public string? Name
+    {
+        get => GetPropertyValue<string?>();
+        set => SetPropertyValue(value);
+    }
+
+    public string? Description
+    {
+        get => GetPropertyValue<string?>();
+        set => SetPropertyValue(value);
+    }
+}
+```
+
+To use this custom record line, you would then specify this type when instantiating the reader, e.g. `CsvFileReader<MyCustomRecordLine>(...)`.
+
+You can also map properties on a custom line model to fields in the CSV file.  This can be done in either of two ways: either declaratively, decorating the properties with an attribute that describes the field associated with the property, or imperatively, using a separate mapper implementation.
+
+A declarative mapping might look something like this:
+```
+public class MyCustomRecordLine : CsvFileRecordLine
+{
+    [CsvFieldMapping("identifier")]
+    [TypeConverter(typeof(Int32Converter))]
+    public int Id
+    {
+        get => GetPropertyValue<int>();
+        set => SetPropertyValue(value);
+    }
+
+    [CsvFieldMapping("person_name")]
+    public string? Name
+    {
+        get => GetPropertyValue<string?>();
+        set => SetPropertyValue(value);
+    }
+
+    [CsvFieldMapping("person_description", IsOptional = true)]
+    public string? Description
+    {
+        get => GetPropertyValue<string?>();
+        set => SetPropertyValue(value);
+    }
+}
+```
+
+Whereas the same mapping defined imperatively might look like this:
+```
+public class MyCustomRecordLineMapper : CsvFileMapperBase<MyCustomRecordLine>
+{
+    public MyCustomRecordLineMapper()
+    {
+        this.Map()
+            .Property(x => x.Id)
+            .HasFieldName("identifier")
+            .ConvertUsing(typeof(Int32Converter));
+        this.Map()
+            .Property(x => x.Name)
+            .HasFieldName("person_name");
+        this.Map()
+            .Property(x => x.Description)
+            .HasFieldName("person_description")
+            .IsOptional();
+    }
+}
+```
+
+Note that due to technical limitations, certain mapping functionality is unavailable in the declarative form and can only be utilized using imperative mappers.
+
+Writing CSV files is very similar to reading them.
+
+            ICsvFileLine recordLine = new CsvFileRecordLine
+            {
+                { "identifier", "1" },
+                { "person_name", "John Doe" },
+                { "person_description", "Male" }
+            };
+            var lines = new List<ICsvFileLine> { recordLine };
+
+            using (var writer = new StreamWriter(@"file_name.csv"))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(writer))
+            {
+                foreach (var line in lines)
+                {
+                    csvWriter.WriteLine(line);
+                }
+            }
+
+Note that if your file should contain a header line, it is up to you to make sure that the first line you write to the file is a `CsvFileHeaderLine` followed by `CsvFileRecordLine` objects (or derivative implementations) for the record lines.
 
 ## DataStandardizer.ISO15924
 
