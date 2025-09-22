@@ -2,27 +2,32 @@
 
   <PropertyGroup>
     <TargetFrameworks>netstandard1.0;netstandard2.0;net8.0</TargetFrameworks>
-    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
-    <CheckNotRecommendedTargetFramework>false</CheckNotRecommendedTargetFramework>
     <NetStandardImplicitPackageVersion>2.0.3</NetStandardImplicitPackageVersion>
-    <Authors>matthew25187</Authors>
+    <CheckNotRecommendedTargetFramework>false</CheckNotRecommendedTargetFramework>
+        <CheckNotRecommendedTargetFramework>false</CheckNotRecommendedTargetFramework>
+<GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+    <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
+    <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+        <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+<Authors>matthew25187</Authors>
     <Product>Data Standardizer</Product>
     <Description>Data Standardizer provides implementations of various internationally recognised standards in data processing, covering topics ranging from languages to currencies and geographical entities. With strongly-typed enumerations for each standard (where applicable) or other targeted data types, you can represent these elements in your code such that errors with invalid values are minimised.
 
-Provides types supporting the measurement and comparison of date and time periods.</Description>
-    <Copyright>Copyright © 2024-2025, Matthew25187. All rights reserved.</Copyright>
+Includes:
+- Supports use of ISO 3166, "Codes for the representation of names of countries and their subdivisions" parts 1 &amp; 2.
+- Supports use of UN M49 or the "Standard Country or Area Codes for Statistical Use (Series M, No. 49)".</Description>
+    <Copyright>Copyright © 2025, Matthew25187. All rights reserved.</Copyright>
     <PackageProjectUrl>https://github.com/matthew25187/DataStandardizer</PackageProjectUrl>
     <PackageIcon>054-doc_web.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/matthew25187/DataStandardizer.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageTags>data;standard;tz;database;timezone</PackageTags>
+    <PackageTags>data;standard;ISO 3166;country;subdivision;code</PackageTags>
     <PackageReleaseNotes>Initial release.</PackageReleaseNotes>
-    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
-    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
-    <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
-    <Platforms>AnyCPU;x86;x64</Platforms>
+    <PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
@@ -48,15 +53,19 @@ Provides types supporting the measurement and comparison of date and time period
     </None>
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.0' Or '$(TargetFramework)' == 'netstandard2.0'">
-    <PackageReference Include="JetBrains.Annotations" Version="2024.3.0" />
-  </ItemGroup>
-
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.0' Or '$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="JetBrains.Annotations" Version="2024.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DataStandardizer.Core\DataStandardizer.Core.csproj" />
   </ItemGroup>
 
 </Project>

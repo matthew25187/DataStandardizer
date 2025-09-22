@@ -54,6 +54,13 @@ Supports use of strongly-typed monetary values.</Description>
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\DataStandardizer.ISO4217\DataStandardizer.ISO4217.csproj" />
   </ItemGroup>
 

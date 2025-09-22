@@ -50,6 +50,14 @@ parameters:
     - None
     - Build
     - Publication
+  - name: requirePackageDataStandardizerGeography
+    displayName: 'Force DataStandardizer.Geography package'
+    type: string
+    default: None
+    values:
+    - None
+    - Build
+    - Publication
   - name: requirePackageDataStandardizerIso15924
     displayName: 'Force DataStandardizer.ISO15924 package'
     type: string
@@ -76,6 +84,22 @@ parameters:
     - Publication
   - name: requirePackageDataStandardizerIso639
     displayName: 'Force DataStandardizer.ISO639 package'
+    type: string
+    default: None
+    values:
+    - None
+    - Build
+    - Publication
+  - name: requirePackageDataStandardizerLanguage
+    displayName: 'Force DataStandardizer.Language package'
+    type: string
+    default: None
+    values:
+    - None
+    - Build
+    - Publication
+  - name: requirePackageDataStandardizerLanguageTag
+    displayName: 'Force DataStandardizer.LanguageTag package'
     type: string
     default: None
     values:
@@ -146,10 +170,13 @@ variables:
       requirePackageDataStandardizerBcp47: ${{ parameters.requirePackageDataStandardizerBcp47 }}
       requirePackageDataStandardizerChronology: ${{ parameters.requirePackageDataStandardizerChronology }}
       requirePackageDataStandardizerFile: ${{ parameters.requirePackageDataStandardizerFile }}
+      requirePackageDataStandardizerGeography: ${{ parameters.requirePackageDataStandardizerGeography }}
       requirePackageDataStandardizerIso15924: ${{ parameters.requirePackageDataStandardizerIso15924 }}
       requirePackageDataStandardizerIso3166: ${{ parameters.requirePackageDataStandardizerIso3166 }}
       requirePackageDataStandardizerIso4217: ${{ parameters.requirePackageDataStandardizerIso4217 }}
       requirePackageDataStandardizerIso639: ${{ parameters.requirePackageDataStandardizerIso639 }}
+      requirePackageDataStandardizerLanguage: ${{ parameters.requirePackageDataStandardizerLanguage }}
+      requirePackageDataStandardizerLanguageTag: ${{ parameters.requirePackageDataStandardizerLanguageTag }}
       requirePackageDataStandardizerMoney: ${{ parameters.requirePackageDataStandardizerMoney }}
       requirePackageDataStandardizerUnM49: ${{ parameters.requirePackageDataStandardizerUnM49 }}
 
