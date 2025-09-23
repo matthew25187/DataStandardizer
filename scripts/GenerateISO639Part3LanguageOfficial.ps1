@@ -454,7 +454,7 @@ try {
     Import-Module (Split-Path $modulePath -Parent)
 
     if (-not (Test-Path Variable:\SourceCodeNamespace)) {
-        Set-Variable -Name SourceCodeNamespace -Value 'DataStandardizer.ISO639' -Option Constant
+        Set-Variable -Name SourceCodeNamespace -Value 'DataStandardizer.Language' -Option Constant
     }
 
     # Load source files.

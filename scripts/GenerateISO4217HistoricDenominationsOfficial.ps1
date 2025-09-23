@@ -115,7 +115,7 @@ function Out-SourceCode {
     Write-Debug 'GENERATING SOURCE CODE FOR OUTPUT'
 
     # Declare namespace.
-    $namespace = [System.CodeDom.CodeNamespace]::new('DataStandardizer.ISO4217')
+    $namespace = [System.CodeDom.CodeNamespace]::new('DataStandardizer.Money')
     [void]$compileUnit.Namespaces.Add($namespace)
 
     # Declare type.
@@ -159,7 +159,7 @@ function Out-SourceCode {
         $enumField.InitExpression = [System.CodeDom.CodePrimitiveExpression]::new($currencyNumericCode ?? -1)
 
         $codeAttributeArgument = [System.CodeDom.CodeAttributeArgument]::new([System.CodeDom.CodePrimitiveExpression]::new($currencyName))
-        $codeAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.ISO4217.Iso4217CurrencyCodeAttribute', @($codeAttributeArgument))
+        $codeAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.Money.Iso4217CurrencyCodeAttribute', @($codeAttributeArgument))
         [void]$enumField.CustomAttributes.Add($codeAttribute)
     
         $enumFieldOpenSummaryComment = [System.CodeDom.CodeCommentStatement]::new('<summary>', $true)

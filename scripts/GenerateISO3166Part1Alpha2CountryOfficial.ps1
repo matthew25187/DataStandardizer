@@ -60,7 +60,7 @@ function Out-SourceCode {
         $compileUnit = [System.CodeDom.CodeCompileUnit]::new()
 
         # Declare namespace.
-        $namespace = [System.CodeDom.CodeNamespace]::new('DataStandardizer.ISO3166')
+        $namespace = [System.CodeDom.CodeNamespace]::new('DataStandardizer.Geography')
         [void]$compileUnit.Namespaces.Add($namespace)
 
         # Declare type.
@@ -104,7 +104,7 @@ function Out-SourceCode {
             }
             $codeAttributeArguments += [System.CodeDom.CodeAttributeArgument]::new('IsIndependent', [System.CodeDom.CodePrimitiveExpression]::new($isIndependent))
         }
-        $codeAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.ISO3166.Iso3166CountryCodeAttribute', $codeAttributeArguments)
+        $codeAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.Geography.Iso3166CountryCodeAttribute', $codeAttributeArguments)
         [void]$enumField.CustomAttributes.Add($codeAttribute)
 
         # Add name attributes.
@@ -121,7 +121,7 @@ function Out-SourceCode {
                 $nameAttributeArguments += [System.CodeDom.CodeAttributeArgument]::new([System.CodeDom.CodePrimitiveExpression]::new($countryName.full_name))
             }
 
-            $nameAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.ISO3166.Iso3166CountryNameAttribute', $nameAttributeArguments)
+            $nameAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.Geography.Iso3166CountryNameAttribute', $nameAttributeArguments)
             [void]$enumField.CustomAttributes.Add($nameAttribute)
         }
 
@@ -134,7 +134,7 @@ function Out-SourceCode {
                 [System.CodeDom.CodeAttributeArgument]::new([System.CodeDom.CodePrimitiveExpression]::new($territory.language_alpha_3_code)),
                 [System.CodeDom.CodeAttributeArgument]::new([System.CodeDom.CodePrimitiveExpression]::new($territory.territory_id -as [ushort])),
                 [System.CodeDom.CodeAttributeArgument]::new([System.CodeDom.CodePrimitiveExpression]::new($territory.territory_name.Trim())))
-            $territoryAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.ISO3166.Iso3166CountryTerritoryAttribute', $territoryAttributeArguments)
+            $territoryAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.Geography.Iso3166CountryTerritoryAttribute', $territoryAttributeArguments)
             [void]$enumField.CustomAttributes.Add($territoryAttribute)
         }
         
@@ -152,7 +152,7 @@ function Out-SourceCode {
                 }
                 $languageAttributeArguments += [System.CodeDom.CodeAttributeArgument]::new('IsAdministrative', [System.CodeDom.CodePrimitiveExpression]::new($isAdministrative))
             }
-            $languageAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.ISO3166.Iso3166LanguageAttribute', $languageAttributeArguments)
+            $languageAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.Geography.Iso3166LanguageAttribute', $languageAttributeArguments)
             [void]$enumField.CustomAttributes.Add($languageAttribute)
         }
         
