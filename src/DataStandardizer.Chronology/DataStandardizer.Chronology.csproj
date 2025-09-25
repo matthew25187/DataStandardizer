@@ -52,4 +52,11 @@ Provides types supporting the measurement and comparison of date and time period
     <PackageReference Include="JetBrains.Annotations" Version="2024.3.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
 </Project>

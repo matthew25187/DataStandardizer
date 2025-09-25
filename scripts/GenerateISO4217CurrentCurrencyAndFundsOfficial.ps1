@@ -131,7 +131,7 @@ function Out-SourceCode {
 
         # Declare namespace.
         $compileUnit = [System.CodeDom.CodeCompileUnit]::new()
-        $namespace = [System.CodeDom.CodeNamespace]::new('DataStandardizer.ISO4217')
+        $namespace = [System.CodeDom.CodeNamespace]::new('DataStandardizer.Money')
         [void]$compileUnit.Namespaces.Add($namespace)
 
         # Declare type.
@@ -187,7 +187,7 @@ function Out-SourceCode {
         if ($_.IsFundsCode) {
             $codeAttributeArguments += [System.CodeDom.CodeAttributeArgument]::new('IsFundsCode', [System.CodeDom.CodePrimitiveExpression]::new($_.IsFundsCode))
         }
-        $codeAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.ISO4217.Iso4217CurrencyCodeAttribute', $codeAttributeArguments)
+        $codeAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.Money.Iso4217CurrencyCodeAttribute', $codeAttributeArguments)
         [void]$enumField.CustomAttributes.Add($codeAttribute)
 
         $enumFieldOpenSummaryComment = [System.CodeDom.CodeCommentStatement]::new('<summary>', $true)

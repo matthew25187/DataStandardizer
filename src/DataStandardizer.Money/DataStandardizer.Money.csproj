@@ -7,7 +7,11 @@
     <Product>Data Standardizer</Product>
     <Description>Data Standardizer provides implementations of various internationally recognised standards in data processing, covering topics ranging from languages to currencies and geographical entities. With strongly-typed enumerations for each standard (where applicable) or other targeted data types, you can represent these elements in your code such that errors with invalid values are minimised.
 
-Supports use of strongly-typed monetary values.</Description>
+Includes:
+- Supports use of ISO 4217, "Codes for the representation of currencies and funds"
+  - Table A.1 – Current currency &amp; funds code list
+  - Table A.3 – List of codes for historic denominations of currencies &amp; funds
+- Money data type, combining an amount with an ISO 4217 currency code to manage a monetary value.</Description>
     <Copyright>Copyright © 2024-2025, Matthew25187. All rights reserved.</Copyright>
     <PackageProjectUrl>https://github.com/matthew25187/DataStandardizer</PackageProjectUrl>
     <PackageIcon>054-doc_web.png</PackageIcon>
@@ -49,12 +53,23 @@ Supports use of strongly-typed monetary values.</Description>
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.0'">
+    <PackageReference Include="System.ValueTuple" Version="4.5.0" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.0' Or '$(TargetFramework)' == 'netstandard2.0'">
     <PackageReference Include="JetBrains.Annotations" Version="2024.3.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DataStandardizer.ISO4217\DataStandardizer.ISO4217.csproj" />
+    <ProjectReference Include="..\DataStandardizer.Core\DataStandardizer.Core.csproj" />
   </ItemGroup>
 
 </Project>

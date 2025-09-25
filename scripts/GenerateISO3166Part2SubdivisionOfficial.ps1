@@ -158,7 +158,7 @@ function Out-SourceCode {
             $compileUnits = @($preprocessorDirectivesCompileUnit, $compileUnit)
         }
 
-        $namespace = [System.CodeDom.CodeNamespace]::new('DataStandardizer.ISO3166')
+        $namespace = [System.CodeDom.CodeNamespace]::new('DataStandardizer.Geography')
         [void]$compileUnit.Namespaces.Add($namespace)
         if ($IncludeMainBody) {
             [void]$namespace.Imports.Add([System.CodeDom.CodeNamespaceImport]::new('System.Linq'))
@@ -170,7 +170,7 @@ function Out-SourceCode {
         $structType = [System.CodeDom.CodeTypeDeclaration]::new($TypeName)
         if ($IncludeMainBody) {
             [void]$structType.BaseTypes.Add([System.CodeDom.CodeTypeReference]::new([System.IComparable]))
-            [void]$structType.BaseTypes.Add([System.CodeDom.CodeTypeReference]::new('System.IEquatable', [System.CodeDom.CodeTypeReference[]]@([System.CodeDom.CodeTypeReference]::new("DataStandardizer.ISO3166.$TypeName"))))
+            [void]$structType.BaseTypes.Add([System.CodeDom.CodeTypeReference]::new('System.IEquatable', [System.CodeDom.CodeTypeReference[]]@([System.CodeDom.CodeTypeReference]::new("DataStandardizer.Geography.$TypeName"))))
         }
         $structType.IsStruct = $true
         $structType.IsPartial = $true
@@ -218,35 +218,35 @@ function Out-SourceCode {
             Write-Progress -Activity $activity -CurrentOperation 'Declaring operators' -PercentComplete -1
     
             $stringToStructConversionOperatorSnippet = "#if NETCOREAPP3_0_OR_GREATER
-            public static explicit operator DataStandardizer.ISO3166.$TypeName(string value)
+            public static explicit operator DataStandardizer.Geography.$TypeName(string value)
     #else
-            public static explicit operator DataStandardizer.ISO3166.$TypeName([JetBrains.Annotations.NotNullAttribute] string value)
+            public static explicit operator DataStandardizer.Geography.$TypeName([JetBrains.Annotations.NotNullAttribute] string value)
     #endif
             {
-                return new DataStandardizer.ISO3166.$TypeName(value);
+                return new DataStandardizer.Geography.$TypeName(value);
             }"
             $stringToStructConversionOperatorSnippetMember = [System.CodeDom.CodeSnippetTypeMember]::new($stringToStructConversionOperatorSnippet)
             [void]$stringToStructConversionOperatorSnippetMember.StartDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::Start, 'Operators'))
             [void]$structType.Members.Add($stringToStructConversionOperatorSnippetMember)
     
             $structToStringConversionOperatorSnippet = "#if NETCOREAPP3_0_OR_GREATER
-            public static implicit operator string?(DataStandardizer.ISO3166.$TypeName value)
+            public static implicit operator string?(DataStandardizer.Geography.$TypeName value)
     #else
             [JetBrains.Annotations.CanBeNullAttribute]
-            public static implicit operator string(DataStandardizer.ISO3166.$TypeName value)
+            public static implicit operator string(DataStandardizer.Geography.$TypeName value)
     #endif
             {
                 return value._value;
             }"
             [void]$structType.Members.Add([System.CodeDom.CodeSnippetTypeMember]::new($structToStringConversionOperatorSnippet))
     
-            $equalityOperatorSnippet = "        public static bool operator ==(DataStandardizer.ISO3166.$TypeName left, DataStandardizer.ISO3166.$TypeName right)
+            $equalityOperatorSnippet = "        public static bool operator ==(DataStandardizer.Geography.$TypeName left, DataStandardizer.Geography.$TypeName right)
             {
                 return left.Equals(right);
             }"
             [void]$structType.Members.Add([System.CodeDom.CodeSnippetTypeMember]::new($equalityOperatorSnippet))
     
-            $inequalityOperatorSnippet = "        public static bool operator !=(DataStandardizer.ISO3166.$TypeName left, DataStandardizer.ISO3166.$TypeName right)
+            $inequalityOperatorSnippet = "        public static bool operator !=(DataStandardizer.Geography.$TypeName left, DataStandardizer.Geography.$TypeName right)
             {
                 return !left.Equals(right);
             }"
@@ -275,7 +275,7 @@ function Out-SourceCode {
                 if (-not [string]::IsNullOrWhiteSpace($subdivisionCategory.category_name_plural)) {
                     $subdivisionCategoryAttributeArguments += [System.CodeDom.CodeAttributeArgument]::new([System.CodeDom.CodePrimitiveExpression]::new($subdivisionCategory.category_name_plural.Trim()))
                 }
-                $subdivisionCategoryAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.ISO3166.Iso3166SubdivisionCategoryNameAttribute', $subdivisionCategoryAttributeArguments)
+                $subdivisionCategoryAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.Geography.Iso3166SubdivisionCategoryNameAttribute', $subdivisionCategoryAttributeArguments)
                 [void]$subdivisionCodesNestedClassType.CustomAttributes.Add($subdivisionCategoryAttribute)
             }
 
@@ -293,7 +293,7 @@ function Out-SourceCode {
                 }
                 $languageAttributeArguments += [System.CodeDom.CodeAttributeArgument]::new('IsAdministrative', [System.CodeDom.CodePrimitiveExpression]::new($isAdministrative))
 
-                $languageAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.ISO3166.Iso3166LanguageAttribute', $languageAttributeArguments)
+                $languageAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.Geography.Iso3166LanguageAttribute', $languageAttributeArguments)
                 [void]$subdivisionCodesNestedClassType.CustomAttributes.Add($languageAttribute)
             }
 
@@ -312,9 +312,9 @@ function Out-SourceCode {
 
         # Declare field.
         $enumFieldName = $_.subdivision_code -split '-' | Select-Object -Last 1 | ForEach-Object { "_$_" }
-        $enumField = [System.CodeDom.CodeMemberField]::new("readonly DataStandardizer.ISO3166.$TypeName", $enumFieldName)
+        $enumField = [System.CodeDom.CodeMemberField]::new("readonly DataStandardizer.Geography.$TypeName", $enumFieldName)
         $enumField.Attributes = [System.CodeDom.MemberAttributes]::Public -bor [System.CodeDom.MemberAttributes]::Static
-        $enumField.InitExpression = [System.CodeDom.CodeObjectCreateExpression]::new("DataStandardizer.ISO3166.$TypeName", @([System.CodeDom.CodePrimitiveExpression]::new($_.subdivision_code)))
+        $enumField.InitExpression = [System.CodeDom.CodeObjectCreateExpression]::new("DataStandardizer.Geography.$TypeName", @([System.CodeDom.CodePrimitiveExpression]::new($_.subdivision_code)))
         [void]$enumField.UserData.Add($subdivisionCategoryIdentifierKey, $_.subdivision_category_id -as [ushort])
 
         # Add code attribute.
@@ -324,7 +324,7 @@ function Out-SourceCode {
         if (-not [string]::IsNullOrWhiteSpace($_.subdivision_parent)) {
             $codeAttributeArguments += [System.CodeDom.CodeAttributeArgument]::new([System.CodeDom.CodePrimitiveExpression]::new($_.subdivision_parent))
         }
-        $codeAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.ISO3166.Iso3166SubdivisionCodeAttribute', $codeAttributeArguments)
+        $codeAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.Geography.Iso3166SubdivisionCodeAttribute', $codeAttributeArguments)
         [void]$enumField.CustomAttributes.Add($codeAttribute)
 
         # Add name attributes.
@@ -343,7 +343,7 @@ function Out-SourceCode {
             if (-not [string]::IsNullOrWhiteSpace($subdivisionName.romanization_system)) {
                 $subdivisionNameAttributeArguments += [System.CodeDom.CodeAttributeArgument]::new('RomanizationSystem', [System.CodeDom.CodePrimitiveExpression]::new($subdivisionName.romanization_system))
             }
-            $subdivisionNameAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.ISO3166.Iso3166SubdivisionNameAttribute', $subdivisionNameAttributeArguments)
+            $subdivisionNameAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.Geography.Iso3166SubdivisionNameAttribute', $subdivisionNameAttributeArguments)
             [void]$enumField.CustomAttributes.Add($subdivisionNameAttribute)
         }
         
@@ -390,15 +390,15 @@ function Out-SourceCode {
             Write-Progress -Activity $activity -CurrentOperation 'Declaring public methods' -PercentComplete -1
 
             [System.CodeDom.CodeTypeMember[]]$publicMethods = @(
-                    (Get-EqualsMethodDefinition -TypeNamespace 'DataStandardizer.ISO3166' -TypeName $TypeName),
+                    (Get-EqualsMethodDefinition -TypeNamespace 'DataStandardizer.Geography' -TypeName $TypeName),
                     (Get-GetHashCodeMethodDefinition),
                 [System.CodeDom.CodeSnippetTypeMember]::new('#if NETCOREAPP3_0_OR_GREATER'),
                     (Get-CompareToMethodDefinition -UseNullableReferenceTypes),
-                    (Get-InheritedEqualsMethodDefinition -TypeNamespace 'DataStandardizer.ISO3166' -TypeName $TypeName -UseNullableReferenceTypes),
+                    (Get-InheritedEqualsMethodDefinition -TypeNamespace 'DataStandardizer.Geography' -TypeName $TypeName -UseNullableReferenceTypes),
                     (Get-SpecialToStringMethodDefinition -UseNullableReferenceTypes),
                 [System.CodeDom.CodeSnippetTypeMember]::new('#else'),
                     (Get-CompareToMethodDefinition),
-                    (Get-InheritedEqualsMethodDefinition -TypeNamespace 'DataStandardizer.ISO3166' -TypeName $TypeName),
+                    (Get-InheritedEqualsMethodDefinition -TypeNamespace 'DataStandardizer.Geography' -TypeName $TypeName),
                     (Get-SpecialToStringMethodDefinition),
                 [System.CodeDom.CodeSnippetTypeMember]::new('#endif')
                 [System.CodeDom.CodeSnippetTypeMember]::new('#if NETCOREAPP3_0_OR_GREATER'),
@@ -448,7 +448,7 @@ function Out-SourceCode {
             Write-Progress -Activity $activity -CurrentOperation 'Declaring private methods' -PercentComplete -1
     
             [System.CodeDom.CodeTypeMember[]]$privateMethods = @(
-                (Get-MemberFieldPredicateMethodDefinition -TypeNamespace 'DataStandardizer.ISO3166' -TypeName $TypeName -GenerateLanguage $GenerateLanguage),
+                (Get-MemberFieldPredicateMethodDefinition -TypeNamespace 'DataStandardizer.Geography' -TypeName $TypeName -GenerateLanguage $GenerateLanguage),
                 (Get-MemberFieldDeclaredFieldsPredicateMethodDefinition)
             )
             $privateMethods | Select-Object -First 1 | ForEach-Object { [void]$_.StartDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::Start, 'Private Methods')) }

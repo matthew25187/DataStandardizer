@@ -3,7 +3,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
-using DataStandardizer.ISO4217;
 
 namespace DataStandardizer.Money
 {
