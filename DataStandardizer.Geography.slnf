@@ -1,0 +1,10 @@
+{
+  "solution": {
+    "path": "DataStandardizer.sln",
+    "projects": [
+      "src\\DataStandardizer.Core\\DataStandardizer.Core.csproj",
+      "src\\DataStandardizer.Geography\\DataStandardizer.Geography.csproj",
+      "tests\\DataStandardizer.Geography.Tests\\DataStandardizer.Geography.Tests.csproj"
+    ]
+  }
+}
