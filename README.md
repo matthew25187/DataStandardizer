@@ -329,3 +329,51 @@ Note that if your file should contain a header line, it is up to you to make sur
 | `UnM49AreaByAlpha3CountryCode` | An enum containing the numeric M49 codes from standard UN M49.  Because of technical requirements on the naming of members, each code is keyed on its corresponding ISO 3166-1 alpha-3 code. |
 
 N.B. Because of the way the source data is arranged, the above enums only directly include members representing M.49 codes that have a corresponding alpha-2 or alpha-3 code from ISO 3166-1.  There are additional M.49 codes representing supra-national regions or other areas that are included as metadata on these enum members, and can be retrieved using provided extension methods.
+
+# 📄 CSV File Support
+
+The `DataStandardizer.File` package includes built-in support for working with CSV (Comma-Separated Values) files — a common format for structured data exchange. This functionality is designed to be lightweight, flexible, and compatible with legacy .NET applications via support for .NET Standard 1.x and 2.0.
+
+## ✅ What It Offers
+
+- Read and write CSV files with customizable delimiters
+- Normalize inconsistent CSV structures for downstream processing
+- Handle headers, quoted fields, and edge cases gracefully
+- Designed for extensibility and integration into broader data workflows
+
+## 💡 Example: Reading and Normalizing a CSV File
+
+        var inputPath = "data.csv";
+        var outputPath = "normalized.csv";
+
+        var csvInputOptions = new CsvFileOptions
+        {
+            TerminatorLineBreak = "\n"  // source file has non-standard line breaks
+        };
+        var csvOutputOptions = csvInputOptions with
+        {
+            TerminatorLineBreak = "\r\n", // write lines to the output file with standard line breaks
+            QuoteHandling = CsvFieldQuoteHandling.Required  // quote field values only when needed
+        };
+
+        using (var input = File.OpenRead(inputPath))
+        using (var csvReader = new CsvFileReader<CsvFileRecordLine>(input, csvInputOptions))
+        using (var output = File.Create(outputPath))
+        using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(output, csvOutputOptions))
+        {
+            var line = csvReader.ReadLine();
+            while (line is not null)
+            {
+                csvWriter.WriteLine(line);
+
+                line = csvReader.ReadLine();
+            }
+        }
+
+## 📦 Where to Find It
+
+CSV support is provided by the `DataStandardizer.File` NuGet package. You can install it via:
+
+    dotnet add package DataStandardizer.File
+
+For more advanced usage and configuration options, see the project documentation (coming soon).
