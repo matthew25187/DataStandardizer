@@ -62,7 +62,7 @@ foreach (var line in lines)
 
 ## Load CSV lines using custom record model
 
-You can define your own record line model that uses properties to access indivisual fields. These custom record line models will derive from the base `CsvFileRecordLine` implementation.
+You can define your own record line model that uses properties to access individual fields. These custom record line models will derive from the base `CsvFileRecordLine` implementation.
 ```
 public class MyRecordLine : CsvFileRecordLine
 {
@@ -95,7 +95,10 @@ using (var csvReader = new CsvFileReader<MyRecordLine>(streamReader))
     while (line is not null)
     {
         if (line is not MyRecordLine myLine)
+        {
+            line = csvReader.ReadLine();
             continue;
+        }
 
         if (myLine.Id > 0)
         {
