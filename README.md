@@ -87,6 +87,8 @@ The included tests are based on the XUnit test framework.  To run the tests, you
 
 Though each package contains many types, typically there will be only a few that you will end up using directly in your application.  Listed here are the main types you are most likely to include in your source code.
 
+Please refer to the [project documentation](https://matthew25187.github.io/DataStandardizer/) for more information.
+
 ## DataStandardizer.BCP47
 
 | Type | Description |
