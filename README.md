@@ -209,4 +209,4 @@ CSV support is provided by the `DataStandardizer.File` NuGet package. You can in
 
     dotnet add package DataStandardizer.File
 
-For more advanced usage and configuration options, see the project documentation (coming soon).
+For more advanced usage and configuration options, see the [project documentation](https://matthew25187.github.io/DataStandardizer/).
