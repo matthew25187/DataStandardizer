@@ -4,6 +4,7 @@
     <TargetFrameworks>netstandard1.0;netstandard2.0;net8.0</TargetFrameworks>
     <NetStandardImplicitPackageVersion>2.0.3</NetStandardImplicitPackageVersion>
     <CheckNotRecommendedTargetFramework>false</CheckNotRecommendedTargetFramework>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
 <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
     <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
