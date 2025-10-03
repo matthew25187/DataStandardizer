@@ -16,7 +16,7 @@ If you derive a commercial benefit from use of *Data Standardizer* or feel it ot
 | **DataStandardizer.BCP47** | Supports **IETF BCP 47** language tags. |
 | **DataStandardizer.Chronology** | Provides support for the TZ Database. |
 | **DataStandardizer.Core** | Common types used to implement standards in the other packages.  You should not need to link to this package directly. |
-| **DataStandardizer.File** | Provides implementations of standards-based file formats. |
+| **DataStandardizer.File.CSV** | Provides implementations of standards-based file formats. |
 | **DataStandardizer.ISO15924** | Supports **ISO 15924, *Codes for the representation of names of scripts***. |
 | **DataStandardizer.ISO3166** | Supports **ISO 3166, *Codes for the representation of names of countries and their subdivisions*** parts 1 & 2. |
 | **DataStandardizer.ISO4217** | Supports **ISO 4217, *Codes for the representation of currencies and funds***. |
@@ -106,7 +106,7 @@ Please refer to the [project documentation](https://matthew25187.github.io/DataS
 | --- | --- |
 | `TzDataTimezone` | An enum containing the timezones defined by the TZ Database. |
 
-## DataStandardizer.File
+## DataStandardizer.File.CSV
 
 | Type | Description |
 | --- | --- |
@@ -165,7 +165,7 @@ N.B. Because of the way the source data is arranged, the above enums only direct
 
 # 📄 CSV File Support
 
-The `DataStandardizer.File` package includes built-in support for working with CSV (Comma-Separated Values) files — a common format for structured data exchange. This functionality is designed to be lightweight, flexible, and compatible with legacy .NET applications via support for .NET Standard 1.x and 2.0.
+The `DataStandardizer.File.CSV` package includes built-in support for working with CSV (Comma-Separated Values) files — a common format for structured data exchange. This functionality is designed to be lightweight, flexible, and compatible with legacy .NET applications via support for .NET Standard 1.x and 2.0.
 
 ## ✅ What It Offers
 
@@ -205,8 +205,8 @@ The `DataStandardizer.File` package includes built-in support for working with C
 
 ## 📦 Where to Find It
 
-CSV support is provided by the `DataStandardizer.File` NuGet package. You can install it via:
+CSV support is provided by the `DataStandardizer.File.CSV` NuGet package. You can install it via:
 
-    dotnet add package DataStandardizer.File
+    dotnet add package DataStandardizer.File.CSV
 
 For more advanced usage and configuration options, see the [project documentation](https://matthew25187.github.io/DataStandardizer/).

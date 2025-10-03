@@ -9,7 +9,7 @@ using DataStandardizer.Core;
 using JetBrains.Annotations; 
 #endif
 
-namespace DataStandardizer.File.Csv
+namespace DataStandardizer.File.CSV
 {
     public abstract class CsvFileIoBase<TRecordLine> : CsvFileCacheRepositoryBase where TRecordLine : CsvFileRecordLine
     {

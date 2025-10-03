@@ -1,8 +1,7 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using System.Reflection;
 
-namespace DataStandardizer.File
+namespace DataStandardizer.Core
 {
     public static class TypeExtensions
     {
