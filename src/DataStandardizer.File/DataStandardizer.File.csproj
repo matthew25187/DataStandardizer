@@ -4,6 +4,7 @@
     <TargetFrameworks>netstandard1.3;netstandard2.0;net8.0</TargetFrameworks>
     <CheckNotRecommendedTargetFramework>false</CheckNotRecommendedTargetFramework>
     <NetStandardImplicitPackageVersion>2.0.3</NetStandardImplicitPackageVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <Authors>matthew25187</Authors>
     <Product>Data Standardizer</Product>
     <Description>Data Standardizer provides implementations of various internationally recognised standards in data processing, covering topics ranging from languages to currencies and geographical entities. With strongly-typed enumerations for each standard (where applicable) or other targeted data types, you can represent these elements in your code such that errors with invalid values are minimised.
