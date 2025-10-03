@@ -23,6 +23,8 @@ Provides types supporting the measurement and comparison of date and time period
     <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
     <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
     <Platforms>AnyCPU;x86;x64</Platforms>
+    <PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">

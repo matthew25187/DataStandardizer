@@ -10,7 +10,7 @@ using DataStandardizer.Core;
 using JetBrains.Annotations;
 #endif
 
-namespace DataStandardizer.File.Csv
+namespace DataStandardizer.File.CSV
 {
     /// <summary>
     /// Represents a reader that provides fast, non-cached, forward-only access to CSV data.
