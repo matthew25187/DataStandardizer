@@ -43,7 +43,7 @@ Supports use of ISO 3166, "Codes for the representation of names of countries an
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.0' Or '$(TargetFramework)' == 'netstandard2.0'">
-    <PackageReference Include="JetBrains.Annotations" Version="2024.3.0" />
+    <PackageReference Include="JetBrains.Annotations" Version="2025.2.2" />
   </ItemGroup>
 
   <ItemGroup>

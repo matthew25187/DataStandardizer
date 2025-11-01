@@ -43,7 +43,7 @@ Supports use of IETF BCP 47 language tags as defined by RFC 5646.</Description>
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.0' Or '$(TargetFramework)' == 'netstandard2.0'">
-    <PackageReference Include="JetBrains.Annotations" Version="2024.3.0" />
+    <PackageReference Include="JetBrains.Annotations" Version="2025.2.2" />
   </ItemGroup>
 
   <ItemGroup>
