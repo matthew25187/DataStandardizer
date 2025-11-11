@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard1.0;netstandard2.0;net8.0</TargetFrameworks>
+    <TargetFrameworks>netstandard1.0;netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <NetStandardImplicitPackageVersion>2.0.3</NetStandardImplicitPackageVersion>
     <CheckNotRecommendedTargetFramework>false</CheckNotRecommendedTargetFramework>
 <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
@@ -29,7 +29,7 @@ Includes:
     <Platforms>AnyCPU;x86;x64</Platforms>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'">
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
