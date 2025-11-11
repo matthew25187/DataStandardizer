@@ -562,6 +562,7 @@ stages:
         # Use .NET Core v2
         # Acquires a specific version of the .NET Core SDK from the internet or the local cache and adds it to the PATH. Use this task to change the version of .NET Core used in subsequent tasks. Additionally provides proxy support.
         - task: UseDotNet@2
+          displayName: 'Install .NET SDK 10.0.100'
           inputs:
             #packageType: 'sdk' # 'runtime' | 'sdk'. Package to install. Default: sdk.
             useGlobalJson: true # boolean. Optional. Use when packageType = sdk. Use global json. Default: false.
@@ -573,6 +574,11 @@ stages:
             #vsVersion: # string. Compatible Visual Studio version. 
             #installationPath: '$(Agent.ToolsDirectory)/dotnet' # string. Path To Install .Net Core. Default: $(Agent.ToolsDirectory)/dotnet.
             #performMultiLevelLookup: false # boolean. Perform Multi Level Lookup. Default: false.
+        - task: UseDotNet@2
+          displayName: 'Install .NET SDK 8.0.412'
+          inputs:
+            packageType: 'sdk'
+            version: '8.0.412'            
         - task: DotNetCoreCLI@2
           displayName: 'Restore solution package dependencies'
           inputs:
