@@ -559,11 +559,6 @@ stages:
           buildSolution: '${{packageName}}.slnf'
           isContinuousIntegrationBuild: true
         steps:
-        - task: UseDotNet@2
-          displayName: 'Install .NET Runtime 10.0.0'
-          inputs:
-            packageType: 'runtime'
-            version: '10.0.0'        
         # Use .NET Core v2
         # Acquires a specific version of the .NET Core SDK from the internet or the local cache and adds it to the PATH. Use this task to change the version of .NET Core used in subsequent tasks. Additionally provides proxy support.
         - task: UseDotNet@2
@@ -657,6 +652,11 @@ stages:
             pwsh: true # boolean. Use PowerShell Core. Default: false.
             #workingDirectory: # string. Working Directory. 
             #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.      
+        - task: UseDotNet@2
+          displayName: 'Install .NET Runtime 10.0.0'
+          inputs:
+            packageType: 'runtime'
+            version: '10.0.0'
         - task: VSBuild@1
           displayName: 'Build package solution'
           inputs:
