@@ -578,7 +578,11 @@ stages:
           displayName: 'Install .NET SDK 8.0.412'
           inputs:
             packageType: 'sdk'
-            version: '8.0.412'            
+            version: '8.0.412'
+        - script: |
+            echo "##vso[task.setvariable variable=DOTNET_ROOT]$(Agent.ToolsDirectory)/dotnet"
+            echo "##vso[task.setvariable variable=PATH]$(Agent.ToolsDirectory)/dotnet;$(PATH)"
+          displayName: 'Force MSBuild to use writable SDK'
         - task: DotNetCoreCLI@2
           displayName: 'Restore solution package dependencies'
           inputs:
