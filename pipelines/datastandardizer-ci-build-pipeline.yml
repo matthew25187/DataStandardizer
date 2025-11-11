@@ -573,9 +573,6 @@ stages:
             #vsVersion: # string. Compatible Visual Studio version. 
             #installationPath: '$(Agent.ToolsDirectory)/dotnet' # string. Path To Install .Net Core. Default: $(Agent.ToolsDirectory)/dotnet.
             #performMultiLevelLookup: false # boolean. Perform Multi Level Lookup. Default: false.
-        - script: |
-            dotnet workload restore --from-previous-sdk
-            dotnet workload repair
         - task: DotNetCoreCLI@2
           displayName: 'Restore solution package dependencies'
           inputs:
@@ -585,7 +582,7 @@ stages:
             projects: '**/*.csproj' # string. Optional. Use when command = build || command = restore || command = run || command = test || command = custom || publishWebProjects = false. Path to project(s) or solution(s). 
             #custom: # string. Required when command = custom. Custom command. 
             #arguments: # string. Optional. Use when command = build || command = publish || command = run || command = test || command = custom. Arguments. 
-            #restoreArguments: # string. Optional. Use when command = restore. Arguments. 
+            restoreArguments: '-p:DisableWorkloadAutoImportPropsLocator=true' # string. Optional. Use when command = restore. Arguments. 
             #publishTestResults: true # boolean. Optional. Use when command = test. Publish test results and code coverage. Default: true.
             #testRunTitle: # string. Optional. Use when command = test. Test run title. 
             #zipAfterPublish: true # boolean. Optional. Use when command = publish. Zip published projects. Default: true.
