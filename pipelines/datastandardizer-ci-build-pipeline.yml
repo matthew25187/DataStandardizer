@@ -762,38 +762,44 @@ stages:
         # continueOnError: string # Continue running even on failure?
         timeoutInMinutes: 480 # Time to wait for this job to complete before the server kills it.
         # cancelTimeoutInMinutes: string # Time to wait for the job to cancel before forcibly terminating it.
-        variables: # Job-specific variables.
+        variables:
           testAssemblies: |
-            tests/**/bin/**/$(BuildConfiguration)/**/PACKAGE_NAME.*Test.dll
-            tests/**/bin/**/$(BuildConfiguration)/**/PACKAGE_NAME.*Tests.dll
-            tests/**/bin/**/$(BuildConfiguration)/**/PACKAGE_NAME.*Test.*.dll
-            tests/**/bin/**/$(BuildConfiguration)/**/PACKAGE_NAME.*Tests.*.dll
+            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/PACKAGE_NAME.*Test.dll
+            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/PACKAGE_NAME.*Tests.dll
+            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/PACKAGE_NAME.*Test.*.dll
+            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/PACKAGE_NAME.*Tests.*.dll
             !**/*TestAdapter.dll
             !**/obj/**
-            !**/ref/**        
+            !**/ref/**
         strategy: # Execution strategy for this job.
           matrix:
             ${{ if eq(parameters.buildAnyCPU, 'true') }}:
               Debug_AnyCPU:
                 BuildConfiguration: debug
                 BuildPlatform: "Any CPU"
+                TestPlatformPath: '**'  # No platform subfolder for Any CPU
               Release_AnyCPU:
                 BuildConfiguration: release
                 BuildPlatform: "Any CPU"
+                TestPlatformPath: '**'  # No platform subfolder for Any CPU
             ${{ if eq(parameters.buildX86, 'true') }}:
               Debug_x86:
                 BuildConfiguration: debug
                 BuildPlatform: x86
+                TestPlatformPath: 'x86'
               Release_x86:
                 BuildConfiguration: release
                 BuildPlatform: x86
+                TestPlatformPath: 'x86'
             ${{ if eq(parameters.buildX64, 'true') }}:
               Debug_x64:
                 BuildConfiguration: debug
                 BuildPlatform: x64
+                TestPlatformPath: 'x64'
               Release_x64:
                 BuildConfiguration: release
                 BuildPlatform: x64
+                TestPlatformPath: 'x64'
         pool: 
           vmImage: windows-latest # Pool where this job will run.
         # container: string | container # Container resource name.
