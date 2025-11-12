@@ -572,7 +572,7 @@ stages:
             #requestTimeout: '300000' # string. Set timeout for package download request. Default: 300000.
           # Advanced
             #vsVersion: # string. Compatible Visual Studio version. 
-            #installationPath: '$(Agent.ToolsDirectory)/dotnet' # string. Path To Install .Net Core. Default: $(Agent.ToolsDirectory)/dotnet.
+            installationPath: '$(Agent.TempDirectory)\dotnet-10' # string. Path To Install .Net Core. Default: $(Agent.ToolsDirectory)/dotnet.
             #performMultiLevelLookup: false # boolean. Perform Multi Level Lookup. Default: false.
         - task: DotNetCoreCLI@2
           displayName: 'Restore solution package dependencies'
