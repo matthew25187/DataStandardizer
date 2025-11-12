@@ -537,10 +537,10 @@ stages:
             ${{ if eq(parameters.buildAnyCPU, 'true') }}:
               Debug_AnyCPU:
                 BuildConfiguration: debug
-                BuildPlatform: "Any CPU"
+                BuildPlatform: "AnyCPU"
               Release_AnyCPU:
                 BuildConfiguration: release
-                BuildPlatform: "Any CPU"
+                BuildPlatform: "AnyCPU"
             ${{ if eq(parameters.buildX86, 'true') }}:
               Debug_x86:
                 BuildConfiguration: debug
@@ -574,15 +574,6 @@ stages:
             #vsVersion: # string. Compatible Visual Studio version. 
             #installationPath: '$(Agent.ToolsDirectory)/dotnet' # string. Path To Install .Net Core. Default: $(Agent.ToolsDirectory)/dotnet.
             #performMultiLevelLookup: false # boolean. Perform Multi Level Lookup. Default: false.
-        - task: UseDotNet@2
-          displayName: 'Install .NET SDK 8.0.412'
-          inputs:
-            packageType: 'sdk'
-            version: '8.0.412'
-        - script: |
-            echo "##vso[task.setvariable variable=DOTNET_ROOT]$(Agent.ToolsDirectory)/dotnet"
-            echo "##vso[task.setvariable variable=PATH]$(Agent.ToolsDirectory)/dotnet;$(PATH)"
-          displayName: 'Force MSBuild to use writable SDK'
         - task: DotNetCoreCLI@2
           displayName: 'Restore solution package dependencies'
           inputs:
@@ -619,14 +610,6 @@ stages:
             #restoreDirectory: # string. Alias: packagesDirectory. Optional. Use when command = restore. Destination directory. 
             verbosityRestore: 'Detailed' # '-' | 'Quiet' | 'Minimal' | 'Normal' | 'Detailed' | 'Diagnostic'. Optional. Use when command = restore. Verbosity. Default: Normal.
           # Advanced
-            #publishPackageMetadata: true # boolean. Optional. Use when command = push && nuGetFeedType = internal. Publish pipeline metadata. Default: true.
-          # Pack options
-            #versioningScheme: 'off' # 'off' | 'byPrereleaseNumber' | 'byEnvVar' | 'byBuildNumber'. Required when command = pack. Automatic package versioning. Default: off.
-            #versionEnvVar: # string. Required when versioningScheme = byEnvVar && command = pack. Environment variable. 
-            #majorVersion: '1' # string. Alias: requestedMajorVersion. Required when versioningScheme = byPrereleaseNumber && command = pack. Major. Default: 1.
-            #minorVersion: '0' # string. Alias: requestedMinorVersion. Required when versioningScheme = byPrereleaseNumber && command = pack. Minor. Default: 0.
-            #patchVersion: '0' # string. Alias: requestedPatchVersion. Required when versioningScheme = byPrereleaseNumber && command = pack. Patch. Default: 0.
-          # Advanced
             #buildProperties: # string. Optional. Use when command = pack. Additional build properties. 
             #verbosityPack: 'Normal' # '-' | 'Quiet' | 'Minimal' | 'Normal' | 'Detailed' | 'Diagnostic'. Optional. Use when command = pack. Verbosity. Default: Normal.
           # Advanced
@@ -657,24 +640,58 @@ stages:
           inputs:
             packageType: 'runtime'
             version: '10.0.0'
-        - task: VSBuild@1
-          displayName: 'Build package solution'
+        # - task: VSBuild@1
+        #   displayName: 'Build package solution'
+        #   inputs:
+        #     solution: '$(buildSolution)' # string. Required. Solution. Default: **\*.sln.
+        #     #vsVersion: 'latest' # 'latest' | '17.0' | '16.0' | '15.0' | '14.0' | '12.0' | '11.0'. Visual Studio Version. Default: latest.
+        #     msbuildArgs: '/p:ProduceReferenceAssembly=true;ProduceReferenceAssemblyInOutDir=true;ContinuousIntegrationBuild=$(isContinuousIntegrationBuild);FileVersion=$(buildFileVersion);InformationalVersion=$(buildInformationalVersion);AssemblyVersion=$(buildAssemblyVersion)' # string. MSBuild Arguments. 
+        #     platform: $(BuildPlatform) # string. Platform. 
+        #     configuration: $(BuildConfiguration) # string. Configuration. 
+        #     #clean: false # boolean. Clean. Default: false.
+        #   # Advanced
+        #     #maximumCpuCount: false # boolean. Build in Parallel. Default: false.
+        #     #restoreNugetPackages: false # boolean. Restore NuGet Packages. Default: false.
+        #     #msbuildArchitecture: 'x86' # 'x86' | 'x64'. MSBuild Architecture. Default: x86.
+        #     #logProjectEvents: true # boolean. Record Project Details. Default: true.
+        #     #createLogFile: false # boolean. Create Log File. Default: false.
+        #     #logFileVerbosity: 'normal' # 'quiet' | 'minimal' | 'normal' | 'detailed' | 'diagnostic'. Optional. Use when createLogFile = true. Log File Verbosity. Default: normal.
+        #     #enableDefaultLogger: true # boolean. Enable Default Logger. Default: true.
+        #     #customVersion: # string. Custom Version.
+        # .NET Core v2
+        # Build, test, package, or publish a .NET application, or run a custom .NET CLI command.
+        - task: DotNetCoreCLI@2
           inputs:
-            solution: '$(buildSolution)' # string. Required. Solution. Default: **\*.sln.
-            #vsVersion: 'latest' # 'latest' | '17.0' | '16.0' | '15.0' | '14.0' | '12.0' | '11.0'. Visual Studio Version. Default: latest.
-            msbuildArgs: '/p:ProduceReferenceAssembly=true;ProduceReferenceAssemblyInOutDir=true;ContinuousIntegrationBuild=$(isContinuousIntegrationBuild);FileVersion=$(buildFileVersion);InformationalVersion=$(buildInformationalVersion);AssemblyVersion=$(buildAssemblyVersion)' # string. MSBuild Arguments. 
-            platform: $(BuildPlatform) # string. Platform. 
-            configuration: $(BuildConfiguration) # string. Configuration. 
-            #clean: false # boolean. Clean. Default: false.
+            #azureSubscription: # string. Alias: ConnectedServiceName. Azure Resource Manager connection. 
+            command: 'build' # 'build' | 'push' | 'pack' | 'publish' | 'restore' | 'run' | 'test' | 'custom'. Required. Command. Default: build.
+            #publishWebProjects: true # boolean. Optional. Use when command = publish. Publish web projects. Default: true.
+            projects: '$(buildSolution)' # string. Optional. Use when command = build || command = restore || command = run || command = test || command = custom || publishWebProjects = false. Path to project(s) or solution(s). 
+            #custom: # string. Required when command = custom. Custom command. 
+            arguments: '-c $(BuildConfiguration) -p:Platform=$(BuildPlatform);ProduceReferenceAssembly=true;ProduceReferenceAssemblyInOutDir=true;ContinuousIntegrationBuild=$(isContinuousIntegrationBuild);DisableWorkloadAutoImportPropsLocator=true;UseSharedCompilation=false;FileVersion=$(buildFileVersion);InformationalVersion=$(buildInformationalVersion);AssemblyVersion=$(buildAssemblyVersion)' # string. Optional. Use when command = build || command = publish || command = run || command = test || command = custom. Arguments. 
+            #restoreArguments: # string. Optional. Use when command = restore. Arguments. 
+            #publishTestResults: true # boolean. Optional. Use when command = test. Publish test results and code coverage. Default: true.
+            #testRunTitle: # string. Optional. Use when command = test. Test run title. 
+            #zipAfterPublish: true # boolean. Optional. Use when command = publish. Zip published projects. Default: true.
+            #modifyOutputPath: true # boolean. Optional. Use when command = publish. Add project's folder name to publish path. Default: true.
+            #packagesToPush: '$(Build.ArtifactStagingDirectory)/*.nupkg' # string. Alias: searchPatternPush. Required when command = push. Path to NuGet package(s) to publish. Default: $(Build.ArtifactStagingDirectory)/*.nupkg.
+            #nuGetFeedType: 'internal' # 'internal' | 'external'. Required when command = push. Target feed location. Default: internal.
+            #publishVstsFeed: # string. Alias: feedPublish. Required when command = push && nuGetFeedType = internal. Target feed. 
+            #publishFeedCredentials: # string. Alias: externalEndpoint. Required when command = push && nuGetFeedType = external. NuGet server. 
+            #packagesToPack: '**/*.csproj' # string. Alias: searchPatternPack. Required when command = pack. Path to csproj or nuspec file(s) to pack. Default: **/*.csproj.
+            #configuration: '$(BuildConfiguration)' # string. Alias: configurationToPack. Optional. Use when command = pack. Configuration to Package. Default: $(BuildConfiguration).
+            #packDirectory: '$(Build.ArtifactStagingDirectory)' # string. Alias: outputDir. Optional. Use when command = pack. Package Folder. Default: $(Build.ArtifactStagingDirectory).
+            #nobuild: false # boolean. Optional. Use when command = pack. Do not build. Default: false.
+            #includesymbols: false # boolean. Optional. Use when command = pack. Include Symbols. Default: false.
+            #includesource: false # boolean. Optional. Use when command = pack. Include Source. Default: false.
+            #requestTimeout: '300000' # string. Set timeout for package download request. Default: 300000.
+          # Feeds and authentication
+            #feedsToUse: 'select' # 'select' | 'config'. Alias: selectOrConfig. Required when command = restore. Feeds to use. Default: select.
+            #vstsFeed: # string. Alias: feedRestore. Optional. Use when selectOrConfig = select && command = restore. Use packages from this Azure Artifacts feed. Select from the dropdown or enter [project name/]feed name. 
+            #includeNuGetOrg: true # boolean. Optional. Use when selectOrConfig = select && command = restore. Use packages from NuGet.org. Default: true.
+            #nugetConfigPath: # string. Optional. Use when selectOrConfig = config && command = restore. Path to NuGet.config. 
+            #externalFeedCredentials: # string. Alias: externalEndpoints. Optional. Use when selectOrConfig = config && command = restore. Credentials for feeds outside this organization/collection. 
           # Advanced
-            #maximumCpuCount: false # boolean. Build in Parallel. Default: false.
-            #restoreNugetPackages: false # boolean. Restore NuGet Packages. Default: false.
-            #msbuildArchitecture: 'x86' # 'x86' | 'x64'. MSBuild Architecture. Default: x86.
-            #logProjectEvents: true # boolean. Record Project Details. Default: true.
-            #createLogFile: false # boolean. Create Log File. Default: false.
-            #logFileVerbosity: 'normal' # 'quiet' | 'minimal' | 'normal' | 'detailed' | 'diagnostic'. Optional. Use when createLogFile = true. Log File Verbosity. Default: normal.
-            #enableDefaultLogger: true # boolean. Enable Default Logger. Default: true.
-            #customVersion: # string. Custom Version.    
+            #workingDirectory: # string. Optional. Use when command != restore && command != push && command != pack. Working directory.            
         - task: PublishSymbols@2
           inputs:
             #SymbolsFolder: '$(Build.SourcesDirectory)' # string. Path to symbols folder. Default: $(Build.SourcesDirectory).
@@ -822,6 +839,11 @@ stages:
             #retryCount: '0' # string. Retry count to copy the file. Default: 0.
             #delayBetweenRetries: '1000' # string. Delay between two retries. Default: 1000.
             #ignoreMakeDirErrors: false # boolean. Ignore errors during creation of target folder. Default: false.
+        - task: UseDotNet@2
+          displayName: 'Install .NET Runtime 10.0.0'
+          inputs:
+            packageType: 'runtime'
+            version: '10.0.0'
         - task: VSTest@3
           displayName: 'Run automated tests'
           inputs:
