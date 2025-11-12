@@ -537,10 +537,10 @@ stages:
             ${{ if eq(parameters.buildAnyCPU, 'true') }}:
               Debug_AnyCPU:
                 BuildConfiguration: debug
-                BuildPlatform: "AnyCPU"
+                BuildPlatform: "Any CPU"
               Release_AnyCPU:
                 BuildConfiguration: release
-                BuildPlatform: "AnyCPU"
+                BuildPlatform: "Any CPU"
             ${{ if eq(parameters.buildX86, 'true') }}:
               Debug_x86:
                 BuildConfiguration: debug
@@ -667,7 +667,7 @@ stages:
             #publishWebProjects: true # boolean. Optional. Use when command = publish. Publish web projects. Default: true.
             projects: '$(buildSolution)' # string. Optional. Use when command = build || command = restore || command = run || command = test || command = custom || publishWebProjects = false. Path to project(s) or solution(s). 
             #custom: # string. Required when command = custom. Custom command. 
-            arguments: '-c $(BuildConfiguration) -p:Platform=$(BuildPlatform);ProduceReferenceAssembly=true;ProduceReferenceAssemblyInOutDir=true;ContinuousIntegrationBuild=$(isContinuousIntegrationBuild);DisableWorkloadAutoImportPropsLocator=true;UseSharedCompilation=false;FileVersion=$(buildFileVersion);InformationalVersion=$(buildInformationalVersion);AssemblyVersion=$(buildAssemblyVersion)' # string. Optional. Use when command = build || command = publish || command = run || command = test || command = custom. Arguments. 
+            arguments: '-c $(BuildConfiguration) -p:Platform="$(BuildPlatform)";ProduceReferenceAssembly=true;ProduceReferenceAssemblyInOutDir=true;ContinuousIntegrationBuild=$(isContinuousIntegrationBuild);DisableWorkloadAutoImportPropsLocator=true;UseSharedCompilation=false;FileVersion=$(buildFileVersion);InformationalVersion=$(buildInformationalVersion);AssemblyVersion=$(buildAssemblyVersion)' # string. Optional. Use when command = build || command = publish || command = run || command = test || command = custom. Arguments. 
             #restoreArguments: # string. Optional. Use when command = restore. Arguments. 
             #publishTestResults: true # boolean. Optional. Use when command = test. Publish test results and code coverage. Default: true.
             #testRunTitle: # string. Optional. Use when command = test. Test run title. 
