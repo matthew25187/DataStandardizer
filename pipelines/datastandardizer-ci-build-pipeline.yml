@@ -840,10 +840,18 @@ stages:
             #delayBetweenRetries: '1000' # string. Delay between two retries. Default: 1000.
             #ignoreMakeDirErrors: false # boolean. Ignore errors during creation of target folder. Default: false.
         - task: UseDotNet@2
-          displayName: 'Install .NET Runtime 10.0.0'
+          displayName: 'Install .NET SDK 10.0.100'
           inputs:
-            packageType: 'runtime'
-            version: '10.0.0'
+            #packageType: 'sdk' # 'runtime' | 'sdk'. Package to install. Default: sdk.
+            # useGlobalJson: true # boolean. Optional. Use when packageType = sdk. Use global json. Default: false.
+            #workingDirectory: # string. Optional. Use when useGlobalJson = true. Working Directory. 
+            version: '10.0.100' # string. Optional. Use when useGlobalJson = false || packageType = runtime. Version. 
+            #includePreviewVersions: false # boolean. Optional. Use when useGlobalJson = false  || packageType = runtime. Include Preview Versions. Default: false.
+            #requestTimeout: '300000' # string. Set timeout for package download request. Default: 300000.
+          # Advanced
+            #vsVersion: # string. Compatible Visual Studio version. 
+            #installationPath: '$(Agent.ToolsDirectory)/dotnet' # string. Path To Install .Net Core. Default: $(Agent.ToolsDirectory)/dotnet.
+            #performMultiLevelLookup: false # boolean. Perform Multi Level Lookup. Default: false.
         - task: VSTest@3
           displayName: 'Run automated tests'
           inputs:
