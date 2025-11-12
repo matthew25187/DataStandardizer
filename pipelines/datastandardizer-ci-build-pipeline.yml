@@ -640,6 +640,7 @@ stages:
           inputs:
             packageType: 'runtime'
             version: '10.0.0'
+            installationPath: '$(Agent.TempDirectory)\dotnet-10'
         # - task: VSBuild@1
         #   displayName: 'Build package solution'
         #   inputs:
