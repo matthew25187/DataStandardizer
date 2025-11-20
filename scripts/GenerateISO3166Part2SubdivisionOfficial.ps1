@@ -122,6 +122,9 @@ function Out-SourceCode {
         [string]    $IncludeFieldsForCountryCode,
 
         [Parameter()]
+        [psobject[]]        $CountryCodesSet,
+
+        [Parameter()]
         [psobject[]]    $SubdivisionNamesSet,
 
         [Parameter()]
@@ -280,7 +283,8 @@ function Out-SourceCode {
             }
 
             # Add language attributes.
-            $languagesCurrentSet = $LanguagesSet | Where-Object -Property alpha_2_code -EQ $IncludeFieldsForCountryCode
+            $languageCountryCode = $CountryCodesSet | Where-Object { $_.alpha_2_code -eq $IncludeFieldsForCountryCode -and $_.status -eq 'officially-assigned' }
+            $languagesCurrentSet = $LanguagesSet | Where-Object { $_.alpha_2_code -eq $languageCountryCode.alpha_2_code -and $_.alpha_3_code -eq $languageCountryCode.alpha_3_code }
             foreach ($language in $languagesCurrentSet) {
                 $languageAlpha2Code = (-not [string]::IsNullOrWhiteSpace($language.language_alpha_2_code))?$language.language_alpha_2_code:$null
                 $languageAttributeArguments = @(
@@ -390,53 +394,53 @@ function Out-SourceCode {
             Write-Progress -Activity $activity -CurrentOperation 'Declaring public methods' -PercentComplete -1
 
             [System.CodeDom.CodeTypeMember[]]$publicMethods = @(
-                    (Get-EqualsMethodDefinition -TypeNamespace 'DataStandardizer.Geography' -TypeName $TypeName),
-                    (Get-GetHashCodeMethodDefinition),
+                (Get-EqualsMethodDefinition -TypeNamespace 'DataStandardizer.Geography' -TypeName $TypeName),
+                (Get-GetHashCodeMethodDefinition),
                 [System.CodeDom.CodeSnippetTypeMember]::new('#if NETCOREAPP3_0_OR_GREATER'),
-                    (Get-CompareToMethodDefinition -UseNullableReferenceTypes),
-                    (Get-InheritedEqualsMethodDefinition -TypeNamespace 'DataStandardizer.Geography' -TypeName $TypeName -UseNullableReferenceTypes),
-                    (Get-SpecialToStringMethodDefinition -UseNullableReferenceTypes),
+                (Get-CompareToMethodDefinition -UseNullableReferenceTypes),
+                (Get-InheritedEqualsMethodDefinition -TypeNamespace 'DataStandardizer.Geography' -TypeName $TypeName -UseNullableReferenceTypes),
+                (Get-SpecialToStringMethodDefinition -UseNullableReferenceTypes),
                 [System.CodeDom.CodeSnippetTypeMember]::new('#else'),
-                    (Get-CompareToMethodDefinition),
-                    (Get-InheritedEqualsMethodDefinition -TypeNamespace 'DataStandardizer.Geography' -TypeName $TypeName),
-                    (Get-SpecialToStringMethodDefinition),
+                (Get-CompareToMethodDefinition),
+                (Get-InheritedEqualsMethodDefinition -TypeNamespace 'DataStandardizer.Geography' -TypeName $TypeName),
+                (Get-SpecialToStringMethodDefinition),
                 [System.CodeDom.CodeSnippetTypeMember]::new('#endif')
                 [System.CodeDom.CodeSnippetTypeMember]::new('#if NETCOREAPP3_0_OR_GREATER'),
-                    (Get-GetTypeCodeMethodDefinition),
-                    (Get-ToBooleanMethodDefinition -UseNullableReferenceTypes),
-                    (Get-ToByteMethodDefinition -UseNullableReferenceTypes),
-                    (Get-ToCharMethodDefinition -UseNullableReferenceTypes),
-                    (Get-ToDateTimeMethodDefinition -UseNullableReferenceTypes),
-                    (Get-ToDecimalMethodDefinition -UseNullableReferenceTypes),
-                    (Get-ToDoubleMethodDefinition -UseNullableReferenceTypes),
-                    (Get-ToInt16MethodDefinition -UseNullableReferenceTypes),
-                    (Get-ToInt32MethodDefinition -UseNullableReferenceTypes),
-                    (Get-ToInt64MethodDefinition -UseNullableReferenceTypes),
-                    (Get-ToSByteMethodDefinition -UseNullableReferenceTypes),
-                    (Get-ToSingleMethodDefinition -UseNullableReferenceTypes),
-                    (Get-ToStringMethodDefinition -UseNullableReferenceTypes),
-                    (Get-ToTypeMethodDefinition -UseNullableReferenceTypes),
-                    (Get-ToUInt16MethodDefinition -UseNullableReferenceTypes),
-                    (Get-ToUInt32MethodDefinition -UseNullableReferenceTypes),
-                    (Get-ToUInt64MethodDefinition -UseNullableReferenceTypes),
+                (Get-GetTypeCodeMethodDefinition),
+                (Get-ToBooleanMethodDefinition -UseNullableReferenceTypes),
+                (Get-ToByteMethodDefinition -UseNullableReferenceTypes),
+                (Get-ToCharMethodDefinition -UseNullableReferenceTypes),
+                (Get-ToDateTimeMethodDefinition -UseNullableReferenceTypes),
+                (Get-ToDecimalMethodDefinition -UseNullableReferenceTypes),
+                (Get-ToDoubleMethodDefinition -UseNullableReferenceTypes),
+                (Get-ToInt16MethodDefinition -UseNullableReferenceTypes),
+                (Get-ToInt32MethodDefinition -UseNullableReferenceTypes),
+                (Get-ToInt64MethodDefinition -UseNullableReferenceTypes),
+                (Get-ToSByteMethodDefinition -UseNullableReferenceTypes),
+                (Get-ToSingleMethodDefinition -UseNullableReferenceTypes),
+                (Get-ToStringMethodDefinition -UseNullableReferenceTypes),
+                (Get-ToTypeMethodDefinition -UseNullableReferenceTypes),
+                (Get-ToUInt16MethodDefinition -UseNullableReferenceTypes),
+                (Get-ToUInt32MethodDefinition -UseNullableReferenceTypes),
+                (Get-ToUInt64MethodDefinition -UseNullableReferenceTypes),
                 [System.CodeDom.CodeSnippetTypeMember]::new('#elif NETSTANDARD1_3_OR_GREATER||NET'),
-                    (Get-GetTypeCodeMethodDefinition),
-                    (Get-ToBooleanMethodDefinition),
-                    (Get-ToByteMethodDefinition),
-                    (Get-ToCharMethodDefinition),
-                    (Get-ToDateTimeMethodDefinition),
-                    (Get-ToDecimalMethodDefinition),
-                    (Get-ToDoubleMethodDefinition),
-                    (Get-ToInt16MethodDefinition),
-                    (Get-ToInt32MethodDefinition),
-                    (Get-ToInt64MethodDefinition),
-                    (Get-ToSByteMethodDefinition),
-                    (Get-ToSingleMethodDefinition),
-                    (Get-ToStringMethodDefinition),
-                    (Get-ToTypeMethodDefinition),
-                    (Get-ToUInt16MethodDefinition),
-                    (Get-ToUInt32MethodDefinition),
-                    (Get-ToUInt64MethodDefinition),
+                (Get-GetTypeCodeMethodDefinition),
+                (Get-ToBooleanMethodDefinition),
+                (Get-ToByteMethodDefinition),
+                (Get-ToCharMethodDefinition),
+                (Get-ToDateTimeMethodDefinition),
+                (Get-ToDecimalMethodDefinition),
+                (Get-ToDoubleMethodDefinition),
+                (Get-ToInt16MethodDefinition),
+                (Get-ToInt32MethodDefinition),
+                (Get-ToInt64MethodDefinition),
+                (Get-ToSByteMethodDefinition),
+                (Get-ToSingleMethodDefinition),
+                (Get-ToStringMethodDefinition),
+                (Get-ToTypeMethodDefinition),
+                (Get-ToUInt16MethodDefinition),
+                (Get-ToUInt32MethodDefinition),
+                (Get-ToUInt64MethodDefinition),
                 [System.CodeDom.CodeSnippetTypeMember]::new('#endif')
             )
             $publicMethods | Select-Object -First 1 | ForEach-Object { [void]$_.StartDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::Start, 'Public Methods')) }
@@ -526,12 +530,20 @@ try {
     $modulePath = Resolve-Path scripts\StringEnumCodeGen\StringEnumCodeGen.psm1
     Import-Module (Split-Path $modulePath -Parent)
 
+    $countryCodesFilePath = Join-Path $SourceFolderPath -ChildPath 'country-codes.csv'
+    if (Test-Path $countryCodesFilePath -PathType Leaf) {
+        $countryCodesSet = Import-Csv $countryCodesFilePath
+    }
+    else {
+        Write-Error "Source file '$countryCodesFilePath' not found."
+    }
+
     $subdivisionCodesFilePath = Join-Path $SourceFolderPath -ChildPath 'subdivisions.csv'
     if (Test-Path $subdivisionCodesFilePath -PathType Leaf) {
         $subdivisionCodesSet = Import-Csv $subdivisionCodesFilePath
     }
     else {
-        Write-Error "Source file '$countryCodesFilePath' not found."
+        Write-Error "Source file '$subdivisionCodesFilePath' not found."
         exit;
     }
 
@@ -563,7 +575,7 @@ try {
     }
 
     $codeCount = $subdivisionCodesSet | Where-Object { $_.alpha_2_code -eq $IncludeFieldsCountryCode -or $_.alpha_3_code -eq $IncludeFieldsCountryCode } | Measure-Object | Select-Object -ExpandProperty Count
-    $subdivisionCodesSet | Sort-Object -Property subdivision_category_id | Out-SourceCode -CodeCount $codeCount -IncludeMainBody (-not $PSBoundParameters.ContainsKey('IncludeFieldsCountryCode')) -IncludeFieldsForCountryCode $IncludeFieldsCountryCode -SubdivisionNamesSet $subdivisionNamesSet -SubdivisionCategoriesSet $subdivisionCategoriesSet -LanguagesSet $languagesSet -TypeName $SourceCodeTypeName -TypeComment $SourceCodeTypeComment -GenerateLanguage $SourceCodeLanguage
+    $subdivisionCodesSet | Sort-Object -Property subdivision_category_id | Out-SourceCode -CodeCount $codeCount -IncludeMainBody (-not $PSBoundParameters.ContainsKey('IncludeFieldsCountryCode')) -IncludeFieldsForCountryCode $IncludeFieldsCountryCode -CountryCodesSet $countryCodesSet -SubdivisionNamesSet $subdivisionNamesSet -SubdivisionCategoriesSet $subdivisionCategoriesSet -LanguagesSet $languagesSet -TypeName $SourceCodeTypeName -TypeComment $SourceCodeTypeComment -GenerateLanguage $SourceCodeLanguage
 }
 finally {
     Remove-Module StringEnumCodeGen
