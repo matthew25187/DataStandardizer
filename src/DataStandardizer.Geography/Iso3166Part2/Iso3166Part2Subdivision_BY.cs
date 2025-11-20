@@ -11,9 +11,6 @@ namespace DataStandardizer.Geography
 {
     
     
-    /// <summary>
-    /// ISO 3166-2, Codes for the representation of names of countries and their subdivisions – Part 2: Country subdivision code
-    /// </summary>
     public readonly partial struct Iso3166Part2Subdivision
     {
         
@@ -25,8 +22,6 @@ namespace DataStandardizer.Geography
         [DataStandardizer.Geography.Iso3166SubdivisionCategoryNameAttribute("en", "eng", 411, "oblast", "oblasts")]
         [DataStandardizer.Geography.Iso3166SubdivisionCategoryNameAttribute("fr", "fra", 411, "région")]
         [DataStandardizer.Geography.Iso3166SubdivisionCategoryNameAttribute("ru", "rus", 411, "oblast\'")]
-        [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
-        [DataStandardizer.Geography.Iso3166LanguageAttribute("fr", "fra", IsAdministrative=false)]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("be", "bel", IsAdministrative=true)]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("fr", "fra", IsAdministrative=false)]

@@ -11,9 +11,6 @@ namespace DataStandardizer.Geography
 {
     
     
-    /// <summary>
-    /// ISO 3166-2, Codes for the representation of names of countries and their subdivisions – Part 2: Country subdivision code
-    /// </summary>
     public readonly partial struct Iso3166Part2Subdivision
     {
         
@@ -26,8 +23,6 @@ namespace DataStandardizer.Geography
         [DataStandardizer.Geography.Iso3166SubdivisionCategoryNameAttribute("en", "eng", 314, "city", "cities")]
         [DataStandardizer.Geography.Iso3166SubdivisionCategoryNameAttribute("fr", "fra", 314, "ville")]
         [DataStandardizer.Geography.Iso3166SubdivisionCategoryNameAttribute("ka", "kat", 314, "kalaki")]
-        [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
-        [DataStandardizer.Geography.Iso3166LanguageAttribute("fr", "fra", IsAdministrative=false)]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("en", "eng", IsAdministrative=false)]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("fr", "fra", IsAdministrative=false)]
         [DataStandardizer.Geography.Iso3166LanguageAttribute("ka", "kat", IsAdministrative=true)]
