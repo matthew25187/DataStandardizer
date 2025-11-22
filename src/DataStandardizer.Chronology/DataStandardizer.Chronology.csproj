@@ -52,6 +52,7 @@ Provides types supporting the measurement and comparison of date and time period
 
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.0'">
     <PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
+    <PackageReference Include="System.ValueTuple" Version="[4.5.0]" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.0' Or '$(TargetFramework)' == 'netstandard2.0'">
