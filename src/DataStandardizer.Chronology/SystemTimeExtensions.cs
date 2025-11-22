@@ -4,9 +4,6 @@ namespace DataStandardizer.Chronology
 {
     public static class SystemTimeExtensions
     {
-        private const int SecondsPerHour = 60 * 60;
-        private const int SecondsPerMinute = 60;
-
         /// <summary>
         /// Converts the specified <see cref="SystemTimeWithGregorianCalendar"/> instance 
         /// to its equivalent <see cref="UnixTime"/> representation, if possible.
@@ -41,7 +38,8 @@ namespace DataStandardizer.Chronology
         /// </remarks>
         public static DateTime ToDateTime<T>(this T systemTime) where T : struct, ISystemTime
         {
-            var (year, month, day, hour, minute, second) = CalculateDateTimeFromJulianDayNumber(systemTime.JulianDayNumber);
+            var (year, month, day) = JulianDayNumberHelper.ConvertJdnToGregorianCalendarDate(systemTime.JulianDayNumber);
+            var (hour, minute, second) = JulianDayNumberHelper.ConvertJdnToTimeOfDay(systemTime.JulianDayNumber);
             return new DateTime(year, month, day, hour, minute, second);
         }
 
@@ -64,7 +62,7 @@ namespace DataStandardizer.Chronology
         /// </remarks>
         public static DateOnly ToDateOnly<T>(this T systemTime) where T : struct, ISystemTime
         {
-            var (year, month, day, _, _, _) = CalculateDateTimeFromJulianDayNumber(systemTime.JulianDayNumber);
+            var (year, month, day) = JulianDayNumberHelper.ConvertJdnToGregorianCalendarDate(systemTime.JulianDayNumber);
             return new DateOnly(year, month, day);
         }
 
@@ -86,35 +84,9 @@ namespace DataStandardizer.Chronology
         /// </remarks>
         public static TimeOnly ToTimeOnly<T>(this T systemTime) where T : struct, ISystemTime
         {
-            var (_, _, _, hour, minute, second) = CalculateDateTimeFromJulianDayNumber(systemTime.JulianDayNumber);
+            var (hour, minute, second) = JulianDayNumberHelper.ConvertJdnToTimeOfDay(systemTime.JulianDayNumber);
             return new TimeOnly(hour, minute, second);
         }
 #endif
-
-        private static (ushort Year, ushort Month, ushort Day, ushort Hour, ushort Minute, ushort Second) CalculateDateTimeFromJulianDayNumber(decimal jdn)
-        {
-            // Calculate the date portion.
-            var jdnWithoutTime = Math.Truncate(jdn + .5m);
-            int a = (int)(jdnWithoutTime + 32044);
-            int b = (4 * a + 3) / 146097;
-            int c = a - 146097 * b / 4;
-            int d = (4 * c + 3) / 1461;
-            int e = c - 1461 * d / 4;
-            int m = (5 * e + 2) / 153;
-            ushort day = (ushort)(e - (153 * m + 2) / 5 + 1);
-            ushort month = (ushort)(m + 3 - 12 * (m / 10));
-            ushort year = (ushort)(100 * b + d - 4800 + m / 10);
-
-            // Calculate the time portion.
-            var secondsRemaining = (jdn - .5m - Math.Truncate(jdn - .5m)) * 86400;
-            ushort hour = (ushort)(secondsRemaining / SecondsPerHour);
-            secondsRemaining -= hour * SecondsPerHour;
-            ushort minute = (ushort)(secondsRemaining / SecondsPerMinute);
-            secondsRemaining -= minute * SecondsPerMinute;
-            ushort second = (ushort)secondsRemaining;
-
-            // Return date & time.
-            return (year, month, day, hour, minute, second);
-        }
     }
 }

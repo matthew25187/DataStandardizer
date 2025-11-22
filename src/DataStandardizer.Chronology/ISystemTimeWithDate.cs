@@ -13,36 +13,39 @@
         /// Gets the day component of the system time.
         /// </summary>
         /// <value>
-        /// An unsigned 16-bit integer representing the day of the month.
+        /// An integer representing the day of the month, ranging from 1 to the maximum number of days in the specified month.
         /// </value>
         /// <remarks>
-        /// The <see cref="Day"/> property provides the day component of the date, 
-        /// which is calculated based on the Julian Day Number.
+        /// This property provides the day component of the date represented by the system time.
+        /// It is part of the <see cref="DataStandardizer.Chronology.ISystemTimeWithDate"/> interface, 
+        /// which extends <see cref="DataStandardizer.Chronology.ISystemTime"/> to include date-specific properties.
         /// </remarks>
-        ushort Day { get; }
+        int Day { get; }
 
         /// <summary>
         /// Gets the month component of the system time.
         /// </summary>
         /// <value>
-        /// An unsigned 16-bit integer representing the month, where 1 corresponds to January and 12 corresponds to December.
+        /// An integer representing the month of the year, where 1 corresponds to January and 12 corresponds to December.
         /// </value>
         /// <remarks>
-        /// The <see cref="Month"/> property provides the month component of the date represented by the system time.
-        /// It is derived from the Julian Day Number.
+        /// This property provides the month component of the system time, as determined by the underlying implementation.
+        /// For example, in the <see cref="SystemTimeWithGregorianCalendar"/> implementation, the month is derived from
+        /// the Julian Day Number using the Gregorian calendar.
         /// </remarks>
-        ushort Month { get; }
+        int Month { get; }
 
         /// <summary>
         /// Gets the year component of the system time.
         /// </summary>
         /// <value>
-        /// An unsigned 16-bit integer representing the year.
+        /// An <see cref="int"/> representing the year component of the system time.
         /// </value>
         /// <remarks>
-        /// The <see cref="Year"/> property provides the year component of the system time, 
-        /// which is derived from the Julian Day Number.
+        /// This property provides the year component of the system time, derived from the Julian Day Number.
+        /// It is part of the <see cref="DataStandardizer.Chronology.ISystemTimeWithDate"/> interface, which extends
+        /// <see cref="DataStandardizer.Chronology.ISystemTime"/> by including date-specific components.
         /// </remarks>
-        ushort Year { get; }
+        int Year { get; }
     }
 }

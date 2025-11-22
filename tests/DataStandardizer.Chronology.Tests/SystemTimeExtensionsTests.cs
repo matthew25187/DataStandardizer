@@ -5,7 +5,8 @@ namespace DataStandardizer.Chronology.Tests;
 public class SystemTimeExtensionsTests
 {
     [Theory]
-    [InlineData(2451545.125, 2000, 1, 1, 15, 0, 0)]
+    [InlineData(2451545.125, 2000, 1, 1, 15, 0, 0),
+     InlineData(2451544.625, 2000,1,1,3, 0, 0)]
     public void ToDateTime_OnSystemTimeValue_ReturnsDateTimeEquivalent(decimal testJdn, ushort expectedYear, ushort expectedMonth, ushort expectedDay, ushort expectedHour, ushort expectedMinute, ushort expectedSecond)
     {
         // arrange
@@ -35,7 +36,8 @@ public class SystemTimeExtensionsTests
     }
 
     [Theory]
-    [InlineData(2451545.125, 15, 0, 0)]
+    [InlineData(2451545.125, 15, 0, 0),
+     InlineData(2451544.625,3,0,0)]
     public void ToTimeOnly_OnSystemTimeValue_ReturnsTimeEquivalent(decimal testJdn, ushort expectedHour, ushort expectedMinute, ushort expectedSecond)
     {
         // arrange

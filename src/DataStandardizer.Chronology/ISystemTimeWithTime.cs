@@ -13,37 +13,35 @@
         /// Gets the hour component of the system time.
         /// </summary>
         /// <value>
-        /// An unsigned 16-bit integer representing the hour component of the system time, 
-        /// ranging from 0 to 23.
+        /// An integer representing the hour component of the time, ranging from 0 to 23.
         /// </value>
         /// <remarks>
-        /// This property provides the hour component of the system time as defined by the 
-        /// Julian Day Number. It is useful for time-based calculations and representations.
+        /// This property provides the hour component of the system time, which is derived 
+        /// from the Julian Day Number representation.
         /// </remarks>
-        ushort Hour { get; }
+        int Hour { get; }
 
         /// <summary>
         /// Gets the minute component of the system time.
         /// </summary>
         /// <value>
-        /// An unsigned 16-bit integer representing the minute component, ranging from 0 to 59.
+        /// An integer representing the minute component of the time, ranging from 0 to 59.
         /// </value>
         /// <remarks>
-        /// This property provides access to the minute component of the system time, 
-        /// allowing for precise time representation in conjunction with the hour and second components.
+        /// This property provides access to the minute portion of the system time, as defined by the implementation.
         /// </remarks>
-        ushort Minute { get; }
+        int Minute { get; }
 
         /// <summary>
         /// Gets the second component of the system time.
         /// </summary>
         /// <value>
-        /// An unsigned 16-bit integer representing the second component of the time, ranging from 0 to 59.
+        /// An integer representing the second component of the time, ranging from 0 to 59.
         /// </value>
         /// <remarks>
         /// This property provides access to the second component of the system time, 
-        /// complementing the <see cref="Hour"/> and <see cref="Minute"/> properties to represent the full time.
+        /// as part of the time abstraction defined by the <see cref="DataStandardizer.Chronology.ISystemTimeWithTime"/> interface.
         /// </remarks>
-        ushort Second { get; }
+        int Second { get; }
     }
 }

@@ -12,9 +12,6 @@ namespace DataStandardizer.Chronology
     /// </remarks>
     public readonly struct SystemTimeWithGregorianCalendar : ISystemTimeWithDateTime
     {
-        private const int SecondsPerHour = 60 * 60;
-        private const int SecondsPerMinute = 60;
-
         internal readonly ISystemTime _systemTime;
 
         public SystemTimeWithGregorianCalendar(ISystemTime systemTime)
@@ -26,83 +23,56 @@ namespace DataStandardizer.Chronology
 
         public decimal JulianDayNumber => _systemTime.JulianDayNumber;
 
-        public ushort Day => DoGetDay();
+        public int Day => DoGetDay();
 
-        public ushort Month => DoGetMonth();
+        public int Month => DoGetMonth();
 
-        public ushort Year => DoGetYear();
+        public int Year => DoGetYear();
 
-        public ushort Hour => DoGetHour();
+        public int Hour => DoGetHour();
 
-        public ushort Minute => DoGetMinute();
+        public int Minute => DoGetMinute();
 
-        public ushort Second => DoGetSecond();
+        public int Second => DoGetSecond();
 
         #endregion
 
         #region Private Methods
 
-        private ushort DoGetDay()
+        private int DoGetDay()
         {
-            var (_, _, day) = GetDateFromJulianDayNumber(JulianDayNumber);
+            var (_, _, day) = JulianDayNumberHelper.ConvertJdnToGregorianCalendarDate(JulianDayNumber);
             return day;
         }
 
-        private ushort DoGetHour()
+        private int DoGetHour()
         {
-            var (hour, _, _) = GetTimeFromJulianDayNumber(JulianDayNumber);
+            var (hour, _, _) = JulianDayNumberHelper.ConvertJdnToTimeOfDay(JulianDayNumber);
             return hour;
         }
 
-        private ushort DoGetMinute()
+        private int DoGetMinute()
         {
-            var (_, minute, _) = GetTimeFromJulianDayNumber(JulianDayNumber);
+            var (_, minute, _) = JulianDayNumberHelper.ConvertJdnToTimeOfDay(JulianDayNumber);
             return minute;
         }
 
-        private ushort DoGetMonth()
+        private int DoGetMonth()
         {
-            var (_, month, _) = GetDateFromJulianDayNumber(JulianDayNumber);
+            var (_, month, _) = JulianDayNumberHelper.ConvertJdnToGregorianCalendarDate(JulianDayNumber);
             return month;
         }
 
-        private ushort DoGetSecond()
+        private int DoGetSecond()
         {
-            var (_, _, second) = GetTimeFromJulianDayNumber(JulianDayNumber);
+            var (_, _, second) = JulianDayNumberHelper.ConvertJdnToTimeOfDay(JulianDayNumber);
             return second;
         }
 
-        private ushort DoGetYear()
+        private int DoGetYear()
         {
-            var (year, _, _) = GetDateFromJulianDayNumber(JulianDayNumber);
+            var (year, _, _) = JulianDayNumberHelper.ConvertJdnToGregorianCalendarDate(JulianDayNumber);
             return year;
-        }
-
-        private (ushort Year, ushort Month, ushort Day) GetDateFromJulianDayNumber(decimal julianDayNumber)
-        {
-            var jdnWithoutTime = Math.Truncate(julianDayNumber + .5m);
-            int a = (int)(jdnWithoutTime + 32044);
-            int b = (4 * a + 3) / 146097;
-            int c = a - 146097 * b / 4;
-            int d = (4 * c + 3) / 1461;
-            int e = c - 1461 * d / 4;
-            int m = (5 * e + 2) / 153;
-            ushort day = (ushort)(e - (153 * m + 2) / 5 + 1);
-            ushort month = (ushort)(m + 3 - 12 * m / 10);
-            ushort year = (ushort)(100 * b + d - 4800 + m / 10);
-            return (year, month, day);
-        }
-
-        private (ushort Hour, ushort Minute, ushort Second) GetTimeFromJulianDayNumber(decimal julianDayNumber)
-        {
-            var timeOfDay = julianDayNumber + .5m - Math.Truncate(julianDayNumber + .5m);
-            var remainingSeconds = timeOfDay * 86400;
-            var hour = (ushort)(remainingSeconds / SecondsPerHour);
-            remainingSeconds -= hour * SecondsPerHour;
-            var minute = (ushort)(remainingSeconds / SecondsPerMinute);
-            remainingSeconds -= minute * SecondsPerMinute;
-            ushort second = (ushort)remainingSeconds;
-            return (hour, minute, second);
         }
 
         #endregion

@@ -19,18 +19,10 @@ namespace DataStandardizer.Chronology
         /// </remarks>
         public static UnixTime ToUnixTime(this DateOnly date)
         {
-            var jdn = CalculateJulianDayNumberFromDate(date);
+            var jdn = JulianDayNumberHelper.ConvertGregorianCalendarDateToJdn(date.Year, date.Month, date.Day) +
+                      JulianDayNumberHelper.ConvertTimeOfDayToJdn(0, 0, 0);
             var unixTime = (long)((jdn - 2440587.5m) * 86400);
             return new UnixTime(unixTime);
-        }
-
-        private static decimal CalculateJulianDayNumberFromDate(DateOnly date)
-        {
-            var a = (14 - date.Month) / 12;
-            var y = date.Year + 4800 - a;
-            var m = date.Month + 12 * a - 3;
-            var jdn = date.Day + (153 * m + 2) / 5 + 365 * y + y / 4 - y / 100 + y / 400 - 32045;
-            return jdn - .5m;   // subtract 0.5 to "zero" on midnight to account for JDNs starting the day at noon
         }
     }
 #endif
