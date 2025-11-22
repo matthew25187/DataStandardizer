@@ -13,13 +13,13 @@ If you derive a commercial benefit from use of *Data Standardizer* or feel it ot
 
 | Package | Description |
 | --- | --- |
-| **DataStandardizer.Chronology** | Provides support for the TZ Database. |
+| **DataStandardizer.Chronology** | Supports the following standards:<ul><li>TZ Database</li><li>Unix time</li></ul> |
 | **DataStandardizer.Core** | Common types used to implement standards in the other packages.  You should not need to link to this package directly. |
-| **DataStandardizer.File.CSV** | Supports the following standards:<br>- RFC 4180, *Common Format and MIME Type for Comma-Separated Values (CSV) Files* |
-| **DataStandardizer.Geography** | Supports the following standards:<br>- ISO 3166-1, *Codes for the representation of names of countries and their subdivisions – Part 1: Country code*<br>- ISO 3166-2, *Codes for the representation of names of countries and their subdivisions – Part 2: Country subdivision code*<br>- UN M49, *Standard Country or Area Codes for Statistical Use (Series M, No. 49)* |
-| **DataStandardizer.Language** | Supports the following standards:<br>- ISO 639, *Code for the representation of names of languages*<br>    - *Part 1: Alpha-2 code*<br>    - *Part 2: Alpha-3 code*<br>    - *Part 3: Alpha-3 code for comprehensive coverage of languages*<br>    - *Part 5: Alpha-3 code for language families and groups*<br>- ISO 15924, *Codes for the representation of names of scripts* |
-| **DataStandardizer.LanguageTag** | Supports the following standards:<br>- *Best Current Practice (BCP) 47* for IETF language tags |
-| **DataStandardizer.Money** | Supports the following standards:<br>- ISO 4217, *Codes for the representation of currencies and funds*<br>    - Table A.1 – *Current currency & funds code list*<br>    - Table A.2 – *Current funds codes*<br>    - Table A.3 – *List of codes for historic denominations of currencies & funds*<br>- Money type, as described in *Patterns of Enterprise Application Architecture* by Martin Fowler |
+| **DataStandardizer.File.CSV** | Supports the following standards:<ul><li>RFC 4180, *Common Format and MIME Type for Comma-Separated Values (CSV) Files*</li></ul> |
+| **DataStandardizer.Geography** | Supports the following standards:<ul><li>ISO 3166-1, *Codes for the representation of names of countries and their subdivisions – Part 1: Country code*</li><li>ISO 3166-2, *Codes for the representation of names of countries and their subdivisions – Part 2: Country subdivision code*</li><li>UN M49, *Standard Country or Area Codes for Statistical Use (Series M, No. 49)*</li></ul> |
+| **DataStandardizer.Language** | Supports the following standards:<ul><li>ISO 639, *Code for the representation of names of languages*</li><ul><li>*Part 1: Alpha-2 code*</li><li>*Part 2: Alpha-3 code*</li><li>*Part 3: Alpha-3 code for comprehensive coverage of languages*</li><li>*Part 5: Alpha-3 code for language families and groups*</li></ul><li>ISO 15924, *Codes for the representation of names of scripts*</li></ul> |
+| **DataStandardizer.LanguageTag** | Supports the following standards:<ul><li>*Best Current Practice (BCP) 47* for IETF language tags</li></ul> |
+| **DataStandardizer.Money** | Supports the following standards:<ul><li>ISO 4217, *Codes for the representation of currencies and funds*</li><ul><li>Table A.1 – *Current currency & funds code list*</li><li>Table A.2 – *Current funds codes*</li><li>Table A.3 – *List of codes for historic denominations of currencies & funds*</li></ul><li>Money type, as described in *Patterns of Enterprise Application Architecture* by Martin Fowler</li></ul> |
 
 To use a particular standard in your application, find the corresponding package from the above list and add it as a dependency to your project.  Instructions for doing so will depend on what development tooling you are using.
 

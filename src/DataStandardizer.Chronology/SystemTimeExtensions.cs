@@ -8,6 +8,22 @@ namespace DataStandardizer.Chronology
         private const int SecondsPerMinute = 60;
 
         /// <summary>
+        /// Converts the specified <see cref="SystemTimeWithGregorianCalendar"/> instance 
+        /// to its equivalent <see cref="UnixTime"/> representation, if possible.
+        /// </summary>
+        /// <param name="systemTime">
+        /// The <see cref="SystemTimeWithGregorianCalendar"/> instance to convert.
+        /// </param>
+        /// <returns>
+        /// A nullable <see cref="UnixTime"/> representing the equivalent Unix time, 
+        /// or <c>null</c> if the conversion is not possible.
+        /// </returns>
+        public static UnixTime? AsUnixTime(this SystemTimeWithGregorianCalendar systemTime)
+        {
+            return systemTime._systemTime as UnixTime?;
+        }
+
+        /// <summary>
         /// Converts the specified system time to a <see cref="DateTime"/> representation.
         /// </summary>
         /// <typeparam name="T">

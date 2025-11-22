@@ -15,11 +15,11 @@ namespace DataStandardizer.Chronology
         private const int SecondsPerHour = 60 * 60;
         private const int SecondsPerMinute = 60;
 
-        private readonly ISystemTime _systemTime;
+        internal readonly ISystemTime _systemTime;
 
         public SystemTimeWithGregorianCalendar(ISystemTime systemTime)
         {
-            _systemTime = systemTime;
+            _systemTime = systemTime ?? throw new ArgumentNullException(nameof(systemTime));
         }
 
         #region Public Properties
