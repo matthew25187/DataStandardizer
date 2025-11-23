@@ -6,6 +6,22 @@ namespace DataStandardizer.Chronology
     {
         /// <summary>
         /// Converts the specified <see cref="SystemTimeWithGregorianCalendar"/> instance 
+        /// to its equivalent <see cref="DosDateTime"/> representation, if possible.
+        /// </summary>
+        /// <param name="systemTime">
+        /// The <see cref="SystemTimeWithGregorianCalendar"/> instance to convert.
+        /// </param>
+        /// <returns>
+        /// A <see cref="DosDateTime"/> representation of the provided 
+        /// <see cref="SystemTimeWithGregorianCalendar"/>, or <c>null</c> if the conversion is not possible.
+        /// </returns>
+        public static DosDateTime? AsDosDateTime(this SystemTimeWithGregorianCalendar systemTime)
+        {
+            return systemTime._systemTime as DosDateTime?;
+        }
+
+        /// <summary>
+        /// Converts the specified <see cref="SystemTimeWithGregorianCalendar"/> instance 
         /// to its equivalent <see cref="UnixTime"/> representation, if possible.
         /// </summary>
         /// <param name="systemTime">

@@ -13,7 +13,7 @@ If you derive a commercial benefit from use of *Data Standardizer* or feel it ot
 
 | Package | Description |
 | --- | --- |
-| **DataStandardizer.Chronology** | Supports the following standards:<ul><li>TZ Database</li><li>Unix time</li></ul> |
+| **DataStandardizer.Chronology** | Supports the following standards:<ul><li>TZ Database</li><li>Unix time</li><li>DOS date & time</li></ul> |
 | **DataStandardizer.Core** | Common types used to implement standards in the other packages.  You should not need to link to this package directly. |
 | **DataStandardizer.File.CSV** | Supports the following standards:<ul><li>RFC 4180, *Common Format and MIME Type for Comma-Separated Values (CSV) Files*</li></ul> |
 | **DataStandardizer.Geography** | Supports the following standards:<ul><li>ISO 3166-1, *Codes for the representation of names of countries and their subdivisions – Part 1: Country code*</li><li>ISO 3166-2, *Codes for the representation of names of countries and their subdivisions – Part 2: Country subdivision code*</li><li>UN M49, *Standard Country or Area Codes for Statistical Use (Series M, No. 49)*</li></ul> |

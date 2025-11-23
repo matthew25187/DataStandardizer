@@ -11,14 +11,15 @@
 
 Provides types supporting the measurement and comparison of date and time periods, including:
 - TZ Database
-- Unix time</Description>
+- Unix time
+- DOS date/time</Description>
     <Copyright>Copyright © 2024-2025, Matthew25187. All rights reserved.</Copyright>
     <PackageProjectUrl>https://github.com/matthew25187/DataStandardizer</PackageProjectUrl>
     <PackageIcon>054-doc_web.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/matthew25187/DataStandardizer.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageTags>data;standard;tz database;timezone;unix time</PackageTags>
+    <PackageTags>data;standard;tz database;timezone;unix time;dos datetime</PackageTags>
     <PackageReleaseNotes>Initial release.</PackageReleaseNotes>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
