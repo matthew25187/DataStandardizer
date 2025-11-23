@@ -6,6 +6,23 @@ namespace DataStandardizer.Chronology
     public static class DateOnlyExtensions
     {
         /// <summary>
+        /// Converts the specified <see cref="DateOnly"/> instance to a <see cref="DosDateTime"/> representation.
+        /// </summary>
+        /// <param name="date">The <see cref="DateOnly"/> instance to convert.</param>
+        /// <returns>
+        /// A <see cref="DosDateTime"/> value representing the date in the DOS date format.
+        /// </returns>
+        /// <remarks>
+        /// This method creates a <see cref="DosDateTime"/> instance using the year, month, and day components 
+        /// of the specified <see cref="DateOnly"/> instance. The resulting value is compatible with the DOS 
+        /// file system's date representation.
+        /// </remarks>
+        public static DosDateTime ToDosDateTime(this DateOnly date)
+        {
+            return new DosDateTime((ushort)date.Year, (ushort)date.Month, (ushort)date.Day);
+        }
+
+        /// <summary>
         /// Converts the specified <see cref="DateOnly"/> instance to a <see cref="UnixTime"/> representation.
         /// </summary>
         /// <param name="date">The <see cref="DateOnly"/> instance to convert.</param>
