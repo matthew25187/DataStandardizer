@@ -1,5 +1,4 @@
 using System.Globalization;
-using DataStandardizer.ISO4217;
 using FluentAssertions;
 
 namespace DataStandardizer.Money.Tests

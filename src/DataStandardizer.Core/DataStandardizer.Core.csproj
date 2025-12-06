@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard1.0;netstandard2.0;net8.0</TargetFrameworks>
+    <TargetFrameworks>netstandard1.0;netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <Product>Data Standardizer</Product>
     <Description>Data Standardizer provides implementations of various internationally recognised standards in data processing, covering topics ranging from languages to currencies and geographical entities. With strongly-typed enumerations for each standard (where applicable) or other targeted data types, you can represent these elements in your code such that errors with invalid values are minimised.
 
@@ -29,7 +29,7 @@ Common types used to implement standards in the other packages.</Description>
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'">
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
@@ -52,8 +52,12 @@ Common types used to implement standards in the other packages.</Description>
     </None>
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.0'">
+    <PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.0' Or '$(TargetFramework)' == 'netstandard2.0'">
-    <PackageReference Include="JetBrains.Annotations" Version="2024.3.0" />
+    <PackageReference Include="JetBrains.Annotations" Version="2025.2.2" />
   </ItemGroup>
 
   <ItemGroup>

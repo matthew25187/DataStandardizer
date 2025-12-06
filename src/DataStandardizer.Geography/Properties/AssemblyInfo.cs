@@ -1,0 +1,1 @@
+﻿[assembly: System.Reflection.AssemblyTitle("Data Standardizer: Geography")]

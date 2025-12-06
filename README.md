@@ -13,16 +13,13 @@ If you derive a commercial benefit from use of *Data Standardizer* or feel it ot
 
 | Package | Description |
 | --- | --- |
-| **DataStandardizer.BCP47** | Supports **IETF BCP 47** language tags. |
-| **DataStandardizer.Chronology** | Provides support for the TZ Database. |
+| **DataStandardizer.Chronology** | Supports the following standards:<ul><li>TZ Database</li><li>Unix time</li><li>DOS date & time</li></ul> |
 | **DataStandardizer.Core** | Common types used to implement standards in the other packages.  You should not need to link to this package directly. |
-| **DataStandardizer.File** | Provides implementations of standards-based file formats. |
-| **DataStandardizer.ISO15924** | Supports **ISO 15924, *Codes for the representation of names of scripts***. |
-| **DataStandardizer.ISO3166** | Supports **ISO 3166, *Codes for the representation of names of countries and their subdivisions*** parts 1 & 2. |
-| **DataStandardizer.ISO4217** | Supports **ISO 4217, *Codes for the representation of currencies and funds***. |
-| **DataStandardizer.ISO639** | Supports **ISO 639, *Codes for the representation of names of languages*** parts 1, 2, 3 & 5. |
-| **DataStandardizer.Money** | Provides types for the handling of monetary values. |
-| **DataStandardizer.UNM49** | Supports **UN M49** or the **Standard Country or Area Codes for Statistical Use (Series M, No. 49)**. |
+| **DataStandardizer.File.CSV** | Supports the following standards:<ul><li>RFC 4180, *Common Format and MIME Type for Comma-Separated Values (CSV) Files*</li></ul> |
+| **DataStandardizer.Geography** | Supports the following standards:<ul><li>ISO 3166-1, *Codes for the representation of names of countries and their subdivisions – Part 1: Country code*</li><li>ISO 3166-2, *Codes for the representation of names of countries and their subdivisions – Part 2: Country subdivision code*</li><li>UN M49, *Standard Country or Area Codes for Statistical Use (Series M, No. 49)*</li></ul> |
+| **DataStandardizer.Language** | Supports the following standards:<ul><li>ISO 639, *Code for the representation of names of languages*</li><ul><li>*Part 1: Alpha-2 code*</li><li>*Part 2: Alpha-3 code*</li><li>*Part 3: Alpha-3 code for comprehensive coverage of languages*</li><li>*Part 5: Alpha-3 code for language families and groups*</li></ul><li>ISO 15924, *Codes for the representation of names of scripts*</li></ul> |
+| **DataStandardizer.LanguageTag** | Supports the following standards:<ul><li>*Best Current Practice (BCP) 47* for IETF language tags</li></ul> |
+| **DataStandardizer.Money** | Supports the following standards:<ul><li>ISO 4217, *Codes for the representation of currencies and funds*</li><ul><li>Table A.1 – *Current currency & funds code list*</li><li>Table A.2 – *Current funds codes*</li><li>Table A.3 – *List of codes for historic denominations of currencies & funds*</li></ul><li>Money type, as described in *Patterns of Enterprise Application Architecture* by Martin Fowler</li></ul> |
 
 To use a particular standard in your application, find the corresponding package from the above list and add it as a dependency to your project.  Instructions for doing so will depend on what development tooling you are using.
 
@@ -40,15 +37,13 @@ Other scripts and YAML files are included to support the infrastructure (IaC) us
 ## Latest releases
 | Package | Release version | Release status |
 | --- | --- | --- |
-| **DataStandardizer.BCP47** | [![DataStandardizer.BCP47 package in DataStandardizer@Release feed in Azure Artifacts](https://feeds.dev.azure.com/solobyte/e60c6c5b-e7d1-4e3e-bc68-14798bf709a1/_apis/public/Packaging/Feeds/DataStandardizer@Release/Packages/27ae72fe-bacf-4dc1-a866-f3ef7d304d26/Badge)](https://dev.azure.com/solobyte/DataStandardizer/_artifacts/feed/DataStandardizer@Release/NuGet/DataStandardizer.BCP47?preferRelease=true) | [![Build Status](https://dev.azure.com/solobyte/DataStandardizer/_apis/build/status%2FDataStandardizer-Release?repoName=matthew25187%2FDataStandardizer&branchName=master)](https://dev.azure.com/solobyte/DataStandardizer/_build/latest?definitionId=62&repoName=matthew25187%2FDataStandardizer&branchName=master) |
 | **DataStandardizer.Chronology** | [![DataStandardizer.Chronology package in DataStandardizer@Release feed in Azure Artifacts](https://feeds.dev.azure.com/solobyte/e60c6c5b-e7d1-4e3e-bc68-14798bf709a1/_apis/public/Packaging/Feeds/DataStandardizer@Release/Packages/8d12da01-040e-4624-8716-8855cf83ab93/Badge)](https://dev.azure.com/solobyte/DataStandardizer/_artifacts/feed/DataStandardizer@Release/NuGet/DataStandardizer.Chronology?preferRelease=true) | [![Build Status](https://dev.azure.com/solobyte/DataStandardizer/_apis/build/status%2FDataStandardizer-Release?repoName=matthew25187%2FDataStandardizer&branchName=master)](https://dev.azure.com/solobyte/DataStandardizer/_build/latest?definitionId=62&repoName=matthew25187%2FDataStandardizer&branchName=master) |
 | **DataStandardizer.Core** | [![DataStandardizer.Core package in DataStandardizer@Release feed in Azure Artifacts](https://feeds.dev.azure.com/solobyte/e60c6c5b-e7d1-4e3e-bc68-14798bf709a1/_apis/public/Packaging/Feeds/DataStandardizer@Release/Packages/b6a3e5a6-2d7a-447c-a155-1c0a086363fc/Badge)](https://dev.azure.com/solobyte/DataStandardizer/_artifacts/feed/DataStandardizer@Release/NuGet/DataStandardizer.Core?preferRelease=true) | [![Build Status](https://dev.azure.com/solobyte/DataStandardizer/_apis/build/status%2FDataStandardizer-Release?repoName=matthew25187%2FDataStandardizer&branchName=master)](https://dev.azure.com/solobyte/DataStandardizer/_build/latest?definitionId=62&repoName=matthew25187%2FDataStandardizer&branchName=master) |
-| **DataStandardizer.ISO15924** | [![DataStandardizer.ISO15924 package in DataStandardizer@Release feed in Azure Artifacts](https://feeds.dev.azure.com/solobyte/e60c6c5b-e7d1-4e3e-bc68-14798bf709a1/_apis/public/Packaging/Feeds/DataStandardizer@Release/Packages/0b6df6ce-4422-4bda-90e2-5613843132d0/Badge)](https://dev.azure.com/solobyte/DataStandardizer/_artifacts/feed/DataStandardizer@Release/NuGet/DataStandardizer.ISO15924?preferRelease=true) | [![Build Status](https://dev.azure.com/solobyte/DataStandardizer/_apis/build/status%2FDataStandardizer-Release?repoName=matthew25187%2FDataStandardizer&branchName=master)](https://dev.azure.com/solobyte/DataStandardizer/_build/latest?definitionId=62&repoName=matthew25187%2FDataStandardizer&branchName=master) |
-| **DataStandardizer.ISO3166** | [![DataStandardizer.ISO3166 package in DataStandardizer@Release feed in Azure Artifacts](https://feeds.dev.azure.com/solobyte/e60c6c5b-e7d1-4e3e-bc68-14798bf709a1/_apis/public/Packaging/Feeds/DataStandardizer@Release/Packages/5f7595e1-827e-4fac-b6cd-17ebb6733e04/Badge)](https://dev.azure.com/solobyte/DataStandardizer/_artifacts/feed/DataStandardizer@Release/NuGet/DataStandardizer.ISO3166?preferRelease=true) | [![Build Status](https://dev.azure.com/solobyte/DataStandardizer/_apis/build/status%2FDataStandardizer-Release?repoName=matthew25187%2FDataStandardizer&branchName=master)](https://dev.azure.com/solobyte/DataStandardizer/_build/latest?definitionId=62&repoName=matthew25187%2FDataStandardizer&branchName=master) |
-| **DataStandardizer.ISO4217** | [![DataStandardizer.ISO4217 package in DataStandardizer@Release feed in Azure Artifacts](https://feeds.dev.azure.com/solobyte/e60c6c5b-e7d1-4e3e-bc68-14798bf709a1/_apis/public/Packaging/Feeds/DataStandardizer@Release/Packages/7947181f-caad-4096-923c-da7fc87e029f/Badge)](https://dev.azure.com/solobyte/DataStandardizer/_artifacts/feed/DataStandardizer@Release/NuGet/DataStandardizer.ISO4217?preferRelease=true) | [![Build Status](https://dev.azure.com/solobyte/DataStandardizer/_apis/build/status%2FDataStandardizer-Release?repoName=matthew25187%2FDataStandardizer&branchName=master)](https://dev.azure.com/solobyte/DataStandardizer/_build/latest?definitionId=62&repoName=matthew25187%2FDataStandardizer&branchName=master) |
-| **DataStandardizer.ISO639** | [![DataStandardizer.ISO639 package in DataStandardizer@Release feed in Azure Artifacts](https://feeds.dev.azure.com/solobyte/e60c6c5b-e7d1-4e3e-bc68-14798bf709a1/_apis/public/Packaging/Feeds/DataStandardizer@Release/Packages/2b81108e-e36c-4db0-99e2-f730b7fce81e/Badge)](https://dev.azure.com/solobyte/DataStandardizer/_artifacts/feed/DataStandardizer@Release/NuGet/DataStandardizer.ISO639?preferRelease=true) | [![Build Status](https://dev.azure.com/solobyte/DataStandardizer/_apis/build/status%2FDataStandardizer-Release?repoName=matthew25187%2FDataStandardizer&branchName=master)](https://dev.azure.com/solobyte/DataStandardizer/_build/latest?definitionId=62&repoName=matthew25187%2FDataStandardizer&branchName=master) |
+| **DataStandardizer.File.CSV** |  | [![Build Status](https://dev.azure.com/solobyte/DataStandardizer/_apis/build/status%2FDataStandardizer-Release?repoName=matthew25187%2FDataStandardizer&branchName=master)](https://dev.azure.com/solobyte/DataStandardizer/_build/latest?definitionId=62&repoName=matthew25187%2FDataStandardizer&branchName=master) |
+| **DataStandardizer.Geography** |  | [![Build Status](https://dev.azure.com/solobyte/DataStandardizer/_apis/build/status%2FDataStandardizer-Release?repoName=matthew25187%2FDataStandardizer&branchName=master)](https://dev.azure.com/solobyte/DataStandardizer/_build/latest?definitionId=62&repoName=matthew25187%2FDataStandardizer&branchName=master) |
+| **DataStandardizer.Language** |  | [![Build Status](https://dev.azure.com/solobyte/DataStandardizer/_apis/build/status%2FDataStandardizer-Release?repoName=matthew25187%2FDataStandardizer&branchName=master)](https://dev.azure.com/solobyte/DataStandardizer/_build/latest?definitionId=62&repoName=matthew25187%2FDataStandardizer&branchName=master) |
+| **DataStandardizer.LanguageTag** |  | [![Build Status](https://dev.azure.com/solobyte/DataStandardizer/_apis/build/status%2FDataStandardizer-Release?repoName=matthew25187%2FDataStandardizer&branchName=master)](https://dev.azure.com/solobyte/DataStandardizer/_build/latest?definitionId=62&repoName=matthew25187%2FDataStandardizer&branchName=master) |
 | **DataStandardizer.Money** | [![DataStandardizer.Money package in DataStandardizer@Release feed in Azure Artifacts](https://feeds.dev.azure.com/solobyte/e60c6c5b-e7d1-4e3e-bc68-14798bf709a1/_apis/public/Packaging/Feeds/DataStandardizer@Release/Packages/48e16c89-27a8-4e0d-9684-f2b2f00313ac/Badge)](https://dev.azure.com/solobyte/DataStandardizer/_artifacts/feed/DataStandardizer@Release/NuGet/DataStandardizer.Money?preferRelease=true) | [![Build Status](https://dev.azure.com/solobyte/DataStandardizer/_apis/build/status%2FDataStandardizer-Release?repoName=matthew25187%2FDataStandardizer&branchName=master)](https://dev.azure.com/solobyte/DataStandardizer/_build/latest?definitionId=62&repoName=matthew25187%2FDataStandardizer&branchName=master) |
-| **DataStandardizer.UNM49** | [![DataStandardizer.UNM49 package in DataStandardizer@Release feed in Azure Artifacts](https://feeds.dev.azure.com/solobyte/e60c6c5b-e7d1-4e3e-bc68-14798bf709a1/_apis/public/Packaging/Feeds/DataStandardizer@Release/Packages/be535293-fb75-40a2-a858-2b0e58182d2a/Badge)](https://dev.azure.com/solobyte/DataStandardizer/_artifacts/feed/DataStandardizer@Release/NuGet/DataStandardizer.UNM49?preferRelease=true) | [![Build Status](https://dev.azure.com/solobyte/DataStandardizer/_apis/build/status%2FDataStandardizer-Release?repoName=matthew25187%2FDataStandardizer&branchName=master)](https://dev.azure.com/solobyte/DataStandardizer/_build/latest?definitionId=62&repoName=matthew25187%2FDataStandardizer&branchName=master) |
 
 The most recently produced release version (shown above) does not necessarily correspond with the latest package version published to NuGet or any other publically available source.
 
@@ -84,247 +79,52 @@ The included tests are based on the XUnit test framework.  To run the tests, you
 
 # Usage
 
-Though each package contains many types, typically there will be only a few that you will end up using directly in your application.  Listed here are the main types you are most likely to include in your source code.
+Though each package contains many types, typically there will be only a few that you will end up using directly in your application.  Please refer to the [project documentation](https://matthew25187.github.io/DataStandardizer/) for more information.  Includes articles on how to use the packages for specific tasks.
 
-## DataStandardizer.BCP47
+## 📄 CSV File Support
 
-| Type | Description |
-| --- | --- |
-| `Bcp47LanguageTag` | Represents an IETF language tag.  May be created by using the provided static factory methods or by using the language tag builder. |
-| `Bcp47LanguageTagBuilder` | Can be used to construct a language tag using a fluent-style syntax. |
-| `SubtagRegistry` | Represents a copy of the *IANA Subtag Registry*.  May be loaded by various means, but the source must be in the original "record-jar" format as described in RFC 5646.  Used to create language tags based on the subtag registry (which defines most valid tags and subtags) as opposed to creating a language tag based just on the rules defined by RFC 5646. |
-| `SubtagRegistryFileDateRecord` | Represents a "File-Date" record from the subtag registry. |
-| `SubtagRegistrySubtagRecord` | Represents a "Subtag" record from the subtag registry. |
-| `SubtagRegistryTagRecord` | Represents a "Tag" record from the subtag registry. |
+The `DataStandardizer.File.CSV` package includes built-in support for working with CSV (Comma-Separated Values) files — a common format for structured data exchange. This functionality is designed to be lightweight, flexible, and compatible with legacy .NET applications via support for .NET Standard 1.x and 2.0.
 
-## DataStandardizer.Chronology
+### ✅ What It Offers
 
-| Type | Description |
-| --- | --- |
-| `TzDataTimezone` | An enum containing the timezones defined by the TZ Database. |
+- Read and write CSV files with customizable delimiters
+- Normalize inconsistent CSV structures for downstream processing
+- Handle headers, quoted fields, and edge cases gracefully
+- Designed for extensibility and integration into broader data workflows
 
-## DataStandardizer.File
+### 💡 Example: Reading and Normalizing a CSV File
 
-| Type | Description |
-| --- | --- |
-| `CsvFieldMappingAttribute` | Declares the mapping of a property to a CSV field. |
-| `CsvFileHeaderLine` | Represents a header line from a CSV file. |
-| `CsvFileOptions` | Options for configuring the behaviour of a CSV reader or writer. |
-| `CsvFileReader` | Reader of a CSV file sourced from a `Stream`, `TextReader` or file. |
-| `CsvFileRecordLine` | Represents a record line from a CSV file. |
-| `CsvFileWriter` | Writes a CSV file to a `Stream`, `TextReader` or file. |
+        var inputPath = "data.csv";
+        var outputPath = "normalized.csv";
 
-### Usage
+        var csvInputOptions = new CsvFileOptions
+        {
+            TerminatorLineBreak = "\n"  // source file has non-standard line breaks
+        };
+        var csvOutputOptions = csvInputOptions with
+        {
+            TerminatorLineBreak = "\r\n", // write lines to the output file with standard line breaks
+            QuoteHandling = CsvFieldQuoteHandling.Required  // quote field values only when needed
+        };
 
-Included here is a brief primer on the basic functionality of the *Data Standardizer* CSV implementation.  Certain advanced topics will not be covered here.
-
-Reading and writing of CSV files is handled in much the same way as you would read or write a regular text file.  The difference being, the `CsvFileReader` and `CsvFileWriter` will interpret the text of each line using the rules of RFC 4180 and any configuration options you supply.
-
-To read a CSV file into memory (without a header line), you can process the file in a simple loop.
-
-        var lines = new List<ICsvFileLine>();
-
-        using (var reader = new StreamReader(@"file_name.csv"))
-        using (var csvReader = new CsvFileReader<CsvFileRecordLine>(reader))
+        using (var input = File.OpenRead(inputPath))
+        using (var csvReader = new CsvFileReader<CsvFileRecordLine>(input, csvInputOptions))
+        using (var output = File.Create(outputPath))
+        using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(output, csvOutputOptions))
         {
             var line = csvReader.ReadLine();
-            while (line != null)
+            while (line is not null)
             {
-                lines.Add(line);
+                csvWriter.WriteLine(line);
 
                 line = csvReader.ReadLine();
             }
         }
 
-Once you have loaded a line from the file, you can access its individual fields through the `ICsvFileLine` interface.  By default, the values of each of the fields on a line will be the raw string values extracted from the file.
+### 📦 Where to Find It
 
-        foreach (var line in lines)
-        {
-            if ((line["field_name"]?.Equals("some_field_value")).GetValueOrDefault())
-            {
-                // Process the line if a field contains a specific value.
-            }
-        }
+CSV support is provided by the `DataStandardizer.File.CSV` NuGet package. You can install it via:
 
-The behaviour of the reader (or writer) can be configured by using an options object.  Here, we can tell the reader to expect the file to have a header line.
+    dotnet add package DataStandardizer.File.CSV
 
-        var lines = new List<ICsvFileLine>();
-        var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
-
-        using (var reader = new StreamReader(@"file_name.csv"))
-        using (var csvReader = new CsvFileReader<CsvFileRecordLine>(reader, options))
-        {
-            var line = csvReader.ReadLine();
-            while (line != null)
-            {
-                lines.Add(line);
-
-                line = csvReader.ReadLine();
-            }
-        }
-
-Note that as each line is loaded (or afterwards if you are storing the lines in a collection) you will be able to tell if it is a header line or a record line by checking the type of the line.  For example,
-
-        ICsvFileLine line = ...;
-        
-        if (line is CsvFileHeaderLine headerLine)
-        {
-            // This is a header line.
-        }
-
-When checking for a record line, the type you compare against should generally be the same as the generic type argument used for instantiating the `CsvFileReader` (or `CsvFileWriter`).
-
-        ICsvFileLine line = ...;
-
-        if (line is CsvFileRecordLine recordLine)
-        {
-            // This is a record line.
-        }
-
-The reader will automatically return a line of the appropriate type depending on how it was configured and what it was expecting.
-
-You can define your own record line model that uses properties to access indivisual fields.  These custom record line models will derive from the base `CsvFileRecordLine` implementation.
-```
-public class MyCustomRecordLine : CsvFileRecordLine
-{
-    public int Id
-    {
-        get => GetPropertyValue<int>();
-        set => SetPropertyValue(value);
-    }
-
-    public string? Name
-    {
-        get => GetPropertyValue<string?>();
-        set => SetPropertyValue(value);
-    }
-
-    public string? Description
-    {
-        get => GetPropertyValue<string?>();
-        set => SetPropertyValue(value);
-    }
-}
-```
-
-To use this custom record line, you would then specify this type when instantiating the reader, e.g. `CsvFileReader<MyCustomRecordLine>(...)`.
-
-You can also map properties on a custom line model to fields in the CSV file.  This can be done in either of two ways: either declaratively, decorating the properties with an attribute that describes the field associated with the property, or imperatively, using a separate mapper implementation.
-
-A declarative mapping might look something like this:
-```
-public class MyCustomRecordLine : CsvFileRecordLine
-{
-    [CsvFieldMapping("identifier")]
-    [TypeConverter(typeof(Int32Converter))]
-    public int Id
-    {
-        get => GetPropertyValue<int>();
-        set => SetPropertyValue(value);
-    }
-
-    [CsvFieldMapping("person_name")]
-    public string? Name
-    {
-        get => GetPropertyValue<string?>();
-        set => SetPropertyValue(value);
-    }
-
-    [CsvFieldMapping("person_description", IsOptional = true)]
-    public string? Description
-    {
-        get => GetPropertyValue<string?>();
-        set => SetPropertyValue(value);
-    }
-}
-```
-
-Whereas the same mapping defined imperatively might look like this:
-```
-public class MyCustomRecordLineMapper : CsvFileMapperBase<MyCustomRecordLine>
-{
-    public MyCustomRecordLineMapper()
-    {
-        this.Map()
-            .Property(x => x.Id)
-            .HasFieldName("identifier")
-            .ConvertUsing(typeof(Int32Converter));
-        this.Map()
-            .Property(x => x.Name)
-            .HasFieldName("person_name");
-        this.Map()
-            .Property(x => x.Description)
-            .HasFieldName("person_description")
-            .IsOptional();
-    }
-}
-```
-
-Note that due to technical limitations, certain mapping functionality is unavailable in the declarative form and can only be utilized using imperative mappers.
-
-Writing CSV files is very similar to reading them.
-
-            ICsvFileLine recordLine = new CsvFileRecordLine
-            {
-                { "identifier", "1" },
-                { "person_name", "John Doe" },
-                { "person_description", "Male" }
-            };
-            var lines = new List<ICsvFileLine> { recordLine };
-
-            using (var writer = new StreamWriter(@"file_name.csv"))
-            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(writer))
-            {
-                foreach (var line in lines)
-                {
-                    csvWriter.WriteLine(line);
-                }
-            }
-
-Note that if your file should contain a header line, it is up to you to make sure that the first line you write to the file is a `CsvFileHeaderLine` followed by `CsvFileRecordLine` objects (or derivative implementations) for the record lines.
-
-## DataStandardizer.ISO15924
-
-| Type | Description |
-| --- | --- |
-| `Iso15924Script` | An enum containing script codes from ISO 15924.  Includes both the four-letter alpha codes and three-digit numeric codes from the standard as the name and value of the members, respectively. |
-
-## DataStandardizer.ISO3166
-
-| Type | Description |
-| --- | --- |
-| `Iso3166Part1Alpha2Country` | An enum containing the country codes from ISO 3166-1 Alpha-2.  Includes both the two-letter alpha codes and numeric codes from the standard as the name and value of the members, respectively. |
-| `Iso3166Part1Alpha3Country` | An enum containing the country codes from ISO 3166-1 Alpha-3.  Includes both the three-letter alpha codes and numeric codes from the standard as the name and value of the members, respectively. |
-| `Iso3166Part2Subdivision` | An enum containing the subdivision codes from ISO 3166-2.  Given the hierarchical nature of these codes, this implementation uses a nested structure to access the codes so that each group of subdivision codes is grouped under a nested type named after the country code of the country the subdivision codes belong to. |
-
-## DataStandardizer.ISO4217
-
-| Type | Description |
-| --- | --- |
-| `Iso4217CurrencyCurrent` | An enum containing active currency codes from ISO 4217.  Includes both the three-letter alpha codes and numeric codes from the standard as the name and value of each member, respectively. |
-| `Iso4217CurrencyHistoric` | An enum containing retired currency codes from ISO 4217.  Includes both the three-letter alpha codes and numeric codes from the standard as the name and value of each member, respectively. |
-
-## DataStandardizer.ISO639
-
-| Type | Description |
-| --- | --- |
-| `Iso639Part1Language` | An enum containing the alpha-2 language codes from ISO 639-1. |
-| `Iso639Part2BLanguage` | An enum containing the bibliographic alpha-3 language codes from ISO 639-2. |
-| `Iso639Part2TLanguage` | An enum containing the terminological alpha-3 language codes from ISO 639-2. |
-| `Iso639Part3Language` | An enum containing the alpha-3 language codes from ISO 639-3. |
-| `Iso639Part5LanguageFamily` | An enum containing the alpha-3 language family codes from ISO 639-5. |
-
-## DataStandardizer.Money
-
-| Type | Description |
-| --- | --- |
-| `Money` | A data type for handling a monetary value comprising an amount and a currency code.  Optionally supports user-specified rounding that is applied on conversion to a `decimal` value. |
-
-## DataStandardizer.UNM49
-
-| Type | Description |
-| --- | --- |
-| `UnM49AreaByAlpha2CountryCode` | An enum containing the numeric M49 codes from standard UN M49.  Because of technical requirements on the naming of members, each code is keyed on its corresponding ISO 3166-1 alpha-2 code. |
-| `UnM49AreaByAlpha3CountryCode` | An enum containing the numeric M49 codes from standard UN M49.  Because of technical requirements on the naming of members, each code is keyed on its corresponding ISO 3166-1 alpha-3 code. |
-
-N.B. Because of the way the source data is arranged, the above enums only directly include members representing M.49 codes that have a corresponding alpha-2 or alpha-3 code from ISO 3166-1.  There are additional M.49 codes representing supra-national regions or other areas that are included as metadata on these enum members, and can be retrieved using provided extension methods.
+For more advanced usage and configuration options, see the [project documentation](https://matthew25187.github.io/DataStandardizer/).

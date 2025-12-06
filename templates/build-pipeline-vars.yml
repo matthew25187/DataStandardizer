@@ -11,6 +11,12 @@ parameters:
 - name: requirePackageDataStandardizerFile
   type: string
   default: None
+- name: requirePackageDataStandardizerFileCSV
+  type: string
+  default: None
+- name: requirePackageDataStandardizerGeography
+  type: string
+  default: None
 - name: requirePackageDataStandardizerIso15924
   type: string
   default: None
@@ -21,6 +27,12 @@ parameters:
   type: string
   default: None
 - name: requirePackageDataStandardizerIso639
+  type: string
+  default: None
+- name: requirePackageDataStandardizerLanguage
+  type: string
+  default: None
+- name: requirePackageDataStandardizerLanguageTag
   type: string
   default: None
 - name: requirePackageDataStandardizerMoney
@@ -36,10 +48,14 @@ parameters:
     - DataStandardizer.BCP47
     - DataStandardizer.Chronology
     - DataStandardizer.File
+    - DataStandardizer.File.CSV
+    - DataStandardizer.Geography
     - DataStandardizer.ISO15924
     - DataStandardizer.ISO3166
     - DataStandardizer.ISO4217
     - DataStandardizer.ISO639
+    - DataStandardizer.Language
+    - DataStandardizer.LanguageTag
     - DataStandardizer.Money
     - DataStandardizer.UNM49
 - name: packages
@@ -61,6 +77,14 @@ parameters:
     variableGroupId: 65
     packageSourcePath: src/DataStandardizer.File
     enableTests: 1
+  - packageName: DataStandardizer.File.CSV
+    variableGroupId: 69
+    packageSourcePath: src/DataStandardizer.File.CSV
+    enableTests: 1
+  - packageName: DataStandardizer.Geography
+    variableGroupId: 67
+    packageSourcePath: src/DataStandardizer.Geography
+    enableTests: 1
   - packageName: DataStandardizer.ISO15924
     variableGroupId: 24
     packageSourcePath: src/DataStandardizer.ISO15924
@@ -76,6 +100,14 @@ parameters:
   - packageName: DataStandardizer.ISO639
     variableGroupId: 21
     packageSourcePath: src/DataStandardizer.ISO639
+    enableTests: 1
+  - packageName: DataStandardizer.Language
+    variableGroupId: 66
+    packageSourcePath: src/DataStandardizer.Language
+    enableTests: 1
+  - packageName: DataStandardizer.LanguageTag
+    variableGroupId: 68
+    packageSourcePath: src/DataStandardizer.LanguageTag
     enableTests: 1
   - packageName: DataStandardizer.Money
     variableGroupId: 63
@@ -97,11 +129,11 @@ variables:
   value: ${{ replace('PACKAGE_NAMES,^Z', 'PACKAGE_NAMES', join(',',parameters.packageNames)) }}  # this variable value MUST terminate with trailing comma and ^Z character sequence
   readonly: true
 - name: allPackageNames
-  value: ${{ replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(variables.packageNames, 'DataStandardizer.File,', iif(contains(variables.packageInfos, 'DataStandardizer.File'), 'DataStandardizer.File,', '')), 'DataStandardizer.Chronology,', iif(contains(variables.packageInfos, 'DataStandardizer.Chronology'), 'DataStandardizer.Chronology,', '')), 'DataStandardizer.Money,', iif(contains(variables.packageInfos, 'DataStandardizer.Money'), 'DataStandardizer.Money,', '')), 'DataStandardizer.UNM49,', iif(contains(variables.packageInfos, 'DataStandardizer.UNM49'), 'DataStandardizer.UNM49,', '')), 'DataStandardizer.ISO639,', iif(contains(variables.packageInfos, 'DataStandardizer.ISO639'), 'DataStandardizer.ISO639,', '')), 'DataStandardizer.ISO4217,', iif(contains(variables.packageInfos, 'DataStandardizer.ISO4217'), 'DataStandardizer.ISO4217,', '')), 'DataStandardizer.ISO3166,', iif(contains(variables.packageInfos, 'DataStandardizer.ISO3166'), 'DataStandardizer.ISO3166,', '')), 'DataStandardizer.ISO15924,', iif(contains(variables.packageInfos, 'DataStandardizer.ISO15924'), 'DataStandardizer.ISO15924,', '')), 'DataStandardizer.BCP47,', iif(contains(variables.packageInfos, 'DataStandardizer.BCP47'), 'DataStandardizer.BCP47,', '')), 'DataStandardizer.Core,', iif(contains(variables.packageInfos, 'DataStandardizer.Core'), 'DataStandardizer.Core,', '')), ',^Z', ''), '^Z', '') }}
+  value: ${{ replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(variables.packageNames, 'DataStandardizer.File.CSV,', iif(contains(variables.packageInfos, 'DataStandardizer.File.CSV'), 'DataStandardizer.File.CSV,', '')), 'DataStandardizer.LanguageTag,', iif(contains(variables.packageInfos, 'DataStandardizer.LanguageTag'), 'DataStandardizer.LanguageTag,', '')), 'DataStandardizer.Geography,', iif(contains(variables.packageInfos, 'DataStandardizer.Geography'), 'DataStandardizer.Geography,', '')), 'DataStandardizer.Language,', iif(contains(variables.packageInfos, 'DataStandardizer.Language'), 'DataStandardizer.Language,', '')), 'DataStandardizer.File,', iif(contains(variables.packageInfos, 'DataStandardizer.File'), 'DataStandardizer.File,', '')), 'DataStandardizer.Chronology,', iif(contains(variables.packageInfos, 'DataStandardizer.Chronology'), 'DataStandardizer.Chronology,', '')), 'DataStandardizer.Money,', iif(contains(variables.packageInfos, 'DataStandardizer.Money'), 'DataStandardizer.Money,', '')), 'DataStandardizer.UNM49,', iif(contains(variables.packageInfos, 'DataStandardizer.UNM49'), 'DataStandardizer.UNM49,', '')), 'DataStandardizer.ISO639,', iif(contains(variables.packageInfos, 'DataStandardizer.ISO639'), 'DataStandardizer.ISO639,', '')), 'DataStandardizer.ISO4217,', iif(contains(variables.packageInfos, 'DataStandardizer.ISO4217'), 'DataStandardizer.ISO4217,', '')), 'DataStandardizer.ISO3166,', iif(contains(variables.packageInfos, 'DataStandardizer.ISO3166'), 'DataStandardizer.ISO3166,', '')), 'DataStandardizer.ISO15924,', iif(contains(variables.packageInfos, 'DataStandardizer.ISO15924'), 'DataStandardizer.ISO15924,', '')), 'DataStandardizer.BCP47,', iif(contains(variables.packageInfos, 'DataStandardizer.BCP47'), 'DataStandardizer.BCP47,', '')), 'DataStandardizer.Core,', iif(contains(variables.packageInfos, 'DataStandardizer.Core'), 'DataStandardizer.Core,', '')), ',^Z', ''), '^Z', '') }}
   readonly: true
 - name: buildRequiredPackageNames
-  value: ${{ replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(variables.packageNames, 'DataStandardizer.File,', iif(eq(parameters.requirePackageDataStandardizerFile, 'Build'), 'DataStandardizer.File,', '')), 'DataStandardizer.Chronology,', iif(eq(parameters.requirePackageDataStandardizerChronology, 'Build'), 'DataStandardizer.Chronology,', '')), 'DataStandardizer.Money,', iif(eq(parameters.requirePackageDataStandardizerMoney, 'Build'), 'DataStandardizer.Money,', '')), 'DataStandardizer.UNM49,', iif(eq(parameters.requirePackageDataStandardizerUnM49, 'Build'), 'DataStandardizer.UNM49,', '')), 'DataStandardizer.ISO639,', iif(eq(parameters.requirePackageDataStandardizerIso639, 'Build'), 'DataStandardizer.ISO639,', '')), 'DataStandardizer.ISO4217,', iif(eq(parameters.requirePackageDataStandardizerIso4217, 'Build'), 'DataStandardizer.ISO4217,', '')), 'DataStandardizer.ISO3166,', iif(eq(parameters.requirePackageDataStandardizerIso3166, 'Build'), 'DataStandardizer.ISO3166,', '')), 'DataStandardizer.ISO15924,', iif(eq(parameters.requirePackageDataStandardizerIso15924, 'Build'), 'DataStandardizer.ISO15924,', '')), 'DataStandardizer.BCP47,', iif(eq(parameters.requirePackageDataStandardizerBcp47, 'Build'), 'DataStandardizer.BCP47,', '')), 'DataStandardizer.Core,', iif(eq(parameters.requirePackageDataStandardizerCore, 'Build'), 'DataStandardizer.Core,', '')), ',^Z', ''), '^Z', '') }}
+  value: ${{ replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(variables.packageNames, 'DataStandardizer.File.CSV,', iif(eq(parameters.requirePackageDataStandardizerFileCSV, 'Build'), 'DataStandardizer.File.CSV,', '')), 'DataStandardizer.LanguageTag,', iif(eq(parameters.requirePackageDataStandardizerLanguageTag, 'Build'), 'DataStandardizer.LanguageTag,', '')), 'DataStandardizer.Geography,', iif(eq(parameters.requirePackageDataStandardizerGeography, 'Build'), 'DataStandardizer.Geography,', '')), 'DataStandardizer.Language,', iif(eq(parameters.requirePackageDataStandardizerLanguage, 'Build'), 'DataStandardizer.Language,', '')), 'DataStandardizer.File,', iif(eq(parameters.requirePackageDataStandardizerFile, 'Build'), 'DataStandardizer.File,', '')), 'DataStandardizer.Chronology,', iif(eq(parameters.requirePackageDataStandardizerChronology, 'Build'), 'DataStandardizer.Chronology,', '')), 'DataStandardizer.Money,', iif(eq(parameters.requirePackageDataStandardizerMoney, 'Build'), 'DataStandardizer.Money,', '')), 'DataStandardizer.UNM49,', iif(eq(parameters.requirePackageDataStandardizerUnM49, 'Build'), 'DataStandardizer.UNM49,', '')), 'DataStandardizer.ISO639,', iif(eq(parameters.requirePackageDataStandardizerIso639, 'Build'), 'DataStandardizer.ISO639,', '')), 'DataStandardizer.ISO4217,', iif(eq(parameters.requirePackageDataStandardizerIso4217, 'Build'), 'DataStandardizer.ISO4217,', '')), 'DataStandardizer.ISO3166,', iif(eq(parameters.requirePackageDataStandardizerIso3166, 'Build'), 'DataStandardizer.ISO3166,', '')), 'DataStandardizer.ISO15924,', iif(eq(parameters.requirePackageDataStandardizerIso15924, 'Build'), 'DataStandardizer.ISO15924,', '')), 'DataStandardizer.BCP47,', iif(eq(parameters.requirePackageDataStandardizerBcp47, 'Build'), 'DataStandardizer.BCP47,', '')), 'DataStandardizer.Core,', iif(eq(parameters.requirePackageDataStandardizerCore, 'Build'), 'DataStandardizer.Core,', '')), ',^Z', ''), '^Z', '') }}
   readonly: true
 - name: publicationRequiredPackageNames
-  value: ${{ replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(variables.packageNames, 'DataStandardizer.File,', iif(eq(parameters.requirePackageDataStandardizerFile, 'Publication'), 'DataStandardizer.File,', '')), 'DataStandardizer.Chronology,', iif(eq(parameters.requirePackageDataStandardizerChronology, 'Publication'), 'DataStandardizer.Chronology,', '')), 'DataStandardizer.Money,', iif(eq(parameters.requirePackageDataStandardizerMoney, 'Publication'), 'DataStandardizer.Money,', '')), 'DataStandardizer.UNM49,', iif(eq(parameters.requirePackageDataStandardizerUnM49, 'Publication'), 'DataStandardizer.UNM49,', '')), 'DataStandardizer.ISO639,', iif(eq(parameters.requirePackageDataStandardizerIso639, 'Publication'), 'DataStandardizer.ISO639,', '')), 'DataStandardizer.ISO4217,', iif(eq(parameters.requirePackageDataStandardizerIso4217, 'Publication'), 'DataStandardizer.ISO4217,', '')), 'DataStandardizer.ISO3166,', iif(eq(parameters.requirePackageDataStandardizerIso3166, 'Publication'), 'DataStandardizer.ISO3166,', '')), 'DataStandardizer.ISO15924,', iif(eq(parameters.requirePackageDataStandardizerIso15924, 'Publication'), 'DataStandardizer.ISO15924,', '')), 'DataStandardizer.BCP47,', iif(eq(parameters.requirePackageDataStandardizerBcp47, 'Publication'), 'DataStandardizer.BCP47,', '')), 'DataStandardizer.Core,', iif(eq(parameters.requirePackageDataStandardizerCore, 'Publication'), 'DataStandardizer.Core,', '')), ',^Z', ''), '^Z', '') }}
+  value: ${{ replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(variables.packageNames, 'DataStandardizer.File.CSV,', iif(eq(parameters.requirePackageDataStandardizerFileCSV, 'Publication'), 'DataStandardizer.File.CSV,', '')), 'DataStandardizer.LanguageTag,', iif(eq(parameters.requirePackageDataStandardizerLanguageTag, 'Publication'), 'DataStandardizer.LanguageTag,', '')), 'DataStandardizer.Geography,', iif(eq(parameters.requirePackageDataStandardizerGeography, 'Publication'), 'DataStandardizer.Geography,', '')), 'DataStandardizer.Language,', iif(eq(parameters.requirePackageDataStandardizerLanguage, 'Publication'), 'DataStandardizer.Language,', '')), 'DataStandardizer.File,', iif(eq(parameters.requirePackageDataStandardizerFile, 'Publication'), 'DataStandardizer.File,', '')), 'DataStandardizer.Chronology,', iif(eq(parameters.requirePackageDataStandardizerChronology, 'Publication'), 'DataStandardizer.Chronology,', '')), 'DataStandardizer.Money,', iif(eq(parameters.requirePackageDataStandardizerMoney, 'Publication'), 'DataStandardizer.Money,', '')), 'DataStandardizer.UNM49,', iif(eq(parameters.requirePackageDataStandardizerUnM49, 'Publication'), 'DataStandardizer.UNM49,', '')), 'DataStandardizer.ISO639,', iif(eq(parameters.requirePackageDataStandardizerIso639, 'Publication'), 'DataStandardizer.ISO639,', '')), 'DataStandardizer.ISO4217,', iif(eq(parameters.requirePackageDataStandardizerIso4217, 'Publication'), 'DataStandardizer.ISO4217,', '')), 'DataStandardizer.ISO3166,', iif(eq(parameters.requirePackageDataStandardizerIso3166, 'Publication'), 'DataStandardizer.ISO3166,', '')), 'DataStandardizer.ISO15924,', iif(eq(parameters.requirePackageDataStandardizerIso15924, 'Publication'), 'DataStandardizer.ISO15924,', '')), 'DataStandardizer.BCP47,', iif(eq(parameters.requirePackageDataStandardizerBcp47, 'Publication'), 'DataStandardizer.BCP47,', '')), 'DataStandardizer.Core,', iif(eq(parameters.requirePackageDataStandardizerCore, 'Publication'), 'DataStandardizer.Core,', '')), ',^Z', ''), '^Z', '') }}
   readonly: true

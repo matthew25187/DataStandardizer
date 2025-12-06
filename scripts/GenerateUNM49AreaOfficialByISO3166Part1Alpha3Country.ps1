@@ -80,7 +80,7 @@ function Out-SourceCode {
         $compileUnit = [System.CodeDom.CodeCompileUnit]::new()
 
         # Declare namespace.
-        $namespace = [System.CodeDom.CodeNamespace]::new('DataStandardizer.UNM49')
+        $namespace = [System.CodeDom.CodeNamespace]::new('DataStandardizer.Geography')
         [void]$compileUnit.Namespaces.Add($namespace)
 
         # Declare type.
@@ -234,7 +234,7 @@ function Out-SourceCode {
         if (-not [string]::IsNullOrWhiteSpace($arabicCodeItem.'Country or Area')) {
             $codeAttributeArguments += [System.CodeDom.CodeAttributeArgument]::new('ArabicCountryOrAreaName', [System.CodeDom.CodePrimitiveExpression]::new($arabicCodeItem.'Country or Area'))
         }
-        $codeAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.UNM49.UnM49AreaCodeAttribute', $codeAttributeArguments)
+        $codeAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.Geography.UnM49AreaCodeAttribute', $codeAttributeArguments)
         [void]$enumField.CustomAttributes.Add($codeAttribute)
         
         # Add summary comment.

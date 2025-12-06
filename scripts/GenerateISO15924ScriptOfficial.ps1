@@ -50,7 +50,7 @@ function Out-SourceCode {
         $compileUnit = [System.CodeDom.CodeCompileUnit]::new()
 
         # Declare namespace.
-        $namespace = [System.CodeDom.CodeNamespace]::new('DataStandardizer.ISO15924')
+        $namespace = [System.CodeDom.CodeNamespace]::new('DataStandardizer.Language')
         [void]$compileUnit.Namespaces.Add($namespace)
 
         # Declare type.
@@ -89,7 +89,7 @@ function Out-SourceCode {
         if (-not [string]::IsNullOrWhiteSpace($_.PVA)) {
             $codeAttributeArguments += [System.CodeDom.CodeAttributeArgument]::new('Alias', [System.CodeDom.CodePrimitiveExpression]::new($_.PVA))
         }
-        $codeAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.ISO15924.Iso15924ScriptCodeAttribute', $codeAttributeArguments)
+        $codeAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.Language.Iso15924ScriptCodeAttribute', $codeAttributeArguments)
         [void]$enumField.CustomAttributes.Add($codeAttribute)
 
         $enumFieldOpenSummaryComment = [System.CodeDom.CodeCommentStatement]::new('<summary>', $true)
