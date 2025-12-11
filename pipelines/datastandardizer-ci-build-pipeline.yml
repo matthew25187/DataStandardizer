@@ -42,6 +42,14 @@ parameters:
     - None
     - Build
     - Publication
+  - name: requirePackageDataStandardizerCommunication
+    displayName: 'Force DataStandardizer.Communication package'
+    type: string
+    default: None
+    values:
+    - None
+    - Build
+    - Publication
   - name: requirePackageDataStandardizerFile
     displayName: 'Force DataStandardizer.File package'
     type: string
@@ -177,6 +185,7 @@ variables:
       requirePackageDataStandardizerCore: ${{ parameters.requirePackageDataStandardizerCore }}
       requirePackageDataStandardizerBcp47: ${{ parameters.requirePackageDataStandardizerBcp47 }}
       requirePackageDataStandardizerChronology: ${{ parameters.requirePackageDataStandardizerChronology }}
+      requirePackageDataStandardizerCommunication: ${{ parameters.requirePackageDataStandardizerCommunication }}
       requirePackageDataStandardizerFile: ${{ parameters.requirePackageDataStandardizerFile }}
       requirePackageDataStandardizerFileCSV: ${{ parameters.requirePackageDataStandardizerFileCSV }}
       requirePackageDataStandardizerGeography: ${{ parameters.requirePackageDataStandardizerGeography }}
