@@ -15,7 +15,7 @@ namespace DataStandardizer.Communication.E164
     /// It supports various types of numbers, including those for geographic areas,
     /// global services, networks, groups of countries, and trials.
     /// </remarks>
-    public readonly struct ItuE164InternationalNumber : IEquatable<ItuE164InternationalNumber>,
+    public readonly struct ItuE164InternationalNumber : IEquatable<ItuE164InternationalNumber>,IFormattable,
         IItuE164InternationalNumberForGeographicAreas,
         IItuE164InternationalNumberForGlobalServices,
         IItuE164InternationalNumberForNetworks,
@@ -139,6 +139,30 @@ namespace DataStandardizer.Communication.E164
             return _numberStructure is IItuE164InternationalNumberForTrials;
         }
 
+        public override string ToString()
+        {
+            var formatter = TelephonyInfo.InvariantTelephony.GetFormat(typeof(ICustomFormatter)) as ICustomFormatter;
+            return formatter?.Format("G", this, null) ?? base.ToString();
+        }
+
+        public string ToString(string format)
+        {
+            var formatter = TelephonyInfo.InvariantTelephony.GetFormat(typeof(ICustomFormatter)) as ICustomFormatter;
+            return formatter?.Format(format, this, null) ?? base.ToString();
+        }
+
+        public string ToString(IFormatProvider formatProvider)
+        {
+            var formatter = formatProvider.GetFormat(typeof(ICustomFormatter)) as ICustomFormatter;
+            return formatter?.Format("G", this, formatProvider) ?? base.ToString();
+        }
+
+        public string ToString(string format, IFormatProvider formatProvider)
+        {
+            var formatter = formatProvider.GetFormat(typeof(ICustomFormatter)) as ICustomFormatter;
+            return formatter?.Format(format, this, formatProvider) ?? base.ToString();
+        }
+
         #endregion
 
         #region Public Properties
@@ -148,30 +172,38 @@ namespace DataStandardizer.Communication.E164
         ushort IItuE164InternationalNumber.CountryCode => _numberStructure?.CountryCode ??
                                                           throw new NotSupportedException(string.Format(ErrorMessage.FieldNotSupportedTemplate, "Country Code"));
 
-        ItuE164NationalSignificantNumber IItuE164InternationalNumberForGeographicAreas.NationalSignificantNumber => (_numberStructure as IItuE164InternationalNumberForGeographicAreas)?.NationalSignificantNumber ??
-                                                                                                                    throw new NotSupportedException(string.Format(ErrorMessage.FieldNotSupportedTemplate, "National Significant Number"));
+        ItuE164NationalSignificantNumber IItuE164InternationalNumberForGeographicAreas.NationalSignificantNumber => _numberStructure is IItuE164InternationalNumberForGeographicAreas numberStructureForGeographicAreas
+            ? numberStructureForGeographicAreas.NationalSignificantNumber
+            : throw new NotSupportedException(string.Format(ErrorMessage.FieldNotSupportedTemplate, "National Significant Number"));
 
-        ItuE164AssignedIdentificationCodesForNetworks IItuE164InternationalNumberForNetworks.IdentificationCode => (_numberStructure as IItuE164InternationalNumberForNetworks)?.IdentificationCode ??
-                                                                                                                   throw new NotSupportedException(string.Format(ErrorMessage.FieldNotSupportedTemplate, "Identification Code"));
+        ItuE164AssignedIdentificationCodesForNetworks IItuE164InternationalNumberForNetworks.IdentificationCode => _numberStructure is IItuE164InternationalNumberForNetworks numberStructureForNetworks
+            ? numberStructureForNetworks.IdentificationCode
+            : throw new NotSupportedException(string.Format(ErrorMessage.FieldNotSupportedTemplate, "Identification Code"));
 
-        ItuE164AssignedGroupIdentificationCodesForGroupsOfCountries IItuE164InternationalNumberForGroupsOfCountries.GroupIdentificationCode => (_numberStructure as IItuE164InternationalNumberForGroupsOfCountries)?.GroupIdentificationCode ??
-                                                                                                                                               throw new NotSupportedException(string.Format(ErrorMessage.FieldNotSupportedTemplate,
-                                                                                                                                                   "Group Identification Code"));
+        ItuE164AssignedGroupIdentificationCodesForGroupsOfCountries IItuE164InternationalNumberForGroupsOfCountries.GroupIdentificationCode =>
+            _numberStructure is IItuE164InternationalNumberForGroupsOfCountries numberStructureForGroupsOfCountries
+                ? numberStructureForGroupsOfCountries.GroupIdentificationCode
+                : throw new NotSupportedException(string.Format(ErrorMessage.FieldNotSupportedTemplate, "Group Identification Code"));
 
-        ItuE164AssignedTrialIdentificationCodesForTrials IItuE164InternationalNumberForTrials.TrialIdentificationCode => (_numberStructure as IItuE164InternationalNumberForTrials)?.TrialIdentificationCode ??
-                                                                                                                         throw new NotSupportedException(string.Format(ErrorMessage.FieldNotSupportedTemplate, "Trial Identification Code"));
+        ItuE164AssignedTrialIdentificationCodesForTrials IItuE164InternationalNumberForTrials.TrialIdentificationCode => _numberStructure is IItuE164InternationalNumberForTrials numberStructureForTrials
+            ? numberStructureForTrials.TrialIdentificationCode
+            : throw new NotSupportedException(string.Format(ErrorMessage.FieldNotSupportedTemplate, "Trial Identification Code"));
 
-        ItuE164SubscriberNumber? IItuE164InternationalNumberForTrials.SubscriberNumber => (_numberStructure as IItuE164InternationalNumberForTrials)?.SubscriberNumber ??
-                                                                                          throw new NotSupportedException(string.Format(ErrorMessage.FieldNotSupportedTemplate, "Subscriber Number"));
+        ItuE164SubscriberNumber? IItuE164InternationalNumberForTrials.SubscriberNumber => _numberStructure is IItuE164InternationalNumberForTrials numberStructureForTrials
+            ? numberStructureForTrials.SubscriberNumber
+            : throw new NotSupportedException(string.Format(ErrorMessage.FieldNotSupportedTemplate, "Subscriber Number"));
 
-        ItuE164SubscriberNumber IItuE164InternationalNumberForGroupsOfCountries.SubscriberNumber => (_numberStructure as IItuE164InternationalNumberForGroupsOfCountries)?.SubscriberNumber ??
-                                                                                                    throw new NotSupportedException(string.Format(ErrorMessage.FieldNotSupportedTemplate, "Subscriber Number"));
+        ItuE164SubscriberNumber IItuE164InternationalNumberForGroupsOfCountries.SubscriberNumber => _numberStructure is IItuE164InternationalNumberForGroupsOfCountries numberStructureForGroupsOfCountries
+            ? numberStructureForGroupsOfCountries.SubscriberNumber
+            : throw new NotSupportedException(string.Format(ErrorMessage.FieldNotSupportedTemplate, "Subscriber Number"));
 
-        ItuE164SubscriberNumber IItuE164InternationalNumberForNetworks.SubscriberNumber => (_numberStructure as IItuE164InternationalNumberForNetworks)?.SubscriberNumber ??
-                                                                                           throw new NotSupportedException(string.Format(ErrorMessage.FieldNotSupportedTemplate, "Subscriber Number"));
+        ItuE164SubscriberNumber IItuE164InternationalNumberForNetworks.SubscriberNumber => _numberStructure is IItuE164InternationalNumberForNetworks numberStructureForNetworks
+            ? numberStructureForNetworks.SubscriberNumber
+            : throw new NotSupportedException(string.Format(ErrorMessage.FieldNotSupportedTemplate, "Subscriber Number"));
 
-        ItuE164GlobalSubscriberNumber IItuE164InternationalNumberForGlobalServices.GlobalSubscriberNumber => (_numberStructure as IItuE164InternationalNumberForGlobalServices)?.GlobalSubscriberNumber ??
-                                                                                                             throw new NotSupportedException(string.Format(ErrorMessage.FieldNotSupportedTemplate, "Global Subscriber Number"));
+        ItuE164GlobalSubscriberNumber IItuE164InternationalNumberForGlobalServices.GlobalSubscriberNumber => _numberStructure is IItuE164InternationalNumberForGlobalServices numberStructureForGlobalServices
+            ? numberStructureForGlobalServices.GlobalSubscriberNumber
+            : throw new NotSupportedException(string.Format(ErrorMessage.FieldNotSupportedTemplate, "Global Subscriber Number"));
 
         #endregion
 

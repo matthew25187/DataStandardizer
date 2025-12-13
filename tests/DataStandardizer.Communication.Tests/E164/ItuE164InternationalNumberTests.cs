@@ -1,7 +1,7 @@
 ﻿using DataStandardizer.Communication.E164;
 using FluentAssertions;
 
-namespace DataStandardizer.Communication.Tests
+namespace DataStandardizer.Communication.Tests.E164
 {
     public class ItuE164InternationalNumberTests
     {

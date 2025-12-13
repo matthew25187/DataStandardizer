@@ -123,7 +123,7 @@ namespace DataStandardizer.Communication.E164
 
             // Second, extract Subscriber Number from whole number.
             subscriberNumberPart = Number > 9999 ? Number.ToString().Substring(4) : null;
-            return subscriberNumberPart != null ? new ItuE164SubscriberNumber(subscriberNumberPart) : default;
+            return subscriberNumberPart != null ? new ItuE164SubscriberNumber(subscriberNumberPart) : default(ItuE164SubscriberNumber?);
         }
 
         private ItuE164AssignedTrialIdentificationCodesForTrials DoGetTrialIdentificationCode()
