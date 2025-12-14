@@ -10,11 +10,20 @@ namespace DataStandardizer.Communication.E164
     /// </summary>
     public sealed class ItuE164InternationalNumberFormatInfo : IFormatProvider
     {
-        public const char InternationalPrefixSymbol = '+';
-
         private string _longInternationalNumberPattern;
         private string _shortInternationalNumberPattern;
 
+#if NETCOREAPP3_0_OR_GREATER
+        public object? GetFormat(Type? formatType)
+        {
+            if (formatType == typeof(ItuE164InternationalNumberFormatInfo))
+            {
+                return this;
+            }
+
+            return null;
+        }
+#else
         public object GetFormat(Type formatType)
         {
             if (formatType == typeof(ItuE164InternationalNumberFormatInfo))
@@ -24,6 +33,8 @@ namespace DataStandardizer.Communication.E164
 
             return null;
         }
+#endif
+
 
         public bool IsReadOnly { get; internal set; }
 

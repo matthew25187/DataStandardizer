@@ -3,10 +3,9 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using System.Text.RegularExpressions;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using JetBrains.Annotations;
 #endif
 
 namespace DataStandardizer.Communication.E164
@@ -18,68 +17,23 @@ namespace DataStandardizer.Communication.E164
             internal const string InvalidValueTemplate = "{0} is invalid.";
         }
 
-        private static class NumberPart
-        {
-            internal const string CountryCode = "CountryCode";
-            internal const string IdentificationCode = "IdentificationCode";
-            internal const string SubscriberNumber = "SubscriberNumber";
-        }
-
         private const NumberStyles NumberStyles = System.Globalization.NumberStyles.None;
-        private static readonly ILookup<ushort, ItuE164AssignedIdentificationCodesForNetworks> IdentificationCodeLookup;
-        private static readonly Regex InternationalNumberExpression;
+        private static readonly ILookup<ushort, ushort> IdentificationCodeLookup;
 
         private Dictionary<string, string> _numberParts = new Dictionary<string, string>();
 
         static ItuE164InternationalNumberStructureForNetworks()
         {
-            // Create lookup for Identification Code by Country Code.
-            IdentificationCodeLookup = typeof(ItuE164AssignedIdentificationCodesForNetworks).GetTypeInfo().DeclaredFields
-#if NETSTANDARD2_0_OR_GREATER||NETCOREAPP2_0_OR_GREATER
-                .Where(field => Attribute.IsDefined(field, typeof(ItuE164SharedCodeAttribute)))
-#endif
-                .Select(field =>
-                {
-                    var sharedCodeAttribute = field.GetCustomAttribute<ItuE164SharedCodeAttribute>();
-                    return new
-                    {
-#if NETCOREAPP3_0_OR_GREATER
-                        CountryCode = (ushort)sharedCodeAttribute?.CountryCode!,
-                        IdentificationCode = (ItuE164AssignedIdentificationCodesForNetworks)field.GetValue(null)!
-#else
-                        sharedCodeAttribute.CountryCode,
-                        IdentificationCode = (ItuE164AssignedIdentificationCodesForNetworks)field.GetValue(null)
-#endif
-                    };
-                })
-                .ToLookup(kvp => kvp.CountryCode,kvp=>kvp.IdentificationCode);
-            
             // Compose patterns for numbers with and without spacing.
-            var internationalNumberPatternBuilder = new StringBuilder();
-            var isFirst = true;
-            var subPatterns =
-                from countryCode in Enum.GetValues(typeof(ItuE164AssignedCountryCodesForNetworks)).Cast<ushort>()
-                from identificationCode in Enum.GetValues(typeof(ItuE164AssignedIdentificationCodesForNetworks)).Cast<ItuE164AssignedIdentificationCodesForNetworks>()
-                let sharedCodeAttribute = typeof(ItuE164AssignedIdentificationCodesForNetworks).GetTypeInfo().DeclaredFields
-                    .Single(field => field.GetValue(identificationCode)?.Equals(identificationCode) ?? false)
-                    .GetCustomAttribute<ItuE164SharedCodeAttribute>()
-                where sharedCodeAttribute.CountryCode == countryCode
-                select string.Concat("(?<", NumberPart.CountryCode, ">", countryCode, @")\s*(?<", NumberPart.IdentificationCode, ">", (ushort)identificationCode, @")\s*(?<", NumberPart.SubscriberNumber, @">\d{1,",
-                    12 - $"{(ushort)identificationCode}".Length, "})");
-            foreach (var subPattern in subPatterns)
-            {
-                if (!isFirst) internationalNumberPatternBuilder.Append("|");
-                internationalNumberPatternBuilder.Append(subPattern);
-
-                isFirst = false;
-            }
-
-            // Compose expressions for parsing a number.
-            var expressionOptions = RegexOptions.Singleline;
-#if NETSTANDARD1_3_OR_GREATER||NET
-            expressionOptions |= RegexOptions.Compiled;
-#endif
-            InternationalNumberExpression = new Regex(string.Concat(@"^(?:\+\s*)?(?:", internationalNumberPatternBuilder, ")"), expressionOptions);
+            IdentificationCodeLookup = (
+                    from countryCode in Enum.GetValues(typeof(ItuE164AssignedCountryCodesForNetworks)).Cast<ushort>()
+                    from identificationCode in Enum.GetValues(typeof(ItuE164AssignedIdentificationCodesForNetworks)).Cast<ItuE164AssignedIdentificationCodesForNetworks>()
+                    let sharedCodeAttribute = typeof(ItuE164AssignedIdentificationCodesForNetworks).GetTypeInfo().DeclaredFields
+                        .Single(field => field.GetValue(identificationCode)?.Equals(identificationCode) ?? false)
+                        .GetCustomAttribute<ItuE164SharedCodeAttribute>()
+                    where sharedCodeAttribute.CountryCode == countryCode
+                    select new { CountryCode = countryCode, IdentificationCode = identificationCode })
+                .ToLookup(kvp => kvp.CountryCode, kvp => (ushort)kvp.IdentificationCode);
         }
 
         internal ItuE164InternationalNumberStructureForNetworks(ulong number) : base(number)
@@ -87,14 +41,15 @@ namespace DataStandardizer.Communication.E164
         }
 
 #if NETCOREAPP3_0_OR_GREATER
-        internal static bool TryParse(string s, out ItuE164InternationalNumberStructureForNetworks? result)
+        internal static bool TryParse(string s, ItuE164InternationalNumberStyles numberStyles, out ItuE164InternationalNumberStructureForNetworks? result)
 #else
-        internal static bool TryParse(string s, [CanBeNull] out ItuE164InternationalNumberStructureForNetworks result)
+        internal static bool TryParse(string s, ItuE164InternationalNumberStyles numberStyles, [CanBeNull] out ItuE164InternationalNumberStructureForNetworks result)
 #endif
         {
             var isParsed = false;
 
-            var parseMatch = InternationalNumberExpression.Match(s);
+            var parseExpression = GetParseExpression(typeof(ItuE164InternationalNumberStructureForNetworks), numberStyles, GetParsePattern);
+            var parseMatch = parseExpression.Match(s);
             if (parseMatch.Success)
             {
                 var countryCodePart = parseMatch.Groups[NumberPart.CountryCode].Value;
@@ -118,13 +73,18 @@ namespace DataStandardizer.Communication.E164
             }
 
             return isParsed;
+
+            string GetParsePattern(ItuE164InternationalNumberStyles styles)
+            {
+                return ComposePatternForParse(IdentificationCodeLookup, styles);
+            }
         }
 
         public override ushort CountryCode => DoGetCountryCode();
 
         public ItuE164AssignedIdentificationCodesForNetworks IdentificationCode => DoGetIdentificationCode() ?? throw new InvalidOperationException(string.Format(ErrorMessage.InvalidValueTemplate, "Identification Code"));
 
-        public ItuE164SubscriberNumber SubscriberNumber => DoGetSubscriberNumber()??throw new InvalidOperationException(string.Format(ErrorMessage.InvalidValueTemplate,"Subscriber Number"));
+        public ItuE164SubscriberNumber SubscriberNumber => DoGetSubscriberNumber() ?? throw new InvalidOperationException(string.Format(ErrorMessage.InvalidValueTemplate, "Subscriber Number"));
 
         private ushort DoGetCountryCode()
         {
@@ -150,9 +110,9 @@ namespace DataStandardizer.Communication.E164
             // Second, extract Identification Code from whole number.
             var number = Number.ToString();
             var identificationCodeItem = IdentificationCodeLookup[CountryCode]
-                .Select(code => new { Code = code, Part = $"{(ushort)code}" })
+                .Select(code => new { Code = code, Part = $"{code}" })
                 .FirstOrDefault(item => number.Substring(3, item.Part.Length) == item.Part);
-            return identificationCodeItem?.Code;
+            return (ItuE164AssignedIdentificationCodesForNetworks?)identificationCodeItem?.Code;
         }
 
         private ItuE164SubscriberNumber? DoGetSubscriberNumber()

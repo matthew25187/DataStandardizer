@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using static DataStandardizer.Communication.E164.ItuE164Constants;
 
 namespace DataStandardizer.Communication.E164
 {
@@ -16,14 +17,6 @@ namespace DataStandardizer.Communication.E164
     /// </remarks>
     public class ItuE164InternationalNumberFormatter : ICustomFormatter
     {
-        private static class FormatSpecifier
-        {
-            internal const string InternationalPrefixSymbol = "+";
-            internal const char CountryCodePlaceholder = 'c';
-            internal const char IdentificationCodePlaceholder = 'i';
-            internal const char SubscriberNumberPlaceholder = 's';
-        }
-
         private static class NumberPart
         {
             internal const string CountryCode = "CountryCode";
@@ -120,29 +113,29 @@ namespace DataStandardizer.Communication.E164
             {
                 case "g": // abbreviated general format
                 {
-                    formattedString = string.Concat(ItuE164InternationalNumberFormatInfo.InternationalPrefixSymbol, string.Concat(numberPartNames.Select(name => numberParts[name])));
+                    formattedString = string.Concat(InternationalPrefixSymbol, string.Concat(numberPartNames.Select(name => numberParts[name])));
                 }
                     break;
                 case "G": // full general format
                 {
-                    formattedString = string.Concat(ItuE164InternationalNumberFormatInfo.InternationalPrefixSymbol, string.Join(" ", numberPartNames.Select(name => numberParts[name])));
+                    formattedString = string.Concat(InternationalPrefixSymbol, string.Join(" ", numberPartNames.Select(name => numberParts[name])));
                 }
                     break;
                 case "i": // short international format
                 {
-                    formattedString = CustomFormatString(internationalNumberFormat.ShortInternationalNumberPattern, ItuE164InternationalNumberFormatInfo.InternationalPrefixSymbol, numberParts);
+                    formattedString = CustomFormatString(internationalNumberFormat.ShortInternationalNumberPattern, InternationalPrefixSymbol, numberParts);
                 }
                     break;
                 case "I": // long international format
                 {
-                    formattedString = CustomFormatString(internationalNumberFormat.LongInternationalNumberPattern, ItuE164InternationalNumberFormatInfo.InternationalPrefixSymbol, numberParts);
+                    formattedString = CustomFormatString(internationalNumberFormat.LongInternationalNumberPattern, InternationalPrefixSymbol, numberParts);
                 }
                     break;
 
                 default:
                 {
                     // custom format
-                    formattedString = CustomFormatString(format, ItuE164InternationalNumberFormatInfo.InternationalPrefixSymbol, numberParts);
+                    formattedString = CustomFormatString(format, InternationalPrefixSymbol, numberParts);
                 }
                     break;
             }
@@ -160,11 +153,11 @@ namespace DataStandardizer.Communication.E164
             var formattedStringBuilder = new StringBuilder();
             for (int customFormatIndex = 0; customFormatIndex < customFormat.Length;)
             {
-                if (customFormatIndex + FormatSpecifier.InternationalPrefixSymbol.Length <= customFormat.Length &&
-                    customFormat.Substring(customFormatIndex, FormatSpecifier.InternationalPrefixSymbol.Length) == FormatSpecifier.InternationalPrefixSymbol)
+                if (customFormatIndex + FormatSpecifier.InternationalPrefix.Length <= customFormat.Length &&
+                    customFormat.Substring(customFormatIndex, FormatSpecifier.InternationalPrefix.Length) == FormatSpecifier.InternationalPrefix)
                 {
                     formattedStringBuilder.Append(internationalPrefixSymbol);
-                    customFormatIndex += FormatSpecifier.InternationalPrefixSymbol.Length;
+                    customFormatIndex += FormatSpecifier.InternationalPrefix.Length;
                 }
                 else if (customFormat[customFormatIndex] == FormatSpecifier.CountryCodePlaceholder)
                 {

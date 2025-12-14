@@ -4,6 +4,9 @@ using System.Threading;
 using DataStandardizer.Communication.E164;
 using DataStandardizer.Geography;
 using DataStandardizer.LanguageTag;
+#if NETSTANDARD
+using JetBrains.Annotations; 
+#endif
 
 namespace DataStandardizer.Communication
 {
@@ -19,7 +22,11 @@ namespace DataStandardizer.Communication
     public class TelephonyInfo : IFormatProvider
     {
         private readonly ushort _countryCode;
-        private ItuE164InternationalNumberFormatter _formatter;
+#if NETCOREAPP3_0_OR_GREATER
+        private ItuE164InternationalNumberFormatter? _formatter; 
+#else
+        [CanBeNull] private ItuE164InternationalNumberFormatter _formatter; 
+#endif
         private bool _isReadOnly;
         private ItuE164InternationalNumberFormatInfo _ituE164InternationalNumberFormat;
 
@@ -48,6 +55,22 @@ namespace DataStandardizer.Communication
 
         #region Public Methods
 
+#if NETCOREAPP3_0_OR_GREATER
+        public object? GetFormat(Type? formatType)
+        {
+            if (formatType == typeof(ICustomFormatter))
+            {
+                return _formatter ??= new ItuE164InternationalNumberFormatter();
+            }
+
+            if (formatType == typeof(ItuE164InternationalNumberFormatInfo))
+            {
+                return ItuE164InternationalNumberFormat;
+            }
+
+            return null;
+        } 
+#else
         public object GetFormat(Type formatType)
         {
             if (formatType == typeof(ICustomFormatter))
@@ -62,6 +85,7 @@ namespace DataStandardizer.Communication
 
             return null;
         }
+#endif
 
         #endregion
 
@@ -153,6 +177,7 @@ namespace DataStandardizer.Communication
                 : new TelephonyInfo() { IsReadOnly = true };
         }
 #endif
+
         private void LoadInternationalNumberFormatInformation()
         {
             var formatInfo = new ItuE164InternationalNumberFormatInfo();

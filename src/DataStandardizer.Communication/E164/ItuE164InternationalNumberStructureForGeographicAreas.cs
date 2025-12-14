@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 #if NETSTANDARD
 using JetBrains.Annotations; 
 #endif
+using static DataStandardizer.Communication.E164.ItuE164Constants;
 
 namespace DataStandardizer.Communication.E164
 {
@@ -16,18 +17,15 @@ namespace DataStandardizer.Communication.E164
             internal const string InvalidValueTemplate = "{0} is invalid.";
         }
 
-        private static class NumberPart
-        {
-            internal const string CountryCode = "CountryCode";
-            internal const string NationalSignificantNumber = "NationalSignificantNumber";
-        }
-
         private const NumberStyles NumberStyles = System.Globalization.NumberStyles.None;
-        private static readonly Regex InternationalNumberExpression;
 
         private Dictionary<string, string> _numberParts = new Dictionary<string, string>();
 
-        static ItuE164InternationalNumberStructureForGeographicAreas()
+        internal ItuE164InternationalNumberStructureForGeographicAreas(ulong number) : base(number)
+        {
+        }
+
+        private static string GetParsePattern(ItuE164InternationalNumberStyles numberStyles)
         {
             // Compose sub-pattern for Country Code.
             var validCountryCodes = Enum.GetValues(typeof(ItuE164AssignedCountryCodesForGeographicAreas))
@@ -37,37 +35,32 @@ namespace DataStandardizer.Communication.E164
             var countryCodePattern = string.Join("|", validCountryCodes);
 
             // Compose expressions for parsing a number.
-            var expressionOptions = RegexOptions.Singleline;
-#if NETSTANDARD1_3_OR_GREATER||NET
-            expressionOptions |= RegexOptions.Compiled;
-#endif
-            InternationalNumberExpression = new Regex(string.Concat(@"^(?:\+\s*)?(?<", NumberPart.CountryCode, ">", countryCodePattern, @")\s*(?<", NumberPart.NationalSignificantNumber, @">\d+(?:\s+\d+)*)$"), expressionOptions);
+            return string.Concat(@"^(?=(?:\D*\d){2,", MaximumDigitCount, @"}\D*$)", numberStyles.HasFlag(ItuE164InternationalNumberStyles.AllowLeadingWhite) ? @"\p{Zs}*" : string.Empty,
+                numberStyles.HasFlag(ItuE164InternationalNumberStyles.AllowInternationalPrefixSymbol) ? $@"\{InternationalPrefixSymbol}" : string.Empty, "?[", PatternSeparatorCharacterClass, "]*(?<", NumberPart.CountryCode, ">",
+                countryCodePattern, ")[", PatternSeparatorCharacterClass, "]*(?<", NumberPart.SubscriberNumber, @">\d(?:[", PatternSeparatorCharacterClass, @"]*\d){1,", MaximumDigitCount - 1, "})",
+                numberStyles.HasFlag(ItuE164InternationalNumberStyles.AllowTrailingWhite) ? @"\p{Zs}*" : string.Empty, "$");
         }
-
-        internal ItuE164InternationalNumberStructureForGeographicAreas(ulong number) : base(number)
-        {
-        }
-
 #if NETCOREAPP3_0_OR_GREATER
-        internal static bool TryParse(string s, out ItuE164InternationalNumberStructureForGeographicAreas? result)
+        internal static bool TryParse(string s, ItuE164InternationalNumberStyles numberStyles, out ItuE164InternationalNumberStructureForGeographicAreas? result)
 #else
-        internal static bool TryParse(string s, [CanBeNull] out ItuE164InternationalNumberStructureForGeographicAreas result)
+        internal static bool TryParse(string s, ItuE164InternationalNumberStyles numberStyles, [CanBeNull] out ItuE164InternationalNumberStructureForGeographicAreas result)
 #endif
         {
             var isParsed = false;
 
-            var parseMatch = InternationalNumberExpression.Match(s);
+            var parseExpression = GetParseExpression(typeof(ItuE164InternationalNumberStructureForGeographicAreas), numberStyles, GetParsePattern);
+            var parseMatch = parseExpression.Match(s);
             if (parseMatch.Success)
             {
                 var countryCodePart = parseMatch.Groups[NumberPart.CountryCode].Value;
-                var nationalSignificantNumberPart = parseMatch.Groups[NumberPart.NationalSignificantNumber].Value;
+                var nationalSignificantNumberPart = parseMatch.Groups[NumberPart.SubscriberNumber].Value;
                 var number = ulong.Parse(Regex.Replace(countryCodePart + nationalSignificantNumberPart, @"\s", string.Empty), NumberStyles, CultureInfo.InvariantCulture);
                 result = new ItuE164InternationalNumberStructureForGeographicAreas(number)
                 {
                     _numberParts = new Dictionary<string, string>
                     {
                         { NumberPart.CountryCode, countryCodePart },
-                        { NumberPart.NationalSignificantNumber, nationalSignificantNumberPart }
+                        { NumberPart.SubscriberNumber, nationalSignificantNumberPart }
                     }
                 };
                 isParsed = true;
@@ -103,7 +96,7 @@ namespace DataStandardizer.Communication.E164
         private ItuE164NationalSignificantNumber DoGetNationalSignificantNumber()
         {
             // First, get delineated National Significant Number (if available).
-            if (_numberParts.TryGetValue(NumberPart.NationalSignificantNumber, out var nationalSignificantNumberPart))
+            if (_numberParts.TryGetValue(NumberPart.SubscriberNumber, out var nationalSignificantNumberPart))
             {
                 return new ItuE164NationalSignificantNumber(nationalSignificantNumberPart);
             }

@@ -57,10 +57,10 @@ namespace DataStandardizer.Communication.Tests.E164
         {
             // arrange
             var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(443031234567L);
-            
+
             // act
             var testResult = testSubject.IsNumberForGeographicArea();
-            
+
             // assert
             testResult.Should().BeTrue();
         }
@@ -70,10 +70,10 @@ namespace DataStandardizer.Communication.Tests.E164
         {
             // arrange
             var testSubject = ItuE164InternationalNumber.CreateNumberForGlobalService(8004121234567L);
-            
+
             // act
             var testResult = testSubject.IsNumberForGeographicArea();
-            
+
             // assert
             testResult.Should().BeFalse();
         }
@@ -83,10 +83,10 @@ namespace DataStandardizer.Communication.Tests.E164
         {
             // arrange
             var testSubject = ItuE164InternationalNumber.CreateNumberForGlobalService(8004121234567L);
-            
+
             // act
             var testResult = testSubject.IsNumberForGlobalService();
-            
+
             // assert
             testResult.Should().BeTrue();
         }
@@ -96,10 +96,10 @@ namespace DataStandardizer.Communication.Tests.E164
         {
             // arrange
             var testSubject = ItuE164InternationalNumber.CreateNumberForGroupOfCountries(38831234567L);
-            
+
             // act
             var testResult = testSubject.IsNumberForGlobalService();
-            
+
             // assert
             testResult.Should().BeFalse();
         }
@@ -109,10 +109,10 @@ namespace DataStandardizer.Communication.Tests.E164
         {
             // arrange
             var testSubject = ItuE164InternationalNumber.CreateNumberForGroupOfCountries(38831234567L);
-            
+
             // act
             var testResult = testSubject.IsNumberForGroupOfCountries();
-            
+
             // assert
             testResult.Should().BeTrue();
         }
@@ -122,10 +122,10 @@ namespace DataStandardizer.Communication.Tests.E164
         {
             // arrange
             var testSubject = ItuE164InternationalNumber.CreateNumberForNetwork(8831101234567L);
-            
+
             // act
             var testResult = testSubject.IsNumberForGroupOfCountries();
-            
+
             // assert
             testResult.Should().BeFalse();
         }
@@ -135,10 +135,10 @@ namespace DataStandardizer.Communication.Tests.E164
         {
             // arrange
             var testSubject = ItuE164InternationalNumber.CreateNumberForNetwork(8831101234567L);
-            
+
             // act
             var testResult = testSubject.IsNumberForNetwork();
-            
+
             // assert
             testResult.Should().BeTrue();
         }
@@ -148,10 +148,10 @@ namespace DataStandardizer.Communication.Tests.E164
         {
             // arrange
             var testSubject = ItuE164InternationalNumber.CreateNumberForTrial(99111234567L);
-            
+
             // act
             var testResult = testSubject.IsNumberForNetwork();
-            
+
             // assert
             testResult.Should().BeFalse();
         }
@@ -164,7 +164,7 @@ namespace DataStandardizer.Communication.Tests.E164
 
             // act
             var testResult = testSubject.IsNumberForTrial();
-            
+
             // assert
             testResult.Should().BeTrue();
         }
@@ -174,10 +174,10 @@ namespace DataStandardizer.Communication.Tests.E164
         {
             // arrange
             var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(16175550199L);
-            
+
             // act
             var testResult = testSubject.IsNumberForTrial();
-            
+
             // assert
             testResult.Should().BeFalse();
         }
@@ -906,11 +906,50 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Theory]
-        [InlineData("+ 20 607 123 4567", 206071234567L), InlineData("+1 302 1234567", 13021234567L)]
-        public void Parse_InternationalNumberForGeographicAreas_ReturnsInternationalNumber(string testNumber, ulong expectedResult)
+        [InlineData("20 607 123 4567", 206071234567L),
+         InlineData("1 302 1234567", 13021234567L)]
+        public void Parse_InternationalNumberForGeographicAreasNoPrefix_ReturnsInternationalNumber(string testNumber, ulong expectedResult)
         {
             // act
             var testResult = ItuE164InternationalNumber.Parse(testNumber);
+
+            // assert
+            testResult.Number.Should().Be(expectedResult);
+        }
+
+        [Theory]
+        [InlineData("+ 20 607 123 4567", 206071234567L),
+         InlineData("+1 302 1234567", 13021234567L)]
+        public void Parse_InternationalNumberForGeographicAreasWithPrefix_ReturnsInternationalNumber(string testNumber, ulong expectedResult)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.Parse(testNumber, ItuE164InternationalNumberStyles.InternationalNumber);
+
+            // assert
+            testResult.Number.Should().Be(expectedResult);
+        }
+
+        [Theory]
+        [InlineData("12175550100", 12175550100L),
+         InlineData(" 12175550101", 12175550101L),
+         InlineData("  12175550102", 12175550102L)]
+        public void Parse_InternationalNumberForGeographicAreasWithLeadingWhiteSpace_ReturnsInternationalNumber(string testNumber, ulong expectedResult)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.Parse(testNumber, ItuE164InternationalNumberStyles.AllowLeadingWhite);
+
+            // assert
+            testResult.Number.Should().Be(expectedResult);
+        }
+
+        [Theory]
+        [InlineData("14115550100", 14115550100L),
+         InlineData("14115550101 ", 14115550101L),
+         InlineData("14115550102  ", 14115550102L)]
+        public void Parse_InternationalNumberForGeographicAreasWithTrailingWhiteSpace_ReturnsInternationalNumber(string testNumber, ulong expectedResult)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.Parse(testNumber, ItuE164InternationalNumberStyles.AllowTrailingWhite);
 
             // assert
             testResult.Number.Should().Be(expectedResult);
@@ -918,7 +957,7 @@ namespace DataStandardizer.Communication.Tests.E164
 
         [Theory]
         [InlineData("800 1234567890", 8001234567890L)]
-        public void Parse_InternationalNumberForGlobalServices_ReturnsInternationalNumber(string testNumber, ulong expectedResult)
+        public void Parse_InternationalNumberForGlobalServicesNoPrefix_ReturnsInternationalNumber(string testNumber, ulong expectedResult)
         {
             // act
             var testResult = ItuE164InternationalNumber.Parse(testNumber);
@@ -928,8 +967,45 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Theory]
+        [InlineData("+800 1234567890", 8001234567890L)]
+        public void Parse_InternationalNumberForGlobalServicesWithPrefix_ReturnsInternationalNumber(string testNumber, ulong expectedResult)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.Parse(testNumber, ItuE164InternationalNumberStyles.InternationalNumber);
+
+            // assert
+            testResult.Number.Should().Be(expectedResult);
+        }
+
+        [Theory]
+        [InlineData("8005125550100", 8005125550100L),
+         InlineData(" 8005125550101", 8005125550101L),
+         InlineData("  8005125550102", 8005125550102L)]
+        public void Parse_InternationalNumberForGlobalServicesWithLeadingWhiteSpace_ReturnsInternationalNumber(string testNumber, ulong expectedResult)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.Parse(testNumber, ItuE164InternationalNumberStyles.AllowLeadingWhite);
+
+            // assert
+            testResult.Number.Should().Be(expectedResult);
+        }
+
+        [Theory]
+        [InlineData("8004995550100", 8004995550100L),
+         InlineData("8004995550101 ", 8004995550101L),
+         InlineData("8004995550102  ", 8004995550102L)]
+        public void Parse_InternationalNumberForGlobalServicesWithTrailingWhiteSpace_ReturnsInternationalNumber(string testNumber, ulong expectedResult)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.Parse(testNumber, ItuE164InternationalNumberStyles.AllowTrailingWhite);
+
+            // assert
+            testResult.Number.Should().Be(expectedResult);
+        }
+
+        [Theory]
         [InlineData("881 8234567890", 8818234567890L)]
-        public void Parse_InternationalNumberForNetworks_ReturnsInternationalNumber(string testNumber, ulong expectedResult)
+        public void Parse_InternationalNumberForNetworksNoPrefix_ReturnsInternationalNumber(string testNumber, ulong expectedResult)
         {
             // act
             var testResult = ItuE164InternationalNumber.Parse(testNumber);
@@ -938,9 +1014,94 @@ namespace DataStandardizer.Communication.Tests.E164
             testResult.Number.Should().Be(expectedResult);
         }
 
+        [Theory]
+        [InlineData("+881 8234567890", 8818234567890L)]
+        public void Parse_InternationalNumberForNetworksWithPrefix_ReturnsInternationalNumber(string testNumber, ulong expectedResult)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.Parse(testNumber, ItuE164InternationalNumberStyles.InternationalNumber);
+
+            // assert
+            testResult.Number.Should().Be(expectedResult);
+        }
+
+        [Theory]
+        [InlineData("88193035550100", 88193035550100L),
+         InlineData(" 88193035550101", 88193035550101L),
+         InlineData("  88193035550102", 88193035550102L)]
+        public void Parse_InternationalNumberForNetworksWithLeadingWhiteSpace_ReturnsInternationalNumber(string testNumber, ulong expectedResult)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.Parse(testNumber, ItuE164InternationalNumberStyles.AllowLeadingWhite);
+
+            // assert
+            testResult.Number.Should().Be(expectedResult);
+        }
+
+        [Theory]
+        [InlineData("88193085550100", 88193085550100L),
+         InlineData("88193085550101 ", 88193085550101L),
+         InlineData("88193085550102  ", 88193085550102L)]
+        public void Parse_InternationalNumberForNetworksWithTrailingWhiteSpace_ReturnsInternationalNumber(string testNumber, ulong expectedResult)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.Parse(testNumber, ItuE164InternationalNumberStyles.AllowTrailingWhite);
+
+            // assert
+            testResult.Number.Should().Be(expectedResult);
+        }
+
         [Theory(Skip = NumberForGroupsOfCountriesSkipMessage)]
         [InlineData("388 3 1234567", 38831234567L)]
-        public void Parse_InternationalNumberForGroupsOfCountries_ReturnsInternationalNumber(string testNumber, ulong expectedResult)
+        public void Parse_InternationalNumberForGroupsOfCountriesNoPrefix_ReturnsInternationalNumber(string testNumber, ulong expectedResult)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.Parse(testNumber);
+
+            // assert
+            testResult.Should().BeEquivalentTo(expectedResult);
+        }
+
+        [Theory(Skip = NumberForGroupsOfCountriesSkipMessage)]
+        [InlineData("+388 3 1234567", 38831234567L)]
+        public void Parse_InternationalNumberForGroupsOfCountriesWithPrefix_ReturnsInternationalNumber(string testNumber, ulong expectedResult)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.Parse(testNumber, ItuE164InternationalNumberStyles.InternationalNumber);
+
+            // assert
+            testResult.Should().BeEquivalentTo(expectedResult);
+        }
+
+        [Theory(Skip = NumberForGroupsOfCountriesSkipMessage)]
+        [InlineData("38831565550100", 38831565550100L),
+         InlineData(" 38831565550101", 38831565550101L),
+         InlineData("  38831565550102", 38831565550102L)]
+        public void Parse_InternationalNumberForGroupsOfCountriesWithLeadingWhiteSpace_ReturnsInternationalNumber(string testNumber, ulong expectedResult)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.Parse(testNumber, ItuE164InternationalNumberStyles.AllowLeadingWhite);
+
+            // assert
+            testResult.Number.Should().Be(expectedResult);
+        }
+
+        [Theory(Skip = NumberForGroupsOfCountriesSkipMessage)]
+        [InlineData("38832075550100", 38832075550100L),
+         InlineData("38832075550101 ", 38832075550101L),
+         InlineData("38832075550102  ", 38832075550102L)]
+        public void Parse_InternationalNumberForGroupsOfCountriesWithTrailingWhiteSpace_ReturnsInternationalNumber(string testNumber, ulong expectedResult)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.Parse(testNumber, ItuE164InternationalNumberStyles.AllowTrailingWhite);
+
+            // assert
+            testResult.Number.Should().Be(expectedResult);
+        }
+
+        [Theory(Skip = NumberForTrialsSkipMessage)]
+        [InlineData("991 1 1234567", 99111234567L)]
+        public void Parse_InternationalNumberForTrialsNoPrefix_ReturnsInternationalNumber(string testNumber, ulong expectedResult)
         {
             // act
             var testResult = ItuE164InternationalNumber.Parse(testNumber);
@@ -950,22 +1111,50 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Theory(Skip = NumberForTrialsSkipMessage)]
-        [InlineData("991 1 1234567", 99111234567L)]
-        public void Parse_InternationalNumberForTrials_ReturnsInternationalNumber(string testNumber, ulong expectedResult)
+        [InlineData("+991 1 1234567", 99111234567L)]
+        public void Parse_InternationalNumberForTrialsWithPrefix_ReturnsInternationalNumber(string testNumber, ulong expectedResult)
         {
             // act
-            var testResult = ItuE164InternationalNumber.Parse(testNumber);
+            var testResult = ItuE164InternationalNumber.Parse(testNumber, ItuE164InternationalNumberStyles.InternationalNumber);
 
             // assert
             testResult.Should().BeEquivalentTo(expectedResult);
         }
 
-        [Theory]
-        [InlineData("Not A Number")]
-        public void Parse_NotInternationalNumber_ThrowsFormatException(string testNumber)
+        [Theory(Skip = NumberForTrialsSkipMessage)]
+        [InlineData("99110865550100", 99110865550100L),
+         InlineData(" 99110865550101", 99110865550101L),
+         InlineData("  99110865550102", 99110865550102L)]
+        public void Parse_InternationalNumberForTrialsWithLeadingWhiteSpace_ReturnsInternationalNumber(string testNumber, ulong expectedResult)
         {
             // act
-            Action testAction = () => _ = ItuE164InternationalNumber.Parse(testNumber);
+            var testResult = ItuE164InternationalNumber.Parse(testNumber, ItuE164InternationalNumberStyles.AllowLeadingWhite);
+
+            // assert
+            testResult.Number.Should().Be(expectedResult);
+        }
+
+        [Theory(Skip = NumberForTrialsSkipMessage)]
+        [InlineData("99110995550100", 99110995550100L),
+         InlineData("99110995550101 ", 99110995550101L),
+         InlineData("99110995550102  ", 99110995550102L)]
+        public void Parse_InternationalNumberForTrialsWithTrailingWhiteSpace_ReturnsInternationalNumber(string testNumber, ulong expectedResult)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.Parse(testNumber, ItuE164InternationalNumberStyles.AllowTrailingWhite);
+
+            // assert
+            testResult.Number.Should().Be(expectedResult);
+        }
+
+        [Theory]
+        [InlineData("991"), // too short
+         InlineData("9911012345678901"), // too long
+         InlineData("Not A Number")]
+        public void Parse_InvalidInput_ThrowsFormatException(string testNumber)
+        {
+            // act
+            Action testAction = () => _ = ItuE164InternationalNumber.Parse(testNumber, ItuE164InternationalNumberStyles.InternationalNumber);
 
             // assert
             testAction.Should()
@@ -974,14 +1163,59 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Theory]
-        [InlineData("+ 20 607 123 4567", 206071234567L), InlineData("+1 302 1234567", 13021234567L)]
-        public void TryParse_InternationalNumberForGeographicAreas_ReturnsTrue(string testNumber, ulong expectedResult)
+        [InlineData("20 607 123 4567", 206071234567L),
+         InlineData("1 302 1234567", 13021234567L)]
+        public void TryParse_InternationalNumberForGeographicAreasNoPrefix_ReturnsTrue(string testNumber, ulong expectedResult)
         {
             // arrange
             ItuE164InternationalNumber actualResult;
 
             // act
             var testResult = ItuE164InternationalNumber.TryParse(testNumber, out actualResult);
+
+            // assert
+            testResult.Should().BeTrue();
+            actualResult.Number.Should().Be(expectedResult);
+        }
+
+        [Theory]
+        [InlineData("+ 20 607 123 4567", 206071234567L),
+         InlineData("+1 302 1234567", 13021234567L)]
+        public void TryParse_InternationalNumberForGeographicAreasWithPrefix_ReturnsTrue(string testNumber, ulong expectedResult)
+        {
+            // arrange
+            ItuE164InternationalNumber actualResult;
+
+            // act
+            var testResult = ItuE164InternationalNumber.TryParse(testNumber, ItuE164InternationalNumberStyles.InternationalNumber, out actualResult);
+
+            // assert
+            testResult.Should().BeTrue();
+            actualResult.Number.Should().Be(expectedResult);
+        }
+
+        [Theory]
+        [InlineData("12175550100", 12175550100L),
+         InlineData(" 12175550101", 12175550101L),
+         InlineData("  12175550102", 12175550102L)]
+        public void TryParse_InternationalNumberForGeographicAreasWithLeadingWhiteSpace_ReturnsTrue(string testNumber, ulong expectedResult)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.TryParse(testNumber, ItuE164InternationalNumberStyles.AllowLeadingWhite, out var actualResult);
+
+            // assert
+            testResult.Should().BeTrue();
+            actualResult.Number.Should().Be(expectedResult);
+        }
+
+        [Theory]
+        [InlineData("14115550100", 14115550100L),
+         InlineData("14115550101 ", 14115550101L),
+         InlineData("14115550102  ", 14115550102L)]
+        public void TryParse_InternationalNumberForGeographicAreasWithTrailingWhiteSpace_ReturnsTrue(string testNumber, ulong expectedResult)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.TryParse(testNumber, ItuE164InternationalNumberStyles.AllowTrailingWhite, out var actualResult);
 
             // assert
             testResult.Should().BeTrue();
@@ -990,7 +1224,7 @@ namespace DataStandardizer.Communication.Tests.E164
 
         [Theory]
         [InlineData("800 1234567890", 8001234567890L)]
-        public void TryParse_InternationalNumberForGlobalServices_ReturnsTrue(string testNumber, ulong expectedResult)
+        public void TryParse_InternationalNumberForGlobalServicesNoPrefix_ReturnsTrue(string testNumber, ulong expectedResult)
         {
             // arrange
             ItuE164InternationalNumber actualResult;
@@ -1004,8 +1238,51 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Theory]
+        [InlineData("+800 1234567890", 8001234567890L)]
+        public void TryParse_InternationalNumberForGlobalServicesWithPrefix_ReturnsTrue(string testNumber, ulong expectedResult)
+        {
+            // arrange
+            ItuE164InternationalNumber actualResult;
+
+            // act
+            var testResult = ItuE164InternationalNumber.TryParse(testNumber, ItuE164InternationalNumberStyles.InternationalNumber, out actualResult);
+
+            // assert
+            testResult.Should().BeTrue();
+            actualResult.Number.Should().Be(expectedResult);
+        }
+
+        [Theory]
+        [InlineData("8005125550100", 8005125550100L),
+         InlineData(" 8005125550101", 8005125550101L),
+         InlineData("  8005125550102", 8005125550102L)]
+        public void TryParse_InternationalNumberForGlobalServicesWithLeadingWhiteSpace_ReturnsTrue(string testNumber, ulong expectedResult)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.TryParse(testNumber, ItuE164InternationalNumberStyles.AllowLeadingWhite, out var actualResult);
+
+            // assert
+            testResult.Should().BeTrue();
+            actualResult.Number.Should().Be(expectedResult);
+        }
+
+        [Theory]
+        [InlineData("8004995550100", 8004995550100L),
+         InlineData("8004995550101 ", 8004995550101L),
+         InlineData("8004995550102  ", 8004995550102L)]
+        public void TryParse_InternationalNumberForGlobalServicesWithTrailingWhiteSpace_ReturnsTrue(string testNumber, ulong expectedResult)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.TryParse(testNumber, ItuE164InternationalNumberStyles.AllowTrailingWhite, out var actualResult);
+
+            // assert
+            testResult.Should().BeTrue();
+            actualResult.Number.Should().Be(expectedResult);
+        }
+
+        [Theory]
         [InlineData("881 9234567890", 8819234567890L)]
-        public void TryParse_InternationalNumberForNetworks_ReturnsTrue(string testNumber, ulong expectedResult)
+        public void TryParse_InternationalNumberForNetworksNoPrefix_ReturnsTrue(string testNumber, ulong expectedResult)
         {
             // arrange
             ItuE164InternationalNumber actualResult;
@@ -1018,9 +1295,110 @@ namespace DataStandardizer.Communication.Tests.E164
             actualResult.Number.Should().Be(expectedResult);
         }
 
+        [Theory]
+        [InlineData("+881 9234567890", 8819234567890L)]
+        public void TryParse_InternationalNumberForNetworksWithPrefix_ReturnsTrue(string testNumber, ulong expectedResult)
+        {
+            // arrange
+            ItuE164InternationalNumber actualResult;
+
+            // act
+            var testResult = ItuE164InternationalNumber.TryParse(testNumber, ItuE164InternationalNumberStyles.InternationalNumber, out actualResult);
+
+            // assert
+            testResult.Should().BeTrue();
+            actualResult.Number.Should().Be(expectedResult);
+        }
+
+        [Theory]
+        [InlineData("88193035550100", 88193035550100L),
+         InlineData(" 88193035550101", 88193035550101L),
+         InlineData("  88193035550102", 88193035550102L)]
+        public void TryParse_InternationalNumberForNetworksWithLeadingWhiteSpace_ReturnsTrue(string testNumber, ulong expectedResult)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.TryParse(testNumber, ItuE164InternationalNumberStyles.AllowLeadingWhite, out var actualResult);
+
+            // assert
+            testResult.Should().BeTrue();
+            actualResult.Number.Should().Be(expectedResult);
+        }
+
+        [Theory]
+        [InlineData("88193085550100", 88193085550100L),
+         InlineData("88193085550101 ", 88193085550101L),
+         InlineData("88193085550102  ", 88193085550102L)]
+        public void TryParse_InternationalNumberForNetworksWithTrailingWhiteSpace_ReturnsTrue(string testNumber, ulong expectedResult)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.TryParse(testNumber, ItuE164InternationalNumberStyles.AllowTrailingWhite, out var actualResult);
+
+            // assert
+            testResult.Should().BeTrue();
+            actualResult.Number.Should().Be(expectedResult);
+        }
+
         [Theory(Skip = NumberForGroupsOfCountriesSkipMessage)]
         [InlineData("388 3 1234567", 38831234567L)]
-        public void TryParse_InternationalNumberForGroupsOfCountries_ReturnsTrue(string testNumber, ulong expectedResult)
+        public void TryParse_InternationalNumberForGroupsOfCountriesNoPrefix_ReturnsTrue(string testNumber, ulong expectedResult)
+        {
+            // arrange
+            ItuE164InternationalNumber actualResult;
+
+            // act
+            var testResult = ItuE164InternationalNumber.TryParse(testNumber, out actualResult);
+
+            // assert
+            testResult.Should().BeTrue();
+            actualResult.Should().BeEquivalentTo(expectedResult);
+        }
+
+        [Theory(Skip = NumberForGroupsOfCountriesSkipMessage)]
+        [InlineData("+388 3 1234567", 38831234567L)]
+        public void TryParse_InternationalNumberForGroupsOfCountriesWithPrefix_ReturnsTrue(string testNumber, ulong expectedResult)
+        {
+            // arrange
+            ItuE164InternationalNumber actualResult;
+
+            // act
+            var testResult = ItuE164InternationalNumber.TryParse(testNumber, ItuE164InternationalNumberStyles.InternationalNumber, out actualResult);
+
+            // assert
+            testResult.Should().BeTrue();
+            actualResult.Should().BeEquivalentTo(expectedResult);
+        }
+
+        [Theory(Skip = NumberForGroupsOfCountriesSkipMessage)]
+        [InlineData("38831565550100", 38831565550100L),
+         InlineData(" 38831565550101", 38831565550101L),
+         InlineData("  38831565550102", 38831565550102L)]
+        public void TryParse_InternationalNumberForGroupsOfCountriesWithLeadingWhiteSpace_ReturnsTrue(string testNumber, ulong expectedResult)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.TryParse(testNumber, ItuE164InternationalNumberStyles.AllowLeadingWhite, out var actualResult);
+
+            // assert
+            testResult.Should().BeTrue();
+            actualResult.Number.Should().Be(expectedResult);
+        }
+
+        [Theory(Skip = NumberForGroupsOfCountriesSkipMessage)]
+        [InlineData("38832075550100", 38832075550100L),
+         InlineData("38832075550101 ", 38832075550101L),
+         InlineData("38832075550102  ", 38832075550102L)]
+        public void TryParse_InternationalNumberForGroupsOfCountriesWithTrailingWhiteSpace_ReturnsTrue(string testNumber, ulong expectedResult)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.TryParse(testNumber, ItuE164InternationalNumberStyles.AllowTrailingWhite, out var actualResult);
+
+            // assert
+            testResult.Should().BeTrue();
+            actualResult.Number.Should().Be(expectedResult);
+        }
+
+        [Theory(Skip = NumberForTrialsSkipMessage)]
+        [InlineData("991 1 1234567", 99111234567L)]
+        public void TryParse_InternationalNumberForTrialsNoPrefix_ReturnsTrue(string testNumber, ulong expectedResult)
         {
             // arrange
             ItuE164InternationalNumber actualResult;
@@ -1034,26 +1412,56 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Theory(Skip = NumberForTrialsSkipMessage)]
-        [InlineData("991 1 1234567", 99111234567L)]
-        public void TryParse_InternationalNumberForTrials_ReturnsTrue(string testNumber, ulong expectedResult)
+        [InlineData("+991 1 1234567", 99111234567L)]
+        public void TryParse_InternationalNumberForTrialsWithPrefix_ReturnsTrue(string testNumber, ulong expectedResult)
         {
             // arrange
             ItuE164InternationalNumber actualResult;
 
             // act
-            var testResult = ItuE164InternationalNumber.TryParse(testNumber, out actualResult);
+            var testResult = ItuE164InternationalNumber.TryParse(testNumber, ItuE164InternationalNumberStyles.InternationalNumber, out actualResult);
 
             // assert
             testResult.Should().BeTrue();
             actualResult.Should().BeEquivalentTo(expectedResult);
         }
 
+        [Theory(Skip = NumberForTrialsSkipMessage)]
+        [InlineData("99110865550100", 99110865550100L),
+         InlineData(" 99110865550101", 99110865550101L),
+         InlineData("  99110865550102", 99110865550102L)]
+        public void TryParse_InternationalNumberForTrialsWithLeadingWhiteSpace_ReturnsTrue(string testNumber, ulong expectedResult)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.TryParse(testNumber, ItuE164InternationalNumberStyles.AllowLeadingWhite, out var actualResult);
+
+            // assert
+            testResult.Should().BeTrue();
+            actualResult.Number.Should().Be(expectedResult);
+        }
+
+        [Theory(Skip = NumberForTrialsSkipMessage)]
+        [InlineData("99110995550100", 99110995550100L),
+         InlineData("99110995550101 ", 99110995550101L),
+         InlineData("99110995550102  ", 99110995550102L)]
+        public void TryParse_InternationalNumberForTrialsWithTrailingWhiteSpace_ReturnsTrue(string testNumber, ulong expectedResult)
+        {
+            // act
+            var testResult = ItuE164InternationalNumber.TryParse(testNumber, ItuE164InternationalNumberStyles.AllowTrailingWhite, out var actualResult);
+
+            // assert
+            testResult.Should().BeTrue();
+            actualResult.Number.Should().Be(expectedResult);
+        }
+
         [Theory]
-        [InlineData("Not A Number")]
+        [InlineData("991"), // too short
+         InlineData("9911012345678901"), // too long
+         InlineData("Not A Number")]
         public void TryParse_NotInternationalNumber_ReturnsFalse(string testNumber)
         {
             // act
-            var testResult = ItuE164InternationalNumber.TryParse(testNumber, out _);
+            var testResult = ItuE164InternationalNumber.TryParse(testNumber, ItuE164InternationalNumberStyles.InternationalNumber, out _);
 
             // assert
             testResult.Should().BeFalse();

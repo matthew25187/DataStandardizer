@@ -6,23 +6,21 @@ using System.Text.RegularExpressions;
 #if NETSTANDARD
 using JetBrains.Annotations; 
 #endif
+using static DataStandardizer.Communication.E164.ItuE164Constants;
 
 namespace DataStandardizer.Communication.E164
 {
     internal sealed class ItuE164InternationalNumberStructureForGlobalServices : ItuE164InternationalNumberStructureBase, IItuE164InternationalNumberForGlobalServices
     {
-        private static class NumberPart
-        {
-            internal const string CountryCode = "CountryCode";
-            internal const string GlobalSubscriberNumber = "GlobalSubscriberNumber";
-        }
-
         private const NumberStyles NumberStyles = System.Globalization.NumberStyles.None;
-        private static readonly Regex InternationalNumberExpression;
 
         private Dictionary<string, string> _numberParts = new Dictionary<string, string>();
 
-        static ItuE164InternationalNumberStructureForGlobalServices()
+        internal ItuE164InternationalNumberStructureForGlobalServices(ulong number) : base(number)
+        {
+        }
+
+        private static string GetParsePattern(ItuE164InternationalNumberStyles numberStyles)
         {
             // Compose sub-pattern for Country Code.
             var validCountryCodes = Enum.GetValues(typeof(ItuE164AssignedCountryCodesForGlobalServices))
@@ -30,37 +28,32 @@ namespace DataStandardizer.Communication.E164
             var countryCodePattern = string.Join("|", validCountryCodes.Select(code => $"{code:000}"));
 
             // Compose expressions for parsing a number.
-            var expressionOptions = RegexOptions.Singleline;
-#if NETSTANDARD1_3_OR_GREATER||NET
-            expressionOptions |= RegexOptions.Compiled;
-#endif
-            InternationalNumberExpression = new Regex(string.Concat(@"^(?:\+\s*)?(?<", NumberPart.CountryCode, ">", countryCodePattern, @")\s*(?<", NumberPart.GlobalSubscriberNumber, @">\d{1,12})$"), expressionOptions);
+            return string.Concat(@"^(?=(?:\D*\d){4,", MaximumDigitCount, @"}\D*$)", numberStyles.HasFlag(ItuE164InternationalNumberStyles.AllowLeadingWhite) ? @"\p{Zs}*" : string.Empty,
+                numberStyles.HasFlag(ItuE164InternationalNumberStyles.AllowInternationalPrefixSymbol) ? $@"\{InternationalPrefixSymbol}" : string.Empty, "?[", PatternSeparatorCharacterClass, "]*(?<", NumberPart.CountryCode, ">",
+                countryCodePattern, ")[", PatternSeparatorCharacterClass, "]*(?<", NumberPart.SubscriberNumber, @">\d(?:[", PatternSeparatorCharacterClass, @"]*\d){1,12})",
+                numberStyles.HasFlag(ItuE164InternationalNumberStyles.AllowTrailingWhite) ? @"\p{Zs}*" : string.Empty, "$");
         }
-
-        internal ItuE164InternationalNumberStructureForGlobalServices(ulong number) : base(number)
-        {
-        }
-
 #if NETCOREAPP3_0_OR_GREATER
-        internal static bool TryParse(string s, out ItuE164InternationalNumberStructureForGlobalServices? result)
+        internal static bool TryParse(string s, ItuE164InternationalNumberStyles numberStyles, out ItuE164InternationalNumberStructureForGlobalServices? result)
 #else
-        internal static bool TryParse(string s, [CanBeNull] out ItuE164InternationalNumberStructureForGlobalServices result)
+        internal static bool TryParse(string s, ItuE164InternationalNumberStyles numberStyles, [CanBeNull] out ItuE164InternationalNumberStructureForGlobalServices result)
 #endif
         {
             var isParsed = false;
 
-            var parseMatch = InternationalNumberExpression.Match(s);
+            var parseExpression = GetParseExpression(typeof(ItuE164InternationalNumberStructureForGlobalServices), numberStyles, GetParsePattern);
+            var parseMatch = parseExpression.Match(s);
             if (parseMatch.Success)
             {
                 var countryCodePart = parseMatch.Groups[NumberPart.CountryCode].Value;
-                var globalSubscriberNumberPart = parseMatch.Groups[NumberPart.GlobalSubscriberNumber].Value;
+                var globalSubscriberNumberPart = parseMatch.Groups[NumberPart.SubscriberNumber].Value;
                 var number = ulong.Parse(Regex.Replace(countryCodePart + globalSubscriberNumberPart, @"\s", string.Empty), NumberStyles, CultureInfo.InvariantCulture);
                 result = new ItuE164InternationalNumberStructureForGlobalServices(number)
                 {
                     _numberParts = new Dictionary<string, string>
                     {
                         { NumberPart.CountryCode, countryCodePart },
-                        { NumberPart.GlobalSubscriberNumber, globalSubscriberNumberPart }
+                        { NumberPart.SubscriberNumber, globalSubscriberNumberPart }
                     }
                 };
                 isParsed = true;
@@ -93,7 +86,7 @@ namespace DataStandardizer.Communication.E164
         private ItuE164GlobalSubscriberNumber DoGetGlobalSubscriberNumber()
         {
             // First, try to get delineated Global Subscriber Number.
-            if (_numberParts.TryGetValue(NumberPart.GlobalSubscriberNumber, out var globalSubscriberNumberPart))
+            if (_numberParts.TryGetValue(NumberPart.SubscriberNumber, out var globalSubscriberNumberPart))
             {
                 return new ItuE164GlobalSubscriberNumber(globalSubscriberNumberPart);
             }

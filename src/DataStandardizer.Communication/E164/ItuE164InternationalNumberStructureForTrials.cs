@@ -3,57 +3,32 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using System.Text.RegularExpressions;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using JetBrains.Annotations;
 #endif
 
 namespace DataStandardizer.Communication.E164
 {
     internal sealed class ItuE164InternationalNumberStructureForTrials : ItuE164InternationalNumberStructureBase, IItuE164InternationalNumberForTrials
     {
-        private static class NumberPart
-        {
-            internal const string CountryCode = "CountryCode";
-            internal const string TrialIdentificationCode = "TrialIdentificationCode";
-            internal const string SubscriberNumber = "SubscriberNumber";
-        }
-
+        private static readonly ILookup<ushort, ushort> IdentificationCodeLookup;
         private const NumberStyles NumberStyles = System.Globalization.NumberStyles.None;
-        private static readonly Regex InternationalNumberExpression;
 
         private Dictionary<string, string> _numberParts = new Dictionary<string, string>();
 
         static ItuE164InternationalNumberStructureForTrials()
         {
             // Compose patterns for numbers with and without spacing.
-            var internationalNumberPatternBuilder = new StringBuilder();
-            var isFirst = true;
-            var subPatterns =
-                from countryCode in Enum.GetValues(typeof(ItuE164AssignedCountryCodesForTrials)).Cast<ushort>()
-                from trialIdentificationCode in Enum.GetValues(typeof(ItuE164AssignedTrialIdentificationCodesForTrials)).Cast<ItuE164AssignedTrialIdentificationCodesForTrials>()
-                let sharedCodeAttribute = typeof(ItuE164AssignedTrialIdentificationCodesForTrials).GetTypeInfo().DeclaredFields
-                    .Single(field => field.GetValue(null)?.Equals(trialIdentificationCode) ?? false)
-                    .GetCustomAttribute<ItuE164SharedCodeAttribute>()
-                where sharedCodeAttribute.CountryCode == countryCode
-                select string.Concat("(?<", NumberPart.CountryCode, ">", countryCode, @")\s+(?<", NumberPart.TrialIdentificationCode, ">", (byte)trialIdentificationCode, @")\s+(?<", NumberPart.SubscriberNumber,
-                    @">\d{,11})");
-            foreach (var subPattern in subPatterns)
-            {
-                if (!isFirst) internationalNumberPatternBuilder.Append("|");
-                internationalNumberPatternBuilder.Append(subPattern);
-
-                isFirst = false;
-            }
-
-            // Compose expressions for parsing a number.
-            var expressionOptions = RegexOptions.Singleline;
-#if NETSTANDARD1_3_OR_GREATER||NET
-            expressionOptions |= RegexOptions.Compiled;
-#endif
-            var internationalNumberPattern = internationalNumberPatternBuilder.ToString();
-            InternationalNumberExpression = new Regex(string.Concat(@"^(?:\+\s*)?(?:", !string.IsNullOrEmpty(internationalNumberPattern) ? internationalNumberPattern : @"\d{4,15}", ")"), expressionOptions);
+            IdentificationCodeLookup = (
+                    from countryCode in Enum.GetValues(typeof(ItuE164AssignedCountryCodesForTrials)).Cast<ushort>()
+                    from trialIdentificationCode in Enum.GetValues(typeof(ItuE164AssignedTrialIdentificationCodesForTrials)).Cast<ItuE164AssignedTrialIdentificationCodesForTrials>()
+                    let sharedCodeAttribute = typeof(ItuE164AssignedTrialIdentificationCodesForTrials).GetTypeInfo().DeclaredFields
+                        .Single(field => field.GetValue(null)?.Equals(trialIdentificationCode) ?? false)
+                        .GetCustomAttribute<ItuE164SharedCodeAttribute>()
+                    where sharedCodeAttribute.CountryCode == countryCode
+                    select new { CountryCode = countryCode, IdentificationCode = trialIdentificationCode })
+                .ToLookup(kvp => kvp.CountryCode, kvp => (ushort)kvp.IdentificationCode);
         }
 
         internal ItuE164InternationalNumberStructureForTrials(ulong number) : base(number)
@@ -61,18 +36,19 @@ namespace DataStandardizer.Communication.E164
         }
 
 #if NETCOREAPP3_0_OR_GREATER
-        internal static bool TryParse(string s, out ItuE164InternationalNumberStructureForTrials? result)
+        internal static bool TryParse(string s, ItuE164InternationalNumberStyles numberStyles, out ItuE164InternationalNumberStructureForTrials? result)
 #else
-        internal static bool TryParse(string s, [CanBeNull] out ItuE164InternationalNumberStructureForTrials result)
+        internal static bool TryParse(string s, ItuE164InternationalNumberStyles numberStyles, [CanBeNull] out ItuE164InternationalNumberStructureForTrials result)
 #endif
         {
             var isParsed = false;
 
-            var parseMatch = InternationalNumberExpression.Match(s);
+            var parseExpression = GetParseExpression(typeof(ItuE164InternationalNumberStructureForTrials), numberStyles, GetParsePattern);
+            var parseMatch = parseExpression.Match(s);
             if (parseMatch.Success)
             {
                 var countryCodePart = parseMatch.Groups[NumberPart.CountryCode].Value;
-                var trialIdentificationCodePart = parseMatch.Groups[NumberPart.TrialIdentificationCode].Value;
+                var trialIdentificationCodePart = parseMatch.Groups[NumberPart.IdentificationCode].Value;
                 var subscriberNumberPart = parseMatch.Groups[NumberPart.SubscriberNumber].Value;
                 var number = ulong.Parse(Regex.Replace(countryCodePart + trialIdentificationCodePart + subscriberNumberPart, @"\s", string.Empty), NumberStyles, CultureInfo.InvariantCulture);
                 result = new ItuE164InternationalNumberStructureForTrials(number)
@@ -80,7 +56,7 @@ namespace DataStandardizer.Communication.E164
                     _numberParts = new Dictionary<string, string>
                     {
                         { NumberPart.CountryCode, countryCodePart },
-                        { NumberPart.TrialIdentificationCode, trialIdentificationCodePart },
+                        { NumberPart.IdentificationCode, trialIdentificationCodePart },
                         { NumberPart.SubscriberNumber, subscriberNumberPart }
                     }
                 };
@@ -92,6 +68,11 @@ namespace DataStandardizer.Communication.E164
             }
 
             return isParsed;
+
+            string GetParsePattern(ItuE164InternationalNumberStyles styles)
+            {
+                return ComposePatternForParse(IdentificationCodeLookup, styles);
+            }
         }
 
         public override ushort CountryCode => DoGetCountryCode();
@@ -129,7 +110,7 @@ namespace DataStandardizer.Communication.E164
         private ItuE164AssignedTrialIdentificationCodesForTrials DoGetTrialIdentificationCode()
         {
             // First, try to get delineated Trial Identification Code.
-            if (_numberParts.TryGetValue(NumberPart.TrialIdentificationCode, out var trialIdentificationCodePart))
+            if (_numberParts.TryGetValue(NumberPart.IdentificationCode, out var trialIdentificationCodePart))
             {
                 return (ItuE164AssignedTrialIdentificationCodesForTrials)Enum.Parse(typeof(ItuE164AssignedTrialIdentificationCodesForTrials), trialIdentificationCodePart);
             }

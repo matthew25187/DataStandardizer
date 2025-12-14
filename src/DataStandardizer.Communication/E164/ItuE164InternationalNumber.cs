@@ -3,6 +3,7 @@ using System.Globalization;
 #if NETSTANDARD
 using JetBrains.Annotations; 
 #endif
+using static DataStandardizer.Communication.E164.ItuE164Constants;
 
 namespace DataStandardizer.Communication.E164
 {
@@ -15,7 +16,7 @@ namespace DataStandardizer.Communication.E164
     /// It supports various types of numbers, including those for geographic areas,
     /// global services, networks, groups of countries, and trials.
     /// </remarks>
-    public readonly struct ItuE164InternationalNumber : IEquatable<ItuE164InternationalNumber>,IFormattable,
+    public readonly struct ItuE164InternationalNumber : IEquatable<ItuE164InternationalNumber>, IFormattable,
         IItuE164InternationalNumberForGeographicAreas,
         IItuE164InternationalNumberForGlobalServices,
         IItuE164InternationalNumberForNetworks,
@@ -29,7 +30,6 @@ namespace DataStandardizer.Communication.E164
             internal const string FieldValueInvalidTemplate = "'{0}' is not a valid {1}.";
         }
 
-        private const int MaximumDigitCount = 15;
         private const NumberStyles NumberStyles = System.Globalization.NumberStyles.None;
 
 #if NETCOREAPP3_0_OR_GREATER
@@ -142,26 +142,100 @@ namespace DataStandardizer.Communication.E164
         public override string ToString()
         {
             var formatter = TelephonyInfo.InvariantTelephony.GetFormat(typeof(ICustomFormatter)) as ICustomFormatter;
-            return formatter?.Format("G", this, null) ?? base.ToString();
+            return formatter?.Format("G", this, null) ?? base.ToString() ?? string.Empty;
         }
 
+#if NETCOREAPP3_0_OR_GREATER
+        /// <summary>
+        /// Converts the current <see cref="ItuE164InternationalNumber"/> instance to its string representation
+        /// using the specified format string.
+        /// </summary>
+        /// <param name="format">
+        /// A format string that specifies the format to use. If <c>null</c> or empty, the default format is used.
+        /// </param>
+        /// <returns>
+        /// A string representation of the current <see cref="ItuE164InternationalNumber"/> instance
+        /// formatted according to the specified format string.
+        /// </returns>
+        /// <remarks>
+        /// This method uses an <see cref="ICustomFormatter"/> implementation, if available, to format the number.
+        /// If no custom formatter is provided, the default <see cref="object.ToString"/> implementation is used.
+        /// </remarks>
+        public string ToString(string? format)
+        {
+            var formatter = TelephonyInfo.InvariantTelephony.GetFormat(typeof(ICustomFormatter)) as ICustomFormatter;
+            return formatter?.Format(format, this, null) ?? base.ToString() ?? string.Empty;
+        }
+        /// <summary>
+        /// Converts the current <see cref="ItuE164InternationalNumber"/> instance to its string representation
+        /// using the specified format provider.
+        /// </summary>
+        /// <param name="formatProvider">
+        /// An object that provides culture-specific formatting information.
+        /// </param>
+        /// <returns>
+        /// A string representation of the current <see cref="ItuE164InternationalNumber"/> instance.
+        /// </returns>
+        public string ToString(IFormatProvider? formatProvider)
+        {
+            var formatter = formatProvider?.GetFormat(typeof(ICustomFormatter)) as ICustomFormatter;
+            return formatter?.Format("G", this, formatProvider) ?? base.ToString() ?? string.Empty;
+        }
+
+        public string ToString(string? format, IFormatProvider? formatProvider)
+        {
+            var formatter = formatProvider?.GetFormat(typeof(ICustomFormatter)) as ICustomFormatter;
+            return formatter?.Format(format, this, formatProvider) ?? base.ToString() ?? string.Empty;
+        }
+#else
+        /// <summary>
+        /// Converts the current <see cref="ItuE164InternationalNumber"/> instance to its string representation
+        /// using the specified format string.
+        /// </summary>
+        /// <param name="format">
+        /// A format string that specifies the format to use. If <c>null</c> or empty, the default format is used.
+        /// </param>
+        /// <returns>
+        /// A string representation of the current <see cref="ItuE164InternationalNumber"/> instance
+        /// formatted according to the specified format string.
+        /// </returns>
+        /// <remarks>
+        /// This method utilizes a custom formatter, if available, to format the number.
+        /// If no custom formatter is found, the default string representation is returned.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown if the <see cref="ItuE164InternationalNumber"/> instance is uninitialized.
+        /// </exception>
         public string ToString(string format)
         {
             var formatter = TelephonyInfo.InvariantTelephony.GetFormat(typeof(ICustomFormatter)) as ICustomFormatter;
-            return formatter?.Format(format, this, null) ?? base.ToString();
+            return formatter?.Format(format, this, null) ?? base.ToString() ?? string.Empty;
         }
 
+        /// <summary>
+        /// Converts the current <see cref="ItuE164InternationalNumber"/> instance to its string representation
+        /// using the specified format provider.
+        /// </summary>
+        /// <param name="formatProvider">
+        /// An object that provides culture-specific formatting information. If <c>null</c>, the default formatting
+        /// is applied.
+        /// </param>
+        /// <returns>
+        /// A string representation of the current <see cref="ItuE164InternationalNumber"/> instance, formatted
+        /// according to the specified <paramref name="formatProvider"/>.
+        /// </returns>
         public string ToString(IFormatProvider formatProvider)
         {
-            var formatter = formatProvider.GetFormat(typeof(ICustomFormatter)) as ICustomFormatter;
-            return formatter?.Format("G", this, formatProvider) ?? base.ToString();
+            var formatter = formatProvider?.GetFormat(typeof(ICustomFormatter)) as ICustomFormatter;
+            return formatter?.Format("G", this, formatProvider) ?? base.ToString() ?? string.Empty;
         }
 
         public string ToString(string format, IFormatProvider formatProvider)
         {
-            var formatter = formatProvider.GetFormat(typeof(ICustomFormatter)) as ICustomFormatter;
-            return formatter?.Format(format, this, formatProvider) ?? base.ToString();
+            var formatter = formatProvider?.GetFormat(typeof(ICustomFormatter)) as ICustomFormatter;
+            return formatter?.Format(format, this, formatProvider) ?? base.ToString() ?? string.Empty;
         }
+#endif
 
         #endregion
 
@@ -569,33 +643,61 @@ namespace DataStandardizer.Communication.E164
 
         /// <summary>
         /// Parses the specified string representation of an ITU E.164 international number
-        /// and returns an equivalent <see cref="ItuE164InternationalNumber"/> instance.
+        /// and returns its equivalent <see cref="ItuE164InternationalNumber"/> structure.
         /// </summary>
         /// <param name="s">The string representation of the ITU E.164 international number to parse.</param>
-        /// <returns>An <see cref="ItuE164InternationalNumber"/> instance that represents the parsed number.</returns>
+        /// <returns>
+        /// An <see cref="ItuE164InternationalNumber"/> structure equivalent to the number
+        /// contained in <paramref name="s"/>.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="s"/> is <c>null</c>.
+        /// </exception>
         /// <exception cref="FormatException">
-        /// Thrown when the input string <paramref name="s"/> is not in a valid ITU E.164 format.
+        /// Thrown when <paramref name="s"/> is not in a valid ITU E.164 international number format.
         /// </exception>
         public static ItuE164InternationalNumber Parse(string s)
         {
+            return Parse(s, ItuE164InternationalNumberStyles.None);
+        }
+
+        /// <summary>
+        /// Parses the specified string representation of an ITU E.164 international number
+        /// using the provided <see cref="ItuE164InternationalNumberStyles"/> and returns
+        /// an equivalent <see cref="ItuE164InternationalNumber"/> instance.
+        /// </summary>
+        /// <param name="s">The string representation of the ITU E.164 international number to parse.</param>
+        /// <param name="numberStyles">
+        /// A bitwise combination of enumeration values that specify the permitted styles for parsing.
+        /// </param>
+        /// <returns>An <see cref="ItuE164InternationalNumber"/> instance that represents the parsed number.</returns>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when the input string <paramref name="s"/> is <c>null</c>.
+        /// </exception>
+        /// <exception cref="FormatException">
+        /// Thrown when the input string <paramref name="s"/> is not in a valid ITU E.164 format
+        /// or does not conform to the specified <paramref name="numberStyles"/>.
+        /// </exception>
+        public static ItuE164InternationalNumber Parse(string s, ItuE164InternationalNumberStyles numberStyles)
+        {
             ItuE164InternationalNumber result;
-            if (ItuE164InternationalNumberStructureForGeographicAreas.TryParse(s, out var numberForGeographicAreasResult) && numberForGeographicAreasResult != null)
+            if (ItuE164InternationalNumberStructureForGeographicAreas.TryParse(s, numberStyles, out var numberForGeographicAreasResult) && numberForGeographicAreasResult != null)
             {
                 result = new ItuE164InternationalNumber(numberForGeographicAreasResult);
             }
-            else if (ItuE164InternationalNumberStructureForGlobalServices.TryParse(s, out var numberForGlobalServicesResult) && numberForGlobalServicesResult != null)
+            else if (ItuE164InternationalNumberStructureForGlobalServices.TryParse(s, numberStyles, out var numberForGlobalServicesResult) && numberForGlobalServicesResult != null)
             {
                 result = new ItuE164InternationalNumber(numberForGlobalServicesResult);
             }
-            else if (ItuE164InternationalNumberStructureForNetworks.TryParse(s, out var numberForNetworksResult) && numberForNetworksResult != null)
+            else if (ItuE164InternationalNumberStructureForNetworks.TryParse(s, numberStyles, out var numberForNetworksResult) && numberForNetworksResult != null)
             {
                 result = new ItuE164InternationalNumber(numberForNetworksResult);
             }
-            else if (ItuE164InternationalNumberStructureForGroupsOfCountries.TryParse(s, out var numberForGroupsOfCountriesResult) && numberForGroupsOfCountriesResult != null)
+            else if (ItuE164InternationalNumberStructureForGroupsOfCountries.TryParse(s, numberStyles, out var numberForGroupsOfCountriesResult) && numberForGroupsOfCountriesResult != null)
             {
                 result = new ItuE164InternationalNumber(numberForGroupsOfCountriesResult);
             }
-            else if (ItuE164InternationalNumberStructureForTrials.TryParse(s, out var numberForTrialsResult) && numberForTrialsResult != null)
+            else if (ItuE164InternationalNumberStructureForTrials.TryParse(s, numberStyles, out var numberForTrialsResult) && numberForTrialsResult != null)
             {
                 result = new ItuE164InternationalNumber(numberForTrialsResult);
             }
@@ -608,11 +710,30 @@ namespace DataStandardizer.Communication.E164
         }
 
         /// <summary>
+        /// Attempts to parse the specified string representation of an ITU E.164 international number.
+        /// </summary>
+        /// <param name="s">The string representation of the ITU E.164 international number to parse.</param>
+        /// <param name="result">
+        /// When this method returns, contains the parsed <see cref="ItuE164InternationalNumber"/> if the parsing succeeded,
+        /// or the default value of <see cref="ItuE164InternationalNumber"/> if the parsing failed.
+        /// </param>
+        /// <returns>
+        /// <c>true</c> if the string was successfully parsed into an <see cref="ItuE164InternationalNumber"/>; otherwise, <c>false</c>.
+        /// </returns>
+        public static bool TryParse(string s, out ItuE164InternationalNumber result)
+        {
+            return TryParse(s, ItuE164InternationalNumberStyles.None, out result);
+        }
+
+        /// <summary>
         /// Attempts to parse the specified string representation of an ITU E.164 international number
         /// into an <see cref="ItuE164InternationalNumber"/> instance.
         /// </summary>
         /// <param name="s">
         /// The string representation of the ITU E.164 international number to parse.
+        /// </param>
+        /// <param name="numberStyles">
+        /// A combination of one or more <see cref="ItuE164InternationalNumberStyles"/> values that specify the permitted format of <paramref name="s"/>.
         /// </param>
         /// <param name="result">
         /// When this method returns, contains the parsed <see cref="ItuE164InternationalNumber"/> if the parsing succeeded,
@@ -622,30 +743,30 @@ namespace DataStandardizer.Communication.E164
         /// <c>true</c> if the parsing succeeded and <paramref name="s"/> was successfully converted to an
         /// <see cref="ItuE164InternationalNumber"/>; otherwise, <c>false</c>.
         /// </returns>
-        public static bool TryParse(string s, out ItuE164InternationalNumber result)
+        public static bool TryParse(string s, ItuE164InternationalNumberStyles numberStyles, out ItuE164InternationalNumber result)
         {
             var isParsed = false;
-            if (ItuE164InternationalNumberStructureForGeographicAreas.TryParse(s, out var numberForGeographicAreasResult) && numberForGeographicAreasResult != null)
+            if (ItuE164InternationalNumberStructureForGeographicAreas.TryParse(s, numberStyles, out var numberForGeographicAreasResult) && numberForGeographicAreasResult != null)
             {
                 result = new ItuE164InternationalNumber(numberForGeographicAreasResult);
                 isParsed = true;
             }
-            else if (ItuE164InternationalNumberStructureForGlobalServices.TryParse(s, out var numberForGlobalServicesResult) && numberForGlobalServicesResult != null)
+            else if (ItuE164InternationalNumberStructureForGlobalServices.TryParse(s, numberStyles, out var numberForGlobalServicesResult) && numberForGlobalServicesResult != null)
             {
                 result = new ItuE164InternationalNumber(numberForGlobalServicesResult);
                 isParsed = true;
             }
-            else if (ItuE164InternationalNumberStructureForNetworks.TryParse(s, out var numberForNetworksResult) && numberForNetworksResult != null)
+            else if (ItuE164InternationalNumberStructureForNetworks.TryParse(s, numberStyles, out var numberForNetworksResult) && numberForNetworksResult != null)
             {
                 result = new ItuE164InternationalNumber(numberForNetworksResult);
                 isParsed = true;
             }
-            else if (ItuE164InternationalNumberStructureForGroupsOfCountries.TryParse(s, out var numberForGroupsOfCountriesResult) && numberForGroupsOfCountriesResult != null)
+            else if (ItuE164InternationalNumberStructureForGroupsOfCountries.TryParse(s, numberStyles, out var numberForGroupsOfCountriesResult) && numberForGroupsOfCountriesResult != null)
             {
                 result = new ItuE164InternationalNumber(numberForGroupsOfCountriesResult);
                 isParsed = true;
             }
-            else if (ItuE164InternationalNumberStructureForTrials.TryParse(s, out var numberForTrialsResult) && numberForTrialsResult != null)
+            else if (ItuE164InternationalNumberStructureForTrials.TryParse(s, numberStyles, out var numberForTrialsResult) && numberForTrialsResult != null)
             {
                 result = new ItuE164InternationalNumber(numberForTrialsResult);
                 isParsed = true;
