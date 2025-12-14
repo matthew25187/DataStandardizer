@@ -10,8 +10,8 @@ namespace DataStandardizer.Communication.E164
     /// </summary>
     public sealed class ItuE164InternationalNumberFormatInfo : IFormatProvider
     {
-        private string _longInternationalNumberPattern;
-        private string _shortInternationalNumberPattern;
+        private string _longInternationalNumberPattern = string.Empty;
+        private string _shortInternationalNumberPattern = string.Empty;
 
 #if NETCOREAPP3_0_OR_GREATER
         public object? GetFormat(Type? formatType)

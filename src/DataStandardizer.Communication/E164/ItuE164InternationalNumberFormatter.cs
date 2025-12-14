@@ -24,7 +24,11 @@ namespace DataStandardizer.Communication.E164
             internal const string SubscriberNumber = "SubscriberNumber";
         }
 
+#if NETCOREAPP3_0_OR_GREATER
+        public string Format(string? format, object? arg, IFormatProvider? formatProvider)
+#else
         public string Format(string format, object arg, IFormatProvider formatProvider)
+#endif
         {
             // Get the parts of the number to format.
             string[] numberPartNames;
@@ -36,7 +40,7 @@ namespace DataStandardizer.Communication.E164
                     if (internationalNumber.IsNumberForGeographicArea())
                     {
                         IItuE164InternationalNumberForGeographicAreas internationalNumberForGeographicArea = internationalNumber;
-                        numberParts = new Dictionary<string, string>()
+                        numberParts = new Dictionary<string, string>
                         {
                             { NumberPart.CountryCode, internationalNumberForGeographicArea.CountryCode.ToString() },
                             { NumberPart.SubscriberNumber, internationalNumberForGeographicArea.NationalSignificantNumber.ToString() }
@@ -46,7 +50,7 @@ namespace DataStandardizer.Communication.E164
                     else if (internationalNumber.IsNumberForGlobalService())
                     {
                         IItuE164InternationalNumberForGlobalServices internationalNumberForGlobalService = internationalNumber;
-                        numberParts = new Dictionary<string, string>()
+                        numberParts = new Dictionary<string, string>
                         {
                             { NumberPart.CountryCode, internationalNumberForGlobalService.CountryCode.ToString() },
                             { NumberPart.SubscriberNumber, internationalNumberForGlobalService.GlobalSubscriberNumber.ToString() }
@@ -56,7 +60,7 @@ namespace DataStandardizer.Communication.E164
                     else if (internationalNumber.IsNumberForNetwork())
                     {
                         IItuE164InternationalNumberForNetworks internationalNumberForNetwork = internationalNumber;
-                        numberParts = new Dictionary<string, string>()
+                        numberParts = new Dictionary<string, string>
                         {
                             { NumberPart.CountryCode, internationalNumberForNetwork.CountryCode.ToString() },
                             { NumberPart.IdentificationCode, ((ushort)internationalNumberForNetwork.IdentificationCode).ToString() },
@@ -67,7 +71,7 @@ namespace DataStandardizer.Communication.E164
                     else if (internationalNumber.IsNumberForGroupOfCountries())
                     {
                         IItuE164InternationalNumberForGroupsOfCountries internationalNumberForGroupOfCountries = internationalNumber;
-                        numberParts = new Dictionary<string, string>()
+                        numberParts = new Dictionary<string, string>
                         {
                             { NumberPart.CountryCode, internationalNumberForGroupOfCountries.CountryCode.ToString() },
                             { NumberPart.IdentificationCode, ((byte)internationalNumberForGroupOfCountries.GroupIdentificationCode).ToString() },
@@ -78,7 +82,7 @@ namespace DataStandardizer.Communication.E164
                     else if (internationalNumber.IsNumberForTrial())
                     {
                         IItuE164InternationalNumberForTrials internationalNumberForTrial = internationalNumber;
-                        numberParts = new Dictionary<string, string>()
+                        numberParts = new Dictionary<string, string>
                             { { NumberPart.CountryCode, internationalNumberForTrial.CountryCode.ToString() }, { NumberPart.IdentificationCode, ((byte)internationalNumberForTrial.TrialIdentificationCode).ToString() } };
                         numberPartNames = new[] { NumberPart.CountryCode, NumberPart.IdentificationCode };
                         if (internationalNumberForTrial.SubscriberNumber.HasValue)
@@ -135,7 +139,7 @@ namespace DataStandardizer.Communication.E164
                 default:
                 {
                     // custom format
-                    formattedString = CustomFormatString(format, InternationalPrefixSymbol, numberParts);
+                    formattedString = CustomFormatString(format ?? string.Empty, InternationalPrefixSymbol, numberParts);
                 }
                     break;
             }
@@ -196,7 +200,11 @@ namespace DataStandardizer.Communication.E164
             return formattedStringBuilder.ToString();
         }
 
+#if NETCOREAPP3_0_OR_GREATER
+        private string HandleOtherFormats(string? format, object? arg)
+#else
         private string HandleOtherFormats(string format, object arg)
+#endif
         {
             if (arg is IFormattable formattableArg)
             {
@@ -205,7 +213,7 @@ namespace DataStandardizer.Communication.E164
 
             if (arg != null)
             {
-                return arg.ToString();
+                return arg.ToString() ?? string.Empty;
             }
 
             return string.Empty;

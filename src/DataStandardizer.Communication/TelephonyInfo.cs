@@ -28,7 +28,11 @@ namespace DataStandardizer.Communication
         [CanBeNull] private ItuE164InternationalNumberFormatter _formatter; 
 #endif
         private bool _isReadOnly;
+#if NETCOREAPP3_0_OR_GREATER
+        private ItuE164InternationalNumberFormatInfo _ituE164InternationalNumberFormat = null!; 
+#else
         private ItuE164InternationalNumberFormatInfo _ituE164InternationalNumberFormat;
+#endif
 
         #region Constructors
 
@@ -113,7 +117,7 @@ namespace DataStandardizer.Communication
         /// This property provides a default telephony configuration that is not specific to any country or region.
         /// It is initialized as a read-only instance and can be used as a fallback or default telephony information provider.
         /// </remarks>
-        public static TelephonyInfo InvariantTelephony { get; } = new TelephonyInfo() { IsReadOnly = true };
+        public static TelephonyInfo InvariantTelephony { get; } = new TelephonyInfo { IsReadOnly = true };
 
         /// <summary>
         /// Gets the ISO 3166-1 alpha-2 country code associated with the telephony information.
@@ -174,7 +178,7 @@ namespace DataStandardizer.Communication
                 : default(Iso3166Part1Alpha2Country?);
             return countryCode.HasValue
                 ? new TelephonyInfo(countryCode.Value) { IsReadOnly = true }
-                : new TelephonyInfo() { IsReadOnly = true };
+                : new TelephonyInfo { IsReadOnly = true };
         }
 #endif
 
@@ -182,7 +186,7 @@ namespace DataStandardizer.Communication
         {
             var formatInfo = new ItuE164InternationalNumberFormatInfo();
 
-            string longInternationalNumberPattern = null, shortInternationalNumberPattern = null;
+            string longInternationalNumberPattern = string.Empty, shortInternationalNumberPattern = string.Empty;
             if (Enum.ToObject(typeof(Iso3166Part1Alpha2Country), _countryCode) is Iso3166Part1Alpha2Country countryCode && Enum.IsDefined(typeof(Iso3166Part1Alpha2Country), countryCode))
             {
                 var culture = new CultureInfo($"en-{countryCode}"); // don't care about the language; just want resources for the region
