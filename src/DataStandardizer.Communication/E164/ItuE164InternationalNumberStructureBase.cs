@@ -16,15 +16,15 @@ namespace DataStandardizer.Communication.E164
             internal const string SubscriberNumber = "SubscriberNumber";
         }
 
+        protected const string PatternSeparatorCharacterClass = PatternWhiteSpaceCharacterClass+@"\p{Pd}\p{Po}";
+        protected const string PatternWhiteSpaceCharacterClass = @"\p{Zs}\p{Cc}";
+
         private static readonly Dictionary<(Type, ItuE164InternationalNumberStyles), Regex> ParseExpressions = new Dictionary<(Type, ItuE164InternationalNumberStyles), Regex>();
 
         protected internal ItuE164InternationalNumberStructureBase(ulong number)
         {
             Number = number;
         }
-
-        protected const string PatternSeparatorCharacterClass = PatternWhiteSpaceCharacterClass+@"\p{Pd}\p{Po}";
-        protected const string PatternWhiteSpaceCharacterClass = @"\p{Zs}\p{Cc}";
 
         public ulong Number { get; }
 

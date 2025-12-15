@@ -17,7 +17,7 @@ Provides types supporting communication-related standards, including:
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/matthew25187/DataStandardizer.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageTags>data;standard;tz database;itu;e.164;telephone number</PackageTags>
+    <PackageTags>data;standard;itu;e.164;telephone number;phone number</PackageTags>
     <PackageReleaseNotes>Initial release.</PackageReleaseNotes>
     <PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>

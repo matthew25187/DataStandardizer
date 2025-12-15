@@ -1,6 +1,6 @@
 ﻿namespace DataStandardizer.Communication.E164
 {
-    internal class ItuE164Constants
+    internal static class ItuE164Constants
     {
         internal static class FormatSpecifier
         {

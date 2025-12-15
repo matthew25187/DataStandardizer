@@ -15,7 +15,7 @@ namespace DataStandardizer.Communication.E164
     /// ITU E.164 international numbers. It supports multiple formats, including abbreviated, full, short, 
     /// and long international formats, as well as custom formats defined by the user.
     /// </remarks>
-    public class ItuE164InternationalNumberFormatter : ICustomFormatter
+    internal sealed class ItuE164InternationalNumberFormatter : ICustomFormatter
     {
         private static class NumberPart
         {
@@ -147,6 +147,8 @@ namespace DataStandardizer.Communication.E164
             return formattedString;
         }
 
+        #region Private Methods
+
         private string CustomFormatString(string customFormat, char internationalPrefixSymbol, IDictionary<string, string> numberParts)
         {
             var countryCodePart = numberParts.TryGetValue(NumberPart.CountryCode, out var countryCodeValue) ? countryCodeValue : string.Empty;
@@ -218,5 +220,7 @@ namespace DataStandardizer.Communication.E164
 
             return string.Empty;
         }
+
+        #endregion
     }
 }
