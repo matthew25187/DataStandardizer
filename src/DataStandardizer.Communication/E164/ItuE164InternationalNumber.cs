@@ -703,7 +703,7 @@ namespace DataStandardizer.Communication.E164
             }
             else
             {
-                throw new FormatException($"{nameof(s)} is not in the correct format.");
+                throw new FormatException($"The input string '{s}' was not in a correct format.");
             }
 
             return result;

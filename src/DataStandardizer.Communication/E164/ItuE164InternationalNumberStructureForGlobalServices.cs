@@ -28,10 +28,10 @@ namespace DataStandardizer.Communication.E164
             var countryCodePattern = string.Join("|", validCountryCodes.Select(code => $"{code:000}"));
 
             // Compose expressions for parsing a number.
-            return string.Concat(@"^(?=(?:\D*\d){4,", MaximumDigitCount, @"}\D*$)", numberStyles.HasFlag(ItuE164InternationalNumberStyles.AllowLeadingWhite) ? @"\p{Zs}*" : string.Empty,
-                numberStyles.HasFlag(ItuE164InternationalNumberStyles.AllowInternationalPrefixSymbol) ? $@"\{InternationalPrefixSymbol}" : string.Empty, "?[", PatternSeparatorCharacterClass, "]*(?<", NumberPart.CountryCode, ">",
+            return string.Concat(@"^(?=(?:\D*\d){4,", MaximumDigitCount, @"}\D*$)", numberStyles.HasFlag(ItuE164InternationalNumberStyles.AllowLeadingWhite) ? $"[{PatternWhiteSpaceCharacterClass}]*": string.Empty,
+                numberStyles.HasFlag(ItuE164InternationalNumberStyles.AllowInternationalPrefixSymbol) ? $@"\{InternationalPrefixSymbol}" : string.Empty, "?[", PatternWhiteSpaceCharacterClass, "]*(?<", NumberPart.CountryCode, ">",
                 countryCodePattern, ")[", PatternSeparatorCharacterClass, "]*(?<", NumberPart.SubscriberNumber, @">\d(?:[", PatternSeparatorCharacterClass, @"]*\d){1,12})",
-                numberStyles.HasFlag(ItuE164InternationalNumberStyles.AllowTrailingWhite) ? @"\p{Zs}*" : string.Empty, "$");
+                numberStyles.HasFlag(ItuE164InternationalNumberStyles.AllowTrailingWhite) ? $"[{PatternWhiteSpaceCharacterClass}]*" : string.Empty, "$");
         }
 #if NETCOREAPP3_0_OR_GREATER
         internal static bool TryParse(string s, ItuE164InternationalNumberStyles numberStyles, out ItuE164InternationalNumberStructureForGlobalServices? result)
@@ -47,7 +47,8 @@ namespace DataStandardizer.Communication.E164
             {
                 var countryCodePart = parseMatch.Groups[NumberPart.CountryCode].Value;
                 var globalSubscriberNumberPart = parseMatch.Groups[NumberPart.SubscriberNumber].Value;
-                var number = ulong.Parse(Regex.Replace(countryCodePart + globalSubscriberNumberPart, @"\s", string.Empty), NumberStyles, CultureInfo.InvariantCulture);
+                var concatenatedParts = Regex.Replace(countryCodePart + globalSubscriberNumberPart, @"\D", string.Empty);
+                var number = ulong.Parse(concatenatedParts, NumberStyles, CultureInfo.InvariantCulture);
                 result = new ItuE164InternationalNumberStructureForGlobalServices(number)
                 {
                     _numberParts = new Dictionary<string, string>

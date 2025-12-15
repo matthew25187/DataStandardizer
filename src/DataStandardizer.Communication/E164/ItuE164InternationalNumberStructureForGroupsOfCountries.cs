@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 #if NETSTANDARD
 using JetBrains.Annotations;
 #endif
@@ -49,8 +50,8 @@ namespace DataStandardizer.Communication.E164
                 var countryCodePart = parseMatch.Groups[NumberPart.CountryCode].Value;
                 var groupIdentificationCodePart = parseMatch.Groups[NumberPart.IdentificationCode].Value;
                 var subscriberNumberPart = parseMatch.Groups[NumberPart.SubscriberNumber].Value;
-                var numberWhole = new string(string.Concat(countryCodePart, groupIdentificationCodePart, subscriberNumberPart).ToCharArray().Where(character => !char.IsWhiteSpace(character)).ToArray());
-                var number = ulong.Parse(numberWhole, NumberStyles, CultureInfo.InvariantCulture);
+                var concatenatedParts = Regex.Replace(countryCodePart + groupIdentificationCodePart + subscriberNumberPart, @"\D", string.Empty);
+                var number = ulong.Parse(concatenatedParts, NumberStyles, CultureInfo.InvariantCulture);
                 result = new ItuE164InternationalNumberStructureForGroupsOfCountries(number)
                 {
                     _numberParts = new Dictionary<string, string>

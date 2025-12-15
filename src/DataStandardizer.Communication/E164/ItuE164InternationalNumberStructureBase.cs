@@ -23,7 +23,8 @@ namespace DataStandardizer.Communication.E164
             Number = number;
         }
 
-        protected const string PatternSeparatorCharacterClass = @"\p{Zs}\p{Pd}\p{Po}";
+        protected const string PatternSeparatorCharacterClass = PatternWhiteSpaceCharacterClass+@"\p{Pd}\p{Po}";
+        protected const string PatternWhiteSpaceCharacterClass = @"\p{Zs}\p{Cc}";
 
         public ulong Number { get; }
 
@@ -41,7 +42,7 @@ namespace DataStandardizer.Communication.E164
             // Allow leading white space.
             if (numberStyles.HasFlag(ItuE164InternationalNumberStyles.AllowLeadingWhite))
             {
-                patternBuilder.Append(@"\p{Zs}*");
+                patternBuilder.Append($"[{PatternWhiteSpaceCharacterClass}]*");
             }
 
             // Add international prefix.
@@ -51,7 +52,7 @@ namespace DataStandardizer.Communication.E164
             }
 
             // Add separation.
-            patternBuilder.Append(string.Concat("[", PatternSeparatorCharacterClass, "]*"));
+            patternBuilder.Append(string.Concat("[", PatternWhiteSpaceCharacterClass, "]*"));
 
             // Add Country Code/Identification Code combinations.
             var countryCodePatterns = new List<string>();
@@ -75,7 +76,7 @@ namespace DataStandardizer.Communication.E164
             // Allow trailing white space.
             if (numberStyles.HasFlag(ItuE164InternationalNumberStyles.AllowTrailingWhite))
             {
-                patternBuilder.Append(@"\p{Zs}*");
+                patternBuilder.Append($"[{PatternWhiteSpaceCharacterClass}]*");
             }
 
             patternBuilder.Append("$");

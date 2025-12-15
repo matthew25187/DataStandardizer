@@ -55,7 +55,8 @@ namespace DataStandardizer.Communication.E164
                 var countryCodePart = parseMatch.Groups[NumberPart.CountryCode].Value;
                 var identificationCodePart = parseMatch.Groups[NumberPart.IdentificationCode].Value;
                 var subscriberNumberPart = parseMatch.Groups[NumberPart.SubscriberNumber].Value;
-                var number = ulong.Parse(Regex.Replace(countryCodePart + identificationCodePart + subscriberNumberPart, @"\s", String.Empty), NumberStyles, CultureInfo.InvariantCulture);
+                var concatenatedParts = Regex.Replace(countryCodePart + identificationCodePart + subscriberNumberPart, @"\D", string.Empty);
+                var number = ulong.Parse(concatenatedParts, NumberStyles, CultureInfo.InvariantCulture);
                 result = new ItuE164InternationalNumberStructureForNetworks(number)
                 {
                     _numberParts = new Dictionary<string, string>
