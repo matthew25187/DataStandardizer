@@ -72,7 +72,7 @@ namespace DataStandardizer.Communication.E164
 
             string GetParsePattern(ItuE164InternationalNumberStyles styles)
             {
-                return ComposePatternForParse(IdentificationCodeLookup, styles);
+                return ComposePatternForParse(IdentificationCodeLookup, styles, 0);
             }
         }
 

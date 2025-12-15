@@ -37,7 +37,7 @@ namespace DataStandardizer.Communication.E164
             // Compose expressions for parsing a number.
             return string.Concat(@"^(?=(?:\D*\d){2,", MaximumDigitCount, @"}\D*$)", numberStyles.HasFlag(ItuE164InternationalNumberStyles.AllowLeadingWhite) ? $"[{PatternWhiteSpaceCharacterClass}]*": string.Empty,
                 numberStyles.HasFlag(ItuE164InternationalNumberStyles.AllowInternationalPrefixSymbol) ? $@"\{InternationalPrefixSymbol}" : string.Empty, "?[", PatternWhiteSpaceCharacterClass, "]*(?<", NumberPart.CountryCode, ">",
-                countryCodePattern, ")[", PatternSeparatorCharacterClass, "]*(?<", NumberPart.SubscriberNumber, @">\d(?:[", PatternSeparatorCharacterClass, @"]*\d){,", MaximumDigitCount - 2, "})",
+                countryCodePattern, ")[", PatternSeparatorCharacterClass, "]*(?<", NumberPart.SubscriberNumber, @">\d(?:[", PatternSeparatorCharacterClass, @"]*\d){0,", MaximumDigitCount - 2, "})",
                 numberStyles.HasFlag(ItuE164InternationalNumberStyles.AllowTrailingWhite) ? $"[{PatternWhiteSpaceCharacterClass}]*": string.Empty, "$");
         }
 #if NETCOREAPP3_0_OR_GREATER
