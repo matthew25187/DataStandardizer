@@ -16,7 +16,7 @@ namespace DataStandardizer.Communication.E164
             internal const string SubscriberNumber = "SubscriberNumber";
         }
 
-        protected const string PatternSeparatorCharacterClass = PatternWhiteSpaceCharacterClass+@"\p{Pd}\p{Po}";
+        protected const string PatternSeparatorCharacterClass = PatternWhiteSpaceCharacterClass + @"\p{Pd}\p{Po}";
         protected const string PatternWhiteSpaceCharacterClass = @"\p{Zs}\p{Cc}";
 
         private static readonly Dictionary<(Type, ItuE164InternationalNumberStyles), Regex> ParseExpressions = new Dictionary<(Type, ItuE164InternationalNumberStyles), Regex>();
@@ -89,7 +89,7 @@ namespace DataStandardizer.Communication.E164
             if (!ParseExpressions.TryGetValue((discriminatorType, numberStyles), out var parseExpression))
             {
                 var parseExpressionOptions = RegexOptions.Singleline;
-#if NETSTANDARD1_3_OR_GREATER
+#if NETSTANDARD1_3_OR_GREATER||NET
                 parseExpressionOptions |= RegexOptions.Compiled;
 #endif
                 var parsePattern = getParsePattern(numberStyles);
