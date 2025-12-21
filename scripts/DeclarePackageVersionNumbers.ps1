@@ -3,6 +3,10 @@ param (
     [ValidateNotNullOrEmpty()]
     [string]    $PackageName,
 
+    [Parameter(Mandatory)]
+    [ValidateNotNullOrEmpty()]
+    [string]    $PackageInfos,
+
     [Parameter()]
     [int]   $TraceLevel = 0
 )
@@ -44,7 +48,7 @@ $env:AZURE_DEVOPS_EXT_PAT = $env:SYSTEM_ACCESSTOKEN
 & az account set -s ${env:SUBSCRIPTION_ID}
 
 # Extract package metadata.
-$packageInfo = '${{variables.packageInfos}}' | ConvertFrom-Json | Where-Object -Property packageName -EQ "$PackageName"
+$packageInfo = $PackageInfos | ConvertFrom-Json | Where-Object -Property packageName -EQ "$PackageName"
 if ($null -eq $packageInfo) {
     Write-Error "Package information not found for $PackageName."
     exit;
