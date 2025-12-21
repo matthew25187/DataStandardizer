@@ -140,6 +140,7 @@ if (-not [string]::IsNullOrEmpty("$(versionNumberList)")) {
 }
 
 $packageVersionsList += $packageVersions
-Write-Host "##vso[task.setvariable variable=packageVersionsList;]$packageVersionsList"
+$serializedPackageVersionsList = $packageVersionsList | ConvertTo-Json | ConvertTo-Base64String
+Write-Host "##vso[task.setvariable variable=packageVersionsList;]$serializedPackageVersionsList"
 
 Write-Information "Set package versions list for $($packageVersionsList.Count) packages." -InformationAction Continue
