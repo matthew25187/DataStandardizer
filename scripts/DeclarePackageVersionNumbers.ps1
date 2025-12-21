@@ -7,6 +7,10 @@ param (
     [ValidateNotNullOrEmpty()]
     [string]    $PackageInfos,
 
+    [Parameter(Mandatory)]
+    [ValidateNotNullOrEmpty()]
+    [string]    $TempPath,
+
     [Parameter()]
     [int]   $TraceLevel = 0
 )
@@ -90,8 +94,8 @@ Write-Information "Next package version will be $nextPackageVersion" -Informatio
 
 # Fetch current assembly numbers.
 [version]$currentAssemblyVersion = $null
-& nuget install $PackageName -DirectDownload -ExcludeVersion -NoHttpCache -NonInteractive -OutputDirectory "$(Agent.TempDirectory)" -PackageSaveMode nupkg -PreRelease -Source 'https://pkgs.dev.azure.com/solobyte/DataStandardizer/_packaging/DataStandardizer/nuget/v3/index.json' -Source 'https://api.nuget.org/v3/index.json' -Version $currentPackageVersionString
-$currentPackageFolderPath = Join-Path -Path "$(Agent.TempDirectory)" -ChildPath $PackageName
+& nuget install $PackageName -DirectDownload -ExcludeVersion -NoHttpCache -NonInteractive -OutputDirectory $TempPath -PackageSaveMode nupkg -PreRelease -Source 'https://pkgs.dev.azure.com/solobyte/DataStandardizer/_packaging/DataStandardizer/nuget/v3/index.json' -Source 'https://api.nuget.org/v3/index.json' -Version $currentPackageVersionString
+$currentPackageFolderPath = Join-Path -Path $TempPath -ChildPath $PackageName
 $currentPackageArchivePath = $currentPackageFolderPath | Join-Path -ChildPath "$PackageName.nupkg"
 if (Test-Path $currentPackageArchivePath -PathType Leaf) {
     Expand-Archive -Path $currentPackageArchivePath -DestinationPath $currentPackageFolderPath
