@@ -94,11 +94,14 @@ Write-Information "Next package version will be $nextPackageVersion" -Informatio
 
 # Fetch current assembly numbers.
 [version]$currentAssemblyVersion = $null
-& nuget install $PackageName -DirectDownload -ExcludeVersion -NoHttpCache -NonInteractive -OutputDirectory $TempPath -PackageSaveMode nupkg -PreRelease -Source 'https://pkgs.dev.azure.com/solobyte/DataStandardizer/_packaging/DataStandardizer/nuget/v3/index.json' -Source 'https://api.nuget.org/v3/index.json' -Version $currentPackageVersionString
+
+$cmdOutput = & nuget install $PackageName -DirectDownload -ExcludeVersion -NoHttpCache -NonInteractive -OutputDirectory $TempPath -PackageSaveMode nupkg -PreRelease -Source 'https://pkgs.dev.azure.com/solobyte/DataStandardizer/_packaging/DataStandardizer/nuget/v3/index.json' -Source 'https://api.nuget.org/v3/index.json' -Version $currentPackageVersionString
+Write-Output $cmdOutput
+
 $currentPackageFolderPath = Join-Path -Path $TempPath -ChildPath $PackageName
 $currentPackageArchivePath = $currentPackageFolderPath | Join-Path -ChildPath "$PackageName.nupkg"
 if (Test-Path $currentPackageArchivePath -PathType Leaf) {
-    Expand-Archive -Path $currentPackageArchivePath -DestinationPath $currentPackageFolderPath
+    # Expand-Archive -Path $currentPackageArchivePath -DestinationPath $currentPackageFolderPath
 
     $currentPackageAssemblyPath = Get-ChildItem -Path $currentPackageFolderPath -Filter "$PackageName.dll" -Recurse
     | Sort-Object -Property FullName
