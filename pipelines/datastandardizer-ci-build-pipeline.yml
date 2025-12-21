@@ -523,6 +523,32 @@ stages:
                   #powerShellErrorActionPreference: 'stop' # 'stop' | 'continue' | 'silentlyContinue'. Optional. Use when scriptType = ps || scriptType = pscore. ErrorActionPreference. Default: stop.
                 env:
                   SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+      - job: Version_numbering
+        variables:
+          versionNumberList: ''
+        steps:
+        # NuGet tool installer v1
+        # Acquires a specific version of NuGet from the internet or the tools cache and adds it to the PATH. Use this task to change the version of NuGet used in the NuGet tasks.
+        - task: NuGetToolInstaller@1
+          inputs:
+          # Advanced
+            #versionSpec: # string. Version of NuGet.exe to install. 
+            checkLatest: false # boolean. Always check for new versions. Default: false.        
+        - ${{ each packageName in split(variables.allPackageNames, ',') }}:
+          # Azure CLI v2
+          # Run Azure CLI commands against an Azure subscription in a PowerShell Core/Shell script when running on Linux agent or PowerShell/PowerShell Core/Batch script when running on Windows agent.
+          - task: AzureCLI@2
+            displayName: "[${{ packageName }}] Declare version numbers"
+            inputs:
+              azureSubscription: $(SUBSCRIPTION_ID) # string. Alias: connectedServiceNameARM. Required. Azure Resource Manager connection. 
+              scriptType: 'pscore' # 'ps' | 'pscore' | 'batch' | 'bash'. Required. Script Type. 
+              scriptLocation: 'scriptPath' # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
+              scriptPath: 'scripts/DeclarePackageVersionNumbers.ps1' # string. Required when scriptLocation = scriptPath. Script Path. 
+              # inlineScript: # string. Required when scriptLocation = inlineScript. Inline Script. 
+              #arguments: # string. Alias: scriptArguments. Script Arguments. 
+              #powerShellErrorActionPreference: 'stop' # 'stop' | 'continue' | 'silentlyContinue'. Optional. Use when scriptType = ps || scriptType = pscore. ErrorActionPreference. Default: stop.
+            env:
+              SYSTEM_ACCESSTOKEN: $(System.AccessToken)
   - stage: Build
     dependsOn: Configure
     variables:
@@ -571,7 +597,7 @@ stages:
         # Use .NET Core v2
         # Acquires a specific version of the .NET Core SDK from the internet or the local cache and adds it to the PATH. Use this task to change the version of .NET Core used in subsequent tasks. Additionally provides proxy support.
         - task: UseDotNet@2
-          displayName: 'Install .NET SDK 10.0.100'
+          displayName: 'Install .NET SDK'
           inputs:
             #packageType: 'sdk' # 'runtime' | 'sdk'. Package to install. Default: sdk.
             useGlobalJson: true # boolean. Optional. Use when packageType = sdk. Use global json. Default: false.
