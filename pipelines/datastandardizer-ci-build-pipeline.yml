@@ -533,7 +533,13 @@ stages:
           inputs:
           # Advanced
             #versionSpec: # string. Version of NuGet.exe to install. 
-            checkLatest: false # boolean. Always check for new versions. Default: false.        
+            checkLatest: false # boolean. Always check for new versions. Default: false.
+        # NuGet authenticate v1
+        # Configure NuGet tools to authenticate with Azure Artifacts and other NuGet repositories. Requires NuGet >= 4.8.5385, dotnet >= 6, or MSBuild >= 15.8.166.59604.
+        - task: NuGetAuthenticate@1
+          # inputs:
+          #   forceReinstallCredentialProvider: false # boolean. Reinstall the credential provider even if already installed. Default: false.
+            #nuGetServiceConnections: # string. Service connection credentials for feeds outside this organization.            
         - ${{ each packageName in split(variables.allPackageNames, ',') }}:
           # Azure CLI v2
           # Run Azure CLI commands against an Azure subscription in a PowerShell Core/Shell script when running on Linux agent or PowerShell/PowerShell Core/Batch script when running on Windows agent.
