@@ -97,10 +97,10 @@ Write-Information "Next package version will be $nextPackageVersion" -Informatio
 
 nuget install $PackageName -DirectDownload -ExcludeVersion -NoHttpCache -NonInteractive -OutputDirectory $TempPath -PackageSaveMode nupkg -PreRelease -Source 'https://pkgs.dev.azure.com/solobyte/DataStandardizer/_packaging/DataStandardizer/nuget/v3/index.json' -Source 'https://api.nuget.org/v3/index.json' -Verbosity detailed -Version $currentPackageVersionString 2>&1 | Write-Host
 
-$currentPackageFolderPath = Join-Path -Path $TempPath -ChildPath $PackageName
-$currentPackageArchivePath = Get-ChildItem -Path $currentPackageFolderPath -Filter "$PackageName.nupkg" -Recurse 
+$currentPackageArchivePath = Get-ChildItem -Path $TempPath -Filter "$PackageName.nupkg" -Recurse 
 | Select-Object -ExpandProperty FullName
 if ((-not [string]::IsNullOrEmpty($currentPackageArchivePath)) -and (Test-Path $currentPackageArchivePath -PathType Leaf)) {
+    $currentPackageFolderPath = $currentPackageArchivePath | Split-Path -Parent
     Expand-Archive -Path $currentPackageArchivePath -DestinationPath $currentPackageFolderPath
 
     $currentPackageAssemblyPath = Get-ChildItem -Path $currentPackageFolderPath -Filter "$PackageName.dll" -Recurse
