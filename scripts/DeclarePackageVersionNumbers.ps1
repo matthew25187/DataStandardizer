@@ -97,22 +97,28 @@ Write-Information "Next package version will be $nextPackageVersion" -Informatio
 
 nuget install $PackageName -DirectDownload -ExcludeVersion -NoHttpCache -NonInteractive -OutputDirectory $TempPath -PackageSaveMode nupkg -PreRelease -Source 'https://pkgs.dev.azure.com/solobyte/DataStandardizer/_packaging/DataStandardizer/nuget/v3/index.json' -Source 'https://api.nuget.org/v3/index.json' -Verbosity detailed -Version $currentPackageVersionString 2>&1 | Write-Host
 
+[string]$currentPackageFolderPath
 $currentPackageArchivePath = Get-ChildItem -Path $TempPath -Filter "$PackageName.nupkg" -Recurse 
 | Select-Object -ExpandProperty FullName
 if ((-not [string]::IsNullOrEmpty($currentPackageArchivePath)) -and (Test-Path $currentPackageArchivePath -PathType Leaf)) {
     $currentPackageFolderPath = $currentPackageArchivePath | Split-Path -Parent
     # Expand-Archive -Path $currentPackageArchivePath -DestinationPath $currentPackageFolderPath -PassThru
+}
+else {
+    Write-Warning "Failed to acquire package $PackageName.  Unable to determine current package assembly version."
+}
 
-    $currentPackageAssemblyPath = Get-ChildItem -Path $currentPackageFolderPath -Filter "$PackageName.dll" -Recurse
-    | Sort-Object -Property FullName
-    | Select-Object -First -ExpandProperty FullName
+$currentPackageAssemblyPath = Get-ChildItem -Path $currentPackageFolderPath -Filter "$PackageName.dll" -Recurse
+| Sort-Object -Property FullName
+| Select-Object -First 1 -ExpandProperty FullName
+if (Test-Path $currentPackageAssemblyPath -PathType Leaf) {
     $asm = [System.Reflection.AssemblyName]::GetAssemblyName($currentPackageAssemblyPath)
     $currentAssemblyVersion = $asm.Version
 
     Write-Information "Current assembly version is $currentAssemblyVersion." -InformationAction Continue
 }
 else {
-    Write-Warning "Failed to acquire package $PackageName.  Unable to determine current package assembly version."
+    Write-Error "Package $PackageName is not expanded.  Unable to determine current package assembly version."
 }
 
 # Calculate next assembly numbers.
