@@ -101,7 +101,7 @@ $currentPackageArchivePath = Get-ChildItem -Path $TempPath -Filter "$PackageName
 | Select-Object -ExpandProperty FullName
 if ((-not [string]::IsNullOrEmpty($currentPackageArchivePath)) -and (Test-Path $currentPackageArchivePath -PathType Leaf)) {
     $currentPackageFolderPath = $currentPackageArchivePath | Split-Path -Parent
-    Expand-Archive -Path $currentPackageArchivePath -DestinationPath $currentPackageFolderPath
+    # Expand-Archive -Path $currentPackageArchivePath -DestinationPath $currentPackageFolderPath -PassThru
 
     $currentPackageAssemblyPath = Get-ChildItem -Path $currentPackageFolderPath -Filter "$PackageName.dll" -Recurse
     | Sort-Object -Property FullName
