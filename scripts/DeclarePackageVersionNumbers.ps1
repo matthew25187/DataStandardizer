@@ -123,7 +123,7 @@ else {
 
 # Calculate next assembly numbers.
 [version]$nextAssemblyFileVersion = $nextPackageVersion
-$nextAssemblyVersionRevision = [System.Convert]::ToInt32([datetime]::Now.TimeOfDay.TotalSeconds / 2)
+$nextAssemblyVersionRevision = [System.Convert]::ToInt32([datetime]::UtcNow.TimeOfDay.TotalSeconds / 2)
 [version]$nextAssemblyVersion = "$($nextPackageVersion.Major).$($nextPackageVersion.Minor).$($nextPackageVersion.Build).$nextAssemblyVersionRevision"
 [version]$nextAssemblyInformationalVersion = "$($nextPackageVersion.Major).$($nextPackageVersion.Minor)"
 
@@ -143,8 +143,11 @@ $packageVersions = [PSCustomObject]@{
 }
 
 [PSCustomObject[]]$packageVersionsList = @()
-if (-not [string]::IsNullOrEmpty("$(versionNumberList)")) {
-    $packageVersionsList = "$(versionNumberList)" | ConvertFrom-Base64String | ConvertFrom-Json
+
+$raw = $env:VERSIONNUMBERLIST
+
+if (-not [string]::IsNullOrEmpty($raw)) {
+    $packageVersionsList = $raw | ConvertFrom-Base64String | ConvertFrom-Json
     Write-Debug "Extracted $($packageVersionsList.Count) existing package versions."
 }
 
