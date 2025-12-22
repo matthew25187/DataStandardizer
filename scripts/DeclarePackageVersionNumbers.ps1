@@ -100,7 +100,7 @@ nuget install $PackageName -DirectDownload -ExcludeVersion -NoHttpCache -NonInte
 $currentPackageFolderPath = Join-Path -Path $TempPath -ChildPath $PackageName
 $currentPackageArchivePath = Get-ChildItem -Path $currentPackageFolderPath -Filter "$PackageName.nupkg" -Recurse 
 | Select-Object -ExpandProperty FullName
-if (Test-Path $currentPackageArchivePath -PathType Leaf) {
+if ((-not [string]::IsNullOrEmpty($currentPackageArchivePath)) -and (Test-Path $currentPackageArchivePath -PathType Leaf)) {
     Expand-Archive -Path $currentPackageArchivePath -DestinationPath $currentPackageFolderPath
 
     $currentPackageAssemblyPath = Get-ChildItem -Path $currentPackageFolderPath -Filter "$PackageName.dll" -Recurse
