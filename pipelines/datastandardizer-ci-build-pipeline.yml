@@ -1254,7 +1254,7 @@ stages:
     jobs:
       - job: Version_rollback # Required as first property. ID of the job.
         displayName: 'Rollback version numbers on failure' # Human-readable name for the job.
-        dependsOn: string | [ string ] # Any jobs which must complete before this one.
+        # dependsOn: string | [ string ] # Any jobs which must complete before this one.
         condition: | # Evaluate this condition expression to determine whether to run this job.
           and
           (
