@@ -14,9 +14,7 @@ if (0 -lt $TraceLevel) {
 
 $testPackageNames = $PackageInfos
 | ConvertFrom-Json
-| Where-Object -Property enableTests -NE 0
-| Select-Object -Property packageName
-| ConvertTo-Csv -NoHeader -NoTypeInformation -UseQuotes Never
-| Out-String -Stream
+| Where-Object -Property enableTests -NE -Value 0
+| Select-Object -ExpandProperty packageName
 
 Write-Host "##vso[task.setvariable variable=testPackageNames;isOutput=true]$($testPackageNames -join ',')"

@@ -60,7 +60,7 @@ if ($null -eq $packageInfo) {
 
 Write-Information "Found information for package $PackageName." -InformationAction Continue
 
-# Fetch current package version numbers.
+# Fetch current package version number.
 $variableListOutput = & az pipelines variable-group variable list --group-id $packageInfo.variableGroupId
 $variableGroupVersionNumbers = ($variableListOutput | ConvertFrom-Json).PSObject.Properties 
 | Where-Object { $_.Name.StartsWith('current') } 
@@ -76,7 +76,7 @@ if ($variableGroupVersionNumbers[3] -gt 0) {
 
 Write-Information "Current package version is $currentPackageVersion." -InformationAction Continue
 
-# Fetch next package version numbers.
+# Fetch next package version number.
 $variableListOutput = & az pipelines variable-group variable list --group-id $packageInfo.variableGroupId
 $variableGroupVersionNumbers = ($variableListOutput | ConvertFrom-Json).PSObject.Properties 
 | Where-Object { $_.Name.StartsWith('next') } 
@@ -92,7 +92,7 @@ if ($variableGroupVersionNumbers[3] -gt 0) {
 
 Write-Information "Next package version will be $nextPackageVersion" -InformationAction Continue
 
-# Fetch current assembly numbers.
+# Fetch current assembly number.
 [version]$currentAssemblyVersion = $null
 
 nuget install $PackageName -DirectDownload -ExcludeVersion -NoHttpCache -NonInteractive -OutputDirectory $TempPath -PackageSaveMode nupkg -PreRelease -Source 'https://pkgs.dev.azure.com/solobyte/DataStandardizer/_packaging/DataStandardizer/nuget/v3/index.json' -Source 'https://api.nuget.org/v3/index.json' -Verbosity detailed -Version $currentPackageVersionString 2>&1 | Write-Host
@@ -102,7 +102,7 @@ $currentPackageArchivePath = Get-ChildItem -Path $TempPath -Filter "$PackageName
 | Select-Object -ExpandProperty FullName
 if ((-not [string]::IsNullOrEmpty($currentPackageArchivePath)) -and (Test-Path $currentPackageArchivePath -PathType Leaf)) {
     $currentPackageFolderPath = $currentPackageArchivePath | Split-Path -Parent
-    # Expand-Archive -Path $currentPackageArchivePath -DestinationPath $currentPackageFolderPath -PassThru
+    # Expand-Archive -Path $currentPackageArchivePath -DestinationPath $currentPackageFolderPath -PassThru  # not needed; already expanded by nuget install?
 }
 else {
     Write-Warning "Failed to acquire package $PackageName.  Unable to determine current package assembly version."
@@ -121,25 +121,19 @@ else {
     Write-Error "Package $PackageName is not expanded.  Unable to determine current package assembly version."
 }
 
-# Calculate next assembly numbers.
-[version]$nextAssemblyFileVersion = $nextPackageVersion
-$nextAssemblyVersionRevision = [System.Convert]::ToInt32([datetime]::UtcNow.TimeOfDay.TotalSeconds / 2)
-[version]$nextAssemblyVersion = "$($nextPackageVersion.Major).$($nextPackageVersion.Minor).$($nextPackageVersion.Build).$nextAssemblyVersionRevision"
-[version]$nextAssemblyInformationalVersion = "$($nextPackageVersion.Major).$($nextPackageVersion.Minor)"
-
-Write-Information "Next assembly file version will be $nextAssemblyFileVersion." -InformationAction Continue
-Write-Information "Next assembly version will be $nextAssemblyVersion." -InformationAction Continue
-Write-Information "Next assembly informational version will be $nextAssemblyInformationalVersion." -InformationAction Continue
+# Check for package/assembly version match.
+if ($currentAssemblyVersion.Major -ne $currentPackageVersion.Major -or $currentAssemblyVersion.Minor -ne $currentPackageVersion.Minor) {
+    Write-Warning "$PackageName package/assembly version mismatch; $currentPackageVersion != $currentAssemblyVersion."
+}
 
 # Add package version numbers to list.
 $packageVersions = [PSCustomObject]@{
-    PackageName                      = $PackageName
-    PackageCurrentVersion            = $currentPackageVersion
-    PackageNextVersion               = $nextPackageVersion
-    AssemblyCurrentVersion           = $currentAssemblyVersion
-    AssemblyNextVersion              = $nextAssemblyVersion
-    AssemblyNextFileVersion          = $nextAssemblyFileVersion
-    AssemblyNextInformationalVersion = $nextAssemblyInformationalVersion
+    PackageName               = $PackageName
+    PackageCurrentVersion     = $currentPackageVersion
+    PackageNextVersion        = $nextPackageVersion
+    PackageProductionVersion  = $currentPackageVersion
+    AssemblyCurrentVersion    = $currentAssemblyVersion
+    AssemblyProductionVersion = $currentAssemblyVersion
 }
 
 [PSCustomObject[]]$packageVersionsList = @()
