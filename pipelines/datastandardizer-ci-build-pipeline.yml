@@ -1378,7 +1378,7 @@ stages:
               (
                 succeeded(), 
                 or(eq(variables['isDevelopBranch'], 'true'), and(gt(length(coalesce(variables.publicationRequiredPackageNames, '')), 0), gt(length(split(variables.publicationRequiredPackageNames, ',')), 0))), 
-                or(and(gt(length(coalesce(variables.publicationRequiredPackageNames, '')), 0), containsValue(split(variables.publicationRequiredPackageNames, ','), '${{ packageName }}')), and(gt(length(coalesce(variables['ChangedPackages.changedPackageNames'], '')), 0), containsValue(split(variables['ChangedPackages.changedPackageNames'], ','), '${{ packageName }}')))
+                or(and(gt(length(coalesce(variables.publicationRequiredPackageNames, '')), 0), containsValue(split(variables.publicationRequiredPackageNames, ','), '${{ packageName }}')), and(gt(length(coalesce(variables['ChangedPackages.changedPackageNames'], '')), 0), containsValue(split(variables['ChangedPackages.changedPackageNames'], ','), '${{ packageName }}'))),
                 and(eq(variables['currentNextMajor'], variables['originalNextMajor']), eq(variables['currentNextMinor'], variables['originalNextMinor']), eq(variables['currentNextPatch'], variables['originalNextPatch']), eq(variables['currentNextPreview'], variables['originalNextPreview']))
               )
             displayName: '[${{packageName}}] Rollback version numbers' # Human-readable name for the task.
@@ -1526,3 +1526,110 @@ stages:
                   )                
                 env:
                   GIT_REDIRECT_STDERR: "2>&1"
+      - job: Update_package_version
+        displayName: "Update package current version numbers"
+        condition: |
+          and
+          (
+            in(stageDependencies.Publication.Publish_Packages.result, 'Succeeded'), 
+            or(eq(variables['isDevelopBranch'], 'true'), and(gt(length(coalesce(variables.publicationRequiredPackageNames, '')), 0), gt(length(split(variables.publicationRequiredPackageNames, ',')), 0)))
+          )        
+        steps:
+          - checkout: none
+            displayName: "Set changed package list"
+          - ${{ each packageName in split(variables.allPackageNames, ',') }}:
+              - task: AzureCLI@2
+                displayName: "[${{packageName}}] Update current version numbers"
+                condition: |
+                  and
+                  (
+                    succeeded(), 
+                    or(containsValue(split(variables.publicationRequiredPackageNames, ','), '${{packageName}}'), containsValue(split(variables['changedPackageNames'], ','), '${{packageName}}'))
+                  )                
+                inputs:
+                  azureSubscription: $(SUBSCRIPTION_ID) # string. Alias: connectedServiceNameARM. Required. Azure Resource Manager connection.
+                  scriptType: "pscore" # 'ps' | 'pscore' | 'batch' | 'bash'. Required. Script Type.
+                  scriptLocation: "inlineScript" # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
+                  # scriptPath: # string. Required when scriptLocation = scriptPath. Script Path.
+                  inlineScript: | # string. Required when scriptLocation = inlineScript. Inline Script.
+                    function ConvertFrom-Base64String {
+                        param (
+                            # Input.
+                            [Parameter(Mandatory, ValueFromPipeline)]
+                            [string]    $InputObject
+                        )
+                                            
+                        process {
+                            $inputBytes = [System.Convert]::FromBase64String($InputObject)
+                            return [System.Text.Encoding]::UTF8.GetString($inputBytes)
+                        }
+                    }
+
+                    if (${{parameters.traceLevel}} -gt 0) {
+                        Set-PSDebug -Trace ${{parameters.traceLevel}}
+                    }
+
+                    # set environment variable for current process
+                    $env:AZURE_DEVOPS_EXT_PAT = $env:SYSTEM_ACCESSTOKEN
+
+                    # Extract updated version numbers
+                    $packageInfo = '${{variables.packageInfos}}' | ConvertFrom-Json | Where-Object -Property packageName -EQ -Value '${{packageName}}'
+                    if ($null -eq $packageInfo) {
+                        Write-Error 'Package information not found for ${{packageName}}'
+                    }
+
+                    $packageVersions = '$(versionNumbers)' | ConvertFrom-Base64String | ConvertFrom-Json | Where-Object -Property PackageName -EQ -Value '${{packageName}}'
+                    [version]$productionPackageVersion = $packageVersions.PackageProductionVersion
+
+                    # Update version numbers in pipeline.
+                    az devops configure -d organization=${env:ORGANIZATION_URL}
+                    az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name current-major-number --project ${env:PROJECT_NAME} --value $productionPackageVersion.Major --verbose
+                    az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name current-minor-number --project ${env:PROJECT_NAME} --value $productionPackageVersion.Minor --verbose
+                    az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name current-patch-number --project ${env:PROJECT_NAME} --value $productionPackageVersion.Build --verbose
+                    az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name current-preview-number --project ${env:PROJECT_NAME} --value $productionPackageVersion.Revision --verbose
+                  #arguments: # string. Alias: scriptArguments. Script Arguments.
+                  #powerShellErrorActionPreference: 'stop' # 'stop' | 'continue' | 'silentlyContinue'. Optional. Use when scriptType = ps || scriptType = pscore. ErrorActionPreference. Default: stop.
+                env:
+                  SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+              - task: AzureCLI@2
+                displayName: '[${{packageName}}] Confirm update of current version numbers'
+                condition: |
+                  and
+                  (
+                    succeeded(), 
+                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{packageName}}'), containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{packageName}}'))
+                  )                
+                inputs:
+                  azureSubscription: $(SUBSCRIPTION_ID) # string. Alias: connectedServiceNameARM. Required. Azure Resource Manager connection. 
+                  scriptType: 'pscore' # 'ps' | 'pscore' | 'batch' | 'bash'. Required. Script Type. 
+                  scriptLocation: 'inlineScript' # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
+                  # scriptPath: # string. Required when scriptLocation = scriptPath. Script Path. 
+                  inlineScript: | # string. Required when scriptLocation = inlineScript. Inline Script. 
+                    if (${{parameters.traceLevel}} -gt 0) {
+                        Set-PSDebug -Trace ${{parameters.traceLevel}}
+                    }
+
+                    # set environment variable for current process
+                    $env:AZURE_DEVOPS_EXT_PAT = $env:SYSTEM_ACCESSTOKEN
+                                          
+                    az devops configure -d organization=${env:ORGANIZATION_URL} project=${env:PROJECT_NAME}
+                    az account set -s ${env:SUBSCRIPTION_ID}
+
+                    $packageInfo = '${{variables.packageInfos}}' | ConvertFrom-Json | Where-Object -Property packageName -EQ '${{packageName}}'
+                    if ($null -eq $packageInfo) {
+                        Write-Error 'Package information not found for ${{packageName}}'
+                    }
+
+                    $variableListOutput = & az pipelines variable-group variable list --group-id $packageInfo.variableGroupId
+                    $variableGroupVersionNumbers = ($variableListOutput | ConvertFrom-Json).PSObject.Properties 
+                    | Where-Object { $_.Name.StartsWith('current') } 
+                    | Out-String -InputObject { $_.Name + ':' + $_.Value.value } -Stream 
+                    | Sort-Object 
+                    | ConvertFrom-Csv -Delimiter ':' -Header 'Name', 'Value' 
+                    | Out-String -InputObject { $_.Value } -Stream
+                    [version] $packageVersionNumbers = ($variableGroupVersionNumbers[0], $variableGroupVersionNumbers[1], $variableGroupVersionNumbers[2], $variableGroupVersionNumbers[3] -join '.')
+                    Write-Information "Updated package $($packageInfo.packageName) current version to v$($packageVersionNumbers.Major).$($packageVersionNumbers.Minor).$($packageVersionNumbers.Build).$($packageVersionNumbers.Revision)." -InformationAction Continue
+                  #arguments: # string. Alias: scriptArguments. Script Arguments. 
+                  #powerShellErrorActionPreference: 'stop' # 'stop' | 'continue' | 'silentlyContinue'. Optional. Use when scriptType = ps || scriptType = pscore. ErrorActionPreference. Default: stop.
+                env:
+                  SYSTEM_ACCESSTOKEN: $(System.AccessToken)
