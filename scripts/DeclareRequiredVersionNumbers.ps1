@@ -129,11 +129,11 @@ if ($currentAssemblyVersion.Major -ne $currentPackageVersion.Major -or $currentA
 # Add package version numbers to list.
 $packageVersions = [PSCustomObject]@{
     PackageName               = $PackageName
-    PackageCurrentVersion     = $currentPackageVersion
-    PackageNextVersion        = $nextPackageVersion
-    PackageProductionVersion  = $currentPackageVersion
-    AssemblyCurrentVersion    = $currentAssemblyVersion
-    AssemblyProductionVersion = $currentAssemblyVersion
+    PackageCurrentVersion     = $currentPackageVersion.ToString()
+    PackageNextVersion        = $nextPackageVersion.ToString()
+    PackageProductionVersion  = $currentPackageVersion.ToString()
+    AssemblyCurrentVersion    = $currentAssemblyVersion.ToString()
+    AssemblyProductionVersion = $currentAssemblyVersion.ToString()
 }
 
 [PSCustomObject[]]$packageVersionsList = @()

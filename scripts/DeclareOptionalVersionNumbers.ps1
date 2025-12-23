@@ -81,21 +81,21 @@ for ($versionPartIndex = $incrementFromIndex; $versionPartIndex -lt $postProduct
 }
 
 [version]$postProductionPackageVersion = ($postProductionNumbers[0], $postProductionNumbers[1], $postProductionNumbers[2], $postProductionNumbers[3] -join '.')
-$packageVersions | Add-Member -MemberType NoteProperty -Name 'PackagePostProductionVersion' -Value $postProductionPackageVersion
+$packageVersions | Add-Member -MemberType NoteProperty -Name 'PackagePostProductionVersion' -Value $postProductionPackageVersion.ToString()
 Write-Information "Post-production package version will be $postProductionPackageVersion."
 
 # Calculate production assembly version numbers.
 [version]$productionAssemblyFileVersion = $productionPackageVersion
-$packageVersions | Add-Member -MemberType NoteProperty -Name 'AssemblyProductionFileVersion' -Value $productionAssemblyFileVersion
+$packageVersions | Add-Member -MemberType NoteProperty -Name 'AssemblyProductionFileVersion' -Value $productionAssemblyFileVersion.ToString()
 Write-Information "Production assembly file version will be $productionAssemblyFileVersion."
 
 $productionAssemblyVersionRevision = [System.Convert]::ToInt32([datetime]::UtcNow.TimeOfDay.TotalSeconds / 2)
 [version]$productionAssemblyVersion = "$($productionPackageVersion.Major).$($productionPackageVersion.Minor).$($productionPackageVersion.Build).$productionAssemblyVersionRevision"
-$packageVersions | Add-Member -MemberType NoteProperty -Name 'AssemblyProductionVersion' -Value $productionAssemblyVersion
+$packageVersions | Add-Member -MemberType NoteProperty -Name 'AssemblyProductionVersion' -Value $productionAssemblyVersion.ToString()
 Write-Information "Production assembly version will be $productionAssemblyVersion."
 
 [version]$productionAssemblyInformationalVersion = "$($productionPackageVersion.Major).$($productionPackageVersion.Minor)"
-$packageVersions | Add-Member -MemberType NoteProperty -Name 'AssemblyProductionInformationalVersion' -Value $productionAssemblyInformationalVersion
+$packageVersions | Add-Member -MemberType NoteProperty -Name 'AssemblyProductionInformationalVersion' -Value $productionAssemblyInformationalVersion.ToString()
 Write-Information "Production assembly informational version will be $productionAssemblyInformationalVersion."
 
 # Serialize updated package versions.
