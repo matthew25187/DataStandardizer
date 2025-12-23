@@ -62,7 +62,7 @@ if ($SourceBranch -eq 'refs/heads/master') {
     $productionRevisionNumber = 0
 }
 [version]$productionPackageVersion = ($productionMajorNumber, $productionMinorNumber, $productionBuildNumber, $productionRevisionNumber -join '.')
-$packageVersions.PackageProductionVersion = $productionPackageVersion
+$packageVersions.PackageProductionVersion = $productionPackageVersion.ToString()
 Write-Information "Production package version will be $productionPackageVersion."
 
 # Calculate post-production package version number.

@@ -74,8 +74,6 @@ if ($variableGroupVersionNumbers[3] -gt 0) {
     $currentPackageVersionString += "-preview.$($currentPackageVersion.Revision)"
 }
 
-Write-Information "Current package version is $currentPackageVersion." -InformationAction Continue
-
 # Fetch next package version number.
 $variableListOutput = & az pipelines variable-group variable list --group-id $packageInfo.variableGroupId
 $variableGroupVersionNumbers = ($variableListOutput | ConvertFrom-Json).PSObject.Properties 
@@ -89,8 +87,6 @@ $nextPackageVersionString = "$($nextPackageVersion.Major).$($nextPackageVersion.
 if ($variableGroupVersionNumbers[3] -gt 0) {
     $nextPackageVersionString += "-preview.$($nextPackageVersion.Revision)"
 }
-
-Write-Information "Next package version will be $nextPackageVersion" -InformationAction Continue
 
 # Fetch current assembly number.
 [version]$currentAssemblyVersion = $null
@@ -114,8 +110,6 @@ $currentPackageAssemblyPath = Get-ChildItem -Path $currentPackageFolderPath -Fil
 if (Test-Path $currentPackageAssemblyPath -PathType Leaf) {
     $asm = [System.Reflection.AssemblyName]::GetAssemblyName($currentPackageAssemblyPath)
     $currentAssemblyVersion = $asm.Version
-
-    Write-Information "Current assembly version is $currentAssemblyVersion." -InformationAction Continue
 }
 else {
     Write-Error "Package $PackageName is not expanded.  Unable to determine current package assembly version."
@@ -135,6 +129,10 @@ $packageVersions = [PSCustomObject]@{
     AssemblyCurrentVersion    = $currentAssemblyVersion.ToString()
     AssemblyProductionVersion = $currentAssemblyVersion.ToString()
 }
+
+Write-Information "Current package version is $currentPackageVersion." -InformationAction Continue
+Write-Information "Next package version will be $nextPackageVersion" -InformationAction Continue
+Write-Information "Current assembly version is $currentAssemblyVersion." -InformationAction Continue
 
 [PSCustomObject[]]$packageVersionsList = @()
 
