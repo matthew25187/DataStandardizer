@@ -450,25 +450,30 @@ stages:
                       [Parameter(Mandatory, ValueFromPipeline)]
                       [string]    $InputObject
                   )
-                                
+                                              
                   process {
                       $inputBytes = [System.Convert]::FromBase64String($InputObject)
                       return [System.Text.Encoding]::UTF8.GetString($inputBytes)
                   }
               }
 
+              if (${{parameters.traceLevel}} -gt 0) {
+                  Set-PSDebug -Trace ${{parameters.traceLevel}}
+              }
+
               $packageInfo = '${{variables.packageInfos}}'
               | ConvertFrom-Json
               | Where-Object -Property packageName -EQ -Value '${{dependencyPackageName}}'
+              $projectSourcePath = '$(Build.SourcesDirectory)' | Join-Path -ChildPath "$($packageInfo.packageSourcePath)"
 
               $packageVersions = '$(versionNumbers)'
               | ConvertFrom-Base64String 
               | ConvertFrom-Json
               | Where-Object -Property PackageName -EQ -Value '${{dependencyPackageName}}'
+              [version]$productionAssemblyVersion = $packageVersions.AssemblyProductionVersion
 
-              $projectSourcePath = '$(Build.SourcesDirectory)' | Join-Path -ChildPath "$($packageInfo.packageSourcePath)"
               Write-Host "##vso[task.setvariable variable=versioningPath]$projectSourcePath"
-              Write-Host "##vso[task.setvariable variable=versioningNumber]$($packageVersions.AssemblyProductionVersion)"
+              Write-Host "##vso[task.setvariable variable=versioningNumber]$productionAssemblyVersion"
             # errorActionPreference: string # Unless otherwise specified, the error action preference defaults to the value stop. See the following section for more information.
             # failOnStderr: string # Fail the task if output is sent to Stderr?
             # ignoreLASTEXITCODE: string # Check the final exit code of the script to determine whether the step succeeded?
