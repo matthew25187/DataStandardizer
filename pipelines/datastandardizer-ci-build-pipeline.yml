@@ -488,7 +488,7 @@ stages:
                           [Parameter(Mandatory, ValueFromPipeline)]
                           [string]    $InputObject
                       )
-                                                                                
+                                                                                                  
                       process {
                           $inputBytes = [System.Convert]::FromBase64String($InputObject)
                           return [System.Text.Encoding]::UTF8.GetString($inputBytes)
@@ -500,10 +500,10 @@ stages:
                   }
 
                   # Get version numbers.
-                  $packageVersions = '$(versionNumbers)'
-                  | ConvertFrom-Base64String 
-                  | ConvertFrom-Json
-                  | Where-Object -Property PackageName -EQ -Value '${{dependencyPackageName}}'
+                  $packageVersions = '$(versionNumbers)' |
+                  ConvertFrom-Base64String |
+                  ConvertFrom-Json |
+                  Where-Object -Property PackageName -EQ -Value '${{dependencyPackageName}}'
                   [version]$productionAssemblyVersion = $packageVersions.AssemblyProductionVersion
                   [version]$appliedVersion = '$(AppliedVersion)'
 
