@@ -95,5 +95,5 @@ if ($totalDependenciesUpdatedCount -gt 0) {
     Compress-Archive $packageNuspecFilePath -DestinationPath $packageFilePath -Update -PassThru
 
     Write-Debug "Patched NuSpec file $(Split-Path $packageNuspecFilePath -Leaf) as follows:"
-    Write-Debug (Get-Content -Path $packageNuspecFilePath)
+    Write-Debug (Get-Content -Path $packageNuspecFilePath -Raw)
 }
