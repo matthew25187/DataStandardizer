@@ -118,3 +118,6 @@ $packageReleaseNotesNode.InnerText = $escapedReleaseNotes
 
 # Save the updated project file
 $projectDocument.Save($projectFilePath)
+
+Write-Debug "Patched project file $(Split-Path $projectFilePath -Leaf) as follows:"
+Write-Debug (Get-Content -Path $projectFilePath)

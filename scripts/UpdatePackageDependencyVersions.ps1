@@ -93,4 +93,7 @@ foreach ($packageVersion in $packageVersions) {
 if ($totalDependenciesUpdatedCount -gt 0) {
     $packageNuspecDocument.Save($packageNuspecFilePath)
     Compress-Archive $packageNuspecFilePath -DestinationPath $packageFilePath -Update -PassThru
+
+    Write-Debug "Patched NuSpec file $(Split-Path $packageNuspecFilePath -Leaf) as follows:"
+    Write-Debug (Get-Content -Path $packageNuspecFilePath)
 }
