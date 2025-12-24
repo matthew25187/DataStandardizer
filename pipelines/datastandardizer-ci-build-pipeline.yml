@@ -357,7 +357,7 @@ stages:
               )
             inputs:
               azureSubscription: $(SUBSCRIPTION_ID) # string. Alias: connectedServiceNameARM. Required. Azure Resource Manager connection. 
-              scriptType: # 'ps' | 'pscore' | 'batch' | 'bash'. Required. Script Type. 
+              scriptType: 'pscore' # 'ps' | 'pscore' | 'batch' | 'bash'. Required. Script Type. 
               scriptLocation: 'scriptPath' # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
               scriptPath: 'scripts/ReserveProductionVersionNumbers.ps1' # string. Required when scriptLocation = scriptPath. Script Path. 
               #inlineScript: # string. Required when scriptLocation = inlineScript. Inline Script. 
@@ -473,45 +473,60 @@ stages:
                 AddDefault: true
                 versionFields: AssemblyVersion
                 OutputVersion: AppliedVersion
-            - pwsh: | # Required as first property. Inline PowerShell script.
-                function ConvertFrom-Base64String {
-                    param (
-                        # Input.
-                        [Parameter(Mandatory, ValueFromPipeline)]
-                        [string]    $InputObject
-                    )
-                                                                              
-                    process {
-                        $inputBytes = [System.Convert]::FromBase64String($InputObject)
-                        return [System.Text.Encoding]::UTF8.GetString($inputBytes)
-                    }
-                }
-
-                if (${{parameters.traceLevel}} -gt 0) {
-                    Set-PSDebug -Trace ${{parameters.traceLevel}}
-                }
-
-                # Get version numbers.
-                $packageVersions = '$(versionNumbers)'
-                | ConvertFrom-Base64String 
-                | ConvertFrom-Json
-                | Where-Object -Property PackageName -EQ -Value '${{dependencyPackageName}}'
-                [version]$productionAssemblyVersion = $packageVersions.AssemblyProductionVersion
-                [version]$appliedVersion = '$(AppliedVersion)'
-
-                # Show version number applied.
-                if ($appliedVersion -ne $productionAssemblyVersion) {
-                    Write-Error "Failed to apply Assembly version $productionAssemblyVersion; actual version was $appliedVersion."
-                }
-
-                Write-Information "Applied version $appliedVersion to ${{dependencyPackageName}}." -InformationAction Continue
-              # errorActionPreference: string # Unless otherwise specified, the error action preference defaults to the value stop. See the following section for more information.
-              # failOnStderr: string # Fail the task if output is sent to Stderr?
-              # ignoreLASTEXITCODE: string # Check the final exit code of the script to determine whether the step succeeded?
-              # workingDirectory: string # Start the script with this working directory.
-              # condition: string # Evaluate this condition expression to determine whether to run this task.
-              # continueOnError: boolean # Continue running even on failure?
+            # PowerShell v2
+            # Run a PowerShell script on Linux, macOS, or Windows.
+            - task: PowerShell@2
               displayName: '[${{packageName}}] Confirm Assembly Version for ${{dependencyPackageName}}' # Human-readable name for the task.
+              inputs:
+                targetType: 'inline' # 'filePath' | 'inline'. Type. Default: filePath.
+                # filePath: # string. Required when targetType = filePath. Script Path. 
+                #arguments: # string. Optional. Use when targetType = filePath. Arguments. 
+                script: | # string. Required when targetType = inline. Script. 
+                  function ConvertFrom-Base64String {
+                      param (
+                          # Input.
+                          [Parameter(Mandatory, ValueFromPipeline)]
+                          [string]    $InputObject
+                      )
+                                                                                
+                      process {
+                          $inputBytes = [System.Convert]::FromBase64String($InputObject)
+                          return [System.Text.Encoding]::UTF8.GetString($inputBytes)
+                      }
+                  }
+
+                  if (${{parameters.traceLevel}} -gt 0) {
+                      Set-PSDebug -Trace ${{parameters.traceLevel}}
+                  }
+
+                  # Get version numbers.
+                  $packageVersions = '$(versionNumbers)'
+                  | ConvertFrom-Base64String 
+                  | ConvertFrom-Json
+                  | Where-Object -Property PackageName -EQ -Value '${{dependencyPackageName}}'
+                  [version]$productionAssemblyVersion = $packageVersions.AssemblyProductionVersion
+                  [version]$appliedVersion = '$(AppliedVersion)'
+
+                  # Show version number applied.
+                  if ($appliedVersion -ne $productionAssemblyVersion) {
+                      Write-Error "Failed to apply Assembly version $productionAssemblyVersion; actual version was $appliedVersion."
+                  }
+
+                  Write-Information "Applied version $appliedVersion to ${{dependencyPackageName}}."
+              # Preference Variables
+                #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
+                #warningPreference: 'default' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. WarningPreference. Default: default.
+                informationPreference: 'continue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. InformationPreference. Default: default.
+                verbosePreference: ${{ iif(eq(parameters.enableVerboseOutput, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. VerbosePreference. Default: default.
+                debugPreference: ${{ iif(eq(parameters.enableDebug, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. DebugPreference. Default: default.
+                #progressPreference: 'silentlyContinue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ProgressPreference. Default: silentlyContinue.
+              # Advanced
+                #failOnStderr: false # boolean. Fail on Standard Error. Default: false.
+                #showWarnings: false # boolean. Show warnings as Azure DevOps warnings. Default: false.
+                #ignoreLASTEXITCODE: false # boolean. Ignore $LASTEXITCODE. Default: false.
+                #pwsh: false # boolean. Use PowerShell Core. Default: false.
+                #workingDirectory: # string. Working Directory. 
+                #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.              
         - task: DotNetCoreCLI@2
           displayName: 'Restore solution package dependencies'
           inputs:
@@ -937,64 +952,85 @@ stages:
                   AddDefault: true
                   versionFields: PackageVersion
                   OutputVersion: "OutputedVersion"
-              - pwsh: |
-                  function ConvertFrom-Base64String {
-                      param (
-                          # Input.
-                          [Parameter(Mandatory, ValueFromPipeline)]
-                          [string]    $InputObject
-                      )
-                                                                        
-                      process {
-                          $inputBytes = [System.Convert]::FromBase64String($InputObject)
-                          return [System.Text.Encoding]::UTF8.GetString($inputBytes)
-                      }
-                  }
-
-                  function ConvertTo-Base64String {
-                      param (
-                          # Input.
-                          [Parameter(Mandatory, ValueFromPipeline)]
-                          [string]    $InputObject
-                      )
-                                                                        
-                      process {
-                          $inputBytes = [System.Text.Encoding]::UTF8.GetBytes($InputObject)
-                          return [System.Convert]::ToBase64String($inputBytes)
-                      }
-                  }
-
-                  if (${{parameters.traceLevel}} -gt 0) {
-                      Set-PSDebug -Trace ${{parameters.traceLevel}}
-                  }
-
-                  if ([string]::IsNullOrWhiteSpace("$(OutputedVersion)")) {
-                      Write-Warning 'No version found for package ${{packageName}}.'
-                      exit;
-                  }
-
-                  #   Retrieve collection of package versions
-                  [PSCustomObject[]] $packageVersions = @()
-                  if (-not [string]::IsNullOrEmpty("$(packageVersions)")) {
-                      $packageVersions = "$(packageVersions)" | ConvertFrom-Base64String | ConvertFrom-Json
-                  }
-                  $packageVersion = $packageVersions | Where-Object -Property PackageName -EQ '${{packageName}}' | Select-Object -First 1
-                  if ($null -ne $packageVersion) {
-                      Write-Information "Found existing version $($packageVersion.PackageVersion) for package ${{packageName}}; skipping addition of version $(OutputedVersion)." -InformationAction Continue
-                      exit;
-                  }
-
-                  #  Add version of current package to collection
-                  $packageVersion = [PSCustomObject]@{
-                      PackageName    = '${{packageName}}'
-                      PackageVersion = "$(OutputedVersion)"
-                  }
-                  $packageVersions += $packageVersion
-                  $serializedPackageVersions = @($packageVersions) | ConvertTo-Json -Depth 10 | ConvertTo-Base64String
-                  Write-Host "##vso[task.setvariable variable=packageVersions]$serializedPackageVersions"
-
-                  Write-Information "Added package ${{packageName}} version $(OutputedVersion)." -InformationAction Continue
+              # PowerShell v2
+              # Run a PowerShell script on Linux, macOS, or Windows.
+              - task: PowerShell@2
                 displayName: '[${{packageName}}] Collect package version number'
+                inputs:
+                  targetType: 'inline' # 'inline' | 'inline'. Type. Default: filePath.
+                  # filePath: # string. Required when targetType = filePath. Script Path. 
+                  #arguments: # string. Optional. Use when targetType = filePath. Arguments. 
+                  script: | # string. Required when targetType = inline. Script. 
+                    function ConvertFrom-Base64String {
+                        param (
+                            # Input.
+                            [Parameter(Mandatory, ValueFromPipeline)]
+                            [string]    $InputObject
+                        )
+                                                                          
+                        process {
+                            $inputBytes = [System.Convert]::FromBase64String($InputObject)
+                            return [System.Text.Encoding]::UTF8.GetString($inputBytes)
+                        }
+                    }
+
+                    function ConvertTo-Base64String {
+                        param (
+                            # Input.
+                            [Parameter(Mandatory, ValueFromPipeline)]
+                            [string]    $InputObject
+                        )
+                                                                          
+                        process {
+                            $inputBytes = [System.Text.Encoding]::UTF8.GetBytes($InputObject)
+                            return [System.Convert]::ToBase64String($inputBytes)
+                        }
+                    }
+
+                    if (${{parameters.traceLevel}} -gt 0) {
+                        Set-PSDebug -Trace ${{parameters.traceLevel}}
+                    }
+
+                    if ([string]::IsNullOrWhiteSpace("$(OutputedVersion)")) {
+                        Write-Warning 'No version found for package ${{packageName}}.'
+                        exit;
+                    }
+
+                    #   Retrieve collection of package versions
+                    [PSCustomObject[]] $packageVersions = @()
+                    if (-not [string]::IsNullOrEmpty("$(packageVersions)")) {
+                        $packageVersions = "$(packageVersions)" | ConvertFrom-Base64String | ConvertFrom-Json
+                    }
+                    $packageVersion = $packageVersions | Where-Object -Property PackageName -EQ '${{packageName}}' | Select-Object -First 1
+                    if ($null -ne $packageVersion) {
+                        Write-Information "Found existing version $($packageVersion.PackageVersion) for package ${{packageName}}; skipping addition of version $(OutputedVersion)."
+                        exit;
+                    }
+
+                    #  Add version of current package to collection
+                    $packageVersion = [PSCustomObject]@{
+                        PackageName    = '${{packageName}}'
+                        PackageVersion = "$(OutputedVersion)"
+                    }
+                    $packageVersions += $packageVersion
+                    $serializedPackageVersions = @($packageVersions) | ConvertTo-Json -Depth 10 | ConvertTo-Base64String
+                    Write-Host "##vso[task.setvariable variable=packageVersions]$serializedPackageVersions"
+
+                    Write-Information "Added package ${{packageName}} version $(OutputedVersion)."
+                # Preference Variables
+                  #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
+                  #warningPreference: 'default' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. WarningPreference. Default: default.
+                  informationPreference: 'continue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. InformationPreference. Default: default.
+                  verbosePreference: ${{ iif(eq(parameters.enableVerboseOutput, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. VerbosePreference. Default: default.
+                  debugPreference: ${{ iif(eq(parameters.enableDebug, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. DebugPreference. Default: default.
+                  #progressPreference: 'silentlyContinue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ProgressPreference. Default: silentlyContinue.
+                # Advanced
+                  #failOnStderr: false # boolean. Fail on Standard Error. Default: false.
+                  #showWarnings: false # boolean. Show warnings as Azure DevOps warnings. Default: false.
+                  #ignoreLASTEXITCODE: false # boolean. Ignore $LASTEXITCODE. Default: false.
+                  #pwsh: false # boolean. Use PowerShell Core. Default: false.
+                  #workingDirectory: # string. Working Directory. 
+                  #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.
           # Create NuGet packages
           - ${{ each packageName in split(variables.allPackageNames, ',') }}:
               - pwsh: |
@@ -1293,7 +1329,7 @@ stages:
             displayName: '[${{packageName}}] Prepare arguments for rollback' # Human-readable name for the task.
             inputs:
               azureSubscription: $(SUBSCRIPTION_ID) # string. Alias: connectedServiceNameARM. Required. Azure Resource Manager connection. 
-              scriptType: # 'ps' | 'pscore' | 'batch' | 'bash'. Required. Script Type. 
+              scriptType: 'pscore' # 'ps' | 'pscore' | 'batch' | 'bash'. Required. Script Type. 
               scriptLocation: 'inlineScript' # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
               # scriptPath: # string. Required when scriptLocation = scriptPath. Script Path. 
               inlineScript: | # string. Required when scriptLocation = inlineScript. Inline Script. 
@@ -1362,7 +1398,7 @@ stages:
             displayName: '[${{packageName}}] Rollback version numbers' # Human-readable name for the task.
             inputs:
               azureSubscription: $(SUBSCRIPTION_ID) # string. Alias: connectedServiceNameARM. Required. Azure Resource Manager connection. 
-              scriptType: # 'ps' | 'pscore' | 'batch' | 'bash'. Required. Script Type. 
+              scriptType: 'pscore' # 'ps' | 'pscore' | 'batch' | 'bash'. Required. Script Type. 
               scriptLocation: 'inlineScript' # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
               # scriptPath: # string. Required when scriptLocation = scriptPath. Script Path. 
               inlineScript: | # string. Required when scriptLocation = inlineScript. Inline Script. 
