@@ -482,29 +482,12 @@ stages:
                 # filePath: # string. Required when targetType = filePath. Script Path. 
                 #arguments: # string. Optional. Use when targetType = filePath. Arguments. 
                 script: | # string. Required when targetType = inline. Script. 
-                  function ConvertFrom-Base64String {
-                      param (
-                          # Input.
-                          [Parameter(Mandatory, ValueFromPipeline)]
-                          [string]    $InputObject
-                      )
-                                                                                                  
-                      process {
-                          $inputBytes = [System.Convert]::FromBase64String($InputObject)
-                          return [System.Text.Encoding]::UTF8.GetString($inputBytes)
-                      }
-                  }
-
                   if (${{parameters.traceLevel}} -gt 0) {
                       Set-PSDebug -Trace ${{parameters.traceLevel}}
                   }
 
                   # Get version numbers.
-                  $packageVersions = '$(versionNumbers)' |
-                  ConvertFrom-Base64String |
-                  ConvertFrom-Json |
-                  Where-Object -Property PackageName -EQ -Value '${{dependencyPackageName}}'
-                  [version]$productionAssemblyVersion = $packageVersions.AssemblyProductionVersion
+                  [version]$productionAssemblyVersion = '$(versioningNumber)'
                   [version]$appliedVersion = '$(AppliedVersion)'
 
                   # Show version number applied.
