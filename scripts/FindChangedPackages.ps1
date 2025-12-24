@@ -50,7 +50,7 @@ $changedPackages = @()
 $PackageList |
     ConvertFrom-Json |
     ForEach-Object {
-        Write-Information "Checking for changes made to package $($_.packageName)"
+        Write-Verbose "Checking for changes made to package $($_.packageName)"
 
         [string] $diffFilesOutput
         $packageMatchPattern = "v*$($_.packageName)"
@@ -108,5 +108,5 @@ $changedPackages | ForEach-Object {
     $changedPackagesMessage += "-`t$($_)"
 }
 if (-not [string]::IsNullOrEmpty($changedPackagesMessage)) {
-    Write-Debug $changedPackagesMessage
+    Write-Verbose $changedPackagesMessage
 }

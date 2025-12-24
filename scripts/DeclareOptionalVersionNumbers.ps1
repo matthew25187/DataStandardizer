@@ -52,6 +52,9 @@ if (-not [string]::IsNullOrEmpty($raw)) {
 }
 
 $packageVersions = $packageVersionsList | Where-Object -Property PackageName -EQ -Value $PackageName
+if ($null -eq $packageVersions) {
+    Write-Error "Versions for package $PackageName not found."
+}
 
 # Calculate production package version number.
 [version]$nextPackageVersion = $packageVersions.PackageNextVersion

@@ -34,5 +34,5 @@ $testPackageNames | ForEach-Object {
     $testPackageNames += "-`t$($_)"
 }
 if (-not [string]::IsNullOrEmpty($testPackageNamesMessage)) {
-    Write-Debug $testPackageNamesMessage
+    Write-Verbose $testPackageNamesMessage
 }

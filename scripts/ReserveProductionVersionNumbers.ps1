@@ -49,4 +49,4 @@ az pipelines variable-group variable update --group-id $packageInfo.variableGrou
 az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name next-patch-number --project ${env:PROJECT_NAME} --value $postProductionPackageVersion.Build --verbose
 az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name next-preview-number --project ${env:PROJECT_NAME} --value $postProductionPackageVersion.Revision --verbose
 
-Write-Debug "Reserved package version $postProductionPackageVersion."
+Write-Information "Reserved package version $postProductionPackageVersion."

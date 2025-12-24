@@ -69,6 +69,7 @@ $variableGroupVersionNumbers = ($variableListOutput | ConvertFrom-Json).PSObject
     ConvertFrom-Csv -Delimiter ':' -Header 'Name', 'Value' |
     Out-String -InputObject { $_.Value } -Stream
 [version] $currentPackageVersion = ($variableGroupVersionNumbers[0], $variableGroupVersionNumbers[1], $variableGroupVersionNumbers[2], $variableGroupVersionNumbers[3] -join '.')
+
 $currentPackageVersionString = "$($currentPackageVersion.Major).$($currentPackageVersion.Minor).$($currentPackageVersion.Build)"
 if ($variableGroupVersionNumbers[3] -gt 0) {
     $currentPackageVersionString += "-preview.$($currentPackageVersion.Revision)"
@@ -83,6 +84,7 @@ $variableGroupVersionNumbers = ($variableListOutput | ConvertFrom-Json).PSObject
     ConvertFrom-Csv -Delimiter ':' -Header 'Name', 'Value' |
     Out-String -InputObject { $_.Value } -Stream
 [version] $nextPackageVersion = ($variableGroupVersionNumbers[0], $variableGroupVersionNumbers[1], $variableGroupVersionNumbers[2], $variableGroupVersionNumbers[3] -join '.')
+
 $nextPackageVersionString = "$($nextPackageVersion.Major).$($nextPackageVersion.Minor).$($nextPackageVersion.Build)"
 if ($variableGroupVersionNumbers[3] -gt 0) {
     $nextPackageVersionString += "-preview.$($nextPackageVersion.Revision)"
@@ -100,7 +102,7 @@ if ((-not [string]::IsNullOrEmpty($currentPackageArchivePath)) -and (Test-Path $
     # Expand-Archive -Path $currentPackageArchivePath -DestinationPath $currentPackageFolderPath -PassThru  # not needed; already expanded by nuget install?
 }
 else {
-    Write-Warning "Failed to acquire package $PackageName.  Unable to determine current package assembly version."
+    Write-Error "Failed to acquire package $PackageName.  Unable to determine current package assembly version."
 }
 
 $currentPackageAssemblyPath = Get-ChildItem -Path $currentPackageFolderPath -Filter "$PackageName.dll" -Recurse |
@@ -146,4 +148,4 @@ $packageVersionsList += $packageVersions
 $serializedPackageVersionsList = $packageVersionsList | ConvertTo-Json | ConvertTo-Base64String
 Write-Host "##vso[task.setvariable variable=versionNumberList;]$serializedPackageVersionsList"
 
-Write-Information "Set package versions for $($packageVersionsList.Count) packages." -InformationAction Continue
+Write-Debug "Set package versions for $($packageVersionsList.Count) packages."
