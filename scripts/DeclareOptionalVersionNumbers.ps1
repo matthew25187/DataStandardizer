@@ -54,10 +54,11 @@ if (-not [string]::IsNullOrEmpty($raw)) {
 $packageVersions = $packageVersionsList | Where-Object -Property PackageName -EQ -Value $PackageName
 
 # Calculate production package version number.
-$productionMajorNumber = $packageVersions.PackageNextVersion.Major
-$productionMinorNumber = $packageVersions.PackageNextVersion.Minor
-$productionBuildNumber = $packageVersions.PackageNextVersion.Build
-$productionRevisionNumber = [System.Math]::Max($packageVersions.PackageNextVersion.Revision, 1)
+[version]$nextPackageVersion = $packageVersions.PackageNextVersion
+$productionMajorNumber = $nextPackageVersion.Major
+$productionMinorNumber = $nextPackageVersion.Minor
+$productionBuildNumber = $nextPackageVersion.Build
+$productionRevisionNumber = [System.Math]::Max($nextPackageVersion.Revision, 1)
 if ($SourceBranch -eq 'refs/heads/master') {
     $productionRevisionNumber = 0
 }
