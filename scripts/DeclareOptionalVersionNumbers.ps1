@@ -92,7 +92,7 @@ Write-Information "Production assembly file version will be $productionAssemblyF
 
 $productionAssemblyVersionRevision = [System.Convert]::ToInt32([datetime]::UtcNow.TimeOfDay.TotalSeconds / 2)
 [version]$productionAssemblyVersion = "$($productionPackageVersion.Major).$($productionPackageVersion.Minor).$($productionPackageVersion.Build).$productionAssemblyVersionRevision"
-$packageVersions | Add-Member -MemberType NoteProperty -Name 'AssemblyProductionVersion' -Value $productionAssemblyVersion.ToString()
+$packageVersions.AssemblyProductionVersion = $productionAssemblyVersion.ToString()
 Write-Information "Production assembly version will be $productionAssemblyVersion."
 
 [version]$productionAssemblyInformationalVersion = "$($productionPackageVersion.Major).$($productionPackageVersion.Minor)"
