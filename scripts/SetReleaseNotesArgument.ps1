@@ -112,8 +112,7 @@ if ($null -eq $packageReleaseNotesNode) {
 # At this point, the node definitely exists — set its value
 $escapedReleaseNotes = $releaseNotes `
     -replace '\$', '$$' `
-    -replace '%', '%%' `
-    -replace '@\(', '`@('   # optional, only needed if you ever embed @(Item) syntax
+    -replace '%', '%%'
 $packageReleaseNotesNode.InnerText = $escapedReleaseNotes
 
 # Save the updated project file
