@@ -1,11 +1,23 @@
 param (
     # Package name.
     [Parameter(Mandatory)]
+    [ValidateNotNullOrEmpty()]
     [string]    $PackageName,
 
     # Source commit hash.
     [Parameter(Mandatory)]
+    [ValidateNotNullOrEmpty()]
     [string]    $SourceCommitHash,
+
+    # Metadata for packages
+    [Parameter(Mandatory)]
+    [ValidateNotNullOrEmpty()]
+    [string]    $PackageInfos,
+
+    # Path to source code root folder
+    [Parameter(Mandatory)]
+    [ValidateNotNullOrEmpty()]
+    [string]    $SourceRootFolderPath,
 
     # Is build happening on the master branch?
     [Parameter()]
@@ -69,13 +81,36 @@ $revisionListOutput -split '\r?\n' | Select-String -Pattern '#\d+' -Raw | Out-St
 $releaseNotes = $releaseNotesBuilder.ToString().TrimEnd()
 $releaseNotes
 
-# Encode the release notes for transport.
-$encodedReleaseNotesBuilder = [System.Text.StringBuilder]::new()
-$releaseNotesCharacters = $releaseNotes.ToCharArray()
-foreach ($character in $releaseNotesCharacters) {
-    [void]$encodedReleaseNotesBuilder.AppendFormat('%{0:X2}', [ushort]$character)
+# Apply release notes to project file.
+$packageInfo = $PackageInfos | ConvertFrom-Json | Where-Object -Property packageName -EQ -Value $PackageName
+$projectRootPath = $SourceRootFolderPath | Join-Path -ChildPath $packageInfo.packageSourcePath
+$projectFilePath = Get-ChildItem -Path $projectRootPath -Filter "$PackageName.csproj" -Recurse | Select-Object -First 1 -ExpandProperty FullName
+
+$projectDocument = New-Object System.Xml.XmlDocument
+$projectDocument.Load($projectFilePath)
+
+# Try to find an existing PackageReleaseNotes node
+$packageReleaseNotesNode = $projectDocument.SelectSingleNode('/Project/PropertyGroup/PackageReleaseNotes')
+
+if ($null -eq $packageReleaseNotesNode) {
+    # No PackageReleaseNotes node exists — we need to create one
+
+    # Try to find an existing PropertyGroup
+    $propertyGroup = $projectDocument.SelectSingleNode('/Project/PropertyGroup')
+
+    if ($null -eq $propertyGroup) {
+        # No PropertyGroup exists — create one
+        $propertyGroup = $projectDocument.CreateElement('PropertyGroup')
+        $projectDocument.DocumentElement.AppendChild($propertyGroup) | Out-Null
+    }
+
+    # Create the PackageReleaseNotes element
+    $packageReleaseNotesNode = $projectDocument.CreateElement('PackageReleaseNotes')
+    $propertyGroup.AppendChild($packageReleaseNotesNode) | Out-Null
 }
 
-# Assign the release notes to a pipeline variable.
-$encodedReleaseNotes = $encodedReleaseNotesBuilder.ToString()
-Write-Host "##vso[task.setvariable variable=releaseNotes;]$encodedReleaseNotes"
+# At this point, the node definitely exists — set its value
+$packageReleaseNotesNode.InnerText = $releaseNotes
+
+# Save the updated project file
+$projectDocument.Save($projectFilePath)
