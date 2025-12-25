@@ -113,7 +113,9 @@ if ($null -eq $packageReleaseNotesNode) {
 $releaseNotes = $releaseNotes.Normalize([Text.NormalizationForm]::FormKC)
 
 # At this point, the node definitely exists — set its value
-$packageReleaseNotesNode.InnerText = '<![CDATA[' + $releaseNotes + ']]>'
+$packageReleaseNotesNode.InnerText = [string]::Empty
+$packageReleaseNotesData = $projectDocument.CreateCDataSection($releaseNotes)
+$packageReleaseNotesNode.AppendChild($packageReleaseNotesData)
 
 # Save the updated project file
 $projectDocument.Save($projectFilePath)
