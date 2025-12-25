@@ -109,7 +109,10 @@ if ($null -eq $packageReleaseNotesNode) {
     $propertyGroup.AppendChild($packageReleaseNotesNode) | Out-Null
 }
 
-# At this point, the node definitely exists — set its value
+# Normalize Unicode to ensure ASCII punctuation
+$releaseNotes = $releaseNotes.Normalize([Text.NormalizationForm]::FormKC)
+
+# Escape MSBuild-sensitive characters
 $escapedReleaseNotes = $releaseNotes `
     -replace '\$', '$$' `
     -replace '%', '%%'
