@@ -113,9 +113,8 @@ if ($null -eq $packageReleaseNotesNode) {
 $releaseNotes = $releaseNotes.Normalize([Text.NormalizationForm]::FormKC)
 
 # Escape MSBuild-sensitive characters
-$escapedReleaseNotes = $releaseNotes `
-    -replace '\$', '$$' `
-    -replace '%', '%%'
+$escapedReleaseNotes = $releaseNotes.Replace('$', '$$')
+$escapedReleaseNotes = $escapedReleaseNotes.Replace('%', '%%')
 $packageReleaseNotesNode.InnerText = $escapedReleaseNotes
 
 # Save the updated project file
