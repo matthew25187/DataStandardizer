@@ -112,10 +112,8 @@ if ($null -eq $packageReleaseNotesNode) {
 # Normalize Unicode to ensure ASCII punctuation
 $releaseNotes = $releaseNotes.Normalize([Text.NormalizationForm]::FormKC)
 
-# Escape MSBuild-sensitive characters
-$escapedReleaseNotes = $releaseNotes.Replace('$', '$$')
-$escapedReleaseNotes = $escapedReleaseNotes.Replace('%', '%%')
-$packageReleaseNotesNode.InnerText = $escapedReleaseNotes
+# At this point, the node definitely exists — set its value
+$packageReleaseNotesNode.InnerText = '<![CDATA[' + $releaseNotes + ']]>'
 
 # Save the updated project file
 $projectDocument.Save($projectFilePath)
