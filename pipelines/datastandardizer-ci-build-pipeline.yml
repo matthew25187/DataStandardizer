@@ -1034,7 +1034,7 @@ stages:
                       Set-PSDebug -Trace ${{parameters.traceLevel}}
                   }
 
-                  $packageInfo = '${{ variables.packageInfos }}' | ConvertFrom-Json | Where-Object -Property packageName -EQ -Value '${{packageName}}'
+                  $packageInfo = ('${{ variables.packageInfos }}' | ConvertFrom-Json) | Where-Object -Property packageName -EQ -Value '${{packageName}}'
                   if ($null -eq $packageInfo) {
                       Write-Error 'Package information not found for ${{packageName}}'
                   }
