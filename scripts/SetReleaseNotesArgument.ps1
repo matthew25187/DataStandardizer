@@ -82,43 +82,23 @@ $releaseNotes = $releaseNotesBuilder.ToString().TrimEnd()
 $releaseNotes
 
 # Apply release notes to project file.
-$packageInfo = $PackageInfos | ConvertFrom-Json | Where-Object -Property packageName -EQ -Value $PackageName
-$projectRootPath = $SourceRootFolderPath | Join-Path -ChildPath $packageInfo.packageSourcePath
-$projectFilePath = Get-ChildItem -Path $projectRootPath -Filter "$PackageName.csproj" -Recurse | Select-Object -First 1 -ExpandProperty FullName
+# $packageInfo = $PackageInfos | ConvertFrom-Json | Where-Object -Property packageName -EQ -Value $PackageName
+# $projectRootPath = $SourceRootFolderPath | Join-Path -ChildPath $packageInfo.packageSourcePath
+# $projectFilePath = Get-ChildItem -Path $projectRootPath -Filter "$PackageName.csproj" -Recurse | Select-Object -First 1 -ExpandProperty FullName
 
-$projectDocument = New-Object System.Xml.XmlDocument
-$projectDocument.Load($projectFilePath)
+$nuspecDocumentFileName = "$PackageName.nuspec"
+$nuspecDocument = [xml](Get-Content $nuspecDocumentFileName)
+$nuspecMetadataNode = $nuspecDocument.SelectSingleNode('/package/metadata')
 
-# Try to find an existing PackageReleaseNotes node
-$packageReleaseNotesNode = $projectDocument.SelectSingleNode('/Project/PropertyGroup/PackageReleaseNotes')
-
-if ($null -eq $packageReleaseNotesNode) {
-    # No PackageReleaseNotes node exists — we need to create one
-
-    # Try to find an existing PropertyGroup
-    $propertyGroup = $projectDocument.SelectSingleNode('/Project/PropertyGroup')
-
-    if ($null -eq $propertyGroup) {
-        # No PropertyGroup exists — create one
-        $propertyGroup = $projectDocument.CreateElement('PropertyGroup')
-        $projectDocument.DocumentElement.AppendChild($propertyGroup) | Out-Null
-    }
-
-    # Create the PackageReleaseNotes element
-    $packageReleaseNotesNode = $projectDocument.CreateElement('PackageReleaseNotes')
-    $propertyGroup.AppendChild($packageReleaseNotesNode) | Out-Null
+$nuspecReleaseNotesNode = $nuspecDocument.SelectSingleNode('/package/metadata/releaseNotes')
+if ($nuspecReleaseNotesNode -eq $null) {
+    $nuspecReleaseNotesNode = $nuspecDocument.CreateElement('releaseNotes')
+    $nuspecMetadataNode.AppendChild($nuspecReleaseNotesNode)
 }
+$nuspecReleaseNotesNode.InnerText = $releaseNotes
 
-# Normalize Unicode to ensure ASCII punctuation
-$releaseNotes = $releaseNotes.Normalize([Text.NormalizationForm]::FormKC)
+# Save changes to project file
+$nuspecDocument.Save($nuspecDocumentFileName)
 
-# At this point, the node definitely exists — set its value
-$packageReleaseNotesNode.InnerText = [string]::Empty
-$packageReleaseNotesData = $projectDocument.CreateCDataSection($releaseNotes)
-$packageReleaseNotesNode.AppendChild($packageReleaseNotesData)
-
-# Save the updated project file
-$projectDocument.Save($projectFilePath)
-
-Write-Debug "Patched project file $(Split-Path $projectFilePath -Leaf) as follows:"
-Write-Debug (Get-Content -Path $projectFilePath -Raw)
+Write-Debug "Patched .nuspec file $($nuspecDocumentFileName):"
+Write-Debug (Get-Content $nuspecDocumentFileName -Raw)

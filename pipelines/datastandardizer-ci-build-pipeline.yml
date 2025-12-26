@@ -1016,6 +1016,81 @@ stages:
                   #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.
           # Create NuGet packages
           - ${{ each packageName in split(variables.allPackageNames, ',') }}:
+              - powershell: | # Required as first property. Inline PowerShell script.
+                  if (${{parameters.traceLevel}} -gt 0) {
+                      Set-PSDebug -Trace ${{parameters.traceLevel}}
+                  }
+
+                  $packageInfo = '${{ variables.packageInfos }}' | ConvertFrom-Json | Where-Object -Property packageName -EQ -Value '${{packageName}}'
+                  if ($null -eq $packageInfo) {
+                      Write-Error 'Package information not found for ${{packageName}}'
+                  }
+
+                  $workingDirectory = '$(Build.SourcesDirectory)' | Join-Path -ChildPath $packageInfo.packageSourcePath
+                  Set-Location -Path $workingDirectory
+                # errorActionPreference: string # Unless otherwise specified, the error action preference defaults to the value stop. See the following section for more information.
+                # failOnStderr: string # Fail the task if output is sent to Stderr?
+                # ignoreLASTEXITCODE: string # Check the final exit code of the script to determine whether the step succeeded?
+                # workingDirectory: string # Start the script with this working directory.
+                condition: | # Evaluate this condition expression to determine whether to run this task.
+                  and
+                  (
+                    succeeded(), 
+                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
+                  )
+                # continueOnError: boolean # Continue running even on failure?
+                displayName: '[${{packageName}}] Change working directory' # Human-readable name for the task.
+              # NuGet v2
+              # Restore, pack, or push NuGet packages, or run a NuGet command. Supports NuGet.org and authenticated feeds like Azure Artifacts and MyGet. Uses NuGet.exe and works with .NET Framework apps. For .NET Core and .NET Standard apps, use the .NET Core task.
+              - task: NuGetCommand@2
+                condition: |
+                  and
+                  (
+                    succeeded(), 
+                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
+                  )
+                displayName: '[${{packageName}}] Create .nuspec file' # Human-readable name for the task.
+                inputs:
+                  command: 'custom' # 'restore' | 'pack' | 'push' | 'custom'. Required. Command. Default: restore.
+                  # restoreSolution: '**/*.sln' # string. Alias: solution. Required when command = restore. Path to solution, packages.config, or project.json. Default: **/*.sln.
+                  #packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg' # string. Alias: searchPatternPush. Required when command = push. Path to NuGet package(s) to publish. Default: $(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg.
+                  #nuGetFeedType: 'internal' # 'internal' | 'external'. Required when command = push. Target feed location. Default: internal.
+                  #publishVstsFeed: # string. Alias: feedPublish. Required when command = push && nuGetFeedType = internal. Target feed. 
+                  #allowPackageConflicts: false # boolean. Optional. Use when command = push && nuGetFeedType = internal. Allow duplicates to be skipped. Default: false.
+                  #publishFeedCredentials: # string. Alias: externalEndpoint. Required when command = push && nuGetFeedType = external. NuGet server. 
+                  #packagesToPack: '**/*.csproj' # string. Alias: searchPatternPack. Required when command = pack. Path to csproj or nuspec file(s) to pack. Default: **/*.csproj.
+                  #configuration: '$(BuildConfiguration)' # string. Alias: configurationToPack. Optional. Use when command = pack. Configuration to package. Default: $(BuildConfiguration).
+                  #packDestination: '$(Build.ArtifactStagingDirectory)' # string. Alias: outputDir. Optional. Use when command = pack. Package folder. Default: $(Build.ArtifactStagingDirectory).
+                  arguments: 'spec' # string. Required when command = custom. Command and arguments.
+              # PowerShell v2
+              # Run a PowerShell script on Linux, macOS, or Windows.
+              - task: PowerShell@2
+                condition: |
+                  and
+                  (
+                    succeeded(), 
+                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
+                  )
+                displayName: '[${{packageName}}] Patch .nuspec file'
+                inputs:
+                  #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
+                  filePath: 'scripts/SetNuspecProperties.ps1' # string. Required when targetType = filePath. Script Path. 
+                  arguments: '-PackageName ''${{packageName}}'' -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
+                  #script: # string. Required when targetType = inline. Script. 
+                # Preference Variables
+                  #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
+                  #warningPreference: 'default' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. WarningPreference. Default: default.
+                  informationPreference: 'continue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. InformationPreference. Default: default.
+                  verbosePreference: ${{ iif(eq(parameters.enableVerboseOutput, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. VerbosePreference. Default: default.
+                  debugPreference: ${{ iif(eq(parameters.enableDebug, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. DebugPreference. Default: default.
+                  #progressPreference: 'silentlyContinue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ProgressPreference. Default: silentlyContinue.
+                # Advanced
+                  #failOnStderr: false # boolean. Fail on Standard Error. Default: false.
+                  #showWarnings: false # boolean. Show warnings as Azure DevOps warnings. Default: false.
+                  #ignoreLASTEXITCODE: false # boolean. Ignore $LASTEXITCODE. Default: false.
+                  #pwsh: false # boolean. Use PowerShell Core. Default: false.
+                  #workingDirectory: # string. Working Directory. 
+                  #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.                
               - pwsh: |
                   if (${{parameters.traceLevel}} -gt 0) {
                       Set-PSDebug -Trace ${{parameters.traceLevel}}
