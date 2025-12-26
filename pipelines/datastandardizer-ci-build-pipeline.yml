@@ -443,12 +443,18 @@ stages:
                 $packageInfo = '${{variables.packageInfos}}'
                 | ConvertFrom-Json
                 | Where-Object -Property packageName -EQ -Value '${{dependencyPackageName}}'
+                if ($null -eq $packageInfo) {
+                    Write-Error 'Package information not found for ${{dependencyPackageName}}'
+                }
                 $projectSourcePath = '$(Build.SourcesDirectory)' | Join-Path -ChildPath "$($packageInfo.packageSourcePath)"
 
                 $packageVersions = '$(versionNumbers)'
                 | ConvertFrom-Base64String 
                 | ConvertFrom-Json
                 | Where-Object -Property PackageName -EQ -Value '${{dependencyPackageName}}'
+                if ($null -eq $packageVersions) {
+                    Write-Error 'Package versions not found for ${{dependencyPackageName}}'
+                }
                 [version]$productionAssemblyVersion = $packageVersions.AssemblyProductionVersion
 
                 Write-Host "##vso[task.setvariable variable=versioningPath]$projectSourcePath"
@@ -913,7 +919,14 @@ stages:
                   }
 
                   $packageInfo = '${{ variables.packageInfos }}' | ConvertFrom-Json | Where-Object -Property packageName -EQ -Value ${{ packageName }}
+                  if ($null -eq $packageInfo) {
+                    Write-Error 'Package information not found for ${{ packageName }}'
+                  }
+                  
                   $packageVersions = '$(versionNumbers)' | ConvertFrom-Base64String | ConvertFrom-Json | Where-Object -Property PackageName -EQ -Value ${{ packageName }}
+                  if ($null -eq $packageVersions) {
+                    Write-Error 'Package versions not found for ${{ packageName }}'
+                  }
 
                   [version]$productionPackageVersion = $packageVersions.PackageProductionVersion
                   $packageVersionString = "$($productionPackageVersion.Major).$($productionPackageVersion.Minor).$($productionPackageVersion.Build)"
@@ -1212,7 +1225,7 @@ stages:
                   # requestedMajorVersion: 1  # Required  # The 'X' in version [X.Y.Z](http://semver.org/spec/v1.0.0.html)
                   # requestedMinorVersion: 0  # Required  # The 'Y' in version [X.Y.Z](http://semver.org/spec/v1.0.0.html)
                   # requestedPatchVersion: 0  # Required  # The 'Z' in version [X.Y.Z](http://semver.org/spec/v1.0.0.html)
-                  buildProperties: 'PackageVersion="$(packageVersion)"' # Optional  # Specifies a list of token = value pairs, separated by semicolons, where each occurrence of token$ in the .nuspec file will be replaced with the given value. Values can be strings in quotation marks.
+                  buildProperties: 'NuspecFile=${{packageName}}.nuspec;NuspecBasePath=.;PackageVersion="$(packageVersion)"' # Optional  # Specifies a list of token = value pairs, separated by semicolons, where each occurrence of token$ in the .nuspec file will be replaced with the given value. Values can be strings in quotation marks.
                   verbosityPack: Normal # Options: '-', 'Quiet', 'Minimal', 'Normal', 'Detailed', 'Diagnostic' # Required  # Specifies the amount of detail displayed in the output.
                   # workingDirectory:   # Required when command != restore && command != push && command != pack  # Current working directory where the script is run. Empty is the root of the repo (build) or artifacts (release), which is $(System.DefaultWorkingDirectory). The project search pattern is **NOT** relative to working directory.
               - task: PowerShell@2
@@ -1415,6 +1428,10 @@ stages:
                 az account set -s ${env:SUBSCRIPTION_ID}
 
                 $packageVersions = '$(versionNumbers)' | ConvertFrom-Base64String | ConvertFrom-Json | Where-Object -Property PackageName -EQ ${{ packageName }}
+                if ($null -eq $packageVersions) {
+                    Write-Error 'Package versions not found for ${{ packageName }}'
+                }
+                
                 [version]$originalNextPackageVersion = $packageVersions.PackagePostProductionVersion
                 Write-Host "##vso[task.setvariable variable=originalNextMajor]$($originalNextPackageVersion.Major)"
                 Write-Host "##vso[task.setvariable variable=originalNextMinor]$($originalNextPackageVersion.Minor)"
@@ -1487,9 +1504,12 @@ stages:
                 }
 
                 $packageVersions = '$(versionNumbers)' | ConvertFrom-Base64String | ConvertFrom-Json | Where-Object -Property PackageName -EQ -Value '${{packageName}}'
-                [version]$nextPackageVersion = $packageVersions.PackageNextVersion
+                if ($null -eq $packageVersions) {
+                    Write-Error 'Package versions not found for ${{packageName}}'
+                }
 
                 # Restore original version numbers
+                [version]$nextPackageVersion = $packageVersions.PackageNextVersion
                 az devops configure -d organization=${env:ORGANIZATION_URL}
                 az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name next-major-number --project ${env:PROJECT_NAME} --value "$($nextPackageVersion.Major)" --verbose
                 az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name next-minor-number --project ${env:PROJECT_NAME} --value "$($nextPackageVersion.Minor)" --verbose
@@ -1549,6 +1569,9 @@ stages:
                 }
 
                 $packageVersions = '$(versionNumbers)' | ConvertFrom-Base64String | ConvertFrom-Json | Where-Object -Property PackageName -EQ -Value '${{packageName}}'
+                if ($null -eq $packageVersions) {
+                    Write-Error 'Package versions not found for ${{packageName}}'
+                }
                 [version]$nextPackageVersion = $packageVersions.PackageNextVersion
 
                 # Fetch next package version from pipeline.
@@ -1604,7 +1627,11 @@ stages:
                       Set-PSDebug -Trace ${{parameters.traceLevel}}
                   }
 
-                  $packageVersions = "$(versionNumbers)" | ConvertFrom-Base64String | ConvertFrom-Json | Where-Object -Property PackageName -EQ ${{packageName}}
+                  $packageVersions = "$(versionNumbers)" | ConvertFrom-Base64String | ConvertFrom-Json | Where-Object -Property PackageName -EQ -Value ${{packageName}}
+                  if ($null -eq $packageVersions) {
+                    Write-Error 'Package versions not found for ${{packageName}}'
+                  }
+
                   [version]$versionNumber = "$($packageVersions.PackageProductionVersion.Major).$($packageVersions.PackageProductionVersion.Minor).$($packageVersions.PackageProductionVersion.Build).$($packageVersions.PackageProductionVersion.Revision)"
                   $message = "CI preview build $versionNumber for package ${{packageName}}"
 
@@ -1675,9 +1702,12 @@ stages:
                     }
 
                     $packageVersions = '$(versionNumbers)' | ConvertFrom-Base64String | ConvertFrom-Json | Where-Object -Property PackageName -EQ -Value '${{packageName}}'
-                    [version]$productionPackageVersion = $packageVersions.PackageProductionVersion
+                    if ($null -eq $packageVersions) {
+                        Write-Error 'Package versions not found for ${{packageName}}'
+                    }
 
                     # Update version numbers in pipeline.
+                    [version]$productionPackageVersion = $packageVersions.PackageProductionVersion
                     az devops configure -d organization=${env:ORGANIZATION_URL}
                     az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name current-major-number --project ${env:PROJECT_NAME} --value $productionPackageVersion.Major --verbose
                     az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name current-minor-number --project ${env:PROJECT_NAME} --value $productionPackageVersion.Minor --verbose
