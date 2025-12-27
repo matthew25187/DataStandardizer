@@ -27,7 +27,7 @@ if ($null -eq $packageInfo) {
 $projectRootFolderPath = $SourceRootFolderPath | Join-Path -ChildPath $packageInfo.packageSourcePath
 
 $nuspecDocumentFileName = "$PackageName.nuspec"
-$nuspecDocumentFilePath = $projectRootFolderPath | Join-Path $nuspecDocumentFileName
+$nuspecDocumentFilePath = $projectRootFolderPath | Join-Path -ChildPath $nuspecDocumentFileName
 $nuspecDocument = [xml](Get-Content $nuspecDocumentFilePath)
 $nuspecMetadataNode = $nuspecDocument.SelectSingleNode('/package/metadata')
 
