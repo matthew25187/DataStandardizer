@@ -1088,7 +1088,7 @@ stages:
                 inputs:
                   #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
                   filePath: 'scripts/SetNuspecProperties.ps1' # string. Required when targetType = filePath. Script Path. 
-                  arguments: '-PackageName ''${{packageName}}'' -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
+                  arguments: '-PackageName ''${{packageName}}'' -PackageInfos ''${{variables.packageInfos}}'' -SourceRootFolderPath ''$(Build.SourcesDirectory)'' -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
                   #script: # string. Required when targetType = inline. Script. 
                 # Preference Variables
                   #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
@@ -1181,7 +1181,29 @@ stages:
                   (
                     succeeded(), 
                     or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
-                  )                
+                  )
+              # PowerShell v2
+              # Run a PowerShell script on Linux, macOS, or Windows.
+              - task: PowerShell@2
+                inputs:
+                  #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
+                  filePath: 'scripts/SetProjectProperties.ps1' # string. Required when targetType = filePath. Script Path. 
+                  arguments: '-PackageName ${{packageName}} -PackageInfos ''${{variables.packageInfos}}'' -SourceRootFolderPath ''$(Build.SourcesDirectory)'' -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
+                  #script: # string. Required when targetType = inline. Script. 
+                # Preference Variables
+                  #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
+                  #warningPreference: 'default' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. WarningPreference. Default: default.
+                  informationPreference: 'continue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. InformationPreference. Default: default.
+                  verbosePreference: ${{ iif(eq(parameters.enableVerboseOutput, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. VerbosePreference. Default: default.
+                  debugPreference: ${{ iif(eq(parameters.enableDebug, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. DebugPreference. Default: default.
+                  #progressPreference: 'silentlyContinue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ProgressPreference. Default: silentlyContinue.
+                # Advanced
+                  #failOnStderr: false # boolean. Fail on Standard Error. Default: false.
+                  #showWarnings: false # boolean. Show warnings as Azure DevOps warnings. Default: false.
+                  #ignoreLASTEXITCODE: false # boolean. Ignore $LASTEXITCODE. Default: false.
+                  #pwsh: false # boolean. Use PowerShell Core. Default: false.
+                  #workingDirectory: # string. Working Directory. 
+                  #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.                  
               - task: DotNetCoreCLI@2
                 displayName: "[${{packageName}}] Create NuGet package"
                 condition: |

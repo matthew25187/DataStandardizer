@@ -3,6 +3,14 @@ param (
     [ValidateNotNullOrEmpty()]
     [string]    $PackageName,
 
+    [Parameter(Mandatory)]
+    [ValidateNotNullOrEmpty()]
+    [string]    $PackageInfos,
+
+    [Parameter(Mandatory)]
+    [ValidateNotNullOrEmpty()]
+    [string]    $SourceRootFolderPath,
+
     [Parameter()]
     [int]   $TraceLevel = 0
 )
@@ -11,12 +19,25 @@ if (0 -lt $TraceLevel) {
     Set-PSDebug -Trace $TraceLevel
 }
 
+$packageInfo = $PackageInfos | ConvertFrom-Json | Where-Object -Property packageName -EQ -Value $PackageName
+if ($null -eq $packageInfo) {
+    Write-Error "Package information not found for $PackageName"
+}
+
+$projectRootFolderPath = $SourceRootFolderPath | Join-Path -ChildPath $packageInfo.packageSourcePath
+
 $nuspecDocumentFileName = "$PackageName.nuspec"
-$nuspecDocument = [xml](Get-Content $nuspecDocumentFileName)
+$nuspecDocumentFilePath = $projectRootFolderPath | Join-Path $nuspecDocumentFileName
+$nuspecDocument = [xml](Get-Content $nuspecDocumentFilePath)
 $nuspecMetadataNode = $nuspecDocument.SelectSingleNode('/package/metadata')
 
+Write-Information "Loaded .nuspec document $nuspecDocumentFileName."
+
 $projectDocumentFileName = "$PackageName.csproj"
-$projectDocument = [xml](Get-Content $projectDocumentFileName)
+$projectDocumentFilePath = $projectRootFolderPath | Join-Path -ChildPath $projectDocumentFileName
+$projectDocument = [xml](Get-Content $projectDocumentFilePath)
+
+Write-Information "Loaded project document $projectDocumentFileName."
 
 # Set "requireLicenseAcceptance" property.
 $nuspecRequireLicenseAcceptanceNode = $nuspecDocument.SelectSingleNode('/package/metadata/requireLicenseAcceptance')
@@ -27,6 +48,8 @@ if ($nuspecRequireLicenseAcceptanceNode -eq $null) {
 
 $projectPackageRequireLicenseAcceptanceNode = $projectDocument.SelectSingleNode('/Project/PropertyGroup/PackageRequireLicenseAcceptance')
 $nuspecRequireLicenseAcceptanceNode.InnerText = $projectPackageRequireLicenseAcceptanceNode.InnerText
+
+Write-Information 'Patched "requireLicenseAcceptance" property.'
 
 # Set "license" property.
 $nuspecLicenseNode = $nuspecDocument.SelectSingleNode('/package/metadata/license')
@@ -39,6 +62,8 @@ $projectPackageLicenseExpressionNode = $projectDocument.SelectSingleNode('/Proje
 $nuspecLicenseNode.Attributes['type'] = 'expression'
 $nuspecLicenseNode.InnerText = $projectPackageLicenseExpressionNode.InnerText
 
+Write-Information 'Patched "license" property.'
+
 # Set "projectUrl" property.
 $nuspecProjectUrlNode = $nuspecDocument.SelectSingleNode('/package/metadata/projectUrl')
 if ($nuspecProjectUrlNode -eq $null) {
@@ -49,6 +74,8 @@ if ($nuspecProjectUrlNode -eq $null) {
 $projectPackageProjectUrlNode = $projectDocument.SelectSingleNode('/Project/PropertyGroup/PackageProjectUrl')
 $nuspecProjectUrlNode.InnerText = $projectPackageProjectUrlNode.InnerText
 
+Write-Information 'Patched "projectUrl" property.'
+
 # Set "tags" property.
 $nuspecTagsNode = $nuspecDocument.SelectSingleNode('/package/metadata/tags')
 if ($nuspecTagsNode -eq $null) {
@@ -58,6 +85,8 @@ if ($nuspecTagsNode -eq $null) {
 
 $projectPackageTagsNode = $projectDocument.SelectSingleNode('/Project/PropertyGroup/PackageTags')
 $nuspecTagsNode.InnerText = $projectPackageTagsNode.InnerText
+
+Write-Information 'Patched "tags" property.'
 
 # Set "repository" property.
 $nuspecRepositoryNode = $nuspecDocument.SelectSingleNode('/package/metadata/repository')
@@ -71,8 +100,12 @@ $projectRepositoryUrlNode = $projectDocument.SelectSingleNode('/Project/Property
 $nuspecRepositoryNode.Attributes['type'] = $projectRepositoryTypeNode.InnerText
 $nuspecRepositoryNode.Attributes['url'] = $projectRepositoryUrlNode.InnerText
 
+Write-Information 'Patched "repository" property.'
+
 # Save changes to .nuspec file.
-$nuspecDocument.Save($nuspecDocumentFileName)
+$nuspecDocument.Save($nuspecDocumentFilePath)
+
+Write-Information "Saved changes to .nuspec document $nuspecDocumentFilePath."
 
 Write-Debug "Patched file $($nuspecDocumentFileName):"
-Write-Debug (Get-Content $nuspecDocumentFileName -Raw)
+Write-Debug (Get-Content $nuspecDocumentFilePath -Raw)

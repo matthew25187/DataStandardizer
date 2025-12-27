@@ -3,6 +3,14 @@ param (
     [ValidateNotNullOrEmpty()]
     [string]    $PackageName,
 
+    [Parameter(Mandatory)]
+    [ValidateNotNullOrEmpty()]
+    [string]    $PackageInfos,
+
+    [Parameter(Mandatory)]
+    [ValidateNotNullOrEmpty()]
+    [string]    $SourceRootFolderPath,
+
     [Parameter()]
     [int]   $TraceLevel = 0
 )
@@ -11,8 +19,14 @@ if (0 -lt $TraceLevel) {
     Set-PSDebug -Trace $TraceLevel
 }
 
+$packageInfo = $PackageInfos | ConvertFrom-Json | Where-Object -Property packageName -EQ -Value $PackageName
+if ($null -eq $packageInfo) {
+    Write-Error "Package information not found for $PackageName"
+}
+
 $projectDocumentFileName = "$PackageName.csproj"
-$projectDocument = [xml](Get-Content $projectDocumentFileName)
+$projectDocumentFilePath = $SourceRootFolderPath | Join-Path -ChildPath $packageInfo.packageSourcePath
+$projectDocument = [xml](Get-Content $projectDocumentFilePath)
 $projectPropertyGroupNode = $projectDocument.SelectSingleNode('/Project/PropertyGroup')
 
 $nuspecDocumentFileName = "$PackageName.nuspec"
@@ -26,6 +40,8 @@ if ($projectIsPackableNode -eq $null) {
 
 $projectIsPackableNode.InnerText = [bool]::TrueString
 
+Write-Information 'Patched "IsPackable" property.'
+
 # Set "NuspecFile" property.
 $projectNuspecFileNode = $projectDocument.SelectSingleNode('/Project/PropertyGroup/NuspecFile')
 if ($projectNuspecFileNode -eq $null) {
@@ -34,6 +50,8 @@ if ($projectNuspecFileNode -eq $null) {
 }
 
 $projectNuspecFileNode.InnerText = $nuspecDocumentFileName
+
+Write-Information 'Patched "NuspecFile" property.'
 
 # Set "NuspecProperties" property.
 $projectNuspecPropertiesNode = $projectDocument.SelectSingleNode('/Project/PropertyGroup/NuspecProperties')
@@ -62,8 +80,12 @@ else {
 
 $projectNuspecPropertiesNode.InnerText = ($nuspecProperties.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }) -join ';'
 
+Write-Information 'Patched "NuspecProperties" property.'
+
 # Save changes to project file.
-$projectDocument.Save($projectDocumentFileName)
+$projectDocument.Save($projectDocumentFilePath)
+
+Write-Information "Saved changes to project document $projectDocumentFilePath."
 
 Write-Debug "Patched project $($projectDocumentFileName):"
 Write-Debug (Get-Content $projectDocumentFileName -Raw)
