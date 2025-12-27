@@ -1074,7 +1074,7 @@ stages:
                   #packagesToPack: '**/*.csproj' # string. Alias: searchPatternPack. Required when command = pack. Path to csproj or nuspec file(s) to pack. Default: **/*.csproj.
                   #configuration: '$(BuildConfiguration)' # string. Alias: configurationToPack. Optional. Use when command = pack. Configuration to package. Default: $(BuildConfiguration).
                   #packDestination: '$(Build.ArtifactStagingDirectory)' # string. Alias: outputDir. Optional. Use when command = pack. Package folder. Default: $(Build.ArtifactStagingDirectory).
-                  arguments: 'spec' # string. Required when command = custom. Command and arguments.
+                  arguments: 'spec ${{ packageName }}' # string. Required when command = custom. Command and arguments.
               # PowerShell v2
               # Run a PowerShell script on Linux, macOS, or Windows.
               - task: PowerShell@2
