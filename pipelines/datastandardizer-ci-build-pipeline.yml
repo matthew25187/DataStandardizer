@@ -1185,6 +1185,12 @@ stages:
               # PowerShell v2
               # Run a PowerShell script on Linux, macOS, or Windows.
               - task: PowerShell@2
+                condition: |
+                  and
+                  (
+                    succeeded(), 
+                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
+                  )
                 displayName: "[${{packageName}}] Patch project file properties"
                 inputs:
                   #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
