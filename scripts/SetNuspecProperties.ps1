@@ -15,6 +15,17 @@ param (
     [int]   $TraceLevel = 0
 )
 
+function Set-XmlAttribute {
+    param($node, $name, $value)
+
+    $attr = $node.Attributes[$name]
+    if (-not $attr) {
+        $attr = $node.OwnerDocument.CreateAttribute($name)
+        $node.Attributes.Append($attr) | Out-Null
+    }
+    $attr.Value = $value
+}
+
 if (0 -lt $TraceLevel) {
     Set-PSDebug -Trace $TraceLevel
 }
@@ -59,7 +70,7 @@ if ($nuspecLicenseNode -eq $null) {
 }
 
 $projectPackageLicenseExpressionNode = $projectDocument.SelectSingleNode('/Project/PropertyGroup/PackageLicenseExpression')
-$nuspecLicenseNode.Attributes['type'] = 'expression'
+Set-XmlAttribute $nuspecLicenseNode 'type' 'expression'
 $nuspecLicenseNode.InnerText = $projectPackageLicenseExpressionNode.InnerText
 
 Write-Information 'Patched "license" property.'
@@ -96,9 +107,10 @@ if ($nuspecRepositoryNode -eq $null) {
 }
 
 $projectRepositoryTypeNode = $projectDocument.SelectSingleNode('/Project/PropertyGroup/RepositoryType')
+Set-XmlAttribute $nuspecRepositoryNode 'type' $projectRepositoryTypeNode.InnerText
+
 $projectRepositoryUrlNode = $projectDocument.SelectSingleNode('/Project/PropertyGroup/RepositoryUrl')
-$nuspecRepositoryNode.Attributes['type'] = $projectRepositoryTypeNode.InnerText
-$nuspecRepositoryNode.Attributes['url'] = $projectRepositoryUrlNode.InnerText
+Set-XmlAttribute $nuspecRepositoryNode 'url' $projectRepositoryUrlNode.InnerText
 
 Write-Information 'Patched "repository" property.'
 
