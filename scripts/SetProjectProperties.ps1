@@ -29,6 +29,8 @@ $projectDocumentFilePath = $SourceRootFolderPath | Join-Path -ChildPath $package
 $projectDocument = [xml](Get-Content $projectDocumentFilePath)
 $projectPropertyGroupNode = $projectDocument.SelectSingleNode('/Project/PropertyGroup')
 
+Write-Information "Loaded project document $projectDocumentFilePath"
+
 $nuspecDocumentFileName = "$PackageName.nuspec"
 
 # Set "IsPackable" property.

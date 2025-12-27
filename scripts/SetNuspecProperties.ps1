@@ -19,7 +19,7 @@ if (0 -lt $TraceLevel) {
     Set-PSDebug -Trace $TraceLevel
 }
 
-$packageInfo = $PackageInfos | ConvertFrom-Json | Where-Object -Property packageName -EQ -Value $PackageName
+$packageInfo = ($PackageInfos | ConvertFrom-Json) | Where-Object -Property packageName -EQ -Value $PackageName
 if ($null -eq $packageInfo) {
     Write-Error "Package information not found for $PackageName"
 }
@@ -31,13 +31,13 @@ $nuspecDocumentFilePath = $projectRootFolderPath | Join-Path $nuspecDocumentFile
 $nuspecDocument = [xml](Get-Content $nuspecDocumentFilePath)
 $nuspecMetadataNode = $nuspecDocument.SelectSingleNode('/package/metadata')
 
-Write-Information "Loaded .nuspec document $nuspecDocumentFileName."
+Write-Information "Loaded .nuspec document $nuspecDocumentFilePath."
 
 $projectDocumentFileName = "$PackageName.csproj"
 $projectDocumentFilePath = $projectRootFolderPath | Join-Path -ChildPath $projectDocumentFileName
 $projectDocument = [xml](Get-Content $projectDocumentFilePath)
 
-Write-Information "Loaded project document $projectDocumentFileName."
+Write-Information "Loaded project document $projectDocumentFilePath."
 
 # Set "requireLicenseAcceptance" property.
 $nuspecRequireLicenseAcceptanceNode = $nuspecDocument.SelectSingleNode('/package/metadata/requireLicenseAcceptance')
