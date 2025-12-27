@@ -19,7 +19,7 @@ if (0 -lt $TraceLevel) {
     Set-PSDebug -Trace $TraceLevel
 }
 
-$packageInfo = $PackageInfos | ConvertFrom-Json | Where-Object -Property packageName -EQ -Value $PackageName
+$packageInfo = ($PackageInfos | ConvertFrom-Json) | Where-Object -Property packageName -EQ -Value $PackageName
 if ($null -eq $packageInfo) {
     Write-Error "Package information not found for $PackageName"
 }

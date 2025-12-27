@@ -1084,7 +1084,7 @@ stages:
                     succeeded(), 
                     or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
                   )
-                displayName: '[${{packageName}}] Patch .nuspec file'
+                displayName: '[${{packageName}}] Patch .nuspec file properties'
                 inputs:
                   #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
                   filePath: 'scripts/SetNuspecProperties.ps1' # string. Required when targetType = filePath. Script Path. 
@@ -1185,6 +1185,7 @@ stages:
               # PowerShell v2
               # Run a PowerShell script on Linux, macOS, or Windows.
               - task: PowerShell@2
+                displayName: "[${{packageName}}] Patch project file properties"
                 inputs:
                   #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
                   filePath: 'scripts/SetProjectProperties.ps1' # string. Required when targetType = filePath. Script Path. 
