@@ -58,7 +58,7 @@ if ($nuspecRequireLicenseAcceptanceNode -eq $null) {
 }
 
 $projectPackageRequireLicenseAcceptanceNode = $projectDocument.SelectSingleNode('/Project/PropertyGroup/PackageRequireLicenseAcceptance')
-$nuspecRequireLicenseAcceptanceNode.InnerText = $projectPackageRequireLicenseAcceptanceNode.InnerText
+$nuspecRequireLicenseAcceptanceNode.InnerText = $projectPackageRequireLicenseAcceptanceNode.InnerText.ToLowerInvariant()
 
 Write-Information 'Patched "requireLicenseAcceptance" property.'
 
