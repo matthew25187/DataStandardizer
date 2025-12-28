@@ -1264,7 +1264,7 @@ stages:
                   # requestedMajorVersion: 1  # Required  # The 'X' in version [X.Y.Z](http://semver.org/spec/v1.0.0.html)
                   # requestedMinorVersion: 0  # Required  # The 'Y' in version [X.Y.Z](http://semver.org/spec/v1.0.0.html)
                   # requestedPatchVersion: 0  # Required  # The 'Z' in version [X.Y.Z](http://semver.org/spec/v1.0.0.html)
-                  buildProperties: 'NuspecFile="${{packageName}}.nuspec";NuspecBasePath="$(nuspecBasePathArg)";PackageVersion="$(packageVersionArg)"' # Optional  # Specifies a list of token = value pairs, separated by semicolons, where each occurrence of token$ in the .nuspec file will be replaced with the given value. Values can be strings in quotation marks.
+                  buildProperties: 'NuspecFile="${{packageName}}.nuspec";NuspecBasePath="$(nuspecBasePathArg)";NuspecProperties="id=${{packageName}};version=$(PackageVersion)";PackageVersion="$(packageVersionArg)"' # Optional  # Specifies a list of token = value pairs, separated by semicolons, where each occurrence of token$ in the .nuspec file will be replaced with the given value. Values can be strings in quotation marks.
                   verbosityPack: Normal # Options: '-', 'Quiet', 'Minimal', 'Normal', 'Detailed', 'Diagnostic' # Required  # Specifies the amount of detail displayed in the output.
                   # workingDirectory:   # Required when command != restore && command != push && command != pack  # Current working directory where the script is run. Empty is the root of the repo (build) or artifacts (release), which is $(System.DefaultWorkingDirectory). The project search pattern is **NOT** relative to working directory.
               - task: PowerShell@2
