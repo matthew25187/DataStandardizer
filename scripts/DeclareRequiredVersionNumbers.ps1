@@ -93,7 +93,7 @@ if ($variableGroupVersionNumbers[3] -gt 0) {
 # Fetch current assembly number.
 [version]$currentAssemblyVersion = $null
 
-nuget install $PackageName -DirectDownload -ExcludeVersion -NoHttpCache -NonInteractive -OutputDirectory $TempPath -PackageSaveMode nupkg -PreRelease -Source 'https://pkgs.dev.azure.com/solobyte/DataStandardizer/_packaging/DataStandardizer/nuget/v3/index.json' -Source 'https://api.nuget.org/v3/index.json' -Verbosity detailed -Version $currentPackageVersionString 2>&1 | Write-Host
+nuget install $PackageName -DependencyVersion Ignore -DirectDownload -ExcludeVersion -NoHttpCache -NonInteractive -OutputDirectory $TempPath -PackageSaveMode nupkg -PreRelease -Source 'https://pkgs.dev.azure.com/solobyte/DataStandardizer/_packaging/DataStandardizer/nuget/v3/index.json' -Source 'https://api.nuget.org/v3/index.json' -Verbosity detailed -Version $currentPackageVersionString 2>&1 | Write-Host
 
 [string]$currentPackageFolderPath
 $currentPackageArchivePath = Get-ChildItem -Path $TempPath -Filter "$PackageName.nupkg" -Recurse | Select-Object -ExpandProperty FullName
