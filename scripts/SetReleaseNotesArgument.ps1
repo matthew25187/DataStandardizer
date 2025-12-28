@@ -81,7 +81,7 @@ $revisionListOutput -split '\r?\n' | Select-String -Pattern '#\d+' -Raw | Out-St
 $releaseNotes = $releaseNotesBuilder.ToString().TrimEnd()
 $releaseNotes
 
-# Apply release notes to project file.
+# Apply release notes to .nuspec file.
 $packageInfo = $PackageInfos | ConvertFrom-Json | Where-Object -Property packageName -EQ -Value $PackageName
 if ($null -eq $packageInfo) {
     Write-Error "Package information not found for $PackageName"
@@ -101,6 +101,8 @@ $nuspecReleaseNotesNode.InnerText = $releaseNotes
 
 # Save changes to project file
 $nuspecDocument.Save($nuspecDocumentFilePath)
+
+Write-Information "Saved changes to .nuspec document $nuspecDocumentFilePath."
 
 Write-Debug "Patched .nuspec file $($nuspecDocumentFileName):"
 Write-Debug (Get-Content $nuspecDocumentFilePath -Raw)
