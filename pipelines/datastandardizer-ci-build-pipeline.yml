@@ -1234,7 +1234,7 @@ stages:
                 inputs:
                   #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
                   filePath: 'scripts/SetPackRequiredArguments.ps1' # string. Required when targetType = filePath. Script Path. 
-                  arguments: '-PackageName ${{packageName}} -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
+                  arguments: '-PackageName ${{packageName}} -PackageInfos ''${{variables.packageInfos}}'' -SourceRootFolderPath ''$(Build.SourcesDirectory)'' -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
                   #script: # string. Required when targetType = inline. Script. 
                 # Preference Variables
                   #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.

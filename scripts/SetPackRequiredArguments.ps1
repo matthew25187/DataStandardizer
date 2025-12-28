@@ -5,6 +5,14 @@ param (
     [ValidateNotNullOrEmpty()]
     [string]    $PackageName,
 
+    [Parameter(Mandatory)]
+    [ValidateNotNullOrEmpty()]
+    [string]    $PackageInfos,
+
+    [Parameter(Mandatory)]
+    [ValidateNotNullOrEmpty()]
+    [string]    $SourceRootFolderPath,
+
     [Parameter()]
     [int]   $TraceLevel = 0
 )
