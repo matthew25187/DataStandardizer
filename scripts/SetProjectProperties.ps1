@@ -25,7 +25,7 @@ if ($null -eq $packageInfo) {
 }
 
 $projectDocumentFileName = "$PackageName.csproj"
-$projectDocumentFilePath = $SourceRootFolderPath | Join-Path -ChildPath $packageInfo.packageSourcePath
+$projectDocumentFilePath = $SourceRootFolderPath | Join-Path -ChildPath $packageInfo.packageSourcePath | Join-Path -ChildPath $projectDocumentFileName
 $projectDocument = [xml](Get-Content $projectDocumentFilePath)
 $projectPropertyGroupNode = $projectDocument.SelectSingleNode('/Project/PropertyGroup')
 
@@ -37,7 +37,7 @@ $nuspecDocumentFileName = "$PackageName.nuspec"
 $projectIsPackableNode = $projectDocument.SelectSingleNode('/Project/PropertyGroup/IsPackable')
 if ($projectIsPackableNode -eq $null) {
     $projectIsPackableNode = $projectDocument.CreateElement('IsPackable')
-    $projectPropertyGroupNode.AppendChild($projectIsPackableNode)
+    $projectPropertyGroupNode.AppendChild($projectIsPackableNode) | Out-Null
 }
 
 $projectIsPackableNode.InnerText = [bool]::TrueString
@@ -48,7 +48,7 @@ Write-Information 'Patched "IsPackable" property.'
 $projectNuspecFileNode = $projectDocument.SelectSingleNode('/Project/PropertyGroup/NuspecFile')
 if ($projectNuspecFileNode -eq $null) {
     $projectNuspecFileNode = $projectDocument.CreateElement('NuspecFile')
-    $projectPropertyGroupNode.AppendChild($projectNuspecFileNode)
+    $projectPropertyGroupNode.AppendChild($projectNuspecFileNode) | Out-Null
 }
 
 $projectNuspecFileNode.InnerText = $nuspecDocumentFileName
@@ -59,7 +59,7 @@ Write-Information 'Patched "NuspecFile" property.'
 $projectNuspecPropertiesNode = $projectDocument.SelectSingleNode('/Project/PropertyGroup/NuspecProperties')
 if ($projectNuspecPropertiesNode -eq $null) {
     $projectNuspecPropertiesNode = $projectDocument.CreateElement('NuspecProperties')
-    $projectPropertyGroupNode.AppendChild($projectNuspecPropertiesNode)
+    $projectPropertyGroupNode.AppendChild($projectNuspecPropertiesNode) | Out-Null
 }
 
 $nuspecProperties = @{
