@@ -3,6 +3,8 @@
   <metadata>
     <id>$id$</id>
     <version>$version$</version>
+    <authors>$author$</authors>
+    <description>$description$</description>
     <releaseNotes>Summary of changes made in this release of the package.</releaseNotes>
   </metadata>
 </package>
