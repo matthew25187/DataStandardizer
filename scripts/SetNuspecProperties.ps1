@@ -54,7 +54,7 @@ Write-Information "Loaded project document $projectDocumentFilePath."
 $nuspecRequireLicenseAcceptanceNode = $nuspecDocument.SelectSingleNode('/package/metadata/requireLicenseAcceptance')
 if ($nuspecRequireLicenseAcceptanceNode -eq $null) {
     $nuspecRequireLicenseAcceptanceNode = $nuspecDocument.CreateElement('requireLicenseAcceptance')
-    $nuspecMetadataNode.AppendChild($nuspecRequireLicenseAcceptanceNode)
+    $nuspecMetadataNode.AppendChild($nuspecRequireLicenseAcceptanceNode) | Out-Null
 }
 
 $projectPackageRequireLicenseAcceptanceNode = $projectDocument.SelectSingleNode('/Project/PropertyGroup/PackageRequireLicenseAcceptance')
@@ -66,7 +66,7 @@ Write-Information 'Patched "requireLicenseAcceptance" property.'
 $nuspecLicenseNode = $nuspecDocument.SelectSingleNode('/package/metadata/license')
 if ($nuspecLicenseNode -eq $null) {
     $nuspecLicenseNode = $nuspecDocument.CreateElement('license')
-    $nuspecMetadataNode.AppendChild($nuspecLicenseNode)
+    $nuspecMetadataNode.AppendChild($nuspecLicenseNode) | Out-Null
 }
 
 $projectPackageLicenseExpressionNode = $projectDocument.SelectSingleNode('/Project/PropertyGroup/PackageLicenseExpression')
@@ -79,7 +79,7 @@ Write-Information 'Patched "license" property.'
 $nuspecProjectUrlNode = $nuspecDocument.SelectSingleNode('/package/metadata/projectUrl')
 if ($nuspecProjectUrlNode -eq $null) {
     $nuspecProjectUrlNode = $nuspecDocument.CreateElement('projectUrl')
-    $nuspecMetadataNode.AppendChild($nuspecProjectUrlNode)
+    $nuspecMetadataNode.AppendChild($nuspecProjectUrlNode) | Out-Null
 }
 
 $projectPackageProjectUrlNode = $projectDocument.SelectSingleNode('/Project/PropertyGroup/PackageProjectUrl')
@@ -91,7 +91,7 @@ Write-Information 'Patched "projectUrl" property.'
 $nuspecTagsNode = $nuspecDocument.SelectSingleNode('/package/metadata/tags')
 if ($nuspecTagsNode -eq $null) {
     $nuspecTagsNode = $nuspecDocument.CreateElement('tags')
-    $nuspecMetadataNode.AppendChild($nuspecTagsNode)
+    $nuspecMetadataNode.AppendChild($nuspecTagsNode) | Out-Null
 }
 
 $projectPackageTagsNode = $projectDocument.SelectSingleNode('/Project/PropertyGroup/PackageTags')
@@ -103,7 +103,7 @@ Write-Information 'Patched "tags" property.'
 $nuspecRepositoryNode = $nuspecDocument.SelectSingleNode('/package/metadata/repository')
 if ($nuspecRepositoryNode -eq $null) {
     $nuspecRepositoryNode = $nuspecDocument.CreateElement('repository')
-    $nuspecMetadataNode.AppendChild($nuspecRepositoryNode)
+    $nuspecMetadataNode.AppendChild($nuspecRepositoryNode) | Out-Null
 }
 
 $projectRepositoryTypeNode = $projectDocument.SelectSingleNode('/Project/PropertyGroup/RepositoryType')
@@ -119,5 +119,5 @@ $nuspecDocument.Save($nuspecDocumentFilePath)
 
 Write-Information "Saved changes to .nuspec document $nuspecDocumentFilePath."
 
-Write-Debug "Patched file $($nuspecDocumentFileName):"
+Write-Debug "Patched .nuspec file $($nuspecDocumentFileName):"
 Write-Debug (Get-Content $nuspecDocumentFilePath -Raw)

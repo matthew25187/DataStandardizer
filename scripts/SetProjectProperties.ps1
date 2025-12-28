@@ -89,5 +89,5 @@ $projectDocument.Save($projectDocumentFilePath)
 
 Write-Information "Saved changes to project document $projectDocumentFilePath."
 
-Write-Debug "Patched project $($projectDocumentFileName):"
-Write-Debug (Get-Content $projectDocumentFileName -Raw)
+Write-Debug "Patched project file $($projectDocumentFileName):"
+Write-Debug (Get-Content $projectDocumentFilePath -Raw)

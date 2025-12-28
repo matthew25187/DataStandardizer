@@ -82,23 +82,25 @@ $releaseNotes = $releaseNotesBuilder.ToString().TrimEnd()
 $releaseNotes
 
 # Apply release notes to project file.
-# $packageInfo = $PackageInfos | ConvertFrom-Json | Where-Object -Property packageName -EQ -Value $PackageName
-# $projectRootPath = $SourceRootFolderPath | Join-Path -ChildPath $packageInfo.packageSourcePath
-# $projectFilePath = Get-ChildItem -Path $projectRootPath -Filter "$PackageName.csproj" -Recurse | Select-Object -First 1 -ExpandProperty FullName
+$packageInfo = $PackageInfos | ConvertFrom-Json | Where-Object -Property packageName -EQ -Value $PackageName
+if ($null -eq $packageInfo) {
+    Write-Error "Package information not found for $PackageName"
+}
 
 $nuspecDocumentFileName = "$PackageName.nuspec"
-$nuspecDocument = [xml](Get-Content $nuspecDocumentFileName)
+$nuspecDocumentFilePath = $SourceRootFolderPath | Join-Path -ChildPath $packageInfo.packageSourcePath | Join-Path -ChildPath $nuspecDocumentFileName
+$nuspecDocument = [xml](Get-Content $nuspecDocumentFilePath)
 $nuspecMetadataNode = $nuspecDocument.SelectSingleNode('/package/metadata')
 
 $nuspecReleaseNotesNode = $nuspecDocument.SelectSingleNode('/package/metadata/releaseNotes')
 if ($nuspecReleaseNotesNode -eq $null) {
     $nuspecReleaseNotesNode = $nuspecDocument.CreateElement('releaseNotes')
-    $nuspecMetadataNode.AppendChild($nuspecReleaseNotesNode)
+    $nuspecMetadataNode.AppendChild($nuspecReleaseNotesNode) | Out-Null
 }
 $nuspecReleaseNotesNode.InnerText = $releaseNotes
 
 # Save changes to project file
-$nuspecDocument.Save($nuspecDocumentFileName)
+$nuspecDocument.Save($nuspecDocumentFilePath)
 
 Write-Debug "Patched .nuspec file $($nuspecDocumentFileName):"
-Write-Debug (Get-Content $nuspecDocumentFileName -Raw)
+Write-Debug (Get-Content $nuspecDocumentFilePath -Raw)
