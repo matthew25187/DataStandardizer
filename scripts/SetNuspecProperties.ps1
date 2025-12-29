@@ -196,7 +196,7 @@ else {
 Write-Information 'Patched "tags" property.'
 
 # Set "repository" property.
-$nuspecRepositoryNode = Set-MetadataProperty $nuspecDocument 'repository' [string]::Empty
+$nuspecRepositoryNode = Set-MetadataProperty $nuspecDocument 'repository' ''
 
 $projectRepositoryTypeNode = $projectDocument.SelectSingleNode('/Project/PropertyGroup/RepositoryType')
 Set-XmlAttribute $nuspecRepositoryNode 'type' $projectRepositoryTypeNode.InnerText

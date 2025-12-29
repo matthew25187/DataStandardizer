@@ -1165,12 +1165,13 @@ stages:
                       Set-PSDebug -Trace ${{parameters.traceLevel}}
                   }
 
-                  $packageInfo = ('${{ variables.packageInfos }}' | ConvertFrom-Json) | Where-Object -Property packageName -EQ '${{packageName}}'
+                  $packageInfo = ('${{ variables.packageInfos }}' | ConvertFrom-Json) | Where-Object -Property packageName -EQ -Value '${{packageName}}'
                   if ($null -eq $packageInfo) {
                       Write-Error 'Package information not found for ${{packageName}}'
                   }
 
-                  Write-Host "##vso[task.setvariable variable=nuspecBasePathArg]$($packageInfo.packageSourcePath)"              
+                  $nuspecFilePath = '$(Build.SourcesDirectory)' | Join-Path -ChildPath $packageInfo.packageSourcePath | Join-Path -ChildPath '${{packageName}}.nuspec'
+                  Write-Host "##vso[task.setvariable variable=nuspecFileArg]$nuspecFilePath"
                 # errorActionPreference: string # Unless otherwise specified, the error action preference defaults to the value stop. See the following section for more information.
                 # failOnStderr: string # Fail the task if output is sent to Stderr?
                 # ignoreLASTEXITCODE: string # Check the final exit code of the script to determine whether the step succeeded?
@@ -1182,7 +1183,7 @@ stages:
                     or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
                   )
                 # continueOnError: boolean # Continue running even on failure?
-                displayName: '[${{packageName}}] Set Nuspec Base Path argument' # Human-readable name for the task.
+                displayName: '[${{packageName}}] Set Nuspec File argument' # Human-readable name for the task.
                 # target: string | target # Environment in which to run this task.
                 # enabled: boolean # Run this task when the job runs?
                 # env: # Variables to map into the process's environment.
@@ -1250,52 +1251,35 @@ stages:
               #     pwsh: true # boolean. Use PowerShell Core. Default: false.
               #     #workingDirectory: # string. Working Directory. 
               #     #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.
+              # .NET Core v2
+              # Build, test, package, or publish a .NET application, or run a custom .NET CLI command.
               - task: DotNetCoreCLI@2
-                displayName: "[${{packageName}}] Create NuGet package"
                 condition: |
                   and
                   (
                     succeeded(), 
                     or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
                   )
+                displayName: "[${{packageName}}] Create NuGet package"
                 inputs:
-                  command: pack # Options: 'build', 'push', 'pack', 'publish', 'restore', 'run', 'test', 'custom' # Required  # The dotnet command to run. Select 'Custom' to add arguments or use a command not listed here.
-                  # publishWebProjects: true  # Required  # If true, the task will try to find the web projects in the repository and run the publish command on them. Web projects are identified by presence of either a web.config file or wwwroot folder in the directory.
-                  #projects:  # Optional  # The path to the csproj file(s) to use. You can use wildcards (e.g. **/*.csproj for all .csproj files in all subfolders). **This field follows glob pattern, and is run against root of the repository at all times irrespective of Working Directory.**
-                  # custom:   # Required when command = custom  # The command to pass to dotnet.exe for execution.
-                  # arguments:  # Optional  # Arguments to the selected command. For example, build configuration, output folder, runtime. The arguments depend on the command selected.
-                  #restoreArguments:  # Optional  # Write the additional arguments to be passed to **restore** command.
-                  #publishTestResults:  # Optional  # Enabling this option will generate a test results TRX file in `$(Agent.TempDirectory)` and results will be published to the server. <br>This option appends `--logger trx --results-directory $(Agent.TempDirectory)` to the command line arguments. <br><br>Code coverage can be collected by adding `--collect "Code coverage"` option to the command line arguments. This is currently only available on the Windows platform.
-                  #testRunTitle:  # Optional  # Provide a name for the test run.
-                  #zipAfterPublish:  # Optional  # If true, folder created by the publish command will be zipped.
-                  #modifyOutputPath:  # Optional  # If true, folders created by the publish command will have project's folder name prefixed to their folder names when output path is specified explicitly in arguments. This is useful if you want to publish multiple projects to the same folder.
-                  # selectOrConfig: select # Options: 'select', 'config' # Required  # You can either select a feed from Azure Artifacts and/or NuGet.org here, or commit a nuget.config file to your source code repository and set its path here.
-                  # feedRestore:   # Required when selectOrConfig = select  # Include the selected feed in the generated NuGet.config. You must have Azure Artifacts installed and licensed to select a feed here.
-                  # includeNuGetOrg: true  # Required  # Include NuGet.org in the generated NuGet.config.
-                  # nugetConfigPath:   # Required when selectOrConfig = config  # The NuGet.config in your repository that specifies the feeds from which to restore packages.
-                  #externalEndpoints:  # Optional  # Credentials to use for external registries located in the selected NuGet.config. For feeds in this organization/collection, leave this blank; the build’s credentials are used automatically.
-                  # noCache: false  # Required  # Prevents NuGet from using packages from local machine caches.
-                  # packagesDirectory:   # Required  # Specifies the folder in which packages are installed. If no folder is specified, packages are restored into the default NuGet package cache.
-                  # verbosityRestore: Detailed # Options: '-', 'Quiet', 'Minimal', 'Normal', 'Detailed', 'Diagnostic' # Required  # Specifies the amount of detail displayed in the output.
-                  # searchPatternPush: $(Build.ArtifactStagingDirectory)/*.nupkg  # Required  # The pattern to match or path to nupkg files to be uploaded. Multiple patterns can be separated by a semicolon.
-                  # nuGetFeedType: internal # Options: 'internal', 'external' # Required
-                  # feedPublish:   # Required when command = push && nuGetFeedType = internal  # Select a feed hosted in this organization. You must have Azure Artifacts installed and licensed to select a feed here.
-                  #publishPackageMetadata:  # Optional  # Associate this build/release pipeline’s metadata (run #, source code information) with the package
-                  # externalEndpoint:   # Required when command = push && nuGetFeedType = external  # The NuGet service connection that contains the external NuGet server’s credentials.
-                  searchPatternPack: "$(searchPatternArg)" # Required  # Pattern to search for csproj or nuspec files to pack.You can separate multiple patterns with a semicolon, and you can make a pattern negative by prefixing it with '!'. Example: `**/*.csproj;!**/*.Tests.csproj`
-                  # configurationToPack:  # Optional  # When using a csproj file this specifies the configuration to package
-                  outputDir: "$(Build.ArtifactStagingDirectory)/packages/$(BuildConfiguration)" # Optional  # Folder where packages will be created. If empty, packages will be created alongside the csproj file.
-                  nobuild: true # Optional  # Don't build the project before packing. Corresponds to the --no-build command line parameter.
-                  #includesymbols:  # Optional  # Additionally creates symbol NuGet packages. Corresponds to the --include-symbols command line parameter.
-                  #includesource:  # Optional  # Includes source code in the package. Corresponds to the --include-source command line parameter.
-                  versioningScheme: off # Options: 'off', 'byPrereleaseNumber', 'byEnvVar', 'byBuildNumber' # Required  # Cannot be used with include referenced projects. If you choose 'Use the date and time', this will generate a [SemVer](http://semver.org/spec/v1.0.0.html)-compliant version formatted as `X.Y.Z-ci-datetime` where you choose X, Y, and Z.If you choose 'Use an environment variable', you must select an environment variable and ensure it contains the version number you want to use.If you choose 'Use the build number', this will use the build number to version your package. **Note:** Under Options set the build number format to be '[$(BuildDefinitionName)_$(Year:yyyy).$(Month).$(DayOfMonth)$(Rev:.r)](https://go.microsoft.com/fwlink/?LinkID=627416)'.
-                  # versionEnvVar:   # Required when versioningScheme = byEnvVar  # Enter the variable name without $, env, or %.
-                  # requestedMajorVersion: 1  # Required  # The 'X' in version [X.Y.Z](http://semver.org/spec/v1.0.0.html)
-                  # requestedMinorVersion: 0  # Required  # The 'Y' in version [X.Y.Z](http://semver.org/spec/v1.0.0.html)
-                  # requestedPatchVersion: 0  # Required  # The 'Z' in version [X.Y.Z](http://semver.org/spec/v1.0.0.html)
-                  buildProperties: 'NuspecFile="${{packageName}}.nuspec";NuspecBasePath="$(nuspecBasePathArg)";NuspecProperties="id=${{packageName}};version=$(packageVersionArg)"' # Optional  # Specifies a list of token = value pairs, separated by semicolons, where each occurrence of token$ in the .nuspec file will be replaced with the given value. Values can be strings in quotation marks.
-                  verbosityPack: Normal # Options: '-', 'Quiet', 'Minimal', 'Normal', 'Detailed', 'Diagnostic' # Required  # Specifies the amount of detail displayed in the output.
-                  # workingDirectory:   # Required when command != restore && command != push && command != pack  # Current working directory where the script is run. Empty is the root of the repo (build) or artifacts (release), which is $(System.DefaultWorkingDirectory). The project search pattern is **NOT** relative to working directory.
+                  #azureSubscription: # string. Alias: ConnectedServiceName. Azure Resource Manager connection. 
+                  command: 'pack' # 'build' | 'push' | 'pack' | 'publish' | 'restore' | 'run' | 'test' | 'custom'. Required. Command. Default: build.
+                  #publishWebProjects: true # boolean. Optional. Use when command = publish. Publish web projects. Default: true.
+                  #projects: # string. Optional. Use when command = build || command = restore || command = run || command = test || command = custom || publishWebProjects = false. Path to project(s) or solution(s). 
+                  #custom: # string. Required when command = custom. Custom command. 
+                  #arguments: # string. Optional. Use when command = build || command = publish || command = run || command = test || command = custom. Arguments. 
+                  packagesToPack: '$(searchPatternArg)' # string. Alias: searchPatternPack. Required when command = pack. Path to csproj or nuspec file(s) to pack. Default: **/*.csproj.
+                  #configuration: '$(BuildConfiguration)' # string. Alias: configurationToPack. Optional. Use when command = pack. Configuration to Package. Default: $(BuildConfiguration).
+                  packDirectory: "$(Build.ArtifactStagingDirectory)/packages/$(BuildConfiguration)" # string. Alias: outputDir. Optional. Use when command = pack. Package Folder. Default: $(Build.ArtifactStagingDirectory).
+                  nobuild: true # boolean. Optional. Use when command = pack. Do not build. Default: false.
+                  #includesymbols: false # boolean. Optional. Use when command = pack. Include Symbols. Default: false.
+                  #includesource: false # boolean. Optional. Use when command = pack. Include Source. Default: false.
+                  #requestTimeout: '300000' # string. Set timeout for package download request. Default: 300000.
+                # Advanced
+                  buildProperties: 'NuspecFile="$(nuspecFileArg)";NuspecBasePath=.;NuspecProperties="id=${{packageName}};version=$(packageVersionArg)"' # string. Optional. Use when command = pack. Additional build properties. 
+                  #verbosityPack: 'Normal' # '-' | 'Quiet' | 'Minimal' | 'Normal' | 'Detailed' | 'Diagnostic'. Optional. Use when command = pack. Verbosity. Default: Normal.
+                # Advanced
+                  #workingDirectory: # string. Optional. Use when command != restore && command != push && command != pack. Working directory.                  
               - task: PowerShell@2
                 displayName: '[${{packageName}}] Update dependency versions'
                 condition: |
