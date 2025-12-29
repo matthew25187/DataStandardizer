@@ -53,7 +53,7 @@ function Set-MetadataProperty {
         $metadataNode = $document.SelectSingleNode('/package/metadata')
 
         $nuspecNode = $document.CreateElement($name)
-        $metadataNode.AppendChild($nuspecNode)
+        $metadataNode.AppendChild($nuspecNode) | Out-Null
     }
 
     $nuspecNode.InnerText = $value
@@ -63,7 +63,7 @@ function Set-MetadataProperty {
 function Set-XmlAttribute {
     param($node, $name, $value)
 
-    $attr = $node.Attributes[$name]
+    $attr = ${node.Attributes}?[$name]
     if (-not $attr) {
         $attr = $node.OwnerDocument.CreateAttribute($name)
         $node.Attributes.Append($attr) | Out-Null
