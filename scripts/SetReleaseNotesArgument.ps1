@@ -31,6 +31,19 @@ param (
     [int]   $TraceLevel = 0
 )
 
+function ConvertTo-Base64String {
+    param (
+        # Input.
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [string]    $InputObject
+    )
+    
+    process {
+        $inputBytes = [System.Text.Encoding]::UTF8.GetBytes($InputObject)
+        return [System.Convert]::ToBase64String($inputBytes)
+    }
+}
+
 if (0 -lt $TraceLevel) {
     Set-PSDebug -Trace $TraceLevel
 }
@@ -81,28 +94,6 @@ $revisionListOutput -split '\r?\n' | Select-String -Pattern '#\d+' -Raw | Out-St
 $releaseNotes = $releaseNotesBuilder.ToString().TrimEnd()
 $releaseNotes
 
-# Apply release notes to .nuspec file.
-$packageInfo = $PackageInfos | ConvertFrom-Json | Where-Object -Property packageName -EQ -Value $PackageName
-if ($null -eq $packageInfo) {
-    Write-Error "Package information not found for $PackageName"
-}
-
-$nuspecDocumentFileName = "$PackageName.nuspec"
-$nuspecDocumentFilePath = $SourceRootFolderPath | Join-Path -ChildPath $packageInfo.packageSourcePath | Join-Path -ChildPath $nuspecDocumentFileName
-$nuspecDocument = [xml](Get-Content $nuspecDocumentFilePath)
-$nuspecMetadataNode = $nuspecDocument.SelectSingleNode('/package/metadata')
-
-$nuspecReleaseNotesNode = $nuspecDocument.SelectSingleNode('/package/metadata/releaseNotes')
-if ($nuspecReleaseNotesNode -eq $null) {
-    $nuspecReleaseNotesNode = $nuspecDocument.CreateElement('releaseNotes')
-    $nuspecMetadataNode.AppendChild($nuspecReleaseNotesNode) | Out-Null
-}
-$nuspecReleaseNotesNode.InnerText = $releaseNotes
-
-# Save changes to project file
-$nuspecDocument.Save($nuspecDocumentFilePath)
-
-Write-Information "Saved changes to .nuspec document $nuspecDocumentFilePath."
-
-Write-Debug "Patched .nuspec file $($nuspecDocumentFileName):"
-Write-Debug (Get-Content $nuspecDocumentFilePath -Raw)
+# Output release notes to pipeline variable.
+$encodedReleaseNotes = $releaseNotes | ConvertTo-Base64String
+Write-Host "##vso[task.setvariable variable=releaseNotesArg]$encodedReleaseNotes"

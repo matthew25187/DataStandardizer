@@ -1055,37 +1055,8 @@ stages:
                   )
                 # continueOnError: boolean # Continue running even on failure?
                 displayName: '[${{packageName}}] Generate .nuspec file' # Human-readable name for the task.
-              # PowerShell v2
-              # Run a PowerShell script on Linux, macOS, or Windows.
-              # - task: PowerShell@2
-              #   condition: |
-              #     and
-              #     (
-              #       succeeded(), 
-              #       or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
-              #     )
-              #   displayName: '[${{packageName}}] Patch .nuspec file properties'
-              #   inputs:
-              #     #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
-              #     filePath: 'scripts/SetNuspecProperties.ps1' # string. Required when targetType = filePath. Script Path. 
-              #     arguments: '-PackageName ''${{packageName}}'' -PackageInfos ''${{variables.packageInfos}}'' -SourceRootFolderPath ''$(Build.SourcesDirectory)'' -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
-              #     #script: # string. Required when targetType = inline. Script. 
-              #   # Preference Variables
-              #     #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
-              #     #warningPreference: 'default' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. WarningPreference. Default: default.
-              #     informationPreference: 'continue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. InformationPreference. Default: default.
-              #     verbosePreference: ${{ iif(eq(parameters.enableVerboseOutput, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. VerbosePreference. Default: default.
-              #     debugPreference: ${{ iif(eq(parameters.enableDebug, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. DebugPreference. Default: default.
-              #     #progressPreference: 'silentlyContinue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ProgressPreference. Default: silentlyContinue.
-              #   # Advanced
-              #     #failOnStderr: false # boolean. Fail on Standard Error. Default: false.
-              #     #showWarnings: false # boolean. Show warnings as Azure DevOps warnings. Default: false.
-              #     #ignoreLASTEXITCODE: false # boolean. Ignore $LASTEXITCODE. Default: false.
-              #     #pwsh: false # boolean. Use PowerShell Core. Default: false.
-              #     #workingDirectory: # string. Working Directory. 
-              #     #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.                
               - task: PowerShell@2
-                displayName: '[${{packageName}}] Patch release notes property'
+                displayName: '[${{packageName}}] Set release notes argument'
                 condition: |
                   and
                   (
@@ -1111,6 +1082,35 @@ stages:
                   pwsh: true # boolean. Use PowerShell Core. Default: false.
                   #workingDirectory: # string. Working Directory. 
                   #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.
+              # PowerShell v2
+              # Run a PowerShell script on Linux, macOS, or Windows.
+              - task: PowerShell@2
+                condition: |
+                  and
+                  (
+                    succeeded(), 
+                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
+                  )
+                displayName: '[${{packageName}}] Patch .nuspec file properties'
+                inputs:
+                  #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
+                  filePath: 'scripts/SetNuspecProperties.ps1' # string. Required when targetType = filePath. Script Path. 
+                  arguments: '-PackageName ''${{packageName}}'' -PackageInfos ''${{variables.packageInfos}}'' -SourceRootFolderPath ''$(Build.SourcesDirectory)'' -EncodedReleaseNotes ''$(releaseNotesArg)'' -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
+                  #script: # string. Required when targetType = inline. Script. 
+                # Preference Variables
+                  #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
+                  #warningPreference: 'default' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. WarningPreference. Default: default.
+                  informationPreference: 'continue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. InformationPreference. Default: default.
+                  verbosePreference: ${{ iif(eq(parameters.enableVerboseOutput, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. VerbosePreference. Default: default.
+                  debugPreference: ${{ iif(eq(parameters.enableDebug, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. DebugPreference. Default: default.
+                  #progressPreference: 'silentlyContinue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ProgressPreference. Default: silentlyContinue.
+                # Advanced
+                  #failOnStderr: false # boolean. Fail on Standard Error. Default: false.
+                  #showWarnings: false # boolean. Show warnings as Azure DevOps warnings. Default: false.
+                  #ignoreLASTEXITCODE: false # boolean. Ignore $LASTEXITCODE. Default: false.
+                  pwsh: true # boolean. Use PowerShell Core. Default: false.
+                  #workingDirectory: # string. Working Directory. 
+                  #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.                
               # PowerShell v2
               # Run a PowerShell script on Linux, macOS, or Windows.
               # - task: PowerShell@2
@@ -1223,33 +1223,33 @@ stages:
                   )
               # PowerShell v2
               # Run a PowerShell script on Linux, macOS, or Windows.
-              - task: PowerShell@2
-                condition: |
-                  and
-                  (
-                    succeeded(), 
-                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
-                  )
-                displayName: "[${{packageName}}] Set remaining required arguments"
-                inputs:
-                  #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
-                  filePath: 'scripts/SetPackRequiredArguments.ps1' # string. Required when targetType = filePath. Script Path. 
-                  arguments: '-PackageName ${{packageName}} -PackageInfos ''${{variables.packageInfos}}'' -SourceRootFolderPath ''$(Build.SourcesDirectory)'' -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
-                  #script: # string. Required when targetType = inline. Script. 
-                # Preference Variables
-                  #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
-                  #warningPreference: 'default' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. WarningPreference. Default: default.
-                  informationPreference: 'continue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. InformationPreference. Default: default.
-                  verbosePreference: ${{ iif(eq(parameters.enableVerboseOutput, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. VerbosePreference. Default: default.
-                  debugPreference: ${{ iif(eq(parameters.enableDebug, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. DebugPreference. Default: default.
-                  #progressPreference: 'silentlyContinue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ProgressPreference. Default: silentlyContinue.
-                # Advanced
-                  #failOnStderr: false # boolean. Fail on Standard Error. Default: false.
-                  #showWarnings: false # boolean. Show warnings as Azure DevOps warnings. Default: false.
-                  #ignoreLASTEXITCODE: false # boolean. Ignore $LASTEXITCODE. Default: false.
-                  pwsh: true # boolean. Use PowerShell Core. Default: false.
-                  #workingDirectory: # string. Working Directory. 
-                  #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.
+              # - task: PowerShell@2
+              #   condition: |
+              #     and
+              #     (
+              #       succeeded(), 
+              #       or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
+              #     )
+              #   displayName: "[${{packageName}}] Set remaining required arguments"
+              #   inputs:
+              #     #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
+              #     filePath: 'scripts/SetPackRequiredArguments.ps1' # string. Required when targetType = filePath. Script Path. 
+              #     arguments: '-PackageName ${{packageName}} -PackageInfos ''${{variables.packageInfos}}'' -SourceRootFolderPath ''$(Build.SourcesDirectory)'' -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
+              #     #script: # string. Required when targetType = inline. Script. 
+              #   # Preference Variables
+              #     #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
+              #     #warningPreference: 'default' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. WarningPreference. Default: default.
+              #     informationPreference: 'continue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. InformationPreference. Default: default.
+              #     verbosePreference: ${{ iif(eq(parameters.enableVerboseOutput, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. VerbosePreference. Default: default.
+              #     debugPreference: ${{ iif(eq(parameters.enableDebug, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. DebugPreference. Default: default.
+              #     #progressPreference: 'silentlyContinue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ProgressPreference. Default: silentlyContinue.
+              #   # Advanced
+              #     #failOnStderr: false # boolean. Fail on Standard Error. Default: false.
+              #     #showWarnings: false # boolean. Show warnings as Azure DevOps warnings. Default: false.
+              #     #ignoreLASTEXITCODE: false # boolean. Ignore $LASTEXITCODE. Default: false.
+              #     pwsh: true # boolean. Use PowerShell Core. Default: false.
+              #     #workingDirectory: # string. Working Directory. 
+              #     #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.
               - task: DotNetCoreCLI@2
                 displayName: "[${{packageName}}] Create NuGet package"
                 condition: |
@@ -1293,7 +1293,7 @@ stages:
                   # requestedMajorVersion: 1  # Required  # The 'X' in version [X.Y.Z](http://semver.org/spec/v1.0.0.html)
                   # requestedMinorVersion: 0  # Required  # The 'Y' in version [X.Y.Z](http://semver.org/spec/v1.0.0.html)
                   # requestedPatchVersion: 0  # Required  # The 'Z' in version [X.Y.Z](http://semver.org/spec/v1.0.0.html)
-                  buildProperties: 'NuspecFile="${{packageName}}.nuspec";NuspecBasePath="$(nuspecBasePathArg)";NuspecProperties="id=${{packageName}};version=$(PackageVersion);description=$(Description);authors=$(Authors)";Description="$(descriptionArg)";Authors="$(authorsArg)";PackageVersion="$(packageVersionArg)"' # Optional  # Specifies a list of token = value pairs, separated by semicolons, where each occurrence of token$ in the .nuspec file will be replaced with the given value. Values can be strings in quotation marks.
+                  buildProperties: 'NuspecFile="${{packageName}}.nuspec";NuspecBasePath="$(nuspecBasePathArg)";NuspecProperties="id=${{packageName}};version=$(packageVersionArg)"' # Optional  # Specifies a list of token = value pairs, separated by semicolons, where each occurrence of token$ in the .nuspec file will be replaced with the given value. Values can be strings in quotation marks.
                   verbosityPack: Normal # Options: '-', 'Quiet', 'Minimal', 'Normal', 'Detailed', 'Diagnostic' # Required  # Specifies the amount of detail displayed in the output.
                   # workingDirectory:   # Required when command != restore && command != push && command != pack  # Current working directory where the script is run. Empty is the root of the repo (build) or artifacts (release), which is $(System.DefaultWorkingDirectory). The project search pattern is **NOT** relative to working directory.
               - task: PowerShell@2
