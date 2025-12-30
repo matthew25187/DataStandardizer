@@ -131,8 +131,9 @@ Write-Information 'Patched "license" property.'
 
 # Set "icon" property.
 $projectPackageIconNode = $projectDocument.SelectSingleNode('/Project/PropertyGroup/PackageIcon')
-if (-not [string]::IsNullOrEmpty(${projectPackageIconNode}?.InnerText)) {
-    Set-MetadataProperty $nuspecDocument 'icon' $projectPackageIconNode.InnerText | Out-Null
+$iconFileName = ${projectPackageIconNode}?.InnerText
+if (-not [string]::IsNullOrEmpty($iconFileName)) {
+    Set-MetadataProperty $nuspecDocument 'icon' $iconFileName | Out-Null
 }
 else {
     Remove-MetadataProperty $nuspecDocument 'icon'
@@ -216,6 +217,23 @@ else {
 }
 
 Write-Information 'Patched "title" property.'
+
+# Set "files" section.
+$nuspecFilesNode = $nuspecDocument.SelectSingleNode('/package/files')
+if ($nuspecFilesNode -eq $null) {
+    $nuspecPackageNode = $nuspecDocument.SelectSingleNode('/package')
+    $nuspecFilesNode = $nuspecDocument.CreateElement('files')
+    $nuspecPackageNode.AppendChild($nuspecFilesNode) | Out-Null
+}
+
+if (-not [string]::IsNullOrEmpty($iconFileName)) {
+    $nuspecIconFileNode = $nuspecDocument.CreateElement('file')
+    Set-XmlAttribute $nuspecIconFileNode 'src' "images/$(Split-Path -Path $iconFileName -Leaf)"
+    Set-XmlAttribute $nuspecIconFileNode 'target' '.'
+    $nuspecFilesNode.AppendChild($nuspecIconFileNode) | Out-Null
+}
+
+Write-Information 'Added "files" section.'
 
 # Save changes to .nuspec file.
 $nuspecDocument.Save($nuspecDocumentFilePath)
