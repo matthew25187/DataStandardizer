@@ -2,6 +2,7 @@
 
 param (
     [Parameter(Mandatory)]
+    [ValidateNotNullOrEmpty()]
     [string]    $PackageInfos,
 
     [Parameter()]
@@ -19,11 +20,11 @@ $testPackageNames = $PackageInfos |
 
 Write-Host "##vso[task.setvariable variable=testPackageNames;isOutput=true]$($testPackageNames -join ',')"
 
-if ($testPackageNames.Count -eq 0) {
-    Write-Information 'No test packages were detected.'
+if ($testPackageNames.Count -gt 0) {
+    Write-Information "Detected $($testPackageNames.Count) test package$(($testPackageNames.Count -eq 1) ? [string]::Empty : 's')."
 }
 else {
-    Write-Information "Detected $($testPackageNames.Count) test package$(($testPackageNames.Count -eq 1)? [string]::Empty :'s')."
+    Write-Information 'No test packages were detected.'
 }
 
 $testPackageNamesMessage = [string]::Empty

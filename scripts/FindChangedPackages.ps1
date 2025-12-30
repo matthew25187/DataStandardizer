@@ -10,9 +10,6 @@ param (
     [string] $SourceCommitHash,
 
     [Parameter()]
-    [string] $SourceBranch,
-
-    [Parameter()]
     [int]   $TraceLevel = 0
 )
 
@@ -63,7 +60,7 @@ $PackageList |
         if (-not [string]::IsNullOrWhiteSpace($latestTagName)) {
             Write-Debug "Found most recent project tag $latestTagName."
 
-            $tagRefName = 'tags/' + $latestTagName
+            $tagRefName = "tags/$latestTagName"
             Write-Debug "Getting file differences between $tagRefName and $SourceCommitHash."
             $diffFilesOutput = & git diff --name-only $tagRefName $SourceCommitHash
         }
@@ -93,11 +90,11 @@ $PackageList |
 
 Write-Host "##vso[task.setvariable variable=changedPackageNames;isOutput=true]$($changedPackages -join ',')"
 
-if ($changedPackages.Count -eq 0) {
-    Write-Information "No package changes were detected."
+if ($changedPackages.Count -gt 0) {
+    Write-Information "Detected $($changedPackages.Count) changed package$(($changedPackages.Count -eq 1) ? '' : 's')."
 }
 else {
-    Write-Information "Detected $($changedPackages.Count) changed package$(($changedPackages.Count -eq 1)?'':'s')."
+    Write-Information "No package changes were detected."
 }
 
 $changedPackagesMessage = [string]::Empty

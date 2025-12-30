@@ -4,10 +4,12 @@ param (
     [string]    $PackageName,
 
     [Parameter(Mandatory)]
+    [ValidateNotNullOrEmpty()]
     [string]    $PackageInfos,
 
     [Parameter(Mandatory)]
-    [string]    $PackageVersionNumbers,
+    [ValidateNotNullOrEmpty()]
+    [string]    $EncodedPackageVersions,
 
     [Parameter()]
     [int]   $TraceLevel = 0
@@ -40,7 +42,7 @@ if ($null -eq $packageInfo) {
 }
 
 # Update version numbers in pipeline.
-$packageVersions = $PackageVersionNumbers | ConvertFrom-Base64String | ConvertFrom-Json | Where-Object -Property PackageName -EQ -Value $PackageName
+$packageVersions = $EncodedPackageVersions | ConvertFrom-Base64String | ConvertFrom-Json | Where-Object -Property PackageName -EQ -Value $PackageName
 [version]$postProductionPackageVersion = $packageVersions.PackagePostProductionVersion
 
 az devops configure -d organization=${env:ORGANIZATION_URL}
@@ -49,4 +51,4 @@ az pipelines variable-group variable update --group-id $packageInfo.variableGrou
 az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name next-patch-number --project ${env:PROJECT_NAME} --value $postProductionPackageVersion.Build --verbose
 az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name next-preview-number --project ${env:PROJECT_NAME} --value $postProductionPackageVersion.Revision --verbose
 
-Write-Information "Reserved package version $postProductionPackageVersion."
+Write-Information "Reserved package version $postProductionPackageVersion." -InformationAction Continue

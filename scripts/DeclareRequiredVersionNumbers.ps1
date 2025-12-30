@@ -1,3 +1,5 @@
+#Requires -Version 7.1
+
 param (
     [Parameter(Mandatory)]
     [ValidateNotNullOrEmpty()]
@@ -128,7 +130,7 @@ $packageVersions = [PSCustomObject]@{
 
 Write-Information "Current package version is $currentPackageVersion." -InformationAction Continue
 Write-Information "Next package version will be $nextPackageVersion" -InformationAction Continue
-Write-Information "Current assembly version is $currentAssemblyVersion." -InformationAction Continue
+Write-Information "Current assembly version is $($currentAssemblyVersion ?? 'unknown')." -InformationAction Continue
 
 [PSCustomObject[]]$packageVersionsList = @()
 

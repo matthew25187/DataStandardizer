@@ -9,7 +9,7 @@ param (
 
     [Parameter(Mandatory)]
     [ValidateNotNullOrEmpty()]
-    [string]$VersionNumbers,
+    [string]$EncodedPackageVersions,
 
     [Parameter()]
     [int]   $TraceLevel = 0
@@ -43,7 +43,7 @@ Write-Host "##vso[task.setvariable variable=sourceFolderPath]$($packageInfo.pack
 Write-Information "Package Source Path argument is $($packageInfo.packageSourcePath)"
 
 # Get package versions.
-$packageVersions = $VersionNumbers | ConvertFrom-Base64String | ConvertFrom-Json | Where-Object -Property PackageName -EQ -Value $PackageName
+$packageVersions = $EncodedPackageVersions | ConvertFrom-Base64String | ConvertFrom-Json | Where-Object -Property PackageName -EQ -Value $PackageName
 
 # Set assembly Build File Version argument.
 [version]$fileVersion = $packageVersions.AssemblyProductionFileVersion

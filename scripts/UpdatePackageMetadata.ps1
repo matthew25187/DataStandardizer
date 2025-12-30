@@ -1,4 +1,5 @@
-[CmdletBinding()]
+#Requires -Version 7.0
+
 param (
     [Parameter(Mandatory)]
     [ValidateNotNullOrEmpty()]
@@ -8,15 +9,15 @@ param (
     [ValidateNotNullOrEmpty()]
     [string]    $EncodedPackageVersions,
 
-    [Parameter()]
+    [Parameter(Mandatory)]
     [ValidateNotNullOrEmpty()]
     [string]    $PackageSearchRootPath,
 
-    [Parameter()]
+    [Parameter(Mandatory)]
     [ValidateNotNullOrEmpty()]
     [string]    $BuildConfiguration,
 
-    [Parameter()]
+    [Parameter(Mandatory)]
     [ValidateNotNullOrEmpty()]
     [string]    $TempPath,
 
@@ -106,7 +107,7 @@ Write-Verbose "Validated 'projectUrl' property - OK."
 
 # Update "releaseNotes" property.
 $releaseNotesLengthLimit = 35000
-$releaseNotes = $EncodedReleaseNotes | ConvertFrom-Base64String
+$releaseNotes = (-not [string]::IsNullOrEmpty($EncodedReleaseNotes)) ? ($EncodedReleaseNotes | ConvertFrom-Base64String) : [string]::Empty
 $releaseNotesNode = $packageNuspecDocument.SelectSingleNode('/ns:package/ns:metadata/ns:releaseNotes', $namespaceManager)
 if ($releaseNotesNode -ne $null -and (-not [string]::IsNullOrWhiteSpace($releaseNotes))) {
     $releaseNotesNode.InnerText = $releaseNotes.Substring(0, $releaseNotesLengthLimit)
@@ -174,7 +175,7 @@ foreach ($dependencyNode in $dependencyNodes) {
     $dependencyName = $dependencyNode.Attributes['id'].Value
     $packageVersions = $packageVersionsList | Where-Object -Property PackageName -EQ -Value $dependencyName
     if ($null -eq $packageVersions) {
-        Write-Verbose "No versions found for $dependencyName; skipped."
+        Write-Verbose "Found no versions for $dependencyName; skipped."
         continue
     }
 
@@ -189,6 +190,6 @@ if ($totalDependenciesUpdatedCount -gt 0) {
     $packageNuspecDocument.Save($packageNuspecFilePath)
     Compress-Archive $packageNuspecFilePath -DestinationPath $packageFilePath -Update -PassThru
 
-    Write-Debug "Patched NuSpec file $(Split-Path $packageNuspecFilePath -Leaf) as follows:"
+    Write-Debug "Patched NuSpec file $(Split-Path $packageNuspecFilePath -Leaf):"
     Write-Debug (Get-Content -Path $packageNuspecFilePath -Raw)
 }
