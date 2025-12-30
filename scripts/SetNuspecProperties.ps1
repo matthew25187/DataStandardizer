@@ -235,7 +235,7 @@ if (-not [string]::IsNullOrEmpty($iconFileName)) {
 }
 
 if (-not [string]::IsNullOrEmpty($readmeFileName)) {
-    $nuspecReadmeFileNode = $nuspecDocument.CreateElement('readme')
+    $nuspecReadmeFileNode = $nuspecDocument.CreateElement('file')
     Set-XmlAttribute $nuspecReadmeFileNode 'src' (Split-Path -Path $readmeFileName -Leaf)
     Set-XmlAttribute $nuspecReadmeFileNode 'target' '.'
     $nuspecFilesNode.AppendChild($nuspecReadmeFileNode) | Out-Null
