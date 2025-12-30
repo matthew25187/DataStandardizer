@@ -63,32 +63,27 @@ Write-Information "Found information for package $PackageName." -InformationActi
 # Fetch current package version number.
 $variableListOutput = & az pipelines variable-group variable list --group-id $packageInfo.variableGroupId
 $variableGroupVersionNumbers = ($variableListOutput | ConvertFrom-Json).PSObject.Properties |
-    Where-Object { $_.Name.StartsWith('current') } |
-    Out-String -InputObject { $_.Name + ':' + $_.Value.value } -Stream |
-    Sort-Object |
-    ConvertFrom-Csv -Delimiter ':' -Header 'Name', 'Value' |
-    Out-String -InputObject { $_.Value } -Stream
+Where-Object { $_.Name.StartsWith('current') } |
+Out-String -InputObject { $_.Name + ':' + $_.Value.value } -Stream |
+Sort-Object |
+ConvertFrom-Csv -Delimiter ':' -Header 'Name', 'Value' |
+Out-String -InputObject { $_.Value } -Stream
 [version] $currentPackageVersion = ($variableGroupVersionNumbers[0], $variableGroupVersionNumbers[1], $variableGroupVersionNumbers[2], $variableGroupVersionNumbers[3] -join '.')
 
-$currentPackageVersionString = "$($currentPackageVersion.Major).$($currentPackageVersion.Minor).$($currentPackageVersion.Build)"
-if ($variableGroupVersionNumbers[3] -gt 0) {
+$currentPackageVersionString = $currentPackageVersion.Major, $currentPackageVersion.Minor, $currentPackageVersion.Build -join '.'
+if ($currentPackageVersion.Revision -gt 0) {
     $currentPackageVersionString += "-preview.$($currentPackageVersion.Revision)"
 }
 
 # Fetch next package version number.
 $variableListOutput = & az pipelines variable-group variable list --group-id $packageInfo.variableGroupId
 $variableGroupVersionNumbers = ($variableListOutput | ConvertFrom-Json).PSObject.Properties |
-    Where-Object { $_.Name.StartsWith('next') } |
-    Out-String -InputObject { $_.Name + ':' + $_.Value.value } -Stream |
-    Sort-Object |
-    ConvertFrom-Csv -Delimiter ':' -Header 'Name', 'Value' |
-    Out-String -InputObject { $_.Value } -Stream
+Where-Object { $_.Name.StartsWith('next') } |
+Out-String -InputObject { $_.Name + ':' + $_.Value.value } -Stream |
+Sort-Object |
+ConvertFrom-Csv -Delimiter ':' -Header 'Name', 'Value' |
+Out-String -InputObject { $_.Value } -Stream
 [version] $nextPackageVersion = ($variableGroupVersionNumbers[0], $variableGroupVersionNumbers[1], $variableGroupVersionNumbers[2], $variableGroupVersionNumbers[3] -join '.')
-
-$nextPackageVersionString = "$($nextPackageVersion.Major).$($nextPackageVersion.Minor).$($nextPackageVersion.Build)"
-if ($variableGroupVersionNumbers[3] -gt 0) {
-    $nextPackageVersionString += "-preview.$($nextPackageVersion.Revision)"
-}
 
 # Fetch current assembly number.
 [version]$currentAssemblyVersion = $null
@@ -106,8 +101,8 @@ else {
 }
 
 $currentPackageAssemblyPath = Get-ChildItem -Path $currentPackageFolderPath -Filter "$PackageName.dll" -Recurse |
-    Sort-Object -Property FullName |
-    Select-Object -First 1 -ExpandProperty FullName
+Sort-Object -Property FullName |
+Select-Object -First 1 -ExpandProperty FullName
 if (Test-Path $currentPackageAssemblyPath -PathType Leaf) {
     $asm = [System.Reflection.AssemblyName]::GetAssemblyName($currentPackageAssemblyPath)
     $currentAssemblyVersion = $asm.Version
@@ -123,12 +118,13 @@ if ($currentAssemblyVersion.Major -ne $currentPackageVersion.Major -or $currentA
 
 # Add package version numbers to list.
 $packageVersions = [PSCustomObject]@{
-    PackageName               = $PackageName
-    PackageCurrentVersion     = $currentPackageVersion.ToString()
-    PackageNextVersion        = $nextPackageVersion.ToString()
-    PackageProductionVersion  = $currentPackageVersion.ToString()
-    AssemblyCurrentVersion    = $currentAssemblyVersion.ToString()
-    AssemblyProductionVersion = $currentAssemblyVersion.ToString()
+    PackageName                    = $PackageName
+    PackageCurrentVersion          = $currentPackageVersion.ToString()
+    PackageNextVersion             = $nextPackageVersion.ToString()
+    PackageProductionVersion       = $currentPackageVersion.ToString()
+    PackageProductionVersionString = $currentPackageVersionString
+    AssemblyCurrentVersion         = $currentAssemblyVersion.ToString()
+    AssemblyProductionVersion      = $currentAssemblyVersion.ToString()
 }
 
 Write-Information "Current package version is $currentPackageVersion." -InformationAction Continue

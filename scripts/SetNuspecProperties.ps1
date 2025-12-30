@@ -17,6 +17,10 @@ param (
     [ValidateNotNull()]
     [string]    $EncodedReleaseNotes,
 
+    [Parameter(Mandatory)]
+    [ValidateNotNullOrEmpty()]
+    [string]    $CommitHash,
+
     [Parameter()]
     [int]   $TraceLevel = 0
 )
@@ -205,6 +209,8 @@ Set-XmlAttribute $nuspecRepositoryNode 'type' $projectRepositoryTypeNode.InnerTe
 
 $projectRepositoryUrlNode = $projectDocument.SelectSingleNode('/Project/PropertyGroup/RepositoryUrl')
 Set-XmlAttribute $nuspecRepositoryNode 'url' $projectRepositoryUrlNode.InnerText
+
+Set-XmlAttribute $nuspecRepositoryNode 'commit' $CommitHash
 
 Write-Information 'Patched "repository" property.'
 

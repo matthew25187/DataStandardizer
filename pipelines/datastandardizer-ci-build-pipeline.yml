@@ -833,8 +833,6 @@ stages:
     jobs:
       - job: Create_Packages
         displayName: "Create NuGet packages"
-        variables:
-          packageVersions: ''
         pool:
           vmImage: windows-latest
         strategy:
@@ -898,163 +896,34 @@ stages:
             inputs:
               #versionSpec:  # Optional  # A version or version range that specifies the NuGet version to make available on the path. Use x as a wildcard. See the [list of available NuGet versions](http://dist.nuget.org/tools.json).If you want to match a pre-release version, the specification must contain a major, minor, patch, and pre-release version from the list above.Examples: 4.x, 3.3.x, 2.8.6, >=4.0.0-0If unspecified, a version will be chosen automatically.
               checkLatest: false # Optional  # Always check for and download the latest available version of NuGet.exe which satisfies the version spec.Enabling this option could cause unexpected build breaks when a new version of NuGet is released.
-          # Set package version numbers for SDK projects
-          - ${{ each packageName in split(variables.allPackageNames, ',') }}:
-              - pwsh: |
-                  function ConvertFrom-Base64String {
-                      param (
-                          # Input.
-                          [Parameter(Mandatory, ValueFromPipeline)]
-                          [string]    $InputObject
-                      )
-
-                      process {
-                          $inputBytes = [System.Convert]::FromBase64String($InputObject)
-                          return [System.Text.Encoding]::UTF8.GetString($inputBytes)
-                      }
-                  }
-
-                  if (${{parameters.traceLevel}} -gt 0) {
-                      Set-PSDebug -Trace ${{parameters.traceLevel}}
-                  }
-
-                  $packageInfo = '${{ variables.packageInfos }}' | ConvertFrom-Json | Where-Object -Property packageName -EQ -Value ${{ packageName }}
-                  if ($null -eq $packageInfo) {
-                    Write-Error 'Package information not found for ${{ packageName }}'
-                  }
-                  
-                  $packageVersions = '$(versionNumbers)' | ConvertFrom-Base64String | ConvertFrom-Json | Where-Object -Property PackageName -EQ -Value ${{ packageName }}
-                  if ($null -eq $packageVersions) {
-                    Write-Error 'Package versions not found for ${{ packageName }}'
-                  }
-
-                  [version]$productionPackageVersion = $packageVersions.PackageProductionVersion
-                  $packageVersionString = "$($productionPackageVersion.Major).$($productionPackageVersion.Minor).$($productionPackageVersion.Build)"
-                  if ($productionPackageVersion.Revision -gt 0) {
-                      $packageVersionString += "-preview.$($productionPackageVersion.Revision)"
-                  }
-                  Write-Host "##vso[task.setvariable variable=packageVersion]$packageVersionString"
-
-                  $projectPath = Join-Path -Path "$(Build.SourcesDirectory)" -ChildPath $packageInfo.packageSourcePath
-                  Write-Host "##vso[task.setvariable variable=packageProjectPath]$projectPath"
-                displayName: "[${{packageName}}] Set version arguments"
-              - task: VersionDotNetCoreAssemblies@3
-                displayName: "[${{ packageName }}] Apply package version numbers"
-                inputs:
-                  Path: $(packageProjectPath)
-                  VersionNumber: $(packageVersion)
-                  Injectversion: true
-                  FilenamePattern: ".csproj"
-                  AddDefault: true
-                  versionFields: PackageVersion
-                  OutputVersion: "OutputedVersion"
-              # PowerShell v2
-              # Run a PowerShell script on Linux, macOS, or Windows.
-              - task: PowerShell@2
-                displayName: '[${{packageName}}] Collect package version number'
-                inputs:
-                  targetType: 'inline' # 'inline' | 'inline'. Type. Default: filePath.
-                  # filePath: # string. Required when targetType = filePath. Script Path. 
-                  #arguments: # string. Optional. Use when targetType = filePath. Arguments. 
-                  script: | # string. Required when targetType = inline. Script. 
-                    function ConvertFrom-Base64String {
-                        param (
-                            # Input.
-                            [Parameter(Mandatory, ValueFromPipeline)]
-                            [string]    $InputObject
-                        )
-                                                                          
-                        process {
-                            $inputBytes = [System.Convert]::FromBase64String($InputObject)
-                            return [System.Text.Encoding]::UTF8.GetString($inputBytes)
-                        }
-                    }
-
-                    function ConvertTo-Base64String {
-                        param (
-                            # Input.
-                            [Parameter(Mandatory, ValueFromPipeline)]
-                            [string]    $InputObject
-                        )
-                                                                          
-                        process {
-                            $inputBytes = [System.Text.Encoding]::UTF8.GetBytes($InputObject)
-                            return [System.Convert]::ToBase64String($inputBytes)
-                        }
-                    }
-
-                    if (${{parameters.traceLevel}} -gt 0) {
-                        Set-PSDebug -Trace ${{parameters.traceLevel}}
-                    }
-
-                    if ([string]::IsNullOrWhiteSpace("$(OutputedVersion)")) {
-                        Write-Warning 'No version found for package ${{packageName}}.'
-                        exit;
-                    }
-
-                    #   Retrieve collection of package versions
-                    [PSCustomObject[]] $packageVersions = @()
-                    if (-not [string]::IsNullOrEmpty("$(packageVersions)")) {
-                        $packageVersions = "$(packageVersions)" | ConvertFrom-Base64String | ConvertFrom-Json
-                    }
-                    $packageVersion = $packageVersions | Where-Object -Property PackageName -EQ '${{packageName}}' | Select-Object -First 1
-                    if ($null -ne $packageVersion) {
-                        Write-Information "Found existing version $($packageVersion.PackageVersion) for package ${{packageName}}; skipping addition of version $(OutputedVersion)."
-                        exit;
-                    }
-
-                    #  Add version of current package to collection
-                    $packageVersion = [PSCustomObject]@{
-                        PackageName    = '${{packageName}}'
-                        PackageVersion = "$(OutputedVersion)"
-                    }
-                    $packageVersions += $packageVersion
-                    $serializedPackageVersions = @($packageVersions) | ConvertTo-Json -Depth 10 | ConvertTo-Base64String
-                    Write-Host "##vso[task.setvariable variable=packageVersions]$serializedPackageVersions"
-
-                    Write-Information "Added package ${{packageName}} version $(OutputedVersion)."
-                # Preference Variables
-                  #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
-                  #warningPreference: 'default' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. WarningPreference. Default: default.
-                  informationPreference: 'continue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. InformationPreference. Default: default.
-                  verbosePreference: ${{ iif(eq(parameters.enableVerboseOutput, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. VerbosePreference. Default: default.
-                  debugPreference: ${{ iif(eq(parameters.enableDebug, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. DebugPreference. Default: default.
-                  #progressPreference: 'silentlyContinue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ProgressPreference. Default: silentlyContinue.
-                # Advanced
-                  #failOnStderr: false # boolean. Fail on Standard Error. Default: false.
-                  #showWarnings: false # boolean. Show warnings as Azure DevOps warnings. Default: false.
-                  #ignoreLASTEXITCODE: false # boolean. Ignore $LASTEXITCODE. Default: false.
-                  #pwsh: false # boolean. Use PowerShell Core. Default: false.
-                  #workingDirectory: # string. Working Directory. 
-                  #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.
           # Create NuGet packages
           - ${{ each packageName in split(variables.allPackageNames, ',') }}:
-              - powershell: | # Required as first property. Inline PowerShell script.
-                  if (${{parameters.traceLevel}} -gt 0) {
-                      Set-PSDebug -Trace ${{parameters.traceLevel}}
-                  }
+              # - powershell: | # Required as first property. Inline PowerShell script.
+              #     if (${{parameters.traceLevel}} -gt 0) {
+              #         Set-PSDebug -Trace ${{parameters.traceLevel}}
+              #     }
 
-                  $packageInfo = ('${{ variables.packageInfos }}' | ConvertFrom-Json) | Where-Object -Property packageName -EQ -Value '${{packageName}}'
-                  if ($null -eq $packageInfo) {
-                      Write-Error 'Package information not found for ${{packageName}}'
-                  }
+              #     $packageInfo = ('${{ variables.packageInfos }}' | ConvertFrom-Json) | Where-Object -Property packageName -EQ -Value '${{packageName}}'
+              #     if ($null -eq $packageInfo) {
+              #         Write-Error 'Package information not found for ${{packageName}}'
+              #     }
 
-                  $workingDirectory = '$(Build.SourcesDirectory)' | Join-Path -ChildPath $packageInfo.packageSourcePath
-                  Set-Location -Path $workingDirectory -PassThru
+              #     $workingDirectory = '$(Build.SourcesDirectory)' | Join-Path -ChildPath $packageInfo.packageSourcePath
+              #     Set-Location -Path $workingDirectory -PassThru
 
-                  nuget spec
-                # errorActionPreference: string # Unless otherwise specified, the error action preference defaults to the value stop. See the following section for more information.
-                # failOnStderr: string # Fail the task if output is sent to Stderr?
-                # ignoreLASTEXITCODE: string # Check the final exit code of the script to determine whether the step succeeded?
-                # workingDirectory: string # Start the script with this working directory.
-                condition: | # Evaluate this condition expression to determine whether to run this task.
-                  and
-                  (
-                    succeeded(), 
-                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
-                  )
-                # continueOnError: boolean # Continue running even on failure?
-                displayName: '[${{packageName}}] Generate .nuspec file' # Human-readable name for the task.
+              #     nuget spec
+              #   # errorActionPreference: string # Unless otherwise specified, the error action preference defaults to the value stop. See the following section for more information.
+              #   # failOnStderr: string # Fail the task if output is sent to Stderr?
+              #   # ignoreLASTEXITCODE: string # Check the final exit code of the script to determine whether the step succeeded?
+              #   # workingDirectory: string # Start the script with this working directory.
+              #   condition: | # Evaluate this condition expression to determine whether to run this task.
+              #     and
+              #     (
+              #       succeeded(), 
+              #       or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
+              #     )
+              #   # continueOnError: boolean # Continue running even on failure?
+              #   displayName: '[${{packageName}}] Generate .nuspec file' # Human-readable name for the task.
               - task: PowerShell@2
                 displayName: '[${{packageName}}] Set release notes argument'
                 condition: |
@@ -1084,35 +953,6 @@ stages:
                   #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.
               # PowerShell v2
               # Run a PowerShell script on Linux, macOS, or Windows.
-              - task: PowerShell@2
-                condition: |
-                  and
-                  (
-                    succeeded(), 
-                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
-                  )
-                displayName: '[${{packageName}}] Patch .nuspec file properties'
-                inputs:
-                  #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
-                  filePath: 'scripts/SetNuspecProperties.ps1' # string. Required when targetType = filePath. Script Path. 
-                  arguments: '-PackageName ''${{packageName}}'' -PackageInfos ''${{variables.packageInfos}}'' -SourceRootFolderPath ''$(Build.SourcesDirectory)'' -EncodedReleaseNotes ''$(releaseNotesArg)'' -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
-                  #script: # string. Required when targetType = inline. Script. 
-                # Preference Variables
-                  #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
-                  #warningPreference: 'default' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. WarningPreference. Default: default.
-                  informationPreference: 'continue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. InformationPreference. Default: default.
-                  verbosePreference: ${{ iif(eq(parameters.enableVerboseOutput, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. VerbosePreference. Default: default.
-                  debugPreference: ${{ iif(eq(parameters.enableDebug, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. DebugPreference. Default: default.
-                  #progressPreference: 'silentlyContinue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ProgressPreference. Default: silentlyContinue.
-                # Advanced
-                  #failOnStderr: false # boolean. Fail on Standard Error. Default: false.
-                  #showWarnings: false # boolean. Show warnings as Azure DevOps warnings. Default: false.
-                  #ignoreLASTEXITCODE: false # boolean. Ignore $LASTEXITCODE. Default: false.
-                  pwsh: true # boolean. Use PowerShell Core. Default: false.
-                  #workingDirectory: # string. Working Directory. 
-                  #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.                
-              # PowerShell v2
-              # Run a PowerShell script on Linux, macOS, or Windows.
               # - task: PowerShell@2
               #   condition: |
               #     and
@@ -1120,11 +960,11 @@ stages:
               #       succeeded(), 
               #       or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
               #     )
-              #   displayName: "[${{packageName}}] Patch project file properties"
+              #   displayName: '[${{packageName}}] Patch .nuspec file properties'
               #   inputs:
               #     #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
-              #     filePath: 'scripts/SetProjectProperties.ps1' # string. Required when targetType = filePath. Script Path. 
-              #     arguments: '-PackageName ${{packageName}} -PackageInfos ''${{variables.packageInfos}}'' -SourceRootFolderPath ''$(Build.SourcesDirectory)'' -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
+              #     filePath: 'scripts/SetNuspecProperties.ps1' # string. Required when targetType = filePath. Script Path. 
+              #     arguments: '-PackageName ''${{packageName}}'' -PackageInfos ''${{variables.packageInfos}}'' -SourceRootFolderPath ''$(Build.SourcesDirectory)'' -EncodedReleaseNotes ''$(releaseNotesArg)'' -CommitHash ''$(Build.SourceVersion)'' -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
               #     #script: # string. Required when targetType = inline. Script. 
               #   # Preference Variables
               #     #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
@@ -1137,9 +977,9 @@ stages:
               #     #failOnStderr: false # boolean. Fail on Standard Error. Default: false.
               #     #showWarnings: false # boolean. Show warnings as Azure DevOps warnings. Default: false.
               #     #ignoreLASTEXITCODE: false # boolean. Ignore $LASTEXITCODE. Default: false.
-              #     #pwsh: false # boolean. Use PowerShell Core. Default: false.
+              #     pwsh: true # boolean. Use PowerShell Core. Default: false.
               #     #workingDirectory: # string. Working Directory. 
-              #     #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.                  
+              #     #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.                
               - pwsh: |
                   if (${{parameters.traceLevel}} -gt 0) {
                       Set-PSDebug -Trace ${{parameters.traceLevel}}
@@ -1160,37 +1000,37 @@ stages:
                     succeeded(), 
                     or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
                   )
-              - powershell: | # Required as first property. Inline PowerShell script.
-                  if (${{parameters.traceLevel}} -gt 0) {
-                      Set-PSDebug -Trace ${{parameters.traceLevel}}
-                  }
+              # - powershell: | # Required as first property. Inline PowerShell script.
+              #     if (${{parameters.traceLevel}} -gt 0) {
+              #         Set-PSDebug -Trace ${{parameters.traceLevel}}
+              #     }
 
-                  $packageInfo = ('${{ variables.packageInfos }}' | ConvertFrom-Json) | Where-Object -Property packageName -EQ -Value '${{packageName}}'
-                  if ($null -eq $packageInfo) {
-                      Write-Error 'Package information not found for ${{packageName}}'
-                  }
+              #     $packageInfo = ('${{ variables.packageInfos }}' | ConvertFrom-Json) | Where-Object -Property packageName -EQ -Value '${{packageName}}'
+              #     if ($null -eq $packageInfo) {
+              #         Write-Error 'Package information not found for ${{packageName}}'
+              #     }
 
-                  $nuspecFilePath = '$(Build.SourcesDirectory)' | Join-Path -ChildPath $packageInfo.packageSourcePath | Join-Path -ChildPath '${{packageName}}.nuspec'
-                  Write-Host "##vso[task.setvariable variable=nuspecFileArg]$nuspecFilePath"
-                # errorActionPreference: string # Unless otherwise specified, the error action preference defaults to the value stop. See the following section for more information.
-                # failOnStderr: string # Fail the task if output is sent to Stderr?
-                # ignoreLASTEXITCODE: string # Check the final exit code of the script to determine whether the step succeeded?
-                # workingDirectory: string # Start the script with this working directory.
-                condition: | # Evaluate this condition expression to determine whether to run this task.
-                  and
-                  (
-                    succeeded(), 
-                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
-                  )
-                # continueOnError: boolean # Continue running even on failure?
-                displayName: '[${{packageName}}] Set Nuspec File argument' # Human-readable name for the task.
-                # target: string | target # Environment in which to run this task.
-                # enabled: boolean # Run this task when the job runs?
-                # env: # Variables to map into the process's environment.
-                #   string: string # Name/value pairs
-                # name: string # ID of the step.
-                # timeoutInMinutes: string # Time to wait for this task to complete before the server kills it.
-                # retryCountOnTaskFailure: string # Number of retries if the task fails.                  
+              #     $nuspecFilePath = '$(Build.SourcesDirectory)' | Join-Path -ChildPath $packageInfo.packageSourcePath | Join-Path -ChildPath '${{packageName}}.nuspec'
+              #     Write-Host "##vso[task.setvariable variable=nuspecFileArg]$nuspecFilePath"
+              #   # errorActionPreference: string # Unless otherwise specified, the error action preference defaults to the value stop. See the following section for more information.
+              #   # failOnStderr: string # Fail the task if output is sent to Stderr?
+              #   # ignoreLASTEXITCODE: string # Check the final exit code of the script to determine whether the step succeeded?
+              #   # workingDirectory: string # Start the script with this working directory.
+              #   condition: | # Evaluate this condition expression to determine whether to run this task.
+              #     and
+              #     (
+              #       succeeded(), 
+              #       or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
+              #     )
+              #   # continueOnError: boolean # Continue running even on failure?
+              #   displayName: '[${{packageName}}] Set Nuspec File argument' # Human-readable name for the task.
+              #   # target: string | target # Environment in which to run this task.
+              #   # enabled: boolean # Run this task when the job runs?
+              #   # env: # Variables to map into the process's environment.
+              #   #   string: string # Name/value pairs
+              #   # name: string # ID of the step.
+              #   # timeoutInMinutes: string # Time to wait for this task to complete before the server kills it.
+              #   # retryCountOnTaskFailure: string # Number of retries if the task fails.                  
               - pwsh: |
                   function ConvertFrom-Base64String {
                       param (
@@ -1209,12 +1049,11 @@ stages:
                       Set-PSDebug -Trace ${{parameters.traceLevel}}
                   }
 
-                  $packageVersion = "$(packageVersions)" | 
+                  $packageVersions = '$(versionNumbers)' | 
                   ConvertFrom-Base64String | 
                   ConvertFrom-Json | 
-                  Where-Object -Property PackageName -EQ '${{packageName}}' | 
-                  Select-Object -First 1 -ExpandProperty PackageVersion
-                  Write-Host "##vso[task.setvariable variable=packageVersionArg]$packageVersion"
+                  Where-Object -Property PackageName -EQ -Value '${{packageName}}'
+                  Write-Host "##vso[task.setvariable variable=packageVersionArg]$($packageVersions.PackageProductionVersionString)"
                 displayName: "[${{packageName}}] Set package version argument"
                 condition: |
                   and
@@ -1222,35 +1061,6 @@ stages:
                     succeeded(), 
                     or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
                   )
-              # PowerShell v2
-              # Run a PowerShell script on Linux, macOS, or Windows.
-              # - task: PowerShell@2
-              #   condition: |
-              #     and
-              #     (
-              #       succeeded(), 
-              #       or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
-              #     )
-              #   displayName: "[${{packageName}}] Set remaining required arguments"
-              #   inputs:
-              #     #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
-              #     filePath: 'scripts/SetPackRequiredArguments.ps1' # string. Required when targetType = filePath. Script Path. 
-              #     arguments: '-PackageName ${{packageName}} -PackageInfos ''${{variables.packageInfos}}'' -SourceRootFolderPath ''$(Build.SourcesDirectory)'' -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
-              #     #script: # string. Required when targetType = inline. Script. 
-              #   # Preference Variables
-              #     #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
-              #     #warningPreference: 'default' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. WarningPreference. Default: default.
-              #     informationPreference: 'continue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. InformationPreference. Default: default.
-              #     verbosePreference: ${{ iif(eq(parameters.enableVerboseOutput, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. VerbosePreference. Default: default.
-              #     debugPreference: ${{ iif(eq(parameters.enableDebug, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. DebugPreference. Default: default.
-              #     #progressPreference: 'silentlyContinue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ProgressPreference. Default: silentlyContinue.
-              #   # Advanced
-              #     #failOnStderr: false # boolean. Fail on Standard Error. Default: false.
-              #     #showWarnings: false # boolean. Show warnings as Azure DevOps warnings. Default: false.
-              #     #ignoreLASTEXITCODE: false # boolean. Ignore $LASTEXITCODE. Default: false.
-              #     pwsh: true # boolean. Use PowerShell Core. Default: false.
-              #     #workingDirectory: # string. Working Directory. 
-              #     #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.
               # .NET Core v2
               # Build, test, package, or publish a .NET application, or run a custom .NET CLI command.
               - task: DotNetCoreCLI@2
@@ -1276,12 +1086,12 @@ stages:
                   #includesource: false # boolean. Optional. Use when command = pack. Include Source. Default: false.
                   #requestTimeout: '300000' # string. Set timeout for package download request. Default: 300000.
                 # Advanced
-                  buildProperties: 'NuspecFile="$(nuspecFileArg)";NuspecBasePath="$(Build.SourcesDirectory)";NuspecProperties="id=${{packageName}};version=$(packageVersionArg)"' # string. Optional. Use when command = pack. Additional build properties. 
+                  buildProperties: 'PackageVersion="$(packageVersionArg)"' # string. Optional. Use when command = pack. Additional build properties. 
                   #verbosityPack: 'Normal' # '-' | 'Quiet' | 'Minimal' | 'Normal' | 'Detailed' | 'Diagnostic'. Optional. Use when command = pack. Verbosity. Default: Normal.
                 # Advanced
                   #workingDirectory: # string. Optional. Use when command != restore && command != push && command != pack. Working directory.                  
               - task: PowerShell@2
-                displayName: '[${{packageName}}] Update dependency versions'
+                displayName: '[${{packageName}}] Update package metadata'
                 condition: |
                   and
                   (
@@ -1290,8 +1100,8 @@ stages:
                   )
                 inputs:
                   #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
-                  filePath: 'scripts/UpdatePackageDependencyVersions.ps1' # string. Required when targetType = filePath. Script Path. 
-                  arguments: "-PackageName '${{packageName}}' -PackageVersionList '$(packageVersions)' -PackageSearchRootPath '$(Build.ArtifactStagingDirectory)' -BuildConfiguration $(BuildConfiguration) -TempPath '$(Agent.TempDirectory)' -TraceLevel ${{parameters.traceLevel}}" # string. Optional. Use when targetType = filePath. Arguments. 
+                  filePath: 'scripts/UpdatePackageMetadata.ps1' # string. Required when targetType = filePath. Script Path. 
+                  arguments: "-PackageName '${{packageName}}' -EncodedPackageVersions '$(versionNumbers)' -EncodedReleaseNotes '$(releaseNotesArg)' -PackageSearchRootPath '$(Build.ArtifactStagingDirectory)' -BuildConfiguration $(BuildConfiguration) -TempPath '$(Agent.TempDirectory)' -TraceLevel ${{parameters.traceLevel}}" # string. Optional. Use when targetType = filePath. Arguments. 
                   #script: # string. Required when targetType = inline. Script. 
                 # Preference Variables
                   #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
@@ -1302,7 +1112,7 @@ stages:
                   #progressPreference: 'silentlyContinue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ProgressPreference. Default: silentlyContinue.
                 # Advanced
                   #failOnStderr: false # boolean. Fail on Standard Error. Default: false.
-                  #showWarnings: false # boolean. Show warnings as Azure DevOps warnings. Default: false.
+                  showWarnings: true # boolean. Show warnings as Azure DevOps warnings. Default: false.
                   #ignoreLASTEXITCODE: false # boolean. Ignore $LASTEXITCODE. Default: false.
                   pwsh: true # boolean. Use PowerShell Core. Default: false.
                   #workingDirectory: # string. Working Directory. 
@@ -1668,7 +1478,7 @@ stages:
                           [Parameter(Mandatory, ValueFromPipeline)]
                           [string]    $InputObject
                       )
-                                        
+                                                          
                       process {
                           $inputBytes = [System.Convert]::FromBase64String($InputObject)
                           return [System.Text.Encoding]::UTF8.GetString($inputBytes)
@@ -1681,13 +1491,13 @@ stages:
 
                   $packageVersions = "$(versionNumbers)" | ConvertFrom-Base64String | ConvertFrom-Json | Where-Object -Property PackageName -EQ -Value ${{packageName}}
                   if ($null -eq $packageVersions) {
-                    Write-Error 'Package versions not found for ${{packageName}}'
+                      Write-Error 'Package versions not found for ${{packageName}}'
                   }
 
-                  [version]$versionNumber = "$($packageVersions.PackageProductionVersion.Major).$($packageVersions.PackageProductionVersion.Minor).$($packageVersions.PackageProductionVersion.Build).$($packageVersions.PackageProductionVersion.Revision)"
-                  $message = "CI preview build $versionNumber for package ${{packageName}}"
+                  [version]$productionPackageVersion = $packageVersions.PackageProductionVersion
+                  $message = "CI preview build $productionPackageVersion for package ${{packageName}}"
 
-                  $tagName = "v$versionNumber-${{packageName}}"
+                  $tagName = "v$productionPackageVersion-${{packageName}}"
                   $commitHash = "$(Build.SourceVersion)"
                   git tag -m $message $tagName $commitHash
                   git push origin $tagName
