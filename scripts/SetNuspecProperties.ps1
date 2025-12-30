@@ -143,8 +143,9 @@ Write-Information 'Patched "icon" property.'
 
 # Set "readme" property.
 $projectPackageReadmeFileNode = $projectDocument.SelectSingleNode('/Project/PropertyGroup/PackageReadmeFile')
-if (-not [string]::IsNullOrEmpty(${projectPackageReadmeFileNode}?.InnerText)) {
-    Set-MetadataProperty $nuspecDocument 'readme' $projectPackageReadmeFileNode.InnerText | Out-Null
+$readmeFileName = ${projectPackageReadmeFileNode}?.InnerText
+if (-not [string]::IsNullOrEmpty($readmeFileName)) {
+    Set-MetadataProperty $nuspecDocument 'readme' $readmeFileName | Out-Null
 }
 else {
     Remove-MetadataProperty $nuspecDocument 'readme'
@@ -231,6 +232,13 @@ if (-not [string]::IsNullOrEmpty($iconFileName)) {
     Set-XmlAttribute $nuspecIconFileNode 'src' "images/$(Split-Path -Path $iconFileName -Leaf)"
     Set-XmlAttribute $nuspecIconFileNode 'target' '.'
     $nuspecFilesNode.AppendChild($nuspecIconFileNode) | Out-Null
+}
+
+if (-not [string]::IsNullOrEmpty($readmeFileName)) {
+    $nuspecReadmeFileNode = $nuspecDocument.CreateElement('readme')
+    Set-XmlAttribute $nuspecReadmeFileNode 'src' (Split-Path -Path $readmeFileName -Leaf)
+    Set-XmlAttribute $nuspecReadmeFileNode 'target' '.'
+    $nuspecFilesNode.AppendChild($nuspecReadmeFileNode) | Out-Null
 }
 
 Write-Information 'Added "files" section.'
