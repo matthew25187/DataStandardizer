@@ -1276,7 +1276,7 @@ stages:
                   #includesource: false # boolean. Optional. Use when command = pack. Include Source. Default: false.
                   #requestTimeout: '300000' # string. Set timeout for package download request. Default: 300000.
                 # Advanced
-                  buildProperties: 'NuspecFile="$(nuspecFileArg)";NuspecBasePath=.;NuspecProperties="id=${{packageName}};version=$(packageVersionArg)"' # string. Optional. Use when command = pack. Additional build properties. 
+                  buildProperties: 'NuspecFile="$(nuspecFileArg)";NuspecBasePath="$(Build.SourcesDirectory)";NuspecProperties="id=${{packageName}};version=$(packageVersionArg)"' # string. Optional. Use when command = pack. Additional build properties. 
                   #verbosityPack: 'Normal' # '-' | 'Quiet' | 'Minimal' | 'Normal' | 'Detailed' | 'Diagnostic'. Optional. Use when command = pack. Verbosity. Default: Normal.
                 # Advanced
                   #workingDirectory: # string. Optional. Use when command != restore && command != push && command != pack. Working directory.                  
