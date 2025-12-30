@@ -103,16 +103,16 @@ else {
 $currentPackageAssemblyPath = Get-ChildItem -Path $currentPackageFolderPath -Filter "$PackageName.dll" -Recurse |
 Sort-Object -Property FullName |
 Select-Object -First 1 -ExpandProperty FullName
-if (Test-Path $currentPackageAssemblyPath -PathType Leaf) {
+if ($null -ne $currentPackageAssemblyPath -and (Test-Path $currentPackageAssemblyPath -PathType Leaf)) {
     $asm = [System.Reflection.AssemblyName]::GetAssemblyName($currentPackageAssemblyPath)
     $currentAssemblyVersion = $asm.Version
 }
 else {
-    Write-Error "Package $PackageName is not expanded.  Unable to determine current package assembly version."
+    Write-Warning "Package $PackageName is not expanded.  Unable to determine current package assembly version."
 }
 
 # Check for package/assembly version match.
-if ($currentAssemblyVersion.Major -ne $currentPackageVersion.Major -or $currentAssemblyVersion.Minor -ne $currentPackageVersion.Minor) {
+if ($null -ne $currentAssemblyVersion -and ($currentAssemblyVersion.Major -ne $currentPackageVersion.Major -or $currentAssemblyVersion.Minor -ne $currentPackageVersion.Minor)) {
     Write-Warning "$PackageName package/assembly version mismatch; $currentPackageVersion != $currentAssemblyVersion."
 }
 
@@ -123,8 +123,7 @@ $packageVersions = [PSCustomObject]@{
     PackageNextVersion             = $nextPackageVersion.ToString()
     PackageProductionVersion       = $currentPackageVersion.ToString()
     PackageProductionVersionString = $currentPackageVersionString
-    AssemblyCurrentVersion         = $currentAssemblyVersion.ToString()
-    AssemblyProductionVersion      = $currentAssemblyVersion.ToString()
+    AssemblyProductionVersion      = ${currentAssemblyVersion}?.ToString() ?? "$($currentPackageVersion.Major).$($currentPackageVersion.Minor).$($currentPackageVersion.Build).*"
 }
 
 Write-Information "Current package version is $currentPackageVersion." -InformationAction Continue

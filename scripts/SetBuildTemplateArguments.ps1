@@ -46,16 +46,16 @@ Write-Information "Package Source Path argument is $($packageInfo.packageSourceP
 $packageVersions = $VersionNumbers | ConvertFrom-Base64String | ConvertFrom-Json | Where-Object -Property PackageName -EQ -Value $PackageName
 
 # Set assembly Build File Version argument.
-$fileVersion = $packageVersions.AssemblyProductionFileVersion
+[version]$fileVersion = $packageVersions.AssemblyProductionFileVersion
 Write-Host "##vso[task.setvariable variable=buildFileVersion]$fileVersion"
 Write-Information "File Version will be $fileVersion."
 
 # Set assembly Build Assembly Version argument.
-$assemblyVersion = $packageVersions.AssemblyProductionVersion
+[version]$assemblyVersion = $packageVersions.AssemblyProductionVersion
 Write-Host "##vso[task.setvariable variable=buildAssemblyVersion]$assemblyVersion"
 Write-Information "Assembly Version will be $assemblyVersion."
 
 # Set assembly Build Informational Version argument.
-$informationalVersion = $packageVersions.AssemblyProductionInformationalVersion
+[version]$informationalVersion = $packageVersions.AssemblyProductionInformationalVersion
 Write-Host "##vso[task.setvariable variable=buildInformationalVersion]$informationalVersion"
 Write-Information "Informational Version will be $informationalVersion."
