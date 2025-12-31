@@ -57,7 +57,6 @@ az account set -s ${env:SUBSCRIPTION_ID}
 $packageInfo = $PackageInfos | ConvertFrom-Json | Where-Object -Property packageName -EQ "$PackageName"
 if ($null -eq $packageInfo) {
     Write-Error "Package information not found for $PackageName."
-    exit;
 }
 
 Write-Information "Found information for package $PackageName." -InformationAction Continue
@@ -95,6 +94,8 @@ nuget install $PackageName -DependencyVersion Ignore -DirectDownload -ExcludeVer
 [string]$currentPackageFolderPath
 $currentPackageArchivePath = Get-ChildItem -Path $TempPath -Filter "$PackageName.nupkg" -Recurse | Select-Object -ExpandProperty FullName
 if ((-not [string]::IsNullOrEmpty($currentPackageArchivePath)) -and (Test-Path $currentPackageArchivePath -PathType Leaf)) {
+    Write-Verbose "Found $PackageName package file at $currentPackageArchivePath."
+
     $currentPackageFolderPath = $currentPackageArchivePath | Split-Path -Parent
     # Expand-Archive -Path $currentPackageArchivePath -DestinationPath $currentPackageFolderPath -PassThru  # not needed; already expanded by nuget install?
 }
@@ -108,6 +109,9 @@ Select-Object -First 1 -ExpandProperty FullName
 if ($null -ne $currentPackageAssemblyPath -and (Test-Path $currentPackageAssemblyPath -PathType Leaf)) {
     $asm = [System.Reflection.AssemblyName]::GetAssemblyName($currentPackageAssemblyPath)
     $currentAssemblyVersion = $asm.Version
+
+    Write-Verbose "Found $PackageName assembly at $currentPackageAssemblyPath."
+    Write-Verbose $asm.ToString()
 }
 else {
     Write-Warning "Package $PackageName is not expanded.  Unable to determine current package assembly version."
@@ -129,6 +133,7 @@ $packageVersions = [PSCustomObject]@{
 }
 
 Write-Information "Current package version is $currentPackageVersion." -InformationAction Continue
+Write-Information "Current package version display is $currentPackageVersionString." -InformationAction Continue
 Write-Information "Next package version will be $nextPackageVersion" -InformationAction Continue
 Write-Information "Current assembly version is $($currentAssemblyVersion ?? 'unknown')." -InformationAction Continue
 
