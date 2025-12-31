@@ -412,7 +412,7 @@ stages:
         # Use .NET Core v2
         # Acquires a specific version of the .NET Core SDK from the internet or the local cache and adds it to the PATH. Use this task to change the version of .NET Core used in subsequent tasks. Additionally provides proxy support.
         - task: UseDotNet@2
-          displayName: 'Install .NET SDK'
+          displayName: '[${{packageName}}] Install .NET SDK'
           inputs:
             #packageType: 'sdk' # 'runtime' | 'sdk'. Package to install. Default: sdk.
             useGlobalJson: true # boolean. Optional. Use when packageType = sdk. Use global json. Default: false.
@@ -517,7 +517,7 @@ stages:
                 #workingDirectory: # string. Working Directory. 
                 #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.              
         - task: DotNetCoreCLI@2
-          displayName: 'Restore solution package dependencies'
+          displayName: '[${{packageName}}] Restore solution package dependencies'
           inputs:
             #azureSubscription: # string. Alias: ConnectedServiceName. Azure Resource Manager connection. 
             command: 'restore' # 'build' | 'push' | 'pack' | 'publish' | 'restore' | 'run' | 'test' | 'custom'. Required. Command. Default: build.
@@ -552,7 +552,7 @@ stages:
             #restoreDirectory: # string. Alias: packagesDirectory. Optional. Use when command = restore. Destination directory. 
             verbosityRestore: 'Detailed' # '-' | 'Quiet' | 'Minimal' | 'Normal' | 'Detailed' | 'Diagnostic'. Optional. Use when command = restore. Verbosity. Default: Normal.
         - task: PowerShell@2
-          displayName: 'Set build arguments'
+          displayName: '[${{packageName}}] Set build arguments'
           inputs:
             #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
             filePath: 'scripts/SetBuildTemplateArguments.ps1' # string. Required when targetType = filePath. Script Path. 
@@ -575,6 +575,7 @@ stages:
         # Version .NET Assemblies (Core/5/6 and later)
         # Description - Applies a version to a .NET Assemblies (Core/5/6 and later) via the .csproj files based on the build number. Based on Microsoft sample from https://msdn.microsoft.com/Library/vs/alm/Build/overview
         - task: VersionDotNetCoreAssemblies@3
+          displayName: '[${{packageName}}] Set assembly File Version'
           inputs: 
             # Required arguments
             Path: $(Build.SourcesDirectory)/$(sourceFolderPath)
@@ -585,6 +586,7 @@ stages:
         # Version .NET Assemblies (Core/5/6 and later)
         # Description - Applies a version to a .NET Assemblies (Core/5/6 and later) via the .csproj files based on the build number. Based on Microsoft sample from https://msdn.microsoft.com/Library/vs/alm/Build/overview
         - task: VersionDotNetCoreAssemblies@3
+          displayName: '[${{packageName}}] Set assembly Informational Version'
           inputs: 
             # Required arguments
             Path: $(Build.SourcesDirectory)/$(sourceFolderPath)
@@ -595,6 +597,7 @@ stages:
         # Version .NET Assemblies (Core/5/6 and later)
         # Description - Applies a version to a .NET Assemblies (Core/5/6 and later) via the .csproj files based on the build number. Based on Microsoft sample from https://msdn.microsoft.com/Library/vs/alm/Build/overview
         - task: VersionDotNetCoreAssemblies@3
+          displayName: '[${{packageName}}] Set assembly Assembly Version'
           inputs: 
             # Required arguments
             Path: $(Build.SourcesDirectory)/$(sourceFolderPath)
@@ -623,7 +626,7 @@ stages:
         # .NET Core v2
         # Build, test, package, or publish a .NET application, or run a custom .NET CLI command.
         - task: DotNetCoreCLI@2
-          displayName: 'Build package solution'
+          displayName: '[${{packageName}}] Build package solution'
           inputs:
             #azureSubscription: # string. Alias: ConnectedServiceName. Azure Resource Manager connection. 
             command: 'build' # 'build' | 'push' | 'pack' | 'publish' | 'restore' | 'run' | 'test' | 'custom'. Required. Command. Default: build.
@@ -650,6 +653,7 @@ stages:
           # Advanced
             #workingDirectory: # string. Optional. Use when command != restore && command != push && command != pack. Working directory.            
         - task: PublishSymbols@2
+          displayName: '[${{packageName}}] Publish symbols'
           inputs:
             #SymbolsFolder: '$(Build.SourcesDirectory)' # string. Path to symbols folder. Default: $(Build.SourcesDirectory).
             SearchPattern: 'src/**/bin/**/$(BuildConfiguration)/**/*.pdb' # string. Required. Search pattern. Default: **/bin/**/*.pdb.
@@ -670,7 +674,7 @@ stages:
             #SymbolsVersion: # string. Version. 
             #SymbolsArtifactName: 'Symbols_$(BuildConfiguration)' # string. Artifact name. Default: Symbols_$(BuildConfiguration).      
         - task: CopyFiles@2
-          displayName: 'Copy build output to staging area'
+          displayName: '[${{packageName}}] Copy build output to staging area'
           inputs:
             #SourceFolder: # string. Source Folder. 
             Contents: | # string. Required. Contents. Default: **.
@@ -686,7 +690,7 @@ stages:
             #delayBetweenRetries: '1000' # string. Delay between two retries. Default: 1000.
             #ignoreMakeDirErrors: false # boolean. Ignore errors during creation of target folder. Default: false.      
         - task: PublishBuildArtifacts@1
-          displayName: 'Publish build artifacts to Azure Pipelines'
+          displayName: '[${{packageName}}] Publish build artifacts to pipeline'
           inputs:
             PathtoPublish: '$(Build.ArtifactStagingDirectory)' # string. Required. Path to publish. Default: $(Build.ArtifactStagingDirectory).
             ArtifactName: 'drop' # string. Required. Artifact name. Default: drop.
@@ -761,6 +765,7 @@ stages:
           vmImage: windows-latest # Pool where this job will run.
         steps: # A list of steps to run.
         - task: DownloadBuildArtifacts@1
+          displayName: '[${{packageName}}] Download build artifacts'
           inputs:
             buildType: 'current' # 'current' | 'specific'. Required. Download artifacts produced by. Default: current.
             #project: # string. Required when buildType == specific. Project. 
@@ -782,6 +787,7 @@ stages:
             #retryDownloadCount: '4' # string. Retry count. Default: 4.
             #extractTars: # boolean. Extract all files that are stored inside tar archives.        
         - task: CopyFiles@2
+          displayName: '[${{packageName}}] Copy files to working area'
           inputs:
             SourceFolder: $(Pipeline.Workspace)\drop # string. Source Folder. 
             Contents: '**' # string. Required. Contents. Default: **.
@@ -795,7 +801,7 @@ stages:
             #delayBetweenRetries: '1000' # string. Delay between two retries. Default: 1000.
             #ignoreMakeDirErrors: false # boolean. Ignore errors during creation of target folder. Default: false.
         - task: VSTest@3
-          displayName: 'Run automated tests'
+          displayName: '[${{packageName}}] Run automated tests'
           inputs:
             #azureSubscription: # string. Alias: ConnectedServiceName. Azure Resource Manager connection. 
           # Test selection
