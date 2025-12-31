@@ -67,13 +67,15 @@ if ($SourceBranch -eq 'refs/heads/master') {
 [version]$productionPackageVersion = ($productionMajorNumber, $productionMinorNumber, $productionBuildNumber, $productionRevisionNumber -join '.')
 $packageVersions.PackageProductionVersion = $productionPackageVersion.ToString()
 
+Write-Information "Production package version number will be $productionPackageVersion."
+
 $productionPackageVersionString = $productionPackageVersion.Major, $productionPackageVersion.Minor, $productionPackageVersion.Build -join '.'
 if ($productionPackageVersion.Revision -gt 0) {
     $productionPackageVersionString += "-preview.$($productionPackageVersion.Revision)"
 }
 $packageVersions.PackageProductionVersionString = $productionPackageVersionString
 
-Write-Information "Production package version will be $productionPackageVersion."
+Write-Information "Production package version will be $productionPackageVersionString."
 
 # Calculate post-production package version number.
 $postProductionNumbers = $productionPackageVersion.Major, $productionPackageVersion.Minor, $productionPackageVersion.Build, $productionPackageVersion.Revision
@@ -92,21 +94,21 @@ for ($versionPartIndex = $incrementFromIndex; $versionPartIndex -lt $postProduct
 
 [version]$postProductionPackageVersion = ($postProductionNumbers[0], $postProductionNumbers[1], $postProductionNumbers[2], $postProductionNumbers[3] -join '.')
 $packageVersions | Add-Member -MemberType NoteProperty -Name 'PackagePostProductionVersion' -Value $postProductionPackageVersion.ToString()
-Write-Information "Post-production package version will be $postProductionPackageVersion."
+Write-Information "Post-production package version number will be $postProductionPackageVersion."
 
 # Calculate production assembly version numbers.
 [version]$productionAssemblyFileVersion = $productionPackageVersion
 $packageVersions | Add-Member -MemberType NoteProperty -Name 'AssemblyProductionFileVersion' -Value $productionAssemblyFileVersion.ToString()
-Write-Information "Production assembly file version will be $productionAssemblyFileVersion."
+Write-Information "Production assembly file version number will be $productionAssemblyFileVersion."
 
 $productionAssemblyVersionRevision = [System.Convert]::ToInt32([datetime]::UtcNow.TimeOfDay.TotalSeconds / 2)
 [version]$productionAssemblyVersion = "$($productionPackageVersion.Major).$($productionPackageVersion.Minor).$($productionPackageVersion.Build).$productionAssemblyVersionRevision"
 $packageVersions.AssemblyProductionVersion = $productionAssemblyVersion.ToString()
-Write-Information "Production assembly version will be $productionAssemblyVersion."
+Write-Information "Production assembly version number will be $productionAssemblyVersion."
 
 [version]$productionAssemblyInformationalVersion = "$($productionPackageVersion.Major).$($productionPackageVersion.Minor)"
 $packageVersions | Add-Member -MemberType NoteProperty -Name 'AssemblyProductionInformationalVersion' -Value $productionAssemblyInformationalVersion.ToString()
-Write-Information "Production assembly informational version will be $productionAssemblyInformationalVersion."
+Write-Information "Production assembly informational version number will be $productionAssemblyInformationalVersion."
 
 # Serialize updated package versions.
 $serializedPackageVersionsList = $packageVersionsList | ConvertTo-Json | ConvertTo-Base64String

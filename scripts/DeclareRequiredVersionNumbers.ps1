@@ -125,7 +125,7 @@ foreach ($currentPackageAssemblyPath in $currentPackageAssemblyPaths) {
         $currentAssemblyVersion = $asm.Version
 
         Write-Verbose "Found $PackageName assembly at $currentPackageAssemblyPath."
-        Write-Verbose $currentAssemblyVersion.ToString()
+        Write-Verbose $asm.ToString()
     }
 
     if ($asm.Version -ne $currentAssemblyVersion) {
@@ -152,10 +152,10 @@ $packageVersions = [PSCustomObject]@{
     AssemblyProductionVersion      = ${currentAssemblyVersion}?.ToString() ?? "$($currentPackageVersion.Major).$($currentPackageVersion.Minor).$($currentPackageVersion.Build).*"
 }
 
-Write-Information "Current package version is $currentPackageVersion."
-Write-Information "Current package version display is $currentPackageVersionString."
-Write-Information "Next package version will be $nextPackageVersion"
-Write-Information "Current assembly version is $($currentAssemblyVersion ?? 'unknown')."
+Write-Information "Current package version number is $currentPackageVersion."
+Write-Information "Current package version is $currentPackageVersionString."
+Write-Information "Next package version number will be $nextPackageVersion"
+Write-Information "Current assembly version number is $($currentAssemblyVersion ?? 'unknown')."
 
 [PSCustomObject[]]$packageVersionsList = @()
 
