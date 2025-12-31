@@ -675,7 +675,7 @@ stages:
             #SourceFolder: # string. Source Folder. 
             Contents: | # string. Required. Contents. Default: **.
               src\${{packageName}}\**\bin\**\$(BuildConfiguration)\**
-              tests\${{packageName}}\**\bin\**\$(BuildConfiguration)\**
+              tests\${{packageName}}*\**\bin\**\$(BuildConfiguration)\**
             TargetFolder: '$(Build.ArtifactStagingDirectory)' # string. Required. Target Folder. 
           # Advanced
             #CleanTargetFolder: false # boolean. Clean Target Folder. Default: false.
