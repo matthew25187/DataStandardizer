@@ -14,6 +14,15 @@ param (
     [string]    $TempPath,
 
     [Parameter()]
+    [string]    $OutputInformationPreference = 'SilentlyContinue',
+
+    [Parameter()]
+    [string]    $OutputVerbosePreference = 'SilentlyContinue',
+
+    [Parameter()]
+    [string]    $OutputDebugPreference = 'SilentlyContinue',
+
+    [Parameter()]
     [int]   $TraceLevel = 0
 )
 
@@ -47,6 +56,10 @@ if (0 -lt $TraceLevel) {
     Set-PSDebug -Trace $TraceLevel
 }
 
+$InformationPreference = $OutputInformationPreference
+$VerbosePreference = $OutputVerbosePreference
+$DebugPreference = $OutputDebugPreference
+
 # set environment variable for current process
 $env:AZURE_DEVOPS_EXT_PAT = $env:SYSTEM_ACCESSTOKEN
                       
@@ -59,7 +72,7 @@ if ($null -eq $packageInfo) {
     Write-Error "Package information not found for $PackageName."
 }
 
-Write-Information "Found information for package $PackageName." -InformationAction Continue
+Write-Information "Found information for package $PackageName."
 
 # Fetch current package version number.
 $variableListOutput = & az pipelines variable-group variable list --group-id $packageInfo.variableGroupId
@@ -132,10 +145,10 @@ $packageVersions = [PSCustomObject]@{
     AssemblyProductionVersion      = ${currentAssemblyVersion}?.ToString() ?? "$($currentPackageVersion.Major).$($currentPackageVersion.Minor).$($currentPackageVersion.Build).*"
 }
 
-Write-Information "Current package version is $currentPackageVersion." -InformationAction Continue
-Write-Information "Current package version display is $currentPackageVersionString." -InformationAction Continue
-Write-Information "Next package version will be $nextPackageVersion" -InformationAction Continue
-Write-Information "Current assembly version is $($currentAssemblyVersion ?? 'unknown')." -InformationAction Continue
+Write-Information "Current package version is $currentPackageVersion."
+Write-Information "Current package version display is $currentPackageVersionString."
+Write-Information "Next package version will be $nextPackageVersion"
+Write-Information "Current assembly version is $($currentAssemblyVersion ?? 'unknown')."
 
 [PSCustomObject[]]$packageVersionsList = @()
 
