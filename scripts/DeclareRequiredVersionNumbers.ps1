@@ -116,17 +116,24 @@ else {
     Write-Error "Failed to acquire package $PackageName.  Unable to determine current package assembly version."
 }
 
-$currentPackageAssemblyPath = Get-ChildItem -Path $currentPackageFolderPath -Filter "$PackageName.dll" -Recurse |
-Sort-Object -Property FullName |
-Select-Object -First 1 -ExpandProperty FullName
-if ($null -ne $currentPackageAssemblyPath -and (Test-Path $currentPackageAssemblyPath -PathType Leaf)) {
+$currentPackageAssemblyPaths = @(Get-ChildItem -Path $currentPackageFolderPath -Filter "$PackageName.dll" -Recurse |
+    Sort-Object -Property FullName |
+    Select-Object -ExpandProperty FullName)
+foreach ($currentPackageAssemblyPath in $currentPackageAssemblyPaths) {
     $asm = [System.Reflection.AssemblyName]::GetAssemblyName($currentPackageAssemblyPath)
-    $currentAssemblyVersion = $asm.Version
+    if ($null -eq $currentAssemblyVersion) {
+        $currentAssemblyVersion = $asm.Version
 
-    Write-Verbose "Found $PackageName assembly at $currentPackageAssemblyPath."
-    Write-Verbose $asm.ToString()
+        Write-Verbose "Found $PackageName assembly at $currentPackageAssemblyPath."
+        Write-Verbose $currentAssemblyVersion.ToString()
+    }
+
+    if ($asm.Version -ne $currentAssemblyVersion) {
+        Write-Warning "Detected multiple assembly versions in package $PackageName.  Package will not resolve correctly if referenced."
+    }
 }
-else {
+
+if ($currentPackageAssemblyPaths.Count -eq 0) {
     Write-Warning "Package $PackageName is not expanded.  Unable to determine current package assembly version."
 }
 
