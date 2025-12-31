@@ -68,6 +68,8 @@ $packageNuspecDocument = [xml](Get-Content $packageNuspecFilePath)
 $namespaceManager = New-Object System.Xml.XmlNamespaceManager($packageNuspecDocument.NameTable)
 $namespaceManager.AddNamespace("ns", "http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd")
 
+$isChangedPackageNuspecDocument = $false
+
 # Validate "id" property.
 $idLengthLimit = 128
 $idNode = $packageNuspecDocument.SelectSingleNode('/ns:package/ns:metadata/ns:id', $namespaceManager)
@@ -91,6 +93,8 @@ $descriptionLengthLimit = 4000
 $descriptionNode = $packageNuspecDocument.SelectSingleNode('/ns:package/ns:metadata/ns:description', $namespaceManager)
 if ($descriptionNode -ne $null -and $descriptionNode.InnerText.Length -gt $descriptionLengthLimit) {
     $descriptionNode.InnerText = $descriptionNode.InnerText.Substring(0, $descriptionLengthLimit)
+    $isChangedPackageNuspecDocument = $true
+
     Write-Warning "Property 'description' truncated to $descriptionLengthLimit characters."
 }
 
@@ -111,6 +115,7 @@ $releaseNotes = (-not [string]::IsNullOrEmpty($EncodedReleaseNotes)) ? ($Encoded
 $releaseNotesNode = $packageNuspecDocument.SelectSingleNode('/ns:package/ns:metadata/ns:releaseNotes', $namespaceManager)
 if ($releaseNotesNode -ne $null -and (-not [string]::IsNullOrWhiteSpace($releaseNotes))) {
     $releaseNotesNode.InnerText = $releaseNotes.Substring(0, $releaseNotesLengthLimit)
+    $isChangedPackageNuspecDocument = $true
 
     if ($releaseNotesNode.InnerText.Length -lt $releaseNotes.Length) {
         Write-Warning "Property 'releaseNotes' truncated to $($releaseNotesNode.InnerText.Length) characters."
@@ -133,6 +138,8 @@ $tagsLengthLimit = 4000
 $tagsNode = $packageNuspecDocument.SelectSingleNode('/ns:package/ns:metadata/ns:tags', $namespaceManager)
 if ($tagsNode -ne $null -and $tagsNode.InnerText.Length -gt $tagsLengthLimit) {
     $tagsNode.InnerText = $tagsNode.InnerText.Substring(0, $tagsLengthLimit)
+    $isChangedPackageNuspecDocument = $true
+
     Write-Warning "Property 'tags' truncated to $tagsLengthLimit characters."
 }
 
@@ -158,6 +165,8 @@ $titleLengthLimit = 256
 $titleNode = $packageNuspecDocument.SelectSingleNode('/ns:package/ns:metadata/ns:title', $namespaceManager)
 if ($titleNode -ne $null -and $titleNode.InnerText.Length -gt $titleLengthLimit) {
     $titleNode.InnerText = $titleNode.InnerText.Substring(0, $titleLengthLimit)
+    $isChangedPackageNuspecDocument = $true
+
     Write-Warning "Property 'title' truncated to $titleLengthLimit characters."
 }
 
@@ -167,10 +176,9 @@ Write-Verbose "Validated 'title' property - OK."
 $dependencyNodes = $packageNuspecDocument.SelectNodes('//ns:dependency', $namespaceManager)
 if ($dependencyNodes.Count -eq 0) {
     Write-Warning "Found $($dependencyNodes.Count) dependencies to process."
-    exit;
 }
 
-$totalDependenciesUpdatedCount = 0
+$dependenciesUpdatedCount = 0
 foreach ($dependencyNode in $dependencyNodes) {
     $dependencyName = $dependencyNode.Attributes['id'].Value
     $packageVersions = $packageVersionsList | Where-Object -Property PackageName -EQ -Value $dependencyName
@@ -180,13 +188,16 @@ foreach ($dependencyNode in $dependencyNodes) {
     }
 
     $dependencyNode.Attributes['version'].Value = $packageVersions.PackageProductionVersion
-    Write-Information "Updated dependency $dependencyName to v$($packageVersions.PackageProductionVersion)."
+    Write-Verbose "Updated dependency $dependencyName to v$($packageVersions.PackageProductionVersion)."
 
-    $totalDependenciesUpdatedCount++
+    $dependenciesUpdatedCount++
+    $isChangedPackageNuspecDocument = $true
 }
 
+Write-Information "Updated $dependenciesUpdatedCount dependencies."
+
 # Replace the .nuspec file in the package with the copy having updated dependency version numbers.
-if ($totalDependenciesUpdatedCount -gt 0) {
+if ($isChangedPackageNuspecDocument) {
     $packageNuspecDocument.Save($packageNuspecFilePath)
     Compress-Archive $packageNuspecFilePath -DestinationPath $packageFilePath -Update -PassThru
 
