@@ -323,8 +323,48 @@ stages:
           inputs:
             targetType: inline
             script: |
+              function ConvertFrom-Base64String {
+                  param (
+                      # Input.
+                      [Parameter(Mandatory, ValueFromPipeline)]
+                      [string]    $InputObject
+                  )
+                                                                                                                                                              
+                  process {
+                      $inputBytes = [System.Convert]::FromBase64String($InputObject)
+                      return [System.Text.Encoding]::UTF8.GetString($inputBytes)
+                  }
+              }
+
+              # Make the package versions list available to the pipeline.
               Write-Host "Promoting versionNumberList to output variable"
               Write-Host "##vso[task.setvariable variable=versionNumberList;isOutput=true]$env:VERSIONNUMBERLIST"            
+
+              #   Create a separate list to flag if assembly versioning should be applied.
+              $packageVersioningList = $env:VERSIONNUMBERLIST | 
+              ConvertFrom-Base64String | 
+              ConvertFrom-Json | 
+              ForEach-Object { @{
+                      PackageName                     = $_.PackageName
+                      HasAssemblyVersion              = (-not [string]::IsNullOrEmpty($_.AssemblyProductionVersion))
+                      HasAssemblyFileVersion          = (-not [string]::IsNullOrEmpty($_.AssemblyProductionFileVersion))
+                      HasAssemblyInformationalVersion = (-not [string]::IsNullOrEmpty($_.AssemblyProductionInformationalVersion))
+                  } }
+              $packagesHavingAssemblyVersionList = @($packageVersioningList |
+                  Where-Object -Property HasAssemblyVersion -NE -Value $false |
+                  Select-Object -ExpandProperty PackageName) |
+              ConvertTo-Csv -NoHeader -NoTypeInformation -UseQuotes Never
+              $packagesHavingAssemblyFileVersionList = @($packageVersioningList |
+                  Where-Object -Property HasAssemblyFileVersion -NE -Value $false |
+                  Select-Object -ExpandProperty PackageName) |
+              ConvertTo-Csv -NoHeader -NoTypeInformation -UseQuotes Never
+              $packagesHavingAssemblyInformationalVersionList = @($packageVersioningList |
+                  Where-Object -Property HasAssemblyInformationalVersion -NE -Value $false |
+                  Select-Object -ExpandProperty HasAssemblyInformationalVersion) |
+              ConvertTo-Csv -NoHeader -NoTypeInformation -UseQuotes Never
+              Write-Host "##vso[task.setvariable variable=hasAssemblyVersionNumberList;isOutput=true]$packagesHavingAssemblyVersionList"
+              Write-Host "##vso[task.setvariable variable=hasAssemblyFileVersionNumberList;isOutput=true]$packagesHavingAssemblyFileVersionList"
+              Write-Host "##vso[task.setvariable variable=hasAssemblyInformationalVersionNumberList;isOutput=true]$packagesHavingAssemblyInformationalVersionList"
       # Update the "next version numbers" stored in the pipeline for each changed package, in effect reserving those new numbers for the current pipeline run.
       - job: Version_reservation # Required as first property. ID of the job.
         displayName: 'Reserve production version numbers' # Human-readable name for the job.
@@ -370,6 +410,9 @@ stages:
     variables:
       changedPackageNames: $[stageDependencies.Configure.Production_packages.outputs['ChangedPackages.changedPackageNames']]
       versionNumbers: $[stageDependencies.Configure.Version_numbering.outputs['PromoteVersionList.versionNumberList']]
+      hasAssemblyVersionNumbers: $[stageDependencies.Configure.Version_numbering.outputs['PromoteVersionList.hasAssemblyVersionNumberList']]
+      hasAssemblyFileVersionNumbers: $[stageDependencies.Configure.Version_numbering.outputs['PromoteVersionList.hasAssemblyFileVersionNumberList']]
+      hasAssemblyInformationalVersionNumbers: $[stageDependencies.Configure.Version_numbering.outputs['PromoteVersionList.hasAssemblyInformationalVersionNumberList']]
     jobs:
     - ${{ each packageName in split(variables.allPackageNames, ',') }}:
       - job: 
@@ -575,6 +618,12 @@ stages:
         # Version .NET Assemblies (Core/5/6 and later)
         # Description - Applies a version to a .NET Assemblies (Core/5/6 and later) via the .csproj files based on the build number. Based on Microsoft sample from https://msdn.microsoft.com/Library/vs/alm/Build/overview
         - task: VersionDotNetCoreAssemblies@3
+          condition: |
+            and
+            (
+              succeeded(), 
+              containsValue(split(coalesce(variables['hasAssemblyFileVersionNumbers'], ''), ','), '${{packageName}}')
+            )
           displayName: '[${{packageName}}] Set assembly File Version'
           inputs: 
             # Required arguments
@@ -586,6 +635,12 @@ stages:
         # Version .NET Assemblies (Core/5/6 and later)
         # Description - Applies a version to a .NET Assemblies (Core/5/6 and later) via the .csproj files based on the build number. Based on Microsoft sample from https://msdn.microsoft.com/Library/vs/alm/Build/overview
         - task: VersionDotNetCoreAssemblies@3
+          condition: |
+            and
+            (
+              succeeded(), 
+              containsValue(split(coalesce(variables['hasAssemblyInformationalVersionNumbers'], ''), ','), '${{packageName}}')
+            )
           displayName: '[${{packageName}}] Set assembly Informational Version'
           inputs: 
             # Required arguments
@@ -597,6 +652,12 @@ stages:
         # Version .NET Assemblies (Core/5/6 and later)
         # Description - Applies a version to a .NET Assemblies (Core/5/6 and later) via the .csproj files based on the build number. Based on Microsoft sample from https://msdn.microsoft.com/Library/vs/alm/Build/overview
         - task: VersionDotNetCoreAssemblies@3
+          condition: |
+            and
+            (
+              succeeded(), 
+              containsValue(split(coalesce(variables['hasAssemblyVersionNumbers'], ''), ','), '${{packageName}}')
+            )
           displayName: '[${{packageName}}] Set assembly Assembly Version'
           inputs: 
             # Required arguments

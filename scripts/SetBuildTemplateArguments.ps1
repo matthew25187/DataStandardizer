@@ -46,16 +46,31 @@ Write-Information "Package Source Path argument is $($packageInfo.packageSourceP
 $packageVersions = $EncodedPackageVersions | ConvertFrom-Base64String | ConvertFrom-Json | Where-Object -Property PackageName -EQ -Value $PackageName
 
 # Set assembly Build File Version argument.
-[version]$fileVersion = $packageVersions.AssemblyProductionFileVersion
-Write-Host "##vso[task.setvariable variable=buildFileVersion]$fileVersion"
-Write-Information "File Version will be $fileVersion."
+if (-not [string]::IsNullOrEmpty($packageVersions.AssemblyProductionFileVersion)) {
+    [version]$fileVersion = $packageVersions.AssemblyProductionFileVersion
+    Write-Host "##vso[task.setvariable variable=buildFileVersion]$fileVersion"
+    Write-Information "File Version will be $fileVersion."
+}
+else {
+    Write-Warning "No file version found for $PackageName."
+}
 
 # Set assembly Build Assembly Version argument.
-[version]$assemblyVersion = $packageVersions.AssemblyProductionVersion
-Write-Host "##vso[task.setvariable variable=buildAssemblyVersion]$assemblyVersion"
-Write-Information "Assembly Version will be $assemblyVersion."
+if (-not [string]::IsNullOrEmpty($packageVersions.AssemblyProductionVersion)) {
+    [version]$assemblyVersion = $packageVersions.AssemblyProductionVersion
+    Write-Host "##vso[task.setvariable variable=buildAssemblyVersion]$assemblyVersion"
+    Write-Information "Assembly Version will be $assemblyVersion."
+}
+else {
+    Write-Warning "No assembly version found for $PackageName."
+}
 
 # Set assembly Build Informational Version argument.
-[version]$informationalVersion = $packageVersions.AssemblyProductionInformationalVersion
-Write-Host "##vso[task.setvariable variable=buildInformationalVersion]$informationalVersion"
-Write-Information "Informational Version will be $informationalVersion."
+if (-not [string]::IsNullOrEmpty($packageVersions.AssemblyProductionInformationalVersion)) {
+    [version]$informationalVersion = $packageVersions.AssemblyProductionInformationalVersion
+    Write-Host "##vso[task.setvariable variable=buildInformationalVersion]$informationalVersion"
+    Write-Information "Informational Version will be $informationalVersion."
+}
+else {
+    Write-Warning "No informational version found for $PackageName."
+}
