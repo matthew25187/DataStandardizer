@@ -31,18 +31,8 @@ param (
     [int]   $TraceLevel = 0
 )
 
-function ConvertTo-Base64String {
-    param (
-        # Input.
-        [Parameter(Mandatory, ValueFromPipeline)]
-        [string]    $InputObject
-    )
-    
-    process {
-        $inputBytes = [System.Text.Encoding]::UTF8.GetBytes($InputObject)
-        return [System.Convert]::ToBase64String($inputBytes)
-    }
-}
+$modulePath = Join-Path $PSScriptRoot "../psmodules/CommonHelpers/CommonHelpers.psm1"
+Import-Module $modulePath -Force
 
 if (0 -lt $TraceLevel) {
     Set-PSDebug -Trace $TraceLevel

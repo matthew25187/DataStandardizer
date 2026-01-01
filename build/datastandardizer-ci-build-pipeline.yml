@@ -164,13 +164,15 @@ trigger:
     exclude:
       - master
   paths:
+    exclude:
+      - docs
     include:
-      - docs/README.md
-      - pipelines
-      - scripts
+      - build
+      - images
       - src
-      - templates
       - tests
+      - "global.json"
+      - "*.md"
       - "*.sln"
       - "*.slnf"
 
@@ -180,7 +182,7 @@ pool:
 variables:
   - name: isDevelopBranch
     value: $[eq(variables['Build.SourceBranch'], 'refs/heads/develop')]
-  - template: /templates/build-pipeline-vars.yml
+  - template: /build/build-pipeline-vars.yml
     parameters:
       requirePackageDataStandardizerCore: ${{ parameters.requirePackageDataStandardizerCore }}
       requirePackageDataStandardizerBcp47: ${{ parameters.requirePackageDataStandardizerBcp47 }}
@@ -213,7 +215,7 @@ stages:
             displayName: 'Find changed packages'
             inputs:
               #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
-              filePath: 'scripts/FindChangedPackages.ps1' # string. Required when targetType = filePath. Script Path. 
+              filePath: 'build/scripts/FindChangedPackages.ps1' # string. Required when targetType = filePath. Script Path. 
               arguments: '-PackageList ''${{variables.packageInfos}}'' -SourceCommitHash $(Build.SourceVersion) -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
               #script: # string. Required when targetType = inline. Script. 
             # Preference Variables
@@ -235,7 +237,7 @@ stages:
             displayName: 'Find test packages'
             inputs:
               #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
-              filePath: 'scripts/FindTestPackages.ps1' # string. Required when targetType = filePath. Script Path. 
+              filePath: 'build/scripts/FindTestPackages.ps1' # string. Required when targetType = filePath. Script Path. 
               arguments: '-PackageInfos ''${{variables.packageInfos}}'' -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
               #script: # string. Required when targetType = inline. Script. 
             # Preference Variables
@@ -281,7 +283,7 @@ stages:
               azureSubscription: $(SUBSCRIPTION_ID) # string. Alias: connectedServiceNameARM. Required. Azure Resource Manager connection. 
               scriptType: 'pscore' # 'ps' | 'pscore' | 'batch' | 'bash'. Required. Script Type. 
               scriptLocation: 'scriptPath' # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
-              scriptPath: 'scripts/DeclareRequiredVersionNumbers.ps1' # string. Required when scriptLocation = scriptPath. Script Path. 
+              scriptPath: 'build/scripts/DeclareRequiredVersionNumbers.ps1' # string. Required when scriptLocation = scriptPath. Script Path. 
               # inlineScript: # string. Required when scriptLocation = inlineScript. Inline Script. 
               arguments: '-PackageName ''${{ packageName }}'' -PackageInfos ''${{variables.packageInfos}}'' -TempPath ''$(Agent.TempDirectory)'' -OutputInformationPreference ''Continue'' -OutputVerbosePreference ${{iif(eq(parameters.enableVerboseOutput, ''true''), ''Continue'', ''SilentlyContinue'')}} -OutputDebugPreference ${{iif(eq(parameters.enableDebug, ''true''), ''Continue'', ''SilentlyContinue'')}} -TraceLevel ${{parameters.traceLevel}}' # string. Alias: scriptArguments. Script Arguments. 
               #powerShellErrorActionPreference: 'stop' # 'stop' | 'continue' | 'silentlyContinue'. Optional. Use when scriptType = ps || scriptType = pscore. ErrorActionPreference. Default: stop.
@@ -300,7 +302,7 @@ stages:
             displayName: '[${{ packageName }}] Calculate optional versions' # Human-readable name for the task.
             inputs:
               #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
-              filePath: 'scripts/DeclareOptionalVersionNumbers.ps1' # string. Required when targetType = filePath. Script Path. 
+              filePath: 'build/scripts/DeclareOptionalVersionNumbers.ps1' # string. Required when targetType = filePath. Script Path. 
               arguments: '-PackageName ''${{ packageName }}'' -SourceBranch ''$(Build.SourceBranch)'' -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
               #script: # string. Required when targetType = inline. Script. 
             # Preference Variables
@@ -317,60 +319,31 @@ stages:
               #pwsh: false # boolean. Use PowerShell Core. Default: false.
               #workingDirectory: # string. Working Directory. 
               #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.            
-        - pwsh: | # Required as first property. Inline PowerShell script.
-            function ConvertFrom-Base64String {
-                param (
-                    # Input.
-                    [Parameter(Mandatory, ValueFromPipeline)]
-                    [string]    $InputObject
-                )
-                                                                                                                                                                        
-                process {
-                    $inputBytes = [System.Convert]::FromBase64String($InputObject)
-                    return [System.Text.Encoding]::UTF8.GetString($inputBytes)
-                }
-            }
-
-            # Make the package versions list available to the pipeline.
-            Write-Host "Promoting versionNumberList to output variable"
-            Write-Host "##vso[task.setvariable variable=versionNumberList;isOutput=true]$env:VERSIONNUMBERLIST"            
-
-            #   Create a separate list to flag if assembly versioning should be applied.
-            $packageVersioningList = $env:VERSIONNUMBERLIST | 
-            ConvertFrom-Base64String | 
-            ConvertFrom-Json | 
-            ForEach-Object { @{
-                    PackageName                     = $_.PackageName
-                    HasAssemblyVersion              = (-not [string]::IsNullOrEmpty($_.AssemblyProductionVersion))
-                    HasAssemblyFileVersion          = (-not [string]::IsNullOrEmpty($_.AssemblyProductionFileVersion))
-                    HasAssemblyInformationalVersion = (-not [string]::IsNullOrEmpty($_.AssemblyProductionInformationalVersion))
-                } }
-            $packagesHavingAssemblyVersionList = @($packageVersioningList |
-                Where-Object -Property HasAssemblyVersion -NE -Value $false |
-                Select-Object -ExpandProperty PackageName) -join ','
-            $packagesHavingAssemblyFileVersionList = @($packageVersioningList |
-                Where-Object -Property HasAssemblyFileVersion -NE -Value $false |
-                Select-Object -ExpandProperty PackageName) -join ','
-            $packagesHavingAssemblyInformationalVersionList = @($packageVersioningList |
-                Where-Object -Property HasAssemblyInformationalVersion -NE -Value $false |
-                Select-Object -ExpandProperty PackageName) -join ','
-            Write-Host "##vso[task.setvariable variable=hasAssemblyVersionNumberList;isOutput=true]$packagesHavingAssemblyVersionList"
-            Write-Host "##vso[task.setvariable variable=hasAssemblyFileVersionNumberList;isOutput=true]$packagesHavingAssemblyFileVersionList"
-            Write-Host "##vso[task.setvariable variable=hasAssemblyInformationalVersionNumberList;isOutput=true]$packagesHavingAssemblyInformationalVersionList"
-          # errorActionPreference: string # Unless otherwise specified, the error action preference defaults to the value stop. See the following section for more information.
-          # failOnStderr: string # Fail the task if output is sent to Stderr?
-          # ignoreLASTEXITCODE: string # Check the final exit code of the script to determine whether the step succeeded?
-          # workingDirectory: string # Start the script with this working directory.
+        # PowerShell v2
+        # Run a PowerShell script on Linux, macOS, or Windows.
+        - task: PowerShell@2
           # condition: string # Evaluate this condition expression to determine whether to run this task.
-          # continueOnError: boolean # Continue running even on failure?
           displayName: 'Output package versions list' # Human-readable name for the task.
-          # target: string | target # Environment in which to run this task.
-          # enabled: boolean # Run this task when the job runs?
-          # env: # Variables to map into the process's environment.
-          #   string: string # Name/value pairs
           name: PromoteVersionList # ID of the step.
-          # timeoutInMinutes: string # Time to wait for this task to complete before the server kills it.
-          # retryCountOnTaskFailure: string # Number of retries if the task fails.              
+          inputs:
+            #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
+            filePath: 'build/scripts/OutputVersionVars.ps1' # string. Required when targetType = filePath. Script Path. 
+            arguments: '-TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
+            #script: # string. Required when targetType = inline. Script. 
+          # Preference Variables
+            #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
+            #warningPreference: 'default' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. WarningPreference. Default: default.
+            informationPreference: 'continue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. InformationPreference. Default: default.
+            verbosePreference: ${{ iif(eq(parameters.enableVerboseOutput, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. VerbosePreference. Default: default.
+            debugPreference: ${{ iif(eq(parameters.enableDebug, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. DebugPreference. Default: default.
+            #progressPreference: 'silentlyContinue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ProgressPreference. Default: silentlyContinue.
+          # Advanced
+            #failOnStderr: false # boolean. Fail on Standard Error. Default: false.
+            #showWarnings: false # boolean. Show warnings as Azure DevOps warnings. Default: false.
+            #ignoreLASTEXITCODE: false # boolean. Ignore $LASTEXITCODE. Default: false.
+            pwsh: true # boolean. Use PowerShell Core. Default: false.
+            #workingDirectory: # string. Working Directory. 
+            #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.          
       # Update the "next version numbers" stored in the pipeline for each changed package, in effect reserving those new numbers for the current pipeline run.
       - job: Version_reservation # Required as first property. ID of the job.
         displayName: 'Reserve production version numbers' # Human-readable name for the job.
@@ -405,7 +378,7 @@ stages:
               azureSubscription: $(SUBSCRIPTION_ID) # string. Alias: connectedServiceNameARM. Required. Azure Resource Manager connection. 
               scriptType: 'pscore' # 'ps' | 'pscore' | 'batch' | 'bash'. Required. Script Type. 
               scriptLocation: 'scriptPath' # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
-              scriptPath: 'scripts/ReserveProductionVersionNumbers.ps1' # string. Required when scriptLocation = scriptPath. Script Path. 
+              scriptPath: 'build/scripts/ReserveProductionVersionNumbers.ps1' # string. Required when scriptLocation = scriptPath. Script Path. 
               #inlineScript: # string. Required when scriptLocation = inlineScript. Inline Script. 
               arguments: '-PackageName ''${{ packageName }}'' -PackageInfos ''${{variables.packageInfos}}'' -EncodedPackageVersions ''$(versionNumbers)'' -TraceLevel ${{parameters.traceLevel}}' # string. Alias: scriptArguments. Script Arguments. 
               #powerShellErrorActionPreference: 'stop' # 'stop' | 'continue' | 'silentlyContinue'. Optional. Use when scriptType = ps || scriptType = pscore. ErrorActionPreference. Default: stop.
@@ -416,9 +389,9 @@ stages:
     variables:
       changedPackageNames: $[stageDependencies.Configure.Production_packages.outputs['ChangedPackages.changedPackageNames']]
       versionNumbers: $[stageDependencies.Configure.Version_numbering.outputs['PromoteVersionList.versionNumberList']]
-      hasAssemblyVersionNumbers: $[stageDependencies.Configure.Version_numbering.outputs['PromoteVersionList.hasAssemblyVersionNumberList']]
-      hasAssemblyFileVersionNumbers: $[stageDependencies.Configure.Version_numbering.outputs['PromoteVersionList.hasAssemblyFileVersionNumberList']]
-      hasAssemblyInformationalVersionNumbers: $[stageDependencies.Configure.Version_numbering.outputs['PromoteVersionList.hasAssemblyInformationalVersionNumberList']]
+      hasAssemblyVersionNumbers: $[stageDependencies.Configure.Version_numbering.outputs['PromoteVersionList.hasAssemblyVersionPackageNames']]
+      hasAssemblyFileVersionNumbers: $[stageDependencies.Configure.Version_numbering.outputs['PromoteVersionList.hasAssemblyFileVersionPackageNames']]
+      hasAssemblyInformationalVersionNumbers: $[stageDependencies.Configure.Version_numbering.outputs['PromoteVersionList.hasAssemblyInformationalVersionPackageNames']]
     jobs:
     - ${{ each packageName in split(variables.allPackageNames, ',') }}:
       - job: 
@@ -472,18 +445,7 @@ stages:
         - ${{ each dependencyPackageName in split(variables.allPackageNames, ',') }}:
           - ${{ if ne(dependencyPackageName, packageName) }}:
             - pwsh: | # Required as first property. Inline PowerShell script.
-                function ConvertFrom-Base64String {
-                    param (
-                        # Input.
-                        [Parameter(Mandatory, ValueFromPipeline)]
-                        [string]    $InputObject
-                    )
-                                                              
-                    process {
-                        $inputBytes = [System.Convert]::FromBase64String($InputObject)
-                        return [System.Text.Encoding]::UTF8.GetString($inputBytes)
-                    }
-                }
+                Import-Module "$(Build.SourcesDirectory)/build/psmodules/CommonHelpers/CommonHelpers.psm1" -Force
 
                 if (${{parameters.traceLevel}} -gt 0) {
                     Set-PSDebug -Trace ${{parameters.traceLevel}}
@@ -604,7 +566,7 @@ stages:
           displayName: '[${{packageName}}] Set build arguments'
           inputs:
             #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
-            filePath: 'scripts/SetBuildTemplateArguments.ps1' # string. Required when targetType = filePath. Script Path. 
+            filePath: 'build/scripts/SetBuildTemplateArguments.ps1' # string. Required when targetType = filePath. Script Path. 
             arguments: '-PackageName ${{packageName}} -PackageInfos ''${{variables.packageInfos}}'' -EncodedPackageVersions ''$(versionNumbers)'' -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
             #script: # string. Required when targetType = inline. Script. 
           # Preference Variables
@@ -792,10 +754,10 @@ stages:
         # cancelTimeoutInMinutes: string # Time to wait for the job to cancel before forcibly terminating it.
         variables:
           testAssemblies: |
-            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/PACKAGE_NAME.*Test.dll
-            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/PACKAGE_NAME.*Tests.dll
-            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/PACKAGE_NAME.*Test.*.dll
-            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/PACKAGE_NAME.*Tests.*.dll
+            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/${{packageName}}.*Test.dll
+            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/${{packageName}}.*Tests.dll
+            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/${{packageName}}.*Test.*.dll
+            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/${{packageName}}.*Tests.*.dll
             !**/*TestAdapter.dll
             !**/obj/**
             !**/ref/**
@@ -873,7 +835,7 @@ stages:
             #azureSubscription: # string. Alias: ConnectedServiceName. Azure Resource Manager connection. 
           # Test selection
             testSelector: 'testAssemblies' # 'testAssemblies' | 'testPlan' | 'testRun'. Required. Select tests using. Default: testAssemblies.
-            testAssemblyVer2: ${{ replace(variables.testAssemblies, 'PACKAGE_NAME', packageName) }} # string. Required when testSelector = testAssemblies. Test files. 
+            testAssemblyVer2: ${{ variables.testAssemblies }} # string. Required when testSelector = testAssemblies. Test files. 
             #testPlan: # string. Required when testSelector = testPlan. Test plan. 
             #testSuite: # string. Required when testSelector = testPlan. Test suite. 
             #testConfiguration: # string. Required when testSelector = testPlan. Test configuration. 
@@ -1005,7 +967,7 @@ stages:
                   )                
                 inputs:
                   #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
-                  filePath: 'scripts/SetReleaseNotesArgument.ps1' # string. Required when targetType = filePath. Script Path. 
+                  filePath: 'build/scripts/SetReleaseNotesArgument.ps1' # string. Required when targetType = filePath. Script Path. 
                   arguments: '-PackageName ${{packageName}} -SourceCommitHash $(Build.SourceVersion) -PackageInfos ''${{variables.packageInfos}}'' -SourceRootFolderPath $(Build.SourcesDirectory) -IsBuildMasterBranch ${{ iif(eq(variables[''Build.SourceBranch''], ''refs/heads/master''), ''$True'', ''$False'') }} -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
                   #script: # string. Required when targetType = inline. Script. 
                 # Preference Variables
@@ -1043,18 +1005,7 @@ stages:
                     or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
                   )
               - pwsh: |
-                  function ConvertFrom-Base64String {
-                      param (
-                          # Input.
-                          [Parameter(Mandatory, ValueFromPipeline)]
-                          [string]    $InputObject
-                      )
-
-                      process {
-                          $inputBytes = [System.Convert]::FromBase64String($InputObject)
-                          return [System.Text.Encoding]::UTF8.GetString($inputBytes)
-                      }
-                  }
+                  Import-Module "$(Build.SourcesDirectory)/build/psmodules/CommonHelpers/CommonHelpers.psm1" -Force
 
                   if (${{parameters.traceLevel}} -gt 0) {
                       Set-PSDebug -Trace ${{parameters.traceLevel}}
@@ -1111,7 +1062,7 @@ stages:
                   )
                 inputs:
                   #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
-                  filePath: 'scripts/UpdatePackageMetadata.ps1' # string. Required when targetType = filePath. Script Path. 
+                  filePath: 'build/scripts/UpdatePackageMetadata.ps1' # string. Required when targetType = filePath. Script Path. 
                   arguments: "-PackageName '${{packageName}}' -EncodedPackageVersions '$(versionNumbers)' -EncodedReleaseNotes '$(releaseNotesArg)' -PackageSearchRootPath '$(Build.ArtifactStagingDirectory)' -BuildConfiguration $(BuildConfiguration) -TempPath '$(Agent.TempDirectory)' -TraceLevel ${{parameters.traceLevel}}" # string. Optional. Use when targetType = filePath. Arguments. 
                   #script: # string. Required when targetType = inline. Script. 
                 # Preference Variables
@@ -1277,18 +1228,7 @@ stages:
               scriptLocation: 'inlineScript' # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
               # scriptPath: # string. Required when scriptLocation = scriptPath. Script Path. 
               inlineScript: | # string. Required when scriptLocation = inlineScript. Inline Script. 
-                function ConvertFrom-Base64String {
-                    param (
-                        # Input.
-                        [Parameter(Mandatory, ValueFromPipeline)]
-                        [string]    $InputObject
-                    )
-
-                    process {
-                        $inputBytes = [System.Convert]::FromBase64String($InputObject)
-                        return [System.Text.Encoding]::UTF8.GetString($inputBytes)
-                    }
-                }
+                Import-Module "$(Build.SourcesDirectory)/build/psmodules/CommonHelpers/CommonHelpers.psm1" -Force
 
                 if (${{parameters.traceLevel}} -gt 0) {
                     Set-PSDebug -Trace ${{parameters.traceLevel}}
@@ -1350,18 +1290,7 @@ stages:
               scriptLocation: 'inlineScript' # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
               # scriptPath: # string. Required when scriptLocation = scriptPath. Script Path. 
               inlineScript: | # string. Required when scriptLocation = inlineScript. Inline Script. 
-                function ConvertFrom-Base64String {
-                    param (
-                        # Input.
-                        [Parameter(Mandatory, ValueFromPipeline)]
-                        [string]    $InputObject
-                    )
-                                      
-                    process {
-                        $inputBytes = [System.Convert]::FromBase64String($InputObject)
-                        return [System.Text.Encoding]::UTF8.GetString($inputBytes)
-                    }
-                }
+                Import-Module "$(Build.SourcesDirectory)/build/psmodules/CommonHelpers/CommonHelpers.psm1" -Force
 
                 if (${{parameters.traceLevel}} -gt 0) {
                     Set-PSDebug -Trace ${{parameters.traceLevel}}
@@ -1412,18 +1341,7 @@ stages:
               scriptLocation: 'inlineScript' # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
               # scriptPath: # string. Required when scriptLocation = scriptPath. Script Path. 
               inlineScript: | # string. Required when scriptLocation = inlineScript. Inline Script. 
-                function ConvertFrom-Base64String {
-                    param (
-                        # Input.
-                        [Parameter(Mandatory, ValueFromPipeline)]
-                        [string]    $InputObject
-                    )
-                    
-                    process {
-                        $inputBytes = [System.Convert]::FromBase64String($InputObject)
-                        return [System.Text.Encoding]::UTF8.GetString($inputBytes)
-                    }
-                }
+                Import-Module "$(Build.SourcesDirectory)/build/psmodules/CommonHelpers/CommonHelpers.psm1" -Force
 
                 if (${{parameters.traceLevel}} -gt 0) {
                     Set-PSDebug -Trace ${{parameters.traceLevel}}
@@ -1480,21 +1398,10 @@ stages:
         steps:
           - checkout: self
             persistCredentials: true
-          - template: /templates/configure-git-user.yml
+          - template: /build/configure-git-user.yml
           - ${{ each packageName in split(variables.allPackageNames, ',') }}:
               - pwsh: |
-                  function ConvertFrom-Base64String {
-                      param (
-                          # Input.
-                          [Parameter(Mandatory, ValueFromPipeline)]
-                          [string]    $InputObject
-                      )
-                                                          
-                      process {
-                          $inputBytes = [System.Convert]::FromBase64String($InputObject)
-                          return [System.Text.Encoding]::UTF8.GetString($inputBytes)
-                      }
-                  }
+                  Import-Module "$(Build.SourcesDirectory)/build/psmodules/CommonHelpers/CommonHelpers.psm1" -Force
 
                   if (${{parameters.traceLevel}} -gt 0) {
                       Set-PSDebug -Trace ${{parameters.traceLevel}}
@@ -1548,18 +1455,7 @@ stages:
                   scriptLocation: "inlineScript" # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
                   # scriptPath: # string. Required when scriptLocation = scriptPath. Script Path.
                   inlineScript: | # string. Required when scriptLocation = inlineScript. Inline Script.
-                    function ConvertFrom-Base64String {
-                        param (
-                            # Input.
-                            [Parameter(Mandatory, ValueFromPipeline)]
-                            [string]    $InputObject
-                        )
-                                            
-                        process {
-                            $inputBytes = [System.Convert]::FromBase64String($InputObject)
-                            return [System.Text.Encoding]::UTF8.GetString($inputBytes)
-                        }
-                    }
+                    Import-Module "$(Build.SourcesDirectory)/build/psmodules/CommonHelpers/CommonHelpers.psm1" -Force
 
                     if (${{parameters.traceLevel}} -gt 0) {
                         Set-PSDebug -Trace ${{parameters.traceLevel}}
