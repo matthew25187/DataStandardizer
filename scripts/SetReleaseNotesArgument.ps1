@@ -1,11 +1,23 @@
 param (
     # Package name.
     [Parameter(Mandatory)]
+    [ValidateNotNullOrEmpty()]
     [string]    $PackageName,
 
     # Source commit hash.
     [Parameter(Mandatory)]
+    [ValidateNotNullOrEmpty()]
     [string]    $SourceCommitHash,
+
+    # Metadata for packages
+    [Parameter(Mandatory)]
+    [ValidateNotNullOrEmpty()]
+    [string]    $PackageInfos,
+
+    # Path to source code root folder
+    [Parameter(Mandatory)]
+    [ValidateNotNullOrEmpty()]
+    [string]    $SourceRootFolderPath,
 
     # Is build happening on the master branch?
     [Parameter()]
@@ -18,6 +30,19 @@ param (
     [Parameter()]
     [int]   $TraceLevel = 0
 )
+
+function ConvertTo-Base64String {
+    param (
+        # Input.
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [string]    $InputObject
+    )
+    
+    process {
+        $inputBytes = [System.Text.Encoding]::UTF8.GetBytes($InputObject)
+        return [System.Convert]::ToBase64String($inputBytes)
+    }
+}
 
 if (0 -lt $TraceLevel) {
     Set-PSDebug -Trace $TraceLevel
@@ -69,13 +94,6 @@ $revisionListOutput -split '\r?\n' | Select-String -Pattern '#\d+' -Raw | Out-St
 $releaseNotes = $releaseNotesBuilder.ToString().TrimEnd()
 $releaseNotes
 
-# Encode the release notes for transport.
-$encodedReleaseNotesBuilder = [System.Text.StringBuilder]::new()
-$releaseNotesCharacters = $releaseNotes.ToCharArray()
-foreach ($character in $releaseNotesCharacters) {
-    [void]$encodedReleaseNotesBuilder.AppendFormat('%{0:X2}', [ushort]$character)
-}
-
-# Assign the release notes to a pipeline variable.
-$encodedReleaseNotes = $encodedReleaseNotesBuilder.ToString()
-Write-Host "##vso[task.setvariable variable=releaseNotes;]$encodedReleaseNotes"
+# Output release notes to pipeline variable.
+$encodedReleaseNotes = $releaseNotes | ConvertTo-Base64String
+Write-Host "##vso[task.setvariable variable=releaseNotesArg]$encodedReleaseNotes"

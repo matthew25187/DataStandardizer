@@ -1,21 +1,16 @@
 param (
-    [Parameter()]
+    [Parameter(Mandatory)]
     [ValidateNotNullOrEmpty()]
     [string] $PackageName,
 
-    # Package information list.
-    [Parameter()]
+    [Parameter(Mandatory)]
+    [ValidateNotNullOrEmpty()]
     [string]    $PackageInfos,
 
-    [Parameter()]
+    [Parameter(Mandatory)]
     [ValidateNotNullOrEmpty()]
-    [string] $PackageCurrentVersionNumbersList,
+    [string]$EncodedPackageVersions,
 
-    [Parameter()]
-    [ValidateNotNull()]
-    [string] $PackageNewVersionNumbersList,
-
-    # Debug tracing.
     [Parameter()]
     [int]   $TraceLevel = 0
 )
@@ -33,30 +28,11 @@ function ConvertFrom-Base64String {
     }
 }
 
-function Get-VersionNumbers {
-    param (
-        [Parameter()]
-        [ValidateNotNullOrEmpty()]
-        [string] $PackageName,
-
-        [Parameter()]
-        [string] $List
-    )
-    
-    $packageInfo = $List | ConvertFrom-Json | Where-Object -Property PackageName -EQ $PackageName
-    if ($null -eq $packageInfo) {
-        return
-    }
-    
-    [version] $packageVersion = $packageInfo.PackageVersion.Major, $packageInfo.PackageVersion.Minor, $packageInfo.PackageVersion.Build, $packageInfo.PackageVersion.Revision -join '.'
-    return $packageVersion
-}
-
 if (0 -lt $TraceLevel) {
     Set-PSDebug -Trace $TraceLevel
 }
 
-# Set Package Source Path argument.
+# Set package Source Folder Path argument.
 $packageInfo = $PackageInfos | ConvertFrom-Json | Where-Object -Property packageName -EQ $PackageName
 if ($null -eq $packageInfo) {
     Write-Error "No package information found for $PackageName."
@@ -66,34 +42,35 @@ if ($null -eq $packageInfo) {
 Write-Host "##vso[task.setvariable variable=sourceFolderPath]$($packageInfo.packageSourcePath)"
 Write-Information "Package Source Path argument is $($packageInfo.packageSourcePath)"
 
-# Assume package has changes; use package's new version number.
-Write-Information "Searching new version numbers for $PackageName version..."
-$versionNumber = Get-VersionNumbers -PackageName $PackageName -List ($PackageNewVersionNumbersList | ConvertFrom-Base64String)
-if ($null -eq $versionNumber) {
-    # Package is not a changed package; use package's current version number instead.
-    Write-Information "Searching current version numbers for $PackageName version..."
-    $versionNumber = Get-VersionNumbers -PackageName $PackageName -List ($PackageCurrentVersionNumbersList | ConvertFrom-Base64String)
-}
+# Get package versions.
+$packageVersions = $EncodedPackageVersions | ConvertFrom-Base64String | ConvertFrom-Json | Where-Object -Property PackageName -EQ -Value $PackageName
 
-if ($null -ne $versionNumber) {
-    Write-Information "Found version $versionNumber for package $PackageName."
+# Set assembly Build File Version argument.
+if (-not [string]::IsNullOrEmpty($packageVersions.AssemblyProductionFileVersion)) {
+    [version]$fileVersion = $packageVersions.AssemblyProductionFileVersion
+    Write-Host "##vso[task.setvariable variable=buildFileVersion]$fileVersion"
+    Write-Information "File Version will be $fileVersion."
 }
 else {
-    Write-Error "No version found for package $PackageName."
+    Write-Warning "No file version found for $PackageName."
 }
 
-# Compose file version.
-$fileVersion = "$($versionNumber.Major).$($versionNumber.Minor).$($versionNumber.Build).$($versionNumber.Revision)"
-Write-Host "##vso[task.setvariable variable=buildFileVersion]$fileVersion"
-Write-Information "File Version will be $fileVersion."
+# Set assembly Build Assembly Version argument.
+if (-not [string]::IsNullOrEmpty($packageVersions.AssemblyProductionVersion)) {
+    [version]$assemblyVersion = $packageVersions.AssemblyProductionVersion
+    Write-Host "##vso[task.setvariable variable=buildAssemblyVersion]$assemblyVersion"
+    Write-Information "Assembly Version will be $assemblyVersion."
+}
+else {
+    Write-Warning "No assembly version found for $PackageName."
+}
 
-# Compose assembly version.
-$assemblyVersionRevision = [System.Convert]::ToInt32([datetime]::Now.TimeOfDay.TotalSeconds / 2)
-$assemblyVersion = "$($versionNumber.Major).$($versionNumber.Minor).$($versionNumber.Build).$assemblyVersionRevision"
-Write-Host "##vso[task.setvariable variable=buildAssemblyVersion]$assemblyVersion"
-Write-Information "Assembly Version will be $assemblyVersion."
-
-# Compose informational version.
-$informationalVersion = "$($versionNumber.Major).$($versionNumber.Minor)"
-Write-Host "##vso[task.setvariable variable=buildInformationalVersion]$informationalVersion"
-Write-Information "Informational Version will be $informationalVersion."
+# Set assembly Build Informational Version argument.
+if (-not [string]::IsNullOrEmpty($packageVersions.AssemblyProductionInformationalVersion)) {
+    [version]$informationalVersion = $packageVersions.AssemblyProductionInformationalVersion
+    Write-Host "##vso[task.setvariable variable=buildInformationalVersion]$informationalVersion"
+    Write-Information "Informational Version will be $informationalVersion."
+}
+else {
+    Write-Warning "No informational version found for $PackageName."
+}
