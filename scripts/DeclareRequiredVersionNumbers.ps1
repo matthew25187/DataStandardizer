@@ -127,13 +127,9 @@ foreach ($currentPackageAssemblyPath in $currentPackageAssemblyPaths) {
         Write-Verbose "Found $PackageName assembly at $currentPackageAssemblyPath."
         Write-Verbose $asmName.ToString()
 
-        $asm = [System.Reflection.Assembly]::LoadFrom($currentPackageAssemblyPath)
-        
-        [System.Reflection.AssemblyFileVersionAttribute]$asmFileVersionAttribute = $asm.GetCustomAttributes([System.Reflection.AssemblyFileVersionAttribute], $false)
-        $currentFileVersion = $asmFileVersionAttribute.Version
-
-        [System.Reflection.AssemblyInformationalVersionAttribute]$asmInformationalVersionAttribute = $asm.GetCustomAttributes([System.Reflection.AssemblyInformationalVersionAttribute], $false)
-        $currentInformationalVersion = $asmInformationalVersionAttribute.InformationalVersion
+        $versionInfo = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($currentPackageAssemblyPath)
+        $currentFileVersion = $versionInfo.FileVersion
+        $currentInformationalVersion = $versionInfo.ProductVersion
     }
 
     if ($asmName.Version -ne $currentAssemblyVersion) {
