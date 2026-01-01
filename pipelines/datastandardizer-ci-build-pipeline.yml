@@ -324,7 +324,7 @@ stages:
                     [Parameter(Mandatory, ValueFromPipeline)]
                     [string]    $InputObject
                 )
-                                                                                                                                                            
+                                                                                                                                                                        
                 process {
                     $inputBytes = [System.Convert]::FromBase64String($InputObject)
                     return [System.Text.Encoding]::UTF8.GetString($inputBytes)
@@ -347,16 +347,13 @@ stages:
                 } }
             $packagesHavingAssemblyVersionList = @($packageVersioningList |
                 Where-Object -Property HasAssemblyVersion -NE -Value $false |
-                Select-Object -ExpandProperty PackageName) |
-            ConvertTo-Csv -NoHeader -NoTypeInformation -UseQuotes Never
+                Select-Object -ExpandProperty PackageName) -join ','
             $packagesHavingAssemblyFileVersionList = @($packageVersioningList |
                 Where-Object -Property HasAssemblyFileVersion -NE -Value $false |
-                Select-Object -ExpandProperty PackageName) |
-            ConvertTo-Csv -NoHeader -NoTypeInformation -UseQuotes Never
+                Select-Object -ExpandProperty PackageName) -join ','
             $packagesHavingAssemblyInformationalVersionList = @($packageVersioningList |
                 Where-Object -Property HasAssemblyInformationalVersion -NE -Value $false |
-                Select-Object -ExpandProperty HasAssemblyInformationalVersion) |
-            ConvertTo-Csv -NoHeader -NoTypeInformation -UseQuotes Never
+                Select-Object -ExpandProperty PackageName) -join ','
             Write-Host "##vso[task.setvariable variable=hasAssemblyVersionNumberList;isOutput=true]$packagesHavingAssemblyVersionList"
             Write-Host "##vso[task.setvariable variable=hasAssemblyFileVersionNumberList;isOutput=true]$packagesHavingAssemblyFileVersionList"
             Write-Host "##vso[task.setvariable variable=hasAssemblyInformationalVersionNumberList;isOutput=true]$packagesHavingAssemblyInformationalVersionList"
