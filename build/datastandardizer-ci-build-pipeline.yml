@@ -754,10 +754,10 @@ stages:
         # cancelTimeoutInMinutes: string # Time to wait for the job to cancel before forcibly terminating it.
         variables:
           testAssemblies: |
-            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/PACKAGE_NAME.*Test.dll
-            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/PACKAGE_NAME.*Tests.dll
-            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/PACKAGE_NAME.*Test.*.dll
-            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/PACKAGE_NAME.*Tests.*.dll
+            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/${{packageName}}.*Test.dll
+            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/${{packageName}}.*Tests.dll
+            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/${{packageName}}.*Test.*.dll
+            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/${{packageName}}.*Tests.*.dll
             !**/*TestAdapter.dll
             !**/obj/**
             !**/ref/**
@@ -835,7 +835,7 @@ stages:
             #azureSubscription: # string. Alias: ConnectedServiceName. Azure Resource Manager connection. 
           # Test selection
             testSelector: 'testAssemblies' # 'testAssemblies' | 'testPlan' | 'testRun'. Required. Select tests using. Default: testAssemblies.
-            testAssemblyVer2: ${{ replace(variables.testAssemblies, 'PACKAGE_NAME', packageName) }} # string. Required when testSelector = testAssemblies. Test files. 
+            testAssemblyVer2: ${{ variables.testAssemblies }} # string. Required when testSelector = testAssemblies. Test files. 
             #testPlan: # string. Required when testSelector = testPlan. Test plan. 
             #testSuite: # string. Required when testSelector = testPlan. Test suite. 
             #testConfiguration: # string. Required when testSelector = testPlan. Test configuration. 
