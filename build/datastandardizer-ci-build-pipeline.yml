@@ -215,7 +215,7 @@ stages:
             displayName: 'Find changed packages'
             inputs:
               #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
-              filePath: 'build/FindChangedPackages.ps1' # string. Required when targetType = filePath. Script Path. 
+              filePath: 'build/scripts/FindChangedPackages.ps1' # string. Required when targetType = filePath. Script Path. 
               arguments: '-PackageList ''${{variables.packageInfos}}'' -SourceCommitHash $(Build.SourceVersion) -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
               #script: # string. Required when targetType = inline. Script. 
             # Preference Variables
@@ -237,7 +237,7 @@ stages:
             displayName: 'Find test packages'
             inputs:
               #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
-              filePath: 'build/FindTestPackages.ps1' # string. Required when targetType = filePath. Script Path. 
+              filePath: 'build/scripts/FindTestPackages.ps1' # string. Required when targetType = filePath. Script Path. 
               arguments: '-PackageInfos ''${{variables.packageInfos}}'' -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
               #script: # string. Required when targetType = inline. Script. 
             # Preference Variables
@@ -283,7 +283,7 @@ stages:
               azureSubscription: $(SUBSCRIPTION_ID) # string. Alias: connectedServiceNameARM. Required. Azure Resource Manager connection. 
               scriptType: 'pscore' # 'ps' | 'pscore' | 'batch' | 'bash'. Required. Script Type. 
               scriptLocation: 'scriptPath' # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
-              scriptPath: 'build/DeclareRequiredVersionNumbers.ps1' # string. Required when scriptLocation = scriptPath. Script Path. 
+              scriptPath: 'build/scripts/DeclareRequiredVersionNumbers.ps1' # string. Required when scriptLocation = scriptPath. Script Path. 
               # inlineScript: # string. Required when scriptLocation = inlineScript. Inline Script. 
               arguments: '-PackageName ''${{ packageName }}'' -PackageInfos ''${{variables.packageInfos}}'' -TempPath ''$(Agent.TempDirectory)'' -OutputInformationPreference ''Continue'' -OutputVerbosePreference ${{iif(eq(parameters.enableVerboseOutput, ''true''), ''Continue'', ''SilentlyContinue'')}} -OutputDebugPreference ${{iif(eq(parameters.enableDebug, ''true''), ''Continue'', ''SilentlyContinue'')}} -TraceLevel ${{parameters.traceLevel}}' # string. Alias: scriptArguments. Script Arguments. 
               #powerShellErrorActionPreference: 'stop' # 'stop' | 'continue' | 'silentlyContinue'. Optional. Use when scriptType = ps || scriptType = pscore. ErrorActionPreference. Default: stop.
@@ -302,7 +302,7 @@ stages:
             displayName: '[${{ packageName }}] Calculate optional versions' # Human-readable name for the task.
             inputs:
               #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
-              filePath: 'build/DeclareOptionalVersionNumbers.ps1' # string. Required when targetType = filePath. Script Path. 
+              filePath: 'build/scripts/DeclareOptionalVersionNumbers.ps1' # string. Required when targetType = filePath. Script Path. 
               arguments: '-PackageName ''${{ packageName }}'' -SourceBranch ''$(Build.SourceBranch)'' -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
               #script: # string. Required when targetType = inline. Script. 
             # Preference Variables
@@ -320,7 +320,7 @@ stages:
               #workingDirectory: # string. Working Directory. 
               #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.            
         - pwsh: | # Required as first property. Inline PowerShell script.
-            Import-Module ./psmodules/CommonHelpers/CommonHelpers.psm1 -Force
+            Import-Module "$(Build.SourcesDirectory)/build/psmodules/CommonHelpers/CommonHelpers.psm1" -Force
 
             # Make the package versions list available to the pipeline.
             Write-Host "Promoting versionNumberList to output variable"
@@ -396,7 +396,7 @@ stages:
               azureSubscription: $(SUBSCRIPTION_ID) # string. Alias: connectedServiceNameARM. Required. Azure Resource Manager connection. 
               scriptType: 'pscore' # 'ps' | 'pscore' | 'batch' | 'bash'. Required. Script Type. 
               scriptLocation: 'scriptPath' # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
-              scriptPath: 'build/ReserveProductionVersionNumbers.ps1' # string. Required when scriptLocation = scriptPath. Script Path. 
+              scriptPath: 'build/scripts/ReserveProductionVersionNumbers.ps1' # string. Required when scriptLocation = scriptPath. Script Path. 
               #inlineScript: # string. Required when scriptLocation = inlineScript. Inline Script. 
               arguments: '-PackageName ''${{ packageName }}'' -PackageInfos ''${{variables.packageInfos}}'' -EncodedPackageVersions ''$(versionNumbers)'' -TraceLevel ${{parameters.traceLevel}}' # string. Alias: scriptArguments. Script Arguments. 
               #powerShellErrorActionPreference: 'stop' # 'stop' | 'continue' | 'silentlyContinue'. Optional. Use when scriptType = ps || scriptType = pscore. ErrorActionPreference. Default: stop.
@@ -463,7 +463,7 @@ stages:
         - ${{ each dependencyPackageName in split(variables.allPackageNames, ',') }}:
           - ${{ if ne(dependencyPackageName, packageName) }}:
             - pwsh: | # Required as first property. Inline PowerShell script.
-                Import-Module ./psmodules/CommonHelpers/CommonHelpers.psm1 -Force
+                Import-Module "$(Build.SourcesDirectory)/build/psmodules/CommonHelpers/CommonHelpers.psm1" -Force
 
                 if (${{parameters.traceLevel}} -gt 0) {
                     Set-PSDebug -Trace ${{parameters.traceLevel}}
@@ -584,7 +584,7 @@ stages:
           displayName: '[${{packageName}}] Set build arguments'
           inputs:
             #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
-            filePath: 'build/SetBuildTemplateArguments.ps1' # string. Required when targetType = filePath. Script Path. 
+            filePath: 'build/scripts/SetBuildTemplateArguments.ps1' # string. Required when targetType = filePath. Script Path. 
             arguments: '-PackageName ${{packageName}} -PackageInfos ''${{variables.packageInfos}}'' -EncodedPackageVersions ''$(versionNumbers)'' -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
             #script: # string. Required when targetType = inline. Script. 
           # Preference Variables
@@ -985,7 +985,7 @@ stages:
                   )                
                 inputs:
                   #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
-                  filePath: 'build/SetReleaseNotesArgument.ps1' # string. Required when targetType = filePath. Script Path. 
+                  filePath: 'build/scripts/SetReleaseNotesArgument.ps1' # string. Required when targetType = filePath. Script Path. 
                   arguments: '-PackageName ${{packageName}} -SourceCommitHash $(Build.SourceVersion) -PackageInfos ''${{variables.packageInfos}}'' -SourceRootFolderPath $(Build.SourcesDirectory) -IsBuildMasterBranch ${{ iif(eq(variables[''Build.SourceBranch''], ''refs/heads/master''), ''$True'', ''$False'') }} -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
                   #script: # string. Required when targetType = inline. Script. 
                 # Preference Variables
@@ -1023,7 +1023,7 @@ stages:
                     or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
                   )
               - pwsh: |
-                  Import-Module ./psmodules/CommonHelpers/CommonHelpers.psm1 -Force
+                  Import-Module "$(Build.SourcesDirectory)/build/psmodules/CommonHelpers/CommonHelpers.psm1" -Force
 
                   if (${{parameters.traceLevel}} -gt 0) {
                       Set-PSDebug -Trace ${{parameters.traceLevel}}
@@ -1080,7 +1080,7 @@ stages:
                   )
                 inputs:
                   #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
-                  filePath: 'build/UpdatePackageMetadata.ps1' # string. Required when targetType = filePath. Script Path. 
+                  filePath: 'build/scripts/UpdatePackageMetadata.ps1' # string. Required when targetType = filePath. Script Path. 
                   arguments: "-PackageName '${{packageName}}' -EncodedPackageVersions '$(versionNumbers)' -EncodedReleaseNotes '$(releaseNotesArg)' -PackageSearchRootPath '$(Build.ArtifactStagingDirectory)' -BuildConfiguration $(BuildConfiguration) -TempPath '$(Agent.TempDirectory)' -TraceLevel ${{parameters.traceLevel}}" # string. Optional. Use when targetType = filePath. Arguments. 
                   #script: # string. Required when targetType = inline. Script. 
                 # Preference Variables
@@ -1246,7 +1246,7 @@ stages:
               scriptLocation: 'inlineScript' # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
               # scriptPath: # string. Required when scriptLocation = scriptPath. Script Path. 
               inlineScript: | # string. Required when scriptLocation = inlineScript. Inline Script. 
-                Import-Module ./psmodules/CommonHelpers/CommonHelpers.psm1 -Force
+                Import-Module "$(Build.SourcesDirectory)/build/psmodules/CommonHelpers/CommonHelpers.psm1" -Force
 
                 if (${{parameters.traceLevel}} -gt 0) {
                     Set-PSDebug -Trace ${{parameters.traceLevel}}
@@ -1308,7 +1308,7 @@ stages:
               scriptLocation: 'inlineScript' # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
               # scriptPath: # string. Required when scriptLocation = scriptPath. Script Path. 
               inlineScript: | # string. Required when scriptLocation = inlineScript. Inline Script. 
-                Import-Module ./psmodules/CommonHelpers/CommonHelpers.psm1 -Force
+                Import-Module "$(Build.SourcesDirectory)/build/psmodules/CommonHelpers/CommonHelpers.psm1" -Force
 
                 if (${{parameters.traceLevel}} -gt 0) {
                     Set-PSDebug -Trace ${{parameters.traceLevel}}
@@ -1359,7 +1359,7 @@ stages:
               scriptLocation: 'inlineScript' # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
               # scriptPath: # string. Required when scriptLocation = scriptPath. Script Path. 
               inlineScript: | # string. Required when scriptLocation = inlineScript. Inline Script. 
-                Import-Module ./psmodules/CommonHelpers/CommonHelpers.psm1 -Force
+                Import-Module "$(Build.SourcesDirectory)/build/psmodules/CommonHelpers/CommonHelpers.psm1" -Force
 
                 if (${{parameters.traceLevel}} -gt 0) {
                     Set-PSDebug -Trace ${{parameters.traceLevel}}
@@ -1419,7 +1419,7 @@ stages:
           - template: /build/configure-git-user.yml
           - ${{ each packageName in split(variables.allPackageNames, ',') }}:
               - pwsh: |
-                  Import-Module ./psmodules/CommonHelpers/CommonHelpers.psm1 -Force
+                  Import-Module "$(Build.SourcesDirectory)/build/psmodules/CommonHelpers/CommonHelpers.psm1" -Force
 
                   if (${{parameters.traceLevel}} -gt 0) {
                       Set-PSDebug -Trace ${{parameters.traceLevel}}
@@ -1473,7 +1473,7 @@ stages:
                   scriptLocation: "inlineScript" # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
                   # scriptPath: # string. Required when scriptLocation = scriptPath. Script Path.
                   inlineScript: | # string. Required when scriptLocation = inlineScript. Inline Script.
-                    Import-Module ./psmodules/CommonHelpers/CommonHelpers.psm1 -Force
+                    Import-Module "$(Build.SourcesDirectory)/build/psmodules/CommonHelpers/CommonHelpers.psm1" -Force
 
                     if (${{parameters.traceLevel}} -gt 0) {
                         Set-PSDebug -Trace ${{parameters.traceLevel}}

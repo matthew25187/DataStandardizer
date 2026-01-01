@@ -15,7 +15,8 @@ param (
     [int]   $TraceLevel = 0
 )
 
-Import-Module ./psmodules/CommonHelpers/CommonHelpers.psm1 -Force
+$modulePath = Join-Path $PSScriptRoot "../psmodules/CommonHelpers/CommonHelpers.psm1"
+Import-Module $modulePath -Force
 
 if (0 -lt $TraceLevel) {
     Set-PSDebug -Trace $TraceLevel
