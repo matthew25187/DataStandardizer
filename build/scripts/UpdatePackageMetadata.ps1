@@ -54,6 +54,7 @@ Expand-Archive -Path $packageFilePath -DestinationPath $tempPackagePath -PassThr
 # Load .nuspec file extracted from package.
 $packageNuspecFilePath = Get-ChildItem $tempPackagePath -Filter "$PackageName.nuspec" | Select-Object -First 1 -ExpandProperty FullName
 $packageNuspecDocument = [xml](Get-Content $packageNuspecFilePath)
+$metadataNode = $packageNuspecDocument.SelectSingleNode('/ns:package/ns:metadata', $namespaceManager)
 
 $namespaceUri = "http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd"
 $namespaceManager = New-Object System.Xml.XmlNamespaceManager($packageNuspecDocument.NameTable)
@@ -107,12 +108,15 @@ $releaseNotesNode = $packageNuspecDocument.SelectSingleNode('/ns:package/ns:meta
 if (-not [string]::IsNullOrWhiteSpace($releaseNotes)) {
     if ($releaseNotesNode -eq $null) {
         $releaseNotesNode = $packageNuspecDocument.CreateElement('ns', 'releaseNotes', $namespaceUri)
-
-        $metadataNode = $packageNuspecDocument.SelectSingleNode('/ns:package/ns:metadata', $namespaceManager)
         $metadataNode.AppendChild($releaseNotesNode)
     }
 
     $releaseNotesNode.InnerText = $releaseNotes
+    $isChangedPackageNuspecDocument = $true
+}
+elseif ($releaseNotesNode -ne $null) {
+    $metadataNode.RemoveChild($releaseNotesNode)
+    $isChangedPackageNuspecDocument = $true
 }
 if ((-not [string]::IsNullOrEmpty(${releaseNotesNode}?.InnerText)) -and $releaseNotesNode.InnerText.Length -gt $releaseNotesLengthLimit) {
     $releaseNotesNode.InnerText = $releaseNotesNode.InnerText.Substring(0, $releaseNotesLengthLimit)
