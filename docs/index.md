@@ -9,6 +9,7 @@ The packages comprising Data Standardizer are themed around the types of data yo
 User guides are available for the following packages:
 
 - [DataStandardizer.Chronology](user-guides/chronology-package-guide/guide-home.md)
+- [DataStandardizer.Communication](user-guides/communication-package-guide/guide-home.md)
 - [DataStandardizer.File.CSV](user-guides/file-csv-package-guide/guide-home.md)
 - [DataStandardizer.Geography](user-guides/geography-package-guide/guide-home.md)
 - [DataStandardizer.Language](user-guides/language-package-guide/guide-home.md)
