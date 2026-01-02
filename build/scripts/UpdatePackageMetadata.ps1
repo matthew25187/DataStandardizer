@@ -59,6 +59,8 @@ $namespaceUri = "http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd"
 $namespaceManager = New-Object System.Xml.XmlNamespaceManager($packageNuspecDocument.NameTable)
 $namespaceManager.AddNamespace("ns", $namespaceUri)
 
+$metadataNode = $packageNuspecDocument.SelectSingleNode('/ns:package/ns:metadata', $namespaceManager)
+
 $isChangedPackageNuspecDocument = $false
 
 # Validate "id" property.
@@ -107,12 +109,20 @@ $releaseNotesNode = $packageNuspecDocument.SelectSingleNode('/ns:package/ns:meta
 if (-not [string]::IsNullOrWhiteSpace($releaseNotes)) {
     if ($releaseNotesNode -eq $null) {
         $releaseNotesNode = $packageNuspecDocument.CreateElement('ns', 'releaseNotes', $namespaceUri)
-
-        $metadataNode = $packageNuspecDocument.SelectSingleNode('/ns:package/ns:metadata', $namespaceManager)
         $metadataNode.AppendChild($releaseNotesNode)
     }
 
     $releaseNotesNode.InnerText = $releaseNotes
+    $isChangedPackageNuspecDocument = $true
+
+    Write-Verbose 'Applied release notes:'
+    Write-Verbose $releaseNotes
+}
+elseif ($releaseNotesNode -ne $null) {
+    $metadataNode.RemoveChild($releaseNotesNode)
+    $isChangedPackageNuspecDocument = $true
+
+    Write-Verbose 'No release notes supplied; "releaseNotes" property removed from .nuspec document.'
 }
 if ((-not [string]::IsNullOrEmpty(${releaseNotesNode}?.InnerText)) -and $releaseNotesNode.InnerText.Length -gt $releaseNotesLengthLimit) {
     $releaseNotesNode.InnerText = $releaseNotesNode.InnerText.Substring(0, $releaseNotesLengthLimit)
