@@ -16,7 +16,7 @@ Supports use of ISO 3166, "Codes for the representation of names of countries an
     <PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
     <Product>Data Standardizer</Product>
-    <Copyright>Copyright © 2024-2025, Matthew25187. All rights reserved.</Copyright>
+    <Copyright>Copyright © 2024-2026, Matthew25187. All rights reserved.</Copyright>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
     <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>

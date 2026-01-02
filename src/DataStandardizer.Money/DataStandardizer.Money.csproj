@@ -12,7 +12,7 @@ Includes:
   - Table A.1 – Current currency &amp; funds code list
   - Table A.3 – List of codes for historic denominations of currencies &amp; funds
 - Money data type as described in "Patterns of Enterprise Application Architecture" by Martin Fowler.  Combines an amount with an ISO 4217 currency code to manage a monetary value.</Description>
-    <Copyright>Copyright © 2024-2025, Matthew25187. All rights reserved.</Copyright>
+    <Copyright>Copyright © 2024-2026, Matthew25187. All rights reserved.</Copyright>
     <PackageProjectUrl>https://github.com/matthew25187/DataStandardizer</PackageProjectUrl>
     <PackageIcon>054-doc_web.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
