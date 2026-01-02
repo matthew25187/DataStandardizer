@@ -55,8 +55,9 @@ Expand-Archive -Path $packageFilePath -DestinationPath $tempPackagePath -PassThr
 $packageNuspecFilePath = Get-ChildItem $tempPackagePath -Filter "$PackageName.nuspec" | Select-Object -First 1 -ExpandProperty FullName
 $packageNuspecDocument = [xml](Get-Content $packageNuspecFilePath)
 
+$namespaceUri = "http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd"
 $namespaceManager = New-Object System.Xml.XmlNamespaceManager($packageNuspecDocument.NameTable)
-$namespaceManager.AddNamespace("ns", "http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd")
+$namespaceManager.AddNamespace("ns", $namespaceUri)
 
 $isChangedPackageNuspecDocument = $false
 
@@ -81,7 +82,7 @@ Write-Verbose "Validated 'version' property - OK."
 # Validate "description" property.
 $descriptionLengthLimit = 4000
 $descriptionNode = $packageNuspecDocument.SelectSingleNode('/ns:package/ns:metadata/ns:description', $namespaceManager)
-if ($descriptionNode -ne $null -and $descriptionNode.InnerText.Length -gt $descriptionLengthLimit) {
+if ((-not [string]::IsNullOrEmpty(${descriptionNode}?.InnerText)) -and $descriptionNode.InnerText.Length -gt $descriptionLengthLimit) {
     $descriptionNode.InnerText = $descriptionNode.InnerText.Substring(0, $descriptionLengthLimit)
     $isChangedPackageNuspecDocument = $true
 
@@ -103,13 +104,21 @@ Write-Verbose "Validated 'projectUrl' property - OK."
 $releaseNotesLengthLimit = 35000
 $releaseNotes = (-not [string]::IsNullOrEmpty($EncodedReleaseNotes)) ? ($EncodedReleaseNotes | ConvertFrom-Base64String) : [string]::Empty
 $releaseNotesNode = $packageNuspecDocument.SelectSingleNode('/ns:package/ns:metadata/ns:releaseNotes', $namespaceManager)
-if ($releaseNotesNode -ne $null -and (-not [string]::IsNullOrWhiteSpace($releaseNotes))) {
-    $releaseNotesNode.InnerText = $releaseNotes.Substring(0, $releaseNotesLengthLimit)
+if (-not [string]::IsNullOrWhiteSpace($releaseNotes)) {
+    if ($releaseNotesNode -eq $null) {
+        $releaseNotesNode = $packageNuspecDocument.CreateElement('ns', 'releaseNotes', $namespaceUri)
+
+        $metadataNode = $packageNuspecDocument.SelectSingleNode('/ns:package/ns:metadata', $namespaceManager)
+        $metadataNode.AppendChild($releaseNotesNode)
+    }
+
+    $releaseNotesNode.InnerText = $releaseNotes
+}
+if ((-not [string]::IsNullOrEmpty(${releaseNotesNode}?.InnerText)) -and $releaseNotesNode.InnerText.Length -gt $releaseNotesLengthLimit) {
+    $releaseNotesNode.InnerText = $releaseNotesNode.InnerText.Substring(0, $releaseNotesLengthLimit)
     $isChangedPackageNuspecDocument = $true
 
-    if ($releaseNotesNode.InnerText.Length -lt $releaseNotes.Length) {
-        Write-Warning "Property 'releaseNotes' truncated to $($releaseNotesNode.InnerText.Length) characters."
-    }
+    Write-Warning "Property 'releaseNotes' truncated to $releaseNotesLengthLimit characters."
 }
 
 Write-Verbose "Validated 'releaseNotes' property - OK."
@@ -126,7 +135,7 @@ Write-Verbose "Validated 'copyright' property - OK."
 # Validate "tags" property.
 $tagsLengthLimit = 4000
 $tagsNode = $packageNuspecDocument.SelectSingleNode('/ns:package/ns:metadata/ns:tags', $namespaceManager)
-if ($tagsNode -ne $null -and $tagsNode.InnerText.Length -gt $tagsLengthLimit) {
+if ((-not [string]::IsNullOrEmpty(${tagsNode}?.InnerText)) -and $tagsNode.InnerText.Length -gt $tagsLengthLimit) {
     $tagsNode.InnerText = $tagsNode.InnerText.Substring(0, $tagsLengthLimit)
     $isChangedPackageNuspecDocument = $true
 
@@ -153,7 +162,7 @@ Write-Verbose "Validated 'repository' property - OK."
 # Validate "title" property.
 $titleLengthLimit = 256
 $titleNode = $packageNuspecDocument.SelectSingleNode('/ns:package/ns:metadata/ns:title', $namespaceManager)
-if ($titleNode -ne $null -and $titleNode.InnerText.Length -gt $titleLengthLimit) {
+if ((-not [string]::IsNullOrEmpty(${titleNode}?.InnerText)) -and $titleNode.InnerText.Length -gt $titleLengthLimit) {
     $titleNode.InnerText = $titleNode.InnerText.Substring(0, $titleLengthLimit)
     $isChangedPackageNuspecDocument = $true
 
