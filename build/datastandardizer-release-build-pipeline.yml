@@ -160,13 +160,15 @@ trigger:
     include:
       - master
   paths:
+    exclude:
+      - docs
     include:
-      - docs/README.md
-      - pipelines
-      - scripts
+      - build
+      - images
       - src
-      - templates
       - tests
+      - "global.json"
+      - "*.md"
       - "*.sln"
       - "*.slnf"
 
@@ -198,111 +200,19 @@ stages:
   - stage: Configure
     displayName: "Begin"
     jobs:
-      - job: Package_versions
-        displayName: "Get package version numbers"
+      - job: Production_packages
+        displayName: 'Determine packages ready for production'
         steps:
           - checkout: self
             persistCredentials: true
             fetchDepth: 0
-          - task: AzureCLI@2
-            name: PackageCurrentVersion
-            displayName: "Declare current package version numbers"
-            inputs:
-              connectedServiceNameARM: $(SUBSCRIPTION_ID) # Required  # Select an Azure Resource Manager service connection for the deployment
-              scriptType: "pscore" # Options: 'ps', 'pscore', 'batch', 'bash' # Required  # Type of script: PowerShell/PowerShell Core/Bat/Shell script. Select Shell/PowerShell Core script when running on Linux agent or Batch/PowerShell/PowerShell Core script when running on Windows agent. PowerShell Core script can run on cross-platform agents (Linux, macOS, or Windows).
-              scriptLocation: scriptPath # Options: 'inlineScript', 'scriptPath' # Required  # Path to script: File path or Inline script
-              scriptPath: "scripts/SetPackageVersionNumbersVariable.ps1" # Required when scriptLocation = scriptPath  # Fully qualified path of the script(.ps1 or .bat or .cmd when using Windows based agent else .ps1 or .sh when using linux based agent) or a path relative to the the default working directory
-              # inlineScript:   # Required when scriptLocation = inlineScript  # You can write your scripts inline here. When using Windows agent, use PowerShell or PowerShell Core or batch scripting whereas use PowerShell Core or shell scripting when using Linux based agents. For batch files use the prefix "call" before every azure command. You can also pass predefined and custom variables to this script using arguments  example for PowerShell/PowerShellCore/shell: az --version az account show  example for batch:call  az --version call az account show
-              ${{ if and(eq(parameters.enableDebug, 'true'), eq(parameters.enableVerboseOutput, 'true')) }}:
-                scriptArguments: "-PackageList '$(packageInfos)' -VariableNamePrefix current -PipelineVariableName versionNumbers -WriteOutputVar -TraceLevel ${{parameters.traceLevel}} -Debug -Verbose" # Optional  # Arguments passed to the script
-              ${{ elseif eq(parameters.enableDebug, 'true') }}:
-                scriptArguments: "-PackageList '$(packageInfos)' -VariableNamePrefix current -PipelineVariableName versionNumbers -WriteOutputVar -TraceLevel ${{parameters.traceLevel}} -Debug" # Optional  # Arguments passed to the script
-              ${{ elseif eq(parameters.enableVerboseOutput, 'true') }}:
-                scriptArguments: "-PackageList '$(packageInfos)' -VariableNamePrefix current -PipelineVariableName versionNumbers -WriteOutputVar -TraceLevel ${{parameters.traceLevel}} -Verbose" # Optional  # Arguments passed to the script
-              ${{ else }}:
-                scriptArguments: "-PackageList '$(packageInfos)' -VariableNamePrefix current -PipelineVariableName versionNumbers -WriteOutputVar -TraceLevel ${{parameters.traceLevel}}" # Optional  # Arguments passed to the script
-              #powerShellErrorActionPreference: # Options: 'stop', 'continue', 'silentlyContinue' # Optional  # Prepends the line `ErrorActionPreference = 'VALUE'` at the top of your powershell/powershell core script.
-              #addSpnToEnvironment:  # Optional  # Adds service principal id, service principal key and tenant id of the Azure endpoint you chose to the script's execution environment. You can use variables: `servicePrincipalId`, `servicePrincipalKey` and `tenantId` in your script.This is honored only when the Azure endpoint has Service Principal authentication scheme.Syntax to access environment variables based on script type.Powershell script: env:servicePrincipalIdBatch script: %servicePrincipalId% Shell script: servicePrincipalId
-              #useGlobalConfig:  # Optional  # If this is false, this task will use its own separate [Azure CLI configuration directory](https://docs.microsoft.com/en-us/cli/azure/azure-cli-configuration?view=azure-cli-latest#cli-configuration-file). This can be used to run Azure CLI tasks in *parallel* releases
-              #cwd:  # Optional  # Current working directory where the script is run.  Empty is the root of the repo (build) or artifacts (release), which is $(System.DefaultWorkingDirectory)
-              #failOnStandardError:  # Optional  # If this is true, this task will fail when any errors are written to the StandardError stream. Unselect the checkbox to ignore standard errors and rely on exit codes to determine the status
-              #powerShellIgnoreLASTEXITCODE:  # Optional  # If this is false, the line `if ((Test-Path -LiteralPath variable://LASTEXITCODE)) { exit LASTEXITCODE }` is appended to the end of your script. This will cause the last exit code from an external command to be propagated as the exit code of powershell. Otherwise the line is not appended to the end of your script.
-            env:
-              SYSTEM_ACCESSTOKEN: $(System.AccessToken)
-          - task: PowerShell@2
-            displayName: 'Output current package version numbers'
-            inputs:
-              #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
-              filePath: 'scripts/OutputPackageVersionNumbers.ps1' # string. Required when targetType = filePath. Script Path. 
-              arguments: '-PackageVersionNumbersList $(PackageCurrentVersion.versionNumbers) -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
-              #script: # string. Required when targetType = inline. Script. 
-            # Preference Variables
-              #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
-              #warningPreference: 'default' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. WarningPreference. Default: default.
-              informationPreference: 'continue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. InformationPreference. Default: default.
-              verbosePreference: ${{ iif(eq(parameters.enableVerboseOutput, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. VerbosePreference. Default: default.
-              debugPreference: ${{ iif(eq(parameters.enableDebug, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. DebugPreference. Default: default.
-              #progressPreference: 'silentlyContinue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ProgressPreference. Default: silentlyContinue.
-            # Advanced
-              #failOnStderr: false # boolean. Fail on Standard Error. Default: false.
-              #showWarnings: false # boolean. Show warnings as Azure DevOps warnings. Default: false.
-              #ignoreLASTEXITCODE: false # boolean. Ignore $LASTEXITCODE. Default: false.
-              pwsh: true # boolean. Use PowerShell Core. Default: false.
-              #workingDirectory: # string. Working Directory. 
-              #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.                
-          - task: AzureCLI@2
-            name: PackageNextVersion
-            displayName: "Declare next package version numbers"
-            inputs:
-              connectedServiceNameARM: $(SUBSCRIPTION_ID) # Required  # Select an Azure Resource Manager service connection for the deployment
-              scriptType: "pscore" # Options: 'ps', 'pscore', 'batch', 'bash' # Required  # Type of script: PowerShell/PowerShell Core/Bat/Shell script. Select Shell/PowerShell Core script when running on Linux agent or Batch/PowerShell/PowerShell Core script when running on Windows agent. PowerShell Core script can run on cross-platform agents (Linux, macOS, or Windows).
-              scriptLocation: scriptPath # Options: 'inlineScript', 'scriptPath' # Required  # Path to script: File path or Inline script
-              scriptPath: "scripts/SetPackageVersionNumbersVariable.ps1" # Required when scriptLocation = scriptPath  # Fully qualified path of the script(.ps1 or .bat or .cmd when using Windows based agent else .ps1 or .sh when using linux based agent) or a path relative to the the default working directory
-              # inlineScript:   # Required when scriptLocation = inlineScript  # You can write your scripts inline here. When using Windows agent, use PowerShell or PowerShell Core or batch scripting whereas use PowerShell Core or shell scripting when using Linux based agents. For batch files use the prefix "call" before every azure command. You can also pass predefined and custom variables to this script using arguments  example for PowerShell/PowerShellCore/shell: az --version az account show  example for batch:call  az --version call az account show
-              ${{ if and(eq(parameters.enableDebug, 'true'), eq(parameters.enableVerboseOutput, 'true')) }}:
-                scriptArguments: "-PackageList '$(packageInfos)' -VariableNamePrefix next -PipelineVariableName versionNumbers -WriteOutputVar -TraceLevel ${{parameters.traceLevel}} -Debug -Verbose" # Optional  # Arguments passed to the script
-              ${{ elseif eq(parameters.enableDebug, 'true') }}:
-                scriptArguments: "-PackageList '$(packageInfos)' -VariableNamePrefix next -PipelineVariableName versionNumbers -WriteOutputVar -TraceLevel ${{parameters.traceLevel}} -Debug" # Optional  # Arguments passed to the script
-              ${{ elseif eq(parameters.enableVerboseOutput, 'true') }}:
-                scriptArguments: "-PackageList '$(packageInfos)' -VariableNamePrefix next -PipelineVariableName versionNumbers -WriteOutputVar -TraceLevel ${{parameters.traceLevel}} -Verbose" # Optional  # Arguments passed to the script
-              ${{ else }}:
-                scriptArguments: "-PackageList '$(packageInfos)' -VariableNamePrefix next -PipelineVariableName versionNumbers -WriteOutputVar -TraceLevel ${{parameters.traceLevel}}" # Optional  # Arguments passed to the script
-              #powerShellErrorActionPreference: # Options: 'stop', 'continue', 'silentlyContinue' # Optional  # Prepends the line `ErrorActionPreference = 'VALUE'` at the top of your powershell/powershell core script.
-              #addSpnToEnvironment:  # Optional  # Adds service principal id, service principal key and tenant id of the Azure endpoint you chose to the script's execution environment. You can use variables: `servicePrincipalId`, `servicePrincipalKey` and `tenantId` in your script.This is honored only when the Azure endpoint has Service Principal authentication scheme.Syntax to access environment variables based on script type.Powershell script: env:servicePrincipalIdBatch script: %servicePrincipalId% Shell script: servicePrincipalId
-              #useGlobalConfig:  # Optional  # If this is false, this task will use its own separate [Azure CLI configuration directory](https://docs.microsoft.com/en-us/cli/azure/azure-cli-configuration?view=azure-cli-latest#cli-configuration-file). This can be used to run Azure CLI tasks in *parallel* releases
-              #cwd:  # Optional  # Current working directory where the script is run.  Empty is the root of the repo (build) or artifacts (release), which is $(System.DefaultWorkingDirectory)
-              #failOnStandardError:  # Optional  # If this is true, this task will fail when any errors are written to the StandardError stream. Unselect the checkbox to ignore standard errors and rely on exit codes to determine the status
-              #powerShellIgnoreLASTEXITCODE:  # Optional  # If this is false, the line `if ((Test-Path -LiteralPath variable://LASTEXITCODE)) { exit LASTEXITCODE }` is appended to the end of your script. This will cause the last exit code from an external command to be propagated as the exit code of powershell. Otherwise the line is not appended to the end of your script.
-            env:
-              SYSTEM_ACCESSTOKEN: $(System.AccessToken)
-          - task: PowerShell@2
-            displayName: 'Output next package version numbers'
-            inputs:
-              #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
-              filePath: 'scripts/OutputPackageVersionNumbers.ps1' # string. Required when targetType = filePath. Script Path. 
-              arguments: '-PackageVersionNumbersList $(PackageNextVersion.versionNumbers) -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
-              #script: # string. Required when targetType = inline. Script. 
-            # Preference Variables
-              #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
-              #warningPreference: 'default' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. WarningPreference. Default: default.
-              informationPreference: 'continue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. InformationPreference. Default: default.
-              verbosePreference: ${{ iif(eq(parameters.enableVerboseOutput, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. VerbosePreference. Default: default.
-              debugPreference: ${{ iif(eq(parameters.enableDebug, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. DebugPreference. Default: default.
-              #progressPreference: 'silentlyContinue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ProgressPreference. Default: silentlyContinue.
-            # Advanced
-              #failOnStderr: false # boolean. Fail on Standard Error. Default: false.
-              #showWarnings: false # boolean. Show warnings as Azure DevOps warnings. Default: false.
-              #ignoreLASTEXITCODE: false # boolean. Ignore $LASTEXITCODE. Default: false.
-              pwsh: true # boolean. Use PowerShell Core. Default: false.
-              #workingDirectory: # string. Working Directory. 
-              #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.                
           - task: PowerShell@2
             name: ChangedPackages
-            displayName: 'Determine changed packages'
+            displayName: 'Find changed packages'
             inputs:
               #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
-              filePath: 'scripts/DetermineChangedPackages.ps1' # string. Required when targetType = filePath. Script Path. 
-              arguments: '-PackageList ''${{variables.packageInfos}}'' -SourceCommitHash $(Build.SourceVersion) -SourceBranch $(Build.SourceBranch) -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
+              filePath: 'build/scripts/FindChangedPackages.ps1' # string. Required when targetType = filePath. Script Path. 
+              arguments: '-PackageList ''${{variables.packageInfos}}'' -SourceCommitHash $(Build.SourceVersion) -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
               #script: # string. Required when targetType = inline. Script. 
             # Preference Variables
               #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
@@ -320,10 +230,10 @@ stages:
               #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.
           - task: PowerShell@2
             name: TestPackages
-            displayName: 'Determine test packages'
+            displayName: 'Find test packages'
             inputs:
               #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
-              filePath: 'scripts/DetermineTestPackages.ps1' # string. Required when targetType = filePath. Script Path. 
+              filePath: 'build/scripts/FindTestPackages.ps1' # string. Required when targetType = filePath. Script Path. 
               arguments: '-PackageInfos ''${{variables.packageInfos}}'' -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
               #script: # string. Required when targetType = inline. Script. 
             # Preference Variables
@@ -340,189 +250,137 @@ stages:
               pwsh: true # boolean. Use PowerShell Core. Default: false.
               #workingDirectory: # string. Working Directory. 
               #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.              
-          - pwsh: |
-              function ConvertFrom-Base64String {
-                  param (
-                      # Input.
-                      [Parameter(Mandatory, ValueFromPipeline)]
-                      [string]    $InputObject
-                  )
-                  
-                  process {
-                      $inputBytes = [System.Convert]::FromBase64String($InputObject)
-                      return [System.Text.Encoding]::UTF8.GetString($inputBytes)
-                  }
-              }
-
-              function ConvertTo-Base64String {
-                  param (
-                      # Input.
-                      [Parameter(Mandatory, ValueFromPipeline)]
-                      [string]    $InputObject
-                  )
-                  
-                  process {
-                      $inputBytes = [System.Text.Encoding]::UTF8.GetBytes($InputObject)
-                      return [System.Convert]::ToBase64String($inputBytes)
-                  }
-              }
-
-              if ('${{parameters.enableDebug}}' -eq $true) {
-                  $DebugPreference = 'Continue'
-              }
-              if (${{parameters.traceLevel}} -gt 0) {
-                  Set-PSDebug -Trace ${{parameters.traceLevel}}
-              }
-
-              $requiredPackageNames = [System.Linq.Enumerable]::Union[string](('${{variables.buildRequiredPackageNames}}' -split ','), ('${{variables.publicationRequiredPackageNames}}' -split ','))
-              $productionPackageNames = [System.Linq.Enumerable]::ToArray([System.Linq.Enumerable]::Union[string]($requiredPackageNames, ("$(ChangedPackages.changedPackageNames)" -split ',')))
-
-              $buildRequiredPackageCount = (-not [string]::IsNullOrEmpty('${{variables.buildRequiredPackageNames}}'))?('${{variables.buildRequiredPackageNames}}' -split ',').Count:0
-              Write-Information "Found $buildRequiredPackageCount packages required to build." -InformationAction Continue
-
-              $publicationRequiredPackageCount = (-not [string]::IsNullOrEmpty('${{variables.publicationRequiredPackageNames}}'))?('${{variables.publicationRequiredPackageNames}}' -split ',').Count:0
-              Write-Information "Found $publicationRequiredPackageCount packages required to publish." -InformationAction Continue
-
-              $changedPackageCount = (-not [string]::IsNullOrEmpty("$(ChangedPackages.changedPackageNames)"))?("$(ChangedPackages.changedPackageNames)" -split ',').Count:0
-              Write-Information "Found $changedPackageCount packages have changed." -InformationAction Continue
-
-              $packageNewVersionNumbers = @()
-              $packageUpdatedVersionNumbers = @()
-              '${{variables.packageInfos}}'
-              | ConvertFrom-Json 
-              | Where-Object -Property packageName -In $productionPackageNames
-              | ForEach-Object {
-                  $packageName = $_.packageName
-                  $packageNextVersionNumber = "$(PackageNextVersion.versionNumbers)" | ConvertFrom-Base64String | ConvertFrom-Json | Where-Object -Property PackageName -EQ $packageName
-
-                  # Calculate new package version numbers.
-                  $newMajorNumber = $packageNextVersionNumber.PackageVersion.Major
-                  $newMinorNumber = $packageNextVersionNumber.PackageVersion.Minor
-                  $newPatchNumber = $packageNextVersionNumber.PackageVersion.Build
-                  $newPreviewNumber = 0
-                  $packageNewVersionNumbersInfo = [PSCustomObject]@{
-                      PackageName    = $packageNextVersionNumber.PackageName
-                      PackageVersion = [version]($newMajorNumber, $newMinorNumber, $newPatchNumber, $newPreviewNumber -join '.')
-                  }
-                  $packageNewVersionNumbers += $packageNewVersionNumbersInfo
-
-                  # Calculate updated package version numbers.
-                  $updatedMajorNumber = $packageNextVersionNumber.PackageVersion.Major
-                  $updatedMinorNumber = $packageNextVersionNumber.PackageVersion.Minor
-                  $updatedPatchNumber = $packageNextVersionNumber.PackageVersion.Build
-                  $updatedPreviewNumber = $packageNextVersionNumber.PackageVersion.Revision
-
-                  $updatedNumbers = $updatedMajorNumber, $updatedMinorNumber, $updatedPatchNumber, $updatedPreviewNumber
-                  $incrementFromIndex = $updatedNumbers.Count - 1    # default to incrementing the preview number
-                  if ("$(Build.SourceBranch)" -eq 'refs/heads/master') {
-                      $incrementFromIndex = 1 # increment minor number
-                  }
-                  for ($versionPartIndex = $incrementFromIndex; $versionPartIndex -lt $updatedNumbers.Count; $versionPartIndex++) {
-                      if ($versionPartIndex -eq $incrementFromIndex) {
-                          $updatedNumbers[$versionPartIndex]++
-                      }
-                      elseif ($versionPartIndex -gt $incrementFromIndex) {
-                          $updatedNumbers[$versionPartIndex] = 0
-                      }
-                  }
-                  $packageUpdatedVersionNumbersInfo = [PSCustomObject]@{
-                      PackageName    = $packageNextVersionNumber.PackageName
-                      PackageVersion = [version]($updatedNumbers[0], $updatedNumbers[1], $updatedNumbers[2], $updatedNumbers[3] -join '.')
-                  }
-                  $packageUpdatedVersionNumbers += $packageUpdatedVersionNumbersInfo
-              }
-
-              if ($packageNewVersionNumbers.Count -gt 0) {
-                  Write-Host "##vso[task.setvariable variable=newVersionNumbers;isOutput=true]$($packageNewVersionNumbers|ConvertTo-Json|ConvertTo-Base64String)"
-
-                  Write-Information "Calculated new version numbers for $($packageNewVersionNumbers.Count) packages." -InformationAction Continue
-                  Write-Debug 'New package version numbers:'
-                  $packageNewVersionNumbers | ForEach-Object { Write-Debug "Package $($_.PackageName): v$([version] ($_.PackageVersion.Major,$_.PackageVersion.Minor,$_.PackageVersion.Build,$_.PackageVersion.Revision -join '.'))" }
-              }
-              else {
-                  Write-Error 'Expected to have calculated new version numbers for packages but found none.'
-              }
-
-              if ($packageUpdatedVersionNumbers.Count -gt 0) {
-                  Write-Host "##vso[task.setvariable variable=updatedVersionNumbers;isOutput=true]$($packageUpdatedVersionNumbers|ConvertTo-Json|ConvertTo-Base64String)"
-
-                  Write-Information "Calculated updated version numbers for $($packageUpdatedVersionNumbers.Count) packages." -InformationAction Continue
-                  Write-Debug 'Updated package version numbers:'
-                  $packageUpdatedVersionNumbers | ForEach-Object { Write-Debug "Package $($_.PackageName): v$([version] ($_.PackageVersion.Major,$_.PackageVersion.Minor,$_.PackageVersion.Build,$_.PackageVersion.Revision -join '.'))" }
-              }
-              else {
-                  Write-Error 'Expected to have calculated updated version numbers for packages but found none.'
-              }
-            name: PackageVersionNumbers
-            displayName: "Declare new version numbers for production packages"
+      - job: Version_numbering
+        displayName: 'Calculate version numbers' # Human-readable name for the job.
+        variables:
+          versionNumberList: ''
+        pool:
+          vmImage: windows-latest
+        steps:
+        # NuGet tool installer v1
+        # Acquires a specific version of NuGet from the internet or the tools cache and adds it to the PATH. Use this task to change the version of NuGet used in the NuGet tasks.
+        - task: NuGetToolInstaller@1
+          # inputs:
+          # Advanced
+            #versionSpec: # string. Version of NuGet.exe to install. 
+            # checkLatest: false # boolean. Always check for new versions. Default: false.
+        # NuGet authenticate v1
+        # Configure NuGet tools to authenticate with Azure Artifacts and other NuGet repositories. Requires NuGet >= 4.8.5385, dotnet >= 6, or MSBuild >= 15.8.166.59604.
+        - task: NuGetAuthenticate@1
+          # inputs:
+          #   forceReinstallCredentialProvider: false # boolean. Reinstall the credential provider even if already installed. Default: false.
+            #nuGetServiceConnections: # string. Service connection credentials for feeds outside this organization.            
+        - ${{ each packageName in split(variables.allPackageNames, ',') }}:
+          # Azure CLI v2
+          # Run Azure CLI commands against an Azure subscription in a PowerShell Core/Shell script when running on Linux agent or PowerShell/PowerShell Core/Batch script when running on Windows agent.
+          - task: AzureCLI@2
+            displayName: "[${{ packageName }}] Declare required versions"
+            inputs:
+              azureSubscription: $(SUBSCRIPTION_ID) # string. Alias: connectedServiceNameARM. Required. Azure Resource Manager connection. 
+              scriptType: 'pscore' # 'ps' | 'pscore' | 'batch' | 'bash'. Required. Script Type. 
+              scriptLocation: 'scriptPath' # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
+              scriptPath: 'build/scripts/DeclareRequiredVersionNumbers.ps1' # string. Required when scriptLocation = scriptPath. Script Path. 
+              # inlineScript: # string. Required when scriptLocation = inlineScript. Inline Script. 
+              arguments: '-PackageName ''${{ packageName }}'' -PackageInfos ''${{variables.packageInfos}}'' -TempPath ''$(Agent.TempDirectory)'' -OutputInformationPreference ''Continue'' -OutputVerbosePreference ${{iif(eq(parameters.enableVerboseOutput, ''true''), ''Continue'', ''SilentlyContinue'')}} -OutputDebugPreference ${{iif(eq(parameters.enableDebug, ''true''), ''Continue'', ''SilentlyContinue'')}} -TraceLevel ${{parameters.traceLevel}}' # string. Alias: scriptArguments. Script Arguments. 
+              #powerShellErrorActionPreference: 'stop' # 'stop' | 'continue' | 'silentlyContinue'. Optional. Use when scriptType = ps || scriptType = pscore. ErrorActionPreference. Default: stop.
+            env:
+              SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+          # PowerShell v2
+          # Run a PowerShell script on Linux, macOS, or Windows.
+          - task: PowerShell@2
+            condition: | # Evaluate this condition expression to determine whether to run this task.
+              and
+              (
+                succeeded(), 
+                or(and(gt(length(coalesce(variables.publicationRequiredPackageNames, '')), 0), containsValue(split(variables.publicationRequiredPackageNames, ','), '${{ packageName }}')), and(gt(length(coalesce(variables['ChangedPackages.changedPackageNames'], '')), 0), containsValue(split(variables['ChangedPackages.changedPackageNames'], ','), '${{ packageName }}')))
+              )
+            displayName: '[${{ packageName }}] Calculate optional versions' # Human-readable name for the task.
+            inputs:
+              #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
+              filePath: 'build/scripts/DeclareOptionalVersionNumbers.ps1' # string. Required when targetType = filePath. Script Path. 
+              arguments: '-PackageName ''${{ packageName }}'' -SourceBranch ''$(Build.SourceBranch)'' -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
+              #script: # string. Required when targetType = inline. Script. 
+            # Preference Variables
+              #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
+              #warningPreference: 'default' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. WarningPreference. Default: default.
+              informationPreference: 'continue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. InformationPreference. Default: default.
+              verbosePreference: ${{ iif(eq(parameters.enableVerboseOutput, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. VerbosePreference. Default: default.
+              debugPreference: ${{ iif(eq(parameters.enableDebug, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. DebugPreference. Default: default.
+              #progressPreference: 'silentlyContinue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ProgressPreference. Default: silentlyContinue.
+            # Advanced
+              #failOnStderr: false # boolean. Fail on Standard Error. Default: false.
+              #showWarnings: false # boolean. Show warnings as Azure DevOps warnings. Default: false.
+              #ignoreLASTEXITCODE: false # boolean. Ignore $LASTEXITCODE. Default: false.
+              #pwsh: false # boolean. Use PowerShell Core. Default: false.
+              #workingDirectory: # string. Working Directory. 
+              #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.            
+        # PowerShell v2
+        # Run a PowerShell script on Linux, macOS, or Windows.
+        - task: PowerShell@2
+          # condition: string # Evaluate this condition expression to determine whether to run this task.
+          displayName: 'Output package versions list' # Human-readable name for the task.
+          name: PromoteVersionList # ID of the step.
+          inputs:
+            #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
+            filePath: 'build/scripts/OutputVersionVars.ps1' # string. Required when targetType = filePath. Script Path. 
+            arguments: '-TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
+            #script: # string. Required when targetType = inline. Script. 
+          # Preference Variables
+            #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
+            #warningPreference: 'default' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. WarningPreference. Default: default.
+            informationPreference: 'continue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. InformationPreference. Default: default.
+            verbosePreference: ${{ iif(eq(parameters.enableVerboseOutput, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. VerbosePreference. Default: default.
+            debugPreference: ${{ iif(eq(parameters.enableDebug, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. DebugPreference. Default: default.
+            #progressPreference: 'silentlyContinue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ProgressPreference. Default: silentlyContinue.
+          # Advanced
+            #failOnStderr: false # boolean. Fail on Standard Error. Default: false.
+            #showWarnings: false # boolean. Show warnings as Azure DevOps warnings. Default: false.
+            #ignoreLASTEXITCODE: false # boolean. Ignore $LASTEXITCODE. Default: false.
+            pwsh: true # boolean. Use PowerShell Core. Default: false.
+            #workingDirectory: # string. Working Directory. 
+            #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.          
+      # Update the "next version numbers" stored in the pipeline for each changed package, in effect reserving those new numbers for the current pipeline run.
+      - job: Version_reservation # Required as first property. ID of the job.
+        displayName: 'Reserve production version numbers' # Human-readable name for the job.
+        dependsOn:  # Any jobs which must complete before this one.
+          - Production_packages
+          - Version_numbering
+        # continueOnError: string # Continue running even on failure?
+        # timeoutInMinutes: string # Time to wait for this job to complete before the server kills it.
+        # cancelTimeoutInMinutes: string # Time to wait for the job to cancel before forcibly terminating it.
+        variables:  # Job-specific variables.
+          changedPackageNames: $[ dependencies.Production_packages.outputs['ChangedPackages.changedPackageNames'] ]
+          versionNumbers: $[ dependencies.Version_numbering.outputs['PromoteVersionList.versionNumberList'] ]
+        steps:  # A list of steps to run.
+        - ${{ each packageName in split(variables.allPackageNames, ',') }}:
+          # Azure CLI v2
+          # Run Azure CLI commands against an Azure subscription in a PowerShell Core/Shell script when running on Linux agent or PowerShell/PowerShell Core/Batch script when running on Windows agent.
+          - task: AzureCLI@2
+            displayName: '[${{ packageName }}] Reserve production versions' # Human-readable name for the task.
             condition: |
               and
               (
                 succeeded(), 
-                or(and(gt(length(coalesce(variables.buildRequiredPackageNames, '')), 0), gt(length(split(variables.buildRequiredPackageNames, ',')), 0)), and(gt(length(coalesce(variables.publicationRequiredPackageNames, '')), 0), gt(length(split(variables.publicationRequiredPackageNames, ',')), 0)), and(gt(length(coalesce(variables['ChangedPackages.changedPackageNames'], '')), 0), gt(length(split(variables['ChangedPackages.changedPackageNames'], ',')), 0)))
+                or(and(gt(length(coalesce(variables.publicationRequiredPackageNames, '')), 0), containsValue(split(variables.publicationRequiredPackageNames, ','), '${{ packageName }}')), and(gt(length(coalesce(variables['changedPackageNames'], '')), 0), containsValue(split(variables['changedPackageNames'], ','), '${{ packageName }}')))
               )
-          # Update the "next version numbers" stored in the pipeline library for each changed package, in effect reserving those new numbers for the current pipeline run.
-          - ${{ each packageName in split(variables.allPackageNames, ',') }}:
-              - task: AzureCLI@2
-                displayName: "[${{ packageName }}] Update next package version number"
-                condition: |
-                  and
-                  (
-                    succeeded(), 
-                    or(and(gt(length(coalesce(variables.publicationRequiredPackageNames, '')), 0), containsValue(split(variables.publicationRequiredPackageNames, ','), '${{ packageName }}')), and(gt(length(coalesce(variables['ChangedPackages.changedPackageNames'], '')), 0), containsValue(split(variables['ChangedPackages.changedPackageNames'], ','), '${{ packageName }}')))
-                  )                
-                inputs:
-                  azureSubscription: $(SUBSCRIPTION_ID) # string. Alias: connectedServiceNameARM. Required. Azure Resource Manager connection.
-                  scriptType: "pscore" # 'ps' | 'pscore' | 'batch' | 'bash'. Required. Script Type.
-                  scriptLocation: "inlineScript" # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
-                  # scriptPath: # string. Required when scriptLocation = scriptPath. Script Path.
-                  inlineScript: | # string. Required when scriptLocation = inlineScript. Inline Script.
-                    function ConvertFrom-Base64String {
-                        param (
-                            # Input.
-                            [Parameter(Mandatory, ValueFromPipeline)]
-                            [string]    $InputObject
-                        )
-                        
-                        process {
-                            $inputBytes = [System.Convert]::FromBase64String($InputObject)
-                            return [System.Text.Encoding]::UTF8.GetString($inputBytes)
-                        }
-                    }
-
-                    if (${{parameters.traceLevel}} -gt 0) {
-                        Set-PSDebug -Trace ${{parameters.traceLevel}}
-                    }
-
-                    # Set environment variable for current process.
-                    $env:AZURE_DEVOPS_EXT_PAT = $env:SYSTEM_ACCESSTOKEN
-
-                    # Get information about the current package.
-                    $packageInfo = '${{ variables.packageInfos }}' | ConvertFrom-Json | Where-Object -Property packageName -EQ '${{ packageName }}'
-                    if ($null -eq $packageInfo) {
-                        Write-Error 'Package information for ${{ packageName }} not found.'
-                    }
-
-                    # Extract updated version numbers.
-                    $packageUpdatedVersionNumbersInfo = "$(PackageVersionNumbers.updatedVersionNumbers)" | ConvertFrom-Base64String | ConvertFrom-Json | Where-Object -Property PackageName -EQ $packageInfo.packageName
-                    [version] $packageUpdatedVersionNumber = ($packageUpdatedVersionNumbersInfo.PackageVersion.Major, $packageUpdatedVersionNumbersInfo.PackageVersion.Minor, $packageUpdatedVersionNumbersInfo.PackageVersion.Build, $packageUpdatedVersionNumbersInfo.PackageVersion.Revision -join '.')
-
-                    # Update version numbers in pipeline.
-                    az devops configure -d organization=${env:ORGANIZATION_URL}
-                    az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name next-major-number --project ${env:PROJECT_NAME} --value $packageUpdatedVersionNumber.Major --verbose
-                    az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name next-minor-number --project ${env:PROJECT_NAME} --value $packageUpdatedVersionNumber.Minor --verbose
-                    az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name next-patch-number --project ${env:PROJECT_NAME} --value $packageUpdatedVersionNumber.Build --verbose
-                    az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name next-preview-number --project ${env:PROJECT_NAME} --value $packageUpdatedVersionNumber.Revision --verbose
-                  #arguments: # string. Alias: scriptArguments. Script Arguments.
-                  #powerShellErrorActionPreference: 'stop' # 'stop' | 'continue' | 'silentlyContinue'. Optional. Use when scriptType = ps || scriptType = pscore. ErrorActionPreference. Default: stop.
-                env:
-                  SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+            inputs:
+              azureSubscription: $(SUBSCRIPTION_ID) # string. Alias: connectedServiceNameARM. Required. Azure Resource Manager connection. 
+              scriptType: 'pscore' # 'ps' | 'pscore' | 'batch' | 'bash'. Required. Script Type. 
+              scriptLocation: 'scriptPath' # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
+              scriptPath: 'build/scripts/ReserveProductionVersionNumbers.ps1' # string. Required when scriptLocation = scriptPath. Script Path. 
+              #inlineScript: # string. Required when scriptLocation = inlineScript. Inline Script. 
+              arguments: '-PackageName ''${{ packageName }}'' -PackageInfos ''${{variables.packageInfos}}'' -EncodedPackageVersions ''$(versionNumbers)'' -TraceLevel ${{parameters.traceLevel}}' # string. Alias: scriptArguments. Script Arguments. 
+              #powerShellErrorActionPreference: 'stop' # 'stop' | 'continue' | 'silentlyContinue'. Optional. Use when scriptType = ps || scriptType = pscore. ErrorActionPreference. Default: stop.
+            env:
+              SYSTEM_ACCESSTOKEN: $(System.AccessToken)
   - stage: Build
     dependsOn: Configure
     variables:
-      changedPackageNames: $[stageDependencies.Configure.Package_versions.outputs['ChangedPackages.changedPackageNames']]
-      packageCurrentVersionNumbersList: $[stageDependencies.Configure.Package_versions.outputs['PackageCurrentVersion.versionNumbers']]
-      packageNewVersionNumbersList: $[stageDependencies.Configure.Package_versions.outputs['PackageVersionNumbers.newVersionNumbers']]
+      changedPackageNames: $[stageDependencies.Configure.Production_packages.outputs['ChangedPackages.changedPackageNames']]
+      versionNumbers: $[stageDependencies.Configure.Version_numbering.outputs['PromoteVersionList.versionNumberList']]
+      hasAssemblyVersionNumbers: $[stageDependencies.Configure.Version_numbering.outputs['PromoteVersionList.hasAssemblyVersionPackageNames']]
+      hasAssemblyFileVersionNumbers: $[stageDependencies.Configure.Version_numbering.outputs['PromoteVersionList.hasAssemblyFileVersionPackageNames']]
+      hasAssemblyInformationalVersionNumbers: $[stageDependencies.Configure.Version_numbering.outputs['PromoteVersionList.hasAssemblyInformationalVersionPackageNames']]
     jobs:
     - ${{ each packageName in split(variables.allPackageNames, ',') }}:
       - job: 
@@ -552,7 +410,7 @@ stages:
         # Use .NET Core v2
         # Acquires a specific version of the .NET Core SDK from the internet or the local cache and adds it to the PATH. Use this task to change the version of .NET Core used in subsequent tasks. Additionally provides proxy support.
         - task: UseDotNet@2
-          displayName: 'Install .NET SDK 10.0.100'
+          displayName: '[${{packageName}}] Install .NET SDK'
           inputs:
             #packageType: 'sdk' # 'runtime' | 'sdk'. Package to install. Default: sdk.
             useGlobalJson: true # boolean. Optional. Use when packageType = sdk. Use global json. Default: false.
@@ -560,12 +418,93 @@ stages:
             #version: # string. Optional. Use when useGlobalJson = false || packageType = runtime. Version. 
             #includePreviewVersions: false # boolean. Optional. Use when useGlobalJson = false  || packageType = runtime. Include Preview Versions. Default: false.
             #requestTimeout: '300000' # string. Set timeout for package download request. Default: 300000.
-          # Advanced
-            #vsVersion: # string. Compatible Visual Studio version. 
-            #installationPath: '$(Agent.ToolsDirectory)/dotnet' # string. Path To Install .Net Core. Default: $(Agent.ToolsDirectory)/dotnet.
-            #performMultiLevelLookup: false # boolean. Perform Multi Level Lookup. Default: false.        
+        - ${{ each dependencyPackageName in split(variables.allPackageNames, ',') }}:
+          - ${{ if ne(dependencyPackageName, packageName) }}:
+            - pwsh: | # Required as first property. Inline PowerShell script.
+                Import-Module "$(Build.SourcesDirectory)/build/psmodules/CommonHelpers/CommonHelpers.psm1" -Force
+
+                if (${{parameters.traceLevel}} -gt 0) {
+                    Set-PSDebug -Trace ${{parameters.traceLevel}}
+                }
+
+                $packageInfo = '${{variables.packageInfos}}'
+                | ConvertFrom-Json
+                | Where-Object -Property packageName -EQ -Value '${{dependencyPackageName}}'
+                if ($null -eq $packageInfo) {
+                    Write-Error 'Package information not found for ${{dependencyPackageName}}'
+                }
+                $projectSourcePath = '$(Build.SourcesDirectory)' | Join-Path -ChildPath "$($packageInfo.packageSourcePath)"
+
+                $packageVersions = '$(versionNumbers)'
+                | ConvertFrom-Base64String 
+                | ConvertFrom-Json
+                | Where-Object -Property PackageName -EQ -Value '${{dependencyPackageName}}'
+                if ($null -eq $packageVersions) {
+                    Write-Error 'Package versions not found for ${{dependencyPackageName}}'
+                }
+                [version]$productionAssemblyVersion = $packageVersions.AssemblyProductionVersion
+
+                Write-Host "##vso[task.setvariable variable=versioningPath]$projectSourcePath"
+                Write-Host "##vso[task.setvariable variable=versioningNumber]$productionAssemblyVersion"
+              # errorActionPreference: string # Unless otherwise specified, the error action preference defaults to the value stop. See the following section for more information.
+              # failOnStderr: string # Fail the task if output is sent to Stderr?
+              # ignoreLASTEXITCODE: string # Check the final exit code of the script to determine whether the step succeeded?
+              # workingDirectory: string # Start the script with this working directory.
+              # condition: string # Evaluate this condition expression to determine whether to run this task.
+              # continueOnError: boolean # Continue running even on failure?
+              displayName: '[${{packageName}}] Prepare arguments for Assembly Version' # Human-readable name for the task.
+            # Version .NET Assemblies (Core/5/6 and later)
+            # Description - Applies a version to a .NET Assemblies (Core/5/6 and later) via the .csproj files based on the build number. Based on Microsoft sample from https://msdn.microsoft.com/Library/vs/alm/Build/overview
+            - task: VersionDotNetCoreAssemblies@3
+              displayName: '[${{packageName}}] Apply Assembly Version to ${{dependencyPackageName}}' # Human-readable name for the task.
+              inputs: 
+                # Required arguments
+                Path: $(versioningPath)
+                VersionNumber: $(versioningNumber)
+                Injectversion: True
+                FilenamePattern: .csproj
+                AddDefault: true
+                Field: AssemblyVersion
+                OutputVersion: AppliedVersion
+            # PowerShell v2
+            # Run a PowerShell script on Linux, macOS, or Windows.
+            - task: PowerShell@2
+              displayName: '[${{packageName}}] Confirm Assembly Version for ${{dependencyPackageName}}' # Human-readable name for the task.
+              inputs:
+                targetType: 'inline' # 'filePath' | 'inline'. Type. Default: filePath.
+                # filePath: # string. Required when targetType = filePath. Script Path. 
+                #arguments: # string. Optional. Use when targetType = filePath. Arguments. 
+                script: | # string. Required when targetType = inline. Script. 
+                  if (${{parameters.traceLevel}} -gt 0) {
+                      Set-PSDebug -Trace ${{parameters.traceLevel}}
+                  }
+
+                  # Get version numbers.
+                  [version]$productionAssemblyVersion = '$(versioningNumber)'
+                  [version]$appliedVersion = '$(AppliedVersion)'
+
+                  # Show version number applied.
+                  if ($appliedVersion -ne $productionAssemblyVersion) {
+                      Write-Error "Failed to apply Assembly version $productionAssemblyVersion; actual version was $appliedVersion."
+                  }
+
+                  Write-Information "Applied version $appliedVersion to ${{dependencyPackageName}}."
+              # Preference Variables
+                #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
+                #warningPreference: 'default' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. WarningPreference. Default: default.
+                informationPreference: 'continue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. InformationPreference. Default: default.
+                verbosePreference: ${{ iif(eq(parameters.enableVerboseOutput, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. VerbosePreference. Default: default.
+                debugPreference: ${{ iif(eq(parameters.enableDebug, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. DebugPreference. Default: default.
+                #progressPreference: 'silentlyContinue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ProgressPreference. Default: silentlyContinue.
+              # Advanced
+                #failOnStderr: false # boolean. Fail on Standard Error. Default: false.
+                #showWarnings: false # boolean. Show warnings as Azure DevOps warnings. Default: false.
+                #ignoreLASTEXITCODE: false # boolean. Ignore $LASTEXITCODE. Default: false.
+                #pwsh: false # boolean. Use PowerShell Core. Default: false.
+                #workingDirectory: # string. Working Directory. 
+                #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.              
         - task: DotNetCoreCLI@2
-          displayName: 'Restore solution package dependencies'
+          displayName: '[${{packageName}}] Restore solution package dependencies'
           inputs:
             #azureSubscription: # string. Alias: ConnectedServiceName. Azure Resource Manager connection. 
             command: 'restore' # 'build' | 'push' | 'pack' | 'publish' | 'restore' | 'run' | 'test' | 'custom'. Required. Command. Default: build.
@@ -599,17 +538,12 @@ stages:
             noCache: false # boolean. Optional. Use when command = restore. Disable local cache. Default: false.
             #restoreDirectory: # string. Alias: packagesDirectory. Optional. Use when command = restore. Destination directory. 
             verbosityRestore: 'Detailed' # '-' | 'Quiet' | 'Minimal' | 'Normal' | 'Detailed' | 'Diagnostic'. Optional. Use when command = restore. Verbosity. Default: Normal.
-          # Advanced
-            #buildProperties: # string. Optional. Use when command = pack. Additional build properties. 
-            #verbosityPack: 'Normal' # '-' | 'Quiet' | 'Minimal' | 'Normal' | 'Detailed' | 'Diagnostic'. Optional. Use when command = pack. Verbosity. Default: Normal.
-          # Advanced
-            #workingDirectory: # string. Optional. Use when command != restore && command != push && command != pack. Working directory.
         - task: PowerShell@2
-          displayName: 'Set build arguments'
+          displayName: '[${{packageName}}] Set build arguments'
           inputs:
             #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
-            filePath: 'scripts/SetBuildTemplateArguments.ps1' # string. Required when targetType = filePath. Script Path. 
-            arguments: '-PackageName ${{packageName}} -PackageInfos ''${{variables.packageInfos}}'' -PackageCurrentVersionNumbersList ''$(packageCurrentVersionNumbersList)'' -PackageNewVersionNumbersList ''$(packageNewVersionNumbersList)'' -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
+            filePath: 'build/scripts/SetBuildTemplateArguments.ps1' # string. Required when targetType = filePath. Script Path. 
+            arguments: '-PackageName ${{packageName}} -PackageInfos ''${{variables.packageInfos}}'' -EncodedPackageVersions ''$(versionNumbers)'' -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
             #script: # string. Required when targetType = inline. Script. 
           # Preference Variables
             #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
@@ -624,7 +558,58 @@ stages:
             #ignoreLASTEXITCODE: false # boolean. Ignore $LASTEXITCODE. Default: false.
             pwsh: true # boolean. Use PowerShell Core. Default: false.
             #workingDirectory: # string. Working Directory. 
-            #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.      
+            #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.
+        # Version .NET Assemblies (Core/5/6 and later)
+        # Description - Applies a version to a .NET Assemblies (Core/5/6 and later) via the .csproj files based on the build number. Based on Microsoft sample from https://msdn.microsoft.com/Library/vs/alm/Build/overview
+        - task: VersionDotNetCoreAssemblies@3
+          condition: |
+            and
+            (
+              succeeded(), 
+              containsValue(split(coalesce(variables['hasAssemblyFileVersionNumbers'], ''), ','), '${{packageName}}')
+            )
+          displayName: '[${{packageName}}] Set assembly File Version'
+          inputs: 
+            # Required arguments
+            Path: $(Build.SourcesDirectory)/$(sourceFolderPath)
+            VersionNumber: $(buildFileVersion)
+            Injectversion: True
+            Field: FileVersion
+            AddDefault: True
+        # Version .NET Assemblies (Core/5/6 and later)
+        # Description - Applies a version to a .NET Assemblies (Core/5/6 and later) via the .csproj files based on the build number. Based on Microsoft sample from https://msdn.microsoft.com/Library/vs/alm/Build/overview
+        - task: VersionDotNetCoreAssemblies@3
+          condition: |
+            and
+            (
+              succeeded(), 
+              containsValue(split(coalesce(variables['hasAssemblyInformationalVersionNumbers'], ''), ','), '${{packageName}}')
+            )
+          displayName: '[${{packageName}}] Set assembly Informational Version'
+          inputs: 
+            # Required arguments
+            Path: $(Build.SourcesDirectory)/$(sourceFolderPath)
+            VersionNumber: $(buildInformationalVersion)
+            Injectversion: True
+            Field: InformationalVersion
+            AddDefault: True
+        # Version .NET Assemblies (Core/5/6 and later)
+        # Description - Applies a version to a .NET Assemblies (Core/5/6 and later) via the .csproj files based on the build number. Based on Microsoft sample from https://msdn.microsoft.com/Library/vs/alm/Build/overview
+        - task: VersionDotNetCoreAssemblies@3
+          condition: |
+            and
+            (
+              succeeded(), 
+              containsValue(split(coalesce(variables['hasAssemblyVersionNumbers'], ''), ','), '${{packageName}}')
+            )
+          displayName: '[${{packageName}}] Set assembly Assembly Version'
+          inputs: 
+            # Required arguments
+            Path: $(Build.SourcesDirectory)/$(sourceFolderPath)
+            VersionNumber: $(buildAssemblyVersion)
+            Injectversion: True
+            Field: AssemblyVersion
+            AddDefault: True
         # - task: VSBuild@1
         #   displayName: 'Build package solution'
         #   inputs:
@@ -646,13 +631,14 @@ stages:
         # .NET Core v2
         # Build, test, package, or publish a .NET application, or run a custom .NET CLI command.
         - task: DotNetCoreCLI@2
+          displayName: '[${{packageName}}] Build package solution'
           inputs:
             #azureSubscription: # string. Alias: ConnectedServiceName. Azure Resource Manager connection. 
             command: 'build' # 'build' | 'push' | 'pack' | 'publish' | 'restore' | 'run' | 'test' | 'custom'. Required. Command. Default: build.
             #publishWebProjects: true # boolean. Optional. Use when command = publish. Publish web projects. Default: true.
             projects: '$(buildSolution)' # string. Optional. Use when command = build || command = restore || command = run || command = test || command = custom || publishWebProjects = false. Path to project(s) or solution(s). 
             #custom: # string. Required when command = custom. Custom command. 
-            arguments: '-c $(BuildConfiguration) -p:Platform="$(BuildPlatform)";ProduceReferenceAssembly=true;ProduceReferenceAssemblyInOutDir=true;DisableWorkloadAutoImportPropsLocator=true;UseSharedCompilation=false;FileVersion=$(buildFileVersion);InformationalVersion=$(buildInformationalVersion);AssemblyVersion=$(buildAssemblyVersion)' # string. Optional. Use when command = build || command = publish || command = run || command = test || command = custom. Arguments. 
+            arguments: '-c $(BuildConfiguration) -p:Platform="$(BuildPlatform)";ProduceReferenceAssembly=true;ProduceReferenceAssemblyInOutDir=true;ContinuousIntegrationBuild=$(isContinuousIntegrationBuild);DisableWorkloadAutoImportPropsLocator=true;UseSharedCompilation=false' # string. Optional. Use when command = build || command = publish || command = run || command = test || command = custom. Arguments. 
             #restoreArguments: # string. Optional. Use when command = restore. Arguments. 
             #publishTestResults: true # boolean. Optional. Use when command = test. Publish test results and code coverage. Default: true.
             #testRunTitle: # string. Optional. Use when command = test. Test run title. 
@@ -669,15 +655,10 @@ stages:
             #includesymbols: false # boolean. Optional. Use when command = pack. Include Symbols. Default: false.
             #includesource: false # boolean. Optional. Use when command = pack. Include Source. Default: false.
             #requestTimeout: '300000' # string. Set timeout for package download request. Default: 300000.
-          # Feeds and authentication
-            #feedsToUse: 'select' # 'select' | 'config'. Alias: selectOrConfig. Required when command = restore. Feeds to use. Default: select.
-            #vstsFeed: # string. Alias: feedRestore. Optional. Use when selectOrConfig = select && command = restore. Use packages from this Azure Artifacts feed. Select from the dropdown or enter [project name/]feed name. 
-            #includeNuGetOrg: true # boolean. Optional. Use when selectOrConfig = select && command = restore. Use packages from NuGet.org. Default: true.
-            #nugetConfigPath: # string. Optional. Use when selectOrConfig = config && command = restore. Path to NuGet.config. 
-            #externalFeedCredentials: # string. Alias: externalEndpoints. Optional. Use when selectOrConfig = config && command = restore. Credentials for feeds outside this organization/collection. 
           # Advanced
             #workingDirectory: # string. Optional. Use when command != restore && command != push && command != pack. Working directory.            
         - task: PublishSymbols@2
+          displayName: '[${{packageName}}] Publish symbols'
           inputs:
             #SymbolsFolder: '$(Build.SourcesDirectory)' # string. Path to symbols folder. Default: $(Build.SourcesDirectory).
             SearchPattern: 'src/**/bin/**/$(BuildConfiguration)/**/*.pdb' # string. Required. Search pattern. Default: **/bin/**/*.pdb.
@@ -698,12 +679,12 @@ stages:
             #SymbolsVersion: # string. Version. 
             #SymbolsArtifactName: 'Symbols_$(BuildConfiguration)' # string. Artifact name. Default: Symbols_$(BuildConfiguration).      
         - task: CopyFiles@2
-          displayName: 'Copy build output to staging area'
+          displayName: '[${{packageName}}] Copy build output to staging area'
           inputs:
             #SourceFolder: # string. Source Folder. 
             Contents: | # string. Required. Contents. Default: **.
-              src\**\bin\**\$(BuildConfiguration)\**
-              tests\**\bin\**\$(BuildConfiguration)\**
+              src\${{packageName}}\**\bin\**\$(BuildConfiguration)\**
+              tests\${{packageName}}*\**\bin\**\$(BuildConfiguration)\**
             TargetFolder: '$(Build.ArtifactStagingDirectory)' # string. Required. Target Folder. 
           # Advanced
             #CleanTargetFolder: false # boolean. Clean Target Folder. Default: false.
@@ -714,7 +695,7 @@ stages:
             #delayBetweenRetries: '1000' # string. Delay between two retries. Default: 1000.
             #ignoreMakeDirErrors: false # boolean. Ignore errors during creation of target folder. Default: false.      
         - task: PublishBuildArtifacts@1
-          displayName: 'Publish build artifacts to Azure Pipelines'
+          displayName: '[${{packageName}}] Publish build artifacts to pipeline'
           inputs:
             PathtoPublish: '$(Build.ArtifactStagingDirectory)' # string. Required. Path to publish. Default: $(Build.ArtifactStagingDirectory).
             ArtifactName: 'drop' # string. Required. Artifact name. Default: drop.
@@ -730,8 +711,8 @@ stages:
       - Configure
       - Build
     variables:
-      changedPackageNames: $[stageDependencies.Configure.Package_versions.outputs['ChangedPackages.changedPackageNames']]
-      testPackageNames: $[stageDependencies.Configure.Package_versions.outputs['TestPackages.testPackageNames']]
+      changedPackageNames: $[stageDependencies.Configure.Production_packages.outputs['ChangedPackages.changedPackageNames']]
+      testPackageNames: $[stageDependencies.Configure.Production_packages.outputs['TestPackages.testPackageNames']]
     jobs:
     - ${{ each packageName in split(variables.allPackageNames, ',') }}:
       - job:  # Required as first property. ID of the job.
@@ -745,14 +726,14 @@ stages:
             or(containsValue(split(variables.buildRequiredPackageNames, ','), '${{packageName}}'), containsValue(split(variables.publicationRequiredPackageNames, ','), '${{packageName}}'), containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{packageName}}'))
           )
         # continueOnError: string # Continue running even on failure?
-        timeoutInMinutes: 480 # Time to wait for this job to complete before the server kills it.
+        # timeoutInMinutes: 480 # Time to wait for this job to complete before the server kills it.
         # cancelTimeoutInMinutes: string # Time to wait for the job to cancel before forcibly terminating it.
-        variables: # Job-specific variables.
+        variables:
           testAssemblies: |
-            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/PACKAGE_NAME.*Test.dll
-            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/PACKAGE_NAME.*Tests.dll
-            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/PACKAGE_NAME.*Test.*.dll
-            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/PACKAGE_NAME.*Tests.*.dll
+            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/${{packageName}}.*Test.dll
+            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/${{packageName}}.*Tests.dll
+            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/${{packageName}}.*Test.*.dll
+            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/${{packageName}}.*Tests.*.dll
             !**/*TestAdapter.dll
             !**/obj/**
             !**/ref/**
@@ -772,16 +753,9 @@ stages:
                 TestPlatformPath: 'x64'
         pool: 
           vmImage: windows-latest # Pool where this job will run.
-        # container: string | container # Container resource name.
-        # services: # Container resources to run as a service container.
-        #   string: string # Name/value pairs
-        # workspace: # Workspace options on the agent.
-        #   clean: outputs | resources | all # Which parts of the workspace should be scorched before fetching.
-        # uses: # Any resources required by this job that are not already referenced.
-        #   repositories: [ string ] # Repository references.
-        #   pools: [ string ] # Pool references.
         steps: # A list of steps to run.
         - task: DownloadBuildArtifacts@1
+          displayName: '[${{packageName}}] Download build artifacts'
           inputs:
             buildType: 'current' # 'current' | 'specific'. Required. Download artifacts produced by. Default: current.
             #project: # string. Required when buildType == specific. Project. 
@@ -803,6 +777,7 @@ stages:
             #retryDownloadCount: '4' # string. Retry count. Default: 4.
             #extractTars: # boolean. Extract all files that are stored inside tar archives.        
         - task: CopyFiles@2
+          displayName: '[${{packageName}}] Copy files to working area'
           inputs:
             SourceFolder: $(Pipeline.Workspace)\drop # string. Source Folder. 
             Contents: '**' # string. Required. Contents. Default: **.
@@ -816,12 +791,12 @@ stages:
             #delayBetweenRetries: '1000' # string. Delay between two retries. Default: 1000.
             #ignoreMakeDirErrors: false # boolean. Ignore errors during creation of target folder. Default: false.
         - task: VSTest@3
-          displayName: 'Run automated tests'
+          displayName: '[${{packageName}}] Run automated tests'
           inputs:
             #azureSubscription: # string. Alias: ConnectedServiceName. Azure Resource Manager connection. 
           # Test selection
             testSelector: 'testAssemblies' # 'testAssemblies' | 'testPlan' | 'testRun'. Required. Select tests using. Default: testAssemblies.
-            testAssemblyVer2: ${{ replace(variables.testAssemblies, 'PACKAGE_NAME', packageName) }} # string. Required when testSelector = testAssemblies. Test files. 
+            testAssemblyVer2: ${{ variables.testAssemblies }} # string. Required when testSelector = testAssemblies. Test files. 
             #testPlan: # string. Required when testSelector = testPlan. Test plan. 
             #testSuite: # string. Required when testSelector = testPlan. Test suite. 
             #testConfiguration: # string. Required when testSelector = testPlan. Test configuration. 
@@ -850,13 +825,6 @@ stages:
             #rerunFailedThreshold: '30' # string. Optional. Use when rerunFailedTests = true && rerunType = basedOnTestFailurePercentage. % failure. Default: 30.
             #rerunFailedTestCasesMaxLimit: '5' # string. Optional. Use when rerunFailedTests = true && rerunType = basedOnTestFailureCount. # of failed tests. Default: 5.
             #rerunMaxAttempts: '3' # string. Optional. Use when rerunFailedTests = true. Maximum # of attempts. Default: 3.
-          # Advanced execution options
-            #distributionBatchType: 'basedOnTestCases' # 'basedOnTestCases' | 'basedOnExecutionTime' | 'basedOnAssembly'. Batch tests. Default: basedOnTestCases.
-            #batchingBasedOnAgentsOption: 'autoBatchSize' # 'autoBatchSize' | 'customBatchSize'. Optional. Use when distributionBatchType = basedOnTestCases. Batch options. Default: autoBatchSize.
-            #customBatchSizeValue: '10' # string. Required when distributionBatchType = basedOnTestCases && batchingBasedOnAgentsOption = customBatchSize. Number of tests per batch. Default: 10.
-            #batchingBasedOnExecutionTimeOption: 'autoBatchSize' # 'autoBatchSize' | 'customTimeBatchSize'. Optional. Use when distributionBatchType = basedOnExecutionTime. Batch options. Default: autoBatchSize.
-            #customRunTimePerBatchValue: '60' # string. Required when distributionBatchType = basedOnExecutionTime && batchingBasedOnExecutionTimeOption = customTimeBatchSize. Running time (sec) per batch. Default: 60.
-            #dontDistribute: False # boolean. Replicate tests instead of distributing when multiple agents are used in the job. Default: False.
           # Reporting options
             #testRunTitle: # string. Test run title. 
             platform: $(BuildPlatform) # string. Build platform. 
@@ -865,29 +833,25 @@ stages:
             #donotPublishTestResults: false # boolean. Optional. Use when runInParallel = false. Disable publishing test results. Default: false.
             failOnMinTestsNotRun: true # boolean. Fail the task if a minimum number of tests are not run. Default: False.
             #minimumExpectedTests: '1' # string. Optional. Use when failOnMinTestsNotRun = true. Minimum # of tests. Default: 1.            
-        # templateContext: # Job related information passed from a pipeline when extending a template.
   - stage: Publication
     condition: |
       and
       (
         succeeded(), 
-        notIn(stageDependencies.Configure.Package_versions.PackageVersionNumbers.result, 'Skipped'), 
+        notIn(stageDependencies.Configure.Version_numbering.PromoteVersionList.result, 'Skipped'), 
         in(dependencies.Build.result, 'Succeeded'), 
-        or(and(gt(length(coalesce(variables.publicationRequiredPackageNames, '')), 0), gt(length(split(variables.publicationRequiredPackageNames, ',')), 0)), and(gt(length(coalesce(stageDependencies.Configure.outputs['Package_versions.ChangedPackages.changedPackageNames'], '')), 0), gt(length(split(stageDependencies.Configure.outputs['Package_versions.ChangedPackages.changedPackageNames'], ',')), 0)))
+        or(and(gt(length(coalesce(variables.publicationRequiredPackageNames, '')), 0), gt(length(split(variables.publicationRequiredPackageNames, ',')), 0)), and(gt(length(coalesce(stageDependencies.Configure.outputs['Production_packages.ChangedPackages.changedPackageNames'], '')), 0), gt(length(split(stageDependencies.Configure.outputs['Production_packages.ChangedPackages.changedPackageNames'], ',')), 0)))
       )
     dependsOn:
       - Configure
       - Build
       - QA
     variables:
-      changedPackageNames: $[stageDependencies.Configure.Package_versions.outputs['ChangedPackages.changedPackageNames']]
-      packageCurrentVersionNumbersList: $[stageDependencies.Configure.Package_versions.outputs['PackageCurrentVersion.versionNumbers']]
-      packageNewVersionNumbersList: $[stageDependencies.Configure.Package_versions.outputs['PackageVersionNumbers.newVersionNumbers']]
+      changedPackageNames: $[stageDependencies.Configure.Production_packages.outputs['ChangedPackages.changedPackageNames']]
+      versionNumbers: $[stageDependencies.Configure.Version_numbering.outputs['PromoteVersionList.versionNumberList']]
     jobs:
       - job: Create_Packages
         displayName: "Create NuGet packages"
-        variables:
-          packageVersions: ''
         pool:
           vmImage: windows-latest
         steps:
@@ -945,152 +909,8 @@ stages:
             inputs:
               #versionSpec:  # Optional  # A version or version range that specifies the NuGet version to make available on the path. Use x as a wildcard. See the [list of available NuGet versions](http://dist.nuget.org/tools.json).If you want to match a pre-release version, the specification must contain a major, minor, patch, and pre-release version from the list above.Examples: 4.x, 3.3.x, 2.8.6, >=4.0.0-0If unspecified, a version will be chosen automatically.
               checkLatest: false # Optional  # Always check for and download the latest available version of NuGet.exe which satisfies the version spec.Enabling this option could cause unexpected build breaks when a new version of NuGet is released.
-          # Set package version numbers for SDK projects
-          - ${{ each packageName in split(variables.allPackageNames, ',') }}:
-              - pwsh: |
-                  function ConvertFrom-Base64String {
-                      param (
-                          # Input.
-                          [Parameter(Mandatory, ValueFromPipeline)]
-                          [string]    $InputObject
-                      )
-
-                      process {
-                          $inputBytes = [System.Convert]::FromBase64String($InputObject)
-                          return [System.Text.Encoding]::UTF8.GetString($inputBytes)
-                      }
-                  }
-
-                  if (${{parameters.traceLevel}} -gt 0) {
-                      Set-PSDebug -Trace ${{parameters.traceLevel}}
-                  }
-
-                  $packageInfo = '${{ variables.packageInfos }}' | ConvertFrom-Json | Where-Object -Property packageName -EQ ${{ packageName }}
-                  $packageCurrentVersionNumberInfo = "$(packageCurrentVersionNumbersList)" | ConvertFrom-Base64String | ConvertFrom-Json | Where-Object -Property PackageName -EQ $packageInfo.packageName
-                  $packageNewVersionNumberInfo = "$(packageNewVersionNumbersList)" | ConvertFrom-Base64String | ConvertFrom-Json | Where-Object -Property PackageName -EQ $packageInfo.packageName
-                  $publicationRequiredPackageCount = '${{ variables.publicationRequiredPackageNames }}' -split ',' | Where-Object { $_ -eq '${{ packageName }}' } | Measure-Object | Select-Object -ExpandProperty Count
-                  $isPublicationRequiredPackage = [System.Convert]::ToBoolean($publicationRequiredPackageCount)
-                  $changedPackageCount = "$(changedPackageNames)" -split ',' | Where-Object { $_ -eq '${{ packageName }}' } | Measure-Object | Select-Object -ExpandProperty Count
-                  $isChangedPackage = [System.Convert]::ToBoolean($changedPackageCount)
-
-                  [int] $majorNumber, $minorNumber, $patchNumber, $previewNumber
-                  if ($null -ne $packageNewVersionNumberInfo -and ($isPublicationRequiredPackage -or $isChangedPackage)) {
-                      $majorNumber = $packageNewVersionNumberInfo.PackageVersion.Major
-                      $minorNumber = $packageNewVersionNumberInfo.PackageVersion.Minor
-                      $patchNumber = $packageNewVersionNumberInfo.PackageVersion.Build
-                      $previewNumber = $packageNewVersionNumberInfo.PackageVersion.Revision
-
-                      $versionDisplayText = @($majorNumber, $minorNumber, $patchNumber, $previewNumber) -join '.'
-                      Write-Information "Using new version number $versionDisplayText for package ${{ packageName }}." -InformationAction Continue
-                  }
-                  elseif ($null -ne $packageCurrentVersionNumberInfo) {
-                      $majorNumber = $packageCurrentVersionNumberInfo.PackageVersion.Major
-                      $minorNumber = $packageCurrentVersionNumberInfo.PackageVersion.Minor
-                      $patchNumber = $packageCurrentVersionNumberInfo.PackageVersion.Build
-                      $previewNumber = $packageCurrentVersionNumberInfo.PackageVersion.Revision
-
-                      $versionDisplayText = @($majorNumber, $minorNumber, $patchNumber, $previewNumber) -join '.'
-                      Write-Information "Using current version number $versionDisplayText for package ${{ packageName }}." -InformationAction Continue
-                  }
-
-                  $packageVersion = "$($majorNumber).$($minorNumber).$($patchNumber)"
-                  if ($previewNumber -gt 0) {
-                      $packageVersion += "-preview.$($previewNumber)"
-                  }
-                  Write-Host "##vso[task.setvariable variable=packageVersion]$packageVersion"
-
-                  $projectPath = Join-Path -Path "$(Build.SourcesDirectory)" -ChildPath $packageInfo.packageSourcePath
-                  Write-Host "##vso[task.setvariable variable=packageProjectPath]$projectPath"
-                displayName: "[${{packageName}}] Set version arguments"
-              - task: VersionDotNetCoreAssemblies@3
-                displayName: "[${{ packageName }}] Apply package version numbers"
-                inputs:
-                  Path: $(packageProjectPath)
-                  VersionNumber: $(packageVersion)
-                  Injectversion: true
-                  FilenamePattern: ".csproj"
-                  AddDefault: true
-                  OutputVersion: "OutputedVersion"
-              - pwsh: |
-                  function ConvertFrom-Base64String {
-                      param (
-                          # Input.
-                          [Parameter(Mandatory, ValueFromPipeline)]
-                          [string]    $InputObject
-                      )
-                                                                        
-                      process {
-                          $inputBytes = [System.Convert]::FromBase64String($InputObject)
-                          return [System.Text.Encoding]::UTF8.GetString($inputBytes)
-                      }
-                  }
-
-                  function ConvertTo-Base64String {
-                      param (
-                          # Input.
-                          [Parameter(Mandatory, ValueFromPipeline)]
-                          [string]    $InputObject
-                      )
-                                                                        
-                      process {
-                          $inputBytes = [System.Text.Encoding]::UTF8.GetBytes($InputObject)
-                          return [System.Convert]::ToBase64String($inputBytes)
-                      }
-                  }
-
-                  if (${{parameters.traceLevel}} -gt 0) {
-                      Set-PSDebug -Trace ${{parameters.traceLevel}}
-                  }
-
-                  if ([string]::IsNullOrWhiteSpace("$(OutputedVersion)")) {
-                      Write-Warning 'No version found for package ${{packageName}}.'
-                      exit;
-                  }
-
-                  #   Retrieve collection of package versions
-                  [PSCustomObject[]] $packageVersions = @()
-                  if (-not [string]::IsNullOrEmpty("$(packageVersions)")) {
-                      $packageVersions = "$(packageVersions)" | ConvertFrom-Base64String | ConvertFrom-Json
-                  }
-                  $packageVersion = $packageVersions | Where-Object -Property PackageName -EQ '${{packageName}}' | Select-Object -First 1
-                  if ($null -ne $packageVersion) {
-                      Write-Information "Found existing version $($packageVersion.PackageVersion) for package ${{packageName}}; skipping addition of version $(OutputedVersion)." -InformationAction Continue
-                      exit;
-                  }
-
-                  #  Add version of current package to collection
-                  $packageVersion = [PSCustomObject]@{
-                      PackageName    = '${{packageName}}'
-                      PackageVersion = "$(OutputedVersion)"
-                  }
-                  $packageVersions += $packageVersion
-                  $serializedPackageVersions = @($packageVersions) | ConvertTo-Json -Depth 10 | ConvertTo-Base64String
-                  Write-Host "##vso[task.setvariable variable=packageVersions]$serializedPackageVersions"
-
-                  Write-Information "Added package ${{packageName}} version $(OutputedVersion)." -InformationAction Continue
-                displayName: '[${{packageName}}] Collect package version number'
           # Create NuGet packages
           - ${{ each packageName in split(variables.allPackageNames, ',') }}:
-              - pwsh: |
-                  if (${{parameters.traceLevel}} -gt 0) {
-                      Set-PSDebug -Trace ${{parameters.traceLevel}}
-                  }
-
-                  $packageInfo = '${{ variables.packageInfos }}' | ConvertFrom-Json | Where-Object -Property packageName -EQ '${{packageName}}'
-                  if ($null -eq $packageInfo) {
-                      Write-Error 'Package information not found for ${{packageName}}'
-                  }
-
-                  # Compose project search pattern.
-                  $projectSearchPattern = "$(Build.SourcesDirectory)/$($packageInfo.packageSourcePath)/**/*.csproj"
-                  Write-Host "##vso[task.setvariable variable=searchPattern]$projectSearchPattern"
-                displayName: '[${{packageName}}] Set search pattern argument'
-                condition: |
-                  and
-                  (
-                    succeeded(), 
-                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'))
-                  )                
               - task: PowerShell@2
                 displayName: '[${{packageName}}] Set release notes argument'
                 condition: |
@@ -1101,8 +921,8 @@ stages:
                   )
                 inputs:
                   #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
-                  filePath: 'scripts/SetReleaseNotesArgument.ps1' # string. Required when targetType = filePath. Script Path. 
-                  arguments: '-PackageName ${{packageName}} -SourceCommitHash $(Build.SourceVersion) -IsBuildMasterBranch ${{ iif(eq(variables[''Build.SourceBranch''], ''refs/heads/master''), ''$True'', ''$False'') }} -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
+                  filePath: 'build/scripts/SetReleaseNotesArgument.ps1' # string. Required when targetType = filePath. Script Path. 
+                  arguments: '-PackageName ${{packageName}} -SourceCommitHash $(Build.SourceVersion) -PackageInfos ''${{variables.packageInfos}}'' -SourceRootFolderPath $(Build.SourcesDirectory) -IsBuildMasterBranch ${{ iif(eq(variables[''Build.SourceBranch''], ''refs/heads/master''), ''$True'', ''$False'') }} -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
                   #script: # string. Required when targetType = inline. Script. 
                 # Preference Variables
                   #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
@@ -1119,29 +939,37 @@ stages:
                   #workingDirectory: # string. Working Directory. 
                   #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.
               - pwsh: |
-                  function ConvertFrom-Base64String {
-                      param (
-                          # Input.
-                          [Parameter(Mandatory, ValueFromPipeline)]
-                          [string]    $InputObject
-                      )
-
-                      process {
-                          $inputBytes = [System.Convert]::FromBase64String($InputObject)
-                          return [System.Text.Encoding]::UTF8.GetString($inputBytes)
-                      }
+                  if (${{parameters.traceLevel}} -gt 0) {
+                      Set-PSDebug -Trace ${{parameters.traceLevel}}
                   }
+
+                  $packageInfo = '${{ variables.packageInfos }}' | ConvertFrom-Json | Where-Object -Property packageName -EQ '${{packageName}}'
+                  if ($null -eq $packageInfo) {
+                      Write-Error 'Package information not found for ${{packageName}}'
+                  }
+
+                  # Compose project search pattern.
+                  $projectSearchPattern = "$(Build.SourcesDirectory)/$($packageInfo.packageSourcePath)/**/*.csproj"
+                  Write-Host "##vso[task.setvariable variable=searchPatternArg]$projectSearchPattern"
+                displayName: '[${{packageName}}] Set search pattern argument'
+                condition: |
+                  and
+                  (
+                    succeeded(), 
+                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'))
+                  )
+              - pwsh: |
+                  Import-Module "$(Build.SourcesDirectory)/build/psmodules/CommonHelpers/CommonHelpers.psm1" -Force
 
                   if (${{parameters.traceLevel}} -gt 0) {
                       Set-PSDebug -Trace ${{parameters.traceLevel}}
                   }
 
-                  $packageVersion = "$(packageVersions)" | 
+                  $packageVersions = '$(versionNumbers)' | 
                   ConvertFrom-Base64String | 
                   ConvertFrom-Json | 
-                  Where-Object -Property PackageName -EQ '${{packageName}}' | 
-                  Select-Object -First 1 -ExpandProperty PackageVersion
-                  Write-Host "##vso[task.setvariable variable=packageVersion]$packageVersion"
+                  Where-Object -Property PackageName -EQ -Value '${{packageName}}'
+                  Write-Host "##vso[task.setvariable variable=packageVersionArg]$($packageVersions.PackageProductionVersionString)"
                 displayName: "[${{packageName}}] Set package version argument"
                 condition: |
                   and
@@ -1149,54 +977,37 @@ stages:
                     succeeded(), 
                     or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'))
                   )
+              # .NET Core v2
+              # Build, test, package, or publish a .NET application, or run a custom .NET CLI command.
               - task: DotNetCoreCLI@2
-                displayName: "[${{packageName}}] Create NuGet package"
                 condition: |
                   and
                   (
                     succeeded(), 
                     or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'))
-                  )                
+                  )
+                displayName: "[${{packageName}}] Create NuGet package"
                 inputs:
-                  command: pack # Options: 'build', 'push', 'pack', 'publish', 'restore', 'run', 'test', 'custom' # Required  # The dotnet command to run. Select 'Custom' to add arguments or use a command not listed here.
-                  # publishWebProjects: true  # Required  # If true, the task will try to find the web projects in the repository and run the publish command on them. Web projects are identified by presence of either a web.config file or wwwroot folder in the directory.
-                  #projects:  # Optional  # The path to the csproj file(s) to use. You can use wildcards (e.g. **/*.csproj for all .csproj files in all subfolders). **This field follows glob pattern, and is run against root of the repository at all times irrespective of Working Directory.**
-                  # custom:   # Required when command = custom  # The command to pass to dotnet.exe for execution.
-                  # arguments:  # Optional  # Arguments to the selected command. For example, build configuration, output folder, runtime. The arguments depend on the command selected.
-                  #restoreArguments:  # Optional  # Write the additional arguments to be passed to **restore** command.
-                  #publishTestResults:  # Optional  # Enabling this option will generate a test results TRX file in `$(Agent.TempDirectory)` and results will be published to the server. <br>This option appends `--logger trx --results-directory $(Agent.TempDirectory)` to the command line arguments. <br><br>Code coverage can be collected by adding `--collect "Code coverage"` option to the command line arguments. This is currently only available on the Windows platform.
-                  #testRunTitle:  # Optional  # Provide a name for the test run.
-                  #zipAfterPublish:  # Optional  # If true, folder created by the publish command will be zipped.
-                  #modifyOutputPath:  # Optional  # If true, folders created by the publish command will have project's folder name prefixed to their folder names when output path is specified explicitly in arguments. This is useful if you want to publish multiple projects to the same folder.
-                  # selectOrConfig: select # Options: 'select', 'config' # Required  # You can either select a feed from Azure Artifacts and/or NuGet.org here, or commit a nuget.config file to your source code repository and set its path here.
-                  # feedRestore:   # Required when selectOrConfig = select  # Include the selected feed in the generated NuGet.config. You must have Azure Artifacts installed and licensed to select a feed here.
-                  # includeNuGetOrg: true  # Required  # Include NuGet.org in the generated NuGet.config.
-                  # nugetConfigPath:   # Required when selectOrConfig = config  # The NuGet.config in your repository that specifies the feeds from which to restore packages.
-                  #externalEndpoints:  # Optional  # Credentials to use for external registries located in the selected NuGet.config. For feeds in this organization/collection, leave this blank; the build’s credentials are used automatically.
-                  # noCache: false  # Required  # Prevents NuGet from using packages from local machine caches.
-                  # packagesDirectory:   # Required  # Specifies the folder in which packages are installed. If no folder is specified, packages are restored into the default NuGet package cache.
-                  # verbosityRestore: Detailed # Options: '-', 'Quiet', 'Minimal', 'Normal', 'Detailed', 'Diagnostic' # Required  # Specifies the amount of detail displayed in the output.
-                  # searchPatternPush: $(Build.ArtifactStagingDirectory)/*.nupkg  # Required  # The pattern to match or path to nupkg files to be uploaded. Multiple patterns can be separated by a semicolon.
-                  # nuGetFeedType: internal # Options: 'internal', 'external' # Required
-                  # feedPublish:   # Required when command = push && nuGetFeedType = internal  # Select a feed hosted in this organization. You must have Azure Artifacts installed and licensed to select a feed here.
-                  #publishPackageMetadata:  # Optional  # Associate this build/release pipeline’s metadata (run #, source code information) with the package
-                  # externalEndpoint:   # Required when command = push && nuGetFeedType = external  # The NuGet service connection that contains the external NuGet server’s credentials.
-                  searchPatternPack: "$(searchPattern)" # Required  # Pattern to search for csproj or nuspec files to pack.You can separate multiple patterns with a semicolon, and you can make a pattern negative by prefixing it with '!'. Example: `**/*.csproj;!**/*.Tests.csproj`
-                  # configurationToPack:  # Optional  # When using a csproj file this specifies the configuration to package
-                  outputDir: "$(Build.ArtifactStagingDirectory)/packages/$(BuildConfiguration)" # Optional  # Folder where packages will be created. If empty, packages will be created alongside the csproj file.
-                  nobuild: true # Optional  # Don't build the project before packing. Corresponds to the --no-build command line parameter.
-                  #includesymbols:  # Optional  # Additionally creates symbol NuGet packages. Corresponds to the --include-symbols command line parameter.
-                  #includesource:  # Optional  # Includes source code in the package. Corresponds to the --include-source command line parameter.
-                  versioningScheme: off # Options: 'off', 'byPrereleaseNumber', 'byEnvVar', 'byBuildNumber' # Required  # Cannot be used with include referenced projects. If you choose 'Use the date and time', this will generate a [SemVer](http://semver.org/spec/v1.0.0.html)-compliant version formatted as `X.Y.Z-ci-datetime` where you choose X, Y, and Z.If you choose 'Use an environment variable', you must select an environment variable and ensure it contains the version number you want to use.If you choose 'Use the build number', this will use the build number to version your package. **Note:** Under Options set the build number format to be '[$(BuildDefinitionName)_$(Year:yyyy).$(Month).$(DayOfMonth)$(Rev:.r)](https://go.microsoft.com/fwlink/?LinkID=627416)'.
-                  # versionEnvVar:   # Required when versioningScheme = byEnvVar  # Enter the variable name without $, env, or %.
-                  # requestedMajorVersion: 1  # Required  # The 'X' in version [X.Y.Z](http://semver.org/spec/v1.0.0.html)
-                  # requestedMinorVersion: 0  # Required  # The 'Y' in version [X.Y.Z](http://semver.org/spec/v1.0.0.html)
-                  # requestedPatchVersion: 0  # Required  # The 'Z' in version [X.Y.Z](http://semver.org/spec/v1.0.0.html)
-                  buildProperties: 'PackageReleaseNotes="$(releaseNotes)";PackageVersion="$(packageVersion)"' # Optional  # Specifies a list of token = value pairs, separated by semicolons, where each occurrence of token$ in the .nuspec file will be replaced with the given value. Values can be strings in quotation marks.
-                  verbosityPack: Normal # Options: '-', 'Quiet', 'Minimal', 'Normal', 'Detailed', 'Diagnostic' # Required  # Specifies the amount of detail displayed in the output.
-                  # workingDirectory:   # Required when command != restore && command != push && command != pack  # Current working directory where the script is run. Empty is the root of the repo (build) or artifacts (release), which is $(System.DefaultWorkingDirectory). The project search pattern is **NOT** relative to working directory.
+                  #azureSubscription: # string. Alias: ConnectedServiceName. Azure Resource Manager connection. 
+                  command: 'pack' # 'build' | 'push' | 'pack' | 'publish' | 'restore' | 'run' | 'test' | 'custom'. Required. Command. Default: build.
+                  #publishWebProjects: true # boolean. Optional. Use when command = publish. Publish web projects. Default: true.
+                  #projects: # string. Optional. Use when command = build || command = restore || command = run || command = test || command = custom || publishWebProjects = false. Path to project(s) or solution(s). 
+                  #custom: # string. Required when command = custom. Custom command. 
+                  #arguments: # string. Optional. Use when command = build || command = publish || command = run || command = test || command = custom. Arguments. 
+                  packagesToPack: '$(searchPatternArg)' # string. Alias: searchPatternPack. Required when command = pack. Path to csproj or nuspec file(s) to pack. Default: **/*.csproj.
+                  #configuration: '$(BuildConfiguration)' # string. Alias: configurationToPack. Optional. Use when command = pack. Configuration to Package. Default: $(BuildConfiguration).
+                  packDirectory: "$(Build.ArtifactStagingDirectory)/packages/$(BuildConfiguration)" # string. Alias: outputDir. Optional. Use when command = pack. Package Folder. Default: $(Build.ArtifactStagingDirectory).
+                  nobuild: true # boolean. Optional. Use when command = pack. Do not build. Default: false.
+                  #includesymbols: false # boolean. Optional. Use when command = pack. Include Symbols. Default: false.
+                  #includesource: false # boolean. Optional. Use when command = pack. Include Source. Default: false.
+                  #requestTimeout: '300000' # string. Set timeout for package download request. Default: 300000.
+                # Advanced
+                  buildProperties: 'PackageVersion="$(packageVersionArg)"' # string. Optional. Use when command = pack. Additional build properties. 
+                  #verbosityPack: 'Normal' # '-' | 'Quiet' | 'Minimal' | 'Normal' | 'Detailed' | 'Diagnostic'. Optional. Use when command = pack. Verbosity. Default: Normal.
+                # Advanced
+                  #workingDirectory: # string. Optional. Use when command != restore && command != push && command != pack. Working directory.                  
               - task: PowerShell@2
-                displayName: '[${{packageName}}] Update dependency versions'
+                displayName: '[${{packageName}}] Update package metadata'
                 condition: |
                   and
                   (
@@ -1205,8 +1016,8 @@ stages:
                   )
                 inputs:
                   #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
-                  filePath: 'scripts/UpdatePackageDependencyVersions.ps1' # string. Required when targetType = filePath. Script Path. 
-                  arguments: "-PackageName '${{packageName}}' -PackageVersionList '$(packageVersions)' -PackageSearchRootPath '$(Build.ArtifactStagingDirectory)' -BuildConfiguration $(BuildConfiguration) -TempPath '$(Agent.TempDirectory)' -TraceLevel ${{parameters.traceLevel}}" # string. Optional. Use when targetType = filePath. Arguments. 
+                  filePath: 'build/scripts/UpdatePackageMetadata.ps1' # string. Required when targetType = filePath. Script Path. 
+                  arguments: "-PackageName '${{packageName}}' -EncodedPackageVersions '$(versionNumbers)' -EncodedReleaseNotes '$(releaseNotesArg)' -PackageSearchRootPath '$(Build.ArtifactStagingDirectory)' -BuildConfiguration $(BuildConfiguration) -TempPath '$(Agent.TempDirectory)' -TraceLevel ${{parameters.traceLevel}}" # string. Optional. Use when targetType = filePath. Arguments. 
                   #script: # string. Required when targetType = inline. Script. 
                 # Preference Variables
                   #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
@@ -1217,7 +1028,7 @@ stages:
                   #progressPreference: 'silentlyContinue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ProgressPreference. Default: silentlyContinue.
                 # Advanced
                   #failOnStderr: false # boolean. Fail on Standard Error. Default: false.
-                  #showWarnings: false # boolean. Show warnings as Azure DevOps warnings. Default: false.
+                  showWarnings: true # boolean. Show warnings as Azure DevOps warnings. Default: false.
                   #ignoreLASTEXITCODE: false # boolean. Ignore $LASTEXITCODE. Default: false.
                   pwsh: true # boolean. Use PowerShell Core. Default: false.
                   #workingDirectory: # string. Working Directory. 
@@ -1252,13 +1063,13 @@ stages:
           - checkout: none
           - task: NuGetToolInstaller@1
             displayName: "Install NuGet CLI"
-            inputs:
+            # inputs:
               #versionSpec:  # Optional  # A version or version range that specifies the NuGet version to make available on the path. Use x as a wildcard. See the [list of available NuGet versions](http://dist.nuget.org/tools.json).If you want to match a pre-release version, the specification must contain a major, minor, patch, and pre-release version from the list above.Examples: 4.x, 3.3.x, 2.8.6, >=4.0.0-0If unspecified, a version will be chosen automatically.
-              checkLatest: true # Optional  # Always check for and download the latest available version of NuGet.exe which satisfies the version spec.Enabling this option could cause unexpected build breaks when a new version of NuGet is released.
+              # checkLatest: true # Optional  # Always check for and download the latest available version of NuGet.exe which satisfies the version spec.Enabling this option could cause unexpected build breaks when a new version of NuGet is released.
           # Configure NuGet tools to authenticate with Azure Artifacts and other NuGet repositories. Requires NuGet >= 4.8.5385, dotnet >= 6, or MSBuild >= 15.8.166.59604.
           - task: NuGetAuthenticate@1
-            inputs:
-              forceReinstallCredentialProvider: false # boolean. Reinstall the credential provider even if already installed. Default: false.
+            # inputs:
+              # forceReinstallCredentialProvider: false # boolean. Reinstall the credential provider even if already installed. Default: false.
               #nuGetServiceConnections: # string. Service connection credentials for feeds outside this organization.
           - task: DownloadPipelineArtifact@2
             inputs:
@@ -1299,22 +1110,7 @@ stages:
               #nugetConfigPath: # string. Optional. Use when selectOrConfig = config && command = restore. Path to NuGet.config. 
               #externalFeedCredentials: # string. Alias: externalEndpoints. Optional. Use when selectOrConfig = config && command = restore. Credentials for feeds outside this organization/collection. 
             # Advanced
-              #noCache: false # boolean. Optional. Use when command = restore. Disable local cache. Default: false.
-              #restoreDirectory: # string. Alias: packagesDirectory. Optional. Use when command = restore. Destination directory. 
-              #verbosityRestore: 'Normal' # '-' | 'Quiet' | 'Minimal' | 'Normal' | 'Detailed' | 'Diagnostic'. Optional. Use when command = restore. Verbosity. Default: Normal.
-            # Advanced
               #publishPackageMetadata: true # boolean. Optional. Use when command = push && nuGetFeedType = internal. Publish pipeline metadata. Default: true.
-            # Pack options
-              #versioningScheme: 'off' # 'off' | 'byPrereleaseNumber' | 'byEnvVar' | 'byBuildNumber'. Required when command = pack. Automatic package versioning. Default: off.
-              #versionEnvVar: # string. Required when versioningScheme = byEnvVar && command = pack. Environment variable. 
-              #majorVersion: '1' # string. Alias: requestedMajorVersion. Required when versioningScheme = byPrereleaseNumber && command = pack. Major. Default: 1.
-              #minorVersion: '0' # string. Alias: requestedMinorVersion. Required when versioningScheme = byPrereleaseNumber && command = pack. Minor. Default: 0.
-              #patchVersion: '0' # string. Alias: requestedPatchVersion. Required when versioningScheme = byPrereleaseNumber && command = pack. Patch. Default: 0.
-            # Advanced
-              #buildProperties: # string. Optional. Use when command = pack. Additional build properties. 
-              #verbosityPack: 'Normal' # '-' | 'Quiet' | 'Minimal' | 'Normal' | 'Detailed' | 'Diagnostic'. Optional. Use when command = pack. Verbosity. Default: Normal.
-            # Advanced
-              #workingDirectory: # string. Optional. Use when command != restore && command != push && command != pack. Working directory.              
   - stage: Cleanup
     displayName: "End"
     dependsOn:
@@ -1324,177 +1120,199 @@ stages:
       - Publication
     condition: succeededOrFailed()
     variables:
-      changedPackageNames: $[stageDependencies.Configure.Package_versions.outputs['ChangedPackages.changedPackageNames']]
-      packageNewVersionNumbersList: $[stageDependencies.Configure.Package_versions.outputs['PackageVersionNumbers.newVersionNumbers']]
-      packageUpdatedVersionNumbersList: $[stageDependencies.Configure.Package_versions.outputs['PackageVersionNumbers.updatedVersionNumbers']]
+      changedPackageNames: $[stageDependencies.Configure.Production_packages.outputs['ChangedPackages.changedPackageNames']]
+      versionNumbers: $[stageDependencies.Configure.Version_numbering.outputs['PromoteVersionList.versionNumberList']]
     jobs:
-      - job: Rollback_version
-        displayName: "Rollback package next version numbers"
-        condition: |
+      - job: Version_rollback # Required as first property. ID of the job.
+        displayName: 'Rollback version numbers on failure' # Human-readable name for the job.
+        # dependsOn: string | [ string ] # Any jobs which must complete before this one.
+        condition: | # Evaluate this condition expression to determine whether to run this job.
           and
           (
-            in(stageDependencies.Configure.Package_versions.result, 'Succeeded'), 
-            in(stageDependencies.Publication.Publish_Packages.result, 'Failed', 'Skipped'), 
+            in(stageDependencies.Configure.Version_reservation.result, 'Succeeded'),
+            notIn(stageDependencies.Publication.Publish_Packages.result, 'Succeeded', 'SucceededWithIssues'),
             or(and(gt(length(coalesce(variables.publicationRequiredPackageNames, '')), 0), gt(length(split(variables.publicationRequiredPackageNames, ',')), 0)), and(gt(length(coalesce(variables['changedPackageNames'], '')), 0), gt(length(split(variables['changedPackageNames'], ',')), 0)))
-          )        
-        variables:
+          )
+        # continueOnError: string # Continue running even on failure?
+        # timeoutInMinutes: string # Time to wait for this job to complete before the server kills it.
+        # cancelTimeoutInMinutes: string # Time to wait for the job to cancel before forcibly terminating it.
+        variables:  # Job-specific variables.
           rolledBackPackageList: ''
-        steps:
+        steps: # A list of steps to run.
+        - ${{ each packageName in split(variables.allPackageNames, ',') }}:
+          # Azure CLI v2
+          # Run Azure CLI commands against an Azure subscription in a PowerShell Core/Shell script when running on Linux agent or PowerShell/PowerShell Core/Batch script when running on Windows agent.
           - task: AzureCLI@2
-            displayName: "Refresh package next version numbers"
+            condition: | # Evaluate this condition expression to determine whether to run this task.
+              and
+              (
+                succeeded(), 
+                or(and(gt(length(coalesce(variables.publicationRequiredPackageNames, '')), 0), containsValue(split(variables.publicationRequiredPackageNames, ','), '${{ packageName }}')), and(gt(length(coalesce(variables['ChangedPackages.changedPackageNames'], '')), 0), containsValue(split(variables['ChangedPackages.changedPackageNames'], ','), '${{ packageName }}')))
+              )
+            displayName: '[${{packageName}}] Prepare arguments for rollback' # Human-readable name for the task.
             inputs:
-              azureSubscription: $(SUBSCRIPTION_ID) # string. Alias: connectedServiceNameARM. Required. Azure Resource Manager connection.
-              scriptType: "pscore" # 'ps' | 'pscore' | 'batch' | 'bash'. Required. Script Type.
-              scriptLocation: "scriptPath" # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
-              scriptPath: "scripts/SetPackageVersionNumbersVariable.ps1" # string. Required when scriptLocation = scriptPath. Script Path.
-              #inlineScript: # string. Required when scriptLocation = inlineScript. Inline Script.
-              ${{ if and(eq(parameters.enableDebug, 'true'), eq(parameters.enableVerboseOutput, 'true')) }}:
-                arguments: "-PackageList '$(packageInfos)' -VariableNamePrefix next -PipelineVariableName rollbackPackageNextVersionNumbers -TraceLevel ${{parameters.traceLevel}} -Debug -Verbose" # string. Alias: scriptArguments. Script Arguments.
-              ${{ elseif eq(parameters.enableDebug, 'true') }}:
-                arguments: "-PackageList '$(packageInfos)' -VariableNamePrefix next -PipelineVariableName rollbackPackageNextVersionNumbers -TraceLevel ${{parameters.traceLevel}} -Debug" # string. Alias: scriptArguments. Script Arguments.
-              ${{ elseif eq(parameters.enableVerboseOutput, 'true') }}:
-                arguments: "-PackageList '$(packageInfos)' -VariableNamePrefix next -PipelineVariableName rollbackPackageNextVersionNumbers -TraceLevel ${{parameters.traceLevel}} -Verbose" # string. Alias: scriptArguments. Script Arguments.
-              ${{ else }}:
-                arguments: "-PackageList '$(packageInfos)' -VariableNamePrefix next -PipelineVariableName rollbackPackageNextVersionNumbers -TraceLevel ${{parameters.traceLevel}}" # string. Alias: scriptArguments. Script Arguments.
+              azureSubscription: $(SUBSCRIPTION_ID) # string. Alias: connectedServiceNameARM. Required. Azure Resource Manager connection. 
+              scriptType: 'pscore' # 'ps' | 'pscore' | 'batch' | 'bash'. Required. Script Type. 
+              scriptLocation: 'inlineScript' # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
+              # scriptPath: # string. Required when scriptLocation = scriptPath. Script Path. 
+              inlineScript: | # string. Required when scriptLocation = inlineScript. Inline Script. 
+                Import-Module "$(Build.SourcesDirectory)/build/psmodules/CommonHelpers/CommonHelpers.psm1" -Force
+
+                if (${{parameters.traceLevel}} -gt 0) {
+                    Set-PSDebug -Trace ${{parameters.traceLevel}}
+                }
+
+                # set environment variable for current process
+                $env:AZURE_DEVOPS_EXT_PAT = $env:SYSTEM_ACCESSTOKEN
+                                                          
+                az devops configure -d organization=${env:ORGANIZATION_URL} project=${env:PROJECT_NAME}
+                az account set -s ${env:SUBSCRIPTION_ID}
+
+                $packageVersions = '$(versionNumbers)' | ConvertFrom-Base64String | ConvertFrom-Json | Where-Object -Property PackageName -EQ ${{ packageName }}
+                if ($null -eq $packageVersions) {
+                    Write-Error 'Package versions not found for ${{ packageName }}'
+                }
+                
+                [version]$originalNextPackageVersion = $packageVersions.PackagePostProductionVersion
+                Write-Host "##vso[task.setvariable variable=originalNextMajor]$($originalNextPackageVersion.Major)"
+                Write-Host "##vso[task.setvariable variable=originalNextMinor]$($originalNextPackageVersion.Minor)"
+                Write-Host "##vso[task.setvariable variable=originalNextPatch]$($originalNextPackageVersion.Build)"
+                Write-Host "##vso[task.setvariable variable=originalNextPreview]$($originalNextPackageVersion.Revision)"
+
+                $packageInfo = '${{variables.packageInfos}}' | ConvertFrom-Json | Where-Object -Property packageName -EQ '${{packageName}}'
+                if ($null -eq $packageInfo) {
+                    Write-Error 'Package information not found for ${{packageName}}'
+                }
+
+                $variableListOutput = & az pipelines variable-group variable list --group-id $packageInfo.variableGroupId
+                $variableGroupVersionNumbers = ($variableListOutput | ConvertFrom-Json).PSObject.Properties 
+                | Where-Object { $_.Name.StartsWith('next') } 
+                | Out-String -InputObject { $_.Name + ':' + $_.Value.value } -Stream 
+                | Sort-Object 
+                | ConvertFrom-Csv -Delimiter ':' -Header 'Name', 'Value' 
+                | Out-String -InputObject { $_.Value } -Stream
+                [version] $currentNextPackageVersion = ($variableGroupVersionNumbers[0], $variableGroupVersionNumbers[1], $variableGroupVersionNumbers[2], $variableGroupVersionNumbers[3] -join '.')
+                Write-Host "##vso[task.setvariable variable=currentNextMajor]$($currentNextPackageVersion.Major)"
+                Write-Host "##vso[task.setvariable variable=currentNextMinor]$($currentNextPackageVersion.Minor)"
+                Write-Host "##vso[task.setvariable variable=currentNextPatch]$($currentNextPackageVersion.Build)"
+                Write-Host "##vso[task.setvariable variable=currentNextPreview]$($currentNextPackageVersion.Revision)"
+              #arguments: # string. Alias: scriptArguments. Script Arguments. 
               #powerShellErrorActionPreference: 'stop' # 'stop' | 'continue' | 'silentlyContinue'. Optional. Use when scriptType = ps || scriptType = pscore. ErrorActionPreference. Default: stop.
             env:
               SYSTEM_ACCESSTOKEN: $(System.AccessToken)
-          - ${{ each packageName in split(variables.allPackageNames, ',') }}:
-              - pwsh: |
-                  function ConvertFrom-Base64String {
-                      param (
-                          # Input.
-                          [Parameter(Mandatory, ValueFromPipeline)]
-                          [string]    $InputObject
-                      )
-                      
-                      process {
-                          $inputBytes = [System.Convert]::FromBase64String($InputObject)
-                          return [System.Text.Encoding]::UTF8.GetString($inputBytes)
-                      }
-                  }
+          # Azure CLI v2
+          # Run Azure CLI commands against an Azure subscription in a PowerShell Core/Shell script when running on Linux agent or PowerShell/PowerShell Core/Batch script when running on Windows agent.
+          - task: AzureCLI@2
+            condition: | # Evaluate this condition expression to determine whether to run this task.
+              and
+              (
+                succeeded(), 
+                or(and(gt(length(coalesce(variables.publicationRequiredPackageNames, '')), 0), containsValue(split(variables.publicationRequiredPackageNames, ','), '${{ packageName }}')), and(gt(length(coalesce(variables['ChangedPackages.changedPackageNames'], '')), 0), containsValue(split(variables['ChangedPackages.changedPackageNames'], ','), '${{ packageName }}'))),
+                and(eq(variables['currentNextMajor'], variables['originalNextMajor']), eq(variables['currentNextMinor'], variables['originalNextMinor']), eq(variables['currentNextPatch'], variables['originalNextPatch']), eq(variables['currentNextPreview'], variables['originalNextPreview']))
+              )
+            displayName: '[${{packageName}}] Rollback version numbers' # Human-readable name for the task.
+            inputs:
+              azureSubscription: $(SUBSCRIPTION_ID) # string. Alias: connectedServiceNameARM. Required. Azure Resource Manager connection. 
+              scriptType: 'pscore' # 'ps' | 'pscore' | 'batch' | 'bash'. Required. Script Type. 
+              scriptLocation: 'inlineScript' # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
+              # scriptPath: # string. Required when scriptLocation = scriptPath. Script Path. 
+              inlineScript: | # string. Required when scriptLocation = inlineScript. Inline Script. 
+                Import-Module "$(Build.SourcesDirectory)/build/psmodules/CommonHelpers/CommonHelpers.psm1" -Force
 
-                  if (${{parameters.traceLevel}} -gt 0) {
-                      Set-PSDebug -Trace ${{parameters.traceLevel}}
-                  }
+                if (${{parameters.traceLevel}} -gt 0) {
+                    Set-PSDebug -Trace ${{parameters.traceLevel}}
+                }
 
-                  # Set original version numbers for package to be rolled back to.
-                  $packageNewVersionNumbersInfo = "$(packageNewVersionNumbersList)" | ConvertFrom-Base64String | ConvertFrom-Json | Where-Object -Property PackageName -EQ '${{packageName}}'
-                  Write-Host ("##vso[task.setvariable variable=originalMajorNumber]$($packageNewVersionNumbersInfo.PackageVersion.Major)")
-                  Write-Host ("##vso[task.setvariable variable=originalMinorNumber]$($packageNewVersionNumbersInfo.PackageVersion.Minor)")
-                  Write-Host ("##vso[task.setvariable variable=originalPatchNumber]$($packageNewVersionNumbersInfo.PackageVersion.Build)")
-                  Write-Host ("##vso[task.setvariable variable=originalPreviewNumber]$($packageNewVersionNumbersInfo.PackageVersion.Revision)")
+                # set environment variable for current process
+                $env:AZURE_DEVOPS_EXT_PAT = $env:SYSTEM_ACCESSTOKEN
 
-                  # Set the updated version numbers that were to have been applied to the package.
-                  $packageUpdatedVersionNumbersInfo = "$(packageUpdatedVersionNumbersList)" | ConvertFrom-Base64String | ConvertFrom-Json | Where-Object -Property PackageName -EQ '${{packageName}}'
-                  Write-Host ("##vso[task.setvariable variable=updatedMajorNumber]$($packageUpdatedVersionNumbersInfo.PackageVersion.Major)")
-                  Write-Host ("##vso[task.setvariable variable=updatedMinorNumber]$($packageUpdatedVersionNumbersInfo.PackageVersion.Minor)")
-                  Write-Host ("##vso[task.setvariable variable=updatedPatchNumber]$($packageUpdatedVersionNumbersInfo.PackageVersion.Build)")
-                  Write-Host ("##vso[task.setvariable variable=updatedPreviewNumber]$($packageUpdatedVersionNumbersInfo.PackageVersion.Revision)")
+                # Get information on current package
+                $packageInfo = '${{variables.packageInfos}}' | ConvertFrom-Json | Where-Object -Property packageName -EQ '${{packageName}}'
+                if ($null -eq $packageInfo) {
+                    Write-Error 'Package information not found for ${{packageName}}'
+                }
 
-                  # Set the refreshed next version numbers for the package.
-                  $packageNextVersionNumbersInfo = "$(rollbackPackageNextVersionNumbers)" | ConvertFrom-Base64String | ConvertFrom-Json  | Where-Object -Property PackageName -EQ '${{packageName}}'
-                  Write-Host ("##vso[task.setvariable variable=majorNumber]$($packageNextVersionNumbersInfo.PackageVersion.Major)")
-                  Write-Host ("##vso[task.setvariable variable=minorNumber]$($packageNextVersionNumbersInfo.PackageVersion.Minor)")
-                  Write-Host ("##vso[task.setvariable variable=patchNumber]$($packageNextVersionNumbersInfo.PackageVersion.Build)")
-                  Write-Host ("##vso[task.setvariable variable=previewNumber]$($packageNextVersionNumbersInfo.PackageVersion.Revision)")
-                displayName: "[${{packageName}}] Set version number arguments"
-              - task: AzureCLI@2
-                displayName: "[${{packageName}}] Rollback version numbers"
-                condition: |
-                  and
-                  (
-                    succeeded(), 
-                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}')), 
-                    eq(variables.updatedMajorNumber, variables.majorNumber), 
-                    eq(variables.updatedMinorNumber, variables.minorNumber), 
-                    eq(variables.updatedPatchNumber, variables.patchNumber), 
-                    eq(variables.updatedPreviewNumber, variables.previewNumber)
-                  )                
-                inputs:
-                  azureSubscription: $(SUBSCRIPTION_ID) # string. Alias: connectedServiceNameARM. Required. Azure Resource Manager connection.
-                  scriptType: "pscore" # 'ps' | 'pscore' | 'batch' | 'bash'. Required. Script Type.
-                  scriptLocation: "inlineScript" # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
-                  # scriptPath: # string. Required when scriptLocation = scriptPath. Script Path.
-                  inlineScript: | # string. Required when scriptLocation = inlineScript. Inline Script.
-                    if (${{parameters.traceLevel}} -gt 0) {
-                        Set-PSDebug -Trace ${{parameters.traceLevel}}
-                    }
+                $packageVersions = '$(versionNumbers)' | ConvertFrom-Base64String | ConvertFrom-Json | Where-Object -Property PackageName -EQ -Value '${{packageName}}'
+                if ($null -eq $packageVersions) {
+                    Write-Error 'Package versions not found for ${{packageName}}'
+                }
 
-                    # set environment variable for current process
-                    $env:AZURE_DEVOPS_EXT_PAT = $env:SYSTEM_ACCESSTOKEN
+                # Restore original version numbers
+                [version]$nextPackageVersion = $packageVersions.PackageNextVersion
+                az devops configure -d organization=${env:ORGANIZATION_URL}
+                az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name next-major-number --project ${env:PROJECT_NAME} --value "$($nextPackageVersion.Major)" --verbose
+                az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name next-minor-number --project ${env:PROJECT_NAME} --value "$($nextPackageVersion.Minor)" --verbose
+                az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name next-patch-number --project ${env:PROJECT_NAME} --value "$($nextPackageVersion.Build)" --verbose
+                az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name next-preview-number --project ${env:PROJECT_NAME} --value "$($nextPackageVersion.Revision)" --verbose
 
-                    # Get information on current package
-                    $packageInfo = '${{variables.packageInfos}}' | ConvertFrom-Json | Where-Object -Property packageName -EQ '${{packageName}}'
-                    if ($null -eq $packageInfo) {
-                        Write-Error 'Package information not found for ${{packageName}}'
-                    }
+                # Track packages that have been rolled back
+                $rolledBackPackages = "$(rolledBackPackageList)" -split ','
+                $rolledBackPackages += $packageInfo.packageName
+                Write-Host "##vso[task.setvariable variable=rolledBackPackageList]$($rolledBackPackages -join ',')"
+              #arguments: # string. Alias: scriptArguments. Script Arguments. 
+              #powerShellErrorActionPreference: 'stop' # 'stop' | 'continue' | 'silentlyContinue'. Optional. Use when scriptType = ps || scriptType = pscore. ErrorActionPreference. Default: stop.
+            env:
+              SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+          - task: AzureCLI@2
+            displayName: '[${{packageName}}] Confirm rollback'
+            condition: |
+              and
+              (
+                succeeded(), 
+                gt(length(coalesce(variables['rolledBackPackageList'], '')), 0), 
+                containsValue(split(variables['rolledBackPackageList'], ','), '${{packageName}}')
+              )                
+            inputs:
+              azureSubscription: $(SUBSCRIPTION_ID) # string. Alias: connectedServiceNameARM. Required. Azure Resource Manager connection. 
+              scriptType: 'pscore' # 'ps' | 'pscore' | 'batch' | 'bash'. Required. Script Type. 
+              scriptLocation: 'inlineScript' # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
+              # scriptPath: # string. Required when scriptLocation = scriptPath. Script Path. 
+              inlineScript: | # string. Required when scriptLocation = inlineScript. Inline Script. 
+                Import-Module "$(Build.SourcesDirectory)/build/psmodules/CommonHelpers/CommonHelpers.psm1" -Force
 
-                    # Restore original version numbers
-                    az devops configure -d organization=${env:ORGANIZATION_URL}
-                    az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name next-major-number --project ${env:PROJECT_NAME} --value "$(originalMajorNumber)" --verbose
-                    az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name next-minor-number --project ${env:PROJECT_NAME} --value "$(originalMinorNumber)" --verbose
-                    az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name next-patch-number --project ${env:PROJECT_NAME} --value "$(originalPatchNumber)" --verbose
-                    az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name next-preview-number --project ${env:PROJECT_NAME} --value "$(originalPreviewNumber)" --verbose
+                if (${{parameters.traceLevel}} -gt 0) {
+                    Set-PSDebug -Trace ${{parameters.traceLevel}}
+                }
 
-                    # Track packages that have been rolled back
-                    $rolledBackPackages = "$(rolledBackPackageList)" -split ','
-                    $rolledBackPackages += $packageInfo.packageName
-                    Write-Host "##vso[task.setvariable variable=rolledBackPackageList]$($rolledBackPackages -join ',')"
-                  #arguments: # string. Alias: scriptArguments. Script Arguments.
-                  #powerShellErrorActionPreference: 'stop' # 'stop' | 'continue' | 'silentlyContinue'. Optional. Use when scriptType = ps || scriptType = pscore. ErrorActionPreference. Default: stop.
-                env:
-                  SYSTEM_ACCESSTOKEN: $(System.AccessToken)
-              - task: AzureCLI@2
-                displayName: '[${{packageName}}] Confirm rollback of version numbers'
-                condition: |
-                  and
-                  (
-                    succeeded(), 
-                    gt(length(coalesce(variables['rolledBackPackageList'], '')), 0), 
-                    containsValue(split(variables['rolledBackPackageList'], ','), '${{packageName}}')
-                  )                
-                inputs:
-                  azureSubscription: $(SUBSCRIPTION_ID) # string. Alias: connectedServiceNameARM. Required. Azure Resource Manager connection. 
-                  scriptType: 'pscore' # 'ps' | 'pscore' | 'batch' | 'bash'. Required. Script Type. 
-                  scriptLocation: 'inlineScript' # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
-                  # scriptPath: # string. Required when scriptLocation = scriptPath. Script Path. 
-                  inlineScript: | # string. Required when scriptLocation = inlineScript. Inline Script. 
-                    if (${{parameters.traceLevel}} -gt 0) {
-                        Set-PSDebug -Trace ${{parameters.traceLevel}}
-                    }
+                # set environment variable for current process
+                $env:AZURE_DEVOPS_EXT_PAT = $env:SYSTEM_ACCESSTOKEN
+                                                      
+                az devops configure -d organization=${env:ORGANIZATION_URL} project=${env:PROJECT_NAME}
+                az account set -s ${env:SUBSCRIPTION_ID}
 
-                    # set environment variable for current process
-                    $env:AZURE_DEVOPS_EXT_PAT = $env:SYSTEM_ACCESSTOKEN
-                                          
-                    & az devops configure -d organization=${env:ORGANIZATION_URL} project=${env:PROJECT_NAME}
-                    & az account set -s ${env:SUBSCRIPTION_ID}
+                # Get package information.
+                $packageInfo = '${{variables.packageInfos}}' | ConvertFrom-Json | Where-Object -Property packageName -EQ -Value '${{packageName}}'
+                if ($null -eq $packageInfo) {
+                    Write-Error 'Package information not found for ${{packageName}}'
+                }
 
-                    $packageInfo = '${{variables.packageInfos}}' | ConvertFrom-Json | Where-Object -Property packageName -EQ '${{packageName}}'
-                    if ($null -eq $packageInfo) {
-                        Write-Error 'Package information not found for ${{packageName}}'
-                    }
+                $packageVersions = '$(versionNumbers)' | ConvertFrom-Base64String | ConvertFrom-Json | Where-Object -Property PackageName -EQ -Value '${{packageName}}'
+                if ($null -eq $packageVersions) {
+                    Write-Error 'Package versions not found for ${{packageName}}'
+                }
+                [version]$nextPackageVersion = $packageVersions.PackageNextVersion
 
-                    $variableListOutput = & az pipelines variable-group variable list --group-id $packageInfo.variableGroupId
-                    $variableGroupVersionNumbers = ($variableListOutput | ConvertFrom-Json).PSObject.Properties 
-                    | Where-Object { $_.Name.StartsWith('next') } 
-                    | Out-String -InputObject { $_.Name + ':' + $_.Value.value } -Stream 
-                    | Sort-Object 
-                    | ConvertFrom-Csv -Delimiter ':' -Header 'Name', 'Value' 
-                    | Out-String -InputObject { $_.Value } -Stream
-                    [version] $packageVersionNumbers = ($variableGroupVersionNumbers[0], $variableGroupVersionNumbers[1], $variableGroupVersionNumbers[2], $variableGroupVersionNumbers[3] -join '.')
-                    Write-Information "Rolled back package $($packageInfo.packageName) next version from v$(updatedMajorNumber).$(updatedMinorNumber).$(updatedPatchNumber).$(updatedPreviewNumber) to v$($packageVersionNumbers.Major).$($packageVersionNumbers.Minor).$($packageVersionNumbers.Build).$($packageVersionNumbers.Revision)." -InformationAction Continue
-                  #arguments: # string. Alias: scriptArguments. Script Arguments. 
-                  #powerShellErrorActionPreference: 'stop' # 'stop' | 'continue' | 'silentlyContinue'. Optional. Use when scriptType = ps || scriptType = pscore. ErrorActionPreference. Default: stop.
-                # Advanced
-                  #addSpnToEnvironment: false # boolean. Access service principal details in script. Default: false.
-                  #useGlobalConfig: false # boolean. Use global Azure CLI configuration. Default: false.
-                  #workingDirectory: # string. Alias: cwd. Working Directory. 
-                  #failOnStandardError: false # boolean. Fail on Standard Error. Default: false.
-                  #powerShellIgnoreLASTEXITCODE: false # boolean. Optional. Use when scriptType = ps || scriptType = pscore. Ignore $LASTEXITCODE. Default: false.
-                  #visibleAzLogin: true # boolean. az login output visibility. Default: true.                      
-                env:
-                  SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+                # Fetch next package version from pipeline.
+                $variableListOutput = & az pipelines variable-group variable list --group-id $packageInfo.variableGroupId
+                $variableGroupVersionNumbers = ($variableListOutput | ConvertFrom-Json).PSObject.Properties 
+                | Where-Object { $_.Name.StartsWith('next') } 
+                | Out-String -InputObject { $_.Name + ':' + $_.Value.value } -Stream 
+                | Sort-Object 
+                | ConvertFrom-Csv -Delimiter ':' -Header 'Name', 'Value' 
+                | Out-String -InputObject { $_.Value } -Stream
+                [version] $currentPackageVersion = ($variableGroupVersionNumbers[0], $variableGroupVersionNumbers[1], $variableGroupVersionNumbers[2], $variableGroupVersionNumbers[3] -join '.')
+
+                # Verify rollback was successful.
+                if ($currentPackageVersion -ne $nextPackageVersion) {
+                    Write-Error "Failed to rollback package version for ${{packageName}} to $nextPackageVersion; actual version is $currentPackageVersion."
+                }
+                                
+                [version]$oldPackageVersion = '$(currentNextMajor).$(currentNextMinor).$(currentNextPatch).$(currentNextPreview)'
+                Write-Information "Rolled back package $($packageInfo.packageName) next version from v$oldPackageVersion to v$currentPackageVersion." -InformationAction Continue
+              #arguments: # string. Alias: scriptArguments. Script Arguments. 
+              #powerShellErrorActionPreference: 'stop' # 'stop' | 'continue' | 'silentlyContinue'. Optional. Use when scriptType = ps || scriptType = pscore. ErrorActionPreference. Default: stop.
+            env:
+              SYSTEM_ACCESSTOKEN: $(System.AccessToken)
       - job: Tag
         displayName: "Tag repo with version for changed packages"
         condition: |
@@ -1506,37 +1324,29 @@ stages:
         steps:
           - checkout: self
             persistCredentials: true
-          - template: /templates/configure-git-user.yml
+          - template: /build/configure-git-user.yml
           - ${{ each packageName in split(variables.allPackageNames, ',') }}:
               - pwsh: |
-                  function ConvertFrom-Base64String {
-                      param (
-                          # Input.
-                          [Parameter(Mandatory, ValueFromPipeline)]
-                          [string]    $InputObject
-                      )
-                      
-                      process {
-                          $inputBytes = [System.Convert]::FromBase64String($InputObject)
-                          return [System.Text.Encoding]::UTF8.GetString($inputBytes)
-                      }
-                  }
+                  Import-Module "$(Build.SourcesDirectory)/build/psmodules/CommonHelpers/CommonHelpers.psm1" -Force
 
                   if (${{parameters.traceLevel}} -gt 0) {
                       Set-PSDebug -Trace ${{parameters.traceLevel}}
                   }
 
-                  $packageVersionNumber = "$(packageNewVersionNumbersList)" | ConvertFrom-Base64String | ConvertFrom-Json | Where-Object -Property PackageName -EQ ${{packageName}}
+                  $packageVersions = "$(versionNumbers)" | ConvertFrom-Base64String | ConvertFrom-Json | Where-Object -Property PackageName -EQ -Value ${{packageName}}
+                  if ($null -eq $packageVersions) {
+                      Write-Error 'Package versions not found for ${{packageName}}'
+                  }
 
-                  $versionNumber = "$($packageVersionNumber.PackageVersion.Major).$($packageVersionNumber.PackageVersion.Minor).$($packageVersionNumber.PackageVersion.Build)"
-                  $message = "Release build $versionNumber for package ${{packageName}}"
+                  [version]$productionPackageVersion = $packageVersions.PackageProductionVersion
+                  $message = "Release build $productionPackageVersion for package ${{packageName}}"
 
-                  $tagName = "v$versionNumber-${{packageName}}"
+                  $tagName = "v$productionPackageVersion-${{packageName}}"
                   $commitHash = "$(Build.SourceVersion)"
-                  & git tag -a -m $message $tagName $commitHash
-                  & git push origin $tagName
+                  git tag -a -m $message $tagName $commitHash
+                  git push origin $tagName
                 # failOnStderr: true
-                displayName: "[${{ packageName }}] Apply package version tag to repository"
+                displayName: "[${{ packageName }}] Apply package version tag"
                 condition: |
                   and
                   (
@@ -1549,8 +1359,6 @@ stages:
         displayName: "Update package current version numbers"
         condition: in(stageDependencies.Publication.Publish_Packages.result, 'Succeeded')
         steps:
-          - checkout: none
-            displayName: "Set changed package list"
           - ${{ each packageName in split(variables.allPackageNames, ',') }}:
               - task: AzureCLI@2
                 displayName: "[${{packageName}}] Update current version numbers"
@@ -1566,18 +1374,7 @@ stages:
                   scriptLocation: "inlineScript" # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
                   # scriptPath: # string. Required when scriptLocation = scriptPath. Script Path.
                   inlineScript: | # string. Required when scriptLocation = inlineScript. Inline Script.
-                    function ConvertFrom-Base64String {
-                        param (
-                            # Input.
-                            [Parameter(Mandatory, ValueFromPipeline)]
-                            [string]    $InputObject
-                        )
-                        
-                        process {
-                            $inputBytes = [System.Convert]::FromBase64String($InputObject)
-                            return [System.Text.Encoding]::UTF8.GetString($inputBytes)
-                        }
-                    }
+                    Import-Module "$(Build.SourcesDirectory)/build/psmodules/CommonHelpers/CommonHelpers.psm1" -Force
 
                     if (${{parameters.traceLevel}} -gt 0) {
                         Set-PSDebug -Trace ${{parameters.traceLevel}}
@@ -1587,23 +1384,23 @@ stages:
                     $env:AZURE_DEVOPS_EXT_PAT = $env:SYSTEM_ACCESSTOKEN
 
                     # Extract updated version numbers
-                    $packageInfo = '${{variables.packageInfos}}' | ConvertFrom-Json | Where-Object -Property packageName -EQ '${{packageName}}'
+                    $packageInfo = '${{variables.packageInfos}}' | ConvertFrom-Json | Where-Object -Property packageName -EQ -Value '${{packageName}}'
                     if ($null -eq $packageInfo) {
                         Write-Error 'Package information not found for ${{packageName}}'
                     }
 
-                    $packageNewVersionNumbersInfo = "$(packageNewVersionNumbersList)" 
-                    | ConvertFrom-Base64String
-                    | ConvertFrom-Json
-                    | Where-Object -Property PackageName -EQ $packageInfo.packageName
-                    [version] $packageNewVersionNumber = ($packageNewVersionNumbersInfo.PackageVersion.Major, $packageNewVersionNumbersInfo.PackageVersion.Minor, $packageNewVersionNumbersInfo.PackageVersion.Build, $packageNewVersionNumbersInfo.PackageVersion.Revision -join '.')
+                    $packageVersions = '$(versionNumbers)' | ConvertFrom-Base64String | ConvertFrom-Json | Where-Object -Property PackageName -EQ -Value '${{packageName}}'
+                    if ($null -eq $packageVersions) {
+                        Write-Error 'Package versions not found for ${{packageName}}'
+                    }
 
                     # Update version numbers in pipeline.
+                    [version]$productionPackageVersion = $packageVersions.PackageProductionVersion
                     az devops configure -d organization=${env:ORGANIZATION_URL}
-                    az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name current-major-number --project ${env:PROJECT_NAME} --value $packageNewVersionNumber.Major --verbose
-                    az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name current-minor-number --project ${env:PROJECT_NAME} --value $packageNewVersionNumber.Minor --verbose
-                    az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name current-patch-number --project ${env:PROJECT_NAME} --value $packageNewVersionNumber.Build --verbose
-                    az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name current-preview-number --project ${env:PROJECT_NAME} --value $packageNewVersionNumber.Revision --verbose
+                    az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name current-major-number --project ${env:PROJECT_NAME} --value $productionPackageVersion.Major --verbose
+                    az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name current-minor-number --project ${env:PROJECT_NAME} --value $productionPackageVersion.Minor --verbose
+                    az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name current-patch-number --project ${env:PROJECT_NAME} --value $productionPackageVersion.Build --verbose
+                    az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name current-preview-number --project ${env:PROJECT_NAME} --value $productionPackageVersion.Revision --verbose
                   #arguments: # string. Alias: scriptArguments. Script Arguments.
                   #powerShellErrorActionPreference: 'stop' # 'stop' | 'continue' | 'silentlyContinue'. Optional. Use when scriptType = ps || scriptType = pscore. ErrorActionPreference. Default: stop.
                 env:
@@ -1629,8 +1426,8 @@ stages:
                     # set environment variable for current process
                     $env:AZURE_DEVOPS_EXT_PAT = $env:SYSTEM_ACCESSTOKEN
                                           
-                    & az devops configure -d organization=${env:ORGANIZATION_URL} project=${env:PROJECT_NAME}
-                    & az account set -s ${env:SUBSCRIPTION_ID}
+                    az devops configure -d organization=${env:ORGANIZATION_URL} project=${env:PROJECT_NAME}
+                    az account set -s ${env:SUBSCRIPTION_ID}
 
                     $packageInfo = '${{variables.packageInfos}}' | ConvertFrom-Json | Where-Object -Property packageName -EQ '${{packageName}}'
                     if ($null -eq $packageInfo) {
@@ -1648,12 +1445,5 @@ stages:
                     Write-Information "Updated package $($packageInfo.packageName) current version to v$($packageVersionNumbers.Major).$($packageVersionNumbers.Minor).$($packageVersionNumbers.Build).$($packageVersionNumbers.Revision)." -InformationAction Continue
                   #arguments: # string. Alias: scriptArguments. Script Arguments. 
                   #powerShellErrorActionPreference: 'stop' # 'stop' | 'continue' | 'silentlyContinue'. Optional. Use when scriptType = ps || scriptType = pscore. ErrorActionPreference. Default: stop.
-                # Advanced
-                  #addSpnToEnvironment: false # boolean. Access service principal details in script. Default: false.
-                  #useGlobalConfig: false # boolean. Use global Azure CLI configuration. Default: false.
-                  #workingDirectory: # string. Alias: cwd. Working Directory. 
-                  #failOnStandardError: false # boolean. Fail on Standard Error. Default: false.
-                  #powerShellIgnoreLASTEXITCODE: false # boolean. Optional. Use when scriptType = ps || scriptType = pscore. Ignore $LASTEXITCODE. Default: false.
-                  #visibleAzLogin: true # boolean. az login output visibility. Default: true.
                 env:
                   SYSTEM_ACCESSTOKEN: $(System.AccessToken)
