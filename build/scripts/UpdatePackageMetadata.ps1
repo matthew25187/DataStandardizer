@@ -113,10 +113,15 @@ if (-not [string]::IsNullOrWhiteSpace($releaseNotes)) {
 
     $releaseNotesNode.InnerText = $releaseNotes
     $isChangedPackageNuspecDocument = $true
+
+    Write-Verbose 'Applied release notes:'
+    Write-Verbose $releaseNotes
 }
 elseif ($releaseNotesNode -ne $null) {
     $metadataNode.RemoveChild($releaseNotesNode)
     $isChangedPackageNuspecDocument = $true
+
+    Write-Verbose 'No release notes supplied; "releaseNotes" property removed from .nuspec document.'
 }
 if ((-not [string]::IsNullOrEmpty(${releaseNotesNode}?.InnerText)) -and $releaseNotesNode.InnerText.Length -gt $releaseNotesLengthLimit) {
     $releaseNotesNode.InnerText = $releaseNotesNode.InnerText.Substring(0, $releaseNotesLengthLimit)
