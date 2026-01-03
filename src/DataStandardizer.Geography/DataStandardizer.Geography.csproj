@@ -17,7 +17,7 @@
 Includes:
 - Supports use of ISO 3166, "Codes for the representation of names of countries and their subdivisions" parts 1 &amp; 2.
 - Supports use of UN M49 or the "Standard Country or Area Codes for Statistical Use (Series M, No. 49)".</Description>
-    <Copyright>Copyright © 2025, Matthew25187. All rights reserved.</Copyright>
+    <Copyright>Copyright © 2025-2026, Matthew25187. All rights reserved.</Copyright>
     <PackageProjectUrl>https://github.com/matthew25187/DataStandardizer</PackageProjectUrl>
     <PackageIcon>054-doc_web.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>

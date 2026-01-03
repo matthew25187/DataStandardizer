@@ -15,7 +15,7 @@
 
 Includes:
 - Supports use of IETF BCP 47 language tags as defined by RFC 5646.</Description>
-    <Copyright>Copyright © 2025, Matthew25187. All rights reserved.</Copyright>
+    <Copyright>Copyright © 2025-2026, Matthew25187. All rights reserved.</Copyright>
     <PackageProjectUrl>https://github.com/matthew25187/DataStandardizer</PackageProjectUrl>
     <PackageIcon>054-doc_web.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>

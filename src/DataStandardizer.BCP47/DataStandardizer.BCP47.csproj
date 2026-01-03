@@ -18,7 +18,7 @@ Supports use of IETF BCP 47 language tags as defined by RFC 5646.</Description>
     <Authors>matthew25187</Authors>
     <PackageReleaseNotes>Initial release.</PackageReleaseNotes>
     <Product>Data Standardizer</Product>
-    <Copyright>Copyright © 2024-2025, Matthew25187. All rights reserved.</Copyright>
+    <Copyright>Copyright © 2024-2026, Matthew25187. All rights reserved.</Copyright>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
     <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>

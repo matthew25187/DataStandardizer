@@ -16,7 +16,7 @@
 Includes:
 - Supports use of ISO 639, "Codes for the representation of names of languages" parts 1, 2, 3 &amp; 5.
 - Supports use of ISO 15924, "Codes for the representation of names of scripts".</Description>
-    <Copyright>Copyright © 2025, Matthew25187. All rights reserved.</Copyright>
+    <Copyright>Copyright © 2025-2026, Matthew25187. All rights reserved.</Copyright>
     <PackageProjectUrl>https://github.com/matthew25187/DataStandardizer</PackageProjectUrl>
     <PackageIcon>054-doc_web.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
