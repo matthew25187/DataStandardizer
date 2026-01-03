@@ -257,6 +257,7 @@ stages:
       - job: Version_numbering
         displayName: 'Calculate version numbers' # Human-readable name for the job.
         variables:
+          changedPackageNames: $[ dependencies.Production_packages.outputs['ChangedPackages.changedPackageNames'] ]
           versionNumberList: ''
         pool:
           vmImage: windows-latest
@@ -297,7 +298,7 @@ stages:
               (
                 succeeded(), 
                 or(eq(variables['isDevelopBranch'], 'true'), and(gt(length(coalesce(variables.publicationRequiredPackageNames, '')), 0), gt(length(split(variables.publicationRequiredPackageNames, ',')), 0))), 
-                or(and(gt(length(coalesce(variables.publicationRequiredPackageNames, '')), 0), containsValue(split(variables.publicationRequiredPackageNames, ','), '${{ packageName }}')), and(gt(length(coalesce(variables['ChangedPackages.changedPackageNames'], '')), 0), containsValue(split(variables['ChangedPackages.changedPackageNames'], ','), '${{ packageName }}')))
+                or(and(gt(length(coalesce(variables.publicationRequiredPackageNames, '')), 0), containsValue(split(variables.publicationRequiredPackageNames, ','), '${{ packageName }}')), and(gt(length(coalesce(variables['changedPackageNames'], '')), 0), containsValue(split(variables['changedPackageNames'], ','), '${{ packageName }}')))
               )
             displayName: '[${{ packageName }}] Calculate optional versions' # Human-readable name for the task.
             inputs:
@@ -880,7 +881,7 @@ stages:
         notIn(stageDependencies.Configure.Version_numbering.PromoteVersionList.result, 'Skipped'), 
         in(dependencies.Build.result, 'Succeeded'), 
         or(eq(variables['isDevelopBranch'], 'true'), and(gt(length(coalesce(variables.publicationRequiredPackageNames, '')), 0), gt(length(split(variables.publicationRequiredPackageNames, ',')), 0))), 
-        or(and(gt(length(coalesce(variables.publicationRequiredPackageNames, '')), 0), gt(length(split(variables.publicationRequiredPackageNames, ',')), 0)), and(gt(length(coalesce(stageDependencies.Configure.outputs['Production_packages.ChangedPackages.changedPackageNames'], '')), 0), gt(length(split(stageDependencies.Configure.outputs['Production_packages.ChangedPackages.changedPackageNames'], ',')), 0)))
+        or(and(gt(length(coalesce(variables.publicationRequiredPackageNames, '')), 0), gt(length(split(variables.publicationRequiredPackageNames, ',')), 0)), and(gt(length(coalesce(variables['changedPackageNames'], '')), 0), gt(length(split(variables['changedPackageNames'], ',')), 0)))
       )
     dependsOn:
       - Configure
@@ -1197,7 +1198,7 @@ stages:
               (
                 succeeded(), 
                 or(eq(variables['isDevelopBranch'], 'true'), and(gt(length(coalesce(variables.publicationRequiredPackageNames, '')), 0), gt(length(split(variables.publicationRequiredPackageNames, ',')), 0))), 
-                or(and(gt(length(coalesce(variables.publicationRequiredPackageNames, '')), 0), containsValue(split(variables.publicationRequiredPackageNames, ','), '${{ packageName }}')), and(gt(length(coalesce(variables['ChangedPackages.changedPackageNames'], '')), 0), containsValue(split(variables['ChangedPackages.changedPackageNames'], ','), '${{ packageName }}')))
+                or(and(gt(length(coalesce(variables.publicationRequiredPackageNames, '')), 0), containsValue(split(variables.publicationRequiredPackageNames, ','), '${{ packageName }}')), and(gt(length(coalesce(variables['changedPackageNames'], '')), 0), containsValue(split(variables['changedPackageNames'], ','), '${{ packageName }}')))
               )
             displayName: '[${{packageName}}] Prepare arguments for rollback' # Human-readable name for the task.
             inputs:
@@ -1258,7 +1259,7 @@ stages:
               (
                 succeeded(), 
                 or(eq(variables['isDevelopBranch'], 'true'), and(gt(length(coalesce(variables.publicationRequiredPackageNames, '')), 0), gt(length(split(variables.publicationRequiredPackageNames, ',')), 0))), 
-                or(and(gt(length(coalesce(variables.publicationRequiredPackageNames, '')), 0), containsValue(split(variables.publicationRequiredPackageNames, ','), '${{ packageName }}')), and(gt(length(coalesce(variables['ChangedPackages.changedPackageNames'], '')), 0), containsValue(split(variables['ChangedPackages.changedPackageNames'], ','), '${{ packageName }}'))),
+                or(and(gt(length(coalesce(variables.publicationRequiredPackageNames, '')), 0), containsValue(split(variables.publicationRequiredPackageNames, ','), '${{ packageName }}')), and(gt(length(coalesce(variables['changedPackageNames'], '')), 0), containsValue(split(variables['changedPackageNames'], ','), '${{ packageName }}'))),
                 and(eq(variables['currentNextMajor'], variables['originalNextMajor']), eq(variables['currentNextMinor'], variables['originalNextMinor']), eq(variables['currentNextPatch'], variables['originalNextPatch']), eq(variables['currentNextPreview'], variables['originalNextPreview']))
               )
             displayName: '[${{packageName}}] Rollback version numbers' # Human-readable name for the task.

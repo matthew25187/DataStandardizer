@@ -27,13 +27,6 @@ else {
     Write-Information 'No test packages were detected.'
 }
 
-$testPackageNamesMessage = [string]::Empty
 $testPackageNames | ForEach-Object {
-    if (-not [string]::IsNullOrEmpty($_)) {
-        $testPackageNames += [System.Environment]::NewLine
-    }
-    $testPackageNames += "-`t$($_)"
-}
-if (-not [string]::IsNullOrEmpty($testPackageNamesMessage)) {
-    Write-Verbose $testPackageNamesMessage
+    Write-Verbose "-`t$($_)"
 }
