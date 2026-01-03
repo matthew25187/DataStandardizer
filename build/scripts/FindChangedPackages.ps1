@@ -97,13 +97,6 @@ else {
     Write-Information "No package changes were detected."
 }
 
-$changedPackagesMessage = [string]::Empty
 $changedPackages | ForEach-Object {
-    if (-not [string]::IsNullOrEmpty($_)) {
-        $changedPackagesMessage += [System.Environment]::NewLine
-    }
-    $changedPackagesMessage += "-`t$($_)"
-}
-if (-not [string]::IsNullOrEmpty($changedPackagesMessage)) {
-    Write-Verbose $changedPackagesMessage
+    Write-Verbose "-`t$($_)"
 }
