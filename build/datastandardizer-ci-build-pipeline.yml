@@ -256,6 +256,8 @@ stages:
               #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.              
       - job: Version_numbering
         displayName: 'Calculate version numbers' # Human-readable name for the job.
+        dependsOn:  # Any jobs which must complete before this one.
+          - Production_packages
         variables:
           changedPackageNames: $[ dependencies.Production_packages.outputs['ChangedPackages.changedPackageNames'] ]
           versionNumberList: ''
