@@ -145,6 +145,7 @@ parameters:
   - name: overrideChangedPackageNames
     displayName: 'Override changed package names'
     type: string
+    default: ''
   - name: enableDebug
     displayName: "Enable debug"
     type: boolean
