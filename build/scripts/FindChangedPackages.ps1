@@ -88,7 +88,7 @@ $PackageList |
         }
     }
 
-Write-Host "##vso[task.setvariable variable=changedPackageNames;isOutput=true]$($changedPackages -join ',')"
+Write-Host "##vso[task.setvariable variable=changedPackageNamesList]$($changedPackages -join ',')"
 
 if ($changedPackages.Count -gt 0) {
     Write-Information "Detected $($changedPackages.Count) changed package$(($changedPackages.Count -eq 1) ? '' : 's')."
