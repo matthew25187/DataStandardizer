@@ -138,14 +138,14 @@ parameters:
     - None
     - Build
     - Publication
+  - name: overrideChangedPackageNames
+    displayName: 'Override changed package names'
+    type: string
+    default: null
   - name: forceTagging
     displayName: 'Force tagging'
     type: boolean
     default: false
-  - name: overrideChangedPackageNames
-    displayName: 'Override changed package names'
-    type: string
-    default: ''
   - name: enableDebug
     displayName: "Enable debug"
     type: boolean
@@ -245,7 +245,7 @@ stages:
               and
               (
                 succeeded(), 
-                gt(length(coalesce('${{parameters.overrideChangedPackageNames}}', '')), 0)
+                gt(length('${{parameters.overrideChangedPackageNames}}'), 0)
               )
             # continueOnError: boolean # Continue running even on failure?
             displayName: 'Override changed packages' # Human-readable name for the task.
