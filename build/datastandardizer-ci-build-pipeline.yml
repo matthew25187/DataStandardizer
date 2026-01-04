@@ -880,8 +880,6 @@ stages:
       and
       (
         succeeded(), 
-        notIn(stageDependencies.Configure.Version_numbering.PromoteVersionList.result, 'Skipped'), 
-        in(dependencies.Build.result, 'Succeeded'), 
         or(eq(variables['isDevelopBranch'], 'true'), and(gt(length(coalesce(variables.publicationRequiredPackageNames, '')), 0), gt(length(split(variables.publicationRequiredPackageNames, ',')), 0))), 
         or(and(gt(length(coalesce(variables.publicationRequiredPackageNames, '')), 0), gt(length(split(variables.publicationRequiredPackageNames, ',')), 0)), and(gt(length(coalesce(variables['changedPackageNames'], '')), 0), gt(length(split(variables['changedPackageNames'], ',')), 0)))
       )
