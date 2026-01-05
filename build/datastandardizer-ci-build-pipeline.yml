@@ -916,7 +916,27 @@ stages:
             failOnMinTestsNotRun: true # boolean. Fail the task if a minimum number of tests are not run. Default: False.
             #minimumExpectedTests: '1' # string. Optional. Use when failOnMinTestsNotRun = true. Minimum # of tests. Default: 1.            
   - stage: Publication
-    condition: ${{ and(succeeded(), or(eq(variables['isDevelopBranch'], 'true'), and(gt(length(coalesce(variables.publicationRequiredPackageNames, '')), 0), gt(length(split(variables.publicationRequiredPackageNames, ',')), 0))), or(and(gt(length(coalesce(variables.publicationRequiredPackageNames, '')), 0), gt(length(split(variables.publicationRequiredPackageNames, ',')), 0)), and(gt(length(coalesce(stageDependencies.Configure.Production_packages.outputs['ChangedPackages.changedPackageNames'], '')), 0), gt(length(split(stageDependencies.Configure.Production_packages.outputs['ChangedPackages.changedPackageNames'], ',')), 0)))) }}
+    condition: |
+      and(
+        succeeded(),
+        or(
+          eq(variables['isDevelopBranch'], 'true'),
+          and(
+            gt(length(coalesce(variables.publicationRequiredPackageNames, '')), 0),
+            gt(length(split(variables.publicationRequiredPackageNames, ',')), 0)
+          )
+        ),
+        or(
+          and(
+            gt(length(coalesce(variables.publicationRequiredPackageNames, '')), 0),
+            gt(length(split(variables.publicationRequiredPackageNames, ',')), 0)
+          ),
+          and(
+            gt(length(coalesce(stageDependencies.Configure.outputs['Production_packages.ChangedPackages.changedPackageNames'], '')), 0),
+            gt(length(split(stageDependencies.Configure.outputs['Production_packages.ChangedPackages.changedPackageNames'], ',')), 0)
+          )
+        )
+      )
     dependsOn:
       - Configure
       - Build
