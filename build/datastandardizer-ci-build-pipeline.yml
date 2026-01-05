@@ -916,8 +916,7 @@ stages:
             failOnMinTestsNotRun: true # boolean. Fail the task if a minimum number of tests are not run. Default: False.
             #minimumExpectedTests: '1' # string. Optional. Use when failOnMinTestsNotRun = true. Minimum # of tests. Default: 1.            
   - stage: Publication
-    condition: |
-      and(
+    condition: ${{ and(
         succeeded(),
         or(
           eq(variables['isDevelopBranch'], 'true'),
@@ -936,7 +935,7 @@ stages:
             gt(length(split(stageDependencies.Configure.Production_packages.outputs['ChangedPackages.changedPackageNames'], ',')), 0)
           )
         )
-      )
+      ) }}
     dependsOn:
       - Configure
       - Build
