@@ -1,4 +1,6 @@
 parameters:
+- name: packageName
+  type: string
 - name: encodedPackageVersions
   type: string
 - name: enableVerboseOutput
@@ -13,7 +15,7 @@ parameters:
 
 steps:
 - ${{ each dependencyPackageName in split(variables.allPackageNames, ',') }}:
-  - ${{ if ne(dependencyPackageName, packageName) }}:
+  - ${{ if ne(dependencyPackageName, parameters.packageName) }}:
     - pwsh: | # Required as first property. Inline PowerShell script.
         Import-Module "$(Build.SourcesDirectory)/build/psmodules/CommonHelpers/CommonHelpers.psm1" -Force
 

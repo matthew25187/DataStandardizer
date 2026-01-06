@@ -38,6 +38,7 @@ steps:
     #requestTimeout: '300000' # string. Set timeout for package download request. Default: 300000.
 - template: /build/build-dependency-version.yml  # reference to template
   parameters: # provided parameters
+    packageName: ${{parameters.packageName}}
     encodedPackageVersions: ${{parameters.encodedPackageVersions}}
     enableVerboseOutput: ${{parameters.enableVerboseOutput}}
     enableDebug: ${{parameters.enableDebug}}
