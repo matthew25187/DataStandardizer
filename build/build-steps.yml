@@ -9,6 +9,10 @@ parameters: # expected parameters
   type: string
 - name: buildAssemblyInformationalVersionPackageNames
   type: string
+- name: packageNames
+  type: string
+- name: packageInfos
+  type: string
 - name: encodedPackageVersions
   type: string
 - name: buildConfiguration
@@ -39,6 +43,8 @@ steps:
 - template: /build/build-dependency-version.yml  # reference to template
   parameters: # provided parameters
     packageName: ${{parameters.packageName}}
+    packageNames: ${{parameters.packageNames}}
+    packageInfos: ${{parameters.packageInfos}}
     encodedPackageVersions: ${{parameters.encodedPackageVersions}}
     enableVerboseOutput: ${{parameters.enableVerboseOutput}}
     enableDebug: ${{parameters.enableDebug}}
@@ -83,7 +89,7 @@ steps:
   inputs:
     #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
     filePath: 'build/scripts/SetBuildTemplateArguments.ps1' # string. Required when targetType = filePath. Script Path. 
-    arguments: '-PackageName ${{parameters.packageName}} -PackageInfos ''${{variables.packageInfos}}'' -EncodedPackageVersions ''${{parameters.encodedPackageVersions}}'' -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
+    arguments: '-PackageName ${{parameters.packageName}} -PackageInfos ''${{parameters.packageInfos}}'' -EncodedPackageVersions ''${{parameters.encodedPackageVersions}}'' -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
     #script: # string. Required when targetType = inline. Script. 
   # Preference Variables
     #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.

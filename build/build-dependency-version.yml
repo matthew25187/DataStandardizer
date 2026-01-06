@@ -1,6 +1,10 @@
 parameters:
 - name: packageName
   type: string
+- name: packageNames
+  type: string
+- name: packageInfos
+  type: string
 - name: encodedPackageVersions
   type: string
 - name: enableVerboseOutput
@@ -14,7 +18,7 @@ parameters:
   default: 0
 
 steps:
-- ${{ each dependencyPackageName in split(variables.allPackageNames, ',') }}:
+- ${{ each dependencyPackageName in split(parameters.packageNames, ',') }}:
   - ${{ if ne(dependencyPackageName, parameters.packageName) }}:
     - pwsh: | # Required as first property. Inline PowerShell script.
         Import-Module "$(Build.SourcesDirectory)/build/psmodules/CommonHelpers/CommonHelpers.psm1" -Force
@@ -23,7 +27,7 @@ steps:
             Set-PSDebug -Trace ${{parameters.traceLevel}}
         }
 
-        $packageInfo = '${{variables.packageInfos}}'
+        $packageInfo = '${{parameters.packageInfos}}'
         | ConvertFrom-Json
         | Where-Object -Property packageName -EQ -Value '${{dependencyPackageName}}'
         if ($null -eq $packageInfo) {

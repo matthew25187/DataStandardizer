@@ -481,6 +481,8 @@ stages:
             buildAssemblyVersionPackageNames: $(hasAssemblyVersionNumbers)
             buildAssemblyFileVersionPackageNames: $(hasAssemblyFileVersionNumbers)
             buildAssemblyInformationalVersionPackageNames: $(hasAssemblyInformationalVersionNumbers)
+            packageNames: ${{variables.allPackageNames}}
+            packageInfos: ${{variables.packageInfos}}
             encodedPackageVersions: $(versionNumbers)
             buildConfiguration: $(BuildConfiguration)
             buildPlatform: $(BuildPlatform)
@@ -601,6 +603,7 @@ stages:
           - template: /build/publication-create-packages-prepare.yml  # reference to template
             parameters: # provided parameters
               buildConfiguration: $(BuildConfiguration)
+              buildSolution: ${{variables.solution}}
           # Create NuGet packages
           - ${{ each packageName in split(variables.allPackageNames, ',') }}:
               - task: PowerShell@2
@@ -744,6 +747,7 @@ stages:
               #StoreAsTar:  # Optional  # Add all files from the publish path to a tar archive before uploading. This allows you to preserve the UNIX file permissions. Use `extractTars` option of DownloadBuildArtifacts task to extract the downloaded items automatically.
       - template: /build/publication-publish-packages-job.yml  # reference to template
         parameters: # provided parameters
+          publicationRequiredPackageNames: ${{variables.publicationRequiredPackageNames}}
           changedPackageNames: $(changedPackageNames)
           buildConfiguration: $(BuildConfiguration)
   - stage: Cleanup

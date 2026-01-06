@@ -1,12 +1,14 @@
 parameters: # expected parameters
 - name: buildConfiguration
   type: string
+- name: buildSolution
+  type: string
 
 steps:
 - task: MSBuild@1
   displayName: "Restore package dependencies"
   inputs:
-    solution: ${{ variables.solution }} # Required  # Relative path from repo root of the project(s) or solution(s) to run.  Wildcards can be used.  For example, `**/*.csproj` for all csproj files in all sub folders.
+    solution: ${{ parameters.buildSolution }} # Required  # Relative path from repo root of the project(s) or solution(s) to run.  Wildcards can be used.  For example, `**/*.csproj` for all csproj files in all sub folders.
     #msbuildLocationMethod: # Options: 'version', 'location' # Optional
     #msbuildVersion: # Options: 'latest', '17.0', '16.0', '15.0', '14.0', '12.0', '4.0' # Optional  # If the preferred version cannot be found, the latest version found will be used instead. On an macOS agent, xbuild (Mono) will be used if version is lower than 15.0.
     #msbuildArchitecture: # Options: 'x86', 'x64' # Optional  # Optionally supply the architecture (x86, x64) of MSBuild to run.

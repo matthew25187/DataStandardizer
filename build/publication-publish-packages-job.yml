@@ -1,4 +1,6 @@
 parameters: # expected parameters
+- name: publicationRequiredPackageNames
+  type: string
 - name: changedPackageNames
   type: string
 - name: buildConfiguration
@@ -13,7 +15,7 @@ jobs:
     and
     (
       succeeded(), 
-      or(and(gt(length(coalesce('${{variables.publicationRequiredPackageNames}}', '')), 0), gt(length(split('${{variables.publicationRequiredPackageNames}}', ',')), 0)), and(gt(length(coalesce('${{parameters.changedPackageNames}}', '')), 0), gt(length(split('${{parameters.changedPackageNames}}', ',')), 0)))
+      or(and(gt(length(coalesce('${{parameters.publicationRequiredPackageNames}}', '')), 0), gt(length(split('${{parameters.publicationRequiredPackageNames}}', ',')), 0)), and(gt(length(coalesce('${{parameters.changedPackageNames}}', '')), 0), gt(length(split('${{parameters.changedPackageNames}}', ',')), 0)))
     )
   variables:
     BuildConfiguration: release
