@@ -80,7 +80,7 @@ steps:
           }
 
           # Get version numbers.
-          [version]$productionAssemblyVersion = '$(versioningNumber)'
+          [version]$productionAssemblyVersion = '$(assemblyVersionNumberArg)'
           [version]$appliedVersion = '$(AppliedVersion)'
 
           # Show version number applied.
