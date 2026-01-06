@@ -40,7 +40,7 @@ if ($null -eq $packageVersions) {
 }
 
 # Update version numbers in pipeline.
-[version]$updateVersionNumber = $packageInfo.PSObject.Properties[$VersionNumberName].Value
+[version]$updateVersionNumber = $packageVersions.PSObject.Properties[$VersionNumberName].Value
 az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name "$VariableNamePrefix-major-number" --value $updateVersionNumber.Major --verbose
 az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name "$VariableNamePrefix-minor-number" --value $updateVersionNumber.Minor --verbose
 az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name "$VariableNamePrefix-patch-number" --value [Math]::Max($updateVersionNumber.Build, 0) --verbose
