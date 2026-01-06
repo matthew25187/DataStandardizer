@@ -36,7 +36,7 @@ steps:
     #version: # string. Optional. Use when useGlobalJson = false || packageType = runtime. Version. 
     #includePreviewVersions: false # boolean. Optional. Use when useGlobalJson = false  || packageType = runtime. Include Preview Versions. Default: false.
     #requestTimeout: '300000' # string. Set timeout for package download request. Default: 300000.
-- template: build/build-dependency-version.yml  # reference to template
+- template: /build/build-dependency-version.yml  # reference to template
   parameters: # provided parameters
     encodedPackageVersions: ${{parameters.encodedPackageVersions}}
     enableVerboseOutput: ${{parameters.enableVerboseOutput}}
@@ -98,21 +98,21 @@ steps:
     pwsh: true # boolean. Use PowerShell Core. Default: false.
     #workingDirectory: # string. Working Directory. 
     #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.
-- template: build/build-apply-project-version.yml  # reference to template
+- template: /build/build-apply-project-version.yml  # reference to template
   parameters: # provided parameters
     packageName: ${{parameters.packageName}}
     hasVersionPackageNames: ${{parameters.buildAssemblyFileVersionPackageNames}}
     searchPath: $(Build.SourcesDirectory)/$(sourceFolderPath)
     versionNumber: $(buildFileVersion)
     fieldName: 'FileVersion'
-- template: build/build-apply-project-version.yml  # reference to template
+- template: /build/build-apply-project-version.yml  # reference to template
   parameters: # provided parameters
     packageName: ${{parameters.packageName}}
     hasVersionPackageNames: ${{parameters.buildAssemblyInformationalVersionPackageNames}}
     searchPath: $(Build.SourcesDirectory)/$(sourceFolderPath)
     versionNumber: $(buildInformationalVersion)
     fieldName: 'InformationalVersion'
-- template: build/build-apply-project-version.yml  # reference to template
+- template: /build/build-apply-project-version.yml  # reference to template
   parameters: # provided parameters
     packageName: ${{parameters.packageName}}
     hasVersionPackageNames: ${{parameters.buildAssemblyVersionPackageNames}}
