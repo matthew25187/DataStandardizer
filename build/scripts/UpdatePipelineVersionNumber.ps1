@@ -41,9 +41,10 @@ if ($null -eq $packageVersions) {
 
 # Update version numbers in pipeline.
 [version]$updateVersionNumber = $packageVersions.PSObject.Properties[$VersionNumberName].Value
-az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name "$VariableNamePrefix-major-number" --value $updateVersionNumber.Major --verbose
-az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name "$VariableNamePrefix-minor-number" --value $updateVersionNumber.Minor --verbose
-az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name "$VariableNamePrefix-patch-number" --value [Math]::Max($updateVersionNumber.Build, 0) --verbose
-az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name "$VariableNamePrefix-preview-number" --value [Math]::Max($updateVersionNumber.Revision, 0) --verbose
+[int]$updateMajorNumber = $updateVersionNumber.Major, [int]$updateMinorNumber = $updateVersionNumber.Minor, [int]$updateBuildNumber = [System.Math]::Max($updateVersionNumber.Build, 0), [int]$updateRevisionNumber = [System.Math]::Max($updateVersionNumber.Revision, 0)
+az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name "$VariableNamePrefix-major-number" --value $updateMajorNumber --verbose
+az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name "$VariableNamePrefix-minor-number" --value $updateMinorNumber --verbose
+az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name "$VariableNamePrefix-patch-number" --value $updateBuildNumber --verbose
+az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name "$VariableNamePrefix-preview-number" --value $updateRevisionNumber --verbose
 
 Write-Information "Updated $PackageName $VariableNamePrefix version number to $updateVersionNumber." -InformationAction Continue
