@@ -474,7 +474,7 @@ stages:
           buildSolution: '${{packageName}}.slnf'
           isContinuousIntegrationBuild: true
         steps:
-        - template: build/build-steps.yml  # reference to template
+        - template: /build/build-steps.yml  # reference to template
           parameters: # provided parameters
             packageName: ${{packageName}}
             buildSolution: ${{variables.buildSolution}}
@@ -551,7 +551,7 @@ stages:
         pool: 
           vmImage: windows-latest # Pool where this job will run.
         steps: # A list of steps to run.
-        - template: build/qa-steps.yml  # reference to template
+        - template: /build/qa-steps.yml  # reference to template
           parameters: # provided parameters
             packageName: ${{packageName}}
             testAssemblySearchPattern: ${{ variables.testAssemblies }}
@@ -598,7 +598,7 @@ stages:
             Release:
               BuildConfiguration: release
         steps:
-          - template: build/publication-create-packages-prepare.yml  # reference to template
+          - template: /build/publication-create-packages-prepare.yml  # reference to template
             parameters: # provided parameters
               buildConfiguration: $(BuildConfiguration)
           # Create NuGet packages
@@ -742,7 +742,7 @@ stages:
               #ParallelCount:  # Optional  # Enter the degree of parallelism, or number of threads used, to perform the copy. The value must be at least 1 and not greater than 128.
               #FileCopyOptions:  # Optional  # Pass additional options to the Robocopy command.
               #StoreAsTar:  # Optional  # Add all files from the publish path to a tar archive before uploading. This allows you to preserve the UNIX file permissions. Use `extractTars` option of DownloadBuildArtifacts task to extract the downloaded items automatically.
-      - template: build/publication-publish-packages-job.yml  # reference to template
+      - template: /build/publication-publish-packages-job.yml  # reference to template
         parameters: # provided parameters
           changedPackageNames: $(changedPackageNames)
           buildConfiguration: $(BuildConfiguration)
