@@ -25,18 +25,18 @@ steps:
 
         $packageInfo = '${{variables.packageInfos}}'
         | ConvertFrom-Json
-        | Where-Object -Property packageName -EQ -Value '${{parameters.dependencyPackageName}}'
+        | Where-Object -Property packageName -EQ -Value '${{dependencyPackageName}}'
         if ($null -eq $packageInfo) {
-            Write-Error 'Package information not found for ${{parameters.dependencyPackageName}}'
+            Write-Error 'Package information not found for ${{dependencyPackageName}}'
         }
         $projectSourcePath = '$(Build.SourcesDirectory)' | Join-Path -ChildPath "$($packageInfo.packageSourcePath)"
 
         $packageVersions = '${{parameters.encodedPackageVersions}}'
         | ConvertFrom-Base64String 
         | ConvertFrom-Json
-        | Where-Object -Property PackageName -EQ -Value '${{parameters.dependencyPackageName}}'
+        | Where-Object -Property PackageName -EQ -Value '${{dependencyPackageName}}'
         if ($null -eq $packageVersions) {
-            Write-Error 'Package versions not found for ${{parameters.dependencyPackageName}}'
+            Write-Error 'Package versions not found for ${{dependencyPackageName}}'
         }
         [version]$productionAssemblyVersion = $packageVersions.AssemblyProductionVersion
 
@@ -52,7 +52,7 @@ steps:
     # Version .NET Assemblies (Core/5/6 and later)
     # Description - Applies a version to a .NET Assemblies (Core/5/6 and later) via the .csproj files based on the build number. Based on Microsoft sample from https://msdn.microsoft.com/Library/vs/alm/Build/overview
     - task: VersionDotNetCoreAssemblies@3
-      displayName: '[${{parameters.packageName}}] Apply Assembly Version to ${{parameters.dependencyPackageName}}' # Human-readable name for the task.
+      displayName: '[${{parameters.packageName}}] Apply Assembly Version to ${{dependencyPackageName}}' # Human-readable name for the task.
       inputs: 
         # Required arguments
         Path: $(projectPathArg)
@@ -65,7 +65,7 @@ steps:
     # PowerShell v2
     # Run a PowerShell script on Linux, macOS, or Windows.
     - task: PowerShell@2
-      displayName: '[${{parameters.packageName}}] Confirm Assembly Version for ${{parameters.dependencyPackageName}}' # Human-readable name for the task.
+      displayName: '[${{parameters.packageName}}] Confirm Assembly Version for ${{dependencyPackageName}}' # Human-readable name for the task.
       inputs:
         targetType: 'inline' # 'filePath' | 'inline'. Type. Default: filePath.
         # filePath: # string. Required when targetType = filePath. Script Path. 
@@ -84,7 +84,7 @@ steps:
               Write-Error "Failed to apply Assembly version $productionAssemblyVersion; actual version was $appliedVersion."
           }
 
-          Write-Information "Applied version $appliedVersion to ${{parameters.dependencyPackageName}}."
+          Write-Information "Applied version $appliedVersion to ${{dependencyPackageName}}."
       # Preference Variables
         #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
         #warningPreference: 'default' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. WarningPreference. Default: default.
