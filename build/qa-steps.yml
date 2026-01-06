@@ -1,0 +1,90 @@
+parameters: # expected parameters
+- name: packageName
+  type: string
+- name: testAssemblySearchPattern
+  type: string
+- name: buildPlatform
+  type: string
+- name: buildConfiguration
+  type: string
+
+steps:
+- task: DownloadBuildArtifacts@1
+  displayName: '[${{parameters.packageName}}] Download build artifacts'
+  inputs:
+    buildType: 'current' # 'current' | 'specific'. Required. Download artifacts produced by. Default: current.
+    #project: # string. Required when buildType == specific. Project. 
+    #pipeline: # string. Alias: definition. Required when buildType == specific. Build pipeline. 
+    #specificBuildWithTriggering: false # boolean. Optional. Use when buildType == specific. When appropriate, download artifacts from the triggering build. Default: false.
+    buildVersionToDownload: 'latest' # 'latest' | 'latestFromBranch' | 'specific'. Required when buildType == specific. Build version to download. Default: latest.
+    #allowPartiallySucceededBuilds: false # boolean. Optional. Use when buildType == specific && buildVersionToDownload != specific. Download artifacts even from partially succeeded builds. Default: false.
+    branchName: $(Build.SourceBranch) # string. Required when buildType == specific && buildVersionToDownload == latestFromBranch. Branch name. Default: refs/heads/master.
+    #buildId: # string. Required when buildType == specific && buildVersionToDownload == specific. Build. 
+    #tags: # string. Optional. Use when buildType == specific && buildVersionToDownload != specific. Build Tags. 
+    downloadType: 'single' # 'single' | 'specific'. Required. Download type. Default: single.
+    artifactName: drop # string. Required when downloadType == single. Artifact name. 
+    #itemPattern: '**' # string. Matching pattern. Default: **.
+    downloadPath: '$(Pipeline.Workspace)' # string. Required. Destination directory. Default: $(System.ArtifactsDirectory).
+    #cleanDestinationFolder: false # boolean. Clean destination folder. Default: false.
+  # Advanced
+    #parallelizationLimit: '8' # string. Parallelization limit. Default: 8.
+    #checkDownloadedFiles: false # boolean. Check downloaded files. Default: false.
+    #retryDownloadCount: '4' # string. Retry count. Default: 4.
+    #extractTars: # boolean. Extract all files that are stored inside tar archives.        
+- task: CopyFiles@2
+  displayName: '[${{parameters.packageName}}] Copy files to working area'
+  inputs:
+    SourceFolder: $(Pipeline.Workspace)\drop # string. Source Folder. 
+    Contents: '**' # string. Required. Contents. Default: **.
+    TargetFolder: $(System.DefaultWorkingDirectory) # string. Required. Target Folder. 
+  # Advanced
+    #CleanTargetFolder: false # boolean. Clean Target Folder. Default: false.
+    #OverWrite: false # boolean. Overwrite. Default: false.
+    #flattenFolders: false # boolean. Flatten Folders. Default: false.
+    #preserveTimestamp: false # boolean. Preserve Target Timestamp. Default: false.
+    #retryCount: '0' # string. Retry count to copy the file. Default: 0.
+    #delayBetweenRetries: '1000' # string. Delay between two retries. Default: 1000.
+    #ignoreMakeDirErrors: false # boolean. Ignore errors during creation of target folder. Default: false.
+- task: VSTest@3
+  displayName: '[${{parameters.packageName}}] Run automated tests'
+  inputs:
+    #azureSubscription: # string. Alias: ConnectedServiceName. Azure Resource Manager connection. 
+  # Test selection
+    testSelector: 'testAssemblies' # 'testAssemblies' | 'testPlan' | 'testRun'. Required. Select tests using. Default: testAssemblies.
+    testAssemblyVer2: ${{ parameters.testAssemblySearchPattern }} # string. Required when testSelector = testAssemblies. Test files. 
+    #testPlan: # string. Required when testSelector = testPlan. Test plan. 
+    #testSuite: # string. Required when testSelector = testPlan. Test suite. 
+    #testConfiguration: # string. Required when testSelector = testPlan. Test configuration. 
+    #tcmTestRun: '$(test.RunId)' # string. Optional. Use when testSelector = testRun. Test Run. Default: $(test.RunId).
+    searchFolder: '$(System.DefaultWorkingDirectory)' # string. Required. Search folder. Default: $(System.DefaultWorkingDirectory).
+    #resultsFolder: '$(Agent.TempDirectory)\TestResults' # string. Test results folder. Default: $(Agent.TempDirectory)\TestResults.
+    #testFiltercriteria: # string. Optional. Use when testSelector = testAssemblies. Test filter criteria. 
+    #runOnlyImpactedTests: False # boolean. Optional. Use when testSelector = testAssemblies. Run only impacted tests. Default: False.
+    #runAllTestsAfterXBuilds: '50' # string. Optional. Use when testSelector = testAssemblies && runOnlyImpactedTests = true. Number of builds after which all tests should be run. Default: 50.
+    #uiTests: false # boolean. Test mix contains UI tests. Default: false.
+  # Execution options
+    #vstestLocationMethod: 'version' # 'version' | 'location'. Select test platform using. Default: version.
+    #vsTestVersion: 'latest' # 'latest' | '17.0' | '16.0' | '15.0' | '14.0' | 'toolsInstaller'. Optional. Use when vstestLocationMethod = version. Test platform version. Default: latest.
+    #vstestLocation: # string. Optional. Use when vstestLocationMethod = location. Path to vstest.console.exe. 
+    #runSettingsFile: # string. Settings file. 
+    #overrideTestrunParameters: # string. Override test run parameters. 
+    #pathtoCustomTestAdapters: # string. Path to custom test adapters. 
+    #runInParallel: False # boolean. Run tests in parallel on multi-core machines. Default: False.
+    #runTestsInIsolation: False # boolean. Run tests in isolation. Default: False.
+    #codeCoverageEnabled: False # boolean. Code coverage enabled. Default: False.
+    #otherConsoleOptions: # string. Other console options. 
+    #diagnosticsEnabled: false # boolean. Collect advanced diagnostics in case of catastrophic failures. Default: false.
+    #collectDumpOn: 'onAbortOnly' # 'onAbortOnly' | 'always' | 'never'. Optional. Use when diagnosticsEnabled = true. Collect process dump and attach to test run report. Default: onAbortOnly.
+    #rerunFailedTests: False # boolean. Rerun failed tests. Default: False.
+    #rerunType: 'basedOnTestFailurePercentage' # 'basedOnTestFailurePercentage' | 'basedOnTestFailureCount'. Optional. Use when rerunFailedTests = true. Do not rerun if test failures exceed specified threshold. Default: basedOnTestFailurePercentage.
+    #rerunFailedThreshold: '30' # string. Optional. Use when rerunFailedTests = true && rerunType = basedOnTestFailurePercentage. % failure. Default: 30.
+    #rerunFailedTestCasesMaxLimit: '5' # string. Optional. Use when rerunFailedTests = true && rerunType = basedOnTestFailureCount. # of failed tests. Default: 5.
+    #rerunMaxAttempts: '3' # string. Optional. Use when rerunFailedTests = true. Maximum # of attempts. Default: 3.
+  # Reporting options
+    #testRunTitle: # string. Test run title. 
+    platform: ${{parameters.buildPlatform}} # string. Build platform. 
+    configuration: ${{parameters.buildConfiguration}} # string. Build configuration. 
+    #publishRunAttachments: true # boolean. Upload test attachments. Default: true.
+    #donotPublishTestResults: false # boolean. Optional. Use when runInParallel = false. Disable publishing test results. Default: false.
+    failOnMinTestsNotRun: true # boolean. Fail the task if a minimum number of tests are not run. Default: False.
+    #minimumExpectedTests: '1' # string. Optional. Use when failOnMinTestsNotRun = true. Minimum # of tests. Default: 1.            

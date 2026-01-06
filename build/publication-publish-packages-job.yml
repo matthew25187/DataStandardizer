@@ -1,0 +1,71 @@
+parameters: # expected parameters
+- name: changedPackageNames
+  type: string
+- name: buildConfiguration
+  type: string
+
+# File: templates/insert-jobs.yml
+jobs:
+- job: Publish_Packages
+  displayName: "Publish NuGet packages to private feed"
+  dependsOn: Create_Packages
+  condition: |
+    and
+    (
+      succeeded(), 
+      or(and(gt(length(coalesce('${{variables.publicationRequiredPackageNames}}', '')), 0), gt(length(split('${{variables.publicationRequiredPackageNames}}', ',')), 0)), and(gt(length(coalesce('${{parameters.changedPackageNames}}', '')), 0), gt(length(split('${{parameters.changedPackageNames}}', ',')), 0)))
+    )
+  variables:
+    BuildConfiguration: release
+  steps:
+    - checkout: none
+    - task: NuGetToolInstaller@1
+      displayName: "Install NuGet CLI"
+      # inputs:
+        #versionSpec:  # Optional  # A version or version range that specifies the NuGet version to make available on the path. Use x as a wildcard. See the [list of available NuGet versions](http://dist.nuget.org/tools.json).If you want to match a pre-release version, the specification must contain a major, minor, patch, and pre-release version from the list above.Examples: 4.x, 3.3.x, 2.8.6, >=4.0.0-0If unspecified, a version will be chosen automatically.
+        # checkLatest: true # Optional  # Always check for and download the latest available version of NuGet.exe which satisfies the version spec.Enabling this option could cause unexpected build breaks when a new version of NuGet is released.
+    # Configure NuGet tools to authenticate with Azure Artifacts and other NuGet repositories. Requires NuGet >= 4.8.5385, dotnet >= 6, or MSBuild >= 15.8.166.59604.
+    - task: NuGetAuthenticate@1
+      # inputs:
+        # forceReinstallCredentialProvider: false # boolean. Reinstall the credential provider even if already installed. Default: false.
+        #nuGetServiceConnections: # string. Service connection credentials for feeds outside this organization.
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: "current"
+        artifactName: "packages"
+        itemPattern: "**/${{parameters.buildConfiguration}}/**/*"
+        targetPath: "$(System.ArtifactsDirectory)"
+    # Build, test, package, or publish a .NET application, or run a custom .NET CLI command.
+    - task: DotNetCoreCLI@2
+      displayName: "Upload packages to package server"
+      inputs:
+        #azureSubscription: # string. Alias: ConnectedServiceName. Azure Resource Manager connection. 
+        command: 'push' # 'build' | 'push' | 'pack' | 'publish' | 'restore' | 'run' | 'test' | 'custom'. Required. Command. Default: build.
+        #publishWebProjects: true # boolean. Optional. Use when command = publish. Publish web projects. Default: true.
+        #projects: # string. Optional. Use when command = build || command = restore || command = run || command = test || command = custom || publishWebProjects = false. Path to project(s) or solution(s). 
+        #custom: # string. Required when command = custom. Custom command. 
+        #arguments: # string. Optional. Use when command = build || command = publish || command = run || command = test || command = custom. Arguments. 
+        #restoreArguments: # string. Optional. Use when command = restore. Arguments. 
+        #publishTestResults: true # boolean. Optional. Use when command = test. Publish test results and code coverage. Default: true.
+        #testRunTitle: # string. Optional. Use when command = test. Test run title. 
+        #zipAfterPublish: true # boolean. Optional. Use when command = publish. Zip published projects. Default: true.
+        #modifyOutputPath: true # boolean. Optional. Use when command = publish. Add project's folder name to publish path. Default: true.
+        packagesToPush: '$(System.ArtifactsDirectory)/**/*.nupkg' # string. Alias: searchPatternPush. Required when command = push. Path to NuGet package(s) to publish. Default: $(Build.ArtifactStagingDirectory)/*.nupkg.
+        nuGetFeedType: 'internal' # 'internal' | 'external'. Required when command = push. Target feed location. Default: internal.
+        publishVstsFeed: $(PACKAGE_FEED_ID) # string. Alias: feedPublish. Required when command = push && nuGetFeedType = internal. Target feed. 
+        #publishFeedCredentials: # string. Alias: externalEndpoint. Required when command = push && nuGetFeedType = external. NuGet server. 
+        #packagesToPack: '**/*.csproj' # string. Alias: searchPatternPack. Required when command = pack. Path to csproj or nuspec file(s) to pack. Default: **/*.csproj.
+        #configuration: '$(BuildConfiguration)' # string. Alias: configurationToPack. Optional. Use when command = pack. Configuration to Package. Default: $(BuildConfiguration).
+        #packDirectory: '$(Build.ArtifactStagingDirectory)' # string. Alias: outputDir. Optional. Use when command = pack. Package Folder. Default: $(Build.ArtifactStagingDirectory).
+        #nobuild: false # boolean. Optional. Use when command = pack. Do not build. Default: false.
+        #includesymbols: false # boolean. Optional. Use when command = pack. Include Symbols. Default: false.
+        #includesource: false # boolean. Optional. Use when command = pack. Include Source. Default: false.
+        #requestTimeout: '300000' # string. Set timeout for package download request. Default: 300000.
+      # Feeds and authentication
+        #feedsToUse: 'select' # 'select' | 'config'. Alias: selectOrConfig. Required when command = restore. Feeds to use. Default: select.
+        #vstsFeed: # string. Alias: feedRestore. Optional. Use when selectOrConfig = select && command = restore. Use packages from this Azure Artifacts feed. Select from the dropdown or enter [project name/]feed name. 
+        #includeNuGetOrg: true # boolean. Optional. Use when selectOrConfig = select && command = restore. Use packages from NuGet.org. Default: true.
+        #nugetConfigPath: # string. Optional. Use when selectOrConfig = config && command = restore. Path to NuGet.config. 
+        #externalFeedCredentials: # string. Alias: externalEndpoints. Optional. Use when selectOrConfig = config && command = restore. Credentials for feeds outside this organization/collection. 
+      # Advanced
+        #publishPackageMetadata: true # boolean. Optional. Use when command = push && nuGetFeedType = internal. Publish pipeline metadata. Default: true.

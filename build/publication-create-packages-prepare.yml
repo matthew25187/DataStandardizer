@@ -1,0 +1,59 @@
+parameters: # expected parameters
+- name: buildConfiguration
+  type: string
+
+steps:
+- task: MSBuild@1
+  displayName: "Restore package dependencies"
+  inputs:
+    solution: ${{ variables.solution }} # Required  # Relative path from repo root of the project(s) or solution(s) to run.  Wildcards can be used.  For example, `**/*.csproj` for all csproj files in all sub folders.
+    #msbuildLocationMethod: # Options: 'version', 'location' # Optional
+    #msbuildVersion: # Options: 'latest', '17.0', '16.0', '15.0', '14.0', '12.0', '4.0' # Optional  # If the preferred version cannot be found, the latest version found will be used instead. On an macOS agent, xbuild (Mono) will be used if version is lower than 15.0.
+    #msbuildArchitecture: # Options: 'x86', 'x64' # Optional  # Optionally supply the architecture (x86, x64) of MSBuild to run.
+    #msbuildLocation:  # Optional  # Optionally supply the path to MSBuild.
+    #platform:  # Optional
+    configuration: ${{parameters.buildConfiguration}} # Optional
+    msbuildArguments: -t:restore # Optional  # Additional arguments passed to MSBuild (on Windows) and xbuild (on macOS).
+    #clean:  # Optional  # Run a clean build (/t:clean) prior to the build.
+    #maximumCpuCount:  # Optional  # If your MSBuild target configuration is compatible with building in parallel, you can optionally check this input to pass the /m switch to MSBuild (Windows only). If your target configuration is not compatible with building in parallel, checking this option may cause your build to result in file-in-use errors, or intermittent or inconsistent build failures.
+    #restoreNugetPackages:  # Optional  # This option is deprecated. To restore NuGet packages, add a [NuGet](https://docs.microsoft.com/azure/devops/pipelines/tasks/package/nuget) task before the build.
+    #logProjectEvents:  # Optional  # Optionally record timeline details for each project (Windows only).
+    #createLogFile:  # Optional  # Optionally create a log file (Windows only).
+    #logFileVerbosity: # Options: 'quiet', 'minimal', 'normal', 'detailed', 'diagnostic' # Optional  # Optional log file verbosity.
+- task: DownloadBuildArtifacts@1
+  inputs:
+    buildType: current # Options: 'current', 'specific' # Required  # Download artifacts produced by the current build, or from a specific build.
+    # project:   # Required when buildType == specific  # The project from which to download the build artifacts
+    # definition:   # Required when buildType == specific  # Select the build pipeline name
+    #specificBuildWithTriggering:  # Optional  # If checked, this build task will try to download artifacts from the triggering build. If there is no triggering build from the specified pipeline, it will download artifacts from the build specified in the options below.
+    # buildVersionToDownload: latest # Options: 'latest', 'latestFromBranch', 'specific' # Required
+    #allowPartiallySucceededBuilds:  # Optional  # If checked, this build task will try to download artifacts whether the build is succeeded or partially succeeded.
+    # branchName: refs/heads/master  # Required  # Specify to filter on branch/ref name, for example: ```refs/heads/develop```.
+    # buildId:   # Required when buildType == specific && buildVersionToDownload == specific  # The build from which to download the artifacts
+    #tags:  # Optional  # A comma-delimited list of tags. Only builds with these tags will be returned.
+    downloadType: single # Options: 'single', 'specific' # Required  # Download a specific artifact or specific files from the build.
+    artifactName: drop # Required when downloadType == single  # The name of the artifact to download
+    #itemPattern:  # Optional  # Specify files to be downloaded as multi line minimatch pattern. [More Information](https://aka.ms/minimatchexamples) <p>The default pattern (//*//*) will download all files across all artifacts in the build if "Specific files" option is selected. To download all files within artifact drop use drop/**.</p>
+    downloadPath: $(System.ArtifactsDirectory) # Required  # Path on the agent machine where the artifacts will be downloaded
+    #cleanDestinationFolder:  # Optional  # Delete all existing files in destination folder before artifact download
+    #parallelizationLimit:  # Optional  # Number of files to download simultaneously
+    #checkDownloadedFiles:  # Optional  # If checked, this build task will check that all files are fully downloaded.
+    #retryDownloadCount:  # Optional  # Optional number of times to retry downloading a build artifact if the download fails.
+    #extractTars:  # Optional  # Enable this option to extract all downloaded files that have .tar extension. This is helpful because you need to pack your artifact files into tar if you want to preserve Unix file permissions. Enabling `StoreAsTar` option in PublishBuildArtifacts task will store artifacts as .tar files automatically.
+- task: CopyFiles@2
+  inputs:
+    SourceFolder: $(System.ArtifactsDirectory)/drop # Optional  # The source folder that the copy pattern(s) will be run from.  Empty is the root of the repo.  Use [variables](https://go.microsoft.com/fwlink/?LinkID=550988) if files are not in the repo. Example: $(agent.builddirectory)
+    Contents: "src/**/bin/**/${{parameters.buildConfiguration}}/**" # Required  # File paths to include as part of the copy. Supports multiple lines of match patterns. [More Information](https://go.microsoft.com/fwlink/?LinkID=708389)
+    TargetFolder: $(Build.SourcesDirectory) # Required  # Target folder or UNC path files will copy to. You can use [variables](http://go.microsoft.com/fwlink/?LinkID=550988). Example: $(build.artifactstagingdirectory)
+    #CleanTargetFolder:  # Optional  # Delete all existing files in target folder before copy
+    OverWrite: true # Optional  # Replace existing file in target folder
+    #flattenFolders:  # Optional  # Flatten the folder structure and copy all files into the specified target folder.
+    #preserveTimestamp:  # Optional  # Using the original source file, preserve the target file timestamp.
+    #retryCount:  # Optional  # Specify the retry count to copy the file. It might help to resolve intermittent issues e.g. with UNC target paths on a remote host.
+    #delayBetweenRetries:  # Optional  # Specify the delay between two retries. It might help to be more resilient to intermittent issues e.g. with UNC target paths on a remote host.
+    #ignoreMakeDirErrors:  # Optional  # Ignore errors which happen during creation of target folder. This could be useful to avoid issues with parallel execution of task by several agents with one target folder.
+- task: NuGetToolInstaller@1
+  displayName: "Install NuGet CLI"
+  # inputs:
+    #versionSpec:  # Optional  # A version or version range that specifies the NuGet version to make available on the path. Use x as a wildcard. See the [list of available NuGet versions](http://dist.nuget.org/tools.json).If you want to match a pre-release version, the specification must contain a major, minor, patch, and pre-release version from the list above.Examples: 4.x, 3.3.x, 2.8.6, >=4.0.0-0If unspecified, a version will be chosen automatically.
+    # checkLatest: false # Optional  # Always check for and download the latest available version of NuGet.exe which satisfies the version spec.Enabling this option could cause unexpected build breaks when a new version of NuGet is released.
