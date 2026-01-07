@@ -478,9 +478,9 @@ stages:
           parameters: # provided parameters
             packageName: ${{packageName}}
             buildSolution: ${{variables.buildSolution}}
-            buildAssemblyVersionPackageNames: $(hasAssemblyVersionNumbers)
-            buildAssemblyFileVersionPackageNames: $(hasAssemblyFileVersionNumbers)
-            buildAssemblyInformationalVersionPackageNames: $(hasAssemblyInformationalVersionNumbers)
+            assemblyVersionNumberCondition: and(succeeded(), containsValue(split(variables['hasAssemblyVersionNumbers'], ','), '${{packageName}}'))
+            assemblyFileVersionNumberCondition: and(succeeded(), containsValue(split(variables['hasAssemblyFileVersionNumbers'], ','), '${{packageName}}'))
+            assemblyInformationalVersionNumberCondition: and(succeeded(), containsValue(split(variables['hasAssemblyInformationalVersionNumbers'], ','), '${{packageName}}'))
             packageNames: ${{variables.allPackageNames}}
             packageInfos: ${{variables.packageInfos}}
             encodedPackageVersions: $(versionNumbers)
