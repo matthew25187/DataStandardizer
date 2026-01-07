@@ -219,7 +219,7 @@ stages:
             inputs:
               #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
               filePath: 'build/scripts/FindChangedPackages.ps1' # string. Required when targetType = filePath. Script Path. 
-              arguments: '-PackageList ''${{variables.packageInfos}}'' -SourceCommitHash $(Build.SourceVersion) -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
+              arguments: '-TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
               #script: # string. Required when targetType = inline. Script. 
             # Preference Variables
               #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
@@ -278,7 +278,7 @@ stages:
             inputs:
               #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
               filePath: 'build/scripts/FindTestPackages.ps1' # string. Required when targetType = filePath. Script Path. 
-              arguments: '-PackageInfos ''${{variables.packageInfos}}'' -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
+              arguments: '-TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
               #script: # string. Required when targetType = inline. Script. 
             # Preference Variables
               #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
@@ -328,7 +328,7 @@ stages:
               scriptLocation: 'scriptPath' # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
               scriptPath: 'build/scripts/DeclareRequiredVersionNumbers.ps1' # string. Required when scriptLocation = scriptPath. Script Path. 
               # inlineScript: # string. Required when scriptLocation = inlineScript. Inline Script. 
-              arguments: '-PackageName ''${{ packageName }}'' -PackageInfos ''${{variables.packageInfos}}'' -TempPath ''$(Agent.TempDirectory)'' -OutputInformationPreference ''Continue'' -OutputVerbosePreference ${{iif(eq(parameters.enableVerboseOutput, ''true''), ''Continue'', ''SilentlyContinue'')}} -OutputDebugPreference ${{iif(eq(parameters.enableDebug, ''true''), ''Continue'', ''SilentlyContinue'')}} -TraceLevel ${{parameters.traceLevel}}' # string. Alias: scriptArguments. Script Arguments. 
+              arguments: '-PackageName ''${{ packageName }}'' -OutputInformationPreference ''Continue'' -OutputVerbosePreference ${{iif(eq(parameters.enableVerboseOutput, ''true''), ''Continue'', ''SilentlyContinue'')}} -OutputDebugPreference ${{iif(eq(parameters.enableDebug, ''true''), ''Continue'', ''SilentlyContinue'')}} -TraceLevel ${{parameters.traceLevel}}' # string. Alias: scriptArguments. Script Arguments. 
               #powerShellErrorActionPreference: 'stop' # 'stop' | 'continue' | 'silentlyContinue'. Optional. Use when scriptType = ps || scriptType = pscore. ErrorActionPreference. Default: stop.
             env:
               SYSTEM_ACCESSTOKEN: $(System.AccessToken)
@@ -346,7 +346,7 @@ stages:
             inputs:
               #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
               filePath: 'build/scripts/DeclareOptionalVersionNumbers.ps1' # string. Required when targetType = filePath. Script Path. 
-              arguments: '-PackageName ''${{ packageName }}'' -SourceBranch ''$(Build.SourceBranch)'' -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
+              arguments: '-PackageName ''${{ packageName }}'' -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
               #script: # string. Required when targetType = inline. Script. 
             # Preference Variables
               #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
@@ -617,7 +617,7 @@ stages:
                 inputs:
                   #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
                   filePath: 'build/scripts/SetReleaseNotesArgument.ps1' # string. Required when targetType = filePath. Script Path. 
-                  arguments: '-PackageName ${{packageName}} -SourceCommitHash $(Build.SourceVersion) -PackageInfos ''${{variables.packageInfos}}'' -SourceRootFolderPath $(Build.SourcesDirectory) -IsBuildMasterBranch ${{ iif(eq(variables[''Build.SourceBranch''], ''refs/heads/master''), ''$True'', ''$False'') }} -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
+                  arguments: '-PackageName ${{packageName}} -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
                   #script: # string. Required when targetType = inline. Script. 
                 # Preference Variables
                   #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
@@ -712,7 +712,7 @@ stages:
                 inputs:
                   #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
                   filePath: 'build/scripts/UpdatePackageMetadata.ps1' # string. Required when targetType = filePath. Script Path. 
-                  arguments: "-PackageName '${{packageName}}' -EncodedPackageVersions '$(versionNumbers)' -EncodedReleaseNotes '$(releaseNotesArg)' -PackageSearchRootPath '$(Build.ArtifactStagingDirectory)' -BuildConfiguration $(BuildConfiguration) -TempPath '$(Agent.TempDirectory)' -TraceLevel ${{parameters.traceLevel}}" # string. Optional. Use when targetType = filePath. Arguments. 
+                  arguments: "-PackageName '${{packageName}}' -EncodedPackageVersions '$(versionNumbers)' -EncodedReleaseNotes '$(releaseNotesArg)' -BuildConfiguration $(BuildConfiguration) -TraceLevel ${{parameters.traceLevel}}" # string. Optional. Use when targetType = filePath. Arguments. 
                   #script: # string. Required when targetType = inline. Script. 
                 # Preference Variables
                   #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
@@ -878,7 +878,7 @@ stages:
               # scriptLocation: 'scriptPath' # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
               scriptPath: 'build/scripts/ConfirmVersionNumberRollback.ps1' # string. Required when scriptLocation = scriptPath. Script Path. 
               # inlineScript: string # string. Required when scriptLocation = inlineScript. Inline Script. 
-              arguments: '-PackageName ''${{packageName}}'' -PackageInfos ''${{variables.packageInfos}}'' -EncodedPackageVersions ''$(versionNumbers)'' -TraceLevel ${{parameters.traceLevel}}' # string. Alias: scriptArguments. Script Arguments. 
+              arguments: '-PackageName ''${{packageName}}'' -EncodedPackageVersions ''$(versionNumbers)'' -TraceLevel ${{parameters.traceLevel}}' # string. Alias: scriptArguments. Script Arguments. 
               #powerShellErrorActionPreference: 'stop' # 'stop' | 'continue' | 'silentlyContinue'. Optional. Use when scriptType = ps || scriptType = pscore. ErrorActionPreference. Default: stop.
             env:
               SYSTEM_ACCESSTOKEN: $(System.AccessToken)
@@ -967,7 +967,7 @@ stages:
                   # scriptLocation: 'scriptPath' # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
                   scriptPath: 'build/scripts/ConfirmCurrentVersionNumber.ps1' # string. Required when scriptLocation = scriptPath. Script Path. 
                   # inlineScript: string # string. Required when scriptLocation = inlineScript. Inline Script. 
-                  arguments: '-PackageName ''${{packageName}}'' -PackageInfos ''${{variables.packageInfos}}'' -TraceLevel ${{parameters.traceLevel}}' # string. Alias: scriptArguments. Script Arguments. 
+                  arguments: '-PackageName ''${{packageName}}'' -TraceLevel ${{parameters.traceLevel}}' # string. Alias: scriptArguments. Script Arguments. 
                   #powerShellErrorActionPreference: 'stop' # 'stop' | 'continue' | 'silentlyContinue'. Optional. Use when scriptType = ps || scriptType = pscore. ErrorActionPreference. Default: stop.
                 env:
                   SYSTEM_ACCESSTOKEN: $(System.AccessToken)

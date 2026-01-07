@@ -89,7 +89,7 @@ steps:
   inputs:
     #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
     filePath: 'build/scripts/SetBuildTemplateArguments.ps1' # string. Required when targetType = filePath. Script Path. 
-    arguments: '-PackageName ${{parameters.packageName}} -PackageInfos ''${{parameters.packageInfos}}'' -EncodedPackageVersions ''${{parameters.encodedPackageVersions}}'' -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
+    arguments: '-PackageName ${{parameters.packageName}} -EncodedPackageVersions ''${{parameters.encodedPackageVersions}}'' -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
     #script: # string. Required when targetType = inline. Script. 
   # Preference Variables
     #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.

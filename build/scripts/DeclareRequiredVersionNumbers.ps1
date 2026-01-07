@@ -5,14 +5,6 @@ param (
     [ValidateNotNullOrEmpty()]
     [string]    $PackageName,
 
-    [Parameter(Mandatory)]
-    [ValidateNotNullOrEmpty()]
-    [string]    $PackageInfos,
-
-    [Parameter(Mandatory)]
-    [ValidateNotNullOrEmpty()]
-    [string]    $TempPath,
-
     [Parameter()]
     [string]    $OutputInformationPreference = 'SilentlyContinue',
 
@@ -44,7 +36,7 @@ az devops configure -d organization=${env:ORGANIZATION_URL} project=${env:PROJEC
 az account set -s ${env:SUBSCRIPTION_ID}
 
 # Extract package metadata.
-$packageInfo = $PackageInfos | ConvertFrom-Json | Where-Object -Property packageName -EQ "$PackageName"
+$packageInfo = $env:PACKAGEINFOS | ConvertFrom-Json | Where-Object -Property packageName -EQ "$PackageName"
 if ($null -eq $packageInfo) {
     Write-Error "Package information not found for $PackageName."
 }
@@ -79,10 +71,10 @@ Out-String -InputObject { $_.Value } -Stream
 # Fetch current version numbers from assembly.
 [version]$currentAssemblyVersion = $null; [version]$currentFileVersion = $null; [version]$currentInformationalVersion = $null
 
-nuget install $PackageName -DependencyVersion Ignore -DirectDownload -ExcludeVersion -NoHttpCache -NonInteractive -OutputDirectory $TempPath -PackageSaveMode nupkg -PreRelease -Source 'https://pkgs.dev.azure.com/solobyte/DataStandardizer/_packaging/DataStandardizer/nuget/v3/index.json' -Source 'https://api.nuget.org/v3/index.json' -Verbosity detailed -Version $currentPackageVersionString 2>&1 | Write-Host
+nuget install $PackageName -DependencyVersion Ignore -DirectDownload -ExcludeVersion -NoHttpCache -NonInteractive -OutputDirectory $env:AGENT_TEMPDIRECTORY -PackageSaveMode nupkg -PreRelease -Source 'https://pkgs.dev.azure.com/solobyte/DataStandardizer/_packaging/DataStandardizer/nuget/v3/index.json' -Source 'https://api.nuget.org/v3/index.json' -Verbosity detailed -Version $currentPackageVersionString 2>&1 | Write-Host
 
 [string]$currentPackageFolderPath
-$currentPackageArchivePath = Get-ChildItem -Path $TempPath -Filter "$PackageName.nupkg" -Recurse | Select-Object -ExpandProperty FullName
+$currentPackageArchivePath = Get-ChildItem -Path $env:AGENT_TEMPDIRECTORY -Filter "$PackageName.nupkg" -Recurse | Select-Object -ExpandProperty FullName
 if ((-not [string]::IsNullOrEmpty($currentPackageArchivePath)) -and (Test-Path $currentPackageArchivePath -PathType Leaf)) {
     Write-Verbose "Found $PackageName package file at $currentPackageArchivePath."
 
