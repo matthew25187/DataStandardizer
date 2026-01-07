@@ -15,7 +15,7 @@ namespace DataStandardizer.Money
     /// ISO 4217, "Codes for the representation of currencies and funds" Table A.3 – List of codes for historic denominations of currencies & funds
     /// </summary>
     /// <remarks>
-    /// Based on official ISO 4217 currency codes as at 2025-03-31.
+    /// Based on official ISO 4217 currency codes as at 2026-01-01.
     /// </remarks>
     public enum Iso4217CurrencyHistoric : short
     {
@@ -406,6 +406,25 @@ namespace DataStandardizer.Money
         /// </remarks>
         [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Lev")]
         BGL = 100,
+        
+        /// <summary>
+        /// Bulgarian Lev
+        /// </summary>
+        /// <remarks>
+        /// 	<para>
+        /// 		Used by:
+        /// 		<list type="bullet">
+        /// 			<item>
+        /// 				<description>BULGARIA</description>
+        /// 			</item>
+        /// 		</list>
+        /// 	</para>
+        /// 	<para>
+        /// 		Withdrawn: 2026-01
+        /// 	</para>
+        /// </remarks>
+        [DataStandardizer.Money.Iso4217CurrencyCodeAttribute("Bulgarian Lev")]
+        BGN = 975,
         
         /// <summary>
         /// Peso boliviano

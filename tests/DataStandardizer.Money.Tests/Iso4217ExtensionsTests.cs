@@ -25,7 +25,7 @@ public class Iso4217ExtensionsTests
 
     [Theory]
     [InlineData(Iso4217CurrencyHistoric.BEF, "Belgian Franc")]
-    [InlineData(Iso4217CurrencyHistoric.ZWC, "Rhodesian Dollar")]
+    [InlineData(Iso4217CurrencyHistoric.DDM, "Mark der DDR")]
     public void GetCurrencyName_OnIso4217HistoricCurrencyCode_ReturnsCurrencyName(Iso4217CurrencyHistoric testCode, string? expectedResult)
     {
         // act
