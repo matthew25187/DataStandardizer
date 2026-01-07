@@ -1,0 +1,224 @@
+parameters: # expected parameters
+- name: packageName
+  type: string
+- name: buildSolution
+  type: string
+- name: buildAssemblyVersionPackageNames
+  type: string
+- name: buildAssemblyFileVersionPackageNames
+  type: string
+- name: buildAssemblyInformationalVersionPackageNames
+  type: string
+- name: packageNames
+  type: string
+- name: packageInfos
+  type: string
+- name: encodedPackageVersions
+  type: string
+- name: buildConfiguration
+  type: string
+- name: buildPlatform
+  type: string
+- name: isContinuousIntegration
+  type: boolean
+- name: enableVerboseOutput
+  type: boolean
+- name: enableDebug
+  type: boolean
+- name: traceLevel
+  type: number
+
+steps:
+# Use .NET Core v2
+# Acquires a specific version of the .NET Core SDK from the internet or the local cache and adds it to the PATH. Use this task to change the version of .NET Core used in subsequent tasks. Additionally provides proxy support.
+- task: UseDotNet@2
+  displayName: '[${{parameters.packageName}}] Install .NET SDK'
+  inputs:
+    #packageType: 'sdk' # 'runtime' | 'sdk'. Package to install. Default: sdk.
+    useGlobalJson: true # boolean. Optional. Use when packageType = sdk. Use global json. Default: false.
+    #workingDirectory: # string. Optional. Use when useGlobalJson = true. Working Directory. 
+    #version: # string. Optional. Use when useGlobalJson = false || packageType = runtime. Version. 
+    #includePreviewVersions: false # boolean. Optional. Use when useGlobalJson = false  || packageType = runtime. Include Preview Versions. Default: false.
+    #requestTimeout: '300000' # string. Set timeout for package download request. Default: 300000.
+- template: /build/build-dependency-version.yml  # reference to template
+  parameters: # provided parameters
+    packageName: ${{parameters.packageName}}
+    packageNames: ${{parameters.packageNames}}
+    packageInfos: ${{parameters.packageInfos}}
+    encodedPackageVersions: ${{parameters.encodedPackageVersions}}
+    enableVerboseOutput: ${{parameters.enableVerboseOutput}}
+    enableDebug: ${{parameters.enableDebug}}
+    traceLevel: ${{parameters.traceLevel}}
+- task: DotNetCoreCLI@2
+  displayName: '[${{parameters.packageName}}] Restore solution package dependencies'
+  inputs:
+    #azureSubscription: # string. Alias: ConnectedServiceName. Azure Resource Manager connection. 
+    command: 'restore' # 'build' | 'push' | 'pack' | 'publish' | 'restore' | 'run' | 'test' | 'custom'. Required. Command. Default: build.
+    #publishWebProjects: true # boolean. Optional. Use when command = publish. Publish web projects. Default: true.
+    projects: '${{parameters.buildSolution}}' # string. Optional. Use when command = build || command = restore || command = run || command = test || command = custom || publishWebProjects = false. Path to project(s) or solution(s). 
+    #custom: # string. Required when command = custom. Custom command. 
+    #arguments: # string. Optional. Use when command = build || command = publish || command = run || command = test || command = custom. Arguments. 
+    restoreArguments: '-p:DisableWorkloadAutoImportPropsLocator=true' # string. Optional. Use when command = restore. Arguments. 
+    #publishTestResults: true # boolean. Optional. Use when command = test. Publish test results and code coverage. Default: true.
+    #testRunTitle: # string. Optional. Use when command = test. Test run title. 
+    #zipAfterPublish: true # boolean. Optional. Use when command = publish. Zip published projects. Default: true.
+    #modifyOutputPath: true # boolean. Optional. Use when command = publish. Add project's folder name to publish path. Default: true.
+    #packagesToPush: '$(Build.ArtifactStagingDirectory)/*.nupkg' # string. Alias: searchPatternPush. Required when command = push. Path to NuGet package(s) to publish. Default: $(Build.ArtifactStagingDirectory)/*.nupkg.
+    #nuGetFeedType: 'internal' # 'internal' | 'external'. Required when command = push. Target feed location. Default: internal.
+    #publishVstsFeed: # string. Alias: feedPublish. Required when command = push && nuGetFeedType = internal. Target feed. 
+    #publishFeedCredentials: # string. Alias: externalEndpoint. Required when command = push && nuGetFeedType = external. NuGet server. 
+    #packagesToPack: '**/*.csproj' # string. Alias: searchPatternPack. Required when command = pack. Path to csproj or nuspec file(s) to pack. Default: **/*.csproj.
+    #configuration: '$(BuildConfiguration)' # string. Alias: configurationToPack. Optional. Use when command = pack. Configuration to Package. Default: $(BuildConfiguration).
+    #packDirectory: '$(Build.ArtifactStagingDirectory)' # string. Alias: outputDir. Optional. Use when command = pack. Package Folder. Default: $(Build.ArtifactStagingDirectory).
+    #nobuild: false # boolean. Optional. Use when command = pack. Do not build. Default: false.
+    #includesymbols: false # boolean. Optional. Use when command = pack. Include Symbols. Default: false.
+    #includesource: false # boolean. Optional. Use when command = pack. Include Source. Default: false.
+    #requestTimeout: '300000' # string. Set timeout for package download request. Default: 300000.
+  # Feeds and authentication
+    feedsToUse: 'config' # 'select' | 'config'. Alias: selectOrConfig. Required when command = restore. Feeds to use. Default: select.
+    #vstsFeed: # string. Alias: feedRestore. Optional. Use when selectOrConfig = select && command = restore. Use packages from this Azure Artifacts feed. Select from the dropdown or enter [project name/]feed name. 
+    #includeNuGetOrg: true # boolean. Optional. Use when selectOrConfig = select && command = restore. Use packages from NuGet.org. Default: true.
+    nugetConfigPath: '$(Build.SourcesDirectory)/nuget.config' # string. Optional. Use when selectOrConfig = config && command = restore. Path to NuGet.config. 
+    #externalFeedCredentials: # string. Alias: externalEndpoints. Optional. Use when selectOrConfig = config && command = restore. Credentials for feeds outside this organization/collection. 
+  # Advanced
+    noCache: false # boolean. Optional. Use when command = restore. Disable local cache. Default: false.
+    #restoreDirectory: # string. Alias: packagesDirectory. Optional. Use when command = restore. Destination directory. 
+    verbosityRestore: 'Detailed' # '-' | 'Quiet' | 'Minimal' | 'Normal' | 'Detailed' | 'Diagnostic'. Optional. Use when command = restore. Verbosity. Default: Normal.
+- task: PowerShell@2
+  displayName: '[${{parameters.packageName}}] Set build arguments'
+  inputs:
+    #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
+    filePath: 'build/scripts/SetBuildTemplateArguments.ps1' # string. Required when targetType = filePath. Script Path. 
+    arguments: '-PackageName ${{parameters.packageName}} -EncodedPackageVersions ''${{parameters.encodedPackageVersions}}'' -TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
+    #script: # string. Required when targetType = inline. Script. 
+  # Preference Variables
+    #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
+    #warningPreference: 'default' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. WarningPreference. Default: default.
+    informationPreference: 'continue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. InformationPreference. Default: default.
+    verbosePreference: ${{ iif(eq(parameters.enableVerboseOutput, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. VerbosePreference. Default: default.
+    debugPreference: ${{ iif(eq(parameters.enableDebug, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. DebugPreference. Default: default.
+    #progressPreference: 'silentlyContinue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ProgressPreference. Default: silentlyContinue.
+  # Advanced
+    #failOnStderr: false # boolean. Fail on Standard Error. Default: false.
+    #showWarnings: false # boolean. Show warnings as Azure DevOps warnings. Default: false.
+    #ignoreLASTEXITCODE: false # boolean. Ignore $LASTEXITCODE. Default: false.
+    pwsh: true # boolean. Use PowerShell Core. Default: false.
+    #workingDirectory: # string. Working Directory. 
+    #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.
+- template: /build/build-apply-project-version.yml  # reference to template
+  parameters: # provided parameters
+    packageName: ${{parameters.packageName}}
+    hasVersionPackageNames: ${{parameters.buildAssemblyFileVersionPackageNames}}
+    searchPath: $(Build.SourcesDirectory)/$(sourceFolderPath)
+    versionNumber: $(buildFileVersion)
+    fieldName: 'FileVersion'
+- template: /build/build-apply-project-version.yml  # reference to template
+  parameters: # provided parameters
+    packageName: ${{parameters.packageName}}
+    hasVersionPackageNames: ${{parameters.buildAssemblyInformationalVersionPackageNames}}
+    searchPath: $(Build.SourcesDirectory)/$(sourceFolderPath)
+    versionNumber: $(buildInformationalVersion)
+    fieldName: 'InformationalVersion'
+- template: /build/build-apply-project-version.yml  # reference to template
+  parameters: # provided parameters
+    packageName: ${{parameters.packageName}}
+    hasVersionPackageNames: ${{parameters.buildAssemblyVersionPackageNames}}
+    searchPath: $(Build.SourcesDirectory)/$(sourceFolderPath)
+    versionNumber: $(buildAssemblyVersion)
+    fieldName: 'AssemblyVersion'
+# - task: VSBuild@1
+#   displayName: 'Build package solution'
+#   inputs:
+#     solution: '$(buildSolution)' # string. Required. Solution. Default: **\*.sln.
+#     #vsVersion: 'latest' # 'latest' | '17.0' | '16.0' | '15.0' | '14.0' | '12.0' | '11.0'. Visual Studio Version. Default: latest.
+#     msbuildArgs: '/p:ProduceReferenceAssembly=true;ProduceReferenceAssemblyInOutDir=true;ContinuousIntegrationBuild=$(isContinuousIntegrationBuild)' # string. MSBuild Arguments. 
+#     platform: $(BuildPlatform) # string. Platform. 
+#     configuration: $(BuildConfiguration) # string. Configuration. 
+#     #clean: false # boolean. Clean. Default: false.
+#   # Advanced
+#     #maximumCpuCount: false # boolean. Build in Parallel. Default: false.
+#     #restoreNugetPackages: false # boolean. Restore NuGet Packages. Default: false.
+#     #msbuildArchitecture: 'x86' # 'x86' | 'x64'. MSBuild Architecture. Default: x86.
+#     #logProjectEvents: true # boolean. Record Project Details. Default: true.
+#     #createLogFile: false # boolean. Create Log File. Default: false.
+#     #logFileVerbosity: 'normal' # 'quiet' | 'minimal' | 'normal' | 'detailed' | 'diagnostic'. Optional. Use when createLogFile = true. Log File Verbosity. Default: normal.
+#     #enableDefaultLogger: true # boolean. Enable Default Logger. Default: true.
+#     #customVersion: # string. Custom Version.
+# .NET Core v2
+# Build, test, package, or publish a .NET application, or run a custom .NET CLI command.
+- task: DotNetCoreCLI@2
+  displayName: '[${{parameters.packageName}}] Build package solution'
+  inputs:
+    #azureSubscription: # string. Alias: ConnectedServiceName. Azure Resource Manager connection. 
+    command: 'build' # 'build' | 'push' | 'pack' | 'publish' | 'restore' | 'run' | 'test' | 'custom'. Required. Command. Default: build.
+    #publishWebProjects: true # boolean. Optional. Use when command = publish. Publish web projects. Default: true.
+    projects: '${{parameters.buildSolution}}' # string. Optional. Use when command = build || command = restore || command = run || command = test || command = custom || publishWebProjects = false. Path to project(s) or solution(s). 
+    #custom: # string. Required when command = custom. Custom command. 
+    arguments: '-c ${{parameters.buildConfiguration}} -p:Platform="${{parameters.buildPlatform}}";ProduceReferenceAssembly=true;ProduceReferenceAssemblyInOutDir=true;ContinuousIntegrationBuild=${{parameters.isContinuousIntegration}};DisableWorkloadAutoImportPropsLocator=true;UseSharedCompilation=false' # string. Optional. Use when command = build || command = publish || command = run || command = test || command = custom. Arguments. 
+    #restoreArguments: # string. Optional. Use when command = restore. Arguments. 
+    #publishTestResults: true # boolean. Optional. Use when command = test. Publish test results and code coverage. Default: true.
+    #testRunTitle: # string. Optional. Use when command = test. Test run title. 
+    #zipAfterPublish: true # boolean. Optional. Use when command = publish. Zip published projects. Default: true.
+    #modifyOutputPath: true # boolean. Optional. Use when command = publish. Add project's folder name to publish path. Default: true.
+    #packagesToPush: '$(Build.ArtifactStagingDirectory)/*.nupkg' # string. Alias: searchPatternPush. Required when command = push. Path to NuGet package(s) to publish. Default: $(Build.ArtifactStagingDirectory)/*.nupkg.
+    #nuGetFeedType: 'internal' # 'internal' | 'external'. Required when command = push. Target feed location. Default: internal.
+    #publishVstsFeed: # string. Alias: feedPublish. Required when command = push && nuGetFeedType = internal. Target feed. 
+    #publishFeedCredentials: # string. Alias: externalEndpoint. Required when command = push && nuGetFeedType = external. NuGet server. 
+    #packagesToPack: '**/*.csproj' # string. Alias: searchPatternPack. Required when command = pack. Path to csproj or nuspec file(s) to pack. Default: **/*.csproj.
+    #configuration: '$(BuildConfiguration)' # string. Alias: configurationToPack. Optional. Use when command = pack. Configuration to Package. Default: $(BuildConfiguration).
+    #packDirectory: '$(Build.ArtifactStagingDirectory)' # string. Alias: outputDir. Optional. Use when command = pack. Package Folder. Default: $(Build.ArtifactStagingDirectory).
+    #nobuild: false # boolean. Optional. Use when command = pack. Do not build. Default: false.
+    #includesymbols: false # boolean. Optional. Use when command = pack. Include Symbols. Default: false.
+    #includesource: false # boolean. Optional. Use when command = pack. Include Source. Default: false.
+    #requestTimeout: '300000' # string. Set timeout for package download request. Default: 300000.
+  # Advanced
+    #workingDirectory: # string. Optional. Use when command != restore && command != push && command != pack. Working directory.            
+- task: PublishSymbols@2
+  displayName: '[${{parameters.packageName}}] Publish symbols'
+  inputs:
+    #SymbolsFolder: '$(Build.SourcesDirectory)' # string. Path to symbols folder. Default: $(Build.SourcesDirectory).
+    SearchPattern: 'src/**/bin/**/${{parameters.buildConfiguration}}/**/*.pdb' # string. Required. Search pattern. Default: **/bin/**/*.pdb.
+    #Manifest: # string. Manifest. 
+    IndexSources: false  # boolean. Index sources. Default: true. # Disable indexing since GitHub is unsupported 
+    PublishSymbols: true # boolean. Publish symbols. Default: true.
+    SymbolServerType: 'TeamServices'  # Or 'FileShare'. Required when PublishSymbols = true. Symbol server type. 
+    #SymbolsPath: # string. Optional. Use when PublishSymbols = true && SymbolServerType = FileShare. Path to publish symbols. 
+    #CompressSymbols: false # boolean. Optional. Use when SymbolServerType = FileShare. Compress symbols. Default: false.
+    #SymbolExpirationInDays: '36530' # string. Optional. Use when PublishSymbols = true && SymbolServerType = TeamServices. Symbol Expiration (in days). Default: 36530.
+  # Advanced
+    #IndexableFileFormats: 'Default' # 'Default' | 'Pdb' | 'SourceMap' | 'All'. Optional. Use when PublishSymbols = true && SymbolServerType = TeamServices. Symbol file formats to publish. Default: Default.
+    #DetailedLog: true # boolean. Verbose logging. Default: true.
+    #TreatNotIndexedAsWarning: false # boolean. Warn if not indexed. Default: false.
+    #UseNetCoreClientTool: false # boolean. Use NetCore client tool. Default: false.
+    #SymbolsMaximumWaitTime: # string. Max wait time (min). 
+    #SymbolsProduct: # string. Product. 
+    #SymbolsVersion: # string. Version. 
+    #SymbolsArtifactName: 'Symbols_$(BuildConfiguration)' # string. Artifact name. Default: Symbols_$(BuildConfiguration).      
+- task: CopyFiles@2
+  displayName: '[${{parameters.packageName}}] Copy build output to staging area'
+  inputs:
+    #SourceFolder: # string. Source Folder. 
+    Contents: | # string. Required. Contents. Default: **.
+      src\${{parameters.packageName}}\**\bin\**\${{parameters.buildConfiguration}}\**
+      tests\${{parameters.packageName}}*\**\bin\**\${{parameters.buildConfiguration}}\**
+    TargetFolder: '$(Build.ArtifactStagingDirectory)' # string. Required. Target Folder. 
+  # Advanced
+    #CleanTargetFolder: false # boolean. Clean Target Folder. Default: false.
+    #OverWrite: false # boolean. Overwrite. Default: false.
+    #flattenFolders: false # boolean. Flatten Folders. Default: false.
+    #preserveTimestamp: false # boolean. Preserve Target Timestamp. Default: false.
+    #retryCount: '0' # string. Retry count to copy the file. Default: 0.
+    #delayBetweenRetries: '1000' # string. Delay between two retries. Default: 1000.
+    #ignoreMakeDirErrors: false # boolean. Ignore errors during creation of target folder. Default: false.      
+- task: PublishBuildArtifacts@1
+  displayName: '[${{parameters.packageName}}] Publish build artifacts to pipeline'
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)' # string. Required. Path to publish. Default: $(Build.ArtifactStagingDirectory).
+    ArtifactName: 'drop' # string. Required. Artifact name. Default: drop.
+    publishLocation: 'Container' # 'Container' | 'FilePath'. Alias: ArtifactType. Required. Artifact publish location. Default: Container.
+    #MaxArtifactSize: '0' # string. Max Artifact Size. Default: 0.
+    #TargetPath: # string. Required when ArtifactType = FilePath. File share path. 
+    #Parallel: false # boolean. Optional. Use when ArtifactType = FilePath. Parallel copy. Default: false.
+    #ParallelCount: '8' # string. Optional. Use when ArtifactType = FilePath && Parallel = true. Parallel count. Default: 8.
+  # Advanced
+    #StoreAsTar: false # boolean. Tar the artifact before uploading. Default: false.

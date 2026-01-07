@@ -11,15 +11,7 @@ param (
 
     [Parameter(Mandatory)]
     [ValidateNotNullOrEmpty()]
-    [string]    $PackageSearchRootPath,
-
-    [Parameter(Mandatory)]
-    [ValidateNotNullOrEmpty()]
     [string]    $BuildConfiguration,
-
-    [Parameter(Mandatory)]
-    [ValidateNotNullOrEmpty()]
-    [string]    $TempPath,
 
     [Parameter()]
     [ValidateNotNull()]
@@ -40,11 +32,11 @@ if (0 -lt $TraceLevel) {
 $packageVersionsList = $EncodedPackageVersions | ConvertFrom-Base64String | ConvertFrom-Json
 
 #   Extract the package file to temporary location.
-$packageSearchPath = $PackageSearchRootPath | Join-Path -ChildPath 'packages' | Join-Path -ChildPath $BuildConfiguration
+$packageSearchPath = $env:BUILD_ARTIFACTSTAGINGDIRECTORY | Join-Path -ChildPath 'packages' | Join-Path -ChildPath $BuildConfiguration
 $packageFilePath = Get-ChildItem $packageSearchPath -Recurse -Filter "$PackageName*.nupkg" | Select-Object -First 1 -ExpandProperty FullName
 Write-Information "Found package file at $packageFilePath."
 
-$tempPackagePath = $TempPath | Join-Path -ChildPath $PackageName
+$tempPackagePath = $env:AGENT_TEMPDIRECTORY | Join-Path -ChildPath $PackageName
 if (-not (Test-Path $tempPackagePath -PathType Container)) {
     New-Item $tempPackagePath -ItemType Directory
 }

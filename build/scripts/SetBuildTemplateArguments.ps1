@@ -5,10 +5,6 @@ param (
 
     [Parameter(Mandatory)]
     [ValidateNotNullOrEmpty()]
-    [string]    $PackageInfos,
-
-    [Parameter(Mandatory)]
-    [ValidateNotNullOrEmpty()]
     [string]$EncodedPackageVersions,
 
     [Parameter()]
@@ -23,7 +19,7 @@ if (0 -lt $TraceLevel) {
 }
 
 # Set package Source Folder Path argument.
-$packageInfo = $PackageInfos | ConvertFrom-Json | Where-Object -Property packageName -EQ $PackageName
+$packageInfo = $env:PACKAGEINFOS | ConvertFrom-Json | Where-Object -Property packageName -EQ $PackageName
 if ($null -eq $packageInfo) {
     Write-Error "No package information found for $PackageName."
     exit

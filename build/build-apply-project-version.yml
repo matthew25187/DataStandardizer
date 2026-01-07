@@ -1,0 +1,30 @@
+parameters: # expected parameters
+- name: packageName
+  type: string
+- name: hasVersionPackageNames
+  type: string
+- name: searchPath
+  type: string
+- name: versionNumber
+  type: string
+- name: fieldName
+  type: string
+
+steps:
+# Version .NET Assemblies (Core/5/6 and later)
+# Description - Applies a version to a .NET Assemblies (Core/5/6 and later) via the .csproj files based on the build number. Based on Microsoft sample from https://msdn.microsoft.com/Library/vs/alm/Build/overview
+- task: VersionDotNetCoreAssemblies@3
+  condition: |
+    and
+    (
+      succeeded(), 
+      containsValue(split(coalesce('${{parameters.hasVersionPackageNames}}', ''), ','), '${{parameters.packageName}}')
+    )
+  displayName: '[${{parameters.packageName}}] Set assembly ${{parameters.fieldName}}'
+  inputs: 
+     # Required arguments
+     Path: ${{parameters.searchPath}}
+     VersionNumber: ${{parameters.versionNumber}}
+     Injectversion: True
+     Field: ${{parameters.fieldName}}
+     AddDefault: True

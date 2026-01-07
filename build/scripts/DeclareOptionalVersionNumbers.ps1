@@ -3,10 +3,6 @@ param (
     [ValidateNotNullOrEmpty()]
     [string]    $PackageName,
 
-    [Parameter(Mandatory)]
-    [ValidateNotNullOrEmpty()]
-    [string]    $SourceBranch,
-
     [Parameter()]
     [int]   $TraceLevel = 0
 )
@@ -38,7 +34,7 @@ $productionMajorNumber = $nextPackageVersion.Major
 $productionMinorNumber = $nextPackageVersion.Minor
 $productionBuildNumber = $nextPackageVersion.Build
 $productionRevisionNumber = [System.Math]::Max($nextPackageVersion.Revision, 1)
-if ($SourceBranch -eq 'refs/heads/master') {
+if ($env:BUILD_SOURCEBRANCH -eq 'refs/heads/master') {
     $productionRevisionNumber = 0
 }
 [version]$productionPackageVersion = ($productionMajorNumber, $productionMinorNumber, $productionBuildNumber, $productionRevisionNumber -join '.')
@@ -57,7 +53,7 @@ Write-Information "Production package version will be $productionPackageVersionS
 # Calculate post-production package version number.
 $postProductionNumbers = $productionPackageVersion.Major, $productionPackageVersion.Minor, $productionPackageVersion.Build, $productionPackageVersion.Revision
 $incrementFromIndex = $postProductionNumbers.Count - 1 # default to incrementing the preview number
-if ($SourceBranch -eq 'refs/heads/master') {
+if ($env:BUILD_SOURCEBRANCH -eq 'refs/heads/master') {
     $incrementFromIndex = 1 # increment minor number
 }
 for ($versionPartIndex = $incrementFromIndex; $versionPartIndex -lt $postProductionNumbers.Count; $versionPartIndex++) {
