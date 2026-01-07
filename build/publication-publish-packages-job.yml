@@ -1,8 +1,4 @@
 parameters: # expected parameters
-- name: publicationRequiredPackageNames
-  type: string
-- name: changedPackageNames
-  type: string
 - name: buildConfiguration
   type: string
 
@@ -11,12 +7,6 @@ jobs:
 - job: Publish_Packages
   displayName: "Publish NuGet packages to private feed"
   dependsOn: Create_Packages
-  condition: |
-    and
-    (
-      succeeded(), 
-      or(and(gt(length(coalesce('${{parameters.publicationRequiredPackageNames}}', '')), 0), gt(length(split('${{parameters.publicationRequiredPackageNames}}', ',')), 0)), and(gt(length(coalesce('${{parameters.changedPackageNames}}', '')), 0), gt(length(split('${{parameters.changedPackageNames}}', ',')), 0)))
-    )
   variables:
     BuildConfiguration: release
   steps:
