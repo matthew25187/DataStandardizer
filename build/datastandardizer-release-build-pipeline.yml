@@ -455,9 +455,9 @@ stages:
           parameters: # provided parameters
             packageName: ${{packageName}}
             buildSolution: ${{variables.buildSolution}}
-            buildAssemblyVersionPackageNames: $(hasAssemblyVersionNumbers)
-            buildAssemblyFileVersionPackageNames: $(hasAssemblyFileVersionNumbers)
-            buildAssemblyInformationalVersionPackageNames: $(hasAssemblyInformationalVersionNumbers)
+            assemblyVersionNumberCondition: and(succeeded(), containsValue(split(variables['hasAssemblyVersionNumbers'], ','), '${{packageName}}'))
+            assemblyFileVersionNumberCondition: and(succeeded(), containsValue(split(variables['hasAssemblyFileVersionNumbers'], ','), '${{packageName}}'))
+            assemblyInformationalVersionNumberCondition: and(succeeded(), containsValue(split(variables['hasAssemblyInformationalVersionNumbers'], ','), '${{packageName}}'))
             packageNames: ${{variables.allPackageNames}}
             packageInfos: ${{variables.packageInfos}}
             encodedPackageVersions: $(versionNumbers)
@@ -679,12 +679,6 @@ stages:
                   #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.                  
           # Publish NuGet packages to pipeline
           - task: PublishBuildArtifacts@1
-            condition: |
-              and
-              (
-                succeeded(), 
-                or(and(gt(length(coalesce(variables.publicationRequiredPackageNames, '')), 0), gt(length(split(variables.publicationRequiredPackageNames, ',')), 0)), and(gt(length(coalesce(variables['changedPackageNames'], '')), 0), gt(length(split(variables['changedPackageNames'], ',')), 0)))
-              )            
             inputs:
               PathtoPublish: $(Build.ArtifactStagingDirectory)/packages # Required  # The folder or file path to publish. This can be a fully-qualified path or a path relative to the root of the repository. Wildcards are not supported. [Variables](https://go.microsoft.com/fwlink/?LinkID=550988) are supported. Example: $(Build.ArtifactStagingDirectory)
               ArtifactName: packages # Required  # The name of the artifact to create in the publish location.
@@ -696,8 +690,6 @@ stages:
               #StoreAsTar:  # Optional  # Add all files from the publish path to a tar archive before uploading. This allows you to preserve the UNIX file permissions. Use `extractTars` option of DownloadBuildArtifacts task to extract the downloaded items automatically.
       - template: /build/publication-publish-packages-job.yml  # reference to template
         parameters: # provided parameters
-          publicationRequiredPackageNames: ${{variables.publicationRequiredPackageNames}}
-          changedPackageNames: $(changedPackageNames)
           buildConfiguration: $(BuildConfiguration)
   - stage: Cleanup
     displayName: "End"
