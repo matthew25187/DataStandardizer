@@ -3,11 +3,11 @@ parameters: # expected parameters
   type: string
 - name: buildSolution
   type: string
-- name: buildAssemblyVersionPackageNames
+- name: assemblyVersionNumberCondition
   type: string
-- name: buildAssemblyFileVersionPackageNames
+- name: assemblyFileVersionNumberCondition
   type: string
-- name: buildAssemblyInformationalVersionPackageNames
+- name: assemblyInformationalVersionNumberCondition
   type: string
 - name: packageNames
   type: string
@@ -108,21 +108,21 @@ steps:
 - template: /build/build-apply-project-version.yml  # reference to template
   parameters: # provided parameters
     packageName: ${{parameters.packageName}}
-    hasVersionPackageNames: ${{parameters.buildAssemblyFileVersionPackageNames}}
+    condition: ${{parameters.assemblyFileVersionNumberCondition}}
     searchPath: $(Build.SourcesDirectory)/$(sourceFolderPath)
     versionNumber: $(buildFileVersion)
     fieldName: 'FileVersion'
 - template: /build/build-apply-project-version.yml  # reference to template
   parameters: # provided parameters
     packageName: ${{parameters.packageName}}
-    hasVersionPackageNames: ${{parameters.buildAssemblyInformationalVersionPackageNames}}
+    condition: ${{parameters.assemblyInformationalVersionNumberCondition}}
     searchPath: $(Build.SourcesDirectory)/$(sourceFolderPath)
     versionNumber: $(buildInformationalVersion)
     fieldName: 'InformationalVersion'
 - template: /build/build-apply-project-version.yml  # reference to template
   parameters: # provided parameters
     packageName: ${{parameters.packageName}}
-    hasVersionPackageNames: ${{parameters.buildAssemblyVersionPackageNames}}
+    condition: ${{parameters.assemblyVersionNumberCondition}}
     searchPath: $(Build.SourcesDirectory)/$(sourceFolderPath)
     versionNumber: $(buildAssemblyVersion)
     fieldName: 'AssemblyVersion'
