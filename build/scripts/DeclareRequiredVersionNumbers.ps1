@@ -18,6 +18,12 @@ param (
     [int]   $TraceLevel = 0
 )
 
+# Install from PowerShell Gallery
+Install-Module -Name ConvertFrom-StringTable -Scope CurrentUser
+
+# Import the module into your session
+Import-Module ConvertFrom-StringTable
+
 $modulePath = Join-Path $PSScriptRoot "../psmodules/CommonHelpers/CommonHelpers.psm1"
 Import-Module $modulePath -Force
 
@@ -45,7 +51,7 @@ Write-Information "Found information for package $PackageName."
 
 # Download variables from pipeline.
 $variableListOutput = & az pipelines variable-group variable list --group-id $packageInfo.variableGroupId --output table
-$packageVersions = $variableListOutput | ConvertFrom-String -PropertyNames Name, Value, IsSecret
+$packageVersions = $variableListOutput | ConvertFrom-StringTable
 
 # Fetch stable package version number.
 $variableGroupVersionNumbers = $packageVersions |
