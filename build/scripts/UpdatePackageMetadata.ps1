@@ -192,7 +192,7 @@ foreach ($dependencyNode in $dependencyNodes) {
     }
 
     $dependencyPackageVersion = $dependencyPackageVersions.PackageProductionVersionString
-    if ($updatingPackageVersions.PackageProductionVersion.Revision -eq 0 -and $dependencyPackageVersions.PackageProductionVersion.Revision -gt 0 -and $dependencyPackageVersions.PackageStableVersion -gt $emptyVersion) {
+    if (([version]$updatingPackageVersions.PackageProductionVersion).Revision -eq 0 -and ([version]$dependencyPackageVersions.PackageProductionVersion).Revision -gt 0 -and ([version]$dependencyPackageVersions.PackageStableVersion) -gt $emptyVersion) {
         $dependencyPackageVersion = $dependencyPackageVersions.PackageStableVersion
     }
     $dependencyNode.Attributes['version'].Value = $dependencyPackageVersion

@@ -44,18 +44,18 @@ if ($null -eq $packageInfo) {
 Write-Information "Found information for package $PackageName."
 
 # Download variables from pipeline.
-$variableListOutput = & az pipelines variable-group variable list --group-id $packageInfo.variableGroupId
-$packageVersions = $variableListOutput | ConvertFrom-Json
+$variableListOutput = & az pipelines variable-group variable list --group-id $packageInfo.variableGroupId --output table
+$packageVersions = $variableListOutput | ConvertFrom-String -PropertyNames Name, Value, IsSecret
 
 # Fetch stable package version number.
-$variableGroupVersionNumbers = $packageVersions.PSObject.Properties |
+$variableGroupVersionNumbers = $packageVersions |
 Where-Object { $_.Name.StartsWith('stable') -and $_.Name.EndsWith('number') } |
 Sort-Object -Property Name |
 Select-Object -ExpandProperty Value
 [version]$stablePackageVersion = ($variableGroupVersionNumbers[0], $variableGroupVersionNumbers[1], $variableGroupVersionNumbers[2] -join '.')
 
 # Fetch current package version number.
-$variableGroupVersionNumbers = $packageVersions.PSObject.Properties |
+$variableGroupVersionNumbers = $packageVersions |
 Where-Object { $_.Name.StartsWith('current') -and $_.Name.EndsWith('number') } |
 Sort-Object -Property Name |
 Select-Object -ExpandProperty Value
@@ -68,7 +68,7 @@ if ($currentPackageVersion.Revision -gt 0) {
 }
 
 # Fetch next package version number.
-$variableGroupVersionNumbers = $packageVersions.PSObject.Properties |
+$variableGroupVersionNumbers = $packageVersions |
 Where-Object { $_.Name.StartsWith('next') -and $_.Name.EndsWith('number') } |
 Sort-Object -Property Name |
 Select-Object -ExpandProperty Value
