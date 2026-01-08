@@ -995,7 +995,7 @@ stages:
                   and
                   (
                     succeeded(), 
-                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{packageName}}'), containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{packageName}}'))
+                    or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{packageName}}'), containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{packageName}}')),
                     eq(0, variables['productionPrereleaseNumberArg'])
                   )
                 displayName: '[${{packageName}}] Update stable version numbers' # Human-readable name for the task.
