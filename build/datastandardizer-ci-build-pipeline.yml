@@ -419,7 +419,7 @@ stages:
               )
             inputs:
               azureSubscription: $(SUBSCRIPTION_ID) # string. Alias: connectedServiceNameARM. Required. Azure Resource Manager connection. 
-              scriptType: 'ps' # 'ps' | 'pscore' | 'batch' | 'bash'. Required. Script Type. 
+              scriptType: 'pscore' # 'ps' | 'pscore' | 'batch' | 'bash'. Required. Script Type. 
               scriptLocation: 'scriptPath' # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
               scriptPath: 'build/scripts/UpdatePipelineVersionNumber.ps1' # string. Required when scriptLocation = scriptPath. Script Path. 
               #inlineScript: # string. Required when scriptLocation = inlineScript. Inline Script. 
@@ -840,7 +840,7 @@ stages:
             displayName: '[${{packageName}}] Rollback version numbers' # Human-readable name for the task.
             inputs:
               azureSubscription: $(SUBSCRIPTION_ID) # string. Alias: connectedServiceNameARM. Required. Azure Resource Manager connection. 
-              scriptType: 'ps' # 'ps' | 'pscore' | 'batch' | 'bash'. Required. Script Type. 
+              scriptType: 'pscore' # 'ps' | 'pscore' | 'batch' | 'bash'. Required. Script Type. 
               # scriptLocation: 'scriptPath' # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
               scriptPath: 'build/scripts/UpdatePipelineVersionNumber.ps1' # string. Required when scriptLocation = scriptPath. Script Path. 
               # inlineScript: string # string. Required when scriptLocation = inlineScript. Inline Script. 
@@ -931,7 +931,7 @@ stages:
                   )
                 inputs:
                   azureSubscription: $(SUBSCRIPTION_ID) # string. Alias: connectedServiceNameARM. Required. Azure Resource Manager connection.
-                  scriptType: 'ps' # 'ps' | 'pscore' | 'batch' | 'bash'. Required. Script Type.
+                  scriptType: 'pscore' # 'ps' | 'pscore' | 'batch' | 'bash'. Required. Script Type.
                   # scriptLocation: "scriptPath" # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
                   scriptPath: 'build/scripts/UpdatePipelineVersionNumber.ps1' # string. Required when scriptLocation = scriptPath. Script Path.
                   # inlineScript: string # string. Required when scriptLocation = inlineScript. Inline Script.
@@ -1001,7 +1001,7 @@ stages:
                 displayName: '[${{packageName}}] Update stable version numbers' # Human-readable name for the task.
                 inputs:
                   azureSubscription: $(SUBSCRIPTION_ID) # string. Alias: connectedServiceNameARM. Required. Azure Resource Manager connection. 
-                  scriptType: 'ps' # 'ps' | 'pscore' | 'batch' | 'bash'. Required. Script Type. 
+                  scriptType: 'pscore' # 'ps' | 'pscore' | 'batch' | 'bash'. Required. Script Type. 
                   scriptLocation: 'scriptPath' # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
                   scriptPath: 'build/scripts/UpdatePipelineVersionNumber.ps1' # string. Required when scriptLocation = scriptPath. Script Path. 
                   #inlineScript: # string. Required when scriptLocation = inlineScript. Inline Script. 

@@ -50,12 +50,12 @@ az devops configure -d organization=${env:ORGANIZATION_URL} project=${env:PROJEC
 az account set -s ${env:SUBSCRIPTION_ID}
 
 # Extract package metadata.
-$packageInfo = ($env:PACKAGEINFOS | ConvertFrom-Json) | Where-Object -Property packageName -EQ -Value $PackageName
+$packageInfo = $env:PACKAGEINFOS | ConvertFrom-Json | Where-Object -Property packageName -EQ -Value $PackageName
 if ($null -eq $packageInfo) {
     Write-Error "Package information not found for $PackageName."
 }
 
-$packageVersions = ($env:VERSIONNUMBERS | ConvertFrom-Base64String | ConvertFrom-Json) | Where-Object -Property PackageName -EQ -Value $PackageName
+$packageVersions = $env:VERSIONNUMBERS | ConvertFrom-Base64String | ConvertFrom-Json | Where-Object -Property PackageName -EQ -Value $PackageName
 if ($null -eq $packageVersions) {
     Write-Error "Package versions not found for $PackageName."
 }
