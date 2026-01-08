@@ -790,7 +790,7 @@ stages:
 
                 # set environment variable for current process
                 $env:AZURE_DEVOPS_EXT_PAT = $env:SYSTEM_ACCESSTOKEN
-                                                          
+                                                                          
                 az devops configure -d organization=${env:ORGANIZATION_URL} project=${env:PROJECT_NAME}
                 az account set -s ${env:SUBSCRIPTION_ID}
 
@@ -798,7 +798,7 @@ stages:
                 if ($null -eq $packageVersions) {
                     Write-Error 'Package versions not found for ${{ packageName }}'
                 }
-                
+                                
                 [version]$originalNextPackageVersion = $packageVersions.PackagePostProductionVersion
                 Write-Host "##vso[task.setvariable variable=originalNextMajor]$($originalNextPackageVersion.Major)"
                 Write-Host "##vso[task.setvariable variable=originalNextMinor]$($originalNextPackageVersion.Minor)"
@@ -811,12 +811,12 @@ stages:
                 }
 
                 $variableListOutput = & az pipelines variable-group variable list --group-id $packageInfo.variableGroupId
-                $variableGroupVersionNumbers = ($variableListOutput | ConvertFrom-Json).PSObject.Properties 
-                | Where-Object { $_.Name.StartsWith('next') } 
-                | Out-String -InputObject { $_.Name + ':' + $_.Value.value } -Stream 
-                | Sort-Object 
-                | ConvertFrom-Csv -Delimiter ':' -Header 'Name', 'Value' 
-                | Out-String -InputObject { $_.Value } -Stream
+                $variableGroupVersionNumbers = ($variableListOutput | ConvertFrom-Json).PSObject.Properties |
+                Where-Object { $_.Name.StartsWith('next') -and $_.Name.EndsWith('number') } |
+                Out-String -InputObject { $_.Name + ':' + $_.Value.value } -Stream |
+                Sort-Object |
+                ConvertFrom-Csv -Delimiter ':' -Header 'Name', 'Value' |
+                Out-String -InputObject { $_.Value } -Stream
                 [version] $currentNextPackageVersion = ($variableGroupVersionNumbers[0], $variableGroupVersionNumbers[1], $variableGroupVersionNumbers[2], $variableGroupVersionNumbers[3] -join '.')
                 Write-Host "##vso[task.setvariable variable=currentNextMajor]$($currentNextPackageVersion.Major)"
                 Write-Host "##vso[task.setvariable variable=currentNextMinor]$($currentNextPackageVersion.Minor)"
@@ -928,14 +928,14 @@ stages:
                   (
                     succeeded(), 
                     or(containsValue(split(variables.publicationRequiredPackageNames, ','), '${{packageName}}'), containsValue(split(variables['changedPackageNames'], ','), '${{packageName}}'))
-                  )                
+                  )
                 inputs:
                   azureSubscription: $(SUBSCRIPTION_ID) # string. Alias: connectedServiceNameARM. Required. Azure Resource Manager connection.
                   scriptType: "pscore" # 'ps' | 'pscore' | 'batch' | 'bash'. Required. Script Type.
                   # scriptLocation: "scriptPath" # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
                   scriptPath: 'build/scripts/UpdatePipelineVersionNumber.ps1' # string. Required when scriptLocation = scriptPath. Script Path.
                   # inlineScript: string # string. Required when scriptLocation = inlineScript. Inline Script.
-                  arguments: '-PackageName ''${{packageName}}'' -VersionNumberName PackageProductionVersion -VariableNamePrefix current -TraceLevel ${{parameters.traceLevel}}' # string. Alias: scriptArguments. Script Arguments.
+                  arguments: '-PackageName ''${{packageName}}'' -VersionNumberName PackageProductionVersion -VariableNamePrefix current -VersionPrereleaseLabelName PackageProductionPrereleaseLabel -TraceLevel ${{parameters.traceLevel}}' # string. Alias: scriptArguments. Script Arguments.
                   #powerShellErrorActionPreference: 'stop' # 'stop' | 'continue' | 'silentlyContinue'. Optional. Use when scriptType = ps || scriptType = pscore. ErrorActionPreference. Default: stop.
                 env:
                   SYSTEM_ACCESSTOKEN: $(System.AccessToken)

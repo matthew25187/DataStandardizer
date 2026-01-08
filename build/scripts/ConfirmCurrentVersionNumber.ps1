@@ -24,10 +24,11 @@ if ($null -eq $packageInfo) {
 
 $variableListOutput = & az pipelines variable-group variable list --group-id $packageInfo.variableGroupId
 $variableGroupVersionNumbers = ($variableListOutput | ConvertFrom-Json).PSObject.Properties |
-Where-Object { $_.Name.StartsWith('current') } |
+Where-Object { $_.Name.StartsWith('current') -and $_.Name.EndsWith('number') } |
 Out-String -InputObject { $_.Name + ':' + $_.Value.value } -Stream |
 Sort-Object |
 ConvertFrom-Csv -Delimiter ':' -Header 'Name', 'Value' |
 Out-String -InputObject { $_.Value } -Stream
 [version] $packageVersionNumbers = ($variableGroupVersionNumbers[0], $variableGroupVersionNumbers[1], $variableGroupVersionNumbers[2], $variableGroupVersionNumbers[3] -join '.')
+
 Write-Information "Updated package $($packageInfo.packageName) current version to v$packageVersionNumbers." -InformationAction Continue

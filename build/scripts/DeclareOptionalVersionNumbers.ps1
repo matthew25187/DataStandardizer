@@ -44,9 +44,10 @@ Write-Information "Production package version number will be $productionPackageV
 
 $productionPackageVersionString = $productionPackageVersion.Major, $productionPackageVersion.Minor, $productionPackageVersion.Build -join '.'
 if ($productionPackageVersion.Revision -gt 0) {
-    $productionPackageVersionString += "-preview.$($productionPackageVersion.Revision)"
+    $productionPackageVersionString += "-$($packageVersions.PackageNextPrereleaseLabel).$($productionPackageVersion.Revision)"
 }
 $packageVersions.PackageProductionVersionString = $productionPackageVersionString
+$packageVersions.PackageProductionPrereleaseLabel = $packageVersions.PackageNextPrereleaseLabel
 
 Write-Information "Production package version will be $productionPackageVersionString."
 

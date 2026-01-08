@@ -39,7 +39,7 @@ if ($null -eq $packageVersions) {
 # Fetch next package version from pipeline.
 $variableListOutput = & az pipelines variable-group variable list --group-id $packageInfo.variableGroupId
 $variableGroupVersionNumbers = ($variableListOutput | ConvertFrom-Json).PSObject.Properties |
-Where-Object { $_.Name.StartsWith('next') } |
+Where-Object { $_.Name.StartsWith('next') -and $_.Name.EndsWith('number') } |
 Out-String -InputObject { $_.Name + ':' + $_.Value.value } -Stream |
 Sort-Object |
 ConvertFrom-Csv -Delimiter ':' -Header 'Name', 'Value' |

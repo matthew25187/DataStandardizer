@@ -7,6 +7,9 @@ param (
     [ValidateNotNullOrEmpty()]
     [string]    $VersionNumberName,
 
+    [Parameter()]
+    [string]    $VersionPrereleaseLabelName,
+
     [Parameter(Mandatory)]
     [ValidateNotNullOrEmpty()]
     [string]    $VariableNamePrefix,
@@ -39,15 +42,44 @@ if ($null -eq $packageVersions) {
     Write-Error "Package versions not found for $PackageName."
 }
 
-# Update version numbers in pipeline.
+# Get version numbers for updating.
+$variableListOutput = & az pipelines variable-group variable list --group-id $packageInfo.variableGroupId
+$pipelinePackageVersions = $variableListOutput | ConvertFrom-Json
+
 [version]$updateVersionNumber = $packageVersions.PSObject.Properties[$VersionNumberName].Value
-$updateMajorNumber = $updateVersionNumber.Major
-$updateMinorNumber = $updateVersionNumber.Minor
-$updateBuildNumber = [System.Math]::Max($updateVersionNumber.Build, 0)
-$updateRevisionNumber = [System.Math]::Max($updateVersionNumber.Revision, 0)
-az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name "$VariableNamePrefix-major-number" --value $updateMajorNumber --verbose
-az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name "$VariableNamePrefix-minor-number" --value $updateMinorNumber --verbose
-az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name "$VariableNamePrefix-patch-number" --value $updateBuildNumber --verbose
-az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name "$VariableNamePrefix-preview-number" --value $updateRevisionNumber --verbose
+
+# Update version Major component.
+$variableName = "$VariableNamePrefix-major-number"
+if ($null -ne $pipelinePackageVersions.PSObject.Properties[$variableName]) {
+    $updateMajorNumber = $updateVersionNumber.Major
+    az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name $variableName --value $updateMajorNumber --verbose
+}
+
+# Update version Minor component.
+$variableName = "$VariableNamePrefix-minor-number"
+if ($null -ne $pipelinePackageVersions.PSObject.Properties[$variableName]) {
+    $updateMinorNumber = $updateVersionNumber.Minor
+    az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name $variableName --value $updateMinorNumber --verbose
+}
+
+# Update version Patch component.
+$variableName = "$VariableNamePrefix-patch-number"
+if ($null -ne $pipelinePackageVersions.PSObject.Properties[$variableName]) {
+    $updateBuildNumber = [System.Math]::Max($updateVersionNumber.Build, 0)
+    az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name $variableName --value $updateBuildNumber --verbose
+}
+
+# Update version Prerelease component.
+$variableName = "$VariableNamePrefix-prerelease-number"
+if ($null -ne $pipelinePackageVersions.PSObject.Properties[$variableName]) {
+    $updateRevisionNumber = [System.Math]::Max($updateVersionNumber.Revision, 0)
+    az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name $variableName --value $updateRevisionNumber --verbose
+}
+
+# Update prerelease label.
+if (-not [string]::IsNullOrEmpty($VersionPrereleaseLabelName)) {
+    $prereleaseLabel = $packageVersions.PSObject.Properties[$VersionPrereleaseLabelName].Value
+    az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name "$VariableNamePrefix-prerelease-label" --value $prereleaseLabel --verbose
+}
 
 Write-Information "Updated $PackageName $VariableNamePrefix version number to $updateVersionNumber." -InformationAction Continue
