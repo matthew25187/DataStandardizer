@@ -958,6 +958,8 @@ stages:
                 env:
                   SYSTEM_ACCESSTOKEN: $(System.AccessToken)
               - powershell: | # Required as first property. Inline PowerShell script.
+                  Import-Module "$(Build.SourcesDirectory)/build/psmodules/CommonHelpers/CommonHelpers.psm1" -Force
+
                   if (${{parameters.traceLevel}} -gt 0) {
                       Set-PSDebug -Trace ${{parameters.traceLevel}}
                   }
