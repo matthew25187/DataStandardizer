@@ -1,3 +1,5 @@
+#Requires -Version 3.0
+
 param (
     [Parameter(Mandatory)]
     [ValidateNotNullOrEmpty()]
@@ -15,11 +17,27 @@ param (
     [string]    $VariableNamePrefix,
 
     [Parameter()]
+    [ValidateNotNullOrEmpty()]
+    [string]    $OutputInformationPreference = 'SilentlyContinue',
+
+    [Parameter()]
+    [ValidateNotNullOrEmpty()]
+    [string]    $OutputVerbosePreference = 'SilentlyContinue',
+
+    [Parameter()]
+    [ValidateNotNullOrEmpty()]
+    [string]    $OutputDebugPreference = 'SilentlyContinue',
+
+    [Parameter()]
     [int]    $TraceLevel = 0
 )
 
+$InformationPreference = $OutputInformationPreference
+$VerbosePreference = $OutputVerbosePreference
+$DebugPreference = $OutputDebugPreference
+
 $modulePath = Join-Path $PSScriptRoot "../psmodules/CommonHelpers/CommonHelpers.psm1"
-Import-Module $modulePath -Force
+Import-Module $modulePath -Force -Scope Local
 
 if (0 -lt $TraceLevel) {
     Set-PSDebug -Trace $TraceLevel
@@ -53,6 +71,8 @@ $variableName = "$VariableNamePrefix-major-number"
 if ($null -ne $pipelinePackageVersions.PSObject.Properties[$variableName]) {
     $updateMajorNumber = $updateVersionNumber.Major
     az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name $variableName --value $updateMajorNumber --verbose
+
+    Write-Verbose "Set pipeline $variableName variable to $updateMajorNumber."
 }
 
 # Update version Minor component.
@@ -60,6 +80,8 @@ $variableName = "$VariableNamePrefix-minor-number"
 if ($null -ne $pipelinePackageVersions.PSObject.Properties[$variableName]) {
     $updateMinorNumber = $updateVersionNumber.Minor
     az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name $variableName --value $updateMinorNumber --verbose
+    
+    Write-Verbose "Set pipeline $variableName variable to $updateMinorNumber."
 }
 
 # Update version Patch component.
@@ -67,6 +89,8 @@ $variableName = "$VariableNamePrefix-patch-number"
 if ($null -ne $pipelinePackageVersions.PSObject.Properties[$variableName]) {
     $updateBuildNumber = [System.Math]::Max($updateVersionNumber.Build, 0)
     az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name $variableName --value $updateBuildNumber --verbose
+
+    Write-Verbose "Set pipeline $variableName variable to $updateBuildNumber."
 }
 
 # Update version Prerelease component.
@@ -74,12 +98,17 @@ $variableName = "$VariableNamePrefix-prerelease-number"
 if ($null -ne $pipelinePackageVersions.PSObject.Properties[$variableName]) {
     $updateRevisionNumber = [System.Math]::Max($updateVersionNumber.Revision, 0)
     az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name $variableName --value $updateRevisionNumber --verbose
+
+    Write-Verbose "Set pipeline $variableName variable to $updateRevisionNumber."
 }
 
 # Update prerelease label.
-if (-not [string]::IsNullOrEmpty($VersionPrereleaseLabelName)) {
+$variableName = "$VariableNamePrefix-prerelease-label"
+if ((-not [string]::IsNullOrEmpty($VersionPrereleaseLabelName)) -and ($null -ne $pipelinePackageVersions.PSObject.Properties[$variableName])) {
     $prereleaseLabel = $packageVersions.PSObject.Properties[$VersionPrereleaseLabelName].Value
-    az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name "$VariableNamePrefix-prerelease-label" --value $prereleaseLabel --verbose
+    az pipelines variable-group variable update --group-id $packageInfo.variableGroupId --name $variableName --value $prereleaseLabel --verbose
+
+    Write-Verbose "Set pipeline $variableName variable to $prereleaseLabel."
 }
 
-Write-Information "Updated $PackageName $VariableNamePrefix version number to $updateVersionNumber." -InformationAction Continue
+Write-Information "Updated $PackageName $VariableNamePrefix version number to $updateVersionNumber."

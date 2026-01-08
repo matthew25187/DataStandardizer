@@ -6,12 +6,15 @@ param (
     [string]    $PackageName,
 
     [Parameter()]
+    [ValidateNotNullOrEmpty()]
     [string]    $OutputInformationPreference = 'SilentlyContinue',
 
     [Parameter()]
+    [ValidateNotNullOrEmpty()]
     [string]    $OutputVerbosePreference = 'SilentlyContinue',
 
     [Parameter()]
+    [ValidateNotNullOrEmpty()]
     [string]    $OutputDebugPreference = 'SilentlyContinue',
 
     [Parameter()]
@@ -23,10 +26,10 @@ Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
 Install-Module -Name ConvertFrom-StringTable -Scope CurrentUser
 
 # Import the module into your session
-Import-Module ConvertFrom-StringTable
+Import-Module ConvertFrom-StringTable -Scope Local
 
 $modulePath = Join-Path $PSScriptRoot "../psmodules/CommonHelpers/CommonHelpers.psm1"
-Import-Module $modulePath -Force
+Import-Module $modulePath -Force -Scope Local
 
 if (0 -lt $TraceLevel) {
     Set-PSDebug -Trace $TraceLevel

@@ -22,7 +22,7 @@ param (
 )
 
 $modulePath = Join-Path $PSScriptRoot "../psmodules/CommonHelpers/CommonHelpers.psm1"
-Import-Module $modulePath -Force
+Import-Module $modulePath -Force -Scope Local
 
 if (0 -lt $TraceLevel) {
     Set-PSDebug -Trace $TraceLevel
