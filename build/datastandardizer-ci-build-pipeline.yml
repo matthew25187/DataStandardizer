@@ -1014,3 +1014,5 @@ stages:
                   #failOnStandardError: false # boolean. Fail on Standard Error. Default: false.
                   #powerShellIgnoreLASTEXITCODE: false # boolean. Optional. Use when scriptType = ps || scriptType = pscore. Ignore $LASTEXITCODE. Default: false.
                   #visibleAzLogin: true # boolean. az login output visibility. Default: true.
+                env:
+                  SYSTEM_ACCESSTOKEN: $(System.AccessToken)
