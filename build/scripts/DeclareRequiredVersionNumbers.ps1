@@ -67,7 +67,7 @@ Where-Object { $_.Name.StartsWith('current') -and $_.Name.EndsWith('number') } |
 Sort-Object -Property Name |
 Select-Object -ExpandProperty Value
 [version] $currentPackageVersion = ($variableGroupVersionNumbers[0], $variableGroupVersionNumbers[1], $variableGroupVersionNumbers[2], $variableGroupVersionNumbers[3] -join '.')
-$currentPackagePrereleaseLabel = $packageVersions.PSObject.Properties['current-prerelease-label'].Value
+$currentPackagePrereleaseLabel = $packageVersions | Where-Object -Property Name -EQ -Value 'current-prerelease-label' | Select-Object -ExpandProperty Value
 
 $currentPackageVersionString = $currentPackageVersion.Major, $currentPackageVersion.Minor, $currentPackageVersion.Build -join '.'
 if ($currentPackageVersion.Revision -gt 0) {
@@ -80,7 +80,7 @@ Where-Object { $_.Name.StartsWith('next') -and $_.Name.EndsWith('number') } |
 Sort-Object -Property Name |
 Select-Object -ExpandProperty Value
 [version] $nextPackageVersion = ($variableGroupVersionNumbers[0], $variableGroupVersionNumbers[1], $variableGroupVersionNumbers[2], $variableGroupVersionNumbers[3] -join '.')
-$nextPackagePrereleaseLabel = $packageVersions.PSObject.Properties['next-prerelease-label'].Value
+$nextPackagePrereleaseLabel = $packageVersions | Where-Object -Property Name -EQ -Value 'next-prerelease-label' | Select-Object -ExpandProperty Value
 
 # Fetch current version numbers from assembly.
 [version]$currentAssemblyVersion = $null; [version]$currentFileVersion = $null; [version]$currentInformationalVersion = $null
