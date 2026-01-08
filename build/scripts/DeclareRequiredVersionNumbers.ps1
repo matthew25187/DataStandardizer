@@ -19,6 +19,7 @@ param (
 )
 
 # Install from PowerShell Gallery
+$ConfirmPreference = 'None'
 Install-Module -Name ConvertFrom-StringTable -Scope CurrentUser
 
 # Import the module into your session
