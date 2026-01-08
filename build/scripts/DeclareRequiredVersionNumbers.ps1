@@ -19,7 +19,7 @@ param (
 )
 
 # Install from PowerShell Gallery
-$ConfirmPreference = 'None'
+Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
 Install-Module -Name ConvertFrom-StringTable -Scope CurrentUser
 
 # Import the module into your session
