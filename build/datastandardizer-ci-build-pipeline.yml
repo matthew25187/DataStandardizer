@@ -962,7 +962,7 @@ stages:
                       Set-PSDebug -Trace ${{parameters.traceLevel}}
                   }
 
-                  $packageVersions = ("$(versionNumbers)" | ConvertFrom-Base64String | ConvertFrom-Json) | Where-Object -Property PackageName -EQ -Value ${{packageName} }
+                  $packageVersions = ("$(versionNumbers)" | ConvertFrom-Base64String | ConvertFrom-Json) | Where-Object -Property PackageName -EQ -Value ${{packageName}}
                   if ($null -eq $packageVersions) {
                       Write-Error 'Package versions not found for ${{packageName}}'
                   }
@@ -1005,7 +1005,7 @@ stages:
                   scriptLocation: 'scriptPath' # 'inlineScript' | 'scriptPath'. Required. Script Location. Default: scriptPath.
                   scriptPath: 'build/scripts/UpdatePipelineVersionNumber.ps1' # string. Required when scriptLocation = scriptPath. Script Path. 
                   #inlineScript: # string. Required when scriptLocation = inlineScript. Inline Script. 
-                  arguments: '-PackageName ''${{packageName}}'' -VersionNumberName PackageProductionVersion -VariableNamePrefix stable -VersionPrereleaseLabelName PackageProductionPrereleaseLabel -OutputInformationPreference ''Continue'' -OutputVerbosePreference ${{iif(eq(parameters.enableVerboseOutput, ''true''), ''Continue'', ''SilentlyContinue'')}} -OutputDebugPreference ${{iif(eq(parameters.enableDebug, ''true''), ''Continue'', ''SilentlyContinue'')}} -TraceLevel ${{parameters.traceLevel}}' # string. Alias: scriptArguments. Script Arguments. 
+                  arguments: '-PackageName ''${{packageName}}'' -VersionNumberName PackageProductionVersion -VariableNamePrefix stable -OutputInformationPreference ''Continue'' -OutputVerbosePreference ${{iif(eq(parameters.enableVerboseOutput, ''true''), ''Continue'', ''SilentlyContinue'')}} -OutputDebugPreference ${{iif(eq(parameters.enableDebug, ''true''), ''Continue'', ''SilentlyContinue'')}} -TraceLevel ${{parameters.traceLevel}}' # string. Alias: scriptArguments. Script Arguments. 
                   #powerShellErrorActionPreference: 'stop' # 'stop' | 'continue' | 'silentlyContinue'. Optional. Use when scriptType = ps || scriptType = pscore. ErrorActionPreference. Default: stop.
                 # Advanced
                   #addSpnToEnvironment: false # boolean. Access service principal details in script. Default: false.
