@@ -191,7 +191,7 @@ foreach ($dependencyNode in $dependencyNodes) {
         continue
     }
 
-    $dependencyPackageVersion = $dependencyPackageVersions.PackageProductionVersionString
+    $dependencyPackageVersion = $dependencyPackageVersions.PackageProductionVersionSemVer
     if (([version]$updatingPackageVersions.PackageProductionVersion).Revision -eq 0 -and ([version]$dependencyPackageVersions.PackageProductionVersion).Revision -gt 0 -and ([version]$dependencyPackageVersions.PackageStableVersion) -gt $emptyVersion) {
         $dependencyPackageVersion = $dependencyPackageVersions.PackageStableVersion
     }

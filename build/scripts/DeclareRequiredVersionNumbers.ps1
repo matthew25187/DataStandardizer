@@ -62,19 +62,23 @@ $variableGroupVersionNumbers = $packageVersions |
 Where-Object { $_.Name.StartsWith('stable') -and $_.Name.EndsWith('number') } |
 Sort-Object -Property Name |
 Select-Object -ExpandProperty Value
-[version]$stablePackageVersion = ($variableGroupVersionNumbers[0], $variableGroupVersionNumbers[1], $variableGroupVersionNumbers[2] -join '.')
+[version]$stablePackageVersion = $variableGroupVersionNumbers[0], $variableGroupVersionNumbers[1], $variableGroupVersionNumbers[2] -join '.'
 
 # Fetch current package version number.
 $variableGroupVersionNumbers = $packageVersions |
 Where-Object { $_.Name.StartsWith('current') -and $_.Name.EndsWith('number') } |
 Sort-Object -Property Name |
 Select-Object -ExpandProperty Value
-[version] $currentPackageVersion = ($variableGroupVersionNumbers[0], $variableGroupVersionNumbers[1], $variableGroupVersionNumbers[2], $variableGroupVersionNumbers[3] -join '.')
+[version] $currentPackageVersion = $variableGroupVersionNumbers[0], $variableGroupVersionNumbers[1], $variableGroupVersionNumbers[2], $variableGroupVersionNumbers[3] -join '.'
 $currentPackagePrereleaseLabel = $packageVersions | Where-Object -Property Name -EQ -Value 'current-prerelease-label' | Select-Object -ExpandProperty Value
 
-$currentPackageVersionString = $currentPackageVersion.Major, $currentPackageVersion.Minor, $currentPackageVersion.Build -join '.'
+[version]$currentPackageVersionDisplay = $currentPackageVersion.Revision -eq 0 `
+    ?$currentPackageVersion.Major, $currentPackageVersion.Minor, $currentPackageVersion.Build -join '.' `
+    :$currentPackageVersion
+
+$currentPackageVersionSemVer = $currentPackageVersion.Major, $currentPackageVersion.Minor, $currentPackageVersion.Build -join '.'
 if ($currentPackageVersion.Revision -gt 0) {
-    $currentPackageVersionString += "-$currentPackagePrereleaseLabel.$($currentPackageVersion.Revision)"
+    $currentPackageVersionSemVer += "-$currentPackagePrereleaseLabel.$($currentPackageVersion.Revision)"
 }
 
 # Fetch next package version number.
@@ -82,13 +86,13 @@ $variableGroupVersionNumbers = $packageVersions |
 Where-Object { $_.Name.StartsWith('next') -and $_.Name.EndsWith('number') } |
 Sort-Object -Property Name |
 Select-Object -ExpandProperty Value
-[version] $nextPackageVersion = ($variableGroupVersionNumbers[0], $variableGroupVersionNumbers[1], $variableGroupVersionNumbers[2], $variableGroupVersionNumbers[3] -join '.')
+[version] $nextPackageVersion = $variableGroupVersionNumbers[0], $variableGroupVersionNumbers[1], $variableGroupVersionNumbers[2], $variableGroupVersionNumbers[3] -join '.'
 $nextPackagePrereleaseLabel = $packageVersions | Where-Object -Property Name -EQ -Value 'next-prerelease-label' | Select-Object -ExpandProperty Value
 
 # Fetch current version numbers from assembly.
 [version]$currentAssemblyVersion = $null; [version]$currentFileVersion = $null; [version]$currentInformationalVersion = $null
 
-nuget install $PackageName -DependencyVersion Ignore -DirectDownload -ExcludeVersion -NoHttpCache -NonInteractive -OutputDirectory $env:AGENT_TEMPDIRECTORY -PackageSaveMode nupkg -PreRelease -Source 'https://pkgs.dev.azure.com/solobyte/DataStandardizer/_packaging/DataStandardizer/nuget/v3/index.json' -Source 'https://api.nuget.org/v3/index.json' -Verbosity detailed -Version $currentPackageVersionString 2>&1 | Write-Host
+nuget install $PackageName -DependencyVersion Ignore -DirectDownload -ExcludeVersion -NoHttpCache -NonInteractive -OutputDirectory $env:AGENT_TEMPDIRECTORY -PackageSaveMode nupkg -PreRelease -Source 'https://pkgs.dev.azure.com/solobyte/DataStandardizer/_packaging/DataStandardizer/nuget/v3/index.json' -Source 'https://api.nuget.org/v3/index.json' -Verbosity detailed -Version $currentPackageVersionSemVer 2>&1 | Write-Host
 
 [string]$currentPackageFolderPath
 $currentPackageArchivePath = Get-ChildItem -Path $env:AGENT_TEMPDIRECTORY -Filter "$PackageName.nupkg" -Recurse | Select-Object -ExpandProperty FullName
@@ -141,7 +145,8 @@ $packageVersions = [PSCustomObject]@{
     PackageNextVersion                     = $nextPackageVersion.ToString()
     PackageNextPrereleaseLabel             = $nextPackagePrereleaseLabel
     PackageProductionVersion               = $currentPackageVersion.ToString()
-    PackageProductionVersionString         = $currentPackageVersionString
+    PackageProductionVersionDisplay        = $currentPackageVersionDisplay.ToString()
+    PackageProductionVersionSemVer         = $currentPackageVersionSemVer
     PackageProductionPrereleaseLabel       = $currentPackagePrereleaseLabel
     AssemblyProductionVersion              = ${currentAssemblyVersion}?.ToString()
     AssemblyProductionFileVersion          = ${currentFileVersion}?.ToString()
@@ -150,7 +155,8 @@ $packageVersions = [PSCustomObject]@{
 
 Write-Information "Stable package version number is $stablePackageVersion."
 Write-Information "Current package version number is $currentPackageVersion."
-Write-Information "Current package version is $currentPackageVersionString."
+Write-Information "Current package version number (display) is $currentPackageVersionDisplay."
+Write-Information "Current package version is $currentPackageVersionSemVer."
 Write-Information "Current package pre-release label is $currentPackagePrereleaseLabel."
 Write-Information "Next package version number will be $nextPackageVersion."
 Write-Information "Next package pre-release label is $nextPackagePrereleaseLabel."
