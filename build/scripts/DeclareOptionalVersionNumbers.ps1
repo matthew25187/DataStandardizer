@@ -1,3 +1,5 @@
+#Requires -Version 3.0
+
 param (
     [Parameter(Mandatory)]
     [ValidateNotNullOrEmpty()]
@@ -8,7 +10,7 @@ param (
 )
 
 $modulePath = Join-Path $PSScriptRoot "../psmodules/CommonHelpers/CommonHelpers.psm1"
-Import-Module $modulePath -Force
+Import-Module $modulePath -Force -Scope Local
 
 if (0 -lt $TraceLevel) {
     Set-PSDebug -Trace $TraceLevel
@@ -44,9 +46,10 @@ Write-Information "Production package version number will be $productionPackageV
 
 $productionPackageVersionString = $productionPackageVersion.Major, $productionPackageVersion.Minor, $productionPackageVersion.Build -join '.'
 if ($productionPackageVersion.Revision -gt 0) {
-    $productionPackageVersionString += "-preview.$($productionPackageVersion.Revision)"
+    $productionPackageVersionString += "-$($packageVersions.PackageNextPrereleaseLabel).$($productionPackageVersion.Revision)"
 }
 $packageVersions.PackageProductionVersionString = $productionPackageVersionString
+$packageVersions.PackageProductionPrereleaseLabel = $packageVersions.PackageNextPrereleaseLabel
 
 Write-Information "Production package version will be $productionPackageVersionString."
 

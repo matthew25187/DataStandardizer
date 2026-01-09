@@ -6,20 +6,30 @@ param (
     [string]    $PackageName,
 
     [Parameter()]
+    [ValidateNotNullOrEmpty()]
     [string]    $OutputInformationPreference = 'SilentlyContinue',
 
     [Parameter()]
+    [ValidateNotNullOrEmpty()]
     [string]    $OutputVerbosePreference = 'SilentlyContinue',
 
     [Parameter()]
+    [ValidateNotNullOrEmpty()]
     [string]    $OutputDebugPreference = 'SilentlyContinue',
 
     [Parameter()]
     [int]   $TraceLevel = 0
 )
 
+# Install from PowerShell Gallery
+Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+Install-Module -Name ConvertFrom-StringTable -Scope CurrentUser
+
+# Import the module into your session
+Import-Module ConvertFrom-StringTable -Scope Local
+
 $modulePath = Join-Path $PSScriptRoot "../psmodules/CommonHelpers/CommonHelpers.psm1"
-Import-Module $modulePath -Force
+Import-Module $modulePath -Force -Scope Local
 
 if (0 -lt $TraceLevel) {
     Set-PSDebug -Trace $TraceLevel
@@ -43,30 +53,37 @@ if ($null -eq $packageInfo) {
 
 Write-Information "Found information for package $PackageName."
 
+# Download variables from pipeline.
+$variableListOutput = & az pipelines variable-group variable list --group-id $packageInfo.variableGroupId --output table
+$packageVersions = $variableListOutput | ConvertFrom-StringTable
+
+# Fetch stable package version number.
+$variableGroupVersionNumbers = $packageVersions |
+Where-Object { $_.Name.StartsWith('stable') -and $_.Name.EndsWith('number') } |
+Sort-Object -Property Name |
+Select-Object -ExpandProperty Value
+[version]$stablePackageVersion = ($variableGroupVersionNumbers[0], $variableGroupVersionNumbers[1], $variableGroupVersionNumbers[2] -join '.')
+
 # Fetch current package version number.
-$variableListOutput = & az pipelines variable-group variable list --group-id $packageInfo.variableGroupId
-$variableGroupVersionNumbers = ($variableListOutput | ConvertFrom-Json).PSObject.Properties |
-Where-Object { $_.Name.StartsWith('current') } |
-Out-String -InputObject { $_.Name + ':' + $_.Value.value } -Stream |
-Sort-Object |
-ConvertFrom-Csv -Delimiter ':' -Header 'Name', 'Value' |
-Out-String -InputObject { $_.Value } -Stream
+$variableGroupVersionNumbers = $packageVersions |
+Where-Object { $_.Name.StartsWith('current') -and $_.Name.EndsWith('number') } |
+Sort-Object -Property Name |
+Select-Object -ExpandProperty Value
 [version] $currentPackageVersion = ($variableGroupVersionNumbers[0], $variableGroupVersionNumbers[1], $variableGroupVersionNumbers[2], $variableGroupVersionNumbers[3] -join '.')
+$currentPackagePrereleaseLabel = $packageVersions | Where-Object -Property Name -EQ -Value 'current-prerelease-label' | Select-Object -ExpandProperty Value
 
 $currentPackageVersionString = $currentPackageVersion.Major, $currentPackageVersion.Minor, $currentPackageVersion.Build -join '.'
 if ($currentPackageVersion.Revision -gt 0) {
-    $currentPackageVersionString += "-preview.$($currentPackageVersion.Revision)"
+    $currentPackageVersionString += "-$currentPackagePrereleaseLabel.$($currentPackageVersion.Revision)"
 }
 
 # Fetch next package version number.
-$variableListOutput = & az pipelines variable-group variable list --group-id $packageInfo.variableGroupId
-$variableGroupVersionNumbers = ($variableListOutput | ConvertFrom-Json).PSObject.Properties |
-Where-Object { $_.Name.StartsWith('next') } |
-Out-String -InputObject { $_.Name + ':' + $_.Value.value } -Stream |
-Sort-Object |
-ConvertFrom-Csv -Delimiter ':' -Header 'Name', 'Value' |
-Out-String -InputObject { $_.Value } -Stream
+$variableGroupVersionNumbers = $packageVersions |
+Where-Object { $_.Name.StartsWith('next') -and $_.Name.EndsWith('number') } |
+Sort-Object -Property Name |
+Select-Object -ExpandProperty Value
 [version] $nextPackageVersion = ($variableGroupVersionNumbers[0], $variableGroupVersionNumbers[1], $variableGroupVersionNumbers[2], $variableGroupVersionNumbers[3] -join '.')
+$nextPackagePrereleaseLabel = $packageVersions | Where-Object -Property Name -EQ -Value 'next-prerelease-label' | Select-Object -ExpandProperty Value
 
 # Fetch current version numbers from assembly.
 [version]$currentAssemblyVersion = $null; [version]$currentFileVersion = $null; [version]$currentInformationalVersion = $null
@@ -118,18 +135,25 @@ if ($null -ne $currentAssemblyVersion -and ($currentAssemblyVersion.Major -ne $c
 # Add package version numbers to list.
 $packageVersions = [PSCustomObject]@{
     PackageName                            = $PackageName
+    PackageStableVersion                   = $stablePackageVersion.ToString()
     PackageCurrentVersion                  = $currentPackageVersion.ToString()
+    PackageCurrentPrereleaseLabel          = $currentPackagePrereleaseLabel
     PackageNextVersion                     = $nextPackageVersion.ToString()
+    PackageNextPrereleaseLabel             = $nextPackagePrereleaseLabel
     PackageProductionVersion               = $currentPackageVersion.ToString()
     PackageProductionVersionString         = $currentPackageVersionString
+    PackageProductionPrereleaseLabel       = $currentPackagePrereleaseLabel
     AssemblyProductionVersion              = ${currentAssemblyVersion}?.ToString()
     AssemblyProductionFileVersion          = ${currentFileVersion}?.ToString()
     AssemblyProductionInformationalVersion = ${currentInformationalVersion}?.ToString()
 }
 
+Write-Information "Stable package version number is $stablePackageVersion."
 Write-Information "Current package version number is $currentPackageVersion."
 Write-Information "Current package version is $currentPackageVersionString."
+Write-Information "Current package pre-release label is $currentPackagePrereleaseLabel."
 Write-Information "Next package version number will be $nextPackageVersion."
+Write-Information "Next package pre-release label is $nextPackagePrereleaseLabel."
 Write-Information "Current assembly version number is $($currentAssemblyVersion ?? 'unknown')."
 Write-Information "Current assembly file version number is $($currentFileVersion ?? 'unknown')."
 Write-Information "Current assembly informational version is $($currentInformationalVersion ?? 'unknown')."

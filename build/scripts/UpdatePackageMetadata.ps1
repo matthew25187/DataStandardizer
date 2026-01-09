@@ -22,7 +22,7 @@ param (
 )
 
 $modulePath = Join-Path $PSScriptRoot "../psmodules/CommonHelpers/CommonHelpers.psm1"
-Import-Module $modulePath -Force
+Import-Module $modulePath -Force -Scope Local
 
 if (0 -lt $TraceLevel) {
     Set-PSDebug -Trace $TraceLevel
@@ -179,17 +179,24 @@ if ($dependencyNodes.Count -eq 0) {
     Write-Warning "Found $($dependencyNodes.Count) dependencies to process."
 }
 
+$updatingPackageVersions = $packageVersionsList | Where-Object -Property PackageName -EQ -Value $PackageName
+[version]$emptyVersion = '0.0.0.0'
+
 $dependenciesUpdatedCount = 0
 foreach ($dependencyNode in $dependencyNodes) {
     $dependencyName = $dependencyNode.Attributes['id'].Value
-    $packageVersions = $packageVersionsList | Where-Object -Property PackageName -EQ -Value $dependencyName
-    if ($null -eq $packageVersions) {
+    $dependencyPackageVersions = $packageVersionsList | Where-Object -Property PackageName -EQ -Value $dependencyName
+    if ($null -eq $dependencyPackageVersions) {
         Write-Verbose "Found no versions for $dependencyName; skipped."
         continue
     }
 
-    $dependencyNode.Attributes['version'].Value = $packageVersions.PackageProductionVersion
-    Write-Verbose "Updated dependency $dependencyName to v$($packageVersions.PackageProductionVersion)."
+    $dependencyPackageVersion = $dependencyPackageVersions.PackageProductionVersionString
+    if (([version]$updatingPackageVersions.PackageProductionVersion).Revision -eq 0 -and ([version]$dependencyPackageVersions.PackageProductionVersion).Revision -gt 0 -and ([version]$dependencyPackageVersions.PackageStableVersion) -gt $emptyVersion) {
+        $dependencyPackageVersion = $dependencyPackageVersions.PackageStableVersion
+    }
+    $dependencyNode.Attributes['version'].Value = $dependencyPackageVersion
+    Write-Verbose "Updated dependency $dependencyName to v$dependencyPackageVersion."
 
     $dependenciesUpdatedCount++
     $isChangedPackageNuspecDocument = $true
