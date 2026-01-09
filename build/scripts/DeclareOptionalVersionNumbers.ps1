@@ -39,23 +39,30 @@ $productionRevisionNumber = [System.Math]::Max($nextPackageVersion.Revision, 1)
 if ($env:BUILD_SOURCEBRANCH -eq 'refs/heads/master') {
     $productionRevisionNumber = 0
 }
-[version]$productionPackageVersion = ($productionMajorNumber, $productionMinorNumber, $productionBuildNumber, $productionRevisionNumber -join '.')
+[version]$productionPackageVersion = $productionMajorNumber, $productionMinorNumber, $productionBuildNumber, $productionRevisionNumber -join '.'
 $packageVersions.PackageProductionVersion = $productionPackageVersion.ToString()
 
 Write-Information "Production package version number will be $productionPackageVersion."
 
-$productionPackageVersionString = $productionPackageVersion.Major, $productionPackageVersion.Minor, $productionPackageVersion.Build -join '.'
+[version]$productionPackageVersionDisplay = $productionPackageVersion.Revision -eq 0 `
+    ?$productionPackageVersion.Major, $productionPackageVersion.Minor, $productionPackageVersion.Build -join '.' `
+    :$productionPackageVersion
+$packageVersions.PackageProductionVersionDisplay = $productionPackageVersionDisplay.ToString()
+
+Write-Information "Production package version number (display) will be $productionPackageVersionDisplay."
+
+$productionPackageVersionSemVer = $productionPackageVersion.Major, $productionPackageVersion.Minor, $productionPackageVersion.Build -join '.'
 if ($productionPackageVersion.Revision -gt 0) {
-    $productionPackageVersionString += "-$($packageVersions.PackageNextPrereleaseLabel).$($productionPackageVersion.Revision)"
+    $productionPackageVersionSemVer += "-$($packageVersions.PackageNextPrereleaseLabel).$($productionPackageVersion.Revision)"
 }
-$packageVersions.PackageProductionVersionString = $productionPackageVersionString
+$packageVersions.PackageProductionVersionSemVer = $productionPackageVersionSemVer
 $packageVersions.PackageProductionPrereleaseLabel = $packageVersions.PackageNextPrereleaseLabel
 
-Write-Information "Production package version will be $productionPackageVersionString."
+Write-Information "Production package version will be $productionPackageVersionSemVer."
 
 # Calculate post-production package version number.
 $postProductionNumbers = $productionPackageVersion.Major, $productionPackageVersion.Minor, $productionPackageVersion.Build, $productionPackageVersion.Revision
-$incrementFromIndex = $postProductionNumbers.Count - 1 # default to incrementing the preview number
+$incrementFromIndex = $postProductionNumbers.Count - 1 # default to incrementing the prerelease number
 if ($env:BUILD_SOURCEBRANCH -eq 'refs/heads/master') {
     $incrementFromIndex = 1 # increment minor number
 }
@@ -68,7 +75,7 @@ for ($versionPartIndex = $incrementFromIndex; $versionPartIndex -lt $postProduct
     }
 }
 
-[version]$postProductionPackageVersion = ($postProductionNumbers[0], $postProductionNumbers[1], $postProductionNumbers[2], $postProductionNumbers[3] -join '.')
+[version]$postProductionPackageVersion = $postProductionNumbers[0], $postProductionNumbers[1], $postProductionNumbers[2], $postProductionNumbers[3] -join '.'
 $packageVersions | Add-Member -MemberType NoteProperty -Name 'PackagePostProductionVersion' -Value $postProductionPackageVersion.ToString()
 Write-Information "Post-production package version number will be $postProductionPackageVersion."
 
@@ -78,11 +85,11 @@ $packageVersions.AssemblyProductionFileVersion = $productionAssemblyFileVersion.
 Write-Information "Production assembly file version number will be $productionAssemblyFileVersion."
 
 $productionAssemblyVersionRevision = [System.Convert]::ToInt32([datetime]::UtcNow.TimeOfDay.TotalSeconds / 2)
-[version]$productionAssemblyVersion = "$($productionPackageVersion.Major).$($productionPackageVersion.Minor).$($productionPackageVersion.Build).$productionAssemblyVersionRevision"
+[version]$productionAssemblyVersion = $productionPackageVersion.Major, $productionPackageVersion.Minor, $productionPackageVersion.Build, $productionAssemblyVersionRevision -join '.'
 $packageVersions.AssemblyProductionVersion = $productionAssemblyVersion.ToString()
 Write-Information "Production assembly version number will be $productionAssemblyVersion."
 
-[version]$productionAssemblyInformationalVersion = "$($productionPackageVersion.Major).$($productionPackageVersion.Minor)"
+[version]$productionAssemblyInformationalVersion = $productionPackageVersion.Major, $productionPackageVersion.Minor -join '.'
 $packageVersions.AssemblyProductionInformationalVersion = $productionAssemblyInformationalVersion.ToString()
 Write-Information "Production assembly informational version number will be $productionAssemblyInformationalVersion."
 
