@@ -1,11 +1,9 @@
+#Requires -Version 3.0
+
 param (
     [Parameter(Mandatory)]
     [ValidateNotNullOrEmpty()]
     [string] $PackageName,
-
-    [Parameter(Mandatory)]
-    [ValidateNotNullOrEmpty()]
-    [string]    $PackageInfos,
 
     [Parameter(Mandatory)]
     [ValidateNotNullOrEmpty()]
@@ -16,14 +14,14 @@ param (
 )
 
 $modulePath = Join-Path $PSScriptRoot "../psmodules/CommonHelpers/CommonHelpers.psm1"
-Import-Module $modulePath -Force
+Import-Module $modulePath -Force -Scope Local
 
 if (0 -lt $TraceLevel) {
     Set-PSDebug -Trace $TraceLevel
 }
 
 # Set package Source Folder Path argument.
-$packageInfo = $PackageInfos | ConvertFrom-Json | Where-Object -Property packageName -EQ $PackageName
+$packageInfo = $env:PACKAGEINFOS | ConvertFrom-Json | Where-Object -Property packageName -EQ $PackageName
 if ($null -eq $packageInfo) {
     Write-Error "No package information found for $PackageName."
     exit

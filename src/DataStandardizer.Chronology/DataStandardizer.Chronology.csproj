@@ -13,7 +13,7 @@ Provides types supporting the measurement and comparison of date and time period
 - TZ Database
 - Unix time
 - DOS date/time</Description>
-    <Copyright>Copyright © 2024-2025, Matthew25187. All rights reserved.</Copyright>
+    <Copyright>Copyright © 2024-2026, Matthew25187. All rights reserved.</Copyright>
     <PackageProjectUrl>https://github.com/matthew25187/DataStandardizer</PackageProjectUrl>
     <PackageIcon>054-doc_web.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>

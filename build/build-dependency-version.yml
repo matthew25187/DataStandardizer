@@ -1,0 +1,105 @@
+parameters:
+- name: packageName
+  type: string
+- name: packageNames
+  type: string
+- name: packageInfos
+  type: string
+- name: encodedPackageVersions
+  type: string
+- name: enableVerboseOutput
+  type: boolean
+  default: false
+- name: enableDebug
+  type: boolean
+  default: false
+- name: traceLevel
+  type: number
+  default: 0
+
+steps:
+- ${{ each dependencyPackageName in split(parameters.packageNames, ',') }}:
+  - ${{ if ne(dependencyPackageName, parameters.packageName) }}:
+    - pwsh: | # Required as first property. Inline PowerShell script.
+        Import-Module "$(Build.SourcesDirectory)/build/psmodules/CommonHelpers/CommonHelpers.psm1" -Force -Scope Local
+
+        if (${{parameters.traceLevel}} -gt 0) {
+            Set-PSDebug -Trace ${{parameters.traceLevel}}
+        }
+
+        $packageInfo = '${{parameters.packageInfos}}'
+        | ConvertFrom-Json
+        | Where-Object -Property packageName -EQ -Value '${{dependencyPackageName}}'
+        if ($null -eq $packageInfo) {
+            Write-Error 'Package information not found for ${{dependencyPackageName}}'
+        }
+        $projectSourcePath = '$(Build.SourcesDirectory)' | Join-Path -ChildPath "$($packageInfo.packageSourcePath)"
+
+        $packageVersions = '${{parameters.encodedPackageVersions}}'
+        | ConvertFrom-Base64String 
+        | ConvertFrom-Json
+        | Where-Object -Property PackageName -EQ -Value '${{dependencyPackageName}}'
+        if ($null -eq $packageVersions) {
+            Write-Error 'Package versions not found for ${{dependencyPackageName}}'
+        }
+        [version]$productionAssemblyVersion = $packageVersions.AssemblyProductionVersion
+
+        Write-Host "##vso[task.setvariable variable=projectPathArg]$projectSourcePath"
+        Write-Host "##vso[task.setvariable variable=assemblyVersionNumberArg]$productionAssemblyVersion"
+      # errorActionPreference: string # Unless otherwise specified, the error action preference defaults to the value stop. See the following section for more information.
+      # failOnStderr: string # Fail the task if output is sent to Stderr?
+      # ignoreLASTEXITCODE: string # Check the final exit code of the script to determine whether the step succeeded?
+      # workingDirectory: string # Start the script with this working directory.
+      # condition: string # Evaluate this condition expression to determine whether to run this task.
+      # continueOnError: boolean # Continue running even on failure?
+      displayName: '[${{parameters.packageName}}] Prepare arguments for Assembly Version' # Human-readable name for the task.
+    # Version .NET Assemblies (Core/5/6 and later)
+    # Description - Applies a version to a .NET Assemblies (Core/5/6 and later) via the .csproj files based on the build number. Based on Microsoft sample from https://msdn.microsoft.com/Library/vs/alm/Build/overview
+    - task: VersionDotNetCoreAssemblies@3
+      displayName: '[${{parameters.packageName}}] Apply Assembly Version to ${{dependencyPackageName}}' # Human-readable name for the task.
+      inputs: 
+        # Required arguments
+        Path: $(projectPathArg)
+        VersionNumber: $(assemblyVersionNumberArg)
+        Injectversion: True
+        FilenamePattern: .csproj
+        AddDefault: true
+        Field: AssemblyVersion
+        OutputVersion: AppliedVersion
+    # PowerShell v2
+    # Run a PowerShell script on Linux, macOS, or Windows.
+    - task: PowerShell@2
+      displayName: '[${{parameters.packageName}}] Confirm Assembly Version for ${{dependencyPackageName}}' # Human-readable name for the task.
+      inputs:
+        targetType: 'inline' # 'filePath' | 'inline'. Type. Default: filePath.
+        # filePath: # string. Required when targetType = filePath. Script Path. 
+        #arguments: # string. Optional. Use when targetType = filePath. Arguments. 
+        script: | # string. Required when targetType = inline. Script. 
+          if (${{parameters.traceLevel}} -gt 0) {
+              Set-PSDebug -Trace ${{parameters.traceLevel}}
+          }
+
+          # Get version numbers.
+          [version]$productionAssemblyVersion = '$(assemblyVersionNumberArg)'
+          [version]$appliedVersion = '$(AppliedVersion)'
+
+          # Show version number applied.
+          if ($appliedVersion -ne $productionAssemblyVersion) {
+              Write-Error "Failed to apply Assembly version $productionAssemblyVersion; actual version was $appliedVersion."
+          }
+
+          Write-Information "Applied version $appliedVersion to ${{dependencyPackageName}}."
+      # Preference Variables
+        #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
+        #warningPreference: 'default' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. WarningPreference. Default: default.
+        informationPreference: 'continue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. InformationPreference. Default: default.
+        verbosePreference: ${{ iif(eq(parameters.enableVerboseOutput, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. VerbosePreference. Default: default.
+        debugPreference: ${{ iif(eq(parameters.enableDebug, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. DebugPreference. Default: default.
+        #progressPreference: 'silentlyContinue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ProgressPreference. Default: silentlyContinue.
+      # Advanced
+        #failOnStderr: false # boolean. Fail on Standard Error. Default: false.
+        #showWarnings: false # boolean. Show warnings as Azure DevOps warnings. Default: false.
+        #ignoreLASTEXITCODE: false # boolean. Ignore $LASTEXITCODE. Default: false.
+        #pwsh: false # boolean. Use PowerShell Core. Default: false.
+        #workingDirectory: # string. Working Directory. 
+        #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.              

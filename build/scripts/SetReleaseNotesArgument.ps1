@@ -1,27 +1,10 @@
+#Requires -Version 3.0
+
 param (
     # Package name.
     [Parameter(Mandatory)]
     [ValidateNotNullOrEmpty()]
     [string]    $PackageName,
-
-    # Source commit hash.
-    [Parameter(Mandatory)]
-    [ValidateNotNullOrEmpty()]
-    [string]    $SourceCommitHash,
-
-    # Metadata for packages
-    [Parameter(Mandatory)]
-    [ValidateNotNullOrEmpty()]
-    [string]    $PackageInfos,
-
-    # Path to source code root folder
-    [Parameter(Mandatory)]
-    [ValidateNotNullOrEmpty()]
-    [string]    $SourceRootFolderPath,
-
-    # Is build happening on the master branch?
-    [Parameter()]
-    [bool]  $IsBuildMasterBranch,
 
     # Release Note separation.
     [Parameter()]
@@ -32,7 +15,7 @@ param (
 )
 
 $modulePath = Join-Path $PSScriptRoot "../psmodules/CommonHelpers/CommonHelpers.psm1"
-Import-Module $modulePath -Force
+Import-Module $modulePath -Force -Scope Local
 
 if (0 -lt $TraceLevel) {
     Set-PSDebug -Trace $TraceLevel
@@ -40,9 +23,9 @@ if (0 -lt $TraceLevel) {
 
 # Find the most recent tag for the package.
 $packageMatchPattern = "v*$PackageName"
-$tagsOutput = & git tag --list $packageMatchPattern --sort=-version:refname --no-contains $SourceCommitHash
+$tagsOutput = & git tag --list $packageMatchPattern --sort=-version:refname --no-contains $env:BUILD_SOURCEVERSION
 # $isMasterBranch = "$(Build.SourceBranch)" -eq 'refs/heads/master'
-$tagMatchPattern = $IsBuildMasterBranch ? "^v\d+\.\d+\.\d+-$PackageName$" : "^v\d+\.\d+\.\d+\.\d+-$PackageName$"
+$tagMatchPattern = ($env:BUILD_SOURCEBRANCH -eq 'refs/heads/master') ? "^v\d+\.\d+\.\d+-$PackageName$" : "^v\d+\.\d+\.\d+\.\d+-$PackageName$"
 [string]$latestTagName = $tagsOutput -split '\r?\n' | Select-String -Pattern $tagMatchPattern -Raw | Select-Object -First 1 | Out-String -Stream
 
 # Find the repository object preceding the source commit.
@@ -53,9 +36,9 @@ if (-not [string]::IsNullOrWhiteSpace($latestTagName)) {
 else {
     $previousCommitObject = & git log --format="%H" --no-abbrev-commit | tail -1
 }
-$revisionListOutput = Invoke-Expression "git rev-list $previousCommitObject..$SourceCommitHash --no-commit-header --format=%s"
+$revisionListOutput = Invoke-Expression "git rev-list $previousCommitObject..$env:BUILD_SOURCEVERSION --no-commit-header --format=%s"
 
-Write-Information "Using commit messages between $previousCommitObject and $SourceCommitHash."
+Write-Information "Using commit messages between $previousCommitObject and $env:BUILD_SOURCEVERSION."
 
 # Compose the release notes.
 [string[]]$sanitiseTags = @('[skip ci]', '[ci skip]', 'skip-checks: true', 'skip-checks:true', '[skip azurepipelines]', '[azurepipelines skip]', '[skip azpipelines]', '[azpipelines skip]', '[skip azp]', '[azp skip]', '***NO_CI***')

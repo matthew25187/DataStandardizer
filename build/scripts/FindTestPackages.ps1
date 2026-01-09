@@ -1,10 +1,6 @@
 #Requires -Version 7.4
 
 param (
-    [Parameter(Mandatory)]
-    [ValidateNotNullOrEmpty()]
-    [string]    $PackageInfos,
-
     [Parameter()]
     [int]   $TraceLevel = 0
 )
@@ -13,7 +9,7 @@ if (0 -lt $TraceLevel) {
     Set-PSDebug -Trace $TraceLevel
 }
 
-$testPackageNames = $PackageInfos |
+$testPackageNames = $env:PACKAGEINFOS |
     ConvertFrom-Json |
     Where-Object -Property enableTests -NE -Value 0 |
     Select-Object -ExpandProperty packageName
@@ -27,13 +23,6 @@ else {
     Write-Information 'No test packages were detected.'
 }
 
-$testPackageNamesMessage = [string]::Empty
 $testPackageNames | ForEach-Object {
-    if (-not [string]::IsNullOrEmpty($_)) {
-        $testPackageNames += [System.Environment]::NewLine
-    }
-    $testPackageNames += "-`t$($_)"
-}
-if (-not [string]::IsNullOrEmpty($testPackageNamesMessage)) {
-    Write-Verbose $testPackageNamesMessage
+    Write-Verbose "-`t$($_)"
 }

@@ -11,7 +11,7 @@
 
 Provides types supporting communication-related standards, including:
 - ITU-T E.164 telephony numbers</Description>
-    <Copyright>Copyright © 2024-2025, Matthew25187. All rights reserved.</Copyright>
+    <Copyright>Copyright © 2024-2026, Matthew25187. All rights reserved.</Copyright>
     <PackageProjectUrl>https://github.com/matthew25187/DataStandardizer</PackageProjectUrl>
     <PackageIcon>054-doc_web.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>

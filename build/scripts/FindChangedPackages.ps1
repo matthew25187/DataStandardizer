@@ -1,14 +1,6 @@
 #Requires -Version 7.0
 
 param (
-    [Parameter(Mandatory)]
-    [ValidateNotNullOrEmpty()]
-    [string] $PackageList,
-
-    [Parameter(Mandatory)]
-    [ValidateNotNullOrEmpty()]
-    [string] $SourceCommitHash,
-
     [Parameter()]
     [int]   $TraceLevel = 0
 )
@@ -44,14 +36,14 @@ if (0 -lt $TraceLevel) {
 
 # Get list of changed files since most recent build on current branch.
 $changedPackages = @()
-$PackageList |
+$env:PACKAGEINFOS |
     ConvertFrom-Json |
     ForEach-Object {
         Write-Verbose "Checking for changes made to package $($_.packageName)"
 
         [string] $diffFilesOutput
         $packageMatchPattern = "v*$($_.packageName)"
-        $tagsOutput = & git tag --list $packageMatchPattern --sort=-version:refname --merged $SourceCommitHash
+        $tagsOutput = & git tag --list $packageMatchPattern --sort=-version:refname --merged $env:BUILD_SOURCEVERSION
         # $latestTagName = & git for-each-ref refs/tags --sort=-taggerdate --format='%(refname:short)' --count=1 --points-at=HEAD
         # $latestTagName = & git describe --tags --abbrev=0 --match $packageMatchPattern $SourceCommitHash
         $latestReleaseTagName = $tagsOutput -split '\r?\n' | Select-String -Pattern "^v\d+\.\d+\.\d+-$($_.packageName)$" | Select-Object -First 1 -ExpandProperty Matches | Select-Object -First 1 -ExpandProperty Value
@@ -61,15 +53,15 @@ $PackageList |
             Write-Debug "Found most recent project tag $latestTagName."
 
             $tagRefName = "tags/$latestTagName"
-            Write-Debug "Getting file differences between $tagRefName and $SourceCommitHash."
-            $diffFilesOutput = & git diff --name-only $tagRefName $SourceCommitHash
+            Write-Debug "Getting file differences between $tagRefName and $env:BUILD_SOURCEVERSION."
+            $diffFilesOutput = & git diff --name-only $tagRefName $env:BUILD_SOURCEVERSION
         }
         else {
             Write-Debug 'Failed to find standard differences; using all differences instead.'
 
             $firstCommitHash = & git log --format="%H" --no-abbrev-commit | tail -1
-            Write-Debug "Getting file differences between $firstCommitHash and $SourceCommitHash."
-            $diffFilesOutput = & git diff --name-only $firstCommitHash $SourceCommitHash
+            Write-Debug "Getting file differences between $firstCommitHash and $env:BUILD_SOURCEVERSION."
+            $diffFilesOutput = & git diff --name-only $firstCommitHash $env:BUILD_SOURCEVERSION
         }
         
         $changedFiles = (-not [string]::IsNullOrEmpty($diffFilesOutput))? $diffFilesOutput.Trim() -split '\r?\n':@()
@@ -88,7 +80,7 @@ $PackageList |
         }
     }
 
-Write-Host "##vso[task.setvariable variable=changedPackageNames;isOutput=true]$($changedPackages -join ',')"
+Write-Host "##vso[task.setvariable variable=changedPackageNamesList]$($changedPackages -join ',')"
 
 if ($changedPackages.Count -gt 0) {
     Write-Information "Detected $($changedPackages.Count) changed package$(($changedPackages.Count -eq 1) ? '' : 's')."
@@ -97,13 +89,6 @@ else {
     Write-Information "No package changes were detected."
 }
 
-$changedPackagesMessage = [string]::Empty
 $changedPackages | ForEach-Object {
-    if (-not [string]::IsNullOrEmpty($_)) {
-        $changedPackagesMessage += [System.Environment]::NewLine
-    }
-    $changedPackagesMessage += "-`t$($_)"
-}
-if (-not [string]::IsNullOrEmpty($changedPackagesMessage)) {
-    Write-Verbose $changedPackagesMessage
+    Write-Verbose "-`t$($_)"
 }

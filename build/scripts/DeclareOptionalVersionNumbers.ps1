@@ -1,18 +1,16 @@
+#Requires -Version 3.0
+
 param (
     [Parameter(Mandatory)]
     [ValidateNotNullOrEmpty()]
     [string]    $PackageName,
-
-    [Parameter(Mandatory)]
-    [ValidateNotNullOrEmpty()]
-    [string]    $SourceBranch,
 
     [Parameter()]
     [int]   $TraceLevel = 0
 )
 
 $modulePath = Join-Path $PSScriptRoot "../psmodules/CommonHelpers/CommonHelpers.psm1"
-Import-Module $modulePath -Force
+Import-Module $modulePath -Force -Scope Local
 
 if (0 -lt $TraceLevel) {
     Set-PSDebug -Trace $TraceLevel
@@ -38,7 +36,7 @@ $productionMajorNumber = $nextPackageVersion.Major
 $productionMinorNumber = $nextPackageVersion.Minor
 $productionBuildNumber = $nextPackageVersion.Build
 $productionRevisionNumber = [System.Math]::Max($nextPackageVersion.Revision, 1)
-if ($SourceBranch -eq 'refs/heads/master') {
+if ($env:BUILD_SOURCEBRANCH -eq 'refs/heads/master') {
     $productionRevisionNumber = 0
 }
 [version]$productionPackageVersion = ($productionMajorNumber, $productionMinorNumber, $productionBuildNumber, $productionRevisionNumber -join '.')
@@ -48,16 +46,17 @@ Write-Information "Production package version number will be $productionPackageV
 
 $productionPackageVersionString = $productionPackageVersion.Major, $productionPackageVersion.Minor, $productionPackageVersion.Build -join '.'
 if ($productionPackageVersion.Revision -gt 0) {
-    $productionPackageVersionString += "-preview.$($productionPackageVersion.Revision)"
+    $productionPackageVersionString += "-$($packageVersions.PackageNextPrereleaseLabel).$($productionPackageVersion.Revision)"
 }
 $packageVersions.PackageProductionVersionString = $productionPackageVersionString
+$packageVersions.PackageProductionPrereleaseLabel = $packageVersions.PackageNextPrereleaseLabel
 
 Write-Information "Production package version will be $productionPackageVersionString."
 
 # Calculate post-production package version number.
 $postProductionNumbers = $productionPackageVersion.Major, $productionPackageVersion.Minor, $productionPackageVersion.Build, $productionPackageVersion.Revision
 $incrementFromIndex = $postProductionNumbers.Count - 1 # default to incrementing the preview number
-if ($SourceBranch -eq 'refs/heads/master') {
+if ($env:BUILD_SOURCEBRANCH -eq 'refs/heads/master') {
     $incrementFromIndex = 1 # increment minor number
 }
 for ($versionPartIndex = $incrementFromIndex; $versionPartIndex -lt $postProductionNumbers.Count; $versionPartIndex++) {
