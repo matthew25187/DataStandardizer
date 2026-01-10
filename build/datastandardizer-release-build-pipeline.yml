@@ -613,7 +613,7 @@ stages:
                   ConvertFrom-Base64String | 
                   ConvertFrom-Json | 
                   Where-Object -Property PackageName -EQ -Value '${{packageName}}'
-                  Write-Host "##vso[task.setvariable variable=packageVersionArg]$($packageVersions.PackageProductionVersionString)"
+                  Write-Host "##vso[task.setvariable variable=packageVersionArg]$($packageVersions.PackageProductionVersionSemVer)"
                 displayName: "[${{packageName}}] Set package version argument"
                 condition: |
                   and
@@ -844,7 +844,7 @@ stages:
                       Write-Error 'Package versions not found for ${{packageName}}'
                   }
 
-                  [version]$productionPackageVersion = $packageVersions.PackageProductionVersion
+                  [version]$productionPackageVersion = $packageVersions.PackageProductionVersionDisplay
                   $message = "Release build $productionPackageVersion for package ${{packageName}}"
 
                   $tagName = "v$productionPackageVersion-${{packageName}}"
