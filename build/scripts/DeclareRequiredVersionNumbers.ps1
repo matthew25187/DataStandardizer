@@ -73,8 +73,8 @@ Select-Object -ExpandProperty Value
 $currentPackagePrereleaseLabel = $packageVersions | Where-Object -Property Name -EQ -Value 'current-prerelease-label' | Select-Object -ExpandProperty Value
 
 [version]$currentPackageVersionDisplay = $currentPackageVersion.Revision -eq 0 `
-    ?$currentPackageVersion.Major, $currentPackageVersion.Minor, $currentPackageVersion.Build -join '.' `
-    :$currentPackageVersion
+    ?($currentPackageVersion.Major, $currentPackageVersion.Minor, $currentPackageVersion.Build -join '.') `
+    :($currentPackageVersion)
 
 $currentPackageVersionSemVer = $currentPackageVersion.Major, $currentPackageVersion.Minor, $currentPackageVersion.Build -join '.'
 if ($currentPackageVersion.Revision -gt 0) {
