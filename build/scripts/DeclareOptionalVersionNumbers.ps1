@@ -1,4 +1,4 @@
-#Requires -Version 3.0
+#Requires -Version 7.0
 
 param (
     [Parameter(Mandatory)]
@@ -45,8 +45,8 @@ $packageVersions.PackageProductionVersion = $productionPackageVersion.ToString()
 Write-Information "Production package version number will be $productionPackageVersion."
 
 [version]$productionPackageVersionDisplay = $productionPackageVersion.Revision -eq 0 `
-    ?($productionPackageVersion.Major, $productionPackageVersion.Minor, $productionPackageVersion.Build -join '.') `
-    :($productionPackageVersion)
+    ? $productionPackageVersion.Major, $productionPackageVersion.Minor, $productionPackageVersion.Build -join '.' `
+    : $productionPackageVersion
 $packageVersions.PackageProductionVersionDisplay = $productionPackageVersionDisplay.ToString()
 
 Write-Information "Production package version number (display) will be $productionPackageVersionDisplay."
