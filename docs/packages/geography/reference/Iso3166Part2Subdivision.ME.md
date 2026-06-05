@@ -13,31 +13,31 @@ ISO 3166-2 subdivisions under `Iso3166Part2Subdivision.ME`, members of [Iso3166P
 
 | Subdivision code | Name |
 | --- | --- |
-| `ME-01` |  |
-| `ME-02` |  |
-| `ME-03` |  |
-| `ME-04` |  |
-| `ME-05` |  |
-| `ME-06` |  |
-| `ME-07` |  |
-| `ME-08` |  |
-| `ME-09` |  |
-| `ME-10` |  |
-| `ME-11` |  |
-| `ME-12` |  |
-| `ME-13` |  |
-| `ME-14` |  |
-| `ME-15` |  |
-| `ME-16` |  |
-| `ME-17` |  |
-| `ME-18` |  |
-| `ME-19` |  |
-| `ME-20` |  |
-| `ME-21` |  |
-| `ME-22` |  |
-| `ME-23` |  |
-| `ME-24` |  |
-| `ME-25` |  |
+| `ME-01` | Andrijevica |
+| `ME-02` | Bar |
+| `ME-03` | Berane |
+| `ME-04` | Bijelo Polje |
+| `ME-05` | Budva |
+| `ME-06` | Cetinje |
+| `ME-07` | Danilovgrad |
+| `ME-08` | Herceg-Novi |
+| `ME-09` | Kolašin |
+| `ME-10` | Kotor |
+| `ME-11` | Mojkovac |
+| `ME-12` | Nikšić |
+| `ME-13` | Plav |
+| `ME-14` | Pljevlja |
+| `ME-15` | Plužine |
+| `ME-16` | Podgorica |
+| `ME-17` | Rožaje |
+| `ME-18` | Šavnik |
+| `ME-19` | Tivat |
+| `ME-20` | Ulcinj |
+| `ME-21` | Žabljak |
+| `ME-22` | Gusinje |
+| `ME-23` | Petnjica |
+| `ME-24` | Tuzi |
+| `ME-25` | Zeta |
 
 ## See also
 

@@ -40,7 +40,7 @@ member or the explicit `string` conversion. Per-member metadata is read through 
 | `ace` | Achinese |
 | `ach` | Acoli |
 | `ada` | Adangme |
-| `ady` |  |
+| `ady` | Adyghe; Adygei |
 | `afa` | Afro-Asiatic languages |
 | `afh` | Afrihili |
 | `afr` | Afrikaans |
@@ -56,15 +56,15 @@ member or the explicit `string` conversion. Per-member metadata is read through 
 | `anp` | Angika |
 | `apa` | Apache languages |
 | `ara` | Arabic |
-| `arc` |  |
+| `arc` | Official Aramaic (700-300 BCE); Imperial Aramaic (700-300 BCE) |
 | `arg` | Aragonese |
 | `arm` | Armenian |
-| `arn` |  |
+| `arn` | Mapudungun; Mapuche |
 | `arp` | Arapaho |
 | `art` | Artificial languages |
 | `arw` | Arawak |
 | `asm` | Assamese |
-| `ast` |  |
+| `ast` | Asturian; Bable; Leonese; Asturleonese |
 | `ath` | Athapascan languages |
 | `aus` | Australian languages |
 | `ava` | Avaric |
@@ -81,7 +81,7 @@ member or the explicit `string` conversion. Per-member metadata is read through 
 | `baq` | Basque |
 | `bas` | Basa |
 | `bat` | Baltic languages |
-| `bej` |  |
+| `bej` | Beja; Bedawiyet |
 | `bel` | Belarusian |
 | `bem` | Bemba |
 | `ben` | Bengali |
@@ -89,7 +89,7 @@ member or the explicit `string` conversion. Per-member metadata is read through 
 | `bho` | Bhojpuri |
 | `bih` | Bihari languages |
 | `bik` | Bikol |
-| `bin` |  |
+| `bin` | Bini; Edo |
 | `bis` | Bislama |
 | `bla` | Siksika |
 | `bnt` | Bantu languages |
@@ -101,14 +101,14 @@ member or the explicit `string` conversion. Per-member metadata is read through 
 | `bug` | Buginese |
 | `bul` | Bulgarian |
 | `bur` | Burmese |
-| `byn` |  |
+| `byn` | Blin; Bilin |
 | `cad` | Caddo |
 | `cai` | Central American Indian languages |
-| `car` |  |
-| `cat` |  |
+| `car` | Galibi Carib |
+| `cat` | Catalan; Valencian |
 | `cau` | Caucasian languages |
 | `ceb` | Cebuano |
-| `cel` |  |
+| `cel` | Celtic languages |
 | `cha` | Chamorro |
 | `chb` | Chibcha |
 | `che` | Chechen |
@@ -118,9 +118,9 @@ member or the explicit `string` conversion. Per-member metadata is read through 
 | `chm` | Mari |
 | `chn` | Chinook jargon |
 | `cho` | Choctaw |
-| `chp` |  |
+| `chp` | Chipewyan; Dene Suline |
 | `chr` | Cherokee |
-| `chu` |  |
+| `chu` | Church Slavic; Old Slavonic; Church Slavonic; Old Bulgarian; Old Church Slavonic |
 | `chv` | Chuvash |
 | `chy` | Cheyenne |
 | `cmc` | Chamic languages |
@@ -132,7 +132,7 @@ member or the explicit `string` conversion. Per-member metadata is read through 
 | `cpf` | Creoles and pidgins, French-based |
 | `cpp` | Creoles and pidgins, Portuguese-based |
 | `cre` | Cree |
-| `crh` |  |
+| `crh` | Crimean Tatar; Crimean Turkish |
 | `crp` | Creoles and pidgins |
 | `csb` | Kashubian |
 | `cus` | Cushitic languages |
@@ -143,15 +143,15 @@ member or the explicit `string` conversion. Per-member metadata is read through 
 | `day` | Land Dayak languages |
 | `del` | Delaware |
 | `den` | Slave (Athapascan) |
-| `dgr` |  |
+| `dgr` | Tlicho; Dogrib |
 | `din` | Dinka |
-| `div` |  |
+| `div` | Divehi; Dhivehi; Maldivian |
 | `doi` | Dogri |
 | `dra` | Dravidian languages |
 | `dsb` | Lower Sorbian |
 | `dua` | Duala |
 | `dum` | Dutch, Middle (ca.1050-1350) |
-| `dut` |  |
+| `dut` | Dutch; Flemish |
 | `dyu` | Dyula |
 | `dzo` | Dzongkha |
 | `efi` | Efik |
@@ -168,7 +168,7 @@ member or the explicit `string` conversion. Per-member metadata is read through 
 | `fao` | Faroese |
 | `fat` | Fanti |
 | `fij` | Fijian |
-| `fil` |  |
+| `fil` | Filipino; Pilipino |
 | `fin` | Finnish |
 | `fiu` | Finno-Ugrian languages |
 | `fon` | Fon |
@@ -188,10 +188,10 @@ member or the explicit `string` conversion. Per-member metadata is read through 
 | `ger` | German |
 | `gez` | Geez |
 | `gil` | Gilbertese |
-| `gla` |  |
+| `gla` | Gaelic; Scottish Gaelic |
 | `gle` | Irish |
 | `glg` | Galician |
-| `glv` |  |
+| `glv` | Manx |
 | `gmh` | German, Middle High (ca.1050-1500) |
 | `goh` | German, Old High (ca.750-1050) |
 | `gon` | Gondi |
@@ -201,20 +201,20 @@ member or the explicit `string` conversion. Per-member metadata is read through 
 | `grc` | Greek, Ancient (to 1453) |
 | `gre` | Greek, Modern (1453-) |
 | `grn` | Guarani |
-| `gsw` |  |
+| `gsw` | Swiss German; Alemannic; Alsatian |
 | `guj` | Gujarati |
 | `gwi` | Gwich\'in |
 | `hai` | Haida |
-| `hat` |  |
+| `hat` | Haitian; Haitian Creole |
 | `hau` | Hausa |
 | `haw` | Hawaiian |
 | `heb` | Hebrew |
 | `her` | Herero |
 | `hil` | Hiligaynon |
-| `him` |  |
+| `him` | Himachali languages; Western Pahari languages |
 | `hin` | Hindi |
 | `hit` | Hittite |
-| `hmn` |  |
+| `hmn` | Hmong; Mong |
 | `hmo` | Hiri Motu |
 | `hrv` | Croatian |
 | `hsb` | Upper Sorbian |
@@ -224,10 +224,10 @@ member or the explicit `string` conversion. Per-member metadata is read through 
 | `ibo` | Igbo |
 | `ice` | Icelandic |
 | `ido` | Ido |
-| `iii` |  |
+| `iii` | Sichuan Yi; Nuosu |
 | `ijo` | Ijo languages |
 | `iku` | Inuktitut |
-| `ile` |  |
+| `ile` | Interlingue; Occidental |
 | `ilo` | Iloko |
 | `ina` | Interlingua (International Auxiliary Language Association) |
 | `inc` | Indic languages |
@@ -245,8 +245,8 @@ member or the explicit `string` conversion. Per-member metadata is read through 
 | `jrb` | Judeo-Arabic |
 | `kaa` | Kara-Kalpak |
 | `kab` | Kabyle |
-| `kac` |  |
-| `kal` |  |
+| `kac` | Kachin; Jingpho |
+| `kal` | Kalaallisut; Greenlandic |
 | `kam` | Kamba |
 | `kan` | Kannada |
 | `kar` | Karen languages |
@@ -258,10 +258,10 @@ member or the explicit `string` conversion. Per-member metadata is read through 
 | `kha` | Khasi |
 | `khi` | Khoisan languages |
 | `khm` | Central Khmer |
-| `kho` |  |
-| `kik` |  |
+| `kho` | Khotanese; Sakan |
+| `kik` | Kikuyu; Gikuyu |
 | `kin` | Kinyarwanda |
-| `kir` |  |
+| `kir` | Kirghiz; Kyrgyz |
 | `kmb` | Kimbundu |
 | `kok` | Konkani |
 | `kom` | Komi |
@@ -273,7 +273,7 @@ member or the explicit `string` conversion. Per-member metadata is read through 
 | `krl` | Karelian |
 | `kro` | Kru languages |
 | `kru` | Kurukh |
-| `kua` |  |
+| `kua` | Kuanyama; Kwanyama |
 | `kum` | Kumyk |
 | `kur` | Kurdish |
 | `kut` | Kutenai |
@@ -284,12 +284,12 @@ member or the explicit `string` conversion. Per-member metadata is read through 
 | `lat` | Latin |
 | `lav` | Latvian |
 | `lez` | Lezghian |
-| `lim` |  |
+| `lim` | Limburgan; Limburger; Limburgish |
 | `lin` | Lingala |
 | `lit` | Lithuanian |
 | `lol` | Mongo |
 | `loz` | Lozi |
-| `ltz` |  |
+| `ltz` | Luxembourgish; Letzeburgesch |
 | `lua` | Luba-Lulua |
 | `lub` | Luba-Katanga |
 | `lug` | Ganda |
@@ -314,7 +314,7 @@ member or the explicit `string` conversion. Per-member metadata is read through 
 | `mdr` | Mandar |
 | `men` | Mende |
 | `mga` | Irish, Middle (900-1200) |
-| `mic` |  |
+| `mic` | Mi\'kmaq; Micmac |
 | `min` | Minangkabau |
 | `mis` | Uncoded languages |
 | `mkh` | Mon-Khmer languages |
@@ -337,26 +337,26 @@ member or the explicit `string` conversion. Per-member metadata is read through 
 | `nai` | North American Indian languages |
 | `nap` | Neapolitan |
 | `nau` | Nauru |
-| `nav` |  |
-| `nbl` |  |
-| `nde` |  |
+| `nav` | Navajo; Navaho |
+| `nbl` | Ndebele, South; South Ndebele |
+| `nde` | Ndebele, North; North Ndebele |
 | `ndo` | Ndonga |
-| `nds` |  |
+| `nds` | Low German; Low Saxon; German, Low; Saxon, Low |
 | `nep` | Nepali |
-| `new` |  |
+| `new` | Nepal Bhasa; Newari |
 | `nia` | Nias |
 | `nic` | Niger-Kordofanian languages |
 | `niu` | Niuean |
-| `nno` |  |
-| `nob` |  |
-| `nog` |  |
+| `nno` | Norwegian Nynorsk; Nynorsk, Norwegian |
+| `nob` | Bokmål, Norwegian; Norwegian Bokmål |
+| `nog` | Nogai |
 | `non` | Norse, Old |
 | `nor` | Norwegian |
 | `nqo` | N\'Ko |
-| `nso` |  |
+| `nso` | Pedi; Sepedi; Northern Sotho |
 | `nub` | Nubian languages |
-| `nwc` |  |
-| `nya` |  |
+| `nwc` | Classical Newari; Old Newari; Classical Nepal Bhasa |
+| `nya` | Chichewa; Chewa; Nyanja |
 | `nym` | Nyamwezi |
 | `nyn` | Nyankole |
 | `nyo` | Nyoro |
@@ -366,14 +366,14 @@ member or the explicit `string` conversion. Per-member metadata is read through 
 | `ori` | Oriya |
 | `orm` | Oromo |
 | `osa` | Osage |
-| `oss` |  |
+| `oss` | Ossetian; Ossetic |
 | `ota` | Turkish, Ottoman (1500-1928) |
 | `oto` | Otomian languages |
 | `paa` | Papuan languages |
 | `pag` | Pangasinan |
 | `pal` | Pahlavi |
-| `pam` |  |
-| `pan` |  |
+| `pam` | Pampanga; Kapampangan |
+| `pan` | Panjabi; Punjabi |
 | `pap` | Papiamento |
 | `pau` | Palauan |
 | `peo` | Persian, Old (ca.600-400 B.C.) |
@@ -385,18 +385,18 @@ member or the explicit `string` conversion. Per-member metadata is read through 
 | `pon` | Pohnpeian |
 | `por` | Portuguese |
 | `pra` | Prakrit languages |
-| `pro` |  |
-| `pus` |  |
+| `pro` | Provençal, Old (to 1500); Occitan, Old (to 1500) |
+| `pus` | Pushto; Pashto |
 | `que` | Quechua |
 | `raj` | Rajasthani |
 | `rap` | Rapanui |
-| `rar` |  |
+| `rar` | Rarotongan; Cook Islands Maori |
 | `roa` | Romance languages |
 | `roh` | Romansh |
 | `rom` | Romany |
-| `rum` |  |
+| `rum` | Romanian; Moldavian; Moldovan |
 | `run` | Rundi |
-| `rup` |  |
+| `rup` | Aromanian; Arumanian; Macedo-Romanian |
 | `rus` | Russian |
 | `sad` | Sandawe |
 | `sag` | Sango |
@@ -415,7 +415,7 @@ member or the explicit `string` conversion. Per-member metadata is read through 
 | `sgn` | Sign Languages |
 | `shn` | Shan |
 | `sid` | Sidamo |
-| `sin` |  |
+| `sin` | Sinhala; Sinhalese |
 | `sio` | Siouan languages |
 | `sit` | Sino-Tibetan languages |
 | `sla` | Slavic languages |
@@ -435,7 +435,7 @@ member or the explicit `string` conversion. Per-member metadata is read through 
 | `som` | Somali |
 | `son` | Songhai languages |
 | `sot` | Sotho, Southern |
-| `spa` |  |
+| `spa` | Spanish; Castilian |
 | `srd` | Sardinian |
 | `srn` | Sranan Tongo |
 | `srp` | Serbian |
@@ -466,7 +466,7 @@ member or the explicit `string` conversion. Per-member metadata is read through 
 | `tir` | Tigrinya |
 | `tiv` | Tiv |
 | `tkl` | Tokelau |
-| `tlh` |  |
+| `tlh` | Klingon; tlhIngan-Hol |
 | `tli` | Tlingit |
 | `tmh` | Tamashek |
 | `tog` | Tonga (Nyasa) |
@@ -485,7 +485,7 @@ member or the explicit `string` conversion. Per-member metadata is read through 
 | `tyv` | Tuvinian |
 | `udm` | Udmurt |
 | `uga` | Ugaritic |
-| `uig` |  |
+| `uig` | Uighur; Uyghur |
 | `ukr` | Ukrainian |
 | `umb` | Umbundu |
 | `und` | Undetermined |
@@ -497,14 +497,14 @@ member or the explicit `string` conversion. Per-member metadata is read through 
 | `vol` | Volapük |
 | `vot` | Votic |
 | `wak` | Wakashan languages |
-| `wal` |  |
+| `wal` | Wolaitta; Wolaytta |
 | `war` | Waray |
 | `was` | Washo |
 | `wel` | Welsh |
 | `wen` | Sorbian languages |
 | `wln` | Walloon |
 | `wol` | Wolof |
-| `xal` |  |
+| `xal` | Kalmyk; Oirat |
 | `xho` | Xhosa |
 | `yao` | Yao |
 | `yap` | Yapese |
@@ -512,15 +512,15 @@ member or the explicit `string` conversion. Per-member metadata is read through 
 | `yor` | Yoruba |
 | `ypk` | Yupik languages |
 | `zap` | Zapotec |
-| `zbl` |  |
+| `zbl` | Blissymbols; Blissymbolics; Bliss |
 | `zen` | Zenaga |
 | `zgh` | Standard Moroccan Tamazight |
-| `zha` |  |
+| `zha` | Zhuang; Chuang |
 | `znd` | Zande languages |
 | `zul` | Zulu |
 | `zun` | Zuni |
-| `zxx` |  |
-| `zza` |  |
+| `zxx` | No linguistic content; Not applicable |
+| `zza` | Zaza; Dimili; Dimli; Kirdki; Kirmanjki; Zazaki |
 
 ## Methods
 

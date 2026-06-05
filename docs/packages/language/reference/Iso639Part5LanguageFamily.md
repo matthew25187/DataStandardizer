@@ -62,7 +62,7 @@ member or the explicit `string` conversion. Per-member metadata is read through 
 | `ccs` | South Caucasian languages |
 | `cdc` | Chadic languages |
 | `cdd` | Caddoan languages |
-| `cel` |  |
+| `cel` | Celtic languages |
 | `cmc` | Chamic languages |
 | `cpe` | Creoles and pidgins, English‑based |
 | `cpf` | Creoles and pidgins, French‑based |

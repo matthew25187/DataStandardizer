@@ -61,7 +61,7 @@ ISO 3166-2 subdivisions under `Iso3166Part2Subdivision.US`, members of [Iso3166P
 | `US-SD` | South Dakota |
 | `US-TN` | Tennessee |
 | `US-TX` | Texas |
-| `US-UM` |  |
+| `US-UM` | United States Minor Outlying Islands (see also separate country code entry under UM) |
 | `US-UT` | Utah |
 | `US-VA` | Virginia |
 | `US-VI` | Virgin Islands, U.S. (see also separate country code entry under VI) |
