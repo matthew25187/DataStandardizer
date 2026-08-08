@@ -21,7 +21,7 @@ namespace DataStandardizer.Chronology
     /// Time Zone Database
     /// </summary>
     /// <remarks>
-    /// Based on TZ Database version 2025b.
+    /// Based on TZ Database version 2026c.
     /// </remarks>
     public readonly struct TzDataTimezone : System.IComparable, System.IEquatable<DataStandardizer.Chronology.TzDataTimezone>
 #if NETSTANDARD1_3_OR_GREATER||NET
@@ -1508,7 +1508,7 @@ namespace DataStandardizer.Chronology
             /// 		</item>
             /// 	</list>
             /// </remarks>
-            [DataStandardizer.Chronology.TzDataTimezoneAttribute(47.11666666666667D, 51.93333333333333D, "KZ", Comment="Atyraū/Atirau/Gur\'yev")]
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(47.11666666666667D, 51.93333333333333D, "KZ", Comment="Atyraū/Atirau/Gur’yev")]
             public static readonly DataStandardizer.Chronology.TzDataTimezone Atyrau = new DataStandardizer.Chronology.TzDataTimezone("Asia/Atyrau");
             
             /// <summary>
@@ -2968,7 +2968,7 @@ namespace DataStandardizer.Chronology
             /// 		</item>
             /// 	</list>
             /// </remarks>
-            [DataStandardizer.Chronology.TzDataTimezoneAttribute(-9.5D, 147.16666666666666D, "PG", "AQ", "FM", Comment="Papua New Guinea (most areas), Chuuk, Yap, Dumont d\'Urville")]
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(-9.5D, 147.16666666666666D, "PG", "AQ", "FM", Comment="Papua New Guinea (most areas), Chuuk, Yap, Dumont d’Urville")]
             public static readonly DataStandardizer.Chronology.TzDataTimezone Port_Moresby = new DataStandardizer.Chronology.TzDataTimezone("Pacific/Port_Moresby");
             
             /// <summary>
@@ -3972,7 +3972,7 @@ namespace DataStandardizer.Chronology
             /// 		</item>
             /// 	</list>
             /// </remarks>
-            [DataStandardizer.Chronology.TzDataTimezoneAttribute(53.55D, -113.46666666666667D, "CA", Comment="Mountain - AB, BC(E), NT(E), SK(W)")]
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(53.55D, -113.46666666666667D, "CA", Comment="CST - AB, BC(E), NT(E), SK(W)")]
             public static readonly DataStandardizer.Chronology.TzDataTimezone Edmonton = new DataStandardizer.Chronology.TzDataTimezone("America/Edmonton");
             
             /// <summary>
@@ -4012,6 +4012,25 @@ namespace DataStandardizer.Chronology
             /// </remarks>
             [DataStandardizer.Chronology.TzDataTimezoneAttribute(68.34972222222221D, -133.71666666666667D, "CA", Comment="Mountain - NT (west)")]
             public static readonly DataStandardizer.Chronology.TzDataTimezone Inuvik = new DataStandardizer.Chronology.TzDataTimezone("America/Inuvik");
+            
+            /// <summary>
+            /// America/Vancouver
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>CA</term>
+            /// 			<description>Canada</description>
+            /// 		</item>
+            /// 	</list>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(49.266666666666666D, -123.11666666666666D, "CA", Comment="MST - BC (most areas)")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Vancouver = new DataStandardizer.Chronology.TzDataTimezone("America/Vancouver");
             
             /// <summary>
             /// America/Dawson_Creek
@@ -4088,25 +4107,6 @@ namespace DataStandardizer.Chronology
             /// </remarks>
             [DataStandardizer.Chronology.TzDataTimezoneAttribute(64.06666666666666D, -139.41666666666666D, "CA", Comment="MST - Yukon (west)")]
             public static readonly DataStandardizer.Chronology.TzDataTimezone Dawson = new DataStandardizer.Chronology.TzDataTimezone("America/Dawson");
-            
-            /// <summary>
-            /// America/Vancouver
-            /// </summary>
-            /// <remarks>
-            /// Used in the following countries:
-            /// 	<list type="bullet">
-            /// 		<listheader>
-            /// 			<term>Code</term>
-            /// 			<description>Country Name</description>
-            /// 		</listheader>
-            /// 		<item>
-            /// 			<term>CA</term>
-            /// 			<description>Canada</description>
-            /// 		</item>
-            /// 	</list>
-            /// </remarks>
-            [DataStandardizer.Chronology.TzDataTimezoneAttribute(49.266666666666666D, -123.11666666666666D, "CA", Comment="Pacific - BC (most areas)")]
-            public static readonly DataStandardizer.Chronology.TzDataTimezone Vancouver = new DataStandardizer.Chronology.TzDataTimezone("America/Vancouver");
             
             /// <summary>
             /// America/Santiago
@@ -5942,7 +5942,7 @@ namespace DataStandardizer.Chronology
             /// 		</listheader>
             /// 		<item>
             /// 			<term>CI</term>
-            /// 			<description>Côte d'Ivoire</description>
+            /// 			<description>Côte d’Ivoire</description>
             /// 		</item>
             /// 		<item>
             /// 			<term>BF</term>
