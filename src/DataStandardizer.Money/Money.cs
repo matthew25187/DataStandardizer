@@ -27,6 +27,11 @@ namespace DataStandardizer.Money
 
         private static readonly Regex CurrencyFormatExpression;
         private const Iso4217CurrencyCurrent DefaultCurrency = Iso4217CurrencyCurrent.XXX;
+
+        /// <summary>
+        /// The currency code of a monetary value which carries no currency.
+        /// </summary>
+        internal const Iso4217CurrencyCurrent NoCurrency = DefaultCurrency;
         private static readonly TimeSpan ExpressionTimeout = TimeSpan.FromSeconds(1);
 
         private readonly decimal _amount;
@@ -504,33 +509,85 @@ namespace DataStandardizer.Money
         public string ToString(string format)
 #endif
         {
-            if (!string.IsNullOrEmpty(format) && CurrencyFormatExpression.IsMatch(format) && IsoCurrencyCode != DefaultCurrency)
-            {
-                var result = _amount.ToString(format);
-                var currencyCode = Enum.GetName(typeof(Iso4217CurrencyCurrent), IsoCurrencyCode);
-                return result.Replace(CultureInfo.CurrentCulture.NumberFormat.CurrencySymbol, currencyCode);
-            }
-
-            return _amount.ToString(format);
+            return ToString(format, null);
         }
+
+        /// <summary>
+        /// Converts the value of this instance to its equivalent string representation using the specified
+        /// format and culture-specific formatting information.
+        /// </summary>
+        /// <param name="format">A standard money format string, or a custom numeric format string.</param>
+        /// <param name="formatProvider">An <see cref="IFormatProvider"/> that supplies culture-specific formatting information.</param>
+        /// <returns>The string representation of the value of this instance as specified by <paramref name="format"/> and <paramref name="formatProvider"/>.</returns>
+        /// <remarks>
+        /// <para>
+        /// The supported format specifiers are <c>C</c> for the currency symbol, <c>H</c> for the narrow
+        /// currency symbol, <c>I</c> for the ISO 4217 currency code, <c>N</c> for the currency name and
+        /// <c>G</c> for the amount alone. Each may be followed by a precision; where none is given the minor
+        /// units of the currency are used. A format string consisting of an ISO 4217 currency code emits the
+        /// code, and asserts that it is the currency of this value.
+        /// </para>
+        /// <para>
+        /// Only the presentation of the value is taken from <paramref name="formatProvider"/>. The currency
+        /// denoted, and the default precision, come from the value itself.
+        /// </para>
+        /// </remarks>
+        /// <exception cref="FormatException">
+        /// Thrown when <paramref name="format"/> is not a valid format string, or names a currency other than
+        /// that of this value.
+        /// </exception>
 #if NETCOREAPP3_0_OR_GREATER
         public string ToString(string? format, IFormatProvider? formatProvider)
 #else
         public string ToString(string format, IFormatProvider formatProvider)
 #endif
         {
-            if (!string.IsNullOrEmpty(format) && CurrencyFormatExpression.IsMatch(format) && IsoCurrencyCode != DefaultCurrency)
+            var useProvider = ResolveMoneyProvider(formatProvider);
+            var formatter = useProvider.GetFormat(typeof(ICustomFormatter)) as ICustomFormatter;
+
+            return formatter?.Format(format, this, useProvider) ?? _amount.ToString(format, formatProvider);
+        }
+
+        /// <summary>
+        /// Resolve the provider of monetary formatting information for a caller-supplied format provider.
+        /// </summary>
+        /// <param name="formatProvider">Format provider supplied by the caller, which may be <c>null</c>.</param>
+        /// <returns>A provider which supplies both a formatter and currency formatting information.</returns>
+        /// <remarks>
+        /// A caller may reasonably pass a <see cref="CultureInfo"/> rather than a <see cref="MoneyInfo"/>,
+        /// in which case the monetary formatting information for that culture is resolved on their behalf.
+        /// </remarks>
+#if NETCOREAPP3_0_OR_GREATER
+        private static IFormatProvider ResolveMoneyProvider(IFormatProvider? formatProvider)
+#else
+        private static IFormatProvider ResolveMoneyProvider(IFormatProvider formatProvider)
+#endif
+        {
+            if (formatProvider is null)
             {
-                var result = _amount.ToString(format, formatProvider);
-
-                var numberFormatInfo = formatProvider?.GetFormat(typeof(NumberFormatInfo)) as NumberFormatInfo ?? CultureInfo.CurrentCulture.NumberFormat;
-                var currencyCode = Enum.GetName(typeof(Iso4217CurrencyCurrent), IsoCurrencyCode);
-                result = result.Replace(numberFormatInfo.CurrencySymbol, currencyCode);
-
-                return result;
+#if NETSTANDARD2_0_OR_GREATER||NET
+                return MoneyInfo.CurrentMoney;
+#else
+                return MoneyInfo.InvariantMoney;
+#endif
             }
 
-            return _amount.ToString(format, formatProvider);
+            // A provider which already supplies currency formatting information is used as it stands.
+            if (formatProvider.GetFormat(typeof(CurrencyFormatInfo)) is CurrencyFormatInfo)
+            {
+                return formatProvider;
+            }
+
+            if (formatProvider is CultureInfo culture)
+            {
+                return MoneyInfo.GetMoneyInfo(culture);
+            }
+
+#if NETSTANDARD2_0_OR_GREATER||NET
+            return MoneyInfo.CurrentMoney;
+#else
+            return MoneyInfo.InvariantMoney;
+#endif
         }
 
         /// <summary>

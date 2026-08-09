@@ -90,6 +90,27 @@ namespace DataStandardizer.Money
         }
 #endif
 
+        /// <summary>
+        /// Get the monetary formatting information for a culture.
+        /// </summary>
+        /// <param name="culture">Culture whose monetary formatting information is required.</param>
+        /// <returns>A read-only <see cref="MoneyInfo"/> for <paramref name="culture"/>.</returns>
+        /// <remarks>
+        /// This allows a caller to supply a <see cref="CultureInfo"/> where monetary formatting information
+        /// is expected, as they would when formatting an intrinsic numeric type.
+        /// </remarks>
+#if NETCOREAPP3_0_OR_GREATER
+        public static MoneyInfo GetMoneyInfo(CultureInfo? culture)
+#else
+        public static MoneyInfo GetMoneyInfo(CultureInfo culture)
+#endif
+        {
+            var moneyInfo = new MoneyInfo();
+            moneyInfo.CurrencyFormat = CurrencyFormatInfo.CreateForCulture(culture);
+            moneyInfo.IsReadOnly = true;
+            return moneyInfo;
+        }
+
         #endregion
 
         #region Public Properties

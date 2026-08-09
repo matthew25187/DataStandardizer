@@ -449,12 +449,13 @@ namespace DataStandardizer.Money
         private static string GetResource(string resourceName, CultureInfo culture)
 #endif
         {
-            // The resource manager already falls back towards the neutral resources, but a culture-specific
-            // file which defines a key as empty would otherwise shadow the neutral value.
-            var value = Resources.ResourceManager.GetString(resourceName, culture);
+            // A null culture means the neutral resources, but the resource manager interprets it as the
+            // current culture, so the invariant culture is named explicitly to reach the neutral values.
+            var value = Resources.ResourceManager.GetString(resourceName, culture ?? CultureInfo.InvariantCulture);
             if (string.IsNullOrEmpty(value))
             {
-                value = Resources.ResourceManager.GetString(resourceName);
+                // A culture-specific file which defines a key as empty would otherwise shadow the neutral value.
+                value = Resources.ResourceManager.GetString(resourceName, CultureInfo.InvariantCulture);
             }
 
             return value ?? string.Empty;
