@@ -29,6 +29,32 @@ namespace DataStandardizer.Money
             internal const char General = 'G';
         }
 
+        /// <summary>
+        /// The outcome of interpreting a format string.
+        /// </summary>
+        private enum FormatParseResult
+        {
+            /// <summary>
+            /// The format string is a money format string.
+            /// </summary>
+            Recognised,
+
+            /// <summary>
+            /// The format string is not a money format string, and may be a custom numeric format string.
+            /// </summary>
+            NotRecognised,
+
+            /// <summary>
+            /// The format string names a currency other than that of the value being formatted.
+            /// </summary>
+            CurrencyMismatch,
+
+            /// <summary>
+            /// The format string is a money format string whose precision is not valid.
+            /// </summary>
+            InvalidPrecision
+        }
+
         // Placement templates matching the indices documented for NumberFormatInfo.CurrencyPositivePattern
         // and NumberFormatInfo.CurrencyNegativePattern, so that values taken from a culture may be used
         // directly. {0} is the currency token, {1} the number and {2} the negative sign.
@@ -91,10 +117,20 @@ namespace DataStandardizer.Money
                                  ?? CurrencyFormatInfo.InvariantInfo;
 #endif
 
-            if (!TryParseFormat(format, moneyValue.IsoCurrencyCode, out var specifier, out var precision))
+            switch (ParseFormat(format, moneyValue.IsoCurrencyCode, out var specifier, out var precision))
             {
-                // Not a recognised money format; a custom numeric format string may still apply.
-                return HandleOtherFormats(format, arg, formatProvider);
+                case FormatParseResult.Recognised:
+                    break;
+
+                case FormatParseResult.CurrencyMismatch:
+                    throw new FormatException($"The format string '{format}' does not match the currency {moneyValue.IsoCurrencyCode} of the value being formatted.");
+
+                case FormatParseResult.InvalidPrecision:
+                    throw new FormatException($"The format string '{format}' does not specify a valid precision.");
+
+                default:
+                    // Not a recognised money format; a custom numeric format string may still apply.
+                    return HandleOtherFormats(format, arg, formatProvider);
             }
 
             // The general form is the amount alone, formatted as the underlying number would be.
@@ -151,14 +187,15 @@ namespace DataStandardizer.Money
         /// <param name="currencyCode">Currency of the value being formatted.</param>
         /// <param name="specifier">Format specifier, normalised to upper case.</param>
         /// <param name="precision">Precision specified by <paramref name="format"/>, if any.</param>
-        /// <returns><c>true</c> if <paramref name="format"/> is a money format string; otherwise <c>false</c>.</returns>
-        /// <exception cref="FormatException">
-        /// Thrown when <paramref name="format"/> names a currency other than <paramref name="currencyCode"/>.
-        /// </exception>
+        /// <returns>The outcome of interpreting <paramref name="format"/>.</returns>
+        /// <remarks>
+        /// The outcome is reported to the caller rather than raised, so that the decision to treat a format
+        /// string as an error belongs to the method which was asked to format the value.
+        /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
-        private static bool TryParseFormat(string? format, Iso4217CurrencyCurrent currencyCode, out char specifier, out int? precision)
+        private static FormatParseResult ParseFormat(string? format, Iso4217CurrencyCurrent currencyCode, out char specifier, out int? precision)
 #else
-        private static bool TryParseFormat(string format, Iso4217CurrencyCurrent currencyCode, out char specifier, out int? precision)
+        private static FormatParseResult ParseFormat(string format, Iso4217CurrencyCurrent currencyCode, out char specifier, out int? precision)
 #endif
         {
             specifier = Specifier.General;
@@ -167,7 +204,7 @@ namespace DataStandardizer.Money
             // An absent format is the general form, matching the convention for numeric types.
             if (string.IsNullOrEmpty(format))
             {
-                return true;
+                return FormatParseResult.Recognised;
             }
 
             // A currency code names the currency of the value and emits it; it does not select a currency.
@@ -175,11 +212,11 @@ namespace DataStandardizer.Money
             {
                 if (formatCurrencyCode != currencyCode)
                 {
-                    throw new FormatException($"The format string '{format}' does not match the currency {currencyCode} of the value being formatted.");
+                    return FormatParseResult.CurrencyMismatch;
                 }
 
                 specifier = Specifier.CurrencyCode;
-                return true;
+                return FormatParseResult.Recognised;
             }
 
             var candidateSpecifier = char.ToUpperInvariant(format[0]);
@@ -189,20 +226,20 @@ namespace DataStandardizer.Money
                 && candidateSpecifier != Specifier.CurrencyName
                 && candidateSpecifier != Specifier.General)
             {
-                return false;
+                return FormatParseResult.NotRecognised;
             }
 
             if (!TryParsePrecision(format, 1, out precision))
             {
                 // The specifier is a money format specifier, so a malformed precision is an error rather
-                // than grounds to reinterpret the format string as a custom numeric format. Falling through
-                // would hand a currency specifier to the number formatter, which would emit the culture's
-                // own currency symbol in place of that of the value.
-                throw new FormatException($"The format string '{format}' does not specify a valid precision.");
+                // than grounds to reinterpret the format string as a custom numeric format. Treating it as
+                // unrecognised would hand a currency specifier to the number formatter, which would emit the
+                // culture's own currency symbol in place of that of the value.
+                return FormatParseResult.InvalidPrecision;
             }
 
             specifier = candidateSpecifier;
-            return true;
+            return FormatParseResult.Recognised;
         }
 
         /// <summary>
