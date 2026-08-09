@@ -54,6 +54,19 @@ namespace DataStandardizer.Money
             LoadCurrencyFormatInformation(languageCode, (Iso3166Part1Alpha2Country?)countryCodeNumeric);
         }
 
+        /// <summary>
+        /// Initialises a new instance of the <see cref="MoneyInfo"/> class for a culture.
+        /// </summary>
+        /// <param name="culture">Culture whose monetary formatting information is required, or <c>null</c> for the culture-independent information.</param>
+#if NETCOREAPP3_0_OR_GREATER
+        public MoneyInfo(CultureInfo? culture)
+#else
+        public MoneyInfo(CultureInfo culture)
+#endif
+        {
+            CurrencyFormat = CurrencyFormatInfo.CreateForCulture(culture);
+        }
+
         #endregion
 
         #region Public Methods
@@ -105,10 +118,7 @@ namespace DataStandardizer.Money
         public static MoneyInfo GetMoneyInfo(CultureInfo culture)
 #endif
         {
-            var moneyInfo = new MoneyInfo();
-            moneyInfo.CurrencyFormat = CurrencyFormatInfo.CreateForCulture(culture);
-            moneyInfo.IsReadOnly = true;
-            return moneyInfo;
+            return new MoneyInfo(culture) { IsReadOnly = true };
         }
 
         #endregion
@@ -214,17 +224,10 @@ namespace DataStandardizer.Money
 #if NETSTANDARD2_0_OR_GREATER||NET
         private static MoneyInfo DoGetCurrentMoney()
         {
-            var currentCultureTag = Bcp47LanguageTag.Create(CultureInfo.CurrentCulture.Name);
-            Iso639Part1Language? languageCode = Enum.TryParse(currentCultureTag.PrimaryLanguageSubtag, out Iso639Part1Language languageCodeValue)
-                ? languageCodeValue
-                : default(Iso639Part1Language?);
-            Iso3166Part1Alpha2Country? countryCode = Enum.TryParse(currentCultureTag.RegionSubtag, out Iso3166Part1Alpha2Country countryCodeValue)
-                ? countryCodeValue
-                : default(Iso3166Part1Alpha2Country?);
             // The result is cached and handed out to every caller, so it is sealed against modification.
-            return languageCode.HasValue && countryCode.HasValue
-                ? new MoneyInfo(languageCode.Value, countryCode.Value) { IsReadOnly = true }
-                : new MoneyInfo { IsReadOnly = true };
+            // Deriving it from the culture directly avoids interpreting the language and region subtags,
+            // which are string enumerations rather than System.Enum types.
+            return new MoneyInfo(CultureInfo.CurrentCulture) { IsReadOnly = true };
         }
 #endif
 

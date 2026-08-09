@@ -591,6 +591,217 @@ namespace DataStandardizer.Money
         }
 
         /// <summary>
+        /// Converts the string representation of a monetary value to its <see cref="Money"/> equivalent,
+        /// permitting only the specified elements.
+        /// </summary>
+        /// <param name="s">The string representation of the monetary value to convert.</param>
+        /// <param name="styles">The elements permitted in <paramref name="s"/>.</param>
+        /// <param name="provider">An <see cref="IFormatProvider"/> that supplies culture-specific parsing information about <paramref name="s"/>.</param>
+        /// <returns>The <see cref="Money"/> value equivalent to the monetary value contained in <paramref name="s"/>.</returns>
+        /// <remarks>
+        /// A currency is identified from an ISO 4217 currency code, or from a currency symbol which denotes
+        /// exactly one currency. A symbol shared by several currencies is resolved from the currency of
+        /// <paramref name="provider"/>, and only when <paramref name="styles"/> includes
+        /// <see cref="MoneyStyles.AllowAmbiguousCurrencySymbol"/>.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="s"/> is <c>null</c>.</exception>
+        /// <exception cref="FormatException">Thrown when <paramref name="s"/> is not in a correct format, or its currency cannot be determined.</exception>
+#if NETCOREAPP3_0_OR_GREATER
+        public static Money Parse(string s, MoneyStyles styles, IFormatProvider? provider)
+#else
+        public static Money Parse(string s, MoneyStyles styles, IFormatProvider provider)
+#endif
+        {
+            if (s is null)
+            {
+                throw new ArgumentNullException(nameof(s));
+            }
+
+            if (!TryParse(s, styles, provider, out var result))
+            {
+                throw new FormatException($"{nameof(s)} is not in the correct format.");
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Converts the string representation of a monetary value to its <see cref="Money"/> equivalent,
+        /// permitting only the specified elements. A return value indicates whether the conversion succeeded or failed.
+        /// </summary>
+        /// <param name="s">The string representation of the monetary value to convert.</param>
+        /// <param name="styles">The elements permitted in <paramref name="s"/>.</param>
+        /// <param name="provider">An <see cref="IFormatProvider"/> that supplies culture-specific parsing information about <paramref name="s"/>.</param>
+        /// <param name="result">When this method returns, contains the <see cref="Money"/> value equivalent to <paramref name="s"/>, if the conversion succeeded; otherwise the default value.</param>
+        /// <returns><c>true</c> if <paramref name="s"/> was converted successfully; otherwise, <c>false</c>.</returns>
+#if NETCOREAPP3_0_OR_GREATER
+        public static bool TryParse(string? s, MoneyStyles styles, IFormatProvider? provider, out Money result)
+#else
+        public static bool TryParse(string s, MoneyStyles styles, IFormatProvider provider, out Money result)
+#endif
+        {
+            var useStyles = styles;
+            if (provider is null)
+            {
+                // Without a culture there is no context in which to resolve a symbol shared by several
+                // currencies, and the culture of the current thread is not a safe assumption to make about
+                // the origin of a monetary value. Such a symbol is therefore not resolved at all.
+                useStyles &= ~MoneyStyles.AllowAmbiguousCurrencySymbol;
+            }
+
+            var moneyProvider = ResolveMoneyProvider(provider);
+            var currencyFormat = moneyProvider.GetFormat(typeof(CurrencyFormatInfo)) as CurrencyFormatInfo ?? CurrencyFormatInfo.InvariantInfo;
+            var numberFormat = GetNumberFormat(provider, currencyFormat);
+
+            return MoneyParser.TryParse(s, useStyles, currencyFormat, numberFormat, out result);
+        }
+
+        /// <summary>
+        /// Converts the string representation of a monetary value in a specified format to its <see cref="Money"/> equivalent.
+        /// </summary>
+        /// <param name="s">The string representation of the monetary value to convert.</param>
+        /// <param name="format">The format that <paramref name="s"/> must be in.</param>
+        /// <param name="provider">An <see cref="IFormatProvider"/> that supplies culture-specific parsing information about <paramref name="s"/>.</param>
+        /// <returns>The <see cref="Money"/> value equivalent to the monetary value contained in <paramref name="s"/>.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="s"/> or <paramref name="format"/> is <c>null</c>.</exception>
+        /// <exception cref="FormatException">Thrown when <paramref name="s"/> is not in the format specified by <paramref name="format"/>.</exception>
+#if NETCOREAPP3_0_OR_GREATER
+        public static Money ParseExact(string s, string format, IFormatProvider? provider)
+#else
+        public static Money ParseExact(string s, string format, IFormatProvider provider)
+#endif
+        {
+            if (format is null)
+            {
+                throw new ArgumentNullException(nameof(format));
+            }
+
+            return ParseExact(s, new[] { format }, provider, MoneyStyles.Currency);
+        }
+
+        /// <summary>
+        /// Converts the string representation of a monetary value in one of a set of specified formats to its
+        /// <see cref="Money"/> equivalent.
+        /// </summary>
+        /// <param name="s">The string representation of the monetary value to convert.</param>
+        /// <param name="formats">The formats of which <paramref name="s"/> must be in one.</param>
+        /// <param name="provider">An <see cref="IFormatProvider"/> that supplies culture-specific parsing information about <paramref name="s"/>.</param>
+        /// <param name="styles">The elements permitted in <paramref name="s"/>.</param>
+        /// <returns>The <see cref="Money"/> value equivalent to the monetary value contained in <paramref name="s"/>.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="s"/> or <paramref name="formats"/> is <c>null</c>.</exception>
+        /// <exception cref="FormatException">Thrown when <paramref name="s"/> is in none of the formats specified by <paramref name="formats"/>.</exception>
+#if NETCOREAPP3_0_OR_GREATER
+        public static Money ParseExact(string s, string[] formats, IFormatProvider? provider, MoneyStyles styles)
+#else
+        public static Money ParseExact(string s, string[] formats, IFormatProvider provider, MoneyStyles styles)
+#endif
+        {
+            if (s is null)
+            {
+                throw new ArgumentNullException(nameof(s));
+            }
+
+            if (formats is null)
+            {
+                throw new ArgumentNullException(nameof(formats));
+            }
+
+            if (!TryParseExact(s, formats, provider, styles, out var result))
+            {
+                throw new FormatException($"{nameof(s)} is not in any of the expected formats.");
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Converts the string representation of a monetary value in one of a set of specified formats to its
+        /// <see cref="Money"/> equivalent. A return value indicates whether the conversion succeeded or failed.
+        /// </summary>
+        /// <param name="s">The string representation of the monetary value to convert.</param>
+        /// <param name="formats">The formats of which <paramref name="s"/> must be in one.</param>
+        /// <param name="provider">An <see cref="IFormatProvider"/> that supplies culture-specific parsing information about <paramref name="s"/>.</param>
+        /// <param name="styles">The elements permitted in <paramref name="s"/>.</param>
+        /// <param name="result">When this method returns, contains the <see cref="Money"/> value equivalent to <paramref name="s"/>, if the conversion succeeded; otherwise the default value.</param>
+        /// <returns><c>true</c> if <paramref name="s"/> was converted successfully; otherwise, <c>false</c>.</returns>
+        /// <remarks>
+        /// A value is accepted only where formatting the parsed result with one of <paramref name="formats"/>
+        /// reproduces it. A caller expecting the currency code form may therefore reject a value carrying a
+        /// currency symbol, which is otherwise accepted.
+        /// </remarks>
+#if NETCOREAPP3_0_OR_GREATER
+        public static bool TryParseExact(string? s, string[]? formats, IFormatProvider? provider, MoneyStyles styles, out Money result)
+#else
+        public static bool TryParseExact(string s, string[] formats, IFormatProvider provider, MoneyStyles styles, out Money result)
+#endif
+        {
+            result = default;
+
+            if (string.IsNullOrEmpty(s) || formats is null || formats.Length == 0)
+            {
+                return false;
+            }
+
+            if (!TryParse(s, styles, provider, out var candidate))
+            {
+                return false;
+            }
+
+            // The parsed value must render back to the value supplied under one of the expected formats.
+            // Comparing the rendering rather than inspecting the input keeps the accepted forms exactly in
+            // step with those the formatter produces.
+            foreach (var format in formats)
+            {
+                if (format is null)
+                {
+                    continue;
+                }
+
+                string formatted;
+                try
+                {
+                    formatted = candidate.ToString(format, provider);
+                }
+                catch (FormatException)
+                {
+                    continue;
+                }
+
+                if (string.Equals(formatted, s, StringComparison.Ordinal))
+                {
+                    result = candidate;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Determine the number formatting information used to interpret the amount of a monetary value.
+        /// </summary>
+        /// <remarks>
+        /// The separators are taken from the currency formatting information so that parsing accepts what
+        /// formatting produces, rather than differing from it.
+        /// </remarks>
+#if NETCOREAPP3_0_OR_GREATER
+        private static NumberFormatInfo GetNumberFormat(IFormatProvider? provider, CurrencyFormatInfo currencyFormat)
+#else
+        private static NumberFormatInfo GetNumberFormat(IFormatProvider provider, CurrencyFormatInfo currencyFormat)
+#endif
+        {
+            var numberFormat = provider?.GetFormat(typeof(NumberFormatInfo)) as NumberFormatInfo;
+            var result = numberFormat != null ? (NumberFormatInfo)numberFormat.Clone() : new NumberFormatInfo();
+
+            result.NumberDecimalSeparator = currencyFormat.CurrencyDecimalSeparator;
+            result.NumberGroupSeparator = currencyFormat.CurrencyGroupSeparator;
+            result.NumberGroupSizes = currencyFormat.CurrencyGroupSizes;
+            result.NegativeSign = string.IsNullOrEmpty(currencyFormat.NegativeSign) ? "-" : currencyFormat.NegativeSign;
+
+            return result;
+        }
+
+        /// <summary>
         /// Converts the string representation of a number to its <see cref="Money"/> equivalent. A return value indicates whether the conversion succeeded or failed.
         /// </summary>
         /// <param name="s">The string representation of the number to convert.</param>
@@ -934,6 +1145,16 @@ namespace DataStandardizer.Money
         private static bool IsValidCurrencyCodeForMoneyValue(Iso4217CurrencyCurrent currency)
         {
             return currency.IsNationalCurrency() || currency.IsSupranationalCurrency() || currency == Iso4217CurrencyCurrent.XTS;
+        }
+
+        /// <summary>
+        /// Determine whether a currency code may denote the currency of a monetary value.
+        /// </summary>
+        /// <param name="currency">Code of the currency.</param>
+        /// <returns><c>true</c> if the code may denote the currency of a monetary value; otherwise <c>false</c>.</returns>
+        internal static bool IsCurrencyCodeValidForMoneyValue(Iso4217CurrencyCurrent currency)
+        {
+            return IsValidCurrencyCodeForMoneyValue(currency);
         }
     }
 }
