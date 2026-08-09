@@ -1070,5 +1070,133 @@ namespace DataStandardizer.Money.Tests
             testResult.Should().BeTrue("the input is a valid money value");
             ((decimal)result).Should().Be(expectedResult, "the input contains the money value {0}", expectedResult);
         }
+
+        #region Test: Parse_ProviderSetAndInputIsNegativeAmount
+
+        [Theory]
+        [InlineData("-USD23.45", -23.45)]
+        [InlineData("(USD23.45)", -23.45)]
+        [InlineData("-90.12 USD", -90.12)]
+        [InlineData("USD23.45-", -23.45)]
+        public void Parse_ProviderSetAndInputIsNegativeAmount_ReturnsNegativeMoneyValue(string testValue, decimal expectedResult)
+        {
+            // arrange
+            IFormatProvider provider = CultureInfo.CurrentCulture;
+
+            // act
+            var testResult = Money.Parse(testValue, provider);
+
+            // assert
+            ((decimal)testResult).Should().Be(expectedResult, "the input contains the negative money value {0}", expectedResult);
+        }
+
+        [Theory]
+        [InlineData("-USD23.45", -23.45)]
+        [InlineData("(USD23.45)", -23.45)]
+        [InlineData("-90.12 USD", -90.12)]
+        public void Parse_ProviderSetAndInputIsNegativeAmount_MatchesParameterlessOverload(string testValue, decimal expectedResult)
+        {
+            // act
+            var withProvider = Money.Parse(testValue, CultureInfo.CurrentCulture);
+            var withoutProvider = Money.Parse(testValue);
+
+            // assert
+            ((decimal)withProvider).Should().Be(expectedResult, "the input contains the negative money value {0}", expectedResult);
+            ((decimal)withProvider).Should().Be((decimal)withoutProvider, "both overloads must agree on the sign of the result");
+        }
+
+        #endregion
+
+        #region Test: CompareTo_ObjectArgument
+
+        [Fact]
+        public void CompareTo_ObjectArgumentIsMoneyValue_ReturnsComparisonResult()
+        {
+            // arrange
+            var testSubject = Money.Create(1234m, Iso4217CurrencyCurrent.NZD);
+            object testValue = Money.Create(1234m, Iso4217CurrencyCurrent.NZD);
+            object lesserValue = Money.Create(12m, Iso4217CurrencyCurrent.NZD);
+            object greaterValue = Money.Create(12345m, Iso4217CurrencyCurrent.NZD);
+
+            // act & assert
+            testSubject.CompareTo(testValue).Should().Be(0, "the values are equal");
+            testSubject.CompareTo(lesserValue).Should().BePositive("the argument is less than this instance");
+            testSubject.CompareTo(greaterValue).Should().BeNegative("the argument is greater than this instance");
+        }
+
+        [Fact]
+        public void CompareTo_ObjectArgumentIsNull_ReturnsPositive()
+        {
+            // arrange
+            var testSubject = Money.Create(1234m, Iso4217CurrencyCurrent.NZD);
+
+            // act
+            var testResult = testSubject.CompareTo(null);
+
+            // assert
+            testResult.Should().BePositive("any instance compares greater than null");
+        }
+
+        [Fact]
+        public void CompareTo_ObjectArgumentIsDifferentType_ThrowsArgumentException()
+        {
+            // arrange
+            var testSubject = Money.Create(1234m, Iso4217CurrencyCurrent.NZD);
+
+            // act
+            var testAction = () => testSubject.CompareTo("not a money value");
+
+            // assert
+            testAction.Should().Throw<ArgumentException>("the argument is not a money value");
+        }
+
+        #endregion
+
+        #region Test: Equals_ObjectArgument
+
+        [Fact]
+        public void Equals_ObjectArgumentIsEquivalentMoneyValue_ReturnsTrue()
+        {
+            // arrange
+            var testSubject = Money.Create(1234m, Iso4217CurrencyCurrent.NZD);
+            object testValue = Money.Create(1234m, Iso4217CurrencyCurrent.NZD);
+
+            // act
+            var testResult = testSubject.Equals(testValue);
+
+            // assert
+            testResult.Should().BeTrue("the values have the same amount and currency");
+        }
+
+        [Theory]
+        [InlineData(1234, Iso4217CurrencyCurrent.AUD)]
+        [InlineData(4321, Iso4217CurrencyCurrent.NZD)]
+        public void Equals_ObjectArgumentIsDifferentMoneyValue_ReturnsFalse(decimal testAmount, Iso4217CurrencyCurrent testCurrency)
+        {
+            // arrange
+            var testSubject = Money.Create(1234m, Iso4217CurrencyCurrent.NZD);
+            object testValue = Money.Create(testAmount, testCurrency);
+
+            // act
+            var testResult = testSubject.Equals(testValue);
+
+            // assert
+            testResult.Should().BeFalse("the values differ in amount or currency");
+        }
+
+        [Fact]
+        public void Equals_ObjectArgumentIsNotMoneyValue_ReturnsFalse()
+        {
+            // arrange
+            var testSubject = Money.Create(1234m, Iso4217CurrencyCurrent.NZD);
+
+            // act
+            var testResult = testSubject.Equals("not a money value");
+
+            // assert
+            testResult.Should().BeFalse("the argument is not a money value");
+        }
+
+        #endregion
     }
 }
