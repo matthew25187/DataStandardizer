@@ -272,17 +272,33 @@ namespace DataStandardizer.Money
 #if NETCOREAPP3_0_OR_GREATER
         public int CompareTo(object? obj)
         {
-            return _amount.CompareTo(obj);
+            if (obj is null)
+            {
+                return 1;
+            }
+
+            if (obj is Money other)
+            {
+                return CompareTo(other);
+            }
+
+            throw new ArgumentException($"{nameof(obj)} and this instance are not the same type.", nameof(obj));
         }
 
 #else
         public int CompareTo(object obj)
         {
-#if NETSTANDARD2_0_OR_GREATER || NET
-            return _amount.CompareTo(obj);
-#else
-            return ((IComparable)_amount).CompareTo(obj);
-#endif
+            if (obj is null)
+            {
+                return 1;
+            }
+
+            if (obj is Money other)
+            {
+                return CompareTo(other);
+            }
+
+            throw new ArgumentException($"{nameof(obj)} and this instance are not the same type.", nameof(obj));
         }
 #endif
 
@@ -372,7 +388,7 @@ namespace DataStandardizer.Money
 #if NETCOREAPP3_0_OR_GREATER
         public override bool Equals([NotNullWhen(true)] object? obj)
         {
-            return base.Equals(obj);
+            return obj is Money other && Equals(other);
         }
 #else
         public override bool Equals(object obj)
@@ -444,7 +460,7 @@ namespace DataStandardizer.Money
             var (currencyCode, currencyAmount) = ExtractValue(s, currencyNegativePattern, useProvider);
             if (currencyAmount.HasValue)
             {
-                return currencyCode.HasValue ? new Money(-currencyAmount.Value, currencyCode.Value) : new Money(currencyAmount.Value);
+                return currencyCode.HasValue ? new Money(-currencyAmount.Value, currencyCode.Value) : new Money(-currencyAmount.Value);
             }
 
             var currencyPositivePattern = BuildCurrencyPositivePattern(useProvider);
