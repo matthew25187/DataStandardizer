@@ -9,7 +9,7 @@ namespace DataStandardizer.Money
 #if NETSTANDARD1_3_OR_GREATER||NET
         , IConvertible
 #endif
-#if NET8_0_OR_GREATER
+#if NET7_0_OR_GREATER
         , ISpanFormattable, IParsable<Money>, ISpanParsable<Money>
 #endif
     {
@@ -727,7 +727,7 @@ namespace DataStandardizer.Money
             return false;
         }
 
-#if NET8_0_OR_GREATER
+#if NET7_0_OR_GREATER
         /// <summary>
         /// Tries to format the value of this instance into the provided span of characters.
         /// </summary>

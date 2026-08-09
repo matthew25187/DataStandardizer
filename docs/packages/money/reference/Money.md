@@ -15,7 +15,7 @@ A monetary value that combines a `decimal` amount with an optional ISO 4217
 currency and optional rounding. Instances are created through the static `Create`
 factory methods.
 
-**.NET 8.0 and later:**
+**.NET 7.0 and later:**
 
 ```csharp
 public readonly struct Money : IComparable, IComparable<Money>, IEquatable<Money>, IFormattable, IConvertible,
@@ -80,7 +80,7 @@ currencies.
 | `TryParse(string? s, MoneyStyles styles, IFormatProvider? provider, out Money result)` | `bool` | Permits only the specified elements. |
 | `TryParseExact(string? s, string[]? formats, IFormatProvider? provider, MoneyStyles styles, out Money result)` | `bool` | Requires `s` to be in one of the given formats. |
 
-On .NET 8.0 and later, `TryFormat`, `Parse(ReadOnlySpan<char>, IFormatProvider?)`
+On .NET 7.0 and later, `TryFormat`, `Parse(ReadOnlySpan<char>, IFormatProvider?)`
 and `TryParse(ReadOnlySpan<char>, IFormatProvider?, out Money)` are also
 available, satisfying `ISpanFormattable` and `ISpanParsable<Money>`.
 
