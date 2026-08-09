@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.Linq;
-using System.Text.RegularExpressions;
 
 namespace DataStandardizer.Money
 {
@@ -11,13 +9,10 @@ namespace DataStandardizer.Money
 #if NETSTANDARD1_3_OR_GREATER||NET
         , IConvertible
 #endif
+#if NET8_0_OR_GREATER
+        , ISpanFormattable, IParsable<Money>, ISpanParsable<Money>
+#endif
     {
-        private static class GroupName
-        {
-            internal const string CurrencyCode = "code";
-            internal const string CurrencyAmount = "amount";
-        }
-
         private static class ErrorMessage
         {
             internal const string DifferentCurrenciesComparisonTemplate = "Unable to compare {0} values having different currencies.";
@@ -25,26 +20,16 @@ namespace DataStandardizer.Money
             internal const string ExpectedNationalCurrencyCode = "Expected a national currency code.";
         }
 
-        private static readonly Regex CurrencyFormatExpression;
         private const Iso4217CurrencyCurrent DefaultCurrency = Iso4217CurrencyCurrent.XXX;
 
         /// <summary>
         /// The currency code of a monetary value which carries no currency.
         /// </summary>
         internal const Iso4217CurrencyCurrent NoCurrency = DefaultCurrency;
-        private static readonly TimeSpan ExpressionTimeout = TimeSpan.FromSeconds(1);
 
         private readonly decimal _amount;
         private readonly Iso4217CurrencyCurrent? _currency;
-        
-        static Money()
-        {
-            var options = RegexOptions.None;
-#if NETSTANDARD1_3_OR_GREATER||NET
-            options |= RegexOptions.Compiled;
-#endif
-            CurrencyFormatExpression = new Regex(@"^[Cc](\d*)$", options, ExpressionTimeout);
-        }
+
 #if NETCOREAPP3_0_OR_GREATER
         private Money(decimal amount)
 #else
@@ -422,26 +407,7 @@ namespace DataStandardizer.Money
         /// <returns>The <see cref="Money"/> number equivalent to the number contained in <paramref name="s"/>.</returns>
         public static Money Parse(string s)
         {
-            if (s is null)
-                throw new ArgumentNullException(nameof(s));
-
-            IFormatProvider provider = CultureInfo.CurrentCulture;
-
-            var currencyNegativePattern = BuildCurrencyNegativePattern(provider);
-            var (currencyCode, currencyAmount) = ExtractValue(s, currencyNegativePattern, provider);
-            if (currencyAmount.HasValue)
-            {
-                return currencyCode.HasValue ? new Money(-currencyAmount.Value, currencyCode.Value) : new Money(-currencyAmount.Value);
-            }
-
-            var currencyPositivePattern = BuildCurrencyPositivePattern(provider);
-            (currencyCode, currencyAmount) = ExtractValue(s, currencyPositivePattern, provider);
-            if (currencyAmount.HasValue)
-            {
-                return currencyCode.HasValue ? new Money(currencyAmount.Value, currencyCode.Value) : new Money(currencyAmount.Value);
-            }
-
-            throw new FormatException($"{nameof(s)} is not in the correct format.");
+            return Parse(s, CultureInfo.CurrentCulture);
         }
 
         /// <summary>
@@ -459,23 +425,7 @@ namespace DataStandardizer.Money
             if (s is null)
                 throw new ArgumentNullException(nameof(s));
 
-            var useProvider = provider ?? CultureInfo.CurrentCulture;
-
-            var currencyNegativePattern = BuildCurrencyNegativePattern(useProvider);
-            var (currencyCode, currencyAmount) = ExtractValue(s, currencyNegativePattern, useProvider);
-            if (currencyAmount.HasValue)
-            {
-                return currencyCode.HasValue ? new Money(-currencyAmount.Value, currencyCode.Value) : new Money(-currencyAmount.Value);
-            }
-
-            var currencyPositivePattern = BuildCurrencyPositivePattern(useProvider);
-            (currencyCode, currencyAmount) = ExtractValue(s, currencyPositivePattern, useProvider);
-            if (currencyAmount.HasValue)
-            {
-                return currencyCode.HasValue ? new Money(currencyAmount.Value, currencyCode.Value) : new Money(currencyAmount.Value);
-            }
-
-            throw new FormatException($"{nameof(s)} is not in the correct format.");
+            return Parse(s, MoneyStyles.Currency, provider ?? CultureInfo.CurrentCulture);
         }
 
         public override string ToString()
@@ -777,6 +727,54 @@ namespace DataStandardizer.Money
             return false;
         }
 
+#if NET8_0_OR_GREATER
+        /// <summary>
+        /// Tries to format the value of this instance into the provided span of characters.
+        /// </summary>
+        /// <param name="destination">The span in which to write this instance's value formatted as a span of characters.</param>
+        /// <param name="charsWritten">When this method returns, contains the number of characters that were written in <paramref name="destination"/>.</param>
+        /// <param name="format">A span containing the characters that represent a standard or custom format string.</param>
+        /// <param name="provider">An optional object that supplies culture-specific formatting information.</param>
+        /// <returns><c>true</c> if the formatting was successful; otherwise, <c>false</c>.</returns>
+        public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+        {
+            var formatted = ToString(format.Length == 0 ? null : format.ToString(), provider);
+            if (formatted.Length > destination.Length)
+            {
+                charsWritten = 0;
+                return false;
+            }
+
+            formatted.AsSpan().CopyTo(destination);
+            charsWritten = formatted.Length;
+            return true;
+        }
+
+        /// <summary>
+        /// Parses a span of characters into a <see cref="Money"/> value.
+        /// </summary>
+        /// <param name="s">The span of characters to parse.</param>
+        /// <param name="provider">An object that supplies culture-specific information about <paramref name="s"/>.</param>
+        /// <returns>The <see cref="Money"/> value equivalent to the monetary value contained in <paramref name="s"/>.</returns>
+        /// <exception cref="FormatException">Thrown when <paramref name="s"/> is not in a correct format.</exception>
+        public static Money Parse(ReadOnlySpan<char> s, IFormatProvider? provider)
+        {
+            return Parse(s.ToString(), provider);
+        }
+
+        /// <summary>
+        /// Tries to parse a span of characters into a <see cref="Money"/> value.
+        /// </summary>
+        /// <param name="s">The span of characters to parse.</param>
+        /// <param name="provider">An object that supplies culture-specific information about <paramref name="s"/>.</param>
+        /// <param name="result">When this method returns, contains the result of parsing <paramref name="s"/>, or the default value on failure.</param>
+        /// <returns><c>true</c> if <paramref name="s"/> was parsed successfully; otherwise, <c>false</c>.</returns>
+        public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out Money result)
+        {
+            return TryParse(s.ToString(), provider, out result);
+        }
+#endif
+
         /// <summary>
         /// Determine the number formatting information used to interpret the amount of a monetary value.
         /// </summary>
@@ -813,32 +811,7 @@ namespace DataStandardizer.Money
         public static bool TryParse(string s, out Money result)
 #endif
         {
-            if (string.IsNullOrEmpty(s))
-            {
-                result = default;
-                return false;
-            }
-
-            IFormatProvider provider = CultureInfo.CurrentCulture;
-
-            var currencyNegativePattern = BuildCurrencyNegativePattern(provider);
-            var (currencyCode, currencyAmount) = ExtractValue(s, currencyNegativePattern, provider);
-            if (currencyAmount.HasValue)
-            {
-                result = currencyCode.HasValue ? new Money(-currencyAmount.Value, currencyCode.Value) : new Money(-currencyAmount.Value);
-                return true;
-            }
-
-            var currencyPositivePattern = BuildCurrencyPositivePattern(provider);
-            (currencyCode, currencyAmount) = ExtractValue(s, currencyPositivePattern, provider);
-            if (currencyAmount.HasValue)
-            {
-                result = currencyCode.HasValue ? new Money(currencyAmount.Value, currencyCode.Value) : new Money(currencyAmount.Value);
-                return true;
-            }
-
-            result = default;
-            return false;
+            return TryParse(s, MoneyStyles.Currency, CultureInfo.CurrentCulture, out result);
         }
 
         /// <summary>
@@ -854,32 +827,7 @@ namespace DataStandardizer.Money
         public static bool TryParse(string s, IFormatProvider provider, out Money result)
 #endif
         {
-            if (string.IsNullOrEmpty(s))
-            {
-                result = default;
-                return false;
-            }
-
-            IFormatProvider useProvider = provider ?? CultureInfo.CurrentCulture;
-
-            var currencyNegativePattern = BuildCurrencyNegativePattern(useProvider);
-            var (currencyCode, currencyAmount) = ExtractValue(s, currencyNegativePattern, useProvider);
-            if (currencyAmount.HasValue)
-            {
-                result = currencyCode.HasValue ? new Money(-currencyAmount.Value, currencyCode.Value) : new Money(-currencyAmount.Value);
-                return true;
-            }
-
-            var currencyPositivePattern = BuildCurrencyPositivePattern(useProvider);
-            (currencyCode, currencyAmount) = ExtractValue(s, currencyPositivePattern, useProvider);
-            if (currencyAmount.HasValue)
-            {
-                result = currencyCode.HasValue ? new Money(currencyAmount.Value, currencyCode.Value) : new Money(currencyAmount.Value);
-                return true;
-            }
-
-            result = default;
-            return false;
+            return TryParse(s, MoneyStyles.Currency, provider ?? CultureInfo.CurrentCulture, out result);
         }
 #if NETCOREAPP3_0_OR_GREATER
         TypeCode IConvertible.GetTypeCode()
@@ -1052,95 +1000,6 @@ namespace DataStandardizer.Money
             return ((IConvertible)_amount).ToUInt64(provider);
         }
 #endif
-#if NETCOREAPP3_0_OR_GREATER
-        private static string BuildCurrencyNegativePattern(IFormatProvider? provider)
-#else
-        private static string BuildCurrencyNegativePattern(IFormatProvider provider)
-#endif
-        {
-            var amountPattern = GetCurrencyAmountPattern(provider);
-            var currencyCodePattern = GetCurrencyCodePattern();
-            var currencyNegativePatterns = new[]
-            {
-                $@"\({currencyCodePattern}{amountPattern}\)",
-                $"-{currencyCodePattern}{amountPattern}",
-                $"{currencyCodePattern}-{amountPattern}",
-                $"{currencyCodePattern}{amountPattern}-",
-                $@"\({amountPattern}{currencyCodePattern}\)",
-                $"-{amountPattern}{currencyCodePattern}",
-                $"{amountPattern}-{currencyCodePattern}",
-                $"{amountPattern}{currencyCodePattern}-",
-                $"-{amountPattern} {currencyCodePattern}",
-                $"-{currencyCodePattern} {amountPattern}",
-                $"{amountPattern} {currencyCodePattern}-",
-                $"{currencyCodePattern} {amountPattern}-",
-                $"{currencyCodePattern} -{amountPattern}",
-                $"{amountPattern}- {currencyCodePattern}",
-                $@"\({currencyCodePattern} {amountPattern}\)",
-                $@"\({amountPattern} {currencyCodePattern}\)"
-            };
-            return string.Join("|", currencyNegativePatterns);
-        }
-
-#if NETCOREAPP3_0_OR_GREATER
-        private static string BuildCurrencyPositivePattern(IFormatProvider? provider)
-#else
-        private static string BuildCurrencyPositivePattern(IFormatProvider provider)
-#endif
-        {
-            var amountPattern = GetCurrencyAmountPattern(provider);
-            var currencyCodePattern = GetCurrencyCodePattern();
-            var currencyPositivePatterns = new[]
-            {
-                $"{currencyCodePattern}{amountPattern}",
-                $"{amountPattern}{currencyCodePattern}",
-                $"{currencyCodePattern} {amountPattern}",
-                $"{amountPattern} {currencyCodePattern}"
-            };
-            return string.Join("|", currencyPositivePatterns);
-        }
-
-#if NETCOREAPP3_0_OR_GREATER
-        private static (Iso4217CurrencyCurrent? CurrencyCode, decimal? CurrencyAmount) ExtractValue(string input, string pattern, IFormatProvider? provider)
-#else
-        private static (Iso4217CurrencyCurrent? CurrencyCode, decimal? CurrencyAmount) ExtractValue(string input, string pattern, IFormatProvider provider)
-#endif
-        {
-            Iso4217CurrencyCurrent? currencyCode = null;
-            Decimal? currencyAmount = null;
-
-            var valueMatch = Regex.Match(input, pattern, RegexOptions.None, ExpressionTimeout);
-            if (valueMatch.Success)
-            {
-                currencyCode = Enum.TryParse(valueMatch.Groups[GroupName.CurrencyCode].Value, out Iso4217CurrencyCurrent useCurrencyCode)
-                    ? useCurrencyCode
-                    : (Iso4217CurrencyCurrent?)null;
-                currencyAmount = decimal.TryParse(valueMatch.Groups[GroupName.CurrencyAmount].Value, NumberStyles.Currency, provider, out var useCurrencyAmount)
-                    ? useCurrencyAmount
-                    : (decimal?)null;
-            }
-
-            return (currencyCode, currencyAmount);
-        }
-
-#if NETCOREAPP3_0_OR_GREATER
-        private static string GetCurrencyAmountPattern(IFormatProvider? provider)
-#else
-        private static string GetCurrencyAmountPattern(IFormatProvider provider)
-#endif
-        {
-            var numberFormatInfo = provider?.GetFormat(typeof(NumberFormatInfo)) as NumberFormatInfo ?? CultureInfo.CurrentCulture.NumberFormat;
-            return $@"(?<{GroupName.CurrencyAmount}>\d+(?:{numberFormatInfo.CurrencyDecimalSeparator}\d+)?)";
-        }
-
-        private static string GetCurrencyCodePattern()
-        {
-            var currencyCodes = Enum.GetValues(typeof(Iso4217CurrencyCurrent))
-                .Cast<Iso4217CurrencyCurrent>()
-                .Where(code => code.IsNationalCurrency() || code.IsSupranationalCurrency() || code == Iso4217CurrencyCurrent.XTS)
-                .Select(code => Enum.GetName(typeof(Iso4217CurrencyCurrent), code));
-            return string.Concat("(?<", GroupName.CurrencyCode, ">", string.Join("|", currencyCodes), ")");
-        }
 
         private static bool IsValidCurrencyCodeForMoneyValue(Iso4217CurrencyCurrent currency)
         {
