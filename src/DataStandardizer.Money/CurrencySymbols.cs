@@ -20,6 +20,10 @@ namespace DataStandardizer.Money
     /// Based on Unicode CLDR 47.0.0 currency data for the en locale.
     /// ISO 4217 does not define currency symbols, so this data is sourced from CLDR rather than
     /// from the currency code standard itself.
+    /// <para>
+    /// Copyright &#169; 1991-Present Unicode, Inc. Distributed under the Unicode licence;
+    /// see THIRD-PARTY-NOTICES.md and https://www.unicode.org/license.txt.
+    /// </para>
     /// </remarks>
     internal partial class CurrencySymbols
     {

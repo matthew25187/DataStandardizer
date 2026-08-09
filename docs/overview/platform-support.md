@@ -46,5 +46,12 @@ A few APIs are available only on some targets. For example, on
 similarly, `Iso3166Part2Subdivision` in **DataStandardizer.Geography** implements
 `IConvertible` on .NET Standard 1.3+ and modern .NET only.
 
+Also on **DataStandardizer.Money**, `Money` implements `ISpanFormattable`,
+`IParsable<Money>` and `ISpanParsable<Money>` on .NET 8.0 and later, where those
+interfaces exist. The `CurrencyFormatInfo.CurrentInfo` and `MoneyInfo.CurrentMoney`
+properties require .NET Standard 2.0 or later, because the current culture is
+unavailable on the `netstandard1.0` build; the invariant equivalents are available
+on every target.
+
 Where an API is framework-gated, the per-package reference pages carry an
 **"Applies to"** note spelling out exactly which targets it covers.

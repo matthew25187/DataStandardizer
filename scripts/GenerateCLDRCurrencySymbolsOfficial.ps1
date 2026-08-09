@@ -283,6 +283,10 @@ function Out-SourceCode {
     }
     $remarks += 'ISO 4217 does not define currency symbols, so this data is sourced from CLDR rather than'
     $remarks += 'from the currency code standard itself.'
+    $remarks += '<para>'
+    $remarks += 'Copyright &#169; 1991-Present Unicode, Inc. Distributed under the Unicode licence;'
+    $remarks += 'see THIRD-PARTY-NOTICES.md and https://www.unicode.org/license.txt.'
+    $remarks += '</para>'
     $remarks += '</remarks>'
     foreach ($remark in $remarks) {
         [void]$classType.Comments.Add([System.CodeDom.CodeCommentStatement]::new($remark, $true))
