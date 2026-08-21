@@ -414,6 +414,71 @@ function Split-EnumeratedParagraph {
     return , $notes.ToArray()
 }
 
+# A tracker reference: an Azure Boards work item such as 'AB#4374', or a ticket or pull request
+# such as '#123'. Held in one place because recognising one and deciding where it may be removed
+# from must agree on what a reference is.
+$script:trackerReferencePattern = '(?:\bAB)?#\d+'
+
+# The characters which quote prose in this repository's commit messages: straight and curly quotes,
+# and the backtick which sets code and file names apart.
+$script:quotingChars = [char[]]@('"', "'", '`', [char]0x2018, [char]0x2019, [char]0x201C, [char]0x201D)
+
+# Test whether the character at an index falls inside a quoted or backticked run. Counting the
+# quoting characters which precede it is enough: an odd count means one is still open. This is
+# what distinguishes a reference the prose is discussing from one a tool appended.
+function Test-QuotedPosition {
+    param (
+        [string]    $Note,
+        [int]       $Index
+    )
+
+    $quoteCount = 0
+    for ($characterIndex = 0; $characterIndex -lt $Index; $characterIndex++) {
+        if ($script:quotingChars -contains $Note[$characterIndex]) {
+            $quoteCount++
+        }
+    }
+
+    return (0 -ne ($quoteCount % 2))
+}
+
+# Remove the tracker references a tool appended to a commit subject, leaving those the prose is
+# about. A reference is removed only where it stands apart from the sentence rather than within it:
+# parenthesised, as a squash merge writes it, or trailing the note. A reference inside quotes or
+# backticks is the subject matter and is always kept, as is one embedded mid-sentence, whose
+# removal would leave the sentence ungrammatical.
+function Remove-TrackerReference {
+    param (
+        [string]    $Note
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Note)) {
+        return $Note
+    }
+
+    # A parenthesised reference is punctuation around metadata wherever it sits, provided the
+    # parenthesis itself is not quoted.
+    $parenthesised = "\s*\(\s*$script:trackerReferencePattern\s*\)"
+    foreach ($match in ([regex]::Matches($Note, $parenthesised) | Sort-Object -Property Index -Descending)) {
+        if (-not (Test-QuotedPosition -Note $Note -Index $match.Index)) {
+            $Note = $Note.Remove($match.Index, $match.Length)
+        }
+    }
+
+    # A bare reference is metadata only where it trails the prose, allowing for the punctuation a
+    # sentence may end with. Anything after it means it is part of the sentence rather than an
+    # addition to it.
+    $trailing = [regex]::Match($Note, "\s*$script:trackerReferencePattern\s*[.!?:;,]*\s*$")
+    if ($trailing.Success -and -not (Test-QuotedPosition -Note $Note -Index $trailing.Index)) {
+        # Keep any terminating punctuation which followed the reference, so that a note reading
+        # 'Fix the parser #123.' is left as a properly terminated sentence.
+        $punctuation = ($trailing.Value -replace '[^.!?]', [string]::Empty)
+        $Note = $Note.Remove($trailing.Index) + $punctuation
+    }
+
+    return $Note
+}
+
 # Tidy a raw commit subject into a release note: drop CI directives and ticket/PR references,
 # normalise whitespace, and ensure terminating punctuation. Returns $null when nothing remains.
 function Format-ReleaseNote {
@@ -433,13 +498,13 @@ function Format-ReleaseNote {
     }
 
     $note = $Message -replace $SanitisePattern, [string]::Empty
-    # Remove an Azure Boards work item reference (e.g. "AB#4374") whole, before the bare reference
-    # removal below can reduce it to a stray "AB".
-    $note = $note -replace '\bAB#\d+\b', [string]::Empty
-    # Remove a trailing parenthesised PR reference (e.g. " (#87)") added by squash merges.
-    $note = $note -replace '\s*\(#\d+\)', [string]::Empty
-    # Remove any remaining bare ticket/PR references (e.g. "#123").
-    $note = $note -replace '#\d+', [string]::Empty
+    # Remove the tracker references a tool appended, but not one the prose is itself discussing.
+    # A reference is metadata where it stands apart from the sentence: trailing, or parenthesised.
+    # Where it is quoted or set in backticks it is the subject matter, as in a note reporting that
+    # 'AB#4374' was reduced to a stray 'AB', and removing it empties the quotation it explains.
+    # Removing one from mid-sentence is likewise wrong, leaving 'Correct handling of reported by
+    # the team', so a reference is taken only from the end of the note where it trails the prose.
+    $note = Remove-TrackerReference -Note $note
     # Drop punctuation left stranded at the start once a leading reference has been removed.
     $note = $note -replace '^\s*[:;,.\-]+\s*', [string]::Empty
     # Collapse whitespace left behind by the removals.
