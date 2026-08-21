@@ -11,6 +11,9 @@ namespace DataStandardizer.Geography
 {
     
     
+    /// <summary>
+    /// Standard country or area codes for statistical use (M49)
+    /// </summary>
     public enum UnM49AreaByAlpha2CountryCode : ushort
     {
         

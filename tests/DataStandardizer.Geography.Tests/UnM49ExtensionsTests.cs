@@ -534,4 +534,323 @@ public class UnM49ExtensionsTests
     }
 
     #endregion
+
+    #region Test: GetLevel_WithM49AreaCode
+
+    [Theory]
+    [MemberData(nameof(GetLevel_WithM49AreaCode_TestCaseGenerator.TestCases), MemberType = typeof(GetLevel_WithM49AreaCode_TestCaseGenerator))]
+    public void GetLevel_WithM49AreaCode_ReturnsLevel(UnM49Area testCode, UnM49AreaLevel expectedResult)
+    {
+        // act
+        var testResult = testCode.GetLevel();
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    private class GetLevel_WithM49AreaCode_TestCaseGenerator
+    {
+        public static IEnumerable<object[]> TestCases
+        {
+            get
+            {
+                yield return new object[] { UnM49Area._001, UnM49AreaLevel.Global };
+                yield return new object[] { UnM49Area._002, UnM49AreaLevel.Region };
+                yield return new object[] { UnM49Area._015, UnM49AreaLevel.SubRegion };
+                yield return new object[] { UnM49Area._202, UnM49AreaLevel.SubRegion };
+                yield return new object[] { UnM49Area._014, UnM49AreaLevel.IntermediateRegion };
+                yield return new object[] { UnM49Area._004, UnM49AreaLevel.CountryOrArea };
+
+                // The intermediate region and the country carry identical codes on their attributes, so
+                // the level is distinguished by whether the code itself appears among those codes.
+                yield return new object[] { UnM49Area._894, UnM49AreaLevel.CountryOrArea };
+
+                // Antarctica carries only a global code, as does the world itself.
+                yield return new object[] { UnM49Area._010, UnM49AreaLevel.CountryOrArea };
+            }
+        }
+    }
+
+    #endregion
+
+    #region Test: GetLevel_WithUndefinedM49AreaCode
+
+    [Fact]
+    public void GetLevel_WithUndefinedM49AreaCode_ReturnsNull()
+    {
+        // act
+        var testResult = ((UnM49Area)9999).GetLevel();
+
+        // assert
+        testResult.Should().BeNull();
+    }
+
+    #endregion
+
+    #region Test: GetParent_WithM49AreaCode
+
+    [Theory]
+    [MemberData(nameof(GetParent_WithM49AreaCode_TestCaseGenerator.TestCases), MemberType = typeof(GetParent_WithM49AreaCode_TestCaseGenerator))]
+    public void GetParent_WithM49AreaCode_ReturnsParent(UnM49Area testCode, UnM49Area? expectedResult)
+    {
+        // act
+        var testResult = testCode.GetParent();
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    private class GetParent_WithM49AreaCode_TestCaseGenerator
+    {
+        public static IEnumerable<object?[]> TestCases
+        {
+            get
+            {
+                yield return new object?[] { UnM49Area._894, UnM49Area._014 };
+                yield return new object?[] { UnM49Area._014, UnM49Area._202 };
+                yield return new object?[] { UnM49Area._202, UnM49Area._002 };
+                yield return new object?[] { UnM49Area._002, UnM49Area._001 };
+
+                // The hierarchy is sparse: Afghanistan has no intermediate region, so its parent is its
+                // sub-region, and Antarctica has no region at all, so its parent is the world.
+                yield return new object?[] { UnM49Area._004, UnM49Area._034 };
+                yield return new object?[] { UnM49Area._010, UnM49Area._001 };
+
+                // The world has no parent.
+                yield return new object?[] { UnM49Area._001, null };
+            }
+        }
+    }
+
+    #endregion
+
+    #region Test: GetParent_WithUndefinedM49AreaCode
+
+    [Fact]
+    public void GetParent_WithUndefinedM49AreaCode_ReturnsNull()
+    {
+        // act
+        var testResult = ((UnM49Area)9999).GetParent();
+
+        // assert
+        testResult.Should().BeNull();
+    }
+
+    #endregion
+
+    #region Test: IsWithin_WithM49AreaCode
+
+    [Theory]
+    [MemberData(nameof(IsWithin_WithM49AreaCode_TestCaseGenerator.TestCases), MemberType = typeof(IsWithin_WithM49AreaCode_TestCaseGenerator))]
+    public void IsWithin_WithM49AreaCode_ReturnsContainment(UnM49Area testCode, UnM49Area otherCode, bool expectedResult)
+    {
+        // act
+        var testResult = testCode.IsWithin(otherCode);
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    private class IsWithin_WithM49AreaCode_TestCaseGenerator
+    {
+        public static IEnumerable<object[]> TestCases
+        {
+            get
+            {
+                // Containment is transitive across every level of the hierarchy.
+                yield return new object[] { UnM49Area._894, UnM49Area._014, true };
+                yield return new object[] { UnM49Area._894, UnM49Area._202, true };
+                yield return new object[] { UnM49Area._894, UnM49Area._002, true };
+                yield return new object[] { UnM49Area._894, UnM49Area._001, true };
+
+                // Zambia is in Africa, not Oceania.
+                yield return new object[] { UnM49Area._894, UnM49Area._009, false };
+
+                // An area does not fall within itself.
+                yield return new object[] { UnM49Area._894, UnM49Area._894, false };
+                yield return new object[] { UnM49Area._001, UnM49Area._001, false };
+
+                // Containment does not hold in the opposite direction.
+                yield return new object[] { UnM49Area._002, UnM49Area._894, false };
+            }
+        }
+    }
+
+    #endregion
+
+    #region Test: GetName_WithM49AreaCode
+
+    [Theory]
+    [MemberData(nameof(GetName_WithM49AreaCode_TestCaseGenerator.TestCases), MemberType = typeof(GetName_WithM49AreaCode_TestCaseGenerator))]
+    public void GetName_WithM49AreaCode_ReturnsNameOfOwnLevel(UnM49Area testCode, string languageCode, string expectedResult)
+    {
+        // act
+        var testResult = testCode.GetName(languageCode);
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    private class GetName_WithM49AreaCode_TestCaseGenerator
+    {
+        public static IEnumerable<object[]> TestCases
+        {
+            get
+            {
+                // A country resolves to its own name, not to the name of any of its ancestors.
+                yield return new object[] { UnM49Area._894, "en", "Zambia" };
+                yield return new object[] { UnM49Area._010, "en", "Antarctica" };
+
+                yield return new object[] { UnM49Area._001, "ar", "العالم" };
+                yield return new object[] { UnM49Area._002, "zh", "非洲" };
+                yield return new object[] { UnM49Area._202, "ru", "Африка к югу от Сахары" };
+                yield return new object[] { UnM49Area._014, "fr", "Afrique orientale" };
+            }
+        }
+    }
+
+    #endregion
+
+    #region Test: GetName_WithM49CodeByAlpha2Code
+
+    [Theory]
+    [MemberData(nameof(GetName_WithM49CodeByAlpha2Code_TestCaseGenerator.TestCases), MemberType = typeof(GetName_WithM49CodeByAlpha2Code_TestCaseGenerator))]
+    public void GetName_WithM49CodeByAlpha2Code_ReturnsCountryOrAreaName(UnM49AreaByAlpha2CountryCode testCode, string languageCode, string expectedResult)
+    {
+        // act
+        var testResult = testCode.GetName(languageCode);
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    private class GetName_WithM49CodeByAlpha2Code_TestCaseGenerator
+    {
+        public static IEnumerable<object[]> TestCases
+        {
+            get
+            {
+                yield return new object[] { UnM49AreaByAlpha2CountryCode.ZM, "en", "Zambia" };
+                yield return new object[] { UnM49AreaByAlpha2CountryCode.NC, "ar", "كاليدونيا الجديدة" };
+            }
+        }
+    }
+
+    #endregion
+
+    #region Test: GetName_WithM49CodeByAlpha3Code
+
+    [Theory]
+    [MemberData(nameof(GetName_WithM49CodeByAlpha3Code_TestCaseGenerator.TestCases), MemberType = typeof(GetName_WithM49CodeByAlpha3Code_TestCaseGenerator))]
+    public void GetName_WithM49CodeByAlpha3Code_ReturnsCountryOrAreaName(UnM49AreaByAlpha3CountryCode testCode, string languageCode, string expectedResult)
+    {
+        // act
+        var testResult = testCode.GetName(languageCode);
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    private class GetName_WithM49CodeByAlpha3Code_TestCaseGenerator
+    {
+        public static IEnumerable<object[]> TestCases
+        {
+            get
+            {
+                yield return new object[] { UnM49AreaByAlpha3CountryCode.ZMB, "en", "Zambia" };
+                yield return new object[] { UnM49AreaByAlpha3CountryCode.UKR, "fr", "Ukraine" };
+            }
+        }
+    }
+
+    #endregion
+
+    #region Test: GetName_WithUndefinedM49AreaCode
+
+    [Fact]
+    public void GetName_WithUndefinedM49AreaCode_ReturnsNull()
+    {
+        // act
+        var testResult = ((UnM49Area)9999).GetName("en");
+
+        // assert
+        testResult.Should().BeNull();
+    }
+
+    #endregion
+
+    #region Test: GetAncestorName_WithM49AreaCode
+
+    [Theory]
+    [MemberData(nameof(GetAncestorName_WithM49AreaCode_TestCaseGenerator.TestCases), MemberType = typeof(GetAncestorName_WithM49AreaCode_TestCaseGenerator))]
+    public void GetAncestorName_WithM49AreaCode_ReturnsCascadedName(UnM49Area testCode, string expectedRegionName, string expectedGlobalName)
+    {
+        // act
+        var testRegionName = testCode.GetRegionName("en");
+        var testGlobalName = testCode.GetGlobalName("en");
+
+        // assert
+        testRegionName.Should().Be(expectedRegionName);
+        testGlobalName.Should().Be(expectedGlobalName);
+    }
+
+    private class GetAncestorName_WithM49AreaCode_TestCaseGenerator
+    {
+        public static IEnumerable<object[]> TestCases
+        {
+            get
+            {
+                // Names of every level cascade down to the decorated code, mirroring the numeric codes.
+                yield return new object[] { UnM49Area._894, "Africa", "World" };
+                yield return new object[] { UnM49Area._004, "Asia", "World" };
+                yield return new object[] { UnM49Area._014, "Africa", "World" };
+            }
+        }
+    }
+
+    #endregion
+
+    #region Test: GetCountryOrAreaName_WithNonCountryM49AreaCode
+
+    [Theory]
+    [MemberData(nameof(GetCountryOrAreaName_WithNonCountryM49AreaCode_TestCaseGenerator.TestCases), MemberType = typeof(GetCountryOrAreaName_WithNonCountryM49AreaCode_TestCaseGenerator))]
+    public void GetCountryOrAreaName_WithNonCountryM49AreaCode_ReturnsNull(UnM49Area testCode)
+    {
+        // act
+        var testResult = testCode.GetCountryOrAreaName("en");
+
+        // assert
+        testResult.Should().BeNull();
+    }
+
+    private class GetCountryOrAreaName_WithNonCountryM49AreaCode_TestCaseGenerator
+    {
+        public static IEnumerable<object[]> TestCases
+        {
+            get
+            {
+                // A code above the country or area level has no country or area name.
+                yield return new object[] { UnM49Area._001 };
+                yield return new object[] { UnM49Area._002 };
+                yield return new object[] { UnM49Area._015 };
+                yield return new object[] { UnM49Area._014 };
+            }
+        }
+    }
+
+    #endregion
+
+    #region Test: GetM49Codes_WithM49CodesFromAreaEnum
+
+    [Fact]
+    public void GetM49Codes_WithM49CodesFromAreaEnum_ReturnsAllM49Codes()
+    {
+        // act
+        var testResult = UnM49Extensions.GetM49Codes<UnM49Area>();
+
+        // assert
+        testResult.Should().Contain(_hierarchicalM49Codes);
+    }
+
+    #endregion
 }
