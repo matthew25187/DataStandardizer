@@ -6,6 +6,7 @@
 # Source: Time Zone Database, IANA.                                         #
 # https://www.iana.org/time-zones                                           #
 #############################################################################
+#Requires -Version 7.4
 
 [CmdletBinding()]
 param (
