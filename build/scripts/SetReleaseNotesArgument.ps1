@@ -128,8 +128,142 @@ function Get-BreakingChangeTrailer {
     }
 }
 
-# Restore hard-wrapped paragraphs to single logical lines. Paragraphs are separated by blank lines;
-# trailer blocks are dropped, and list items are kept one note per item rather than run together.
+# A list item marker: a bullet or a number. Held in one place because both recognising the line
+# which opens an item and stripping the marker from it must agree on what a marker is.
+$script:listMarkerPattern = '^\s*(?:[-*+]\s+|\d+[.)]\s+)'
+
+# A squash merge separates the squashed commits with a rule of hyphens, which is not prose.
+$script:squashRulePattern = '^\s*-{3,}\s*$'
+
+# Read a body into blocks, each a run of non-blank lines, keeping the indentation of every line.
+# Indentation is what distinguishes a subordinate list item from a top level one, so unlike the
+# rest of the parsing this cannot trim first and decide afterwards.
+function Get-BodyBlock {
+    param (
+        [string]    $Body
+    )
+
+    foreach ($block in (($Body -replace "`r", [string]::Empty) -split "`n[ `t]*`n")) {
+        $lines = @(
+            $block -split "`n" |
+                Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+                Where-Object { $_ -notmatch $script:squashRulePattern } |
+                ForEach-Object { $_ -replace '\s+$', [string]::Empty }
+        )
+        if (0 -lt $lines.Count) {
+            , $lines
+        }
+    }
+}
+
+# The indentation of a line, in columns, with a tab counted as four. Only the relative depth of one
+# item against another matters, so the exact width is unimportant provided it is applied uniformly.
+function Get-LineIndent {
+    param (
+        [string]    $Line
+    )
+
+    $leading = [regex]::Match($Line, '^[ \t]*').Value
+    return ($leading -replace "`t", '    ').Length
+}
+
+# Split a block into its list items, each rejoined from the lines which wrap it, and each carrying
+# the indent of the line which opened it. A new item begins only at a marker line; every other line
+# continues the item currently open, which is what keeps a hard-wrapped item a single note.
+function Get-ListItem {
+    param (
+        [string[]]  $Lines
+    )
+
+    $text = [System.Text.StringBuilder]::new()
+    $indent = 0
+
+    foreach ($line in $Lines) {
+        if ($line -match $script:listMarkerPattern) {
+            if (0 -lt $text.Length) {
+                [PSCustomObject]@{ Indent = $indent; Text = $text.ToString().Trim() }
+            }
+            [void]$text.Clear()
+            $indent = Get-LineIndent -Line $line
+            [void]$text.Append(($line -replace $script:listMarkerPattern, [string]::Empty).Trim())
+            continue
+        }
+
+        if (0 -lt $text.Length) {
+            [void]$text.Append(' ')
+        }
+        [void]$text.Append($line.Trim())
+    }
+
+    if (0 -lt $text.Length) {
+        [PSCustomObject]@{ Indent = $indent; Text = $text.ToString().Trim() }
+    }
+}
+
+# Keep only the outermost items of a list. A more deeply indented item qualifies the item above it,
+# in the same way a list qualifies the paragraph above it, and a qualification is detail rather than
+# a change: it belongs in the commit history, not in a package listing.
+function Select-TopLevelItem {
+    param (
+        [object[]]  $Items
+    )
+
+    if ($null -eq $Items -or 0 -eq $Items.Count) {
+        return
+    }
+
+    $outermost = ($Items | Measure-Object -Property Indent -Minimum).Minimum
+    foreach ($item in $Items) {
+        if ($item.Indent -eq $outermost) {
+            $item.Text
+        }
+    }
+}
+
+# Verbs which open a sentence announcing a change in its own right.
+$script:announcingVerbs = 'Add|Remove|Fix|Cache|Consolidate|Rename|Deprecate|Replace|Drop|Introduce|Correct|Restore|Gate|Route|Report|Implement|Declare|Document|Cover|Confirm|Update|Extend|Expose|Enable|Disable|Move|Split|Merge|Delete'
+
+# Decide whether a paragraph introducing a list is substantive prose or merely a title for it.
+# A substantive lead states the change itself and the list below it only qualifies that statement,
+# so the lead is published and the list dropped. A title carries no statement of its own, so the
+# list carries the content instead. The test is whether the lead reads as a sentence: a finite verb
+# and enough length to say something. A heading such as the bold one a generated commit opens with
+# has neither, whereas 'Each directive now states that file's actual minimum, ...' has both.
+$script:finiteVerbPattern = '\b(?:is|are|was|were|be|been|being|has|have|had|does|do|did|can|could|will|would|shall|should|may|might|must|states|stated|becomes|became|returns|returned|carries|carried|uses|used|takes|took|makes|made|gives|gave|keeps|kept|leaves|left|remains|remained|ensures|ensured|avoids|avoided|produces|produced|requires|required|allows|allowed|prevents|prevented|reads|holds|held|spans|covers|adds|added)\b'
+$script:leadSentenceMinimumLength = 60
+
+function Test-SubstantiveLead {
+    param (
+        [string]    $Paragraph
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Paragraph)) {
+        return $false
+    }
+
+    # A heading emphasised in its entirety is a title however it is worded.
+    if ($Paragraph -match '^\*\*[^*]+\*\*[\p{P}]*$') {
+        return $false
+    }
+
+    # A lead which opens with a verb announcing a change states that change itself, however
+    # briefly, so it is substantive whatever its length: 'Extend UnM49Extensions to cover the
+    # new enumeration:' says what changed just as 'Each directive now states ...' does.
+    if ($Paragraph -cmatch "^(?:$($script:announcingVerbs))\b") {
+        return $true
+    }
+
+    if ($Paragraph.Length -lt $script:leadSentenceMinimumLength) {
+        return $false
+    }
+
+    return ($Paragraph -match $script:finiteVerbPattern)
+}
+
+# Restore hard-wrapped paragraphs to single logical lines and resolve the relationship between a
+# paragraph and the list which follows it. Paragraphs are separated by blank lines and trailer
+# blocks are dropped. A list elaborates on the paragraph above it, so exactly one of the two is
+# published: the paragraph where it states the change itself, otherwise the list items.
 function Expand-WrappedParagraph {
     param (
         [string]    $Body
@@ -139,31 +273,53 @@ function Expand-WrappedParagraph {
         return
     }
 
-    foreach ($block in (($Body -replace "`r", [string]::Empty) -split "`n[ `t]*`n")) {
-        $lines = @($block -split "`n" | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
-        if ($lines.Count -eq 0) {
-            continue
-        }
+    $blocks = @(Get-BodyBlock -Body $Body)
+    $pendingLead = $null
 
+    foreach ($lines in $blocks) {
         # A block whose every line is a trailer is metadata rather than prose. Testing the whole
         # block leaves prose which merely opens 'Note: ...' alone, because such a block also
         # contains lines which are not trailers.
-        $trailerLines = @($lines | Where-Object { Test-TrailerLine -Line $_ })
+        $trailerLines = @($lines | Where-Object { Test-TrailerLine -Line $_.Trim() })
         if ($trailerLines.Count -eq $lines.Count) {
             continue
         }
 
-        if ($lines[0] -match '^\s*(?:[-*+]\s+|\d+[.)]\s+)') {
-            foreach ($line in $lines) {
-                $item = ($line -replace '^\s*(?:[-*+]\s+|\d+[.)]\s+)', [string]::Empty).Trim()
-                if (-not [string]::IsNullOrWhiteSpace($item)) {
-                    $item
-                }
+        if ($lines[0] -match $script:listMarkerPattern) {
+            $items = @(Get-ListItem -Lines $lines)
+
+            # A squash merge opens each squashed commit with its subject as a lone bullet, which
+            # the paragraphs following it then describe in full. It is a title for what follows,
+            # so it is held as a pending lead rather than published in its own right.
+            if (1 -eq $items.Count -and $null -eq $pendingLead) {
+                $pendingLead = $items[0].Text
+                continue
             }
+
+            # The list qualifies the paragraph above it. Where that paragraph stated the change,
+            # it is the note and the list is detail; otherwise the paragraph was only a title and
+            # the list carries the content.
+            if ($null -ne $pendingLead -and (Test-SubstantiveLead -Paragraph $pendingLead)) {
+                $pendingLead
+                $pendingLead = $null
+                continue
+            }
+
+            $pendingLead = $null
+            Select-TopLevelItem -Items $items
             continue
         }
 
-        (($lines -join ' ') -replace '\s{2,}', ' ').Trim()
+        # A paragraph is held back until the following block is known, because whether it is
+        # published depends on whether a list follows it and on what that paragraph says.
+        if ($null -ne $pendingLead) {
+            $pendingLead
+        }
+        $pendingLead = ((($lines | ForEach-Object { $_.Trim() }) -join ' ') -replace '\s{2,}', ' ').Trim()
+    }
+
+    if ($null -ne $pendingLead) {
+        $pendingLead
     }
 }
 
@@ -176,14 +332,11 @@ $script:sentenceGuard = [string]::Join('|', [System.Linq.Enumerable]::Select[str
 $script:sentenceOpeningChars = [regex]::Escape('"' + "'" + '(' + [char]0x2018 + [char]0x201C)
 $script:sentenceBoundaryPattern = '(?<!\b(?:' + $script:sentenceGuard + '))(?<![A-Z])([.!?])\s+(?=[' + $script:sentenceOpeningChars + ']?[A-Z])'
 
-# Verbs which open a sentence announcing a change in its own right.
-$script:announcingVerbs = 'Add|Remove|Fix|Cache|Consolidate|Rename|Deprecate|Replace|Drop|Introduce|Correct|Restore|Gate|Route|Report|Implement|Declare|Document|Cover|Confirm|Update|Extend|Expose|Enable|Disable|Move|Split|Merge|Delete'
-
 # Sentences which describe the commit rather than the software. These read as an aside to a reviewer
 # reading the history and as noise to somebody reading a package listing, so they are not published.
 # Matching this narrow form rather than requiring an announcing verb keeps the many legitimate notes
 # which open with neither a verb nor a subject, such as 'Behaviour is unchanged.'
-$script:commentaryPattern = '^(?:\w+\s+){0,3}(?:tests?|changes?|commits?|paragraphs?|notes?)\s+(?:is|are|was|were)\s+worth\b|\bworth\s+calling\s+out\b|\bis\s+worth\s+(?:noting|mentioning)\b|^This\s+(?:commit|change)\b'
+$script:commentaryPattern = '^(?:\w+\s+){0,3}(?:tests?|changes?|commits?|paragraphs?|notes?)\s+(?:is|are|was|were)\s+worth\b|\bworth\s+calling\s+out\b|\bis\s+worth\s+(?:noting|mentioning)\b|^Th(?:is|ese)\s+(?:commit|change|update|edit|revision)s?\b'
 
 # Split a paragraph into its sentences.
 function Split-Sentence {
@@ -261,6 +414,71 @@ function Split-EnumeratedParagraph {
     return , $notes.ToArray()
 }
 
+# A tracker reference: an Azure Boards work item such as 'AB#4374', or a ticket or pull request
+# such as '#123'. Held in one place because recognising one and deciding where it may be removed
+# from must agree on what a reference is.
+$script:trackerReferencePattern = '(?:\bAB)?#\d+'
+
+# The characters which quote prose in this repository's commit messages: straight and curly quotes,
+# and the backtick which sets code and file names apart.
+$script:quotingChars = [char[]]@('"', "'", '`', [char]0x2018, [char]0x2019, [char]0x201C, [char]0x201D)
+
+# Test whether the character at an index falls inside a quoted or backticked run. Counting the
+# quoting characters which precede it is enough: an odd count means one is still open. This is
+# what distinguishes a reference the prose is discussing from one a tool appended.
+function Test-QuotedPosition {
+    param (
+        [string]    $Note,
+        [int]       $Index
+    )
+
+    $quoteCount = 0
+    for ($characterIndex = 0; $characterIndex -lt $Index; $characterIndex++) {
+        if ($script:quotingChars -contains $Note[$characterIndex]) {
+            $quoteCount++
+        }
+    }
+
+    return (0 -ne ($quoteCount % 2))
+}
+
+# Remove the tracker references a tool appended to a commit subject, leaving those the prose is
+# about. A reference is removed only where it stands apart from the sentence rather than within it:
+# parenthesised, as a squash merge writes it, or trailing the note. A reference inside quotes or
+# backticks is the subject matter and is always kept, as is one embedded mid-sentence, whose
+# removal would leave the sentence ungrammatical.
+function Remove-TrackerReference {
+    param (
+        [string]    $Note
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Note)) {
+        return $Note
+    }
+
+    # A parenthesised reference is punctuation around metadata wherever it sits, provided the
+    # parenthesis itself is not quoted.
+    $parenthesised = "\s*\(\s*$script:trackerReferencePattern\s*\)"
+    foreach ($match in ([regex]::Matches($Note, $parenthesised) | Sort-Object -Property Index -Descending)) {
+        if (-not (Test-QuotedPosition -Note $Note -Index $match.Index)) {
+            $Note = $Note.Remove($match.Index, $match.Length)
+        }
+    }
+
+    # A bare reference is metadata only where it trails the prose, allowing for the punctuation a
+    # sentence may end with. Anything after it means it is part of the sentence rather than an
+    # addition to it.
+    $trailing = [regex]::Match($Note, "\s*$script:trackerReferencePattern\s*[.!?:;,]*\s*$")
+    if ($trailing.Success -and -not (Test-QuotedPosition -Note $Note -Index $trailing.Index)) {
+        # Keep any terminating punctuation which followed the reference, so that a note reading
+        # 'Fix the parser #123.' is left as a properly terminated sentence.
+        $punctuation = ($trailing.Value -replace '[^.!?]', [string]::Empty)
+        $Note = $Note.Remove($trailing.Index) + $punctuation
+    }
+
+    return $Note
+}
+
 # Tidy a raw commit subject into a release note: drop CI directives and ticket/PR references,
 # normalise whitespace, and ensure terminating punctuation. Returns $null when nothing remains.
 function Format-ReleaseNote {
@@ -280,13 +498,13 @@ function Format-ReleaseNote {
     }
 
     $note = $Message -replace $SanitisePattern, [string]::Empty
-    # Remove an Azure Boards work item reference (e.g. "AB#4374") whole, before the bare reference
-    # removal below can reduce it to a stray "AB".
-    $note = $note -replace '\bAB#\d+\b', [string]::Empty
-    # Remove a trailing parenthesised PR reference (e.g. " (#87)") added by squash merges.
-    $note = $note -replace '\s*\(#\d+\)', [string]::Empty
-    # Remove any remaining bare ticket/PR references (e.g. "#123").
-    $note = $note -replace '#\d+', [string]::Empty
+    # Remove the tracker references a tool appended, but not one the prose is itself discussing.
+    # A reference is metadata where it stands apart from the sentence: trailing, or parenthesised.
+    # Where it is quoted or set in backticks it is the subject matter, as in a note reporting that
+    # 'AB#4374' was reduced to a stray 'AB', and removing it empties the quotation it explains.
+    # Removing one from mid-sentence is likewise wrong, leaving 'Correct handling of reported by
+    # the team', so a reference is taken only from the end of the note where it trails the prose.
+    $note = Remove-TrackerReference -Note $note
     # Drop punctuation left stranded at the start once a leading reference has been removed.
     $note = $note -replace '^\s*[:;,.\-]+\s*', [string]::Empty
     # Collapse whitespace left behind by the removals.
@@ -296,12 +514,16 @@ function Format-ReleaseNote {
     if ($note -notmatch '\w') {
         return $null
     }
+    # A note which introduced a list is published without that list, the items having been dropped
+    # as detail, so a colon or a semicolon left at the end now introduces nothing. Replace it with
+    # a full stop rather than appending one, which would read as a mistake.
+    $note = $note -replace '\s*[:;]$', '.'
+
     # Append a full stop unless the note already ends in terminating punctuation
     # (full stop, exclamation/question mark, or an ellipsis), ignoring any trailing
-    # closing quote (straight or curly) or bracket. A colon terminates a note which
-    # introduces a list, and a full stop after it reads as a mistake.
+    # closing quote (straight or curly) or bracket.
     $closingChars = [char[]]@('"', "'", ')', ']', [char]0x2019, [char]0x201D)
-    $terminators = [char[]]@('.', '!', '?', ':', [char]0x2026)
+    $terminators = [char[]]@('.', '!', '?', [char]0x2026)
     $trimmed = $note.TrimEnd($closingChars)
     if ($trimmed.Length -eq 0 -or $terminators -notcontains $trimmed[-1]) {
         $note += '.'
