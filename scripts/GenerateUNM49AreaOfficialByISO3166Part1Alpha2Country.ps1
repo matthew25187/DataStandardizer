@@ -6,6 +6,7 @@
 # Source: Standard country or area codes for statistical use (M49), United Nations Statistics Division. #
 # https://unstats.un.org/unsd/methodology/m49/overview/                                                 #
 #########################################################################################################
+#Requires -Version 7.4
 
 param (
     [Parameter(Mandatory, HelpMessage = 'Path to the file containing official English-language codes.')]

@@ -20,11 +20,22 @@ public static class UnM49Extensions
 
 ## Remarks
 
-Each metadata accessor exists as an overload extending both
-`UnM49AreaByAlpha2CountryCode` and `UnM49AreaByAlpha3CountryCode`, returning the
-requested value or `null` when it is unavailable or the code is undefined. The
-name accessors take an ISO 639 language code accepting the Part 1 alpha-2 or Part
-2 alpha-3 form for English, Chinese, Russian, French, Spanish, and Arabic.
+Each metadata accessor exists as an overload extending
+`UnM49AreaByAlpha2CountryCode`, `UnM49AreaByAlpha3CountryCode`, and
+[UnM49Area](UnM49Area.md), returning the requested value or `null` when it is
+unavailable or the code is undefined. The name accessors take an ISO 639 language
+code accepting the Part 1 alpha-2 or Part 2 alpha-3 form for English, Chinese,
+Russian, French, Spanish, and Arabic.
+
+A code's attribute carries the codes and the names of every level down to and
+including the level the code itself occupies, so the ancestor accessors resolve
+from any code. `GetName` returns the name of whichever level the code occupies,
+which matters for [UnM49Area](UnM49Area.md) because its members span every level
+of the hierarchy; for the two country-keyed enumerations it is equivalent to
+`GetCountryOrAreaName`.
+
+`GetLevel`, `GetParent`, and `IsWithin` extend [UnM49Area](UnM49Area.md) only, as
+the two country-keyed enumerations cannot represent a region as a value.
 
 On .NET Standard targets the `string?` return and parameter types are `string`
 annotated with JetBrains `[CanBeNull]` / `[NotNull]`.
@@ -45,15 +56,19 @@ extension methods.
 
 | Method | Extends | Returns | Notes |
 | --- | --- | --- | --- |
-| `GetCountryOrAreaName(string languageCode)` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` | `string?` | Country or area name for the M49 code. |
-| `GetGlobalCode()` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` | `ushort?` | Global code related to the M49 code. |
-| `GetGlobalName(string languageCode)` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` | `string?` | Name of the global code. |
-| `GetIntermediateRegionCode()` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` | `ushort?` | Intermediate region code related to the M49 code. |
-| `GetIntermediateRegionName(string languageCode)` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` | `string?` | Name of the intermediate region code. |
-| `GetRegionCode()` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` | `ushort?` | Region code related to the M49 code. |
-| `GetRegionName(string languageCode)` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` | `string?` | Name of the region code. |
-| `GetSubRegionCode()` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` | `ushort?` | Sub-region code related to the M49 code. |
-| `GetSubRegionName(string languageCode)` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` | `string?` | Name of the sub-region code. |
+| `GetCountryOrAreaName(string languageCode)` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `string?` | Country or area name for the M49 code. Returns `null` for a `UnM49Area` code above the country or area level. |
+| `GetGlobalCode()` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `ushort?` | Global code related to the M49 code. |
+| `GetGlobalName(string languageCode)` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `string?` | Name of the global code. |
+| `GetIntermediateRegionCode()` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `ushort?` | Intermediate region code related to the M49 code. |
+| `GetIntermediateRegionName(string languageCode)` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `string?` | Name of the intermediate region code. |
+| `GetLevel()` | `UnM49Area` | `UnM49AreaLevel?` | Level of the M49 hierarchy occupied by the code. |
+| `GetName(string languageCode)` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `string?` | Name of the area at whatever level of the hierarchy it occupies. |
+| `GetParent()` | `UnM49Area` | `UnM49Area?` | Parent area in the M49 hierarchy; `null` for the world. |
+| `GetRegionCode()` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `ushort?` | Region code related to the M49 code. |
+| `GetRegionName(string languageCode)` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `string?` | Name of the region code. |
+| `GetSubRegionCode()` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `ushort?` | Sub-region code related to the M49 code. |
+| `GetSubRegionName(string languageCode)` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `string?` | Name of the sub-region code. |
+| `IsWithin(UnM49Area other)` | `UnM49Area` | `bool` | Whether the code falls within another area. An area does not fall within itself. |
 
 ## Applies to
 
@@ -63,6 +78,8 @@ Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`.
 
 - [Access area metadata](../how-to/access-area-metadata.md)
 - [Use area codes](../how-to/use-area-codes.md)
+- [UnM49Area](UnM49Area.md)
+- [UnM49AreaLevel](UnM49AreaLevel.md)
 - [UnM49AreaByAlpha2CountryCode](UnM49AreaByAlpha2CountryCode.md)
 - [UnM49AreaByAlpha3CountryCode](UnM49AreaByAlpha3CountryCode.md)
 - [UnM49AreaCodeAttribute](UnM49AreaCodeAttribute.md)
