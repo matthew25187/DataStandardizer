@@ -1,0 +1,45 @@
+# Jekyll configuration for the Data Standardizer documentation site.
+# Built natively by GitHub Pages from the /docs folder on the `master` branch.
+# Theme: Just the Docs (consumed via remote_theme; no Gemfile/build step required).
+
+title: Data Standardizer
+description: >-
+  .NET packages providing strongly-typed implementations of internationally
+  recognised data standards — chronology, communication, files, geography,
+  languages, language tags, and money.
+
+# Consider pinning to a released tag (e.g. just-the-docs/just-the-docs@v0.10.1)
+# for reproducible builds. Unpinned tracks the theme's default branch.
+remote_theme: just-the-docs/just-the-docs
+
+# Project site published at https://matthew25187.github.io/DataStandardizer
+url: https://matthew25187.github.io
+baseurl: "/DataStandardizer"
+
+plugins:
+  - jekyll-remote-theme
+  - jekyll-seo-tag
+  - jekyll-include-cache
+  # Rewrites relative *.md links to their built URLs, so links that work in the
+  # GitHub repo browser and IDE preview also resolve on the published site.
+  - jekyll-relative-links
+
+# Just the Docs options
+color_scheme: light
+search_enabled: true
+heading_anchors: true
+
+aux_links:
+  "GitHub":
+    - "https://github.com/matthew25187/DataStandardizer"
+  "NuGet":
+    - "https://www.nuget.org/packages?q=DataStandardizer"
+aux_links_new_tab: true
+
+nav_external_links:
+  - title: Sponsor the project
+    url: https://github.com/sponsors/matthew25187
+
+# Exclude planning/repo files from the published site.
+exclude:
+  - "*.slnf"

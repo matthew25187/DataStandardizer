@@ -6,6 +6,7 @@
 # Source: ISO 639 Set 5, Library of Congress.                                   #
 # https://id.loc.gov/vocabulary/iso639-5.html                                   #
 #################################################################################
+#Requires -Version 7.4
 
 param (
     [Parameter(Mandatory, HelpMessage = 'Path to the file containing the official list of language codes.')]

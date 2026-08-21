@@ -6,7 +6,7 @@
 # Source: Historic Denominations (Currencies & Funds) (XML), SIX Group.                    #
 # https://www.six-group.com/en/products-services/financial-information/data-standards.html #
 ############################################################################################
-#Requires -Version 7.4
+#Requires -Version 7.1
 
 param (
     [Parameter(HelpMessage = 'URL from which the ISO 4217 codes list can be downloaded.')]
