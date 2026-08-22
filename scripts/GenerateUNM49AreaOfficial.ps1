@@ -64,7 +64,9 @@ function Expand-AreaCode {
                 [string]    $SubRegionCode,
                 [string]    $IntermediateRegionCode,
                 [string[]]  $NameArguments,
-                [string[]]  $Names
+                [string[]]  $Names,
+                [string]    $Iso3166Part1Alpha2Code,
+                [string]    $Iso3166Part1Alpha3Code
             )
 
             if ([string]::IsNullOrWhiteSpace($Code)) {
@@ -96,6 +98,8 @@ function Expand-AreaCode {
                 'Region Code'              = $RegionCode
                 'Sub-region Code'          = $SubRegionCode
                 'Intermediate Region Code' = $IntermediateRegionCode
+                'ISO-alpha2 Code'          = $Iso3166Part1Alpha2Code
+                'ISO-alpha3 Code'          = $Iso3166Part1Alpha3Code
                 'Levels'                   = $levels
             }
         }
@@ -130,7 +134,8 @@ function Expand-AreaCode {
         Add-Area -Code $_.'M49 Code' `
             -GlobalCode $_.'Global Code' -RegionCode $_.'Region Code' -SubRegionCode $_.'Sub-region Code' -IntermediateRegionCode $_.'Intermediate Region Code' `
             -NameArguments @('GlobalName', 'RegionName', 'SubRegionName', 'IntermediateRegionName', 'CountryOrAreaName') `
-            -Names @($_.'Global Name', $_.'Region Name', $_.'Sub-region Name', $_.'Intermediate Region Name', $_.'Country or Area')
+            -Names @($_.'Global Name', $_.'Region Name', $_.'Sub-region Name', $_.'Intermediate Region Name', $_.'Country or Area') `
+            -Iso3166Part1Alpha2Code $_.'ISO-alpha2 Code' -Iso3166Part1Alpha3Code $_.'ISO-alpha3 Code'
     }
 
     end {
@@ -285,6 +290,16 @@ function Out-SourceCode {
                     Write-Warning "$($languageSet.Language) variant of the $nameArgument for M49 code $m49Code not found."
                 }
             }
+        }
+
+        # The ISO 3166 Part 1 country codes correlate the M49 code with the ISO 3166 standard.  Only
+        # codes occupying the country or area level of the hierarchy bear them; aggregate levels such as
+        # the global, region, sub-region and intermediate region levels have no country code.
+        if (-not [string]::IsNullOrWhiteSpace($_.'ISO-alpha2 Code')) {
+            $codeAttributeArguments += [System.CodeDom.CodeAttributeArgument]::new('Iso3166Part1Alpha2Code', [System.CodeDom.CodePrimitiveExpression]::new($_.'ISO-alpha2 Code'))
+        }
+        if (-not [string]::IsNullOrWhiteSpace($_.'ISO-alpha3 Code')) {
+            $codeAttributeArguments += [System.CodeDom.CodeAttributeArgument]::new('Iso3166Part1Alpha3Code', [System.CodeDom.CodePrimitiveExpression]::new($_.'ISO-alpha3 Code'))
         }
 
         $codeAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.Geography.UnM49AreaCodeAttribute', $codeAttributeArguments)
