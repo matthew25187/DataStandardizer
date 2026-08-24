@@ -20,6 +20,7 @@ namespace DataStandardizer.Communication.E164
         protected const string PatternWhiteSpaceCharacterClass = @"\p{Zs}\p{Cc}";
 
         private static readonly Dictionary<(Type, ItuE164InternationalNumberStyles), Regex> ParseExpressions = new Dictionary<(Type, ItuE164InternationalNumberStyles), Regex>();
+        private static readonly object ParseExpressionsLock = new object();
 
         protected internal ItuE164InternationalNumberStructureBase(ulong number)
         {
@@ -86,18 +87,26 @@ namespace DataStandardizer.Communication.E164
 
         protected static Regex GetParseExpression(Type discriminatorType, ItuE164InternationalNumberStyles numberStyles, Func<ItuE164InternationalNumberStyles, string> getParsePattern)
         {
-            if (!ParseExpressions.TryGetValue((discriminatorType, numberStyles), out var parseExpression))
+            // The cache is shared by every number structure type and is populated lazily from
+            // ItuE164InternationalNumber.Parse/TryParse, so unsynchronized access would let concurrent
+            // callers corrupt the Dictionary. A lock is used in preference to ConcurrentDictionary
+            // because the netstandard1.0 target does not offer one; contention is negligible, as the
+            // cache saturates after a handful of calls and every later call is a lookup under the lock.
+            lock (ParseExpressionsLock)
             {
-                var parseExpressionOptions = RegexOptions.Singleline;
+                if (!ParseExpressions.TryGetValue((discriminatorType, numberStyles), out var parseExpression))
+                {
+                    var parseExpressionOptions = RegexOptions.Singleline;
 #if NETSTANDARD1_3_OR_GREATER||NET
-                parseExpressionOptions |= RegexOptions.Compiled;
+                    parseExpressionOptions |= RegexOptions.Compiled;
 #endif
-                var parsePattern = getParsePattern(numberStyles);
-                parseExpression = new Regex(parsePattern, parseExpressionOptions);
-                ParseExpressions.Add((discriminatorType, numberStyles), parseExpression);
-            }
+                    var parsePattern = getParsePattern(numberStyles);
+                    parseExpression = new Regex(parsePattern, parseExpressionOptions);
+                    ParseExpressions.Add((discriminatorType, numberStyles), parseExpression);
+                }
 
-            return parseExpression;
+                return parseExpression;
+            }
         }
     }
 }
