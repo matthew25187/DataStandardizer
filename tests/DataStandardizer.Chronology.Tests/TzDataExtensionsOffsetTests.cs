@@ -330,14 +330,17 @@ public class TzDataExtensionsOffsetTests
     {
         get
         {
-            yield return new object[] { "GetZoneLine", new Action<TzDataTimezone, DateTime>((timezone, utc) => timezone.GetZoneLine(utc)) };
-            yield return new object[] { "GetUtcOffset", new Action<TzDataTimezone, DateTime>((timezone, utc) => timezone.GetUtcOffset(utc)) };
-            yield return new object[] { "GetStandardOffset", new Action<TzDataTimezone, DateTime>((timezone, utc) => timezone.GetStandardOffset(utc)) };
-            yield return new object[] { "GetDaylightSavings", new Action<TzDataTimezone, DateTime>((timezone, utc) => timezone.GetDaylightSavings(utc)) };
-            yield return new object[] { "IsDaylightSavingTime", new Action<TzDataTimezone, DateTime>((timezone, utc) => timezone.IsDaylightSavingTime(utc)) };
-            yield return new object[] { "GetOffsetInfo", new Action<TzDataTimezone, DateTime>((timezone, utc) => timezone.GetOffsetInfo(utc)) };
-            yield return new object[] { "GetTransitions(from)", new Action<TzDataTimezone, DateTime>((timezone, utc) => timezone.GetTransitions(utc, DateTime.MaxValue)) };
-            yield return new object[] { "GetTransitions(to)", new Action<TzDataTimezone, DateTime>((timezone, utc) => timezone.GetTransitions(DateTime.MinValue, utc)) };
+            yield return new object[] { nameof(TzDataExtensions.GetZoneLine), new Action<TzDataTimezone, DateTime>((timezone, utc) => timezone.GetZoneLine(utc)) };
+            yield return new object[] { nameof(TzDataExtensions.GetUtcOffset), new Action<TzDataTimezone, DateTime>((timezone, utc) => timezone.GetUtcOffset(utc)) };
+            yield return new object[] { nameof(TzDataExtensions.GetStandardOffset), new Action<TzDataTimezone, DateTime>((timezone, utc) => timezone.GetStandardOffset(utc)) };
+            yield return new object[] { nameof(TzDataExtensions.GetDaylightSavings), new Action<TzDataTimezone, DateTime>((timezone, utc) => timezone.GetDaylightSavings(utc)) };
+            yield return new object[] { nameof(TzDataExtensions.IsDaylightSavingTime), new Action<TzDataTimezone, DateTime>((timezone, utc) => timezone.IsDaylightSavingTime(utc)) };
+            yield return new object[] { nameof(TzDataExtensions.GetOffsetInfo), new Action<TzDataTimezone, DateTime>((timezone, utc) => timezone.GetOffsetInfo(utc)) };
+            yield return new object[] { nameof(TzDataExtensions.GetAbbreviation), new Action<TzDataTimezone, DateTime>((timezone, utc) => timezone.GetAbbreviation(utc)) };
+            yield return new object[] { nameof(TzDataExtensions.GetStandardAbbreviation), new Action<TzDataTimezone, DateTime>((timezone, utc) => timezone.GetStandardAbbreviation(utc)) };
+            yield return new object[] { nameof(TzDataExtensions.GetDaylightAbbreviation), new Action<TzDataTimezone, DateTime>((timezone, utc) => timezone.GetDaylightAbbreviation(utc)) };
+            yield return new object[] { $"{nameof(TzDataExtensions.GetTransitions)}(from)", new Action<TzDataTimezone, DateTime>((timezone, utc) => timezone.GetTransitions(utc, DateTime.MaxValue)) };
+            yield return new object[] { $"{nameof(TzDataExtensions.GetTransitions)}(to)", new Action<TzDataTimezone, DateTime>((timezone, utc) => timezone.GetTransitions(DateTime.MinValue, utc)) };
         }
     }
 
@@ -345,13 +348,16 @@ public class TzDataExtensionsOffsetTests
     {
         get
         {
-            yield return new object[] { "GetZoneLine", new Action<TzDataTimezone, DateTimeOffset>((timezone, instant) => timezone.GetZoneLine(instant)) };
-            yield return new object[] { "GetUtcOffset", new Action<TzDataTimezone, DateTimeOffset>((timezone, instant) => timezone.GetUtcOffset(instant)) };
-            yield return new object[] { "GetStandardOffset", new Action<TzDataTimezone, DateTimeOffset>((timezone, instant) => timezone.GetStandardOffset(instant)) };
-            yield return new object[] { "GetDaylightSavings", new Action<TzDataTimezone, DateTimeOffset>((timezone, instant) => timezone.GetDaylightSavings(instant)) };
-            yield return new object[] { "IsDaylightSavingTime", new Action<TzDataTimezone, DateTimeOffset>((timezone, instant) => timezone.IsDaylightSavingTime(instant)) };
-            yield return new object[] { "GetOffsetInfo", new Action<TzDataTimezone, DateTimeOffset>((timezone, instant) => timezone.GetOffsetInfo(instant)) };
-            yield return new object[] { "GetTransitions", new Action<TzDataTimezone, DateTimeOffset>((timezone, instant) => timezone.GetTransitions(instant, DateTimeOffset.MaxValue)) };
+            yield return new object[] { nameof(TzDataExtensions.GetZoneLine), new Action<TzDataTimezone, DateTimeOffset>((timezone, instant) => timezone.GetZoneLine(instant)) };
+            yield return new object[] { nameof(TzDataExtensions.GetUtcOffset), new Action<TzDataTimezone, DateTimeOffset>((timezone, instant) => timezone.GetUtcOffset(instant)) };
+            yield return new object[] { nameof(TzDataExtensions.GetStandardOffset), new Action<TzDataTimezone, DateTimeOffset>((timezone, instant) => timezone.GetStandardOffset(instant)) };
+            yield return new object[] { nameof(TzDataExtensions.GetDaylightSavings), new Action<TzDataTimezone, DateTimeOffset>((timezone, instant) => timezone.GetDaylightSavings(instant)) };
+            yield return new object[] { nameof(TzDataExtensions.IsDaylightSavingTime), new Action<TzDataTimezone, DateTimeOffset>((timezone, instant) => timezone.IsDaylightSavingTime(instant)) };
+            yield return new object[] { nameof(TzDataExtensions.GetOffsetInfo), new Action<TzDataTimezone, DateTimeOffset>((timezone, instant) => timezone.GetOffsetInfo(instant)) };
+            yield return new object[] { nameof(TzDataExtensions.GetAbbreviation), new Action<TzDataTimezone, DateTimeOffset>((timezone, instant) => timezone.GetAbbreviation(instant)) };
+            yield return new object[] { nameof(TzDataExtensions.GetStandardAbbreviation), new Action<TzDataTimezone, DateTimeOffset>((timezone, instant) => timezone.GetStandardAbbreviation(instant)) };
+            yield return new object[] { nameof(TzDataExtensions.GetDaylightAbbreviation), new Action<TzDataTimezone, DateTimeOffset>((timezone, instant) => timezone.GetDaylightAbbreviation(instant)) };
+            yield return new object[] { nameof(TzDataExtensions.GetTransitions), new Action<TzDataTimezone, DateTimeOffset>((timezone, instant) => timezone.GetTransitions(instant, DateTimeOffset.MaxValue)) };
         }
     }
 
