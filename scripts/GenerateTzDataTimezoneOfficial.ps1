@@ -17,6 +17,10 @@
     comment, and its full history of zone lines.  The zone lines, and the daylight saving rule sets they reference,
     are parsed from the main-format region files and generated into two further partial source files.
 
+    The coordinates, countries and comment are passed to the constructor of each field.  They are also applied to
+    the field as the obsolete TzDataTimezoneAttribute, for callers that read it by reflection, with warning CS0618
+    suppressed around the fields.
+
     The following files of the TZ Database source (tzdata) are required in the source folder:
 
     - zone1970.tab, which lists the timezones to generate;
@@ -219,6 +223,114 @@ function Get-ZoneLinesFieldDeclaration {
     }
 
     return $fieldDeclaration
+}
+
+function Get-LocationFieldDeclaration {
+    [OutputType([System.CodeDom.CodeMemberField])]
+    param (
+        [Parameter()]
+        [switch]    $UseNullableReferenceTypes
+    )
+
+    $typeExpression = $PSBoundParameters.ContainsKey('UseNullableReferenceTypes')? 'readonly DataStandardizer.Chronology.TzDataTimezone.Location?':'readonly DataStandardizer.Chronology.TzDataTimezone.Location'
+    $fieldDeclaration = [System.CodeDom.CodeMemberField]::new($typeExpression, '_location')
+    $fieldDeclaration.Attributes = ($fieldDeclaration.Attributes -band -bnot [System.CodeDom.MemberAttributes]::AccessMask) -bor [System.CodeDom.MemberAttributes]::Private
+
+    if (-not $PSBoundParameters.ContainsKey('UseNullableReferenceTypes')) {
+        [void]$fieldDeclaration.CustomAttributes.Add([System.CodeDom.CodeAttributeDeclaration]::new('JetBrains.Annotations.CanBeNullAttribute'))
+    }
+
+    return $fieldDeclaration
+}
+
+function Get-DataConstructorDeclaration {
+    <#
+        .SYNOPSIS
+        Declares the constructor used by the timezone fields, which takes the identifier, the zone lines and the
+        location metadata of the timezone.
+    #>
+    [OutputType([System.CodeDom.CodeConstructor])]
+    param (
+        [Parameter()]
+        [switch]    $UseNullableReferenceTypes
+    )
+
+    $constructor = [System.CodeDom.CodeConstructor]::new()
+    $constructor.Attributes = ($constructor.Attributes -band -bnot [System.CodeDom.MemberAttributes]::AccessMask) -bor [System.CodeDom.MemberAttributes]::Private
+    [void]$constructor.Parameters.Add([System.CodeDom.CodeParameterDeclarationExpression]::new([string], 'value'))
+    [void]$constructor.Parameters.Add([System.CodeDom.CodeParameterDeclarationExpression]::new('DataStandardizer.Chronology.TzDataZoneLine[]', 'zoneLines'))
+    [void]$constructor.Parameters.Add([System.CodeDom.CodeParameterDeclarationExpression]::new([double], 'latitude'))
+    [void]$constructor.Parameters.Add([System.CodeDom.CodeParameterDeclarationExpression]::new([double], 'longitude'))
+    [void]$constructor.Parameters.Add([System.CodeDom.CodeParameterDeclarationExpression]::new([string[]], 'isoCountryCodes'))
+    if ($PSBoundParameters.ContainsKey('UseNullableReferenceTypes')) {
+        [void]$constructor.Parameters.Add([System.CodeDom.CodeParameterDeclarationExpression]::new('string?', 'comment'))
+    }
+    else {
+        $commentParameter = [System.CodeDom.CodeParameterDeclarationExpression]::new([string], 'comment')
+        [void]$commentParameter.CustomAttributes.Add([System.CodeDom.CodeAttributeDeclaration]::new('JetBrains.Annotations.CanBeNullAttribute'))
+        [void]$constructor.Parameters.Add($commentParameter)
+    }
+
+    foreach ($parameterName in @('value', 'zoneLines', 'isoCountryCodes')) {
+        [void]$constructor.Statements.Add([System.CodeDom.CodeConditionStatement]::new(
+                [System.CodeDom.CodeBinaryOperatorExpression]::new(
+                    [System.CodeDom.CodeArgumentReferenceExpression]::new($parameterName),
+                    [System.CodeDom.CodeBinaryOperatorType]::ValueEquality,
+                    [System.CodeDom.CodePrimitiveExpression]::new($null)),
+                @([System.CodeDom.CodeThrowExceptionStatement]::new([System.CodeDom.CodeObjectCreateExpression]::new([System.CodeDom.CodeTypeReference]::new([System.ArgumentNullException]), @([System.CodeDom.CodeSnippetExpression]::new("nameof($parameterName)")))))))
+    }
+    [void]$constructor.Statements.Add([System.CodeDom.CodeAssignStatement]::new(
+            [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), '_value'),
+            [System.CodeDom.CodeArgumentReferenceExpression]::new('value')))
+    [void]$constructor.Statements.Add([System.CodeDom.CodeAssignStatement]::new(
+            [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), '_zoneLines'),
+            [System.CodeDom.CodeArgumentReferenceExpression]::new('zoneLines')))
+    [void]$constructor.Statements.Add([System.CodeDom.CodeAssignStatement]::new(
+            [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), '_location'),
+            [System.CodeDom.CodeObjectCreateExpression]::new('DataStandardizer.Chronology.TzDataTimezone.Location', @(
+                    [System.CodeDom.CodeArgumentReferenceExpression]::new('latitude'),
+                    [System.CodeDom.CodeArgumentReferenceExpression]::new('longitude'),
+                    [System.CodeDom.CodeArgumentReferenceExpression]::new('isoCountryCodes'),
+                    [System.CodeDom.CodeArgumentReferenceExpression]::new('comment')))))
+
+    return $constructor
+}
+
+function Format-CodeExpression {
+    [OutputType([string])]
+    param (
+        [Parameter(Mandatory)]
+        [System.CodeDom.CodeExpression] $Expression,
+
+        [Parameter(Mandatory)]
+        [System.CodeDom.Compiler.CodeDomProvider]   $Provider
+    )
+
+    $writer = [System.IO.StringWriter]::new()
+    try {
+        $Provider.GenerateCodeFromExpression($Expression, $writer, [System.CodeDom.Compiler.CodeGeneratorOptions]::new())
+        return $writer.ToString()
+    }
+    finally {
+        $writer.Close()
+    }
+}
+
+function New-NamedArgumentExpression {
+    <#
+        .SYNOPSIS
+        Declares a named argument, which CodeDom cannot express, as a snippet of the generated argument expression.
+    #>
+    [OutputType([System.CodeDom.CodeSnippetExpression])]
+    param (
+        [Parameter(Mandatory)]
+        [string]    $Name,
+
+        [Parameter(Mandatory)]
+        [string]    $ExpressionText
+    )
+
+    return [System.CodeDom.CodeSnippetExpression]::new("${Name}: $ExpressionText")
 }
 
 function ConvertTo-FieldName {
@@ -531,9 +643,11 @@ function Out-SourceCode {
             [System.CodeDom.CodeSnippetTypeMember]::new('#if NETCOREAPP3_0_OR_GREATER'),
             (Get-ValueFieldDeclaration -UseNullableReferenceTypes),
             (Get-ZoneLinesFieldDeclaration -UseNullableReferenceTypes),
+            (Get-LocationFieldDeclaration -UseNullableReferenceTypes),
             [System.CodeDom.CodeSnippetTypeMember]::new('#else'),
             (Get-ValueFieldDeclaration),
             (Get-ZoneLinesFieldDeclaration),
+            (Get-LocationFieldDeclaration),
             [System.CodeDom.CodeSnippetTypeMember]::new('#endif'))
         $declarationMembers | Select-Object -First 1 | ForEach-Object { [void]$_.StartDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::Start, 'Declarations')) }
         $declarationMembers | Select-Object -Last 1 | ForEach-Object { [void]$_.EndDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::End, [string]::Empty)) }
@@ -553,31 +667,28 @@ function Out-SourceCode {
         $valueAssignmentStatement = [System.CodeDom.CodeAssignStatement]::new(
             [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), '_value'),
             [System.CodeDom.CodeArgumentReferenceExpression]::new('value'))
-        # Every field of a struct must be assigned by its constructors, and the zone lines of a timezone created by
-        # explicit cast are found by its identifier instead.
+        # Every field of a struct must be assigned by its constructors, and the zone lines and location of a timezone
+        # created by explicit cast are found by its identifier instead.
         $noZoneLinesAssignmentStatement = [System.CodeDom.CodeAssignStatement]::new(
             [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), '_zoneLines'),
             [System.CodeDom.CodePrimitiveExpression]::new($null))
-        $structConstructor.Statements.AddRange(@($argumentCheckStatement, $valueAssignmentStatement, $noZoneLinesAssignmentStatement))
+        $noLocationAssignmentStatement = [System.CodeDom.CodeAssignStatement]::new(
+            [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), '_location'),
+            [System.CodeDom.CodePrimitiveExpression]::new($null))
+        $structConstructor.Statements.AddRange(@($argumentCheckStatement, $valueAssignmentStatement, $noZoneLinesAssignmentStatement, $noLocationAssignmentStatement))
         [void]$structConstructor.StartDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::Start, 'Constructors'))
         [void]$structType.Members.Add($structConstructor)
 
-        $zoneLinesStructConstructor = [System.CodeDom.CodeConstructor]::new()
-        $zoneLinesStructConstructor.Attributes = ($zoneLinesStructConstructor.Attributes -band -bnot [System.CodeDom.MemberAttributes]::AccessMask) -bor [System.CodeDom.MemberAttributes]::Private
-        [void]$zoneLinesStructConstructor.Parameters.Add([System.CodeDom.CodeParameterDeclarationExpression]::new([string], 'value'))
-        [void]$zoneLinesStructConstructor.Parameters.Add([System.CodeDom.CodeParameterDeclarationExpression]::new('DataStandardizer.Chronology.TzDataZoneLine[]', 'zoneLines'))
-        $zoneLinesArgumentCheckStatement = [System.CodeDom.CodeConditionStatement]::new(
-            [System.CodeDom.CodeBinaryOperatorExpression]::new(
-                [System.CodeDom.CodeArgumentReferenceExpression]::new('zoneLines'),
-                [System.CodeDom.CodeBinaryOperatorType]::ValueEquality,
-                [System.CodeDom.CodePrimitiveExpression]::new($null)),
-            @([System.CodeDom.CodeThrowExceptionStatement]::new([System.CodeDom.CodeObjectCreateExpression]::new([System.CodeDom.CodeTypeReference]::new([System.ArgumentNullException]), @([System.CodeDom.CodeSnippetExpression]::new('nameof(zoneLines)'))))))
-        $zoneLinesAssignmentStatement = [System.CodeDom.CodeAssignStatement]::new(
-            [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), '_zoneLines'),
-            [System.CodeDom.CodeArgumentReferenceExpression]::new('zoneLines'))
-        $zoneLinesStructConstructor.Statements.AddRange(@($argumentCheckStatement, $zoneLinesArgumentCheckStatement, $valueAssignmentStatement, $zoneLinesAssignmentStatement))
-        [void]$zoneLinesStructConstructor.EndDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::End, [string]::Empty))
-        [void]$structType.Members.Add($zoneLinesStructConstructor)
+        # The comment parameter of the constructor used by the timezone fields is nullable, so it is declared once for
+        # each nullable context.
+        [System.CodeDom.CodeTypeMember[]]$dataConstructorMembers = @(
+            [System.CodeDom.CodeSnippetTypeMember]::new('#if NETCOREAPP3_0_OR_GREATER'),
+            (Get-DataConstructorDeclaration -UseNullableReferenceTypes),
+            [System.CodeDom.CodeSnippetTypeMember]::new('#else'),
+            (Get-DataConstructorDeclaration),
+            [System.CodeDom.CodeSnippetTypeMember]::new('#endif'))
+        $dataConstructorMembers | Select-Object -Last 1 | ForEach-Object { [void]$_.EndDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::End, [string]::Empty)) }
+        $structType.Members.AddRange($dataConstructorMembers)
     
         Write-Progress -Activity $activity -CurrentOperation 'Declaring operators' -PercentComplete -1
     
@@ -679,9 +790,6 @@ function Out-SourceCode {
         @('<summary>', $_.TZ, '</summary>') | ForEach-Object { [void]$zoneLineDataField.Comments.Add([System.CodeDom.CodeCommentStatement]::new($_, $true)) }
         [void]$zoneLineDataDeclaration.HostType.Members.Add($zoneLineDataField)
 
-        $enumField.InitExpression = [System.CodeDom.CodeObjectCreateExpression]::new("DataStandardizer.Chronology.$TypeName", @(
-                [System.CodeDom.CodePrimitiveExpression]::new($_.TZ),
-                [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeTypeReferenceExpression]::new("$TypeName.ZoneLineData"), $zoneLineDataFieldName)))
         [void]$memberHostType.Members.Add($enumField)
 
         $coordinateMatch = $_.coordinates | Select-String -Pattern '^(?:(?<latitude>[-\+](?<latitudeDegrees>\d{2})(?<latitudeMinutes>\d{2}))(?<longitude>[-\+](?<longitudeDegrees>\d{3})(?<longitudeMinutes>\d{2}))|(?<latitude>[-\+](?<latitudeDegrees>\d{2})(?<latitudeMinutes>\d{2})(?<latitudeSeconds>\d{2}))(?<longitude>[-\+](?<longitudeDegrees>\d{3})(?<longitudeMinutes>\d{2})(?<longitudeSeconds>\d{2})))$'
@@ -708,12 +816,25 @@ function Out-SourceCode {
         foreach ($countryCode in $countryCodes) {
             $enumFieldAttributeArguments += [System.CodeDom.CodePrimitiveExpression]::new($countryCode)
         }
+        $comment = $null
         if (-not [string]::IsNullOrWhiteSpace($_.comments)) {
-            $enumFieldAttributeArguments += [System.CodeDom.CodeAttributeArgument]::new('Comment', [System.CodeDom.CodePrimitiveExpression]::new($_.comments))
+            $comment = $_.comments
+            $enumFieldAttributeArguments += [System.CodeDom.CodeAttributeArgument]::new('Comment', [System.CodeDom.CodePrimitiveExpression]::new($comment))
         }
         $enumFieldAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.Chronology.TzDataTimezoneAttribute', $enumFieldAttributeArguments)
         [void]$enumField.CustomAttributes.Add($enumFieldAttribute)
-        
+
+        # The location metadata is passed by named argument, so that the field initialiser reads clearly. The array of
+        # country codes is written on one line, which CodeDom would break after each element.
+        $countryCodesText = 'new string[] { ' + (($countryCodes | ForEach-Object { Format-CodeExpression -Expression ([System.CodeDom.CodePrimitiveExpression]::new($_)) -Provider $provider }) -join ', ') + ' }'
+        $enumField.InitExpression = [System.CodeDom.CodeObjectCreateExpression]::new("DataStandardizer.Chronology.$TypeName", @(
+                [System.CodeDom.CodePrimitiveExpression]::new($_.TZ),
+                [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeTypeReferenceExpression]::new("$TypeName.ZoneLineData"), $zoneLineDataFieldName),
+                (New-NamedArgumentExpression -Name 'latitude' -ExpressionText (Format-CodeExpression -Expression ([System.CodeDom.CodePrimitiveExpression]::new($coordinateLatitude)) -Provider $provider)),
+                (New-NamedArgumentExpression -Name 'longitude' -ExpressionText (Format-CodeExpression -Expression ([System.CodeDom.CodePrimitiveExpression]::new($coordinateLongitude)) -Provider $provider)),
+                (New-NamedArgumentExpression -Name 'isoCountryCodes' -ExpressionText $countryCodesText),
+                (New-NamedArgumentExpression -Name 'comment' -ExpressionText (Format-CodeExpression -Expression ([System.CodeDom.CodePrimitiveExpression]::new($comment)) -Provider $provider))))
+
         $summaryOpenComment = [System.CodeDom.CodeComment]::new('<summary>', $true)
         $summaryContentComment = [System.CodeDom.CodeComment]::new($_.TZ, $true)
         $summaryCloseComment = [System.CodeDom.CodeComment]::new('</summary>', $true)
@@ -743,13 +864,15 @@ function Out-SourceCode {
     }
 
     end {
-        # Add member host types to struct.
-        $topLevelHostTypes = @()
+        # Add member host types to struct. TzDataTimezoneAttribute is obsolete, but is still applied to the fields
+        # for callers that read it by reflection, so the warnings for its use are suppressed.
+        $obsoleteWarningDisableMember = [System.CodeDom.CodeSnippetTypeMember]::new('#pragma warning disable CS0618 // TzDataTimezoneAttribute is obsolete')
+        [void]$obsoleteWarningDisableMember.StartDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::Start, 'Public Fields'))
+        [void]$structType.Members.Add($obsoleteWarningDisableMember)
         foreach ($hostType in $memberHostTypes.GetEnumerator()) {
             $hostIdentifierParts = $hostType.Key -split '/'
             if ($hostIdentifierParts.Length -lt 2) {
                 [void]$structType.Members.Add($hostType.Value)
-                $topLevelHostTypes += $hostType.Value
             }
             else {
                 [string[]]$parentIdentifierParts = [System.Linq.Enumerable]::ToArray([System.Linq.Enumerable]::Take($hostIdentifierParts, $hostIdentifierParts.Length - 1))
@@ -761,8 +884,9 @@ function Out-SourceCode {
                 }
             }
         }
-        $topLevelHostTypes | Select-Object -First 1 | ForEach-Object { [void]$_.StartDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::Start, 'Public Fields')) }
-        $topLevelHostTypes | Select-Object -Last 1 | ForEach-Object { [void]$_.EndDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::End, [string]::Empty)) }
+        $obsoleteWarningRestoreMember = [System.CodeDom.CodeSnippetTypeMember]::new('#pragma warning restore CS0618')
+        [void]$obsoleteWarningRestoreMember.EndDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::End, [string]::Empty))
+        [void]$structType.Members.Add($obsoleteWarningRestoreMember)
 
         # Declare public methods.
         Write-Progress -Activity $activity -CurrentOperation 'Declaring public methods' -PercentComplete -1

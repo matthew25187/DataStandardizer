@@ -27,8 +27,8 @@ The public types of **DataStandardizer.Chronology**. All types are in the
 | [DateTimeExtensions](DateTimeExtensions.md) | Extension methods converting `DateTime` to system-time types. |
 | [SystemTimeExtensions](SystemTimeExtensions.md) | Extension methods converting system-time types to `DateTime`/`DateOnly`/`TimeOnly`. |
 | [TimeOnlyExtensions](TimeOnlyExtensions.md) | Extension methods converting `TimeOnly` to system-time types. |
-| [TzDataExtensions](TzDataExtensions.md) | Extension methods that read TZ Database time zone metadata. |
-| [TzDataTimezoneAttribute](TzDataTimezoneAttribute.md) | Carries the per-zone metadata surfaced by `TzDataExtensions`. |
+| [TzDataExtensions](TzDataExtensions.md) | Extension methods on TZ Database time zones, including the deprecated metadata accessors. |
+| [TzDataTimezoneAttribute](TzDataTimezoneAttribute.md) | Deprecated. Carries the per-zone metadata now exposed by the properties of `TzDataTimezone`. |
 
 ## Interfaces
 

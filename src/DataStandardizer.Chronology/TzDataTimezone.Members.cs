@@ -35,6 +35,83 @@ namespace DataStandardizer.Chronology
         }
 
         /// <summary>
+        /// Gets the latitude of the principal location in the timezone.
+        /// </summary>
+        /// <value>
+        /// The latitude, in decimal degrees, positive north of the equator.
+        /// </value>
+        /// <exception cref="InvalidOperationException">
+        /// The timezone is the default value, or its identifier is not that of a timezone field.
+        /// </exception>
+        public double Latitude
+        {
+            get
+            {
+                return GetLocation().Latitude;
+            }
+        }
+
+        /// <summary>
+        /// Gets the longitude of the principal location in the timezone.
+        /// </summary>
+        /// <value>
+        /// The longitude, in decimal degrees, positive east of Greenwich.
+        /// </value>
+        /// <exception cref="InvalidOperationException">
+        /// The timezone is the default value, or its identifier is not that of a timezone field.
+        /// </exception>
+        public double Longitude
+        {
+            get
+            {
+                return GetLocation().Longitude;
+            }
+        }
+
+        /// <summary>
+        /// Gets the ISO 3166 Part 1 Alpha-2 country codes for the countries covered by the timezone.
+        /// </summary>
+        /// <value>
+        /// The country codes, in the order given by zone1970.tab, which lists first the country of the principal location.
+        /// </value>
+        /// <exception cref="InvalidOperationException">
+        /// The timezone is the default value, or its identifier is not that of a timezone field.
+        /// </exception>
+#if NETSTANDARD
+        [NotNull]
+#endif
+        public IReadOnlyList<string> IsoCountryCodes
+        {
+            get
+            {
+                // The array is shared, so it is wrapped rather than exposed, to keep it from being cast back and modified.
+                return new ReadOnlyCollection<string>(GetLocation().IsoCountryCodes);
+            }
+        }
+
+        /// <summary>
+        /// Gets the comment on the timezone, which distinguishes it from the other timezones of its countries.
+        /// </summary>
+        /// <value>
+        /// The comment, if the timezone has one; otherwise, <see langword="null"/>.
+        /// </value>
+        /// <exception cref="InvalidOperationException">
+        /// The timezone is the default value, or its identifier is not that of a timezone field.
+        /// </exception>
+#if NETCOREAPP3_0_OR_GREATER
+        public string? Comment
+#else
+        [CanBeNull]
+        public string Comment
+#endif
+        {
+            get
+            {
+                return GetLocation().Comment;
+            }
+        }
+
+        /// <summary>
         /// Gets the calculator of the timezone's offsets from universal time, building it on first use.
         /// </summary>
         /// <exception cref="InvalidOperationException">
@@ -89,20 +166,75 @@ namespace DataStandardizer.Chronology
             return zoneLines;
         }
 
+#if NETSTANDARD
+        [NotNull]
+#endif
+        private Location GetLocation()
+        {
+            if (_value is null)
+                throw new InvalidOperationException("The timezone has no identifier.");
+
+            // An instance created by explicit cast has no location of its own, so it is found by identifier.
+            var location = _location;
+            if (location is null)
+            {
+                if (!TryGetRegistryEntry(out var entry))
+                    throw new InvalidOperationException($"'{_value}' is not the identifier of a known timezone.");
+
+                location = entry.Location;
+            }
+
+            return location;
+        }
+
         /// <summary>
-        /// A timezone field and its zone lines.
+        /// The location metadata of a timezone, as listed in zone1970.tab.
+        /// </summary>
+        internal sealed class Location
+        {
+#if NETCOREAPP3_0_OR_GREATER
+            internal Location(double latitude, double longitude, string[] isoCountryCodes, string? comment)
+#else
+            internal Location(double latitude, double longitude, string[] isoCountryCodes, [CanBeNull] string comment)
+#endif
+            {
+                Latitude = latitude;
+                Longitude = longitude;
+                IsoCountryCodes = isoCountryCodes;
+                Comment = comment;
+            }
+
+            internal double Latitude { get; }
+
+            internal double Longitude { get; }
+
+            internal string[] IsoCountryCodes { get; }
+
+#if NETCOREAPP3_0_OR_GREATER
+            internal string? Comment { get; }
+#else
+            [CanBeNull]
+            internal string Comment { get; }
+#endif
+        }
+
+        /// <summary>
+        /// A timezone field, with its zone lines and location.
         /// </summary>
         internal sealed class RegistryEntry
         {
-            internal RegistryEntry(FieldInfo field, TzDataZoneLine[] zoneLines)
+            internal RegistryEntry(FieldInfo field, TzDataZoneLine[] zoneLines, Location location)
             {
                 Field = field;
                 ZoneLines = zoneLines;
+                Location = location;
             }
 
             internal FieldInfo Field { get; }
 
             internal TzDataZoneLine[] ZoneLines { get; }
+
+            internal Location Location { get; }
         }
 
         /// <summary>
@@ -148,10 +280,10 @@ namespace DataStandardizer.Chronology
                     if (!field.IsPublic || !field.IsStatic || field.FieldType != typeof(TzDataTimezone))
                         continue;
 
-                    if (!(field.GetValue(null) is TzDataTimezone timezone) || timezone._value is null || timezone._zoneLines is null)
-                        throw new InvalidOperationException($"Timezone field {hostType.Name}.{field.Name} has no identifier or zone lines.");
+                    if (!(field.GetValue(null) is TzDataTimezone timezone) || timezone._value is null || timezone._zoneLines is null || timezone._location is null)
+                        throw new InvalidOperationException($"Timezone field {hostType.Name}.{field.Name} has no identifier, zone lines or location.");
 
-                    entries.Add(timezone._value, new RegistryEntry(field, timezone._zoneLines));
+                    entries.Add(timezone._value, new RegistryEntry(field, timezone._zoneLines, timezone._location));
                 }
 
                 foreach (var nestedType in hostType.DeclaredNestedTypes)

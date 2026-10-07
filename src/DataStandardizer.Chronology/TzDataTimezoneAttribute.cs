@@ -8,6 +8,11 @@ namespace DataStandardizer.Chronology
     /// <summary>
     /// Metadata for a TZ Database timezone.
     /// </summary>
+    /// <remarks>
+    /// This attribute is obsolete. Use the <see cref="TzDataTimezone.Latitude"/>, <see cref="TzDataTimezone.Longitude"/>,
+    /// <see cref="TzDataTimezone.IsoCountryCodes"/> and <see cref="TzDataTimezone.Comment"/> members of <see cref="TzDataTimezone"/> instead.
+    /// </remarks>
+    [Obsolete("Use the Latitude, Longitude, IsoCountryCodes and Comment members of TzDataTimezone instead.")]
     [AttributeUsage(AttributeTargets.Field)]
     public class TzDataTimezoneAttribute : Attribute
     {
