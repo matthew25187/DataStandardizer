@@ -21,7 +21,7 @@ namespace DataStandardizer.Chronology
     /// Time Zone Database
     /// </summary>
     /// <remarks>
-    /// Based on TZ Database version 2026c.
+    /// Based on TZ Database version 2026e.
     /// </remarks>
     public readonly partial struct TzDataTimezone : System.IComparable, System.IEquatable<DataStandardizer.Chronology.TzDataTimezone>
 #if NETSTANDARD1_3_OR_GREATER||NET
@@ -3897,7 +3897,7 @@ namespace DataStandardizer.Chronology
             /// 		</item>
             /// 	</list>
             /// </remarks>
-            [DataStandardizer.Chronology.TzDataTimezoneAttribute(49.88333333333333D, -97.15D, "CA", Comment="Central - ON (west), Manitoba")]
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(49.88333333333333D, -97.15D, "CA", Comment="EST - Manitoba, ON (northwest)")]
             public static readonly DataStandardizer.Chronology.TzDataTimezone Winnipeg = new DataStandardizer.Chronology.TzDataTimezone("America/Winnipeg", TzDataTimezone.ZoneLineData.America_Winnipeg);
             
             /// <summary>
@@ -4030,7 +4030,7 @@ namespace DataStandardizer.Chronology
             /// 		</item>
             /// 	</list>
             /// </remarks>
-            [DataStandardizer.Chronology.TzDataTimezoneAttribute(68.34972222222221D, -133.71666666666667D, "CA", Comment="Mountain - NT (west)")]
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(68.34972222222221D, -133.71666666666667D, "CA", Comment="CST - NT (west)")]
             public static readonly DataStandardizer.Chronology.TzDataTimezone Inuvik = new DataStandardizer.Chronology.TzDataTimezone("America/Inuvik", TzDataTimezone.ZoneLineData.America_Inuvik);
             
             /// <summary>

@@ -840,7 +840,9 @@ namespace DataStandardizer.Chronology
             internal static readonly TzDataZoneLine[] America_Winnipeg = new TzDataZoneLine[] {
                     new TzDataZoneLine(new System.TimeSpan(-6, -28, -36), TzDataZoneRuleKind.None, null, null, "LMT", new TzDataUntil(1887, 7, TzDataDayKind.DayOfMonth, 16, null, System.TimeSpan.Zero, TzDataTimeReference.Wall)),
                     new TzDataZoneLine(new System.TimeSpan(-6, 0, 0), TzDataZoneRuleKind.RuleSet, null, RuleSets.Winn, "C%sT", new TzDataUntil(2006, 1, TzDataDayKind.DayOfMonth, 1, null, System.TimeSpan.Zero, TzDataTimeReference.Wall)),
-                    new TzDataZoneLine(new System.TimeSpan(-6, 0, 0), TzDataZoneRuleKind.RuleSet, null, RuleSets.Canada, "C%sT", null)};
+                    new TzDataZoneLine(new System.TimeSpan(-6, 0, 0), TzDataZoneRuleKind.RuleSet, null, RuleSets.Canada, "C%sT", new TzDataUntil(2026, 10, TzDataDayKind.DayOfMonth, 31, null, System.TimeSpan.Zero, TzDataTimeReference.Wall)),
+                    new TzDataZoneLine(new System.TimeSpan(-6, 0, 0), TzDataZoneRuleKind.RuleSet, null, RuleSets.Canada, "CDT", new TzDataUntil(2026, 11, TzDataDayKind.DayOfMonth, 1, null, new System.TimeSpan(2, 0, 0), TzDataTimeReference.Wall)),
+                    new TzDataZoneLine(new System.TimeSpan(-5, 0, 0), TzDataZoneRuleKind.None, null, null, "EST", null)};
             
             /// <summary>
             /// America/Resolute
@@ -887,7 +889,7 @@ namespace DataStandardizer.Chronology
                     new TzDataZoneLine(new System.TimeSpan(-7, -33, -52), TzDataZoneRuleKind.None, null, null, "LMT", new TzDataUntil(1906, 9, TzDataDayKind.DayOfMonth, 1, null, System.TimeSpan.Zero, TzDataTimeReference.Wall)),
                     new TzDataZoneLine(new System.TimeSpan(-7, 0, 0), TzDataZoneRuleKind.RuleSet, null, RuleSets.Edm, "M%sT", new TzDataUntil(1987, 1, TzDataDayKind.DayOfMonth, 1, null, System.TimeSpan.Zero, TzDataTimeReference.Wall)),
                     new TzDataZoneLine(new System.TimeSpan(-7, 0, 0), TzDataZoneRuleKind.RuleSet, null, RuleSets.Canada, "M%sT", new TzDataUntil(2026, 6, TzDataDayKind.DayOfMonth, 18, null, System.TimeSpan.Zero, TzDataTimeReference.Wall)),
-                    new TzDataZoneLine(new System.TimeSpan(-7, 0, 0), TzDataZoneRuleKind.FixedSave, new System.TimeSpan(1, 0, 0), null, "MDT", new TzDataUntil(2026, 11, TzDataDayKind.DayOfMonth, 1, null, new System.TimeSpan(2, 0, 0), TzDataTimeReference.Wall)),
+                    new TzDataZoneLine(new System.TimeSpan(-7, 0, 0), TzDataZoneRuleKind.RuleSet, null, RuleSets.Canada, "MDT", new TzDataUntil(2026, 11, TzDataDayKind.DayOfMonth, 1, null, new System.TimeSpan(2, 0, 0), TzDataTimeReference.Wall)),
                     new TzDataZoneLine(new System.TimeSpan(-6, 0, 0), TzDataZoneRuleKind.None, null, null, "CST", null)};
             
             /// <summary>
@@ -908,7 +910,9 @@ namespace DataStandardizer.Chronology
                     new TzDataZoneLine(System.TimeSpan.Zero, TzDataZoneRuleKind.None, null, null, "-00", new TzDataUntil(1953, 1, TzDataDayKind.DayOfMonth, 1, null, System.TimeSpan.Zero, TzDataTimeReference.Wall)),
                     new TzDataZoneLine(new System.TimeSpan(-8, 0, 0), TzDataZoneRuleKind.RuleSet, null, RuleSets.NT_YK, "P%sT", new TzDataUntil(1979, 4, TzDataDayKind.LastWeekday, null, System.DayOfWeek.Sunday, new System.TimeSpan(2, 0, 0), TzDataTimeReference.Wall)),
                     new TzDataZoneLine(new System.TimeSpan(-7, 0, 0), TzDataZoneRuleKind.RuleSet, null, RuleSets.NT_YK, "M%sT", new TzDataUntil(1980, 1, TzDataDayKind.DayOfMonth, 1, null, System.TimeSpan.Zero, TzDataTimeReference.Wall)),
-                    new TzDataZoneLine(new System.TimeSpan(-7, 0, 0), TzDataZoneRuleKind.RuleSet, null, RuleSets.Canada, "M%sT", null)};
+                    new TzDataZoneLine(new System.TimeSpan(-7, 0, 0), TzDataZoneRuleKind.RuleSet, null, RuleSets.Canada, "M%sT", new TzDataUntil(2026, 8, TzDataDayKind.DayOfMonth, 21, null, System.TimeSpan.Zero, TzDataTimeReference.Wall)),
+                    new TzDataZoneLine(new System.TimeSpan(-7, 0, 0), TzDataZoneRuleKind.RuleSet, null, RuleSets.Canada, "MDT", new TzDataUntil(2026, 11, TzDataDayKind.DayOfMonth, 1, null, new System.TimeSpan(2, 0, 0), TzDataTimeReference.Wall)),
+                    new TzDataZoneLine(new System.TimeSpan(-6, 0, 0), TzDataZoneRuleKind.None, null, null, "CST", null)};
             
             /// <summary>
             /// America/Vancouver
@@ -917,7 +921,7 @@ namespace DataStandardizer.Chronology
                     new TzDataZoneLine(new System.TimeSpan(-8, -12, -28), TzDataZoneRuleKind.None, null, null, "LMT", new TzDataUntil(1884, 1, TzDataDayKind.DayOfMonth, 1, null, System.TimeSpan.Zero, TzDataTimeReference.Wall)),
                     new TzDataZoneLine(new System.TimeSpan(-8, 0, 0), TzDataZoneRuleKind.RuleSet, null, RuleSets.Vanc, "P%sT", new TzDataUntil(1987, 1, TzDataDayKind.DayOfMonth, 1, null, System.TimeSpan.Zero, TzDataTimeReference.Wall)),
                     new TzDataZoneLine(new System.TimeSpan(-8, 0, 0), TzDataZoneRuleKind.RuleSet, null, RuleSets.Canada, "P%sT", new TzDataUntil(2026, 3, TzDataDayKind.DayOfMonth, 9, null, System.TimeSpan.Zero, TzDataTimeReference.Wall)),
-                    new TzDataZoneLine(new System.TimeSpan(-8, 0, 0), TzDataZoneRuleKind.FixedSave, new System.TimeSpan(1, 0, 0), null, "PDT", new TzDataUntil(2026, 11, TzDataDayKind.DayOfMonth, 1, null, new System.TimeSpan(2, 0, 0), TzDataTimeReference.Wall)),
+                    new TzDataZoneLine(new System.TimeSpan(-8, 0, 0), TzDataZoneRuleKind.RuleSet, null, RuleSets.Canada, "PDT", new TzDataUntil(2026, 11, TzDataDayKind.DayOfMonth, 1, null, new System.TimeSpan(2, 0, 0), TzDataTimeReference.Wall)),
                     new TzDataZoneLine(new System.TimeSpan(-7, 0, 0), TzDataZoneRuleKind.None, null, null, "MST", null)};
             
             /// <summary>
@@ -1539,6 +1543,8 @@ namespace DataStandardizer.Chronology
                     new TzDataZoneLine(new System.TimeSpan(-0, -25, -21), TzDataZoneRuleKind.None, null, null, "DMT", new TzDataUntil(1916, 5, TzDataDayKind.DayOfMonth, 21, null, new System.TimeSpan(2, 0, 0), TzDataTimeReference.Standard)),
                     new TzDataZoneLine(new System.TimeSpan(-0, -25, -21), TzDataZoneRuleKind.FixedSave, new System.TimeSpan(1, 0, 0), null, "IST", new TzDataUntil(1916, 10, TzDataDayKind.DayOfMonth, 1, null, new System.TimeSpan(2, 0, 0), TzDataTimeReference.Standard)),
                     new TzDataZoneLine(System.TimeSpan.Zero, TzDataZoneRuleKind.RuleSet, null, RuleSets.GB_Eire, "%s", new TzDataUntil(1921, 12, TzDataDayKind.DayOfMonth, 6, null, System.TimeSpan.Zero, TzDataTimeReference.Wall)),
+                    new TzDataZoneLine(System.TimeSpan.Zero, TzDataZoneRuleKind.RuleSet, null, RuleSets.GB_Eire, "GMT/IST", new TzDataUntil(1925, 9, TzDataDayKind.WeekdayOnOrAfter, 16, System.DayOfWeek.Sunday, new System.TimeSpan(2, 0, 0), TzDataTimeReference.Standard)),
+                    new TzDataZoneLine(System.TimeSpan.Zero, TzDataZoneRuleKind.None, null, null, "GMT", new TzDataUntil(1926, 1, TzDataDayKind.DayOfMonth, 1, null, System.TimeSpan.Zero, TzDataTimeReference.Wall)),
                     new TzDataZoneLine(System.TimeSpan.Zero, TzDataZoneRuleKind.RuleSet, null, RuleSets.GB_Eire, "GMT/IST", new TzDataUntil(1940, 2, TzDataDayKind.DayOfMonth, 25, null, new System.TimeSpan(2, 0, 0), TzDataTimeReference.Standard)),
                     new TzDataZoneLine(System.TimeSpan.Zero, TzDataZoneRuleKind.FixedSave, new System.TimeSpan(1, 0, 0), null, "IST", new TzDataUntil(1946, 10, TzDataDayKind.DayOfMonth, 6, null, new System.TimeSpan(2, 0, 0), TzDataTimeReference.Standard)),
                     new TzDataZoneLine(System.TimeSpan.Zero, TzDataZoneRuleKind.None, null, null, "GMT", new TzDataUntil(1947, 3, TzDataDayKind.DayOfMonth, 16, null, new System.TimeSpan(2, 0, 0), TzDataTimeReference.Standard)),
@@ -3326,7 +3332,7 @@ namespace DataStandardizer.Chronology
             /// America/Anchorage
             /// </summary>
             internal static readonly TzDataZoneLine[] America_Anchorage = new TzDataZoneLine[] {
-                    new TzDataZoneLine(new System.TimeSpan(14, 0, 24), TzDataZoneRuleKind.None, null, null, "LMT", new TzDataUntil(1867, 10, TzDataDayKind.DayOfMonth, 19, null, new System.TimeSpan(14, 31, 37), TzDataTimeReference.Wall)),
+                    new TzDataZoneLine(new System.TimeSpan(14, 0, 24), TzDataZoneRuleKind.None, null, null, "LMT", new TzDataUntil(1867, 10, TzDataDayKind.DayOfMonth, 19, null, new System.TimeSpan(0, 31, 13), TzDataTimeReference.Universal)),
                     new TzDataZoneLine(new System.TimeSpan(-9, -59, -36), TzDataZoneRuleKind.None, null, null, "LMT", new TzDataUntil(1900, 8, TzDataDayKind.DayOfMonth, 20, null, new System.TimeSpan(12, 0, 0), TzDataTimeReference.Wall)),
                     new TzDataZoneLine(new System.TimeSpan(-10, 0, 0), TzDataZoneRuleKind.None, null, null, "AST", new TzDataUntil(1942, 1, TzDataDayKind.DayOfMonth, 1, null, System.TimeSpan.Zero, TzDataTimeReference.Wall)),
                     new TzDataZoneLine(new System.TimeSpan(-10, 0, 0), TzDataZoneRuleKind.RuleSet, null, RuleSets.US, "A%sT", new TzDataUntil(1967, 4, TzDataDayKind.DayOfMonth, 1, null, System.TimeSpan.Zero, TzDataTimeReference.Wall)),
@@ -3339,7 +3345,7 @@ namespace DataStandardizer.Chronology
             /// America/Juneau
             /// </summary>
             internal static readonly TzDataZoneLine[] America_Juneau = new TzDataZoneLine[] {
-                    new TzDataZoneLine(new System.TimeSpan(15, 2, 19), TzDataZoneRuleKind.None, null, null, "LMT", new TzDataUntil(1867, 10, TzDataDayKind.DayOfMonth, 19, null, new System.TimeSpan(15, 33, 32), TzDataTimeReference.Wall)),
+                    new TzDataZoneLine(new System.TimeSpan(15, 2, 19), TzDataZoneRuleKind.None, null, null, "LMT", new TzDataUntil(1867, 10, TzDataDayKind.DayOfMonth, 19, null, new System.TimeSpan(0, 31, 13), TzDataTimeReference.Universal)),
                     new TzDataZoneLine(new System.TimeSpan(-8, -57, -41), TzDataZoneRuleKind.None, null, null, "LMT", new TzDataUntil(1900, 8, TzDataDayKind.DayOfMonth, 20, null, new System.TimeSpan(12, 0, 0), TzDataTimeReference.Wall)),
                     new TzDataZoneLine(new System.TimeSpan(-8, 0, 0), TzDataZoneRuleKind.None, null, null, "PST", new TzDataUntil(1942, 1, TzDataDayKind.DayOfMonth, 1, null, System.TimeSpan.Zero, TzDataTimeReference.Wall)),
                     new TzDataZoneLine(new System.TimeSpan(-8, 0, 0), TzDataZoneRuleKind.RuleSet, null, RuleSets.US, "P%sT", new TzDataUntil(1946, 1, TzDataDayKind.DayOfMonth, 1, null, System.TimeSpan.Zero, TzDataTimeReference.Wall)),
@@ -3354,7 +3360,7 @@ namespace DataStandardizer.Chronology
             /// America/Sitka
             /// </summary>
             internal static readonly TzDataZoneLine[] America_Sitka = new TzDataZoneLine[] {
-                    new TzDataZoneLine(new System.TimeSpan(14, 58, 47), TzDataZoneRuleKind.None, null, null, "LMT", new TzDataUntil(1867, 10, TzDataDayKind.DayOfMonth, 19, null, new System.TimeSpan(15, 30, 0), TzDataTimeReference.Wall)),
+                    new TzDataZoneLine(new System.TimeSpan(14, 58, 47), TzDataZoneRuleKind.None, null, null, "LMT", new TzDataUntil(1867, 10, TzDataDayKind.DayOfMonth, 19, null, new System.TimeSpan(0, 31, 13), TzDataTimeReference.Universal)),
                     new TzDataZoneLine(new System.TimeSpan(-9, -1, -13), TzDataZoneRuleKind.None, null, null, "LMT", new TzDataUntil(1900, 8, TzDataDayKind.DayOfMonth, 20, null, new System.TimeSpan(12, 0, 0), TzDataTimeReference.Wall)),
                     new TzDataZoneLine(new System.TimeSpan(-8, 0, 0), TzDataZoneRuleKind.None, null, null, "PST", new TzDataUntil(1942, 1, TzDataDayKind.DayOfMonth, 1, null, System.TimeSpan.Zero, TzDataTimeReference.Wall)),
                     new TzDataZoneLine(new System.TimeSpan(-8, 0, 0), TzDataZoneRuleKind.RuleSet, null, RuleSets.US, "P%sT", new TzDataUntil(1946, 1, TzDataDayKind.DayOfMonth, 1, null, System.TimeSpan.Zero, TzDataTimeReference.Wall)),
@@ -3367,7 +3373,7 @@ namespace DataStandardizer.Chronology
             /// America/Metlakatla
             /// </summary>
             internal static readonly TzDataZoneLine[] America_Metlakatla = new TzDataZoneLine[] {
-                    new TzDataZoneLine(new System.TimeSpan(15, 13, 42), TzDataZoneRuleKind.None, null, null, "LMT", new TzDataUntil(1867, 10, TzDataDayKind.DayOfMonth, 19, null, new System.TimeSpan(15, 44, 55), TzDataTimeReference.Wall)),
+                    new TzDataZoneLine(new System.TimeSpan(15, 13, 42), TzDataZoneRuleKind.None, null, null, "LMT", new TzDataUntil(1867, 10, TzDataDayKind.DayOfMonth, 19, null, new System.TimeSpan(0, 31, 13), TzDataTimeReference.Universal)),
                     new TzDataZoneLine(new System.TimeSpan(-8, -46, -18), TzDataZoneRuleKind.None, null, null, "LMT", new TzDataUntil(1900, 8, TzDataDayKind.DayOfMonth, 20, null, new System.TimeSpan(12, 0, 0), TzDataTimeReference.Wall)),
                     new TzDataZoneLine(new System.TimeSpan(-8, 0, 0), TzDataZoneRuleKind.None, null, null, "PST", new TzDataUntil(1942, 1, TzDataDayKind.DayOfMonth, 1, null, System.TimeSpan.Zero, TzDataTimeReference.Wall)),
                     new TzDataZoneLine(new System.TimeSpan(-8, 0, 0), TzDataZoneRuleKind.RuleSet, null, RuleSets.US, "P%sT", new TzDataUntil(1946, 1, TzDataDayKind.DayOfMonth, 1, null, System.TimeSpan.Zero, TzDataTimeReference.Wall)),
@@ -3382,7 +3388,7 @@ namespace DataStandardizer.Chronology
             /// America/Yakutat
             /// </summary>
             internal static readonly TzDataZoneLine[] America_Yakutat = new TzDataZoneLine[] {
-                    new TzDataZoneLine(new System.TimeSpan(14, 41, 5), TzDataZoneRuleKind.None, null, null, "LMT", new TzDataUntil(1867, 10, TzDataDayKind.DayOfMonth, 19, null, new System.TimeSpan(15, 12, 18), TzDataTimeReference.Wall)),
+                    new TzDataZoneLine(new System.TimeSpan(14, 41, 5), TzDataZoneRuleKind.None, null, null, "LMT", new TzDataUntil(1867, 10, TzDataDayKind.DayOfMonth, 19, null, new System.TimeSpan(0, 31, 13), TzDataTimeReference.Universal)),
                     new TzDataZoneLine(new System.TimeSpan(-9, -18, -55), TzDataZoneRuleKind.None, null, null, "LMT", new TzDataUntil(1900, 8, TzDataDayKind.DayOfMonth, 20, null, new System.TimeSpan(12, 0, 0), TzDataTimeReference.Wall)),
                     new TzDataZoneLine(new System.TimeSpan(-9, 0, 0), TzDataZoneRuleKind.None, null, null, "YST", new TzDataUntil(1942, 1, TzDataDayKind.DayOfMonth, 1, null, System.TimeSpan.Zero, TzDataTimeReference.Wall)),
                     new TzDataZoneLine(new System.TimeSpan(-9, 0, 0), TzDataZoneRuleKind.RuleSet, null, RuleSets.US, "Y%sT", new TzDataUntil(1946, 1, TzDataDayKind.DayOfMonth, 1, null, System.TimeSpan.Zero, TzDataTimeReference.Wall)),
@@ -3394,7 +3400,7 @@ namespace DataStandardizer.Chronology
             /// America/Nome
             /// </summary>
             internal static readonly TzDataZoneLine[] America_Nome = new TzDataZoneLine[] {
-                    new TzDataZoneLine(new System.TimeSpan(12, 58, 22), TzDataZoneRuleKind.None, null, null, "LMT", new TzDataUntil(1867, 10, TzDataDayKind.DayOfMonth, 19, null, new System.TimeSpan(13, 29, 35), TzDataTimeReference.Wall)),
+                    new TzDataZoneLine(new System.TimeSpan(12, 58, 22), TzDataZoneRuleKind.None, null, null, "LMT", new TzDataUntil(1867, 10, TzDataDayKind.DayOfMonth, 19, null, new System.TimeSpan(0, 31, 13), TzDataTimeReference.Universal)),
                     new TzDataZoneLine(new System.TimeSpan(-11, -1, -38), TzDataZoneRuleKind.None, null, null, "LMT", new TzDataUntil(1900, 8, TzDataDayKind.DayOfMonth, 20, null, new System.TimeSpan(12, 0, 0), TzDataTimeReference.Wall)),
                     new TzDataZoneLine(new System.TimeSpan(-11, 0, 0), TzDataZoneRuleKind.None, null, null, "NST", new TzDataUntil(1942, 1, TzDataDayKind.DayOfMonth, 1, null, System.TimeSpan.Zero, TzDataTimeReference.Wall)),
                     new TzDataZoneLine(new System.TimeSpan(-11, 0, 0), TzDataZoneRuleKind.RuleSet, null, RuleSets.US, "N%sT", new TzDataUntil(1946, 1, TzDataDayKind.DayOfMonth, 1, null, System.TimeSpan.Zero, TzDataTimeReference.Wall)),
@@ -3408,7 +3414,7 @@ namespace DataStandardizer.Chronology
             /// America/Adak
             /// </summary>
             internal static readonly TzDataZoneLine[] America_Adak = new TzDataZoneLine[] {
-                    new TzDataZoneLine(new System.TimeSpan(12, 13, 22), TzDataZoneRuleKind.None, null, null, "LMT", new TzDataUntil(1867, 10, TzDataDayKind.DayOfMonth, 19, null, new System.TimeSpan(12, 44, 35), TzDataTimeReference.Wall)),
+                    new TzDataZoneLine(new System.TimeSpan(12, 13, 22), TzDataZoneRuleKind.None, null, null, "LMT", new TzDataUntil(1867, 10, TzDataDayKind.DayOfMonth, 19, null, new System.TimeSpan(0, 31, 13), TzDataTimeReference.Universal)),
                     new TzDataZoneLine(new System.TimeSpan(-11, -46, -38), TzDataZoneRuleKind.None, null, null, "LMT", new TzDataUntil(1900, 8, TzDataDayKind.DayOfMonth, 20, null, new System.TimeSpan(12, 0, 0), TzDataTimeReference.Wall)),
                     new TzDataZoneLine(new System.TimeSpan(-11, 0, 0), TzDataZoneRuleKind.None, null, null, "NST", new TzDataUntil(1942, 1, TzDataDayKind.DayOfMonth, 1, null, System.TimeSpan.Zero, TzDataTimeReference.Wall)),
                     new TzDataZoneLine(new System.TimeSpan(-11, 0, 0), TzDataZoneRuleKind.RuleSet, null, RuleSets.US, "N%sT", new TzDataUntil(1946, 1, TzDataDayKind.DayOfMonth, 1, null, System.TimeSpan.Zero, TzDataTimeReference.Wall)),

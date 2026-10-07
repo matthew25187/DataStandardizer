@@ -466,7 +466,7 @@ namespace DataStandardizer.Chronology
             /// Rule set CO
             /// </summary>
             internal static readonly TzDataRule[] CO = new TzDataRule[] {
-                    new TzDataRule("CO", 1992, 1992, 5, TzDataDayKind.DayOfMonth, 3, null, System.TimeSpan.Zero, TzDataTimeReference.Wall, new System.TimeSpan(1, 0, 0), true, ""),
+                    new TzDataRule("CO", 1992, 1992, 5, TzDataDayKind.DayOfMonth, 2, null, System.TimeSpan.Zero, TzDataTimeReference.Wall, new System.TimeSpan(1, 0, 0), true, ""),
                     new TzDataRule("CO", 1993, 1993, 2, TzDataDayKind.DayOfMonth, 6, null, new System.TimeSpan(24, 0, 0), TzDataTimeReference.Wall, System.TimeSpan.Zero, false, "")};
             
             /// <summary>
@@ -1164,7 +1164,7 @@ namespace DataStandardizer.Chronology
                     new TzDataRule("Iran", 1977, 1977, 10, TzDataDayKind.DayOfMonth, 20, null, new System.TimeSpan(24, 0, 0), TzDataTimeReference.Wall, System.TimeSpan.Zero, false, ""),
                     new TzDataRule("Iran", 1978, 1978, 3, TzDataDayKind.DayOfMonth, 24, null, new System.TimeSpan(24, 0, 0), TzDataTimeReference.Wall, new System.TimeSpan(1, 0, 0), true, ""),
                     new TzDataRule("Iran", 1978, 1978, 8, TzDataDayKind.DayOfMonth, 5, null, new System.TimeSpan(1, 0, 0), TzDataTimeReference.Wall, System.TimeSpan.Zero, false, ""),
-                    new TzDataRule("Iran", 1979, 1979, 5, TzDataDayKind.DayOfMonth, 26, null, new System.TimeSpan(24, 0, 0), TzDataTimeReference.Wall, new System.TimeSpan(1, 0, 0), true, ""),
+                    new TzDataRule("Iran", 1979, 1979, 5, TzDataDayKind.DayOfMonth, 26, null, System.TimeSpan.Zero, TzDataTimeReference.Wall, new System.TimeSpan(1, 0, 0), true, ""),
                     new TzDataRule("Iran", 1979, 1979, 9, TzDataDayKind.DayOfMonth, 18, null, new System.TimeSpan(24, 0, 0), TzDataTimeReference.Wall, System.TimeSpan.Zero, false, ""),
                     new TzDataRule("Iran", 1980, 1980, 3, TzDataDayKind.DayOfMonth, 20, null, new System.TimeSpan(24, 0, 0), TzDataTimeReference.Wall, new System.TimeSpan(1, 0, 0), true, ""),
                     new TzDataRule("Iran", 1980, 1980, 9, TzDataDayKind.DayOfMonth, 22, null, new System.TimeSpan(24, 0, 0), TzDataTimeReference.Wall, System.TimeSpan.Zero, false, ""),
