@@ -131,6 +131,72 @@ namespace DataStandardizer.Chronology
         }
 
         /// <summary>
+        /// Gets the standard time abbreviation of the zone line in force at an instant, for the rule year in force.
+        /// </summary>
+        /// <param name="utc">The instant, in universal time.</param>
+        /// <remarks>
+        /// The abbreviation is formatted with the latest standard time rule in effect in the year, being either one that takes
+        /// effect in the year or, failing that, the latest to take effect before it. Before any has taken effect, the first is used.
+        /// </remarks>
+#if NETSTANDARD
+        [NotNull]
+#endif
+        internal string GetStandardAbbreviation(DateTime utc)
+        {
+            var zoneLine = GetZoneLine(utc);
+
+            if (zoneLine.RuleKind != TzDataZoneRuleKind.RuleSet)
+                return FormatAbbreviation(zoneLine.Format, null, false, zoneLine.StandardOffset);
+
+            var year = GetLocalYear(utc);
+            var untilTicks = GetLocalUntilTicks(zoneLine);
+            // Before any standard time rule takes effect, zic takes the letter of the first.
+            var rule = FindLatestRule(zoneLine.Rules, year, year, false, untilTicks) ??
+                       FindLatestRule(zoneLine.Rules, YearMinimum, year - 1, false, untilTicks) ??
+                       FindEarliestRule(zoneLine.Rules, false);
+
+            return rule is null
+                ? FormatAbbreviation(zoneLine.Format, null, false, zoneLine.StandardOffset)
+                : FormatAbbreviation(zoneLine.Format, rule.Letter, false, zoneLine.StandardOffset + rule.Save);
+        }
+
+        /// <summary>
+        /// Gets the daylight saving time abbreviation of the zone line in force at an instant, for the rule year in force.
+        /// </summary>
+        /// <param name="utc">The instant, in universal time.</param>
+        /// <returns>The abbreviation, or <see langword="null"/> where no daylight saving time is in effect in the year.</returns>
+        /// <remarks>
+        /// The abbreviation is formatted with the latest daylight saving time rule in effect in the year, being either one that
+        /// takes effect in the year or, failing that, the one in effect as the year begins.
+        /// </remarks>
+#if NETCOREAPP3_0_OR_GREATER
+        internal string? GetDaylightAbbreviation(DateTime utc)
+#else
+        [CanBeNull]
+        internal string GetDaylightAbbreviation(DateTime utc)
+#endif
+        {
+            var zoneLine = GetZoneLine(utc);
+
+            if (zoneLine.RuleKind != TzDataZoneRuleKind.RuleSet)
+            {
+                var save = zoneLine.FixedSave.GetValueOrDefault();
+                return save != TimeSpan.Zero ? FormatAbbreviation(zoneLine.Format, null, true, zoneLine.StandardOffset + save) : null;
+            }
+
+            var year = GetLocalYear(utc);
+            var untilTicks = GetLocalUntilTicks(zoneLine);
+            var rule = FindLatestRule(zoneLine.Rules, year, year, true, untilTicks);
+            if (rule is null)
+            {
+                var ruleAtYearStart = FindLatestRule(zoneLine.Rules, YearMinimum, year - 1, null, untilTicks);
+                rule = ruleAtYearStart != null && ruleAtYearStart.IsDaylight ? ruleAtYearStart : null;
+            }
+
+            return rule is null ? null : FormatAbbreviation(zoneLine.Format, rule.Letter, true, zoneLine.StandardOffset + rule.Save);
+        }
+
+        /// <summary>
         /// Gets the transitions that occur from one instant up to, but not including, another.
         /// </summary>
         /// <param name="fromUtc">The instant from which to include transitions, in universal time.</param>
@@ -213,6 +279,97 @@ namespace DataStandardizer.Chronology
                 return $"{sign}{hours:00}{minutes:00}";
 
             return $"{sign}{hours:00}";
+        }
+
+        private static long GetLocalUntilTicks(TzDataZoneLine zoneLine)
+        {
+            // The rules of a set fall months apart, so the time at which the line ends is compared with them on the local clock, whatever its suffix.
+            return zoneLine.Until.HasValue ? GetUntilTicks(zoneLine.Until.Value, 0, 0) : long.MaxValue;
+        }
+
+        private int GetLocalYear(DateTime utc)
+        {
+            // The year on the local clock, which is the year by which the rules are applied.
+            var localTicks = utc.Ticks + GetOffsetInfo(utc).UtcOffset.Ticks;
+            return ToUtc(localTicks).Year;
+        }
+
+        /// <summary>
+        /// Finds the rule that takes effect latest over a range of years.
+        /// </summary>
+        /// <param name="rules">The rules of a zone line.</param>
+        /// <param name="fromYear">The first year of the range.</param>
+        /// <param name="toYear">The last year of the range.</param>
+        /// <param name="isDaylight">Whether to find only daylight saving time rules or only standard time rules, or <see langword="null"/> to find either.</param>
+        /// <param name="untilTicks">The local time, in ticks, at which the zone line ends. A rule that takes effect then or later belongs to the next line.</param>
+        /// <returns>The rule, or <see langword="null"/> where no rule takes effect over the range.</returns>
+#if NETCOREAPP3_0_OR_GREATER
+        private static TzDataRule? FindLatestRule(IReadOnlyList<TzDataRule> rules, int fromYear, int toYear, bool? isDaylight, long untilTicks)
+#else
+        [CanBeNull]
+        private static TzDataRule FindLatestRule(IReadOnlyList<TzDataRule> rules, int fromYear, int toYear, bool? isDaylight, long untilTicks)
+#endif
+        {
+#if NETCOREAPP3_0_OR_GREATER
+            TzDataRule? latestRule = null;
+#else
+            TzDataRule latestRule = null;
+#endif
+            var latestTicks = long.MinValue;
+
+            foreach (var rule in rules)
+            {
+                if (isDaylight.HasValue && rule.IsDaylight != isDaylight.Value)
+                    continue;
+
+                // The rules of a set fall months apart, so they are ordered by the local time at which they take effect.
+                var lastYear = Math.Min(rule.ToYear, toYear);
+                if (lastYear < Math.Max(rule.FromYear, fromYear))
+                    continue;
+
+                // Where the rule takes effect after the line ends, it last took effect for the line in the year before.
+                var localTicks = GetRuleLocalTicks(rule, lastYear);
+                if (localTicks.HasValue && localTicks.Value >= untilTicks && lastYear > Math.Max(rule.FromYear, fromYear))
+                    localTicks = GetRuleLocalTicks(rule, lastYear - 1);
+
+                if (localTicks.HasValue && localTicks.Value < untilTicks && (latestRule is null || localTicks.Value > latestTicks))
+                {
+                    latestRule = rule;
+                    latestTicks = localTicks.Value;
+                }
+            }
+
+            return latestRule;
+        }
+
+#if NETCOREAPP3_0_OR_GREATER
+        private static TzDataRule? FindEarliestRule(IReadOnlyList<TzDataRule> rules, bool isDaylight)
+#else
+        [CanBeNull]
+        private static TzDataRule FindEarliestRule(IReadOnlyList<TzDataRule> rules, bool isDaylight)
+#endif
+        {
+#if NETCOREAPP3_0_OR_GREATER
+            TzDataRule? earliestRule = null;
+#else
+            TzDataRule earliestRule = null;
+#endif
+            var earliestTicks = long.MaxValue;
+
+            foreach (var rule in rules)
+            {
+                if (rule.IsDaylight != isDaylight)
+                    continue;
+
+                var localTicks = GetRuleLocalTicks(rule, Math.Max(rule.FromYear, YearMinimum));
+                if (localTicks.HasValue && (earliestRule is null || localTicks.Value < earliestTicks))
+                {
+                    earliestRule = rule;
+                    earliestTicks = localTicks.Value;
+                }
+            }
+
+            return earliestRule;
         }
 
         private static int GetLastExplicitYear(TzDataZoneLine[] zoneLines)

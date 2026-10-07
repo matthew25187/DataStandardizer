@@ -229,6 +229,163 @@ namespace DataStandardizer.Chronology
         }
 
         /// <summary>
+        /// Get the abbreviation by which the time in a timezone is known at an instant.
+        /// </summary>
+        /// <param name="timezone">A TzData timezone.</param>
+        /// <param name="utc">The instant, in universal time. A time of kind <see cref="DateTimeKind.Unspecified"/> is treated as universal time.</param>
+        /// <returns>The abbreviation in force at the instant, for example <c>EST</c>, <c>BST</c> or <c>+0545</c>.</returns>
+        /// <remarks>
+        /// The abbreviation is that of <see cref="TzDataOffsetInfo.Abbreviation"/>, formatted from the FORMAT of the zone line in force as zic formats it.
+        /// </remarks>
+        /// <exception cref="ArgumentException"><paramref name="utc"/> is of kind <see cref="DateTimeKind.Local"/>.</exception>
+        /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
+#if NETSTANDARD
+        [NotNull]
+#endif
+        public static string GetAbbreviation(this TzDataTimezone timezone, DateTime utc)
+        {
+            return GetOffsetInfo(timezone, utc).Abbreviation;
+        }
+
+        /// <summary>
+        /// Get the abbreviation by which the time in a timezone is known at an instant.
+        /// </summary>
+        /// <param name="timezone">A TzData timezone.</param>
+        /// <param name="instant">The instant.</param>
+        /// <returns>The abbreviation in force at the instant, for example <c>EST</c>, <c>BST</c> or <c>+0545</c>.</returns>
+        /// <remarks>
+        /// The abbreviation is that of <see cref="TzDataOffsetInfo.Abbreviation"/>, formatted from the FORMAT of the zone line in force as zic formats it.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
+#if NETSTANDARD
+        [NotNull]
+#endif
+        public static string GetAbbreviation(this TzDataTimezone timezone, DateTimeOffset instant)
+        {
+            return GetAbbreviation(timezone, instant.UtcDateTime);
+        }
+
+        /// <summary>
+        /// Get the abbreviation by which standard time in a timezone is known, for the zone line and rule year in force at an instant.
+        /// </summary>
+        /// <param name="timezone">A TzData timezone.</param>
+        /// <param name="utc">The instant, in universal time. A time of kind <see cref="DateTimeKind.Unspecified"/> is treated as universal time.</param>
+        /// <returns>The standard time abbreviation, for example <c>EST</c> for America/New_York or <c>GMT</c> for Europe/London.</returns>
+        /// <remarks>
+        /// <para>
+        /// The abbreviation is formatted from the FORMAT of the zone line in force at the instant. <c>%s</c> is replaced by the
+        /// LETTER of the latest standard time rule in effect in the year on the local clock, being one that takes effect in that
+        /// year or, failing that, the latest to take effect before it. A FORMAT of the form <c>A/B</c> gives <c>A</c>, and
+        /// <c>%z</c> gives the standard offset.
+        /// </para>
+        /// <para>
+        /// The TZ Database decides which time is standard time. Europe/Dublin saves a negative amount in winter, so its standard time is <c>IST</c>.
+        /// </para>
+        /// </remarks>
+        /// <exception cref="ArgumentException"><paramref name="utc"/> is of kind <see cref="DateTimeKind.Local"/>.</exception>
+        /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
+#if NETSTANDARD
+        [NotNull]
+#endif
+        public static string GetStandardAbbreviation(this TzDataTimezone timezone, DateTime utc)
+        {
+            var calculator = timezone.GetCalculator();
+            return calculator.GetStandardAbbreviation(ToUniversalInstant(utc, nameof(utc)));
+        }
+
+        /// <summary>
+        /// Get the abbreviation by which standard time in a timezone is known, for the zone line and rule year in force at an instant.
+        /// </summary>
+        /// <param name="timezone">A TzData timezone.</param>
+        /// <param name="instant">The instant.</param>
+        /// <returns>The standard time abbreviation, for example <c>EST</c> for America/New_York or <c>GMT</c> for Europe/London.</returns>
+        /// <remarks>
+        /// <para>
+        /// The abbreviation is formatted from the FORMAT of the zone line in force at the instant. <c>%s</c> is replaced by the
+        /// LETTER of the latest standard time rule in effect in the year on the local clock, being one that takes effect in that
+        /// year or, failing that, the latest to take effect before it. A FORMAT of the form <c>A/B</c> gives <c>A</c>, and
+        /// <c>%z</c> gives the standard offset.
+        /// </para>
+        /// <para>
+        /// The TZ Database decides which time is standard time. Europe/Dublin saves a negative amount in winter, so its standard time is <c>IST</c>.
+        /// </para>
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
+#if NETSTANDARD
+        [NotNull]
+#endif
+        public static string GetStandardAbbreviation(this TzDataTimezone timezone, DateTimeOffset instant)
+        {
+            return GetStandardAbbreviation(timezone, instant.UtcDateTime);
+        }
+
+        /// <summary>
+        /// Get the abbreviation by which daylight saving time in a timezone is known, for the zone line and rule year in force at an instant.
+        /// </summary>
+        /// <param name="timezone">A TzData timezone.</param>
+        /// <param name="utc">The instant, in universal time. A time of kind <see cref="DateTimeKind.Unspecified"/> is treated as universal time.</param>
+        /// <returns>
+        /// The daylight saving time abbreviation, for example <c>EDT</c> for America/New_York or <c>BST</c> for Europe/London,
+        /// or <see langword="null"/> where no daylight saving time is in effect in the year.
+        /// </returns>
+        /// <remarks>
+        /// <para>
+        /// The abbreviation is formatted from the FORMAT of the zone line in force at the instant. <c>%s</c> is replaced by the
+        /// LETTER of the latest daylight saving time rule in effect in the year on the local clock, being one that takes effect in
+        /// that year or, failing that, the one in effect as the year begins. A FORMAT of the form <c>A/B</c> gives <c>B</c>, and
+        /// <c>%z</c> gives the offset with daylight saving. A zone line that saves a fixed amount observes daylight saving time
+        /// where the amount is not zero.
+        /// </para>
+        /// <para>
+        /// The TZ Database decides which time is daylight saving time. Europe/Dublin saves a negative amount in winter, so its daylight saving time is <c>GMT</c>.
+        /// </para>
+        /// </remarks>
+        /// <exception cref="ArgumentException"><paramref name="utc"/> is of kind <see cref="DateTimeKind.Local"/>.</exception>
+        /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
+#if NETCOREAPP3_0_OR_GREATER
+        public static string? GetDaylightAbbreviation(this TzDataTimezone timezone, DateTime utc)
+#else
+        [CanBeNull]
+        public static string GetDaylightAbbreviation(this TzDataTimezone timezone, DateTime utc)
+#endif
+        {
+            var calculator = timezone.GetCalculator();
+            return calculator.GetDaylightAbbreviation(ToUniversalInstant(utc, nameof(utc)));
+        }
+
+        /// <summary>
+        /// Get the abbreviation by which daylight saving time in a timezone is known, for the zone line and rule year in force at an instant.
+        /// </summary>
+        /// <param name="timezone">A TzData timezone.</param>
+        /// <param name="instant">The instant.</param>
+        /// <returns>
+        /// The daylight saving time abbreviation, for example <c>EDT</c> for America/New_York or <c>BST</c> for Europe/London,
+        /// or <see langword="null"/> where no daylight saving time is in effect in the year.
+        /// </returns>
+        /// <remarks>
+        /// <para>
+        /// The abbreviation is formatted from the FORMAT of the zone line in force at the instant. <c>%s</c> is replaced by the
+        /// LETTER of the latest daylight saving time rule in effect in the year on the local clock, being one that takes effect in
+        /// that year or, failing that, the one in effect as the year begins. A FORMAT of the form <c>A/B</c> gives <c>B</c>, and
+        /// <c>%z</c> gives the offset with daylight saving. A zone line that saves a fixed amount observes daylight saving time
+        /// where the amount is not zero.
+        /// </para>
+        /// <para>
+        /// The TZ Database decides which time is daylight saving time. Europe/Dublin saves a negative amount in winter, so its daylight saving time is <c>GMT</c>.
+        /// </para>
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
+#if NETCOREAPP3_0_OR_GREATER
+        public static string? GetDaylightAbbreviation(this TzDataTimezone timezone, DateTimeOffset instant)
+#else
+        [CanBeNull]
+        public static string GetDaylightAbbreviation(this TzDataTimezone timezone, DateTimeOffset instant)
+#endif
+        {
+            return GetDaylightAbbreviation(timezone, instant.UtcDateTime);
+        }
+
+        /// <summary>
         /// Get the transitions between offsets from universal time that occur in a timezone over a period.
         /// </summary>
         /// <param name="timezone">A TzData timezone.</param>
