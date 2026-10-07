@@ -28,7 +28,7 @@ namespace DataStandardizer.Chronology
             DateTime? validFromUtc,
             DateTime? validUntilUtc)
         {
-            if (abbreviation == null)
+            if (abbreviation is null)
                 throw new ArgumentNullException(nameof(abbreviation));
 
             if (validFromUtc.HasValue && validFromUtc.Value.Kind != DateTimeKind.Utc)

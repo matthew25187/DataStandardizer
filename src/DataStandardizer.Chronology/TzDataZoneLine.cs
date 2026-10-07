@@ -38,21 +38,21 @@ namespace DataStandardizer.Chronology
                 case TzDataZoneRuleKind.None:
                     if (fixedSave.HasValue)
                         throw new ArgumentException("A fixed save must not be specified where no rules apply.", nameof(fixedSave));
-                    if (rules != null && rules.Length > 0)
+                    if (rules?.Length > 0)
                         throw new ArgumentException("Rules must not be specified where no rules apply.", nameof(rules));
                     break;
 
                 case TzDataZoneRuleKind.FixedSave:
                     if (!fixedSave.HasValue)
                         throw new ArgumentException("A fixed save must be specified.", nameof(fixedSave));
-                    if (rules != null && rules.Length > 0)
+                    if (rules?.Length > 0)
                         throw new ArgumentException("Rules must not be specified where a fixed save applies.", nameof(rules));
                     break;
 
                 case TzDataZoneRuleKind.RuleSet:
                     if (fixedSave.HasValue)
                         throw new ArgumentException("A fixed save must not be specified where a rule set applies.", nameof(fixedSave));
-                    if (rules == null)
+                    if (rules is null)
                         throw new ArgumentNullException(nameof(rules));
                     break;
 
@@ -60,7 +60,7 @@ namespace DataStandardizer.Chronology
                     throw new ArgumentOutOfRangeException(nameof(ruleKind), ruleKind, "Rule kind is not defined.");
             }
 
-            if (format == null)
+            if (format is null)
                 throw new ArgumentNullException(nameof(format));
 
             if (format.Length == 0)
@@ -70,7 +70,7 @@ namespace DataStandardizer.Chronology
             RuleKind = ruleKind;
             FixedSave = fixedSave;
             // The rule array is shared between zone lines, so it is wrapped rather than exposed, to keep it from being cast back and modified.
-            Rules = ruleKind == TzDataZoneRuleKind.RuleSet && rules != null ? new ReadOnlyCollection<TzDataRule>(rules) : NoRules;
+            Rules = ruleKind != TzDataZoneRuleKind.RuleSet || rules is null ? NoRules : new ReadOnlyCollection<TzDataRule>(rules);
             Format = format;
             Until = until;
         }

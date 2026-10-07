@@ -36,10 +36,10 @@ namespace DataStandardizer.Chronology
 #endif
             string letter)
         {
-            if (name == null)
+            if (name is null)
                 throw new ArgumentNullException(nameof(name));
 
-            if (letter == null)
+            if (letter is null)
                 throw new ArgumentNullException(nameof(letter));
 
             if (toYear < fromYear)
