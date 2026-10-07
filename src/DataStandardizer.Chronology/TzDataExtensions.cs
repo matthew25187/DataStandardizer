@@ -14,6 +14,7 @@ namespace DataStandardizer.Chronology
         /// </summary>
         /// <param name="timezone">A TzData timezone.</param>
         /// <returns>Comment for the timezone, if available; otherwise, <c>null</c>.</returns>
+        [Obsolete("Use TzDataTimezone.Comment instead.")]
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetComment(this TzDataTimezone timezone)
 #else
@@ -30,6 +31,7 @@ namespace DataStandardizer.Chronology
         /// </summary>
         /// <param name="timezone">A TzData timezone.</param>
         /// <returns>A collection of ISO country codes related to the timezone.</returns>
+        [Obsolete("Use TzDataTimezone.IsoCountryCodes instead.")]
         public static string[] GetIsoCountryCodes(this TzDataTimezone timezone)
         {
             var timezoneAttribute = GetTimezoneAttribute(timezone);
@@ -47,6 +49,7 @@ namespace DataStandardizer.Chronology
         /// </summary>
         /// <param name="timezone">A TzData timezone.</param>
         /// <returns>Latitude of the timezone.</returns>
+        [Obsolete("Use TzDataTimezone.Latitude instead.")]
         public static double GetLatitude(this TzDataTimezone timezone)
         {
             var timezoneAttribute = GetTimezoneAttribute(timezone);
@@ -58,6 +61,7 @@ namespace DataStandardizer.Chronology
         /// </summary>
         /// <param name="timezone">A TzData timezone.</param>
         /// <returns>Longitude of the timezone.</returns>
+        [Obsolete("Use TzDataTimezone.Longitude instead.")]
         public static double GetLongitude(this TzDataTimezone timezone)
         {
             var timezoneAttribute = GetTimezoneAttribute(timezone);
@@ -442,6 +446,8 @@ namespace DataStandardizer.Chronology
             return DateTime.SpecifyKind(utc, DateTimeKind.Utc);
         }
 
+        // The obsolete accessors keep reading the obsolete attribute, so that their behaviour is unchanged until they are removed.
+#pragma warning disable CS0618 // TzDataTimezoneAttribute is obsolete
 #if NETCOREAPP3_0_OR_GREATER
         private static TzDataTimezoneAttribute? GetTimezoneAttribute(TzDataTimezone timezone)
 #else
@@ -454,5 +460,6 @@ namespace DataStandardizer.Chronology
 
             return entry.Field.GetCustomAttribute<TzDataTimezoneAttribute>();
         }
+#pragma warning restore CS0618
     }
 }
