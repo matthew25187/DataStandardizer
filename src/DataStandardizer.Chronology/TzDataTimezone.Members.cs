@@ -11,6 +11,7 @@ namespace DataStandardizer.Chronology
     public readonly partial struct TzDataTimezone
     {
         private static readonly Registry DefaultRegistry = new Registry();
+        private static readonly TzDataZoneCalculator.Cache DefaultCalculatorCache = new TzDataZoneCalculator.Cache();
 
         /// <summary>
         /// Gets the full history of the timezone's offsets from universal time, as the zone lines of its Zone entry in the TZ Database.
@@ -28,22 +29,64 @@ namespace DataStandardizer.Chronology
         {
             get
             {
-                if (_value is null)
-                    throw new InvalidOperationException("The timezone has no identifier.");
-
-                // An instance created by explicit cast has no zone lines of its own, so they are found by identifier.
-                var zoneLines = _zoneLines;
-                if (zoneLines is null)
-                {
-                    if (!DefaultRegistry.GetEntries().TryGetValue(_value, out var entry))
-                        throw new InvalidOperationException($"'{_value}' is not the identifier of a known timezone.");
-
-                    zoneLines = entry.ZoneLines;
-                }
-
                 // The array is shared, so it is wrapped rather than exposed, to keep it from being cast back and modified.
-                return new ReadOnlyCollection<TzDataZoneLine>(zoneLines);
+                return new ReadOnlyCollection<TzDataZoneLine>(GetZoneLineArray(out _));
             }
+        }
+
+        /// <summary>
+        /// Gets the calculator of the timezone's offsets from universal time, building it on first use.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// The timezone is the default value, or its identifier is not that of a timezone field.
+        /// </exception>
+#if NETSTANDARD
+        [NotNull]
+#endif
+        internal TzDataZoneCalculator GetCalculator()
+        {
+            var zoneLines = GetZoneLineArray(out var identifier);
+            return DefaultCalculatorCache.GetCalculator(identifier, zoneLines);
+        }
+
+        /// <summary>
+        /// Finds the timezone field with the same identifier as the timezone.
+        /// </summary>
+        /// <param name="entry">The field and its zone lines, if found.</param>
+        /// <returns><see langword="true"/> if the field was found; otherwise, <see langword="false"/>, including for the default value.</returns>
+#if NETCOREAPP3_0_OR_GREATER
+        internal bool TryGetRegistryEntry([System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out RegistryEntry? entry)
+#else
+        internal bool TryGetRegistryEntry(out RegistryEntry entry)
+#endif
+        {
+            if (_value is null)
+            {
+                entry = null;
+                return false;
+            }
+
+            return DefaultRegistry.GetEntries().TryGetValue(_value, out entry);
+        }
+
+        private TzDataZoneLine[] GetZoneLineArray(out string identifier)
+        {
+            if (_value is null)
+                throw new InvalidOperationException("The timezone has no identifier.");
+
+            identifier = _value;
+
+            // An instance created by explicit cast has no zone lines of its own, so they are found by identifier.
+            var zoneLines = _zoneLines;
+            if (zoneLines is null)
+            {
+                if (!TryGetRegistryEntry(out var entry))
+                    throw new InvalidOperationException($"'{_value}' is not the identifier of a known timezone.");
+
+                zoneLines = entry.ZoneLines;
+            }
+
+            return zoneLines;
         }
 
         /// <summary>
