@@ -34,6 +34,12 @@ which matters for [UnM49Area](UnM49Area.md) because its members span every level
 of the hierarchy; for the two country-keyed enumerations it is equivalent to
 `GetCountryOrAreaName`.
 
+`GetIso3166Part1Alpha2Code` and `GetIso3166Part1Alpha3Code` return the ISO 3166-1
+country codes of a country or area, so a member of one country-keyed enumeration
+gives the code for the other, and a [UnM49Area](UnM49Area.md) member gives both.
+Only the country or area level bears a country code; the world, regions,
+sub-regions, and intermediate regions return `null`.
+
 `GetLevel`, `GetParent`, and `IsWithin` extend [UnM49Area](UnM49Area.md) only, as
 the two country-keyed enumerations cannot represent a region as a value.
 
@@ -61,6 +67,8 @@ extension methods.
 | `GetGlobalName(string languageCode)` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `string?` | Name of the global code. |
 | `GetIntermediateRegionCode()` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `ushort?` | Intermediate region code related to the M49 code. |
 | `GetIntermediateRegionName(string languageCode)` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `string?` | Name of the intermediate region code. |
+| `GetIso3166Part1Alpha2Code()` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `string?` | ISO 3166-1 alpha-2 country code related to the M49 code. Returns `null` for a `UnM49Area` code above the country or area level. |
+| `GetIso3166Part1Alpha3Code()` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `string?` | ISO 3166-1 alpha-3 country code related to the M49 code. Returns `null` for a `UnM49Area` code above the country or area level. |
 | `GetLevel()` | `UnM49Area` | `UnM49AreaLevel?` | Level of the M49 hierarchy occupied by the code. |
 | `GetName(string languageCode)` | `UnM49AreaByAlpha2CountryCode` / `UnM49AreaByAlpha3CountryCode` / `UnM49Area` | `string?` | Name of the area at whatever level of the hierarchy it occupies. |
 | `GetParent()` | `UnM49Area` | `UnM49Area?` | Parent area in the M49 hierarchy; `null` for the world. |
