@@ -39,11 +39,32 @@ properties. These replace the `GetLatitude`, `GetLongitude`,
 [TzDataExtensions](TzDataExtensions.md), which are deprecated. See
 [Access time zone metadata](../how-to/access-timezone-metadata.md).
 
-An instance created by explicit cast from a string finds its metadata through the
-predefined instance with the same identifier. The properties, including
-`IsLink` and `Canonical`, throw
-`InvalidOperationException` for the `default` value and for an identifier that
-is not that of a predefined instance.
+Each time zone carries its full history from the TZ Database, read through the
+`ZoneLines` property as a list of [TzDataZoneLine](TzDataZoneLine.md). The
+extension methods on [TzDataExtensions](TzDataExtensions.md) use it to calculate
+the offset from universal time, daylight saving time, transitions and
+abbreviations at any instant. See
+[Calculate UTC offsets](../how-to/calculate-utc-offsets.md).
+
+### Cast and default instances
+
+An instance created by explicit cast from a string has no data of its own. It
+finds its zone lines and metadata through the predefined instance with the same
+identifier, so it returns the same values as that instance:
+
+```csharp
+var london = (TzDataTimezone)"Europe/London";
+bool same = london.ZoneLines[0] == TzDataTimezone.Europe.London.ZoneLines[0];   // true
+```
+
+The cast doesn't validate the identifier. For `default(TzDataTimezone)`, and for
+an instance cast from an identifier that is not that of a predefined instance,
+the properties (including `ZoneLines`, `IsLink` and `Canonical`) and the
+calculation methods of [TzDataExtensions](TzDataExtensions.md) throw
+`InvalidOperationException`. Equality uses only the identifier, so an instance
+cast from an unknown identifier is equal to another cast from the same string.
+The deprecated metadata accessors on `TzDataExtensions` return `null`, `0` or an
+empty array instead of throwing.
 
 ### Links and canonical time zones
 
@@ -76,6 +97,32 @@ The deprecated names in the TZ Database's `backward` file, such as
 `Asia/Calcutta` and `US/Eastern`, have no fields. `Parse` and `TryParse` return
 the canonical time zone for them.
 
+### Generated source
+
+`TzDataTimezone` is a `partial` struct. Most of it is generated from the TZ
+Database source (tzdata) by `scripts/GenerateTzDataTimezoneOfficial.ps1`, which
+produces four source files:
+
+| File | Contents |
+| --- | --- |
+| `TzDataTimezone.cs` | The struct, its identifier members, and a field for each time zone, nested by region. |
+| `TzDataTimezone.ZoneLineData.cs` | The zone lines of each canonical time zone, which the fields of the time zone and of its links share. |
+| `TzDataTimezone.RuleSets.cs` | The daylight saving rule sets referenced by the zone lines. |
+| `TzDataTimezone.LinkData.cs` | The deprecated names from the `backward` file, which `Parse` and `TryParse` accept. |
+
+The zone line data, rule sets and link data are private. They are reached
+through `ZoneLines` and the methods of [TzDataExtensions](TzDataExtensions.md).
+The properties and parsing methods are hand-written, in
+`TzDataTimezone.Members.cs`.
+
+The generated files need no manual edits. The script's comment-based help
+(`Get-Help ./scripts/GenerateTzDataTimezoneOfficial.ps1 -Full`) lists the tzdata
+files it requires: `zone1970.tab`, `zone.tab`, `iso3166.tab`, the main-format
+region files (`africa`, `antarctica`, `asia`, `australasia`, `europe`,
+`northamerica` and `southamerica`), `etcetera` and `backward`. The TZ Database
+release a build is based on is given in the remarks on the type. See
+[Data currency and versioning](../../../concepts/data-currency-and-versioning.md).
+
 ## Fields
 
 The time zone instances are grouped by region:
@@ -101,7 +148,7 @@ The time zone instances are grouped by region:
 | `IsoCountryCodes` | `IReadOnlyList<string> IsoCountryCodes { get; }` | ISO 3166-1 Alpha-2 codes for the countries the zone covers, in `zone1970.tab` order (`zone.tab` for a link). |
 | `Latitude` | `double Latitude { get; }` | Latitude of the zone's principal location, in decimal degrees. |
 | `Longitude` | `double Longitude { get; }` | Longitude of the zone's principal location, in decimal degrees. |
-| `ZoneLines` | `IReadOnlyList<TzDataZoneLine> ZoneLines { get; }` | The zone's full history of offsets from universal time, in chronological order. For a link, those of its canonical time zone. |
+| `ZoneLines` | `IReadOnlyList<TzDataZoneLine> ZoneLines { get; }` | The zone's full history of offsets from universal time, as [TzDataZoneLine](TzDataZoneLine.md) instances in chronological order. Every line but the last has an `Until`. For a link, those of its canonical time zone. |
 
 ## Methods
 
@@ -141,5 +188,7 @@ Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`.
 
 - [Use time zones](../how-to/use-timezones.md)
 - [Access time zone metadata](../how-to/access-timezone-metadata.md)
+- [Calculate UTC offsets](../how-to/calculate-utc-offsets.md)
 - [TzDataExtensions](TzDataExtensions.md)
+- [TzDataZoneLine](TzDataZoneLine.md)
 - [Chronology API reference](index.md)
