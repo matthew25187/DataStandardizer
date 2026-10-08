@@ -17,10 +17,17 @@ identifiers — for example `TzDataTimezone.Europe.Berlin` and
 `TzDataTimezone.America.Argentina.Buenos_Aires`.
 
 ```csharp
-public readonly struct TzDataTimezone : IComparable, IEquatable<TzDataTimezone>
+public readonly struct TzDataTimezone : IComparable, IEquatable<TzDataTimezone>, IParsable<TzDataTimezone>
 ```
 
+`IParsable<TzDataTimezone>` is implemented on `net8.0` and later only.
+
 ## Remarks
+
+To get a time zone from its identifier string, use `Parse` or `TryParse`. They
+return the predefined instance with that identifier, and reject identifiers
+that are not those of a predefined instance. Identifiers are case-sensitive.
+Prefer them to the explicit cast, which accepts any string.
 
 Per-zone location metadata (latitude, longitude, ISO country codes, comment) is
 read through the `Latitude`, `Longitude`, `IsoCountryCodes` and `Comment`
@@ -60,6 +67,15 @@ The time zone instances are grouped by region:
 
 ## Methods
 
+### Static
+
+| Method | Returns | Notes |
+| --- | --- | --- |
+| `Parse(string s)` | `TzDataTimezone` | Returns the predefined instance with identifier `s`. Throws `ArgumentNullException` if `s` is `null`, and `FormatException` if it is not a known identifier. |
+| `Parse(string s, IFormatProvider? provider)` | `TzDataTimezone` | `IParsable<TzDataTimezone>` implementation; `net8.0` and later only. `provider` is ignored. |
+| `TryParse(string? s, out TzDataTimezone result)` | `bool` | Returns `false`, with `result` set to `default`, if `s` is `null` or not a known identifier. |
+| `TryParse(string? s, IFormatProvider? provider, out TzDataTimezone result)` | `bool` | `IParsable<TzDataTimezone>` implementation; `net8.0` and later only. `provider` is ignored. |
+
 ### Implicit implementation
 
 | Method | Returns | Notes |
@@ -75,7 +91,7 @@ The time zone instances are grouped by region:
 
 | Operator | Signature | Notes |
 | --- | --- | --- |
-| Explicit | `explicit operator TzDataTimezone(string)` | Wraps an identifier string. |
+| Explicit | `explicit operator TzDataTimezone(string)` | Wraps an identifier string without validating it. Prefer `Parse` or `TryParse`. |
 | Implicit | `implicit operator string(TzDataTimezone)` | Unwraps to the identifier string. |
 | Equality | `operator ==`, `!=` `(TzDataTimezone, TzDataTimezone)` | |
 
