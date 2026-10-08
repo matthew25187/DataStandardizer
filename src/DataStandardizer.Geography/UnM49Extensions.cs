@@ -681,6 +681,150 @@ namespace DataStandardizer.Geography
             return false;
         }
 
+        /// <summary>
+        /// Get the ISO 3166 Part 1 Alpha-2 country code related to a <see cref="UnM49AreaByAlpha2CountryCode"/> code.
+        /// </summary>
+        /// <param name="m49Code">UN M49 code.</param>
+        /// <returns>ISO 3166 Part 1 Alpha-2 country code for the M49 code, if found; otherwise <c>null</c>.</returns>
+        /// <remarks>
+        /// Only codes occupying the country or area level of the M49 hierarchy bear a country code; aggregate areas
+        /// such as the world, regions, sub-regions and intermediate regions return <c>null</c>.
+        /// </remarks>
+#if NETCOREAPP3_0_OR_GREATER
+        public static string? GetIso3166Part1Alpha2Code(this UnM49AreaByAlpha2CountryCode m49Code)
+#else
+        [CanBeNull]
+        public static string GetIso3166Part1Alpha2Code(this UnM49AreaByAlpha2CountryCode m49Code)
+#endif
+        {
+            if (!Enum.IsDefined(m49Code.GetType(), m49Code))
+            {
+                return null;
+            }
+
+            return DoGetIso3166Part1Alpha2Code(m49Code);
+        }
+
+        /// <summary>
+        /// Get the ISO 3166 Part 1 Alpha-2 country code related to a <see cref="UnM49AreaByAlpha3CountryCode"/> code.
+        /// </summary>
+        /// <param name="m49Code">UN M49 code.</param>
+        /// <returns>ISO 3166 Part 1 Alpha-2 country code for the M49 code, if found; otherwise <c>null</c>.</returns>
+        /// <remarks>
+        /// Only codes occupying the country or area level of the M49 hierarchy bear a country code; aggregate areas
+        /// such as the world, regions, sub-regions and intermediate regions return <c>null</c>.
+        /// </remarks>
+#if NETCOREAPP3_0_OR_GREATER
+        public static string? GetIso3166Part1Alpha2Code(this UnM49AreaByAlpha3CountryCode m49Code)
+#else
+        [CanBeNull]
+        public static string GetIso3166Part1Alpha2Code(this UnM49AreaByAlpha3CountryCode m49Code)
+#endif
+        {
+            if (!Enum.IsDefined(m49Code.GetType(), m49Code))
+            {
+                return null;
+            }
+
+            return DoGetIso3166Part1Alpha2Code(m49Code);
+        }
+
+        /// <summary>
+        /// Get the ISO 3166 Part 1 Alpha-2 country code related to a <see cref="UnM49Area"/> code.
+        /// </summary>
+        /// <param name="m49Code">UN M49 code.</param>
+        /// <returns>ISO 3166 Part 1 Alpha-2 country code for the M49 code, if found; otherwise <c>null</c>.</returns>
+        /// <remarks>
+        /// Only codes occupying the country or area level of the M49 hierarchy bear a country code; aggregate areas
+        /// such as the world, regions, sub-regions and intermediate regions return <c>null</c>.
+        /// </remarks>
+#if NETCOREAPP3_0_OR_GREATER
+        public static string? GetIso3166Part1Alpha2Code(this UnM49Area m49Code)
+#else
+        [CanBeNull]
+        public static string GetIso3166Part1Alpha2Code(this UnM49Area m49Code)
+#endif
+        {
+            if (!Enum.IsDefined(m49Code.GetType(), m49Code))
+            {
+                return null;
+            }
+
+            return DoGetIso3166Part1Alpha2Code(m49Code);
+        }
+
+        /// <summary>
+        /// Get the ISO 3166 Part 1 Alpha-3 country code related to a <see cref="UnM49AreaByAlpha2CountryCode"/> code.
+        /// </summary>
+        /// <param name="m49Code">UN M49 code.</param>
+        /// <returns>ISO 3166 Part 1 Alpha-3 country code for the M49 code, if found; otherwise <c>null</c>.</returns>
+        /// <remarks>
+        /// Only codes occupying the country or area level of the M49 hierarchy bear a country code; aggregate areas
+        /// such as the world, regions, sub-regions and intermediate regions return <c>null</c>.
+        /// </remarks>
+#if NETCOREAPP3_0_OR_GREATER
+        public static string? GetIso3166Part1Alpha3Code(this UnM49AreaByAlpha2CountryCode m49Code)
+#else
+        [CanBeNull]
+        public static string GetIso3166Part1Alpha3Code(this UnM49AreaByAlpha2CountryCode m49Code)
+#endif
+        {
+            if (!Enum.IsDefined(m49Code.GetType(), m49Code))
+            {
+                return null;
+            }
+
+            return DoGetIso3166Part1Alpha3Code(m49Code);
+        }
+
+        /// <summary>
+        /// Get the ISO 3166 Part 1 Alpha-3 country code related to a <see cref="UnM49AreaByAlpha3CountryCode"/> code.
+        /// </summary>
+        /// <param name="m49Code">UN M49 code.</param>
+        /// <returns>ISO 3166 Part 1 Alpha-3 country code for the M49 code, if found; otherwise <c>null</c>.</returns>
+        /// <remarks>
+        /// Only codes occupying the country or area level of the M49 hierarchy bear a country code; aggregate areas
+        /// such as the world, regions, sub-regions and intermediate regions return <c>null</c>.
+        /// </remarks>
+#if NETCOREAPP3_0_OR_GREATER
+        public static string? GetIso3166Part1Alpha3Code(this UnM49AreaByAlpha3CountryCode m49Code)
+#else
+        [CanBeNull]
+        public static string GetIso3166Part1Alpha3Code(this UnM49AreaByAlpha3CountryCode m49Code)
+#endif
+        {
+            if (!Enum.IsDefined(m49Code.GetType(), m49Code))
+            {
+                return null;
+            }
+
+            return DoGetIso3166Part1Alpha3Code(m49Code);
+        }
+
+        /// <summary>
+        /// Get the ISO 3166 Part 1 Alpha-3 country code related to a <see cref="UnM49Area"/> code.
+        /// </summary>
+        /// <param name="m49Code">UN M49 code.</param>
+        /// <returns>ISO 3166 Part 1 Alpha-3 country code for the M49 code, if found; otherwise <c>null</c>.</returns>
+        /// <remarks>
+        /// Only codes occupying the country or area level of the M49 hierarchy bear a country code; aggregate areas
+        /// such as the world, regions, sub-regions and intermediate regions return <c>null</c>.
+        /// </remarks>
+#if NETCOREAPP3_0_OR_GREATER
+        public static string? GetIso3166Part1Alpha3Code(this UnM49Area m49Code)
+#else
+        [CanBeNull]
+        public static string GetIso3166Part1Alpha3Code(this UnM49Area m49Code)
+#endif
+        {
+            if (!Enum.IsDefined(m49Code.GetType(), m49Code))
+            {
+                return null;
+            }
+
+            return DoGetIso3166Part1Alpha3Code(m49Code);
+        }
+
         #region Private Methods
 
 #if NETCOREAPP3_0_OR_GREATER
@@ -812,6 +956,30 @@ namespace DataStandardizer.Geography
             }
 
             return null;
+        }
+
+#if NETCOREAPP3_0_OR_GREATER
+        private static string? DoGetIso3166Part1Alpha2Code<T>(T m49Code)
+#else
+        [CanBeNull]
+        private static string DoGetIso3166Part1Alpha2Code<T>(T m49Code)
+#endif
+            where T : struct, Enum
+        {
+            var codeAttribute = DoGetCodeAttribute(m49Code);
+            return codeAttribute?.Iso3166Part1Alpha2Code;
+        }
+
+#if NETCOREAPP3_0_OR_GREATER
+        private static string? DoGetIso3166Part1Alpha3Code<T>(T m49Code)
+#else
+        [CanBeNull]
+        private static string DoGetIso3166Part1Alpha3Code<T>(T m49Code)
+#endif
+            where T : struct, Enum
+        {
+            var codeAttribute = DoGetCodeAttribute(m49Code);
+            return codeAttribute?.Iso3166Part1Alpha3Code;
         }
 
         private static UnM49AreaLevel DoGetLevel<T>(T m49Code) where T : struct, Enum

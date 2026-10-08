@@ -1,3 +1,5 @@
+#pragma warning disable CS0618 // The obsolete metadata accessors are tested until they are removed.
+
 using FluentAssertions;
 
 namespace DataStandardizer.Chronology.Tests

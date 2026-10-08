@@ -508,7 +508,7 @@ namespace DataStandardizer.Geography
         }
 
         /// <summary>
-        /// Gets or sets the ISO 3166 Part 1 Alpha-2 language code.
+        /// Gets or sets the ISO 3166 Part 1 Alpha-2 country code.
         /// </summary>
 #if NETCOREAPP3_0_OR_GREATER
         public string? Iso3166Part1Alpha2Code { get; set; }
@@ -516,8 +516,9 @@ namespace DataStandardizer.Geography
         [CanBeNull]
         public string Iso3166Part1Alpha2Code { get; set; }
 #endif
+
         /// <summary>
-        /// Gets or sets the ISO 3166 Part 1 Alpha-3 language code.
+        /// Gets or sets the ISO 3166 Part 1 Alpha-3 country code.
         /// </summary>
 #if NETCOREAPP3_0_OR_GREATER
         public string? Iso3166Part1Alpha3Code { get; set; }

@@ -8,9 +8,87 @@
 #############################################################################
 #Requires -Version 7.4
 
+<#
+    .SYNOPSIS
+    Generates the source code of the TzDataTimezone type from the TZ Database.
+
+    .DESCRIPTION
+    Generates a field for each timezone listed in zone1970.tab, carrying the timezone's coordinates, countries and
+    comment, and its full history of zone lines.  The zone lines, and the daylight saving rule sets they reference,
+    are parsed from the main-format region files and generated into further partial source files.
+
+    The coordinates, countries and comment are passed to the constructor of each field.  They are also applied to
+    the field as the obsolete TzDataTimezoneAttribute, for callers that read it by reflection, with warning CS0618
+    suppressed around the fields.
+
+    Each timezone listed in zone.tab but not in zone1970.tab is a Link to a canonical timezone, such as Europe/Oslo
+    to Europe/Berlin.  It is given a field after the canonical timezones, with the coordinates, country and comment
+    of zone.tab, and the zone lines of the canonical timezone at the end of its chain of links.  The other links,
+    such as the deprecated names in backward, have no fields; those that refer to a canonical timezone are
+    generated into the link data partial source file, so that they can be parsed to it.
+
+    The following files of the TZ Database source (tzdata) are required in the source folder:
+
+    - zone1970.tab, which lists the canonical timezones to generate;
+    - zone.tab, which lists the timezones of each country, including links;
+    - iso3166.tab, which names the countries each timezone is used in;
+    - africa, antarctica, asia, australasia, europe, northamerica and southamerica, the main-format region files,
+      which hold the Rule and Zone lines of every timezone listed in zone1970.tab;
+    - etcetera, which holds the Zone lines of the Etc timezones that some links refer to;
+    - backward, which holds the Link lines of the deprecated names.
+
+    The file version, which identifies the release, is optional.
+
+    Generation fails, rather than emitting bad data, where a timezone listed in zone1970.tab has no Zone, a zone
+    line references a rule set that does not exist, any zone line but the last has no UNTIL, the UNTIL values of a
+    zone do not strictly increase, a timezone listed in zone.tab is neither listed in zone1970.tab nor a Link to a
+    timezone that is, a chain of links has a cycle or does not end at a Zone, or any line of the source cannot be
+    parsed.
+
+    The type is generated as four partial source files: the main source file, which declares the type and its
+    timezone fields; the zone line data; the rule sets referenced by the zone lines; and the link data.  Each run of
+    the script writes the source code of exactly one of them, chosen by SourceCodePart, to the output stream, so that
+    it can be reviewed before it is redirected to its file.  The script never writes to a file itself.  Every run
+    reads the whole of the source, as each part depends on the others, so the parts of one release are consistent;
+    a full update takes one run for each part.
+
+    The source code needs no further editing.  The script must be run from the root of the repository.
+
+    .PARAMETER SourceFolderPath
+    Path to the folder containing the extracted TZ Database source.
+
+    .PARAMETER SourceCodePart
+    The partial source file whose source code is generated:
+
+    - Timezone, the main source file, <SourceCodeTypeName>.cs, which is the default;
+    - ZoneLineData, the zone lines of each canonical timezone, <SourceCodeTypeName>.ZoneLineData.cs;
+    - RuleSets, the rule sets referenced by the zone lines, <SourceCodeTypeName>.RuleSets.cs;
+    - LinkData, the deprecated links, <SourceCodeTypeName>.LinkData.cs.
+
+    .PARAMETER SourceCodeTypeName
+    Name of the type in the generated source code.
+
+    .PARAMETER SourceCodeTypeComment
+    Inline comment to be applied to the type in the generated source code.
+
+    .PARAMETER SourceCodeLanguage
+    Language of the source code to be generated.
+
+    .EXAMPLE
+    ./scripts/GenerateTzDataTimezoneOfficial.ps1 -SourceFolderPath ~/tzdata -SourceCodeTypeName TzDataTimezone -SourceCodeTypeComment 'Time Zone Database' > src/DataStandardizer.Chronology/TzDataTimezone.cs
+
+    .EXAMPLE
+    ./scripts/GenerateTzDataTimezoneOfficial.ps1 -SourceFolderPath ~/tzdata -SourceCodeTypeName TzDataTimezone -SourceCodeTypeComment 'Time Zone Database' -SourceCodePart ZoneLineData > src/DataStandardizer.Chronology/TzDataTimezone.ZoneLineData.cs
+
+    .EXAMPLE
+    ./scripts/GenerateTzDataTimezoneOfficial.ps1 -SourceFolderPath ~/tzdata -SourceCodeTypeName TzDataTimezone -SourceCodeTypeComment 'Time Zone Database' -SourceCodePart RuleSets > src/DataStandardizer.Chronology/TzDataTimezone.RuleSets.cs
+
+    .EXAMPLE
+    ./scripts/GenerateTzDataTimezoneOfficial.ps1 -SourceFolderPath ~/tzdata -SourceCodeTypeName TzDataTimezone -SourceCodeTypeComment 'Time Zone Database' -SourceCodePart LinkData > src/DataStandardizer.Chronology/TzDataTimezone.LinkData.cs
+#>
 [CmdletBinding()]
 param (
-    [Parameter(Mandatory)]
+    [Parameter(Mandatory, HelpMessage = 'Path to the folder containing the extracted TZ Database source.')]
     [string]    $SourceFolderPath,
 
     [Parameter(Mandatory, HelpMessage = 'Name of the enum type in the generated source code.')]
@@ -23,7 +101,11 @@ param (
 
     [Parameter(HelpMessage = 'Language of the source code to be generated.  WARNING: Use of this parameter to specify a source code language other than C# is not fully supported.')]
     [ValidateNotNullOrWhiteSpace()]
-    [string]    $SourceCodeLanguage = 'CSharp'
+    [string]    $SourceCodeLanguage = 'CSharp',
+
+    [Parameter(HelpMessage = 'The partial source file whose source code is generated: Timezone (the default), ZoneLineData, RuleSets or LinkData.')]
+    [ValidateSet('Timezone', 'ZoneLineData', 'RuleSets', 'LinkData')]
+    [string]    $SourceCodePart = 'Timezone'
 )
 
 function Get-HeaderFieldNames {
@@ -156,6 +238,421 @@ function Get-SpecialToStringMethodDefinition {
     return $method
 }
 
+function Get-ZoneLinesFieldDeclaration {
+    [OutputType([System.CodeDom.CodeMemberField])]
+    param (
+        [Parameter()]
+        [switch]    $UseNullableReferenceTypes
+    )
+
+    $typeExpression = $PSBoundParameters.ContainsKey('UseNullableReferenceTypes')? 'readonly DataStandardizer.Chronology.TzDataZoneLine[]?':'readonly DataStandardizer.Chronology.TzDataZoneLine[]'
+    $fieldDeclaration = [System.CodeDom.CodeMemberField]::new($typeExpression, '_zoneLines')
+    $fieldDeclaration.Attributes = ($fieldDeclaration.Attributes -band -bnot [System.CodeDom.MemberAttributes]::AccessMask) -bor [System.CodeDom.MemberAttributes]::Private
+
+    if (-not $PSBoundParameters.ContainsKey('UseNullableReferenceTypes')) {
+        [void]$fieldDeclaration.CustomAttributes.Add([System.CodeDom.CodeAttributeDeclaration]::new('JetBrains.Annotations.CanBeNullAttribute'))
+    }
+
+    return $fieldDeclaration
+}
+
+function Get-LocationFieldDeclaration {
+    [OutputType([System.CodeDom.CodeMemberField])]
+    param (
+        [Parameter()]
+        [switch]    $UseNullableReferenceTypes
+    )
+
+    $typeExpression = $PSBoundParameters.ContainsKey('UseNullableReferenceTypes')? 'readonly DataStandardizer.Chronology.TzDataTimezone.Location?':'readonly DataStandardizer.Chronology.TzDataTimezone.Location'
+    $fieldDeclaration = [System.CodeDom.CodeMemberField]::new($typeExpression, '_location')
+    $fieldDeclaration.Attributes = ($fieldDeclaration.Attributes -band -bnot [System.CodeDom.MemberAttributes]::AccessMask) -bor [System.CodeDom.MemberAttributes]::Private
+
+    if (-not $PSBoundParameters.ContainsKey('UseNullableReferenceTypes')) {
+        [void]$fieldDeclaration.CustomAttributes.Add([System.CodeDom.CodeAttributeDeclaration]::new('JetBrains.Annotations.CanBeNullAttribute'))
+    }
+
+    return $fieldDeclaration
+}
+
+function Get-LinkTargetFieldDeclaration {
+    [OutputType([System.CodeDom.CodeMemberField])]
+    param (
+        [Parameter()]
+        [switch]    $UseNullableReferenceTypes
+    )
+
+    $typeExpression = $PSBoundParameters.ContainsKey('UseNullableReferenceTypes')? 'readonly string?':'readonly string'
+    $fieldDeclaration = [System.CodeDom.CodeMemberField]::new($typeExpression, '_linkTarget')
+    $fieldDeclaration.Attributes = ($fieldDeclaration.Attributes -band -bnot [System.CodeDom.MemberAttributes]::AccessMask) -bor [System.CodeDom.MemberAttributes]::Private
+
+    if (-not $PSBoundParameters.ContainsKey('UseNullableReferenceTypes')) {
+        [void]$fieldDeclaration.CustomAttributes.Add([System.CodeDom.CodeAttributeDeclaration]::new('JetBrains.Annotations.CanBeNullAttribute'))
+    }
+
+    return $fieldDeclaration
+}
+
+function Get-DataConstructorDeclaration {
+    <#
+        .SYNOPSIS
+        Declares the constructor used by the timezone fields, which takes the identifier, the zone lines and the
+        location metadata of the timezone.  With -Link, the constructor used by the link fields, which also takes
+        the identifier of the canonical timezone that the link refers to.
+    #>
+    [OutputType([System.CodeDom.CodeConstructor])]
+    param (
+        [Parameter()]
+        [switch]    $UseNullableReferenceTypes,
+
+        [Parameter()]
+        [switch]    $Link
+    )
+
+    $constructor = [System.CodeDom.CodeConstructor]::new()
+    $constructor.Attributes = ($constructor.Attributes -band -bnot [System.CodeDom.MemberAttributes]::AccessMask) -bor [System.CodeDom.MemberAttributes]::Private
+    [void]$constructor.Parameters.Add([System.CodeDom.CodeParameterDeclarationExpression]::new([string], 'value'))
+    if ($Link) {
+        [void]$constructor.Parameters.Add([System.CodeDom.CodeParameterDeclarationExpression]::new([string], 'linkTarget'))
+    }
+    [void]$constructor.Parameters.Add([System.CodeDom.CodeParameterDeclarationExpression]::new('DataStandardizer.Chronology.TzDataZoneLine[]', 'zoneLines'))
+    [void]$constructor.Parameters.Add([System.CodeDom.CodeParameterDeclarationExpression]::new([double], 'latitude'))
+    [void]$constructor.Parameters.Add([System.CodeDom.CodeParameterDeclarationExpression]::new([double], 'longitude'))
+    [void]$constructor.Parameters.Add([System.CodeDom.CodeParameterDeclarationExpression]::new([string[]], 'isoCountryCodes'))
+    if ($PSBoundParameters.ContainsKey('UseNullableReferenceTypes')) {
+        [void]$constructor.Parameters.Add([System.CodeDom.CodeParameterDeclarationExpression]::new('string?', 'comment'))
+    }
+    else {
+        $commentParameter = [System.CodeDom.CodeParameterDeclarationExpression]::new([string], 'comment')
+        [void]$commentParameter.CustomAttributes.Add([System.CodeDom.CodeAttributeDeclaration]::new('JetBrains.Annotations.CanBeNullAttribute'))
+        [void]$constructor.Parameters.Add($commentParameter)
+    }
+
+    $requiredParameterNames = $Link ? @('value', 'linkTarget', 'zoneLines', 'isoCountryCodes') : @('value', 'zoneLines', 'isoCountryCodes')
+    foreach ($parameterName in $requiredParameterNames) {
+        [void]$constructor.Statements.Add([System.CodeDom.CodeConditionStatement]::new(
+                [System.CodeDom.CodeBinaryOperatorExpression]::new(
+                    [System.CodeDom.CodeArgumentReferenceExpression]::new($parameterName),
+                    [System.CodeDom.CodeBinaryOperatorType]::ValueEquality,
+                    [System.CodeDom.CodePrimitiveExpression]::new($null)),
+                @([System.CodeDom.CodeThrowExceptionStatement]::new([System.CodeDom.CodeObjectCreateExpression]::new([System.CodeDom.CodeTypeReference]::new([System.ArgumentNullException]), @([System.CodeDom.CodeSnippetExpression]::new("nameof($parameterName)")))))))
+    }
+    [void]$constructor.Statements.Add([System.CodeDom.CodeAssignStatement]::new(
+            [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), '_value'),
+            [System.CodeDom.CodeArgumentReferenceExpression]::new('value')))
+    [void]$constructor.Statements.Add([System.CodeDom.CodeAssignStatement]::new(
+            [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), '_zoneLines'),
+            [System.CodeDom.CodeArgumentReferenceExpression]::new('zoneLines')))
+    [void]$constructor.Statements.Add([System.CodeDom.CodeAssignStatement]::new(
+            [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), '_linkTarget'),
+            ($Link ? [System.CodeDom.CodeArgumentReferenceExpression]::new('linkTarget') : [System.CodeDom.CodePrimitiveExpression]::new($null))))
+    [void]$constructor.Statements.Add([System.CodeDom.CodeAssignStatement]::new(
+            [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), '_location'),
+            [System.CodeDom.CodeObjectCreateExpression]::new('DataStandardizer.Chronology.TzDataTimezone.Location', @(
+                    [System.CodeDom.CodeArgumentReferenceExpression]::new('latitude'),
+                    [System.CodeDom.CodeArgumentReferenceExpression]::new('longitude'),
+                    [System.CodeDom.CodeArgumentReferenceExpression]::new('isoCountryCodes'),
+                    [System.CodeDom.CodeArgumentReferenceExpression]::new('comment')))))
+
+    return $constructor
+}
+
+function Format-CodeExpression {
+    [OutputType([string])]
+    param (
+        [Parameter(Mandatory)]
+        [System.CodeDom.CodeExpression] $Expression,
+
+        [Parameter(Mandatory)]
+        [System.CodeDom.Compiler.CodeDomProvider]   $Provider
+    )
+
+    $writer = [System.IO.StringWriter]::new()
+    try {
+        $Provider.GenerateCodeFromExpression($Expression, $writer, [System.CodeDom.Compiler.CodeGeneratorOptions]::new())
+        return $writer.ToString()
+    }
+    finally {
+        $writer.Close()
+    }
+}
+
+function New-NamedArgumentExpression {
+    <#
+        .SYNOPSIS
+        Declares a named argument, which CodeDom cannot express, as a snippet of the generated argument expression.
+    #>
+    [OutputType([System.CodeDom.CodeSnippetExpression])]
+    param (
+        [Parameter(Mandatory)]
+        [string]    $Name,
+
+        [Parameter(Mandatory)]
+        [string]    $ExpressionText
+    )
+
+    return [System.CodeDom.CodeSnippetExpression]::new("${Name}: $ExpressionText")
+}
+
+function ConvertTo-FieldName {
+    [OutputType([string])]
+    param (
+        [Parameter(Mandatory)]
+        [string]    $Name,
+
+        [Parameter(Mandatory)]
+        [System.CodeDom.Compiler.CodeDomProvider]   $Provider
+    )
+
+    $fieldName = $Name -replace '[/-]', '_'
+    if (-not $Provider.IsValidIdentifier($fieldName)) {
+        throw "'$Name' does not convert to a valid field name."
+    }
+
+    return $fieldName
+}
+
+function Resolve-TzDataLinkTarget {
+    <#
+        .SYNOPSIS
+        Follows a chain of links to the Zone at its end, and returns the name of the Zone.
+    #>
+    [OutputType([string])]
+    param (
+        [Parameter(Mandatory)]
+        [string]    $Name,
+
+        [Parameter(Mandatory)]
+        [System.Collections.IDictionary]    $Links,
+
+        [Parameter(Mandatory)]
+        [System.Collections.IDictionary]    $Zones
+    )
+
+    $visitedNames = [System.Collections.Generic.List[string]]::new()
+    $target = $Name
+    while ($Links.Contains($target)) {
+        if ($visitedNames.Contains($target)) {
+            throw "Link $Name is part of a cycle of links: $(($visitedNames + $target) -join ' -> ')."
+        }
+        $visitedNames.Add($target)
+        $target = $Links[$target]
+    }
+    if (-not $Zones.Contains($target)) {
+        throw "Link $Name refers to $target, which is not defined as a Zone or a Link."
+    }
+
+    return $target
+}
+
+function Format-TimeSpanExpression {
+    [OutputType([string])]
+    param (
+        [Parameter(Mandatory)]
+        [timespan]  $Value
+    )
+
+    if ($Value -eq [timespan]::Zero) {
+        return 'System.TimeSpan.Zero'
+    }
+
+    # Every component takes the sign of the value, so that -4:56:02 is written as (-4, -56, -2).
+    $sign = $Value -lt [timespan]::Zero ? -1 : 1
+    $magnitude = $Value.Duration()
+    return "new System.TimeSpan($($sign * [math]::Floor($magnitude.TotalHours)), $($sign * $magnitude.Minutes), $($sign * $magnitude.Seconds))"
+}
+
+function Format-StringExpression {
+    [OutputType([string])]
+    param (
+        [Parameter(Mandatory)]
+        [AllowEmptyString()]
+        [string]    $Value
+    )
+
+    return '"' + ($Value -replace '\\', '\\' -replace '"', '\"') + '"'
+}
+
+function Format-DayRuleArgumentExpressions {
+    [OutputType([string])]
+    param (
+        [Parameter(Mandatory)]
+        [string]    $DayKind,
+
+        [Parameter()]
+        [System.Nullable[int]]  $Day,
+
+        [Parameter()]
+        [System.Nullable[System.DayOfWeek]] $DayOfWeek
+    )
+
+    $dayExpression = $null -ne $Day ? [string]$Day : 'null'
+    $dayOfWeekExpression = $null -ne $DayOfWeek ? "System.DayOfWeek.$DayOfWeek" : 'null'
+    return "TzDataDayKind.$DayKind, $dayExpression, $dayOfWeekExpression"
+}
+
+function Format-ZoneLineExpression {
+    [OutputType([string])]
+    param (
+        [Parameter(Mandatory)]
+        [pscustomobject]    $ZoneLine,
+
+        [Parameter()]
+        [string]    $RuleSetFieldName
+    )
+
+    $fixedSaveExpression = $null -ne $ZoneLine.FixedSave ? (Format-TimeSpanExpression -Value $ZoneLine.FixedSave) : 'null'
+    $rulesExpression = $ZoneLine.RuleKind -eq 'RuleSet' ? "RuleSets.$RuleSetFieldName" : 'null'
+    $untilExpression = 'null'
+    if ($null -ne $ZoneLine.Until) {
+        $until = $ZoneLine.Until
+        $untilExpression = "new TzDataUntil($($until.Year), $($until.Month), $(Format-DayRuleArgumentExpressions -DayKind $until.DayKind -Day $until.Day -DayOfWeek $until.DayOfWeek), $(Format-TimeSpanExpression -Value $until.Time), TzDataTimeReference.$($until.TimeReference))"
+    }
+
+    return "new TzDataZoneLine($(Format-TimeSpanExpression -Value $ZoneLine.StandardOffset), TzDataZoneRuleKind.$($ZoneLine.RuleKind), $fixedSaveExpression, $rulesExpression, $(Format-StringExpression -Value $ZoneLine.Format), $untilExpression)"
+}
+
+function Format-RuleExpression {
+    [OutputType([string])]
+    param (
+        [Parameter(Mandatory)]
+        [pscustomobject]    $Rule
+    )
+
+    $isDaylightExpression = $Rule.IsDaylight ? 'true' : 'false'
+    return "new TzDataRule($(Format-StringExpression -Value $Rule.Name), $($Rule.FromYear), $($Rule.ToYear), $($Rule.Month), $(Format-DayRuleArgumentExpressions -DayKind $Rule.DayKind -Day $Rule.Day -DayOfWeek $Rule.DayOfWeek), $(Format-TimeSpanExpression -Value $Rule.AtTime), TzDataTimeReference.$($Rule.AtTimeReference), $(Format-TimeSpanExpression -Value $Rule.Save), $isDaylightExpression, $(Format-StringExpression -Value $Rule.Letter))"
+}
+
+function New-DataHostTypeDeclaration {
+    <#
+        .SYNOPSIS
+        Declares a private static class to hold generated data, nested in a partial declaration of the struct.
+        Returns the compile unit and the class.
+    #>
+    [OutputType([pscustomobject])]
+    param (
+        [Parameter(Mandatory)]
+        [string]    $TypeName,
+
+        [Parameter(Mandatory)]
+        [string]    $HostTypeName,
+
+        [Parameter(Mandatory)]
+        [string]    $HostTypeComment
+    )
+
+    $compileUnit = [System.CodeDom.CodeCompileUnit]::new()
+    $namespace = [System.CodeDom.CodeNamespace]::new('DataStandardizer.Chronology')
+    [void]$compileUnit.Namespaces.Add($namespace)
+
+    $structType = [System.CodeDom.CodeTypeDeclaration]::new($TypeName)
+    $structType.IsStruct = $true
+    $structType.IsPartial = $true
+    $structType.TypeAttributes = [System.Reflection.TypeAttributes]::Public
+    [void]$namespace.Types.Add($structType)
+
+    $hostType = [System.CodeDom.CodeTypeDeclaration]::new($HostTypeName)
+    $hostType.IsClass = $true
+    $hostType.TypeAttributes = [System.Reflection.TypeAttributes]::NestedPrivate -bor [System.Reflection.TypeAttributes]::Sealed -bor [System.Reflection.TypeAttributes]::Abstract
+    @('<summary>', $HostTypeComment, '</summary>') | ForEach-Object { [void]$hostType.Comments.Add([System.CodeDom.CodeCommentStatement]::new($_, $true)) }
+    [void]$structType.Members.Add($hostType)
+
+    return [pscustomobject]@{ CompileUnit = $compileUnit; HostType = $hostType }
+}
+
+function New-DataArrayFieldDeclaration {
+    [OutputType([System.CodeDom.CodeMemberField])]
+    param (
+        [Parameter(Mandatory)]
+        [string]    $ElementTypeName,
+
+        [Parameter(Mandatory)]
+        [string]    $FieldName,
+
+        [Parameter(Mandatory)]
+        [string[]]  $ElementExpressions
+    )
+
+    $field = [System.CodeDom.CodeMemberField]::new("readonly $ElementTypeName[]", $FieldName)
+    $field.Attributes = [System.CodeDom.MemberAttributes]::Assembly -bor [System.CodeDom.MemberAttributes]::Static
+    $field.InitExpression = [System.CodeDom.CodeArrayCreateExpression]::new($ElementTypeName, [System.CodeDom.CodeExpression[]]@($ElementExpressions | ForEach-Object { [System.CodeDom.CodeSnippetExpression]::new($_) }))
+
+    return $field
+}
+
+function ConvertTo-FinalSourceCode {
+    <#
+        .SYNOPSIS
+        Generates the source code of a compile unit, and makes the changes that CodeDom cannot express: the
+        nullable context follows the auto-generated header, the struct is readonly, nested classes are static, and
+        the IConvertible interface is applied conditionally.
+    #>
+    [OutputType([string])]
+    param (
+        [Parameter(Mandatory)]
+        [System.CodeDom.CodeCompileUnit]    $CompileUnit,
+
+        [Parameter(Mandatory)]
+        [System.CodeDom.Compiler.CodeDomProvider]   $Provider,
+
+        [Parameter(Mandatory)]
+        [System.CodeDom.Compiler.CodeGeneratorOptions]  $Options,
+
+        [Parameter(Mandatory)]
+        [string]    $TypeName,
+
+        [Parameter()]
+        [switch]    $IncludeConvertibleInterface
+    )
+
+    $newLine = [System.Environment]::NewLine
+    $nullableDirectives = "#if NETCOREAPP3_0_OR_GREATER$newLine#nullable enable$newLine#endif"
+
+    $writer = [System.IO.StringWriter]::new()
+    try {
+        $Provider.GenerateCodeFromCompileUnit($CompileUnit, $writer, $Options)
+        $sourceCode = $writer.ToString()
+    }
+    finally {
+        $writer.Close()
+    }
+
+    $headerPattern = [regex]::new('\A//-+\r?\n(?://.*\r?\n)*?//-+\r?\n\r?\n')
+    if (-not $headerPattern.IsMatch($sourceCode)) {
+        throw 'The auto-generated header was not found in the generated source code.'
+    }
+    $sourceCode = $headerPattern.Replace($sourceCode, { param($match) $match.Value + $nullableDirectives + $newLine + $newLine }, 1)
+
+    $sourceCodeBuilder = [System.Text.StringBuilder]::new()
+    $reader = [System.IO.StringReader]::new($sourceCode)
+    try {
+        $sourceCodeLine = $reader.ReadLine()
+        while ($null -ne $sourceCodeLine) {
+            $trimmedSourceCodeLine = $sourceCodeLine.TrimStart()
+            if ($trimmedSourceCodeLine.StartsWith("public partial struct $TypeName")) {
+                $sourceCodeLine = $sourceCodeLine.Replace("public partial struct $TypeName", "public readonly partial struct $TypeName")
+            }
+            elseif ($trimmedSourceCodeLine -match '^(public|private) sealed abstract class ') {
+                $sourceCodeLine = $sourceCodeLine.Replace("$($Matches[1]) sealed abstract class ", "$($Matches[1]) static class ")
+            }
+            [void]$sourceCodeBuilder.AppendLine($sourceCodeLine)
+
+            # Add conditional logic for applying IConvertible interface.
+            if ($IncludeConvertibleInterface -and $trimmedSourceCodeLine.StartsWith("public partial struct $TypeName")) {
+                [void]$sourceCodeBuilder.AppendLine('#if NETSTANDARD1_3_OR_GREATER||NET')
+                [void]$sourceCodeBuilder.AppendLine(', System.IConvertible')
+                [void]$sourceCodeBuilder.AppendLine('#endif')
+            }
+
+            $sourceCodeLine = $reader.ReadLine()
+        }
+    }
+    finally {
+        $reader.Close()
+    }
+
+    return $sourceCodeBuilder.ToString()
+}
+
 function Out-SourceCode {
     param (
         [Parameter(ValueFromPipeline)]
@@ -177,21 +674,41 @@ function Out-SourceCode {
         [string]    $GenerateLanguage,
 
         [Parameter()]
-        [string]        $TzDataVersion
+        [string]        $TzDataVersion,
+
+        [Parameter()]
+        [pscustomobject]    $TzDataSource,
+
+        [Parameter()]
+        [string]        $SourceCodePart,
+
+        [Parameter()]
+        [System.Collections.Generic.IDictionary[string, string]]    $DeprecatedLinks
     )
-    
+
     begin {
         $activity = "Generating $TypeName code DOM"
         Write-Progress -Activity $activity -PercentComplete -1
 
         $codesProcessed = 0
 
-        $preprocessorDirectives = '#if NETCOREAPP3_0_OR_GREATER
-#nullable enable
-#endif'
-        $preprocessorDirectivesCompileUnit = [System.CodeDom.CodeSnippetCompileUnit]::new($preprocessorDirectives)
+        $provider = [System.CodeDom.Compiler.CodeDomProvider]::CreateProvider($GenerateLanguage)
+
         $compileUnit = [System.CodeDom.CodeCompileUnit]::new()
-        $compileUnits = @($preprocessorDirectivesCompileUnit, $compileUnit)
+
+        $zoneLineDataDeclaration = New-DataHostTypeDeclaration -TypeName $TypeName -HostTypeName 'ZoneLineData' -HostTypeComment 'The zone lines of each canonical timezone, referenced by the timezone fields.'
+        $ruleSetsDeclaration = New-DataHostTypeDeclaration -TypeName $TypeName -HostTypeName 'RuleSets' -HostTypeComment 'The daylight saving rule sets referenced by the zone lines.'
+        $linkDataDeclaration = New-DataHostTypeDeclaration -TypeName $TypeName -HostTypeName 'LinkData' -HostTypeComment 'The links that have no timezone field, which are the deprecated names of canonical timezones.'
+
+        # The names of the rule sets referenced by the zone lines, mapped to the names of their fields.
+        $referencedRuleSets = [System.Collections.Generic.SortedDictionary[string, string]]::new([System.StringComparer]::Ordinal)
+        $zoneLineDataFieldNames = [System.Collections.Generic.Dictionary[string, string]]::new([System.StringComparer]::Ordinal)
+        $ruleSetFieldNames = [System.Collections.Generic.Dictionary[string, string]]::new([System.StringComparer]::Ordinal)
+        $ruleSetNames = [string[]]@($TzDataSource.Rules.Keys)
+
+        # The identifiers of the canonical timezones, and the path of the field of every timezone, from the struct.
+        $canonicalIdentifiers = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+        $fieldPaths = [System.Collections.Generic.Dictionary[string, string]]::new([System.StringComparer]::Ordinal)
 
         $namespace = [System.CodeDom.CodeNamespace]::new('DataStandardizer.Chronology')
         [void]$compileUnit.Namespaces.Add($namespace)
@@ -204,6 +721,7 @@ function Out-SourceCode {
         [void]$structType.BaseTypes.Add([System.CodeDom.CodeTypeReference]::new([System.IComparable]))
         [void]$structType.BaseTypes.Add([System.CodeDom.CodeTypeReference]::new('System.IEquatable', [System.CodeDom.CodeTypeReference[]]@([System.CodeDom.CodeTypeReference]::new("DataStandardizer.Chronology.$TypeName"))))
         $structType.IsStruct = $true
+        $structType.IsPartial = $true
         $structType.TypeAttributes = [System.Reflection.TypeAttributes]::Public
 
         if (-not [string]::IsNullOrEmpty($TypeComment)) {
@@ -225,8 +743,14 @@ function Out-SourceCode {
         [System.CodeDom.CodeTypeMember[]]$declarationMembers = @(
             [System.CodeDom.CodeSnippetTypeMember]::new('#if NETCOREAPP3_0_OR_GREATER'),
             (Get-ValueFieldDeclaration -UseNullableReferenceTypes),
+            (Get-ZoneLinesFieldDeclaration -UseNullableReferenceTypes),
+            (Get-LinkTargetFieldDeclaration -UseNullableReferenceTypes),
+            (Get-LocationFieldDeclaration -UseNullableReferenceTypes),
             [System.CodeDom.CodeSnippetTypeMember]::new('#else'),
             (Get-ValueFieldDeclaration),
+            (Get-ZoneLinesFieldDeclaration),
+            (Get-LinkTargetFieldDeclaration),
+            (Get-LocationFieldDeclaration),
             [System.CodeDom.CodeSnippetTypeMember]::new('#endif'))
         $declarationMembers | Select-Object -First 1 | ForEach-Object { [void]$_.StartDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::Start, 'Declarations')) }
         $declarationMembers | Select-Object -Last 1 | ForEach-Object { [void]$_.EndDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::End, [string]::Empty)) }
@@ -244,12 +768,35 @@ function Out-SourceCode {
                 [System.CodeDom.CodePrimitiveExpression]::new($null)),
             @([System.CodeDom.CodeThrowExceptionStatement]::new([System.CodeDom.CodeObjectCreateExpression]::new([System.CodeDom.CodeTypeReference]::new([System.ArgumentNullException]), @([System.CodeDom.CodeSnippetExpression]::new('nameof(value)'))))))
         $valueAssignmentStatement = [System.CodeDom.CodeAssignStatement]::new(
-            [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), '_value'), 
+            [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), '_value'),
             [System.CodeDom.CodeArgumentReferenceExpression]::new('value'))
-        $structConstructor.Statements.AddRange(@($argumentCheckStatement, $valueAssignmentStatement))
+        # Every field of a struct must be assigned by its constructors, and the zone lines, link target and location of
+        # a timezone created by explicit cast are found by its identifier instead.
+        $noZoneLinesAssignmentStatement = [System.CodeDom.CodeAssignStatement]::new(
+            [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), '_zoneLines'),
+            [System.CodeDom.CodePrimitiveExpression]::new($null))
+        $noLinkTargetAssignmentStatement = [System.CodeDom.CodeAssignStatement]::new(
+            [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), '_linkTarget'),
+            [System.CodeDom.CodePrimitiveExpression]::new($null))
+        $noLocationAssignmentStatement = [System.CodeDom.CodeAssignStatement]::new(
+            [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), '_location'),
+            [System.CodeDom.CodePrimitiveExpression]::new($null))
+        $structConstructor.Statements.AddRange(@($argumentCheckStatement, $valueAssignmentStatement, $noZoneLinesAssignmentStatement, $noLinkTargetAssignmentStatement, $noLocationAssignmentStatement))
         [void]$structConstructor.StartDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::Start, 'Constructors'))
-        [void]$structConstructor.EndDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::End, [string]::Empty))
         [void]$structType.Members.Add($structConstructor)
+
+        # The comment parameter of the constructors used by the timezone and link fields is nullable, so they are
+        # declared once for each nullable context.
+        [System.CodeDom.CodeTypeMember[]]$dataConstructorMembers = @(
+            [System.CodeDom.CodeSnippetTypeMember]::new('#if NETCOREAPP3_0_OR_GREATER'),
+            (Get-DataConstructorDeclaration -UseNullableReferenceTypes),
+            (Get-DataConstructorDeclaration -UseNullableReferenceTypes -Link),
+            [System.CodeDom.CodeSnippetTypeMember]::new('#else'),
+            (Get-DataConstructorDeclaration),
+            (Get-DataConstructorDeclaration -Link),
+            [System.CodeDom.CodeSnippetTypeMember]::new('#endif'))
+        $dataConstructorMembers | Select-Object -Last 1 | ForEach-Object { [void]$_.EndDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::End, [string]::Empty)) }
+        $structType.Members.AddRange($dataConstructorMembers)
     
         Write-Progress -Activity $activity -CurrentOperation 'Declaring operators' -PercentComplete -1
     
@@ -321,7 +868,53 @@ function Out-SourceCode {
         $enumFieldName = $enumFieldName -replace '-', '_'
         $enumField = [System.CodeDom.CodeMemberField]::new("readonly DataStandardizer.Chronology.$TypeName", $enumFieldName)
         $enumField.Attributes = [System.CodeDom.MemberAttributes]::Public -bor [System.CodeDom.MemberAttributes]::Static
-        $enumField.InitExpression = [System.CodeDom.CodeObjectCreateExpression]::new("DataStandardizer.Chronology.$TypeName", @([System.CodeDom.CodePrimitiveExpression]::new($_.TZ)))
+
+        if ($fieldPaths.ContainsKey($_.TZ)) {
+            throw "Timezone $($_.TZ) is listed more than once."
+        }
+        $fieldPaths[$_.TZ] = (@($hostIdentifierParts) + $enumFieldName) -join '.'
+
+        $linkTarget = $_.LinkTarget
+        if ($null -ne $linkTarget) {
+            # A link shares the zone lines of its canonical timezone, which is listed in zone1970.tab and so is
+            # declared before any link.
+            if (-not $canonicalIdentifiers.Contains($linkTarget)) {
+                throw "Link $($_.TZ) refers to $linkTarget, which is not a timezone listed in zone1970.tab."
+            }
+            $zoneLineDataFieldName = ConvertTo-FieldName -Name $linkTarget -Provider $provider
+        }
+        else {
+            # Add the zone lines of the timezone, referenced by the member.
+            if (-not $TzDataSource.Zones.Contains($_.TZ)) {
+                throw "Timezone $($_.TZ) is listed in zone1970.tab, but no Zone is defined for it."
+            }
+            $zoneLines = ConvertFrom-TzDataZone -Name $_.TZ -Lines $TzDataSource.Zones[$_.TZ] -RuleSetNames $ruleSetNames
+            [void]$canonicalIdentifiers.Add($_.TZ)
+            $zoneLineDataFieldName = ConvertTo-FieldName -Name $_.TZ -Provider $provider
+            if ($zoneLineDataFieldNames.ContainsKey($zoneLineDataFieldName)) {
+                throw "Timezones $($zoneLineDataFieldNames[$zoneLineDataFieldName]) and $($_.TZ) convert to the same field name."
+            }
+            $zoneLineDataFieldNames[$zoneLineDataFieldName] = $_.TZ
+            [string[]]$zoneLineExpressions = foreach ($zoneLine in $zoneLines) {
+                $ruleSetFieldName = $null
+                if ($zoneLine.RuleKind -eq 'RuleSet') {
+                    if (-not $referencedRuleSets.ContainsKey($zoneLine.RuleSetName)) {
+                        $ruleSetFieldName = ConvertTo-FieldName -Name $zoneLine.RuleSetName -Provider $provider
+                        if ($ruleSetFieldNames.ContainsKey($ruleSetFieldName)) {
+                            throw "Rule sets $($ruleSetFieldNames[$ruleSetFieldName]) and $($zoneLine.RuleSetName) convert to the same field name."
+                        }
+                        $ruleSetFieldNames[$ruleSetFieldName] = $zoneLine.RuleSetName
+                        $referencedRuleSets[$zoneLine.RuleSetName] = $ruleSetFieldName
+                    }
+                    $ruleSetFieldName = $referencedRuleSets[$zoneLine.RuleSetName]
+                }
+                Format-ZoneLineExpression -ZoneLine $zoneLine -RuleSetFieldName $ruleSetFieldName
+            }
+            $zoneLineDataField = New-DataArrayFieldDeclaration -ElementTypeName 'TzDataZoneLine' -FieldName $zoneLineDataFieldName -ElementExpressions $zoneLineExpressions
+            @('<summary>', $_.TZ, '</summary>') | ForEach-Object { [void]$zoneLineDataField.Comments.Add([System.CodeDom.CodeCommentStatement]::new($_, $true)) }
+            [void]$zoneLineDataDeclaration.HostType.Members.Add($zoneLineDataField)
+        }
+
         [void]$memberHostType.Members.Add($enumField)
 
         $coordinateMatch = $_.coordinates | Select-String -Pattern '^(?:(?<latitude>[-\+](?<latitudeDegrees>\d{2})(?<latitudeMinutes>\d{2}))(?<longitude>[-\+](?<longitudeDegrees>\d{3})(?<longitudeMinutes>\d{2}))|(?<latitude>[-\+](?<latitudeDegrees>\d{2})(?<latitudeMinutes>\d{2})(?<latitudeSeconds>\d{2}))(?<longitude>[-\+](?<longitudeDegrees>\d{3})(?<longitudeMinutes>\d{2})(?<longitudeSeconds>\d{2})))$'
@@ -348,12 +941,29 @@ function Out-SourceCode {
         foreach ($countryCode in $countryCodes) {
             $enumFieldAttributeArguments += [System.CodeDom.CodePrimitiveExpression]::new($countryCode)
         }
+        $comment = $null
         if (-not [string]::IsNullOrWhiteSpace($_.comments)) {
-            $enumFieldAttributeArguments += [System.CodeDom.CodeAttributeArgument]::new('Comment', [System.CodeDom.CodePrimitiveExpression]::new($_.comments))
+            $comment = $_.comments
+            $enumFieldAttributeArguments += [System.CodeDom.CodeAttributeArgument]::new('Comment', [System.CodeDom.CodePrimitiveExpression]::new($comment))
         }
         $enumFieldAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.Chronology.TzDataTimezoneAttribute', $enumFieldAttributeArguments)
         [void]$enumField.CustomAttributes.Add($enumFieldAttribute)
-        
+
+        # The location metadata is passed by named argument, so that the field initialiser reads clearly. The array of
+        # country codes is written on one line, which CodeDom would break after each element.
+        $countryCodesText = 'new string[] { ' + (($countryCodes | ForEach-Object { Format-CodeExpression -Expression ([System.CodeDom.CodePrimitiveExpression]::new($_)) -Provider $provider }) -join ', ') + ' }'
+        [System.CodeDom.CodeExpression[]]$constructorArguments = @([System.CodeDom.CodePrimitiveExpression]::new($_.TZ))
+        if ($null -ne $linkTarget) {
+            $constructorArguments += New-NamedArgumentExpression -Name 'linkTarget' -ExpressionText (Format-CodeExpression -Expression ([System.CodeDom.CodePrimitiveExpression]::new($linkTarget)) -Provider $provider)
+        }
+        $constructorArguments += @(
+            [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeTypeReferenceExpression]::new("$TypeName.ZoneLineData"), $zoneLineDataFieldName),
+            (New-NamedArgumentExpression -Name 'latitude' -ExpressionText (Format-CodeExpression -Expression ([System.CodeDom.CodePrimitiveExpression]::new($coordinateLatitude)) -Provider $provider)),
+            (New-NamedArgumentExpression -Name 'longitude' -ExpressionText (Format-CodeExpression -Expression ([System.CodeDom.CodePrimitiveExpression]::new($coordinateLongitude)) -Provider $provider)),
+            (New-NamedArgumentExpression -Name 'isoCountryCodes' -ExpressionText $countryCodesText),
+            (New-NamedArgumentExpression -Name 'comment' -ExpressionText (Format-CodeExpression -Expression ([System.CodeDom.CodePrimitiveExpression]::new($comment)) -Provider $provider)))
+        $enumField.InitExpression = [System.CodeDom.CodeObjectCreateExpression]::new("DataStandardizer.Chronology.$TypeName", $constructorArguments)
+
         $summaryOpenComment = [System.CodeDom.CodeComment]::new('<summary>', $true)
         $summaryContentComment = [System.CodeDom.CodeComment]::new($_.TZ, $true)
         $summaryCloseComment = [System.CodeDom.CodeComment]::new('</summary>', $true)
@@ -376,6 +986,9 @@ function Out-SourceCode {
             $remarksComments += [System.CodeDom.CodeComment]::new("`t`t</item>", $true)
         }
         $remarksComments += [System.CodeDom.CodeComment]::new("`t</list>", $true)
+        if ($null -ne $linkTarget) {
+            $remarksComments += [System.CodeDom.CodeComment]::new("<para>A link to <see cref=""$TypeName.$($fieldPaths[$linkTarget])""/>, whose zone lines it shares, including those before 1970.</para>", $true)
+        }
         $remarksComments += [System.CodeDom.CodeComment]::new('</remarks>', $true)
         $remarksComments | ForEach-Object { [void]$enumField.Comments.Add([System.CodeDom.CodeCommentStatement]::new($_)) }
 
@@ -383,13 +996,15 @@ function Out-SourceCode {
     }
 
     end {
-        # Add member host types to struct.
-        $topLevelHostTypes = @()
+        # Add member host types to struct. TzDataTimezoneAttribute is obsolete, but is still applied to the fields
+        # for callers that read it by reflection, so the warnings for its use are suppressed.
+        $obsoleteWarningDisableMember = [System.CodeDom.CodeSnippetTypeMember]::new('#pragma warning disable CS0618 // TzDataTimezoneAttribute is obsolete')
+        [void]$obsoleteWarningDisableMember.StartDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::Start, 'Public Fields'))
+        [void]$structType.Members.Add($obsoleteWarningDisableMember)
         foreach ($hostType in $memberHostTypes.GetEnumerator()) {
             $hostIdentifierParts = $hostType.Key -split '/'
             if ($hostIdentifierParts.Length -lt 2) {
                 [void]$structType.Members.Add($hostType.Value)
-                $topLevelHostTypes += $hostType.Value
             }
             else {
                 [string[]]$parentIdentifierParts = [System.Linq.Enumerable]::ToArray([System.Linq.Enumerable]::Take($hostIdentifierParts, $hostIdentifierParts.Length - 1))
@@ -401,8 +1016,9 @@ function Out-SourceCode {
                 }
             }
         }
-        $topLevelHostTypes | Select-Object -First 1 | ForEach-Object { [void]$_.StartDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::Start, 'Public Fields')) }
-        $topLevelHostTypes | Select-Object -Last 1 | ForEach-Object { [void]$_.EndDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::End, [string]::Empty)) }
+        $obsoleteWarningRestoreMember = [System.CodeDom.CodeSnippetTypeMember]::new('#pragma warning restore CS0618')
+        [void]$obsoleteWarningRestoreMember.EndDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::End, [string]::Empty))
+        [void]$structType.Members.Add($obsoleteWarningRestoreMember)
 
         # Declare public methods.
         Write-Progress -Activity $activity -CurrentOperation 'Declaring public methods' -PercentComplete -1
@@ -474,57 +1090,47 @@ function Out-SourceCode {
 
         $structType.Members.AddRange($privateMethods)
 
+        # Declare the rule sets referenced by the zone lines.
+        Write-Progress -Activity $activity -CurrentOperation 'Declaring rule sets' -PercentComplete -1
+
+        foreach ($referencedRuleSet in $referencedRuleSets.GetEnumerator()) {
+            $rules = ConvertFrom-TzDataRule -Name $referencedRuleSet.Key -Lines $TzDataSource.Rules[$referencedRuleSet.Key]
+            [string[]]$ruleExpressions = foreach ($rule in $rules) { Format-RuleExpression -Rule $rule }
+            $ruleSetField = New-DataArrayFieldDeclaration -ElementTypeName 'TzDataRule' -FieldName $referencedRuleSet.Value -ElementExpressions $ruleExpressions
+            @('<summary>', "Rule set $($referencedRuleSet.Key)", '</summary>') | ForEach-Object { [void]$ruleSetField.Comments.Add([System.CodeDom.CodeCommentStatement]::new($_, $true)) }
+            [void]$ruleSetsDeclaration.HostType.Members.Add($ruleSetField)
+        }
+
+        # Declare the deprecated links, which have no fields, each with the canonical timezone it refers to.
+        Write-Progress -Activity $activity -CurrentOperation 'Declaring deprecated links' -PercentComplete -1
+
+        [string[]]$deprecatedLinkExpressions = foreach ($deprecatedLink in $DeprecatedLinks.GetEnumerator()) {
+            if ($fieldPaths.ContainsKey($deprecatedLink.Key)) {
+                throw "Link $($deprecatedLink.Key) has a timezone field, so it cannot also be a deprecated link."
+            }
+            if (-not $canonicalIdentifiers.Contains($deprecatedLink.Value)) {
+                throw "Link $($deprecatedLink.Key) refers to $($deprecatedLink.Value), which is not a timezone listed in zone1970.tab."
+            }
+            "new System.Collections.Generic.KeyValuePair<string, string>($(Format-StringExpression -Value $deprecatedLink.Key), $(Format-StringExpression -Value $deprecatedLink.Value))"
+        }
+        $deprecatedLinksField = New-DataArrayFieldDeclaration -ElementTypeName 'System.Collections.Generic.KeyValuePair<string, string>' -FieldName 'DeprecatedLinks' -ElementExpressions $deprecatedLinkExpressions
+        @('<summary>', 'The name of each deprecated link, with the identifier of the canonical timezone it refers to.', '</summary>') | ForEach-Object { [void]$deprecatedLinksField.Comments.Add([System.CodeDom.CodeCommentStatement]::new($_, $true)) }
+        [void]$linkDataDeclaration.HostType.Members.Add($deprecatedLinksField)
+
         Write-Progress -Completed
 
         # Output source code.
-        $provider = [System.CodeDom.Compiler.CodeDomProvider]::CreateProvider($GenerateLanguage)
-
         $options = [System.CodeDom.Compiler.CodeGeneratorOptions]::new()
         $options.BlankLinesBetweenMembers = $true
         $options.BracingStyle = 'C'
         $options.VerbatimOrder = $true
 
-        foreach ($cu in $compileUnits) {
-            $sourceCodeCuBuilder = [System.Text.StringBuilder]::new()
-            $sourceCodeBuilder = [System.Text.StringBuilder]::new()
-            $includeConvertibleInterface = $false
-            $writer = [System.IO.StringWriter]::new($sourceCodeCuBuilder)
-            try {
-                $provider.GenerateCodeFromCompileUnit($cu, $writer, $options)
-                $sourceCode = $sourceCodeCuBuilder.ToString()
-                
-                # Add conditional logic for applying IConvertible interface.
-                try {
-                    $reader = [System.IO.StringReader]::new($sourceCode)
-
-                    $sourceCodeLine = $reader.ReadLine()
-                    while ($null -ne $sourceCodeLine) {
-                        if ($includeConvertibleInterface) {
-                            [void]$sourceCodeBuilder.AppendLine('#if NETSTANDARD1_3_OR_GREATER||NET')
-                            [void]$sourceCodeBuilder.AppendLine(', System.IConvertible')
-                            [void]$sourceCodeBuilder.AppendLine('#endif')
-                            $includeConvertibleInterface = $false
-                            continue;
-                        }
-                        elseif ($sourceCodeLine.TrimStart().StartsWith("public struct $TypeName")) {
-                            $includeConvertibleInterface = $true
-                        }
-                        [void]$sourceCodeBuilder.AppendLine($sourceCodeLine)
-
-                        $sourceCodeLine = $reader.ReadLine()
-                    }
-
-                    $sourceCode = $sourceCodeBuilder.ToString()
-                }
-                finally {
-                    $reader.Close()
-                }
-
-                Write-Output $sourceCode
-            }
-            finally {
-                $writer.Close()
-            }
+        # Only the requested part is output, so that one run of the script produces exactly one source file.
+        switch ($SourceCodePart) {
+            'ZoneLineData' { Write-Output (ConvertTo-FinalSourceCode -CompileUnit $zoneLineDataDeclaration.CompileUnit -Provider $provider -Options $options -TypeName $TypeName) }
+            'RuleSets' { Write-Output (ConvertTo-FinalSourceCode -CompileUnit $ruleSetsDeclaration.CompileUnit -Provider $provider -Options $options -TypeName $TypeName) }
+            'LinkData' { Write-Output (ConvertTo-FinalSourceCode -CompileUnit $linkDataDeclaration.CompileUnit -Provider $provider -Options $options -TypeName $TypeName) }
+            default { Write-Output (ConvertTo-FinalSourceCode -CompileUnit $compileUnit -Provider $provider -Options $options -TypeName $TypeName -IncludeConvertibleInterface) }
         }
     }
 }
@@ -540,6 +1146,11 @@ Set-PSDebug -Trace 0    # activate tracing here for debugging
 try {
     $modulePath = Resolve-Path scripts\StringEnumCodeGen\StringEnumCodeGen.psm1
     Import-Module (Split-Path $modulePath -Parent)
+    $parserModulePath = Resolve-Path scripts\TzDataParser\TzDataParser.psm1
+    Import-Module (Split-Path $parserModulePath -Parent)
+
+    # Read the zone, rule and link lines of the region files and etcetera, and the link lines of backward.
+    $tzDataSource = Read-TzDataSource -SourceFolderPath $SourceFolderPath -FileName @('africa', 'antarctica', 'asia', 'australasia', 'europe', 'northamerica', 'southamerica', 'etcetera', 'backward')
 
     $zonesFilePath = $SourceFolderPath | Join-Path -ChildPath 'zone1970.tab'
     if (Test-Path $zonesFilePath -PathType Leaf) {
@@ -547,6 +1158,14 @@ try {
     }
     else {
         Write-Error "Source file '$zonesFilePath' not found."
+    }
+
+    $zoneTabFilePath = $SourceFolderPath | Join-Path -ChildPath 'zone.tab'
+    if (Test-Path $zoneTabFilePath -PathType Leaf) {
+        $zoneTabFileLines = Get-Content -Path $zoneTabFilePath
+    }
+    else {
+        Write-Error "Source file '$zoneTabFilePath' not found."
     }
 
     $iso3166FilePath = $SourceFolderPath | Join-Path -ChildPath 'iso3166.tab'
@@ -587,14 +1206,57 @@ try {
     $zonesFileHeaderLineCount = Get-HeaderLineCount $zonesFileLines
     $zonesFileHeaderFieldNames = Get-HeaderFieldNames $zonesFileLines
     $timezoneLines = $zonesFileLines | Select-Object -Skip $zonesFileHeaderLineCount | Where-Object { -not $_.StartsWith('#') }
-    $timezoneCount = $timezoneLines | Measure-Object | Select-Object -ExpandProperty Count
-    $timezoneLines | ConvertFrom-Csv -Delimiter "`t" -Header $zonesFileHeaderFieldNames | Out-SourceCode -CodeCount $timezoneCount -CountryCodeTable $countryCodeTable -TypeName $SourceCodeTypeName -TypeComment $SourceCodeTypeComment -GenerateLanguage $SourceCodeLanguage -TzDataVersion $tzDataVersion
+    [pscustomobject[]]$timezones = @($timezoneLines | ConvertFrom-Csv -Delimiter "`t" -Header $zonesFileHeaderFieldNames)
+    $canonicalIdentifiers = [System.Collections.Generic.HashSet[string]]::new([string[]]@($timezones | ForEach-Object TZ), [System.StringComparer]::Ordinal)
+
+    # Every link is resolved to the canonical timezone at the end of its chain.  The links listed in zone.tab, which
+    # are timezones of their own countries, are given fields after the timezones of zone1970.tab, with the location
+    # metadata of zone.tab.  The other links, which are deprecated names, have no fields.
+    $linkTargets = [System.Collections.Generic.Dictionary[string, string]]::new([System.StringComparer]::Ordinal)
+    foreach ($linkName in $tzDataSource.Links.Keys) {
+        $linkTargets[$linkName] = Resolve-TzDataLinkTarget -Name $linkName -Links $tzDataSource.Links -Zones $tzDataSource.Zones
+    }
+
+    $zoneTabIdentifiers = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+    foreach ($zoneTabLine in ($zoneTabFileLines | Where-Object { -not [string]::IsNullOrWhiteSpace($_) -and -not $_.StartsWith('#') })) {
+        $zoneTabFields = $zoneTabLine -split "`t"
+        if ($zoneTabFields.Length -lt 3 -or $zoneTabFields.Length -gt 4) {
+            throw "zone.tab line '$zoneTabLine' has $($zoneTabFields.Length) fields, where 3 or 4 are expected."
+        }
+        $identifier = $zoneTabFields[2]
+        [void]$zoneTabIdentifiers.Add($identifier)
+        if ($canonicalIdentifiers.Contains($identifier)) {
+            continue
+        }
+        if (-not $linkTargets.ContainsKey($identifier)) {
+            throw "Timezone $identifier is listed in zone.tab, but is neither listed in zone1970.tab nor defined as a Link."
+        }
+
+        $timezones += [pscustomobject]@{
+            'country-codes' = $zoneTabFields[0]
+            coordinates     = $zoneTabFields[1]
+            TZ              = $identifier
+            comments        = $zoneTabFields.Length -gt 3 ? $zoneTabFields[3] : $null
+            LinkTarget      = $linkTargets[$identifier]
+        }
+    }
+
+    $deprecatedLinks = [System.Collections.Generic.SortedDictionary[string, string]]::new([System.StringComparer]::Ordinal)
+    foreach ($linkTarget in $linkTargets.GetEnumerator()) {
+        if ($zoneTabIdentifiers.Contains($linkTarget.Key)) {
+            continue
+        }
+        if (-not $canonicalIdentifiers.Contains($linkTarget.Value)) {
+            Write-Verbose "Link $($linkTarget.Key) is skipped, as it refers to $($linkTarget.Value), which is not a timezone listed in zone1970.tab."
+            continue
+        }
+        $deprecatedLinks[$linkTarget.Key] = $linkTarget.Value
+    }
+
+    $timezones | Out-SourceCode -CodeCount $timezones.Length -CountryCodeTable $countryCodeTable -TypeName $SourceCodeTypeName -TypeComment $SourceCodeTypeComment -GenerateLanguage $SourceCodeLanguage -TzDataVersion $tzDataVersion -TzDataSource $tzDataSource -SourceCodePart $SourceCodePart -DeprecatedLinks $deprecatedLinks
 }
 finally {
+    Remove-Module TzDataParser
     Remove-Module StringEnumCodeGen
     Set-PSDebug -Off
-}
-
-Write-Information 'Next steps:'
-Write-Information "*`tMake the $SourceCodeTypeName type readonly."
-Write-Information "*`tReplace all 'public sealed abstract class' declarations with 'public static class'."
+}

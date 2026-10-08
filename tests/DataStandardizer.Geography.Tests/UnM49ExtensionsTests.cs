@@ -840,6 +840,298 @@ public class UnM49ExtensionsTests
 
     #endregion
 
+    #region Test: GetIso3166Part1Alpha2Code_WithM49CodeByAlpha2Code
+
+    [Theory]
+    [MemberData(nameof(GetIso3166Part1Alpha2Code_WithM49CodeByAlpha2Code_TestCaseGenerator.TestCases), MemberType = typeof(GetIso3166Part1Alpha2Code_WithM49CodeByAlpha2Code_TestCaseGenerator))]
+    public void GetIso3166Part1Alpha2Code_WithM49CodeByAlpha2Code_ReturnsIso3166Part1Alpha2Code(UnM49AreaByAlpha2CountryCode testCode, string expectedResult)
+    {
+        // act
+        var testResult = testCode.GetIso3166Part1Alpha2Code();
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    private class GetIso3166Part1Alpha2Code_WithM49CodeByAlpha2Code_TestCaseGenerator
+    {
+        public static IEnumerable<object[]> TestCases
+        {
+            get { yield return new object[] { UnM49AreaByAlpha2CountryCode.NZ, "NZ" }; }
+        }
+    }
+
+    #endregion
+
+    #region Test: GetIso3166Part1Alpha3Code_WithM49CodeByAlpha2Code
+
+    [Theory]
+    [MemberData(nameof(GetIso3166Part1Alpha3Code_WithM49CodeByAlpha2Code_TestCaseGenerator.TestCases), MemberType = typeof(GetIso3166Part1Alpha3Code_WithM49CodeByAlpha2Code_TestCaseGenerator))]
+    public void GetIso3166Part1Alpha3Code_WithM49CodeByAlpha2Code_ReturnsIso3166Part1Alpha3Code(UnM49AreaByAlpha2CountryCode testCode, string expectedResult)
+    {
+        // act
+        var testResult = testCode.GetIso3166Part1Alpha3Code();
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    private class GetIso3166Part1Alpha3Code_WithM49CodeByAlpha2Code_TestCaseGenerator
+    {
+        public static IEnumerable<object[]> TestCases
+        {
+            get { yield return new object[] { UnM49AreaByAlpha2CountryCode.NZ, "NZL" }; }
+        }
+    }
+
+    #endregion
+
+    #region Test: GetIso3166Part1Alpha2Code_WithM49CodeByAlpha3Code
+
+    [Theory]
+    [MemberData(nameof(GetIso3166Part1Alpha2Code_WithM49CodeByAlpha3Code_TestCaseGenerator.TestCases), MemberType = typeof(GetIso3166Part1Alpha2Code_WithM49CodeByAlpha3Code_TestCaseGenerator))]
+    public void GetIso3166Part1Alpha2Code_WithM49CodeByAlpha3Code_ReturnsIso3166Part1Alpha2Code(UnM49AreaByAlpha3CountryCode testCode, string expectedResult)
+    {
+        // act
+        var testResult = testCode.GetIso3166Part1Alpha2Code();
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    private class GetIso3166Part1Alpha2Code_WithM49CodeByAlpha3Code_TestCaseGenerator
+    {
+        public static IEnumerable<object[]> TestCases
+        {
+            get { yield return new object[] { UnM49AreaByAlpha3CountryCode.NZL, "NZ" }; }
+        }
+    }
+
+    #endregion
+
+    #region Test: GetIso3166Part1Alpha3Code_WithM49CodeByAlpha3Code
+
+    [Theory]
+    [MemberData(nameof(GetIso3166Part1Alpha3Code_WithM49CodeByAlpha3Code_TestCaseGenerator.TestCases), MemberType = typeof(GetIso3166Part1Alpha3Code_WithM49CodeByAlpha3Code_TestCaseGenerator))]
+    public void GetIso3166Part1Alpha3Code_WithM49CodeByAlpha3Code_ReturnsIso3166Part1Alpha3Code(UnM49AreaByAlpha3CountryCode testCode, string expectedResult)
+    {
+        // act
+        var testResult = testCode.GetIso3166Part1Alpha3Code();
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    private class GetIso3166Part1Alpha3Code_WithM49CodeByAlpha3Code_TestCaseGenerator
+    {
+        public static IEnumerable<object[]> TestCases
+        {
+            get { yield return new object[] { UnM49AreaByAlpha3CountryCode.NZL, "NZL" }; }
+        }
+    }
+
+    #endregion
+
+    #region Test: GetIso3166Part1Alpha2Code_WithM49AreaCode
+
+    [Theory]
+    [MemberData(nameof(GetIso3166Part1Alpha2Code_WithM49AreaCode_TestCaseGenerator.TestCases), MemberType = typeof(GetIso3166Part1Alpha2Code_WithM49AreaCode_TestCaseGenerator))]
+    public void GetIso3166Part1Alpha2Code_WithM49AreaCode_ReturnsIso3166Part1Alpha2Code(UnM49Area testCode, string expectedResult)
+    {
+        // act
+        var testResult = testCode.GetIso3166Part1Alpha2Code();
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    private class GetIso3166Part1Alpha2Code_WithM49AreaCode_TestCaseGenerator
+    {
+        public static IEnumerable<object[]> TestCases
+        {
+            get { yield return new object[] { UnM49Area._554, "NZ" }; }
+        }
+    }
+
+    #endregion
+
+    #region Test: GetIso3166Part1Alpha3Code_WithM49AreaCode
+
+    [Theory]
+    [MemberData(nameof(GetIso3166Part1Alpha3Code_WithM49AreaCode_TestCaseGenerator.TestCases), MemberType = typeof(GetIso3166Part1Alpha3Code_WithM49AreaCode_TestCaseGenerator))]
+    public void GetIso3166Part1Alpha3Code_WithM49AreaCode_ReturnsIso3166Part1Alpha3Code(UnM49Area testCode, string expectedResult)
+    {
+        // act
+        var testResult = testCode.GetIso3166Part1Alpha3Code();
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    private class GetIso3166Part1Alpha3Code_WithM49AreaCode_TestCaseGenerator
+    {
+        public static IEnumerable<object[]> TestCases
+        {
+            get { yield return new object[] { UnM49Area._554, "NZL" }; }
+        }
+    }
+
+    #endregion
+
+    #region Test: GetIso3166Part1Alpha2Code_WithNonCountryM49AreaCode
+
+    [Theory]
+    [MemberData(nameof(GetIso3166Part1Alpha2Code_WithNonCountryM49AreaCode_TestCaseGenerator.TestCases), MemberType = typeof(GetIso3166Part1Alpha2Code_WithNonCountryM49AreaCode_TestCaseGenerator))]
+    public void GetIso3166Part1Alpha2Code_WithNonCountryM49AreaCode_ReturnsNull(UnM49Area testCode)
+    {
+        // act
+        var testResult = testCode.GetIso3166Part1Alpha2Code();
+
+        // assert
+        testResult.Should().BeNull();
+    }
+
+    private class GetIso3166Part1Alpha2Code_WithNonCountryM49AreaCode_TestCaseGenerator
+    {
+        public static IEnumerable<object[]> TestCases
+        {
+            get
+            {
+                // A code above the country or area level has no ISO 3166 country code.
+                yield return new object[] { UnM49Area._001 };
+                yield return new object[] { UnM49Area._002 };
+                yield return new object[] { UnM49Area._015 };
+                yield return new object[] { UnM49Area._419 };
+            }
+        }
+    }
+
+    #endregion
+
+    #region Test: GetIso3166Part1Alpha3Code_WithNonCountryM49AreaCode
+
+    [Theory]
+    [MemberData(nameof(GetIso3166Part1Alpha3Code_WithNonCountryM49AreaCode_TestCaseGenerator.TestCases), MemberType = typeof(GetIso3166Part1Alpha3Code_WithNonCountryM49AreaCode_TestCaseGenerator))]
+    public void GetIso3166Part1Alpha3Code_WithNonCountryM49AreaCode_ReturnsNull(UnM49Area testCode)
+    {
+        // act
+        var testResult = testCode.GetIso3166Part1Alpha3Code();
+
+        // assert
+        testResult.Should().BeNull();
+    }
+
+    private class GetIso3166Part1Alpha3Code_WithNonCountryM49AreaCode_TestCaseGenerator
+    {
+        public static IEnumerable<object[]> TestCases
+        {
+            get
+            {
+                // A code above the country or area level has no ISO 3166 country code.
+                yield return new object[] { UnM49Area._001 };
+                yield return new object[] { UnM49Area._002 };
+                yield return new object[] { UnM49Area._015 };
+                yield return new object[] { UnM49Area._419 };
+            }
+        }
+    }
+
+    #endregion
+
+    #region Test: GetIso3166Part1Alpha2Code_WithUndefinedM49AreaCode
+
+    [Fact]
+    public void GetIso3166Part1Alpha2Code_WithUndefinedM49AreaCode_ReturnsNull()
+    {
+        // act
+        var testResult = ((UnM49Area)9999).GetIso3166Part1Alpha2Code();
+
+        // assert
+        testResult.Should().BeNull();
+    }
+
+    #endregion
+
+    #region Test: GetIso3166Part1Alpha3Code_WithUndefinedM49AreaCode
+
+    [Fact]
+    public void GetIso3166Part1Alpha3Code_WithUndefinedM49AreaCode_ReturnsNull()
+    {
+        // act
+        var testResult = ((UnM49Area)9999).GetIso3166Part1Alpha3Code();
+
+        // assert
+        testResult.Should().BeNull();
+    }
+
+    #endregion
+
+    #region Test: GetIso3166Part1Alpha2Code_ForEveryMemberOfUnM49AreaByAlpha2CountryCode
+
+    [Fact]
+    public void GetIso3166Part1Alpha2Code_ForEveryMemberOfUnM49AreaByAlpha2CountryCode_MatchesTheMemberName()
+    {
+        // arrange
+        var testCodes = Enum.GetValues<UnM49AreaByAlpha2CountryCode>();
+
+        // act, assert
+        testCodes.Should().NotBeEmpty();
+        foreach (var testCode in testCodes)
+        {
+            // Every member of this enum is named for its ISO 3166 Part 1 Alpha2 country code, so the
+            // metadata carried by the code attribute must agree with the member name.
+            testCode.GetIso3166Part1Alpha2Code().Should().Be(Enum.GetName(testCode));
+        }
+    }
+
+    #endregion
+
+    #region Test: GetIso3166Part1Alpha3Code_ForEveryMemberOfUnM49AreaByAlpha3CountryCode
+
+    [Fact]
+    public void GetIso3166Part1Alpha3Code_ForEveryMemberOfUnM49AreaByAlpha3CountryCode_MatchesTheMemberName()
+    {
+        // arrange
+        var testCodes = Enum.GetValues<UnM49AreaByAlpha3CountryCode>();
+
+        // act, assert
+        testCodes.Should().NotBeEmpty();
+        foreach (var testCode in testCodes)
+        {
+            // Every member of this enum is named for its ISO 3166 Part 1 Alpha3 country code, so the
+            // metadata carried by the code attribute must agree with the member name.
+            testCode.GetIso3166Part1Alpha3Code().Should().Be(Enum.GetName(testCode));
+        }
+    }
+
+    #endregion
+
+    #region Test: GetIso3166Part1Codes_ForCorrelatedAlpha2AndAlpha3Codes
+
+    [Fact]
+    public void GetIso3166Part1Codes_ForCorrelatedAlpha2AndAlpha3Codes_Agree()
+    {
+        // arrange
+        var testCodes = Enum.GetValues<UnM49AreaByAlpha2CountryCode>();
+
+        // act, assert
+        testCodes.Should().NotBeEmpty();
+        foreach (var testCode in testCodes)
+        {
+            // The same area reached through either enum, or through the numeric area enum, must
+            // report the same pair of ISO 3166 country codes.
+            var alpha3Code = (UnM49AreaByAlpha3CountryCode)testCode;
+            var areaCode = (UnM49Area)testCode;
+
+            alpha3Code.GetIso3166Part1Alpha2Code().Should().Be(testCode.GetIso3166Part1Alpha2Code());
+            alpha3Code.GetIso3166Part1Alpha3Code().Should().Be(testCode.GetIso3166Part1Alpha3Code());
+            areaCode.GetIso3166Part1Alpha2Code().Should().Be(testCode.GetIso3166Part1Alpha2Code());
+            areaCode.GetIso3166Part1Alpha3Code().Should().Be(testCode.GetIso3166Part1Alpha3Code());
+        }
+    }
+
+    #endregion
+
     #region Test: GetM49Codes_WithM49CodesFromAreaEnum
 
     [Fact]
