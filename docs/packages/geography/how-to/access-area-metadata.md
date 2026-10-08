@@ -31,6 +31,30 @@ To do the same thing using alpha-3 codes:
 var countryName = UnM49AreaByAlpha3CountryCode.DEU.GetCountryOrAreaName("ara");
 ```
 
+## Country codes
+
+The ISO 3166-1 alpha-2 and alpha-3 country codes of a country or area can be
+retrieved, so you can go from either country-keyed enum to the other's code.
+
+```csharp
+// "DEU"
+var alpha3Code = UnM49AreaByAlpha2CountryCode.DE.GetIso3166Part1Alpha3Code();
+
+// "DE"
+var alpha2Code = UnM49AreaByAlpha3CountryCode.DEU.GetIso3166Part1Alpha2Code();
+```
+
+The same methods work on `UnM49Area`, which is keyed by the numeric M49 code
+rather than a country code:
+
+```csharp
+// "ZM" (Zambia)
+var zambiaCode = UnM49Area._894.GetIso3166Part1Alpha2Code();
+```
+
+Only the country or area level has a country code. For the world, a region, a
+sub-region or an intermediate region, both methods return `null`.
+
 ## Global area
 
 The identifier of the global area can be retrieved for any area code.

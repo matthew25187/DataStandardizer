@@ -33,11 +33,13 @@ and the names of every level down to and including the level the member itself
 occupies, so an ancestor's name is available directly from any member:
 
 ```csharp
-UnM49Area._894.GetName("en");              // "Zambia"
-UnM49Area._894.GetRegionName("en");        // "Africa"
-UnM49Area._894.GetLevel();                 // UnM49AreaLevel.CountryOrArea
-UnM49Area._894.GetParent();                // UnM49Area._014 (Eastern Africa)
-UnM49Area._894.IsWithin(UnM49Area._002);   // true (Africa)
+UnM49Area._894.GetName("en");               // "Zambia"
+UnM49Area._894.GetRegionName("en");         // "Africa"
+UnM49Area._894.GetLevel();                  // UnM49AreaLevel.CountryOrArea
+UnM49Area._894.GetParent();                 // UnM49Area._014 (Eastern Africa)
+UnM49Area._894.IsWithin(UnM49Area._002);    // true (Africa)
+UnM49Area._894.GetIso3166Part1Alpha2Code(); // "ZM"
+UnM49Area._002.GetIso3166Part1Alpha2Code(); // null (Africa is not a country)
 ```
 
 Because a code above the country or area level does not identify a country or
