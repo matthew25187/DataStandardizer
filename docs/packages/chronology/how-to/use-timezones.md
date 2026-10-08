@@ -31,6 +31,32 @@ accessed in the same way:
 var timezone = TzDataTimezone.America.Argentina.Buenos_Aires;
 ```
 
+## Get a time zone from its identifier
+
+When the identifier is only known at run time, for example from user input or a
+stored setting, use `TryParse` or `Parse`. They return the predefined instance
+with that identifier, with all its metadata:
+
+```csharp
+if (TzDataTimezone.TryParse("Pacific/Auckland", out var timezone))
+{
+    // timezone == TzDataTimezone.Pacific.Auckland
+}
+
+// Throws FormatException for an unknown identifier
+var berlin = TzDataTimezone.Parse("Europe/Berlin");
+```
+
+Identifiers are case-sensitive, as they are in the TZ Database, so
+`"europe/berlin"` is not recognised.
+
+On .NET 8 and later, `TzDataTimezone` implements `IParsable<TzDataTimezone>`, so
+it can be used wherever a parsable type is expected.
+
+Prefer `Parse` and `TryParse` to the explicit cast from `string`. The cast
+accepts any string, including identifiers that don't exist, and the resulting
+instance throws `InvalidOperationException` when its metadata is read.
+
 ## Next steps
 
 - [Access time zone metadata](access-timezone-metadata.md)

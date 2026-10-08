@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+#if NETCOREAPP3_0_OR_GREATER
+using System.Diagnostics.CodeAnalysis;
+#endif
 using System.Reflection;
 #if NETSTANDARD
 using JetBrains.Annotations;
@@ -8,7 +11,11 @@ using JetBrains.Annotations;
 
 namespace DataStandardizer.Chronology
 {
+#if NET7_0_OR_GREATER
+    public readonly partial struct TzDataTimezone : IParsable<TzDataTimezone>
+#else
     public readonly partial struct TzDataTimezone
+#endif
     {
         private static readonly Registry DefaultRegistry = new Registry();
         private static readonly TzDataZoneCalculator.Cache DefaultCalculatorCache = new TzDataZoneCalculator.Cache();
@@ -110,6 +117,89 @@ namespace DataStandardizer.Chronology
                 return GetLocation().Comment;
             }
         }
+
+        /// <summary>
+        /// Converts a TZ Database identifier to the timezone with that identifier.
+        /// </summary>
+        /// <param name="s">The identifier, such as <c>Europe/Zurich</c>. Identifiers are case-sensitive.</param>
+        /// <returns>The predefined timezone with the identifier, which carries its zone lines and location.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="s"/> is <see langword="null"/>.</exception>
+        /// <exception cref="FormatException"><paramref name="s"/> is not the identifier of a known timezone.</exception>
+#if NETCOREAPP3_0_OR_GREATER
+        public static TzDataTimezone Parse(string s)
+#else
+        public static TzDataTimezone Parse([NotNull] string s)
+#endif
+        {
+            if (s is null)
+                throw new ArgumentNullException(nameof(s));
+
+            if (!TryParse(s, out var result))
+                throw new FormatException($"'{s}' is not the identifier of a known timezone.");
+
+            return result;
+        }
+
+        /// <summary>
+        /// Tries to convert a TZ Database identifier to the timezone with that identifier.
+        /// </summary>
+        /// <param name="s">The identifier, such as <c>Europe/Zurich</c>. Identifiers are case-sensitive.</param>
+        /// <param name="result">
+        /// When this method returns, the predefined timezone with the identifier, which carries its zone lines and location,
+        /// if the conversion succeeded; otherwise, the default value.
+        /// </param>
+        /// <returns>
+        /// <see langword="true"/> if <paramref name="s"/> is the identifier of a known timezone; otherwise, <see langword="false"/>,
+        /// including for <see langword="null"/>.
+        /// </returns>
+#if NETCOREAPP3_0_OR_GREATER
+        public static bool TryParse([NotNullWhen(true)] string? s, out TzDataTimezone result)
+#else
+        public static bool TryParse([CanBeNull] string s, out TzDataTimezone result)
+#endif
+        {
+            if (s != null && DefaultRegistry.GetEntries().TryGetValue(s, out var entry))
+            {
+                result = entry.Timezone;
+                return true;
+            }
+
+            result = default;
+            return false;
+        }
+
+#if NET7_0_OR_GREATER
+        /// <summary>
+        /// Converts a TZ Database identifier to the timezone with that identifier.
+        /// </summary>
+        /// <param name="s">The identifier, such as <c>Europe/Zurich</c>. Identifiers are case-sensitive.</param>
+        /// <param name="provider">Ignored, as identifiers do not depend on culture.</param>
+        /// <returns>The predefined timezone with the identifier, which carries its zone lines and location.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="s"/> is <see langword="null"/>.</exception>
+        /// <exception cref="FormatException"><paramref name="s"/> is not the identifier of a known timezone.</exception>
+        public static TzDataTimezone Parse(string s, IFormatProvider? provider)
+        {
+            return Parse(s);
+        }
+
+        /// <summary>
+        /// Tries to convert a TZ Database identifier to the timezone with that identifier.
+        /// </summary>
+        /// <param name="s">The identifier, such as <c>Europe/Zurich</c>. Identifiers are case-sensitive.</param>
+        /// <param name="provider">Ignored, as identifiers do not depend on culture.</param>
+        /// <param name="result">
+        /// When this method returns, the predefined timezone with the identifier, which carries its zone lines and location,
+        /// if the conversion succeeded; otherwise, the default value.
+        /// </param>
+        /// <returns>
+        /// <see langword="true"/> if <paramref name="s"/> is the identifier of a known timezone; otherwise, <see langword="false"/>,
+        /// including for <see langword="null"/>.
+        /// </returns>
+        public static bool TryParse([NotNullWhen(true)] string? s, IFormatProvider? provider, [MaybeNullWhen(false)] out TzDataTimezone result)
+        {
+            return TryParse(s, out result);
+        }
+#endif
 
         /// <summary>
         /// Gets the calculator of the timezone's offsets from universal time, building it on first use.
@@ -219,18 +309,21 @@ namespace DataStandardizer.Chronology
         }
 
         /// <summary>
-        /// A timezone field, with its zone lines and location.
+        /// A timezone field, with its value, zone lines and location.
         /// </summary>
         internal sealed class RegistryEntry
         {
-            internal RegistryEntry(FieldInfo field, TzDataZoneLine[] zoneLines, Location location)
+            internal RegistryEntry(FieldInfo field, TzDataTimezone timezone, TzDataZoneLine[] zoneLines, Location location)
             {
                 Field = field;
+                Timezone = timezone;
                 ZoneLines = zoneLines;
                 Location = location;
             }
 
             internal FieldInfo Field { get; }
+
+            internal TzDataTimezone Timezone { get; }
 
             internal TzDataZoneLine[] ZoneLines { get; }
 
@@ -283,7 +376,7 @@ namespace DataStandardizer.Chronology
                     if (!(field.GetValue(null) is TzDataTimezone timezone) || timezone._value is null || timezone._zoneLines is null || timezone._location is null)
                         throw new InvalidOperationException($"Timezone field {hostType.Name}.{field.Name} has no identifier, zone lines or location.");
 
-                    entries.Add(timezone._value, new RegistryEntry(field, timezone._zoneLines, timezone._location));
+                    entries.Add(timezone._value, new RegistryEntry(field, timezone, timezone._zoneLines, timezone._location));
                 }
 
                 foreach (var nestedType in hostType.DeclaredNestedTypes)

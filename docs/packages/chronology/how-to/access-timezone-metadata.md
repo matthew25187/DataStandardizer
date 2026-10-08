@@ -39,15 +39,19 @@ var timezoneComment = TzDataTimezone.Europe.Berlin.Comment;
 
 ## Time zones created from a string
 
-A time zone created by explicit cast from its identifier returns the same
-metadata as the predefined instance. The properties throw
-`InvalidOperationException` for the `default` value and for an identifier that
-is not that of a predefined instance:
+Use `Parse` or `TryParse` to get a time zone from its identifier. They return
+the predefined instance, so it has the same metadata:
 
 ```csharp
-var timezone = (TzDataTimezone)"Europe/Berlin";
+var timezone = TzDataTimezone.Parse("Europe/Berlin");
 var timezoneComment = timezone.Comment;
 ```
+
+A time zone created by explicit cast from its identifier also returns the same
+metadata as the predefined instance, but the cast doesn't validate the
+identifier. The properties throw `InvalidOperationException` for the `default`
+value and for an identifier that is not that of a predefined instance, so prefer
+`Parse` or `TryParse`.
 
 ## Migrating from the deprecated APIs
 
