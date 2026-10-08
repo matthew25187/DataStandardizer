@@ -87,3 +87,4 @@ var kolkata = TzDataTimezone.Parse("Asia/Calcutta");   // TzDataTimezone.Asia.Ko
 ## Next steps
 
 - [Access time zone metadata](access-timezone-metadata.md)
+- [Calculate UTC offsets](calculate-utc-offsets.md)
