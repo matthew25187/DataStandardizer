@@ -88,6 +88,21 @@ Predefined time zones under `TzDataTimezone.Asia`, members of [TzDataTimezone](T
 | `Yekaterinburg` | Asia/Yekaterinburg | RU, MSK+02 - Urals | 56.8500 | 60.6000 |
 | `Yerevan` | Asia/Yerevan | AM | 40.1833 | 44.5000 |
 
+## Links
+
+These fields are links: time zones of their own countries, listed in `zone.tab`, that share the zone lines of a canonical time zone. `IsLink` returns `true` for them, and `Canonical` returns the time zone they link to. Their location metadata is their own, but their history, including that before 1970, is that of the canonical time zone. See [Links and canonical time zones](TzDataTimezone.md#links-and-canonical-time-zones).
+
+| Field | Identifier | Canonical | Country codes | Latitude | Longitude |
+| --- | --- | --- | --- | --- | --- |
+| `Aden` | Asia/Aden | `Asia.Riyadh` | YE | 12.7500 | 45.2000 |
+| `Bahrain` | Asia/Bahrain | `Asia.Qatar` | BH | 26.3833 | 50.5833 |
+| `Brunei` | Asia/Brunei | `Asia.Kuching` | BN | 4.9333 | 114.9167 |
+| `Kuala_Lumpur` | Asia/Kuala_Lumpur | `Asia.Singapore` | MY, Malaysia (peninsula) | 3.1667 | 101.7000 |
+| `Kuwait` | Asia/Kuwait | `Asia.Riyadh` | KW | 29.3333 | 47.9833 |
+| `Muscat` | Asia/Muscat | `Asia.Dubai` | OM | 23.6000 | 58.5833 |
+| `Phnom_Penh` | Asia/Phnom_Penh | `Asia.Bangkok` | KH | 11.5500 | 104.9167 |
+| `Vientiane` | Asia/Vientiane | `Asia.Bangkok` | LA | 17.9667 | 102.6000 |
+
 ## See also
 
 - [TzDataTimezone](TzDataTimezone.md)

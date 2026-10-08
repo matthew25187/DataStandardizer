@@ -37,6 +37,17 @@ Some time zones carry a comment with additional information. The comment is
 var timezoneComment = TzDataTimezone.Europe.Berlin.Comment;
 ```
 
+## Links
+
+A link, such as `TzDataTimezone.Europe.Oslo`, has its own country code,
+location and comment, from `zone.tab`, although it shares the zone lines of its
+canonical time zone, `TzDataTimezone.Europe.Berlin`:
+
+```csharp
+var osloCountryCodes = TzDataTimezone.Europe.Oslo.IsoCountryCodes;               // NO
+var berlinCountryCodes = TzDataTimezone.Europe.Oslo.Canonical.IsoCountryCodes;   // DE, DK, NO, SE, SJ
+```
+
 ## Time zones created from a string
 
 Use `Parse` or `TryParse` to get a time zone from its identifier. They return

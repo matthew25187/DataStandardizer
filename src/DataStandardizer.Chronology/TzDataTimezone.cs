@@ -36,6 +36,8 @@ namespace DataStandardizer.Chronology
         
         private readonly DataStandardizer.Chronology.TzDataZoneLine[]? _zoneLines;
         
+        private readonly string? _linkTarget;
+        
         private readonly DataStandardizer.Chronology.TzDataTimezone.Location? _location;
         
 #else
@@ -45,6 +47,9 @@ namespace DataStandardizer.Chronology
         
         [JetBrains.Annotations.CanBeNullAttribute()]
         private readonly DataStandardizer.Chronology.TzDataZoneLine[] _zoneLines;
+        
+        [JetBrains.Annotations.CanBeNullAttribute()]
+        private readonly string _linkTarget;
         
         [JetBrains.Annotations.CanBeNullAttribute()]
         private readonly DataStandardizer.Chronology.TzDataTimezone.Location _location;
@@ -61,6 +66,7 @@ namespace DataStandardizer.Chronology
             }
             this._value = value;
             this._zoneLines = null;
+            this._linkTarget = null;
             this._location = null;
         }
         
@@ -82,6 +88,31 @@ namespace DataStandardizer.Chronology
             }
             this._value = value;
             this._zoneLines = zoneLines;
+            this._linkTarget = null;
+            this._location = new DataStandardizer.Chronology.TzDataTimezone.Location(latitude, longitude, isoCountryCodes, comment);
+        }
+        
+        private TzDataTimezone(string value, string linkTarget, DataStandardizer.Chronology.TzDataZoneLine[] zoneLines, double latitude, double longitude, string[] isoCountryCodes, string? comment)
+        {
+            if ((value == null))
+            {
+                throw new System.ArgumentNullException(nameof(value));
+            }
+            if ((linkTarget == null))
+            {
+                throw new System.ArgumentNullException(nameof(linkTarget));
+            }
+            if ((zoneLines == null))
+            {
+                throw new System.ArgumentNullException(nameof(zoneLines));
+            }
+            if ((isoCountryCodes == null))
+            {
+                throw new System.ArgumentNullException(nameof(isoCountryCodes));
+            }
+            this._value = value;
+            this._zoneLines = zoneLines;
+            this._linkTarget = linkTarget;
             this._location = new DataStandardizer.Chronology.TzDataTimezone.Location(latitude, longitude, isoCountryCodes, comment);
         }
         
@@ -103,6 +134,31 @@ namespace DataStandardizer.Chronology
             }
             this._value = value;
             this._zoneLines = zoneLines;
+            this._linkTarget = null;
+            this._location = new DataStandardizer.Chronology.TzDataTimezone.Location(latitude, longitude, isoCountryCodes, comment);
+        }
+        
+        private TzDataTimezone(string value, string linkTarget, DataStandardizer.Chronology.TzDataZoneLine[] zoneLines, double latitude, double longitude, string[] isoCountryCodes, [JetBrains.Annotations.CanBeNullAttribute()] string comment)
+        {
+            if ((value == null))
+            {
+                throw new System.ArgumentNullException(nameof(value));
+            }
+            if ((linkTarget == null))
+            {
+                throw new System.ArgumentNullException(nameof(linkTarget));
+            }
+            if ((zoneLines == null))
+            {
+                throw new System.ArgumentNullException(nameof(zoneLines));
+            }
+            if ((isoCountryCodes == null))
+            {
+                throw new System.ArgumentNullException(nameof(isoCountryCodes));
+            }
+            this._value = value;
+            this._zoneLines = zoneLines;
+            this._linkTarget = linkTarget;
             this._location = new DataStandardizer.Chronology.TzDataTimezone.Location(latitude, longitude, isoCountryCodes, comment);
         }
         
@@ -955,6 +1011,406 @@ namespace DataStandardizer.Chronology
             /// </remarks>
             [DataStandardizer.Chronology.TzDataTimezoneAttribute(50.43333333333333D, 30.516666666666666D, "UA", Comment="most of Ukraine")]
             public static readonly DataStandardizer.Chronology.TzDataTimezone Kyiv = new DataStandardizer.Chronology.TzDataTimezone("Europe/Kyiv", TzDataTimezone.ZoneLineData.Europe_Kyiv, latitude: 50.43333333333333D, longitude: 30.516666666666666D, isoCountryCodes: new string[] { "UA" }, comment: "most of Ukraine");
+            
+            /// <summary>
+            /// Europe/Mariehamn
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>AX</term>
+            /// 			<description>Åland Islands</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Europe.Helsinki"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(60.1D, 19.95D, "AX")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Mariehamn = new DataStandardizer.Chronology.TzDataTimezone("Europe/Mariehamn", linkTarget: "Europe/Helsinki", TzDataTimezone.ZoneLineData.Europe_Helsinki, latitude: 60.1D, longitude: 19.95D, isoCountryCodes: new string[] { "AX" }, comment: null);
+            
+            /// <summary>
+            /// Europe/Sarajevo
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>BA</term>
+            /// 			<description>Bosnia & Herzegovina</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Europe.Belgrade"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(43.86666666666667D, 18.416666666666668D, "BA")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Sarajevo = new DataStandardizer.Chronology.TzDataTimezone("Europe/Sarajevo", linkTarget: "Europe/Belgrade", TzDataTimezone.ZoneLineData.Europe_Belgrade, latitude: 43.86666666666667D, longitude: 18.416666666666668D, isoCountryCodes: new string[] { "BA" }, comment: null);
+            
+            /// <summary>
+            /// Europe/Busingen
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>DE</term>
+            /// 			<description>Germany</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Europe.Zurich"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(47.7D, 8.683333333333334D, "DE", Comment="Busingen")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Busingen = new DataStandardizer.Chronology.TzDataTimezone("Europe/Busingen", linkTarget: "Europe/Zurich", TzDataTimezone.ZoneLineData.Europe_Zurich, latitude: 47.7D, longitude: 8.683333333333334D, isoCountryCodes: new string[] { "DE" }, comment: "Busingen");
+            
+            /// <summary>
+            /// Europe/Copenhagen
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>DK</term>
+            /// 			<description>Denmark</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Europe.Berlin"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(55.666666666666664D, 12.583333333333334D, "DK")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Copenhagen = new DataStandardizer.Chronology.TzDataTimezone("Europe/Copenhagen", linkTarget: "Europe/Berlin", TzDataTimezone.ZoneLineData.Europe_Berlin, latitude: 55.666666666666664D, longitude: 12.583333333333334D, isoCountryCodes: new string[] { "DK" }, comment: null);
+            
+            /// <summary>
+            /// Europe/Guernsey
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>GG</term>
+            /// 			<description>Guernsey</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Europe.London"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(49.45472222222222D, -2.536111111111111D, "GG")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Guernsey = new DataStandardizer.Chronology.TzDataTimezone("Europe/Guernsey", linkTarget: "Europe/London", TzDataTimezone.ZoneLineData.Europe_London, latitude: 49.45472222222222D, longitude: -2.536111111111111D, isoCountryCodes: new string[] { "GG" }, comment: null);
+            
+            /// <summary>
+            /// Europe/Zagreb
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>HR</term>
+            /// 			<description>Croatia</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Europe.Belgrade"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(45.8D, 15.966666666666667D, "HR")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Zagreb = new DataStandardizer.Chronology.TzDataTimezone("Europe/Zagreb", linkTarget: "Europe/Belgrade", TzDataTimezone.ZoneLineData.Europe_Belgrade, latitude: 45.8D, longitude: 15.966666666666667D, isoCountryCodes: new string[] { "HR" }, comment: null);
+            
+            /// <summary>
+            /// Europe/Isle_of_Man
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>IM</term>
+            /// 			<description>Isle of Man</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Europe.London"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(54.15D, -4.466666666666667D, "IM")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Isle_of_Man = new DataStandardizer.Chronology.TzDataTimezone("Europe/Isle_of_Man", linkTarget: "Europe/London", TzDataTimezone.ZoneLineData.Europe_London, latitude: 54.15D, longitude: -4.466666666666667D, isoCountryCodes: new string[] { "IM" }, comment: null);
+            
+            /// <summary>
+            /// Europe/Jersey
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>JE</term>
+            /// 			<description>Jersey</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Europe.London"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(49.183611111111105D, -2.106666666666667D, "JE")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Jersey = new DataStandardizer.Chronology.TzDataTimezone("Europe/Jersey", linkTarget: "Europe/London", TzDataTimezone.ZoneLineData.Europe_London, latitude: 49.183611111111105D, longitude: -2.106666666666667D, isoCountryCodes: new string[] { "JE" }, comment: null);
+            
+            /// <summary>
+            /// Europe/Vaduz
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>LI</term>
+            /// 			<description>Liechtenstein</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Europe.Zurich"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(47.15D, 9.516666666666667D, "LI")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Vaduz = new DataStandardizer.Chronology.TzDataTimezone("Europe/Vaduz", linkTarget: "Europe/Zurich", TzDataTimezone.ZoneLineData.Europe_Zurich, latitude: 47.15D, longitude: 9.516666666666667D, isoCountryCodes: new string[] { "LI" }, comment: null);
+            
+            /// <summary>
+            /// Europe/Luxembourg
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>LU</term>
+            /// 			<description>Luxembourg</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Europe.Brussels"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(49.6D, 6.15D, "LU")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Luxembourg = new DataStandardizer.Chronology.TzDataTimezone("Europe/Luxembourg", linkTarget: "Europe/Brussels", TzDataTimezone.ZoneLineData.Europe_Brussels, latitude: 49.6D, longitude: 6.15D, isoCountryCodes: new string[] { "LU" }, comment: null);
+            
+            /// <summary>
+            /// Europe/Monaco
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>MC</term>
+            /// 			<description>Monaco</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Europe.Paris"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(43.7D, 7.383333333333334D, "MC")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Monaco = new DataStandardizer.Chronology.TzDataTimezone("Europe/Monaco", linkTarget: "Europe/Paris", TzDataTimezone.ZoneLineData.Europe_Paris, latitude: 43.7D, longitude: 7.383333333333334D, isoCountryCodes: new string[] { "MC" }, comment: null);
+            
+            /// <summary>
+            /// Europe/Podgorica
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>ME</term>
+            /// 			<description>Montenegro</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Europe.Belgrade"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(42.43333333333333D, 19.266666666666666D, "ME")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Podgorica = new DataStandardizer.Chronology.TzDataTimezone("Europe/Podgorica", linkTarget: "Europe/Belgrade", TzDataTimezone.ZoneLineData.Europe_Belgrade, latitude: 42.43333333333333D, longitude: 19.266666666666666D, isoCountryCodes: new string[] { "ME" }, comment: null);
+            
+            /// <summary>
+            /// Europe/Skopje
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>MK</term>
+            /// 			<description>North Macedonia</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Europe.Belgrade"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(41.983333333333334D, 21.433333333333334D, "MK")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Skopje = new DataStandardizer.Chronology.TzDataTimezone("Europe/Skopje", linkTarget: "Europe/Belgrade", TzDataTimezone.ZoneLineData.Europe_Belgrade, latitude: 41.983333333333334D, longitude: 21.433333333333334D, isoCountryCodes: new string[] { "MK" }, comment: null);
+            
+            /// <summary>
+            /// Europe/Amsterdam
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>NL</term>
+            /// 			<description>Netherlands</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Europe.Brussels"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(52.36666666666667D, 4.9D, "NL")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Amsterdam = new DataStandardizer.Chronology.TzDataTimezone("Europe/Amsterdam", linkTarget: "Europe/Brussels", TzDataTimezone.ZoneLineData.Europe_Brussels, latitude: 52.36666666666667D, longitude: 4.9D, isoCountryCodes: new string[] { "NL" }, comment: null);
+            
+            /// <summary>
+            /// Europe/Oslo
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>NO</term>
+            /// 			<description>Norway</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Europe.Berlin"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(59.916666666666664D, 10.75D, "NO")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Oslo = new DataStandardizer.Chronology.TzDataTimezone("Europe/Oslo", linkTarget: "Europe/Berlin", TzDataTimezone.ZoneLineData.Europe_Berlin, latitude: 59.916666666666664D, longitude: 10.75D, isoCountryCodes: new string[] { "NO" }, comment: null);
+            
+            /// <summary>
+            /// Europe/Stockholm
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>SE</term>
+            /// 			<description>Sweden</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Europe.Berlin"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(59.333333333333336D, 18.05D, "SE")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Stockholm = new DataStandardizer.Chronology.TzDataTimezone("Europe/Stockholm", linkTarget: "Europe/Berlin", TzDataTimezone.ZoneLineData.Europe_Berlin, latitude: 59.333333333333336D, longitude: 18.05D, isoCountryCodes: new string[] { "SE" }, comment: null);
+            
+            /// <summary>
+            /// Europe/Ljubljana
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>SI</term>
+            /// 			<description>Slovenia</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Europe.Belgrade"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(46.05D, 14.516666666666667D, "SI")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Ljubljana = new DataStandardizer.Chronology.TzDataTimezone("Europe/Ljubljana", linkTarget: "Europe/Belgrade", TzDataTimezone.ZoneLineData.Europe_Belgrade, latitude: 46.05D, longitude: 14.516666666666667D, isoCountryCodes: new string[] { "SI" }, comment: null);
+            
+            /// <summary>
+            /// Europe/Bratislava
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>SK</term>
+            /// 			<description>Slovakia</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Europe.Prague"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(48.15D, 17.116666666666667D, "SK")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Bratislava = new DataStandardizer.Chronology.TzDataTimezone("Europe/Bratislava", linkTarget: "Europe/Prague", TzDataTimezone.ZoneLineData.Europe_Prague, latitude: 48.15D, longitude: 17.116666666666667D, isoCountryCodes: new string[] { "SK" }, comment: null);
+            
+            /// <summary>
+            /// Europe/San_Marino
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>SM</term>
+            /// 			<description>San Marino</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Europe.Rome"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(43.916666666666664D, 12.466666666666667D, "SM")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone San_Marino = new DataStandardizer.Chronology.TzDataTimezone("Europe/San_Marino", linkTarget: "Europe/Rome", TzDataTimezone.ZoneLineData.Europe_Rome, latitude: 43.916666666666664D, longitude: 12.466666666666667D, isoCountryCodes: new string[] { "SM" }, comment: null);
+            
+            /// <summary>
+            /// Europe/Vatican
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>VA</term>
+            /// 			<description>Vatican City</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Europe.Rome"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(41.90222222222222D, 12.453055555555554D, "VA")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Vatican = new DataStandardizer.Chronology.TzDataTimezone("Europe/Vatican", linkTarget: "Europe/Rome", TzDataTimezone.ZoneLineData.Europe_Rome, latitude: 41.90222222222222D, longitude: 12.453055555555554D, isoCountryCodes: new string[] { "VA" }, comment: null);
         }
         
         public static class Asia
@@ -2433,6 +2889,166 @@ namespace DataStandardizer.Chronology
             /// </remarks>
             [DataStandardizer.Chronology.TzDataTimezoneAttribute(10.75D, 106.66666666666667D, "VN", Comment="south Vietnam")]
             public static readonly DataStandardizer.Chronology.TzDataTimezone Ho_Chi_Minh = new DataStandardizer.Chronology.TzDataTimezone("Asia/Ho_Chi_Minh", TzDataTimezone.ZoneLineData.Asia_Ho_Chi_Minh, latitude: 10.75D, longitude: 106.66666666666667D, isoCountryCodes: new string[] { "VN" }, comment: "south Vietnam");
+            
+            /// <summary>
+            /// Asia/Bahrain
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>BH</term>
+            /// 			<description>Bahrain</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Asia.Qatar"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(26.383333333333333D, 50.583333333333336D, "BH")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Bahrain = new DataStandardizer.Chronology.TzDataTimezone("Asia/Bahrain", linkTarget: "Asia/Qatar", TzDataTimezone.ZoneLineData.Asia_Qatar, latitude: 26.383333333333333D, longitude: 50.583333333333336D, isoCountryCodes: new string[] { "BH" }, comment: null);
+            
+            /// <summary>
+            /// Asia/Brunei
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>BN</term>
+            /// 			<description>Brunei</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Asia.Kuching"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(4.933333333333334D, 114.91666666666667D, "BN")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Brunei = new DataStandardizer.Chronology.TzDataTimezone("Asia/Brunei", linkTarget: "Asia/Kuching", TzDataTimezone.ZoneLineData.Asia_Kuching, latitude: 4.933333333333334D, longitude: 114.91666666666667D, isoCountryCodes: new string[] { "BN" }, comment: null);
+            
+            /// <summary>
+            /// Asia/Phnom_Penh
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>KH</term>
+            /// 			<description>Cambodia</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Asia.Bangkok"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(11.55D, 104.91666666666667D, "KH")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Phnom_Penh = new DataStandardizer.Chronology.TzDataTimezone("Asia/Phnom_Penh", linkTarget: "Asia/Bangkok", TzDataTimezone.ZoneLineData.Asia_Bangkok, latitude: 11.55D, longitude: 104.91666666666667D, isoCountryCodes: new string[] { "KH" }, comment: null);
+            
+            /// <summary>
+            /// Asia/Kuwait
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>KW</term>
+            /// 			<description>Kuwait</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Asia.Riyadh"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(29.333333333333332D, 47.983333333333334D, "KW")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Kuwait = new DataStandardizer.Chronology.TzDataTimezone("Asia/Kuwait", linkTarget: "Asia/Riyadh", TzDataTimezone.ZoneLineData.Asia_Riyadh, latitude: 29.333333333333332D, longitude: 47.983333333333334D, isoCountryCodes: new string[] { "KW" }, comment: null);
+            
+            /// <summary>
+            /// Asia/Vientiane
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>LA</term>
+            /// 			<description>Laos</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Asia.Bangkok"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(17.966666666666665D, 102.6D, "LA")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Vientiane = new DataStandardizer.Chronology.TzDataTimezone("Asia/Vientiane", linkTarget: "Asia/Bangkok", TzDataTimezone.ZoneLineData.Asia_Bangkok, latitude: 17.966666666666665D, longitude: 102.6D, isoCountryCodes: new string[] { "LA" }, comment: null);
+            
+            /// <summary>
+            /// Asia/Kuala_Lumpur
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>MY</term>
+            /// 			<description>Malaysia</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Asia.Singapore"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(3.1666666666666665D, 101.7D, "MY", Comment="Malaysia (peninsula)")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Kuala_Lumpur = new DataStandardizer.Chronology.TzDataTimezone("Asia/Kuala_Lumpur", linkTarget: "Asia/Singapore", TzDataTimezone.ZoneLineData.Asia_Singapore, latitude: 3.1666666666666665D, longitude: 101.7D, isoCountryCodes: new string[] { "MY" }, comment: "Malaysia (peninsula)");
+            
+            /// <summary>
+            /// Asia/Muscat
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>OM</term>
+            /// 			<description>Oman</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Asia.Dubai"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(23.6D, 58.583333333333336D, "OM")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Muscat = new DataStandardizer.Chronology.TzDataTimezone("Asia/Muscat", linkTarget: "Asia/Dubai", TzDataTimezone.ZoneLineData.Asia_Dubai, latitude: 23.6D, longitude: 58.583333333333336D, isoCountryCodes: new string[] { "OM" }, comment: null);
+            
+            /// <summary>
+            /// Asia/Aden
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>YE</term>
+            /// 			<description>Yemen</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Asia.Riyadh"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(12.75D, 45.2D, "YE")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Aden = new DataStandardizer.Chronology.TzDataTimezone("Asia/Aden", linkTarget: "Asia/Riyadh", TzDataTimezone.ZoneLineData.Asia_Riyadh, latitude: 12.75D, longitude: 45.2D, isoCountryCodes: new string[] { "YE" }, comment: null);
         }
         
         public static class Antarctica
@@ -2589,6 +3205,66 @@ namespace DataStandardizer.Chronology
             /// </remarks>
             [DataStandardizer.Chronology.TzDataTimezoneAttribute(-54.5D, 158.95D, "AU", Comment="Macquarie Island")]
             public static readonly DataStandardizer.Chronology.TzDataTimezone Macquarie = new DataStandardizer.Chronology.TzDataTimezone("Antarctica/Macquarie", TzDataTimezone.ZoneLineData.Antarctica_Macquarie, latitude: -54.5D, longitude: 158.95D, isoCountryCodes: new string[] { "AU" }, comment: "Macquarie Island");
+            
+            /// <summary>
+            /// Antarctica/McMurdo
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>AQ</term>
+            /// 			<description>Antarctica</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Pacific.Auckland"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(-77.83333333333333D, 166.6D, "AQ", Comment="New Zealand time - McMurdo, South Pole")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone McMurdo = new DataStandardizer.Chronology.TzDataTimezone("Antarctica/McMurdo", linkTarget: "Pacific/Auckland", TzDataTimezone.ZoneLineData.Pacific_Auckland, latitude: -77.83333333333333D, longitude: 166.6D, isoCountryCodes: new string[] { "AQ" }, comment: "New Zealand time - McMurdo, South Pole");
+            
+            /// <summary>
+            /// Antarctica/DumontDUrville
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>AQ</term>
+            /// 			<description>Antarctica</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Pacific.Port_Moresby"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(-66.66666666666667D, 140.01666666666668D, "AQ", Comment="Dumont-d\'Urville")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone DumontDUrville = new DataStandardizer.Chronology.TzDataTimezone("Antarctica/DumontDUrville", linkTarget: "Pacific/Port_Moresby", TzDataTimezone.ZoneLineData.Pacific_Port_Moresby, latitude: -66.66666666666667D, longitude: 140.01666666666668D, isoCountryCodes: new string[] { "AQ" }, comment: "Dumont-d\'Urville");
+            
+            /// <summary>
+            /// Antarctica/Syowa
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>AQ</term>
+            /// 			<description>Antarctica</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Asia.Riyadh"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(-69.00611111111111D, 39.59D, "AQ", Comment="Syowa")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Syowa = new DataStandardizer.Chronology.TzDataTimezone("Antarctica/Syowa", linkTarget: "Asia/Riyadh", TzDataTimezone.ZoneLineData.Asia_Riyadh, latitude: -69.00611111111111D, longitude: 39.59D, isoCountryCodes: new string[] { "AQ" }, comment: "Syowa");
         }
         
         public static class Pacific
@@ -3203,6 +3879,166 @@ namespace DataStandardizer.Chronology
             /// </remarks>
             [DataStandardizer.Chronology.TzDataTimezoneAttribute(-13.833333333333334D, -171.73333333333332D, "WS")]
             public static readonly DataStandardizer.Chronology.TzDataTimezone Apia = new DataStandardizer.Chronology.TzDataTimezone("Pacific/Apia", TzDataTimezone.ZoneLineData.Pacific_Apia, latitude: -13.833333333333334D, longitude: -171.73333333333332D, isoCountryCodes: new string[] { "WS" }, comment: null);
+            
+            /// <summary>
+            /// Pacific/Chuuk
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>FM</term>
+            /// 			<description>Micronesia</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Pacific.Port_Moresby"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(7.416666666666667D, 151.78333333333333D, "FM", Comment="Chuuk/Truk, Yap")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Chuuk = new DataStandardizer.Chronology.TzDataTimezone("Pacific/Chuuk", linkTarget: "Pacific/Port_Moresby", TzDataTimezone.ZoneLineData.Pacific_Port_Moresby, latitude: 7.416666666666667D, longitude: 151.78333333333333D, isoCountryCodes: new string[] { "FM" }, comment: "Chuuk/Truk, Yap");
+            
+            /// <summary>
+            /// Pacific/Pohnpei
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>FM</term>
+            /// 			<description>Micronesia</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Pacific.Guadalcanal"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(6.966666666666667D, 158.21666666666667D, "FM", Comment="Pohnpei/Ponape")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Pohnpei = new DataStandardizer.Chronology.TzDataTimezone("Pacific/Pohnpei", linkTarget: "Pacific/Guadalcanal", TzDataTimezone.ZoneLineData.Pacific_Guadalcanal, latitude: 6.966666666666667D, longitude: 158.21666666666667D, isoCountryCodes: new string[] { "FM" }, comment: "Pohnpei/Ponape");
+            
+            /// <summary>
+            /// Pacific/Majuro
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>MH</term>
+            /// 			<description>Marshall Islands</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Pacific.Tarawa"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(7.15D, 171.2D, "MH", Comment="most of Marshall Islands")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Majuro = new DataStandardizer.Chronology.TzDataTimezone("Pacific/Majuro", linkTarget: "Pacific/Tarawa", TzDataTimezone.ZoneLineData.Pacific_Tarawa, latitude: 7.15D, longitude: 171.2D, isoCountryCodes: new string[] { "MH" }, comment: "most of Marshall Islands");
+            
+            /// <summary>
+            /// Pacific/Saipan
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>MP</term>
+            /// 			<description>Northern Mariana Islands</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Pacific.Guam"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(15.2D, 145.75D, "MP")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Saipan = new DataStandardizer.Chronology.TzDataTimezone("Pacific/Saipan", linkTarget: "Pacific/Guam", TzDataTimezone.ZoneLineData.Pacific_Guam, latitude: 15.2D, longitude: 145.75D, isoCountryCodes: new string[] { "MP" }, comment: null);
+            
+            /// <summary>
+            /// Pacific/Funafuti
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>TV</term>
+            /// 			<description>Tuvalu</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Pacific.Tarawa"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(-8.516666666666667D, 179.21666666666667D, "TV")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Funafuti = new DataStandardizer.Chronology.TzDataTimezone("Pacific/Funafuti", linkTarget: "Pacific/Tarawa", TzDataTimezone.ZoneLineData.Pacific_Tarawa, latitude: -8.516666666666667D, longitude: 179.21666666666667D, isoCountryCodes: new string[] { "TV" }, comment: null);
+            
+            /// <summary>
+            /// Pacific/Midway
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>UM</term>
+            /// 			<description>US minor outlying islands</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Pacific.Pago_Pago"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(28.216666666666665D, -177.36666666666667D, "UM", Comment="Midway Islands")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Midway = new DataStandardizer.Chronology.TzDataTimezone("Pacific/Midway", linkTarget: "Pacific/Pago_Pago", TzDataTimezone.ZoneLineData.Pacific_Pago_Pago, latitude: 28.216666666666665D, longitude: -177.36666666666667D, isoCountryCodes: new string[] { "UM" }, comment: "Midway Islands");
+            
+            /// <summary>
+            /// Pacific/Wake
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>UM</term>
+            /// 			<description>US minor outlying islands</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Pacific.Tarawa"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(19.283333333333335D, 166.61666666666667D, "UM", Comment="Wake Island")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Wake = new DataStandardizer.Chronology.TzDataTimezone("Pacific/Wake", linkTarget: "Pacific/Tarawa", TzDataTimezone.ZoneLineData.Pacific_Tarawa, latitude: 19.283333333333335D, longitude: 166.61666666666667D, isoCountryCodes: new string[] { "UM" }, comment: "Wake Island");
+            
+            /// <summary>
+            /// Pacific/Wallis
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>WF</term>
+            /// 			<description>Wallis & Futuna</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Pacific.Tarawa"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(-13.3D, -176.16666666666666D, "WF")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Wallis = new DataStandardizer.Chronology.TzDataTimezone("Pacific/Wallis", linkTarget: "Pacific/Tarawa", TzDataTimezone.ZoneLineData.Pacific_Tarawa, latitude: -13.3D, longitude: -176.16666666666666D, isoCountryCodes: new string[] { "WF" }, comment: null);
         }
         
         public static class Australia
@@ -5337,6 +6173,466 @@ namespace DataStandardizer.Chronology
             [DataStandardizer.Chronology.TzDataTimezoneAttribute(10.5D, -66.93333333333334D, "VE")]
             public static readonly DataStandardizer.Chronology.TzDataTimezone Caracas = new DataStandardizer.Chronology.TzDataTimezone("America/Caracas", TzDataTimezone.ZoneLineData.America_Caracas, latitude: 10.5D, longitude: -66.93333333333334D, isoCountryCodes: new string[] { "VE" }, comment: null);
             
+            /// <summary>
+            /// America/Antigua
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>AG</term>
+            /// 			<description>Antigua & Barbuda</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.America.Puerto_Rico"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(17.05D, -61.8D, "AG")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Antigua = new DataStandardizer.Chronology.TzDataTimezone("America/Antigua", linkTarget: "America/Puerto_Rico", TzDataTimezone.ZoneLineData.America_Puerto_Rico, latitude: 17.05D, longitude: -61.8D, isoCountryCodes: new string[] { "AG" }, comment: null);
+            
+            /// <summary>
+            /// America/Anguilla
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>AI</term>
+            /// 			<description>Anguilla</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.America.Puerto_Rico"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(18.2D, -63.06666666666667D, "AI")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Anguilla = new DataStandardizer.Chronology.TzDataTimezone("America/Anguilla", linkTarget: "America/Puerto_Rico", TzDataTimezone.ZoneLineData.America_Puerto_Rico, latitude: 18.2D, longitude: -63.06666666666667D, isoCountryCodes: new string[] { "AI" }, comment: null);
+            
+            /// <summary>
+            /// America/Aruba
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>AW</term>
+            /// 			<description>Aruba</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.America.Puerto_Rico"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(12.5D, -69.96666666666667D, "AW")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Aruba = new DataStandardizer.Chronology.TzDataTimezone("America/Aruba", linkTarget: "America/Puerto_Rico", TzDataTimezone.ZoneLineData.America_Puerto_Rico, latitude: 12.5D, longitude: -69.96666666666667D, isoCountryCodes: new string[] { "AW" }, comment: null);
+            
+            /// <summary>
+            /// America/St_Barthelemy
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>BL</term>
+            /// 			<description>St Barthelemy</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.America.Puerto_Rico"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(17.883333333333333D, -62.85D, "BL")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone St_Barthelemy = new DataStandardizer.Chronology.TzDataTimezone("America/St_Barthelemy", linkTarget: "America/Puerto_Rico", TzDataTimezone.ZoneLineData.America_Puerto_Rico, latitude: 17.883333333333333D, longitude: -62.85D, isoCountryCodes: new string[] { "BL" }, comment: null);
+            
+            /// <summary>
+            /// America/Kralendijk
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>BQ</term>
+            /// 			<description>Caribbean NL</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.America.Puerto_Rico"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(12.150833333333333D, -68.27666666666667D, "BQ")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Kralendijk = new DataStandardizer.Chronology.TzDataTimezone("America/Kralendijk", linkTarget: "America/Puerto_Rico", TzDataTimezone.ZoneLineData.America_Puerto_Rico, latitude: 12.150833333333333D, longitude: -68.27666666666667D, isoCountryCodes: new string[] { "BQ" }, comment: null);
+            
+            /// <summary>
+            /// America/Nassau
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>BS</term>
+            /// 			<description>Bahamas</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.America.Toronto"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(25.083333333333332D, -77.35D, "BS")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Nassau = new DataStandardizer.Chronology.TzDataTimezone("America/Nassau", linkTarget: "America/Toronto", TzDataTimezone.ZoneLineData.America_Toronto, latitude: 25.083333333333332D, longitude: -77.35D, isoCountryCodes: new string[] { "BS" }, comment: null);
+            
+            /// <summary>
+            /// America/Blanc-Sablon
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>CA</term>
+            /// 			<description>Canada</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.America.Puerto_Rico"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(51.416666666666664D, -57.11666666666667D, "CA", Comment="AST - QC (Lower North Shore)")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Blanc_Sablon = new DataStandardizer.Chronology.TzDataTimezone("America/Blanc-Sablon", linkTarget: "America/Puerto_Rico", TzDataTimezone.ZoneLineData.America_Puerto_Rico, latitude: 51.416666666666664D, longitude: -57.11666666666667D, isoCountryCodes: new string[] { "CA" }, comment: "AST - QC (Lower North Shore)");
+            
+            /// <summary>
+            /// America/Atikokan
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>CA</term>
+            /// 			<description>Canada</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.America.Panama"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(48.75861111111111D, -91.62166666666666D, "CA", Comment="EST - ON (Atikokan), NU (Coral H)")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Atikokan = new DataStandardizer.Chronology.TzDataTimezone("America/Atikokan", linkTarget: "America/Panama", TzDataTimezone.ZoneLineData.America_Panama, latitude: 48.75861111111111D, longitude: -91.62166666666666D, isoCountryCodes: new string[] { "CA" }, comment: "EST - ON (Atikokan), NU (Coral H)");
+            
+            /// <summary>
+            /// America/Creston
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>CA</term>
+            /// 			<description>Canada</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.America.Phoenix"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(49.1D, -116.51666666666667D, "CA", Comment="MST - BC (Creston)")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Creston = new DataStandardizer.Chronology.TzDataTimezone("America/Creston", linkTarget: "America/Phoenix", TzDataTimezone.ZoneLineData.America_Phoenix, latitude: 49.1D, longitude: -116.51666666666667D, isoCountryCodes: new string[] { "CA" }, comment: "MST - BC (Creston)");
+            
+            /// <summary>
+            /// America/Curacao
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>CW</term>
+            /// 			<description>Curaçao</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.America.Puerto_Rico"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(12.183333333333334D, -69D, "CW")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Curacao = new DataStandardizer.Chronology.TzDataTimezone("America/Curacao", linkTarget: "America/Puerto_Rico", TzDataTimezone.ZoneLineData.America_Puerto_Rico, latitude: 12.183333333333334D, longitude: -69D, isoCountryCodes: new string[] { "CW" }, comment: null);
+            
+            /// <summary>
+            /// America/Dominica
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>DM</term>
+            /// 			<description>Dominica</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.America.Puerto_Rico"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(15.3D, -61.4D, "DM")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Dominica = new DataStandardizer.Chronology.TzDataTimezone("America/Dominica", linkTarget: "America/Puerto_Rico", TzDataTimezone.ZoneLineData.America_Puerto_Rico, latitude: 15.3D, longitude: -61.4D, isoCountryCodes: new string[] { "DM" }, comment: null);
+            
+            /// <summary>
+            /// America/Grenada
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>GD</term>
+            /// 			<description>Grenada</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.America.Puerto_Rico"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(12.05D, -61.75D, "GD")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Grenada = new DataStandardizer.Chronology.TzDataTimezone("America/Grenada", linkTarget: "America/Puerto_Rico", TzDataTimezone.ZoneLineData.America_Puerto_Rico, latitude: 12.05D, longitude: -61.75D, isoCountryCodes: new string[] { "GD" }, comment: null);
+            
+            /// <summary>
+            /// America/Guadeloupe
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>GP</term>
+            /// 			<description>Guadeloupe</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.America.Puerto_Rico"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(16.233333333333334D, -61.53333333333333D, "GP")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Guadeloupe = new DataStandardizer.Chronology.TzDataTimezone("America/Guadeloupe", linkTarget: "America/Puerto_Rico", TzDataTimezone.ZoneLineData.America_Puerto_Rico, latitude: 16.233333333333334D, longitude: -61.53333333333333D, isoCountryCodes: new string[] { "GP" }, comment: null);
+            
+            /// <summary>
+            /// America/St_Kitts
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>KN</term>
+            /// 			<description>St Kitts & Nevis</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.America.Puerto_Rico"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(17.3D, -62.71666666666667D, "KN")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone St_Kitts = new DataStandardizer.Chronology.TzDataTimezone("America/St_Kitts", linkTarget: "America/Puerto_Rico", TzDataTimezone.ZoneLineData.America_Puerto_Rico, latitude: 17.3D, longitude: -62.71666666666667D, isoCountryCodes: new string[] { "KN" }, comment: null);
+            
+            /// <summary>
+            /// America/Cayman
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>KY</term>
+            /// 			<description>Cayman Islands</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.America.Panama"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(19.3D, -81.38333333333334D, "KY")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Cayman = new DataStandardizer.Chronology.TzDataTimezone("America/Cayman", linkTarget: "America/Panama", TzDataTimezone.ZoneLineData.America_Panama, latitude: 19.3D, longitude: -81.38333333333334D, isoCountryCodes: new string[] { "KY" }, comment: null);
+            
+            /// <summary>
+            /// America/St_Lucia
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>LC</term>
+            /// 			<description>St Lucia</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.America.Puerto_Rico"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(14.016666666666667D, -61D, "LC")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone St_Lucia = new DataStandardizer.Chronology.TzDataTimezone("America/St_Lucia", linkTarget: "America/Puerto_Rico", TzDataTimezone.ZoneLineData.America_Puerto_Rico, latitude: 14.016666666666667D, longitude: -61D, isoCountryCodes: new string[] { "LC" }, comment: null);
+            
+            /// <summary>
+            /// America/Marigot
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>MF</term>
+            /// 			<description>St Martin (French)</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.America.Puerto_Rico"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(18.066666666666666D, -63.083333333333336D, "MF")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Marigot = new DataStandardizer.Chronology.TzDataTimezone("America/Marigot", linkTarget: "America/Puerto_Rico", TzDataTimezone.ZoneLineData.America_Puerto_Rico, latitude: 18.066666666666666D, longitude: -63.083333333333336D, isoCountryCodes: new string[] { "MF" }, comment: null);
+            
+            /// <summary>
+            /// America/Montserrat
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>MS</term>
+            /// 			<description>Montserrat</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.America.Puerto_Rico"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(16.716666666666665D, -62.21666666666667D, "MS")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Montserrat = new DataStandardizer.Chronology.TzDataTimezone("America/Montserrat", linkTarget: "America/Puerto_Rico", TzDataTimezone.ZoneLineData.America_Puerto_Rico, latitude: 16.716666666666665D, longitude: -62.21666666666667D, isoCountryCodes: new string[] { "MS" }, comment: null);
+            
+            /// <summary>
+            /// America/Lower_Princes
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>SX</term>
+            /// 			<description>St Maarten (Dutch)</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.America.Puerto_Rico"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(18.05138888888889D, -63.04722222222222D, "SX")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Lower_Princes = new DataStandardizer.Chronology.TzDataTimezone("America/Lower_Princes", linkTarget: "America/Puerto_Rico", TzDataTimezone.ZoneLineData.America_Puerto_Rico, latitude: 18.05138888888889D, longitude: -63.04722222222222D, isoCountryCodes: new string[] { "SX" }, comment: null);
+            
+            /// <summary>
+            /// America/Port_of_Spain
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>TT</term>
+            /// 			<description>Trinidad & Tobago</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.America.Puerto_Rico"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(10.65D, -61.516666666666666D, "TT")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Port_of_Spain = new DataStandardizer.Chronology.TzDataTimezone("America/Port_of_Spain", linkTarget: "America/Puerto_Rico", TzDataTimezone.ZoneLineData.America_Puerto_Rico, latitude: 10.65D, longitude: -61.516666666666666D, isoCountryCodes: new string[] { "TT" }, comment: null);
+            
+            /// <summary>
+            /// America/St_Vincent
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>VC</term>
+            /// 			<description>St Vincent</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.America.Puerto_Rico"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(13.15D, -61.233333333333334D, "VC")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone St_Vincent = new DataStandardizer.Chronology.TzDataTimezone("America/St_Vincent", linkTarget: "America/Puerto_Rico", TzDataTimezone.ZoneLineData.America_Puerto_Rico, latitude: 13.15D, longitude: -61.233333333333334D, isoCountryCodes: new string[] { "VC" }, comment: null);
+            
+            /// <summary>
+            /// America/Tortola
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>VG</term>
+            /// 			<description>Virgin Islands (UK)</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.America.Puerto_Rico"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(18.45D, -64.61666666666666D, "VG")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Tortola = new DataStandardizer.Chronology.TzDataTimezone("America/Tortola", linkTarget: "America/Puerto_Rico", TzDataTimezone.ZoneLineData.America_Puerto_Rico, latitude: 18.45D, longitude: -64.61666666666666D, isoCountryCodes: new string[] { "VG" }, comment: null);
+            
+            /// <summary>
+            /// America/St_Thomas
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>VI</term>
+            /// 			<description>Virgin Islands (US)</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.America.Puerto_Rico"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(18.35D, -64.93333333333334D, "VI")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone St_Thomas = new DataStandardizer.Chronology.TzDataTimezone("America/St_Thomas", linkTarget: "America/Puerto_Rico", TzDataTimezone.ZoneLineData.America_Puerto_Rico, latitude: 18.35D, longitude: -64.93333333333334D, isoCountryCodes: new string[] { "VI" }, comment: null);
+            
             public static class Argentina
             {
                 
@@ -5983,6 +7279,46 @@ namespace DataStandardizer.Chronology
             /// </remarks>
             [DataStandardizer.Chronology.TzDataTimezoneAttribute(37.733333333333334D, -25.666666666666668D, "PT", Comment="Azores")]
             public static readonly DataStandardizer.Chronology.TzDataTimezone Azores = new DataStandardizer.Chronology.TzDataTimezone("Atlantic/Azores", TzDataTimezone.ZoneLineData.Atlantic_Azores, latitude: 37.733333333333334D, longitude: -25.666666666666668D, isoCountryCodes: new string[] { "PT" }, comment: "Azores");
+            
+            /// <summary>
+            /// Atlantic/Reykjavik
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>IS</term>
+            /// 			<description>Iceland</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Abidjan"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(64.15D, -21.85D, "IS")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Reykjavik = new DataStandardizer.Chronology.TzDataTimezone("Atlantic/Reykjavik", linkTarget: "Africa/Abidjan", TzDataTimezone.ZoneLineData.Africa_Abidjan, latitude: 64.15D, longitude: -21.85D, isoCountryCodes: new string[] { "IS" }, comment: null);
+            
+            /// <summary>
+            /// Atlantic/St_Helena
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>SH</term>
+            /// 			<description>St Helena</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Abidjan"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(-15.916666666666666D, -5.7D, "SH")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone St_Helena = new DataStandardizer.Chronology.TzDataTimezone("Atlantic/St_Helena", linkTarget: "Africa/Abidjan", TzDataTimezone.ZoneLineData.Africa_Abidjan, latitude: -15.916666666666666D, longitude: -5.7D, isoCountryCodes: new string[] { "SH" }, comment: null);
         }
         
         public static class Africa
@@ -6500,6 +7836,666 @@ namespace DataStandardizer.Chronology
             /// </remarks>
             [DataStandardizer.Chronology.TzDataTimezoneAttribute(-26.25D, 28D, "ZA", "LS", "SZ")]
             public static readonly DataStandardizer.Chronology.TzDataTimezone Johannesburg = new DataStandardizer.Chronology.TzDataTimezone("Africa/Johannesburg", TzDataTimezone.ZoneLineData.Africa_Johannesburg, latitude: -26.25D, longitude: 28D, isoCountryCodes: new string[] { "ZA", "LS", "SZ" }, comment: null);
+            
+            /// <summary>
+            /// Africa/Luanda
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>AO</term>
+            /// 			<description>Angola</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Lagos"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(-8.8D, 13.233333333333333D, "AO")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Luanda = new DataStandardizer.Chronology.TzDataTimezone("Africa/Luanda", linkTarget: "Africa/Lagos", TzDataTimezone.ZoneLineData.Africa_Lagos, latitude: -8.8D, longitude: 13.233333333333333D, isoCountryCodes: new string[] { "AO" }, comment: null);
+            
+            /// <summary>
+            /// Africa/Ouagadougou
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>BF</term>
+            /// 			<description>Burkina Faso</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Abidjan"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(12.366666666666667D, -1.5166666666666666D, "BF")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Ouagadougou = new DataStandardizer.Chronology.TzDataTimezone("Africa/Ouagadougou", linkTarget: "Africa/Abidjan", TzDataTimezone.ZoneLineData.Africa_Abidjan, latitude: 12.366666666666667D, longitude: -1.5166666666666666D, isoCountryCodes: new string[] { "BF" }, comment: null);
+            
+            /// <summary>
+            /// Africa/Bujumbura
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>BI</term>
+            /// 			<description>Burundi</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Maputo"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(-3.3833333333333333D, 29.366666666666667D, "BI")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Bujumbura = new DataStandardizer.Chronology.TzDataTimezone("Africa/Bujumbura", linkTarget: "Africa/Maputo", TzDataTimezone.ZoneLineData.Africa_Maputo, latitude: -3.3833333333333333D, longitude: 29.366666666666667D, isoCountryCodes: new string[] { "BI" }, comment: null);
+            
+            /// <summary>
+            /// Africa/Porto-Novo
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>BJ</term>
+            /// 			<description>Benin</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Lagos"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(6.483333333333333D, 2.6166666666666667D, "BJ")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Porto_Novo = new DataStandardizer.Chronology.TzDataTimezone("Africa/Porto-Novo", linkTarget: "Africa/Lagos", TzDataTimezone.ZoneLineData.Africa_Lagos, latitude: 6.483333333333333D, longitude: 2.6166666666666667D, isoCountryCodes: new string[] { "BJ" }, comment: null);
+            
+            /// <summary>
+            /// Africa/Gaborone
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>BW</term>
+            /// 			<description>Botswana</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Maputo"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(-24.65D, 25.916666666666668D, "BW")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Gaborone = new DataStandardizer.Chronology.TzDataTimezone("Africa/Gaborone", linkTarget: "Africa/Maputo", TzDataTimezone.ZoneLineData.Africa_Maputo, latitude: -24.65D, longitude: 25.916666666666668D, isoCountryCodes: new string[] { "BW" }, comment: null);
+            
+            /// <summary>
+            /// Africa/Kinshasa
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>CD</term>
+            /// 			<description>Congo (Dem. Rep.)</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Lagos"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(-4.3D, 15.3D, "CD", Comment="Dem. Rep. of Congo (west)")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Kinshasa = new DataStandardizer.Chronology.TzDataTimezone("Africa/Kinshasa", linkTarget: "Africa/Lagos", TzDataTimezone.ZoneLineData.Africa_Lagos, latitude: -4.3D, longitude: 15.3D, isoCountryCodes: new string[] { "CD" }, comment: "Dem. Rep. of Congo (west)");
+            
+            /// <summary>
+            /// Africa/Lubumbashi
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>CD</term>
+            /// 			<description>Congo (Dem. Rep.)</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Maputo"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(-11.666666666666666D, 27.466666666666665D, "CD", Comment="Dem. Rep. of Congo (east)")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Lubumbashi = new DataStandardizer.Chronology.TzDataTimezone("Africa/Lubumbashi", linkTarget: "Africa/Maputo", TzDataTimezone.ZoneLineData.Africa_Maputo, latitude: -11.666666666666666D, longitude: 27.466666666666665D, isoCountryCodes: new string[] { "CD" }, comment: "Dem. Rep. of Congo (east)");
+            
+            /// <summary>
+            /// Africa/Bangui
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>CF</term>
+            /// 			<description>Central African Rep.</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Lagos"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(4.366666666666666D, 18.583333333333332D, "CF")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Bangui = new DataStandardizer.Chronology.TzDataTimezone("Africa/Bangui", linkTarget: "Africa/Lagos", TzDataTimezone.ZoneLineData.Africa_Lagos, latitude: 4.366666666666666D, longitude: 18.583333333333332D, isoCountryCodes: new string[] { "CF" }, comment: null);
+            
+            /// <summary>
+            /// Africa/Brazzaville
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>CG</term>
+            /// 			<description>Congo (Rep.)</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Lagos"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(-4.266666666666667D, 15.283333333333333D, "CG")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Brazzaville = new DataStandardizer.Chronology.TzDataTimezone("Africa/Brazzaville", linkTarget: "Africa/Lagos", TzDataTimezone.ZoneLineData.Africa_Lagos, latitude: -4.266666666666667D, longitude: 15.283333333333333D, isoCountryCodes: new string[] { "CG" }, comment: null);
+            
+            /// <summary>
+            /// Africa/Douala
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>CM</term>
+            /// 			<description>Cameroon</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Lagos"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(4.05D, 9.7D, "CM")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Douala = new DataStandardizer.Chronology.TzDataTimezone("Africa/Douala", linkTarget: "Africa/Lagos", TzDataTimezone.ZoneLineData.Africa_Lagos, latitude: 4.05D, longitude: 9.7D, isoCountryCodes: new string[] { "CM" }, comment: null);
+            
+            /// <summary>
+            /// Africa/Djibouti
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>DJ</term>
+            /// 			<description>Djibouti</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Nairobi"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(11.6D, 43.15D, "DJ")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Djibouti = new DataStandardizer.Chronology.TzDataTimezone("Africa/Djibouti", linkTarget: "Africa/Nairobi", TzDataTimezone.ZoneLineData.Africa_Nairobi, latitude: 11.6D, longitude: 43.15D, isoCountryCodes: new string[] { "DJ" }, comment: null);
+            
+            /// <summary>
+            /// Africa/Asmara
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>ER</term>
+            /// 			<description>Eritrea</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Nairobi"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(15.333333333333334D, 38.88333333333333D, "ER")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Asmara = new DataStandardizer.Chronology.TzDataTimezone("Africa/Asmara", linkTarget: "Africa/Nairobi", TzDataTimezone.ZoneLineData.Africa_Nairobi, latitude: 15.333333333333334D, longitude: 38.88333333333333D, isoCountryCodes: new string[] { "ER" }, comment: null);
+            
+            /// <summary>
+            /// Africa/Addis_Ababa
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>ET</term>
+            /// 			<description>Ethiopia</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Nairobi"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(9.033333333333333D, 38.7D, "ET")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Addis_Ababa = new DataStandardizer.Chronology.TzDataTimezone("Africa/Addis_Ababa", linkTarget: "Africa/Nairobi", TzDataTimezone.ZoneLineData.Africa_Nairobi, latitude: 9.033333333333333D, longitude: 38.7D, isoCountryCodes: new string[] { "ET" }, comment: null);
+            
+            /// <summary>
+            /// Africa/Libreville
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>GA</term>
+            /// 			<description>Gabon</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Lagos"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(0.38333333333333336D, 9.45D, "GA")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Libreville = new DataStandardizer.Chronology.TzDataTimezone("Africa/Libreville", linkTarget: "Africa/Lagos", TzDataTimezone.ZoneLineData.Africa_Lagos, latitude: 0.38333333333333336D, longitude: 9.45D, isoCountryCodes: new string[] { "GA" }, comment: null);
+            
+            /// <summary>
+            /// Africa/Accra
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>GH</term>
+            /// 			<description>Ghana</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Abidjan"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(5.55D, -0.21666666666666667D, "GH")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Accra = new DataStandardizer.Chronology.TzDataTimezone("Africa/Accra", linkTarget: "Africa/Abidjan", TzDataTimezone.ZoneLineData.Africa_Abidjan, latitude: 5.55D, longitude: -0.21666666666666667D, isoCountryCodes: new string[] { "GH" }, comment: null);
+            
+            /// <summary>
+            /// Africa/Banjul
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>GM</term>
+            /// 			<description>Gambia</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Abidjan"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(13.466666666666667D, -16.65D, "GM")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Banjul = new DataStandardizer.Chronology.TzDataTimezone("Africa/Banjul", linkTarget: "Africa/Abidjan", TzDataTimezone.ZoneLineData.Africa_Abidjan, latitude: 13.466666666666667D, longitude: -16.65D, isoCountryCodes: new string[] { "GM" }, comment: null);
+            
+            /// <summary>
+            /// Africa/Conakry
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>GN</term>
+            /// 			<description>Guinea</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Abidjan"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(9.516666666666667D, -13.716666666666667D, "GN")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Conakry = new DataStandardizer.Chronology.TzDataTimezone("Africa/Conakry", linkTarget: "Africa/Abidjan", TzDataTimezone.ZoneLineData.Africa_Abidjan, latitude: 9.516666666666667D, longitude: -13.716666666666667D, isoCountryCodes: new string[] { "GN" }, comment: null);
+            
+            /// <summary>
+            /// Africa/Malabo
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>GQ</term>
+            /// 			<description>Equatorial Guinea</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Lagos"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(3.75D, 8.783333333333333D, "GQ")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Malabo = new DataStandardizer.Chronology.TzDataTimezone("Africa/Malabo", linkTarget: "Africa/Lagos", TzDataTimezone.ZoneLineData.Africa_Lagos, latitude: 3.75D, longitude: 8.783333333333333D, isoCountryCodes: new string[] { "GQ" }, comment: null);
+            
+            /// <summary>
+            /// Africa/Maseru
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>LS</term>
+            /// 			<description>Lesotho</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Johannesburg"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(-29.466666666666665D, 27.5D, "LS")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Maseru = new DataStandardizer.Chronology.TzDataTimezone("Africa/Maseru", linkTarget: "Africa/Johannesburg", TzDataTimezone.ZoneLineData.Africa_Johannesburg, latitude: -29.466666666666665D, longitude: 27.5D, isoCountryCodes: new string[] { "LS" }, comment: null);
+            
+            /// <summary>
+            /// Africa/Bamako
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>ML</term>
+            /// 			<description>Mali</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Abidjan"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(12.65D, -8D, "ML")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Bamako = new DataStandardizer.Chronology.TzDataTimezone("Africa/Bamako", linkTarget: "Africa/Abidjan", TzDataTimezone.ZoneLineData.Africa_Abidjan, latitude: 12.65D, longitude: -8D, isoCountryCodes: new string[] { "ML" }, comment: null);
+            
+            /// <summary>
+            /// Africa/Nouakchott
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>MR</term>
+            /// 			<description>Mauritania</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Abidjan"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(18.1D, -15.95D, "MR")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Nouakchott = new DataStandardizer.Chronology.TzDataTimezone("Africa/Nouakchott", linkTarget: "Africa/Abidjan", TzDataTimezone.ZoneLineData.Africa_Abidjan, latitude: 18.1D, longitude: -15.95D, isoCountryCodes: new string[] { "MR" }, comment: null);
+            
+            /// <summary>
+            /// Africa/Blantyre
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>MW</term>
+            /// 			<description>Malawi</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Maputo"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(-15.783333333333333D, 35D, "MW")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Blantyre = new DataStandardizer.Chronology.TzDataTimezone("Africa/Blantyre", linkTarget: "Africa/Maputo", TzDataTimezone.ZoneLineData.Africa_Maputo, latitude: -15.783333333333333D, longitude: 35D, isoCountryCodes: new string[] { "MW" }, comment: null);
+            
+            /// <summary>
+            /// Africa/Niamey
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>NE</term>
+            /// 			<description>Niger</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Lagos"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(13.516666666666667D, 2.1166666666666667D, "NE")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Niamey = new DataStandardizer.Chronology.TzDataTimezone("Africa/Niamey", linkTarget: "Africa/Lagos", TzDataTimezone.ZoneLineData.Africa_Lagos, latitude: 13.516666666666667D, longitude: 2.1166666666666667D, isoCountryCodes: new string[] { "NE" }, comment: null);
+            
+            /// <summary>
+            /// Africa/Kigali
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>RW</term>
+            /// 			<description>Rwanda</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Maputo"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(-1.95D, 30.066666666666666D, "RW")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Kigali = new DataStandardizer.Chronology.TzDataTimezone("Africa/Kigali", linkTarget: "Africa/Maputo", TzDataTimezone.ZoneLineData.Africa_Maputo, latitude: -1.95D, longitude: 30.066666666666666D, isoCountryCodes: new string[] { "RW" }, comment: null);
+            
+            /// <summary>
+            /// Africa/Freetown
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>SL</term>
+            /// 			<description>Sierra Leone</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Abidjan"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(8.5D, -13.25D, "SL")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Freetown = new DataStandardizer.Chronology.TzDataTimezone("Africa/Freetown", linkTarget: "Africa/Abidjan", TzDataTimezone.ZoneLineData.Africa_Abidjan, latitude: 8.5D, longitude: -13.25D, isoCountryCodes: new string[] { "SL" }, comment: null);
+            
+            /// <summary>
+            /// Africa/Dakar
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>SN</term>
+            /// 			<description>Senegal</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Abidjan"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(14.666666666666666D, -17.433333333333334D, "SN")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Dakar = new DataStandardizer.Chronology.TzDataTimezone("Africa/Dakar", linkTarget: "Africa/Abidjan", TzDataTimezone.ZoneLineData.Africa_Abidjan, latitude: 14.666666666666666D, longitude: -17.433333333333334D, isoCountryCodes: new string[] { "SN" }, comment: null);
+            
+            /// <summary>
+            /// Africa/Mogadishu
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>SO</term>
+            /// 			<description>Somalia</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Nairobi"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(2.066666666666667D, 45.36666666666667D, "SO")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Mogadishu = new DataStandardizer.Chronology.TzDataTimezone("Africa/Mogadishu", linkTarget: "Africa/Nairobi", TzDataTimezone.ZoneLineData.Africa_Nairobi, latitude: 2.066666666666667D, longitude: 45.36666666666667D, isoCountryCodes: new string[] { "SO" }, comment: null);
+            
+            /// <summary>
+            /// Africa/Mbabane
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>SZ</term>
+            /// 			<description>Eswatini (Swaziland)</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Johannesburg"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(-26.3D, 31.1D, "SZ")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Mbabane = new DataStandardizer.Chronology.TzDataTimezone("Africa/Mbabane", linkTarget: "Africa/Johannesburg", TzDataTimezone.ZoneLineData.Africa_Johannesburg, latitude: -26.3D, longitude: 31.1D, isoCountryCodes: new string[] { "SZ" }, comment: null);
+            
+            /// <summary>
+            /// Africa/Lome
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>TG</term>
+            /// 			<description>Togo</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Abidjan"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(6.133333333333334D, 1.2166666666666668D, "TG")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Lome = new DataStandardizer.Chronology.TzDataTimezone("Africa/Lome", linkTarget: "Africa/Abidjan", TzDataTimezone.ZoneLineData.Africa_Abidjan, latitude: 6.133333333333334D, longitude: 1.2166666666666668D, isoCountryCodes: new string[] { "TG" }, comment: null);
+            
+            /// <summary>
+            /// Africa/Dar_es_Salaam
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>TZ</term>
+            /// 			<description>Tanzania</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Nairobi"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(-6.8D, 39.28333333333333D, "TZ")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Dar_es_Salaam = new DataStandardizer.Chronology.TzDataTimezone("Africa/Dar_es_Salaam", linkTarget: "Africa/Nairobi", TzDataTimezone.ZoneLineData.Africa_Nairobi, latitude: -6.8D, longitude: 39.28333333333333D, isoCountryCodes: new string[] { "TZ" }, comment: null);
+            
+            /// <summary>
+            /// Africa/Kampala
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>UG</term>
+            /// 			<description>Uganda</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Nairobi"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(0.31666666666666665D, 32.416666666666664D, "UG")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Kampala = new DataStandardizer.Chronology.TzDataTimezone("Africa/Kampala", linkTarget: "Africa/Nairobi", TzDataTimezone.ZoneLineData.Africa_Nairobi, latitude: 0.31666666666666665D, longitude: 32.416666666666664D, isoCountryCodes: new string[] { "UG" }, comment: null);
+            
+            /// <summary>
+            /// Africa/Lusaka
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>ZM</term>
+            /// 			<description>Zambia</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Maputo"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(-15.416666666666666D, 28.283333333333335D, "ZM")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Lusaka = new DataStandardizer.Chronology.TzDataTimezone("Africa/Lusaka", linkTarget: "Africa/Maputo", TzDataTimezone.ZoneLineData.Africa_Maputo, latitude: -15.416666666666666D, longitude: 28.283333333333335D, isoCountryCodes: new string[] { "ZM" }, comment: null);
+            
+            /// <summary>
+            /// Africa/Harare
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>ZW</term>
+            /// 			<description>Zimbabwe</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Maputo"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(-17.833333333333332D, 31.05D, "ZW")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Harare = new DataStandardizer.Chronology.TzDataTimezone("Africa/Harare", linkTarget: "Africa/Maputo", TzDataTimezone.ZoneLineData.Africa_Maputo, latitude: -17.833333333333332D, longitude: 31.05D, isoCountryCodes: new string[] { "ZW" }, comment: null);
         }
         
         public static class Indian
@@ -6565,6 +8561,190 @@ namespace DataStandardizer.Chronology
             /// </remarks>
             [DataStandardizer.Chronology.TzDataTimezoneAttribute(4.166666666666667D, 73.5D, "MV", "TF", Comment="Kerguelen, St Paul I, Amsterdam I")]
             public static readonly DataStandardizer.Chronology.TzDataTimezone Maldives = new DataStandardizer.Chronology.TzDataTimezone("Indian/Maldives", TzDataTimezone.ZoneLineData.Indian_Maldives, latitude: 4.166666666666667D, longitude: 73.5D, isoCountryCodes: new string[] { "MV", "TF" }, comment: "Kerguelen, St Paul I, Amsterdam I");
+            
+            /// <summary>
+            /// Indian/Cocos
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>CC</term>
+            /// 			<description>Cocos (Keeling) Islands</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Asia.Yangon"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(-12.166666666666666D, 96.91666666666667D, "CC")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Cocos = new DataStandardizer.Chronology.TzDataTimezone("Indian/Cocos", linkTarget: "Asia/Yangon", TzDataTimezone.ZoneLineData.Asia_Yangon, latitude: -12.166666666666666D, longitude: 96.91666666666667D, isoCountryCodes: new string[] { "CC" }, comment: null);
+            
+            /// <summary>
+            /// Indian/Christmas
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>CX</term>
+            /// 			<description>Christmas Island</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Asia.Bangkok"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(-10.416666666666666D, 105.71666666666667D, "CX")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Christmas = new DataStandardizer.Chronology.TzDataTimezone("Indian/Christmas", linkTarget: "Asia/Bangkok", TzDataTimezone.ZoneLineData.Asia_Bangkok, latitude: -10.416666666666666D, longitude: 105.71666666666667D, isoCountryCodes: new string[] { "CX" }, comment: null);
+            
+            /// <summary>
+            /// Indian/Comoro
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>KM</term>
+            /// 			<description>Comoros</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Nairobi"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(-11.683333333333334D, 43.266666666666666D, "KM")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Comoro = new DataStandardizer.Chronology.TzDataTimezone("Indian/Comoro", linkTarget: "Africa/Nairobi", TzDataTimezone.ZoneLineData.Africa_Nairobi, latitude: -11.683333333333334D, longitude: 43.266666666666666D, isoCountryCodes: new string[] { "KM" }, comment: null);
+            
+            /// <summary>
+            /// Indian/Antananarivo
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>MG</term>
+            /// 			<description>Madagascar</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Nairobi"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(-18.916666666666668D, 47.516666666666666D, "MG")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Antananarivo = new DataStandardizer.Chronology.TzDataTimezone("Indian/Antananarivo", linkTarget: "Africa/Nairobi", TzDataTimezone.ZoneLineData.Africa_Nairobi, latitude: -18.916666666666668D, longitude: 47.516666666666666D, isoCountryCodes: new string[] { "MG" }, comment: null);
+            
+            /// <summary>
+            /// Indian/Reunion
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>RE</term>
+            /// 			<description>Réunion</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Asia.Dubai"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(-20.866666666666667D, 55.46666666666667D, "RE")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Reunion = new DataStandardizer.Chronology.TzDataTimezone("Indian/Reunion", linkTarget: "Asia/Dubai", TzDataTimezone.ZoneLineData.Asia_Dubai, latitude: -20.866666666666667D, longitude: 55.46666666666667D, isoCountryCodes: new string[] { "RE" }, comment: null);
+            
+            /// <summary>
+            /// Indian/Mahe
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>SC</term>
+            /// 			<description>Seychelles</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Asia.Dubai"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(-4.666666666666667D, 55.46666666666667D, "SC")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Mahe = new DataStandardizer.Chronology.TzDataTimezone("Indian/Mahe", linkTarget: "Asia/Dubai", TzDataTimezone.ZoneLineData.Asia_Dubai, latitude: -4.666666666666667D, longitude: 55.46666666666667D, isoCountryCodes: new string[] { "SC" }, comment: null);
+            
+            /// <summary>
+            /// Indian/Kerguelen
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>TF</term>
+            /// 			<description>French S. Terr.</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Indian.Maldives"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(-49.35277777777778D, 70.2175D, "TF")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Kerguelen = new DataStandardizer.Chronology.TzDataTimezone("Indian/Kerguelen", linkTarget: "Indian/Maldives", TzDataTimezone.ZoneLineData.Indian_Maldives, latitude: -49.35277777777778D, longitude: 70.2175D, isoCountryCodes: new string[] { "TF" }, comment: null);
+            
+            /// <summary>
+            /// Indian/Mayotte
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>YT</term>
+            /// 			<description>Mayotte</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Africa.Nairobi"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(-12.783333333333333D, 45.233333333333334D, "YT")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Mayotte = new DataStandardizer.Chronology.TzDataTimezone("Indian/Mayotte", linkTarget: "Africa/Nairobi", TzDataTimezone.ZoneLineData.Africa_Nairobi, latitude: -12.783333333333333D, longitude: 45.233333333333334D, isoCountryCodes: new string[] { "YT" }, comment: null);
+        }
+        
+        public static class Arctic
+        {
+            
+            /// <summary>
+            /// Arctic/Longyearbyen
+            /// </summary>
+            /// <remarks>
+            /// Used in the following countries:
+            /// 	<list type="bullet">
+            /// 		<listheader>
+            /// 			<term>Code</term>
+            /// 			<description>Country Name</description>
+            /// 		</listheader>
+            /// 		<item>
+            /// 			<term>SJ</term>
+            /// 			<description>Svalbard & Jan Mayen</description>
+            /// 		</item>
+            /// 	</list>
+            /// <para>A link to <see cref="TzDataTimezone.Europe.Berlin"/>, whose zone lines it shares, including those before 1970.</para>
+            /// </remarks>
+            [DataStandardizer.Chronology.TzDataTimezoneAttribute(78D, 16D, "SJ")]
+            public static readonly DataStandardizer.Chronology.TzDataTimezone Longyearbyen = new DataStandardizer.Chronology.TzDataTimezone("Arctic/Longyearbyen", linkTarget: "Europe/Berlin", TzDataTimezone.ZoneLineData.Europe_Berlin, latitude: 78D, longitude: 16D, isoCountryCodes: new string[] { "SJ" }, comment: null);
         }
         
 #pragma warning restore CS0618
