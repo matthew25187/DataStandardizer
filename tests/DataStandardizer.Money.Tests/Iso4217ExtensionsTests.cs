@@ -122,4 +122,97 @@ public class Iso4217ExtensionsTests
     }
 
     #endregion
+
+    #region Test: GetCurrencySymbol_OnIso4217CurrentCurrencyCode
+
+    [Theory]
+    [InlineData(Iso4217CurrencyCurrent.USD, "$")]
+    [InlineData(Iso4217CurrencyCurrent.EUR, "€")]
+    [InlineData(Iso4217CurrencyCurrent.INR, "₹")]
+    [InlineData(Iso4217CurrencyCurrent.NZD, "NZ$")]
+    [InlineData(Iso4217CurrencyCurrent.CAD, "CA$")]
+    [InlineData(Iso4217CurrencyCurrent.BRL, "R$")]
+    [InlineData(Iso4217CurrencyCurrent.CHF, null)]
+    [InlineData(Iso4217CurrencyCurrent.RON, null)]
+    public void GetCurrencySymbol_OnIso4217CurrentCurrencyCode_ReturnsStandardSymbol(Iso4217CurrencyCurrent testCode, string? expectedResult)
+    {
+        // act
+        var testResult = testCode.GetCurrencySymbol();
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    [Theory]
+    [InlineData(Iso4217CurrencyCurrent.NZD, "$")]
+    [InlineData(Iso4217CurrencyCurrent.CAD, "$")]
+    [InlineData(Iso4217CurrencyCurrent.CZK, "Kč")]
+    [InlineData(Iso4217CurrencyCurrent.PLN, "zł")]
+    [InlineData(Iso4217CurrencyCurrent.HUF, "Ft")]
+    [InlineData(Iso4217CurrencyCurrent.SEK, "kr")]
+    public void GetCurrencySymbol_OnIso4217CurrentCurrencyCodeRequestingNarrowForm_ReturnsNarrowSymbol(Iso4217CurrencyCurrent testCode, string? expectedResult)
+    {
+        // act
+        var testResult = testCode.GetCurrencySymbol(CurrencySymbolKind.Narrow);
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    [Theory]
+    [InlineData(Iso4217CurrencyCurrent.USD)]
+    [InlineData(Iso4217CurrencyCurrent.EUR)]
+    [InlineData(Iso4217CurrencyCurrent.CHF)]
+    public void GetCurrencySymbol_OnIso4217CurrentCurrencyCodeWithNoDistinctNarrowForm_FallsBackToStandardSymbol(Iso4217CurrencyCurrent testCode)
+    {
+        // act
+        var narrowResult = testCode.GetCurrencySymbol(CurrencySymbolKind.Narrow);
+        var standardResult = testCode.GetCurrencySymbol(CurrencySymbolKind.Standard);
+
+        // assert
+        narrowResult.Should().Be(standardResult, "a currency without a distinct narrow form falls back to its standard form");
+    }
+
+    [Theory]
+    [InlineData(Iso4217CurrencyCurrent.NZD)]
+    [InlineData(Iso4217CurrencyCurrent.CHF)]
+    public void GetCurrencySymbol_OnIso4217CurrentCurrencyCodeWithoutKind_MatchesStandardForm(Iso4217CurrencyCurrent testCode)
+    {
+        // act
+        var testResult = testCode.GetCurrencySymbol();
+
+        // assert
+        testResult.Should().Be(testCode.GetCurrencySymbol(CurrencySymbolKind.Standard), "the default form is the standard form");
+    }
+
+    #endregion
+
+    #region Test: GetCurrencySymbol_OnIso4217HistoricCurrencyCode
+
+    [Theory]
+    [InlineData(Iso4217CurrencyHistoric.ESP, "₧")]
+    [InlineData(Iso4217CurrencyHistoric.HRK, "kn")]
+    [InlineData(Iso4217CurrencyHistoric.LTL, "Lt")]
+    public void GetCurrencySymbol_OnIso4217HistoricCurrencyCodeRequestingNarrowForm_ReturnsNarrowSymbol(Iso4217CurrencyHistoric testCode, string? expectedResult)
+    {
+        // act
+        var testResult = testCode.GetCurrencySymbol(CurrencySymbolKind.Narrow);
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    [Theory]
+    [InlineData(Iso4217CurrencyHistoric.DDM)]
+    [InlineData(Iso4217CurrencyHistoric.BEF)]
+    public void GetCurrencySymbol_OnIso4217HistoricCurrencyCodeWithNoSymbol_ReturnsNull(Iso4217CurrencyHistoric testCode)
+    {
+        // act
+        var testResult = testCode.GetCurrencySymbol();
+
+        // assert
+        testResult.Should().BeNull("no symbol is defined for this currency");
+    }
+
+    #endregion
 }
