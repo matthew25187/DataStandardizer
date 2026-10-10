@@ -440,6 +440,96 @@ namespace DataStandardizer.File.CSV.Tests
             testResult.Description.Should().Be(recordLineFieldValue3);
         }
 
+        [Fact]
+        public void ReadLine_ConcurrentReadersForSameDeclarativeRecordType_DoNotThrow()
+        {
+            // arrange
+            var testFileBytes = Encoding.Default.GetBytes("1,One");
+            const int runCount = 5, readerCount = 32;
+
+            for (var run = 0; run < runCount; run++)
+            {
+                // The race is probabilistic, so start each run from empty caches and repeat it.
+                CacheRepositoryConfiguration.Reset();
+
+                // act
+                var act = () => Parallel.For(0, readerCount, _ =>
+                {
+                    using var testFileStream = new MemoryStream(testFileBytes);
+                    using var csvReader = new CsvFileReader<DeclarativeTestLine>(testFileStream);
+                    var testResult = csvReader.ReadLine() as DeclarativeTestLine;
+
+                    testResult.Should().NotBeNull();
+                    testResult!.Id.Should().Be(1);
+                    testResult.Name.Should().Be("One");
+                });
+
+                // assert
+                act.Should().NotThrow();
+            }
+        }
+
+        [Fact]
+        public void RegisterMapper_SameMapperTwice_RegistersOneMapper()
+        {
+            // arrange
+            using var testFileStream = new MemoryStream();
+            using var csvReader = new CsvFileReader<TestLine>(testFileStream);
+            csvReader.RegisterMapper<TestLineFirstIndexMapper>();
+
+            // act
+            var act = () => csvReader.RegisterMapper<TestLineFirstIndexMapper>();
+
+            // assert
+            act.Should().NotThrow();
+            csvReader.Context.Mappers.Should().ContainSingle()
+                .Which.Key.Should().Be(typeof(TestLine));
+        }
+
+        [Fact]
+        public void ReadLine_MapperRegisteredAfterFirstLine_UsesRegisteredMapper()
+        {
+            // arrange
+            var testFileLines = new List<string>();
+            AddTestFileLine(testFileLines, null, "1", "One", "First");
+            AddTestFileLine(testFileLines, null, "2", "Two", "Second");
+            var testFile = string.Join(CsvLineBreak, testFileLines);
+
+            var testFileBytes = Encoding.Default.GetBytes(testFile);
+            using var testFileStream = new MemoryStream(testFileBytes);
+            using var csvReader = new CsvFileReader<TestLine>(testFileStream);
+            var firstLine = csvReader.ReadLine() as TestLine;
+
+            // act
+            csvReader.RegisterMapper<TestLineFirstIndexMapper>();
+            var testResult = csvReader.ReadLine() as TestLine;
+
+            // assert
+            firstLine.Should().NotBeNull();
+            firstLine!.Id.Should().Be(0);
+            testResult.Should().NotBeNull();
+            testResult!.Id.Should().Be(2);
+            testResult.Name.Should().Be("Two");
+        }
+
+        private class DeclarativeTestLine : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0)]
+            [TypeConverter(typeof(Int32Converter))]
+            public int Id
+            {
+                get => GetPropertyValue<int>();
+                set => SetPropertyValue(value);
+            }
+
+            [CsvFieldMapping(1)]
+            public string? Name
+            {
+                get => GetPropertyValue<string?>();
+                set => SetPropertyValue(value);
+            }
+        }
+
         private class TestLine : CsvFileRecordLine
         {
             public int Id
@@ -615,8 +705,7 @@ namespace DataStandardizer.File.CSV.Tests
         {
             public static void Reset()
             {
-                ImperativeMapperCache.Clear();
-                DeclarativeMapperCache.Clear();
+                ClearMapperCaches();
             }
         }
     }

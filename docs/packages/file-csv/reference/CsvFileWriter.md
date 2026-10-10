@@ -32,6 +32,11 @@ a caller-supplied `TextWriter` is left open. Supplying a `CsvFileOptions` whose
 `Encoding` is set together with an existing `TextWriter` throws `ArgumentException`;
 specify the encoding when creating the writer instead.
 
+**Thread safety.** A single writer instance is not thread-safe. Distinct instances
+may be used concurrently, including for the same record type. Mapper registration
+through `RegisterMapper` is process-wide per record type and visible to every reader
+and writer instance.
+
 ## Constructors
 
 | Constructor | Notes |

@@ -32,6 +32,11 @@ open. Supplying a `CsvFileOptions` whose `Encoding` is set together with an exis
 reader instead. The `TRecordLine` type argument must have a public parameterless
 constructor (`new()`).
 
+**Thread safety.** A single reader instance is not thread-safe. Distinct instances
+may be used concurrently, including for the same record type. Mapper registration
+through `RegisterMapper` is process-wide per record type and visible to every reader
+and writer instance.
+
 ## Constructors
 
 | Constructor | Notes |

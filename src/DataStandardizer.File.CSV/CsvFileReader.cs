@@ -298,7 +298,7 @@ namespace DataStandardizer.File.CSV
         /// Gets the context of the reader's operation.
         /// </summary>
 #pragma warning disable IDE0074
-        public CsvContext Context => _context ?? (_context = new CsvContext(ImperativeMapperCache, _options));
+        public CsvContext Context => _context ?? (_context = new CsvContext(ImperativeMappers, _options));
 #pragma warning restore IDE0074
 
         [SuppressMessage("ReSharper", "PossibleMultipleEnumeration")]

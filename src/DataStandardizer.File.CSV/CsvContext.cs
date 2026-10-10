@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 
 namespace DataStandardizer.File.CSV
 {
@@ -9,18 +8,16 @@ namespace DataStandardizer.File.CSV
     /// </summary>
     public sealed class CsvContext
     {
-        private readonly ReadOnlyDictionary<Type, ICsvFileMapper> _mappersWrapper;
-
-        internal CsvContext(IDictionary<Type, ICsvFileMapper> mappers, ICsvFileOptions options)
+        internal CsvContext(IReadOnlyDictionary<Type, ICsvFileMapper> mappers, ICsvFileOptions options)
         {
             Options = options;
-            _mappersWrapper = new ReadOnlyDictionary<Type, ICsvFileMapper>(mappers);
+            Mappers = mappers;
         }
 
         /// <summary>
         /// Gets a collection of the mappers in use by the reader or writer.
         /// </summary>
-        public IReadOnlyDictionary<Type, ICsvFileMapper> Mappers => _mappersWrapper;
+        public IReadOnlyDictionary<Type, ICsvFileMapper> Mappers { get; }
 
         /// <summary>
         /// Gets the options used to configure the reader or writer.

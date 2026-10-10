@@ -237,6 +237,35 @@ public class CsvFileWriterTests : IDisposable
     }
 
     [Fact]
+    public void WriteLine_ConcurrentWritersRegisteringSameMapper_DoNotThrow()
+    {
+        // arrange
+        const int runCount = 5, writerCount = 32;
+
+        for (var run = 0; run < runCount; run++)
+        {
+            // The race is probabilistic, so start each run from empty caches and repeat it.
+            CacheRepositoryConfiguration.Reset();
+
+            // act
+            var act = () => Parallel.For(0, writerCount, _ =>
+            {
+                var buffer = new StringBuilder();
+                using var stringWriter = new StringWriter(buffer);
+                using var csvWriter = new CsvFileWriter<TestLine>(stringWriter);
+                csvWriter.RegisterMapper<TestLineMapperAllIndexed>();
+
+                csvWriter.WriteLine(new TestLine { Id = 1 });
+
+                buffer.ToString().Should().Be("1,,\r\n");
+            });
+
+            // assert
+            act.Should().NotThrow();
+        }
+    }
+
+    [Fact]
     public void WriteLine_RecordLineWithDeserializedValueAndCulture_WritesRecordWithSerializedValueUsingSpecifiedCulture()
     {
         // arrange
@@ -756,8 +785,7 @@ public class CsvFileWriterTests : IDisposable
     {
         public static void Reset()
         {
-            DeclarativeMapperCache.Clear();
-            ImperativeMapperCache.Clear();
+            ClearMapperCaches();
         }
     }
 }
