@@ -695,6 +695,99 @@ namespace DataStandardizer.File.CSV.Tests
             }
         }
 
+        [Fact]
+        public void ReadLine_AfterDisposeWithStream_ThrowsObjectDisposedException()
+        {
+            // arrange
+            using var testFileStream = new MemoryStream(Encoding.Default.GetBytes("1,2,3\r\n4,5,6"));
+            var csvReader = new CsvFileReader<CsvFileRecordLine>(testFileStream);
+            csvReader.ReadLine();
+            csvReader.Dispose();
+
+            // act
+            var testAction = () => csvReader.ReadLine();
+
+            // assert
+            testAction.Should().Throw<ObjectDisposedException>();
+        }
+
+        [Fact]
+        public void ReadLine_AfterDisposeWithCallerSuppliedReader_ThrowsObjectDisposedException()
+        {
+            // arrange
+            using var stringReader = new StringReader("1,2,3\r\n4,5,6");
+            var csvReader = new CsvFileReader<CsvFileRecordLine>(stringReader);
+            csvReader.Dispose();
+
+            // act
+            var testAction = () => csvReader.ReadLine();
+
+            // assert
+            testAction.Should().Throw<ObjectDisposedException>();
+            stringReader.ReadToEnd().Should().Be("1,2,3\r\n4,5,6");
+        }
+
+        [Fact]
+        public void Dispose_CalledTwice_DoesNotThrow()
+        {
+            // arrange
+            using var testFileStream = new MemoryStream();
+            var csvReader = new CsvFileReader<CsvFileRecordLine>(testFileStream);
+            csvReader.Dispose();
+
+            // act
+            var testAction = () => csvReader.Dispose();
+
+            // assert
+            testAction.Should().NotThrow();
+        }
+
+        [Fact]
+        public void Context_AfterDispose_ThrowsObjectDisposedException()
+        {
+            // arrange
+            using var testFileStream = new MemoryStream();
+            var csvReader = new CsvFileReader<CsvFileRecordLine>(testFileStream);
+            csvReader.Dispose();
+
+            // act
+            var testAction = () => csvReader.Context;
+
+            // assert
+            testAction.Should().Throw<ObjectDisposedException>();
+        }
+
+        [Fact]
+        public void RegisterMapper_AfterDispose_ThrowsObjectDisposedException()
+        {
+            // arrange
+            using var testFileStream = new MemoryStream();
+            var csvReader = new CsvFileReader<TestLine>(testFileStream);
+            csvReader.Dispose();
+
+            // act
+            var testAction = () => csvReader.RegisterMapper<TestLineFirstIndexMapper>();
+
+            // assert
+            testAction.Should().Throw<ObjectDisposedException>();
+        }
+
+        [Fact]
+        public void UnregisterMapper_AfterDispose_ThrowsObjectDisposedException()
+        {
+            // arrange
+            using var testFileStream = new MemoryStream();
+            var csvReader = new CsvFileReader<TestLine>(testFileStream);
+            csvReader.RegisterMapper<TestLineFirstIndexMapper>();
+            csvReader.Dispose();
+
+            // act
+            var testAction = () => csvReader.UnregisterMapper<TestLineFirstIndexMapper>();
+
+            // assert
+            testAction.Should().Throw<ObjectDisposedException>();
+        }
+
         private void AddTestFileLine(List<string> testFileLines, string? fieldDelimiter, params string[] testValues)
         {
             var line = string.Join(fieldDelimiter ?? ",", testValues);

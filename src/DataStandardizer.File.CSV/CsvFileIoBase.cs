@@ -26,6 +26,7 @@ namespace DataStandardizer.File.CSV
         [CanBeNull] private ICsvFileMapper _resolvedMapper;
 #endif
         private int _resolvedMapperVersion;
+        private bool _isDisposed;
 
         protected CsvFileIoBase()
         {
@@ -41,8 +42,11 @@ namespace DataStandardizer.File.CSV
         /// Register a mapper for CSV lines.
         /// </summary>
         /// <typeparam name="TMapper">Type of the mapper.</typeparam>
+        /// <exception cref="ObjectDisposedException">The reader or writer has been disposed.</exception>
         public void RegisterMapper<TMapper>() where TMapper : CsvFileMapperBase<TRecordLine>, new()
         {
+            ThrowIfDisposed();
+
             AddImperativeMapper(typeof(TRecordLine), () => new TMapper());
         }
 
@@ -50,9 +54,30 @@ namespace DataStandardizer.File.CSV
         /// Unregister a mapper for CSV lines.
         /// </summary>
         /// <typeparam name="TMapper">Type of the mapper.</typeparam>
+        /// <exception cref="ObjectDisposedException">The reader or writer has been disposed.</exception>
         public void UnregisterMapper<TMapper>() where TMapper : CsvFileMapperBase<TRecordLine>, new()
         {
+            ThrowIfDisposed();
+
             RemoveImperativeMapper(typeof(TRecordLine));
+        }
+
+        /// <summary>
+        /// Marks the reader or writer as disposed.
+        /// </summary>
+        /// <returns><c>true</c> if this call disposed the object; <c>false</c> if it had already been disposed.</returns>
+        private protected bool MarkDisposed()
+        {
+            if (_isDisposed) return false;
+
+            _isDisposed = true;
+            return true;
+        }
+
+        private protected void ThrowIfDisposed()
+        {
+            if (_isDisposed)
+                throw new ObjectDisposedException(GetType().Name);
         }
 
         protected CsvFileException BuildException(string message, IDictionary<string, object> dataItems)
