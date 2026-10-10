@@ -41,6 +41,9 @@ namespace DataStandardizer.File.CSV
 
         public CsvFileWriter(Stream csvStream, CsvFileOptions options) : this(csvStream)
         {
+            if (options is null)
+                throw new ArgumentNullException(nameof(options));
+
             _options = options;
 
             if (_options.Encoding != null)
@@ -59,14 +62,20 @@ namespace DataStandardizer.File.CSV
             _isInternalWriter = true;
         }
 
-        public CsvFileWriter(string csvFilePath, CsvFileOptions options) : this(csvFilePath)
+        public CsvFileWriter(string csvFilePath, CsvFileOptions options)
         {
+            if (csvFilePath is null)
+                throw new ArgumentNullException(nameof(csvFilePath));
+            if (options is null)
+                throw new ArgumentNullException(nameof(options));
+
             _options = options;
 
-            if (_options.Encoding != null)
-            {
-                _writer = new StreamWriter(csvFilePath, false, _options.Encoding);
-            }
+            // Open the file once, with the requested encoding if any, so no handle is left orphaned.
+            _writer = _options.Encoding != null
+                ? new StreamWriter(csvFilePath, false, _options.Encoding)
+                : new StreamWriter(csvFilePath);
+            _isInternalWriter = true;
         }
 #endif
 
