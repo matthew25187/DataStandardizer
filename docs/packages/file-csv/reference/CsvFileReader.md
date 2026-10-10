@@ -39,7 +39,7 @@ constructor (`new()`).
 | `CsvFileReader(Stream csvStream)` | Reads with a default `StreamReader`. Throws `ArgumentNullException` if `csvStream` is `null`, or `ArgumentException` if the stream cannot be read. |
 | `CsvFileReader(Stream csvStream, CsvFileOptions options)` | Honours `options.Encoding`. Throws `ArgumentNullException` if `options` is `null`. |
 | `CsvFileReader(string csvFilePath)` | *(netstandard2.0+/.NET)* Opens the file with a default `StreamReader`. Throws `ArgumentNullException` if `csvFilePath` is `null`. |
-| `CsvFileReader(string csvFilePath, CsvFileOptions options)` | *(netstandard2.0+/.NET)* |
+| `CsvFileReader(string csvFilePath, CsvFileOptions options)` | *(netstandard2.0+/.NET)* Honours `options.Encoding`. Throws `ArgumentNullException` if `csvFilePath` or `options` is `null`. |
 | `CsvFileReader(TextReader reader)` | Throws `ArgumentNullException` if `reader` is `null`. |
 | `CsvFileReader(TextReader reader, CsvFileOptions options)` | Throws `ArgumentException` if `options.Encoding` is set — specify the encoding when creating the reader. |
 

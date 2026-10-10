@@ -92,11 +92,23 @@ namespace DataStandardizer.File.CSV
                 throw new ArgumentNullException(nameof(csvFilePath));
 
             _reader = new StreamReader(csvFilePath);
+            _isInternalReader = true;
         }
 
-        public CsvFileReader(string csvFilePath, CsvFileOptions options) : this(csvFilePath)
+        public CsvFileReader(string csvFilePath, CsvFileOptions options) : this()
         {
+            if (csvFilePath is null)
+                throw new ArgumentNullException(nameof(csvFilePath));
+            if (options is null)
+                throw new ArgumentNullException(nameof(options));
+
             _options = options;
+
+            // Open the file once, with the requested encoding if any, so no handle is left orphaned.
+            _reader = _options.Encoding != null
+                ? new StreamReader(csvFilePath, _options.Encoding)
+                : new StreamReader(csvFilePath);
+            _isInternalReader = true;
         }
 #endif
 

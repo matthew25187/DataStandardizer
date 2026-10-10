@@ -503,6 +503,108 @@ namespace DataStandardizer.File.CSV.Tests
             }
         }
 
+        [Fact]
+        public void Dispose_ReaderConstructedFromFilePath_ClosesFile()
+        {
+            // arrange
+            var testFilePath = Path.GetTempFileName();
+            try
+            {
+                System.IO.File.WriteAllText(testFilePath, "1,2,3");
+
+                using (var csvReader = new CsvFileReader<CsvFileRecordLine>(testFilePath))
+                {
+                    csvReader.ReadLine();
+                }
+
+                // act
+                var testAction = () =>
+                {
+                    using var exclusiveStream = new FileStream(testFilePath, FileMode.Open, FileAccess.Read, FileShare.None);
+                };
+
+                // assert
+                testAction.Should().NotThrow();
+            }
+            finally
+            {
+                System.IO.File.Delete(testFilePath);
+            }
+        }
+
+        [Fact]
+        public void Dispose_ReaderConstructedFromFilePathWithOptions_ClosesFile()
+        {
+            // arrange
+            var testFilePath = Path.GetTempFileName();
+            try
+            {
+                System.IO.File.WriteAllText(testFilePath, "1,2,3");
+                var options = new CsvFileOptions { Encoding = Encoding.UTF8 };
+
+                using (var csvReader = new CsvFileReader<CsvFileRecordLine>(testFilePath, options))
+                {
+                    csvReader.ReadLine();
+                }
+
+                // act
+                var testAction = () => System.IO.File.Delete(testFilePath);
+
+                // assert
+                testAction.Should().NotThrow();
+            }
+            finally
+            {
+                System.IO.File.Delete(testFilePath);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_FilePathWithEncodingOption_ReadsUsingEncoding()
+        {
+            // arrange
+            var testFilePath = Path.GetTempFileName();
+            try
+            {
+                System.IO.File.WriteAllText(testFilePath, "Café,Crème,Noël", Encoding.Latin1);
+                var options = new CsvFileOptions { Encoding = Encoding.Latin1 };
+
+                using var csvReader = new CsvFileReader<CsvFileRecordLine>(testFilePath, options);
+
+                // act
+                var testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Should().NotBeNull();
+                testResult![0].Should().Be("Café");
+                testResult[1].Should().Be("Crème");
+                testResult[2].Should().Be("Noël");
+            }
+            finally
+            {
+                System.IO.File.Delete(testFilePath);
+            }
+        }
+
+        [Fact]
+        public void Constructor_FilePathWithNullOptions_ThrowsArgumentNullException()
+        {
+            // arrange
+            var testFilePath = Path.GetTempFileName();
+            try
+            {
+                // act
+                var testAction = () => new CsvFileReader<CsvFileRecordLine>(testFilePath, null!);
+
+                // assert
+                testAction.Should().Throw<ArgumentNullException>().WithParameterName("options");
+            }
+            finally
+            {
+                System.IO.File.Delete(testFilePath);
+            }
+        }
+
         private void AddTestFileLine(List<string> testFileLines, string? fieldDelimiter, params string[] testValues)
         {
             var line = string.Join(fieldDelimiter ?? ",", testValues);
