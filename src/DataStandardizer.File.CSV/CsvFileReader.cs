@@ -132,6 +132,8 @@ namespace DataStandardizer.File.CSV
 
         public void Dispose()
         {
+            if (!MarkDisposed()) return;
+
             if (_isInternalReader)
             {
                 _reader.Dispose();
@@ -152,6 +154,7 @@ namespace DataStandardizer.File.CSV
         /// -or-
         /// Duplicate field names were detected.
         /// </exception>
+        /// <exception cref="ObjectDisposedException">The reader has been disposed.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public ICsvFileLine? ReadLine()
 #else
@@ -159,6 +162,8 @@ namespace DataStandardizer.File.CSV
         public ICsvFileLine ReadLine()
 #endif
         {
+            ThrowIfDisposed();
+
             if (_csvSource is null)
             {
                 _csvSource = ReadCsv(_reader, _options);
@@ -297,9 +302,18 @@ namespace DataStandardizer.File.CSV
         /// <summary>
         /// Gets the context of the reader's operation.
         /// </summary>
+        /// <exception cref="ObjectDisposedException">The reader has been disposed.</exception>
+        public CsvContext Context
+        {
+            get
+            {
+                ThrowIfDisposed();
+
 #pragma warning disable IDE0074
-        public CsvContext Context => _context ?? (_context = new CsvContext(ImperativeMappers, _options));
+                return _context ?? (_context = new CsvContext(ImperativeMappers, _options));
 #pragma warning restore IDE0074
+            }
+        }
 
         [SuppressMessage("ReSharper", "PossibleMultipleEnumeration")]
         private string[] GetDuplicateFieldNames(IEnumerable<string> fieldNames)

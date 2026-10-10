@@ -32,6 +32,11 @@ open. Supplying a `CsvFileOptions` whose `Encoding` is set together with an exis
 reader instead. The `TRecordLine` type argument must have a public parameterless
 constructor (`new()`).
 
+**Disposal.** `Dispose` may be called more than once. After the reader has been
+disposed, `ReadLine`, `Context`, `RegisterMapper` and `UnregisterMapper` throw
+`ObjectDisposedException`, including when the reader was constructed over a
+caller-supplied `TextReader`.
+
 **Thread safety.** A single reader instance is not thread-safe. Distinct instances
 may be used concurrently, including for the same record type. Mapper registration
 through `RegisterMapper` is process-wide per record type and visible to every reader
@@ -52,7 +57,7 @@ and writer instance.
 
 | Property | Signature | Notes |
 | --- | --- | --- |
-| `Context` | `CsvContext Context { get; }` | The current mappers and options. |
+| `Context` | `CsvContext Context { get; }` | The current mappers and options. Throws `ObjectDisposedException` after `Dispose`. |
 
 ## Methods
 
@@ -60,8 +65,8 @@ and writer instance.
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `Dispose()` | `void` | Disposes the underlying reader only when the reader created it. |
-| `ReadLine()` | `ICsvFileLine?` | Reads the next line as a `CsvFileHeaderLine` or `CsvFileRecordLine`, or `null` at end of stream. Throws `CsvFileException` on field-count, mapping, value, or duplicate-name problems. |
+| `Dispose()` | `void` | Disposes the underlying reader only when the reader created it. Calling it again has no effect. |
+| `ReadLine()` | `ICsvFileLine?` | Reads the next line as a `CsvFileHeaderLine` or `CsvFileRecordLine`, or `null` at end of stream. Throws `CsvFileException` on field-count, mapping, value, or duplicate-name problems, or `ObjectDisposedException` after `Dispose`. |
 
 Inherited members `RegisterMapper<TMapper>()` and `UnregisterMapper<TMapper>()` are
 documented on [CsvFileIoBase](CsvFileIoBase.md).

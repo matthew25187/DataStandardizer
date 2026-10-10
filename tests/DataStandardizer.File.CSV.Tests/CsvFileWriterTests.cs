@@ -810,6 +810,74 @@ public class CsvFileWriterTests : IDisposable
         testAction.Should().Throw<ArgumentNullException>().WithParameterName("options");
     }
 
+    [Fact]
+    public void WriteLine_AfterDisposeWithStream_ThrowsObjectDisposedException()
+    {
+        // arrange
+        ICsvFileLine testLine = new CsvFileRecordLine();
+        testLine.Add("0", "1");
+
+        using var stream = new MemoryStream();
+        var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stream);
+        csvWriter.Dispose();
+
+        // act
+        var testAction = () => csvWriter.WriteLine(testLine);
+
+        // assert
+        testAction.Should().Throw<ObjectDisposedException>();
+    }
+
+    [Fact]
+    public void WriteLine_AfterDisposeWithCallerSuppliedWriter_ThrowsObjectDisposedExceptionAndWritesNothing()
+    {
+        // arrange
+        ICsvFileLine testLine = new CsvFileRecordLine();
+        testLine.Add("0", "1");
+
+        var buffer = new StringBuilder();
+        using var stringWriter = new StringWriter(buffer);
+        var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter);
+        csvWriter.Dispose();
+
+        // act
+        var testAction = () => csvWriter.WriteLine(testLine);
+
+        // assert
+        testAction.Should().Throw<ObjectDisposedException>();
+        buffer.ToString().Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Dispose_CalledTwice_DoesNotThrow()
+    {
+        // arrange
+        using var stream = new MemoryStream();
+        var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stream);
+        csvWriter.Dispose();
+
+        // act
+        var testAction = () => csvWriter.Dispose();
+
+        // assert
+        testAction.Should().NotThrow();
+    }
+
+    [Fact]
+    public void RegisterMapper_AfterDispose_ThrowsObjectDisposedException()
+    {
+        // arrange
+        using var stream = new MemoryStream();
+        var csvWriter = new CsvFileWriter<TestLine>(stream);
+        csvWriter.Dispose();
+
+        // act
+        var testAction = () => csvWriter.RegisterMapper<TestLineMapperAllIndexed>();
+
+        // assert
+        testAction.Should().Throw<ObjectDisposedException>();
+    }
+
     private class TestLine : CsvFileRecordLine
     {
         public int Id

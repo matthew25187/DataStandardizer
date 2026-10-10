@@ -99,6 +99,8 @@ namespace DataStandardizer.File.CSV
 
         public void Dispose()
         {
+            if (!MarkDisposed()) return;
+
             if (_isInternalWriter)
             {
                 _writer.Dispose();
@@ -112,8 +114,11 @@ namespace DataStandardizer.File.CSV
         /// <exception cref="CsvFileException">
         /// Invalid field name detected.
         /// </exception>
+        /// <exception cref="ObjectDisposedException">The writer has been disposed.</exception>
         public void WriteLine(ICsvFileLine csvLine)
         {
+            ThrowIfDisposed();
+
             // Check the line for the last non-empty field value.
             var lastFieldIndex = -1;
             if (_options.SuppressTrailingBlankFields)
