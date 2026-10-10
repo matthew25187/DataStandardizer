@@ -696,6 +696,120 @@ public class CsvFileWriterTests : IDisposable
         testAction.Should().Throw<CsvFileException>().WithMessage("Expected 2 fields; found 3 fields.");
     }
 
+    [Fact]
+    public void WriteLine_FilePathWithEncodingOption_WritesUsingEncoding()
+    {
+        // arrange
+        var testFilePath = Path.GetTempFileName();
+        try
+        {
+            ICsvFileLine testRecordLine = new CsvFileRecordLine();
+            testRecordLine.Add("0", "Café");
+            var options = new CsvFileOptions { Encoding = Encoding.Latin1 };
+
+            // act
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(testFilePath, options))
+            {
+                csvWriter.WriteLine(testRecordLine);
+            }
+
+            var testResult = System.IO.File.ReadAllBytes(testFilePath);
+
+            // assert
+            testResult.Should().Equal(0x43, 0x61, 0x66, 0xE9, 0x0D, 0x0A);
+        }
+        finally
+        {
+            System.IO.File.Delete(testFilePath);
+        }
+    }
+
+    [Fact]
+    public void Dispose_WriterConstructedFromFilePathWithOptions_ClosesFile()
+    {
+        // arrange
+        var testFilePath = Path.GetTempFileName();
+        try
+        {
+            var options = new CsvFileOptions { Encoding = Encoding.UTF8 };
+
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(testFilePath, options))
+            {
+                ICsvFileLine testRecordLine = new CsvFileRecordLine();
+                testRecordLine.Add("0", "1");
+                csvWriter.WriteLine(testRecordLine);
+            }
+
+            // act
+            var testAction = () =>
+            {
+                using var exclusiveStream = new FileStream(testFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+            };
+
+            // assert
+            testAction.Should().NotThrow();
+        }
+        finally
+        {
+            System.IO.File.Delete(testFilePath);
+        }
+    }
+
+    [Fact]
+    public void Dispose_WriterConstructedFromFilePathWithoutEncoding_ClosesFile()
+    {
+        // arrange
+        var testFilePath = Path.GetTempFileName();
+        try
+        {
+            using (new CsvFileWriter<CsvFileRecordLine>(testFilePath, new CsvFileOptions()))
+            {
+            }
+
+            // act
+            var testAction = () => System.IO.File.Delete(testFilePath);
+
+            // assert
+            testAction.Should().NotThrow();
+        }
+        finally
+        {
+            System.IO.File.Delete(testFilePath);
+        }
+    }
+
+    [Fact]
+    public void Constructor_FilePathWithNullOptions_ThrowsArgumentNullException()
+    {
+        // arrange
+        var testFilePath = Path.GetTempFileName();
+        try
+        {
+            // act
+            var testAction = () => new CsvFileWriter<CsvFileRecordLine>(testFilePath, null!);
+
+            // assert
+            testAction.Should().Throw<ArgumentNullException>().WithParameterName("options");
+        }
+        finally
+        {
+            System.IO.File.Delete(testFilePath);
+        }
+    }
+
+    [Fact]
+    public void Constructor_StreamWithNullOptions_ThrowsArgumentNullException()
+    {
+        // arrange
+        using var stream = new MemoryStream();
+
+        // act
+        var testAction = () => new CsvFileWriter<CsvFileRecordLine>(stream, null!);
+
+        // assert
+        testAction.Should().Throw<ArgumentNullException>().WithParameterName("options");
+    }
+
     private class TestLine : CsvFileRecordLine
     {
         public int Id
