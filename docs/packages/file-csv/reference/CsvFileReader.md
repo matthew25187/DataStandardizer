@@ -32,6 +32,16 @@ open. Supplying a `CsvFileOptions` whose `Encoding` is set together with an exis
 reader instead. The `TRecordLine` type argument must have a public parameterless
 constructor (`new()`).
 
+**Disposal.** `Dispose` may be called more than once. After the reader has been
+disposed, `ReadLine`, `Context`, `RegisterMapper` and `UnregisterMapper` throw
+`ObjectDisposedException`, including when the reader was constructed over a
+caller-supplied `TextReader`.
+
+**Thread safety.** A single reader instance is not thread-safe. Distinct instances
+may be used concurrently, including for the same record type. Mapper registration
+through `RegisterMapper` is process-wide per record type and visible to every reader
+and writer instance.
+
 ## Constructors
 
 | Constructor | Notes |
@@ -39,7 +49,7 @@ constructor (`new()`).
 | `CsvFileReader(Stream csvStream)` | Reads with a default `StreamReader`. Throws `ArgumentNullException` if `csvStream` is `null`, or `ArgumentException` if the stream cannot be read. |
 | `CsvFileReader(Stream csvStream, CsvFileOptions options)` | Honours `options.Encoding`. Throws `ArgumentNullException` if `options` is `null`. |
 | `CsvFileReader(string csvFilePath)` | *(netstandard2.0+/.NET)* Opens the file with a default `StreamReader`. Throws `ArgumentNullException` if `csvFilePath` is `null`. |
-| `CsvFileReader(string csvFilePath, CsvFileOptions options)` | *(netstandard2.0+/.NET)* |
+| `CsvFileReader(string csvFilePath, CsvFileOptions options)` | *(netstandard2.0+/.NET)* Honours `options.Encoding`. Throws `ArgumentNullException` if `csvFilePath` or `options` is `null`. |
 | `CsvFileReader(TextReader reader)` | Throws `ArgumentNullException` if `reader` is `null`. |
 | `CsvFileReader(TextReader reader, CsvFileOptions options)` | Throws `ArgumentException` if `options.Encoding` is set — specify the encoding when creating the reader. |
 
@@ -47,7 +57,7 @@ constructor (`new()`).
 
 | Property | Signature | Notes |
 | --- | --- | --- |
-| `Context` | `CsvContext Context { get; }` | The current mappers and options. |
+| `Context` | `CsvContext Context { get; }` | The current mappers and options. Throws `ObjectDisposedException` after `Dispose`. |
 
 ## Methods
 
@@ -55,8 +65,8 @@ constructor (`new()`).
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `Dispose()` | `void` | Disposes the underlying reader only when the reader created it. |
-| `ReadLine()` | `ICsvFileLine?` | Reads the next line as a `CsvFileHeaderLine` or `CsvFileRecordLine`, or `null` at end of stream. Throws `CsvFileException` on field-count, mapping, value, or duplicate-name problems. |
+| `Dispose()` | `void` | Disposes the underlying reader only when the reader created it. Calling it again has no effect. |
+| `ReadLine()` | `ICsvFileLine?` | Reads the next line as a `CsvFileHeaderLine` or `CsvFileRecordLine`, or `null` at end of stream. Throws `CsvFileException` on field-count, mapping, value, or duplicate-name problems, or `ObjectDisposedException` after `Dispose`. |
 
 Inherited members `RegisterMapper<TMapper>()` and `UnregisterMapper<TMapper>()` are
 documented on [CsvFileIoBase](CsvFileIoBase.md).

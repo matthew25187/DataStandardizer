@@ -440,6 +440,96 @@ namespace DataStandardizer.File.CSV.Tests
             testResult.Description.Should().Be(recordLineFieldValue3);
         }
 
+        [Fact]
+        public void ReadLine_ConcurrentReadersForSameDeclarativeRecordType_DoNotThrow()
+        {
+            // arrange
+            var testFileBytes = Encoding.Default.GetBytes("1,One");
+            const int runCount = 5, readerCount = 32;
+
+            for (var run = 0; run < runCount; run++)
+            {
+                // The race is probabilistic, so start each run from empty caches and repeat it.
+                CacheRepositoryConfiguration.Reset();
+
+                // act
+                var act = () => Parallel.For(0, readerCount, _ =>
+                {
+                    using var testFileStream = new MemoryStream(testFileBytes);
+                    using var csvReader = new CsvFileReader<DeclarativeTestLine>(testFileStream);
+                    var testResult = csvReader.ReadLine() as DeclarativeTestLine;
+
+                    testResult.Should().NotBeNull();
+                    testResult!.Id.Should().Be(1);
+                    testResult.Name.Should().Be("One");
+                });
+
+                // assert
+                act.Should().NotThrow();
+            }
+        }
+
+        [Fact]
+        public void RegisterMapper_SameMapperTwice_RegistersOneMapper()
+        {
+            // arrange
+            using var testFileStream = new MemoryStream();
+            using var csvReader = new CsvFileReader<TestLine>(testFileStream);
+            csvReader.RegisterMapper<TestLineFirstIndexMapper>();
+
+            // act
+            var act = () => csvReader.RegisterMapper<TestLineFirstIndexMapper>();
+
+            // assert
+            act.Should().NotThrow();
+            csvReader.Context.Mappers.Should().ContainSingle()
+                .Which.Key.Should().Be(typeof(TestLine));
+        }
+
+        [Fact]
+        public void ReadLine_MapperRegisteredAfterFirstLine_UsesRegisteredMapper()
+        {
+            // arrange
+            var testFileLines = new List<string>();
+            AddTestFileLine(testFileLines, null, "1", "One", "First");
+            AddTestFileLine(testFileLines, null, "2", "Two", "Second");
+            var testFile = string.Join(CsvLineBreak, testFileLines);
+
+            var testFileBytes = Encoding.Default.GetBytes(testFile);
+            using var testFileStream = new MemoryStream(testFileBytes);
+            using var csvReader = new CsvFileReader<TestLine>(testFileStream);
+            var firstLine = csvReader.ReadLine() as TestLine;
+
+            // act
+            csvReader.RegisterMapper<TestLineFirstIndexMapper>();
+            var testResult = csvReader.ReadLine() as TestLine;
+
+            // assert
+            firstLine.Should().NotBeNull();
+            firstLine!.Id.Should().Be(0);
+            testResult.Should().NotBeNull();
+            testResult!.Id.Should().Be(2);
+            testResult.Name.Should().Be("Two");
+        }
+
+        private class DeclarativeTestLine : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0)]
+            [TypeConverter(typeof(Int32Converter))]
+            public int Id
+            {
+                get => GetPropertyValue<int>();
+                set => SetPropertyValue(value);
+            }
+
+            [CsvFieldMapping(1)]
+            public string? Name
+            {
+                get => GetPropertyValue<string?>();
+                set => SetPropertyValue(value);
+            }
+        }
+
         private class TestLine : CsvFileRecordLine
         {
             public int Id
@@ -503,6 +593,201 @@ namespace DataStandardizer.File.CSV.Tests
             }
         }
 
+        [Fact]
+        public void Dispose_ReaderConstructedFromFilePath_ClosesFile()
+        {
+            // arrange
+            var testFilePath = Path.GetTempFileName();
+            try
+            {
+                System.IO.File.WriteAllText(testFilePath, "1,2,3");
+
+                using (var csvReader = new CsvFileReader<CsvFileRecordLine>(testFilePath))
+                {
+                    csvReader.ReadLine();
+                }
+
+                // act
+                var testAction = () =>
+                {
+                    using var exclusiveStream = new FileStream(testFilePath, FileMode.Open, FileAccess.Read, FileShare.None);
+                };
+
+                // assert
+                testAction.Should().NotThrow();
+            }
+            finally
+            {
+                System.IO.File.Delete(testFilePath);
+            }
+        }
+
+        [Fact]
+        public void Dispose_ReaderConstructedFromFilePathWithOptions_ClosesFile()
+        {
+            // arrange
+            var testFilePath = Path.GetTempFileName();
+            try
+            {
+                System.IO.File.WriteAllText(testFilePath, "1,2,3");
+                var options = new CsvFileOptions { Encoding = Encoding.UTF8 };
+
+                using (var csvReader = new CsvFileReader<CsvFileRecordLine>(testFilePath, options))
+                {
+                    csvReader.ReadLine();
+                }
+
+                // act
+                var testAction = () => System.IO.File.Delete(testFilePath);
+
+                // assert
+                testAction.Should().NotThrow();
+            }
+            finally
+            {
+                System.IO.File.Delete(testFilePath);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_FilePathWithEncodingOption_ReadsUsingEncoding()
+        {
+            // arrange
+            var testFilePath = Path.GetTempFileName();
+            try
+            {
+                System.IO.File.WriteAllText(testFilePath, "Café,Crème,Noël", Encoding.Latin1);
+                var options = new CsvFileOptions { Encoding = Encoding.Latin1 };
+
+                using var csvReader = new CsvFileReader<CsvFileRecordLine>(testFilePath, options);
+
+                // act
+                var testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Should().NotBeNull();
+                testResult![0].Should().Be("Café");
+                testResult[1].Should().Be("Crème");
+                testResult[2].Should().Be("Noël");
+            }
+            finally
+            {
+                System.IO.File.Delete(testFilePath);
+            }
+        }
+
+        [Fact]
+        public void Constructor_FilePathWithNullOptions_ThrowsArgumentNullException()
+        {
+            // arrange
+            var testFilePath = Path.GetTempFileName();
+            try
+            {
+                // act
+                var testAction = () => new CsvFileReader<CsvFileRecordLine>(testFilePath, null!);
+
+                // assert
+                testAction.Should().Throw<ArgumentNullException>().WithParameterName("options");
+            }
+            finally
+            {
+                System.IO.File.Delete(testFilePath);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_AfterDisposeWithStream_ThrowsObjectDisposedException()
+        {
+            // arrange
+            using var testFileStream = new MemoryStream(Encoding.Default.GetBytes("1,2,3\r\n4,5,6"));
+            var csvReader = new CsvFileReader<CsvFileRecordLine>(testFileStream);
+            csvReader.ReadLine();
+            csvReader.Dispose();
+
+            // act
+            var testAction = () => csvReader.ReadLine();
+
+            // assert
+            testAction.Should().Throw<ObjectDisposedException>();
+        }
+
+        [Fact]
+        public void ReadLine_AfterDisposeWithCallerSuppliedReader_ThrowsObjectDisposedException()
+        {
+            // arrange
+            using var stringReader = new StringReader("1,2,3\r\n4,5,6");
+            var csvReader = new CsvFileReader<CsvFileRecordLine>(stringReader);
+            csvReader.Dispose();
+
+            // act
+            var testAction = () => csvReader.ReadLine();
+
+            // assert
+            testAction.Should().Throw<ObjectDisposedException>();
+            stringReader.ReadToEnd().Should().Be("1,2,3\r\n4,5,6");
+        }
+
+        [Fact]
+        public void Dispose_CalledTwice_DoesNotThrow()
+        {
+            // arrange
+            using var testFileStream = new MemoryStream();
+            var csvReader = new CsvFileReader<CsvFileRecordLine>(testFileStream);
+            csvReader.Dispose();
+
+            // act
+            var testAction = () => csvReader.Dispose();
+
+            // assert
+            testAction.Should().NotThrow();
+        }
+
+        [Fact]
+        public void Context_AfterDispose_ThrowsObjectDisposedException()
+        {
+            // arrange
+            using var testFileStream = new MemoryStream();
+            var csvReader = new CsvFileReader<CsvFileRecordLine>(testFileStream);
+            csvReader.Dispose();
+
+            // act
+            var testAction = () => csvReader.Context;
+
+            // assert
+            testAction.Should().Throw<ObjectDisposedException>();
+        }
+
+        [Fact]
+        public void RegisterMapper_AfterDispose_ThrowsObjectDisposedException()
+        {
+            // arrange
+            using var testFileStream = new MemoryStream();
+            var csvReader = new CsvFileReader<TestLine>(testFileStream);
+            csvReader.Dispose();
+
+            // act
+            var testAction = () => csvReader.RegisterMapper<TestLineFirstIndexMapper>();
+
+            // assert
+            testAction.Should().Throw<ObjectDisposedException>();
+        }
+
+        [Fact]
+        public void UnregisterMapper_AfterDispose_ThrowsObjectDisposedException()
+        {
+            // arrange
+            using var testFileStream = new MemoryStream();
+            var csvReader = new CsvFileReader<TestLine>(testFileStream);
+            csvReader.RegisterMapper<TestLineFirstIndexMapper>();
+            csvReader.Dispose();
+
+            // act
+            var testAction = () => csvReader.UnregisterMapper<TestLineFirstIndexMapper>();
+
+            // assert
+            testAction.Should().Throw<ObjectDisposedException>();
+        }
+
         private void AddTestFileLine(List<string> testFileLines, string? fieldDelimiter, params string[] testValues)
         {
             var line = string.Join(fieldDelimiter ?? ",", testValues);
@@ -513,8 +798,7 @@ namespace DataStandardizer.File.CSV.Tests
         {
             public static void Reset()
             {
-                ImperativeMapperCache.Clear();
-                DeclarativeMapperCache.Clear();
+                ClearMapperCaches();
             }
         }
     }

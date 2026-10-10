@@ -18,8 +18,15 @@ namespace DataStandardizer.File.CSV
         private readonly MethodInfo? _generatorMethodDefinition; 
 #else
         [CanBeNull] private readonly MethodInfo _converterMethodDefinition;
-        [CanBeNull] private readonly MethodInfo _generatorMethodDefinition; 
+        [CanBeNull] private readonly MethodInfo _generatorMethodDefinition;
 #endif
+#if NETCOREAPP3_0_OR_GREATER
+        private ICsvFileMapper? _resolvedMapper;
+#else
+        [CanBeNull] private ICsvFileMapper _resolvedMapper;
+#endif
+        private int _resolvedMapperVersion;
+        private bool _isDisposed;
 
         protected CsvFileIoBase()
         {
@@ -35,27 +42,42 @@ namespace DataStandardizer.File.CSV
         /// Register a mapper for CSV lines.
         /// </summary>
         /// <typeparam name="TMapper">Type of the mapper.</typeparam>
+        /// <exception cref="ObjectDisposedException">The reader or writer has been disposed.</exception>
         public void RegisterMapper<TMapper>() where TMapper : CsvFileMapperBase<TRecordLine>, new()
         {
-            if (ImperativeMapperCache.ContainsKey(typeof(TMapper)))
-            {
-                return;
-            }
+            ThrowIfDisposed();
 
-            var mapper = new TMapper();
-            ImperativeMapperCache.Add(typeof(TRecordLine), mapper);
+            AddImperativeMapper(typeof(TRecordLine), () => new TMapper());
         }
 
         /// <summary>
         /// Unregister a mapper for CSV lines.
         /// </summary>
         /// <typeparam name="TMapper">Type of the mapper.</typeparam>
+        /// <exception cref="ObjectDisposedException">The reader or writer has been disposed.</exception>
         public void UnregisterMapper<TMapper>() where TMapper : CsvFileMapperBase<TRecordLine>, new()
         {
-            if (ImperativeMapperCache.ContainsKey(typeof(TRecordLine)))
-            {
-                ImperativeMapperCache.Remove(typeof(TRecordLine));
-            }
+            ThrowIfDisposed();
+
+            RemoveImperativeMapper(typeof(TRecordLine));
+        }
+
+        /// <summary>
+        /// Marks the reader or writer as disposed.
+        /// </summary>
+        /// <returns><c>true</c> if this call disposed the object; <c>false</c> if it had already been disposed.</returns>
+        private protected bool MarkDisposed()
+        {
+            if (_isDisposed) return false;
+
+            _isDisposed = true;
+            return true;
+        }
+
+        private protected void ThrowIfDisposed()
+        {
+            if (_isDisposed)
+                throw new ObjectDisposedException(GetType().Name);
         }
 
         protected CsvFileException BuildException(string message, IDictionary<string, object> dataItems)
@@ -203,23 +225,18 @@ namespace DataStandardizer.File.CSV
 
         protected ICsvFileMapper GetMapper(TRecordLine recordLine)
         {
-            ICsvFileMapper mapper;
-            if (ImperativeMapperCache.TryGetValue(typeof(TRecordLine), out var imperativeMapper))
+            // Reuse the mapper this instance last resolved, so the per-line path does not take the cache lock, unless a
+            // mapper has since been registered, unregistered or cleared.
+            var mapperCacheVersion = MapperCacheVersion;
+            var mapper = _resolvedMapper;
+            if (mapper != null && _resolvedMapperVersion == mapperCacheVersion)
             {
-                mapper = imperativeMapper;
+                return mapper;
             }
-            else if (DeclarativeMapperCache.TryGetValue(typeof(TRecordLine), out var declarativeMapper))
-            {
-                mapper = declarativeMapper;
-            }
-            else
-            {
-                mapper = recordLine.CreateMapper();
-                if (mapper.Count > 0)
-                {
-                    DeclarativeMapperCache.Add(typeof(TRecordLine), mapper);
-                }
-            }
+
+            mapper = GetOrAddMapper(typeof(TRecordLine), recordLine, out var isCached);
+            _resolvedMapper = isCached ? mapper : null;
+            _resolvedMapperVersion = mapperCacheVersion;
 
             return mapper;
         }

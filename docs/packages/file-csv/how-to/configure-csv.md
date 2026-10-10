@@ -61,7 +61,11 @@ embedded in the value replaced by the value of this option.
 
 **Default:** `null`
 
-The encoding of the CSV file can be specified.
+The encoding of the CSV file can be specified. It applies when the reader or writer is
+constructed from a `Stream` or a file path, since the library then creates the
+underlying `StreamReader` or `StreamWriter` itself. Passing an `Encoding` together with
+an existing `TextReader` or `TextWriter` throws `ArgumentException`; set the encoding
+when creating that reader or writer instead.
 
 ```csharp
 var options = new CsvFileOptions { Encoding = Encoding.UTF8 };

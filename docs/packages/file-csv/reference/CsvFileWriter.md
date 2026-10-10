@@ -32,14 +32,24 @@ a caller-supplied `TextWriter` is left open. Supplying a `CsvFileOptions` whose
 `Encoding` is set together with an existing `TextWriter` throws `ArgumentException`;
 specify the encoding when creating the writer instead.
 
+**Disposal.** `Dispose` may be called more than once. After the writer has been
+disposed, `WriteLine`, `RegisterMapper` and `UnregisterMapper` throw
+`ObjectDisposedException`, including when the writer was constructed over a
+caller-supplied `TextWriter`.
+
+**Thread safety.** A single writer instance is not thread-safe. Distinct instances
+may be used concurrently, including for the same record type. Mapper registration
+through `RegisterMapper` is process-wide per record type and visible to every reader
+and writer instance.
+
 ## Constructors
 
 | Constructor | Notes |
 | --- | --- |
 | `CsvFileWriter(Stream csvStream)` | Writes with a default `StreamWriter`. Throws `ArgumentNullException` if `csvStream` is `null`. |
-| `CsvFileWriter(Stream csvStream, CsvFileOptions options)` | Honours `options.Encoding`. |
+| `CsvFileWriter(Stream csvStream, CsvFileOptions options)` | Honours `options.Encoding`. Throws `ArgumentNullException` if `options` is `null`. |
 | `CsvFileWriter(string csvFilePath)` | *(netstandard2.0+/.NET)* Creates the file with a default `StreamWriter`. Throws `ArgumentNullException` if `csvFilePath` is `null`. |
-| `CsvFileWriter(string csvFilePath, CsvFileOptions options)` | *(netstandard2.0+/.NET)* Honours `options.Encoding`. |
+| `CsvFileWriter(string csvFilePath, CsvFileOptions options)` | *(netstandard2.0+/.NET)* Honours `options.Encoding`. Throws `ArgumentNullException` if `csvFilePath` or `options` is `null`. |
 | `CsvFileWriter(TextWriter writer)` | Throws `ArgumentNullException` if `writer` is `null`. |
 | `CsvFileWriter(TextWriter writer, CsvFileOptions options)` | Throws `ArgumentException` if `options.Encoding` is set — specify the encoding when creating the writer. |
 
@@ -49,8 +59,8 @@ specify the encoding when creating the writer instead.
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `Dispose()` | `void` | Disposes the underlying writer only when the writer created it. |
-| `WriteLine(ICsvFileLine csvLine)` | `void` | Writes a header or record line. Throws `CsvFileException` on an invalid field name or inconsistent field count. |
+| `Dispose()` | `void` | Disposes the underlying writer only when the writer created it. Calling it again has no effect. |
+| `WriteLine(ICsvFileLine csvLine)` | `void` | Writes a header or record line. Throws `CsvFileException` on an invalid field name or inconsistent field count, or `ObjectDisposedException` after `Dispose`. |
 
 Inherited members `RegisterMapper<TMapper>()` and `UnregisterMapper<TMapper>()` are
 documented on [CsvFileIoBase](CsvFileIoBase.md).
