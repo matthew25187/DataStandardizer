@@ -23,7 +23,8 @@ public delegate T CsvFieldGenerate<out T>();
 
 Attached to a mapping with the `HasVariableValue` step of the fluent
 [CsvFieldMappingBuilder](CsvFieldMappingBuilder.md). Return the value to use for the
-field each time it is generated.
+field each time it is generated. An exception thrown by the delegate propagates
+unchanged.
 
 ## Applies to
 

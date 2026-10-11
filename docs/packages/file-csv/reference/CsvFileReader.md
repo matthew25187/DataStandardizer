@@ -42,6 +42,11 @@ may be used concurrently, including for the same record type. Mapper registratio
 through `RegisterMapper` is process-wide per record type and visible to every reader
 and writer instance.
 
+**Mapper changes.** The reader works out the field names and mappings once and
+reuses them for each line. If a mapper is registered or unregistered part way
+through a file, the change applies from the next line read. Lines already
+returned are not affected.
+
 ## Constructors
 
 | Constructor | Notes |

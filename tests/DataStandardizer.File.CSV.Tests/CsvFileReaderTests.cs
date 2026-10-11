@@ -512,6 +512,231 @@ namespace DataStandardizer.File.CSV.Tests
             testResult.Name.Should().Be("Two");
         }
 
+        [Fact]
+        public void ReadLine_MapperUnregisteredAfterFirstLine_StopsMapping()
+        {
+            // arrange
+            var testFileLines = new List<string>();
+            AddTestFileLine(testFileLines, null, "1", "One", "First");
+            AddTestFileLine(testFileLines, null, "2", "Two", "Second");
+            var testFile = string.Join(CsvLineBreak, testFileLines);
+
+            var testFileBytes = Encoding.Default.GetBytes(testFile);
+            using var testFileStream = new MemoryStream(testFileBytes);
+            using var csvReader = new CsvFileReader<TestLine>(testFileStream);
+            csvReader.RegisterMapper<TestLineFirstIndexMapper>();
+            var firstLine = csvReader.ReadLine() as TestLine;
+
+            // act
+            csvReader.UnregisterMapper<TestLineFirstIndexMapper>();
+            var testResult = csvReader.ReadLine();
+
+            // assert
+            firstLine.Should().NotBeNull();
+            firstLine!.Id.Should().Be(1);
+            testResult.Should().NotBeNull();
+            testResult!.Contains("Field 1").Should().BeTrue();
+            testResult["Field 1"].Should().Be("2");
+        }
+
+        [Fact]
+        public void ReadLine_UnmappedRecordLinesWithoutHeader_NamesFieldsByPosition()
+        {
+            // arrange
+            var testFileLines = new List<string>();
+            AddTestFileLine(testFileLines, null, "1", "One", "First");
+            AddTestFileLine(testFileLines, null, "2", "Two", "Second");
+            var testFile = string.Join(CsvLineBreak, testFileLines);
+
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.None };
+
+            var testFileBytes = Encoding.Default.GetBytes(testFile);
+            using var testFileStream = new MemoryStream(testFileBytes);
+            using var csvReader = new CsvFileReader<CsvFileRecordLine>(testFileStream, options);
+
+            // act
+            var testResults = new[] { csvReader.ReadLine(), csvReader.ReadLine() };
+
+            // assert
+            testResults[0]!.Keys.Cast<string>().Should().Equal("Field 1", "Field 2", "Field 3");
+            testResults[1]!.Keys.Cast<string>().Should().Equal("Field 1", "Field 2", "Field 3");
+            testResults[1]!["Field 3"].Should().Be("Second");
+        }
+
+        [Fact]
+        public void ReadLine_UnmappedRecordLineWithHeader_NamesFieldsByHeader()
+        {
+            // arrange
+            var testFileLines = new List<string>();
+            AddTestFileLine(testFileLines, null, "ID", "Name", "Description");
+            AddTestFileLine(testFileLines, null, "1", "One", "First");
+            var testFile = string.Join(CsvLineBreak, testFileLines);
+
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+
+            var testFileBytes = Encoding.Default.GetBytes(testFile);
+            using var testFileStream = new MemoryStream(testFileBytes);
+            using var csvReader = new CsvFileReader<CsvFileRecordLine>(testFileStream, options);
+
+            // act
+            _ = csvReader.ReadLine(); // discard the header line
+            var testResult = csvReader.ReadLine();
+
+            // assert
+            testResult!.Keys.Cast<string>().Should().Equal("ID", "Name", "Description");
+            testResult["Description"].Should().Be("First");
+        }
+
+        [Fact]
+        public void ReadLine_MappedRecordLineWithMoreFieldsThanMappings_NamesFieldsByMapperThenPosition()
+        {
+            // arrange
+            var testFileLines = new List<string>();
+            AddTestFileLine(testFileLines, null, "1", "One", "First", "Extra");
+            var testFile = string.Join(CsvLineBreak, testFileLines);
+
+            var testFileBytes = Encoding.Default.GetBytes(testFile);
+            using var testFileStream = new MemoryStream(testFileBytes);
+            using var csvReader = new CsvFileReader<TestLine>(testFileStream);
+            csvReader.RegisterMapper<TestLineFirstIndexMapper>();
+
+            // act
+            var testResult = csvReader.ReadLine() as TestLine;
+
+            // assert
+            ((ICsvFileLine)testResult!).Keys.Cast<string>().Should().Equal("Id", "Name", "Description", "Field 4");
+            testResult.Id.Should().Be(1);
+            ((ICsvFileLine)testResult)["Field 4"].Should().Be("Extra");
+        }
+
+        [Fact]
+        public void ReadLine_SeveralMappedRecordLines_MapsEachLine()
+        {
+            // arrange
+            var testFileLines = new List<string>();
+            AddTestFileLine(testFileLines, null, "Id", "Name", "Description");
+            AddTestFileLine(testFileLines, null, "1", "One", "First");
+            AddTestFileLine(testFileLines, null, "2", "Two", "Second");
+            AddTestFileLine(testFileLines, null, "3", "Three", "Third");
+            var testFile = string.Join(CsvLineBreak, testFileLines);
+
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+
+            var testFileBytes = Encoding.Default.GetBytes(testFile);
+            using var testFileStream = new MemoryStream(testFileBytes);
+            using var csvReader = new CsvFileReader<TestLine>(testFileStream, options);
+            csvReader.RegisterMapper<TestLineFirstIndexMapper>();
+
+            // act
+            _ = csvReader.ReadLine(); // discard the header line
+            var testResults = new[] { csvReader.ReadLine() as TestLine, csvReader.ReadLine() as TestLine, csvReader.ReadLine() as TestLine };
+
+            // assert
+            testResults.Select(line => line!.Id).Should().Equal(1, 2, 3);
+            testResults.Select(line => line!.Name).Should().Equal("One", "Two", "Three");
+            testResults.Select(line => line!.Description).Should().Equal("First", "Second", "Third");
+        }
+
+        [Fact]
+        public void ReadLine_MapperWithFromStringConverter_ConvertsFieldValue()
+        {
+            // arrange
+            var testFileLines = new List<string>();
+            AddTestFileLine(testFileLines, null, "1", "One", "First");
+            AddTestFileLine(testFileLines, null, "2", "Two", "Second");
+            var testFile = string.Join(CsvLineBreak, testFileLines);
+
+            var testFileBytes = Encoding.Default.GetBytes(testFile);
+            using var testFileStream = new MemoryStream(testFileBytes);
+            using var csvReader = new CsvFileReader<TestLine>(testFileStream);
+            csvReader.RegisterMapper<TestLineConverterMapper>();
+
+            // act
+            var testResults = new[] { csvReader.ReadLine() as TestLine, csvReader.ReadLine() as TestLine };
+
+            // assert
+            testResults.Select(line => line!.Id).Should().Equal(10, 20);
+            testResults.Select(line => line!.Name).Should().Equal("One", "Two");
+        }
+
+        [Fact]
+        public void ReadLine_FromStringConverterThrows_PropagatesException()
+        {
+            // arrange
+            var testFileBytes = Encoding.Default.GetBytes("x,One,First");
+            using var testFileStream = new MemoryStream(testFileBytes);
+            using var csvReader = new CsvFileReader<TestLine>(testFileStream);
+            csvReader.RegisterMapper<TestLineConverterMapper>();
+
+            // act
+            var testAction = () => csvReader.ReadLine();
+
+            // assert
+            testAction.Should().Throw<FormatException>();
+        }
+
+        [Fact]
+        public void ReadLine_MapperWithConstantValue_SetsConstantValue()
+        {
+            // arrange
+            var testFileBytes = Encoding.Default.GetBytes("1,One,First");
+            using var testFileStream = new MemoryStream(testFileBytes);
+            using var csvReader = new CsvFileReader<TestLine>(testFileStream);
+            csvReader.RegisterMapper<TestLineConstantMapper>();
+
+            // act
+            var testResult = csvReader.ReadLine() as TestLine;
+
+            // assert
+            testResult!.Id.Should().Be(1);
+            testResult.Name.Should().Be("Constant");
+            testResult.Description.Should().Be("First");
+        }
+
+        [Fact]
+        public void ReadLine_MapperWithVariableValueGenerators_SetsGeneratedValues()
+        {
+            // arrange
+            var testFileLines = new List<string>();
+            AddTestFileLine(testFileLines, null, "1", "One", "First");
+            AddTestFileLine(testFileLines, null, "2", "Two", "Second");
+            var testFile = string.Join(CsvLineBreak, testFileLines);
+
+            var testFileBytes = Encoding.Default.GetBytes(testFile);
+            using var testFileStream = new MemoryStream(testFileBytes);
+            using var csvReader = new CsvFileReader<TestLine>(testFileStream);
+            csvReader.RegisterMapper<TestLineGeneratorMapper>();
+
+            // act
+            var testResults = new[] { csvReader.ReadLine() as TestLine, csvReader.ReadLine() as TestLine };
+
+            // assert
+            testResults.Select(line => line!.Id).Should().Equal(42, 42);
+            testResults.Select(line => line!.Name).Should().Equal("Generated", "Generated");
+            testResults.Select(line => line!.Description).Should().Equal("First", "Second");
+        }
+
+        [Fact]
+        public void ReadLine_MappingAddsFieldToLine_LaterOptionalMappingSeesAddedField()
+        {
+            // arrange
+            var validatedFieldNames = new List<string?>();
+            TestLineAddedFieldMapper.Validated = context => validatedFieldNames.Add(context.FieldName);
+
+            var testFileBytes = Encoding.Default.GetBytes("1");
+            using var testFileStream = new MemoryStream(testFileBytes);
+            using var csvReader = new CsvFileReader<TestLine>(testFileStream);
+            csvReader.RegisterMapper<TestLineAddedFieldMapper>();
+
+            // act
+            var testResult = csvReader.ReadLine() as TestLine;
+
+            // assert
+            testResult!.Id.Should().Be(1);
+            ((ICsvFileLine)testResult).Keys.Cast<string>().Should().Equal("Id", "Extra");
+            validatedFieldNames.Should().Equal("Extra");
+        }
+
         private class DeclarativeTestLine : CsvFileRecordLine
         {
             [CsvFieldMapping(0)]
@@ -590,6 +815,69 @@ namespace DataStandardizer.File.CSV.Tests
                 this.Map()
                     .Property(x => x.Description)
                     .HasFieldIndex(10);
+            }
+        }
+
+        private class TestLineConverterMapper : CsvFileMapperBase<TestLine>
+        {
+            public TestLineConverterMapper()
+            {
+                this.Map()
+                    .Property(x => x.Id)
+                    .HasFieldIndex(0)
+                    .ConvertUsing(new CsvFieldConvertFromString<TestLine, int>(context => int.Parse((string)((ICsvFileLine)context.Model!)[context.FieldName!]!) * 10));
+                this.Map().Property(x => x.Name);
+                this.Map().Property(x => x.Description);
+            }
+        }
+
+        private class TestLineConstantMapper : CsvFileMapperBase<TestLine>
+        {
+            public TestLineConstantMapper()
+            {
+                this.Map()
+                    .Property(x => x.Id)
+                    .HasFieldIndex(0)
+                    .ConvertUsing(typeof(Int32Converter));
+                this.Map().Property(x => x.Name).HasConstantValue("Constant");
+                this.Map().Property(x => x.Description);
+            }
+        }
+
+        private class TestLineGeneratorMapper : CsvFileMapperBase<TestLine>
+        {
+            public TestLineGeneratorMapper()
+            {
+                this.Map().Property(x => x.Id).HasVariableValue(() => 42);
+                this.Map().Property(x => x.Name).HasVariableValue(() => "Generated");
+                this.Map().Property(x => x.Description);
+            }
+        }
+
+        /// <summary>
+        /// Maps Name to a field the line does not have, so storing its value adds the field, which the optional Description mapping then finds.
+        /// </summary>
+        private class TestLineAddedFieldMapper : CsvFileMapperBase<TestLine>
+        {
+            public static Action<CsvFieldContext<TestLine>> Validated = _ => { };
+
+            public TestLineAddedFieldMapper()
+            {
+                this.Map()
+                    .Property(x => x.Id)
+                    .HasFieldIndex(0)
+                    .ConvertUsing(typeof(Int32Converter));
+                this.Map().Property(x => x.Name).HasFieldName("Extra");
+                this.Map()
+                    .Property(x => x.Description)
+                    .HasFieldName("Extra")
+                    .ConvertUsing(typeof(StringConverter))
+                    .ValidateUsing(context =>
+                    {
+                        Validated(context);
+                        return true;
+                    })
+                    .IsOptional();
             }
         }
 
