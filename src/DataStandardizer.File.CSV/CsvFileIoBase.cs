@@ -5,7 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using DataStandardizer.Core;
-#if NETSTANDARD
+#if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP3_0_OR_GREATER
 using JetBrains.Annotations; 
 #endif
 
@@ -13,14 +13,14 @@ namespace DataStandardizer.File.CSV
 {
     public abstract class CsvFileIoBase<TRecordLine> : CsvFileCacheRepositoryBase where TRecordLine : CsvFileRecordLine
     {
-#if NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private readonly MethodInfo? _converterMethodDefinition;
         private readonly MethodInfo? _generatorMethodDefinition; 
 #else
         [CanBeNull] private readonly MethodInfo _converterMethodDefinition;
         [CanBeNull] private readonly MethodInfo _generatorMethodDefinition;
 #endif
-#if NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private ICsvFileMapper? _resolvedMapper;
 #else
         [CanBeNull] private ICsvFileMapper _resolvedMapper;
@@ -120,8 +120,11 @@ namespace DataStandardizer.File.CSV
             return quotingRequired;
         }
 
-#if NETCOREAPP3_0_OR_GREATER
+#if NET5_0_OR_GREATER
         protected T? DeserializeCsvLineFieldValue<T>(CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, object? fieldValue)
+#elif NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+        protected T DeserializeCsvLineFieldValue<T>(CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, object? fieldValue)
 #else
         [CanBeNull]
         protected T DeserializeCsvLineFieldValue<T>([CanBeNull] CsvFileHeaderLine headerLine, [NotNull] TRecordLine recordLine, [NotNull] CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
@@ -145,8 +148,10 @@ namespace DataStandardizer.File.CSV
             }
 
             // Attempt to convert the field value to the target data type.
-#if NETCOREAPP3_0_OR_GREATER
+#if NET5_0_OR_GREATER
             T? result = default;
+#elif NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            T result = default!;
 #else
             T result = default;
 #endif
@@ -162,8 +167,10 @@ namespace DataStandardizer.File.CSV
                     FieldName = mappedFieldName,
                     FieldIndex = propertyFieldMapping.Value.FieldIndex
                 };
-#if NETCOREAPP3_0_OR_GREATER
+#if NET5_0_OR_GREATER
                 result = (T?)converterMethod?.Invoke(this, new object?[] { propertyFieldMapping.Value.FromStringConverter, context });
+#elif NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+                result = (T)converterMethod?.Invoke(this, new object?[] { propertyFieldMapping.Value.FromStringConverter, context })!;
 #else
                 result = (T)converterMethod?.Invoke(this, new object[] { propertyFieldMapping.Value.FromStringConverter, context });
 #endif
@@ -174,9 +181,12 @@ namespace DataStandardizer.File.CSV
                 if ((typeConverter?.CanConvertFrom(typeof(string))).GetValueOrDefault())
                 {
                     result = options.Culture != null
-#if NETCOREAPP3_0_OR_GREATER
+#if NET5_0_OR_GREATER
                         ? (T?)typeConverter?.ConvertFromString(null, options.Culture, serializedFieldValue)
                         : (T?)typeConverter?.ConvertFromInvariantString(serializedFieldValue);
+#elif NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+                        ? (T)typeConverter?.ConvertFromString(null, options.Culture, serializedFieldValue)!
+                        : (T)typeConverter?.ConvertFromInvariantString(serializedFieldValue)!;
 #else
                         ? (T)typeConverter?.ConvertFromString(null, options.Culture, serializedFieldValue)
                         : (T)typeConverter?.ConvertFromInvariantString(serializedFieldValue);
@@ -187,7 +197,7 @@ namespace DataStandardizer.File.CSV
             return result;
         }
 
-#if NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         protected object? GetCsvLineMappedFieldValue(TRecordLine recordLine, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping) 
         #else
         [CanBeNull]
@@ -213,7 +223,7 @@ namespace DataStandardizer.File.CSV
             else if (propertyFieldMapping.Value.VariableValueGenerator != null)
             {
                 var generatorMethod = _generatorMethodDefinition?.MakeGenericMethod(propertyFieldMapping.Value.PropertyType);
-#if NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
                 fieldValue = generatorMethod?.Invoke(this, new object?[] { propertyFieldMapping.Value.VariableValueGenerator });
 #else
                 fieldValue = generatorMethod?.Invoke(this, new object[] { propertyFieldMapping.Value.VariableValueGenerator });
@@ -271,7 +281,7 @@ namespace DataStandardizer.File.CSV
             return fieldValueBuilder.ToString();
         }
 
-#if NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         protected string? SerializeCsvLineFieldValue(CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, object? fieldValue) 
         #else
         [CanBeNull]

@@ -6,7 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using DataStandardizer.Core;
-#if NETSTANDARD
+#if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP3_0_OR_GREATER
 using JetBrains.Annotations;
 #endif
 
@@ -34,7 +34,7 @@ namespace DataStandardizer.File.CSV
             internal const string DuplicateFieldNamesTemplate = "Found {0} duplicate field names.";
             internal const string FieldCountMismatchTemplate = "Found {0} of {1} expected fields.";
         }
-#if NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private CsvContext? _context;
         private IEnumerable<IList<string>>? _csvSource;
         private readonly MethodInfo? _deserializeFieldValueMethodDefinition;
@@ -155,7 +155,7 @@ namespace DataStandardizer.File.CSV
         /// Duplicate field names were detected.
         /// </exception>
         /// <exception cref="ObjectDisposedException">The reader has been disposed.</exception>
-#if NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public ICsvFileLine? ReadLine()
 #else
         [CanBeNull]
@@ -344,7 +344,7 @@ namespace DataStandardizer.File.CSV
             foreach (var fieldMapping in mapper)
             {
                 // Determine the name of the field the property is mapped to.
-#if NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
                 string? mappedFieldName = null;
 #else
                 string mappedFieldName = null;
@@ -409,7 +409,7 @@ namespace DataStandardizer.File.CSV
                 // Deserialize the field value.
                 var fieldValue = GetCsvLineMappedFieldValue(recordLine, fieldMapping);
                 var deserializeFieldValueMethod = _deserializeFieldValueMethodDefinition?.MakeGenericMethod(fieldMapping.Value.PropertyType);
-#if NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
                 var deserializedFieldValue = deserializeFieldValueMethod?.Invoke(this, new object?[] { _headerLine, recordLine, _options, fieldMapping, fieldValue });
 #else
                 var deserializedFieldValue = deserializeFieldValueMethod?.Invoke(this, new object[] { _headerLine, recordLine, _options, fieldMapping, fieldValue });

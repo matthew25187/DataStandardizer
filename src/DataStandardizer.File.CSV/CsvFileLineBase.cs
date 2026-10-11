@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Specialized;
 using System.Reflection;
-#if NETSTANDARD
+#if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP3_0_OR_GREATER
 using JetBrains.Annotations;
 #endif
 
@@ -16,7 +16,7 @@ namespace DataStandardizer.File.CSV
         {
             return _fieldBag.Count;
         }
-#if NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         protected object? GetFieldValue(string fieldName)
         {
             if (!_fieldBag.Contains(fieldName))
@@ -68,7 +68,7 @@ namespace DataStandardizer.File.CSV
             return fieldAttribute?.FieldName ?? pi?.Name ?? propertyName;
         }
 
-#if NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public void Add(object key, object? value)
         {
             _fieldBag.Add(key, value);

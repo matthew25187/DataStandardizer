@@ -6,7 +6,7 @@ using System.ComponentModel;
 #if NET9_0_OR_GREATER
 using System.Threading;
 #endif
-#if NETSTANDARD
+#if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP3_0_OR_GREATER
 using JetBrains.Annotations;
 #endif
 
@@ -110,7 +110,7 @@ namespace DataStandardizer.File.CSV
             }
         }
 
-#if NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         protected TypeConverter? GetTypeConverter(string typeName)
 #else
         [CanBeNull]
@@ -126,7 +126,7 @@ namespace DataStandardizer.File.CSV
             return GetTypeConverter(typeConverterType);
         }
 
-#if NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         protected TypeConverter? GetTypeConverter(Type typeConverterType)
 #else
         [CanBeNull]

@@ -1,5 +1,5 @@
 ﻿using System;
-#if NETSTANDARD
+#if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP3_0_OR_GREATER
 using JetBrains.Annotations; 
 #endif
 
@@ -28,8 +28,10 @@ namespace DataStandardizer.File.CSV
         /// <summary>
         /// Gets the path to the CSV file.
         /// </summary>
-#if NETCOREAPP3_0_OR_GREATER
+#if NET5_0_OR_GREATER
         public string? FilePath { get; init; } 
+#elif NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        public string? FilePath { get; internal set; }
 #else
         [CanBeNull]
         public string FilePath { get; internal set; }

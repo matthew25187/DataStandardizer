@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-#if NETSTANDARD
+#if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP3_0_OR_GREATER
 using JetBrains.Annotations; 
 #endif
 
@@ -10,7 +10,7 @@ namespace DataStandardizer.File.CSV
     /// </summary>
     /// <param name="headerLine">Header line read from the CSV file, if any.</param>
     /// <returns>Sorted collection of field names from the header line.</returns>
-#if NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
     public delegate IReadOnlyList<string> CsvFileHeader(CsvFileHeaderLine? headerLine);
 #else
     public delegate IReadOnlyList<string> CsvFileHeader([CanBeNull] CsvFileHeaderLine headerLine);
