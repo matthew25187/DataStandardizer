@@ -2,6 +2,7 @@
   "solution": {
     "path": "DataStandardizer.sln",
     "projects": [
+      "benchmarks\\DataStandardizer.File.CSV.Benchmarks\\DataStandardizer.File.CSV.Benchmarks.csproj",
       "src\\DataStandardizer.Core\\DataStandardizer.Core.csproj",
       "src\\DataStandardizer.File.CSV\\DataStandardizer.File.CSV.csproj",
       "tests\\DataStandardizer.File.CSV.Tests\\DataStandardizer.File.CSV.Tests.csproj"
