@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -34,25 +35,42 @@ namespace DataStandardizer.File.CSV
             internal const string DuplicateFieldNamesTemplate = "Found {0} duplicate field names.";
             internal const string FieldCountMismatchTemplate = "Found {0} of {1} expected fields.";
         }
+        private const int DefaultBufferSize = 16 * 1024;
+        private const char QuoteCharacter = '"';
+
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private CsvContext? _context;
-        private IEnumerable<IList<string>>? _csvSource;
         private readonly MethodInfo? _deserializeFieldValueMethodDefinition;
         private IReadOnlyList<string>? _headerFieldNames;
         private CsvFileHeaderLine? _headerLine;
+        private List<KeyValuePair<string, int>>? _invalidFieldValues;
         private readonly TextReader _reader = null!;
 #else
         [CanBeNull] private CsvContext _context;
-        [CanBeNull] private IEnumerable<IList<string>> _csvSource;
         [CanBeNull] private readonly MethodInfo _deserializeFieldValueMethodDefinition;
         [CanBeNull] private IReadOnlyList<string> _headerFieldNames;
         [CanBeNull] private CsvFileHeaderLine _headerLine;
+        [CanBeNull] private List<KeyValuePair<string, int>> _invalidFieldValues;
         [NotNull] private readonly TextReader _reader;
 #endif
+#if NET8_0_OR_GREATER
+        private SearchValues<char>? _unquotedStopCharacters;
+        private char _unquotedStopDelimiter;
+        private char _unquotedStopTerminatorStart;
+#endif
+        private char[] _buffer = Array.Empty<char>();
+        private int _bufferEnd;
+        private int _bufferLength;
+        private int _bufferPosition;
+        private readonly int _bufferSize = DefaultBufferSize;
+        private bool _endOfStream;
         private int _expectedFieldCount;
+        private readonly StringBuilder _fieldValueBuilder = new StringBuilder();
+        private int _fieldValueStart;
         private bool _headerLineIgnored;
         private readonly bool _isInternalReader;
         private readonly ICsvFileOptions _options = new CsvFileOptions();
+        private readonly List<string> _rawFieldValues = new List<string>();
 
         private CsvFileReader()
         {
@@ -130,6 +148,17 @@ namespace DataStandardizer.File.CSV
             }
         }
 
+        /// <summary>
+        /// Creates a reader with a specific size for the internal character buffer.  Allows tests to force buffer refills at chosen points.
+        /// </summary>
+        internal CsvFileReader(TextReader reader, CsvFileOptions options, int bufferSize) : this(reader, options)
+        {
+            if (bufferSize < 1)
+                throw new ArgumentOutOfRangeException(nameof(bufferSize));
+
+            _bufferSize = bufferSize;
+        }
+
         public void Dispose()
         {
             if (!MarkDisposed()) return;
@@ -139,7 +168,12 @@ namespace DataStandardizer.File.CSV
                 _reader.Dispose();
             }
 
-            _csvSource = null;
+            if (_bufferLength > 0)
+            {
+                ArrayPool<char>.Shared.Return(_buffer);
+                _buffer = Array.Empty<char>();
+                _bufferLength = 0;
+            }
         }
 
         /// <summary>
@@ -155,6 +189,7 @@ namespace DataStandardizer.File.CSV
         /// Duplicate field names were detected.
         /// </exception>
         /// <exception cref="ObjectDisposedException">The reader has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">The terminator line break option is empty.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public ICsvFileLine? ReadLine()
 #else
@@ -164,14 +199,8 @@ namespace DataStandardizer.File.CSV
         {
             ThrowIfDisposed();
 
-            if (_csvSource is null)
-            {
-                _csvSource = ReadCsv(_reader, _options);
-            }
-
-            if (_csvSource is null) return null;
-
-            foreach (var rawFieldValues in _csvSource)
+            var rawFieldValues = _rawFieldValues;
+            while (TryReadRecord(rawFieldValues))
             {
                 if (rawFieldValues.Count == 0)
                 {
@@ -418,180 +447,381 @@ namespace DataStandardizer.File.CSV
             }
         }
 
-        private IList<string> ParseCsvRecord(string record)
+        /// <summary>
+        /// Reads the next CSV record from the stream and splits it into raw field values.
+        /// </summary>
+        /// <remarks>
+        /// Characters are read a block at a time and each field value is sliced straight out of the block.  The field value builder is only used when
+        /// a value contains an escaped quote, is split around quotes or straddles a buffer refill.  Invalid field values are collected while the record
+        /// is read and reported once it is complete, so the stream is always left positioned at the start of the next record.
+        /// </remarks>
+        /// <param name="fieldValues">The list to receive the raw field values.  It is cleared first.</param>
+        /// <returns><c>true</c> if a record was read; <c>false</c> if the end of the stream has been reached.</returns>
+        internal bool TryReadRecord(List<string> fieldValues)
         {
-            var fieldValues = new List<string>();
-            var fieldValueBuilder = new StringBuilder();
-            bool inQuotes = false, quotedValue = false;
-            bool isInvalidValue = false;
+            fieldValues.Clear();
+            _invalidFieldValues?.Clear();
+
+            var fieldDelimiter = _options.FieldDelimiterCharacter;
+            var terminator = _options.TerminatorLineBreak;
+            if (string.IsNullOrEmpty(terminator))
+                throw new InvalidOperationException("The terminator line break must have at least one character.");
+
+            var terminatorStart = terminator[0];
+            var buffer = EnsureBuffer(terminator.Length);
+#if NET8_0_OR_GREATER
+            var unquotedStopCharacters = GetUnquotedStopCharacters(fieldDelimiter, terminatorStart);
+#endif
+
+            _fieldValueBuilder.Clear();
+            _fieldValueStart = _bufferPosition;
+
+            // A final record without a terminator is returned, but an empty remainder of the stream is not.
+            // ref. RFC 4180§2¶2
+            if (!EnsureAvailable(1)) return false;
+
+            bool inQuotes = false, quotedValue = false, isInvalidValue = false;
             var fieldIndex = 0;
 
-            void HandleInvalidFieldValue(string s, int i)
+            while (true)
             {
-                if (_options.BadValueHandler is CsvFieldBadValue<TRecordLine> badValueHandler)
-                {
-                    var context = new CsvFieldContext<TRecordLine>(_options)
-                    {
-                        RawFieldValue = s,
-                        FieldIndex = i,
-                        HeaderLine = _headerLine
-                    };
-                    badValueHandler(context);
-                    return;
-                }
-
-                var message = $"Encountered invalid value at field index {i}.";
-                var dataItems = new Dictionary<string, object> { { DataItemName.FieldIndex, i } };
-                throw BuildException(message, dataItems);
-            }
-
-            for (int characterIndex = 0; characterIndex < record.Length; characterIndex++)
-            {
-                char character = record[characterIndex];
-
                 if (inQuotes)
                 {
-                    if (character == '"')
+                    var quoteIndex = buffer.AsSpan(_bufferPosition, _bufferEnd - _bufferPosition).IndexOf(QuoteCharacter);
+                    if (quoteIndex < 0)
                     {
-                        // Check for escaped quote
-                        // ref. RFC 4180§2¶7
-                        if (characterIndex + 1 < record.Length && record[characterIndex + 1] == '"')
-                        {
-                            fieldValueBuilder.Append('"');
-                            characterIndex++; // Skip the second quote
-                        }
-                        else
-                        {
-                            inQuotes = false; // Closing quote
-                        }
-                    }
-                    else
-                    {
-                        fieldValueBuilder.Append(character);
-                    }
-                }
-                else
-                {
-                    // ref. RFC 4180§2¶5
-                    if (character == '"')
-                    {
-                        inQuotes = true;
-                        quotedValue = true;
+                        _bufferPosition = _bufferEnd;
+                        if (EnsureAvailable(1)) continue;
 
-                        // Check if the field value is all whitespace.
-                        var isFieldValueWhiteSpace = true;
-                        for (int index = 0; index < fieldValueBuilder.Length && isFieldValueWhiteSpace; index++)
-                        {
-                            if (!char.IsWhiteSpace(fieldValueBuilder[index]))
-                            {
-                                isFieldValueWhiteSpace = false;
-                            }
-                        }
-
-                        // If the field value is not whitespace, the current quote character would be embedded without quoting and thus invalid.
-                        // ref. RFC 4180§2¶5
-                        if (!isFieldValueWhiteSpace)
-                        {
-                            HandleInvalidFieldValue(fieldValueBuilder.ToString(), fieldIndex);
-                            isInvalidValue = true;
-                        }
+                        // An unterminated quote runs to the end of the stream.
+                        fieldValues.Add(TakeFieldValue());
+                        break;
                     }
-                    else if (character == _options.FieldDelimiterCharacter)
+
+                    _bufferPosition += quoteIndex;
+                    var hasNextCharacter = EnsureAvailable(2);
+
+                    // Check for escaped quote
+                    // ref. RFC 4180§2¶7
+                    if (hasNextCharacter && buffer[_bufferPosition + 1] == QuoteCharacter)
                     {
+                        // Keep the first quote of the pair and skip the second.
+                        _fieldValueBuilder.Append(buffer, _fieldValueStart, _bufferPosition + 1 - _fieldValueStart);
+                        _bufferPosition += 2;
+                        _fieldValueStart = _bufferPosition;
+                        continue;
+                    }
+
+                    // Closing quote.  Usually the field ends straight after it, so the value can still be taken as one slice of the buffer.
+                    inQuotes = false;
+                    if (!hasNextCharacter)
+                    {
+                        fieldValues.Add(TakeFieldValue());
+                        _bufferPosition++;
+                        break;
+                    }
+
+                    var nextCharacter = buffer[_bufferPosition + 1];
+                    if (nextCharacter == terminatorStart && IsTerminatorAt(1, terminator))
+                    {
+                        fieldValues.Add(TakeFieldValue());
+                        _bufferPosition += 1 + terminator.Length;
+                        break;
+                    }
+
+                    if (nextCharacter == fieldDelimiter)
+                    {
+                        AddDelimitedFieldValue(fieldValues, isInvalidValue);
                         fieldIndex++;
-                        quotedValue = false;
-
-                        if (isInvalidValue)
-                        {
-                            isInvalidValue = false;
-
-                            fieldValues.Add(string.Empty);
-                            fieldValueBuilder.Clear();
-                            continue;
-                        }
-
-                        fieldValues.Add(fieldValueBuilder.ToString());
-                        fieldValueBuilder.Clear();
+                        quotedValue = isInvalidValue = false;
+                        _bufferPosition += 2;
+                        _fieldValueStart = _bufferPosition;
+                        continue;
                     }
-                    else
+
+                    // Something else follows the closing quote, so the value is no longer one slice of the buffer.
+                    AppendPendingFieldValue();
+                    _bufferPosition++;
+                    _fieldValueStart = _bufferPosition;
+                    continue;
+                }
+
+                if (!quotedValue)
+                {
+                    // Skip straight to the next character that could end the field or the record, or open a quote.
+#if NET8_0_OR_GREATER
+                    var stopIndex = buffer.AsSpan(_bufferPosition, _bufferEnd - _bufferPosition).IndexOfAny(unquotedStopCharacters);
+#else
+                    var stopIndex = buffer.AsSpan(_bufferPosition, _bufferEnd - _bufferPosition).IndexOfAny(fieldDelimiter, QuoteCharacter, terminatorStart);
+#endif
+                    if (stopIndex < 0)
                     {
-                        fieldValueBuilder.Append(character);
+                        _bufferPosition = _bufferEnd;
+                        if (EnsureAvailable(1)) continue;
 
-                        // Check for non-whitespace outside a quoted value.
-                        // ref. RFC 4180§2¶5
-                        if (quotedValue && !char.IsWhiteSpace(character))
-                        {
-                            HandleInvalidFieldValue(fieldValueBuilder.ToString(), fieldIndex);
-                            isInvalidValue = true;
-                        }
+                        fieldValues.Add(TakeFieldValue());
+                        break;
                     }
+
+                    _bufferPosition += stopIndex;
+                }
+                else if (!EnsureAvailable(1))
+                {
+                    fieldValues.Add(TakeFieldValue());
+                    break;
+                }
+
+                var character = buffer[_bufferPosition];
+
+                // Check for terminator only if not inside quoted field
+                // ref. RFC 4180§2¶1
+                if (character == terminatorStart && IsTerminatorAt(0, terminator))
+                {
+                    fieldValues.Add(TakeFieldValue());
+                    _bufferPosition += terminator.Length;
+                    break;
+                }
+
+                // ref. RFC 4180§2¶5
+                if (character == QuoteCharacter)
+                {
+                    inQuotes = true;
+                    quotedValue = true;
+
+                    // If the field value is not whitespace, the current quote character would be embedded without quoting and thus invalid.
+                    // ref. RFC 4180§2¶5
+                    if (!IsPendingFieldValueWhiteSpace())
+                    {
+                        AddInvalidFieldValue(PeekFieldValue(), fieldIndex);
+                        isInvalidValue = true;
+                    }
+
+                    AppendPendingFieldValue();
+                    _bufferPosition++;
+                    _fieldValueStart = _bufferPosition;
+                    continue;
+                }
+
+                if (character == fieldDelimiter)
+                {
+                    AddDelimitedFieldValue(fieldValues, isInvalidValue);
+                    fieldIndex++;
+                    quotedValue = isInvalidValue = false;
+                    _bufferPosition++;
+                    _fieldValueStart = _bufferPosition;
+                    continue;
+                }
+
+                _bufferPosition++;
+
+                // Check for non-whitespace outside a quoted value.
+                // ref. RFC 4180§2¶5
+                if (quotedValue && !char.IsWhiteSpace(character))
+                {
+                    AddInvalidFieldValue(PeekFieldValue(), fieldIndex);
+                    isInvalidValue = true;
                 }
             }
 
-            // Add last field
-            fieldValues.Add(fieldValueBuilder.ToString());
+            if (_invalidFieldValues != null)
+            {
+                foreach (var invalidFieldValue in _invalidFieldValues)
+                {
+                    HandleInvalidFieldValue(invalidFieldValue.Key, invalidFieldValue.Value);
+                }
+            }
 
             // Normalize embedded line breaks.
             if (_options.EmbeddedLineBreak != null)
             {
                 for (int fieldValueIndex = 0; fieldValueIndex < fieldValues.Count; fieldValueIndex++)
                 {
-                    var fieldValue = fieldValues[fieldValueIndex];
-                    fieldValues[fieldValueIndex] = NormalizeFieldValueLineBreaks(fieldValue, _options);
+                    fieldValues[fieldValueIndex] = NormalizeFieldValueLineBreaks(fieldValues[fieldValueIndex], _options);
                 }
             }
 
-            return fieldValues;
+            return true;
         }
 
-        private IEnumerable<IList<string>> ReadCsv(TextReader reader, ICsvFileOptions options)
+        private void AddDelimitedFieldValue(List<string> fieldValues, bool isInvalidValue)
         {
-            var recordBuffer = new StringBuilder();
-            var quoteCount = 0;
-
-            bool EndsWith(StringBuilder sb, string lineBreak)
+            if (isInvalidValue)
             {
-                if (sb.Length < lineBreak.Length)
+                _fieldValueBuilder.Clear();
+                fieldValues.Add(string.Empty);
+                return;
+            }
+
+            fieldValues.Add(TakeFieldValue());
+        }
+
+        private void AddInvalidFieldValue(string rawFieldValue, int fieldIndex)
+        {
+            if (_invalidFieldValues is null)
+            {
+                _invalidFieldValues = new List<KeyValuePair<string, int>>();
+            }
+
+            _invalidFieldValues.Add(new KeyValuePair<string, int>(rawFieldValue, fieldIndex));
+        }
+
+        /// <summary>
+        /// Moves the part of the field value still in the buffer into the field value builder.
+        /// </summary>
+        private void AppendPendingFieldValue()
+        {
+            if (_bufferPosition > _fieldValueStart)
+            {
+                _fieldValueBuilder.Append(_buffer, _fieldValueStart, _bufferPosition - _fieldValueStart);
+                _fieldValueStart = _bufferPosition;
+            }
+        }
+
+        private char[] EnsureBuffer(int terminatorLength)
+        {
+            // There must be room to look past a closing quote for a whole terminator.
+            var requiredLength = Math.Max(_bufferSize, terminatorLength + 1);
+            if (_bufferLength >= requiredLength)
+            {
+                return _buffer;
+            }
+
+            var buffer = ArrayPool<char>.Shared.Rent(requiredLength);
+            if (_bufferLength > 0)
+            {
+                Array.Copy(_buffer, _bufferPosition, buffer, 0, _bufferEnd - _bufferPosition);
+                _bufferEnd -= _bufferPosition;
+                _bufferPosition = 0;
+                ArrayPool<char>.Shared.Return(_buffer);
+            }
+
+            _buffer = buffer;
+            _bufferLength = requiredLength;
+            return buffer;
+        }
+
+        /// <summary>
+        /// Makes sure the given number of unread characters is in the buffer, reading more from the stream if needed.
+        /// </summary>
+        /// <returns><c>true</c> if the characters are available; <c>false</c> if the end of the stream comes first.</returns>
+        private bool EnsureAvailable(int count)
+        {
+            if (_bufferEnd - _bufferPosition >= count) return true;
+            if (_endOfStream) return false;
+
+            // Keep the part of the field value read so far, then move the unread characters to the front of the buffer.
+            AppendPendingFieldValue();
+            var buffer = _buffer;
+            var remaining = _bufferEnd - _bufferPosition;
+            if (remaining > 0 && _bufferPosition > 0)
+            {
+                Array.Copy(buffer, _bufferPosition, buffer, 0, remaining);
+            }
+
+            _bufferPosition = _fieldValueStart = 0;
+            _bufferEnd = remaining;
+
+            while (_bufferEnd < count)
+            {
+                var read = _reader.Read(buffer, _bufferEnd, _bufferLength - _bufferEnd);
+                if (read == 0)
                 {
+                    _endOfStream = true;
                     return false;
                 }
 
-                var lineBreakIndex = 0;
-                return lineBreak
-                    .All(character => character == sb[sb.Length - lineBreak.Length + lineBreakIndex++]);
+                _bufferEnd += read;
             }
 
-            var endOfStream = false;
-            while (!endOfStream)
+            return true;
+        }
+
+#if NET8_0_OR_GREATER
+        private SearchValues<char> GetUnquotedStopCharacters(char fieldDelimiter, char terminatorStart)
+        {
+            if (_unquotedStopCharacters is null || _unquotedStopDelimiter != fieldDelimiter || _unquotedStopTerminatorStart != terminatorStart)
             {
-                var characterValue = reader.Read();
-                if (characterValue == -1)
-                {
-                    endOfStream = true;
-                    continue;
-                }
-
-                recordBuffer.Append((char)characterValue);
-
-                if ((char)characterValue == '"') quoteCount++;
-
-                // Check for terminator only if not inside quoted field
-                // ref. RFC 4180§2¶1
-                if (EndsWith(recordBuffer, options.TerminatorLineBreak) && quoteCount % 2 == 0)
-                {
-                    string record = recordBuffer.ToString(0, recordBuffer.Length - options.TerminatorLineBreak.Length);
-                    recordBuffer.Clear();
-                    quoteCount = 0;
-                    yield return ParseCsvRecord(record);
-                }
+                _unquotedStopCharacters = SearchValues.Create([fieldDelimiter, QuoteCharacter, terminatorStart]);
+                _unquotedStopDelimiter = fieldDelimiter;
+                _unquotedStopTerminatorStart = terminatorStart;
             }
 
-            // Handle final record if no terminator
-            // ref. RFC 4180§2¶2
-            if (recordBuffer.Length > 0)
+            return _unquotedStopCharacters;
+        }
+#endif
+
+        private void HandleInvalidFieldValue(string rawFieldValue, int fieldIndex)
+        {
+            if (_options.BadValueHandler is CsvFieldBadValue<TRecordLine> badValueHandler)
             {
-                yield return ParseCsvRecord(recordBuffer.ToString());
+                var context = new CsvFieldContext<TRecordLine>(_options)
+                {
+                    RawFieldValue = rawFieldValue,
+                    FieldIndex = fieldIndex,
+                    HeaderLine = _headerLine
+                };
+                badValueHandler(context);
+                return;
             }
+
+            var message = $"Encountered invalid value at field index {fieldIndex}.";
+            var dataItems = new Dictionary<string, object> { { DataItemName.FieldIndex, fieldIndex } };
+            throw BuildException(message, dataItems);
+        }
+
+        private bool IsPendingFieldValueWhiteSpace()
+        {
+            for (int index = 0; index < _fieldValueBuilder.Length; index++)
+            {
+                if (!char.IsWhiteSpace(_fieldValueBuilder[index])) return false;
+            }
+
+            var buffer = _buffer;
+            for (int index = _fieldValueStart; index < _bufferPosition; index++)
+            {
+                if (!char.IsWhiteSpace(buffer[index])) return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Checks for the terminator at an offset from the current buffer position, reading more from the stream if needed to compare it whole.
+        /// </summary>
+        /// <remarks>
+        /// The caller has already matched the first character of the terminator.
+        /// </remarks>
+        private bool IsTerminatorAt(int offset, string terminator)
+        {
+            if (terminator.Length == 1) return true;
+            if (!EnsureAvailable(offset + terminator.Length)) return false;
+
+            return _buffer.AsSpan(_bufferPosition + offset, terminator.Length).SequenceEqual(terminator.AsSpan());
+        }
+
+        /// <summary>
+        /// Gets the field value read so far without consuming it.
+        /// </summary>
+        private string PeekFieldValue()
+        {
+            var pendingValue = new string(_buffer, _fieldValueStart, _bufferPosition - _fieldValueStart);
+            return _fieldValueBuilder.Length == 0 ? pendingValue : _fieldValueBuilder + pendingValue;
+        }
+
+        /// <summary>
+        /// Gets the field value read so far and resets the builder for the next field.
+        /// </summary>
+        private string TakeFieldValue()
+        {
+            var length = _bufferPosition - _fieldValueStart;
+            if (_fieldValueBuilder.Length == 0)
+            {
+                return length == 0 ? string.Empty : new string(_buffer, _fieldValueStart, length);
+            }
+
+            var fieldValue = _fieldValueBuilder.Append(_buffer, _fieldValueStart, length).ToString();
+            _fieldValueBuilder.Clear();
+            return fieldValue;
         }
     }
 }

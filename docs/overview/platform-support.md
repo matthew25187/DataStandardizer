@@ -38,7 +38,11 @@ Most packages start at `netstandard1.0`. The exception is
 reader and writer rely on stream and component-model APIs that are not available
 on `netstandard1.0`. It is also the only package with a `netstandard2.1` target,
 which gives .NET Standard 2.1 platforms (Mono and Unity, for example) the in-box
-span types and span-based BCL overloads with no extra package dependencies.
+span types and span-based BCL overloads with no extra package dependencies. The
+`netstandard1.3` and `netstandard2.0` builds of **DataStandardizer.File.CSV** get
+those span types from the `System.Memory` package instead, which NuGet installs
+automatically; the `netstandard2.1`, `net8.0` and `net10.0` builds have no extra
+dependency.
 
 ## Framework-gated APIs
 
