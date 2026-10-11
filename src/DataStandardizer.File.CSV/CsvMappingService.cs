@@ -16,13 +16,6 @@ namespace DataStandardizer.File.CSV
             return fieldMapping.FieldName ?? propertyKey;
         }
 
-        internal static string[] GetSortedFieldNames(ICsvFileLine csvLine, ICsvFileMapper mapper)
-        {
-            var lineFieldNames = csvLine.Keys.Cast<string>();
-            var mapperFieldNames = GetSortedFieldNamesFromMapper(mapper);
-            return mapperFieldNames.Concat(lineFieldNames.Except(mapperFieldNames)).ToArray();
-        }
-
         internal static string[] GetSortedFieldNamesFromMapper(ICsvFileMapper mapper)
         {
             var source = mapper

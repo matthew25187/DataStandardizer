@@ -1,10 +1,9 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text;
-using DataStandardizer.Core;
 #if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP3_0_OR_GREATER
 using JetBrains.Annotations; 
 #endif
@@ -13,13 +12,6 @@ namespace DataStandardizer.File.CSV
 {
     public abstract class CsvFileIoBase<TRecordLine> : CsvFileCacheRepositoryBase where TRecordLine : CsvFileRecordLine
     {
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        private readonly MethodInfo? _converterMethodDefinition;
-        private readonly MethodInfo? _generatorMethodDefinition; 
-#else
-        [CanBeNull] private readonly MethodInfo _converterMethodDefinition;
-        [CanBeNull] private readonly MethodInfo _generatorMethodDefinition;
-#endif
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private ICsvFileMapper? _resolvedMapper;
 #else
@@ -30,12 +22,6 @@ namespace DataStandardizer.File.CSV
 
         protected CsvFileIoBase()
         {
-            _converterMethodDefinition = this
-                .GetMethod(nameof(GetConvertedFieldValue), isPrivate: true)
-                ?.GetGenericMethodDefinition();
-            _generatorMethodDefinition = this
-                .GetMethod(nameof(GetGeneratedFieldValue), isPrivate: true)
-                ?.GetGenericMethodDefinition();
         }
 
         /// <summary>
@@ -157,7 +143,7 @@ namespace DataStandardizer.File.CSV
 #endif
             if (propertyFieldMapping.Value.FromStringConverter != null)
             {
-                var converterMethod = _converterMethodDefinition?.MakeGenericMethod(typeof(T));
+                var converter = (CsvFieldConvertFromString<TRecordLine, T>)propertyFieldMapping.Value.FromStringConverter;
 
                 var mappedFieldName = CsvMappingService.GetFieldNameFromMapping(propertyFieldMapping);
                 var context = new CsvFieldContext<TRecordLine>(options)
@@ -167,13 +153,7 @@ namespace DataStandardizer.File.CSV
                     FieldName = mappedFieldName,
                     FieldIndex = propertyFieldMapping.Value.FieldIndex
                 };
-#if NET5_0_OR_GREATER
-                result = (T?)converterMethod?.Invoke(this, new object?[] { propertyFieldMapping.Value.FromStringConverter, context });
-#elif NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-                result = (T)converterMethod?.Invoke(this, new object?[] { propertyFieldMapping.Value.FromStringConverter, context })!;
-#else
-                result = (T)converterMethod?.Invoke(this, new object[] { propertyFieldMapping.Value.FromStringConverter, context });
-#endif
+                result = converter(context);
             }
             else if (propertyFieldMapping.Value.TypeConverterType != null)
             {
@@ -222,12 +202,7 @@ namespace DataStandardizer.File.CSV
             }
             else if (propertyFieldMapping.Value.VariableValueGenerator != null)
             {
-                var generatorMethod = _generatorMethodDefinition?.MakeGenericMethod(propertyFieldMapping.Value.PropertyType);
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-                fieldValue = generatorMethod?.Invoke(this, new object?[] { propertyFieldMapping.Value.VariableValueGenerator });
-#else
-                fieldValue = generatorMethod?.Invoke(this, new object[] { propertyFieldMapping.Value.VariableValueGenerator });
-#endif
+                fieldValue = FieldValueAccessor.For(propertyFieldMapping.Value.PropertyType).Generate(propertyFieldMapping.Value.VariableValueGenerator);
             }
 
             return fieldValue;
@@ -332,16 +307,76 @@ namespace DataStandardizer.File.CSV
             return result;
         }
 
-        private T GetConvertedFieldValue<T>(Delegate converterDelegate, CsvFieldContext<TRecordLine> context)
+        /// <summary>
+        /// Calls the generic field value members for a property type known only at run time, without reflection on each call.
+        /// </summary>
+        /// <remarks>
+        /// One accessor is created per property type and shared by every reader and writer.  Accessors hold no state, so sharing them is thread-safe.
+        /// </remarks>
+        private protected abstract class FieldValueAccessor
         {
-            var converter = (CsvFieldConvertFromString<TRecordLine, T>)converterDelegate;
-            return converter(context);
+            private static readonly ConcurrentDictionary<Type, FieldValueAccessor> AccessorCache = new ConcurrentDictionary<Type, FieldValueAccessor>();
+
+            internal static FieldValueAccessor For(Type propertyType)
+            {
+                if (AccessorCache.TryGetValue(propertyType, out var accessor))
+                {
+                    return accessor;
+                }
+
+                return AccessorCache.GetOrAdd(propertyType, CreateAccessor);
+            }
+
+            private static FieldValueAccessor CreateAccessor(Type propertyType)
+            {
+                var accessorType = typeof(CsvFileIoBase<>.FieldValueAccessor<>).MakeGenericType(typeof(TRecordLine), propertyType);
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+                return (FieldValueAccessor)Activator.CreateInstance(accessorType)!;
+#else
+                return (FieldValueAccessor)Activator.CreateInstance(accessorType);
+#endif
+            }
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            internal abstract object? Deserialize(CsvFileIoBase<TRecordLine> io, CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
+                object? fieldValue);
+
+            internal abstract object? Generate(Delegate generator);
+#else
+            [CanBeNull]
+            internal abstract object Deserialize([NotNull] CsvFileIoBase<TRecordLine> io, [CanBeNull] CsvFileHeaderLine headerLine, [NotNull] TRecordLine recordLine, [NotNull] CsvFileOptions options,
+                KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, [CanBeNull] object fieldValue);
+
+            [CanBeNull]
+            internal abstract object Generate([NotNull] Delegate generator);
+#endif
         }
 
-        private T GetGeneratedFieldValue<T>(Delegate generatorDelegate)
+        private sealed class FieldValueAccessor<T> : FieldValueAccessor
         {
-            var generator = (CsvFieldGenerate<T>)generatorDelegate;
-            return generator();
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            internal override object? Deserialize(CsvFileIoBase<TRecordLine> io, CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
+                object? fieldValue)
+            {
+                return io.DeserializeCsvLineFieldValue<T>(headerLine, recordLine, options, propertyFieldMapping, fieldValue);
+            }
+
+            internal override object? Generate(Delegate generator)
+            {
+                return ((CsvFieldGenerate<T>)generator)();
+            }
+#else
+            internal override object Deserialize(CsvFileIoBase<TRecordLine> io, CsvFileHeaderLine headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
+                object fieldValue)
+            {
+                return io.DeserializeCsvLineFieldValue<T>(headerLine, recordLine, options, propertyFieldMapping, fieldValue);
+            }
+
+            internal override object Generate(Delegate generator)
+            {
+                return ((CsvFieldGenerate<T>)generator)();
+            }
+#endif
         }
     }
 }
