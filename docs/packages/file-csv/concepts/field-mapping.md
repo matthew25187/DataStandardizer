@@ -105,6 +105,9 @@ type in this order: an imperative mapper registered with
 `RegisterMapper<TMapper>()`, then a declarative mapper built from
 `[CsvFieldMapping]` attributes, otherwise no mapping (direct field access only).
 Resolved mappers are cached per model type, so reflection happens at most once.
+Property-to-field key resolution is cached the same way, so typed property
+access on a line and conversions with `ToObject`/`ToCsvLine` reflect at most
+once per type.
 The converters, validators, and generators run as each field is read or written;
 on a validation failure the value is routed to the configured bad-value handler
 or, if none, surfaces as a `CsvFileException`.

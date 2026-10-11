@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Specialized;
 using System.Reflection;
 #if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP3_0_OR_GREATER
@@ -10,6 +11,12 @@ namespace DataStandardizer.File.CSV
 {
     public abstract class CsvFileLineBase : ICsvFileLine
     {
+        // Field keys resolved from property names, keyed by runtime line type then property name.  The resolution
+        // depends only on type metadata, so it is computed once per (type, property name) for the process lifetime.
+        // Nested rather than keyed by a tuple, so the .NET Standard 1.x build needs no System.ValueTuple reference.
+        private static readonly ConcurrentDictionary<Type, ConcurrentDictionary<string, string>> PropertyKeyCache =
+            new ConcurrentDictionary<Type, ConcurrentDictionary<string, string>>();
+
         private readonly IOrderedDictionary _fieldBag = new OrderedDictionary();
 
         protected int GetFieldCount()
@@ -19,51 +26,55 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         protected object? GetFieldValue(string fieldName)
         {
-            if (!_fieldBag.Contains(fieldName))
-            {
-                return null;
-            }
-
+            // The indexer returns null for a missing key, so no separate Contains lookup is needed.
             return _fieldBag[fieldName];
         }
 
         protected void SetFieldValue(string fieldName, object? value)
         {
-            if (_fieldBag.Contains(fieldName))
-            {
-                _fieldBag[fieldName] = value;
-                return;
-            }
-
-            _fieldBag.Add(fieldName, value);
+            // The indexer adds the key when it is missing, so no separate Contains lookup is needed.
+            _fieldBag[fieldName] = value;
         }
 #else
         [CanBeNull]
         protected object GetFieldValue(string fieldName)
         {
-            if (!_fieldBag.Contains(fieldName))
-            {
-                return null;
-            }
-
+            // The indexer returns null for a missing key, so no separate Contains lookup is needed.
             return _fieldBag[fieldName];
         }
 
         protected void SetFieldValue(string fieldName, [CanBeNull] object value)
         {
-            if (_fieldBag.Contains(fieldName))
-            {
-                _fieldBag[fieldName] = value;
-                return;
-            }
-
-            _fieldBag.Add(fieldName, value);
+            // The indexer adds the key when it is missing, so no separate Contains lookup is needed.
+            _fieldBag[fieldName] = value;
         }
 #endif
 
         protected string GetPropertyKey(string propertyName)
         {
-            var pi = this.GetType().GetTypeInfo().GetDeclaredProperty(propertyName);
+            var lineType = this.GetType();
+            if (!PropertyKeyCache.TryGetValue(lineType, out var propertyKeys))
+            {
+                propertyKeys = PropertyKeyCache.GetOrAdd(lineType, _ => new ConcurrentDictionary<string, string>(StringComparer.Ordinal));
+            }
+
+            if (propertyKeys.TryGetValue(propertyName, out var propertyKey))
+            {
+                return propertyKey;
+            }
+
+            return AddPropertyKey(propertyKeys, lineType, propertyName);
+        }
+
+        // Kept out of GetPropertyKey so the closure over lineType is only allocated on a cache miss.
+        private static string AddPropertyKey(ConcurrentDictionary<string, string> propertyKeys, Type lineType, string propertyName)
+        {
+            return propertyKeys.GetOrAdd(propertyName, name => ResolvePropertyKey(lineType, name));
+        }
+
+        private static string ResolvePropertyKey(Type lineType, string propertyName)
+        {
+            var pi = lineType.GetTypeInfo().GetDeclaredProperty(propertyName);
             var fieldAttribute = pi?.GetCustomAttribute<CsvFieldAttribute>();
             return fieldAttribute?.FieldName ?? pi?.Name ?? propertyName;
         }

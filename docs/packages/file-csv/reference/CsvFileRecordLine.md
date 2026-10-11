@@ -27,7 +27,9 @@ To expose typed fields, override property getters and setters to call the
 propertyName = null)` and `SetPropertyValue<T>(T value, [CallerMemberName] string?
 propertyName = null)`. Each helper resolves the backing field name from the
 property (honouring any [CsvFieldAttribute](CsvFieldAttribute.md)) and reads or
-writes the field bag inherited from [CsvFileLineBase](CsvFileLineBase.md). These
+writes the field bag inherited from [CsvFileLineBase](CsvFileLineBase.md). The
+resolved field name is cached per line type and property name, so the reflection
+happens only on first access. These
 helpers are `protected` and therefore not part of the public surface; the public
 `Add` and the explicit `IOrderedDictionary` members are inherited from
 `CsvFileLineBase`.

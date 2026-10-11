@@ -50,6 +50,8 @@ Reads come from a `MemoryStream` and writes go to a pre-sized `MemoryStream`, so
 | | `Write_CsvHelper` | CsvHelper `WriteRecords(...)`. |
 | `ModelBenchmarks` | `Model_PropertyGet` | 6 typed property reads per row on a pre-built `List<PersonLine>`. |
 | | `Model_PropertySet` | 6 typed property writes per row on a pre-built `List<PersonLine>`. |
+| | `Model_IndexerGet` | 6 raw `IOrderedDictionary` indexer reads per row on the same lines (baseline for `Model_PropertyGet`). |
+| | `Model_IndexerSet` | 6 raw `IOrderedDictionary` indexer writes per row on the same lines (baseline for `Model_PropertySet`). |
 
 Every class uses `[MemoryDiagnoser]`. Allocation is the main thing to watch.
 
