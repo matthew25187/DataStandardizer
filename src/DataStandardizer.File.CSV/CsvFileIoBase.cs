@@ -1,8 +1,11 @@
 ﻿using System;
+#if NET8_0_OR_GREATER
+using System.Buffers;
+#endif
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
-using System.Linq;
 using System.Text;
 #if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP3_0_OR_GREATER
 using JetBrains.Annotations; 
@@ -13,10 +16,20 @@ namespace DataStandardizer.File.CSV
     public abstract class CsvFileIoBase<TRecordLine> : CsvFileCacheRepositoryBase where TRecordLine : CsvFileRecordLine
     {
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private string? _quoteSearchEmbeddedLineBreak;
         private ICsvFileMapper? _resolvedMapper;
 #else
+        [CanBeNull] private string _quoteSearchEmbeddedLineBreak;
         [CanBeNull] private ICsvFileMapper _resolvedMapper;
 #endif
+#if NET8_0_OR_GREATER
+        private SearchValues<char>? _quoteSearchValues;
+#elif NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private char[]? _quoteSearchCharacters;
+#else
+        [CanBeNull] private char[] _quoteSearchCharacters;
+#endif
+        private char _quoteSearchDelimiter;
         private int _resolvedMapperVersion;
         private bool _isDisposed;
 
@@ -91,19 +104,78 @@ namespace DataStandardizer.File.CSV
                     break;
                 case CsvFieldQuoteHandling.Required:
                     // ref. RFC 4180§2¶6
-                    if (options.EmbeddedLineBreak is null && StandardLineBreaks.Any(rawFieldValue.Contains))
-                        quotingRequired = true;
-                    else if (options.EmbeddedLineBreak != null && rawFieldValue.Contains(options.EmbeddedLineBreak))
-                        quotingRequired = true;
-                    else if (rawFieldValue.Contains('"'))
-                        quotingRequired = true;
-                    else if (rawFieldValue.Contains(options.FieldDelimiterCharacter))
-                        quotingRequired = true;
-
+                    quotingRequired = ContainsCharacterRequiringQuotes(rawFieldValue, options);
                     break;
             }
 
             return quotingRequired;
+        }
+
+        /// <summary>
+        /// Checks a field value for a line break, quote or field delimiter in one scan.
+        /// </summary>
+        /// <remarks>
+        /// A line break is a carriage return or line feed, or the <see cref="ICsvFileOptions.EmbeddedLineBreak"/> sequence when one is set.
+        /// </remarks>
+        private bool ContainsCharacterRequiringQuotes(string rawFieldValue, ICsvFileOptions options)
+        {
+            var embeddedLineBreak = options.EmbeddedLineBreak;
+            if (embeddedLineBreak != null && embeddedLineBreak.Length == 0)
+            {
+                return true; // every value contains the empty string
+            }
+
+            // The search characters are built once, and again only if the options they come from change.
+            var fieldDelimiter = options.FieldDelimiterCharacter;
+#if NET8_0_OR_GREATER
+            if (_quoteSearchValues is null || _quoteSearchDelimiter != fieldDelimiter || !string.Equals(_quoteSearchEmbeddedLineBreak, embeddedLineBreak))
+            {
+                _quoteSearchValues = SearchValues.Create(GetQuoteSearchCharacters(fieldDelimiter, embeddedLineBreak));
+                _quoteSearchDelimiter = fieldDelimiter;
+                _quoteSearchEmbeddedLineBreak = embeddedLineBreak;
+            }
+
+            var fieldValue = rawFieldValue.AsSpan();
+            if (!fieldValue.ContainsAny(_quoteSearchValues))
+            {
+                return false;
+            }
+#else
+            if (_quoteSearchCharacters is null || _quoteSearchDelimiter != fieldDelimiter || !string.Equals(_quoteSearchEmbeddedLineBreak, embeddedLineBreak))
+            {
+                _quoteSearchCharacters = GetQuoteSearchCharacters(fieldDelimiter, embeddedLineBreak);
+                _quoteSearchDelimiter = fieldDelimiter;
+                _quoteSearchEmbeddedLineBreak = embeddedLineBreak;
+            }
+
+            var fieldValue = rawFieldValue.AsSpan();
+            if (fieldValue.IndexOfAny(_quoteSearchCharacters) < 0)
+            {
+                return false;
+            }
+#endif
+
+            if (embeddedLineBreak is null)
+            {
+                return true;
+            }
+
+            // The hit may be only part of the embedded line break sequence, so confirm it.
+            return fieldValue.IndexOf('"') >= 0 || fieldValue.IndexOf(fieldDelimiter) >= 0 || fieldValue.IndexOf(embeddedLineBreak.AsSpan()) >= 0;
+        }
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private static char[] GetQuoteSearchCharacters(char fieldDelimiter, string? embeddedLineBreak)
+#else
+        private static char[] GetQuoteSearchCharacters(char fieldDelimiter, [CanBeNull] string embeddedLineBreak)
+#endif
+        {
+            var lineBreakCharacters = embeddedLineBreak ?? "\r\n";
+            var searchCharacters = new char[lineBreakCharacters.Length + 2];
+            lineBreakCharacters.CopyTo(0, searchCharacters, 0, lineBreakCharacters.Length);
+            searchCharacters[lineBreakCharacters.Length] = '"';
+            searchCharacters[lineBreakCharacters.Length + 1] = fieldDelimiter;
+            return searchCharacters;
         }
 
 #if NET5_0_OR_GREATER
@@ -210,16 +282,27 @@ namespace DataStandardizer.File.CSV
 
         protected ICsvFileMapper GetMapper(TRecordLine recordLine)
         {
+            return GetMapper(recordLine, out _);
+        }
+
+        /// <summary>
+        /// Gets the mapper for a record line.
+        /// </summary>
+        /// <param name="recordLine">The record line.</param>
+        /// <param name="isCached"><c>true</c> if the mapper is held in a mapper cache; <c>false</c> if it was created from <paramref name="recordLine"/> and is empty.</param>
+        private protected ICsvFileMapper GetMapper(TRecordLine recordLine, out bool isCached)
+        {
             // Reuse the mapper this instance last resolved, so the per-line path does not take the cache lock, unless a
             // mapper has since been registered, unregistered or cleared.
             var mapperCacheVersion = MapperCacheVersion;
             var mapper = _resolvedMapper;
             if (mapper != null && _resolvedMapperVersion == mapperCacheVersion)
             {
+                isCached = true;
                 return mapper;
             }
 
-            mapper = GetOrAddMapper(typeof(TRecordLine), recordLine, out var isCached);
+            mapper = GetOrAddMapper(typeof(TRecordLine), recordLine, out isCached);
             _resolvedMapper = isCached ? mapper : null;
             _resolvedMapperVersion = mapperCacheVersion;
 
@@ -273,38 +356,64 @@ namespace DataStandardizer.File.CSV
                 return serializedFieldValue; // if the field value is already of the target type then just return it
             }
 
-            // Attempt to convert the field value to the target data type.
-            var result = options.Culture != null && fieldValue is IFormattable formattableFieldValue 
-                ? formattableFieldValue.ToString(null, options.Culture) 
-                : fieldValue.ToString();
-
-            if (!string.IsNullOrEmpty(propertyFieldMapping.Key))
+            if (string.IsNullOrEmpty(propertyFieldMapping.Key))
             {
-                var mappedFieldName = CsvMappingService.GetFieldNameFromMapping(propertyFieldMapping);
-                if (propertyFieldMapping.Value.ToStringConverter is CsvFieldConvertToString<TRecordLine> converter)
-                {
-                    var context = new CsvFieldContext<TRecordLine>(options)
-                    {
-                        HeaderLine = headerLine,
-                        Model = recordLine,
-                        FieldName = mappedFieldName,
-                        FieldIndex = propertyFieldMapping.Value.FieldIndex
-                    };
-                    result = converter(context);
-                }
-                else if (propertyFieldMapping.Value.TypeConverterType != null)
-                {
-                    var typeConverter = GetTypeConverter(propertyFieldMapping.Value.TypeConverterType);
-                    if ((typeConverter?.CanConvertTo(typeof(string))).GetValueOrDefault())
-                    {
-                        result = options.Culture != null
-                            ? typeConverter?.ConvertToString(null, options.Culture, fieldValue)
-                            : typeConverter?.ConvertToInvariantString(fieldValue);
-                    }
-                }
+                return FormatFieldValue(fieldValue, options);
             }
 
-            return result;
+            var converter = propertyFieldMapping.Value.ToStringConverter as CsvFieldConvertToString<TRecordLine>;
+            var typeConverter = converter is null && propertyFieldMapping.Value.TypeConverterType != null ? GetTypeConverter(propertyFieldMapping.Value.TypeConverterType) : null;
+            return ConvertFieldValueToString(headerLine, recordLine, options, propertyFieldMapping, converter, typeConverter, fieldValue);
+        }
+
+        /// <summary>
+        /// Converts a mapped field value that is not already a string: with the mapping's converter if it has one, else its type converter if that can
+        /// convert to a string, else with <see cref="FormatFieldValue"/>.
+        /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private protected string? ConvertFieldValueToString(CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
+            CsvFieldConvertToString<TRecordLine>? converter, TypeConverter? typeConverter, object fieldValue)
+#else
+        [CanBeNull]
+        private protected string ConvertFieldValueToString([CanBeNull] CsvFileHeaderLine headerLine, [NotNull] TRecordLine recordLine, [NotNull] CsvFileOptions options,
+            KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, [CanBeNull] CsvFieldConvertToString<TRecordLine> converter, [CanBeNull] TypeConverter typeConverter, [NotNull] object fieldValue)
+#endif
+        {
+            if (converter != null)
+            {
+                var context = new CsvFieldContext<TRecordLine>(options)
+                {
+                    HeaderLine = headerLine,
+                    Model = recordLine,
+                    FieldName = CsvMappingService.GetFieldNameFromMapping(propertyFieldMapping),
+                    FieldIndex = propertyFieldMapping.Value.FieldIndex
+                };
+                return converter(context);
+            }
+
+            if (typeConverter != null && typeConverter.CanConvertTo(typeof(string)))
+            {
+                return options.Culture != null
+                    ? typeConverter.ConvertToString(null, options.Culture, fieldValue)
+                    : typeConverter.ConvertToInvariantString(fieldValue);
+            }
+
+            return FormatFieldValue(fieldValue, options);
+        }
+
+        /// <summary>
+        /// Converts a field value to a string, with the <see cref="ICsvFileOptions.Culture"/> if one is set and the value is <see cref="IFormattable"/>.
+        /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private protected static string? FormatFieldValue(object fieldValue, ICsvFileOptions options)
+#else
+        [CanBeNull]
+        private protected static string FormatFieldValue([NotNull] object fieldValue, [NotNull] ICsvFileOptions options)
+#endif
+        {
+            return options.Culture != null && fieldValue is IFormattable formattableFieldValue
+                ? formattableFieldValue.ToString(null, options.Culture)
+                : fieldValue.ToString();
         }
 
         /// <summary>

@@ -878,6 +878,235 @@ public class CsvFileWriterTests : IDisposable
         testAction.Should().Throw<ObjectDisposedException>();
     }
 
+    [Theory]
+    [InlineData("\"", null, "\"\"\"\"")]
+    [InlineData(",", null, "\",\"")]
+    [InlineData("Say \"hi\" \"\"", null, "\"Say \"\"hi\"\" \"\"\"\"\"")]
+    [InlineData("Left\rRight", null, "\"Left\rRight\"")]
+    [InlineData("Left\nRight", null, "\"Left\nRight\"")]
+    [InlineData("Left\r\nRight", null, "\"Left\r\nRight\"")]
+    [InlineData("Plain", null, "Plain")]
+    [InlineData("Left\rRight", "<br>", "\"Left<br>Right\"")]
+    [InlineData("Left\nRight", "<br>", "\"Left<br>Right\"")]
+    [InlineData("Left\r\nRight", "<br>", "\"Left<br>Right\"")]
+    [InlineData("Left<br>Right", "<br>", "\"Left<br>Right\"")]
+    [InlineData("bar", "<br>", "bar")]
+    [InlineData("Left\nRight", "\n", "\"Left\nRight\"")]
+    public void WriteLine_RecordLineAndQuoteHandlingRequired_QuotesOnlyValuesRequiringQuotes(string testFieldValue, string? testEmbeddedLineBreak, string expectedFieldValue)
+    {
+        // arrange
+        ICsvFileLine testLine = new CsvFileRecordLine();
+        testLine.Add("One", "1");
+        testLine.Add("Two", testFieldValue);
+
+        var options = new CsvFileOptions { QuoteHandling = CsvFieldQuoteHandling.Required, EmbeddedLineBreak = testEmbeddedLineBreak };
+
+        var buffer = new StringBuilder();
+        using var stringWriter = new StringWriter(buffer);
+        using var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options);
+
+        var expectedResult = $"1,{expectedFieldValue}\r\n";
+
+        // act
+        csvWriter.WriteLine(testLine);
+        var testResult = buffer.ToString();
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    [Fact]
+    public void WriteLine_RecordLineAndQuoteHandlingRequiredWithEmptyEmbeddedLineBreak_WritesAllValuesQuoted()
+    {
+        // arrange
+        ICsvFileLine testLine = new CsvFileRecordLine();
+        testLine.Add("One", "1");
+        testLine.Add("Two", "Plain");
+
+        var options = new CsvFileOptions { QuoteHandling = CsvFieldQuoteHandling.Required, EmbeddedLineBreak = string.Empty };
+
+        var buffer = new StringBuilder();
+        using var stringWriter = new StringWriter(buffer);
+        using var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options);
+
+        // Every value contains the empty line break sequence, so every value is quoted.
+        const string expectedResult = "\"1\",\"Plain\"\r\n";
+
+        // act
+        csvWriter.WriteLine(testLine);
+        var testResult = buffer.ToString();
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    [Fact]
+    public void WriteLine_RecordLineWithFormattableValueAndNonInvariantCulture_WritesValueFormattedWithCulture()
+    {
+        // arrange
+        ICsvFileLine testLine = new CsvFileRecordLine();
+        testLine.Add("Amount", 1234.5m);
+        testLine.Add("Name", "One");
+
+        var options = new CsvFileOptions { Culture = new CultureInfo("de-DE") };
+
+        var buffer = new StringBuilder();
+        using var stringWriter = new StringWriter(buffer);
+        using var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options);
+
+        // The culture's decimal separator is the field delimiter, so the value is quoted.
+        const string expectedResult = "\"1234,5\",One\r\n";
+
+        // act
+        csvWriter.WriteLine(testLine);
+        var testResult = buffer.ToString();
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    [Fact]
+    public void WriteLine_RecordLinesWithToStringConverter_CallsConverterOncePerField()
+    {
+        // arrange
+        TestLineMapperIdConverter.CallCount = 0;
+
+        var testLines = new[]
+        {
+            new TestLine { Id = 1, Name = "One", Description = "First" },
+            new TestLine { Id = 2, Name = "Two", Description = "Second" },
+            new TestLine { Id = 3, Name = "Three", Description = "Third" }
+        };
+
+        var buffer = new StringBuilder();
+        using var stringWriter = new StringWriter(buffer);
+        using var csvWriter = new CsvFileWriter<TestLine>(stringWriter);
+        csvWriter.RegisterMapper<TestLineMapperIdConverter>();
+
+        const string expectedResult = "#1,One,First\r\n#2,Two,Second\r\n#3,Three,Third\r\n";
+
+        // act
+        foreach (var testLine in testLines)
+        {
+            csvWriter.WriteLine(testLine);
+        }
+
+        var testResult = buffer.ToString();
+
+        // assert
+        testResult.Should().Be(expectedResult);
+        TestLineMapperIdConverter.CallCount.Should().Be(testLines.Length);
+    }
+
+    [Fact]
+    public void WriteLine_MapperRegisteredAfterFirstLine_WritesLaterLinesInOrderByMapping()
+    {
+        // arrange
+        var testLine1 = new TestLine { Id = 1, Name = "One", Description = "First" };
+        var testLine2 = new TestLine { Id = 2, Name = "Two", Description = "Second" };
+
+        var buffer = new StringBuilder();
+        using var stringWriter = new StringWriter(buffer);
+        using var csvWriter = new CsvFileWriter<TestLine>(stringWriter);
+
+        const string expectedResult = "1,One,First\r\nSecond,Two,2\r\n";
+
+        // act
+        csvWriter.WriteLine(testLine1);
+        csvWriter.RegisterMapper<TestLineMapperReversed>();
+        csvWriter.WriteLine(testLine2);
+        var testResult = buffer.ToString();
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    [Fact]
+    public void WriteLine_ConverterThrowsPartWayThroughLine_WritesNothingForLine()
+    {
+        // arrange
+        var testLine1 = new TestLine { Id = 1, Name = "One", Description = "First" };
+        var testLine2 = new TestLine { Id = -1, Name = "Two", Description = "Second" };
+
+        var buffer = new StringBuilder();
+        using var stringWriter = new StringWriter(buffer);
+        using var csvWriter = new CsvFileWriter<TestLine>(stringWriter);
+        csvWriter.RegisterMapper<TestLineMapperThrowingConverter>();
+
+        const string expectedResult = "One,1,First\r\n";
+
+        // act
+        csvWriter.WriteLine(testLine1);
+        Action testAction = () => csvWriter.WriteLine(testLine2);
+
+        // assert
+        testAction.Should().Throw<InvalidOperationException>();
+        buffer.ToString().Should().Be(expectedResult);
+    }
+
+    [Fact]
+    public void WriteLine_RecordLineWithConstantAndVariableValueMappings_WritesMappedValues()
+    {
+        // arrange
+        var testLine = new TestLine { Id = 1, Name = "One", Description = "First" };
+
+        var buffer = new StringBuilder();
+        using var stringWriter = new StringWriter(buffer);
+        using var csvWriter = new CsvFileWriter<TestLine>(stringWriter);
+        csvWriter.RegisterMapper<TestLineMapperConstantAndVariable>();
+
+        const string expectedResult = "42,Constant,First\r\n";
+
+        // act
+        csvWriter.WriteLine(testLine);
+        var testResult = buffer.ToString();
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    [Fact]
+    public void WriteLine_RecordLinesOfDifferentTypesWithoutRegisteredMapper_WritesEachLineWithItsOwnMapping()
+    {
+        // arrange
+        ICsvFileLine testLine1 = new CsvFileRecordLine();
+        testLine1.Add(nameof(AttributeMappedLine.First), "1st");
+        testLine1.Add(nameof(AttributeMappedLine.Second), "2nd");
+
+        var testLine2 = new AttributeMappedLine { First = "1st", Second = "2nd" };
+
+        var buffer = new StringBuilder();
+        using var stringWriter = new StringWriter(buffer);
+        using var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter);
+
+        const string expectedResult = "1st,2nd\r\n2nd,1st\r\n";
+
+        // act
+        csvWriter.WriteLine(testLine1);
+        csvWriter.WriteLine(testLine2);
+        var testResult = buffer.ToString();
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    private class AttributeMappedLine : CsvFileRecordLine
+    {
+        [CsvFieldMapping(1)]
+        public string? First
+        {
+            get => GetPropertyValue<string?>();
+            init => SetPropertyValue(value);
+        }
+
+        [CsvFieldMapping(0)]
+        public string? Second
+        {
+            get => GetPropertyValue<string?>();
+            init => SetPropertyValue(value);
+        }
+    }
+
     private class TestLine : CsvFileRecordLine
     {
         public int Id
@@ -959,6 +1188,81 @@ public class CsvFileWriterTests : IDisposable
             this.Map()
                 .Property(x => x.Description)
                 .HasFieldIndex(10);
+        }
+    }
+
+    private class TestLineMapperIdConverter : CsvFileMapperBase<TestLine>
+    {
+        public static int CallCount;
+
+        public TestLineMapperIdConverter()
+        {
+            this.Map()
+                .Property(x => x.Id)
+                .HasFieldIndex(0)
+                .ConvertUsing(context =>
+                {
+                    CallCount++;
+                    return $"#{context.Model!.Id}";
+                });
+            this.Map()
+                .Property(x => x.Name)
+                .HasFieldIndex(1);
+            this.Map()
+                .Property(x => x.Description)
+                .HasFieldIndex(2);
+        }
+    }
+
+    private class TestLineMapperReversed : CsvFileMapperBase<TestLine>
+    {
+        public TestLineMapperReversed()
+        {
+            this.Map()
+                .Property(x => x.Description)
+                .HasFieldIndex(0);
+            this.Map()
+                .Property(x => x.Name)
+                .HasFieldIndex(1);
+            this.Map()
+                .Property(x => x.Id)
+                .HasFieldIndex(2)
+                .ConvertUsing(typeof(Int32Converter));
+        }
+    }
+
+    private class TestLineMapperThrowingConverter : CsvFileMapperBase<TestLine>
+    {
+        public TestLineMapperThrowingConverter()
+        {
+            this.Map()
+                .Property(x => x.Name)
+                .HasFieldIndex(0);
+            this.Map()
+                .Property(x => x.Id)
+                .HasFieldIndex(1)
+                .ConvertUsing(context => context.Model!.Id >= 0 ? context.Model.Id.ToString(CultureInfo.InvariantCulture) : throw new InvalidOperationException("Negative ID."));
+            this.Map()
+                .Property(x => x.Description)
+                .HasFieldIndex(2);
+        }
+    }
+
+    private class TestLineMapperConstantAndVariable : CsvFileMapperBase<TestLine>
+    {
+        public TestLineMapperConstantAndVariable()
+        {
+            this.Map()
+                .Property(x => x.Id)
+                .HasFieldIndex(0)
+                .HasVariableValue(() => 42);
+            this.Map()
+                .Property(x => x.Name)
+                .HasFieldIndex(1)
+                .HasConstantValue("Constant");
+            this.Map()
+                .Property(x => x.Description)
+                .HasFieldIndex(2);
         }
     }
 
