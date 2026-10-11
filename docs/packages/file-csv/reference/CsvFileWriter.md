@@ -42,6 +42,15 @@ may be used concurrently, including for the same record type. Mapper registratio
 through `RegisterMapper` is process-wide per record type and visible to every reader
 and writer instance.
 
+**Mapper changes.** The writer works out the output field order and mappings once and
+reuses them for each line. If a mapper is registered or unregistered part way
+through a file, the change applies from the next line written. The new field count
+is still checked against the previous line.
+
+**Failed lines.** All of a line's field values are converted before any of them is
+written. If a converter, value generator or type converter throws, or `WriteLine`
+throws `CsvFileException`, nothing from that line is written.
+
 ## Constructors
 
 | Constructor | Notes |
