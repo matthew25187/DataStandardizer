@@ -66,6 +66,7 @@ Provides types supporting the reading and writing of files in standard formats. 
 
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.3' Or '$(TargetFramework)' == 'netstandard2.0'">
     <PackageReference Include="JetBrains.Annotations" Version="2025.2.2" />
+    <PackageReference Include="System.Memory" Version="4.5.5" />
   </ItemGroup>
 
   <ItemGroup>
