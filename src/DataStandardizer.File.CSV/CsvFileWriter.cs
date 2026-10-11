@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-#if NETSTANDARD
+#if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP3_0_OR_GREATER
 using JetBrains.Annotations; 
 #endif
 
@@ -18,7 +18,7 @@ namespace DataStandardizer.File.CSV
             internal const string ExpectedFieldCount = "ExpectedFieldCount";
             internal const string FieldValue = "FieldValue";
         }
-#if NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private CsvFileHeaderLine? _headerLine;
 #else
         [CanBeNull] private CsvFileHeaderLine _headerLine;
@@ -226,7 +226,7 @@ namespace DataStandardizer.File.CSV
                         }
 
                         // Convert the field value to a string.
-#if NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
                         string? rawFieldValue = null;
 #else
                         string rawFieldValue = null;

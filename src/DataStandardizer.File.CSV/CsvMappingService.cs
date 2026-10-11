@@ -28,7 +28,7 @@ namespace DataStandardizer.File.CSV
             var source = mapper
                 .Select(mapping => Tuple.Create(mapping.Key, mapping.Value.FieldIndex))
                 .ToArray();
-#if NETCOREAPP2_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP2_0_OR_GREATER
             var usedIndices = source
                 .Where(item => item.Item2.HasValue)
                 .Select(item => item.Item2!.Value)

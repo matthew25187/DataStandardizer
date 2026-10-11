@@ -1,5 +1,5 @@
 ﻿using System;
-#if NETSTANDARD
+#if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP3_0_OR_GREATER
 using JetBrains.Annotations; 
 #endif
 
@@ -33,7 +33,7 @@ namespace DataStandardizer.File.CSV
         /// <summary>
         /// Gets or sets the constant value for the field.
         /// </summary>
-#if NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public object? ConstantValue { get; set; }
 #else
         [CanBeNull]
@@ -47,7 +47,7 @@ namespace DataStandardizer.File.CSV
         /// <summary>
         /// Gets the name of the CSV field.
         /// </summary>
-#if NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public string? FieldName { get; }
 #else
         [CanBeNull]
