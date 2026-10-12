@@ -36,6 +36,17 @@ namespace DataStandardizer.File.CSV
         private const int DefaultBufferSize = 16 * 1024;
         private const char QuoteCharacter = '"';
 
+        /// <summary>
+        /// Size, in bytes, of the buffers of the <see cref="StreamReader"/> and <see cref="FileStream"/> the reader
+        /// creates itself.  A caller-supplied <see cref="TextReader"/> keeps its own buffering.
+        /// </summary>
+        internal const int StreamBufferSize = 16 * 1024;
+
+        /// <summary>
+        /// Encoding used when none is specified, matching the default of <see cref="StreamReader"/>.
+        /// </summary>
+        private static readonly Encoding DefaultEncoding = Encoding.UTF8;
+
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private CsvContext? _context;
         private FieldPlan? _fieldPlan;
@@ -77,21 +88,24 @@ namespace DataStandardizer.File.CSV
             if (!csvStream.CanRead)
                 throw new ArgumentException("Expected a stream supporting read.", nameof(csvStream));
 
-            _reader = new StreamReader(csvStream);
+            _reader = CreateStreamReader(csvStream, DefaultEncoding);
             _isInternalReader = true;
         }
 
-        public CsvFileReader(Stream csvStream, CsvFileOptions options) : this(csvStream)
+        public CsvFileReader(Stream csvStream, CsvFileOptions options)
         {
+            if (csvStream is null)
+                throw new ArgumentNullException(nameof(csvStream));
+            if (!csvStream.CanRead)
+                throw new ArgumentException("Expected a stream supporting read.", nameof(csvStream));
             if (options is null)
                 throw new ArgumentNullException(nameof(options));
 
             _options = options;
 
-            if (_options.Encoding != null)
-            {
-                _reader = new StreamReader(csvStream, _options.Encoding);
-            }
+            // Create the reader once, with the requested encoding if any, so no buffer is allocated and discarded.
+            _reader = CreateStreamReader(csvStream, _options.Encoding ?? DefaultEncoding);
+            _isInternalReader = true;
         }
 
 #if NETSTANDARD2_0_OR_GREATER||NETCOREAPP2_0_OR_GREATER
@@ -100,7 +114,7 @@ namespace DataStandardizer.File.CSV
             if (csvFilePath is null)
                 throw new ArgumentNullException(nameof(csvFilePath));
 
-            _reader = new StreamReader(csvFilePath);
+            _reader = CreateFileReader(csvFilePath, DefaultEncoding);
             _isInternalReader = true;
         }
 
@@ -114,9 +128,7 @@ namespace DataStandardizer.File.CSV
             _options = options;
 
             // Open the file once, with the requested encoding if any, so no handle is left orphaned.
-            _reader = _options.Encoding != null
-                ? new StreamReader(csvFilePath, _options.Encoding)
-                : new StreamReader(csvFilePath);
+            _reader = CreateFileReader(csvFilePath, _options.Encoding ?? DefaultEncoding);
             _isInternalReader = true;
         }
 #endif
@@ -149,6 +161,28 @@ namespace DataStandardizer.File.CSV
 
             _bufferSize = bufferSize;
         }
+
+        private static StreamReader CreateStreamReader(Stream stream, Encoding encoding)
+        {
+            return new StreamReader(stream, encoding, true, StreamBufferSize);
+        }
+
+#if NETSTANDARD2_0_OR_GREATER||NETCOREAPP2_0_OR_GREATER
+        private static StreamReader CreateFileReader(string path, Encoding encoding)
+        {
+            // Open the file stream explicitly so both buffering layers are sized together.
+            var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, StreamBufferSize, FileOptions.SequentialScan);
+            try
+            {
+                return CreateStreamReader(fileStream, encoding);
+            }
+            catch
+            {
+                fileStream.Dispose();
+                throw;
+            }
+        }
+#endif
 
         public void Dispose()
         {

@@ -17,7 +17,10 @@ Run a subset by filtering on class or method name, for example:
 ```
 dotnet run -c Release -- --filter *ReadBenchmarks*
 dotnet run -c Release -- --filter *Read_Mapped*
+dotnet run -c Release -- --filter *.FileReadBenchmarks.* *.FileWriteBenchmarks.*
 ```
+
+Filters match the full name, including the namespace, so `*File*` selects every benchmark. `*ReadBenchmarks*` also selects `FileReadBenchmarks`.
 
 To check that every benchmark runs without waiting for a full measurement, use the dry job:
 
@@ -35,7 +38,7 @@ Each benchmark class generates its input in memory in `[GlobalSetup]` from a fix
 - 6 fields: `Id` (`int`), `FirstName`, `LastName` and `City` (short strings), `Amount` (`decimal`) and `Notes`.
 - Roughly 1 in 7 rows has a quoted `Notes` value containing the delimiter, and 1 in 11 has one containing an escaped quote.
 
-Reads come from a `MemoryStream` and writes go to a pre-sized `MemoryStream`, so disk I/O is excluded.
+Except in the `File*` classes, reads come from a `MemoryStream` and writes go to a pre-sized `MemoryStream`, so disk I/O is excluded. The `File*` classes read from and write to a temporary file created in `[GlobalSetup]` and deleted in `[GlobalCleanup]`, so the buffering of the `StreamReader`, `StreamWriter` and `FileStream` the package creates is measured.
 
 ## Scenarios
 
@@ -48,6 +51,10 @@ Reads come from a `MemoryStream` and writes go to a pre-sized `MemoryStream`, so
 | `WriteBenchmarks` | `Write_Raw` | `CsvFileWriter<CsvFileRecordLine>` with pre-built string fields (baseline). |
 | | `Write_Mapped` | `CsvFileWriter<PersonLine>` with `PersonLineMapper`. |
 | | `Write_CsvHelper` | CsvHelper `WriteRecords(...)`. |
+| `FileReadBenchmarks` | `Read_Raw` | `CsvFileReader<CsvFileRecordLine>` constructed from the file path, with `HeaderHandling = Use` (baseline). |
+| | `Read_Raw_Stream` | As `Read_Raw`, constructed from a `FileStream` opened by the benchmark with default buffering. |
+| `FileWriteBenchmarks` | `Write_Raw` | `CsvFileWriter<CsvFileRecordLine>` constructed from the file path, with pre-built string fields (baseline). |
+| | `Write_Raw_Stream` | As `Write_Raw`, constructed from a `FileStream` opened by the benchmark with default buffering. |
 | `ModelBenchmarks` | `Model_PropertyGet` | 6 typed property reads per row on a pre-built `List<PersonLine>`. |
 | | `Model_PropertySet` | 6 typed property writes per row on a pre-built `List<PersonLine>`. |
 | | `Model_IndexerGet` | 6 raw `IOrderedDictionary` indexer reads per row on the same lines (baseline for `Model_PropertyGet`). |

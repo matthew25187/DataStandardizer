@@ -34,6 +34,10 @@ using (var csvReader = new CsvFileReader<CsvFileRecordLine>(streamReader))
 }
 ```
 
+You can also construct the reader from a file path or a `Stream`, which lets the
+package create the `StreamReader` and size its I/O buffer. A `TextReader` you
+supply, as above, keeps control of its own buffering.
+
 If your CSV file has a header line, you must advise the reader to expect a
 header.
 

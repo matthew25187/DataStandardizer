@@ -26,7 +26,8 @@ public sealed class CsvFileReader<TRecordLine> : CsvFileIoBase<TRecordLine>, IDi
 
 The reader is constructed over a `Stream`, a `TextReader`, or — on .NET Standard 2.0
 and later targets — a file path. When the reader creates the underlying
-`StreamReader` itself, `Dispose` disposes it; a caller-supplied `TextReader` is left
+`StreamReader` itself, it sizes the buffers (16 KB) and `Dispose` disposes it; a
+caller-supplied `TextReader` is used as given, with its own buffering, and is left
 open. Supplying a `CsvFileOptions` whose `Encoding` is set together with an existing
 `TextReader` throws `ArgumentException`; specify the encoding when creating the
 reader instead. The `TRecordLine` type argument must have a public parameterless
@@ -51,9 +52,9 @@ returned are not affected.
 
 | Constructor | Notes |
 | --- | --- |
-| `CsvFileReader(Stream csvStream)` | Reads with a default `StreamReader`. Throws `ArgumentNullException` if `csvStream` is `null`, or `ArgumentException` if the stream cannot be read. |
+| `CsvFileReader(Stream csvStream)` | Reads with a `StreamReader` using a 16 KB buffer, UTF-8 encoding and byte order mark detection. Throws `ArgumentNullException` if `csvStream` is `null`, or `ArgumentException` if the stream cannot be read. |
 | `CsvFileReader(Stream csvStream, CsvFileOptions options)` | Honours `options.Encoding`. Throws `ArgumentNullException` if `options` is `null`. |
-| `CsvFileReader(string csvFilePath)` | *(netstandard2.0+/.NET)* Opens the file with a default `StreamReader`. Throws `ArgumentNullException` if `csvFilePath` is `null`. |
+| `CsvFileReader(string csvFilePath)` | *(netstandard2.0+/.NET)* Opens the file for sequential reading with a 16 KB `FileStream` buffer and reads it with a `StreamReader` using a 16 KB buffer, UTF-8 encoding and byte order mark detection. Throws `ArgumentNullException` if `csvFilePath` is `null`. |
 | `CsvFileReader(string csvFilePath, CsvFileOptions options)` | *(netstandard2.0+/.NET)* Honours `options.Encoding`. Throws `ArgumentNullException` if `csvFilePath` or `options` is `null`. |
 | `CsvFileReader(TextReader reader)` | Throws `ArgumentNullException` if `reader` is `null`. |
 | `CsvFileReader(TextReader reader, CsvFileOptions options)` | Throws `ArgumentException` if `options.Encoding` is set — specify the encoding when creating the reader. |
