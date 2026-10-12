@@ -984,6 +984,115 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void Constructor_Stream_UsesStreamBufferSize()
+        {
+            // arrange
+            using var testFileStream = new MemoryStream(Encoding.UTF8.GetBytes("1,2,3"));
+
+            // act
+            using var csvReader = new CsvFileReader<CsvFileRecordLine>(testFileStream);
+
+            // assert
+            var streamReader = StreamBufferInspector.GetUnderlyingReader(csvReader).Should().BeOfType<StreamReader>().Subject;
+            StreamBufferInspector.GetBufferSize(streamReader).Should().Be(CsvFileReader<CsvFileRecordLine>.StreamBufferSize);
+            streamReader.CurrentEncoding.Should().Be(Encoding.UTF8);
+        }
+
+        [Fact]
+        public void Constructor_StreamWithEncodingOption_UsesStreamBufferSize()
+        {
+            // arrange
+            using var testFileStream = new MemoryStream(Encoding.Latin1.GetBytes("1,2,3"));
+            var options = new CsvFileOptions { Encoding = Encoding.Latin1 };
+
+            // act
+            using var csvReader = new CsvFileReader<CsvFileRecordLine>(testFileStream, options);
+
+            // assert
+            var streamReader = StreamBufferInspector.GetUnderlyingReader(csvReader).Should().BeOfType<StreamReader>().Subject;
+            StreamBufferInspector.GetBufferSize(streamReader).Should().Be(CsvFileReader<CsvFileRecordLine>.StreamBufferSize);
+            streamReader.CurrentEncoding.Should().Be(Encoding.Latin1);
+        }
+
+        [Fact]
+        public void Constructor_FilePath_UsesStreamBufferSize()
+        {
+            // arrange
+            var testFilePath = Path.GetTempFileName();
+            try
+            {
+                // act
+                using var csvReader = new CsvFileReader<CsvFileRecordLine>(testFilePath);
+
+                // assert
+                var streamReader = StreamBufferInspector.GetUnderlyingReader(csvReader).Should().BeOfType<StreamReader>().Subject;
+                StreamBufferInspector.GetBufferSize(streamReader).Should().Be(CsvFileReader<CsvFileRecordLine>.StreamBufferSize);
+                var fileStream = streamReader.BaseStream.Should().BeOfType<FileStream>().Subject;
+                StreamBufferInspector.GetBufferSize(fileStream).Should().Be(CsvFileReader<CsvFileRecordLine>.StreamBufferSize);
+            }
+            finally
+            {
+                System.IO.File.Delete(testFilePath);
+            }
+        }
+
+        [Fact]
+        public void Constructor_FilePathWithEncodingOption_UsesStreamBufferSize()
+        {
+            // arrange
+            var testFilePath = Path.GetTempFileName();
+            try
+            {
+                var options = new CsvFileOptions { Encoding = Encoding.Latin1 };
+
+                // act
+                using var csvReader = new CsvFileReader<CsvFileRecordLine>(testFilePath, options);
+
+                // assert
+                var streamReader = StreamBufferInspector.GetUnderlyingReader(csvReader).Should().BeOfType<StreamReader>().Subject;
+                StreamBufferInspector.GetBufferSize(streamReader).Should().Be(CsvFileReader<CsvFileRecordLine>.StreamBufferSize);
+                var fileStream = streamReader.BaseStream.Should().BeOfType<FileStream>().Subject;
+                StreamBufferInspector.GetBufferSize(fileStream).Should().Be(CsvFileReader<CsvFileRecordLine>.StreamBufferSize);
+                streamReader.CurrentEncoding.Should().Be(Encoding.Latin1);
+            }
+            finally
+            {
+                System.IO.File.Delete(testFilePath);
+            }
+        }
+
+        [Fact]
+        public void Constructor_TextReader_UsesCallerSuppliedReader()
+        {
+            // arrange
+            using var streamReader = new StreamReader(new MemoryStream(Encoding.UTF8.GetBytes("1,2,3")), Encoding.UTF8, true, 256);
+
+            // act
+            using var csvReader = new CsvFileReader<CsvFileRecordLine>(streamReader);
+
+            // assert
+            StreamBufferInspector.GetUnderlyingReader(csvReader).Should().BeSameAs(streamReader);
+            StreamBufferInspector.GetBufferSize(streamReader).Should().Be(256);
+        }
+
+        [Fact]
+        public void ReadLine_StreamWithByteOrderMark_DetectsEncoding()
+        {
+            // arrange
+            var testFileBytes = Encoding.Unicode.GetPreamble().Concat(Encoding.Unicode.GetBytes("Café,Noël")).ToArray();
+            using var testFileStream = new MemoryStream(testFileBytes);
+            using var csvReader = new CsvFileReader<CsvFileRecordLine>(testFileStream);
+
+            // act
+            var testResult = csvReader.ReadLine();
+
+            // assert
+            testResult.Should().NotBeNull();
+            testResult![0].Should().Be("Café");
+            testResult[1].Should().Be("Noël");
+        }
+
+        [Fact]
         public void ReadLine_AfterDisposeWithStream_ThrowsObjectDisposedException()
         {
             // arrange

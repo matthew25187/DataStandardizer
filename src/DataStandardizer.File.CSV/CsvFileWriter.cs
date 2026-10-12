@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
+using System.Text;
 #if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP3_0_OR_GREATER
 using JetBrains.Annotations; 
 #endif
@@ -19,6 +20,18 @@ namespace DataStandardizer.File.CSV
             internal const string FieldValue = "FieldValue";
         }
         private const char QuoteCharacter = '"';
+
+        /// <summary>
+        /// Size of the buffers of the <see cref="StreamWriter"/> (in characters) and <see cref="FileStream"/> (in bytes)
+        /// the writer creates itself.  A caller-supplied <see cref="TextWriter"/> keeps its own buffering.
+        /// </summary>
+        internal const int StreamBufferSize = 16 * 1024;
+
+        /// <summary>
+        /// Encoding used when none is specified, matching the default of <see cref="StreamWriter"/>: UTF-8 without a
+        /// byte order mark, throwing on invalid characters.
+        /// </summary>
+        private static readonly Encoding DefaultEncoding = new UTF8Encoding(false, true);
         private static readonly char[] LineBreakCharacters = { '\r', '\n' };
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
@@ -44,21 +57,22 @@ namespace DataStandardizer.File.CSV
             if (csvStream is null)
                 throw new ArgumentNullException(nameof(csvStream));
 
-            _writer = new StreamWriter(csvStream);
+            _writer = CreateStreamWriter(csvStream, DefaultEncoding);
             _isInternalWriter = true;
         }
 
-        public CsvFileWriter(Stream csvStream, CsvFileOptions options) : this(csvStream)
+        public CsvFileWriter(Stream csvStream, CsvFileOptions options)
         {
+            if (csvStream is null)
+                throw new ArgumentNullException(nameof(csvStream));
             if (options is null)
                 throw new ArgumentNullException(nameof(options));
 
             _options = options;
 
-            if (_options.Encoding != null)
-            {
-                _writer = new StreamWriter(csvStream, _options.Encoding);
-            }
+            // Create the writer once, with the requested encoding if any, so no buffer is allocated and discarded.
+            _writer = CreateStreamWriter(csvStream, _options.Encoding ?? DefaultEncoding);
+            _isInternalWriter = true;
         }
 
 #if NETSTANDARD2_0_OR_GREATER||NETCOREAPP2_0_OR_GREATER
@@ -67,7 +81,7 @@ namespace DataStandardizer.File.CSV
             if (csvFilePath is null)
                 throw new ArgumentNullException(nameof(csvFilePath));
 
-            _writer = new StreamWriter(csvFilePath);
+            _writer = CreateFileWriter(csvFilePath, DefaultEncoding);
             _isInternalWriter = true;
         }
 
@@ -81,9 +95,7 @@ namespace DataStandardizer.File.CSV
             _options = options;
 
             // Open the file once, with the requested encoding if any, so no handle is left orphaned.
-            _writer = _options.Encoding != null
-                ? new StreamWriter(csvFilePath, false, _options.Encoding)
-                : new StreamWriter(csvFilePath);
+            _writer = CreateFileWriter(csvFilePath, _options.Encoding ?? DefaultEncoding);
             _isInternalWriter = true;
         }
 #endif
@@ -105,6 +117,28 @@ namespace DataStandardizer.File.CSV
                 throw new ArgumentException("Unable to apply an encoding to an existing writer.  Specify the encoding when creating the writer.", nameof(writer));
             }
         }
+
+        private static StreamWriter CreateStreamWriter(Stream stream, Encoding encoding)
+        {
+            return new StreamWriter(stream, encoding, StreamBufferSize);
+        }
+
+#if NETSTANDARD2_0_OR_GREATER||NETCOREAPP2_0_OR_GREATER
+        private static StreamWriter CreateFileWriter(string path, Encoding encoding)
+        {
+            // Open the file stream explicitly so both buffering layers are sized together.
+            var fileStream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.Read, StreamBufferSize);
+            try
+            {
+                return CreateStreamWriter(fileStream, encoding);
+            }
+            catch
+            {
+                fileStream.Dispose();
+                throw;
+            }
+        }
+#endif
 
         public void Dispose()
         {

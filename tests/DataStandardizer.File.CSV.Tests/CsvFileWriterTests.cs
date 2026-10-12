@@ -798,6 +798,142 @@ public class CsvFileWriterTests : IDisposable
     }
 
     [Fact]
+    public void Constructor_Stream_UsesStreamBufferSize()
+    {
+        // arrange
+        using var testStream = new MemoryStream();
+
+        // act
+        using var csvWriter = new CsvFileWriter<CsvFileRecordLine>(testStream);
+
+        // assert
+        var streamWriter = StreamBufferInspector.GetUnderlyingWriter(csvWriter).Should().BeOfType<StreamWriter>().Subject;
+        StreamBufferInspector.GetBufferSize(streamWriter).Should().Be(CsvFileWriter<CsvFileRecordLine>.StreamBufferSize);
+    }
+
+    [Fact]
+    public void Constructor_StreamWithEncodingOption_UsesStreamBufferSize()
+    {
+        // arrange
+        using var testStream = new MemoryStream();
+        var options = new CsvFileOptions { Encoding = Encoding.Latin1 };
+
+        // act
+        using var csvWriter = new CsvFileWriter<CsvFileRecordLine>(testStream, options);
+
+        // assert
+        var streamWriter = StreamBufferInspector.GetUnderlyingWriter(csvWriter).Should().BeOfType<StreamWriter>().Subject;
+        StreamBufferInspector.GetBufferSize(streamWriter).Should().Be(CsvFileWriter<CsvFileRecordLine>.StreamBufferSize);
+        streamWriter.Encoding.Should().Be(Encoding.Latin1);
+    }
+
+    [Fact]
+    public void Constructor_FilePath_UsesStreamBufferSize()
+    {
+        // arrange
+        var testFilePath = Path.GetTempFileName();
+        try
+        {
+            // act
+            using var csvWriter = new CsvFileWriter<CsvFileRecordLine>(testFilePath);
+
+            // assert
+            var streamWriter = StreamBufferInspector.GetUnderlyingWriter(csvWriter).Should().BeOfType<StreamWriter>().Subject;
+            StreamBufferInspector.GetBufferSize(streamWriter).Should().Be(CsvFileWriter<CsvFileRecordLine>.StreamBufferSize);
+            var fileStream = streamWriter.BaseStream.Should().BeOfType<FileStream>().Subject;
+            StreamBufferInspector.GetBufferSize(fileStream).Should().Be(CsvFileWriter<CsvFileRecordLine>.StreamBufferSize);
+        }
+        finally
+        {
+            System.IO.File.Delete(testFilePath);
+        }
+    }
+
+    [Fact]
+    public void Constructor_FilePathWithEncodingOption_UsesStreamBufferSize()
+    {
+        // arrange
+        var testFilePath = Path.GetTempFileName();
+        try
+        {
+            var options = new CsvFileOptions { Encoding = Encoding.Latin1 };
+
+            // act
+            using var csvWriter = new CsvFileWriter<CsvFileRecordLine>(testFilePath, options);
+
+            // assert
+            var streamWriter = StreamBufferInspector.GetUnderlyingWriter(csvWriter).Should().BeOfType<StreamWriter>().Subject;
+            StreamBufferInspector.GetBufferSize(streamWriter).Should().Be(CsvFileWriter<CsvFileRecordLine>.StreamBufferSize);
+            var fileStream = streamWriter.BaseStream.Should().BeOfType<FileStream>().Subject;
+            StreamBufferInspector.GetBufferSize(fileStream).Should().Be(CsvFileWriter<CsvFileRecordLine>.StreamBufferSize);
+            streamWriter.Encoding.Should().Be(Encoding.Latin1);
+        }
+        finally
+        {
+            System.IO.File.Delete(testFilePath);
+        }
+    }
+
+    [Fact]
+    public void Constructor_TextWriter_UsesCallerSuppliedWriter()
+    {
+        // arrange
+        using var streamWriter = new StreamWriter(new MemoryStream(), Encoding.UTF8, 256);
+
+        // act
+        using var csvWriter = new CsvFileWriter<CsvFileRecordLine>(streamWriter);
+
+        // assert
+        StreamBufferInspector.GetUnderlyingWriter(csvWriter).Should().BeSameAs(streamWriter);
+        StreamBufferInspector.GetBufferSize(streamWriter).Should().Be(256);
+    }
+
+    [Fact]
+    public void WriteLine_StreamWithoutEncodingOption_WritesUtf8WithoutByteOrderMark()
+    {
+        // arrange
+        using var testStream = new MemoryStream();
+        ICsvFileLine testRecordLine = new CsvFileRecordLine();
+        testRecordLine.Add("0", "é");
+
+        // act
+        using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(testStream))
+        {
+            csvWriter.WriteLine(testRecordLine);
+        }
+
+        // assert
+        testStream.ToArray().Should().Equal(0xC3, 0xA9, 0x0D, 0x0A);
+    }
+
+    [Fact]
+    public void WriteLine_FilePathWithoutEncodingOption_WritesUtf8WithoutByteOrderMark()
+    {
+        // arrange
+        var testFilePath = Path.GetTempFileName();
+        try
+        {
+            ICsvFileLine testRecordLine = new CsvFileRecordLine();
+            testRecordLine.Add("0", "é");
+
+            // act
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(testFilePath))
+            {
+                csvWriter.WriteLine(testRecordLine);
+            }
+
+            var testResult = System.IO.File.ReadAllBytes(testFilePath);
+
+            // assert
+            testResult.Should().Equal(0xC3, 0xA9, 0x0D, 0x0A);
+        }
+        finally
+        {
+            System.IO.File.Delete(testFilePath);
+        }
+    }
+
+    [Fact]
     public void Constructor_StreamWithNullOptions_ThrowsArgumentNullException()
     {
         // arrange

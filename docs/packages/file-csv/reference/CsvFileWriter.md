@@ -27,8 +27,9 @@ public sealed class CsvFileWriter<TRecordLine> : CsvFileIoBase<TRecordLine>, IDi
 Unlike `CsvFileReader<TRecordLine>`, the writer's `TRecordLine` argument is **not**
 required to have a parameterless constructor. The writer is constructed over a
 `Stream`, a `TextWriter`, or — on .NET Standard 2.0 and later targets — a file path.
-When the writer creates the underlying `StreamWriter` itself, `Dispose` disposes it;
-a caller-supplied `TextWriter` is left open. Supplying a `CsvFileOptions` whose
+When the writer creates the underlying `StreamWriter` itself, it sizes the buffers
+(16K characters) and `Dispose` disposes it; a caller-supplied `TextWriter` is used as
+given, with its own buffering, and is left open. Supplying a `CsvFileOptions` whose
 `Encoding` is set together with an existing `TextWriter` throws `ArgumentException`;
 specify the encoding when creating the writer instead.
 
@@ -55,9 +56,9 @@ throws `CsvFileException`, nothing from that line is written.
 
 | Constructor | Notes |
 | --- | --- |
-| `CsvFileWriter(Stream csvStream)` | Writes with a default `StreamWriter`. Throws `ArgumentNullException` if `csvStream` is `null`. |
+| `CsvFileWriter(Stream csvStream)` | Writes with a `StreamWriter` using a 16K-character buffer and UTF-8 encoding without a byte order mark. Throws `ArgumentNullException` if `csvStream` is `null`. |
 | `CsvFileWriter(Stream csvStream, CsvFileOptions options)` | Honours `options.Encoding`. Throws `ArgumentNullException` if `options` is `null`. |
-| `CsvFileWriter(string csvFilePath)` | *(netstandard2.0+/.NET)* Creates the file with a default `StreamWriter`. Throws `ArgumentNullException` if `csvFilePath` is `null`. |
+| `CsvFileWriter(string csvFilePath)` | *(netstandard2.0+/.NET)* Creates (or overwrites) the file with a 16 KB `FileStream` buffer and writes it with a `StreamWriter` using a 16K-character buffer and UTF-8 encoding without a byte order mark. Throws `ArgumentNullException` if `csvFilePath` is `null`. |
 | `CsvFileWriter(string csvFilePath, CsvFileOptions options)` | *(netstandard2.0+/.NET)* Honours `options.Encoding`. Throws `ArgumentNullException` if `csvFilePath` or `options` is `null`. |
 | `CsvFileWriter(TextWriter writer)` | Throws `ArgumentNullException` if `writer` is `null`. |
 | `CsvFileWriter(TextWriter writer, CsvFileOptions options)` | Throws `ArgumentException` if `options.Encoding` is set — specify the encoding when creating the writer. |
