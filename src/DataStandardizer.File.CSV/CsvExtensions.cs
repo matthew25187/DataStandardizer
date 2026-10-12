@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -13,6 +14,59 @@ namespace DataStandardizer.File.CSV
             internal const string FieldIndex = "FieldIndex";
             internal const string FieldName = "FieldName";
             internal const string PropertyName = "PropertyName";
+        }
+
+        /// <summary>
+        /// Reflection results for a property declared on a record line or custom model type.
+        /// </summary>
+        private sealed class PropertyBinding
+        {
+            internal PropertyBinding(PropertyInfo property)
+            {
+                Property = property;
+                Key = property.GetPropertyKey();
+                CanRead = property.CanRead;
+                CanWrite = property.CanWrite;
+                MappingAttribute = property.GetCustomAttribute<CsvFieldMappingAttribute>();
+                if (MappingAttribute is null)
+                {
+                    return;
+                }
+
+                var typeConverterAttribute = property.GetCustomAttribute<TypeConverterAttribute>();
+                TypeConverterType = !string.IsNullOrEmpty(typeConverterAttribute?.ConverterTypeName) ? Type.GetType(typeConverterAttribute.ConverterTypeName) : null;
+            }
+
+            internal PropertyInfo Property { get; }
+
+            internal string Key { get; }
+
+            internal bool CanRead { get; }
+
+            internal bool CanWrite { get; }
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            internal CsvFieldMappingAttribute? MappingAttribute { get; }
+
+            internal Type? TypeConverterType { get; }
+#else
+            internal CsvFieldMappingAttribute MappingAttribute { get; }
+
+            internal Type TypeConverterType { get; }
+#endif
+        }
+
+        // Declared-property bindings keyed by type, so conversions and mapper creation reflect at most once per type.
+        private static readonly ConcurrentDictionary<Type, PropertyBinding[]> PropertyBindingCache = new ConcurrentDictionary<Type, PropertyBinding[]>();
+
+        private static PropertyBinding[] GetPropertyBindings(Type type)
+        {
+            if (PropertyBindingCache.TryGetValue(type, out var propertyBindings))
+            {
+                return propertyBindings;
+            }
+
+            return PropertyBindingCache.GetOrAdd(type, t => t.GetTypeInfo().DeclaredProperties.Select(pi => new PropertyBinding(pi)).ToArray());
         }
 
         internal static string GetPropertyKey(this PropertyInfo pi)
@@ -30,28 +84,23 @@ namespace DataStandardizer.File.CSV
         {
             var propertyFieldMappings = new Dictionary<string, CsvFieldMapping>();
 
-            var properties = recordLine.GetType().GetTypeInfo().DeclaredProperties;
-            foreach (var pi in properties)
+            foreach (var propertyBinding in GetPropertyBindings(recordLine.GetType()))
             {
-                var fieldAttribute = pi.GetCustomAttribute<CsvFieldMappingAttribute>();
+                var fieldAttribute = propertyBinding.MappingAttribute;
                 if (fieldAttribute is null)
                 {
                     continue;
                 }
 
-                var typeConverterAttribute = pi.GetCustomAttribute<TypeConverterAttribute>();
-                var typeConverterType = !string.IsNullOrEmpty(typeConverterAttribute?.ConverterTypeName) ? Type.GetType(typeConverterAttribute.ConverterTypeName) : null;
-
-                var fieldMapping = new CsvFieldMapping(pi.PropertyType)
+                var fieldMapping = new CsvFieldMapping(propertyBinding.Property.PropertyType)
                 {
                     FieldIndex = fieldAttribute.FieldIndex,
                     FieldName = fieldAttribute.FieldName,
                     ConstantValue = fieldAttribute.ConstantValue,
                     IsOptional = fieldAttribute.IsOptional,
-                    TypeConverterType = typeConverterType,
+                    TypeConverterType = propertyBinding.TypeConverterType,
                 };
-                var propertyKey = pi.GetPropertyKey();
-                propertyFieldMappings.Add(propertyKey, fieldMapping);
+                propertyFieldMappings.Add(propertyBinding.Key, fieldMapping);
             }
 
             return new CsvFileMapper(propertyFieldMappings);
@@ -73,12 +122,15 @@ namespace DataStandardizer.File.CSV
             var targetModel = new TModel();
             ICsvFileMapper csvMapper = mapper;
 
-            var properties = targetModel.GetType().GetTypeInfo().DeclaredProperties
-                .Where(property => property.CanWrite);
-            foreach (var pi in properties)
+            foreach (var propertyBinding in GetPropertyBindings(targetModel.GetType()))
             {
+                if (!propertyBinding.CanWrite)
+                {
+                    continue;
+                }
+
                 // Get the field mapping for the current property.
-                var propertyKey = pi.GetPropertyKey();
+                var propertyKey = propertyBinding.Key;
                 if (!csvMapper.TryGetValue(propertyKey, out var fieldMapping))
                 {
                     continue;
@@ -108,7 +160,7 @@ namespace DataStandardizer.File.CSV
                 // Copy the field value from the CSV line to the corresponding property on the custom model.
                 // Assumes that the raw string value from the CSV file has already been converted in the CSV line.
                 var fieldValue = csvLine[fieldKey];
-                pi.SetValue(targetModel, fieldValue);
+                propertyBinding.Property.SetValue(targetModel, fieldValue);
             }
 
             return targetModel;
@@ -130,12 +182,15 @@ namespace DataStandardizer.File.CSV
             ICsvFileLine csvLine = targetLine;
             ICsvFileMapper csvMapper = mapper;
 
-            var properties = sourceModel.GetType().GetTypeInfo().DeclaredProperties
-                .Where(property => property.CanRead);
-            foreach (var pi in properties)
+            foreach (var propertyBinding in GetPropertyBindings(sourceModel.GetType()))
             {
+                if (!propertyBinding.CanRead)
+                {
+                    continue;
+                }
+
                 // Get the field mapping for the current property.
-                var propertyKey = pi.GetPropertyKey();
+                var propertyKey = propertyBinding.Key;
                 if (!csvMapper.TryGetValue(propertyKey, out var fieldMapping))
                 {
                     continue;
@@ -144,7 +199,7 @@ namespace DataStandardizer.File.CSV
                 var fieldKey = CsvMappingService.GetFieldNameFromMapping(propertyKey, fieldMapping);
 
                 // Copy the field value from the CSV line to the corresponding property on the custom model.
-                var fieldValue = pi.GetValue(sourceModel);
+                var fieldValue = propertyBinding.Property.GetValue(sourceModel);
                 csvLine[fieldKey] = fieldValue;
             }
 

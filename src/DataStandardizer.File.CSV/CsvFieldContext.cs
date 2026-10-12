@@ -1,4 +1,4 @@
-﻿#if NETSTANDARD
+﻿#if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP3_0_OR_GREATER
 using JetBrains.Annotations; 
 #endif
 
@@ -36,7 +36,7 @@ namespace DataStandardizer.File.CSV
         /// <summary>
         /// Gets the name of rhe CSV field.
         /// </summary>
-#if NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public string? FieldName
         {
             get;
@@ -54,7 +54,7 @@ internal set;
         /// <summary>
         /// Gets the header line from the CSV file.
         /// </summary>
-#if NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public CsvFileHeaderLine? HeaderLine
         {
             get;
@@ -72,7 +72,7 @@ internal set;
         /// <summary>
         /// Gets the record line from the CSV file.
         /// </summary>
-#if NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public TModel? Model
         {
             get;
@@ -94,7 +94,7 @@ internal set;
         /// <summary>
         /// Gets the raw value of the CSV field.
         /// </summary>
-#if NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public string? RawFieldValue
         {
             get;

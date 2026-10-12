@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Globalization;
 using System.Text;
-#if NETSTANDARD
+#if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP3_0_OR_GREATER
 using JetBrains.Annotations; 
 #endif
 
@@ -12,7 +12,7 @@ namespace DataStandardizer.File.CSV
         /// <summary>
         /// Gets the <see cref="CsvFieldBadValue{TModel}"/> delegate that will be called when a bad value is found in a CSV field.
         /// </summary>
-#if NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         Delegate? BadValueHandler { get; }
 #else
         [CanBeNull]
@@ -21,7 +21,7 @@ namespace DataStandardizer.File.CSV
         /// <summary>
         /// Gets the culture to use for converting field values.
         /// </summary>
-#if NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         CultureInfo? Culture { get; }
 #else
         [CanBeNull]
@@ -30,7 +30,7 @@ namespace DataStandardizer.File.CSV
         /// <summary>
         /// Gets the character sequence for line breaks embedded in CSV field values.
         /// </summary>
-#if NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         string? EmbeddedLineBreak { get; }
 #else
         [CanBeNull]
@@ -40,7 +40,7 @@ namespace DataStandardizer.File.CSV
         /// <summary>
         /// Gets the encoding for the CSV file.
         /// </summary>
-#if NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         Encoding? Encoding { get; }
 #else
         [CanBeNull]
@@ -54,7 +54,7 @@ namespace DataStandardizer.File.CSV
         /// <summary>
         /// Gets the <see cref="CsvFileHeader"/> delegate that will be called to provide field names in lieu of a header line from the file.
         /// </summary>
-#if NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         Delegate? HeaderHandler { get; }
 #else
         Delegate HeaderHandler { get; }
@@ -70,7 +70,7 @@ namespace DataStandardizer.File.CSV
         /// <summary>
         /// Gets the <see cref="CsvFieldCount{TModel}"/> delegate that will be called when a line has a field count inconsistent with other lines in the CSV file.
         /// </summary>
-#if NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         Delegate? InconsistentFieldCountHandler { get; }
 #else
         [CanBeNull]
@@ -108,7 +108,7 @@ namespace DataStandardizer.File.CSV
 #endif
         : ICsvFileOptions
     {
-#if NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
 
         public Delegate? BadValueHandler
         {
@@ -122,7 +122,7 @@ namespace DataStandardizer.File.CSV
 #else
         public Delegate BadValueHandler { get; set; }
 #endif
-#if NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public CultureInfo? Culture
         {
             get;
@@ -135,7 +135,7 @@ set;
 #else
         public CultureInfo Culture { get; set; }
 #endif
-#if NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public string? EmbeddedLineBreak
         {
             get;
@@ -148,7 +148,7 @@ set;
 #else
         public string EmbeddedLineBreak { get; set; }
 #endif
-#if NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public Encoding? Encoding
         {
             get;
@@ -172,7 +172,7 @@ set;
         } = ',';
 
 
-#if NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public Delegate? HeaderHandler
         {
             get;
@@ -195,7 +195,7 @@ set;
 #endif
         } = CsvFileHeaderHandling.None;
 
-#if NETCOREAPP3_0_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public Delegate? InconsistentFieldCountHandler
         {
             get;

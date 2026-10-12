@@ -16,7 +16,7 @@ gradually or must remain on older frameworks indefinitely.
 | --- | --- |
 | **DataStandardizer.Chronology** | `netstandard1.0`, `netstandard2.0`, `net8.0`, `net10.0` |
 | **DataStandardizer.Communication** | `netstandard1.0`, `netstandard2.0`, `net8.0`, `net10.0` |
-| **DataStandardizer.File.CSV** | `netstandard1.3`, `netstandard2.0`, `net8.0`, `net10.0` |
+| **DataStandardizer.File.CSV** | `netstandard1.3`, `netstandard2.0`, `netstandard2.1`, `net8.0`, `net10.0` |
 | **DataStandardizer.Geography** | `netstandard1.0`, `netstandard2.0`, `net8.0`, `net10.0` |
 | **DataStandardizer.Language** | `netstandard1.0`, `netstandard2.0`, `net8.0`, `net10.0` |
 | **DataStandardizer.LanguageTag** | `netstandard1.0`, `netstandard2.0`, `net8.0`, `net10.0` |
@@ -27,16 +27,22 @@ gradually or must remain on older frameworks indefinitely.
 
 Modern .NET (`net8.0` and `net10.0`) is the primary target, giving access to the
 latest runtime features — including nullable reference types, which are enabled
-on those builds. Alongside these, `netstandard2.0` covers the broad middle ground
-of the .NET ecosystem, and `netstandard1.0` extends reach to the oldest
-supported frameworks.
+on those builds and on the **DataStandardizer.File.CSV** `netstandard2.1` build.
+Alongside these, `netstandard2.0` covers the broad middle ground of the .NET
+ecosystem, and `netstandard1.0` extends reach to the oldest supported frameworks.
 
 ## Where the targets differ
 
 Most packages start at `netstandard1.0`. The exception is
 **DataStandardizer.File.CSV**, whose lowest target is `netstandard1.3` — the CSV
 reader and writer rely on stream and component-model APIs that are not available
-on `netstandard1.0`.
+on `netstandard1.0`. It is also the only package with a `netstandard2.1` target,
+which gives .NET Standard 2.1 platforms (Mono and Unity, for example) the in-box
+span types and span-based BCL overloads with no extra package dependencies. The
+`netstandard1.3` and `netstandard2.0` builds of **DataStandardizer.File.CSV** get
+those span types from the `System.Memory` package instead, which NuGet installs
+automatically; the `netstandard2.1`, `net8.0` and `net10.0` builds have no extra
+dependency.
 
 ## Framework-gated APIs
 

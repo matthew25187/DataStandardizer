@@ -99,6 +99,23 @@ public class CsvExtensionsTests
     }
 
     [Fact]
+    public void CreateMapper_CalledRepeatedly_ReturnsIndependentMappersWithSameMappings()
+    {
+        // arrange
+        var testLine = new TestMappedLine();
+
+        // act
+        var firstMapper = testLine.CreateMapper();
+        var secondMapper = new TestMappedLine().CreateMapper();
+
+        // assert
+        secondMapper.Should().NotBeSameAs(firstMapper);
+        secondMapper.Keys.Should().BeEquivalentTo(firstMapper.Keys);
+        secondMapper[nameof(TestMappedLine.Id)].Should().NotBeSameAs(firstMapper[nameof(TestMappedLine.Id)]);
+        secondMapper[nameof(TestMappedLine.Id)].Should().BeEquivalentTo(firstMapper[nameof(TestMappedLine.Id)]);
+    }
+
+    [Fact]
     public void ToObject_FieldMappedByName_CopiesValueFromLineObjectToCustomObject()
     {
         // arrange
