@@ -208,7 +208,9 @@ namespace DataStandardizer.File.CSV
                 {
                     case CsvFileHeaderHandling.Use when _headerLine is null:
                     {
-                        csvLine = _headerLine = new CsvFileHeaderLine();
+                        var headerLine = new CsvFileHeaderLine();
+                        headerLine.EnsureFieldCapacity(rawFieldValues.Count);
+                        csvLine = _headerLine = headerLine;
 
                         // Make sure all field names are unique.
                         var duplicateFieldNames = GetDuplicateFieldNames(rawFieldValues);
@@ -237,7 +239,9 @@ namespace DataStandardizer.File.CSV
 
                     default:
                     {
-                        csvLine = new TRecordLine();
+                        var recordLine = new TRecordLine();
+                        recordLine.EnsureFieldCapacity(rawFieldValues.Count);
+                        csvLine = recordLine;
 
                         if (_headerFieldNames is null)
                         {

@@ -37,7 +37,7 @@ and used by the derived line types. Concrete line types are
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `Add(object key, object? value)` | `void` | Appends a field. `value` is `object` (not nullable) on `netstandard1.3` / `netstandard2.0`. |
+| `Add(object key, object? value)` | `void` | Appends a field. `value` is `object` (not nullable) on `netstandard1.3` / `netstandard2.0`. On `net10.0`, `key` must be a `string` (see [Field name keys](#field-name-keys)). |
 
 ### Explicit implementation
 
@@ -46,7 +46,7 @@ is callable only through the corresponding interface reference. *(All targets.)*
 
 | Member | Returns | Notes |
 | --- | --- | --- |
-| `ICollection.CopyTo(Array array, int index)` | `void` | |
+| `ICollection.CopyTo(Array array, int index)` | `void` | Copies `DictionaryEntry` items in field order. |
 | `ICollection.Count` | `int` | |
 | `ICollection.IsSynchronized` | `bool` | |
 | `ICollection.SyncRoot` | `object` | |
@@ -65,11 +65,31 @@ is callable only through the corresponding interface reference. *(All targets.)*
 | `IOrderedDictionary.RemoveAt(int index)` | `void` | |
 | `IOrderedDictionary.this[int index]` | `object?` | |
 
+### Field name keys
+
+Field names are always strings. On `net10.0`, the members that take an `object key`
+accept only `string` keys:
+
+- `Add`, `Insert`, and setting `IDictionary.this[object key]` throw
+  `ArgumentException` for a key that is not a `string`.
+- `Contains` returns `false`, getting `IDictionary.this[object key]` returns
+  `null`, and `Remove` does nothing for a key that is not a `string`, because no
+  such key can be present.
+
+The other targets accept a key of any type. On every target, a `null` key throws
+`ArgumentNullException`.
+
 ## Applies to
 
 Targets `netstandard1.3`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0`.
 The nullable annotations on the `object?` members apply to the `netstandard2.1`,
 `net8.0`, and `net10.0` builds.
+
+The `net10.0` build stores the fields in a generic
+`OrderedDictionary<string, object?>`; the other builds use the non-generic
+`System.Collections.Specialized.OrderedDictionary`. The two behave the same
+through the interfaces above, apart from the [field name keys](#field-name-keys)
+restriction.
 
 ## See also
 
