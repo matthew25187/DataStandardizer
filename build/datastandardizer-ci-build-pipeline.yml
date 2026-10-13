@@ -21,7 +21,7 @@ parameters:
   - name: forcePackageDataStandardizerCore
     displayName: 'Force DataStandardizer.Core package'
     type: string
-    default: Build
+    default: None
     values:
     - None
     - Build
@@ -282,6 +282,28 @@ stages:
             # timeoutInMinutes: string # Time to wait for this task to complete before the server kills it.
             # retryCountOnTaskFailure: string # Number of retries if the task fails.            
           - task: PowerShell@2
+            name: DependentPackages
+            displayName: 'Find dependent packages'
+            inputs:
+              #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
+              filePath: 'build/scripts/FindDependentPackages.ps1' # string. Required when targetType = filePath. Script Path. 
+              arguments: '-TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
+              #script: # string. Required when targetType = inline. Script. 
+            # Preference Variables
+              #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
+              #warningPreference: 'default' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. WarningPreference. Default: default.
+              informationPreference: 'continue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. InformationPreference. Default: default.
+              verbosePreference: ${{ iif(eq(parameters.enableVerboseOutput, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. VerbosePreference. Default: default.
+              debugPreference: ${{ iif(eq(parameters.enableDebug, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. DebugPreference. Default: default.
+              #progressPreference: 'silentlyContinue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ProgressPreference. Default: silentlyContinue.
+            # Advanced
+              #failOnStderr: false # boolean. Fail on Standard Error. Default: false.
+              #showWarnings: false # boolean. Show warnings as Azure DevOps warnings. Default: false.
+              #ignoreLASTEXITCODE: false # boolean. Ignore $LASTEXITCODE. Default: false.
+              pwsh: true # boolean. Use PowerShell Core. Default: false.
+              #workingDirectory: # string. Working Directory. 
+              #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.
+          - task: PowerShell@2
             name: TestPackages
             displayName: 'Find test packages'
             inputs:
@@ -440,6 +462,7 @@ stages:
     dependsOn: Configure
     variables:
       changedPackageNames: $[stageDependencies.Configure.Production_packages.outputs['ChangedPackages.changedPackageNames']]
+      dependentPackageNames: $[stageDependencies.Configure.Production_packages.outputs['DependentPackages.dependentPackageNames']]
       versionNumbers: $[stageDependencies.Configure.Version_numbering.outputs['PromoteVersionList.versionNumberList']]
       hasAssemblyVersionNumbers: $[stageDependencies.Configure.Version_numbering.outputs['PromoteVersionList.hasAssemblyVersionPackageNames']]
       hasAssemblyFileVersionNumbers: $[stageDependencies.Configure.Version_numbering.outputs['PromoteVersionList.hasAssemblyFileVersionPackageNames']]
@@ -452,7 +475,7 @@ stages:
           and
           (
             succeeded(), 
-            or(containsValue(split(variables.buildRequiredPackageNames, ','), '${{packageName}}'), containsValue(split(variables.publicationRequiredPackageNames, ','), '${{packageName}}'), and(gt(length(coalesce(variables['changedPackageNames'], '')), 0), containsValue(split(variables['changedPackageNames'], ','), '${{packageName}}')))
+            or(containsValue(split(variables.buildRequiredPackageNames, ','), '${{packageName}}'), containsValue(split(variables.publicationRequiredPackageNames, ','), '${{packageName}}'), and(gt(length(coalesce(variables['changedPackageNames'], '')), 0), containsValue(split(variables['changedPackageNames'], ','), '${{packageName}}')), containsValue(split(coalesce(variables['dependentPackageNames'], ''), ','), '${{packageName}}'))
           )        
         pool:
           vmImage: windows-latest
@@ -505,6 +528,7 @@ stages:
       - Build
     variables:
       changedPackageNames: $[stageDependencies.Configure.Production_packages.outputs['ChangedPackages.changedPackageNames']]
+      dependentPackageNames: $[stageDependencies.Configure.Production_packages.outputs['DependentPackages.dependentPackageNames']]
       testPackageNames: $[stageDependencies.Configure.Production_packages.outputs['TestPackages.testPackageNames']]
     jobs:
     - ${{ each packageName in split(variables.allPackageNames, ',') }}:
@@ -516,7 +540,7 @@ stages:
           (
             succeeded(), 
             containsValue(split(coalesce(variables['testPackageNames'], ''), ','), '${{packageName}}'), 
-            or(containsValue(split(variables.buildRequiredPackageNames, ','), '${{packageName}}'), containsValue(split(variables.publicationRequiredPackageNames, ','), '${{packageName}}'), containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{packageName}}'))
+            or(containsValue(split(variables.buildRequiredPackageNames, ','), '${{packageName}}'), containsValue(split(variables.publicationRequiredPackageNames, ','), '${{packageName}}'), containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{packageName}}'), containsValue(split(coalesce(variables['dependentPackageNames'], ''), ','), '${{packageName}}'))
           )
         # continueOnError: string # Continue running even on failure?
         # timeoutInMinutes: 480 # Time to wait for this job to complete before the server kills it.

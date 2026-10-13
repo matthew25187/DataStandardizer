@@ -1,7 +1,7 @@
 parameters:
 - name: packageActionDataStandardizerCore
   type: string
-  default: Build
+  default: None
 - name: packageActionDataStandardizerBcp47
   type: string
   default: None
