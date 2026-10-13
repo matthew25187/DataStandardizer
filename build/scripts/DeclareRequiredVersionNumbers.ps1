@@ -92,48 +92,54 @@ $nextPackagePrereleaseLabel = $packageVersions | Where-Object -Property Name -EQ
 # Fetch current version numbers from assembly.
 [version]$currentAssemblyVersion = $null; [version]$currentFileVersion = $null; [version]$currentInformationalVersion = $null
 
-nuget install $PackageName -DependencyVersion Ignore -DirectDownload -ExcludeVersion -NoHttpCache -NonInteractive -OutputDirectory $env:AGENT_TEMPDIRECTORY -PackageSaveMode nupkg -PreRelease -Source 'https://pkgs.dev.azure.com/solobyte/DataStandardizer/_packaging/DataStandardizer/nuget/v3/index.json' -Source 'https://api.nuget.org/v3/index.json' -Verbosity detailed -Version $currentPackageVersionSemVer 2>&1 | Write-Host
-
-[string]$currentPackageFolderPath
-$currentPackageArchivePath = Get-ChildItem -Path $env:AGENT_TEMPDIRECTORY -Filter "$PackageName.nupkg" -Recurse | Select-Object -ExpandProperty FullName
-if ((-not [string]::IsNullOrEmpty($currentPackageArchivePath)) -and (Test-Path $currentPackageArchivePath -PathType Leaf)) {
-    Write-Verbose "Found $PackageName package file at $currentPackageArchivePath."
-
-    $currentPackageFolderPath = $currentPackageArchivePath | Split-Path -Parent
-    # Expand-Archive -Path $currentPackageArchivePath -DestinationPath $currentPackageFolderPath -PassThru  # not needed; already expanded by nuget install?
+if ($currentPackageVersion -eq [version]'0.0.0.0') {
+    # A package with no released version has no package to download.
+    Write-Information "Package $PackageName has no released version.  Current assembly version numbers are unknown."
 }
 else {
-    Write-Error "Failed to acquire package $PackageName.  Unable to determine current package assembly version."
-}
+    nuget install $PackageName -DependencyVersion Ignore -DirectDownload -ExcludeVersion -NoHttpCache -NonInteractive -OutputDirectory $env:AGENT_TEMPDIRECTORY -PackageSaveMode nupkg -PreRelease -Source 'https://pkgs.dev.azure.com/solobyte/DataStandardizer/_packaging/DataStandardizer/nuget/v3/index.json' -Source 'https://api.nuget.org/v3/index.json' -Verbosity detailed -Version $currentPackageVersionSemVer 2>&1 | Write-Host
 
-$currentPackageAssemblyPaths = @(Get-ChildItem -Path $currentPackageFolderPath -Filter "$PackageName.dll" -Recurse |
-    Sort-Object -Property FullName |
-    Select-Object -ExpandProperty FullName)
-foreach ($currentPackageAssemblyPath in $currentPackageAssemblyPaths) {
-    $asmName = [System.Reflection.AssemblyName]::GetAssemblyName($currentPackageAssemblyPath)
-    if ($null -eq $currentAssemblyVersion) {
-        $currentAssemblyVersion = $asmName.Version
+    [string]$currentPackageFolderPath
+    $currentPackageArchivePath = Get-ChildItem -Path $env:AGENT_TEMPDIRECTORY -Filter "$PackageName.nupkg" -Recurse | Select-Object -ExpandProperty FullName
+    if ((-not [string]::IsNullOrEmpty($currentPackageArchivePath)) -and (Test-Path $currentPackageArchivePath -PathType Leaf)) {
+        Write-Verbose "Found $PackageName package file at $currentPackageArchivePath."
 
-        Write-Verbose "Found $PackageName assembly at $currentPackageAssemblyPath."
-        Write-Verbose $asmName.ToString()
-
-        $versionInfo = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($currentPackageAssemblyPath)
-        $currentFileVersion = $versionInfo.FileVersion
-        $currentInformationalVersion = $versionInfo.ProductVersion
+        $currentPackageFolderPath = $currentPackageArchivePath | Split-Path -Parent
+        # Expand-Archive -Path $currentPackageArchivePath -DestinationPath $currentPackageFolderPath -PassThru  # not needed; already expanded by nuget install?
+    }
+    else {
+        Write-Error "Failed to acquire package $PackageName.  Unable to determine current package assembly version."
     }
 
-    if ($asmName.Version -ne $currentAssemblyVersion) {
-        Write-Warning "Detected multiple assembly versions in package $PackageName.  Package will not resolve correctly if referenced."
+    $currentPackageAssemblyPaths = @(Get-ChildItem -Path $currentPackageFolderPath -Filter "$PackageName.dll" -Recurse |
+        Sort-Object -Property FullName |
+        Select-Object -ExpandProperty FullName)
+    foreach ($currentPackageAssemblyPath in $currentPackageAssemblyPaths) {
+        $asmName = [System.Reflection.AssemblyName]::GetAssemblyName($currentPackageAssemblyPath)
+        if ($null -eq $currentAssemblyVersion) {
+            $currentAssemblyVersion = $asmName.Version
+
+            Write-Verbose "Found $PackageName assembly at $currentPackageAssemblyPath."
+            Write-Verbose $asmName.ToString()
+
+            $versionInfo = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($currentPackageAssemblyPath)
+            $currentFileVersion = $versionInfo.FileVersion
+            $currentInformationalVersion = $versionInfo.ProductVersion
+        }
+
+        if ($asmName.Version -ne $currentAssemblyVersion) {
+            Write-Warning "Detected multiple assembly versions in package $PackageName.  Package will not resolve correctly if referenced."
+        }
     }
-}
 
-if ($currentPackageAssemblyPaths.Count -eq 0) {
-    Write-Error "Package $PackageName is not expanded.  Unable to determine current package assembly version."
-}
+    if ($currentPackageAssemblyPaths.Count -eq 0) {
+        Write-Error "Package $PackageName is not expanded.  Unable to determine current package assembly version."
+    }
 
-# Check for package/assembly version match.
-if ($null -ne $currentAssemblyVersion -and ($currentAssemblyVersion.Major -ne $currentPackageVersion.Major -or $currentAssemblyVersion.Minor -ne $currentPackageVersion.Minor)) {
-    Write-Warning "$PackageName package/assembly version mismatch; $currentPackageVersion != $currentAssemblyVersion."
+    # Check for package/assembly version match.
+    if ($null -ne $currentAssemblyVersion -and ($currentAssemblyVersion.Major -ne $currentPackageVersion.Major -or $currentAssemblyVersion.Minor -ne $currentPackageVersion.Minor)) {
+        Write-Warning "$PackageName package/assembly version mismatch; $currentPackageVersion != $currentAssemblyVersion."
+    }
 }
 
 # Add package version numbers to list.
