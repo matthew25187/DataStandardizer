@@ -50,13 +50,14 @@ steps:
       # failOnStderr: string # Fail the task if output is sent to Stderr?
       # ignoreLASTEXITCODE: string # Check the final exit code of the script to determine whether the step succeeded?
       # workingDirectory: string # Start the script with this working directory.
-      # condition: string # Evaluate this condition expression to determine whether to run this task.
+      condition: and(succeeded(), containsValue(split(variables['hasAssemblyVersionNumbers'], ','), '${{dependencyPackageName}}')) # Skip a dependency that has no assembly version, such as a package that has never been released.
       # continueOnError: boolean # Continue running even on failure?
       displayName: '[${{parameters.packageName}}] Prepare arguments for Assembly Version' # Human-readable name for the task.
     # Version .NET Assemblies (Core/5/6 and later)
     # Description - Applies a version to a .NET Assemblies (Core/5/6 and later) via the .csproj files based on the build number. Based on Microsoft sample from https://msdn.microsoft.com/Library/vs/alm/Build/overview
     - task: VersionDotNetCoreAssemblies@3
       displayName: '[${{parameters.packageName}}] Apply Assembly Version to ${{dependencyPackageName}}' # Human-readable name for the task.
+      condition: and(succeeded(), containsValue(split(variables['hasAssemblyVersionNumbers'], ','), '${{dependencyPackageName}}')) # Skip a dependency that has no assembly version, such as a package that has never been released.
       inputs: 
         # Required arguments
         Path: $(projectPathArg)
@@ -70,6 +71,7 @@ steps:
     # Run a PowerShell script on Linux, macOS, or Windows.
     - task: PowerShell@2
       displayName: '[${{parameters.packageName}}] Confirm Assembly Version for ${{dependencyPackageName}}' # Human-readable name for the task.
+      condition: and(succeeded(), containsValue(split(variables['hasAssemblyVersionNumbers'], ','), '${{dependencyPackageName}}')) # Skip a dependency that has no assembly version, such as a package that has never been released.
       inputs:
         targetType: 'inline' # 'filePath' | 'inline'. Type. Default: filePath.
         # filePath: # string. Required when targetType = filePath. Script Path. 
