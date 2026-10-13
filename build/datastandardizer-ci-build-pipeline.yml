@@ -694,7 +694,28 @@ stages:
                   buildProperties: 'PackageVersion="$(packageVersionArg)"' # string. Optional. Use when command = pack. Additional build properties. 
                   #verbosityPack: 'Normal' # '-' | 'Quiet' | 'Minimal' | 'Normal' | 'Detailed' | 'Diagnostic'. Optional. Use when command = pack. Verbosity. Default: Normal.
                 # Advanced
-                  #workingDirectory: # string. Optional. Use when command != restore && command != push && command != pack. Working directory.                  
+                  #workingDirectory: # string. Optional. Use when command != restore && command != push && command != pack. Working directory.
+              # A package whose culture-specific resources are absent does not fail to load: every culture
+              # silently falls back to the neutral resources. Their presence is confirmed rather than assumed.
+              - ${{ if eq(packageName, 'DataStandardizer.Money') }}:
+                - task: PowerShell@2
+                  displayName: '[${{packageName}}] Confirm satellite assemblies'
+                  condition: |
+                    and
+                    (
+                      succeeded(),
+                      or(containsValue(split(coalesce(variables.publicationRequiredPackageNames, ''), ','), '${{ packageName }}'), and(containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{ packageName }}'), eq(variables['isDevelopBranch'], 'true')))
+                    )
+                  inputs:
+                    filePath: 'build/scripts/ConfirmSatelliteAssemblies.ps1' # string. Required when targetType = filePath. Script Path.
+                    arguments: "-PackageFolder '$(Build.ArtifactStagingDirectory)/packages/$(BuildConfiguration)' -PackageName '${{packageName}}' -MinimumCultureCount 16" # string. Optional. Use when targetType = filePath. Arguments.
+                  # Preference Variables
+                    informationPreference: 'continue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. InformationPreference. Default: default.
+                    verbosePreference: ${{ iif(eq(parameters.enableVerboseOutput, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. VerbosePreference. Default: default.
+                    debugPreference: ${{ iif(eq(parameters.enableDebug, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. DebugPreference. Default: default.
+                  # Advanced
+                    showWarnings: true # boolean. Show warnings as Azure DevOps warnings. Default: false.
+                    pwsh: true # boolean. Use PowerShell Core. Default: false.
               - task: PowerShell@2
                 displayName: '[${{packageName}}] Update package metadata'
                 condition: |

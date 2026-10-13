@@ -15,7 +15,14 @@ A monetary value that combines a `decimal` amount with an optional ISO 4217
 currency and optional rounding. Instances are created through the static `Create`
 factory methods.
 
-**.NET Standard 2.0, .NET:**
+**.NET 7.0 and later:**
+
+```csharp
+public readonly struct Money : IComparable, IComparable<Money>, IEquatable<Money>, IFormattable, IConvertible,
+                               ISpanFormattable, IParsable<Money>, ISpanParsable<Money>
+```
+
+**.NET Standard 2.0:**
 
 ```csharp
 public readonly struct Money : IComparable, IComparable<Money>, IEquatable<Money>, IFormattable, IConvertible
@@ -61,12 +68,41 @@ currencies.
 | `GetHashCode()` | `int` | Override. |
 | `Parse(string s)` | `Money` | Throws `FormatException` if `s` is not a valid value. |
 | `Parse(string s, IFormatProvider? provider)` | `Money` | Culture-specific parse. |
-| `ToString()` | `string` | |
+| `Parse(string s, MoneyStyles styles, IFormatProvider? provider)` | `Money` | Permits only the specified elements. |
+| `ParseExact(string s, string format, IFormatProvider? provider)` | `Money` | Requires `s` to be in the given format. |
+| `ParseExact(string s, string[] formats, IFormatProvider? provider, MoneyStyles styles)` | `Money` | Requires `s` to be in one of the given formats. |
+| `ToString()` | `string` | The amount alone. |
 | `ToString(IFormatProvider? provider)` | `string` | |
 | `ToString(string? format)` | `string` | |
 | `ToString(string? format, IFormatProvider? formatProvider)` | `string` | `IFormattable` implementation (a normal public method). |
 | `TryParse(string? s, out Money result)` | `bool` | Returns `false` instead of throwing on failure. |
 | `TryParse(string? s, IFormatProvider? provider, out Money result)` | `bool` | Culture-specific try-parse. |
+| `TryParse(string? s, MoneyStyles styles, IFormatProvider? provider, out Money result)` | `bool` | Permits only the specified elements. |
+| `TryParseExact(string? s, string[]? formats, IFormatProvider? provider, MoneyStyles styles, out Money result)` | `bool` | Requires `s` to be in one of the given formats. |
+
+On .NET 7.0 and later, `TryFormat`, `Parse(ReadOnlySpan<char>, IFormatProvider?)`
+and `TryParse(ReadOnlySpan<char>, IFormatProvider?, out Money)` are also
+available, satisfying `ISpanFormattable` and `ISpanParsable<Money>`.
+
+### Formatting and parsing
+
+`ToString` supports the specifiers `C` (currency symbol), `H` (narrow currency
+symbol), `I` (ISO 4217 currency code), `N` (currency name) and `G` (the amount
+alone), each optionally followed by a precision. Where no precision is given the
+number of minor units of the currency is used.
+
+The culture supplied governs presentation only. The currency denoted, and the
+default precision, come from the value, so formatting a value of one currency
+under the culture of another applies that culture's separators and grouping but
+never substitutes its currency.
+
+{: .warning }
+> In earlier versions `C` emitted the ISO 4217 currency code. It now emits the
+> currency symbol, matching the meaning the specifier has for the intrinsic
+> numeric types. Use `I` where you previously used `C`.
+
+See [Format money values](../how-to/format-money-values.md) and
+[Parse money values](../how-to/parse-money-values.md).
 
 ### Explicit implementation
 
