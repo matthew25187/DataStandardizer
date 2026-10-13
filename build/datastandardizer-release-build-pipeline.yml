@@ -66,6 +66,14 @@ parameters:
     - None
     - Build
     - Publication
+  - name: forcePackageDataStandardizerFileICal
+    displayName: 'Force DataStandardizer.File.iCal package'
+    type: string
+    default: None
+    values:
+    - None
+    - Build
+    - Publication
   - name: forcePackageDataStandardizerGeography
     displayName: 'Force DataStandardizer.Geography package'
     type: string
@@ -190,6 +198,7 @@ variables:
       packageActionDataStandardizerCommunication: ${{ parameters.forcePackageDataStandardizerCommunication }}
       packageActionDataStandardizerFile: ${{ parameters.forcePackageDataStandardizerFile }}
       packageActionDataStandardizerFileCSV: ${{ parameters.forcePackageDataStandardizerFileCSV }}
+      packageActionDataStandardizerFileICal: ${{ parameters.forcePackageDataStandardizerFileICal }}
       packageActionDataStandardizerGeography: ${{ parameters.forcePackageDataStandardizerGeography }}
       packageActionDataStandardizerIso15924: ${{ parameters.forcePackageDataStandardizerIso15924 }}
       packageActionDataStandardizerIso3166: ${{ parameters.forcePackageDataStandardizerIso3166 }}
