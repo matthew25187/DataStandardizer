@@ -9,6 +9,8 @@ namespace DataStandardizer.Chronology
 {
     public static class TzDataExtensions
     {
+        private static readonly TimeSpan MaximumDateTimeOffsetOffset = TimeSpan.FromHours(14);
+
         /// <summary>
         /// Get the comment on a timezone.
         /// </summary>
@@ -438,12 +440,58 @@ namespace DataStandardizer.Chronology
             return GetTransitions(timezone, from.UtcDateTime, to.UtcDateTime);
         }
 
+        /// <summary>
+        /// Get the offsets from universal time in effect in a timezone at a time on its local clock, with the period over which each is in effect.
+        /// </summary>
+        /// <param name="timezone">A TzData timezone.</param>
+        /// <param name="local">The time on the local clock of the timezone, which must be of kind <see cref="DateTimeKind.Unspecified"/>.</param>
+        /// <returns>
+        /// The offsets in effect at the time, in chronological order of the instants at which the local clock shows it.
+        /// There are none where the time falls in a gap, as when clocks go forward, one normally, and two where the time
+        /// falls in an overlap, as when clocks go back.
+        /// </returns>
+        /// <remarks>
+        /// This is the reverse of <see cref="GetOffsetInfo(TzDataTimezone, DateTime)"/>. The instant at which each offset gives
+        /// the time is <paramref name="local"/> less its <see cref="TzDataOffsetInfo.UtcOffset"/>.
+        /// </remarks>
+        /// <exception cref="ArgumentException"><paramref name="local"/> is of kind <see cref="DateTimeKind.Utc"/> or <see cref="DateTimeKind.Local"/>.</exception>
+        /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
+#if NETSTANDARD
+        [NotNull]
+#endif
+        public static IReadOnlyList<TzDataOffsetInfo> GetOffsetInfosForLocal(this TzDataTimezone timezone, DateTime local)
+        {
+            var calculator = timezone.GetCalculator();
+            return calculator.GetOffsetInfosForLocal(ToLocalTicks(local, nameof(local)), out _);
+        }
+
         private static DateTime ToUniversalInstant(DateTime utc, string parameterName)
         {
             if (utc.Kind == DateTimeKind.Local)
                 throw new ArgumentException("The time must be a universal time, of kind Utc or Unspecified.", parameterName);
 
             return DateTime.SpecifyKind(utc, DateTimeKind.Utc);
+        }
+
+        internal static long ToLocalTicks(DateTime local, string parameterName)
+        {
+            if (local.Kind != DateTimeKind.Unspecified)
+                throw new ArgumentException("The time must be a time on the local clock of the timezone, of kind Unspecified.", parameterName);
+
+            return local.Ticks;
+        }
+
+        internal static DateTimeOffset ToDateTimeOffset(DateTime utc, TimeSpan utcOffset, string parameterName)
+        {
+            // DateTimeOffset holds an offset in whole minutes of at most 14 hours, which excludes some offsets of local mean time.
+            if (utcOffset.Ticks % TimeSpan.TicksPerMinute != 0 || utcOffset > MaximumDateTimeOffsetOffset || utcOffset < -MaximumDateTimeOffsetOffset)
+                throw new ArgumentOutOfRangeException(parameterName, $"The offset in effect, {utcOffset}, cannot be held by a DateTimeOffset, which requires whole minutes of at most 14 hours.");
+
+            var localTicks = utc.Ticks + utcOffset.Ticks;
+            if (localTicks < DateTime.MinValue.Ticks || localTicks > DateTime.MaxValue.Ticks)
+                throw new ArgumentOutOfRangeException(parameterName, "The time on the local clock falls outside the range of DateTime.");
+
+            return new DateTimeOffset(new DateTime(localTicks, DateTimeKind.Unspecified), utcOffset);
         }
 
         // The obsolete accessors keep reading the obsolete attribute, so that their behaviour is unchanged until they are removed.
