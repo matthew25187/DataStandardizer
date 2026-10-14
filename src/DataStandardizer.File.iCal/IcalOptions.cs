@@ -33,6 +33,85 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
+        /// Gets a flag indicating if a property value that does not follow the syntax of its value type is accepted.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// When <c>false</c> (the default), <see cref="IcalReader"/> rejects a calendar holding such a value, and <see cref="IcalWriter"/> refuses
+        /// to write one, with an <see cref="IcalFileException"/>.  The checks cover the value types of RFC 5545 §3.3 and the rules that tie a value
+        /// to its property: a <c>VALUE</c> parameter the property does not allow, or one it requires; a DATE-TIME that must be in UTC; and
+        /// date-times that must have the same value type as the property's <c>DTSTART</c>.
+        /// </para>
+        /// <para>
+        /// When <c>true</c>, the value is kept as written.  A typed accessor such as <see cref="IcalEvent.DtStart"/> throws
+        /// <see cref="IcalFileException"/> when it reads the value.
+        /// </para>
+        /// </remarks>
+        public bool AllowInvalidValues
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
+        /// Gets a flag indicating if a property is accepted where RFC 5545 allows it at most once but it appears more than once, or where two
+        /// properties that exclude each other both appear, such as <c>DTEND</c> and <c>DURATION</c> in a VEVENT.
+        /// </summary>
+        /// <remarks>
+        /// When <c>false</c> (the default), <see cref="IcalReader"/> rejects such a calendar, and <see cref="IcalWriter"/> refuses to write one,
+        /// with an <see cref="IcalFileException"/>.  A typed accessor reads the first of the properties.
+        /// </remarks>
+        public bool AllowCardinalityViolations
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
+        /// Gets a flag indicating if a required property or component may be missing, such as the <c>UID</c> or <c>DTSTAMP</c> of a VEVENT, or the
+        /// STANDARD or DAYLIGHT parts of a VTIMEZONE.
+        /// </summary>
+        /// <remarks>
+        /// When <c>false</c> (the default), <see cref="IcalReader"/> rejects such a calendar, and <see cref="IcalWriter"/> refuses to write one,
+        /// with an <see cref="IcalFileException"/>.  A missing <c>VERSION</c> is covered too; <see cref="IcalWriter"/> always writes
+        /// <c>VERSION:2.0</c>, so it never refuses a calendar for lacking one.
+        /// </remarks>
+        public bool AllowMissingRequiredProperties
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
+        /// Gets a flag indicating if a <c>TZID</c> parameter may name a time zone the calendar has no VTIMEZONE for.
+        /// </summary>
+        /// <remarks>
+        /// RFC 5545 §3.2.19 requires a VTIMEZONE for each <c>TZID</c>.  When <c>false</c> (the default), <see cref="IcalReader"/> rejects a
+        /// calendar without one, and <see cref="IcalWriter"/> refuses to write one, with an <see cref="IcalFileException"/>.
+        /// </remarks>
+        public bool AllowUndefinedTimeZones
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
         /// Gets the encoding for the iCalendar data.
         /// </summary>
         /// <remarks>
