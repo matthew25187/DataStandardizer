@@ -179,6 +179,75 @@ public class Utf8FoldRealigningStreamTests
         inner.CanRead.Should().BeFalse();
     }
 
+    public static TheoryData<int, bool> AsyncBufferSizeData()
+    {
+        var data = new TheoryData<int, bool>();
+        foreach (var bufferSize in BufferSizeData())
+        {
+            data.Add(bufferSize, false);
+            data.Add(bufferSize, true);
+        }
+
+        return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(AsyncBufferSizeData))]
+    public async Task ReadAsync_AsyncOnlyInnerStream_MatchesRead(int bufferSize, bool useMemoryOverload)
+    {
+        // arrange
+        byte[][] inputs =
+        [
+            Encoding.UTF8.GetBytes("SUMMARY:a\r\n b €\r\n\t😀 é\r\nX:\n y\r\n"),
+            [0x41, 0xE2, 0x0D, 0x0A, 0x20, 0x82, 0xAC, 0x42],
+            [0xF0, 0x0D, 0x0A, 0x20, 0x9F, 0x0A, 0x09, 0x98, 0x0D, 0x0A, 0x09, 0x80, 0x41],
+            [0xE2, 0x82, 0x0D],
+            [0xFF, 0xFE, 0x41, 0x00, 0x0D, 0x00],
+            []
+        ];
+
+        foreach (var input in inputs)
+        {
+            // act
+            var testResult = await ReadThroughAsync(input, bufferSize, useMemoryOverload);
+
+            // assert
+            testResult.Should().Equal(ReadThrough(input, bufferSize));
+        }
+    }
+
+    [Fact]
+    public async Task ReadAsync_Disposed_Throws()
+    {
+        // arrange
+        var stream = new Utf8FoldRealigningStream(new AsyncOnlyStream([0x41]), false, 16);
+        await stream.DisposeAsync();
+
+        // act
+        var testAction = async () => await stream.ReadAsync(new byte[1]);
+
+        // assert
+        await testAction.Should().ThrowAsync<ObjectDisposedException>();
+    }
+
+    /// <summary>
+    /// Reads all of the input asynchronously through the stream, a few bytes at a time, from an inner stream that can only be read
+    /// asynchronously.
+    /// </summary>
+    private static async Task<byte[]> ReadThroughAsync(byte[] input, int bufferSize, bool useMemoryOverload)
+    {
+        await using var stream = new Utf8FoldRealigningStream(new AsyncOnlyStream(input), false, bufferSize);
+        using var output = new MemoryStream();
+        var buffer = new byte[3];
+        int read;
+        while ((read = useMemoryOverload ? await stream.ReadAsync(buffer.AsMemory()) : await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+        {
+            output.Write(buffer, 0, read);
+        }
+
+        return output.ToArray();
+    }
+
     /// <summary>
     /// Reads all of the input through the stream, a few bytes at a time.
     /// </summary>
