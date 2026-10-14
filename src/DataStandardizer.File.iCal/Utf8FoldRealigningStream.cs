@@ -1,5 +1,9 @@
 ﻿using System;
 using System.IO;
+#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
+using System.Threading;
+using System.Threading.Tasks;
+#endif
 
 namespace DataStandardizer.File.iCal
 {
@@ -17,6 +21,9 @@ namespace DataStandardizer.File.iCal
     /// A fold is a line break (CRLF, or a bare line feed) followed by a space or horizontal tab.  Bytes that are not part of a fold inside a
     /// sequence pass through unchanged, including invalid UTF-8, which is left for the decoder.  If the data starts with a UTF-16 or UTF-32 byte
     /// order mark, which the <see cref="StreamReader"/> will honour, every byte passes through unchanged.
+    /// </para>
+    /// <para>
+    /// The realigning itself does no I/O, so <see cref="Read"/> and <c>ReadAsync</c> share it and differ only in how they read the inner stream.
     /// </para>
     /// </remarks>
     internal sealed class Utf8FoldRealigningStream : Stream
@@ -41,6 +48,13 @@ namespace DataStandardizer.File.iCal
         private byte[] _output;
         private int _outputEnd;
         private int _outputStart;
+
+        private enum ProcessStatus
+        {
+            Processed,
+            NeedInput,
+            Ended
+        }
 
         /// <param name="inner">The stream to read from.</param>
         /// <param name="leaveOpen"><c>true</c> to leave <paramref name="inner"/> open when this stream is disposed.</param>
@@ -81,20 +95,50 @@ namespace DataStandardizer.File.iCal
                 throw new ArgumentOutOfRangeException(nameof(offset));
             if (count < 0 || count > buffer.Length - offset)
                 throw new ArgumentOutOfRangeException(nameof(count));
-            if (_isDisposed)
-                throw new ObjectDisposedException(GetType().Name);
+            ThrowIfDisposed();
             if (count == 0) return 0;
 
             while (_outputStart == _outputEnd)
             {
-                if (!Process()) return 0;
+                var status = Process();
+                if (status == ProcessStatus.Ended) return 0;
+
+                if (status == ProcessStatus.NeedInput)
+                {
+                    var inputOffset = PrepareInput();
+                    CompleteInput(_inner.Read(_input, inputOffset, _input.Length - inputOffset));
+                }
             }
 
-            var copyCount = Math.Min(count, _outputEnd - _outputStart);
-            Buffer.BlockCopy(_output, _outputStart, buffer, offset, copyCount);
-            _outputStart += copyCount;
-            return copyCount;
+            return CopyOutput(buffer, offset, count);
         }
+
+#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            if (buffer is null)
+                throw new ArgumentNullException(nameof(buffer));
+            if (offset < 0)
+                throw new ArgumentOutOfRangeException(nameof(offset));
+            if (count < 0 || count > buffer.Length - offset)
+                throw new ArgumentOutOfRangeException(nameof(count));
+
+            return ReadAsyncCore(buffer, offset, count, cancellationToken).AsTask();
+        }
+#endif
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP2_1_OR_GREATER
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            if (!System.Runtime.InteropServices.MemoryMarshal.TryGetArray<byte>(buffer, out var segment) || segment.Array is null)
+            {
+                // Output is copied into arrays only, so let the base class read through a temporary array.
+                return base.ReadAsync(buffer, cancellationToken);
+            }
+
+            return ReadAsyncCore(segment.Array, segment.Offset, segment.Count, cancellationToken);
+        }
+#endif
 
         public override long Seek(long offset, SeekOrigin origin)
         {
@@ -125,36 +169,77 @@ namespace DataStandardizer.File.iCal
             base.Dispose(disposing);
         }
 
+#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
+        private async ValueTask<int> ReadAsyncCore(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            ThrowIfDisposed();
+            if (count == 0) return 0;
+
+            while (_outputStart == _outputEnd)
+            {
+                var status = Process();
+                if (status == ProcessStatus.Ended) return 0;
+
+                if (status == ProcessStatus.NeedInput)
+                {
+                    var inputOffset = PrepareInput();
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP2_1_OR_GREATER
+                    var inputMemory = new Memory<byte>(_input, inputOffset, _input.Length - inputOffset);
+                    CompleteInput(await _inner.ReadAsync(inputMemory, cancellationToken).ConfigureAwait(false));
+#else
+                    CompleteInput(await _inner.ReadAsync(_input, inputOffset, _input.Length - inputOffset, cancellationToken).ConfigureAwait(false));
+#endif
+                }
+            }
+
+            return CopyOutput(buffer, offset, count);
+        }
+#endif
+
+        private int CopyOutput(byte[] buffer, int offset, int count)
+        {
+            var copyCount = Math.Min(count, _outputEnd - _outputStart);
+            Buffer.BlockCopy(_output, _outputStart, buffer, offset, copyCount);
+            _outputStart += copyCount;
+            return copyCount;
+        }
+
         /// <summary>
-        /// Moves bytes from the input buffer to the output buffer, reading more input when the input buffer is empty.
+        /// Moves bytes from the input buffer to the output buffer.  It does no I/O: when it needs more input it says so, and the caller reads
+        /// into the input buffer with <see cref="PrepareInput"/> and <see cref="CompleteInput"/>, then calls it again.  Called only when the
+        /// output buffer is empty.
         /// </summary>
-        /// <returns><c>false</c> if the inner stream has ended and there is no more output.</returns>
-        private bool Process()
+        /// <returns>
+        /// <see cref="ProcessStatus.Processed"/> when the input has been processed, which may have given no output;
+        /// <see cref="ProcessStatus.NeedInput"/> when more input is needed first, though some output may have been given already;
+        /// <see cref="ProcessStatus.Ended"/> when the inner stream has ended and there is no more output.
+        /// </returns>
+        private ProcessStatus Process()
         {
             _outputStart = _outputEnd = 0;
 
             if (!_hasCheckedByteOrderMark)
             {
-                while (_inputEnd - _inputStart < 4 && FillInput())
-                {
-                }
+                if (_inputEnd - _inputStart < 4 && !_innerEnded) return ProcessStatus.NeedInput;
 
                 _isPassThrough = StartsWithWideByteOrderMark();
                 _hasCheckedByteOrderMark = true;
             }
 
-            if (_inputStart == _inputEnd && !FillInput())
+            if (_inputStart == _inputEnd)
             {
+                if (!_innerEnded) return ProcessStatus.NeedInput;
+
                 // The data ended inside a sequence, which the decoder will report; keep any fold found in it.
                 FlushDeferred();
-                return _outputEnd > 0;
+                return _outputEnd > 0 ? ProcessStatus.Processed : ProcessStatus.Ended;
             }
 
             if (_isPassThrough)
             {
                 Emit(_input, _inputStart, _inputEnd - _inputStart);
                 _inputStart = _inputEnd;
-                return true;
+                return ProcessStatus.Processed;
             }
 
             while (_inputStart < _inputEnd)
@@ -200,8 +285,7 @@ namespace DataStandardizer.File.iCal
                     if (foldLength < 0)
                     {
                         // Read on to see whether the line break is a fold, then look again.
-                        FillInput();
-                        continue;
+                        return ProcessStatus.NeedInput;
                     }
 
                     if (foldLength > 0)
@@ -217,7 +301,7 @@ namespace DataStandardizer.File.iCal
                 FlushDeferred();
             }
 
-            return true;
+            return ProcessStatus.Processed;
         }
 
         private void Defer(int count)
@@ -254,13 +338,11 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
-        /// Reads more input after any unprocessed input.
+        /// Moves any unprocessed input to the start of the input buffer, so more can be read after it.
         /// </summary>
-        /// <returns><c>false</c> if the inner stream has ended.</returns>
-        private bool FillInput()
+        /// <returns>The index in the input buffer to read into, up to the end of the buffer.</returns>
+        private int PrepareInput()
         {
-            if (_innerEnded) return false;
-
             if (_inputStart > 0)
             {
                 Buffer.BlockCopy(_input, _inputStart, _input, 0, _inputEnd - _inputStart);
@@ -268,15 +350,23 @@ namespace DataStandardizer.File.iCal
                 _inputStart = 0;
             }
 
-            var read = _inner.Read(_input, _inputEnd, _input.Length - _inputEnd);
-            if (read == 0)
+            return _inputEnd;
+        }
+
+        /// <summary>
+        /// Records the result of reading into the input buffer.
+        /// </summary>
+        /// <param name="bytesRead">The number of bytes read, or 0 at the end of the inner stream.</param>
+        private void CompleteInput(int bytesRead)
+        {
+            if (bytesRead == 0)
             {
                 _innerEnded = true;
-                return false;
             }
-
-            _inputEnd += read;
-            return true;
+            else
+            {
+                _inputEnd += bytesRead;
+            }
         }
 
         private void FlushDeferred()
@@ -307,6 +397,12 @@ namespace DataStandardizer.File.iCal
 
             var whiteSpace = _input[_inputStart + lineBreakLength];
             return whiteSpace == Space || whiteSpace == Tab ? lineBreakLength + 1 : 0;
+        }
+
+        private void ThrowIfDisposed()
+        {
+            if (_isDisposed)
+                throw new ObjectDisposedException(GetType().Name);
         }
 
         private bool StartsWithWideByteOrderMark()

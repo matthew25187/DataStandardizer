@@ -15,6 +15,11 @@ internal static class ReaderInspector
         return (TextReader)GetFieldValue(reader, "_reader");
     }
 
+    public static IcalContentLineScanner GetScanner(IcalContentLineReader reader)
+    {
+        return (IcalContentLineScanner)GetFieldValue(reader, "_scanner");
+    }
+
     public static Stream GetInnerStream(Utf8FoldRealigningStream stream)
     {
         return (Stream)GetFieldValue(stream, "_inner");
