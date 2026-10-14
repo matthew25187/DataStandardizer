@@ -4,7 +4,8 @@ using System.Globalization;
 namespace DataStandardizer.File.iCal
 {
     /// <summary>
-    /// The progress of a writer, reported after each line a bulk write hands to the underlying <see cref="System.IO.TextWriter"/>.
+    /// The progress of a writer.  <see cref="IcalContentLineWriter"/> reports it after each line a bulk write hands to the underlying
+    /// <see cref="System.IO.TextWriter"/>, and <see cref="IcalWriter"/> after each calendar.
     /// </summary>
     /// <remarks>
     /// Counts are cumulative for the writer, not for the call that reports them.
@@ -15,10 +16,33 @@ namespace DataStandardizer.File.iCal
         /// Creates a progress value.
         /// </summary>
         /// <param name="linesWritten">The number of logical (unfolded) content lines written.</param>
-        public IcalWriteProgress(long linesWritten)
+        public IcalWriteProgress(long linesWritten) : this(linesWritten, 0, 0)
+        {
+        }
+
+        /// <summary>
+        /// Creates a progress value.
+        /// </summary>
+        /// <param name="linesWritten">The number of logical (unfolded) content lines written.</param>
+        /// <param name="componentsWritten">The number of components written, not counting the VCALENDAR objects.</param>
+        /// <param name="calendarsWritten">The number of VCALENDAR objects written.</param>
+        public IcalWriteProgress(long linesWritten, long componentsWritten, long calendarsWritten)
         {
             LinesWritten = linesWritten;
+            ComponentsWritten = componentsWritten;
+            CalendarsWritten = calendarsWritten;
         }
+
+        /// <summary>
+        /// Gets the number of VCALENDAR objects the writer has written so far; always 0 for <see cref="IcalContentLineWriter"/>.
+        /// </summary>
+        public long CalendarsWritten { get; }
+
+        /// <summary>
+        /// Gets the number of components the writer has written so far, at any depth and not counting the VCALENDAR objects; always 0 for
+        /// <see cref="IcalContentLineWriter"/>.
+        /// </summary>
+        public long ComponentsWritten { get; }
 
         /// <summary>
         /// Gets the number of logical (unfolded) content lines the writer has written so far.
@@ -29,10 +53,10 @@ namespace DataStandardizer.File.iCal
         /// Indicates whether this progress value equals another.
         /// </summary>
         /// <param name="other">The other progress value.</param>
-        /// <returns><c>true</c> if the counts are equal; otherwise <c>false</c>.</returns>
+        /// <returns><c>true</c> if all the counts are equal; otherwise <c>false</c>.</returns>
         public bool Equals(IcalWriteProgress other)
         {
-            return LinesWritten == other.LinesWritten;
+            return LinesWritten == other.LinesWritten && ComponentsWritten == other.ComponentsWritten && CalendarsWritten == other.CalendarsWritten;
         }
 
         /// <inheritdoc />
@@ -48,13 +72,17 @@ namespace DataStandardizer.File.iCal
         /// <inheritdoc />
         public override int GetHashCode()
         {
-            return LinesWritten.GetHashCode();
+            unchecked
+            {
+                return (LinesWritten.GetHashCode() * 397 ^ ComponentsWritten.GetHashCode()) * 397 ^ CalendarsWritten.GetHashCode();
+            }
         }
 
         /// <inheritdoc />
         public override string ToString()
         {
-            return string.Format(CultureInfo.InvariantCulture, "LinesWritten = {0}", LinesWritten);
+            return string.Format(CultureInfo.InvariantCulture, "LinesWritten = {0}, ComponentsWritten = {1}, CalendarsWritten = {2}", LinesWritten,
+                ComponentsWritten, CalendarsWritten);
         }
 
         /// <summary>

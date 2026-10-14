@@ -892,7 +892,7 @@ public class IcalContentLineWriterTests
         progress.Equals((object)new IcalWriteProgress(3)).Should().BeTrue();
         progress.Equals(null).Should().BeFalse();
         progress.GetHashCode().Should().Be(new IcalWriteProgress(3).GetHashCode());
-        progress.ToString().Should().Be("LinesWritten = 3");
+        progress.ToString().Should().Be("LinesWritten = 3, ComponentsWritten = 0, CalendarsWritten = 0");
         default(IcalWriteProgress).LinesWritten.Should().Be(0);
     }
 
