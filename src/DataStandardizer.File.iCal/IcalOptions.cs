@@ -37,7 +37,8 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <remarks>
         /// Applies only when the reader or writer is created from a <see cref="System.IO.Stream"/> or file path.  When <c>null</c> (the default),
-        /// UTF-8 is used, which is the default charset of RFC 5545 §3.1.4.  A byte order mark in the data takes precedence.
+        /// UTF-8 is used, which is the default charset of RFC 5545 §3.1.4.  A reader lets a byte order mark in the data take precedence.  A writer
+        /// writes UTF-8 without a byte order mark.
         /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public Encoding? Encoding
@@ -52,6 +53,58 @@ namespace DataStandardizer.File.iCal
 #else
         public Encoding Encoding { get; set; }
 #endif
+
+        /// <summary>
+        /// Gets the length, in octets, at which a writer folds content lines.
+        /// </summary>
+        /// <remarks>
+        /// The default is 75, the length RFC 5545 §3.1 recommends.  Lengths are measured in octets of the UTF-8 encoding, not counting the line
+        /// break, and a fold never splits a character.  The minimum is 4, the longest UTF-8 sequence; a continuation line that starts with a
+        /// 4-octet character is then one octet longer, so that it holds at least one character.  Ignored by a reader.
+        /// </remarks>
+        public int FoldLength
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        } = 75;
+
+        /// <summary>
+        /// Gets the white space character a writer puts at the start of each continuation line of a folded content line.
+        /// </summary>
+        /// <remarks>
+        /// Either a space (the default) or a horizontal tab, the two characters RFC 5545 §3.1 allows.  Ignored by a reader, which accepts both.
+        /// </remarks>
+        public char FoldWhitespace
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        } = ' ';
+
+        /// <summary>
+        /// Gets the line break a writer ends each physical line with, including the lines of a fold.
+        /// </summary>
+        /// <remarks>
+        /// RFC 5545 §3.1 requires a CRLF sequence, which is the default.  A bare line feed (<c>"\n"</c>) may be chosen for consumers that expect
+        /// it; no other value is accepted.  The line break never depends on <see cref="System.Environment.NewLine"/>.  Ignored by a reader; see
+        /// <see cref="AcceptBareLineFeed"/>.
+        /// </remarks>
+        public string LineBreak
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        } = "\r\n";
 
         /// <summary>
         /// Gets the maximum length, in characters, of a logical (unfolded) content line, not counting its line break.

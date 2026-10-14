@@ -63,15 +63,16 @@ namespace DataStandardizer.File.iCal
         }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        private IcalContentLine(string name, IcalContentLineParameter[] parameters, string value, long lineNumber, long physicalLineNumber, int[]? foldOffsets,
-            int valueOffset)
+        private IcalContentLine(string name, IcalContentLineParameter[] parameters, string? rawParameters, string value, long lineNumber,
+            long physicalLineNumber, int[]? foldOffsets, int valueOffset)
 #else
-        private IcalContentLine(string name, IcalContentLineParameter[] parameters, string value, long lineNumber, long physicalLineNumber, int[] foldOffsets,
-            int valueOffset)
+        private IcalContentLine(string name, IcalContentLineParameter[] parameters, string rawParameters, string value, long lineNumber,
+            long physicalLineNumber, int[] foldOffsets, int valueOffset)
 #endif
         {
             Name = name;
             Parameters = parameters;
+            RawParameters = rawParameters;
             Value = value;
             LineNumber = lineNumber;
             PhysicalLineNumber = physicalLineNumber;
@@ -98,6 +99,17 @@ namespace DataStandardizer.File.iCal
         /// Gets the 1-based number of the physical line on which this line starts in its source; or 0 if it was not read from a source.
         /// </summary>
         public long PhysicalLineNumber { get; }
+
+        /// <summary>
+        /// Gets the parameters exactly as they appeared in the source, from the first ';' up to the ':' before the value; or <c>null</c> if the
+        /// line has no parameters or was not read from a source.  <see cref="IcalContentLineWriter"/> writes these, so that a line read and
+        /// written back keeps its quoting and caret encoding.
+        /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal string? RawParameters { get; }
+#else
+        internal string RawParameters { get; }
+#endif
 
         /// <summary>
         /// Gets the value, as it appears in the content line once unfolded.  TEXT escaping is left in place, because whether it applies depends
@@ -173,8 +185,14 @@ namespace DataStandardizer.File.iCal
                 parameters[parameterIndex] = IcalContentLineParameter.FromReader(scanner.GetParameterName(parameterIndex).Span.ToString(), values);
             }
 
-            return new IcalContentLine(scanner.Name.Span.ToString(), parameters, scanner.RawValue.Span.ToString(), scanner.LineNumber, scanner.PhysicalLineNumber,
-                scanner.CopyFoldOffsets(), scanner.ValueOffsetInLine);
+            var name = scanner.Name.Span;
+            var valueOffset = scanner.ValueOffsetInLine;
+
+            // The parameters run from the end of the name to the ':' before the value.
+            var rawParameters = parameterCount == 0 ? null : scanner.RawLine.Span.Slice(name.Length, valueOffset - 1 - name.Length).ToString();
+
+            return new IcalContentLine(name.ToString(), parameters, rawParameters, scanner.RawValue.Span.ToString(), scanner.LineNumber,
+                scanner.PhysicalLineNumber, scanner.CopyFoldOffsets(), valueOffset);
         }
     }
 }
