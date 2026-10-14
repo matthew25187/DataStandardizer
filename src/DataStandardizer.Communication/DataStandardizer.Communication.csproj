@@ -25,7 +25,6 @@ Provides types supporting communication-related standards, including:
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
     <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
     <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
-    <Platforms>AnyCPU;x86;x64</Platforms>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'">

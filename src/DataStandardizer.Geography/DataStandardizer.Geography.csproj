@@ -27,7 +27,6 @@ Includes:
     <PackageReleaseNotes>Initial release.</PackageReleaseNotes>
     <PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-    <Platforms>AnyCPU;x86;x64</Platforms>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'">

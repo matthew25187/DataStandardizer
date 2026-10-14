@@ -27,7 +27,6 @@ Includes:
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <CheckNotRecommendedTargetFramework>false</CheckNotRecommendedTargetFramework>
     <NetStandardImplicitPackageVersion>2.0.3</NetStandardImplicitPackageVersion>
-    <Platforms>AnyCPU;x86;x64</Platforms>
     <PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
   </PropertyGroup>

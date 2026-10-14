@@ -54,3 +54,8 @@ similarly, `Iso3166Part2Subdivision` in **DataStandardizer.Geography** implement
 
 Where an API is framework-gated, the per-package reference pages carry an
 **"Applies to"** note spelling out exactly which targets it covers.
+
+## CPU architectures
+
+The packages contain architecture-neutral (AnyCPU) IL and run on x86, x64, ARM64
+and any other architecture the consuming .NET runtime supports.

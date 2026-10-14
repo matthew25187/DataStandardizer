@@ -12,7 +12,6 @@ Supports use of ISO 639, "Codes for the representation of names of languages" pa
     <PackageIcon>054-doc_web.png</PackageIcon>
     <RepositoryUrl>https://github.com/matthew25187/DataStandardizer.git</RepositoryUrl>
     <PackageTags>data;standard;ISO 639;language;code</PackageTags>
-    <Platforms>AnyCPU;x86;x64</Platforms>
     <Authors>matthew25187</Authors>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageReleaseNotes>Initial release.</PackageReleaseNotes>
@@ -26,7 +25,6 @@ Supports use of ISO 639, "Codes for the representation of names of languages" pa
     <CheckNotRecommendedTargetFramework>false</CheckNotRecommendedTargetFramework>
     <NetStandardImplicitPackageVersion>2.0.3</NetStandardImplicitPackageVersion>
     <RepositoryType>git</RepositoryType>
-    <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">

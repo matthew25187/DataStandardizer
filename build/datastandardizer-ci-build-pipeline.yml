@@ -6,18 +6,6 @@
 name: datastandardizer_preview_$(date:yyyyMMdd)$(rev:.r)
 
 parameters:
-  - name: buildAnyCPU
-    displayName: "Build AnyCPU targets"
-    type: boolean
-    default: true
-  - name: buildX86
-    displayName: "Build x86 targets"
-    type: boolean
-    default: true
-  - name: buildX64
-    displayName: "Build x64 targets"
-    type: boolean
-    default: true
   - name: forcePackageDataStandardizerCore
     displayName: 'Force DataStandardizer.Core package'
     type: string
@@ -481,27 +469,12 @@ stages:
           vmImage: windows-latest
         strategy:
           matrix:
-            ${{ if eq(parameters.buildAnyCPU, 'true') }}:
-              Debug_AnyCPU:
-                BuildConfiguration: debug
-                BuildPlatform: "Any CPU"
-              Release_AnyCPU:
-                BuildConfiguration: release
-                BuildPlatform: "Any CPU"
-            ${{ if eq(parameters.buildX86, 'true') }}:
-              Debug_x86:
-                BuildConfiguration: debug
-                BuildPlatform: x86
-              Release_x86:
-                BuildConfiguration: release
-                BuildPlatform: x86
-            ${{ if eq(parameters.buildX64, 'true') }}:
-              Debug_x64:
-                BuildConfiguration: debug
-                BuildPlatform: x64
-              Release_x64:
-                BuildConfiguration: release
-                BuildPlatform: x64
+            Debug:
+              BuildConfiguration: debug
+              BuildPlatform: "Any CPU"
+            Release:
+              BuildConfiguration: release
+              BuildPlatform: "Any CPU"
         variables:
           buildSolution: '${{packageName}}.slnf'
           isContinuousIntegrationBuild: true
@@ -547,43 +520,22 @@ stages:
         # cancelTimeoutInMinutes: string # Time to wait for the job to cancel before forcibly terminating it.
         variables:
           testAssemblies: |
-            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/${{packageName}}.*Test.dll
-            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/${{packageName}}.*Tests.dll
-            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/${{packageName}}.*Test.*.dll
-            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/${{packageName}}.*Tests.*.dll
+            tests/**/bin/$(BuildConfiguration)/**/${{packageName}}.*Test.dll
+            tests/**/bin/$(BuildConfiguration)/**/${{packageName}}.*Tests.dll
+            tests/**/bin/$(BuildConfiguration)/**/${{packageName}}.*Test.*.dll
+            tests/**/bin/$(BuildConfiguration)/**/${{packageName}}.*Tests.*.dll
             !**/*TestAdapter.dll
             !**/obj/**
             !**/ref/**
         strategy: # Execution strategy for this job.
           matrix:
-            ${{ if eq(parameters.buildAnyCPU, 'true') }}:
-              Debug_AnyCPU:
-                BuildConfiguration: debug
-                BuildPlatform: "Any CPU"
-                TestPlatformPath: '**'  # No platform subfolder for Any CPU
-              Release_AnyCPU:
-                BuildConfiguration: release
-                BuildPlatform: "Any CPU"
-                TestPlatformPath: '**'  # No platform subfolder for Any CPU
-            ${{ if eq(parameters.buildX86, 'true') }}:
-              Debug_x86:
-                BuildConfiguration: debug
-                BuildPlatform: x86
-                TestPlatformPath: 'x86'
-              Release_x86:
-                BuildConfiguration: release
-                BuildPlatform: x86
-                TestPlatformPath: 'x86'
-            ${{ if eq(parameters.buildX64, 'true') }}:
-              Debug_x64:
-                BuildConfiguration: debug
-                BuildPlatform: x64
-                TestPlatformPath: 'x64'
-              Release_x64:
-                BuildConfiguration: release
-                BuildPlatform: x64
-                TestPlatformPath: 'x64'
-        pool: 
+            Debug:
+              BuildConfiguration: debug
+              BuildPlatform: "Any CPU"
+            Release:
+              BuildConfiguration: release
+              BuildPlatform: "Any CPU"
+        pool:
           vmImage: windows-latest # Pool where this job will run.
         steps: # A list of steps to run.
         - template: /build/qa-steps.yml  # reference to template
