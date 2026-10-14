@@ -3,7 +3,6 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard1.0;netstandard2.0;net8.0</TargetFrameworks>
     <ImplicitUsings>disable</ImplicitUsings>
-    <Platforms>AnyCPU;x86;x64</Platforms>
     <Title></Title>
     <Authors>matthew25187</Authors>
     <Description>Data Standardizer provides implementations of various internationally recognised standards in data processing, covering topics ranging from languages to currencies and geographical entities. With strongly-typed enumerations for each standard (where applicable) or other targeted data types, you can represent these elements in your code such that errors with invalid values are minimised.
@@ -27,7 +26,6 @@ Supports use of ISO 15924, "Codes for the representation of names of scripts".</
     <NetStandardImplicitPackageVersion>2.0.3</NetStandardImplicitPackageVersion>
     <RepositoryUrl>https://github.com/matthew25187/DataStandardizer.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
 
     <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
