@@ -674,9 +674,8 @@ namespace DataStandardizer.File.iCal
             {
                 // ref. RFC 5545§3.8.1.6: geovalue = float ";" float.
                 var parts = value.Split(';');
-                double number;
-                return parts.Length == 2 && IcalValue.TryParseFloat(parts[0].AsSpan(), IcalValueFormat.Text, out number) &&
-                       IcalValue.TryParseFloat(parts[1].AsSpan(), IcalValueFormat.Text, out number);
+                return parts.Length == 2 && IcalValue.TryParseFloat(parts[0].AsSpan(), IcalValueFormat.Text, out _) &&
+                       IcalValue.TryParseFloat(parts[1].AsSpan(), IcalValueFormat.Text, out _);
             }
 
             if (ListProperties.Contains(property.Name, StringComparer.OrdinalIgnoreCase))
@@ -698,59 +697,33 @@ namespace DataStandardizer.File.iCal
             switch (valueType)
             {
                 case IcalValueType.Binary:
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-                    byte[]? bytes;
-#else
-                    byte[] bytes;
-#endif
-                    return IcalValue.TryParseBinary(span, IcalValueFormat.Text, out bytes);
+                    return IcalValue.TryParseBinary(span, IcalValueFormat.Text, out _);
                 case IcalValueType.Boolean:
-                    bool boolean;
-                    return IcalValue.TryParseBoolean(span, IcalValueFormat.Text, out boolean);
+                    return IcalValue.TryParseBoolean(span, IcalValueFormat.Text, out _);
                 case IcalValueType.CalAddress:
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-                    Uri? address;
-#else
-                    Uri address;
-#endif
-                    return IcalValue.TryParseCalAddress(span, IcalValueFormat.Text, out address);
+                    return IcalValue.TryParseCalAddress(span, IcalValueFormat.Text, out _);
                 case IcalValueType.Date:
                 case IcalValueType.DateTime:
-                    IcalDateOrDateTime dateOrDateTime;
-                    return IcalPropertyValue.TryParseDateOrDateTime(property, span, out dateOrDateTime);
+                    return IcalPropertyValue.TryParseDateOrDateTime(property, span, out _);
                 case IcalValueType.Duration:
-                    IcalDuration duration;
-                    return IcalDuration.TryParse(span, IcalValueFormat.Text, out duration);
+                    return IcalDuration.TryParse(span, IcalValueFormat.Text, out _);
                 case IcalValueType.Float:
-                    double number;
-                    return IcalValue.TryParseFloat(span, IcalValueFormat.Text, out number);
+                    return IcalValue.TryParseFloat(span, IcalValueFormat.Text, out _);
                 case IcalValueType.Integer:
-                    int integer;
-                    return IcalValue.TryParseInteger(span, IcalValueFormat.Text, out integer);
+                    return IcalValue.TryParseInteger(span, IcalValueFormat.Text, out _);
                 case IcalValueType.Period:
                     var timeZoneId = IcalPropertyValue.GetParameterValue(property, IcalParameterNames.TimeZoneId);
-                    IcalPeriod period;
-                    return timeZoneId?.Length != 0 && IcalPeriod.TryParse(span, timeZoneId, IcalValueFormat.Text, out period);
+                    return timeZoneId?.Length != 0 && IcalPeriod.TryParse(span, timeZoneId, IcalValueFormat.Text, out _);
                 case IcalValueType.Recur:
-                    IcalRecurrenceRule rule;
-                    return IcalRecurrenceRule.TryParse(span, IcalValueFormat.Text, out rule);
+                    return IcalRecurrenceRule.TryParse(span, IcalValueFormat.Text, out _);
                 case IcalValueType.Text:
-                    var unescaped = new char[span.Length];
-                    int written, errorIndex;
-                    return IcalEscaping.TryUnescapeText(span, unescaped, out written, out errorIndex);
+                    return IcalEscaping.TryUnescapeText(span, new char[span.Length], out _, out _);
                 case IcalValueType.Time:
-                    IcalTime time;
-                    return IcalTime.TryParse(span, IcalValueFormat.Text, out time);
+                    return IcalTime.TryParse(span, IcalValueFormat.Text, out _);
                 case IcalValueType.Uri:
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-                    Uri? uri;
-#else
-                    Uri uri;
-#endif
-                    return IcalValue.TryParseUri(span, IcalValueFormat.Text, out uri);
+                    return IcalValue.TryParseUri(span, IcalValueFormat.Text, out _);
                 case IcalValueType.UtcOffset:
-                    IcalUtcOffset offset;
-                    return IcalUtcOffset.TryParse(span, IcalValueFormat.Text, out offset);
+                    return IcalUtcOffset.TryParse(span, IcalValueFormat.Text, out _);
                 default:
                     return true;
             }
