@@ -7,7 +7,8 @@ namespace DataStandardizer.File.iCal
     /// </summary>
     /// <remarks>
     /// <para>
-    /// This type parses, checks and formats a rule.  It does not expand a rule into occurrences.
+    /// This type parses, checks and formats a rule, and <see cref="GetOccurrences(IcalDateTime, IcalDateTime?, IcalDateTime?)"/> expands it
+    /// into occurrences in local time.
     /// </para>
     /// <para>
     /// The values of each BYxxx rule part are held as a set, so their order and any repeats are not kept.  They are written in a fixed order:
@@ -23,7 +24,7 @@ namespace DataStandardizer.File.iCal
     /// The default value has no frequency, so it is not a valid rule.
     /// </para>
     /// </remarks>
-    public readonly struct IcalRecurrenceRule : IEquatable<IcalRecurrenceRule>
+    public readonly partial struct IcalRecurrenceRule : IEquatable<IcalRecurrenceRule>
 #if NET6_0_OR_GREATER
         , ISpanFormattable
 #endif
@@ -80,7 +81,7 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// The rule parts, held inline so that parsing does not allocate.
         /// </summary>
-        private struct Parts
+        internal struct Parts
         {
             internal IcalRecurrenceFrequency Frequency;
             internal int Count;
