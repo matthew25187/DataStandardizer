@@ -573,15 +573,15 @@ namespace DataStandardizer.File.iCal
             // Gather the lines first, so that a calendar changed by another thread cannot fail part way through for that reason.
             var lines = new List<IcalContentLine>();
             componentCount = 0;
-            lines.Add(new IcalContentLine("BEGIN", calendar.Name));
+            lines.Add(new IcalContentLine(IcalCalendarBuilder.BeginName, calendar.Name));
             var isVersionWritten = false;
             foreach (var property in calendar.Properties)
             {
-                if (IcalComponent.IsNamed(property, "VERSION"))
+                if (IcalComponent.IsNamed(property, IcalPropertyNames.Version))
                 {
                     if (isVersionWritten) continue;
 
-                    lines.Add(new IcalContentLine("VERSION", IcalConformance.SupportedVersion));
+                    lines.Add(new IcalContentLine(IcalPropertyNames.Version, IcalConformance.SupportedVersion));
                     isVersionWritten = true;
                 }
                 else
@@ -592,7 +592,7 @@ namespace DataStandardizer.File.iCal
 
             if (!isVersionWritten)
             {
-                lines.Insert(1, new IcalContentLine("VERSION", IcalConformance.SupportedVersion));
+                lines.Insert(1, new IcalContentLine(IcalPropertyNames.Version, IcalConformance.SupportedVersion));
             }
 
             foreach (var component in calendar.Components)
@@ -600,13 +600,13 @@ namespace DataStandardizer.File.iCal
                 AddComponent(component, lines, ref componentCount);
             }
 
-            lines.Add(new IcalContentLine("END", calendar.Name));
+            lines.Add(new IcalContentLine(IcalCalendarBuilder.EndName, calendar.Name));
             return lines;
         }
 
         private static void AddComponent(IcalComponent component, List<IcalContentLine> lines, ref int componentCount)
         {
-            lines.Add(new IcalContentLine("BEGIN", component.Name));
+            lines.Add(new IcalContentLine(IcalCalendarBuilder.BeginName, component.Name));
             foreach (var property in component.Properties)
             {
                 lines.Add(property);
@@ -617,7 +617,7 @@ namespace DataStandardizer.File.iCal
                 AddComponent(child, lines, ref componentCount);
             }
 
-            lines.Add(new IcalContentLine("END", component.Name));
+            lines.Add(new IcalContentLine(IcalCalendarBuilder.EndName, component.Name));
             componentCount++;
         }
 

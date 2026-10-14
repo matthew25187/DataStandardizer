@@ -286,11 +286,11 @@ namespace DataStandardizer.File.iCal
                 return;
             }
 
-            var parameters = KeepParameters(name, IcalPropertyValue.ValueParameter, IcalPropertyValue.TimeZoneIdParameter);
+            var parameters = KeepParameters(name, IcalParameterNames.Value, IcalParameterNames.TimeZoneId);
             string text;
             if (value.Value.IsDate)
             {
-                parameters.Add(new IcalContentLineParameter(IcalPropertyValue.ValueParameter, "DATE"));
+                parameters.Add(new IcalContentLineParameter(IcalParameterNames.Value, IcalValueTypeRegistry.GetValueTypeName(IcalValueType.Date)));
                 text = value.Value.Date.ToString(IcalValueFormat.Text);
             }
             else
@@ -298,7 +298,7 @@ namespace DataStandardizer.File.iCal
                 var dateTime = value.Value.DateTime;
                 if (dateTime.TimeZoneId != null)
                 {
-                    parameters.Add(new IcalContentLineParameter(IcalPropertyValue.TimeZoneIdParameter, dateTime.TimeZoneId));
+                    parameters.Add(new IcalContentLineParameter(IcalParameterNames.TimeZoneId, dateTime.TimeZoneId));
                 }
 
                 text = dateTime.ToString(IcalValueFormat.Text);
@@ -346,10 +346,11 @@ namespace DataStandardizer.File.iCal
                 return;
             }
 
-            var parameters = KeepParameters(name, IcalPropertyValue.ValueParameter);
+            var parameters = KeepParameters(name, IcalParameterNames.Value);
             if (isValueParameterRequired)
             {
-                parameters.Add(new IcalContentLineParameter(IcalPropertyValue.ValueParameter, "DURATION"));
+                parameters.Add(new IcalContentLineParameter(IcalParameterNames.Value,
+                    IcalValueTypeRegistry.GetValueTypeName(IcalValueType.Duration)));
             }
 
             ReplaceProperties(name, new[] { new IcalContentLine(name, parameters, value.Value.ToString(IcalValueFormat.Text)) });
@@ -411,10 +412,10 @@ namespace DataStandardizer.File.iCal
             if (!value.IsAbsoluteUri)
                 throw new ArgumentException("Expected an absolute URI.", nameof(value));
 
-            var parameters = KeepParameters(name, IcalPropertyValue.ValueParameter, IcalPropertyValue.EncodingParameter);
+            var parameters = KeepParameters(name, IcalParameterNames.Value, IcalParameterNames.Encoding);
             if (isValueParameterRequired)
             {
-                parameters.Add(new IcalContentLineParameter(IcalPropertyValue.ValueParameter, "URI"));
+                parameters.Add(new IcalContentLineParameter(IcalParameterNames.Value, IcalValueTypeRegistry.GetValueTypeName(IcalValueType.Uri)));
             }
 
             ReplaceProperties(name, new[] { new IcalContentLine(name, parameters, value.AbsoluteUri) });

@@ -12,8 +12,6 @@ namespace DataStandardizer.File.iCal
     /// </remarks>
     public static class IcalValueTypeRegistry
     {
-        private const string ValueParameterName = "VALUE";
-
         private sealed class Entry
         {
             internal Entry(string name, IcalValueType defaultValueType, params IcalValueType[] otherValueTypes)
@@ -40,77 +38,77 @@ namespace DataStandardizer.File.iCal
         private static readonly Entry[] Entries =
         {
             // ref. RFC 5545§3.7: calendar properties.
-            new Entry("CALSCALE", IcalValueType.Text),
-            new Entry("METHOD", IcalValueType.Text),
-            new Entry("PRODID", IcalValueType.Text),
-            new Entry("VERSION", IcalValueType.Text),
+            new Entry(IcalPropertyNames.CalendarScale, IcalValueType.Text),
+            new Entry(IcalPropertyNames.Method, IcalValueType.Text),
+            new Entry(IcalPropertyNames.ProductId, IcalValueType.Text),
+            new Entry(IcalPropertyNames.Version, IcalValueType.Text),
 
             // ref. RFC 5545§3.8.1: descriptive component properties.
-            new Entry("ATTACH", IcalValueType.Uri, IcalValueType.Binary),
-            new Entry("CATEGORIES", IcalValueType.Text),
-            new Entry("CLASS", IcalValueType.Text),
-            new Entry("COMMENT", IcalValueType.Text),
-            new Entry("DESCRIPTION", IcalValueType.Text),
-            new Entry("GEO", IcalValueType.Float),
-            new Entry("LOCATION", IcalValueType.Text),
-            new Entry("PERCENT-COMPLETE", IcalValueType.Integer),
-            new Entry("PRIORITY", IcalValueType.Integer),
-            new Entry("RESOURCES", IcalValueType.Text),
-            new Entry("STATUS", IcalValueType.Text),
-            new Entry("SUMMARY", IcalValueType.Text),
+            new Entry(IcalPropertyNames.Attachment, IcalValueType.Uri, IcalValueType.Binary),
+            new Entry(IcalPropertyNames.Categories, IcalValueType.Text),
+            new Entry(IcalPropertyNames.Classification, IcalValueType.Text),
+            new Entry(IcalPropertyNames.Comment, IcalValueType.Text),
+            new Entry(IcalPropertyNames.Description, IcalValueType.Text),
+            new Entry(IcalPropertyNames.Geo, IcalValueType.Float),
+            new Entry(IcalPropertyNames.Location, IcalValueType.Text),
+            new Entry(IcalPropertyNames.PercentComplete, IcalValueType.Integer),
+            new Entry(IcalPropertyNames.Priority, IcalValueType.Integer),
+            new Entry(IcalPropertyNames.Resources, IcalValueType.Text),
+            new Entry(IcalPropertyNames.Status, IcalValueType.Text),
+            new Entry(IcalPropertyNames.Summary, IcalValueType.Text),
 
             // ref. RFC 5545§3.8.2: date and time component properties.
-            new Entry("COMPLETED", IcalValueType.DateTime),
-            new Entry("DTEND", IcalValueType.DateTime, IcalValueType.Date),
-            new Entry("DUE", IcalValueType.DateTime, IcalValueType.Date),
-            new Entry("DTSTART", IcalValueType.DateTime, IcalValueType.Date),
-            new Entry("DURATION", IcalValueType.Duration),
-            new Entry("FREEBUSY", IcalValueType.Period),
-            new Entry("TRANSP", IcalValueType.Text),
+            new Entry(IcalPropertyNames.Completed, IcalValueType.DateTime),
+            new Entry(IcalPropertyNames.DtEnd, IcalValueType.DateTime, IcalValueType.Date),
+            new Entry(IcalPropertyNames.Due, IcalValueType.DateTime, IcalValueType.Date),
+            new Entry(IcalPropertyNames.DtStart, IcalValueType.DateTime, IcalValueType.Date),
+            new Entry(IcalPropertyNames.Duration, IcalValueType.Duration),
+            new Entry(IcalPropertyNames.FreeBusy, IcalValueType.Period),
+            new Entry(IcalPropertyNames.Transparency, IcalValueType.Text),
 
             // ref. RFC 5545§3.8.3: time zone component properties.
-            new Entry("TZID", IcalValueType.Text),
-            new Entry("TZNAME", IcalValueType.Text),
-            new Entry("TZOFFSETFROM", IcalValueType.UtcOffset),
-            new Entry("TZOFFSETTO", IcalValueType.UtcOffset),
-            new Entry("TZURL", IcalValueType.Uri),
+            new Entry(IcalPropertyNames.TimeZoneId, IcalValueType.Text),
+            new Entry(IcalPropertyNames.TimeZoneName, IcalValueType.Text),
+            new Entry(IcalPropertyNames.TimeZoneOffsetFrom, IcalValueType.UtcOffset),
+            new Entry(IcalPropertyNames.TimeZoneOffsetTo, IcalValueType.UtcOffset),
+            new Entry(IcalPropertyNames.TimeZoneUrl, IcalValueType.Uri),
 
             // ref. RFC 5545§3.8.4: relationship component properties.
-            new Entry("ATTENDEE", IcalValueType.CalAddress),
-            new Entry("CONTACT", IcalValueType.Text),
-            new Entry("ORGANIZER", IcalValueType.CalAddress),
-            new Entry("RECURRENCE-ID", IcalValueType.DateTime, IcalValueType.Date),
-            new Entry("RELATED-TO", IcalValueType.Text),
-            new Entry("URL", IcalValueType.Uri),
-            new Entry("UID", IcalValueType.Text),
+            new Entry(IcalPropertyNames.Attendee, IcalValueType.CalAddress),
+            new Entry(IcalPropertyNames.Contact, IcalValueType.Text),
+            new Entry(IcalPropertyNames.Organizer, IcalValueType.CalAddress),
+            new Entry(IcalPropertyNames.RecurrenceId, IcalValueType.DateTime, IcalValueType.Date),
+            new Entry(IcalPropertyNames.RelatedTo, IcalValueType.Text),
+            new Entry(IcalPropertyNames.Url, IcalValueType.Uri),
+            new Entry(IcalPropertyNames.Uid, IcalValueType.Text),
 
             // ref. RFC 5545§3.8.5: recurrence component properties.
-            new Entry("EXDATE", IcalValueType.DateTime, IcalValueType.Date),
-            new Entry("RDATE", IcalValueType.DateTime, IcalValueType.Date, IcalValueType.Period),
-            new Entry("RRULE", IcalValueType.Recur),
+            new Entry(IcalPropertyNames.ExceptionDates, IcalValueType.DateTime, IcalValueType.Date),
+            new Entry(IcalPropertyNames.RecurrenceDates, IcalValueType.DateTime, IcalValueType.Date, IcalValueType.Period),
+            new Entry(IcalPropertyNames.RecurrenceRule, IcalValueType.Recur),
 
             // ref. RFC 5545§3.8.6: alarm component properties.
-            new Entry("ACTION", IcalValueType.Text),
-            new Entry("REPEAT", IcalValueType.Integer),
-            new Entry("TRIGGER", IcalValueType.Duration, IcalValueType.DateTime),
+            new Entry(IcalPropertyNames.Action, IcalValueType.Text),
+            new Entry(IcalPropertyNames.Repeat, IcalValueType.Integer),
+            new Entry(IcalPropertyNames.Trigger, IcalValueType.Duration, IcalValueType.DateTime),
 
             // ref. RFC 5545§3.8.7: change management component properties.
-            new Entry("CREATED", IcalValueType.DateTime),
-            new Entry("DTSTAMP", IcalValueType.DateTime),
-            new Entry("LAST-MODIFIED", IcalValueType.DateTime),
-            new Entry("SEQUENCE", IcalValueType.Integer),
+            new Entry(IcalPropertyNames.Created, IcalValueType.DateTime),
+            new Entry(IcalPropertyNames.DtStamp, IcalValueType.DateTime),
+            new Entry(IcalPropertyNames.LastModified, IcalValueType.DateTime),
+            new Entry(IcalPropertyNames.Sequence, IcalValueType.Integer),
 
             // ref. RFC 5545§3.8.8.3: miscellaneous component properties.
-            new Entry("REQUEST-STATUS", IcalValueType.Text),
+            new Entry(IcalPropertyNames.RequestStatus, IcalValueType.Text),
 
             // ref. RFC 7986§5: new properties.  REFRESH-INTERVAL, SOURCE, IMAGE and CONFERENCE have no default and need a VALUE parameter; their
             // first allowed type is given as the default.
-            new Entry("NAME", IcalValueType.Text),
-            new Entry("REFRESH-INTERVAL", IcalValueType.Duration),
-            new Entry("SOURCE", IcalValueType.Uri),
-            new Entry("COLOR", IcalValueType.Text),
-            new Entry("IMAGE", IcalValueType.Uri, IcalValueType.Binary),
-            new Entry("CONFERENCE", IcalValueType.Uri)
+            new Entry(IcalPropertyNames.Name, IcalValueType.Text),
+            new Entry(IcalPropertyNames.RefreshInterval, IcalValueType.Duration),
+            new Entry(IcalPropertyNames.Source, IcalValueType.Uri),
+            new Entry(IcalPropertyNames.Color, IcalValueType.Text),
+            new Entry(IcalPropertyNames.Image, IcalValueType.Uri, IcalValueType.Binary),
+            new Entry(IcalPropertyNames.Conference, IcalValueType.Uri)
         };
 
         /// <summary>
@@ -159,7 +157,7 @@ namespace DataStandardizer.File.iCal
             if (line is null)
                 throw new ArgumentNullException(nameof(line));
 
-            var valueParameter = line.GetParameter(ValueParameterName);
+            var valueParameter = line.GetParameter(IcalParameterNames.Value);
             return valueParameter is null
                 ? GetDefaultValueType(line.Name.AsSpan())
                 : GetValueType(line.Name.AsSpan(), valueParameter.Values[0].AsSpan());
@@ -176,7 +174,7 @@ namespace DataStandardizer.File.iCal
         /// <exception cref="InvalidOperationException">The reader has moved on to another line.</exception>
         public static IcalValueType GetValueType(IcalContentLineView line)
         {
-            var parameterIndex = line.IndexOfParameter(ValueParameterName.AsSpan());
+            var parameterIndex = line.IndexOfParameter(IcalParameterNames.Value.AsSpan());
             return parameterIndex < 0 ? GetDefaultValueType(line.Name) : GetValueType(line.Name, line.GetParameterValue(parameterIndex, 0));
         }
 

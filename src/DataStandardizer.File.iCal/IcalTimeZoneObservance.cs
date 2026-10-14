@@ -29,9 +29,9 @@ namespace DataStandardizer.File.iCal
             switch (kind)
             {
                 case IcalTimeZoneObservanceKind.Standard:
-                    return "STANDARD";
+                    return IcalComponentNames.Standard;
                 case IcalTimeZoneObservanceKind.Daylight:
-                    return "DAYLIGHT";
+                    return IcalComponentNames.Daylight;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(kind), kind, "The observance kind is not valid.");
             }
@@ -47,8 +47,8 @@ namespace DataStandardizer.File.iCal
         /// </remarks>
         public IcalDateTime? DtStart
         {
-            get { return GetDateTime("DTSTART"); }
-            set { SetDateTime("DTSTART", value); }
+            get { return GetDateTime(IcalPropertyNames.DtStart); }
+            set { SetDateTime(IcalPropertyNames.DtStart, value); }
         }
 
         /// <summary>
@@ -60,8 +60,8 @@ namespace DataStandardizer.File.iCal
         /// </remarks>
         public IcalUtcOffset? OffsetFrom
         {
-            get { return GetUtcOffset("TZOFFSETFROM"); }
-            set { SetUtcOffset("TZOFFSETFROM", value); }
+            get { return GetUtcOffset(IcalPropertyNames.TimeZoneOffsetFrom); }
+            set { SetUtcOffset(IcalPropertyNames.TimeZoneOffsetFrom, value); }
         }
 
         /// <summary>
@@ -73,8 +73,8 @@ namespace DataStandardizer.File.iCal
         /// </remarks>
         public IcalUtcOffset? OffsetTo
         {
-            get { return GetUtcOffset("TZOFFSETTO"); }
-            set { SetUtcOffset("TZOFFSETTO", value); }
+            get { return GetUtcOffset(IcalPropertyNames.TimeZoneOffsetTo); }
+            set { SetUtcOffset(IcalPropertyNames.TimeZoneOffsetTo, value); }
         }
 
         /// <summary>
@@ -86,8 +86,8 @@ namespace DataStandardizer.File.iCal
         /// </remarks>
         public IReadOnlyList<IcalRecurrenceRule> RecurrenceRules
         {
-            get { return GetRecurrenceRules("RRULE"); }
-            set { SetRecurrenceRules("RRULE", value); }
+            get { return GetRecurrenceRules(IcalPropertyNames.RecurrenceRule); }
+            set { SetRecurrenceRules(IcalPropertyNames.RecurrenceRule, value); }
         }
 
         /// <summary>
@@ -104,8 +104,8 @@ namespace DataStandardizer.File.iCal
         public string TimeZoneName
 #endif
         {
-            get { return GetText("TZNAME"); }
-            set { SetText("TZNAME", value); }
+            get { return GetText(IcalPropertyNames.TimeZoneName); }
+            set { SetText(IcalPropertyNames.TimeZoneName, value); }
         }
     }
 }

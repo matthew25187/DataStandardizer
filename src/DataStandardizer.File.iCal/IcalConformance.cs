@@ -22,93 +22,124 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         private static readonly string[] KnownComponentNames =
         {
-            "VCALENDAR", "VEVENT", "VTODO", "VJOURNAL", "VFREEBUSY", "VTIMEZONE", "STANDARD", "DAYLIGHT", "VALARM"
+            IcalComponentNames.Calendar, IcalComponentNames.Event, IcalComponentNames.Todo, IcalComponentNames.Journal,
+            IcalComponentNames.FreeBusy, IcalComponentNames.TimeZone, IcalComponentNames.Standard, IcalComponentNames.Daylight,
+            IcalComponentNames.Alarm
         };
 
         /// <summary>
         /// The properties whose value is a comma-separated list of values of their value type, other than TEXT lists.
         /// </summary>
-        private static readonly string[] ListProperties = { "EXDATE", "RDATE", "FREEBUSY" };
+        private static readonly string[] ListProperties =
+        {
+            IcalPropertyNames.ExceptionDates, IcalPropertyNames.RecurrenceDates, IcalPropertyNames.FreeBusy
+        };
 
         /// <summary>
         /// The properties RFC 7986 §5 gives no default value type, so that they need a <c>VALUE</c> parameter.
         /// </summary>
-        private static readonly string[] ValueParameterRequiredProperties = { "REFRESH-INTERVAL", "SOURCE", "IMAGE", "CONFERENCE" };
+        private static readonly string[] ValueParameterRequiredProperties =
+        {
+            IcalPropertyNames.RefreshInterval, IcalPropertyNames.Source, IcalPropertyNames.Image, IcalPropertyNames.Conference
+        };
 
         /// <summary>
         /// The properties whose DATE-TIME value MUST be in UTC.
         /// </summary>
-        private static readonly string[] UtcProperties = { "COMPLETED", "CREATED", "DTSTAMP", "LAST-MODIFIED", "TRIGGER" };
+        private static readonly string[] UtcProperties =
+        {
+            IcalPropertyNames.Completed, IcalPropertyNames.Created, IcalPropertyNames.DtStamp, IcalPropertyNames.LastModified,
+            IcalPropertyNames.Trigger
+        };
 
         private static readonly Dictionary<string, ComponentRule> Rules = new Dictionary<string, ComponentRule>(StringComparer.OrdinalIgnoreCase)
         {
             // ref. RFC 5545§3.6 and RFC 7986§5.
-            ["VCALENDAR"] = new ComponentRule(
-                new[] { "PRODID", "VERSION" },
-                new[] { "CALSCALE", "METHOD", "UID", "LAST-MODIFIED", "URL", "REFRESH-INTERVAL", "SOURCE", "COLOR" },
+            [IcalComponentNames.Calendar] = new ComponentRule(
+                new[] { IcalPropertyNames.ProductId, IcalPropertyNames.Version },
+                new[]
+                {
+                    IcalPropertyNames.CalendarScale, IcalPropertyNames.Method, IcalPropertyNames.Uid, IcalPropertyNames.LastModified,
+                    IcalPropertyNames.Url, IcalPropertyNames.RefreshInterval, IcalPropertyNames.Source, IcalPropertyNames.Color
+                },
                 new string[0][],
-                new[] { "VEVENT", "VTODO", "VJOURNAL", "VFREEBUSY", "VTIMEZONE" }),
+                new[]
+                {
+                    IcalComponentNames.Event, IcalComponentNames.Todo, IcalComponentNames.Journal, IcalComponentNames.FreeBusy,
+                    IcalComponentNames.TimeZone
+                }),
 
             // ref. RFC 5545§3.6.1 and RFC 7986§5.9.
-            ["VEVENT"] = new ComponentRule(
-                new[] { "DTSTAMP", "UID" },
+            [IcalComponentNames.Event] = new ComponentRule(
+                new[] { IcalPropertyNames.DtStamp, IcalPropertyNames.Uid },
                 new[]
                 {
-                    "CLASS", "CREATED", "DESCRIPTION", "DTSTART", "GEO", "LAST-MODIFIED", "LOCATION", "ORGANIZER", "PRIORITY", "SEQUENCE", "STATUS",
-                    "SUMMARY", "TRANSP", "URL", "RECURRENCE-ID", "DTEND", "DURATION", "COLOR"
+                    IcalPropertyNames.Classification, IcalPropertyNames.Created, IcalPropertyNames.Description, IcalPropertyNames.DtStart,
+                    IcalPropertyNames.Geo, IcalPropertyNames.LastModified, IcalPropertyNames.Location, IcalPropertyNames.Organizer,
+                    IcalPropertyNames.Priority, IcalPropertyNames.Sequence, IcalPropertyNames.Status, IcalPropertyNames.Summary,
+                    IcalPropertyNames.Transparency, IcalPropertyNames.Url, IcalPropertyNames.RecurrenceId, IcalPropertyNames.DtEnd,
+                    IcalPropertyNames.Duration, IcalPropertyNames.Color
                 },
-                new[] { new[] { "DTEND", "DURATION" } },
-                new[] { "VALARM" }),
+                new[] { new[] { IcalPropertyNames.DtEnd, IcalPropertyNames.Duration } },
+                new[] { IcalComponentNames.Alarm }),
 
             // ref. RFC 5545§3.6.2 and RFC 7986§5.9.
-            ["VTODO"] = new ComponentRule(
-                new[] { "DTSTAMP", "UID" },
+            [IcalComponentNames.Todo] = new ComponentRule(
+                new[] { IcalPropertyNames.DtStamp, IcalPropertyNames.Uid },
                 new[]
                 {
-                    "CLASS", "COMPLETED", "CREATED", "DESCRIPTION", "DTSTART", "GEO", "LAST-MODIFIED", "LOCATION", "ORGANIZER", "PERCENT-COMPLETE",
-                    "PRIORITY", "RECURRENCE-ID", "SEQUENCE", "STATUS", "SUMMARY", "URL", "DUE", "DURATION", "COLOR"
+                    IcalPropertyNames.Classification, IcalPropertyNames.Completed, IcalPropertyNames.Created, IcalPropertyNames.Description,
+                    IcalPropertyNames.DtStart, IcalPropertyNames.Geo, IcalPropertyNames.LastModified, IcalPropertyNames.Location,
+                    IcalPropertyNames.Organizer, IcalPropertyNames.PercentComplete, IcalPropertyNames.Priority, IcalPropertyNames.RecurrenceId,
+                    IcalPropertyNames.Sequence, IcalPropertyNames.Status, IcalPropertyNames.Summary, IcalPropertyNames.Url, IcalPropertyNames.Due,
+                    IcalPropertyNames.Duration, IcalPropertyNames.Color
                 },
-                new[] { new[] { "DUE", "DURATION" } },
-                new[] { "VALARM" }),
+                new[] { new[] { IcalPropertyNames.Due, IcalPropertyNames.Duration } },
+                new[] { IcalComponentNames.Alarm }),
 
             // ref. RFC 5545§3.6.3 and RFC 7986§5.9.
-            ["VJOURNAL"] = new ComponentRule(
-                new[] { "DTSTAMP", "UID" },
+            [IcalComponentNames.Journal] = new ComponentRule(
+                new[] { IcalPropertyNames.DtStamp, IcalPropertyNames.Uid },
                 new[]
                 {
-                    "CLASS", "CREATED", "DTSTART", "LAST-MODIFIED", "ORGANIZER", "RECURRENCE-ID", "SEQUENCE", "STATUS", "SUMMARY", "URL", "COLOR"
+                    IcalPropertyNames.Classification, IcalPropertyNames.Created, IcalPropertyNames.DtStart, IcalPropertyNames.LastModified,
+                    IcalPropertyNames.Organizer, IcalPropertyNames.RecurrenceId, IcalPropertyNames.Sequence, IcalPropertyNames.Status,
+                    IcalPropertyNames.Summary, IcalPropertyNames.Url, IcalPropertyNames.Color
                 },
                 new string[0][],
                 new string[0]),
 
             // ref. RFC 5545§3.6.4.
-            ["VFREEBUSY"] = new ComponentRule(
-                new[] { "DTSTAMP", "UID" },
-                new[] { "CONTACT", "DTSTART", "DTEND", "ORGANIZER", "URL" },
+            [IcalComponentNames.FreeBusy] = new ComponentRule(
+                new[] { IcalPropertyNames.DtStamp, IcalPropertyNames.Uid },
+                new[]
+                {
+                    IcalPropertyNames.Contact, IcalPropertyNames.DtStart, IcalPropertyNames.DtEnd, IcalPropertyNames.Organizer, IcalPropertyNames.Url
+                },
                 new string[0][],
                 new string[0]),
 
             // ref. RFC 5545§3.6.5.
-            ["VTIMEZONE"] = new ComponentRule(
-                new[] { "TZID" },
-                new[] { "LAST-MODIFIED", "TZURL" },
+            [IcalComponentNames.TimeZone] = new ComponentRule(
+                new[] { IcalPropertyNames.TimeZoneId },
+                new[] { IcalPropertyNames.LastModified, IcalPropertyNames.TimeZoneUrl },
                 new string[0][],
-                new[] { "STANDARD", "DAYLIGHT" }),
-            ["STANDARD"] = new ComponentRule(
-                new[] { "DTSTART", "TZOFFSETTO", "TZOFFSETFROM" },
+                new[] { IcalComponentNames.Standard, IcalComponentNames.Daylight }),
+            [IcalComponentNames.Standard] = new ComponentRule(
+                new[] { IcalPropertyNames.DtStart, IcalPropertyNames.TimeZoneOffsetTo, IcalPropertyNames.TimeZoneOffsetFrom },
                 new string[0],
                 new string[0][],
                 new string[0]),
-            ["DAYLIGHT"] = new ComponentRule(
-                new[] { "DTSTART", "TZOFFSETTO", "TZOFFSETFROM" },
+            [IcalComponentNames.Daylight] = new ComponentRule(
+                new[] { IcalPropertyNames.DtStart, IcalPropertyNames.TimeZoneOffsetTo, IcalPropertyNames.TimeZoneOffsetFrom },
                 new string[0],
                 new string[0][],
                 new string[0]),
 
             // ref. RFC 5545§3.6.6.
-            ["VALARM"] = new ComponentRule(
-                new[] { "ACTION", "TRIGGER" },
-                new[] { "DURATION", "REPEAT", "DESCRIPTION", "SUMMARY" },
+            [IcalComponentNames.Alarm] = new ComponentRule(
+                new[] { IcalPropertyNames.Action, IcalPropertyNames.Trigger },
+                new[] { IcalPropertyNames.Duration, IcalPropertyNames.Repeat, IcalPropertyNames.Description, IcalPropertyNames.Summary },
                 new string[0][],
                 new string[0])
         };
@@ -134,16 +165,16 @@ namespace DataStandardizer.File.iCal
         {
             var found = new List<IcalDiagnostic>();
             var context = new Context(found);
-            if (IsName(root.Name, "VCALENDAR"))
+            if (IsName(root.Name, IcalComponentNames.Calendar))
             {
                 context.IsCalendar = true;
-                context.HasMethod = root.GetProperty("METHOD") != null;
+                context.HasMethod = root.GetProperty(IcalPropertyNames.Method) != null;
                 context.IsVersionWritten = isVersionWritten;
                 foreach (var timeZone in root.Components)
                 {
-                    if (!IsName(timeZone.Name, "VTIMEZONE")) continue;
+                    if (!IsName(timeZone.Name, IcalComponentNames.TimeZone)) continue;
 
-                    foreach (var timeZoneId in timeZone.GetProperties("TZID"))
+                    foreach (var timeZoneId in timeZone.GetProperties(IcalPropertyNames.TimeZoneId))
                     {
                         context.TimeZoneIds.Add(GetTextOrRaw(timeZoneId));
                     }
@@ -291,7 +322,7 @@ namespace DataStandardizer.File.iCal
                 var properties = component.GetProperties(name);
                 if (properties.Count == 0)
                 {
-                    if (context.IsVersionWritten && IsName(name, "VERSION")) continue;
+                    if (context.IsVersionWritten && IsName(name, IcalPropertyNames.Version)) continue;
 
                     context.Add(IcalDiagnosticKind.MissingRequiredProperty,
                         string.Format(CultureInfo.InvariantCulture, "The {0} component has no {1} property, which it requires.", component.Name, name),
@@ -358,9 +389,9 @@ namespace DataStandardizer.File.iCal
         private static void ValidateComponentRules(IcalComponent component, string path, Context context)
         {
             var name = component.Name;
-            if (IsName(name, "VCALENDAR"))
+            if (IsName(name, IcalComponentNames.Calendar))
             {
-                var version = component.GetProperty("VERSION");
+                var version = component.GetProperty(IcalPropertyNames.Version);
                 if (version != null && !IsSupportedVersion(version.Value))
                 {
                     context.Add(IcalDiagnosticKind.UnsupportedVersion, BuildUnsupportedVersionMessage(version.Value), path, version.Name,
@@ -374,43 +405,43 @@ namespace DataStandardizer.File.iCal
                         path, null, component.LineNumber);
                 }
             }
-            else if (IsName(name, "VEVENT"))
+            else if (IsName(name, IcalComponentNames.Event))
             {
                 // ref. RFC 5545§3.6.1: DTSTART is required if the calendar has no METHOD.
-                if (context.IsCalendar && !context.HasMethod && component.GetProperty("DTSTART") is null)
+                if (context.IsCalendar && !context.HasMethod && component.GetProperty(IcalPropertyNames.DtStart) is null)
                 {
                     context.Add(IcalDiagnosticKind.MissingRequiredProperty,
-                        "The VEVENT component has no DTSTART property, which it requires when the calendar has no METHOD property.", path, "DTSTART",
-                        component.LineNumber);
+                        "The VEVENT component has no DTSTART property, which it requires when the calendar has no METHOD property.", path,
+                        IcalPropertyNames.DtStart, component.LineNumber);
                 }
 
-                ValidateEnd(component, path, "DTEND", context);
+                ValidateEnd(component, path, IcalPropertyNames.DtEnd, context);
                 ValidateRecurrence(component, path, false, context);
             }
-            else if (IsName(name, "VTODO"))
+            else if (IsName(name, IcalComponentNames.Todo))
             {
                 // ref. RFC 5545§3.6.2: if DURATION appears, DTSTART must too.
-                var duration = component.GetProperty("DURATION");
-                if (duration != null && component.GetProperty("DTSTART") is null)
+                var duration = component.GetProperty(IcalPropertyNames.Duration);
+                if (duration != null && component.GetProperty(IcalPropertyNames.DtStart) is null)
                 {
                     context.Add(IcalDiagnosticKind.MissingRequiredProperty,
-                        "The VTODO component has a DURATION property but no DTSTART property, which DURATION requires.", path, "DTSTART",
-                        duration.LineNumber);
+                        "The VTODO component has a DURATION property but no DTSTART property, which DURATION requires.", path,
+                        IcalPropertyNames.DtStart, duration.LineNumber);
                 }
 
-                ValidateEnd(component, path, "DUE", context);
+                ValidateEnd(component, path, IcalPropertyNames.Due, context);
                 ValidateRecurrence(component, path, false, context);
             }
-            else if (IsName(name, "VJOURNAL"))
+            else if (IsName(name, IcalComponentNames.Journal))
             {
                 ValidateRecurrence(component, path, false, context);
             }
-            else if (IsName(name, "VTIMEZONE"))
+            else if (IsName(name, IcalComponentNames.TimeZone))
             {
                 var hasObservance = false;
                 foreach (var child in component.Components)
                 {
-                    hasObservance |= IsName(child.Name, "STANDARD") || IsName(child.Name, "DAYLIGHT");
+                    hasObservance |= IsName(child.Name, IcalComponentNames.Standard) || IsName(child.Name, IcalComponentNames.Daylight);
                 }
 
                 if (!hasObservance)
@@ -419,10 +450,10 @@ namespace DataStandardizer.File.iCal
                         "The VTIMEZONE component has no STANDARD or DAYLIGHT component, and requires at least one.", path, null, component.LineNumber);
                 }
             }
-            else if (IsName(name, "STANDARD") || IsName(name, "DAYLIGHT"))
+            else if (IsName(name, IcalComponentNames.Standard) || IsName(name, IcalComponentNames.Daylight))
             {
                 // ref. RFC 5545§3.6.5: DTSTART MUST be specified as a date with local time.
-                var start = component.GetProperty("DTSTART");
+                var start = component.GetProperty(IcalPropertyNames.DtStart);
                 IcalDateOrDateTime value;
                 if (start != null && TryGetDateOrDateTime(start, out value) && (value.IsDate || value.DateTime.Kind != IcalDateTimeKind.Floating))
                 {
@@ -431,7 +462,7 @@ namespace DataStandardizer.File.iCal
 
                 ValidateRecurrence(component, path, true, context);
             }
-            else if (IsName(name, "VALARM"))
+            else if (IsName(name, IcalComponentNames.Alarm))
             {
                 ValidateAlarm(component, path, context);
             }
@@ -443,7 +474,7 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         private static void ValidateEnd(IcalComponent component, string path, string endName, Context context)
         {
-            var start = component.GetProperty("DTSTART");
+            var start = component.GetProperty(IcalPropertyNames.DtStart);
             IcalDateOrDateTime startValue;
             if (start is null || !TryGetDateOrDateTime(start, out startValue)) return;
 
@@ -458,7 +489,7 @@ namespace DataStandardizer.File.iCal
             }
 
             // ref. RFC 5545§3.6.1: when DTSTART is a DATE, the duration MUST be specified as a dur-day or dur-week value.
-            var duration = component.GetProperty("DURATION");
+            var duration = component.GetProperty(IcalPropertyNames.Duration);
             IcalDuration durationValue;
             if (startValue.IsDate && duration != null && IcalDuration.TryParse(duration.Value.AsSpan(), IcalValueFormat.Text, out durationValue) &&
                 durationValue.Time != TimeSpan.Zero)
@@ -472,11 +503,11 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         private static void ValidateRecurrence(IcalComponent component, string path, bool isObservance, Context context)
         {
-            var start = component.GetProperty("DTSTART");
+            var start = component.GetProperty(IcalPropertyNames.DtStart);
             IcalDateOrDateTime startValue;
             if (start is null || !TryGetDateOrDateTime(start, out startValue)) return;
 
-            foreach (var property in component.GetProperties("RRULE"))
+            foreach (var property in component.GetProperties(IcalPropertyNames.RecurrenceRule))
             {
                 IcalRecurrenceRule rule;
                 if (!IcalRecurrenceRule.TryParse(property.Value.AsSpan(), IcalValueFormat.Text, out rule)) continue;
@@ -525,7 +556,7 @@ namespace DataStandardizer.File.iCal
             }
 
             // ref. RFC 5545§3.8.4.4: the value type of RECURRENCE-ID MUST be the same as DTSTART.
-            var recurrenceId = component.GetProperty("RECURRENCE-ID");
+            var recurrenceId = component.GetProperty(IcalPropertyNames.RecurrenceId);
             IcalDateOrDateTime recurrenceIdValue;
             if (!isObservance && recurrenceId != null && TryGetDateOrDateTime(recurrenceId, out recurrenceIdValue) &&
                 recurrenceIdValue.IsDate != startValue.IsDate)
@@ -539,33 +570,34 @@ namespace DataStandardizer.File.iCal
         private static void ValidateAlarm(IcalComponent alarm, string path, Context context)
         {
             // ref. RFC 5545§3.6.6: DURATION and REPEAT are both optional, but if one occurs, so MUST the other.
-            var duration = alarm.GetProperty("DURATION");
-            var repeat = alarm.GetProperty("REPEAT");
+            var duration = alarm.GetProperty(IcalPropertyNames.Duration);
+            var repeat = alarm.GetProperty(IcalPropertyNames.Repeat);
             if ((duration is null) != (repeat is null))
             {
                 var lineNumber = duration != null ? duration.LineNumber : repeat != null ? repeat.LineNumber : 0;
                 context.Add(IcalDiagnosticKind.MissingRequiredProperty,
                     string.Format(CultureInfo.InvariantCulture, "The VALARM component has a {0} property but no {1} property; they must appear together.",
-                        duration is null ? "REPEAT" : "DURATION", duration is null ? "DURATION" : "REPEAT"),
-                    path, duration is null ? "DURATION" : "REPEAT", lineNumber);
+                        duration is null ? IcalPropertyNames.Repeat : IcalPropertyNames.Duration,
+                        duration is null ? IcalPropertyNames.Duration : IcalPropertyNames.Repeat),
+                    path, duration is null ? IcalPropertyNames.Duration : IcalPropertyNames.Repeat, lineNumber);
             }
 
-            var action = alarm.GetProperty("ACTION");
+            var action = alarm.GetProperty(IcalPropertyNames.Action);
             if (action is null) return;
 
             if (IsName(action.Value, "AUDIO"))
             {
-                ValidateAtMostOnce(alarm, path, alarm.GetProperties("ATTACH"), context);
+                ValidateAtMostOnce(alarm, path, alarm.GetProperties(IcalPropertyNames.Attachment), context);
             }
             else if (IsName(action.Value, "DISPLAY"))
             {
-                RequireForAction(alarm, path, action, "DESCRIPTION", context);
+                RequireForAction(alarm, path, action, IcalPropertyNames.Description, context);
             }
             else if (IsName(action.Value, "EMAIL"))
             {
-                RequireForAction(alarm, path, action, "DESCRIPTION", context);
-                RequireForAction(alarm, path, action, "SUMMARY", context);
-                RequireForAction(alarm, path, action, "ATTENDEE", context);
+                RequireForAction(alarm, path, action, IcalPropertyNames.Description, context);
+                RequireForAction(alarm, path, action, IcalPropertyNames.Summary, context);
+                RequireForAction(alarm, path, action, IcalPropertyNames.Attendee, context);
             }
         }
 
@@ -588,7 +620,7 @@ namespace DataStandardizer.File.iCal
             if (!IcalValueTypeRegistry.IsKnownProperty(name.AsSpan())) return;
 
             // ref. RFC 5545§3.2.20: the VALUE parameter names one of the value types the property allows.
-            var valueParameter = IcalPropertyValue.GetParameterValue(property, IcalPropertyValue.ValueParameter);
+            var valueParameter = IcalPropertyValue.GetParameterValue(property, IcalParameterNames.Value);
             IcalValueType valueType;
             if (valueParameter != null)
             {
@@ -615,7 +647,7 @@ namespace DataStandardizer.File.iCal
 
             // ref. RFC 5545§3.3.1: inline binary content MUST also specify ENCODING=BASE64.
             if (valueType == IcalValueType.Binary &&
-                !string.Equals(IcalPropertyValue.GetParameterValue(property, IcalPropertyValue.EncodingParameter), "BASE64", StringComparison.OrdinalIgnoreCase))
+                !string.Equals(IcalPropertyValue.GetParameterValue(property, IcalParameterNames.Encoding), "BASE64", StringComparison.OrdinalIgnoreCase))
             {
                 AddInvalidValue(property, path,
                     string.Format(CultureInfo.InvariantCulture, "The BINARY value of the {0} property requires an ENCODING=BASE64 parameter.",
@@ -627,7 +659,7 @@ namespace DataStandardizer.File.iCal
             {
                 AddInvalidValue(property, path,
                     string.Format(CultureInfo.InvariantCulture, "The value of the {0} property is not a valid {1}.", name.ToUpperInvariant(),
-                        IsName(name, "GEO") ? "pair of FLOAT values" : IcalValueTypeRegistry.GetValueTypeName(valueType)),
+                        IsName(name, IcalPropertyNames.Geo) ? "pair of FLOAT values" : IcalValueTypeRegistry.GetValueTypeName(valueType)),
                     context);
                 return;
             }
@@ -638,7 +670,7 @@ namespace DataStandardizer.File.iCal
         private static bool IsValidValue(IcalContentLine property, IcalValueType valueType)
         {
             var value = property.Value;
-            if (IsName(property.Name, "GEO"))
+            if (IsName(property.Name, IcalPropertyNames.Geo))
             {
                 // ref. RFC 5545§3.8.1.6: geovalue = float ";" float.
                 var parts = value.Split(';');
@@ -696,7 +728,7 @@ namespace DataStandardizer.File.iCal
                     int integer;
                     return IcalValue.TryParseInteger(span, IcalValueFormat.Text, out integer);
                 case IcalValueType.Period:
-                    var timeZoneId = IcalPropertyValue.GetParameterValue(property, IcalPropertyValue.TimeZoneIdParameter);
+                    var timeZoneId = IcalPropertyValue.GetParameterValue(property, IcalParameterNames.TimeZoneId);
                     IcalPeriod period;
                     return timeZoneId?.Length != 0 && IcalPeriod.TryParse(span, timeZoneId, IcalValueFormat.Text, out period);
                 case IcalValueType.Recur:
@@ -739,7 +771,7 @@ namespace DataStandardizer.File.iCal
                         string.Format(CultureInfo.InvariantCulture, "The {0} property must be a DATE-TIME in UTC.", name.ToUpperInvariant()), context);
                 }
             }
-            else if (IsName(name, "FREEBUSY"))
+            else if (IsName(name, IcalPropertyNames.FreeBusy))
             {
                 // ref. RFC 5545§3.8.2.6: the date and time values MUST be in UTC.
                 foreach (var item in property.Value.Split(','))
@@ -753,11 +785,11 @@ namespace DataStandardizer.File.iCal
                     }
                 }
             }
-            else if (IsName(name, "PRIORITY"))
+            else if (IsName(name, IcalPropertyNames.Priority))
             {
                 ValidateRange(property, path, 0, 9, context);
             }
-            else if (IsName(name, "PERCENT-COMPLETE"))
+            else if (IsName(name, IcalPropertyNames.PercentComplete))
             {
                 ValidateRange(property, path, 0, 100, context);
             }
@@ -779,7 +811,7 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         private static void ValidateTimeZoneReference(IcalContentLine property, string path, Context context)
         {
-            var timeZoneId = IcalPropertyValue.GetParameterValue(property, IcalPropertyValue.TimeZoneIdParameter);
+            var timeZoneId = IcalPropertyValue.GetParameterValue(property, IcalParameterNames.TimeZoneId);
             if (timeZoneId is null || context.TimeZoneIds.Contains(timeZoneId)) return;
 
             context.Add(IcalDiagnosticKind.UndefinedTimeZone,

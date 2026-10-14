@@ -8,10 +8,6 @@ namespace DataStandardizer.File.iCal
     /// </summary>
     internal static class IcalPropertyValue
     {
-        internal const string EncodingParameter = "ENCODING";
-        internal const string TimeZoneIdParameter = "TZID";
-        internal const string ValueParameter = "VALUE";
-
         /// <summary>
         /// Gets the value type of a property: the type its <c>VALUE</c> parameter names, or its default type.
         /// </summary>
@@ -45,7 +41,7 @@ namespace DataStandardizer.File.iCal
         /// <c>TZID</c>, and a DATE-TIME in UTC with a <c>TZID</c>, are not valid.</returns>
         internal static bool TryParseDateOrDateTime(IcalContentLine property, ReadOnlySpan<char> value, out IcalDateOrDateTime result)
         {
-            var timeZoneId = GetParameterValue(property, TimeZoneIdParameter);
+            var timeZoneId = GetParameterValue(property, IcalParameterNames.TimeZoneId);
             switch (GetValueType(property))
             {
                 case IcalValueType.Date:

@@ -11,7 +11,7 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Creates an empty VTODO component.
         /// </summary>
-        public IcalTodo() : base("VTODO")
+        public IcalTodo() : base(IcalComponentNames.Todo)
         {
         }
 
@@ -32,7 +32,7 @@ namespace DataStandardizer.File.iCal
         /// </remarks>
         public IReadOnlyList<IcalContentLine> Attendees
         {
-            get { return GetProperties("ATTENDEE"); }
+            get { return GetProperties(IcalPropertyNames.Attendee); }
         }
 
         /// <summary>
@@ -45,8 +45,8 @@ namespace DataStandardizer.File.iCal
         /// </remarks>
         public IReadOnlyList<string> Categories
         {
-            get { return GetTextList("CATEGORIES"); }
-            set { SetTextList("CATEGORIES", value); }
+            get { return GetTextList(IcalPropertyNames.Categories); }
+            set { SetTextList(IcalPropertyNames.Categories, value); }
         }
 
         /// <summary>
@@ -63,8 +63,8 @@ namespace DataStandardizer.File.iCal
         public string Classification
 #endif
         {
-            get { return GetText("CLASS"); }
-            set { SetText("CLASS", value); }
+            get { return GetText(IcalPropertyNames.Classification); }
+            set { SetText(IcalPropertyNames.Classification, value); }
         }
 
         /// <summary>
@@ -81,8 +81,8 @@ namespace DataStandardizer.File.iCal
         public string Color
 #endif
         {
-            get { return GetText("COLOR"); }
-            set { SetText("COLOR", value); }
+            get { return GetText(IcalPropertyNames.Color); }
+            set { SetText(IcalPropertyNames.Color, value); }
         }
 
         /// <summary>
@@ -95,8 +95,8 @@ namespace DataStandardizer.File.iCal
         /// </remarks>
         public IcalDateTime? Completed
         {
-            get { return GetDateTime("COMPLETED"); }
-            set { SetDateTime("COMPLETED", value); }
+            get { return GetDateTime(IcalPropertyNames.Completed); }
+            set { SetDateTime(IcalPropertyNames.Completed, value); }
         }
 
         /// <summary>
@@ -108,7 +108,7 @@ namespace DataStandardizer.File.iCal
         /// </remarks>
         public IReadOnlyList<IcalContentLine> Conferences
         {
-            get { return GetProperties("CONFERENCE"); }
+            get { return GetProperties(IcalPropertyNames.Conference); }
         }
 
         /// <summary>
@@ -121,8 +121,8 @@ namespace DataStandardizer.File.iCal
         /// </remarks>
         public IcalDateTime? Created
         {
-            get { return GetDateTime("CREATED"); }
-            set { SetDateTime("CREATED", value); }
+            get { return GetDateTime(IcalPropertyNames.Created); }
+            set { SetDateTime(IcalPropertyNames.Created, value); }
         }
 
         /// <summary>
@@ -138,8 +138,8 @@ namespace DataStandardizer.File.iCal
         public string Description
 #endif
         {
-            get { return GetText("DESCRIPTION"); }
-            set { SetText("DESCRIPTION", value); }
+            get { return GetText(IcalPropertyNames.Description); }
+            set { SetText(IcalPropertyNames.Description, value); }
         }
 
         /// <summary>
@@ -152,8 +152,8 @@ namespace DataStandardizer.File.iCal
         /// </remarks>
         public IcalDateTime? DtStamp
         {
-            get { return GetDateTime("DTSTAMP"); }
-            set { SetDateTime("DTSTAMP", value); }
+            get { return GetDateTime(IcalPropertyNames.DtStamp); }
+            set { SetDateTime(IcalPropertyNames.DtStamp, value); }
         }
 
         /// <summary>
@@ -165,8 +165,8 @@ namespace DataStandardizer.File.iCal
         /// </remarks>
         public IcalDateOrDateTime? DtStart
         {
-            get { return GetDateOrDateTime("DTSTART"); }
-            set { SetDateOrDateTime("DTSTART", value); }
+            get { return GetDateOrDateTime(IcalPropertyNames.DtStart); }
+            set { SetDateOrDateTime(IcalPropertyNames.DtStart, value); }
         }
 
         /// <summary>
@@ -178,8 +178,8 @@ namespace DataStandardizer.File.iCal
         /// </remarks>
         public IcalDateOrDateTime? Due
         {
-            get { return GetDateOrDateTime("DUE"); }
-            set { SetDateOrDateTime("DUE", value); }
+            get { return GetDateOrDateTime(IcalPropertyNames.Due); }
+            set { SetDateOrDateTime(IcalPropertyNames.Due, value); }
         }
 
         /// <summary>
@@ -190,8 +190,8 @@ namespace DataStandardizer.File.iCal
         /// </remarks>
         public IcalDuration? Duration
         {
-            get { return GetDuration("DURATION"); }
-            set { SetDuration("DURATION", value, false); }
+            get { return GetDuration(IcalPropertyNames.Duration); }
+            set { SetDuration(IcalPropertyNames.Duration, value, false); }
         }
 
         /// <summary>
@@ -203,7 +203,7 @@ namespace DataStandardizer.File.iCal
         /// </remarks>
         public IReadOnlyList<IcalContentLine> Images
         {
-            get { return GetProperties("IMAGE"); }
+            get { return GetProperties(IcalPropertyNames.Image); }
         }
 
         /// <summary>
@@ -216,8 +216,8 @@ namespace DataStandardizer.File.iCal
         /// </remarks>
         public IcalDateTime? LastModified
         {
-            get { return GetDateTime("LAST-MODIFIED"); }
-            set { SetDateTime("LAST-MODIFIED", value); }
+            get { return GetDateTime(IcalPropertyNames.LastModified); }
+            set { SetDateTime(IcalPropertyNames.LastModified, value); }
         }
 
         /// <summary>
@@ -233,8 +233,8 @@ namespace DataStandardizer.File.iCal
         public string Location
 #endif
         {
-            get { return GetText("LOCATION"); }
-            set { SetText("LOCATION", value); }
+            get { return GetText(IcalPropertyNames.Location); }
+            set { SetText(IcalPropertyNames.Location, value); }
         }
 
         /// <summary>
@@ -249,8 +249,8 @@ namespace DataStandardizer.File.iCal
         public Uri Organizer
 #endif
         {
-            get { return GetUri("ORGANIZER"); }
-            set { SetUri("ORGANIZER", value, false); }
+            get { return GetUri(IcalPropertyNames.Organizer); }
+            set { SetUri(IcalPropertyNames.Organizer, value, false); }
         }
 
         /// <summary>
@@ -262,8 +262,8 @@ namespace DataStandardizer.File.iCal
         /// </remarks>
         public int? PercentComplete
         {
-            get { return GetInteger("PERCENT-COMPLETE"); }
-            set { SetInteger("PERCENT-COMPLETE", value); }
+            get { return GetInteger(IcalPropertyNames.PercentComplete); }
+            set { SetInteger(IcalPropertyNames.PercentComplete, value); }
         }
 
         /// <summary>
@@ -275,8 +275,8 @@ namespace DataStandardizer.File.iCal
         /// </remarks>
         public int? Priority
         {
-            get { return GetInteger("PRIORITY"); }
-            set { SetInteger("PRIORITY", value); }
+            get { return GetInteger(IcalPropertyNames.Priority); }
+            set { SetInteger(IcalPropertyNames.Priority, value); }
         }
 
         /// <summary>
@@ -289,8 +289,8 @@ namespace DataStandardizer.File.iCal
         /// </remarks>
         public IcalDateOrDateTime? RecurrenceId
         {
-            get { return GetDateOrDateTime("RECURRENCE-ID"); }
-            set { SetDateOrDateTime("RECURRENCE-ID", value); }
+            get { return GetDateOrDateTime(IcalPropertyNames.RecurrenceId); }
+            set { SetDateOrDateTime(IcalPropertyNames.RecurrenceId, value); }
         }
 
         /// <summary>
@@ -302,8 +302,8 @@ namespace DataStandardizer.File.iCal
         /// </remarks>
         public IReadOnlyList<IcalRecurrenceRule> RecurrenceRules
         {
-            get { return GetRecurrenceRules("RRULE"); }
-            set { SetRecurrenceRules("RRULE", value); }
+            get { return GetRecurrenceRules(IcalPropertyNames.RecurrenceRule); }
+            set { SetRecurrenceRules(IcalPropertyNames.RecurrenceRule, value); }
         }
 
         /// <summary>
@@ -316,8 +316,8 @@ namespace DataStandardizer.File.iCal
         /// </remarks>
         public IReadOnlyList<string> Resources
         {
-            get { return GetTextList("RESOURCES"); }
-            set { SetTextList("RESOURCES", value); }
+            get { return GetTextList(IcalPropertyNames.Resources); }
+            set { SetTextList(IcalPropertyNames.Resources, value); }
         }
 
         /// <summary>
@@ -328,8 +328,8 @@ namespace DataStandardizer.File.iCal
         /// </remarks>
         public int? Sequence
         {
-            get { return GetInteger("SEQUENCE"); }
-            set { SetInteger("SEQUENCE", value); }
+            get { return GetInteger(IcalPropertyNames.Sequence); }
+            set { SetInteger(IcalPropertyNames.Sequence, value); }
         }
 
         /// <summary>
@@ -345,8 +345,8 @@ namespace DataStandardizer.File.iCal
         public string Status
 #endif
         {
-            get { return GetText("STATUS"); }
-            set { SetText("STATUS", value); }
+            get { return GetText(IcalPropertyNames.Status); }
+            set { SetText(IcalPropertyNames.Status, value); }
         }
 
         /// <summary>
@@ -362,8 +362,8 @@ namespace DataStandardizer.File.iCal
         public string Summary
 #endif
         {
-            get { return GetText("SUMMARY"); }
-            set { SetText("SUMMARY", value); }
+            get { return GetText(IcalPropertyNames.Summary); }
+            set { SetText(IcalPropertyNames.Summary, value); }
         }
 
         /// <summary>
@@ -379,8 +379,8 @@ namespace DataStandardizer.File.iCal
         public string Uid
 #endif
         {
-            get { return GetText("UID"); }
-            set { SetText("UID", value); }
+            get { return GetText(IcalPropertyNames.Uid); }
+            set { SetText(IcalPropertyNames.Uid, value); }
         }
 
         /// <summary>
@@ -396,8 +396,8 @@ namespace DataStandardizer.File.iCal
         public Uri Url
 #endif
         {
-            get { return GetUri("URL"); }
-            set { SetUri("URL", value, false); }
+            get { return GetUri(IcalPropertyNames.Url); }
+            set { SetUri(IcalPropertyNames.Url, value, false); }
         }
     }
 }

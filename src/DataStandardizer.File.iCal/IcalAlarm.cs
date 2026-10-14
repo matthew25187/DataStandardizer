@@ -11,7 +11,7 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Creates an empty VALARM component.
         /// </summary>
-        public IcalAlarm() : base("VALARM")
+        public IcalAlarm() : base(IcalComponentNames.Alarm)
         {
         }
 
@@ -27,20 +27,23 @@ namespace DataStandardizer.File.iCal
         {
             get
             {
-                var trigger = GetProperty("TRIGGER");
-                return trigger is null || IcalPropertyValue.GetValueType(trigger) != IcalValueType.DateTime ? null : GetDateTime("TRIGGER");
+                var trigger = GetProperty(IcalPropertyNames.Trigger);
+                return trigger is null || IcalPropertyValue.GetValueType(trigger) != IcalValueType.DateTime
+                    ? null
+                    : GetDateTime(IcalPropertyNames.Trigger);
             }
             set
             {
                 if (value.HasValue)
                 {
-                    RemoveProperties("TRIGGER");
-                    Properties.Add(new IcalContentLine("TRIGGER", new[] { new IcalContentLineParameter("VALUE", "DATE-TIME") },
+                    RemoveProperties(IcalPropertyNames.Trigger);
+                    Properties.Add(new IcalContentLine(IcalPropertyNames.Trigger, new[] { new IcalContentLineParameter(IcalParameterNames.Value,
+                        IcalValueTypeRegistry.GetValueTypeName(IcalValueType.DateTime)) },
                         value.Value.ToString(IcalValueFormat.Text)));
                 }
                 else
                 {
-                    RemoveProperties("TRIGGER");
+                    RemoveProperties(IcalPropertyNames.Trigger);
                 }
             }
         }
@@ -58,18 +61,20 @@ namespace DataStandardizer.File.iCal
         {
             get
             {
-                var trigger = GetProperty("TRIGGER");
-                return trigger is null || IcalPropertyValue.GetValueType(trigger) != IcalValueType.Duration ? null : GetDuration("TRIGGER");
+                var trigger = GetProperty(IcalPropertyNames.Trigger);
+                return trigger is null || IcalPropertyValue.GetValueType(trigger) != IcalValueType.Duration
+                    ? null
+                    : GetDuration(IcalPropertyNames.Trigger);
             }
             set
             {
-                var trigger = GetProperty("TRIGGER");
+                var trigger = GetProperty(IcalPropertyNames.Trigger);
                 if (trigger != null && IcalPropertyValue.GetValueType(trigger) != IcalValueType.Duration)
                 {
-                    RemoveProperties("TRIGGER");
+                    RemoveProperties(IcalPropertyNames.Trigger);
                 }
 
-                SetDuration("TRIGGER", value, false);
+                SetDuration(IcalPropertyNames.Trigger, value, false);
             }
         }
 
@@ -87,8 +92,8 @@ namespace DataStandardizer.File.iCal
         public string Action
 #endif
         {
-            get { return GetText("ACTION"); }
-            set { SetText("ACTION", value); }
+            get { return GetText(IcalPropertyNames.Action); }
+            set { SetText(IcalPropertyNames.Action, value); }
         }
 
         /// <summary>
@@ -99,7 +104,7 @@ namespace DataStandardizer.File.iCal
         /// </remarks>
         public IReadOnlyList<IcalContentLine> Attachments
         {
-            get { return GetProperties("ATTACH"); }
+            get { return GetProperties(IcalPropertyNames.Attachment); }
         }
 
         /// <summary>
@@ -111,7 +116,7 @@ namespace DataStandardizer.File.iCal
         /// </remarks>
         public IReadOnlyList<IcalContentLine> Attendees
         {
-            get { return GetProperties("ATTENDEE"); }
+            get { return GetProperties(IcalPropertyNames.Attendee); }
         }
 
         /// <summary>
@@ -127,8 +132,8 @@ namespace DataStandardizer.File.iCal
         public string Description
 #endif
         {
-            get { return GetText("DESCRIPTION"); }
-            set { SetText("DESCRIPTION", value); }
+            get { return GetText(IcalPropertyNames.Description); }
+            set { SetText(IcalPropertyNames.Description, value); }
         }
 
         /// <summary>
@@ -139,8 +144,8 @@ namespace DataStandardizer.File.iCal
         /// </remarks>
         public IcalDuration? Duration
         {
-            get { return GetDuration("DURATION"); }
-            set { SetDuration("DURATION", value, false); }
+            get { return GetDuration(IcalPropertyNames.Duration); }
+            set { SetDuration(IcalPropertyNames.Duration, value, false); }
         }
 
         /// <summary>
@@ -152,8 +157,8 @@ namespace DataStandardizer.File.iCal
         /// </remarks>
         public int? Repeat
         {
-            get { return GetInteger("REPEAT"); }
-            set { SetInteger("REPEAT", value); }
+            get { return GetInteger(IcalPropertyNames.Repeat); }
+            set { SetInteger(IcalPropertyNames.Repeat, value); }
         }
 
         /// <summary>
@@ -169,8 +174,8 @@ namespace DataStandardizer.File.iCal
         public string Summary
 #endif
         {
-            get { return GetText("SUMMARY"); }
-            set { SetText("SUMMARY", value); }
+            get { return GetText(IcalPropertyNames.Summary); }
+            set { SetText(IcalPropertyNames.Summary, value); }
         }
     }
 }

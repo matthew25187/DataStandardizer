@@ -11,7 +11,7 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Creates an empty VTIMEZONE component.
         /// </summary>
-        public IcalTimeZone() : base("VTIMEZONE")
+        public IcalTimeZone() : base(IcalComponentNames.TimeZone)
         {
         }
 
@@ -33,8 +33,8 @@ namespace DataStandardizer.File.iCal
         /// </remarks>
         public IcalDateTime? LastModified
         {
-            get { return GetDateTime("LAST-MODIFIED"); }
-            set { SetDateTime("LAST-MODIFIED", value); }
+            get { return GetDateTime(IcalPropertyNames.LastModified); }
+            set { SetDateTime(IcalPropertyNames.LastModified, value); }
         }
 
         /// <summary>
@@ -51,8 +51,8 @@ namespace DataStandardizer.File.iCal
         public string TimeZoneId
 #endif
         {
-            get { return GetText("TZID"); }
-            set { SetText("TZID", value); }
+            get { return GetText(IcalPropertyNames.TimeZoneId); }
+            set { SetText(IcalPropertyNames.TimeZoneId, value); }
         }
 
         /// <summary>
@@ -68,8 +68,8 @@ namespace DataStandardizer.File.iCal
         public Uri TimeZoneUrl
 #endif
         {
-            get { return GetUri("TZURL"); }
-            set { SetUri("TZURL", value, false); }
+            get { return GetUri(IcalPropertyNames.TimeZoneUrl); }
+            set { SetUri(IcalPropertyNames.TimeZoneUrl, value, false); }
         }
     }
 }

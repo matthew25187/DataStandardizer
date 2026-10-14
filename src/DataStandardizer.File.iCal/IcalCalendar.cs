@@ -21,15 +21,15 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Creates a calendar with a <c>VERSION:2.0</c> property and nothing else.
         /// </summary>
-        public IcalCalendar() : base("VCALENDAR")
+        public IcalCalendar() : base(IcalComponentNames.Calendar)
         {
-            Properties.Add(new IcalContentLine("VERSION", IcalConformance.SupportedVersion));
+            Properties.Add(new IcalContentLine(IcalPropertyNames.Version, IcalConformance.SupportedVersion));
         }
 
         /// <summary>
         /// Creates a calendar with no properties, for a reader to fill.
         /// </summary>
-        internal IcalCalendar(bool isEmpty) : base("VCALENDAR")
+        internal IcalCalendar(bool isEmpty) : base(IcalComponentNames.Calendar)
         {
         }
 
@@ -87,8 +87,8 @@ namespace DataStandardizer.File.iCal
         public string CalendarName
 #endif
         {
-            get { return GetText("NAME"); }
-            set { SetText("NAME", value); }
+            get { return GetText(IcalPropertyNames.Name); }
+            set { SetText(IcalPropertyNames.Name, value); }
         }
 
         /// <summary>
@@ -104,8 +104,8 @@ namespace DataStandardizer.File.iCal
         public string CalendarScale
 #endif
         {
-            get { return GetText("CALSCALE"); }
-            set { SetText("CALSCALE", value); }
+            get { return GetText(IcalPropertyNames.CalendarScale); }
+            set { SetText(IcalPropertyNames.CalendarScale, value); }
         }
 
         /// <summary>
@@ -118,8 +118,8 @@ namespace DataStandardizer.File.iCal
         /// </remarks>
         public IReadOnlyList<string> Categories
         {
-            get { return GetTextList("CATEGORIES"); }
-            set { SetTextList("CATEGORIES", value); }
+            get { return GetTextList(IcalPropertyNames.Categories); }
+            set { SetTextList(IcalPropertyNames.Categories, value); }
         }
 
         /// <summary>
@@ -136,8 +136,8 @@ namespace DataStandardizer.File.iCal
         public string Color
 #endif
         {
-            get { return GetText("COLOR"); }
-            set { SetText("COLOR", value); }
+            get { return GetText(IcalPropertyNames.Color); }
+            set { SetText(IcalPropertyNames.Color, value); }
         }
 
         /// <summary>
@@ -153,8 +153,8 @@ namespace DataStandardizer.File.iCal
         public string Description
 #endif
         {
-            get { return GetText("DESCRIPTION"); }
-            set { SetText("DESCRIPTION", value); }
+            get { return GetText(IcalPropertyNames.Description); }
+            set { SetText(IcalPropertyNames.Description, value); }
         }
 
         /// <summary>
@@ -166,7 +166,7 @@ namespace DataStandardizer.File.iCal
         /// </remarks>
         public IReadOnlyList<IcalContentLine> Images
         {
-            get { return GetProperties("IMAGE"); }
+            get { return GetProperties(IcalPropertyNames.Image); }
         }
 
         /// <summary>
@@ -179,8 +179,8 @@ namespace DataStandardizer.File.iCal
         /// </remarks>
         public IcalDateTime? LastModified
         {
-            get { return GetDateTime("LAST-MODIFIED"); }
-            set { SetDateTime("LAST-MODIFIED", value); }
+            get { return GetDateTime(IcalPropertyNames.LastModified); }
+            set { SetDateTime(IcalPropertyNames.LastModified, value); }
         }
 
         /// <summary>
@@ -197,8 +197,8 @@ namespace DataStandardizer.File.iCal
         public string Method
 #endif
         {
-            get { return GetText("METHOD"); }
-            set { SetText("METHOD", value); }
+            get { return GetText(IcalPropertyNames.Method); }
+            set { SetText(IcalPropertyNames.Method, value); }
         }
 
         /// <summary>
@@ -215,8 +215,8 @@ namespace DataStandardizer.File.iCal
         public string ProductId
 #endif
         {
-            get { return GetText("PRODID"); }
-            set { SetText("PRODID", value); }
+            get { return GetText(IcalPropertyNames.ProductId); }
+            set { SetText(IcalPropertyNames.ProductId, value); }
         }
 
         /// <summary>
@@ -229,8 +229,8 @@ namespace DataStandardizer.File.iCal
         /// </remarks>
         public IcalDuration? RefreshInterval
         {
-            get { return GetDuration("REFRESH-INTERVAL"); }
-            set { SetDuration("REFRESH-INTERVAL", value, true); }
+            get { return GetDuration(IcalPropertyNames.RefreshInterval); }
+            set { SetDuration(IcalPropertyNames.RefreshInterval, value, true); }
         }
 
         /// <summary>
@@ -247,8 +247,8 @@ namespace DataStandardizer.File.iCal
         public Uri Source
 #endif
         {
-            get { return GetUri("SOURCE"); }
-            set { SetUri("SOURCE", value, true); }
+            get { return GetUri(IcalPropertyNames.Source); }
+            set { SetUri(IcalPropertyNames.Source, value, true); }
         }
 
         /// <summary>
@@ -264,8 +264,8 @@ namespace DataStandardizer.File.iCal
         public string Uid
 #endif
         {
-            get { return GetText("UID"); }
-            set { SetText("UID", value); }
+            get { return GetText(IcalPropertyNames.Uid); }
+            set { SetText(IcalPropertyNames.Uid, value); }
         }
 
         /// <summary>
@@ -281,8 +281,8 @@ namespace DataStandardizer.File.iCal
         public Uri Url
 #endif
         {
-            get { return GetUri("URL"); }
-            set { SetUri("URL", value, false); }
+            get { return GetUri(IcalPropertyNames.Url); }
+            set { SetUri(IcalPropertyNames.Url, value, false); }
         }
 
         /// <summary>
@@ -299,8 +299,8 @@ namespace DataStandardizer.File.iCal
         public string Version
 #endif
         {
-            get { return GetText("VERSION"); }
-            set { SetText("VERSION", value); }
+            get { return GetText(IcalPropertyNames.Version); }
+            set { SetText(IcalPropertyNames.Version, value); }
         }
     }
 }

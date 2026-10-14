@@ -10,9 +10,15 @@ namespace DataStandardizer.File.iCal
     /// </summary>
     internal sealed class IcalCalendarBuilder
     {
-        private const string BeginName = "BEGIN";
-        private const string CalendarName = "VCALENDAR";
-        private const string EndName = "END";
+        /// <summary>
+        /// The name of the content line that starts a component (RFC 5545 §3.4 and §3.6).
+        /// </summary>
+        internal const string BeginName = "BEGIN";
+
+        /// <summary>
+        /// The name of the content line that ends a component.
+        /// </summary>
+        internal const string EndName = "END";
 
         /// <summary>
         /// The components being built, outermost first.
@@ -59,7 +65,7 @@ namespace DataStandardizer.File.iCal
             frame.Component.Properties.Add(line);
 
             // ref. RFC 5545§3.7.4: reject another version as soon as it is found, since the rest of the data may not follow RFC 5545 at all.
-            if (_frames.Count == 1 && IsName(line.Name, "VERSION") && !IcalConformance.IsSupportedVersion(line.Value))
+            if (_frames.Count == 1 && IsName(line.Name, IcalPropertyNames.Version) && !IcalConformance.IsSupportedVersion(line.Value))
             {
                 var exception = BuildException(IcalConformance.BuildUnsupportedVersionMessage(line.Value), line, frame.Path);
                 exception.Data.Add(IcalFileException.DataItemName.DiagnosticKind, IcalDiagnosticKind.UnsupportedVersion);
@@ -104,7 +110,7 @@ namespace DataStandardizer.File.iCal
             string path;
             if (_frames.Count == 0)
             {
-                if (!IsName(name, CalendarName))
+                if (!IsName(name, IcalComponentNames.Calendar))
                     throw BuildException(
                         string.Format(CultureInfo.InvariantCulture, "Found BEGIN:{0} outside a VCALENDAR; expected BEGIN:VCALENDAR.", name.ToUpperInvariant()),
                         line, null);
@@ -168,22 +174,26 @@ namespace DataStandardizer.File.iCal
         {
             switch (name.ToUpperInvariant())
             {
-                case "VEVENT":
+                case IcalComponentNames.Event:
                     return new IcalEvent();
-                case "VTODO":
+                case IcalComponentNames.Todo:
                     return new IcalTodo();
-                case "VJOURNAL":
+                case IcalComponentNames.Journal:
                     return new IcalJournal();
-                case "VFREEBUSY":
+                case IcalComponentNames.FreeBusy:
                     return new IcalFreeBusy();
-                case "VTIMEZONE":
+                case IcalComponentNames.TimeZone:
                     return new IcalTimeZone();
-                case "VALARM":
+                case IcalComponentNames.Alarm:
                     return new IcalAlarm();
-                case "STANDARD":
-                    return IsName(parentName, "VTIMEZONE") ? new IcalTimeZoneObservance(IcalTimeZoneObservanceKind.Standard) : new IcalComponent(name);
-                case "DAYLIGHT":
-                    return IsName(parentName, "VTIMEZONE") ? new IcalTimeZoneObservance(IcalTimeZoneObservanceKind.Daylight) : new IcalComponent(name);
+                case IcalComponentNames.Standard:
+                    return IsName(parentName, IcalComponentNames.TimeZone)
+                        ? new IcalTimeZoneObservance(IcalTimeZoneObservanceKind.Standard)
+                        : new IcalComponent(name);
+                case IcalComponentNames.Daylight:
+                    return IsName(parentName, IcalComponentNames.TimeZone)
+                        ? new IcalTimeZoneObservance(IcalTimeZoneObservanceKind.Daylight)
+                        : new IcalComponent(name);
                 default:
                     return new IcalComponent(name);
             }
