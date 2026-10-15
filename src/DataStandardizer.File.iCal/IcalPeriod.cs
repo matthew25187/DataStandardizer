@@ -6,8 +6,16 @@ namespace DataStandardizer.File.iCal
     /// A PERIOD value (RFC 5545 §3.3.9): a start and either an end or a positive duration.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// A <c>TZID</c> parameter on the property applies to both the start and the end.  The default value starts and ends at 0001-01-01 at
     /// midnight, floating, which is not a valid period; it can be formatted, but not parsed back.
+    /// </para>
+    /// <para>
+    /// In an xCal document (RFC 6321 §3.6.9) a period is a <c>period</c> element holding <c>start</c> and <c>end</c> or <c>duration</c>
+    /// elements.  The <see cref="IcalValueFormat.Xml"/> form joins the two parts with a solidus, as the text form does, using the xCal forms of
+    /// the date-times, such as <c>1997-01-01T18:00:00Z/PT5H30M</c>.  <see cref="XcalReader"/> and <see cref="XcalWriter"/> map it to and from
+    /// the elements.
+    /// </para>
     /// </remarks>
     public readonly struct IcalPeriod : IEquatable<IcalPeriod>
 #if NET6_0_OR_GREATER
@@ -78,8 +86,8 @@ namespace DataStandardizer.File.iCal
         /// <param name="format">The lexical form of the value.</param>
         /// <param name="result">The period, if the value is valid.</param>
         /// <returns><c>true</c> if the value is a valid period; otherwise <c>false</c>.</returns>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/> or
-        /// <see cref="IcalValueFormat.Xml"/>, which are not supported yet.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
+        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static bool TryParse(ReadOnlySpan<char> value, IcalValueFormat format, out IcalPeriod result)
         {
@@ -96,8 +104,8 @@ namespace DataStandardizer.File.iCal
         /// <param name="result">The period, if the value is valid.</param>
         /// <returns><c>true</c> if the value is a valid period; otherwise <c>false</c>.</returns>
         /// <exception cref="ArgumentException"><paramref name="timeZoneId"/> is empty.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/> or
-        /// <see cref="IcalValueFormat.Xml"/>, which are not supported yet.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
+        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public static bool TryParse(ReadOnlySpan<char> value, string? timeZoneId, IcalValueFormat format, out IcalPeriod result)
@@ -114,7 +122,7 @@ namespace DataStandardizer.File.iCal
             result = default(IcalPeriod);
             var slashIndex = value.IndexOf('/');
             IcalDateTime start;
-            if (slashIndex < 0 || !IcalDateTime.TryParseText(value.Slice(0, slashIndex), timeZoneId, out start)) return false;
+            if (slashIndex < 0 || !TryParseDateTime(value.Slice(0, slashIndex), timeZoneId, format, out start)) return false;
 
             var rest = value.Slice(slashIndex + 1);
             if (rest.Length > 0 && (rest[0] == '+' || rest[0] == '-' || IcalValueFormatting.IsLetter(rest[0], 'P')))
@@ -127,7 +135,7 @@ namespace DataStandardizer.File.iCal
             }
 
             IcalDateTime end;
-            if (!IcalDateTime.TryParseText(rest, timeZoneId, out end) || !IsEndAfterStart(start, end)) return false;
+            if (!TryParseDateTime(rest, timeZoneId, format, out end) || !IsEndAfterStart(start, end)) return false;
 
             result = new IcalPeriod(start, end);
             return true;
@@ -140,8 +148,8 @@ namespace DataStandardizer.File.iCal
         /// <param name="format">The lexical form of the value.</param>
         /// <returns>The period.</returns>
         /// <exception cref="FormatException">The value is not a valid period.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/> or
-        /// <see cref="IcalValueFormat.Xml"/>, which are not supported yet.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
+        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static IcalPeriod Parse(ReadOnlySpan<char> value, IcalValueFormat format)
         {
@@ -157,8 +165,8 @@ namespace DataStandardizer.File.iCal
         /// <returns>The period.</returns>
         /// <exception cref="FormatException">The value is not a valid period.</exception>
         /// <exception cref="ArgumentException"><paramref name="timeZoneId"/> is empty.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/> or
-        /// <see cref="IcalValueFormat.Xml"/>, which are not supported yet.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
+        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public static IcalPeriod Parse(ReadOnlySpan<char> value, string? timeZoneId, IcalValueFormat format)
@@ -180,15 +188,15 @@ namespace DataStandardizer.File.iCal
         /// <param name="charsWritten">The number of characters written; or 0 if <paramref name="destination"/> is too short.</param>
         /// <param name="format">The lexical form to write.</param>
         /// <returns><c>true</c> if the period was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/> or
-        /// <see cref="IcalValueFormat.Xml"/>, which are not supported yet.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
+        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public bool TryFormat(Span<char> destination, out int charsWritten, IcalValueFormat format)
         {
             IcalValueFormatting.CheckFormat(format);
 
             var writer = new IcalSpanWriter(destination);
-            _start.AppendText(ref writer);
+            AppendDateTime(ref writer, _start, format);
             writer.Append('/');
             if (_hasDuration)
             {
@@ -196,7 +204,7 @@ namespace DataStandardizer.File.iCal
             }
             else
             {
-                _end.AppendText(ref writer);
+                AppendDateTime(ref writer, _end, format);
             }
 
             return writer.TryComplete(out charsWritten);
@@ -206,8 +214,8 @@ namespace DataStandardizer.File.iCal
         /// Formats the period as a string.  The time zone identifier of zoned date-times is not written.
         /// </summary>
         /// <param name="format">The lexical form to write.</param>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/> or
-        /// <see cref="IcalValueFormat.Xml"/>, which are not supported yet.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
+        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public string ToString(IcalValueFormat format)
         {
@@ -278,6 +286,29 @@ namespace DataStandardizer.File.iCal
         public static bool operator !=(IcalPeriod left, IcalPeriod right)
         {
             return !left.Equals(right);
+        }
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private static bool TryParseDateTime(ReadOnlySpan<char> value, string? timeZoneId, IcalValueFormat format, out IcalDateTime result)
+#else
+        private static bool TryParseDateTime(ReadOnlySpan<char> value, string timeZoneId, IcalValueFormat format, out IcalDateTime result)
+#endif
+        {
+            return format == IcalValueFormat.Xml
+                ? IcalDateTime.TryParseXml(value, timeZoneId, out result)
+                : IcalDateTime.TryParseText(value, timeZoneId, out result);
+        }
+
+        private static void AppendDateTime(ref IcalSpanWriter writer, IcalDateTime value, IcalValueFormat format)
+        {
+            if (format == IcalValueFormat.Xml)
+            {
+                value.AppendXml(ref writer);
+            }
+            else
+            {
+                value.AppendText(ref writer);
+            }
         }
 
         private static bool IsPositive(IcalDuration duration)

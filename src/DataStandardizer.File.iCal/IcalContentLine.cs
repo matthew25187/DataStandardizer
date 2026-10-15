@@ -168,6 +168,18 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
+        /// Creates a content line converted from another serialization, such as xCal, taking ownership of the parameter array.
+        /// </summary>
+        /// <param name="name">The property name.</param>
+        /// <param name="parameters">The parameters, in order.</param>
+        /// <param name="value">The value, in the form of a content line.</param>
+        /// <param name="lineNumber">The 1-based number of the line in the source on which the property starts; or 0 if not known.</param>
+        internal static IcalContentLine FromConversion(string name, IcalContentLineParameter[] parameters, string value, long lineNumber)
+        {
+            return new IcalContentLine(name, parameters.Length == 0 ? NoParameters : parameters, null, value, lineNumber, 0, null, 0);
+        }
+
+        /// <summary>
         /// Creates a content line from the reader's current line.
         /// </summary>
         internal static IcalContentLine FromScanner(IcalContentLineScanner scanner)

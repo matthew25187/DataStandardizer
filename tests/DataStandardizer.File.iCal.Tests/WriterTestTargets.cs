@@ -195,6 +195,11 @@ internal sealed class GatedTextWriter : TextWriter
         throw new InvalidOperationException("Synchronous write on the async path.");
     }
 
+    public override Task WriteAsync(char[] buffer, int index, int count)
+    {
+        return WriteAsync(buffer.AsMemory(index, count));
+    }
+
     public override async Task WriteAsync(ReadOnlyMemory<char> buffer, CancellationToken cancellationToken = default)
     {
         // Copy now: the writer's buffer belongs to it again once the write completes, not before.

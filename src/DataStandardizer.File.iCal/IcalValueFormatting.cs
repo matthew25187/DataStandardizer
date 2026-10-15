@@ -10,19 +10,18 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Checks that a value format is one that can be parsed and formatted.
         /// </summary>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/> or
-        /// <see cref="IcalValueFormat.Xml"/>, which are not supported yet.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
+        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         internal static void CheckFormat(IcalValueFormat format)
         {
             switch (format)
             {
                 case IcalValueFormat.Text:
+                case IcalValueFormat.Xml:
                     return;
                 case IcalValueFormat.Json:
                     throw new NotSupportedException("The jCal (RFC 7265) form of iCalendar values is not supported yet.");
-                case IcalValueFormat.Xml:
-                    throw new NotSupportedException("The xCal (RFC 6321) form of iCalendar values is not supported yet.");
                 default:
                     throw new ArgumentOutOfRangeException(nameof(format), format, "The value format is not recognised.");
             }
@@ -54,6 +53,63 @@ namespace DataStandardizer.File.iCal
             }
 
             throw new FormatException("The format string is not recognised.  Use \"T\" for text, \"J\" for jCal or \"X\" for xCal.");
+        }
+
+        /// <summary>
+        /// Gets whether a character is XML white space (XML 1.0 §2.3): a space, tab, carriage return or line feed.
+        /// </summary>
+        internal static bool IsXmlWhitespace(char character)
+        {
+            return character == ' ' || character == '\t' || character == '\r' || character == '\n';
+        }
+
+        /// <summary>
+        /// Removes leading and trailing XML white space, as XML Schema does for the types whose white space is collapsed, such as
+        /// <c>xsd:integer</c>.
+        /// </summary>
+        internal static ReadOnlySpan<char> TrimXmlWhitespace(ReadOnlySpan<char> value)
+        {
+            var start = 0;
+            while (start < value.Length && IsXmlWhitespace(value[start]))
+            {
+                start++;
+            }
+
+            var end = value.Length;
+            while (end > start && IsXmlWhitespace(value[end - 1]))
+            {
+                end--;
+            }
+
+            return value.Slice(start, end - start);
+        }
+
+        /// <summary>
+        /// Gets whether text holds only characters an XML 1.0 document can hold (XML 1.0 §2.2): tab, line feed, carriage return, and the
+        /// characters from U+0020 up, other than U+FFFE, U+FFFF and unpaired surrogates.
+        /// </summary>
+        internal static bool IsXmlText(ReadOnlySpan<char> value)
+        {
+            for (var index = 0; index < value.Length; index++)
+            {
+                var character = value[index];
+                if (character < ' ')
+                {
+                    if (character != '\t' && character != '\n' && character != '\r') return false;
+                }
+                else if (char.IsHighSurrogate(character))
+                {
+                    if (index + 1 == value.Length || !char.IsLowSurrogate(value[index + 1])) return false;
+
+                    index++;
+                }
+                else if (char.IsLowSurrogate(character) || character == '￾' || character == '￿')
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         internal static bool IsDigit(char character)

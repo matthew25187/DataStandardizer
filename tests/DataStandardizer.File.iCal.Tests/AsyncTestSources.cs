@@ -155,6 +155,11 @@ internal sealed class GatedTextReader(string text) : TextReader
         throw new InvalidOperationException("Synchronous read on the async path.");
     }
 
+    public override Task<int> ReadAsync(char[] buffer, int index, int count)
+    {
+        return ReadAsync(buffer.AsMemory(index, count)).AsTask();
+    }
+
     public override async ValueTask<int> ReadAsync(Memory<char> buffer, CancellationToken cancellationToken = default)
     {
         _readStarted.TrySetResult();
