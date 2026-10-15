@@ -197,6 +197,7 @@ public class IcalTimeZoneResolverTests
     {
         FluentActions.Invoking(() => IcalTimeZoneResolver.Calendar.TryResolve(null!, null, out _)).Should().Throw<ArgumentNullException>();
         FluentActions.Invoking(() => IcalTimeZoneResolver.TzData.TryResolve(null!, null, out _)).Should().Throw<ArgumentNullException>();
+        FluentActions.Invoking(() => IcalTimeZoneResolver.System.TryResolve(null!, null, out _)).Should().Throw<ArgumentNullException>();
         FluentActions.Invoking(() => IcalTimeZoneResolver.Chain(IcalTimeZoneResolver.TzData).TryResolve(null!, null, out _))
             .Should().Throw<ArgumentNullException>();
     }
@@ -420,6 +421,108 @@ public class IcalTimeZoneResolverTests
 
         // The first onset is the DAYLIGHT of 1967-04-30, from -05:00.
         rules.GetUtcOffset(new DateTime(1960, 7, 1, 0, 0, 0, DateTimeKind.Utc)).Offset.Should().Be(TimeSpan.FromHours(-5));
+    }
+
+    #endregion
+
+    #region System
+
+    public static TheoryData<string> SystemZones => new() { NewYork, "Europe/London" };
+
+    [Theory]
+    [MemberData(nameof(SystemZones))]
+    public void System_MatchesTzData(string timeZoneId)
+    {
+        var systemRules = IcalTimeZoneResolver.System.Resolve(timeZoneId, null);
+        var tzDataRules = IcalTimeZoneResolver.TzData.Resolve(timeZoneId, null);
+
+        systemRules.TimeZoneId.Should().Be(timeZoneId);
+        AssertSameRules(systemRules, tzDataRules, Utc(2000).UtcDateTime, Utc(2030).UtcDateTime);
+    }
+
+    [Fact]
+    public void System_ResolvesAWindowsName_ThatTzDataCannot()
+    {
+        var resolver = IcalTimeZoneResolver.Chain(IcalTimeZoneResolver.Calendar, IcalTimeZoneResolver.TzData, IcalTimeZoneResolver.System);
+        var calendar = ModelTestData.ReadCalendar(ModelTestData.Calendar(["BEGIN:VEVENT", "UID:event@example.com", "DTSTAMP:20260101T000000Z",
+            "DTSTART;TZID=Eastern Standard Time:20260701T090000", "END:VEVENT"]), UndefinedTimeZones);
+
+        IcalTimeZoneResolver.TzData.TryResolve("Eastern Standard Time", calendar, out _).Should().BeFalse();
+        resolver.ToUtc(calendar.Events.Single().DtStart!.Value.DateTime, calendar)
+            .Should().Be(IcalDateTime.Parse("20260701T130000Z", IcalValueFormat.Text));
+        AssertSameRules(resolver.Resolve("Eastern Standard Time", calendar), IcalTimeZoneResolver.TzData.Resolve(NewYork, null),
+            Utc(2007).UtcDateTime, Utc(2030).UtcDateTime);
+    }
+
+    [Fact]
+    public void System_StripsVendorPrefixes()
+    {
+        var rules = IcalTimeZoneResolver.System.Resolve("/mozilla.org/20050126_1/America/New_York", null);
+
+        rules.GetUtcOffset(new DateTime(2026, 1, 15, 0, 0, 0, DateTimeKind.Utc)).Offset.Should().Be(TimeSpan.FromHours(-5));
+    }
+
+    [Theory]
+    [InlineData("Not/A_Zone")]
+    [InlineData("")]
+    [InlineData("/")]
+    [InlineData("/example.com/")]
+    [InlineData("../../../../etc/passwd")]
+    [InlineData("America/../America/New_York")]
+    [InlineData("C:\\Windows\\win.ini")]
+    [InlineData("America/New_York\0")]
+    public void System_DoesNotResolveUnknownOrUnsafeNames(string timeZoneId)
+    {
+        IcalTimeZoneResolver.System.TryResolve(timeZoneId, null, out var rules).Should().BeFalse();
+        rules.Should().BeNull();
+    }
+
+    [Fact]
+    public void System_WhenItCannotResolve_FallsThroughToTheNextResolver()
+    {
+        var calls = new List<string>();
+        var next = new RecordingResolver("next", calls, null);
+
+        var resolved = IcalTimeZoneResolver.Chain(IcalTimeZoneResolver.System, next).TryResolve("Not/A_Zone", null, out _);
+
+        resolved.Should().BeFalse();
+        calls.Should().Equal("next");
+    }
+
+    [Fact]
+    public void System_FollowsRfc5545InGapsAndOverlaps()
+    {
+        var rules = IcalTimeZoneResolver.System.Resolve(NewYork, null);
+
+        rules.GetUtcOffsetsForLocal(new DateTime(2026, 3, 8, 2, 30, 0)).Should().BeEmpty();
+        rules.ToUtc(new DateTime(2026, 3, 8, 2, 30, 0)).Should().Be(new DateTime(2026, 3, 8, 7, 30, 0, DateTimeKind.Utc));
+        rules.GetUtcOffsetsForLocal(new DateTime(2026, 11, 1, 1, 30, 0)).Select(offset => offset.Offset)
+            .Should().Equal(TimeSpan.FromHours(-4), TimeSpan.FromHours(-5));
+        rules.ToUtc(new DateTime(2026, 11, 1, 1, 30, 0)).Should().Be(new DateTime(2026, 11, 1, 5, 30, 0, DateTimeKind.Utc));
+    }
+
+    [Fact]
+    public void System_GivesTheKindOfEachTransitionButNoName()
+    {
+        var rules = IcalTimeZoneResolver.System.Resolve(NewYork, null);
+
+        var transitions = rules.GetTransitions(Utc(2026).UtcDateTime, Utc(2027).UtcDateTime).ToList();
+
+        transitions.Select(transition => (transition.InstantUtc, transition.Kind)).Should().Equal(
+            (new DateTime(2026, 3, 8, 7, 0, 0, DateTimeKind.Utc), IcalTimeZoneObservanceKind.Daylight),
+            (new DateTime(2026, 11, 1, 6, 0, 0, DateTimeKind.Utc), IcalTimeZoneObservanceKind.Standard));
+        transitions.Should().OnlyContain(transition => transition.Name == null);
+    }
+
+    [Fact]
+    public void System_GivesATransitionAtTheStartOfThePeriod_ButNotAtItsEnd()
+    {
+        var rules = IcalTimeZoneResolver.System.Resolve(NewYork, null);
+        var instant = new DateTime(2026, 3, 8, 7, 0, 0, DateTimeKind.Utc);
+
+        rules.GetTransitions(instant, instant.AddDays(1)).Select(transition => transition.InstantUtc).Should().Equal(instant);
+        rules.GetTransitions(instant.AddDays(-1), instant).Should().BeEmpty();
+        rules.GetTransitions(instant, instant).Should().BeEmpty();
     }
 
     #endregion
