@@ -18,6 +18,11 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         internal const int TextLength = 8;
 
+        /// <summary>
+        /// The day number of 9999-12-31, the last date.
+        /// </summary>
+        internal const int MaxDayNumber = 3652058;
+
         private const long TicksPerDay = TimeSpan.TicksPerDay;
 
         // Days since 0001-01-01, so the default value is a valid date.
@@ -259,6 +264,27 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
+        /// Gets the number of days since 0001-01-01.
+        /// </summary>
+        internal int DayNumber => _dayNumber;
+
+        /// <summary>
+        /// Creates a date from a number of days since 0001-01-01, from 0 to <see cref="MaxDayNumber"/>.
+        /// </summary>
+        internal static IcalDate FromDayNumber(int dayNumber)
+        {
+            return new IcalDate(dayNumber);
+        }
+
+        /// <summary>
+        /// Gets the number of days since 0001-01-01 of a valid date.
+        /// </summary>
+        internal static int GetDayNumber(int year, int month, int day)
+        {
+            return (int)(new DateTime(year, month, day).Ticks / TicksPerDay);
+        }
+
+        /// <summary>
         /// Parses the <c>YYYYMMDD</c> text form, which must be exactly the length of <paramref name="value"/>.
         /// </summary>
         internal static bool TryParseText(ReadOnlySpan<char> value, out IcalDate result)
@@ -286,11 +312,6 @@ namespace DataStandardizer.File.iCal
             writer.AppendDigits(dateTime.Year, 4);
             writer.AppendDigits(dateTime.Month, 2);
             writer.AppendDigits(dateTime.Day, 2);
-        }
-
-        private static int GetDayNumber(int year, int month, int day)
-        {
-            return (int)(new DateTime(year, month, day).Ticks / TicksPerDay);
         }
     }
 }

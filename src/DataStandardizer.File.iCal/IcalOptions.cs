@@ -3,7 +3,7 @@
 namespace DataStandardizer.File.iCal
 {
     /// <summary>
-    /// Options to configure the behaviour of an iCalendar reader or writer.
+    /// Options to configure the behaviour of an iCalendar reader or writer, and of recurrence expansion.
     /// </summary>
     /// <remarks>
     /// The default settings for all options ensure behaviour consistent with RFC 5545.  Each accommodation for common non-compliant input is a
@@ -184,6 +184,32 @@ namespace DataStandardizer.File.iCal
             set;
 #endif
         } = "\r\n";
+
+        /// <summary>
+        /// Gets the number of consecutive periods a recurrence rule may step through without producing an occurrence before
+        /// <see cref="IcalRecurrenceRule.GetOccurrences(IcalDateTime, IcalDateTime?, IcalDateTime?, IcalOptions)"/> gives up.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// A period is one step of the rule's frequency, such as a year for <c>FREQ=YEARLY</c>; a run of periods that the rule skips as a whole,
+        /// such as the seconds of a day that a <c>FREQ=SECONDLY</c> rule excludes, counts as one.  A rule that can never match, such as
+        /// <c>FREQ=SECONDLY;BYMONTH=2;BYMONTHDAY=30</c>, then ends with an <see cref="System.InvalidOperationException"/> rather than running for
+        /// a very long time.
+        /// </para>
+        /// <para>
+        /// The default is 100,000, far more than the gap between the occurrences of any rule that can match: the longest is the eight years
+        /// between two 29 Februaries, which is fewer than 3,000 daily periods.  The value must be at least 1.
+        /// </para>
+        /// </remarks>
+        public int MaxRecurrenceIterations
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        } = 100000;
 
         /// <summary>
         /// Gets the maximum length, in characters, of a logical (unfolded) content line, not counting its line break.
