@@ -19,6 +19,11 @@ instructions, how-to guides, and an API reference.
 | **DOS date & time** | [Chronology](../packages/chronology/index.md) | A packed date/time as used by the MS-DOS file system (1980–2107). |
 | **ITU-T E.164** | [Communication](../packages/communication/index.md) | The international public telecommunication numbering plan (telephone numbers). |
 | **RFC 4180** | [File.CSV](../packages/file-csv/index.md) | Common format and MIME type for Comma-Separated Values (CSV) files. |
+| **RFC 5545** | [File.iCal](../packages/file-ical/index.md) | Internet Calendaring and Scheduling Core Object Specification (iCalendar): `.ics` files, their components and properties, and recurrence rules. |
+| **RFC 6868** | [File.iCal](../packages/file-ical/index.md) | Parameter value encoding in iCalendar and vCard (caret encoding of quotes and line breaks in parameter values). |
+| **RFC 7986** | [File.iCal](../packages/file-ical/index.md) | New properties for iCalendar, such as `NAME`, `COLOR`, `IMAGE` and `REFRESH-INTERVAL`. |
+| **RFC 7265** | [File.iCal](../packages/file-ical/index.md) | jCal: the JSON format for iCalendar. |
+| **RFC 6321** | [File.iCal](../packages/file-ical/index.md) | xCal: the XML format for iCalendar. |
 | **ISO 3166-1** | [Geography](../packages/geography/index.md) | Codes for the representation of names of countries — Part 1: Country code. |
 | **ISO 3166-2** | [Geography](../packages/geography/index.md) | Codes for the representation of names of countries — Part 2: Country subdivision code. |
 | **UN M49** | [Geography](../packages/geography/index.md) | Standard Country or Area Codes for Statistical Use (Series M, No. 49). |

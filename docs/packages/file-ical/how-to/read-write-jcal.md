@@ -2,7 +2,7 @@
 title: jCal (JSON)
 parent: File.iCal
 grand_parent: Packages
-nav_order: 6
+nav_order: 8
 ---
 
 # Read and write jCal
@@ -193,3 +193,7 @@ calendar.
   characters outside ASCII are written as they are.
 - **No raw JSON view:** the reader always builds the component object model. There
   is no lower-level, allocation-free view of the JSON.
+
+## See also
+
+- [Convert between .ics, jCal and xCal](convert-formats.md)

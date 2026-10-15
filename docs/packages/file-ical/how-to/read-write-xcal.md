@@ -2,7 +2,7 @@
 title: xCal (XML)
 parent: File.iCal
 grand_parent: Packages
-nav_order: 5
+nav_order: 7
 ---
 
 # Read and write xCal
@@ -151,3 +151,7 @@ An `XmlReader` or `XmlWriter` that you supply must be created with
 - **Path constructors:** the file-path constructors need .NET Standard 2.0 or later.
   On .NET Standard 1.1, use a `Stream`, `TextReader`/`TextWriter` or
   `XmlReader`/`XmlWriter`.
+
+## See also
+
+- [Convert between .ics, jCal and xCal](convert-formats.md)
