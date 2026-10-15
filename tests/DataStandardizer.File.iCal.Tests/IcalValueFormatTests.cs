@@ -50,23 +50,23 @@ public class IcalValueFormatTests
 
     [Theory]
     [MemberData(nameof(Parsers))]
-    public void Parse_Json_ThrowsNotSupported(string valueType, Action<IcalValueFormat> parse)
+    public void Parse_EachForm_IsSupported(string valueType, Action<IcalValueFormat> parse)
     {
         // act / assert
         parse.Invoking(action => action(IcalValueFormat.Text)).Should().NotThrow(valueType);
-        parse.Invoking(action => action(IcalValueFormat.Json)).Should().Throw<NotSupportedException>(valueType);
-        AssertXmlSupported(valueType, () => parse(IcalValueFormat.Xml));
+        AssertSupported(valueType, () => parse(IcalValueFormat.Json));
+        AssertSupported(valueType, () => parse(IcalValueFormat.Xml));
         parse.Invoking(action => action((IcalValueFormat)99)).Should().Throw<ArgumentOutOfRangeException>(valueType);
     }
 
     [Theory]
     [MemberData(nameof(Formatters))]
-    public void Format_Json_ThrowsNotSupported(string valueType, Action<IcalValueFormat> format)
+    public void Format_EachForm_IsSupported(string valueType, Action<IcalValueFormat> format)
     {
         // act / assert
         format.Invoking(action => action(IcalValueFormat.Text)).Should().NotThrow(valueType);
-        format.Invoking(action => action(IcalValueFormat.Json)).Should().Throw<NotSupportedException>(valueType);
-        AssertXmlSupported(valueType, () => format(IcalValueFormat.Xml));
+        AssertSupported(valueType, () => format(IcalValueFormat.Json));
+        AssertSupported(valueType, () => format(IcalValueFormat.Xml));
         format.Invoking(action => action((IcalValueFormat)99)).Should().Throw<ArgumentOutOfRangeException>(valueType);
     }
 
@@ -98,15 +98,15 @@ public class IcalValueFormatTests
         // assert
         testResult.Should().BeTrue();
         new string(destination, 0, charsWritten).Should().Be("19970101T180000Z/PT5H30M");
-        period.Invoking(value => value.ToString("J", null)).Should().Throw<NotSupportedException>();
+        period.ToString("J", null).Should().Be("1997-01-01T18:00:00Z/PT5H30M");
         period.ToString("x", null).Should().Be("1997-01-01T18:00:00Z/PT5H30M");
         period.Invoking(value => value.ToString("G", null)).Should().Throw<FormatException>();
     }
 
     /// <summary>
-    /// Asserts that a value type supports the xCal form, unless it is a recurrence rule, which has no single lexical form in xCal.
+    /// Asserts that a value type supports the jCal or xCal form, unless it is a recurrence rule, which has no single lexical form in either.
     /// </summary>
-    private static void AssertXmlSupported(string valueType, Action action)
+    private static void AssertSupported(string valueType, Action action)
     {
         if (valueType == "IcalRecurrenceRule")
         {

@@ -10,18 +10,15 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Checks that a value format is one that can be parsed and formatted.
         /// </summary>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
-        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         internal static void CheckFormat(IcalValueFormat format)
         {
             switch (format)
             {
                 case IcalValueFormat.Text:
+                case IcalValueFormat.Json:
                 case IcalValueFormat.Xml:
                     return;
-                case IcalValueFormat.Json:
-                    throw new NotSupportedException("The jCal (RFC 7265) form of iCalendar values is not supported yet.");
                 default:
                     throw new ArgumentOutOfRangeException(nameof(format), format, "The value format is not recognised.");
             }
@@ -110,6 +107,60 @@ namespace DataStandardizer.File.iCal
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Gets whether text is a JSON number (RFC 8259 §6): an optional minus sign, an integer with no leading zeros, an optional fraction and
+        /// an optional exponent.
+        /// </summary>
+        internal static bool IsJsonNumber(ReadOnlySpan<char> value)
+        {
+            // ref. RFC 8259§6: number = [ minus ] int [ frac ] [ exp ]; int = zero / ( digit1-9 *DIGIT )
+            var index = 0;
+            if (index < value.Length && value[index] == '-')
+            {
+                index++;
+            }
+
+            if (index == value.Length || !IsDigit(value[index])) return false;
+
+            if (value[index++] != '0')
+            {
+                while (index < value.Length && IsDigit(value[index]))
+                {
+                    index++;
+                }
+            }
+
+            if (index < value.Length && value[index] == '.')
+            {
+                var fractionStart = ++index;
+                while (index < value.Length && IsDigit(value[index]))
+                {
+                    index++;
+                }
+
+                if (index == fractionStart) return false;
+            }
+
+            if (index < value.Length && IsLetter(value[index], 'E'))
+            {
+                index++;
+                if (index < value.Length && (value[index] == '+' || value[index] == '-'))
+                {
+                    index++;
+                }
+
+                var exponentStart = index;
+                while (index < value.Length && IsDigit(value[index]))
+                {
+                    index++;
+                }
+
+                if (index == exponentStart) return false;
+            }
+
+            return index == value.Length;
         }
 
         internal static bool IsDigit(char character)

@@ -49,12 +49,11 @@ namespace DataStandardizer.File.iCal
         /// Parses an offset.
         /// </summary>
         /// <param name="value">The value, such as <c>-0500</c> or <c>+013045</c> in <see cref="IcalValueFormat.Text"/> form, or <c>-05:00</c> or
-        /// <c>+01:30:45</c> in <see cref="IcalValueFormat.Xml"/> form.  A negative offset of zero, such as <c>-0000</c>, is not valid.</param>
+        /// <c>+01:30:45</c> in <see cref="IcalValueFormat.Json"/> and <see cref="IcalValueFormat.Xml"/> form.  A negative offset of zero, such as
+        /// <c>-0000</c>, is not valid.</param>
         /// <param name="format">The lexical form of the value.</param>
         /// <param name="result">The offset, if the value is valid.</param>
         /// <returns><c>true</c> if the value is a valid offset; otherwise <c>false</c>.</returns>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
-        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static bool TryParse(ReadOnlySpan<char> value, IcalValueFormat format, out IcalUtcOffset result)
         {
@@ -63,13 +62,13 @@ namespace DataStandardizer.File.iCal
             // ref. RFC 5545§3.3.14: utc-offset = time-numzone; time-numzone = ("+" / "-") time-hour time-minute [time-second]
             // ref. RFC 6321§3.6.14: in xCal the components are separated by ":" characters, "(+|-)\d\d:\d\d(:\d\d)?".
             result = default(IcalUtcOffset);
-            var isXml = format == IcalValueFormat.Xml;
-            var step = isXml ? 3 : 2;
+            var isExtended = format != IcalValueFormat.Text;
+            var step = isExtended ? 3 : 2;
             if (value.Length != 1 + step + 2 && value.Length != 1 + 2 * step + 2) return false;
 
             var sign = value[0];
             if (sign != '+' && sign != '-') return false;
-            if (isXml && (value[3] != ':' || (value.Length > 6 && value[6] != ':'))) return false;
+            if (isExtended && (value[3] != ':' || (value.Length > 6 && value[6] != ':'))) return false;
 
             int hour, minute, second = 0;
             if (!IcalValueFormatting.TryParseDigits(value, 1, 2, out hour) || !IcalValueFormatting.TryParseDigits(value, 1 + step, 2, out minute) ||
@@ -98,12 +97,10 @@ namespace DataStandardizer.File.iCal
         /// Parses an offset.
         /// </summary>
         /// <param name="value">The value, such as <c>-0500</c> or <c>+013045</c> in <see cref="IcalValueFormat.Text"/> form, or <c>-05:00</c> in
-        /// <see cref="IcalValueFormat.Xml"/> form.</param>
+        /// <see cref="IcalValueFormat.Json"/> and <see cref="IcalValueFormat.Xml"/> form.</param>
         /// <param name="format">The lexical form of the value.</param>
         /// <returns>The offset.</returns>
         /// <exception cref="FormatException">The value is not a valid offset.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
-        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static IcalUtcOffset Parse(ReadOnlySpan<char> value, IcalValueFormat format)
         {
@@ -121,8 +118,6 @@ namespace DataStandardizer.File.iCal
         /// <param name="charsWritten">The number of characters written; or 0 if <paramref name="destination"/> is too short.</param>
         /// <param name="format">The lexical form to write.</param>
         /// <returns><c>true</c> if the offset was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
-        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public bool TryFormat(Span<char> destination, out int charsWritten, IcalValueFormat format)
         {
@@ -147,8 +142,6 @@ namespace DataStandardizer.File.iCal
         /// Formats the offset as a string.
         /// </summary>
         /// <param name="format">The lexical form to write.</param>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
-        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public string ToString(IcalValueFormat format)
         {
@@ -223,7 +216,7 @@ namespace DataStandardizer.File.iCal
 
         private static void AppendSeparator(ref IcalSpanWriter writer, IcalValueFormat format)
         {
-            if (format == IcalValueFormat.Xml)
+            if (format != IcalValueFormat.Text)
             {
                 writer.Append(':');
             }

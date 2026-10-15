@@ -31,8 +31,8 @@ namespace DataStandardizer.File.iCal
         /// For a property that holds a list of TEXT values, split the list with <see cref="EnumerateTextList"/> first, then parse each item.
         /// </para>
         /// <para>
-        /// A value in <see cref="IcalValueFormat.Xml"/> form is the content of an xCal <c>text</c> element, which has no escaping, so it is
-        /// copied as it is.
+        /// A value in <see cref="IcalValueFormat.Json"/> form is the content of a jCal string, and a value in <see cref="IcalValueFormat.Xml"/>
+        /// form the content of an xCal <c>text</c> element.  Neither has escaping, so the value is copied as it is.
         /// </para>
         /// </remarks>
         /// <param name="value">The value as it appears in the content line.</param>
@@ -41,8 +41,6 @@ namespace DataStandardizer.File.iCal
         /// <param name="charsWritten">The number of characters written; or 0 if the value is not valid.</param>
         /// <returns><c>true</c> if the value is valid; <c>false</c> if it has a backslash that does not start a valid escape.</returns>
         /// <exception cref="ArgumentException"><paramref name="destination"/> is shorter than <paramref name="value"/>.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
-        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static bool TryParseText(ReadOnlySpan<char> value, IcalValueFormat format, Span<char> destination, out int charsWritten)
         {
@@ -50,7 +48,7 @@ namespace DataStandardizer.File.iCal
             if (destination.Length < value.Length)
                 throw new ArgumentException("The destination must be at least as long as the value.", nameof(destination));
 
-            if (format == IcalValueFormat.Xml)
+            if (format != IcalValueFormat.Text)
             {
                 value.CopyTo(destination);
                 charsWritten = value.Length;
@@ -75,8 +73,6 @@ namespace DataStandardizer.File.iCal
         /// <param name="format">The lexical form of the value.</param>
         /// <param name="result">The text, if the value is valid.</param>
         /// <returns><c>true</c> if the value is valid; <c>false</c> if it has a backslash that does not start a valid escape.</returns>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
-        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public static bool TryParseText(ReadOnlySpan<char> value, IcalValueFormat format, [NotNullWhen(true)] out string? result)
@@ -101,8 +97,8 @@ namespace DataStandardizer.File.iCal
         /// each line break (CRLF, LF or a lone CR) as <c>\n</c>.
         /// </summary>
         /// <remarks>
-        /// In <see cref="IcalValueFormat.Xml"/> form, the content of an xCal <c>text</c> element, the text is written as it is, with no escaping
-        /// and its line breaks unchanged.
+        /// In <see cref="IcalValueFormat.Json"/> form, the content of a jCal string, and in <see cref="IcalValueFormat.Xml"/> form, the content
+        /// of an xCal <c>text</c> element, the text is written as it is, with no escaping and its line breaks unchanged.
         /// </remarks>
         /// <param name="value">The text.</param>
         /// <param name="destination">The span to write to.</param>
@@ -111,8 +107,6 @@ namespace DataStandardizer.File.iCal
         /// <returns><c>true</c> if the value was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
         /// <exception cref="ArgumentException"><paramref name="value"/> holds a control character other than a tab or a line break, or a lone
         /// surrogate; or, in <see cref="IcalValueFormat.Xml"/> form, a character XML cannot hold, such as U+FFFE.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
-        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static bool TryFormatText(ReadOnlySpan<char> value, Span<char> destination, out int charsWritten, IcalValueFormat format)
         {
@@ -127,6 +121,21 @@ namespace DataStandardizer.File.iCal
                 var xmlWriter = new IcalSpanWriter(destination);
                 xmlWriter.Append(value);
                 return xmlWriter.TryComplete(out charsWritten);
+            }
+
+            if (format == IcalValueFormat.Json)
+            {
+                // ref. RFC 7265§3.6.11: the value is a JSON string, which can hold any character once escaped.  Only the characters a TEXT
+                // value can hold are written.
+                var invalidIndex = FindInvalidTextCharacter(value);
+                if (invalidIndex >= 0)
+                    throw new ArgumentException(
+                        string.Format(CultureInfo.InvariantCulture, "The text holds the character U+{0:X4}, which a TEXT value cannot hold.",
+                            (int)value[invalidIndex]), nameof(value));
+
+                var jsonWriter = new IcalSpanWriter(destination);
+                jsonWriter.Append(value);
+                return jsonWriter.TryComplete(out charsWritten);
             }
 
             // ref. RFC 5545§3.3.11: text = *(TSAFE-CHAR / ":" / DQUOTE / ESCAPED-CHAR); TSAFE-CHAR excludes the control characters but tab.
@@ -190,8 +199,6 @@ namespace DataStandardizer.File.iCal
         /// <exception cref="ArgumentNullException"><paramref name="value"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="value"/> holds a control character other than a tab or a line break, or a lone
         /// surrogate.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
-        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static string FormatText(string value, IcalValueFormat format)
         {
@@ -209,20 +216,19 @@ namespace DataStandardizer.File.iCal
         /// <see cref="TryParseText(ReadOnlySpan{char}, IcalValueFormat, Span{char}, out int)"/>.
         /// </summary>
         /// <remarks>
-        /// In xCal each item of a list is an element of its own, so a value in <see cref="IcalValueFormat.Xml"/> form is a single item.
+        /// In jCal each item of a list is a JSON string of its own, and in xCal an element of its own, so a value in
+        /// <see cref="IcalValueFormat.Json"/> or <see cref="IcalValueFormat.Xml"/> form is a single item.
         /// </remarks>
         /// <param name="value">The list as it appears in the content line, such as <c>APPOINTMENT,EDUCATION\, TRAINING</c>.  An empty value is
         /// one empty item.</param>
         /// <param name="format">The lexical form of the value.</param>
         /// <returns>An enumerator over the items, for use with <c>foreach</c>.</returns>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
-        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static IcalTextListEnumerator EnumerateTextList(ReadOnlySpan<char> value, IcalValueFormat format)
         {
             IcalValueFormatting.CheckFormat(format);
 
-            return new IcalTextListEnumerator(value, format == IcalValueFormat.Xml);
+            return new IcalTextListEnumerator(value, format != IcalValueFormat.Text);
         }
 
         #endregion
@@ -233,15 +239,14 @@ namespace DataStandardizer.File.iCal
         /// Parses a BOOLEAN value (RFC 5545 §3.3.2): <c>TRUE</c> or <c>FALSE</c>, in any case.
         /// </summary>
         /// <remarks>
-        /// In <see cref="IcalValueFormat.Xml"/> form the value is an <c>xsd:boolean</c> (RFC 6321 §3.6.2): <c>true</c>, <c>false</c>, <c>1</c>
-        /// or <c>0</c>, with any white space around it.
+        /// In <see cref="IcalValueFormat.Json"/> form the value is the text of a JSON literal (RFC 7265 §3.6.2): <c>true</c> or <c>false</c>, in
+        /// lower case.  In <see cref="IcalValueFormat.Xml"/> form the value is an <c>xsd:boolean</c> (RFC 6321 §3.6.2): <c>true</c>,
+        /// <c>false</c>, <c>1</c> or <c>0</c>, with any white space around it.
         /// </remarks>
         /// <param name="value">The value.</param>
         /// <param name="format">The lexical form of the value.</param>
         /// <param name="result">The Boolean, if the value is valid.</param>
         /// <returns><c>true</c> if the value is valid; otherwise <c>false</c>.</returns>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
-        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static bool TryParseBoolean(ReadOnlySpan<char> value, IcalValueFormat format, out bool result)
         {
@@ -255,28 +260,33 @@ namespace DataStandardizer.File.iCal
                 return result || trimmed.SequenceEqual(XmlFalseText.AsSpan()) || trimmed.SequenceEqual("0".AsSpan());
             }
 
+            if (format == IcalValueFormat.Json)
+            {
+                // ref. RFC 8259§3: the literal names are lower case.
+                result = value.SequenceEqual(XmlTrueText.AsSpan());
+                return result || value.SequenceEqual(XmlFalseText.AsSpan());
+            }
+
             result = IcalValueFormatting.EqualsKeyword(value, TrueText);
             return result || IcalValueFormatting.EqualsKeyword(value, FalseText);
         }
 
         /// <summary>
-        /// Formats a BOOLEAN value (RFC 5545 §3.3.2): <c>TRUE</c> or <c>FALSE</c>; or, in <see cref="IcalValueFormat.Xml"/> form, <c>true</c>
-        /// or <c>false</c>.
+        /// Formats a BOOLEAN value (RFC 5545 §3.3.2): <c>TRUE</c> or <c>FALSE</c>; or, in <see cref="IcalValueFormat.Json"/> and
+        /// <see cref="IcalValueFormat.Xml"/> form, <c>true</c> or <c>false</c>.
         /// </summary>
         /// <param name="value">The Boolean.</param>
         /// <param name="destination">The span to write to.</param>
         /// <param name="charsWritten">The number of characters written; or 0 if <paramref name="destination"/> is too short.</param>
         /// <param name="format">The lexical form to write.</param>
         /// <returns><c>true</c> if the value was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
-        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static bool TryFormatBoolean(bool value, Span<char> destination, out int charsWritten, IcalValueFormat format)
         {
             IcalValueFormatting.CheckFormat(format);
 
             var writer = new IcalSpanWriter(destination);
-            if (format == IcalValueFormat.Xml)
+            if (format != IcalValueFormat.Text)
             {
                 writer.Append(value ? XmlTrueText : XmlFalseText);
             }
@@ -296,14 +306,14 @@ namespace DataStandardizer.File.iCal
         /// Parses an INTEGER value (RFC 5545 §3.3.8): an optional sign and one or more digits, from -2147483648 to 2147483647.
         /// </summary>
         /// <remarks>
-        /// In <see cref="IcalValueFormat.Xml"/> form the value is an <c>xsd:integer</c> (RFC 6321 §3.6.8), which may have white space around it.
+        /// In <see cref="IcalValueFormat.Json"/> form the value is the text of a JSON number (RFC 7265 §3.6.8), which has no plus sign or
+        /// leading zeros, and may have a fraction or an exponent as long as the number is a whole one, such as <c>1.0</c> or <c>1e2</c>.  In
+        /// <see cref="IcalValueFormat.Xml"/> form the value is an <c>xsd:integer</c> (RFC 6321 §3.6.8), which may have white space around it.
         /// </remarks>
         /// <param name="value">The value.</param>
         /// <param name="format">The lexical form of the value.</param>
         /// <param name="result">The integer, if the value is valid.</param>
         /// <returns><c>true</c> if the value is valid; otherwise <c>false</c>.</returns>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
-        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static bool TryParseInteger(ReadOnlySpan<char> value, IcalValueFormat format, out int result)
         {
@@ -311,6 +321,10 @@ namespace DataStandardizer.File.iCal
             if (format == IcalValueFormat.Xml)
             {
                 value = IcalValueFormatting.TrimXmlWhitespace(value);
+            }
+            else if (format == IcalValueFormat.Json)
+            {
+                return TryParseJsonInteger(value, out result);
             }
 
             // ref. RFC 5545§3.3.8: integer = (["+"] / "-") 1*DIGIT
@@ -342,8 +356,6 @@ namespace DataStandardizer.File.iCal
         /// <param name="charsWritten">The number of characters written; or 0 if <paramref name="destination"/> is too short.</param>
         /// <param name="format">The lexical form to write.</param>
         /// <returns><c>true</c> if the value was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
-        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static bool TryFormatInteger(int value, Span<char> destination, out int charsWritten, IcalValueFormat format)
         {
@@ -370,19 +382,25 @@ namespace DataStandardizer.File.iCal
         /// <remarks>
         /// In <see cref="IcalValueFormat.Xml"/> form the value is an <c>xsd:float</c> (RFC 6321 §3.6.7), which may also have an exponent, such
         /// as <c>1.5E3</c>, a decimal point with digits on only one side, and white space around it.  <c>INF</c>, <c>-INF</c> and <c>NaN</c> are
-        /// not valid, since a FLOAT value cannot hold them.
+        /// not valid, since a FLOAT value cannot hold them.  In <see cref="IcalValueFormat.Json"/> form the value is the text of a JSON number
+        /// (RFC 7265 §3.6.7), which has no plus sign or leading zeros, and may have an exponent.
         /// </remarks>
         /// <param name="value">The value, such as <c>-3.14</c>.</param>
         /// <param name="format">The lexical form of the value.</param>
         /// <param name="result">The number, if the value is valid.</param>
         /// <returns><c>true</c> if the value is valid; otherwise <c>false</c>, including when it is too large for a <see cref="double"/>.</returns>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
-        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static bool TryParseFloat(ReadOnlySpan<char> value, IcalValueFormat format, out double result)
         {
             IcalValueFormatting.CheckFormat(format);
             if (format == IcalValueFormat.Xml) return TryParseXmlFloat(IcalValueFormatting.TrimXmlWhitespace(value), out result);
+
+            if (format == IcalValueFormat.Json)
+            {
+                result = 0;
+                return IcalValueFormatting.IsJsonNumber(value) &&
+                       TryParseDouble(value, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent, out result);
+            }
 
             // ref. RFC 5545§3.3.7: float = (["+"] / "-") 1*DIGIT ["." 1*DIGIT]
             result = 0;
@@ -426,8 +444,6 @@ namespace DataStandardizer.File.iCal
         /// <returns><c>true</c> if the value was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="value"/> is not a number or is infinite, which a FLOAT value cannot
         /// hold; or <paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
-        /// yet.</exception>
         public static bool TryFormatFloat(double value, Span<char> destination, out int charsWritten, IcalValueFormat format)
         {
             IcalValueFormatting.CheckFormat(format);
@@ -445,8 +461,6 @@ namespace DataStandardizer.File.iCal
         /// <returns>The value.</returns>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="value"/> is not a number or is infinite, which a FLOAT value cannot
         /// hold; or <paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
-        /// yet.</exception>
         public static string FormatFloat(double value, IcalValueFormat format)
         {
             IcalValueFormatting.CheckFormat(format);
@@ -468,8 +482,6 @@ namespace DataStandardizer.File.iCal
         /// <param name="format">The lexical form of the value.</param>
         /// <param name="result">The bytes, if the value is valid.</param>
         /// <returns><c>true</c> if the value is valid; otherwise <c>false</c>.</returns>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
-        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public static bool TryParseBinary(ReadOnlySpan<char> value, IcalValueFormat format, [NotNullWhen(true)] out byte[]? result)
@@ -529,8 +541,6 @@ namespace DataStandardizer.File.iCal
         /// <param name="charsWritten">The number of characters written; or 0 if <paramref name="destination"/> is too short.</param>
         /// <param name="format">The lexical form to write.</param>
         /// <returns><c>true</c> if the value was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
-        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static bool TryFormatBinary(ReadOnlySpan<byte> value, Span<char> destination, out int charsWritten, IcalValueFormat format)
         {
@@ -575,8 +585,6 @@ namespace DataStandardizer.File.iCal
         /// <param name="format">The lexical form to write.</param>
         /// <returns>The value.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="value"/> is <c>null</c>.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
-        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static string FormatBinary(byte[] value, IcalValueFormat format)
         {
@@ -602,8 +610,6 @@ namespace DataStandardizer.File.iCal
         /// <param name="format">The lexical form of the value.</param>
         /// <param name="result">The URI, if the value is valid.</param>
         /// <returns><c>true</c> if the value is valid; otherwise <c>false</c>.</returns>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
-        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public static bool TryParseUri(ReadOnlySpan<char> value, IcalValueFormat format, [NotNullWhen(true)] out Uri? result)
@@ -633,8 +639,6 @@ namespace DataStandardizer.File.iCal
         /// <returns><c>true</c> if the value was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="value"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="value"/> is not absolute.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
-        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static bool TryFormatUri(Uri value, Span<char> destination, out int charsWritten, IcalValueFormat format)
         {
@@ -657,8 +661,6 @@ namespace DataStandardizer.File.iCal
         /// <param name="format">The lexical form of the value.</param>
         /// <param name="result">The URI, if the value is valid.</param>
         /// <returns><c>true</c> if the value is valid; otherwise <c>false</c>.</returns>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
-        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public static bool TryParseCalAddress(ReadOnlySpan<char> value, IcalValueFormat format, [NotNullWhen(true)] out Uri? result)
@@ -680,8 +682,6 @@ namespace DataStandardizer.File.iCal
         /// <returns><c>true</c> if the value was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="value"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="value"/> is not absolute.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
-        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static bool TryFormatCalAddress(Uri value, Span<char> destination, out int charsWritten, IcalValueFormat format)
         {
@@ -689,6 +689,48 @@ namespace DataStandardizer.File.iCal
         }
 
         #endregion
+
+        /// <summary>
+        /// Parses the text of a JSON number that is a whole number in the range of an <see cref="int"/>.
+        /// </summary>
+        private static bool TryParseJsonInteger(ReadOnlySpan<char> value, out int result)
+        {
+            // ref. RFC 7265§3.6.8: a JSON number that resolves to an integer, so a fraction or an exponent is allowed only where it does.
+            result = 0;
+            double number;
+            if (!IcalValueFormatting.IsJsonNumber(value) ||
+                !TryParseDouble(value, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent, out number) ||
+                Math.Floor(number) != number || number < int.MinValue || number > int.MaxValue)
+            {
+                return false;
+            }
+
+            result = (int)number;
+            return true;
+        }
+
+        /// <summary>
+        /// Finds the first character that a TEXT value cannot hold: a control character other than a tab or a line break, or a lone surrogate.
+        /// </summary>
+        /// <returns>The index of the character; or -1 if there is none.</returns>
+        private static int FindInvalidTextCharacter(ReadOnlySpan<char> value)
+        {
+            for (var index = 0; index < value.Length; index++)
+            {
+                var character = value[index];
+                if (character == '\t' || character == '\r' || character == '\n') continue;
+
+                if (char.IsHighSurrogate(character) && index + 1 < value.Length && char.IsLowSurrogate(value[index + 1]))
+                {
+                    index++;
+                    continue;
+                }
+
+                if (character < ' ' || character == '\x7F' || char.IsSurrogate(character)) return index;
+            }
+
+            return -1;
+        }
 
         private static bool IsTextSpecialCharacter(char character)
         {

@@ -68,11 +68,20 @@ Provides types supporting the reading and writing of iCalendar files.  Includes:
 
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.1' Or '$(TargetFramework)' == 'netstandard2.0'">
     <PackageReference Include="JetBrains.Annotations" Version="2025.2.2" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.1'">
     <PackageReference Include="System.Memory" Version="4.5.5" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
-    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.13" />
+    <PackageReference Include="System.Memory" Version="4.6.3" />
+  </ItemGroup>
+
+  <!-- jCal (RFC 7265) uses System.Text.Json, which is in the box on net8.0 and net10.0 and is not available on netstandard1.1. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'netstandard2.1'">
+    <PackageReference Include="System.Text.Json" Version="10.0.13" />
   </ItemGroup>
 
   <ItemGroup>
