@@ -194,7 +194,15 @@ namespace DataStandardizer.File.iCal
             }
 
             // A zoned value has a time zone identifier.
-            var rules = resolver.Resolve(value.TimeZoneId ?? string.Empty, calendar);
+            return ToUtc(resolver.Resolve(value.TimeZoneId ?? string.Empty, calendar), value);
+        }
+
+        /// <summary>
+        /// Converts the wall-clock time of a date-time to UTC with the rules of its time zone, whatever its kind.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">The result falls outside the range of <see cref="IcalDateTime"/>.</exception>
+        internal static IcalDateTime ToUtc(IcalTimeZoneRules rules, IcalDateTime value)
+        {
             var time = value.Time;
             var isLeapSecond = time.Second == 60;
             var local = new DateTime(value.Date.ToDateTime().Ticks +

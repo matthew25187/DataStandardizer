@@ -23,6 +23,11 @@ namespace DataStandardizer.File.iCal
     public class IcalComponent
     {
         /// <summary>
+        /// The options of an occurrence expansion that is given none.
+        /// </summary>
+        internal static readonly IcalOptions DefaultOptions = new IcalOptions();
+
+        /// <summary>
         /// Creates a component.
         /// </summary>
         /// <param name="name">The component name, such as <c>X-ABC-PROJECT</c>.  It must be an iana-token or x-name (RFC 5545 §3.1): letters, digits
