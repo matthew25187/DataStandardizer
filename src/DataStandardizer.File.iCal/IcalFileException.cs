@@ -17,7 +17,8 @@ namespace DataStandardizer.File.iCal
         {
             /// <summary>
             /// The path of the component in which the problem was found, such as <c>VCALENDAR/VEVENT[3]</c>, as a <see cref="string"/>.  Present
-            /// only for problems found by <see cref="IcalReader"/> or <see cref="IcalWriter"/>.  See <see cref="IcalDiagnostic.ComponentPath"/>.
+            /// only for problems found by a reader or writer of the component object model, such as <see cref="IcalReader"/> or
+            /// <see cref="XcalWriter"/>.  See <see cref="IcalDiagnostic.ComponentPath"/>.
             /// </summary>
             public const string ComponentPath = "ComponentPath";
 
@@ -28,12 +29,19 @@ namespace DataStandardizer.File.iCal
             public const string DiagnosticKind = "DiagnosticKind";
 
             /// <summary>
-            /// The 1-based number of the logical (unfolded) content line, as a <see cref="long"/>.
+            /// The 1-based number of the logical (unfolded) content line, as a <see cref="long"/>.  For a problem found by
+            /// <see cref="XcalReader"/>, the 1-based number of the line of the XML document.
             /// </summary>
             public const string LineNumber = "LineNumber";
 
             /// <summary>
-            /// The 1-based number of the physical line on which the problem was found, as a <see cref="long"/>.
+            /// The 1-based position on the line of the XML document at which the problem was found, as a <see cref="long"/>.  Present only for
+            /// problems found by <see cref="XcalReader"/>, and only where the position is known.
+            /// </summary>
+            public const string LinePosition = "LinePosition";
+
+            /// <summary>
+            /// The 1-based number of the physical line on which the problem was found, as a <see cref="long"/>.  Not present for xCal.
             /// </summary>
             public const string PhysicalLineNumber = "PhysicalLineNumber";
 

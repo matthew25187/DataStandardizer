@@ -18,6 +18,11 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         internal const int TextLength = 6;
 
+        /// <summary>
+        /// The length of the xCal form, <c>HH:MM:SS</c>, without a <c>Z</c>.
+        /// </summary>
+        internal const int XmlLength = 8;
+
         private readonly byte _hour;
         private readonly byte _minute;
         private readonly byte _second;
@@ -80,29 +85,31 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Parses a time.
         /// </summary>
-        /// <param name="value">The value, such as <c>230000</c> or <c>070000Z</c> in <see cref="IcalValueFormat.Text"/> form.</param>
+        /// <param name="value">The value, such as <c>230000</c> or <c>070000Z</c> in <see cref="IcalValueFormat.Text"/> form, or
+        /// <c>23:00:00</c> in <see cref="IcalValueFormat.Xml"/> form.</param>
         /// <param name="format">The lexical form of the value.</param>
         /// <param name="result">The time, if the value is valid.</param>
         /// <returns><c>true</c> if the value is a valid time; otherwise <c>false</c>.</returns>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/> or
-        /// <see cref="IcalValueFormat.Xml"/>, which are not supported yet.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
+        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static bool TryParse(ReadOnlySpan<char> value, IcalValueFormat format, out IcalTime result)
         {
             IcalValueFormatting.CheckFormat(format);
 
-            return TryParseText(value, out result);
+            return format == IcalValueFormat.Xml ? TryParseXml(value, out result) : TryParseText(value, out result);
         }
 
         /// <summary>
         /// Parses a time.
         /// </summary>
-        /// <param name="value">The value, such as <c>230000</c> or <c>070000Z</c> in <see cref="IcalValueFormat.Text"/> form.</param>
+        /// <param name="value">The value, such as <c>230000</c> or <c>070000Z</c> in <see cref="IcalValueFormat.Text"/> form, or
+        /// <c>23:00:00</c> in <see cref="IcalValueFormat.Xml"/> form.</param>
         /// <param name="format">The lexical form of the value.</param>
         /// <returns>The time.</returns>
         /// <exception cref="FormatException">The value is not a valid time.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/> or
-        /// <see cref="IcalValueFormat.Xml"/>, which are not supported yet.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
+        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static IcalTime Parse(ReadOnlySpan<char> value, IcalValueFormat format)
         {
@@ -120,15 +127,23 @@ namespace DataStandardizer.File.iCal
         /// <param name="charsWritten">The number of characters written; or 0 if <paramref name="destination"/> is too short.</param>
         /// <param name="format">The lexical form to write.</param>
         /// <returns><c>true</c> if the time was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/> or
-        /// <see cref="IcalValueFormat.Xml"/>, which are not supported yet.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
+        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public bool TryFormat(Span<char> destination, out int charsWritten, IcalValueFormat format)
         {
             IcalValueFormatting.CheckFormat(format);
 
             var writer = new IcalSpanWriter(destination);
-            AppendText(ref writer);
+            if (format == IcalValueFormat.Xml)
+            {
+                AppendXml(ref writer);
+            }
+            else
+            {
+                AppendText(ref writer);
+            }
+
             return writer.TryComplete(out charsWritten);
         }
 
@@ -136,12 +151,12 @@ namespace DataStandardizer.File.iCal
         /// Formats the time as a string.
         /// </summary>
         /// <param name="format">The lexical form to write.</param>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/> or
-        /// <see cref="IcalValueFormat.Xml"/>, which are not supported yet.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
+        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public string ToString(IcalValueFormat format)
         {
-            var buffer = new char[TextLength + 1];
+            var buffer = new char[XmlLength + 1];
             int charsWritten;
             return IcalValueFormatting.ToString(buffer, TryFormat(buffer, out charsWritten, format), charsWritten);
         }
@@ -253,10 +268,47 @@ namespace DataStandardizer.File.iCal
             return true;
         }
 
+        /// <summary>
+        /// Parses the <c>HH:MM:SS[Z]</c> xCal form, which must be exactly the length of <paramref name="value"/>.
+        /// </summary>
+        internal static bool TryParseXml(ReadOnlySpan<char> value, out IcalTime result)
+        {
+            // ref. RFC 6321§3.6.12: the time components are separated by ":" characters; pattern-time = "\d\d:\d\d:\d\dZ?".
+            result = default(IcalTime);
+            int hour, minute, second;
+            if (value.Length < XmlLength || value.Length > XmlLength + 1 || value[2] != ':' || value[5] != ':' ||
+                !IcalValueFormatting.TryParseDigits(value, 0, 2, out hour) ||
+                !IcalValueFormatting.TryParseDigits(value, 3, 2, out minute) ||
+                !IcalValueFormatting.TryParseDigits(value, 6, 2, out second))
+            {
+                return false;
+            }
+
+            var isUtc = value.Length > XmlLength;
+            if (isUtc && !IcalValueFormatting.IsLetter(value[XmlLength], 'Z')) return false;
+            if (hour > 23 || minute > 59 || second > 60) return false;
+
+            result = new IcalTime(hour, minute, second, isUtc);
+            return true;
+        }
+
         internal void AppendText(ref IcalSpanWriter writer)
         {
             writer.AppendDigits(_hour, 2);
             writer.AppendDigits(_minute, 2);
+            writer.AppendDigits(_second, 2);
+            if (_isUtc)
+            {
+                writer.Append('Z');
+            }
+        }
+
+        internal void AppendXml(ref IcalSpanWriter writer)
+        {
+            writer.AppendDigits(_hour, 2);
+            writer.Append(':');
+            writer.AppendDigits(_minute, 2);
+            writer.Append(':');
             writer.AppendDigits(_second, 2);
             if (_isUtc)
             {

@@ -30,7 +30,7 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// The properties whose value is a comma-separated list of values of their value type, other than TEXT lists.
         /// </summary>
-        private static readonly string[] ListProperties =
+        internal static readonly string[] ListProperties =
         {
             IcalPropertyNames.ExceptionDates, IcalPropertyNames.RecurrenceDates, IcalPropertyNames.FreeBusy
         };
@@ -38,7 +38,7 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// The properties RFC 7986 §5 gives no default value type, so that they need a <c>VALUE</c> parameter.
         /// </summary>
-        private static readonly string[] ValueParameterRequiredProperties =
+        internal static readonly string[] ValueParameterRequiredProperties =
         {
             IcalPropertyNames.RefreshInterval, IcalPropertyNames.Source, IcalPropertyNames.Image, IcalPropertyNames.Conference
         };

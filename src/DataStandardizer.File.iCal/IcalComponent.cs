@@ -55,7 +55,8 @@ namespace DataStandardizer.File.iCal
         public IList<IcalComponent> Components { get; }
 
         /// <summary>
-        /// Gets the 1-based number of the logical line holding the component's <c>BEGIN</c>; or 0 if it was not read from a source.
+        /// Gets the 1-based number of the logical line holding the component's <c>BEGIN</c>, or, for a component read by <see cref="XcalReader"/>,
+        /// of the line of the XML document on which its element starts; or 0 if it was not read from a source.
         /// </summary>
         public long LineNumber { get; internal set; }
 

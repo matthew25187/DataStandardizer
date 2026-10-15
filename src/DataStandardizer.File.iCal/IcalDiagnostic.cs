@@ -52,7 +52,8 @@ namespace DataStandardizer.File.iCal
 
         /// <summary>
         /// Gets the 1-based number of the logical line the problem was found on: the line of the property at fault, or the <c>BEGIN</c> line of
-        /// the component.  0 if the model was not read from a source.
+        /// the component.  For a model read by <see cref="XcalReader"/>, the line of the XML document on which the property or component element
+        /// starts.  0 if the model was not read from a source.
         /// </summary>
         public long LineNumber { get; }
 

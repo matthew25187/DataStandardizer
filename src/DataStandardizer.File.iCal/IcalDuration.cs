@@ -117,13 +117,13 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Parses a duration.
         /// </summary>
-        /// <param name="value">The value, such as <c>P15DT5H0M20S</c>, <c>-PT15M</c> or <c>P7W</c> in <see cref="IcalValueFormat.Text"/>
-        /// form.</param>
+        /// <param name="value">The value, such as <c>P15DT5H0M20S</c>, <c>-PT15M</c> or <c>P7W</c>, which is the same in
+        /// <see cref="IcalValueFormat.Text"/> and <see cref="IcalValueFormat.Xml"/> form.</param>
         /// <param name="format">The lexical form of the value.</param>
         /// <param name="result">The duration, if the value is valid.</param>
         /// <returns><c>true</c> if the value is a valid duration; otherwise <c>false</c>.</returns>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/> or
-        /// <see cref="IcalValueFormat.Xml"/>, which are not supported yet.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
+        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static bool TryParse(ReadOnlySpan<char> value, IcalValueFormat format, out IcalDuration result)
         {
@@ -135,13 +135,13 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Parses a duration.
         /// </summary>
-        /// <param name="value">The value, such as <c>P15DT5H0M20S</c>, <c>-PT15M</c> or <c>P7W</c> in <see cref="IcalValueFormat.Text"/>
-        /// form.</param>
+        /// <param name="value">The value, such as <c>P15DT5H0M20S</c>, <c>-PT15M</c> or <c>P7W</c>, which is the same in
+        /// <see cref="IcalValueFormat.Text"/> and <see cref="IcalValueFormat.Xml"/> form.</param>
         /// <param name="format">The lexical form of the value.</param>
         /// <returns>The duration.</returns>
         /// <exception cref="FormatException">The value is not a valid duration.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/> or
-        /// <see cref="IcalValueFormat.Xml"/>, which are not supported yet.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
+        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static IcalDuration Parse(ReadOnlySpan<char> value, IcalValueFormat format)
         {
@@ -159,8 +159,8 @@ namespace DataStandardizer.File.iCal
         /// <param name="charsWritten">The number of characters written; or 0 if <paramref name="destination"/> is too short.</param>
         /// <param name="format">The lexical form to write.</param>
         /// <returns><c>true</c> if the duration was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/> or
-        /// <see cref="IcalValueFormat.Xml"/>, which are not supported yet.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
+        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public bool TryFormat(Span<char> destination, out int charsWritten, IcalValueFormat format)
         {
@@ -175,8 +175,8 @@ namespace DataStandardizer.File.iCal
         /// Formats the duration as a string.
         /// </summary>
         /// <param name="format">The lexical form to write.</param>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/> or
-        /// <see cref="IcalValueFormat.Xml"/>, which are not supported yet.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
+        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public string ToString(IcalValueFormat format)
         {

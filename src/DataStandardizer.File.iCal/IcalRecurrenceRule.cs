@@ -21,6 +21,11 @@ namespace DataStandardizer.File.iCal
     /// and <see cref="TryFormat"/> refuses to write a rule that breaks them.
     /// </para>
     /// <para>
+    /// In an xCal document (RFC 6321 §3.6.10) a rule is a <c>recur</c> element with a child element for each rule part, so it has no
+    /// <see cref="IcalValueFormat.Xml"/> form of its own: parsing or formatting in that form throws <see cref="NotSupportedException"/>.
+    /// <see cref="XcalReader"/> and <see cref="XcalWriter"/> map the elements to and from the text form.
+    /// </para>
+    /// <para>
     /// The default value has no frequency, so it is not a valid rule.
     /// </para>
     /// </remarks>
@@ -474,12 +479,12 @@ namespace DataStandardizer.File.iCal
         /// <param name="format">The lexical form of the value.</param>
         /// <param name="result">The rule, if the value is valid.</param>
         /// <returns><c>true</c> if the value is a valid rule; otherwise <c>false</c>.</returns>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/> or
-        /// <see cref="IcalValueFormat.Xml"/>, which are not supported yet.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
+        /// yet; or <see cref="IcalValueFormat.Xml"/>, since a rule has no single lexical form in xCal.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static bool TryParse(ReadOnlySpan<char> value, IcalValueFormat format, out IcalRecurrenceRule result)
         {
-            IcalValueFormatting.CheckFormat(format);
+            CheckFormat(format);
 
             result = default(IcalRecurrenceRule);
             var parts = new Parts();
@@ -510,8 +515,8 @@ namespace DataStandardizer.File.iCal
         /// <param name="format">The lexical form of the value.</param>
         /// <returns>The rule.</returns>
         /// <exception cref="FormatException">The value is not a valid rule.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/> or
-        /// <see cref="IcalValueFormat.Xml"/>, which are not supported yet.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
+        /// yet; or <see cref="IcalValueFormat.Xml"/>, since a rule has no single lexical form in xCal.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static IcalRecurrenceRule Parse(ReadOnlySpan<char> value, IcalValueFormat format)
         {
@@ -530,12 +535,12 @@ namespace DataStandardizer.File.iCal
         /// <param name="format">The lexical form to write.</param>
         /// <returns><c>true</c> if the rule was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
         /// <exception cref="InvalidOperationException">The rule breaks a constraint listed under <see cref="IsValid"/>.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/> or
-        /// <see cref="IcalValueFormat.Xml"/>, which are not supported yet.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
+        /// yet; or <see cref="IcalValueFormat.Xml"/>, since a rule has no single lexical form in xCal.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public bool TryFormat(Span<char> destination, out int charsWritten, IcalValueFormat format)
         {
-            IcalValueFormatting.CheckFormat(format);
+            CheckFormat(format);
 
             string error;
             if (!Validate(in _parts, out error))
@@ -551,8 +556,8 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <param name="format">The lexical form to write.</param>
         /// <exception cref="InvalidOperationException">The rule breaks a constraint listed under <see cref="IsValid"/>.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/> or
-        /// <see cref="IcalValueFormat.Xml"/>, which are not supported yet.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
+        /// yet; or <see cref="IcalValueFormat.Xml"/>, since a rule has no single lexical form in xCal.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public string ToString(IcalValueFormat format)
         {
@@ -873,6 +878,23 @@ namespace DataStandardizer.File.iCal
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Checks that a value format is one a rule can be parsed from and formatted in.
+        /// </summary>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/> or
+        /// <see cref="IcalValueFormat.Xml"/>.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
+        private static void CheckFormat(IcalValueFormat format)
+        {
+            // ref. RFC 6321§3.6.10: in xCal, a rule is a recur element with a child element for each rule part, not a single string.
+            if (format == IcalValueFormat.Xml)
+                throw new NotSupportedException(
+                    "A RECUR value has no single lexical form in xCal (RFC 6321), where each rule part is a child element of a recur element.  " +
+                    "XcalReader and XcalWriter read and write those elements.");
+
+            IcalValueFormatting.CheckFormat(format);
         }
 
         private static bool TryParsePart(ReadOnlySpan<char> part, ref Parts parts, ref int seenParts)

@@ -19,6 +19,11 @@ namespace DataStandardizer.File.iCal
         internal const int TextLength = 8;
 
         /// <summary>
+        /// The length of the xCal form, <c>YYYY-MM-DD</c>.
+        /// </summary>
+        internal const int XmlLength = 10;
+
+        /// <summary>
         /// The day number of 9999-12-31, the last date.
         /// </summary>
         internal const int MaxDayNumber = 3652058;
@@ -92,29 +97,31 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Parses a date.
         /// </summary>
-        /// <param name="value">The value, such as <c>19970714</c> in <see cref="IcalValueFormat.Text"/> form.</param>
+        /// <param name="value">The value, such as <c>19970714</c> in <see cref="IcalValueFormat.Text"/> form or <c>1997-07-14</c> in
+        /// <see cref="IcalValueFormat.Xml"/> form.</param>
         /// <param name="format">The lexical form of the value.</param>
         /// <param name="result">The date, if the value is valid.</param>
         /// <returns><c>true</c> if the value is a valid date; otherwise <c>false</c>.</returns>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/> or
-        /// <see cref="IcalValueFormat.Xml"/>, which are not supported yet.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
+        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static bool TryParse(ReadOnlySpan<char> value, IcalValueFormat format, out IcalDate result)
         {
             IcalValueFormatting.CheckFormat(format);
 
-            return TryParseText(value, out result);
+            return format == IcalValueFormat.Xml ? TryParseXml(value, out result) : TryParseText(value, out result);
         }
 
         /// <summary>
         /// Parses a date.
         /// </summary>
-        /// <param name="value">The value, such as <c>19970714</c> in <see cref="IcalValueFormat.Text"/> form.</param>
+        /// <param name="value">The value, such as <c>19970714</c> in <see cref="IcalValueFormat.Text"/> form or <c>1997-07-14</c> in
+        /// <see cref="IcalValueFormat.Xml"/> form.</param>
         /// <param name="format">The lexical form of the value.</param>
         /// <returns>The date.</returns>
         /// <exception cref="FormatException">The value is not a valid date.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/> or
-        /// <see cref="IcalValueFormat.Xml"/>, which are not supported yet.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
+        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static IcalDate Parse(ReadOnlySpan<char> value, IcalValueFormat format)
         {
@@ -132,15 +139,23 @@ namespace DataStandardizer.File.iCal
         /// <param name="charsWritten">The number of characters written; or 0 if <paramref name="destination"/> is too short.</param>
         /// <param name="format">The lexical form to write.</param>
         /// <returns><c>true</c> if the date was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/> or
-        /// <see cref="IcalValueFormat.Xml"/>, which are not supported yet.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
+        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public bool TryFormat(Span<char> destination, out int charsWritten, IcalValueFormat format)
         {
             IcalValueFormatting.CheckFormat(format);
 
             var writer = new IcalSpanWriter(destination);
-            AppendText(ref writer);
+            if (format == IcalValueFormat.Xml)
+            {
+                AppendXml(ref writer);
+            }
+            else
+            {
+                AppendText(ref writer);
+            }
+
             return writer.TryComplete(out charsWritten);
         }
 
@@ -148,12 +163,12 @@ namespace DataStandardizer.File.iCal
         /// Formats the date as a string.
         /// </summary>
         /// <param name="format">The lexical form to write.</param>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/> or
-        /// <see cref="IcalValueFormat.Xml"/>, which are not supported yet.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
+        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public string ToString(IcalValueFormat format)
         {
-            var buffer = new char[TextLength];
+            var buffer = new char[XmlLength];
             int charsWritten;
             return IcalValueFormatting.ToString(buffer, TryFormat(buffer, out charsWritten, format), charsWritten);
         }
@@ -306,11 +321,43 @@ namespace DataStandardizer.File.iCal
             return true;
         }
 
+        /// <summary>
+        /// Parses the <c>YYYY-MM-DD</c> xCal form, which must be exactly the length of <paramref name="value"/>.
+        /// </summary>
+        internal static bool TryParseXml(ReadOnlySpan<char> value, out IcalDate result)
+        {
+            // ref. RFC 6321§3.6.4: the date components are separated by "-" characters; pattern-date = "\d\d\d\d-\d\d-\d\d".
+            result = default(IcalDate);
+            int year, month, day;
+            if (value.Length != XmlLength || value[4] != '-' || value[7] != '-' ||
+                !IcalValueFormatting.TryParseDigits(value, 0, 4, out year) ||
+                !IcalValueFormatting.TryParseDigits(value, 5, 2, out month) ||
+                !IcalValueFormatting.TryParseDigits(value, 8, 2, out day))
+            {
+                return false;
+            }
+
+            if (year < 1 || month < 1 || month > 12 || day < 1 || day > DateTime.DaysInMonth(year, month)) return false;
+
+            result = new IcalDate(GetDayNumber(year, month, day));
+            return true;
+        }
+
         internal void AppendText(ref IcalSpanWriter writer)
         {
             var dateTime = ToDateTime();
             writer.AppendDigits(dateTime.Year, 4);
             writer.AppendDigits(dateTime.Month, 2);
+            writer.AppendDigits(dateTime.Day, 2);
+        }
+
+        internal void AppendXml(ref IcalSpanWriter writer)
+        {
+            var dateTime = ToDateTime();
+            writer.AppendDigits(dateTime.Year, 4);
+            writer.Append('-');
+            writer.AppendDigits(dateTime.Month, 2);
+            writer.Append('-');
             writer.AppendDigits(dateTime.Day, 2);
         }
     }
