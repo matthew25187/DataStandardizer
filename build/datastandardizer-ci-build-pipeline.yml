@@ -176,6 +176,14 @@ trigger:
       - "*.sln"
       - "*.slnf"
 
+# No path filters: the GitHub rulesets require this pipeline's check on every PR into develop and master, including
+# docs-only PRs and back-merges from master, so it must report on all of them.
+pr:
+  branches:
+    include:
+      - develop
+      - master
+
 pool:
   vmImage: ubuntu-latest
 
