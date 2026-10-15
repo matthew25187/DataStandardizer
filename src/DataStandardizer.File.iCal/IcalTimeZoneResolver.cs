@@ -22,6 +22,10 @@ namespace DataStandardizer.File.iCal
     /// they are truncated, can use <c>Chain(TzData, Calendar)</c> instead, which departs from RFC 5545 by preferring the TZ Database.
     /// </para>
     /// <para>
+    /// <see cref="System"/> resolves through the operating system's time zones, which include the Windows names that <see cref="TzData"/>
+    /// lacks.  Their data varies from one machine to another, so place it last, as in <c>Chain(Calendar, TzData, System)</c>.
+    /// </para>
+    /// <para>
     /// When nothing resolves a <c>TZID</c>, <see cref="Resolve"/> and <see cref="ToUtc"/> throw.  To treat such a time as floating instead, call
     /// <see cref="IIcalTimeZoneResolver.TryResolve"/> and handle the result.
     /// </para>
@@ -59,6 +63,42 @@ namespace DataStandardizer.File.iCal
         /// </para>
         /// </remarks>
         public static IIcalTimeZoneResolver TzData { get; } = new TzDataResolver();
+
+        /// <summary>
+        /// Gets the resolver that takes time zones from the operating system, through <see cref="TimeZoneInfo.FindSystemTimeZoneById"/>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// A <c>TZID</c> resolves when the system knows it.  From .NET 6 on, that includes both TZ Database names, such as
+        /// <c>America/New_York</c>, and Windows names, such as <c>Eastern Standard Time</c>, on every operating system that has ICU; so this
+        /// resolver can read a <c>TZID</c> that Outlook wrote without its VTIMEZONE, which <see cref="TzData"/> cannot.  .NET Framework knows
+        /// only the Windows names.  Vendor prefixes are stripped as by <see cref="TzData"/>.  A <c>TZID</c> the system does not know, or that
+        /// could name a file outside its time zone data, does not resolve, so that the next resolver of a chain is tried.
+        /// </para>
+        /// <para>
+        /// The system's data is kept current by updates to the operating system, or to ICU, so it may hold rules newer than those of
+        /// <see cref="TzData"/>, which are fixed when that package is built.  The results also agree with whatever else the application
+        /// computes with <see cref="TimeZoneInfo"/>.
+        /// </para>
+        /// <para>
+        /// However, the data depends on the machine.  As the <see cref="TimeZoneInfo"/> documentation warns, not every time zone is present in
+        /// the Windows registry, time zones can be added to or removed from it, and it need not hold their history.  On Linux and macOS, and on
+        /// Windows with ICU, which time zones are present and how much history they hold also varies from one machine to another.
+        /// <see cref="TzData"/>, by contrast, always holds every time zone of the TZ Database release it was built from.
+        /// </para>
+        /// <para>
+        /// This resolver is therefore not in <see cref="Default"/>, and should be placed last in a chain, after <see cref="TzData"/>, as in
+        /// <c>Chain(Calendar, TzData, System)</c>, so that the same calendar gives the same times on every machine wherever it can.
+        /// </para>
+        /// <para>
+        /// The transitions of a time zone are found by sampling its offset a day apart, so two changes of offset less than a day apart that
+        /// cancel each other out are not seen, and finding the transitions over a long period takes time in proportion to its length.  A
+        /// transition has no <see cref="IcalTimeZoneTransition.Name"/>, as <see cref="TimeZoneInfo"/> gives no customary abbreviation.
+        /// </para>
+        /// </remarks>
+#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
+        public static IIcalTimeZoneResolver System { get; } = new SystemResolver();
+#endif
 
         /// <summary>
         /// Gets the default resolver, which is <see cref="Calendar"/> alone, as RFC 5545 requires.
@@ -224,6 +264,37 @@ namespace DataStandardizer.File.iCal
                 return "TzData";
             }
         }
+
+#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
+        private sealed class SystemResolver : IIcalTimeZoneResolver
+        {
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            public bool TryResolve(string timeZoneId, IcalCalendar? calendar, [NotNullWhen(true)] out IcalTimeZoneRules? rules)
+#else
+            public bool TryResolve(string timeZoneId, IcalCalendar calendar, out IcalTimeZoneRules rules)
+#endif
+            {
+                if (timeZoneId is null)
+                    throw new ArgumentNullException(nameof(timeZoneId));
+
+                rules = null;
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+                TimeZoneInfo? timeZone;
+#else
+                TimeZoneInfo timeZone;
+#endif
+                if (!IcalSystemTimeZoneRules.TryFindTimeZone(timeZoneId, out timeZone) || timeZone is null) return false;
+
+                rules = new IcalSystemTimeZoneRules(timeZoneId, timeZone);
+                return true;
+            }
+
+            public override string ToString()
+            {
+                return "System";
+            }
+        }
+#endif
 
         private sealed class ChainResolver : IIcalTimeZoneResolver
         {
