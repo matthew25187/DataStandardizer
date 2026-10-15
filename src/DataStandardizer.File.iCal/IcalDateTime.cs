@@ -139,33 +139,29 @@ namespace DataStandardizer.File.iCal
         /// Parses a floating date-time, or one in UTC.
         /// </summary>
         /// <param name="value">The value, such as <c>19980118T230000</c> or <c>19980119T070000Z</c> in <see cref="IcalValueFormat.Text"/>
-        /// form, or <c>1998-01-19T07:00:00Z</c> in <see cref="IcalValueFormat.Xml"/> form.</param>
+        /// form, or <c>1998-01-19T07:00:00Z</c> in <see cref="IcalValueFormat.Json"/> and <see cref="IcalValueFormat.Xml"/> form.</param>
         /// <param name="format">The lexical form of the value.</param>
         /// <param name="result">The date-time, if the value is valid.</param>
         /// <returns><c>true</c> if the value is a valid date-time; otherwise <c>false</c>.</returns>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
-        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static bool TryParse(ReadOnlySpan<char> value, IcalValueFormat format, out IcalDateTime result)
         {
             IcalValueFormatting.CheckFormat(format);
 
-            return format == IcalValueFormat.Xml ? TryParseXml(value, null, out result) : TryParseText(value, null, out result);
+            return format != IcalValueFormat.Text ? TryParseXml(value, null, out result) : TryParseText(value, null, out result);
         }
 
         /// <summary>
         /// Parses a date-time, in a named time zone if a time zone identifier is given.
         /// </summary>
         /// <param name="value">The value, such as <c>19980119T020000</c> in <see cref="IcalValueFormat.Text"/> form or <c>1998-01-19T02:00:00</c>
-        /// in <see cref="IcalValueFormat.Xml"/> form.</param>
+        /// in <see cref="IcalValueFormat.Json"/> and <see cref="IcalValueFormat.Xml"/> form.</param>
         /// <param name="timeZoneId">The identifier from the value's <c>TZID</c> parameter; or <c>null</c> if it has none.  A value in UTC with a
         /// time zone identifier is not valid.</param>
         /// <param name="format">The lexical form of the value.</param>
         /// <param name="result">The date-time, if the value is valid.</param>
         /// <returns><c>true</c> if the value is a valid date-time; otherwise <c>false</c>.</returns>
         /// <exception cref="ArgumentException"><paramref name="timeZoneId"/> is empty.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
-        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public static bool TryParse(ReadOnlySpan<char> value, string? timeZoneId, IcalValueFormat format, out IcalDateTime result)
@@ -176,19 +172,17 @@ namespace DataStandardizer.File.iCal
             CheckTimeZoneId(timeZoneId);
             IcalValueFormatting.CheckFormat(format);
 
-            return format == IcalValueFormat.Xml ? TryParseXml(value, timeZoneId, out result) : TryParseText(value, timeZoneId, out result);
+            return format != IcalValueFormat.Text ? TryParseXml(value, timeZoneId, out result) : TryParseText(value, timeZoneId, out result);
         }
 
         /// <summary>
         /// Parses a floating date-time, or one in UTC.
         /// </summary>
         /// <param name="value">The value, such as <c>19980118T230000</c> or <c>19980119T070000Z</c> in <see cref="IcalValueFormat.Text"/>
-        /// form, or <c>1998-01-19T07:00:00Z</c> in <see cref="IcalValueFormat.Xml"/> form.</param>
+        /// form, or <c>1998-01-19T07:00:00Z</c> in <see cref="IcalValueFormat.Json"/> and <see cref="IcalValueFormat.Xml"/> form.</param>
         /// <param name="format">The lexical form of the value.</param>
         /// <returns>The date-time.</returns>
         /// <exception cref="FormatException">The value is not a valid date-time.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
-        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static IcalDateTime Parse(ReadOnlySpan<char> value, IcalValueFormat format)
         {
@@ -199,14 +193,12 @@ namespace DataStandardizer.File.iCal
         /// Parses a date-time, in a named time zone if a time zone identifier is given.
         /// </summary>
         /// <param name="value">The value, such as <c>19980119T020000</c> in <see cref="IcalValueFormat.Text"/> form or <c>1998-01-19T02:00:00</c>
-        /// in <see cref="IcalValueFormat.Xml"/> form.</param>
+        /// in <see cref="IcalValueFormat.Json"/> and <see cref="IcalValueFormat.Xml"/> form.</param>
         /// <param name="timeZoneId">The identifier from the value's <c>TZID</c> parameter; or <c>null</c> if it has none.</param>
         /// <param name="format">The lexical form of the value.</param>
         /// <returns>The date-time.</returns>
         /// <exception cref="FormatException">The value is not a valid date-time, or is in UTC and has a time zone identifier.</exception>
         /// <exception cref="ArgumentException"><paramref name="timeZoneId"/> is empty.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
-        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public static IcalDateTime Parse(ReadOnlySpan<char> value, string? timeZoneId, IcalValueFormat format)
@@ -228,15 +220,13 @@ namespace DataStandardizer.File.iCal
         /// <param name="charsWritten">The number of characters written; or 0 if <paramref name="destination"/> is too short.</param>
         /// <param name="format">The lexical form to write.</param>
         /// <returns><c>true</c> if the date-time was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
-        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public bool TryFormat(Span<char> destination, out int charsWritten, IcalValueFormat format)
         {
             IcalValueFormatting.CheckFormat(format);
 
             var writer = new IcalSpanWriter(destination);
-            if (format == IcalValueFormat.Xml)
+            if (format != IcalValueFormat.Text)
             {
                 AppendXml(ref writer);
             }
@@ -252,8 +242,6 @@ namespace DataStandardizer.File.iCal
         /// Formats the date-time as a string.  The time zone identifier of a zoned value is not written.
         /// </summary>
         /// <param name="format">The lexical form to write.</param>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
-        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public string ToString(IcalValueFormat format)
         {

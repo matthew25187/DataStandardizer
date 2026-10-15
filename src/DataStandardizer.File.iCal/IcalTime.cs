@@ -86,30 +86,26 @@ namespace DataStandardizer.File.iCal
         /// Parses a time.
         /// </summary>
         /// <param name="value">The value, such as <c>230000</c> or <c>070000Z</c> in <see cref="IcalValueFormat.Text"/> form, or
-        /// <c>23:00:00</c> in <see cref="IcalValueFormat.Xml"/> form.</param>
+        /// <c>23:00:00</c> in <see cref="IcalValueFormat.Json"/> and <see cref="IcalValueFormat.Xml"/> form.</param>
         /// <param name="format">The lexical form of the value.</param>
         /// <param name="result">The time, if the value is valid.</param>
         /// <returns><c>true</c> if the value is a valid time; otherwise <c>false</c>.</returns>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
-        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static bool TryParse(ReadOnlySpan<char> value, IcalValueFormat format, out IcalTime result)
         {
             IcalValueFormatting.CheckFormat(format);
 
-            return format == IcalValueFormat.Xml ? TryParseXml(value, out result) : TryParseText(value, out result);
+            return format != IcalValueFormat.Text ? TryParseXml(value, out result) : TryParseText(value, out result);
         }
 
         /// <summary>
         /// Parses a time.
         /// </summary>
         /// <param name="value">The value, such as <c>230000</c> or <c>070000Z</c> in <see cref="IcalValueFormat.Text"/> form, or
-        /// <c>23:00:00</c> in <see cref="IcalValueFormat.Xml"/> form.</param>
+        /// <c>23:00:00</c> in <see cref="IcalValueFormat.Json"/> and <see cref="IcalValueFormat.Xml"/> form.</param>
         /// <param name="format">The lexical form of the value.</param>
         /// <returns>The time.</returns>
         /// <exception cref="FormatException">The value is not a valid time.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
-        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static IcalTime Parse(ReadOnlySpan<char> value, IcalValueFormat format)
         {
@@ -127,15 +123,13 @@ namespace DataStandardizer.File.iCal
         /// <param name="charsWritten">The number of characters written; or 0 if <paramref name="destination"/> is too short.</param>
         /// <param name="format">The lexical form to write.</param>
         /// <returns><c>true</c> if the time was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
-        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public bool TryFormat(Span<char> destination, out int charsWritten, IcalValueFormat format)
         {
             IcalValueFormatting.CheckFormat(format);
 
             var writer = new IcalSpanWriter(destination);
-            if (format == IcalValueFormat.Xml)
+            if (format != IcalValueFormat.Text)
             {
                 AppendXml(ref writer);
             }
@@ -151,8 +145,6 @@ namespace DataStandardizer.File.iCal
         /// Formats the time as a string.
         /// </summary>
         /// <param name="format">The lexical form to write.</param>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="IcalValueFormat.Json"/>, which is not supported
-        /// yet.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public string ToString(IcalValueFormat format)
         {

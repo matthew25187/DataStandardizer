@@ -25,6 +25,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\DataStandardizer.File.iCal\DataStandardizer.File.iCal.csproj" />
+    <!-- Builds the netstandard1.1 target too, without referencing it, so that JcalPlatformTests can check it has no jCal types. -->
+    <ProjectReference Include="..\..\src\DataStandardizer.File.iCal\DataStandardizer.File.iCal.csproj" SetTargetFramework="TargetFramework=netstandard1.1"
+                      ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" Private="false" />
   </ItemGroup>
 
   <ItemGroup>

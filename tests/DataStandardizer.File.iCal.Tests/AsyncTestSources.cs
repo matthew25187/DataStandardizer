@@ -1,9 +1,10 @@
 ﻿namespace DataStandardizer.File.iCal.Tests;
 
 /// <summary>
-/// A stream that can only be read asynchronously.  Its synchronous members throw, so any synchronous I/O on the async path fails the test.
+/// A stream that can only be read asynchronously, at most <paramref name="maxReadLength"/> bytes at a time.  Its synchronous members throw, so
+/// any synchronous I/O on the async path fails the test.
 /// </summary>
-internal sealed class AsyncOnlyStream(byte[] data, bool completeSynchronously = false) : Stream
+internal sealed class AsyncOnlyStream(byte[] data, bool completeSynchronously = false, int maxReadLength = int.MaxValue) : Stream
 {
     private int _position;
 
@@ -48,7 +49,7 @@ internal sealed class AsyncOnlyStream(byte[] data, bool completeSynchronously = 
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        var count = Math.Min(buffer.Length, data.Length - _position);
+        var count = Math.Min(Math.Min(buffer.Length, maxReadLength), data.Length - _position);
         data.AsSpan(_position, count).CopyTo(buffer.Span);
         _position += count;
         return count;
