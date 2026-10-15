@@ -390,5 +390,133 @@ namespace DataStandardizer.File.iCal
             get { return GetUri(IcalPropertyNames.Url); }
             set { SetUri(IcalPropertyNames.Url, value, false); }
         }
+
+        /// <summary>
+        /// Gets the instances of the event's recurrence set (RFC 5545 §3.8.5) that start in a window, each resolved to UTC.
+        /// </summary>
+        /// <param name="calendar">The calendar the event is in, which holds the VTIMEZONE components that time zones are resolved
+        /// from and the components that override instances; or <c>null</c> if there is none.</param>
+        /// <param name="from">The earliest start to give, inclusive; or <c>null</c> for none.</param>
+        /// <param name="to">The end of the window, exclusive; or <c>null</c> for none, which needs every <c>RRULE</c> to have COUNT or
+        /// UNTIL.</param>
+        /// <returns>The instances, in order of their start, generated as they are enumerated.</returns>
+        /// <remarks>
+        /// Time zones are resolved by <see cref="IcalTimeZoneResolver.Default"/>.  See <see cref="GetOccurrences(IcalCalendar, IcalDateTime?, IcalDateTime?, IIcalTimeZoneResolver, IcalOptions)"/> for how the
+        /// instances are found.
+        /// </remarks>
+        /// <exception cref="ArgumentException"><paramref name="to"/> is <c>null</c> and an <c>RRULE</c> has neither COUNT nor UNTIL; or an
+        /// <c>RRULE</c> has a frequency below DAILY, or BYHOUR, BYMINUTE or BYSECOND, and DTSTART is a DATE.</exception>
+        /// <exception cref="InvalidOperationException">An <c>RRULE</c> breaks a constraint listed under <see cref="IcalRecurrenceRule.IsValid"/>.
+        /// Also thrown while enumerating, when more consecutive periods than <see cref="IcalOptions.MaxRecurrenceIterations"/> give no
+        /// occurrence.</exception>
+        /// <exception cref="IcalFileException">A property the instances are found from is not valid, or a time zone cannot be
+        /// resolved.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">While enumerating, an instance or its end falls after 9999-12-31.</exception>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        public IEnumerable<IcalOccurrence<IcalEvent>> GetOccurrences(IcalCalendar? calendar, IcalDateTime? from, IcalDateTime? to)
+#else
+        public IEnumerable<IcalOccurrence<IcalEvent>> GetOccurrences(IcalCalendar calendar, IcalDateTime? from, IcalDateTime? to)
+#endif
+        {
+            return GetOccurrences(calendar, from, to, IcalTimeZoneResolver.Default, DefaultOptions);
+        }
+
+        /// <summary>
+        /// Gets the instances of the event's recurrence set (RFC 5545 §3.8.5) that start in a window, each resolved to UTC.
+        /// </summary>
+        /// <param name="calendar">The calendar the event is in, which holds the VTIMEZONE components that time zones are resolved
+        /// from and the components that override instances; or <c>null</c> if there is none.</param>
+        /// <param name="from">The earliest start to give, inclusive; or <c>null</c> for none.</param>
+        /// <param name="to">The end of the window, exclusive; or <c>null</c> for none, which needs every <c>RRULE</c> to have COUNT or
+        /// UNTIL.</param>
+        /// <param name="resolver">Resolves the time zones of zoned values, such as <c>Chain(Calendar, TzData)</c>.</param>
+        /// <returns>The instances, in order of their start, generated as they are enumerated.</returns>
+        /// <remarks>
+        /// See <see cref="GetOccurrences(IcalCalendar, IcalDateTime?, IcalDateTime?, IIcalTimeZoneResolver, IcalOptions)"/> for how the instances are found.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException"><paramref name="resolver"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="to"/> is <c>null</c> and an <c>RRULE</c> has neither COUNT nor UNTIL; or an
+        /// <c>RRULE</c> has a frequency below DAILY, or BYHOUR, BYMINUTE or BYSECOND, and DTSTART is a DATE.</exception>
+        /// <exception cref="InvalidOperationException">An <c>RRULE</c> breaks a constraint listed under <see cref="IcalRecurrenceRule.IsValid"/>.
+        /// Also thrown while enumerating, when more consecutive periods than <see cref="IcalOptions.MaxRecurrenceIterations"/> give no
+        /// occurrence.</exception>
+        /// <exception cref="IcalFileException">A property the instances are found from is not valid, or a time zone cannot be
+        /// resolved.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">While enumerating, an instance or its end falls after 9999-12-31.</exception>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        public IEnumerable<IcalOccurrence<IcalEvent>> GetOccurrences(IcalCalendar? calendar, IcalDateTime? from, IcalDateTime? to, IIcalTimeZoneResolver resolver)
+#else
+        public IEnumerable<IcalOccurrence<IcalEvent>> GetOccurrences(IcalCalendar calendar, IcalDateTime? from, IcalDateTime? to, IIcalTimeZoneResolver resolver)
+#endif
+        {
+            return GetOccurrences(calendar, from, to, resolver, DefaultOptions);
+        }
+
+        /// <summary>
+        /// Gets the instances of the event's recurrence set (RFC 5545 §3.8.5) that start in a window, each resolved to UTC.
+        /// </summary>
+        /// <param name="calendar">The calendar the event is in, which holds the VTIMEZONE components that time zones are resolved
+        /// from and the components that override instances; or <c>null</c> if there is none.</param>
+        /// <param name="from">The earliest start to give, inclusive; or <c>null</c> for none.</param>
+        /// <param name="to">The end of the window, exclusive; or <c>null</c> for none, which needs every <c>RRULE</c> to have COUNT or
+        /// UNTIL.</param>
+        /// <param name="resolver">Resolves the time zones of zoned values, such as <c>Chain(Calendar, TzData)</c>.</param>
+        /// <param name="options">The options, of which <see cref="IcalOptions.MaxRecurrenceIterations"/> applies.</param>
+        /// <returns>The instances, in order of their start, generated as they are enumerated.</returns>
+        /// <remarks>
+        /// <para>
+        /// The recurrence set is DTSTART, which is always the first instance even when no rule gives it, the occurrences of each <c>RRULE</c>,
+        /// and the dates, date-times and periods of each <c>RDATE</c>.  DTSTART counts towards the COUNT of a rule that does not give it, as
+        /// RFC 5545 §3.3.10 requires, so such a rule gives one occurrence fewer.  Each <c>EXDATE</c> removes an instance, DTSTART among them; a DATE
+        /// removes every instance on that local date.  An instance given more than once appears once.
+        /// </para>
+        /// <para>
+        /// Each instance ends as RFC 5545 §3.8.5.3 sets out.  <c>DTEND</c> gives every instance the exact duration it gives DTSTART, so the
+        /// local time of the end can change across a daylight saving change.  <c>DURATION</c> is added to each start: its weeks and days are
+        /// nominal and keep the local time of day, and its hours, minutes and seconds are exact, so <c>P1D</c> and <c>PT24H</c> differ across a
+        /// change.  An <c>RDATE</c> period gives its instance its own end.  With neither <c>DTEND</c> nor <c>DURATION</c>, an instance ends when
+        /// it starts, or a day later for a DATE (RFC 5545 §3.6.1).
+        /// </para>
+        /// <para>
+        /// Each event of <paramref name="calendar"/> with the same <c>UID</c> and a <c>RECURRENCE-ID</c> replaces the instance it names, with
+        /// the start and end of its own <c>DTSTART</c>, <c>DTEND</c> and <c>DURATION</c>; of two for the same instance, the one with the higher
+        /// <c>SEQUENCE</c> wins, then the later.  With <c>RANGE=THISANDFUTURE</c>, it also replaces every later instance: each is moved by the
+        /// change it makes to the start, in the local time of DTSTART, and takes its duration.  An override is matched to an instance by its
+        /// instant, and is ignored if an <c>EXDATE</c> removes that instance.  An event that has a <c>RECURRENCE-ID</c> itself gives only its
+        /// own instance, so when expanding every event of a calendar, skip those whose recurring event is in it too.
+        /// </para>
+        /// <para>
+        /// The instances are generated in local time, and each is resolved to UTC through <paramref name="resolver"/> as RFC 5545 §3.3.5
+        /// requires: a time in a daylight saving gap is read with the offset in use before the gap, and a time in an overlap takes its first
+        /// occurrence.  So a daily event at 09:00 stays at 09:00 local time while its time in UTC moves by an hour.  Floating times stay
+        /// floating, and DATE values stay dates; neither has an instant, so each is compared with the window by its wall-clock time, as though
+        /// it were in UTC, as is a floating <paramref name="from"/> or <paramref name="to"/>.
+        /// </para>
+        /// <para>
+        /// An instance is given when its start, after any override, falls in the window.  The properties are read, and the time zones of
+        /// DTSTART and the window resolved, when this is called; the instances are generated as they are enumerated.  An event with no
+        /// DTSTART has no instances.
+        /// </para>
+        /// </remarks>
+        /// <exception cref="ArgumentNullException"><paramref name="resolver"/> or <paramref name="options"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="to"/> is <c>null</c> and an <c>RRULE</c> has neither COUNT nor UNTIL; an
+        /// <c>RRULE</c> has a frequency below DAILY, or BYHOUR, BYMINUTE or BYSECOND, and DTSTART is a DATE; or
+        /// <see cref="IcalOptions.MaxRecurrenceIterations"/> is less than 1.</exception>
+        /// <exception cref="InvalidOperationException">An <c>RRULE</c> breaks a constraint listed under <see cref="IcalRecurrenceRule.IsValid"/>.
+        /// Also thrown while enumerating, when more consecutive periods than <see cref="IcalOptions.MaxRecurrenceIterations"/> give no
+        /// occurrence.</exception>
+        /// <exception cref="IcalFileException">A property the instances are found from is not valid, or a time zone cannot be
+        /// resolved.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">While enumerating, an instance or its end falls after 9999-12-31.</exception>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        public IEnumerable<IcalOccurrence<IcalEvent>> GetOccurrences(IcalCalendar? calendar, IcalDateTime? from, IcalDateTime? to, IIcalTimeZoneResolver resolver,
+            IcalOptions options)
+#else
+        public IEnumerable<IcalOccurrence<IcalEvent>> GetOccurrences(IcalCalendar calendar, IcalDateTime? from, IcalDateTime? to, IIcalTimeZoneResolver resolver,
+            IcalOptions options)
+#endif
+        {
+            return IcalOccurrenceExpander<IcalEvent>.GetOccurrences(this, calendar, from, to, resolver, options);
+        }
     }
 }
