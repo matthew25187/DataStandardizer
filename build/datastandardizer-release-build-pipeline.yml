@@ -172,6 +172,9 @@ trigger:
       - "*.sln"
       - "*.slnf"
 
+# Release builds come only from merges into master.  PR builds are done by the CI pipeline.
+pr: none
+
 pool:
   vmImage: ubuntu-latest
 
