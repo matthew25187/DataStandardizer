@@ -57,6 +57,17 @@ public class IcalTimeZoneResolverTests
         "END:VTIMEZONE"
     ];
 
+    /// <summary>
+    /// A VTIMEZONE whose two observances have an onset at the same instant (#262).
+    /// </summary>
+    private static readonly string[] TiedObservances =
+    [
+        "BEGIN:VTIMEZONE", "TZID:Test/Tie",
+        "BEGIN:STANDARD", "DTSTART:20260101T000000", "TZOFFSETFROM:+0000", "TZOFFSETTO:+0100", "END:STANDARD",
+        "BEGIN:DAYLIGHT", "DTSTART:20260101T000000", "TZOFFSETFROM:+0000", "TZOFFSETTO:+0200", "END:DAYLIGHT",
+        "END:VTIMEZONE"
+    ];
+
     public static TheoryData<string> AccuracyZones => new() { NewYork, "Europe/London", "Europe/Dublin" };
 
     #region Resolver behaviour
@@ -94,6 +105,19 @@ public class IcalTimeZoneResolverTests
     {
         IcalTimeZoneResolver.Calendar.TryResolve(NewYork, null, out var rules).Should().BeFalse();
         rules.Should().BeNull();
+    }
+
+    [Fact]
+    public void Calendar_ObservancesWithTheSameOnset_OffsetMatchesTransition()
+    {
+        var calendar = ModelTestData.ReadCalendar(ModelTestData.Calendar(TiedObservances));
+        var rules = IcalTimeZoneResolver.Calendar.Resolve("Test/Tie", calendar);
+
+        var transition = rules.GetTransitions(new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            new DateTime(2027, 1, 1, 0, 0, 0, DateTimeKind.Utc)).Single();
+
+        rules.GetUtcOffset(transition.InstantUtc).Should().Be(transition.OffsetTo);
+        rules.GetUtcOffset(new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc)).Should().Be(transition.OffsetTo);
     }
 
     [Fact]
