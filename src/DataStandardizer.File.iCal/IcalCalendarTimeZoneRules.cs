@@ -71,7 +71,8 @@ namespace DataStandardizer.File.iCal
             foreach (var observance in _observances)
             {
                 DateTime instant;
-                if (observance.TryGetLatestOnset(utc, out instant) && (latest is null || instant > latestInstant))
+                // >= so that on a tie the last observance is kept, as in GetTransitionsCore.
+                if (observance.TryGetLatestOnset(utc, out instant) && (latest is null || instant >= latestInstant))
                 {
                     latest = observance;
                     latestInstant = instant;
