@@ -159,10 +159,12 @@ parameters:
     - 1
     - 2
 
+# Push builds run only on develop, where they publish preview packages.  Every other branch reaches develop or master
+# through a PR, and the PR trigger below builds it merged with its target.
 trigger:
   branches:
-    exclude:
-      - master
+    include:
+      - develop
   paths:
     exclude:
       - docs
