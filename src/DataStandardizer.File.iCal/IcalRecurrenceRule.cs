@@ -301,7 +301,9 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Gets a copy of the rule that ends at a date-time (UNTIL), and so has no COUNT.
         /// </summary>
-        /// <param name="until">The last date-time.  It is floating if DTSTART is floating, and otherwise in UTC.</param>
+        /// <param name="until">The last date-time.  RFC 5545 §3.3.10 requires it to be floating if DTSTART is floating, and otherwise in UTC.
+        /// This method refuses only a value in a named time zone, since it does not know DTSTART; <see cref="IcalComponent.Validate"/> and the
+        /// writers check the rest.</param>
         /// <exception cref="ArgumentException"><paramref name="until"/> is in a named time zone.</exception>
         public IcalRecurrenceRule WithUntil(IcalDateTime until)
         {
@@ -575,7 +577,9 @@ namespace DataStandardizer.File.iCal
         /// Formats the rule in <see cref="IcalValueFormat.Text"/> form.
         /// </summary>
         /// <remarks>
-        /// Unlike <see cref="ToString(IcalValueFormat)"/>, this does not check the rule, so it also shows a rule that is not valid.
+        /// Unlike <see cref="ToString(IcalValueFormat)"/>, this does not check the rule, so it also shows a rule that is not valid.  On .NET 6
+        /// and later, string interpolation and composite formatting, such as <c>$"{rule}"</c>, use the type's <c>ISpanFormattable</c>
+        /// implementation instead, which does check the rule, and throws <see cref="InvalidOperationException"/> for one that is not valid.
         /// </remarks>
         public override string ToString()
         {
@@ -591,14 +595,18 @@ namespace DataStandardizer.File.iCal
 
 #if NET6_0_OR_GREATER
         /// <inheritdoc />
-        /// <remarks>The format is empty or <c>T</c> for <see cref="IcalValueFormat.Text"/>, <c>J</c> for <see cref="IcalValueFormat.Json"/> or
-        /// <c>X</c> for <see cref="IcalValueFormat.Xml"/>.  The provider is ignored.</remarks>
+        /// <remarks>The format is empty or <c>T</c> for <see cref="IcalValueFormat.Text"/>.  <c>J</c> and <c>X</c> throw
+        /// <see cref="NotSupportedException"/>, since a rule has no single lexical form in jCal or xCal, and any other format throws
+        /// <see cref="FormatException"/>.  A rule that is not valid throws <see cref="InvalidOperationException"/>.  The provider is
+        /// ignored.</remarks>
         bool ISpanFormattable.TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
         {
             return TryFormat(destination, out charsWritten, IcalValueFormatting.ParseFormatString(format));
         }
 
         /// <inheritdoc />
+        /// <remarks>The format is empty or <c>T</c>, as for <c>ISpanFormattable.TryFormat</c>.  A rule that is not valid throws
+        /// <see cref="InvalidOperationException"/>.  The provider is ignored.</remarks>
         string IFormattable.ToString(string? format, IFormatProvider? formatProvider)
         {
             return ToString(IcalValueFormatting.ParseFormatString(format));

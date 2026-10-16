@@ -48,7 +48,7 @@ namespace DataStandardizer.File.iCal
         private const int DefaultBufferSize = 16 * 1024;
 
         /// <summary>
-        /// Size, in bytes, of the buffers of the <see cref="StreamReader"/> and <see cref="FileStream"/> the reader creates itself.  A
+        /// Size, in bytes, of the buffers of the <see cref="StreamReader"/> and <c>FileStream</c> the reader creates itself.  A
         /// caller-supplied <see cref="TextReader"/> keeps its own buffering.
         /// </summary>
         internal const int StreamBufferSize = 16 * 1024;

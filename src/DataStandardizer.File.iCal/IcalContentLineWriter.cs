@@ -29,7 +29,7 @@ namespace DataStandardizer.File.iCal
     /// is in progress throws <see cref="InvalidOperationException"/>.
     /// </para>
     /// <para>
-    /// For asynchronous file output, pass a <see cref="FileStream"/> opened with <c>FileOptions.Asynchronous</c> to a <see cref="Stream"/>
+    /// For asynchronous file output, pass a <c>FileStream</c> opened with <c>FileOptions.Asynchronous</c> to a <see cref="Stream"/>
     /// constructor.
     /// </para>
     /// </remarks>
@@ -39,7 +39,7 @@ namespace DataStandardizer.File.iCal
 #endif
     {
         /// <summary>
-        /// Size of the buffers of the <see cref="StreamWriter"/> (in characters) and <see cref="FileStream"/> (in bytes) the writer creates
+        /// Size of the buffers of the <see cref="StreamWriter"/> (in characters) and <c>FileStream</c> (in bytes) the writer creates
         /// itself.  A caller-supplied <see cref="TextWriter"/> keeps its own buffering.
         /// </summary>
         internal const int StreamBufferSize = 16 * 1024;

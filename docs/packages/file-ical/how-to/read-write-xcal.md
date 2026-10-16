@@ -2,7 +2,7 @@
 title: xCal (XML)
 parent: File.iCal
 grand_parent: Packages
-nav_order: 5
+nav_order: 7
 ---
 
 # Read and write xCal
@@ -107,8 +107,10 @@ var text = start.ToString(IcalValueFormat.Text);   // "20110517T120000Z"
 
 - **TEXT:** values have no escaping.
 - **BOOLEAN:** values are `true` or `false`.
-- **Parsing:** whatever the XML Schema type allows is accepted, such as white space
-  around a number or inside base64 data.
+- **Parsing:** whatever the XML Schema type in RFC 6321 allows is accepted. That
+  includes white space around a BOOLEAN, INTEGER, FLOAT, URI or CAL-ADDRESS value,
+  and anywhere in BINARY data. DATE, TIME, DATE-TIME, DURATION and UTC-OFFSET are
+  patterned strings in the schema, so they don't allow white space.
 - **PERIOD:** its xCal form joins the start and the end or duration with a solidus,
   as the `.ics` form does.
 - **RECUR:** has no single xCal string, because each rule part is its own
@@ -151,3 +153,7 @@ An `XmlReader` or `XmlWriter` that you supply must be created with
 - **Path constructors:** the file-path constructors need .NET Standard 2.0 or later.
   On .NET Standard 1.1, use a `Stream`, `TextReader`/`TextWriter` or
   `XmlReader`/`XmlWriter`.
+
+## See also
+
+- [Convert between .ics, jCal and xCal](convert-formats.md)

@@ -28,6 +28,7 @@ applications and gradually-upgraded legacy codebases alike.
 | [**Chronology**](packages/chronology/index.md) | TZ Database · Unix time · DOS date & time |
 | [**Communication**](packages/communication/index.md) | ITU-T E.164 (international telephone numbers) |
 | [**File.CSV**](packages/file-csv/index.md) | RFC 4180 (CSV files) |
+| [**File.iCal**](packages/file-ical/index.md) | RFC 5545 · RFC 6868 · RFC 7986 · RFC 7265 · RFC 6321 (iCalendar, jCal and xCal) |
 | [**Geography**](packages/geography/index.md) | ISO 3166-1 · ISO 3166-2 · UN M49 |
 | [**Language**](packages/language/index.md) | ISO 639 (Parts 1, 2, 3, 5) · ISO 15924 |
 | [**LanguageTag**](packages/language-tag/index.md) | BCP 47 (IETF language tags) |

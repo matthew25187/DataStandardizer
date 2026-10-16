@@ -5,7 +5,9 @@ namespace DataStandardizer.File.iCal
 {
     /// <summary>
     /// The progress of a writer.  <see cref="IcalContentLineWriter"/> reports it after each line a bulk write hands to the underlying
-    /// <see cref="System.IO.TextWriter"/>, and <see cref="IcalWriter"/> after each calendar.
+    /// <see cref="System.IO.TextWriter"/>, and <see cref="IcalWriter"/>, <see cref="XcalWriter"/> and <c>JcalWriter</c> after each
+    /// calendar.  For <see cref="XcalWriter"/> and <c>JcalWriter</c>, the lines counted are those the calendars would have as <c>.ics</c>
+    /// data.
     /// </summary>
     /// <remarks>
     /// Counts are cumulative for the writer, not for the call that reports them.

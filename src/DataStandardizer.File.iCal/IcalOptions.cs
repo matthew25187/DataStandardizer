@@ -117,7 +117,9 @@ namespace DataStandardizer.File.iCal
         /// <remarks>
         /// Applies only when the reader or writer is created from a <see cref="System.IO.Stream"/> or file path.  When <c>null</c> (the default),
         /// UTF-8 is used, which is the default charset of RFC 5545 §3.1.4.  A reader lets a byte order mark in the data take precedence.  A writer
-        /// writes UTF-8 without a byte order mark.
+        /// writes UTF-8 without a byte order mark.  The exception is <see cref="XcalReader"/>, which, when this is <c>null</c>, takes the encoding
+        /// from the XML document itself: from its byte order mark or XML declaration, and otherwise UTF-8.  <c>JcalReader</c> and
+        /// <c>JcalWriter</c> accept only <c>null</c> or a UTF-8 encoding, since jCal is always UTF-8.
         /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public Encoding? Encoding
@@ -186,8 +188,9 @@ namespace DataStandardizer.File.iCal
         } = "\r\n";
 
         /// <summary>
-        /// Gets the number of consecutive periods a recurrence rule may step through without producing an occurrence before
-        /// <see cref="IcalRecurrenceRule.GetOccurrences(IcalDateTime, IcalDateTime?, IcalDateTime?, IcalOptions)"/> gives up.
+        /// Gets the number of consecutive periods a recurrence rule may step through without producing an occurrence before its expansion
+        /// gives up: in the <c>GetOccurrences</c> methods of <see cref="IcalRecurrenceRule"/> that take options, and in those of
+        /// <see cref="IcalEvent"/>, <see cref="IcalTodo"/> and <see cref="IcalJournal"/>.
         /// </summary>
         /// <remarks>
         /// <para>

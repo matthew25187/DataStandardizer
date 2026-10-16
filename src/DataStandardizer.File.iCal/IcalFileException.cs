@@ -47,6 +47,13 @@ namespace DataStandardizer.File.iCal
             /// <see cref="XcalReader"/>, the 1-based number of the line of the XML document; and for data that <c>JcalReader</c> finds is not
             /// valid JSON, the 1-based number of the line of the JSON document.
             /// </summary>
+            /// <remarks>
+            /// For a content line that <see cref="IcalContentLineWriter"/> or <see cref="IcalWriter"/> cannot write, it is the number the line
+            /// would have had in the output.  For a conformance problem that a writer of the component object model finds, it is the line
+            /// number of the property, from the data it was read from, and the item is left out when that is not known.  For a value that a
+            /// typed accessor or <see cref="IcalContentLine.GetTextValue"/> cannot read, it is <see cref="IcalContentLine.LineNumber"/>, which
+            /// is 0 for a line not read from data.
+            /// </remarks>
             public const string LineNumber = "LineNumber";
 
             /// <summary>
@@ -57,8 +64,14 @@ namespace DataStandardizer.File.iCal
             public const string LinePosition = "LinePosition";
 
             /// <summary>
-            /// The 1-based number of the physical line on which the problem was found, as a <see cref="long"/>.  Not present for xCal or jCal.
+            /// The 1-based number of the physical line on which the problem was found, as a <see cref="long"/>.
             /// </summary>
+            /// <remarks>
+            /// Present for problems found while reading <c>.ics</c> data.  It is not present for problems found by <see cref="XcalReader"/> or
+            /// <c>JcalReader</c>.  For a value that a typed accessor or <see cref="IcalContentLine.GetTextValue"/> cannot read, it is present
+            /// whatever the data was read from, and is 0 for a line that was not read from <c>.ics</c> data, such as one read from xCal or
+            /// jCal, or created in code.
+            /// </remarks>
             public const string PhysicalLineNumber = "PhysicalLineNumber";
 
             /// <summary>
@@ -67,16 +80,28 @@ namespace DataStandardizer.File.iCal
             public const string PropertyName = "PropertyName";
         }
 
+        /// <summary>
+        /// Creates an exception with a default message.
+        /// </summary>
         public IcalFileException()
         {
 
         }
 
+        /// <summary>
+        /// Creates an exception with a message.
+        /// </summary>
+        /// <param name="message">The message that describes the problem.</param>
         public IcalFileException(string message) : base(message)
         {
 
         }
 
+        /// <summary>
+        /// Creates an exception with a message and the exception that caused it.
+        /// </summary>
+        /// <param name="message">The message that describes the problem.</param>
+        /// <param name="innerException">The exception that caused this one.</param>
         public IcalFileException(string message, Exception innerException) : base(message, innerException)
         {
 

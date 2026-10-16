@@ -352,7 +352,7 @@ namespace DataStandardizer.File.iCal
         /// <returns>The instances, in order of their start, generated as they are enumerated.</returns>
         /// <remarks>
         /// <para>
-        /// The instances are found as for <see cref="IcalEvent.GetOccurrences(IcalCalendar, IcalDateTime?, IcalDateTime?, IIcalTimeZoneResolver, IcalOptions)"/>, with the journal entrys of
+        /// The instances are found as for <see cref="IcalEvent.GetOccurrences(IcalCalendar, IcalDateTime?, IcalDateTime?, IIcalTimeZoneResolver, IcalOptions)"/>, with the journal entries of
         /// <paramref name="calendar"/> as the overrides.  A journal entry has no end, so no instance has one.
         /// </para>
         /// <para>
