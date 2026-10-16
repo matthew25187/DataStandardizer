@@ -198,7 +198,7 @@ namespace DataStandardizer.File.iCal
         /// <returns>The value.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="value"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="value"/> holds a control character other than a tab or a line break, or a lone
-        /// surrogate.</exception>
+        /// surrogate; or, in <see cref="IcalValueFormat.Xml"/> form, a character XML cannot hold, such as U+FFFE.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not an <see cref="IcalValueFormat"/> member.</exception>
         public static string FormatText(string value, IcalValueFormat format)
         {
