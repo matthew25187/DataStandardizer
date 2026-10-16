@@ -59,8 +59,11 @@ This form needs no JSON library, so the value types support it on every target,
   element.
 - BOOLEAN values are `true` or `false`.
 - DURATION, INTEGER, FLOAT, BINARY, URI and CAL-ADDRESS values are as in `Text` form.
-  Parsing accepts what their XML Schema types allow, such as white space around a
-  number or inside base64 data.
+- Parsing accepts what the XML Schema types of RFC 6321 allow: white space around a
+  BOOLEAN, INTEGER, FLOAT, URI or CAL-ADDRESS value, and anywhere in a BINARY value.
+  DATE, TIME, DATE-TIME, DURATION and UTC-OFFSET are patterned `xsd:string` types,
+  which keep white space, so a value of one of those types with white space around
+  it is not valid.
 - A PERIOD is the start and the end or duration joined by a solidus, as in `Text`
   form. In an xCal document they are separate elements.
 - A RECUR value has no form of its own, since in an xCal document each rule part is

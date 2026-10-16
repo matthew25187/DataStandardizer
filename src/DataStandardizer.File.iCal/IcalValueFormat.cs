@@ -43,8 +43,10 @@
         /// <remarks>
         /// <para>
         /// TEXT values have no escaping in this form, and the items of a list are separate elements, so a value is one item.  BOOLEAN values are
-        /// <c>true</c> or <c>false</c>.  DURATION, INTEGER, FLOAT, BINARY, URI and CAL-ADDRESS values are as in <see cref="Text"/> form, though
-        /// parsing accepts what their XML Schema types allow, such as white space around a number.
+        /// <c>true</c> or <c>false</c>.  DURATION, INTEGER, FLOAT, BINARY, URI and CAL-ADDRESS values are as in <see cref="Text"/> form.
+        /// Parsing accepts what the XML Schema types of RFC 6321 allow: white space around a BOOLEAN, INTEGER, FLOAT, URI or CAL-ADDRESS
+        /// value, and white space anywhere in a BINARY value (RFC 6321 §3.6.1).  DATE, TIME, DATE-TIME, DURATION and UTC-OFFSET values are
+        /// patterned <c>xsd:string</c> types, which keep white space, so they take none.
         /// </para>
         /// <para>
         /// A PERIOD is the start and end or duration joined by a solidus, as in <see cref="Text"/> form; in an xCal document they are separate
