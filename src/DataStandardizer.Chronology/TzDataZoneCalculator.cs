@@ -231,6 +231,79 @@ namespace DataStandardizer.Chronology
         }
 
         /// <summary>
+        /// Gets the offsets in effect at a time on the local clock.
+        /// </summary>
+        /// <param name="localTicks">The time on the local clock, in ticks.</param>
+        /// <param name="offsetBeforeGap">
+        /// Where the time falls in a gap, so that no offset is in effect at it, the offset in effect immediately before the gap;
+        /// otherwise, <see langword="null"/>.
+        /// </param>
+        /// <returns>
+        /// The offsets, in chronological order of the instants at which they give the time: none in a gap, one normally, and
+        /// two in an overlap.
+        /// </returns>
+        /// <remarks>
+        /// Each offset in effect near the time gives a candidate instant, being the time less the offset. A candidate is kept
+        /// where the offset is in effect at it, so that the offset gives the same time on the local clock back.
+        /// </remarks>
+        internal List<TzDataOffsetInfo> GetOffsetInfosForLocal(long localTicks, out TzDataOffsetInfo? offsetBeforeGap)
+        {
+            var result = new List<TzDataOffsetInfo>(2);
+            offsetBeforeGap = null;
+
+            // An offset is less than a day, so only the changes in effect within a day either side of the time can give it.
+            var fromTicks = localTicks - TimeSpan.TicksPerDay;
+            var toTicks = localTicks + TimeSpan.TicksPerDay;
+
+#if NETCOREAPP3_0_OR_GREATER
+            Change? current = null;
+#else
+            Change current = null;
+#endif
+            foreach (var next in EnumerateChangesFrom(fromTicks))
+            {
+                if (current != null)
+                {
+                    AddOffsetInfoForLocal(result, localTicks, current, next);
+
+                    // The time falls in a gap where it comes after the change on the clock before it, and before it on the clock after it.
+                    if (!offsetBeforeGap.HasValue &&
+                        localTicks - current.State.UtcOffsetTicks >= next.Instant &&
+                        localTicks - next.State.UtcOffsetTicks < next.Instant)
+                        offsetBeforeGap = CreateOffsetInfo(current, next);
+
+                    if (next.Instant > toTicks)
+                        return result;
+                }
+
+                current = next;
+            }
+
+            if (current != null)
+                AddOffsetInfoForLocal(result, localTicks, current, null);
+
+            return result;
+        }
+
+        private static void AddOffsetInfoForLocal(
+            List<TzDataOffsetInfo> offsetInfos,
+            long localTicks,
+            Change current,
+#if NETCOREAPP3_0_OR_GREATER
+            Change? next)
+#else
+            [CanBeNull] Change next)
+#endif
+        {
+            var candidateTicks = localTicks - current.State.UtcOffsetTicks;
+            if (candidateTicks < TicksMinimum || candidateTicks > TicksMaximum)
+                return;
+
+            if (candidateTicks >= current.Instant && (next is null || candidateTicks < next.Instant))
+                offsetInfos.Add(CreateOffsetInfo(current, next));
+        }
+
+        /// <summary>
         /// Formats a zone abbreviation, as zic does.
         /// </summary>
         /// <param name="format">The FORMAT column of the zone line.</param>

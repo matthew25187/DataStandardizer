@@ -12,7 +12,6 @@ Common types used to implement standards in the other packages.</Description>
     <RepositoryUrl>https://github.com/matthew25187/DataStandardizer.git</RepositoryUrl>
     <PackageTags>data;standard;iso;bcp</PackageTags>
     <Title></Title>
-    <Platforms>AnyCPU;x86;x64</Platforms>
     <PackageReleaseNotes>Initial release.</PackageReleaseNotes>
     <Authors>matthew25187</Authors>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -26,7 +25,6 @@ Common types used to implement standards in the other packages.</Description>
     <CheckNotRecommendedTargetFramework>false</CheckNotRecommendedTargetFramework>
     <NetStandardImplicitPackageVersion>2.0.3</NetStandardImplicitPackageVersion>
     <RepositoryType>git</RepositoryType>
-    <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'">

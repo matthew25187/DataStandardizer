@@ -3,8 +3,6 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard1.0;netstandard2.0;net8.0</TargetFrameworks>
     <ImplicitUsings>disable</ImplicitUsings>
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <Platforms>AnyCPU;x86;x64</Platforms>
     <Title></Title>
     <PackageIcon>054-doc_web.png</PackageIcon>
     <PackageTags>data;standard;ietf;bcp 47;language;tag</PackageTags>

@@ -48,7 +48,24 @@ $env:PACKAGEINFOS |
         # $latestTagName = & git describe --tags --abbrev=0 --match $packageMatchPattern $SourceCommitHash
         $latestReleaseTagName = $tagsOutput -split '\r?\n' | Select-String -Pattern "^v\d+\.\d+\.\d+-$($_.packageName)$" | Select-Object -First 1 -ExpandProperty Matches | Select-Object -First 1 -ExpandProperty Value
         $latestPreviewTagName = $tagsOutput -split '\r?\n' | Select-String -Pattern "^v\d+\.\d+\.\d+\.\d+-$($_.packageName)$" | Select-Object -First 1 -ExpandProperty Matches | Select-Object -First 1 -ExpandProperty Value
-        $latestTagName = $latestReleaseTagName ?? $latestPreviewTagName
+        if ($env:BUILD_SOURCEBRANCH -eq 'refs/heads/master') {
+            # Release builds compare against the previous release only.  Preview tags are ignored, so a package that has never
+            # been released compares against the whole history and its first release includes everything.
+            $latestTagName = $latestReleaseTagName
+        }
+        else {
+            # Other builds compare against the most recent build, which is a preview made since the last release when that
+            # preview is not an ancestor of the release (develop includes releases through back-merges from master).
+            $latestTagName = $latestReleaseTagName ?? $latestPreviewTagName
+            if ($latestReleaseTagName -and $latestPreviewTagName) {
+                & git merge-base --is-ancestor "tags/$latestPreviewTagName" "tags/$latestReleaseTagName"
+                switch ($LASTEXITCODE) {
+                    0 { }
+                    1 { $latestTagName = $latestPreviewTagName }
+                    default { Write-Error "Failed to compare tags $latestPreviewTagName and $latestReleaseTagName." }
+                }
+            }
+        }
         if (-not [string]::IsNullOrWhiteSpace($latestTagName)) {
             Write-Debug "Found most recent project tag $latestTagName."
 

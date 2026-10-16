@@ -8,7 +8,6 @@
 
     <IsPackable>false</IsPackable>
     <IsTestProject>false</IsTestProject>
-    <Platforms>AnyCPU;x64;x86</Platforms>
   </PropertyGroup>
 
   <ItemGroup>

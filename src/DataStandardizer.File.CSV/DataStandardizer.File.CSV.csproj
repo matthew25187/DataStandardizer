@@ -25,7 +25,6 @@ Provides types supporting the reading and writing of files in standard formats. 
     <PackageReleaseNotes>Initial release.</PackageReleaseNotes>
     <PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-    <Platforms>AnyCPU;x86;x64</Platforms>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.1' Or '$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'">

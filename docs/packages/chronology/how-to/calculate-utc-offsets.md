@@ -32,9 +32,9 @@ Every method takes the instant as a `DateTime` in universal time or as a
   `ToUniversalTime()` first, or pass a `DateTimeOffset`.
 - A `DateTimeOffset` is converted to universal time through its `UtcDateTime`.
 
-The methods answer questions about an instant. They don't convert a local wall
-clock time in the time zone to an instant, which can be ambiguous or invalid
-around a transition.
+These methods answer questions about an instant. To go the other way, from a
+local wall clock time in the time zone to an instant, see
+[Convert a local time to an instant](#convert-a-local-time-to-an-instant).
 
 ## Get the offset at an instant
 
@@ -52,6 +52,12 @@ Apply the offset to get the local time as a `DateTimeOffset`:
 
 ```csharp
 var local = new DateTimeOffset(instant).ToOffset(offset);   // 2026-07-01 08:00:00 -04:00
+```
+
+`ToOffset` also takes the time zone itself, and looks up the offset for you:
+
+```csharp
+var local = new DateTimeOffset(instant).ToOffset(newYork);  // 2026-07-01 08:00:00 -04:00
 ```
 
 The offset is split into the standard offset and the daylight saving added to
@@ -250,6 +256,58 @@ Output:
 Most callers don't need the zone lines. Use the methods above for offsets and
 abbreviations.
 
+## Convert a local time to an instant
+
+A local wall clock time, such as the start time of a meeting in a calendar,
+usually occurs at exactly one instant. Around a transition it may not:
+
+- **A gap.** When the clocks go forward, the local times they skip never occur.
+  In New York, 2:30 AM on 8 March 2026 doesn't exist.
+- **An overlap.** When the clocks go back, the local times they repeat occur
+  twice. In New York, 1:30 AM on 1 November 2026 occurs first in EDT and then
+  in EST.
+
+Pass the local time as a `DateTime` of kind `Unspecified`. A `DateTime` of kind
+`Utc` or `Local` throws `ArgumentException`.
+
+`GetOffsetInfosForLocal` returns every offset in effect at a local time, in
+chronological order: none in a gap, one normally, and two in an overlap:
+
+```csharp
+var newYork = TzDataTimezone.America.New_York;
+
+newYork.GetOffsetInfosForLocal(new DateTime(2026, 7, 1, 12, 0, 0));    // EDT
+newYork.GetOffsetInfosForLocal(new DateTime(2026, 3, 8, 2, 30, 0));    // (none)
+newYork.GetOffsetInfosForLocal(new DateTime(2026, 11, 1, 1, 30, 0));   // EDT, EST
+```
+
+`ToDateTimeOffset` places a local time in a time zone. It returns a
+`DateTimeOffset` that keeps the local time with the offset in effect, and its
+`UtcDateTime` gives the instant. A
+[TzDataLocalTimeResolution](../reference/TzDataLocalTimeResolution.md) decides
+what happens in a gap or an overlap:
+
+- `Rfc5545` follows RFC 5545, section 3.3.5, as calendar data requires. A time
+  in a gap takes the offset in effect before the gap, which moves it forward by
+  the length of the gap. A time in an overlap takes its first occurrence.
+- `Strict` throws `ArgumentException` in either case.
+
+```csharp
+var meeting = new DateTime(2026, 3, 8, 2, 30, 0);
+
+var start = meeting.ToDateTimeOffset(newYork, TzDataLocalTimeResolution.Rfc5545);
+// 2026-03-08 03:30:00 -04:00, which is 07:30 UTC
+
+var repeated = new DateTime(2026, 11, 1, 1, 30, 0)
+    .ToDateTimeOffset(newYork, TzDataLocalTimeResolution.Rfc5545);
+// 2026-11-01 01:30:00 -04:00 (EDT), the first occurrence
+```
+
+`DateTimeOffset` holds offsets only in whole minutes of at most 14 hours.
+`ToDateTimeOffset` and `ToOffset` throw `ArgumentOutOfRangeException` for an
+offset it can't hold, such as New York's local mean time of -04:56:02 before
+1883.
+
 ## Limitations
 
 - **History before 1970.** The TZ Database records the history of each zone's
@@ -262,7 +320,9 @@ abbreviations.
   many of them are numeric, such as `+04`. Long names such as "Eastern Standard
   Time", and localized names, come from the Unicode CLDR and are out of scope.
 - **Leap seconds.** Leap seconds are ignored, as they are by `DateTime`.
-- **Universal time.** `DateTime` arguments must be in universal time. See
+- **Universal time.** `DateTime` arguments must be in universal time, except
+  for the local times passed to `GetOffsetInfosForLocal` and
+  `ToDateTimeOffset`. See
   [Pass instants in universal time](#pass-instants-in-universal-time).
 - **Invalid instances.** The methods throw `InvalidOperationException` for
   `default(TzDataTimezone)` and for an instance cast from an identifier that

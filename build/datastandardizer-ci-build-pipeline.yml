@@ -6,22 +6,10 @@
 name: datastandardizer_preview_$(date:yyyyMMdd)$(rev:.r)
 
 parameters:
-  - name: buildAnyCPU
-    displayName: "Build AnyCPU targets"
-    type: boolean
-    default: true
-  - name: buildX86
-    displayName: "Build x86 targets"
-    type: boolean
-    default: true
-  - name: buildX64
-    displayName: "Build x64 targets"
-    type: boolean
-    default: true
   - name: forcePackageDataStandardizerCore
     displayName: 'Force DataStandardizer.Core package'
     type: string
-    default: Build
+    default: None
     values:
     - None
     - Build
@@ -60,6 +48,14 @@ parameters:
     - Publication
   - name: forcePackageDataStandardizerFileCSV
     displayName: 'Force DataStandardizer.File.CSV package'
+    type: string
+    default: None
+    values:
+    - None
+    - Build
+    - Publication
+  - name: forcePackageDataStandardizerFileICal
+    displayName: 'Force DataStandardizer.File.iCal package'
     type: string
     default: None
     values:
@@ -180,6 +176,14 @@ trigger:
       - "*.sln"
       - "*.slnf"
 
+# No path filters: the GitHub rulesets require this pipeline's check on every PR into develop and master, including
+# docs-only PRs and back-merges from master, so it must report on all of them.
+pr:
+  branches:
+    include:
+      - develop
+      - master
+
 pool:
   vmImage: ubuntu-latest
 
@@ -194,6 +198,7 @@ variables:
       packageActionDataStandardizerCommunication: ${{ parameters.forcePackageDataStandardizerCommunication }}
       packageActionDataStandardizerFile: ${{ parameters.forcePackageDataStandardizerFile }}
       packageActionDataStandardizerFileCSV: ${{ parameters.forcePackageDataStandardizerFileCSV }}
+      packageActionDataStandardizerFileICal: ${{ parameters.forcePackageDataStandardizerFileICal }}
       packageActionDataStandardizerGeography: ${{ parameters.forcePackageDataStandardizerGeography }}
       packageActionDataStandardizerIso15924: ${{ parameters.forcePackageDataStandardizerIso15924 }}
       packageActionDataStandardizerIso3166: ${{ parameters.forcePackageDataStandardizerIso3166 }}
@@ -272,6 +277,28 @@ stages:
             name: ChangedPackages # ID of the step.
             # timeoutInMinutes: string # Time to wait for this task to complete before the server kills it.
             # retryCountOnTaskFailure: string # Number of retries if the task fails.            
+          - task: PowerShell@2
+            name: DependentPackages
+            displayName: 'Find dependent packages'
+            inputs:
+              #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
+              filePath: 'build/scripts/FindDependentPackages.ps1' # string. Required when targetType = filePath. Script Path. 
+              arguments: '-TraceLevel ${{parameters.traceLevel}}' # string. Optional. Use when targetType = filePath. Arguments. 
+              #script: # string. Required when targetType = inline. Script. 
+            # Preference Variables
+              #errorActionPreference: 'stop' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ErrorActionPreference. Default: stop.
+              #warningPreference: 'default' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. WarningPreference. Default: default.
+              informationPreference: 'continue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. InformationPreference. Default: default.
+              verbosePreference: ${{ iif(eq(parameters.enableVerboseOutput, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. VerbosePreference. Default: default.
+              debugPreference: ${{ iif(eq(parameters.enableDebug, 'true'), 'continue', 'default') }} # 'default' | 'stop' | 'continue' | 'silentlyContinue'. DebugPreference. Default: default.
+              #progressPreference: 'silentlyContinue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. ProgressPreference. Default: silentlyContinue.
+            # Advanced
+              #failOnStderr: false # boolean. Fail on Standard Error. Default: false.
+              #showWarnings: false # boolean. Show warnings as Azure DevOps warnings. Default: false.
+              #ignoreLASTEXITCODE: false # boolean. Ignore $LASTEXITCODE. Default: false.
+              pwsh: true # boolean. Use PowerShell Core. Default: false.
+              #workingDirectory: # string. Working Directory. 
+              #runScriptInSeparateScope: false # boolean. Run script in the separate scope. Default: false.
           - task: PowerShell@2
             name: TestPackages
             displayName: 'Find test packages'
@@ -431,6 +458,7 @@ stages:
     dependsOn: Configure
     variables:
       changedPackageNames: $[stageDependencies.Configure.Production_packages.outputs['ChangedPackages.changedPackageNames']]
+      dependentPackageNames: $[stageDependencies.Configure.Production_packages.outputs['DependentPackages.dependentPackageNames']]
       versionNumbers: $[stageDependencies.Configure.Version_numbering.outputs['PromoteVersionList.versionNumberList']]
       hasAssemblyVersionNumbers: $[stageDependencies.Configure.Version_numbering.outputs['PromoteVersionList.hasAssemblyVersionPackageNames']]
       hasAssemblyFileVersionNumbers: $[stageDependencies.Configure.Version_numbering.outputs['PromoteVersionList.hasAssemblyFileVersionPackageNames']]
@@ -443,33 +471,18 @@ stages:
           and
           (
             succeeded(), 
-            or(containsValue(split(variables.buildRequiredPackageNames, ','), '${{packageName}}'), containsValue(split(variables.publicationRequiredPackageNames, ','), '${{packageName}}'), and(gt(length(coalesce(variables['changedPackageNames'], '')), 0), containsValue(split(variables['changedPackageNames'], ','), '${{packageName}}')))
+            or(containsValue(split(variables.buildRequiredPackageNames, ','), '${{packageName}}'), containsValue(split(variables.publicationRequiredPackageNames, ','), '${{packageName}}'), and(gt(length(coalesce(variables['changedPackageNames'], '')), 0), containsValue(split(variables['changedPackageNames'], ','), '${{packageName}}')), containsValue(split(coalesce(variables['dependentPackageNames'], ''), ','), '${{packageName}}'))
           )        
         pool:
           vmImage: windows-latest
         strategy:
           matrix:
-            ${{ if eq(parameters.buildAnyCPU, 'true') }}:
-              Debug_AnyCPU:
-                BuildConfiguration: debug
-                BuildPlatform: "Any CPU"
-              Release_AnyCPU:
-                BuildConfiguration: release
-                BuildPlatform: "Any CPU"
-            ${{ if eq(parameters.buildX86, 'true') }}:
-              Debug_x86:
-                BuildConfiguration: debug
-                BuildPlatform: x86
-              Release_x86:
-                BuildConfiguration: release
-                BuildPlatform: x86
-            ${{ if eq(parameters.buildX64, 'true') }}:
-              Debug_x64:
-                BuildConfiguration: debug
-                BuildPlatform: x64
-              Release_x64:
-                BuildConfiguration: release
-                BuildPlatform: x64
+            Debug:
+              BuildConfiguration: debug
+              BuildPlatform: "Any CPU"
+            Release:
+              BuildConfiguration: release
+              BuildPlatform: "Any CPU"
         variables:
           buildSolution: '${{packageName}}.slnf'
           isContinuousIntegrationBuild: true
@@ -496,6 +509,7 @@ stages:
       - Build
     variables:
       changedPackageNames: $[stageDependencies.Configure.Production_packages.outputs['ChangedPackages.changedPackageNames']]
+      dependentPackageNames: $[stageDependencies.Configure.Production_packages.outputs['DependentPackages.dependentPackageNames']]
       testPackageNames: $[stageDependencies.Configure.Production_packages.outputs['TestPackages.testPackageNames']]
     jobs:
     - ${{ each packageName in split(variables.allPackageNames, ',') }}:
@@ -507,50 +521,29 @@ stages:
           (
             succeeded(), 
             containsValue(split(coalesce(variables['testPackageNames'], ''), ','), '${{packageName}}'), 
-            or(containsValue(split(variables.buildRequiredPackageNames, ','), '${{packageName}}'), containsValue(split(variables.publicationRequiredPackageNames, ','), '${{packageName}}'), containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{packageName}}'))
+            or(containsValue(split(variables.buildRequiredPackageNames, ','), '${{packageName}}'), containsValue(split(variables.publicationRequiredPackageNames, ','), '${{packageName}}'), containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{packageName}}'), containsValue(split(coalesce(variables['dependentPackageNames'], ''), ','), '${{packageName}}'))
           )
         # continueOnError: string # Continue running even on failure?
         # timeoutInMinutes: 480 # Time to wait for this job to complete before the server kills it.
         # cancelTimeoutInMinutes: string # Time to wait for the job to cancel before forcibly terminating it.
         variables:
           testAssemblies: |
-            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/${{packageName}}.*Test.dll
-            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/${{packageName}}.*Tests.dll
-            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/${{packageName}}.*Test.*.dll
-            tests/**/bin/${{ variables.TestPlatformPath }}/$(BuildConfiguration)/**/${{packageName}}.*Tests.*.dll
+            tests/**/bin/$(BuildConfiguration)/**/${{packageName}}.*Test.dll
+            tests/**/bin/$(BuildConfiguration)/**/${{packageName}}.*Tests.dll
+            tests/**/bin/$(BuildConfiguration)/**/${{packageName}}.*Test.*.dll
+            tests/**/bin/$(BuildConfiguration)/**/${{packageName}}.*Tests.*.dll
             !**/*TestAdapter.dll
             !**/obj/**
             !**/ref/**
         strategy: # Execution strategy for this job.
           matrix:
-            ${{ if eq(parameters.buildAnyCPU, 'true') }}:
-              Debug_AnyCPU:
-                BuildConfiguration: debug
-                BuildPlatform: "Any CPU"
-                TestPlatformPath: '**'  # No platform subfolder for Any CPU
-              Release_AnyCPU:
-                BuildConfiguration: release
-                BuildPlatform: "Any CPU"
-                TestPlatformPath: '**'  # No platform subfolder for Any CPU
-            ${{ if eq(parameters.buildX86, 'true') }}:
-              Debug_x86:
-                BuildConfiguration: debug
-                BuildPlatform: x86
-                TestPlatformPath: 'x86'
-              Release_x86:
-                BuildConfiguration: release
-                BuildPlatform: x86
-                TestPlatformPath: 'x86'
-            ${{ if eq(parameters.buildX64, 'true') }}:
-              Debug_x64:
-                BuildConfiguration: debug
-                BuildPlatform: x64
-                TestPlatformPath: 'x64'
-              Release_x64:
-                BuildConfiguration: release
-                BuildPlatform: x64
-                TestPlatformPath: 'x64'
-        pool: 
+            Debug:
+              BuildConfiguration: debug
+              BuildPlatform: "Any CPU"
+            Release:
+              BuildConfiguration: release
+              BuildPlatform: "Any CPU"
+        pool:
           vmImage: windows-latest # Pool where this job will run.
         steps: # A list of steps to run.
         - template: /build/qa-steps.yml  # reference to template

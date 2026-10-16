@@ -34,6 +34,9 @@ takes a `DateTimeOffset`.
   `ArgumentException`.
 - A `DateTimeOffset` argument is converted to universal time through its
   `UtcDateTime`.
+- `GetOffsetInfosForLocal` is the exception: its `DateTime` argument is a time
+  on the local clock of the time zone, and must be of kind `Unspecified`. One of
+  kind `Utc` or `Local` throws `ArgumentException`.
 - Every method throws `InvalidOperationException` for `default(TzDataTimezone)`
   and for an instance whose identifier is not that of a known time zone.
 
@@ -69,8 +72,8 @@ annotated `[CanBeNull]`.
 
 ### Extension
 
-Every calculation method below also has an overload that takes a
-`DateTimeOffset` in place of each `DateTime`, for example
+Every calculation method below, except `GetOffsetInfosForLocal`, also has an
+overload that takes a `DateTimeOffset` in place of each `DateTime`, for example
 `GetUtcOffset(DateTimeOffset instant)`.
 
 | Method | Extends | Returns | Notes |
@@ -79,6 +82,7 @@ Every calculation method below also has an overload that takes a
 | `GetDaylightAbbreviation(DateTime utc)` | `TzDataTimezone` | `string?` | The daylight saving time abbreviation for the zone line and year in effect at the instant, for example `EDT` or `BST`, or `null` if no daylight saving time is observed in the year. Returns `string` (`[CanBeNull]`) on the .NET Standard targets. |
 | `GetDaylightSavings(DateTime utc)` | `TzDataTimezone` | `TimeSpan` | The amount added to the standard offset at the instant. May be negative, as for Europe/Dublin in winter. |
 | `GetOffsetInfo(DateTime utc)` | `TzDataTimezone` | [`TzDataOffsetInfo`](TzDataOffsetInfo.md) | The offset, its parts and abbreviation at the instant, with the period over which they are in effect. |
+| `GetOffsetInfosForLocal(DateTime local)` | `TzDataTimezone` | `IReadOnlyList<`[`TzDataOffsetInfo`](TzDataOffsetInfo.md)`>` | The reverse of `GetOffsetInfo`: every offset in effect at a time on the local clock, in chronological order. Returns none where the time falls in a gap, one normally, and two where it falls in an overlap. `local` must be of kind `Unspecified`. To place a local time with a policy for gaps and overlaps, use [`DateTimeExtensions.ToDateTimeOffset`](DateTimeExtensions.md). |
 | `GetStandardAbbreviation(DateTime utc)` | `TzDataTimezone` | `string` | The standard time abbreviation for the zone line and year in effect at the instant, for example `EST` or `GMT`. |
 | `GetStandardOffset(DateTime utc)` | `TzDataTimezone` | `TimeSpan` | The offset of standard time from universal time at the instant, excluding daylight saving. |
 | `GetTransitions(DateTime fromUtc, DateTime toUtc)` | `TzDataTimezone` | `IEnumerable<`[`TzDataTransition`](TzDataTransition.md)`>` | The changes of offset from `fromUtc`, inclusive, to `toUtc`, exclusive, in chronological order. A transition is reported where the offset, the standard offset, daylight saving time or the abbreviation changes. Throws `ArgumentOutOfRangeException` if `toUtc` precedes `fromUtc`. The arguments are checked when the method is called, not when the result is enumerated. |
@@ -116,6 +120,8 @@ Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`.
 - [TzDataTimezone](TzDataTimezone.md)
 - [TzDataOffsetInfo](TzDataOffsetInfo.md)
 - [TzDataTransition](TzDataTransition.md)
+- [DateTimeExtensions](DateTimeExtensions.md)
+- [DateTimeOffsetExtensions](DateTimeOffsetExtensions.md)
 - [TzDataZoneLine](TzDataZoneLine.md)
 - [TzDataTimezoneAttribute](TzDataTimezoneAttribute.md)
 - [Chronology API reference](index.md)
