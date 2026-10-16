@@ -34,6 +34,12 @@ if (0 -lt $TraceLevel) {
     Set-PSDebug -Trace $TraceLevel
 }
 
+# Without version tags every package would be compared against the first commit and reported as changed, so a checkout
+# that didn't fetch tags must fail here instead.
+if (-not (& git tag --list 'v*')) {
+    Write-Error 'No version tags found in the checkout.  The checkout step must fetch tags (fetchTags: true).'
+}
+
 # Get list of changed files since most recent build on current branch.
 $changedPackages = @()
 $env:PACKAGEINFOS |

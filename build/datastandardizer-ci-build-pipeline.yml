@@ -219,6 +219,7 @@ stages:
           - checkout: self
             persistCredentials: true
             fetchDepth: 0
+            fetchTags: true # change detection compares against version tags; PR builds fetch only branch and pull refs otherwise
           - task: PowerShell@2
             displayName: 'Find changed packages'
             inputs:
