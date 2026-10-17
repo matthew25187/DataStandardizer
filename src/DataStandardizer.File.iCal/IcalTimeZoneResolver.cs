@@ -229,7 +229,9 @@ namespace DataStandardizer.File.iCal
                     throw new ArgumentNullException(nameof(timeZoneId));
 
                 rules = null;
-                if (calendar is null) return false;
+
+                // A VTIMEZONE with an empty TZID is invalid, and has no identifier for rules to carry.
+                if (calendar is null || timeZoneId.Length == 0) return false;
 
                 foreach (var timeZone in calendar.TimeZones)
                 {

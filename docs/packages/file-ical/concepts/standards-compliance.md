@@ -168,8 +168,8 @@ summary:
 - **Values tied to their property:** date-times that must be in UTC; a `DTEND`,
   `DUE` or `RECURRENCE-ID` with the same value type as `DTSTART`; a duration from
   a DATE given in days or weeks; recurrence rules checked against `DTSTART`, with
-  a `UNTIL` in UTC inside a VTIMEZONE; and an observance `DTSTART` given as local
-  time.
+  a `UNTIL` in UTC inside a VTIMEZONE; an observance `DTSTART` given as local
+  time; and a VTIMEZONE `TZID` that isn't empty.
 - **Time zones:** each `TZID` parameter names a VTIMEZONE in the calendar.
 - **Nesting** and **version**, as above.
 
