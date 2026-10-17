@@ -730,7 +730,7 @@ namespace DataStandardizer.File.iCal
             if (options is null)
                 throw new ArgumentNullException(nameof(options));
 
-            var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.SequentialScan);
+            var fileStream = IcalFileStreams.OpenRead(path, 4096);
             try
             {
                 return CreateStreamReader(fileStream, options, true);

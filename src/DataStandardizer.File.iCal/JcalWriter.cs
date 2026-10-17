@@ -929,7 +929,7 @@ namespace DataStandardizer.File.iCal
                 throw new ArgumentNullException("jcalFilePath");
 
             ValidateOptions(options);
-            return new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.Read, 4096, FileOptions.Asynchronous);
+            return IcalFileStreams.OpenWrite(path, 4096);
         }
     }
 }

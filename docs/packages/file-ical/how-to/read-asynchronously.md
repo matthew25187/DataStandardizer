@@ -84,9 +84,13 @@ The asynchronous members do no synchronous I/O. They fill the buffer with the
 `ReadAsync` of the underlying text reader, and write with its `WriteAsync` and
 `FlushAsync`.
 
-A file that a reader or writer opens from a path is opened without
-`FileOptions.Asynchronous`. For truly asynchronous file I/O, open a `FileStream`
-with `FileOptions.Asynchronous` yourself and pass it to a `Stream` constructor.
+A file that a reader or writer opens from a path is opened with
+`FileOptions.Asynchronous`, so its asynchronous members do overlapped file I/O.
+The synchronous members still work on such a file, at a small cost on Windows. If
+you only read or write a file synchronously, you can open a `FileStream` without
+`FileOptions.Asynchronous` yourself and pass it to a `Stream` constructor.
+
+A stream that you pass in is used as it is.
 
 ## One operation at a time
 

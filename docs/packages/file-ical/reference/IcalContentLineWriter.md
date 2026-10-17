@@ -37,8 +37,10 @@ byte order mark that throws on characters it cannot encode. A file path creates 
 overwrites the file, shared for reading. A caller-supplied `Stream` is left open. A
 caller-supplied `TextWriter` is neither flushed nor closed on disposal, so call `Flush`
 first. Supplying an `IcalOptions` whose `Encoding` is set together with a `TextWriter`
-throws `ArgumentException`. For asynchronous file output, pass a `FileStream` opened
-with `FileOptions.Asynchronous` to a `Stream` constructor.
+throws `ArgumentException`. A file path is opened with `FileOptions.Asynchronous`,
+so the asynchronous methods do no synchronous I/O. To write a file only
+synchronously, you can pass a `FileStream` opened without it to a `Stream`
+constructor.
 
 **Formatting.** Each line is formatted into a pooled buffer, folded at
 `IcalOptions.FoldLength` octets of its UTF-8 encoding (75 by default, not counting the
@@ -82,7 +84,7 @@ the progress callback may call the writer.
 | --- | --- |
 | `IcalContentLineWriter(Stream icalStream)` | Writes UTF-8 without a byte order mark. The stream is left open. Throws `ArgumentNullException` if `icalStream` is `null`, or `ArgumentException` if the stream cannot be written. |
 | `IcalContentLineWriter(Stream icalStream, IcalOptions options)` | Honours `options.Encoding`. Throws `ArgumentNullException` if `icalStream` or `options` is `null`, or `ArgumentException` if the stream cannot be written or `FoldLength`, `FoldWhitespace` or `LineBreak` is not valid. |
-| `IcalContentLineWriter(string icalFilePath)` | *(netstandard2.0+/.NET)* Creates or overwrites the file, with a 16 KB `FileStream` buffer, as UTF-8 without a byte order mark. Throws `ArgumentNullException` if `icalFilePath` is `null`. File system errors come from `FileStream`. |
+| `IcalContentLineWriter(string icalFilePath)` | *(netstandard2.0+/.NET)* Creates or overwrites the file for asynchronous writing, with a 16 KB `FileStream` buffer, as UTF-8 without a byte order mark. Throws `ArgumentNullException` if `icalFilePath` is `null`. File system errors come from `FileStream`. |
 | `IcalContentLineWriter(string icalFilePath, IcalOptions options)` | *(netstandard2.0+/.NET)* Honours `options.Encoding`. Throws `ArgumentNullException` if `icalFilePath` or `options` is `null`, or `ArgumentException` if `FoldLength`, `FoldWhitespace` or `LineBreak` is not valid. |
 | `IcalContentLineWriter(TextWriter writer)` | The text writer is neither flushed nor closed on disposal. Throws `ArgumentNullException` if `writer` is `null`. |
 | `IcalContentLineWriter(TextWriter writer, IcalOptions options)` | Throws `ArgumentNullException` if `writer` or `options` is `null`, or `ArgumentException` if `options.Encoding` is set or `FoldLength`, `FoldWhitespace` or `LineBreak` is not valid. |

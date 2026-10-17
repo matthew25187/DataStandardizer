@@ -1006,7 +1006,7 @@ namespace DataStandardizer.File.iCal
                 throw new ArgumentNullException(nameof(options));
 
             var settings = CreateSettings(options, options.Encoding ?? DefaultEncoding, true);
-            var fileStream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.Read, 4096);
+            var fileStream = IcalFileStreams.OpenWrite(path, 4096);
             try
             {
                 return XmlWriter.Create(fileStream, settings);

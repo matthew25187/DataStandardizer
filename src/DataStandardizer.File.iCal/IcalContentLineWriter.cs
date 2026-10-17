@@ -29,8 +29,9 @@ namespace DataStandardizer.File.iCal
     /// is in progress throws <see cref="InvalidOperationException"/>.
     /// </para>
     /// <para>
-    /// For asynchronous file output, pass a <c>FileStream</c> opened with <c>FileOptions.Asynchronous</c> to a <see cref="Stream"/>
-    /// constructor.
+    /// A file-path constructor opens the file with <c>FileOptions.Asynchronous</c>, so the asynchronous methods do no synchronous I/O.  To
+    /// write a file only synchronously, without the small cost that option adds on Windows, pass a <c>FileStream</c> opened without it to
+    /// a <see cref="Stream"/> constructor.
     /// </para>
     /// </remarks>
     public sealed class IcalContentLineWriter : IDisposable
@@ -795,7 +796,7 @@ namespace DataStandardizer.File.iCal
             ValidateOptions(options);
 
             // Open the file stream explicitly so both buffering layers are sized together.
-            var fileStream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.Read, StreamBufferSize);
+            var fileStream = IcalFileStreams.OpenWrite(path, StreamBufferSize);
             try
             {
                 return new StreamWriter(fileStream, options.Encoding ?? DefaultEncoding, StreamBufferSize, false);

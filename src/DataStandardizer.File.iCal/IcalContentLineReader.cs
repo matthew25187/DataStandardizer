@@ -669,7 +669,7 @@ namespace DataStandardizer.File.iCal
             ValidateOptions(options);
 
             // Open the file stream explicitly so both buffering layers are sized together.
-            var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, StreamBufferSize, FileOptions.SequentialScan);
+            var fileStream = IcalFileStreams.OpenRead(path, StreamBufferSize);
             try
             {
                 return CreateStreamReader(fileStream, true, options.Encoding ?? DefaultEncoding, StreamBufferSize);
