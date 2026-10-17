@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using DataStandardizer.Chronology;
 using FluentAssertions;
 
@@ -445,6 +446,79 @@ public class IcalTimeZoneResolverTests
 
         // The first onset is the DAYLIGHT of 1967-04-30, from -05:00.
         rules.GetUtcOffset(new DateTime(1960, 7, 1, 0, 0, 0, DateTimeKind.Utc)).Offset.Should().Be(TimeSpan.FromHours(-5));
+    }
+
+    [Theory]
+    [InlineData("DTSTART", "1974-01-06T07:00:00Z")]
+    [InlineData("RDATE", "1975-02-23T07:00:00Z")]
+    [InlineData("RRULE", "2026-03-08T07:00:00Z")]
+    public void Calendar_TheOffsetChangesAtTheInstantOfAnOnset(string source, string onsetUtc)
+    {
+        var calendar = ModelTestData.ReadCalendar(ModelTestData.Calendar(RfcNewYork));
+        var rules = IcalTimeZoneResolver.Calendar.Resolve(NewYork, calendar);
+        var onset = DateTime.Parse(onsetUtc, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal);
+
+        rules.GetTransitions(onset.AddDays(-1), onset.AddDays(1)).Single().InstantUtc.Should().Be(onset, source);
+        rules.GetUtcOffset(onset.AddMilliseconds(-500)).Offset.Should().Be(TimeSpan.FromHours(-5), "half a second before the {0} onset", source);
+        rules.GetUtcOffset(onset).Offset.Should().Be(TimeSpan.FromHours(-4), "at the {0} onset", source);
+    }
+
+    [Fact]
+    public void Calendar_LookupsInAnyOrder_MatchTzData()
+    {
+        var calendar = ModelTestData.ReadCalendar(ModelTestData.Calendar([.. RfcNewYork, .. OutlookEastern]));
+        var rfcRules = IcalTimeZoneResolver.Calendar.Resolve(NewYork, calendar);
+        var outlookRules = IcalTimeZoneResolver.Calendar.Resolve("Eastern Standard Time", calendar);
+        var tzDataRules = IcalTimeZoneResolver.TzData.Resolve(NewYork, null);
+        var random = new Random(263);
+
+        for (var index = 0; index < 2000; index++)
+        {
+            var instant = new DateTime(2007, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMinutes(random.Next(0, 500 * 365 * 24 * 60));
+            var expected = tzDataRules.GetUtcOffset(instant);
+
+            rfcRules.GetUtcOffset(instant).Should().Be(expected, "at {0:o}", instant);
+            outlookRules.GetUtcOffset(instant).Should().Be(expected, "at {0:o}", instant);
+        }
+    }
+
+    [Fact]
+    public void Calendar_RulesCanBeSharedAcrossThreads()
+    {
+        var calendar = ModelTestData.ReadCalendar(ModelTestData.Calendar(RfcNewYork));
+        var rules = IcalTimeZoneResolver.Calendar.Resolve(NewYork, calendar);
+        var tzDataRules = IcalTimeZoneResolver.TzData.Resolve(NewYork, null);
+        var instants = Enumerable.Range(0, 4000)
+            .Select(hours => new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddHours(hours * 61L)).ToArray();
+        var expected = instants.Select(tzDataRules.GetUtcOffset).ToArray();
+        var actual = new IcalUtcOffset[instants.Length];
+
+        Parallel.For(0, instants.Length, new ParallelOptions { MaxDegreeOfParallelism = 8 },
+            index => actual[index] = rules.GetUtcOffset(instants[index]));
+
+        actual.Should().Equal(expected);
+    }
+
+    #endregion
+
+    #region Allocations
+
+    [Fact]
+    public void Calendar_ToUtc_OnceWarmedUp_AllocatesLittle()
+    {
+        // arrange
+        var calendar = ModelTestData.ReadCalendar(ModelTestData.Calendar(RfcNewYork));
+        var rules = IcalTimeZoneResolver.Calendar.Resolve(NewYork, calendar);
+        rules.ToUtc(new DateTime(2030, 6, 1, 12, 0, 0));
+
+        // act
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        var utc = rules.ToUtc(new DateTime(2030, 6, 2, 12, 0, 0));
+        var testResult = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        // assert
+        utc.Should().Be(new DateTime(2030, 6, 2, 16, 0, 0, DateTimeKind.Utc));
+        testResult.Should().BeLessThan(1024);
     }
 
     #endregion

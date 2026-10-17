@@ -81,6 +81,11 @@ from several threads at once, as `IIcalTimeZoneResolver` requires.
   is in use.
 - The VTIMEZONE is read when it is resolved, so changes made to it afterwards do not
   affect rules already returned.
+- The rules expand the onsets of each observance one calendar year at a time, when
+  first needed, and keep them. Each `TryResolve` builds new rules, so for many
+  conversions in the same time zone, resolve once and reuse the rules, as
+  `GetOccurrences` does within one expansion. The rules may be used from several
+  threads at once.
 - `TryResolve` throws `IcalFileException` if the VTIMEZONE has no STANDARD or
   DAYLIGHT observance, if an observance lacks `DTSTART`, `TZOFFSETFROM` or
   `TZOFFSETTO`, or if one of their values, or an `RRULE` or `RDATE`, is not valid.
