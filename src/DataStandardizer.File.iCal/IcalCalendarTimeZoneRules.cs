@@ -28,7 +28,9 @@ namespace DataStandardizer.File.iCal
             _earliest = observances[0];
             foreach (var observance in observances)
             {
-                if (observance.EarliestOnset < _earliest.EarliestOnset)
+                // Compared as instants, as the observances' local times may be in different offsets; <= so that on a tie the last observance
+                // is kept, as in GetTransitionsCore.
+                if (observance.EarliestOnsetUtc <= _earliest.EarliestOnsetUtc)
                 {
                     _earliest = observance;
                 }
@@ -151,6 +153,7 @@ namespace DataStandardizer.File.iCal
 
                 var startLocal = ToLocalDateTime(start);
                 EarliestOnset = recurrenceDates.Count > 0 && recurrenceDates[0] < startLocal ? recurrenceDates[0] : startLocal;
+                EarliestOnsetUtc = ToInstant(EarliestOnset);
             }
 
             internal IcalTimeZoneObservanceKind Kind { get; }
@@ -163,6 +166,11 @@ namespace DataStandardizer.File.iCal
             /// Gets the earliest onset, in local time: the earlier of <c>DTSTART</c> and the first <c>RDATE</c>.
             /// </summary>
             internal DateTime EarliestOnset { get; }
+
+            /// <summary>
+            /// Gets the instant of the earliest onset.
+            /// </summary>
+            internal DateTime EarliestOnsetUtc { get; }
 
             internal static Observance Create(string timeZoneId, IcalTimeZoneObservance component)
             {
