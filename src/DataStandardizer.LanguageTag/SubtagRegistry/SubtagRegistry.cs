@@ -12,6 +12,8 @@ namespace DataStandardizer.LanguageTag.SubtagRegistry
     /// </summary>
     public class SubtagRegistry : IReadOnlyCollection<ISubtagRegistryRecord>
     {
+        private const int StreamReaderBufferSize = 1024;
+
         private readonly IReadOnlyCollection<ISubtagRegistryRecord> _records;
 
         private SubtagRegistry(ISubtagRegistryRecord[] records)
@@ -166,7 +168,7 @@ namespace DataStandardizer.LanguageTag.SubtagRegistry
 
             var records = new List<ISubtagRegistryRecord>();
 
-            using (var streamReader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true))
+            using (var streamReader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: StreamReaderBufferSize, leaveOpen: true))
             {
                 var registryReader = new SubtagRegistryReader(streamReader);
 
@@ -200,7 +202,7 @@ namespace DataStandardizer.LanguageTag.SubtagRegistry
 
             var records = new List<ISubtagRegistryRecord>();
 
-            using (var streamReader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true))
+            using (var streamReader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: StreamReaderBufferSize, leaveOpen: true))
             {
                 var registryReader = new SubtagRegistryReader(streamReader);
 
