@@ -343,6 +343,28 @@ public class XcalWriterTests
         }
     }
 
+    [Fact]
+    public void Dispose_FileNotWritten_ClosesFile()
+    {
+        // arrange
+        var path = Path.GetTempFileName();
+        try
+        {
+            var writer = new XcalWriter(path);
+
+            // act
+            writer.Dispose();
+
+            // assert
+            System.IO.File.Delete(path);
+            System.IO.File.Exists(path).Should().BeFalse();
+        }
+        finally
+        {
+            System.IO.File.Delete(path);
+        }
+    }
+
     /// <summary>
     /// Gets the inner XML of a property element, without namespace declarations or formatting.
     /// </summary>
