@@ -1475,6 +1475,44 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
 
     #endregion
 
+    #region Test: ToIso3166Part1Alpha2_WithLanguageTagHavingUnM49RegionSubtag
+
+    [Theory]
+    [InlineData("es-419")]
+    [InlineData("en-001")]
+    public void ToIso3166Part1Alpha2_WithLanguageTagHavingUnM49RegionSubtag_ReturnsNull(string languageTag)
+    {
+        // arrange
+        var testLanguageTag = Bcp47LanguageTag.Create(languageTag);
+
+        // act
+        var testResult = testLanguageTag.ToIso3166Part1Alpha2();
+
+        // assert
+        testResult.Should().BeNull();
+    }
+
+    #endregion
+
+    #region Test: ToIso3166Part1Alpha2_WithLanguageTagHavingAlphaRegionSubtag
+
+    [Theory]
+    [InlineData("en-US")]
+    [InlineData("en-us")]
+    public void ToIso3166Part1Alpha2_WithLanguageTagHavingAlphaRegionSubtag_ReturnsIso3166Part1Code(string languageTag)
+    {
+        // arrange
+        var testLanguageTag = Bcp47LanguageTag.Create(languageTag);
+
+        // act
+        var testResult = testLanguageTag.ToIso3166Part1Alpha2();
+
+        // assert
+        testResult.Should().Be(Iso3166Part1Alpha2Country.US);
+    }
+
+    #endregion
+
     #region Test: ToIso639Part1_WithLanguageTagHavingPrimaryLanguageSubtagNotIso639Part1Code
 
     [Fact]
