@@ -19,7 +19,11 @@ dotnet add package DataStandardizer.LanguageTag
 
 | Standard | What it provides |
 | --- | --- |
-| **BCP 47** | IETF language tags (RFC 5646), built from subtags for primary language, extended language, script, region, variant, extension, and private use. |
+| **RFC 5646** | *Tags for Identifying Languages* (part of IETF BCP 47): language tags built from subtags for primary language, extended language, script, region, variant, extension, and private use, together with the format of the *IANA Language Subtag Registry* (section 3.1). |
+
+BCP 47 also includes RFC 4647, *Matching of Language Tags*, which defines
+filtering and lookup of language ranges against tags. This package does not
+implement RFC 4647 matching.
 
 Validation draws on the codes implemented by the other *Data Standardizer*
 packages (ISO 639 languages, ISO 15924 scripts, ISO 3166-1 / UN M49 regions),
