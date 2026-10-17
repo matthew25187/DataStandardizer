@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading;
 
 namespace DataStandardizer.File.iCal
 {
@@ -14,11 +16,15 @@ namespace DataStandardizer.File.iCal
     public sealed class IcalContentLine
     {
         private static readonly IcalContentLineParameter[] NoParameters = new IcalContentLineParameter[0];
+        private static readonly ReadOnlyCollection<IcalContentLineParameter> NoParametersView = new ReadOnlyCollection<IcalContentLineParameter>(NoParameters);
 
+        private readonly IcalContentLineParameter[] _parameters;
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private readonly int[]? _foldOffsets;
+        private ReadOnlyCollection<IcalContentLineParameter>? _parametersView;
 #else
         private readonly int[] _foldOffsets;
+        private ReadOnlyCollection<IcalContentLineParameter> _parametersView;
 #endif
         private readonly int _valueOffset;
 
@@ -58,7 +64,7 @@ namespace DataStandardizer.File.iCal
             }
 
             Name = name;
-            Parameters = parameterArray;
+            _parameters = parameterArray.Length == 0 ? NoParameters : parameterArray;
             Value = value;
         }
 
@@ -71,7 +77,7 @@ namespace DataStandardizer.File.iCal
 #endif
         {
             Name = name;
-            Parameters = parameters;
+            _parameters = parameters;
             RawParameters = rawParameters;
             Value = value;
             LineNumber = lineNumber;
@@ -93,7 +99,31 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Gets the parameters, in the order they appear.
         /// </summary>
-        public IReadOnlyList<IcalContentLineParameter> Parameters { get; }
+        /// <remarks>
+        /// The list is read-only: it cannot be cast to an array or a writable list and changed.
+        /// </remarks>
+        public IReadOnlyList<IcalContentLineParameter> Parameters
+        {
+            get
+            {
+                if (_parameters.Length == 0) return NoParametersView;
+
+                // Created on first use, so that reading a line does not allocate a view that the caller may never ask for.
+                var view = _parametersView;
+                if (view is null)
+                {
+                    view = new ReadOnlyCollection<IcalContentLineParameter>(_parameters);
+                    view = Interlocked.CompareExchange(ref _parametersView, view, null) ?? view;
+                }
+
+                return view;
+            }
+        }
+
+        /// <summary>
+        /// Gets the parameters, for use within the package without allocating a read-only view.  It must not be changed.
+        /// </summary>
+        internal IcalContentLineParameter[] ParameterArray => _parameters;
 
         /// <summary>
         /// Gets the 1-based number of the physical line on which this line starts in its source; or 0 if it was not read from a source.
@@ -132,7 +162,7 @@ namespace DataStandardizer.File.iCal
             if (name is null)
                 throw new ArgumentNullException(nameof(name));
 
-            foreach (var parameter in Parameters)
+            foreach (var parameter in _parameters)
             {
                 if (string.Equals(parameter.Name, name, StringComparison.OrdinalIgnoreCase)) return parameter;
             }

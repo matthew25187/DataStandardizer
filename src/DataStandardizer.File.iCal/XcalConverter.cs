@@ -495,12 +495,12 @@ namespace DataStandardizer.File.iCal
             }
 
             var parameters = new XcalElement(XcalNames.Parameters);
-            foreach (var parameter in property.Parameters)
+            foreach (var parameter in property.ParameterArray)
             {
                 if (!isValueParameterKept && IsName(parameter.Name, IcalParameterNames.Value)) continue;
 
                 var parameterElement = parameters.Add(new XcalElement(ToElementName(parameter.Name, property.LineNumber)));
-                foreach (var value in parameter.Values)
+                foreach (var value in parameter.ValueArray)
                 {
                     WriteParameterValue(parameterElement, parameter.Name, value, property);
                 }

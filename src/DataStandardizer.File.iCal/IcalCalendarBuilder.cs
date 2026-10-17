@@ -101,7 +101,7 @@ namespace DataStandardizer.File.iCal
         private void Begin(IcalContentLine line)
         {
             var name = line.Value;
-            if (line.Parameters.Count != 0)
+            if (line.ParameterArray.Length != 0)
                 throw BuildException("A BEGIN line cannot have parameters.", line, CurrentPath);
             if (!IcalComponent.IsValidName(name))
                 throw BuildException("A BEGIN line must name a component: one or more letters, digits and hyphens.", line, CurrentPath);
@@ -136,7 +136,7 @@ namespace DataStandardizer.File.iCal
         private IcalCalendar End(IcalContentLine line)
 #endif
         {
-            if (line.Parameters.Count != 0)
+            if (line.ParameterArray.Length != 0)
                 throw BuildException("An END line cannot have parameters.", line, CurrentPath);
             if (_frames.Count == 0)
                 throw BuildException(

@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading;
 
 namespace DataStandardizer.File.iCal
 {
@@ -9,6 +11,13 @@ namespace DataStandardizer.File.iCal
     /// </summary>
     public sealed class IcalContentLineParameter
     {
+        private readonly string[] _values;
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private ReadOnlyCollection<string>? _valuesView;
+#else
+        private ReadOnlyCollection<string> _valuesView;
+#endif
+
         /// <summary>
         /// Creates a parameter.
         /// </summary>
@@ -44,14 +53,14 @@ namespace DataStandardizer.File.iCal
             }
 
             Name = name;
-            Values = valueArray;
+            _values = valueArray;
         }
 
         // The arguments are in the other order so this does not clash with the params constructor.
         private IcalContentLineParameter(string[] values, string name)
         {
             Name = name;
-            Values = values;
+            _values = values;
         }
 
         /// <summary>
@@ -62,7 +71,29 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Gets the parameter values, in order, with RFC 6868 caret encoding decoded and any enclosing double quotes removed.
         /// </summary>
-        public IReadOnlyList<string> Values { get; }
+        /// <remarks>
+        /// The list is read-only: it cannot be cast to an array or a writable list and changed.
+        /// </remarks>
+        public IReadOnlyList<string> Values
+        {
+            get
+            {
+                // Created on first use, so that reading a line does not allocate a view for each parameter.
+                var view = _valuesView;
+                if (view is null)
+                {
+                    view = new ReadOnlyCollection<string>(_values);
+                    view = Interlocked.CompareExchange(ref _valuesView, view, null) ?? view;
+                }
+
+                return view;
+            }
+        }
+
+        /// <summary>
+        /// Gets the parameter values, for use within the package without allocating a read-only view.  It must not be changed.
+        /// </summary>
+        internal string[] ValueArray => _values;
 
         /// <summary>
         /// Creates a parameter from values read by <see cref="IcalContentLineReader"/>, taking ownership of the array.
