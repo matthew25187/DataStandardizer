@@ -438,6 +438,15 @@ namespace DataStandardizer.File.iCal
             }
             else if (IsName(name, IcalComponentNames.TimeZone))
             {
+                // ref. RFC 5545§3.8.3.1: TZID identifies the time zone, so it can't be empty.
+                foreach (var timeZoneId in component.GetProperties(IcalPropertyNames.TimeZoneId))
+                {
+                    if (GetTextOrRaw(timeZoneId).Length == 0)
+                    {
+                        AddInvalidValue(timeZoneId, path, "The TZID property of a VTIMEZONE component must not be empty.", context);
+                    }
+                }
+
                 var hasObservance = false;
                 foreach (var child in component.Components)
                 {

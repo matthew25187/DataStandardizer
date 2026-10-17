@@ -69,6 +69,8 @@ internal static class ConformanceCases
         ["RelativeUrl"] = new(EventCalendar("URL:/calendar/event"), IcalDiagnosticKind.InvalidValue, "URL", "VCALENDAR/VEVENT[1]"),
         ["UtcObservanceStart"] = new(Calendar("BEGIN:VTIMEZONE", "TZID:Zone", "BEGIN:STANDARD", "DTSTART:19700101T000000Z", "TZOFFSETFROM:+0000",
             "TZOFFSETTO:+0000", "END:STANDARD", "END:VTIMEZONE"), IcalDiagnosticKind.InvalidValue, "DTSTART", "VCALENDAR/VTIMEZONE[1]/STANDARD[1]"),
+        ["EmptyTimeZoneId"] = new(Calendar("BEGIN:VTIMEZONE", "TZID:", "BEGIN:STANDARD", "DTSTART:19700101T000000", "TZOFFSETFROM:+0000",
+            "TZOFFSETTO:+0000", "END:STANDARD", "END:VTIMEZONE"), IcalDiagnosticKind.InvalidValue, "TZID", "VCALENDAR/VTIMEZONE[1]"),
         ["TimeDurationForDateStart"] = new(EventCalendar("DTSTART;VALUE=DATE:20260101", "DURATION:PT1H"), IcalDiagnosticKind.InvalidValue,
             "DURATION", "VCALENDAR/VEVENT[1]")
     };

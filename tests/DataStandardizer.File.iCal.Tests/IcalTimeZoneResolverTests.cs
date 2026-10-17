@@ -69,6 +69,18 @@ public class IcalTimeZoneResolverTests
         "END:VTIMEZONE"
     ];
 
+    /// <summary>
+    /// A VTIMEZONE whose TZID is empty (#266).
+    /// </summary>
+    private static readonly string[] EmptyTimeZoneId =
+    [
+        "BEGIN:VTIMEZONE", "TZID:",
+        "BEGIN:STANDARD", "DTSTART:19700101T000000", "TZOFFSETFROM:+0100", "TZOFFSETTO:+0100", "END:STANDARD",
+        "END:VTIMEZONE"
+    ];
+
+    private static readonly IcalOptions InvalidValues = new() { AllowInvalidValues = true };
+
     public static TheoryData<string> AccuracyZones => new() { NewYork, "Europe/London", "Europe/Dublin" };
 
     #region Resolver behaviour
@@ -127,6 +139,27 @@ public class IcalTimeZoneResolverTests
         var calendar = ModelTestData.ReadCalendar(ModelTestData.Calendar(FakeNewYork));
 
         IcalTimeZoneResolver.Calendar.TryResolve("america/new_york", calendar, out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Calendar_AnEmptyTimeZoneIdentifier_ResolvesNothing()
+    {
+        var calendar = ModelTestData.ReadCalendar(ModelTestData.Calendar(EmptyTimeZoneId), InvalidValues);
+
+        IcalTimeZoneResolver.Calendar.TryResolve("", calendar, out var rules).Should().BeFalse();
+        rules.Should().BeNull();
+        var act = () => IcalTimeZoneResolver.Calendar.Resolve("", calendar);
+        act.Should().Throw<IcalFileException>();
+    }
+
+    [Fact]
+    public void Chain_AnEmptyTimeZoneIdentifier_ResolvesNothing()
+    {
+        var calendar = ModelTestData.ReadCalendar(ModelTestData.Calendar(EmptyTimeZoneId), InvalidValues);
+        var resolver = IcalTimeZoneResolver.Chain(IcalTimeZoneResolver.TzData, IcalTimeZoneResolver.Calendar);
+
+        resolver.TryResolve("", calendar, out var rules).Should().BeFalse();
+        rules.Should().BeNull();
     }
 
     [Fact]
