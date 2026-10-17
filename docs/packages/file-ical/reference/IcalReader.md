@@ -90,7 +90,7 @@ buffers already hold the whole calendar.
 | --- | --- |
 | `IcalReader(Stream icalStream)` | Reads as UTF-8 unless the stream starts with a byte order mark. The stream is left open. Throws `ArgumentNullException` if `icalStream` is `null`, or `ArgumentException` if the stream cannot be read. |
 | `IcalReader(Stream icalStream, IcalOptions options)` | Throws `ArgumentNullException` if `icalStream` or `options` is `null`, or `ArgumentException` if the stream cannot be read or `options.MaxLineLength` is less than 1. |
-| `IcalReader(string icalFilePath)` | *(netstandard2.0+/.NET)* Reads the file as UTF-8 unless it starts with a byte order mark. Throws `ArgumentNullException` if `icalFilePath` is `null`. File system errors come from `FileStream`. |
+| `IcalReader(string icalFilePath)` | *(netstandard2.0+/.NET)* Opens the file for asynchronous, sequential reading, and reads it as UTF-8 unless it starts with a byte order mark. Throws `ArgumentNullException` if `icalFilePath` is `null`. File system errors come from `FileStream`. |
 | `IcalReader(string icalFilePath, IcalOptions options)` | *(netstandard2.0+/.NET)* Throws `ArgumentNullException` if `icalFilePath` or `options` is `null`, or `ArgumentException` if `options.MaxLineLength` is less than 1. |
 | `IcalReader(TextReader reader)` | The text reader is left open. Throws `ArgumentNullException` if `reader` is `null`. |
 | `IcalReader(TextReader reader, IcalOptions options)` | Throws `ArgumentNullException` if `reader` or `options` is `null`, or `ArgumentException` if `options.Encoding` is set or `options.MaxLineLength` is less than 1. |

@@ -100,7 +100,7 @@ checked before each node of the XML document is read.
 | --- | --- |
 | `XcalReader(Stream xcalStream)` | Reads in the encoding the document declares, or UTF-8. The stream is left open when the reader is disposed. Throws `ArgumentNullException` if `xcalStream` is `null`, or `ArgumentException` if the stream can't be read. |
 | `XcalReader(Stream xcalStream, IcalOptions options)` | Uses `options.Encoding`, if set, in place of the declared encoding, unless the stream starts with a byte order mark. Throws `ArgumentNullException` if `xcalStream` or `options` is `null`, or `ArgumentException` if the stream can't be read. |
-| `XcalReader(string xcalFilePath)` | *(netstandard2.0+/.NET)* Opens the file for sequential reading with a 4 KB `FileStream` buffer, sharing it for reading. Throws `ArgumentNullException` if `xcalFilePath` is `null`. |
+| `XcalReader(string xcalFilePath)` | *(netstandard2.0+/.NET)* Opens the file for asynchronous, sequential reading with a 4 KB `FileStream` buffer, sharing it for reading. Throws `ArgumentNullException` if `xcalFilePath` is `null`. |
 | `XcalReader(string xcalFilePath, IcalOptions options)` | *(netstandard2.0+/.NET)* Uses `options.Encoding` as the stream overload does. Throws `ArgumentNullException` if `xcalFilePath` or `options` is `null`. |
 | `XcalReader(TextReader reader)` | The text reader is left open when the reader is disposed. Throws `ArgumentNullException` if `reader` is `null`. |
 | `XcalReader(TextReader reader, IcalOptions options)` | Throws `ArgumentNullException` if `reader` or `options` is `null`, or `ArgumentException` if `options.Encoding` is set. |

@@ -82,7 +82,7 @@ another thread during the write cannot make it fail part way through for that re
 | --- | --- |
 | `IcalWriter(Stream icalStream)` | Writes UTF-8 without a byte order mark. The stream is left open. Throws `ArgumentNullException` if `icalStream` is `null`, or `ArgumentException` if the stream cannot be written. |
 | `IcalWriter(Stream icalStream, IcalOptions options)` | Honours `options.Encoding`. Throws `ArgumentNullException` if `icalStream` or `options` is `null`, or `ArgumentException` if the stream cannot be written or `FoldLength`, `FoldWhitespace` or `LineBreak` is not valid. |
-| `IcalWriter(string icalFilePath)` | *(netstandard2.0+/.NET)* Creates or overwrites the file, as UTF-8 without a byte order mark. Throws `ArgumentNullException` if `icalFilePath` is `null`. File system errors come from `FileStream`. |
+| `IcalWriter(string icalFilePath)` | *(netstandard2.0+/.NET)* Creates or overwrites the file for asynchronous writing, as UTF-8 without a byte order mark. Throws `ArgumentNullException` if `icalFilePath` is `null`. File system errors come from `FileStream`. |
 | `IcalWriter(string icalFilePath, IcalOptions options)` | *(netstandard2.0+/.NET)* Honours `options.Encoding`. Throws `ArgumentNullException` if `icalFilePath` or `options` is `null`, or `ArgumentException` if `FoldLength`, `FoldWhitespace` or `LineBreak` is not valid. |
 | `IcalWriter(TextWriter writer)` | The text writer is neither flushed nor closed on disposal. Throws `ArgumentNullException` if `writer` is `null`. |
 | `IcalWriter(TextWriter writer, IcalOptions options)` | Throws `ArgumentNullException` if `writer` or `options` is `null`, or `ArgumentException` if `options.Encoding` is set or `FoldLength`, `FoldWhitespace` or `LineBreak` is not valid. |

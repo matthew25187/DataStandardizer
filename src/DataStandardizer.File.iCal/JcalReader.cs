@@ -690,7 +690,7 @@ namespace DataStandardizer.File.iCal
                 throw new ArgumentNullException("jcalFilePath");
 
             ValidateOptions(options);
-            return new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.Asynchronous | FileOptions.SequentialScan);
+            return IcalFileStreams.OpenRead(path, 4096);
         }
 
 #if !(NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER)
