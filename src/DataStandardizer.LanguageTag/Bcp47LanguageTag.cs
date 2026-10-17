@@ -273,7 +273,11 @@ namespace DataStandardizer.LanguageTag
         /// <returns>A <see cref="Iso3166Part1Alpha2Country"/> enum representing the Region subtag, if compatible; <c>null</c> if the Region subtag does not exist or is not an ISO 3166-1 alpha-2 code.</returns>
         public Iso3166Part1Alpha2Country? ToIso3166Part1Alpha2()
         {
-            if (!Enum.TryParse<Iso3166Part1Alpha2Country>(RegionSubtag, true, out var result)) return null;
+            // A region subtag is either 2ALPHA or 3DIGIT. Enum.TryParse would accept a 3DIGIT (UN M.49) subtag
+            // as a raw numeric value, so only the two-letter form is an ISO 3166-1 alpha-2 candidate.
+            var regionSubtag = RegionSubtag;
+            if (regionSubtag == null || regionSubtag.Length != 2) return null;
+            if (!Enum.TryParse<Iso3166Part1Alpha2Country>(regionSubtag, true, out var result)) return null;
             return result;
 
         }
