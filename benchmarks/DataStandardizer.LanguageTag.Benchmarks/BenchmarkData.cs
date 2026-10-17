@@ -31,6 +31,9 @@ public static class BenchmarkData
     /// <summary>
     /// Strings that are not well-formed tags, failing in a range of places.
     /// </summary>
+    /// <remarks>
+    /// Duplicate variants and extensions are left out while the package accepts them (#237), so that fixing it does not change what is measured.
+    /// </remarks>
     public static readonly string[] InvalidTags =
     [
         "",
@@ -41,8 +44,8 @@ public static class BenchmarkData
         "abcdefghi",
         "en-US-US",
         "zh-Hant-Hans",
-        "de-1901-1901",
-        "en-a-bbb-a-ccc",
+        "de-CH-123456789",
+        "en-US-a",
         "en-x-",
         "x-abcdefghi",
     ];

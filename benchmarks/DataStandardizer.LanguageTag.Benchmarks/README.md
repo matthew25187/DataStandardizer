@@ -30,14 +30,14 @@ To check that every benchmark runs without waiting for a full measurement, use t
 dotnet run -c Release -f net10.0 -- --filter * --job Dry --runtimes net8.0 net10.0
 ```
 
-Results are written to `BenchmarkDotNet.Artifacts/results/` (ignored by git).
+Results are written to `BenchmarkDotNet.Artifacts/results/` (ignored by git). BenchmarkDotNet exits with code 0 even when a benchmark fails, so check the "Benchmarks with issues" list at the end of the output, and look for `NA` in the tables.
 
 ## Data
 
 The inputs are fixed, so every run uses identical data. They are in `BenchmarkData`:
 
 - 12 valid tags that between them use every kind of subtag: `en`, `es-419`, `zh-Hant-TW`, `zh-yue-HK`, `sr-Latn-RS`, `de-CH-1901`, `sl-rozaj-biske-1994`, `hy-Latn-IT-arevela`, `gsw-u-sd-chzh`, `he-IL-u-ca-hebrew-tz-jeruslm`, `en-US-x-twain` and `x-private`. Each is also valid against the registry.
-- 12 strings that are not well-formed, failing in different places: the empty string, a one-letter or nine-letter primary language, leading, trailing and doubled hyphens, two regions, two scripts, a duplicate variant, a duplicate extension, an empty private-use subtag and a private-use subtag that is too long.
+- 12 strings that are not well-formed, failing in different places: the empty string, a one-letter or nine-letter primary language, leading, trailing and doubled hyphens, two regions, two scripts, a variant that is too long, an extension singleton with no subtag, an empty private-use subtag and a private-use subtag that is too long.
 - The IANA Language Subtag Registry, the 777 KB fixture shared with the tests (`tests/DataStandardizer.LanguageTag.Tests/Resources/IanaSubtagRegistry.txt`), embedded in this assembly. It is read from a `MemoryStream`, so disk I/O is excluded.
 
 `CreateBenchmarks`, `CheckBenchmarks` and `BuilderBenchmarks` check their inputs in `[GlobalSetup]`, and fail if a change to the package makes a valid input invalid or an invalid one valid, so that the numbers are not compared across a change in what is measured.
