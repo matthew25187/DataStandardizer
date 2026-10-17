@@ -50,7 +50,7 @@ Instances are immutable, so they may be shared between threads.
 | Property | Signature | Notes |
 | --- | --- | --- |
 | `Name` | `string Name { get; }` | The parameter name, as written. |
-| `Values` | `IReadOnlyList<string> Values { get; }` | The values, in order, with RFC 6868 caret encoding decoded and enclosing double quotes removed. Always at least one. |
+| `Values` | `IReadOnlyList<string> Values { get; }` | The values, in order, with RFC 6868 caret encoding decoded and enclosing double quotes removed. Always at least one. The list is read-only: it can't be cast to an array or a writable list and changed. |
 
 ## Applies to
 

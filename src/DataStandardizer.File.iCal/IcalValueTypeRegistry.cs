@@ -160,7 +160,7 @@ namespace DataStandardizer.File.iCal
             var valueParameter = line.GetParameter(IcalParameterNames.Value);
             return valueParameter is null
                 ? GetDefaultValueType(line.Name.AsSpan())
-                : GetValueType(line.Name.AsSpan(), valueParameter.Values[0].AsSpan());
+                : GetValueType(line.Name.AsSpan(), valueParameter.ValueArray[0].AsSpan());
         }
 
         /// <summary>

@@ -506,7 +506,7 @@ namespace DataStandardizer.File.iCal
             var property = GetProperty(name);
             if (property is null) return parameters;
 
-            foreach (var parameter in property.Parameters)
+            foreach (var parameter in property.ParameterArray)
             {
                 var isExcluded = false;
                 foreach (var excludedName in excludedNames)

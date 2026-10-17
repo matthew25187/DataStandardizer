@@ -61,7 +61,7 @@ built in code, has 0 for both.
 | --- | --- | --- |
 | `LineNumber` | `long LineNumber { get; }` | The 1-based number of the logical (unfolded) line this was read from, or 0 if it was not read from a source. For xCal, the line of the XML document. |
 | `Name` | `string Name { get; }` | The property name, as written. Property names are case-insensitive. |
-| `Parameters` | `IReadOnlyList<IcalContentLineParameter> Parameters { get; }` | The parameters, in the order they appear. |
+| `Parameters` | `IReadOnlyList<IcalContentLineParameter> Parameters { get; }` | The parameters, in the order they appear. The list is read-only: it can't be cast to an array or a writable list and changed. |
 | `PhysicalLineNumber` | `long PhysicalLineNumber { get; }` | The 1-based number of the physical line on which this line starts in its .ics source, or 0 if it was not read from .ics data. |
 | `Value` | `string Value { get; }` | The value as it appears in the content line once unfolded, with TEXT escaping left in place. |
 

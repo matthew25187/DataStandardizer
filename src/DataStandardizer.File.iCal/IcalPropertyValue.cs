@@ -28,7 +28,7 @@ namespace DataStandardizer.File.iCal
 #endif
         {
             var parameter = property.GetParameter(name);
-            return parameter?.Values[0];
+            return parameter?.ValueArray[0];
         }
 
         /// <summary>

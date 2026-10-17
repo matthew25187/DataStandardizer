@@ -84,7 +84,7 @@ namespace DataStandardizer.File.iCal
             }
             else
             {
-                position = AppendParameters(line.Parameters, position);
+                position = AppendParameters(line.ParameterArray, position);
             }
 
             _buffer[position++] = ':';
@@ -137,7 +137,7 @@ namespace DataStandardizer.File.iCal
                 return length + rawParameters.Length;
             }
 
-            foreach (var parameter in line.Parameters)
+            foreach (var parameter in line.ParameterArray)
             {
                 // ref. RFC 5545§3.1: param = param-name "=" param-value *("," param-value)
                 if (!IsName(parameter.Name))
@@ -146,8 +146,8 @@ namespace DataStandardizer.File.iCal
                 }
 
                 length += 1 + parameter.Name.Length + 1;
-                var values = parameter.Values;
-                for (var valueIndex = 0; valueIndex < values.Count; valueIndex++)
+                var values = parameter.ValueArray;
+                for (var valueIndex = 0; valueIndex < values.Length; valueIndex++)
                 {
                     int invalidCharacter;
                     var valueLength = MeasureParameterValue(values[valueIndex], out invalidCharacter);
@@ -257,18 +257,18 @@ namespace DataStandardizer.File.iCal
             return position;
         }
 
-        private int AppendParameters(IReadOnlyList<IcalContentLineParameter> parameters, int position)
+        private int AppendParameters(IcalContentLineParameter[] parameters, int position)
         {
             var buffer = _buffer;
-            for (var parameterIndex = 0; parameterIndex < parameters.Count; parameterIndex++)
+            for (var parameterIndex = 0; parameterIndex < parameters.Length; parameterIndex++)
             {
                 var parameter = parameters[parameterIndex];
                 buffer[position++] = ';';
                 position = Append(parameter.Name, position);
                 buffer[position++] = '=';
 
-                var values = parameter.Values;
-                for (var valueIndex = 0; valueIndex < values.Count; valueIndex++)
+                var values = parameter.ValueArray;
+                for (var valueIndex = 0; valueIndex < values.Length; valueIndex++)
                 {
                     if (valueIndex > 0)
                     {
