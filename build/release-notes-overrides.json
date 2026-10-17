@@ -1,0 +1,44 @@
+{
+  "$comment": "Release notes for commits merged before they could declare their own with 'Release-note:' trailers. Read by build/scripts/SetReleaseNotesArgument.ps1. Each key is a full commit id; 'subject' is the commit's subject, checked to catch a wrong id; 'notes' replaces every note the commit would otherwise produce, and an empty list leaves it out. Categories: added, new, fixed, changed, deprecated, removed, breaking, none.",
+  "commits": {
+    "5b46a0f120d00b8def7695bda204c547c6767085": {
+      "subject": "Build AnyCPU only: remove the x86 and x64 build platforms (#127) (#203)",
+      "notes": []
+    },
+    "2fc3453d27d0220231e229cec373a8a36a4822d3": {
+      "subject": "Add the File.iCal docs, README row and benchmarks (#190) (#214)",
+      "notes": []
+    },
+    "9ecf663ca0b84be1f75d677383834ffe68d6a56a": {
+      "subject": "Keep the last observance on a tied onset in GetUtcOffset (#262) (#279)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "When two observances of a calendar's VTIMEZONE begin at the same instant, GetUtcOffset now uses the last of them, as GetTransitions does, so ToUtc and ToLocal agree with the transitions"
+        }
+      ]
+    },
+    "db8b5808bba187a1a01c679b0ef35f82c96bd71e": {
+      "subject": "Cache VTIMEZONE observance onsets by year (#263, #280) (#281)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "A VTIMEZONE RDATE onset no longer takes effect up to a second early for an instant with a fraction of a second"
+        },
+        {
+          "category": "changed",
+          "text": "Resolving times through a calendar's own VTIMEZONE, the default resolver, is faster and allocates less, because observance onsets are now expanded once per year and reused"
+        }
+      ]
+    },
+    "88beb77e6c12af71068a508252cabfdcf665f823": {
+      "subject": "Replace the alarm TRIGGER in place from either setter (#264, #282) (#283)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "Setting IcalAlarm.TriggerDateTime, or TriggerDuration on an alarm with an absolute trigger, now keeps the TRIGGER's other parameters and its position instead of dropping them and moving it to the end"
+        }
+      ]
+    }
+  }
+}
