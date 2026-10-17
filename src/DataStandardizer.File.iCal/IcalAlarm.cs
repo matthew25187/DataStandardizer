@@ -20,8 +20,9 @@ namespace DataStandardizer.File.iCal
         /// is relative.
         /// </summary>
         /// <remarks>
-        /// The setter writes the <c>VALUE=DATE-TIME</c> parameter that RFC 5545 requires.  Setting <c>null</c> removes the trigger, whichever
-        /// kind it is.  A getter throws <see cref="IcalFileException"/> if the value is not valid.
+        /// The setter writes the <c>VALUE=DATE-TIME</c> parameter that RFC 5545 requires, and drops a <c>RELATED</c> parameter, which RFC 5545
+        /// allows only on a relative trigger.  Setting <c>null</c> removes the trigger, whichever kind it is.  A getter throws
+        /// <see cref="IcalFileException"/> if the value is not valid.
         /// </remarks>
         public IcalDateTime? TriggerDateTime
         {
@@ -36,10 +37,12 @@ namespace DataStandardizer.File.iCal
             {
                 if (value.HasValue)
                 {
-                    RemoveProperties(IcalPropertyNames.Trigger);
-                    Properties.Add(new IcalContentLine(IcalPropertyNames.Trigger, new[] { new IcalContentLineParameter(IcalParameterNames.Value,
-                        IcalValueTypeRegistry.GetValueTypeName(IcalValueType.DateTime)) },
-                        value.Value.ToString(IcalValueFormat.Text)));
+                    var parameters = KeepParameters(IcalPropertyNames.Trigger, IcalParameterNames.Value, IcalParameterNames.Related,
+                        IcalParameterNames.TimeZoneId);
+                    parameters.Add(new IcalContentLineParameter(IcalParameterNames.Value,
+                        IcalValueTypeRegistry.GetValueTypeName(IcalValueType.DateTime)));
+                    ReplaceProperties(IcalPropertyNames.Trigger,
+                        new[] { new IcalContentLine(IcalPropertyNames.Trigger, parameters, value.Value.ToString(IcalValueFormat.Text)) });
                 }
                 else
                 {
@@ -68,12 +71,6 @@ namespace DataStandardizer.File.iCal
             }
             set
             {
-                var trigger = GetProperty(IcalPropertyNames.Trigger);
-                if (trigger != null && IcalPropertyValue.GetValueType(trigger) != IcalValueType.Duration)
-                {
-                    RemoveProperties(IcalPropertyNames.Trigger);
-                }
-
                 SetDuration(IcalPropertyNames.Trigger, value, false);
             }
         }

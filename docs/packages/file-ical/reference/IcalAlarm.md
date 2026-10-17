@@ -31,14 +31,14 @@ if the stored value is not valid.
 
 **Triggers.** A `TRIGGER` (RFC 5545 §3.8.6.3) is either relative, a DURATION, or
 absolute, a DATE-TIME in UTC with `VALUE=DATE-TIME`. `TriggerDuration` and
-`TriggerDateTime` each read only their own kind, and return `null` for the other:
+`TriggerDateTime` each read only their own kind, and return `null` for the other.
+Setting either one replaces the trigger of either kind in its place in `Properties`,
+and keeps the parameters of the existing trigger that the new value doesn't decide:
 
-- Setting `TriggerDuration` replaces an absolute trigger. It keeps the parameters
-  of an existing relative trigger, such as `RELATED=END`, which makes the duration
-  relative to the end of the event or to-do instead of its start.
-- Setting `TriggerDateTime` removes any trigger and adds a new `TRIGGER` with the
-  `VALUE=DATE-TIME` parameter that RFC 5545 requires, at the end of `Properties`.
-  It keeps no other parameters.
+- Setting `TriggerDuration` drops `VALUE=DATE-TIME`. It keeps `RELATED=END`, which
+  makes the duration relative to the end of the event or to-do instead of its start.
+- Setting `TriggerDateTime` writes the `VALUE=DATE-TIME` parameter that RFC 5545
+  requires. It drops `RELATED`, which RFC 5545 allows only on a relative trigger.
 - Setting either to `null` removes the trigger, whichever kind it is.
 
 To nest an alarm, add it to the `Components` of the event or to-do. Read the alarms

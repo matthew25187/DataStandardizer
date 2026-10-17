@@ -295,6 +295,53 @@ public class IcalComponentTests
     }
 
     [Fact]
+    public void Alarm_TriggerDateTime_ReplacesInPlace_KeepingOtherParameters()
+    {
+        // arrange
+        var alarm = ReadAlarm("TRIGGER;X-VENDOR=keep;VALUE=DATE-TIME:20260105T083000Z", "ACTION:DISPLAY", "DESCRIPTION:Reminder");
+
+        // act
+        alarm.TriggerDateTime = new IcalDateTime(new IcalDate(2026, 1, 5), new IcalTime(8, 45, 0, true));
+
+        // assert
+        alarm.Properties[0].Name.Should().Be("TRIGGER");
+        alarm.Properties[0].Parameters.Select(p => p.Name).Should().Equal("X-VENDOR", "VALUE");
+        alarm.Properties[0].Value.Should().Be("20260105T084500Z");
+    }
+
+    [Fact]
+    public void Alarm_TriggerDateTime_OnRelativeTrigger_DropsRelatedInPlace()
+    {
+        // arrange
+        var alarm = ReadAlarm("TRIGGER;X-VENDOR=keep;RELATED=END:-PT15M", "ACTION:DISPLAY", "DESCRIPTION:Reminder");
+
+        // act
+        alarm.TriggerDateTime = Stamp;
+
+        // assert
+        alarm.Properties.Select(property => property.Name).Should().Equal("TRIGGER", "ACTION", "DESCRIPTION");
+        alarm.Properties[0].Parameters.Select(parameter => parameter.Name + "=" + parameter.Values[0]).Should()
+            .Equal("X-VENDOR=keep", "VALUE=DATE-TIME");
+        alarm.Properties[0].Value.Should().Be("20261015T090000Z");
+        alarm.Validate().Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Alarm_TriggerDuration_OnAbsoluteTrigger_ReplacesInPlace_KeepingOtherParameters()
+    {
+        // arrange
+        var alarm = ReadAlarm("TRIGGER;X-VENDOR=keep;VALUE=DATE-TIME:20260105T083000Z", "ACTION:DISPLAY", "DESCRIPTION:Reminder");
+
+        // act
+        alarm.TriggerDuration = new IcalDuration(0, TimeSpan.FromMinutes(-30));
+
+        // assert
+        alarm.Properties.Select(property => property.Name).Should().Equal("TRIGGER", "ACTION", "DESCRIPTION");
+        alarm.Properties[0].Parameters.Select(parameter => parameter.Name).Should().Equal("X-VENDOR");
+        alarm.Properties[0].Value.Should().Be("-PT30M");
+    }
+
+    [Fact]
     public void CalendarComponentAccessors_FilterByType()
     {
         // arrange
