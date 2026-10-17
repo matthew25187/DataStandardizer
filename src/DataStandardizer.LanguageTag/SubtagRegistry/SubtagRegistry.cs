@@ -154,6 +154,9 @@ namespace DataStandardizer.LanguageTag.SubtagRegistry
         /// <param name="stream">Stream pointing to the Subtag Registry content.</param>
         /// <returns>A copy of the registry.</returns>
         /// <exception cref="ArgumentNullException">The stream was <c>null</c>.</exception>
+        /// <remarks>
+        /// The content is read from the stream's current position. The stream is left open; the caller remains responsible for disposing it.
+        /// </remarks>
         public static SubtagRegistry CreateFromStream(Stream stream)
         {
             if (stream is null)
@@ -163,12 +166,7 @@ namespace DataStandardizer.LanguageTag.SubtagRegistry
 
             var records = new List<ISubtagRegistryRecord>();
 
-            if (stream.CanSeek)
-            {
-                stream.Seek(0, SeekOrigin.Begin);
-            }
-
-            using (var streamReader = new StreamReader(stream, Encoding.UTF8))
+            using (var streamReader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true))
             {
                 var registryReader = new SubtagRegistryReader(streamReader);
 
@@ -190,6 +188,9 @@ namespace DataStandardizer.LanguageTag.SubtagRegistry
         /// <param name="stream">Stream pointing to the Subtag Registry content.</param>
         /// <returns>A copy of the registry.</returns>
         /// <exception cref="ArgumentNullException">The stream was <c>null</c>.</exception>
+        /// <remarks>
+        /// The content is read from the stream's current position. The stream is left open; the caller remains responsible for disposing it.
+        /// </remarks>
         public static async Task<SubtagRegistry> CreateFromStreamAsync(Stream stream)
         {
             if (stream is null)
@@ -199,12 +200,7 @@ namespace DataStandardizer.LanguageTag.SubtagRegistry
 
             var records = new List<ISubtagRegistryRecord>();
 
-            if (stream.CanSeek)
-            {
-                stream.Seek(0, SeekOrigin.Begin);
-            }
-
-            using (var streamReader = new StreamReader(stream, Encoding.UTF8))
+            using (var streamReader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true))
             {
                 var registryReader = new SubtagRegistryReader(streamReader);
 
