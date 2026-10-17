@@ -481,6 +481,45 @@ public class IcalTimeZoneResolverTests
         rules.GetUtcOffset(new DateTime(1960, 7, 1, 0, 0, 0, DateTimeKind.Utc)).Offset.Should().Be(TimeSpan.FromHours(-5));
     }
 
+    [Fact]
+    public void Calendar_BeforeTheFirstOnset_OffsetMatchesFirstTransition()
+    {
+        // STANDARD's local onset is the later, but its UTC onset (23:30Z) is before DAYLIGHT's (01:00Z) (#278).
+        AssertOffsetBeforeFirstOnset(
+        [
+            "BEGIN:VTIMEZONE", "TZID:Test/Order",
+            "BEGIN:STANDARD", "DTSTART:20260101T013000", "TZOFFSETFROM:+0200", "TZOFFSETTO:+0000", "END:STANDARD",
+            "BEGIN:DAYLIGHT", "DTSTART:20260101T010000", "TZOFFSETFROM:+0000", "TZOFFSETTO:+0100", "END:DAYLIGHT",
+            "END:VTIMEZONE"
+        ], new DateTime(2025, 12, 31, 23, 30, 0, DateTimeKind.Utc), TimeSpan.FromHours(2));
+    }
+
+    [Fact]
+    public void Calendar_BeforeFirstOnsetsAtTheSameInstant_OffsetMatchesFirstTransition()
+    {
+        // Both onsets are at 23:30Z, from different offsets; the last observance is the one in use, as in GetTransitions (#278).
+        AssertOffsetBeforeFirstOnset(
+        [
+            "BEGIN:VTIMEZONE", "TZID:Test/Order",
+            "BEGIN:DAYLIGHT", "DTSTART:20260101T003000", "TZOFFSETFROM:+0100", "TZOFFSETTO:+0300", "END:DAYLIGHT",
+            "BEGIN:STANDARD", "DTSTART:20260101T013000", "TZOFFSETFROM:+0200", "TZOFFSETTO:+0000", "END:STANDARD",
+            "END:VTIMEZONE"
+        ], new DateTime(2025, 12, 31, 23, 30, 0, DateTimeKind.Utc), TimeSpan.FromHours(2));
+    }
+
+    private static void AssertOffsetBeforeFirstOnset(string[] timeZone, DateTime firstOnsetUtc, TimeSpan expectedOffset)
+    {
+        var calendar = ModelTestData.ReadCalendar(ModelTestData.Calendar(timeZone));
+        var rules = IcalTimeZoneResolver.Calendar.Resolve("Test/Order", calendar);
+
+        var first = rules.GetTransitions(new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            new DateTime(2027, 1, 1, 0, 0, 0, DateTimeKind.Utc)).First();
+
+        first.InstantUtc.Should().Be(firstOnsetUtc);
+        first.OffsetFrom.Offset.Should().Be(expectedOffset);
+        rules.GetUtcOffset(firstOnsetUtc.AddMinutes(-30)).Should().Be(first.OffsetFrom);
+    }
+
     [Theory]
     [InlineData("DTSTART", "1974-01-06T07:00:00Z")]
     [InlineData("RDATE", "1975-02-23T07:00:00Z")]
