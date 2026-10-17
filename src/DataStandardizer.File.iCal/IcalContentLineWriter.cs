@@ -373,7 +373,15 @@ namespace DataStandardizer.File.iCal
                 {
                     write = WriteLineCoreAsync(line, cancellationToken);
                 }
-                catch (IcalFileException exception)
+                catch (OperationCanceledException exception)
+                {
+                    // Thrown by the call when the text writer, or the netstandard2.0 check before the write, sees the cancellation first.
+                    _isCanceled = true;
+                    return new ValueTask(exception.CancellationToken.IsCancellationRequested
+                        ? Task.FromCanceled(exception.CancellationToken)
+                        : Task.FromException(exception));
+                }
+                catch (Exception exception)
                 {
                     return new ValueTask(Task.FromException(exception));
                 }
@@ -486,6 +494,10 @@ namespace DataStandardizer.File.iCal
         /// text writer takes the line without waiting.
         /// </summary>
         /// <exception cref="IcalFileException">The line cannot be written.  Thrown by this call, not the task.</exception>
+        /// <exception cref="OperationCanceledException">Thrown by this call, or by the task.</exception>
+        /// <remarks>
+        /// An exception the text writer throws from its call, rather than its task, is thrown by this call too.
+        /// </remarks>
         private ValueTask WriteLineCoreAsync(IcalContentLine line, CancellationToken cancellationToken)
         {
             var length = _formatter.Format(line, _linesWritten + 1);

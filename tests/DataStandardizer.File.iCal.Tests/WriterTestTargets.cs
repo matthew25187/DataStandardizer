@@ -217,6 +217,29 @@ internal sealed class GatedTextWriter : TextWriter
 }
 
 /// <summary>
+/// A text writer whose asynchronous writes throw an exception from the call itself, before returning a task.
+/// </summary>
+internal sealed class SynchronouslyThrowingTextWriter(Func<Exception> createException) : TextWriter
+{
+    public override Encoding Encoding => new UTF8Encoding(false);
+
+    public override void Write(char value)
+    {
+        throw new InvalidOperationException("Synchronous write on the async path.");
+    }
+
+    public override Task WriteAsync(char[] buffer, int index, int count)
+    {
+        throw createException();
+    }
+
+    public override Task WriteAsync(ReadOnlyMemory<char> buffer, CancellationToken cancellationToken = default)
+    {
+        throw createException();
+    }
+}
+
+/// <summary>
 /// A string writer that counts flushes and records whether it has been disposed.
 /// </summary>
 internal sealed class TrackingStringWriter : StringWriter
