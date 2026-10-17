@@ -176,6 +176,59 @@ public class SubtagRegistryTests : IClassFixture<Bcp47LanguageTagFixture>, IDisp
         testResult.Count.Should().Be(expectedRecordCount, "there are {0} records in the subtag registry", expectedRecordCount);
     }
 
+    [Fact]
+    public async Task CreateFromStream_WhenStreamIsPositioned_ReadsFromCurrentPositionAndLeavesStreamOpen()
+    {
+        // arrange
+        var subtagRegistryContent = _fixture.IanaSubtagRegistry.ToString();
+        using var subtagRegistryStream = CreatePositionedRegistryStream(subtagRegistryContent, out var startPosition);
+
+        var expectedRecordCount = await this.GetRegistryRecordCountAsync(subtagRegistryContent);
+
+        // act
+        // ReSharper disable once MethodHasAsyncOverload
+        var testResult = SubtagRegistry.SubtagRegistry.CreateFromStream(subtagRegistryStream);
+
+        // assert
+        testResult.Count.Should().Be(expectedRecordCount, "only the content after the stream's current position is read");
+        subtagRegistryStream.CanRead.Should().BeTrue("the caller owns the stream");
+        subtagRegistryStream.Position.Should().BeGreaterThan(startPosition);
+        subtagRegistryStream.Position = 0;
+    }
+
+    [Fact]
+    public async Task CreateFromStreamAsync_WhenStreamIsPositioned_ReadsFromCurrentPositionAndLeavesStreamOpen()
+    {
+        // arrange
+        var subtagRegistryContent = _fixture.IanaSubtagRegistry.ToString();
+        using var subtagRegistryStream = CreatePositionedRegistryStream(subtagRegistryContent, out var startPosition);
+
+        var expectedRecordCount = await this.GetRegistryRecordCountAsync(subtagRegistryContent);
+
+        // act
+        var testResult = await SubtagRegistry.SubtagRegistry.CreateFromStreamAsync(subtagRegistryStream);
+
+        // assert
+        testResult.Count.Should().Be(expectedRecordCount, "only the content after the stream's current position is read");
+        subtagRegistryStream.CanRead.Should().BeTrue("the caller owns the stream");
+        subtagRegistryStream.Position.Should().BeGreaterThan(startPosition);
+        subtagRegistryStream.Position = 0;
+    }
+
+    private static MemoryStream CreatePositionedRegistryStream(string registryContent, out long startPosition)
+    {
+        // a complete record ahead of the registry content, so reading from the start of the stream would add one record
+        var precedingContent = "Type: language\nSubtag: qaa\nDescription: Preceding record\nAdded: 2000-01-01\n%%\n";
+        var precedingBytes = Encoding.UTF8.GetBytes(precedingContent);
+        var registryBytes = Encoding.UTF8.GetBytes(registryContent);
+
+        var stream = new MemoryStream();
+        stream.Write(precedingBytes, 0, precedingBytes.Length);
+        stream.Write(registryBytes, 0, registryBytes.Length);
+        stream.Position = startPosition = precedingBytes.Length;
+        return stream;
+    }
+
     private async Task<string> CreateRegistryFileAsync(string registryContent)
     {
         var tempFilePath = Path.GetTempFileName();
