@@ -339,6 +339,31 @@ public class XcalReaderTests
         }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Dispose_FileNotRead_ClosesFile(bool isEncodingSet)
+    {
+        // arrange
+        var path = Path.GetTempFileName();
+        try
+        {
+            System.IO.File.WriteAllText(path, Example1Xcal);
+            var reader = new XcalReader(path, new IcalOptions { Encoding = isEncodingSet ? Encoding.UTF8 : null });
+
+            // act
+            reader.Dispose();
+
+            // assert
+            System.IO.File.Delete(path);
+            System.IO.File.Exists(path).Should().BeFalse();
+        }
+        finally
+        {
+            System.IO.File.Delete(path);
+        }
+    }
+
     /// <summary>
     /// Documents that are not valid xCal.  A caret marks the place the error is reported at: the name of an element, or the start of text.
     /// </summary>
