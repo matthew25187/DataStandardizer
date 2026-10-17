@@ -31,6 +31,19 @@ Publishing a released package to nuget.org is a separate, manual step that the m
 
 Packages are versioned from Azure DevOps variable groups, not from files in the repo. "Has this package changed?" is decided by diffing against the latest reachable package tag (`build/scripts/FindChangedPackages.ps1`). A squash or rebase moves the release onto a commit that has no tag, and a skipped back-merge means `develop` doesn't contain the release. Either one makes the next build publish the wrong set of packages.
 
+## Release notes
+
+Each package's NuGet release notes are generated from the commits that changed its `src/<Package>` folder since its last release (`build/scripts/SetReleaseNotesArgument.ps1`). Each commit gives one line under one of these headings: Breaking changes, New, Fixed, Deprecated and removed, Changed. Write commits so those lines make sense to someone who uses the package.
+
+- **The squash subject is the note.** A squash merge takes the PR title as its subject, or the commit's subject when the PR has one commit. Write both to describe what changed for a user of the package, not how it was implemented. Write "`IcalAlarm.TriggerDuration` no longer drops TRIGGER parameters", not "Replace the alarm TRIGGER in place".
+- **Declare notes with `Release-note:` trailers in a commit message**, not in the PR description. The squash merge builds its body from the commit messages, so a trailer in the PR description never reaches git. Put the trailers on one commit only; a trailer repeated on several commits is published once per commit.
+  - `Release-note: fixed` publishes the subject under that heading. Categories are `added` (or `new`), `fixed`, `changed`, `deprecated`, `removed`, `breaking` and `none`.
+  - `Release-note: fixed: <text>` publishes the text instead of the subject. Add one trailer for each change a user would notice, such as a PR that fixes two bugs.
+  - `Release-note: none` leaves out a commit that touches a package folder without affecting users, such as a build, test or documentation-comment change.
+  - Declare a note on every PR that touches `src/`. Without one, the heading is guessed from the subject's first word (`Fix`/`Correct`, `Add`/`Support`/`Expose`, `Deprecate`/`Remove`/`Drop`), and anything else lands under Changed.
+- **`BREAKING CHANGE: <text>`** is still published under Breaking changes, whatever else the commit declares.
+- **Commits already on `develop`** can't be changed. Correct their notes in `build/release-notes-overrides.json`, keyed by the full commit id. An empty `notes` list leaves the commit out. Check the notes each package will get before a release, and add overrides where they would mislead.
+
 ## Repository rules
 
 Branch rules for `develop` and `master` are kept as GitHub rulesets in `.github/rulesets/` and applied with `.github/rulesets/UpdateRepositoryRulesets.ps1`. Change the JSON there rather than in the GitHub UI, so the repo stays the source of truth. Both branches require a PR and a passing `DataStandardizer-CI` check.

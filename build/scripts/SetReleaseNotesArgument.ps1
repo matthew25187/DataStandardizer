@@ -11,9 +11,12 @@ param (
     [bool]  $IsReleaseNoteSeparationRequired = $false,
 
     # Where release notes are taken from: the commit subject, the commit body paragraphs, or both.
+    # Every change reaches develop as a squash merge whose subject is the pull request title, a
+    # one-line summary of the change, so the subject alone is the note a package consumer needs.
+    # The body explains the change to a reviewer and is far more detail than a package listing wants.
     [Parameter()]
     [ValidateSet('Subject', 'Body', 'Both')]
-    [string]    $NoteSource = 'Both',
+    [string]    $NoteSource = 'Subject',
 
     [Parameter()]
     [int]   $TraceLevel = 0
@@ -99,14 +102,23 @@ function Get-CommitRecord {
     }
 }
 
-# Recognise a git trailer line, such as 'Co-Authored-By:' or 'Signed-off-by:', or an Azure Boards
-# work item reference. Matching the form rather than a fixed list of names covers any trailer.
+# A GitHub closing keyword followed only by the issues it closes, such as 'Closes #123' or
+# 'Fixes #12, #13'. It links the pull request to its issues and says nothing about the change, but
+# once its references are removed the keyword alone is left, which was published as 'Closes.'.
+$script:closingKeywordPattern = '(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)'
+$script:issueReferencePattern = '(?:[\w.-]+/[\w.-]+)?#\d+'
+$script:closingLinePattern = "(?i)^$($script:closingKeywordPattern):?\s+$($script:issueReferencePattern)(?:\s*(?:,|\band\b)\s*(?:$($script:closingKeywordPattern):?\s+)?$($script:issueReferencePattern))*\s*[.]?$"
+
+# Recognise a git trailer line, such as 'Co-Authored-By:' or 'Signed-off-by:', an Azure Boards
+# work item reference, or a GitHub closing keyword. Matching the form rather than a fixed list of
+# names covers any trailer.
 function Test-TrailerLine {
     param (
         [string]    $Line
     )
 
-    return ($Line -match '^[A-Za-z][A-Za-z-]*:\s') -or ($Line -match '^AB#\d+\b')
+    # 'BREAKING CHANGE' is the one trailer token which may contain a space.
+    return ($Line -match '^[A-Za-z][A-Za-z-]*:\s') -or ($Line -match '^BREAKING CHANGE:\s') -or ($Line -match '^AB#\d+\b') -or ($Line -match $script:closingLinePattern)
 }
 
 # Read the values of any breaking change trailer. These are stated by the author rather than
@@ -456,9 +468,9 @@ function Remove-TrackerReference {
         return $Note
     }
 
-    # A parenthesised reference is punctuation around metadata wherever it sits, provided the
-    # parenthesis itself is not quoted.
-    $parenthesised = "\s*\(\s*$script:trackerReferencePattern\s*\)"
+    # A parenthesised reference, or list of references such as '(#263, #280)', is punctuation around
+    # metadata wherever it sits, provided the parenthesis itself is not quoted.
+    $parenthesised = "\s*\(\s*$script:trackerReferencePattern(?:\s*,\s*$script:trackerReferencePattern)*\s*\)"
     foreach ($match in ([regex]::Matches($Note, $parenthesised) | Sort-Object -Property Index -Descending)) {
         if (-not (Test-QuotedPosition -Note $Note -Index $match.Index)) {
             $Note = $Note.Remove($match.Index, $match.Length)
@@ -510,8 +522,9 @@ function Format-ReleaseNote {
     # Collapse whitespace left behind by the removals.
     $note = ($note -replace '\s{2,}', ' ').Trim()
 
-    # Nothing but punctuation may remain once the references have been removed.
-    if ($note -notmatch '\w') {
+    # Nothing but punctuation may remain once the references have been removed, or nothing but the
+    # closing keyword which introduced them.
+    if ($note -notmatch '\w' -or $note -match "(?i)^$($script:closingKeywordPattern)\W*$") {
         return $null
     }
     # A note which introduced a list is published without that list, the items having been dropped
@@ -531,29 +544,232 @@ function Format-ReleaseNote {
     return $note
 }
 
+# The sections a release note is published under, in the order a consumer needs to read them: what
+# may break their code first, then what they can now use, then what was wrong and is now right.
+$script:categoryHeadings = [ordered]@{
+    Breaking   = 'Breaking changes'
+    Added      = 'New'
+    Fixed      = 'Fixed'
+    Deprecated = 'Deprecated and removed'
+    Changed    = 'Changed'
+}
+
+# The categories a 'Release-note:' trailer or an override may declare, mapped to the section each
+# is published under. 'none' keeps a commit out of the notes altogether, which is how a change that
+# touches the package's folder without affecting its consumers, such as a build or test change, is
+# left out.
+$script:declaredCategories = @{
+    none       = 'None'
+    breaking   = 'Breaking'
+    added      = 'Added'
+    new        = 'Added'
+    fixed      = 'Fixed'
+    deprecated = 'Deprecated'
+    removed    = 'Deprecated'
+    changed    = 'Changed'
+}
+
+# The verbs a subject opens with when it states a change of each kind. The test is deliberately
+# narrow: a subject opening with any other verb is published as 'Changed', which is never wrong,
+# whereas a wide test would publish some changes under a heading which misdescribes them. A change
+# that this does not place correctly, such as a fix whose subject says 'Keep' or 'Throw', declares
+# its category with a 'Release-note:' trailer instead.
+$script:subjectCategoryPatterns = [ordered]@{
+    Fixed      = '^(?:Fix|Fixes|Fixed|Correct|Corrects|Corrected)\b'
+    Deprecated = '^(?:Deprecate|Deprecates|Deprecated|Remove|Removes|Removed|Drop|Drops|Dropped)\b'
+    Added      = '^(?:Add|Adds|Added|Support|Supports|Introduce|Introduces|Implement|Implements|Expose|Exposes)\b'
+}
+
+# The types of a Conventional Commits subject, such as 'feat: ...', mapped to the category each
+# one declares. The repository's early history used this form.
+$script:conventionalCategories = @{
+    feat = 'Added'
+    fix  = 'Fixed'
+}
+$script:conventionalPrefixPattern = '^(?<type>[a-z]+)(?:\([^)]*\))?(?<breaking>!)?:\s+'
+
+# A declared release note: the category it is published under and, where the author wrote one, its
+# text. Without text the commit subject is the note.
+function New-DeclaredNote {
+    param (
+        [string]    $Category,
+        [string]    $Text
+    )
+
+    [PSCustomObject]@{
+        Category = $Category
+        Text     = [string]::IsNullOrWhiteSpace($Text) ? $null : $Text.Trim()
+    }
+}
+
+# Read the release notes the author of a change declared with 'Release-note:' trailers. Each trailer
+# is one note, written as 'Release-note: <category>' to publish the subject under that category, or
+# 'Release-note: <category>: <text>' to publish the text instead, so a pull request which fixes two
+# problems can say so in words a consumer recognises. The trailers belong in a commit message rather
+# than the pull request description, because the squash merge builds its body from the former.
+# Returns nothing when the commit declares nothing, so that its notes are inferred instead.
+function Get-ReleaseNoteTrailer {
+    param (
+        [string]    $Subject,
+        [string]    $Body
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Body)) {
+        return
+    }
+
+    foreach ($line in (($Body -replace "`r", [string]::Empty) -split "`n")) {
+        $trailerMatch = [regex]::Match($line.Trim(), '^(?i)Release-note:\s*(?<category>[A-Za-z]+)\s*(?::\s*(?<text>\S.*))?$')
+        if (-not $trailerMatch.Success) {
+            continue
+        }
+
+        $declared = $trailerMatch.Groups['category'].Value.ToLowerInvariant()
+        if (-not $script:declaredCategories.ContainsKey($declared)) {
+            Write-Warning "Ignored the unrecognised release note category '$declared' declared on '$Subject'."
+            continue
+        }
+
+        New-DeclaredNote -Category $script:declaredCategories[$declared] -Text $trailerMatch.Groups['text'].Value
+    }
+}
+
+# Read the release notes declared for commits which were merged before they could declare them
+# themselves. A commit's message cannot be changed once it is on develop, so its notes are stated in
+# this file instead, keyed by the full commit id; an empty list of notes leaves the commit out.
+function Get-ReleaseNoteOverride {
+    param (
+        [string]    $Path
+    )
+
+    $overrides = @{}
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return $overrides
+    }
+
+    $document = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json -AsHashtable
+    foreach ($commitId in $document['commits'].Keys) {
+        if ($commitId -notmatch '^[0-9a-f]{40}$') {
+            Write-Error "Release note override key '$commitId' is not a full commit id."
+            exit 1
+        }
+
+        $notes = [System.Collections.Generic.List[object]]::new()
+        foreach ($entry in $document['commits'][$commitId]['notes']) {
+            $declared = ([string]$entry['category']).ToLowerInvariant()
+            if (-not $script:declaredCategories.ContainsKey($declared)) {
+                Write-Error "Release note override for $commitId has the unrecognised category '$declared'."
+                exit 1
+            }
+            $notes.Add((New-DeclaredNote -Category $script:declaredCategories[$declared] -Text $entry['text']))
+        }
+
+        $overrides[$commitId] = [PSCustomObject]@{
+            Subject = [string]$document['commits'][$commitId]['subject']
+            Notes   = $notes.ToArray()
+        }
+    }
+
+    return $overrides
+}
+
+# Decide which section a commit's subject is published under when the commit declares nothing: from
+# a Conventional Commits type, or else from the verb the subject opens with, falling back to 'Changed'.
+function Get-CommitCategory {
+    param (
+        [string]    $Subject
+    )
+
+    $conventionalMatch = [regex]::Match($Subject, $script:conventionalPrefixPattern)
+    if ($conventionalMatch.Success) {
+        if ($conventionalMatch.Groups['breaking'].Success) {
+            return 'Breaking'
+        }
+        $type = $conventionalMatch.Groups['type'].Value
+        if ($script:conventionalCategories.ContainsKey($type)) {
+            return $script:conventionalCategories[$type]
+        }
+    }
+
+    $note = Format-SubjectNote -Subject $Subject
+    foreach ($category in $script:subjectCategoryPatterns.Keys) {
+        if ($note -cmatch $script:subjectCategoryPatterns[$category]) {
+            return $category
+        }
+    }
+
+    return 'Changed'
+}
+
+# Reduce a subject to the change it states: drop a Conventional Commits prefix, whose type is
+# carried by the section heading instead, and bold emphasis around the whole subject.
+function Format-SubjectNote {
+    param (
+        [string]    $Subject
+    )
+
+    $note = [regex]::Replace($Subject, $script:conventionalPrefixPattern, [string]::Empty)
+    $note = $note -replace '^\*\*(?<text>[^*]+)\*\*', '${text}'
+    if (0 -lt $note.Length) {
+        $note = $note.Substring(0, 1).ToUpperInvariant() + $note.Substring(1)
+    }
+
+    return $note
+}
+
 # Compose the release notes. The note count and total length are bounded so that a long accumulation
 # cannot overrun the 32,766 character limit which applies to the encoded pipeline variable on
 # Windows; that limit, not the larger .nuspec one, is the binding constraint.
 $noteLimit = 60
 $totalLengthLimit = 8000
 
-$releaseNotesBuilder = [System.Text.StringBuilder]::new()
 $seenNotes = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
 $noteCount = 0
+$noteLength = 0
 $droppedCount = 0
 
-# Breaking changes are collected across every commit and published first, so that they are read
-# before the notes describing ordinary changes.
-$noteTexts = [System.Collections.Generic.List[string]]::new()
-$breakingNoteTexts = [System.Collections.Generic.List[string]]::new()
+# Notes are gathered by section across every commit, so that each section lists every change of its
+# kind however the commits were ordered.
+$noteTextsByCategory = [ordered]@{}
+foreach ($category in $script:categoryHeadings.Keys) {
+    $noteTextsByCategory[$category] = [System.Collections.Generic.List[string]]::new()
+}
+
+$overrides = Get-ReleaseNoteOverride -Path (Join-Path $PSScriptRoot '../release-notes-overrides.json')
 
 foreach ($commit in (Get-CommitRecord -RevisionRange $revisionRange -PackageSourcePath $packageSourcePath)) {
-    foreach ($breakingChange in (Get-BreakingChangeTrailer -Body $commit.Body)) {
-        $breakingNoteTexts.Add("BREAKING: $breakingChange")
+    # An override states every note of the commit, breaking changes included, because it exists to
+    # correct what the commit message says.
+    $override = $overrides[$commit.CommitId]
+    if ($null -ne $override) {
+        if ($override.Subject -cne $commit.Subject) {
+            Write-Warning "The release note override for $($commit.CommitId) names the subject '$($override.Subject)', but the commit's subject is '$($commit.Subject)'."
+        }
+        $declaredNotes = $override.Notes
+    }
+    else {
+        # A breaking change trailer is published whatever else the commit declares, because a
+        # consumer must not miss it.
+        foreach ($breakingChange in (Get-BreakingChangeTrailer -Body $commit.Body)) {
+            $noteTextsByCategory['Breaking'].Add($breakingChange)
+        }
+        $declaredNotes = @(Get-ReleaseNoteTrailer -Subject $commit.Subject -Body $commit.Body)
     }
 
+    # Declared notes are the commit's complete notes; nothing more is inferred from its message.
+    if ($null -ne $override -or 0 -lt $declaredNotes.Count) {
+        foreach ($declaredNote in $declaredNotes) {
+            if ('None' -ne $declaredNote.Category) {
+                $noteTextsByCategory[$declaredNote.Category].Add($declaredNote.Text ?? (Format-SubjectNote -Subject $commit.Subject))
+            }
+        }
+        continue
+    }
+
+    $noteTexts = $noteTextsByCategory[(Get-CommitCategory -Subject $commit.Subject)]
+
     if ($NoteSource -in @('Subject', 'Both')) {
-        $noteTexts.Add($commit.Subject)
+        $noteTexts.Add((Format-SubjectNote -Subject $commit.Subject))
     }
 
     if ($NoteSource -in @('Body', 'Both')) {
@@ -576,25 +792,38 @@ foreach ($commit in (Get-CommitRecord -RevisionRange $revisionRange -PackageSour
     }
 }
 
-foreach ($noteText in ($breakingNoteTexts + $noteTexts)) {
-    $releaseNote = Format-ReleaseNote -Message $noteText -SanitisePattern $sanitisePattern
-    if ($null -eq $releaseNote) {
-        continue
+$sections = [System.Collections.Generic.List[string]]::new()
+foreach ($category in $noteTextsByCategory.Keys) {
+    $heading = "$($script:categoryHeadings[$category]):"
+    $sectionBuilder = [System.Text.StringBuilder]::new()
+
+    foreach ($noteText in $noteTextsByCategory[$category]) {
+        $releaseNote = Format-ReleaseNote -Message $noteText -SanitisePattern $sanitisePattern
+        if ($null -eq $releaseNote) {
+            continue
+        }
+
+        # The same paragraph recurs where a change is amended or cherry-picked; publish it once.
+        if (-not $seenNotes.Add($releaseNote)) {
+            continue
+        }
+
+        # A section's heading counts towards the length only once it has a note to head.
+        $addedLength = $releaseNote.Length + 3 + ((0 -eq $sectionBuilder.Length) ? $heading.Length + 3 : 0)
+        if ($noteCount -ge $noteLimit -or ($noteLength + $addedLength) -gt $totalLengthLimit) {
+            $droppedCount++
+            continue
+        }
+
+        # A hyphen and a space so that the notes render as a list wherever they are read as Markdown.
+        [void]$sectionBuilder.AppendLine("- $releaseNote")
+        $noteCount++
+        $noteLength += $addedLength
     }
 
-    # The same paragraph recurs where a change is amended or cherry-picked; publish it once.
-    if (-not $seenNotes.Add($releaseNote)) {
-        continue
+    if (0 -lt $sectionBuilder.Length) {
+        $sections.Add("$heading`n$($sectionBuilder.ToString().TrimEnd())")
     }
-
-    if ($noteCount -ge $noteLimit -or ($releaseNotesBuilder.Length + $releaseNote.Length + 2) -gt $totalLengthLimit) {
-        $droppedCount++
-        continue
-    }
-
-    # A hyphen and a space so that the notes render as a list wherever they are read as Markdown.
-    [void]$releaseNotesBuilder.AppendLine("- $releaseNote")
-    $noteCount++
 }
 
 if (0 -lt $droppedCount) {
@@ -603,16 +832,17 @@ if (0 -lt $droppedCount) {
 
 Write-Verbose "Composed $noteCount release notes for $PackageName."
 
-$releaseNotes = $releaseNotesBuilder.ToString().TrimEnd()
+$releaseNotes = (($sections -join "`n`n") -replace "`r", [string]::Empty).TrimEnd()
+
+# A package is published without notes of its own where its publication was required by hand, or
+# every change since the last release was left out as not affecting its consumers. Saying so tells a
+# reader that nothing was missed, which an empty field does not.
+if ([string]::IsNullOrWhiteSpace($releaseNotes)) {
+    Write-Information "No commit since the last release of $PackageName affects its consumers."
+    $releaseNotes = 'No changes affect the use of this package.'
+}
 $releaseNotes
 
-# Output release notes to pipeline variable. When no relevant notes were produced, clear the
-# variable so UpdatePackageMetadata removes any stale releaseNotes element from the .nuspec.
-if ([string]::IsNullOrWhiteSpace($releaseNotes)) {
-    Write-Information "No relevant commit messages found for $PackageName; release notes will be cleared."
-    Write-Host "##vso[task.setvariable variable=releaseNotesArg]"
-}
-else {
-    $encodedReleaseNotes = $releaseNotes | ConvertTo-Base64String
-    Write-Host "##vso[task.setvariable variable=releaseNotesArg]$encodedReleaseNotes"
-}
+# Output release notes to pipeline variable.
+$encodedReleaseNotes = $releaseNotes | ConvertTo-Base64String
+Write-Host "##vso[task.setvariable variable=releaseNotesArg]$encodedReleaseNotes"
