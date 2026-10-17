@@ -59,4 +59,13 @@ internal static class ModelTestData
         string[] start = eventLines.Any(line => line.StartsWith("DTSTART", StringComparison.Ordinal)) ? [] : ["DTSTART:20260101T090000Z"];
         return Calendar(["BEGIN:VEVENT", "UID:event@example.com", "DTSTAMP:20260101T000000Z", .. start, .. eventLines, "END:VEVENT"]);
     }
+
+    /// <summary>
+    /// Reads a VEVENT holding one VALARM with these lines, and gets the alarm.
+    /// </summary>
+    public static IcalAlarm ReadAlarm(params string[] alarmLines)
+    {
+        var testEvent = ReadCalendar(EventCalendar(["BEGIN:VALARM", .. alarmLines, "END:VALARM"])).Events.Should().ContainSingle().Subject;
+        return testEvent.Alarms.Should().ContainSingle().Subject;
+    }
 }
