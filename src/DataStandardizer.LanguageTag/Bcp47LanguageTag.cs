@@ -252,7 +252,8 @@ namespace DataStandardizer.LanguageTag
 
         public override int GetHashCode()
         {
-            return (_languageTag != null ? _languageTag.GetHashCode() : 0);
+            // Must agree with Equals, which compares case-insensitively.
+            return (_languageTag != null ? StringComparer.OrdinalIgnoreCase.GetHashCode(_languageTag) : 0);
         }
 
         /// <summary>
