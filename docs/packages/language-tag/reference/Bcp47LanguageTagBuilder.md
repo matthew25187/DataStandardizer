@@ -51,8 +51,9 @@ implementations** (see [Explicit implementation](#explicit-implementation)) reac
 only through the chain — they cannot be called on a `Bcp47LanguageTagBuilder`-typed
 variable directly.
 
-Undefined enum values and malformed string subtags throw `ArgumentException` (or
-`ArgumentNullException` for `null`) at the point of the call; `Build()` may throw
+Undefined enum values, malformed string subtags and repeated variant subtags or
+extension singletons throw `ArgumentException` (or `ArgumentNullException` for
+`null`) at the point of the call; `Build()` may throw
 `LanguageTagFormatException` (the resulting tag is invalid) or
 `InvalidOperationException` (e.g. more than three extended language subtags, or an
 internal state error).
@@ -89,7 +90,7 @@ step chain (the relevant `IBcp47LanguageTagBuilderStep…` interface), not on a
 | `UsingExtendedLanguageSubtags(string)` | `IBcp47LanguageTagBuilderStepUsingExtendedLanguageSubtagsNext` | Reached through `IBcp47LanguageTagBuilderStepUsingExtendedLanguageSubtags`. One subtag. |
 | `UsingExtendedLanguageSubtags(string, string)` | `IBcp47LanguageTagBuilderStepUsingExtendedLanguageSubtagsNext` | Two subtags. |
 | `UsingExtendedLanguageSubtags(string, string, string)` | `IBcp47LanguageTagBuilderStepUsingExtendedLanguageSubtagsNext` | Three subtags (the maximum). |
-| `UsingExtensionSubtags(string, params string[])` | `IBcp47LanguageTagBuilderStepUsingExtensionSubtagsNext` | Reached through `IBcp47LanguageTagBuilderStepUsingExtensionSubtags`. |
+| `UsingExtensionSubtags(string, params string[])` | `IBcp47LanguageTagBuilderStepUsingExtensionSubtagsNext` | Reached through `IBcp47LanguageTagBuilderStepUsingExtensionSubtags`. Throws `ArgumentException` if two extensions share a singleton (compared case-insensitively). |
 | `UsingPrivateUseSubtag(string)` | `IBcp47LanguageTagBuilderStepUsingPrivateUseSubtagNext` | Reached through `IBcp47LanguageTagBuilderStepUsingPrivateUseSubtag`. |
 | `UsingRegionSubtag(Iso3166Part1Alpha2Country)` | `IBcp47LanguageTagBuilderStepUsingRegionSubtagNext` | Reached through `IBcp47LanguageTagBuilderStepUsingRegionSubtag`. |
 | `UsingRegionSubtag(UnM49AreaByAlpha2CountryCode)` | `IBcp47LanguageTagBuilderStepUsingRegionSubtagNext` | |
@@ -97,7 +98,7 @@ step chain (the relevant `IBcp47LanguageTagBuilderStep…` interface), not on a
 | `UsingRegionSubtag(string)` | `IBcp47LanguageTagBuilderStepUsingRegionSubtagNext` | |
 | `UsingScriptSubtag(Iso15924Script)` | `IBcp47LanguageTagBuilderStepUsingScriptSubtagNext` | Reached through `IBcp47LanguageTagBuilderStepUsingScriptSubtag`. |
 | `UsingScriptSubtag(string)` | `IBcp47LanguageTagBuilderStepUsingScriptSubtagNext` | |
-| `UsingVariantSubtags(string, params string[])` | `IBcp47LanguageTagBuilderStepUsingVariantSubtagsNext` | Reached through `IBcp47LanguageTagBuilderStepUsingVariantSubtags`. |
+| `UsingVariantSubtags(string, params string[])` | `IBcp47LanguageTagBuilderStepUsingVariantSubtagsNext` | Reached through `IBcp47LanguageTagBuilderStepUsingVariantSubtags`. Throws `ArgumentException` if a subtag is repeated (compared case-insensitively). |
 
 ## Applies to
 
