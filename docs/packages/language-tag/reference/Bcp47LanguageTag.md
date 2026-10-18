@@ -35,6 +35,13 @@ validation to a loaded copy of the *IANA Language Subtag Registry*; the overload
 that take a `TimeSpan` bound the time spent matching the validation regular
 expression.
 
+The 26 grandfathered tags listed in RFC 5646 §2.1, such as `i-klingon`,
+`en-GB-oed` and `zh-min-nan`, are accepted in both modes and compared
+case-insensitively. Each is interpreted as a whole (§2.2.8), so it has no
+subtags: `PrimaryLanguageSubtag` is the empty string, and the other subtag
+properties are `null` or empty. A tag that only starts with a grandfathered tag,
+such as `i-klingon-x-a`, is validated as an ordinary language tag.
+
 ## Properties
 
 Each getter throws `InvalidOperationException` if the instance is uninitialised.
@@ -43,7 +50,7 @@ Each getter throws `InvalidOperationException` if the instance is uninitialised.
 | --- | --- | --- |
 | `ExtendedLanguageSubtags` | `string[] ExtendedLanguageSubtags { get; }` | Empty if absent. |
 | `ExtensionSubtags` | `Bcp47KeyedSubtag[] ExtensionSubtags { get; }` | Empty if absent. |
-| `PrimaryLanguageSubtag` | `string PrimaryLanguageSubtag { get; }` | Always present on a valid tag. |
+| `PrimaryLanguageSubtag` | `string PrimaryLanguageSubtag { get; }` | Empty on a grandfathered or private use tag; otherwise always present. |
 | `PrivateUseSubtag` | `Bcp47KeyedSubtag? PrivateUseSubtag { get; }` | `null` if absent. |
 | `RegionSubtag` | `string? RegionSubtag { get; }` | `null` if absent. |
 | `ScriptSubtag` | `string? ScriptSubtag { get; }` | `null` if absent. |
@@ -69,7 +76,7 @@ Each getter throws `InvalidOperationException` if the instance is uninitialised.
 | `Equals(Bcp47LanguageTag other)` | `bool` | Case-insensitive comparison of the tag string. |
 | `Equals(object obj)` | `bool` | Override. |
 | `GetHashCode()` | `int` | Override. |
-| `IsWellFormedLanguageTagString(string languageTagString)` | `bool` | Static. Validates using the default BCP 47 rules. `false` if a variant subtag or extension singleton is repeated (RFC 5646 §2.2.5, §2.2.6). |
+| `IsWellFormedLanguageTagString(string languageTagString)` | `bool` | Static. Validates using the default BCP 47 rules. `false` if a variant subtag or extension singleton is repeated (RFC 5646 §2.2.5, §2.2.6). `true` for the grandfathered tags (§2.1). |
 | `ToIso15924()` | `Iso15924Script?` | From the script subtag; `null` if absent or unrecognised. |
 | `ToIso3166Part1Alpha2()` | `Iso3166Part1Alpha2Country?` | From the region subtag; `null` if absent or unrecognised. |
 | `ToIso639Part1()` | `Iso639Part1Language?` | From the primary language subtag; `null` if unrecognised. |

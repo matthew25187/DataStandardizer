@@ -59,6 +59,25 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
         { "en-a-bbb-a-ccc-x-a-a", "en-a-bbb-x-a-a" },
     };
 
+    /// <summary>
+    /// The 26 grandfathered language tags (RFC 5646 §2.1, §2.2.8): 17 irregular, then 9 regular, plus irregular and regular tags in other cases (§2.1.1).
+    /// </summary>
+    public static TheoryData<string> GrandfatheredLanguageTags => new()
+    {
+        "en-GB-oed", "i-ami", "i-bnn", "i-default", "i-enochian", "i-hak", "i-klingon", "i-lux", "i-mingo", "i-navajo", "i-pwn", "i-tao", "i-tay", "i-tsu",
+        "sgn-BE-FR", "sgn-BE-NL", "sgn-CH-DE",
+        "art-lojban", "cel-gaulish", "no-bok", "no-nyn", "zh-guoyu", "zh-hakka", "zh-min", "zh-min-nan", "zh-xiang",
+        "EN-gb-OED", "I-KLINGON", "Art-Lojban",
+    };
+
+    /// <summary>
+    /// Tags that start with an irregular grandfathered tag but are not one, and do not match the <c>langtag</c> production either.
+    /// </summary>
+    public static TheoryData<string> GrandfatheredPrefixLanguageTags => new()
+    {
+        "en-GB-oed-x-foo", "i-klingon-x-a", "i-klingon-i-klingon", "sgn-BE-FR-BE",
+    };
+
     #region Test: CheckExtendedLanguageSubtag_WithInvalidSubtag
 
     [Theory]
@@ -773,6 +792,36 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
 
     #endregion
 
+    #region Test: IsWellFormedLanguageTagString_WithGrandfatheredLanguageTag
+
+    [Theory]
+    [MemberData(nameof(GrandfatheredLanguageTags))]
+    public void IsWellFormedLanguageTagString_WithGrandfatheredLanguageTag_ReturnsTrue(string testLanguageTag)
+    {
+        // act
+        var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag);
+
+        // assert
+        testResult.Should().BeTrue("'{0}' is a grandfathered language tag, which is well-formed (RFC 5646 §2.1, §2.2.9)", testLanguageTag);
+    }
+
+    #endregion
+
+    #region Test: IsWellFormedLanguageTagString_WithGrandfatheredPrefix
+
+    [Theory]
+    [MemberData(nameof(GrandfatheredPrefixLanguageTags))]
+    public void IsWellFormedLanguageTagString_WithGrandfatheredPrefix_ReturnsFalse(string testLanguageTag)
+    {
+        // act
+        var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag);
+
+        // assert
+        testResult.Should().BeFalse("'{0}' only starts with a grandfathered language tag, and is not otherwise well-formed", testLanguageTag);
+    }
+
+    #endregion
+
     #region Test: IsWellFormedLanguageTagString_WithValidLanguageTag
 
     [Theory]
@@ -1440,6 +1489,30 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
 
     #endregion
 
+    #region Test: SubtagProperties_OnGrandfatheredLanguageTag
+
+    [Theory]
+    [MemberData(nameof(GrandfatheredLanguageTags))]
+    public void SubtagProperties_OnGrandfatheredLanguageTag_ReturnNoSubtags(string testLanguageTag)
+    {
+        // arrange
+        var testLanguageTags = new[] { Bcp47LanguageTag.Create(testLanguageTag), Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry) };
+
+        foreach (var languageTag in testLanguageTags)
+        {
+            // assert
+            languageTag.PrimaryLanguageSubtag.Should().BeEmpty("a grandfathered language tag is interpreted as a whole (RFC 5646 §2.2.8)");
+            languageTag.ExtendedLanguageSubtags.Should().BeEmpty();
+            languageTag.ScriptSubtag.Should().BeNull();
+            languageTag.RegionSubtag.Should().BeNull();
+            languageTag.VariantSubtags.Should().BeEmpty();
+            languageTag.ExtensionSubtags.Should().BeEmpty();
+            languageTag.PrivateUseSubtag.Should().BeNull();
+        }
+    }
+
+    #endregion
+
     #region Test: ToIso15924_WithLanguageTagHavingNoScriptSubtag
 
     [Fact]
@@ -1762,6 +1835,22 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
 
     #endregion
 
+    #region Test: Create_WithLanguageTagWhenLanguageTagIsGrandfathered
+
+    [Theory]
+    [MemberData(nameof(GrandfatheredLanguageTags))]
+    public void Create_WithLanguageTagWhenLanguageTagIsGrandfathered_ReturnsBcp47LanguageTag(string testLanguageTag)
+    {
+        // act
+        var languageTag = Bcp47LanguageTag.Create(testLanguageTag);
+        var testResult = (string?)languageTag;
+
+        // assert
+        testResult.Should().Be(testLanguageTag, "'{0}' is a grandfathered language tag (RFC 5646 §2.1, §2.2.8)", testLanguageTag);
+    }
+
+    #endregion
+
     #region Test: Create_WithLanguageTagWhenLanguageTagIsValid
 
     [Theory]
@@ -1837,6 +1926,22 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
         // assert
         controlAction.Should().NotThrow("the language tag '{0}' has no repeated subtags", controlLanguageTag);
         testAction.Should().Throw<LanguageTagFormatException>("a variant subtag or extension singleton is repeated (RFC 5646 §2.2.5, §2.2.6)").WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
+    }
+
+    #endregion
+
+    #region Test: Create_WithLanguageTagAndTimeoutWhenLanguageTagIsGrandfathered
+
+    [Theory]
+    [MemberData(nameof(GrandfatheredLanguageTags))]
+    public void Create_WithLanguageTagAndTimeoutWhenLanguageTagIsGrandfathered_ReturnsBcp47LanguageTag(string testLanguageTag)
+    {
+        // act
+        var languageTag = Bcp47LanguageTag.Create(testLanguageTag, Regex.InfiniteMatchTimeout);
+        var testResult = (string?)languageTag;
+
+        // assert
+        testResult.Should().Be(testLanguageTag, "'{0}' is a grandfathered language tag (RFC 5646 §2.1, §2.2.8)", testLanguageTag);
     }
 
     #endregion
@@ -1934,6 +2039,22 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
 
     #endregion
 
+    #region Test: Create_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsGrandfathered
+
+    [Theory]
+    [MemberData(nameof(GrandfatheredLanguageTags))]
+    public void Create_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsGrandfathered_ReturnsBcp47LanguageTag(string testLanguageTag)
+    {
+        // act
+        var languageTag = Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry);
+        var testResult = (string?)languageTag;
+
+        // assert
+        testResult.Should().Be(testLanguageTag, "'{0}' is a grandfathered language tag (RFC 5646 §2.1, §2.2.8)", testLanguageTag);
+    }
+
+    #endregion
+
     #region Test: Create_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsValid
 
     [Theory]
@@ -2023,6 +2144,22 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
         // assert
         controlAction.Should().NotThrow("the language tag '{0}' has no repeated subtags", controlLanguageTag);
         testAction.Should().Throw<LanguageTagFormatException>("a variant subtag or extension singleton is repeated (RFC 5646 §2.2.5, §2.2.6)").WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
+    }
+
+    #endregion
+
+    #region Test: Create_WithLanguageTagAndSubtagRegistryAndTimeoutWhenLanguageTagIsGrandfathered
+
+    [Theory]
+    [MemberData(nameof(GrandfatheredLanguageTags))]
+    public void Create_WithLanguageTagAndSubtagRegistryAndTimeoutWhenLanguageTagIsGrandfathered_ReturnsBcp47LanguageTag(string testLanguageTag)
+    {
+        // act
+        var languageTag = Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry, Regex.InfiniteMatchTimeout);
+        var testResult = (string?)languageTag;
+
+        // assert
+        testResult.Should().Be(testLanguageTag, "'{0}' is a grandfathered language tag (RFC 5646 §2.1, §2.2.8)", testLanguageTag);
     }
 
     #endregion
@@ -2160,6 +2297,22 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
 
     #endregion
 
+    #region Test: TryCreate_WithLanguageTagWhenLanguageTagIsGrandfathered
+
+    [Theory]
+    [MemberData(nameof(GrandfatheredLanguageTags))]
+    public void TryCreate_WithLanguageTagWhenLanguageTagIsGrandfathered_ReturnsTrue(string testLanguageTag)
+    {
+        // act
+        var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, out var languageTag);
+
+        // assert
+        testResult.Should().BeTrue("'{0}' is a grandfathered language tag (RFC 5646 §2.1, §2.2.8)", testLanguageTag);
+        ((string?)languageTag).Should().Be(testLanguageTag);
+    }
+
+    #endregion
+
     #region Test: TryCreate_WithLanguageTagWhenLanguageTagIsValid
 
     [Theory]
@@ -2238,6 +2391,22 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
         // assert
         controlResult.Should().BeTrue("the language tag '{0}' has no repeated subtags", controlLanguageTag);
         testResult.Should().BeFalse("the language tag '{0}' repeats a variant subtag or extension singleton (RFC 5646 §2.2.5, §2.2.6)", testLanguageTag);
+    }
+
+    #endregion
+
+    #region Test: TryCreate_WithLanguageTagAndTimeoutWhenLanguageTagIsGrandfathered
+
+    [Theory]
+    [MemberData(nameof(GrandfatheredLanguageTags))]
+    public void TryCreate_WithLanguageTagAndTimeoutWhenLanguageTagIsGrandfathered_ReturnsTrue(string testLanguageTag)
+    {
+        // act
+        var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, Regex.InfiniteMatchTimeout, out var languageTag);
+
+        // assert
+        testResult.Should().BeTrue("'{0}' is a grandfathered language tag (RFC 5646 §2.1, §2.2.8)", testLanguageTag);
+        ((string?)languageTag).Should().Be(testLanguageTag);
     }
 
     #endregion
@@ -2338,6 +2507,22 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
 
     #endregion
 
+    #region Test: TryCreate_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsGrandfathered
+
+    [Theory]
+    [MemberData(nameof(GrandfatheredLanguageTags))]
+    public void TryCreate_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsGrandfathered_ReturnsTrue(string testLanguageTag)
+    {
+        // act
+        var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, _fixture.IanaSubtagRegistry, out var languageTag);
+
+        // assert
+        testResult.Should().BeTrue("'{0}' is a grandfathered language tag (RFC 5646 §2.1, §2.2.8)", testLanguageTag);
+        ((string?)languageTag).Should().Be(testLanguageTag);
+    }
+
+    #endregion
+
     #region Test: TryCreate_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsValid
 
     [Theory]
@@ -2430,6 +2615,22 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
         // assert
         controlResult.Should().BeTrue("the language tag '{0}' has no repeated subtags", controlLanguageTag);
         testResult.Should().BeFalse("the language tag '{0}' repeats a variant subtag or extension singleton (RFC 5646 §2.2.5, §2.2.6)", testLanguageTag);
+    }
+
+    #endregion
+
+    #region Test: TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenLanguageTagIsGrandfathered
+
+    [Theory]
+    [MemberData(nameof(GrandfatheredLanguageTags))]
+    public void TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenLanguageTagIsGrandfathered_ReturnsTrue(string testLanguageTag)
+    {
+        // act
+        var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, _fixture.IanaSubtagRegistry, Regex.InfiniteMatchTimeout, out var languageTag);
+
+        // assert
+        testResult.Should().BeTrue("'{0}' is a grandfathered language tag (RFC 5646 §2.1, §2.2.8)", testLanguageTag);
+        ((string?)languageTag).Should().Be(testLanguageTag);
     }
 
     #endregion

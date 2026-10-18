@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Linq;
+using System.Text.RegularExpressions;
 using static DataStandardizer.LanguageTag.Bcp47Constants;
 
 namespace DataStandardizer.LanguageTag.InternalState
@@ -24,7 +25,9 @@ namespace DataStandardizer.LanguageTag.InternalState
             var variantSubtagGroupPattern = $"(?:(?:-(?<{LanguageTagSubtagGroupName.Variant}>{Bcp47RulesBasedVariantSubtagExpressionFactory.Pattern}))+)";
             var extensionSubtagGroupPattern = $"(?:(?:-(?<{LanguageTagSubtagGroupName.Extension}>{Bcp47RulesBasedExtensionSubtagExpressionFactory.Pattern}))+)";
             var privateUseSubtagGroupPattern = $"(?:-(?<{LanguageTagSubtagGroupName.PrivateUse}>{Bcp47RulesBasedPrivateUseSubtagExpressionFactory.Pattern}))";
-            pattern = string.Concat("(?:(?<",LanguageTagSubtagGroupName.PrivateUse,">", Bcp47RulesBasedPrivateUseSubtagExpressionFactory.Pattern,")|", primaryLanguageSubtagGroupPattern, extendedLanguageSubtagGroupPattern, "?", scriptSubtagGroupPattern, "?", regionSubtagGroupPattern, "?", variantSubtagGroupPattern, "?",
+            // Grandfathered tags come first so that the regular ones are matched as a whole rather than as subtags (ref. RFC 5646 §2.2.8).
+            var grandfatheredLanguageTagPattern = string.Join("|", GrandfatheredLanguageTags.Select(Regex.Escape));
+            pattern = string.Concat("(?:", grandfatheredLanguageTagPattern, "|(?<",LanguageTagSubtagGroupName.PrivateUse,">", Bcp47RulesBasedPrivateUseSubtagExpressionFactory.Pattern,")|", primaryLanguageSubtagGroupPattern, extendedLanguageSubtagGroupPattern, "?", scriptSubtagGroupPattern, "?", regionSubtagGroupPattern, "?", variantSubtagGroupPattern, "?",
                 extensionSubtagGroupPattern, "?", privateUseSubtagGroupPattern, "?)");
         }
 
