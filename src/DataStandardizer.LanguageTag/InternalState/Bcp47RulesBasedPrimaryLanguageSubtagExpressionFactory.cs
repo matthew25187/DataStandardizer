@@ -11,6 +11,14 @@ namespace DataStandardizer.LanguageTag.InternalState
         private static readonly RegexOptions ExpressionOptions;
         internal static readonly string pattern;
 
+        /// <summary>
+        /// The two- and three-letter subtags, which alone may be followed by Extended Language subtags (ref. RFC 5646 §2.1, §2.2.2).
+        /// </summary>
+        internal static readonly string ShortPattern;
+
+        // Include subtags reserved for future standardisation (ref. RFC 5646 §2.2.1¶4) and subtags that may be registered (ref. RFC 5646 §2.2.1¶5).
+        internal const string LongPattern = "[a-zA-Z]{4,8}";
+
         static Bcp47RulesBasedPrimaryLanguageSubtagExpressionFactory()
         {
             ExpressionOptions = RegexOptions.IgnoreCase | RegexOptions.Singleline;
@@ -18,7 +26,8 @@ namespace DataStandardizer.LanguageTag.InternalState
             ExpressionOptions |= RegexOptions.Compiled;
 #endif
 
-            pattern = ComposePattern();
+            ShortPattern = ComposeShortPattern();
+            pattern = string.Concat("(?:", ShortPattern, "|", LongPattern, ")");
         }
 
         public Regex Create()
@@ -31,7 +40,7 @@ namespace DataStandardizer.LanguageTag.InternalState
             return pattern;
         }
 
-        private static string ComposePattern()
+        private static string ComposeShortPattern()
         {
             // Include alpha-2 codes from ISO 639-1:2002 (ref. RFC 5646 §2.2.1¶1)
             var iso639Part1Names = StringEnum.GetNames<Iso639Part1Language>();
@@ -53,12 +62,9 @@ namespace DataStandardizer.LanguageTag.InternalState
                 iso639Part2ReservedNames.Add($"q{(char)secondCharacterIndex}{(char)thirdCharacterIndex}");
             }
 
-            // Include subtags that may be registered (ref. RFC 5646 §2.2.1¶5)
-            const string registeredSubtags = "[a-zA-Z0-9]{5,8}";
-
             // Compose pattern.
             var iso639Names = iso639Part1Names.Union(iso639Part2Names).Union(iso639Part2ReservedNames).Union(iso639Part3Names).Union(iso639Part5Names);
-            return string.Concat("(?:", string.Join("|", iso639Names.Select(Regex.Escape)), "|", registeredSubtags, ")");
+            return string.Concat("(?:", string.Join("|", iso639Names.Select(Regex.Escape)), ")");
         }
     }
 }

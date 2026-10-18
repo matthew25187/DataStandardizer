@@ -42,6 +42,13 @@ subtags: `PrimaryLanguageSubtag` is the empty string, and the other subtag
 properties are `null` or empty. A tag that only starts with a grandfathered tag,
 such as `i-klingon-x-a`, is validated as an ordinary language tag.
 
+Without a subtag registry, the primary language subtag follows the RFC 5646
+grammar (§2.1, §2.2.1): an ISO 639 code (including `qaa` to `qtz`), a four-letter
+subtag reserved for future use, or a five- to eight-letter registered subtag.
+Subtags of four or more characters are letters only, so `12345` is rejected.
+Extended language subtags may follow only a two- or three-letter primary
+language subtag (§2.2.2), so `zh-yue` is accepted and `abcde-yue` is not.
+
 ## Properties
 
 Each getter throws `InvalidOperationException` if the instance is uninitialised.
@@ -64,7 +71,7 @@ Each getter throws `InvalidOperationException` if the instance is uninitialised.
 | --- | --- | --- |
 | `CheckExtendedLanguageSubtag(string extendedLanguageSubtag)` | `bool` | Static. Validates using the default BCP 47 rules. |
 | `CheckExtensionSubtag(string extensionSubtag)` | `bool` | Static. Validates one extension (a singleton and its subtags) using the default BCP 47 rules. |
-| `CheckPrimaryLanguageSubtag(string primaryLanguageSubtag)` | `bool` | Static. Validates using the default BCP 47 rules. |
+| `CheckPrimaryLanguageSubtag(string primaryLanguageSubtag)` | `bool` | Static. Validates using the default BCP 47 rules. `true` for an ISO 639 code or four to eight letters (RFC 5646 §2.2.1). |
 | `CheckPrivateUseSubtag(string privateUseSubtag)` | `bool` | Static. Validates using the default BCP 47 rules. |
 | `CheckRegionSubtag(string regionSubtag)` | `bool` | Static. Validates using the default BCP 47 rules. |
 | `CheckScriptSubtag(string scriptSubtag)` | `bool` | Static. Validates using the default BCP 47 rules. |
