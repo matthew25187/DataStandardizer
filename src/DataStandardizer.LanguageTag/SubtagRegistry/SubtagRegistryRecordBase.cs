@@ -36,7 +36,7 @@ namespace DataStandardizer.LanguageTag.SubtagRegistry
         protected T GetPropertyValue<T>([CallerMemberName] string propertyName = null)
 #endif
         {
-            var property = this.GetType().GetTypeInfo().GetDeclaredProperty(propertyName ?? string.Empty);
+            var property = this.GetType().GetRuntimeProperty(propertyName ?? string.Empty);
             var fieldAttribute = property?.GetCustomAttribute<SubtagRegistryFieldAttribute>();
             var fieldName = fieldAttribute?.FieldName ?? propertyName;
 
@@ -76,7 +76,7 @@ namespace DataStandardizer.LanguageTag.SubtagRegistry
         protected T[] GetPropertyValues<T>([CallerMemberName] string propertyName = null)
 #endif
         {
-            var property = this.GetType().GetTypeInfo().GetDeclaredProperty(propertyName ?? string.Empty);
+            var property = this.GetType().GetRuntimeProperty(propertyName ?? string.Empty);
             var fieldAttribute = property?.GetCustomAttribute<SubtagRegistryFieldAttribute>();
             var fieldName = fieldAttribute?.FieldName ?? propertyName;
 
