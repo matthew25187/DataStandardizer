@@ -220,6 +220,62 @@ public class Bcp47LanguageTagBuilderTests
 
     #endregion
 
+    #region Test: UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsNonAlpha
+
+    [Theory]
+    [InlineData("12345"), InlineData("abcd1"), InlineData("a1b2c3d4")]
+    public void UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsNonAlpha_ThrowsArgumentException(string testSubject)
+    {
+        // arrange
+        var builder = new Bcp47LanguageTagBuilder();
+
+        // act
+        Action testAction = () => _ = builder.UsingPrimaryLanguageSubtag(testSubject);
+
+        // assert
+        testAction.Should()
+            .Throw<ArgumentException>("'{0}' contains a digit, and a Primary Language subtag is letters only (RFC 5646 §2.1, §2.2.1)", testSubject)
+            .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SubtagInvalidTemplate, testSubject, "Primary Language subtag") + "*")
+            .WithParameterName("primaryLanguageSubtag");
+    }
+
+    #endregion
+
+    #region Test: UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsReserved
+
+    [Fact]
+    public void UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsReserved_ProducesBcp47LanguageTag()
+    {
+        // arrange
+        const string testSubject = "abcd";
+        var builder = new Bcp47LanguageTagBuilder();
+
+        // act
+        var testResult = builder.UsingPrimaryLanguageSubtag(testSubject).Build();
+
+        // assert
+        testResult.PrimaryLanguageSubtag.Should().Be(testSubject, "a four-letter Primary Language subtag is reserved, and well-formed (RFC 5646 §2.1, §2.2.1¶4)");
+    }
+
+    #endregion
+
+    #region Test: Build_WhenExtendedLanguageSubtagsFollowRegisteredPrimaryLanguageSubtag
+
+    [Fact]
+    public void Build_WhenExtendedLanguageSubtagsFollowRegisteredPrimaryLanguageSubtag_ThrowsLanguageTagFormatException()
+    {
+        // arrange
+        var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag("abcde").UsingExtendedLanguageSubtags("aaa");
+
+        // act
+        Action testAction = () => _ = builder.Build();
+
+        // assert
+        testAction.Should().Throw<LanguageTagFormatException>("only a two- or three-letter Primary Language subtag may be followed by Extended Language subtags (RFC 5646 §2.1, §2.2.2)");
+    }
+
+    #endregion
+
     #region Test: UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsNull
 
     [Fact]

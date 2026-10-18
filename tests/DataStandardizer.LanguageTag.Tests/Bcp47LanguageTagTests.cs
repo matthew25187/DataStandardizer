@@ -78,6 +78,33 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
         "en-GB-oed-x-foo", "i-klingon-x-a", "i-klingon-i-klingon", "sgn-BE-FR-BE",
     };
 
+    /// <summary>
+    /// Four-letter Primary Language subtags, which are reserved for future standardisation (RFC 5646 §2.1, §2.2.1¶4), in various cases (§2.1.1).
+    /// </summary>
+    public static TheoryData<string> ReservedPrimaryLanguageSubtags => new()
+    {
+        "abcd", "ABCD", "Wxyz",
+    };
+
+    /// <summary>
+    /// Subtags of four to eight characters that contain a digit, and so are neither reserved (<c>4ALPHA</c>) nor registered (<c>5*8ALPHA</c>) Primary Language subtags (RFC 5646 §2.1, §2.2.1).
+    /// </summary>
+    public static TheoryData<string> NonAlphaPrimaryLanguageSubtags => new()
+    {
+        "1234", "abc1", "12345", "abcd1", "1bcde", "a1b2c3d4",
+    };
+
+    /// <summary>
+    /// Language tags with Extended Language subtags after a Primary Language subtag of four to eight letters, each with a control tag that has them after a two- or three-letter one (RFC 5646 §2.1, §2.2.2).
+    /// </summary>
+    public static TheoryData<string, string> MisplacedExtendedLanguageSubtagLanguageTags => new()
+    {
+        { "abcde-aaa", "zh-aaa" },
+        { "abcd-yue", "zh-yue" },
+        { "klingon-aaa-bbb", "tlh-aaa-bbb" },
+        { "abcdefgh-cmn-Hans-CN", "zh-cmn-Hans-CN" },
+    };
+
     #region Test: CheckExtendedLanguageSubtag_WithInvalidSubtag
 
     [Theory]
@@ -213,8 +240,14 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
             foreach (var testCharacter in TestCharacters)
             {
                 yield return new object[] { testCharacter.ToString() };
-                yield return new object[] { string.Concat(Enumerable.Repeat(testCharacter, 4)) };
                 yield return new object[] { string.Concat(Enumerable.Repeat(testCharacter, 9)) };
+            }
+
+            // Four to eight letters are reserved or registered subtags (ref. RFC 5646 §2.2.1¶4-5), but four to eight digits are neither.
+            foreach (var testDigit in TestDigits)
+            {
+                yield return new object[] { string.Concat(Enumerable.Repeat(testDigit, 4)) };
+                yield return new object[] { string.Concat(Enumerable.Repeat(testDigit, 8)) };
             }
         }
 
@@ -361,6 +394,36 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
 
         // assert
         testResult.Should().BeTrue("the subtag {0} is a valid Primary Language subtag", testSubtag);
+    }
+
+    #endregion
+
+    #region Test: CheckPrimaryLanguageSubtag_WithReservedSubtag
+
+    [Theory]
+    [MemberData(nameof(ReservedPrimaryLanguageSubtags))]
+    public void CheckPrimaryLanguageSubtag_WithReservedSubtag_ReturnsTrue(string testSubtag)
+    {
+        // act
+        var testResult = Bcp47LanguageTag.CheckPrimaryLanguageSubtag(testSubtag);
+
+        // assert
+        testResult.Should().BeTrue("the subtag '{0}' is a reserved Primary Language subtag, which is well-formed (RFC 5646 §2.1, §2.2.1¶4)", testSubtag);
+    }
+
+    #endregion
+
+    #region Test: CheckPrimaryLanguageSubtag_WithNonAlphaSubtag
+
+    [Theory]
+    [MemberData(nameof(NonAlphaPrimaryLanguageSubtags))]
+    public void CheckPrimaryLanguageSubtag_WithNonAlphaSubtag_ReturnsFalse(string testSubtag)
+    {
+        // act
+        var testResult = Bcp47LanguageTag.CheckPrimaryLanguageSubtag(testSubtag);
+
+        // assert
+        testResult.Should().BeFalse("the subtag '{0}' contains a digit, and a Primary Language subtag is letters only (RFC 5646 §2.1, §2.2.1)", testSubtag);
     }
 
     #endregion
@@ -822,6 +885,65 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
 
     #endregion
 
+    #region Test: IsWellFormedLanguageTagString_WithReservedPrimaryLanguageSubtag
+
+    [Theory]
+    [MemberData(nameof(ReservedPrimaryLanguageSubtags))]
+    public void IsWellFormedLanguageTagString_WithReservedPrimaryLanguageSubtag_ReturnsTrue(string testSubtag)
+    {
+        // arrange
+        var testLanguageTags = new[] { testSubtag, $"{testSubtag}-Latn-US", $"{testSubtag}-x-test" };
+
+        foreach (var testLanguageTag in testLanguageTags)
+        {
+            // act
+            var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag);
+
+            // assert
+            testResult.Should().BeTrue("'{0}' has a reserved Primary Language subtag, which is well-formed (RFC 5646 §2.1, §2.2.1¶4)", testLanguageTag);
+        }
+    }
+
+    #endregion
+
+    #region Test: IsWellFormedLanguageTagString_WithNonAlphaPrimaryLanguageSubtag
+
+    [Theory]
+    [MemberData(nameof(NonAlphaPrimaryLanguageSubtags))]
+    public void IsWellFormedLanguageTagString_WithNonAlphaPrimaryLanguageSubtag_ReturnsFalse(string testSubtag)
+    {
+        // arrange
+        var testLanguageTags = new[] { testSubtag, $"{testSubtag}-US", $"{testSubtag}-x-test" };
+
+        foreach (var testLanguageTag in testLanguageTags)
+        {
+            // act
+            var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag);
+
+            // assert
+            testResult.Should().BeFalse("the Primary Language subtag of '{0}' contains a digit (RFC 5646 §2.1, §2.2.1)", testLanguageTag);
+        }
+    }
+
+    #endregion
+
+    #region Test: IsWellFormedLanguageTagString_WithMisplacedExtendedLanguageSubtags
+
+    [Theory]
+    [MemberData(nameof(MisplacedExtendedLanguageSubtagLanguageTags))]
+    public void IsWellFormedLanguageTagString_WithMisplacedExtendedLanguageSubtags_ReturnsFalse(string testLanguageTag, string controlLanguageTag)
+    {
+        // act
+        var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag);
+        var controlResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(controlLanguageTag);
+
+        // assert
+        controlResult.Should().BeTrue("the language tag '{0}' has Extended Language subtags after a two- or three-letter Primary Language subtag", controlLanguageTag);
+        testResult.Should().BeFalse("the language tag '{0}' has Extended Language subtags after a Primary Language subtag of four to eight letters (RFC 5646 §2.1, §2.2.2)", testLanguageTag);
+    }
+
+    #endregion
+
     #region Test: IsWellFormedLanguageTagString_WithValidLanguageTag
 
     [Theory]
@@ -1061,6 +1183,27 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
 
         // assert
         testResult.Should().Be(expectedResult, "'{0}' is the Primary Language subtag of the language tag {1}", expectedResult, testLanguageTag);
+    }
+
+    #endregion
+
+    #region Test: PrimaryLanguageSubtag_WhenReservedSubtag
+
+    [Theory]
+    [MemberData(nameof(ReservedPrimaryLanguageSubtags))]
+    public void PrimaryLanguageSubtag_WhenReservedSubtag_ReturnsPrimaryLanguageSubtag(string expectedResult)
+    {
+        // arrange
+        var testLanguageTag = $"{expectedResult}-Latn-US";
+        var testSubject = Bcp47LanguageTag.Create(testLanguageTag);
+
+        // act
+        var testResult = testSubject.PrimaryLanguageSubtag;
+
+        // assert
+        testResult.Should().Be(expectedResult, "'{0}' is the Primary Language subtag of the language tag {1}", expectedResult, testLanguageTag);
+        testSubject.ScriptSubtag.Should().Be("Latn");
+        testSubject.RegionSubtag.Should().Be("US");
     }
 
     #endregion
@@ -1814,6 +1957,54 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
 
         // assert
         testAction.Should().Throw<LanguageTagFormatException>("the language tag was not in a recognised format").WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
+    }
+
+    #endregion
+
+    #region Test: Create_WithLanguageTagWhenPrimaryLanguageSubtagIsNonAlpha
+
+    [Theory]
+    [MemberData(nameof(NonAlphaPrimaryLanguageSubtags))]
+    public void Create_WithLanguageTagWhenPrimaryLanguageSubtagIsNonAlpha_ThrowsLanguageTagFormatException(string testLanguageTag)
+    {
+        // act
+        Action testAction = () => Bcp47LanguageTag.Create(testLanguageTag);
+
+        // assert
+        testAction.Should().Throw<LanguageTagFormatException>("the Primary Language subtag of '{0}' contains a digit (RFC 5646 §2.1, §2.2.1)", testLanguageTag).WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
+    }
+
+    #endregion
+
+    #region Test: Create_WithLanguageTagWhenPrimaryLanguageSubtagIsReserved
+
+    [Theory]
+    [MemberData(nameof(ReservedPrimaryLanguageSubtags))]
+    public void Create_WithLanguageTagWhenPrimaryLanguageSubtagIsReserved_ReturnsBcp47LanguageTag(string testLanguageTag)
+    {
+        // act
+        var languageTag = Bcp47LanguageTag.Create(testLanguageTag);
+        var testResult = (string?)languageTag;
+
+        // assert
+        testResult.Should().Be(testLanguageTag, "'{0}' is a reserved Primary Language subtag, which is well-formed (RFC 5646 §2.1, §2.2.1¶4)", testLanguageTag);
+    }
+
+    #endregion
+
+    #region Test: Create_WithLanguageTagWhenExtendedLanguageSubtagsAreMisplaced
+
+    [Theory]
+    [MemberData(nameof(MisplacedExtendedLanguageSubtagLanguageTags))]
+    public void Create_WithLanguageTagWhenExtendedLanguageSubtagsAreMisplaced_ThrowsLanguageTagFormatException(string testLanguageTag, string controlLanguageTag)
+    {
+        // act
+        Action testAction = () => Bcp47LanguageTag.Create(testLanguageTag);
+        Action controlAction = () => Bcp47LanguageTag.Create(controlLanguageTag);
+
+        // assert
+        controlAction.Should().NotThrow("the language tag '{0}' has Extended Language subtags after a two- or three-letter Primary Language subtag", controlLanguageTag);
+        testAction.Should().Throw<LanguageTagFormatException>("the language tag '{0}' has Extended Language subtags after a Primary Language subtag of four to eight letters (RFC 5646 §2.1, §2.2.2)", testLanguageTag).WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
     }
 
     #endregion
