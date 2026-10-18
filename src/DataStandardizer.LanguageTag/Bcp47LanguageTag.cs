@@ -139,7 +139,7 @@ namespace DataStandardizer.LanguageTag
             var result = new Bcp47LanguageTag(languageTag);
             result._context.SelectState(LanguageTagStateName.Default);
 
-            if (!result._context.LanguageTagExpression.IsMatch(languageTag))
+            if (!IsWellFormed(result._context.LanguageTagExpression.Match(languageTag)))
             {
                 throw new LanguageTagFormatException(ErrorMessage.LanguageTagInvalidFormat, languageTag);
             }
@@ -168,7 +168,7 @@ namespace DataStandardizer.LanguageTag
             var result = new Bcp47LanguageTag(languageTag);
             result._context.SelectState(LanguageTagStateName.Default);
 
-            if (!result._context.LanguageTagExpression.IsMatch(languageTag, matchTimeout))
+            if (!IsWellFormed(result._context.LanguageTagExpression.Match(languageTag, matchTimeout)))
             {
                 throw new LanguageTagFormatException(ErrorMessage.LanguageTagInvalidFormat, languageTag);
             }
@@ -202,7 +202,7 @@ namespace DataStandardizer.LanguageTag
             var result = new Bcp47LanguageTag(languageTag, subtagRegistry);
             result._context.SelectState(LanguageTagStateName.Registry);
 
-            if (!result._context.LanguageTagExpression.IsMatch(languageTag))
+            if (!IsWellFormed(result._context.LanguageTagExpression.Match(languageTag)))
             {
                 throw new LanguageTagFormatException(ErrorMessage.LanguageTagInvalidFormat, languageTag);
             }
@@ -237,7 +237,7 @@ namespace DataStandardizer.LanguageTag
             var result = new Bcp47LanguageTag(languageTag, subtagRegistry);
             result._context.SelectState(LanguageTagStateName.Registry);
 
-            if (!result._context.LanguageTagExpression.IsMatch(languageTag, matchTimeout))
+            if (!IsWellFormed(result._context.LanguageTagExpression.Match(languageTag, matchTimeout)))
             {
                 throw new LanguageTagFormatException(ErrorMessage.LanguageTagInvalidFormat, languageTag);
             }
@@ -385,7 +385,8 @@ namespace DataStandardizer.LanguageTag
         /// <param name="extensionSubtag">Subtag to check.</param>
         /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
         /// <remarks>
-        /// Validation will be performed using the default BCP 47 rules.
+        /// Validation will be performed using the default BCP 47 rules. The string must contain exactly one extension: a singleton followed by its subtags.
+        /// Whether a singleton is repeated within a language tag is checked when the whole tag is validated.
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool CheckExtensionSubtag(string extensionSubtag)
@@ -393,24 +394,7 @@ namespace DataStandardizer.LanguageTag
         public static bool CheckExtensionSubtag([NotNull] string extensionSubtag)
 #endif
         {
-            var extensionSubtagMatch = GlobalContext.ExtensionSubtagExpression.Match(extensionSubtag);
-            if (extensionSubtagMatch.Success)
-            {
-                var extensionSubtagGroup = extensionSubtagMatch.Groups[LanguageTagSubtagGroupName.Extension];
-                if (extensionSubtagGroup.Success && !string.IsNullOrEmpty(extensionSubtagGroup.Value))
-                {
-                    var extensionSubtags = extensionSubtagGroup.Captures
-                        .Cast<Capture>()
-                        .ToLookup(capture => capture.Value.Split('-').ElementAtOrDefault(0), capture => capture.Value.Split('-').Skip(1));
-                    if (extensionSubtags.Any(subtag => subtag.Count() > 1))
-                    {
-                        // Duplicate extensions detected; extension subtags must be unique (ref. RFC 5646 §2.2.6¶3).
-                        return false;
-                    }
-                }
-            }
-
-            return extensionSubtagMatch.Success;
+            return GlobalContext.ExtensionSubtagExpression.IsMatch(extensionSubtag);
         }
 
         /// <summary>
@@ -487,7 +471,8 @@ namespace DataStandardizer.LanguageTag
         /// <param name="variantSubtag">Subtag to check.</param>
         /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
         /// <remarks>
-        /// Validation will be performed using the default BCP 47 rules.
+        /// Validation will be performed using the default BCP 47 rules. The string must contain exactly one subtag.
+        /// Whether a variant is repeated within a language tag is checked when the whole tag is validated.
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool CheckVariantSubtag(string variantSubtag)
@@ -495,22 +480,7 @@ namespace DataStandardizer.LanguageTag
         public static bool CheckVariantSubtag([NotNull] string variantSubtag)
 #endif
         {
-            var variantSubtagMatch = GlobalContext.VariantSubtagExpression.Match(variantSubtag);
-            if (variantSubtagMatch?.Success ?? false)
-            {
-                var variantSubtagGroup = variantSubtagMatch.Groups[LanguageTagSubtagGroupName.Variant];
-                if (variantSubtagGroup.Success && !string.IsNullOrEmpty(variantSubtagGroup.Value))
-                {
-                    var variantSubtags = variantSubtagGroup.Captures.Cast<Capture>().Select(capture => capture.Value).ToArray();
-                    if (variantSubtags.Length > variantSubtags.Distinct(StringComparer.OrdinalIgnoreCase).Count())
-                    {
-                        // Duplicate subtags detected; variant subtags must be unique (ref. RFC 5646 §2.2.5¶5).
-                        return false;
-                    }
-                }
-            }
-
-            return variantSubtagMatch?.Success ?? false;
+            return GlobalContext.VariantSubtagExpression.IsMatch(variantSubtag);
         }
 
         /// <summary>
@@ -519,7 +489,8 @@ namespace DataStandardizer.LanguageTag
         /// <param name="languageTagString">Language tag to test.</param>
         /// <returns><c>true</c> if the language tag is valid; <c>false</c> if not.</returns>
         /// <remarks>
-        /// Validation will be performed using the default BCP 47 rules.
+        /// Validation will be performed using the default BCP 47 rules. A language tag that repeats a variant subtag or an extension singleton,
+        /// compared case-insensitively, is not well-formed (RFC 5646 §2.2.5, §2.2.6).
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool IsWellFormedLanguageTagString(string languageTagString)
@@ -527,26 +498,7 @@ namespace DataStandardizer.LanguageTag
         public static bool IsWellFormedLanguageTagString([NotNull] string languageTagString)
 #endif
         {
-            var languageTagMatch = GlobalContext.LanguageTagExpression.Match(languageTagString);
-            var isValidLanguageTag = languageTagMatch?.Success ?? false;
-
-            if (languageTagMatch?.Groups[LanguageTagSubtagGroupName.Variant] is Group variantSubtagGroup)
-            {
-                if (variantSubtagGroup.Success && !string.IsNullOrEmpty(variantSubtagGroup.Value) && !CheckVariantSubtag(variantSubtagGroup.Value))
-                {
-                    isValidLanguageTag = false;
-                }
-            }
-
-            if (languageTagMatch?.Groups[LanguageTagSubtagGroupName.Extension] is Group extensionSubtagGroup)
-            {
-                if (extensionSubtagGroup.Success && !string.IsNullOrEmpty(extensionSubtagGroup.Value) && !CheckExtensionSubtag(extensionSubtagGroup.Value))
-                {
-                    isValidLanguageTag = false;
-                }
-            }
-
-            return isValidLanguageTag;
+            return IsWellFormed(GlobalContext.LanguageTagExpression.Match(languageTagString));
         }
 
         /// <summary>
@@ -573,7 +525,7 @@ namespace DataStandardizer.LanguageTag
             result = new Bcp47LanguageTag(languageTag);
             result._context.SelectState(LanguageTagStateName.Default);
 
-            if (!result._context.LanguageTagExpression.IsMatch(languageTag))
+            if (!IsWellFormed(result._context.LanguageTagExpression.Match(languageTag)))
             {
                 result = default;
                 return false;
@@ -604,7 +556,7 @@ namespace DataStandardizer.LanguageTag
             result = new Bcp47LanguageTag(languageTag);
             result._context.SelectState(LanguageTagStateName.Default);
 
-            if (!result._context.LanguageTagExpression.IsMatch(languageTag, matchTimeout))
+            if (!IsWellFormed(result._context.LanguageTagExpression.Match(languageTag, matchTimeout)))
             {
                 result = default;
                 return false;
@@ -635,7 +587,7 @@ namespace DataStandardizer.LanguageTag
             result = new Bcp47LanguageTag(languageTag, subtagRegistry);
             result._context.SelectState(LanguageTagStateName.Registry);
 
-            if (!result._context.LanguageTagExpression.IsMatch(languageTag))
+            if (!IsWellFormed(result._context.LanguageTagExpression.Match(languageTag)))
             {
                 result = default;
                 return false;
@@ -667,13 +619,60 @@ namespace DataStandardizer.LanguageTag
             result = new Bcp47LanguageTag(languageTag, subtagRegistry);
             result._context.SelectState(LanguageTagStateName.Registry);
 
-            if (!result._context.LanguageTagExpression.IsMatch(languageTag, matchTimeout))
+            if (!IsWellFormed(result._context.LanguageTagExpression.Match(languageTag, matchTimeout)))
             {
                 result = default;
                 return false;
             }
 
             return true;
+        }
+
+        #endregion
+
+        #region Internal Static Methods
+
+        /// <summary>
+        /// Find the first variant subtag that repeats an earlier one, compared case-insensitively (ref. RFC 5646 §2.1.1, §2.2.5¶5).
+        /// </summary>
+        /// <returns>Index of the repeated subtag; -1 if every subtag is unique.</returns>
+#if NETCOREAPP3_0_OR_GREATER
+        internal static int IndexOfRepeatedVariantSubtag(string[] variantSubtags)
+#else
+        internal static int IndexOfRepeatedVariantSubtag([NotNull] string[] variantSubtags)
+#endif
+        {
+            for (var index = 1; index < variantSubtags.Length; index++)
+            {
+                for (var earlierIndex = 0; earlierIndex < index; earlierIndex++)
+                {
+                    if (string.Equals(variantSubtags[index], variantSubtags[earlierIndex], StringComparison.OrdinalIgnoreCase)) return index;
+                }
+            }
+
+            return -1;
+        }
+
+        /// <summary>
+        /// Find the first extension whose singleton repeats an earlier one, compared case-insensitively (ref. RFC 5646 §2.1.1, §2.2.6¶3).
+        /// </summary>
+        /// <param name="extensionSubtags">Extensions, each a singleton followed by its subtags.</param>
+        /// <returns>Index of the extension with the repeated singleton; -1 if every singleton is unique.</returns>
+#if NETCOREAPP3_0_OR_GREATER
+        internal static int IndexOfRepeatedExtensionSingleton(string[] extensionSubtags)
+#else
+        internal static int IndexOfRepeatedExtensionSingleton([NotNull] string[] extensionSubtags)
+#endif
+        {
+            for (var index = 1; index < extensionSubtags.Length; index++)
+            {
+                for (var earlierIndex = 0; earlierIndex < index; earlierIndex++)
+                {
+                    if (char.ToLowerInvariant(extensionSubtags[index][0]) == char.ToLowerInvariant(extensionSubtags[earlierIndex][0])) return index;
+                }
+            }
+
+            return -1;
         }
 
         #endregion
@@ -811,6 +810,28 @@ namespace DataStandardizer.LanguageTag
         #endregion
 
         #region Private Methods
+
+        /// <summary>
+        /// Determine whether a language tag expression match is a well-formed language tag.
+        /// </summary>
+        /// <remarks>
+        /// The expression checks the syntax of each subtag but not that variant subtags and extension singletons are unique (ref. RFC 5646 §2.2.5¶5, §2.2.6¶3).
+        /// Private use subtags may repeat.
+        /// </remarks>
+#if NETCOREAPP3_0_OR_GREATER
+        private static bool IsWellFormed(Match languageTagMatch)
+#else
+        private static bool IsWellFormed([NotNull] Match languageTagMatch)
+#endif
+        {
+            if (!languageTagMatch.Success) return false;
+
+            var variantSubtags = languageTagMatch.Groups[LanguageTagSubtagGroupName.Variant].Captures.Cast<Capture>().Select(capture => capture.Value).ToArray();
+            if (IndexOfRepeatedVariantSubtag(variantSubtags) >= 0) return false;
+
+            var extensionSubtags = languageTagMatch.Groups[LanguageTagSubtagGroupName.Extension].Captures.Cast<Capture>().Select(capture => capture.Value).ToArray();
+            return IndexOfRepeatedExtensionSingleton(extensionSubtags) < 0;
+        }
 
 #if NETCOREAPP3_0_OR_GREATER
         private string[] DoGetExtendedLanguageSubtags()

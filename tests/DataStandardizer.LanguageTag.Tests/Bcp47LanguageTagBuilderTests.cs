@@ -574,6 +574,29 @@ public class Bcp47LanguageTagBuilderTests
 
     #endregion
 
+    #region Test: UsingVariantSubtags_WhenVariantSubtagIsRepeated
+
+    [Theory]
+    [InlineData("valencia", new[] { "valencia" }, "valencia"),
+     InlineData("valencia", new[] { "VALENCIA" }, "VALENCIA"),
+     InlineData("rozaj", new[] { "biske", "rozaj" }, "rozaj")]
+    public void UsingVariantSubtags_WhenVariantSubtagIsRepeated_ThrowsArgumentException(string testVariantSubtag, string[] testVariantSubtags, string expectedRepeatedSubtag)
+    {
+        // arrange
+        var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
+
+        // act
+        Action testAction = () => _ = builder.UsingVariantSubtags(testVariantSubtag, testVariantSubtags);
+
+        // assert
+        testAction.Should()
+            .Throw<ArgumentException>("each variant subtag must appear at most once (RFC 5646 §2.2.5)")
+            .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SubtagRepeatedTemplate, "Variant subtag", expectedRepeatedSubtag) + "*")
+            .WithParameterName("variantSubtags");
+    }
+
+    #endregion
+
     #region Test: UsingExtensionSubtags_WhenExtensionSubtagIsNull
 
     [Fact]
@@ -610,6 +633,29 @@ public class Bcp47LanguageTagBuilderTests
             .Throw<ArgumentException>("'{0}' is not a valid subtag")
             .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SubtagInvalidTemplate, testSubject, "Extension subtag") + "*")
             .WithParameterName("extensionSubtag");
+    }
+
+    #endregion
+
+    #region Test: UsingExtensionSubtags_WhenSingletonIsRepeated
+
+    [Theory]
+    [InlineData("a-bbb", new[] { "a-ccc" }, "a"),
+     InlineData("a-bbb", new[] { "A-ccc" }, "A"),
+     InlineData("a-bbb", new[] { "b-ccc", "a-ddd" }, "a")]
+    public void UsingExtensionSubtags_WhenSingletonIsRepeated_ThrowsArgumentException(string testExtensionSubtag, string[] testExtensionSubtags, string expectedRepeatedSingleton)
+    {
+        // arrange
+        var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
+
+        // act
+        Action testAction = () => _ = builder.UsingExtensionSubtags(testExtensionSubtag, testExtensionSubtags);
+
+        // assert
+        testAction.Should()
+            .Throw<ArgumentException>("each extension singleton must appear at most once (RFC 5646 §2.2.6)")
+            .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SubtagRepeatedTemplate, "Extension singleton", expectedRepeatedSingleton) + "*")
+            .WithParameterName("extensionSubtags");
     }
 
     #endregion
