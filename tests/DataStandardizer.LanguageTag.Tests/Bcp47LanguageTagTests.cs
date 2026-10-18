@@ -105,6 +105,21 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
         { "abcdefgh-cmn-Hans-CN", "zh-cmn-Hans-CN" },
     };
 
+    /// <summary>
+    /// The UN M.49 code for the Channel Islands, which RFC 5646 §2.2.4¶4E allows to be registered as a Region subtag, but which is not registered.
+    /// </summary>
+    private const ushort ChannelIslandsUnM49Code = 830;
+
+    /// <summary>
+    /// Language tags with the unregistered Region subtag <c>830</c> (RFC 5646 §2.2.4¶4E-F), each with a control tag that has a registered UN M.49 Region subtag in its place.
+    /// </summary>
+    public static TheoryData<string, string> ChannelIslandsLanguageTags => new()
+    {
+        { "en-830", "en-154" },
+        { "fr-Latn-830", "fr-Latn-154" },
+        { "en-830-x-foo", "en-154-x-foo" },
+    };
+
     #region Test: CheckExtendedLanguageSubtag_WithInvalidSubtag
 
     [Theory]
@@ -546,7 +561,8 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
             var regionCodes = Enum.GetValues<UnM49AreaByAlpha2CountryCode>().Select(code => code.GetRegionCode()).Where(code => code is not null).Cast<ushort>();
             var subRegionCodes = Enum.GetValues<UnM49AreaByAlpha2CountryCode>().Select(code => code.GetSubRegionCode()).Where(code => code is not null).Cast<ushort>();
             var intermediateRegionCode = Enum.GetValues<UnM49AreaByAlpha2CountryCode>().Select(code => code.GetIntermediateRegionCode()).Where(code => code is not null).Cast<ushort>();
-            _testCases = globalCodes.Union(regionCodes).Union(subRegionCodes).Union(intermediateRegionCode).Select(code => new object[] { $"{code:000}" }).AsEnumerable();
+            // 830 (Channel Islands) is not registered, so it is not a Region subtag (ref. RFC 5646 §2.2.4¶4E-F)
+            _testCases = globalCodes.Union(regionCodes).Union(subRegionCodes).Union(intermediateRegionCode).Where(code => code != ChannelIslandsUnM49Code).Select(code => new object[] { $"{code:000}" }).AsEnumerable();
         }
 
         public IEnumerator<object[]> GetEnumerator()
@@ -562,7 +578,21 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
 
     #endregion
 
-    #region Test: CheckRegionSubtag_WithUnM49CodeSubtag
+    #region Test: CheckRegionSubtag_WithChannelIslandsSubtag
+
+    [Fact]
+    public void CheckRegionSubtag_WithChannelIslandsSubtag_ReturnsFalse()
+    {
+        // act
+        var testResult = Bcp47LanguageTag.CheckRegionSubtag("830");
+
+        // assert
+        testResult.Should().BeFalse("830 (Channel Islands) may be registered, but is not, and an unregistered UN M.49 area code must not be used (RFC 5646 §2.2.4¶4E-F)");
+    }
+
+    #endregion
+
+    #region Test: CheckScriptSubtag_WithInvalidSubtag
 
     [Theory]
     [InlineData("1"), InlineData("a"), InlineData("a2cd")]
@@ -851,6 +881,23 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
         // assert
         controlResult.Should().BeTrue("the language tag '{0}' has no repeated subtags", controlLanguageTag);
         testResult.Should().BeFalse("the language tag '{0}' repeats a variant subtag or extension singleton (RFC 5646 §2.2.5, §2.2.6)", testLanguageTag);
+    }
+
+    #endregion
+
+    #region Test: IsWellFormedLanguageTagString_WithChannelIslandsRegionSubtag
+
+    [Theory]
+    [MemberData(nameof(ChannelIslandsLanguageTags))]
+    public void IsWellFormedLanguageTagString_WithChannelIslandsRegionSubtag_ReturnsFalse(string testLanguageTag, string controlLanguageTag)
+    {
+        // act
+        var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag);
+        var controlResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(controlLanguageTag);
+
+        // assert
+        controlResult.Should().BeTrue("the language tag '{0}' has a registered UN M.49 Region subtag", controlLanguageTag);
+        testResult.Should().BeFalse("the Region subtag 830 of '{0}' is not registered (RFC 5646 §2.2.4¶4E-F)", testLanguageTag);
     }
 
     #endregion
@@ -2022,6 +2069,58 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
         // assert
         controlAction.Should().NotThrow("the language tag '{0}' has no repeated subtags", controlLanguageTag);
         testAction.Should().Throw<LanguageTagFormatException>("a variant subtag or extension singleton is repeated (RFC 5646 §2.2.5, §2.2.6)").WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
+    }
+
+    #endregion
+
+    #region Test: Create_WithLanguageTagWhenRegionSubtagIsChannelIslands
+
+    [Theory]
+    [MemberData(nameof(ChannelIslandsLanguageTags))]
+    public void Create_WithLanguageTagWhenRegionSubtagIsChannelIslands_ThrowsLanguageTagFormatException(string testLanguageTag, string controlLanguageTag)
+    {
+        // act
+        Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag);
+        Action controlAction = () => _ = Bcp47LanguageTag.Create(controlLanguageTag);
+
+        // assert
+        controlAction.Should().NotThrow("the language tag '{0}' has a registered UN M.49 Region subtag", controlLanguageTag);
+        testAction.Should().Throw<LanguageTagFormatException>("the Region subtag 830 of '{0}' is not registered (RFC 5646 §2.2.4¶4E-F)", testLanguageTag).WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
+    }
+
+    #endregion
+
+    #region Test: Create_WithLanguageTagAndSubtagRegistryWhenRegionSubtagIsChannelIslands
+
+    [Theory]
+    [MemberData(nameof(ChannelIslandsLanguageTags))]
+    public void Create_WithLanguageTagAndSubtagRegistryWhenRegionSubtagIsChannelIslands_ThrowsLanguageTagFormatException(string testLanguageTag, string controlLanguageTag)
+    {
+        // act
+        Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry);
+        Action controlAction = () => _ = Bcp47LanguageTag.Create(controlLanguageTag, _fixture.IanaSubtagRegistry);
+
+        // assert
+        controlAction.Should().NotThrow("the language tag '{0}' has a registered UN M.49 Region subtag", controlLanguageTag);
+        testAction.Should().Throw<LanguageTagFormatException>("the Subtag Registry has no record for the Region subtag 830 of '{0}'", testLanguageTag).WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
+    }
+
+    #endregion
+
+    #region Test: Create_WithLanguageTagAndSubtagRegistryWhenChannelIslandsIsRegistered
+
+    [Theory]
+    [InlineData("en-830"), InlineData("fr-Latn-830"), InlineData("en-830-x-foo")]
+    public void Create_WithLanguageTagAndSubtagRegistryWhenChannelIslandsIsRegistered_ReturnsBcp47LanguageTag(string testLanguageTag)
+    {
+        // arrange
+        var subtagRegistry = SubtagRegistry.SubtagRegistry.CreateFromContent(string.Join("\n", _fixture.IanaSubtagRegistry.ToString().TrimEnd(), "%%", "Type: region", "Subtag: 830", "Description: Channel Islands", "Added: 2026-10-19"));
+
+        // act
+        var languageTag = Bcp47LanguageTag.Create(testLanguageTag, subtagRegistry);
+
+        // assert
+        languageTag.RegionSubtag.Should().Be("830", "a Subtag Registry may register 830 (Channel Islands) as a Region subtag (RFC 5646 §2.2.4¶4E)");
     }
 
     #endregion

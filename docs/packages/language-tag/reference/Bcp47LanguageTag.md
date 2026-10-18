@@ -49,6 +49,13 @@ Subtags of four or more characters are letters only, so `12345` is rejected.
 Extended language subtags may follow only a two- or three-letter primary
 language subtag (§2.2.2), so `zh-yue` is accepted and `abcde-yue` is not.
 
+Without a subtag registry, the region subtag is an ISO 3166-1 alpha-2 code, a
+private use code (§2.2.4¶3), or a UN M49 code for the world, a region, a
+sub-region or an intermediate region. The UN M49 code `830` (Channel Islands) is rejected: §2.2.4
+allows it to be registered, but it is not, and an unregistered UN M49 area code
+must not be used. With a subtag registry, `830` is accepted only if the registry
+has a record for it.
+
 ## Properties
 
 Each getter throws `InvalidOperationException` if the instance is uninitialised.
