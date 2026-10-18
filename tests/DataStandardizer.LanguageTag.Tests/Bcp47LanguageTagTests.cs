@@ -43,6 +43,22 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
         _fixture = fixture;
     }
 
+    /// <summary>
+    /// Language tags that repeat a variant subtag (RFC 5646 §2.2.5¶5) or an extension singleton (§2.2.6¶3), each paired with
+    /// the same tag without the repetition. The comparison is case-insensitive (§2.1.1). Private use subtags may repeat.
+    /// </summary>
+    public static TheoryData<string, string> DuplicateSubtagLanguageTags => new()
+    {
+        { "ca-valencia-valencia", "ca-valencia" },
+        { "ca-valencia-VALENCIA", "ca-valencia" },
+        { "en-1901-1901", "en-1901" },
+        { "sl-rozaj-biske-rozaj", "sl-rozaj-biske" },
+        { "en-a-bbb-a-ccc", "en-a-bbb-b-ccc" },
+        { "en-a-bbb-A-ccc", "en-a-bbb-b-ccc" },
+        { "en-a-bbb-b-ccc-a-ddd", "en-a-bbb-b-ccc-c-ddd" },
+        { "en-a-bbb-a-ccc-x-a-a", "en-a-bbb-x-a-a" },
+    };
+
     #region Test: CheckExtendedLanguageSubtag_WithInvalidSubtag
 
     [Theory]
@@ -89,17 +105,17 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
 
     #endregion
 
-    #region Test: CheckExtensionSubtag_WithDuplicateSubtags
+    #region Test: CheckExtensionSubtag_WithMoreThanOneExtension
 
     [Theory]
-    [InlineData("a-bbb-a-ccc")]
-    public void CheckExtensionSubtag_WithDuplicateSubtags_ReturnsFalse(string testSubtag)
+    [InlineData("a-bbb-a-ccc"), InlineData("a-bbb-b-ccc")]
+    public void CheckExtensionSubtag_WithMoreThanOneExtension_ReturnsFalse(string testSubtag)
     {
         // act
         var testResult = Bcp47LanguageTag.CheckExtensionSubtag(testSubtag);
 
         // assert
-        testResult.Should().BeFalse("extension subtags are duplicated");
+        testResult.Should().BeFalse("'{0}' is more than one extension; repeated singletons are rejected when the whole tag is checked", testSubtag);
     }
 
     #endregion
@@ -510,17 +526,17 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
 
     #endregion
 
-    #region Test: CheckVariantSubtag_WithDuplicateSubtags
+    #region Test: CheckVariantSubtag_WithMoreThanOneSubtag
 
     [Theory]
-    [InlineData("1901-1901")]
-    public void CheckVariantSubtag_WithDuplicateSubtags_ReturnsFalse(string testSubtag)
+    [InlineData("1901-1901"), InlineData("1901-1996")]
+    public void CheckVariantSubtag_WithMoreThanOneSubtag_ReturnsFalse(string testSubtag)
     {
         // act
         var testResult = Bcp47LanguageTag.CheckVariantSubtag(testSubtag);
 
         // assert
-        testResult.Should().BeFalse("variant subtags are duplicated");
+        testResult.Should().BeFalse("'{0}' is more than one subtag; repeated variants are rejected when the whole tag is checked", testSubtag);
     }
 
     #endregion
@@ -736,6 +752,23 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
 
         // assert
         testResult.Should().BeFalse("the language tag {0} is not in a valid format", testLanguageTag);
+    }
+
+    #endregion
+
+    #region Test: IsWellFormedLanguageTagString_WithDuplicateSubtags
+
+    [Theory]
+    [MemberData(nameof(DuplicateSubtagLanguageTags))]
+    public void IsWellFormedLanguageTagString_WithDuplicateSubtags_ReturnsFalse(string testLanguageTag, string controlLanguageTag)
+    {
+        // act
+        var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag);
+        var controlResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(controlLanguageTag);
+
+        // assert
+        controlResult.Should().BeTrue("the language tag '{0}' has no repeated subtags", controlLanguageTag);
+        testResult.Should().BeFalse("the language tag '{0}' repeats a variant subtag or extension singleton (RFC 5646 §2.2.5, §2.2.6)", testLanguageTag);
     }
 
     #endregion
@@ -1712,6 +1745,23 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
 
     #endregion
 
+    #region Test: Create_WithLanguageTagWhenLanguageTagHasDuplicateSubtags
+
+    [Theory]
+    [MemberData(nameof(DuplicateSubtagLanguageTags))]
+    public void Create_WithLanguageTagWhenLanguageTagHasDuplicateSubtags_ThrowsLanguageTagFormatException(string testLanguageTag, string controlLanguageTag)
+    {
+        // act
+        Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag);
+        Action controlAction = () => _ = Bcp47LanguageTag.Create(controlLanguageTag);
+
+        // assert
+        controlAction.Should().NotThrow("the language tag '{0}' has no repeated subtags", controlLanguageTag);
+        testAction.Should().Throw<LanguageTagFormatException>("a variant subtag or extension singleton is repeated (RFC 5646 §2.2.5, §2.2.6)").WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
+    }
+
+    #endregion
+
     #region Test: Create_WithLanguageTagWhenLanguageTagIsValid
 
     [Theory]
@@ -1770,6 +1820,23 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
 
         // assert
         testAction.Should().Throw<LanguageTagFormatException>("the language tag was not in a recognised format").WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
+    }
+
+    #endregion
+
+    #region Test: Create_WithLanguageTagAndTimeoutWhenLanguageTagHasDuplicateSubtags
+
+    [Theory]
+    [MemberData(nameof(DuplicateSubtagLanguageTags))]
+    public void Create_WithLanguageTagAndTimeoutWhenLanguageTagHasDuplicateSubtags_ThrowsLanguageTagFormatException(string testLanguageTag, string controlLanguageTag)
+    {
+        // act
+        Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag, Regex.InfiniteMatchTimeout);
+        Action controlAction = () => _ = Bcp47LanguageTag.Create(controlLanguageTag, Regex.InfiniteMatchTimeout);
+
+        // assert
+        controlAction.Should().NotThrow("the language tag '{0}' has no repeated subtags", controlLanguageTag);
+        testAction.Should().Throw<LanguageTagFormatException>("a variant subtag or extension singleton is repeated (RFC 5646 §2.2.5, §2.2.6)").WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
     }
 
     #endregion
@@ -1850,6 +1917,23 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
 
     #endregion
 
+    #region Test: Create_WithLanguageTagAndSubtagRegistryWhenLanguageTagHasDuplicateSubtags
+
+    [Theory]
+    [MemberData(nameof(DuplicateSubtagLanguageTags))]
+    public void Create_WithLanguageTagAndSubtagRegistryWhenLanguageTagHasDuplicateSubtags_ThrowsLanguageTagFormatException(string testLanguageTag, string controlLanguageTag)
+    {
+        // act
+        Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry);
+        Action controlAction = () => _ = Bcp47LanguageTag.Create(controlLanguageTag, _fixture.IanaSubtagRegistry);
+
+        // assert
+        controlAction.Should().NotThrow("the language tag '{0}' has no repeated subtags", controlLanguageTag);
+        testAction.Should().Throw<LanguageTagFormatException>("a variant subtag or extension singleton is repeated (RFC 5646 §2.2.5, §2.2.6)").WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
+    }
+
+    #endregion
+
     #region Test: Create_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsValid
 
     [Theory]
@@ -1922,6 +2006,23 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
 
         // assert
         testAction.Should().Throw<LanguageTagFormatException>("the language tag was not in a recognised format").WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
+    }
+
+    #endregion
+
+    #region Test: Create_WithLanguageTagAndSubtagRegistryAndTimeoutWhenLanguageTagHasDuplicateSubtags
+
+    [Theory]
+    [MemberData(nameof(DuplicateSubtagLanguageTags))]
+    public void Create_WithLanguageTagAndSubtagRegistryAndTimeoutWhenLanguageTagHasDuplicateSubtags_ThrowsLanguageTagFormatException(string testLanguageTag, string controlLanguageTag)
+    {
+        // act
+        Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry, Regex.InfiniteMatchTimeout);
+        Action controlAction = () => _ = Bcp47LanguageTag.Create(controlLanguageTag, _fixture.IanaSubtagRegistry, Regex.InfiniteMatchTimeout);
+
+        // assert
+        controlAction.Should().NotThrow("the language tag '{0}' has no repeated subtags", controlLanguageTag);
+        testAction.Should().Throw<LanguageTagFormatException>("a variant subtag or extension singleton is repeated (RFC 5646 §2.2.5, §2.2.6)").WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
     }
 
     #endregion
@@ -2042,6 +2143,23 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
 
     #endregion
 
+    #region Test: TryCreate_WithLanguageTagWhenLanguageTagHasDuplicateSubtags
+
+    [Theory]
+    [MemberData(nameof(DuplicateSubtagLanguageTags))]
+    public void TryCreate_WithLanguageTagWhenLanguageTagHasDuplicateSubtags_ReturnsFalse(string testLanguageTag, string controlLanguageTag)
+    {
+        // act
+        var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, out _);
+        var controlResult = Bcp47LanguageTag.TryCreate(controlLanguageTag, out _);
+
+        // assert
+        controlResult.Should().BeTrue("the language tag '{0}' has no repeated subtags", controlLanguageTag);
+        testResult.Should().BeFalse("the language tag '{0}' repeats a variant subtag or extension singleton (RFC 5646 §2.2.5, §2.2.6)", testLanguageTag);
+    }
+
+    #endregion
+
     #region Test: TryCreate_WithLanguageTagWhenLanguageTagIsValid
 
     [Theory]
@@ -2103,6 +2221,23 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
 
         // assert
         testResult.Should().BeFalse("language tag '{0}' is not correctly formatted", testLanguageTag);
+    }
+
+    #endregion
+
+    #region Test: TryCreate_WithLanguageTagAndTimeoutWhenLanguageTagHasDuplicateSubtags
+
+    [Theory]
+    [MemberData(nameof(DuplicateSubtagLanguageTags))]
+    public void TryCreate_WithLanguageTagAndTimeoutWhenLanguageTagHasDuplicateSubtags_ReturnsFalse(string testLanguageTag, string controlLanguageTag)
+    {
+        // act
+        var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, Regex.InfiniteMatchTimeout, out _);
+        var controlResult = Bcp47LanguageTag.TryCreate(controlLanguageTag, Regex.InfiniteMatchTimeout, out _);
+
+        // assert
+        controlResult.Should().BeTrue("the language tag '{0}' has no repeated subtags", controlLanguageTag);
+        testResult.Should().BeFalse("the language tag '{0}' repeats a variant subtag or extension singleton (RFC 5646 §2.2.5, §2.2.6)", testLanguageTag);
     }
 
     #endregion
@@ -2186,6 +2321,23 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
 
     #endregion
 
+    #region Test: TryCreate_WithLanguageTagAndSubtagRegistryWhenLanguageTagHasDuplicateSubtags
+
+    [Theory]
+    [MemberData(nameof(DuplicateSubtagLanguageTags))]
+    public void TryCreate_WithLanguageTagAndSubtagRegistryWhenLanguageTagHasDuplicateSubtags_ReturnsFalse(string testLanguageTag, string controlLanguageTag)
+    {
+        // act
+        var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, _fixture.IanaSubtagRegistry, out _);
+        var controlResult = Bcp47LanguageTag.TryCreate(controlLanguageTag, _fixture.IanaSubtagRegistry, out _);
+
+        // assert
+        controlResult.Should().BeTrue("the language tag '{0}' has no repeated subtags", controlLanguageTag);
+        testResult.Should().BeFalse("the language tag '{0}' repeats a variant subtag or extension singleton (RFC 5646 §2.2.5, §2.2.6)", testLanguageTag);
+    }
+
+    #endregion
+
     #region Test: TryCreate_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsValid
 
     [Theory]
@@ -2261,6 +2413,23 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
 
         // assert
         testResult.Should().BeFalse("the language tag '{0}' is not correctly formatted", testLanguageTag);
+    }
+
+    #endregion
+
+    #region Test: TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenLanguageTagHasDuplicateSubtags
+
+    [Theory]
+    [MemberData(nameof(DuplicateSubtagLanguageTags))]
+    public void TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenLanguageTagHasDuplicateSubtags_ReturnsFalse(string testLanguageTag, string controlLanguageTag)
+    {
+        // act
+        var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, _fixture.IanaSubtagRegistry, Regex.InfiniteMatchTimeout, out _);
+        var controlResult = Bcp47LanguageTag.TryCreate(controlLanguageTag, _fixture.IanaSubtagRegistry, Regex.InfiniteMatchTimeout, out _);
+
+        // assert
+        controlResult.Should().BeTrue("the language tag '{0}' has no repeated subtags", controlLanguageTag);
+        testResult.Should().BeFalse("the language tag '{0}' repeats a variant subtag or extension singleton (RFC 5646 §2.2.5, §2.2.6)", testLanguageTag);
     }
 
     #endregion

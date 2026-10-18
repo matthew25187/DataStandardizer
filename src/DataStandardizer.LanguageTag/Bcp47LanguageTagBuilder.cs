@@ -28,6 +28,7 @@ namespace DataStandardizer.LanguageTag
             internal const string InternalStateErrorTryAgain = "Internal state error.  Please instantiate a new instance of the builder and try again.";
             internal const string SpecifiedCodeUndefinedTemplate = "The {0} code '{1}' is undefined.";
             internal const string SubtagInvalidTemplate = "'{0}' is not a valid {1}.";
+            internal const string SubtagRepeatedTemplate = "The {0} '{1}' appears more than once.";
             internal const string UnspecifiedCodeUndefinedTemplate = "The {0} code is undefined.";
         }
 
@@ -309,6 +310,7 @@ namespace DataStandardizer.LanguageTag
 
         /// <inheritdoc />
         /// <exception cref="ArgumentNullException">A Variant subtag is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException">A Variant subtag is not valid, or appears more than once (compared case-insensitively).</exception>
         IBcp47LanguageTagBuilderStepUsingVariantSubtagsNext IBcp47LanguageTagBuilderStepUsingVariantSubtags.UsingVariantSubtags(string variantSubtag, params string[] variantSubtags)
         {
             const string subject = "Variant subtag";
@@ -326,13 +328,19 @@ namespace DataStandardizer.LanguageTag
 
             var useVariantSubtags = new List<string> { variantSubtag };
             useVariantSubtags.AddRange(variantSubtags);
-            _variantSubtags = useVariantSubtags.ToArray();
+            var useVariantSubtagsArray = useVariantSubtags.ToArray();
+            var repeatedIndex = Bcp47LanguageTag.IndexOfRepeatedVariantSubtag(useVariantSubtagsArray);
+            if (repeatedIndex >= 0)
+                throw new ArgumentException(string.Format(ErrorMessage.SubtagRepeatedTemplate, subject, useVariantSubtagsArray[repeatedIndex]), nameof(variantSubtags));
+
+            _variantSubtags = useVariantSubtagsArray;
 
             return this;
         }
 
         /// <inheritdoc />
         /// <exception cref="ArgumentNullException">An Extension subtag is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException">An Extension subtag is not valid, or its singleton appears more than once (compared case-insensitively).</exception>
         IBcp47LanguageTagBuilderStepUsingExtensionSubtagsNext IBcp47LanguageTagBuilderStepUsingExtensionSubtags.UsingExtensionSubtags(string extensionSubtag, params string[] extensionSubtags)
         {
             const string subject = "Extension subtag";
@@ -350,7 +358,12 @@ namespace DataStandardizer.LanguageTag
 
             var useExtensionSubtags = new List<string> { extensionSubtag };
             useExtensionSubtags.AddRange(extensionSubtags);
-            _extensionSubtags = useExtensionSubtags.ToArray();
+            var useExtensionSubtagsArray = useExtensionSubtags.ToArray();
+            var repeatedIndex = Bcp47LanguageTag.IndexOfRepeatedExtensionSingleton(useExtensionSubtagsArray);
+            if (repeatedIndex >= 0)
+                throw new ArgumentException(string.Format(ErrorMessage.SubtagRepeatedTemplate, "Extension singleton", useExtensionSubtagsArray[repeatedIndex][0]), nameof(extensionSubtags));
+
+            _extensionSubtags = useExtensionSubtagsArray;
 
             return this;
         }
