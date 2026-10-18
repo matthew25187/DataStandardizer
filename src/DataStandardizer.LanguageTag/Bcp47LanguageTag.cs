@@ -490,7 +490,7 @@ namespace DataStandardizer.LanguageTag
         /// <returns><c>true</c> if the language tag is valid; <c>false</c> if not.</returns>
         /// <remarks>
         /// Validation will be performed using the default BCP 47 rules. A language tag that repeats a variant subtag or an extension singleton,
-        /// compared case-insensitively, is not well-formed (RFC 5646 §2.2.5, §2.2.6).
+        /// compared case-insensitively, is not well-formed (RFC 5646 §2.2.5, §2.2.6). The 26 grandfathered language tags are well-formed (§2.1, §2.2.9).
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool IsWellFormedLanguageTagString(string languageTagString)
@@ -720,6 +720,9 @@ namespace DataStandardizer.LanguageTag
         /// <summary>
         /// Gets the Primary Language Subtag of the BCP 47 language tag.
         /// </summary>
+        /// <remarks>
+        /// The empty string for a grandfathered language tag, which is interpreted as a whole and has no subtags (RFC 5646 §2.2.8), and for a private use language tag.
+        /// </remarks>
         /// <exception cref="InvalidOperationException">The <see cref="Bcp47LanguageTag"/> is not initialised.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public string PrimaryLanguageSubtag
@@ -890,10 +893,8 @@ namespace DataStandardizer.LanguageTag
             var languageTagMatch = _context.LanguageTagExpression.Match(_languageTag);
             Debug.Assert(languageTagMatch.Success);
 
-            var primaryLanguageSubtagGroup = languageTagMatch.Groups[LanguageTagSubtagGroupName.PrimaryLanguage];
-            Debug.Assert(primaryLanguageSubtagGroup.Success);
-
-            return primaryLanguageSubtagGroup.Value;
+            // A grandfathered or private use tag has no primary language subtag; the group's value is then the empty string.
+            return languageTagMatch.Groups[LanguageTagSubtagGroupName.PrimaryLanguage].Value;
         }
 
         private Bcp47KeyedSubtag? DoGetPrivateUseSubtag()

@@ -44,5 +44,15 @@
             internal const string Variant = "variant";
             internal const string Grandfathered = "grandfathered";
         }
+
+        /// <summary>
+        /// The grandfathered language tags, irregular then regular (ref. RFC 5646 §2.1, §2.2.8). Each is interpreted as a whole.
+        /// </summary>
+        internal static readonly string[] GrandfatheredLanguageTags =
+        {
+            "en-GB-oed", "i-ami", "i-bnn", "i-default", "i-enochian", "i-hak", "i-klingon", "i-lux", "i-mingo", "i-navajo", "i-pwn", "i-tao", "i-tay", "i-tsu",
+            "sgn-BE-FR", "sgn-BE-NL", "sgn-CH-DE",
+            "art-lojban", "cel-gaulish", "no-bok", "no-nyn", "zh-guoyu", "zh-hakka", "zh-min", "zh-min-nan", "zh-xiang"
+        };
     }
 }
