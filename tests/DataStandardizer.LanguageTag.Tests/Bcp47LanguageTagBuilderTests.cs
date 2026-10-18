@@ -569,6 +569,27 @@ public class Bcp47LanguageTagBuilderTests
 
     #endregion
 
+    #region Test: UsingRegionSubtag_WhenRegionSubtagIsChannelIslands
+
+    [Fact]
+    public void UsingRegionSubtag_WhenRegionSubtagIsChannelIslands_ThrowsArgumentException()
+    {
+        // arrange
+        const string testSubject = "830";
+        var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
+
+        // act
+        Action testAction = () => _ = builder.UsingRegionSubtag(testSubject);
+
+        // assert
+        testAction.Should()
+            .Throw<ArgumentException>("830 (Channel Islands) is not a registered Region subtag (RFC 5646 §2.2.4¶4E-F)")
+            .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SubtagInvalidTemplate, testSubject, "Region subtag") + "*")
+            .WithParameterName("regionSubtag");
+    }
+
+    #endregion
+
     #region Test: UsingRegionSubtag_WhenRegionSubtagIsInvalid
 
     [Fact]

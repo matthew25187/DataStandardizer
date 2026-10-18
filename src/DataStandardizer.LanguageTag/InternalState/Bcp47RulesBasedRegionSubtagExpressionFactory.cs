@@ -8,6 +8,8 @@ namespace DataStandardizer.LanguageTag.InternalState
 {
     internal class Bcp47RulesBasedRegionSubtagExpressionFactory : IBcp47ExpressionFactory
     {
+        private const ushort ChannelIslandsCode = 830;
+
         private static readonly RegexOptions ExpressionOptions;
         internal static readonly string pattern;
 
@@ -58,16 +60,10 @@ namespace DataStandardizer.LanguageTag.InternalState
             var regionCodes = Enum.GetValues(typeof(UnM49AreaByAlpha2CountryCode)).Cast<UnM49AreaByAlpha2CountryCode>().Select(code => code.GetRegionCode()).Where(code => code.HasValue).Cast<ushort>();
             var subRegionCodes = Enum.GetValues(typeof(UnM49AreaByAlpha2CountryCode)).Cast<UnM49AreaByAlpha2CountryCode>().Select(code => code.GetSubRegionCode()).Where(code => code.HasValue).Cast<ushort>();
             var intermediateRegionCodes = Enum.GetValues(typeof(UnM49AreaByAlpha2CountryCode)).Cast<UnM49AreaByAlpha2CountryCode>().Select(code => code.GetIntermediateRegionCode()).Where(code => code.HasValue).Cast<ushort>();
-            var numericRegionSubtags = globalCodes.Union(regionCodes).Union(subRegionCodes).Union(intermediateRegionCodes).Select(code => $"{code:000}");
+            // Exclude the Channel Islands code, which may be registered but is not, whatever UN M.49 groups it under (ref. RFC 5646 §2.2.4¶4E-F)
+            var numericRegionSubtags = globalCodes.Union(regionCodes).Union(subRegionCodes).Union(intermediateRegionCodes).Where(code => code != ChannelIslandsCode).Select(code => $"{code:000}");
 
-            // Include Channel Islands code (ref. RFC 5646 §2.2.4¶4E)
-            UnM49AreaByAlpha2CountryCode? channelIslandsSubtag = null;
-            if (!Enum.GetValues(typeof(UnM49AreaByAlpha2CountryCode)).Cast<ushort>().Contains<ushort>(830))
-            {
-                channelIslandsSubtag = (UnM49AreaByAlpha2CountryCode?)Enum.ToObject(typeof(UnM49AreaByAlpha2CountryCode), 830);
-            }
-
-            return string.Concat("(?:", string.Join("|", iso3166Part1Codes.Concat(iso3166ReservedCodes).Concat(numericRegionSubtags).Select(Regex.Escape)), channelIslandsSubtag.HasValue ? $"|{(ushort)channelIslandsSubtag.Value}" : string.Empty, ")");
+            return string.Concat("(?:", string.Join("|", iso3166Part1Codes.Concat(iso3166ReservedCodes).Concat(numericRegionSubtags).Select(Regex.Escape)), ")");
         }
     }
 }
