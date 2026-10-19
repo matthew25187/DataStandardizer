@@ -48,6 +48,11 @@ namespace DataStandardizer.LanguageTag.Tests
         }
 
         /// <summary>
+        /// A well-formed language tag long enough that matching it can't finish within a one-tick timeout.
+        /// </summary>
+        private static readonly string TimeoutLanguageTag = "en-x" + string.Concat(Enumerable.Repeat("-abcdefgh", 100000));
+
+        /// <summary>
         /// Language tags that repeat a variant subtag (RFC 5646 §2.2.5¶5) or an extension singleton (§2.2.6¶3), each paired with
         /// the same tag without the repetition. The comparison is case-insensitive (§2.1.1). Private use subtags may repeat.
         /// </summary>
@@ -2913,6 +2918,24 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #endregion
 
+        #region Test: TryCreate_WithLanguageTagAndTimeoutWhenMatchTimesOut
+
+        [Fact]
+        public void TryCreate_WithLanguageTagAndTimeoutWhenMatchTimesOut_ReturnsFalse()
+        {
+            // act
+            Bcp47LanguageTag languageTag = default;
+            var testResult = true;
+            Action testAction = () => testResult = Bcp47LanguageTag.TryCreate(TimeoutLanguageTag, TimeSpan.FromTicks(1), out languageTag);
+
+            // assert
+            testAction.Should().NotThrow("a Try method reports failure through its return value");
+            testResult.Should().BeFalse("matching the language tag took longer than the timeout");
+            languageTag.Should().Be(default(Bcp47LanguageTag));
+        }
+
+        #endregion
+
         #region Test: TryCreate_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsNull
 
         [Fact]
@@ -3199,6 +3222,24 @@ namespace DataStandardizer.LanguageTag.Tests
                     yield return new object[] { "x-fr-CH-x-valid-private-use-subtag",Regex.InfiniteMatchTimeout, "x-fr-CH-x-valid-private-use-subtag" };
                 }
             }
+        }
+
+        #endregion
+
+        #region Test: TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenMatchTimesOut
+
+        [Fact]
+        public void TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenMatchTimesOut_ReturnsFalse()
+        {
+            // act
+            Bcp47LanguageTag languageTag = default;
+            var testResult = true;
+            Action testAction = () => testResult = Bcp47LanguageTag.TryCreate(TimeoutLanguageTag, _fixture.IanaSubtagRegistry, TimeSpan.FromTicks(1), out languageTag);
+
+            // assert
+            testAction.Should().NotThrow("a Try method reports failure through its return value");
+            testResult.Should().BeFalse("matching the language tag took longer than the timeout");
+            languageTag.Should().Be(default(Bcp47LanguageTag));
         }
 
         #endregion

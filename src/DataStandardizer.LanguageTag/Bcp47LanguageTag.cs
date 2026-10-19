@@ -576,7 +576,15 @@ namespace DataStandardizer.LanguageTag
             result = new Bcp47LanguageTag(languageTag);
             result._context.SelectState(LanguageTagStateName.Default);
 
-            if (!IsWellFormed(result._context.LanguageTagExpression.Match(languageTag, matchTimeout)))
+            try
+            {
+                if (!IsWellFormed(result._context.LanguageTagExpression.Match(languageTag, matchTimeout)))
+                {
+                    result = default;
+                    return false;
+                }
+            }
+            catch (RegexMatchTimeoutException)
             {
                 result = default;
                 return false;
@@ -639,7 +647,15 @@ namespace DataStandardizer.LanguageTag
             result = new Bcp47LanguageTag(languageTag, subtagRegistry);
             result._context.SelectState(LanguageTagStateName.Registry);
 
-            if (!IsWellFormed(result._context.LanguageTagExpression.Match(languageTag, matchTimeout)))
+            try
+            {
+                if (!IsWellFormed(result._context.LanguageTagExpression.Match(languageTag, matchTimeout)))
+                {
+                    result = default;
+                    return false;
+                }
+            }
+            catch (RegexMatchTimeoutException)
             {
                 result = default;
                 return false;
