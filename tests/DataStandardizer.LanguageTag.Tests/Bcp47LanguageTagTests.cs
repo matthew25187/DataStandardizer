@@ -2040,6 +2040,51 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
 
     #endregion
 
+    #region Test: ExplicitConversion_WhenLanguageTagIsNull
+
+    [Fact]
+    public void ExplicitConversion_WhenLanguageTagIsNull_ThrowsInvalidCastException()
+    {
+        // act
+        Action testAction = () => _ = (Bcp47LanguageTag)(string)null!;
+
+        // assert
+        testAction.Should().Throw<InvalidCastException>("a null string is not a language tag").WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagNull);
+    }
+
+    #endregion
+
+    #region Test: ExplicitConversion_WhenLanguageTagIsInvalid
+
+    [Theory]
+    [InlineData(""), InlineData("NotAValidLanguageTag"), InlineData("en--US"), InlineData("en-US-US")]
+    public void ExplicitConversion_WhenLanguageTagIsInvalid_ThrowsInvalidCastException(string testLanguageTag)
+    {
+        // act
+        Action testAction = () => _ = (Bcp47LanguageTag)testLanguageTag;
+
+        // assert
+        testAction.Should().Throw<InvalidCastException>("'{0}' is not a well-formed language tag", testLanguageTag).WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
+    }
+
+    #endregion
+
+    #region Test: ExplicitConversion_WhenLanguageTagIsValid
+
+    [Theory]
+    [InlineData("en"), InlineData("zh-Hant-TW"), InlineData("i-klingon"), InlineData("x-private")]
+    public void ExplicitConversion_WhenLanguageTagIsValid_ReturnsSameTagAsCreate(string testLanguageTag)
+    {
+        // act
+        var testResult = (Bcp47LanguageTag)testLanguageTag;
+
+        // assert
+        testResult.Should().Be(Bcp47LanguageTag.Create(testLanguageTag), "the conversion applies the same rules as Create");
+        ((string?)testResult).Should().Be(testLanguageTag, "the conversion keeps the original string");
+    }
+
+    #endregion
+
     #region Test: Create_WithLanguageTagWhenLanguageTagIsNull
 
     [Fact]
