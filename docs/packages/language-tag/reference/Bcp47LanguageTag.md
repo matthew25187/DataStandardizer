@@ -56,6 +56,10 @@ allows it to be registered, but it is not, and an unregistered UN M49 area code
 must not be used. With a subtag registry, `830` is accepted only if the registry
 has a record for it.
 
+With a subtag registry, a record whose `Subtag` is a range, such as `qaa..qtz`,
+`Qaaa..Qabx`, `QM..QZ` or `XA..XZ` in the IANA registry, registers every subtag
+in that range (§3.1.1), so `qaa`, `en-Qabx` and `en-XA` are accepted.
+
 ## Properties
 
 Each getter throws `InvalidOperationException` if the instance is uninitialised.
