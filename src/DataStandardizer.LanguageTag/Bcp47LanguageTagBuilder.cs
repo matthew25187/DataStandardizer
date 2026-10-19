@@ -295,6 +295,19 @@ namespace DataStandardizer.LanguageTag
         }
 
         /// <inheritdoc />
+        /// <exception cref="ArgumentException">The subtag code is undefined, or is not a valid Region subtag.</exception>
+        IBcp47LanguageTagBuilderStepUsingRegionSubtagNext IBcp47LanguageTagBuilderStepUsingRegionSubtag.UsingRegionSubtag(UnM49Area regionSubtag)
+        {
+            var code = ((ushort)regionSubtag).ToString("000");
+            if (!Enum.IsDefined(regionSubtag.GetType(), regionSubtag)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "UN M49", code), nameof(regionSubtag));
+            if (!Bcp47LanguageTag.CheckRegionSubtag(code)) throw new ArgumentException(string.Format(ErrorMessage.SubtagInvalidTemplate, code, "Region subtag"), nameof(regionSubtag));
+
+            _regionSubtag = regionSubtag;
+
+            return this;
+        }
+
+        /// <inheritdoc />
         /// <exception cref="ArgumentNullException">The <paramref name="regionSubtag"/> is <c>null</c>.</exception>
         IBcp47LanguageTagBuilderStepUsingRegionSubtagNext IBcp47LanguageTagBuilderStepUsingRegionSubtag.UsingRegionSubtag(string regionSubtag)
         {
@@ -537,6 +550,10 @@ namespace DataStandardizer.LanguageTag
             else if (regionSubtag is UnM49AreaByAlpha3CountryCode regionSubtagFromUnM49ByAlpha3Code)
             {
                 languageTagBuilder.AppendFormat("-{0:000}", (ushort)regionSubtagFromUnM49ByAlpha3Code);
+            }
+            else if (regionSubtag is UnM49Area regionSubtagFromUnM49Area)
+            {
+                languageTagBuilder.AppendFormat("-{0:000}", (ushort)regionSubtagFromUnM49Area);
             }
             else if (regionSubtag is string regionSubtagFromRegistry)
             {

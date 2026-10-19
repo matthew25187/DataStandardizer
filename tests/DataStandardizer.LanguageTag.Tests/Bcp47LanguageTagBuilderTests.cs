@@ -508,6 +508,7 @@ public class Bcp47LanguageTagBuilderTests
 
     #endregion
 
+#pragma warning disable CS0618 // The UN M49 country-code overloads are tested until they are removed.
     #region Test: UsingRegionSubtag_WhenRegionSubtagIsNotDefinedMemberOfUnM49ByAlpha2Code
 
     [Fact]
@@ -546,6 +547,64 @@ public class Bcp47LanguageTagBuilderTests
             .Throw<ArgumentException>()
             .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SpecifiedCodeUndefinedTemplate + "*", "UN M49", ((ushort)testValue).ToString("000")))
             .WithParameterName("regionSubtag");
+    }
+
+    #endregion
+
+#pragma warning restore CS0618
+
+    #region Test: UsingRegionSubtag_WhenRegionSubtagIsNotDefinedMemberOfUnM49Area
+
+    [Fact]
+    public void UsingRegionSubtag_WhenRegionSubtagIsNotDefinedMemberOfUnM49Area_ThrowsArgumentException()
+    {
+        // arrange
+        var testValue = (UnM49Area)0;
+        var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
+
+        // act
+        Action testAction = () => builder.UsingRegionSubtag(testValue);
+
+        // assert
+        testAction.Should()
+            .Throw<ArgumentException>("the code must be a member of {0}", nameof(UnM49Area))
+            .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SpecifiedCodeUndefinedTemplate + "*", "UN M49", ((ushort)testValue).ToString("000")))
+            .WithParameterName("regionSubtag");
+    }
+
+    #endregion
+
+    #region Test: UsingRegionSubtag_WhenRegionSubtagIsUnM49CountryOrArea
+
+    [Theory]
+    [MemberData(nameof(UsingRegionSubtag_WhenRegionSubtagIsUnM49CountryOrArea_TestCaseGenerator.TestCases), MemberType = typeof(UsingRegionSubtag_WhenRegionSubtagIsUnM49CountryOrArea_TestCaseGenerator))]
+    public void UsingRegionSubtag_WhenRegionSubtagIsUnM49CountryOrArea_ThrowsArgumentException(UnM49Area testValue)
+    {
+        // arrange
+        var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
+
+        // act
+        Action testAction = () => builder.UsingRegionSubtag(testValue);
+
+        // assert
+        testAction.Should()
+            .Throw<ArgumentException>("BCP 47 does not allow a UN M49 country or area code as a Region subtag")
+            .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SubtagInvalidTemplate, ((ushort)testValue).ToString("000"), "Region subtag") + "*")
+            .WithParameterName("regionSubtag");
+    }
+
+    private class UsingRegionSubtag_WhenRegionSubtagIsUnM49CountryOrArea_TestCaseGenerator
+    {
+        public static IEnumerable<object[]> TestCases
+        {
+            get
+            {
+                foreach (var testValue in Enum.GetValues<UnM49Area>().Where(code => code.GetLevel() == UnM49AreaLevel.CountryOrArea))
+                {
+                    yield return new object[] { testValue };
+                }
+            }
+        }
     }
 
     #endregion
