@@ -1,21 +1,26 @@
-﻿using DataStandardizer.LanguageTag.SubtagRegistry;
+﻿using System;
+using System.IO;
+using DataStandardizer.LanguageTag.SubtagRegistry;
 
-namespace DataStandardizer.LanguageTag.Tests;
-
-public class Bcp47LanguageTagFixture
+namespace DataStandardizer.LanguageTag.Tests
 {
-    public Bcp47LanguageTagFixture()
+    public class Bcp47LanguageTagFixture
     {
-        using var resourceStream = this.GetType().Assembly.GetManifestResourceStream("DataStandardizer.LanguageTag.Tests.Resources.IanaSubtagRegistry.txt");
-        if (resourceStream is not null)
+        public Bcp47LanguageTagFixture()
         {
-            IanaSubtagRegistry = SubtagRegistry.SubtagRegistry.CreateFromStream(resourceStream);
+            using (var resourceStream = this.GetType().Assembly.GetManifestResourceStream("DataStandardizer.LanguageTag.Tests.Resources.IanaSubtagRegistry.txt"))
+            {
+                if (resourceStream != null)
+                {
+                    IanaSubtagRegistry = SubtagRegistry.SubtagRegistry.CreateFromStream(resourceStream);
+                }
+                else
+                {
+                    IanaSubtagRegistry = SubtagRegistry.SubtagRegistry.CreateFromContent($"{SubtagRegistryConstants.FieldName.FileDate}: {DateTime.Today:yyyy-MM-dd}"); // this should never happen
+                }
+            }
         }
-        else
-        {
-            IanaSubtagRegistry = SubtagRegistry.SubtagRegistry.CreateFromContent($"{SubtagRegistryConstants.FieldName.FileDate}: {DateTime.Today:yyyy-MM-dd}"); // this should never happen
-        }
-    }
 
-    public SubtagRegistry.SubtagRegistry IanaSubtagRegistry { get; private set; }
+        public SubtagRegistry.SubtagRegistry IanaSubtagRegistry { get; private set; }
+    }
 }
