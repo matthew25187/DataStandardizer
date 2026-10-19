@@ -120,6 +120,24 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
         { "en-830-x-foo", "en-154-x-foo" },
     };
 
+    /// <summary>
+    /// Language tags whose subtags are registered only through the private use range records <c>qaa..qtz</c>, <c>Qaaa..Qabx</c>, <c>QM..QZ</c> and <c>XA..XZ</c> (RFC 5646 §3.1.1, §3.1.4),
+    /// at each end of a range and inside it, in various cases (§2.1.1). <c>Qaay</c> and <c>Qaaz</c> are left out until the default rules accept them (#323).
+    /// </summary>
+    public static TheoryData<string> PrivateUseRangeLanguageTags => new()
+    {
+        "qaa", "qtz", "qbm", "QTZ", "en-Qaaa", "en-Qaba", "en-Qabx", "en-QM", "en-QS", "en-QZ", "en-XA", "en-XZ", "qaa-Qabx-XZ",
+    };
+
+    /// <summary>
+    /// Language tags with an unregistered Script or Region subtag just past the end of a private use range record, each with a control tag that has the end of the range in its place.
+    /// </summary>
+    public static TheoryData<string, string> OutsidePrivateUseRangeLanguageTags => new()
+    {
+        { "en-Qaby", "en-Qabx" },
+        { "en-QL", "en-QM" },
+    };
+
     #region Test: CheckExtendedLanguageSubtag_WithInvalidSubtag
 
     [Theory]
@@ -2329,6 +2347,39 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
 
     #endregion
 
+    #region Test: Create_WithLanguageTagAndSubtagRegistryWhenSubtagIsInPrivateUseRange
+
+    [Theory]
+    [MemberData(nameof(PrivateUseRangeLanguageTags))]
+    public void Create_WithLanguageTagAndSubtagRegistryWhenSubtagIsInPrivateUseRange_ReturnsBcp47LanguageTag(string testLanguageTag)
+    {
+        // act
+        var languageTag = Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry);
+        var testResult = (string?)languageTag;
+
+        // assert
+        testResult.Should().Be(testLanguageTag, "the subtags of '{0}' are registered by private use range records (RFC 5646 §3.1.1)", testLanguageTag);
+    }
+
+    #endregion
+
+    #region Test: Create_WithLanguageTagAndSubtagRegistryWhenSubtagIsOutsidePrivateUseRange
+
+    [Theory]
+    [MemberData(nameof(OutsidePrivateUseRangeLanguageTags))]
+    public void Create_WithLanguageTagAndSubtagRegistryWhenSubtagIsOutsidePrivateUseRange_ThrowsLanguageTagFormatException(string testLanguageTag, string controlLanguageTag)
+    {
+        // act
+        Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry);
+        Action controlAction = () => _ = Bcp47LanguageTag.Create(controlLanguageTag, _fixture.IanaSubtagRegistry);
+
+        // assert
+        controlAction.Should().NotThrow("the language tag '{0}' ends a private use range record", controlLanguageTag);
+        testAction.Should().Throw<LanguageTagFormatException>("the Subtag Registry has no record or range for a subtag of '{0}'", testLanguageTag).WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
+    }
+
+    #endregion
+
     #region Test: Create_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsGrandfathered
 
     [Theory]
@@ -2434,6 +2485,39 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
         // assert
         controlAction.Should().NotThrow("the language tag '{0}' has no repeated subtags", controlLanguageTag);
         testAction.Should().Throw<LanguageTagFormatException>("a variant subtag or extension singleton is repeated (RFC 5646 §2.2.5, §2.2.6)").WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
+    }
+
+    #endregion
+
+    #region Test: Create_WithLanguageTagAndSubtagRegistryAndTimeoutWhenSubtagIsInPrivateUseRange
+
+    [Theory]
+    [MemberData(nameof(PrivateUseRangeLanguageTags))]
+    public void Create_WithLanguageTagAndSubtagRegistryAndTimeoutWhenSubtagIsInPrivateUseRange_ReturnsBcp47LanguageTag(string testLanguageTag)
+    {
+        // act
+        var languageTag = Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry, Regex.InfiniteMatchTimeout);
+        var testResult = (string?)languageTag;
+
+        // assert
+        testResult.Should().Be(testLanguageTag, "the subtags of '{0}' are registered by private use range records (RFC 5646 §3.1.1)", testLanguageTag);
+    }
+
+    #endregion
+
+    #region Test: Create_WithLanguageTagAndSubtagRegistryAndTimeoutWhenSubtagIsOutsidePrivateUseRange
+
+    [Theory]
+    [MemberData(nameof(OutsidePrivateUseRangeLanguageTags))]
+    public void Create_WithLanguageTagAndSubtagRegistryAndTimeoutWhenSubtagIsOutsidePrivateUseRange_ThrowsLanguageTagFormatException(string testLanguageTag, string controlLanguageTag)
+    {
+        // act
+        Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry, Regex.InfiniteMatchTimeout);
+        Action controlAction = () => _ = Bcp47LanguageTag.Create(controlLanguageTag, _fixture.IanaSubtagRegistry, Regex.InfiniteMatchTimeout);
+
+        // assert
+        controlAction.Should().NotThrow("the language tag '{0}' ends a private use range record", controlLanguageTag);
+        testAction.Should().Throw<LanguageTagFormatException>("the Subtag Registry has no record or range for a subtag of '{0}'", testLanguageTag).WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
     }
 
     #endregion
@@ -2797,6 +2881,39 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
 
     #endregion
 
+    #region Test: TryCreate_WithLanguageTagAndSubtagRegistryWhenSubtagIsInPrivateUseRange
+
+    [Theory]
+    [MemberData(nameof(PrivateUseRangeLanguageTags))]
+    public void TryCreate_WithLanguageTagAndSubtagRegistryWhenSubtagIsInPrivateUseRange_ReturnsTrue(string testLanguageTag)
+    {
+        // act
+        var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, _fixture.IanaSubtagRegistry, out var languageTag);
+
+        // assert
+        testResult.Should().BeTrue("the subtags of '{0}' are registered by private use range records (RFC 5646 §3.1.1)", testLanguageTag);
+        ((string?)languageTag).Should().Be(testLanguageTag);
+    }
+
+    #endregion
+
+    #region Test: TryCreate_WithLanguageTagAndSubtagRegistryWhenSubtagIsOutsidePrivateUseRange
+
+    [Theory]
+    [MemberData(nameof(OutsidePrivateUseRangeLanguageTags))]
+    public void TryCreate_WithLanguageTagAndSubtagRegistryWhenSubtagIsOutsidePrivateUseRange_ReturnsFalse(string testLanguageTag, string controlLanguageTag)
+    {
+        // act
+        var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, _fixture.IanaSubtagRegistry, out _);
+        var controlResult = Bcp47LanguageTag.TryCreate(controlLanguageTag, _fixture.IanaSubtagRegistry, out _);
+
+        // assert
+        controlResult.Should().BeTrue("the language tag '{0}' ends a private use range record", controlLanguageTag);
+        testResult.Should().BeFalse("the Subtag Registry has no record or range for a subtag of '{0}'", testLanguageTag);
+    }
+
+    #endregion
+
     #region Test: TryCreate_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsGrandfathered
 
     [Theory]
@@ -2905,6 +3022,39 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
         // assert
         controlResult.Should().BeTrue("the language tag '{0}' has no repeated subtags", controlLanguageTag);
         testResult.Should().BeFalse("the language tag '{0}' repeats a variant subtag or extension singleton (RFC 5646 §2.2.5, §2.2.6)", testLanguageTag);
+    }
+
+    #endregion
+
+    #region Test: TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenSubtagIsInPrivateUseRange
+
+    [Theory]
+    [MemberData(nameof(PrivateUseRangeLanguageTags))]
+    public void TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenSubtagIsInPrivateUseRange_ReturnsTrue(string testLanguageTag)
+    {
+        // act
+        var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, _fixture.IanaSubtagRegistry, Regex.InfiniteMatchTimeout, out var languageTag);
+
+        // assert
+        testResult.Should().BeTrue("the subtags of '{0}' are registered by private use range records (RFC 5646 §3.1.1)", testLanguageTag);
+        ((string?)languageTag).Should().Be(testLanguageTag);
+    }
+
+    #endregion
+
+    #region Test: TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenSubtagIsOutsidePrivateUseRange
+
+    [Theory]
+    [MemberData(nameof(OutsidePrivateUseRangeLanguageTags))]
+    public void TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenSubtagIsOutsidePrivateUseRange_ReturnsFalse(string testLanguageTag, string controlLanguageTag)
+    {
+        // act
+        var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, _fixture.IanaSubtagRegistry, Regex.InfiniteMatchTimeout, out _);
+        var controlResult = Bcp47LanguageTag.TryCreate(controlLanguageTag, _fixture.IanaSubtagRegistry, Regex.InfiniteMatchTimeout, out _);
+
+        // assert
+        controlResult.Should().BeTrue("the language tag '{0}' ends a private use range record", controlLanguageTag);
+        testResult.Should().BeFalse("the Subtag Registry has no record or range for a subtag of '{0}'", testLanguageTag);
     }
 
     #endregion

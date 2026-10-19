@@ -41,7 +41,7 @@ namespace DataStandardizer.LanguageTag.InternalState
                 .Select(field => field.Item2 as string)
                 .Where(subtag => subtag != null)
                 .Cast<string>();
-            return string.Join("|", scriptSubtags.Select(Regex.Escape));
+            return string.Join("|", scriptSubtags.SelectMany(SubtagRegistry.SubtagRegistrySubtagRange.Expand).Select(Regex.Escape));
         }
     }
 }
