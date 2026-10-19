@@ -75,7 +75,7 @@ namespace DataStandardizer.LanguageTag
 
         public bool Equals(Bcp47KeyedSubtag other)
         {
-            return _subtag == other._subtag;
+            return string.Equals(_subtag, other._subtag, StringComparison.OrdinalIgnoreCase);
         }
 
 #if NETCOREAPP3_0_OR_GREATER
@@ -92,7 +92,7 @@ namespace DataStandardizer.LanguageTag
 
         public override int GetHashCode()
         {
-            return (_subtag != null ? _subtag.GetHashCode() : 0);
+            return (_subtag != null ? StringComparer.OrdinalIgnoreCase.GetHashCode(_subtag) : 0);
         }
 
         public override string ToString()

@@ -97,4 +97,70 @@ public class Bcp47KeyedSubtagTests
             return GetEnumerator();
         }
     }
+
+    [Theory]
+    [InlineData("u-co-phonebk", "U-CO-PHONEBK"), InlineData("x-whatever", "X-WhatEver"), InlineData("t-hi-latn", "T-hi-Latn")]
+    public void Equals_OnInstancesDifferingOnlyInCase_ReturnsTrue(string testSubtag, string otherSubtag)
+    {
+        // arrange
+        var keyedSubtag = new Bcp47KeyedSubtag(testSubtag);
+        var otherKeyedSubtag = new Bcp47KeyedSubtag(otherSubtag);
+
+        // act
+        var testResult = keyedSubtag.Equals(otherKeyedSubtag);
+
+        // assert
+        testResult.Should().BeTrue("subtags are case-insensitive (RFC 5646 section 2.1.1)");
+        (keyedSubtag == otherKeyedSubtag).Should().BeTrue();
+        (keyedSubtag != otherKeyedSubtag).Should().BeFalse();
+        keyedSubtag.Equals((object)otherKeyedSubtag).Should().BeTrue();
+        keyedSubtag.GetHashCode().Should().Be(otherKeyedSubtag.GetHashCode(), "equal instances have equal hash codes");
+    }
+
+    [Fact]
+    public void Equals_OnInstancesWithDifferentSubtags_ReturnsFalse()
+    {
+        // arrange
+        var keyedSubtag = new Bcp47KeyedSubtag("u-co-phonebk");
+        var otherKeyedSubtag = new Bcp47KeyedSubtag("u-co-pinyin");
+
+        // act
+        var testResult = keyedSubtag.Equals(otherKeyedSubtag);
+
+        // assert
+        testResult.Should().BeFalse();
+        (keyedSubtag == otherKeyedSubtag).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Equals_OnUninitializedInstances_ReturnsTrue()
+    {
+        // arrange
+        var keyedSubtag = new Bcp47KeyedSubtag();
+        var otherKeyedSubtag = new Bcp47KeyedSubtag();
+
+        // act
+        var testResult = keyedSubtag.Equals(otherKeyedSubtag);
+
+        // assert
+        testResult.Should().BeTrue();
+        keyedSubtag.GetHashCode().Should().Be(otherKeyedSubtag.GetHashCode());
+        keyedSubtag.Equals(new Bcp47KeyedSubtag("u-co-phonebk")).Should().BeFalse();
+    }
+
+    [Fact]
+    public void ExtensionSubtags_OnTagsDifferingOnlyInCase_AreEqual()
+    {
+        // arrange
+        var languageTag = Bcp47LanguageTag.Create("en-u-co-phonebk");
+        var otherLanguageTag = Bcp47LanguageTag.Create("en-U-CO-PHONEBK");
+
+        // act
+        var testResult = languageTag.ExtensionSubtags[0] == otherLanguageTag.ExtensionSubtags[0];
+
+        // assert
+        languageTag.Should().Be(otherLanguageTag);
+        testResult.Should().BeTrue("extension subtags compare the way their tags do");
+        ((string?)otherLanguageTag.ExtensionSubtags[0]).Should().Be("U-CO-PHONEBK", "the subtag keeps the case it was written in");
+    }
 }
