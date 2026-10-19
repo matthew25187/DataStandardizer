@@ -1,4 +1,5 @@
-﻿using DataStandardizer.Geography;
+﻿using System;
+using DataStandardizer.Geography;
 #if NETSTANDARD
 using JetBrains.Annotations; 
 #endif
@@ -27,6 +28,7 @@ namespace DataStandardizer.LanguageTag
         /// </summary>
         /// <param name="regionSubtag">UN M49 code to use for the Region subtag.</param>
         /// <returns>Language tag builder.</returns>
+        [Obsolete("Every defined member of " + nameof(UnM49AreaByAlpha2CountryCode) + " is a country code, which BCP 47 does not allow as a Region subtag.  Use the " + nameof(UnM49Area) + " overload for a UN M49 area, or the " + nameof(Iso3166Part1Alpha2Country) + " overload for a country.")]
 #if NETCOREAPP3_0_OR_GREATER
         IBcp47LanguageTagBuilderStepUsingRegionSubtagNext UsingRegionSubtag(UnM49AreaByAlpha2CountryCode regionSubtag);
 #else
@@ -38,11 +40,27 @@ namespace DataStandardizer.LanguageTag
         /// </summary>
         /// <param name="regionSubtag">UN M49 code to use for the Region subtag.</param>
         /// <returns>Language tag builder.</returns>
+        [Obsolete("Every defined member of " + nameof(UnM49AreaByAlpha3CountryCode) + " is a country code, which BCP 47 does not allow as a Region subtag.  Use the " + nameof(UnM49Area) + " overload for a UN M49 area, or the " + nameof(Iso3166Part1Alpha2Country) + " overload for a country.")]
 #if NETCOREAPP3_0_OR_GREATER
         IBcp47LanguageTagBuilderStepUsingRegionSubtagNext UsingRegionSubtag(UnM49AreaByAlpha3CountryCode regionSubtag);
 #else
         [NotNull]
         IBcp47LanguageTagBuilderStepUsingRegionSubtagNext UsingRegionSubtag(UnM49AreaByAlpha3CountryCode regionSubtag);
+#endif
+        /// <summary>
+        /// Build a language tag using a Region subtag from a UN M49 area.
+        /// </summary>
+        /// <param name="regionSubtag">UN M49 area to use for the Region subtag.</param>
+        /// <returns>Language tag builder.</returns>
+        /// <remarks>
+        /// BCP 47 allows only the UN M49 codes for areas made up of more than one country, such as <see cref="UnM49Area._419"/> (Latin America and the Caribbean).
+        /// A UN M49 country code is not a valid Region subtag; use the <see cref="Iso3166Part1Alpha2Country"/> overload for a country instead.
+        /// </remarks>
+#if NETCOREAPP3_0_OR_GREATER
+        IBcp47LanguageTagBuilderStepUsingRegionSubtagNext UsingRegionSubtag(UnM49Area regionSubtag);
+#else
+        [NotNull]
+        IBcp47LanguageTagBuilderStepUsingRegionSubtagNext UsingRegionSubtag(UnM49Area regionSubtag);
 #endif
         /// <summary>
         /// Build a language tag using a Region subtag from ISO 3166-1 alpha-2 or UN M49.

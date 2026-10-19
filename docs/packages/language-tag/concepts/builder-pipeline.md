@@ -60,11 +60,14 @@ other *Data Standardizer* packages:
 - Primary language — `Iso639Part1Language`, `Iso639Part2TLanguage`,
   `Iso639Part3Language`, `Iso639Part5LanguageFamily`, or `string`.
 - Script — `Iso15924Script` or `string`.
-- Region — `Iso3166Part1Alpha2Country`, `UnM49AreaByAlpha2CountryCode`,
-  `UnM49AreaByAlpha3CountryCode`, or `string`.
+- Region — `Iso3166Part1Alpha2Country` for a country, `UnM49Area` for an area
+  made up of more than one country (such as `UnM49Area._419`), or `string`. The
+  `UnM49AreaByAlpha2CountryCode` and `UnM49AreaByAlpha3CountryCode` overloads
+  are deprecated.
 
-When you pass an enum, the builder checks that the value is defined; when you pass
-a string, it checks the subtag against the BCP 47 rules (via the matching
+When you pass an enum, the builder checks that the value is defined (and, for
+`UnM49Area`, that the member is an area BCP 47 allows); when you pass a string,
+it checks the subtag against the BCP 47 rules (via the matching
 `Bcp47LanguageTag.Check…` method). An undefined enum value or a malformed string
 throws `ArgumentException` at the point of the call, so mistakes surface early
 rather than at `Build()`.

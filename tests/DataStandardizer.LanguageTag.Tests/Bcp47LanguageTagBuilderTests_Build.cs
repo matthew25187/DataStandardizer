@@ -476,6 +476,7 @@ public class Bcp47LanguageTagBuilderTests_Build
 
     #endregion
 
+#pragma warning disable CS0618 // The UN M49 country-code overloads are tested until they are removed.
     #region Test: Build_ForRegionSubtagFromUnM49ByAlpha2Code
 
     [Theory]
@@ -555,6 +556,40 @@ public class Bcp47LanguageTagBuilderTests_Build
         IEnumerator IEnumerable.GetEnumerator()
         {
             return ((IEnumerable)TestCases).GetEnumerator();
+        }
+    }
+
+    #endregion
+
+#pragma warning restore CS0618
+
+    #region Test: Build_ForRegionSubtagFromUnM49Area
+
+    [Theory]
+    [MemberData(nameof(Build_ForRegionSubtagFromUnM49Area_TestCaseGenerator.TestCases), MemberType = typeof(Build_ForRegionSubtagFromUnM49Area_TestCaseGenerator))]
+    public void Build_ForRegionSubtagFromUnM49Area_ProducesBcp47LanguageTag(UnM49Area testValue, Bcp47LanguageTag expectedResult)
+    {
+        // arrange
+        var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
+
+        // act
+        var testResult = builder.UsingRegionSubtag(testValue).Build();
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    private class Build_ForRegionSubtagFromUnM49Area_TestCaseGenerator
+    {
+        public static IEnumerable<object[]> TestCases
+        {
+            get
+            {
+                foreach (var testValue in Enum.GetValues<UnM49Area>().Where(code => code.GetLevel() != UnM49AreaLevel.CountryOrArea))
+                {
+                    yield return new object[] { testValue, Bcp47LanguageTag.Create($"{Iso639Part1Language.en}-{(ushort)testValue:000}") };
+                }
+            }
         }
     }
 

@@ -93,8 +93,9 @@ step chain (the relevant `IBcp47LanguageTagBuilderStep…` interface), not on a
 | `UsingExtensionSubtags(string, params string[])` | `IBcp47LanguageTagBuilderStepUsingExtensionSubtagsNext` | Reached through `IBcp47LanguageTagBuilderStepUsingExtensionSubtags`. Throws `ArgumentException` if two extensions share a singleton (compared case-insensitively). |
 | `UsingPrivateUseSubtag(string)` | `IBcp47LanguageTagBuilderStepUsingPrivateUseSubtagNext` | Reached through `IBcp47LanguageTagBuilderStepUsingPrivateUseSubtag`. |
 | `UsingRegionSubtag(Iso3166Part1Alpha2Country)` | `IBcp47LanguageTagBuilderStepUsingRegionSubtagNext` | Reached through `IBcp47LanguageTagBuilderStepUsingRegionSubtag`. |
-| `UsingRegionSubtag(UnM49AreaByAlpha2CountryCode)` | `IBcp47LanguageTagBuilderStepUsingRegionSubtagNext` | |
-| `UsingRegionSubtag(UnM49AreaByAlpha3CountryCode)` | `IBcp47LanguageTagBuilderStepUsingRegionSubtagNext` | |
+| `UsingRegionSubtag(UnM49Area)` | `IBcp47LanguageTagBuilderStepUsingRegionSubtagNext` | Accepts a UN M49 area made up of more than one country, such as `UnM49Area._419`, and writes it as a three-digit subtag (`es-419`). Throws `ArgumentException` for a country or area member such as `UnM49Area._840`, which BCP 47 doesn't allow; use the `Iso3166Part1Alpha2Country` overload for a country. |
+| `UsingRegionSubtag(UnM49AreaByAlpha2CountryCode)` | `IBcp47LanguageTagBuilderStepUsingRegionSubtagNext` | **Deprecated.** Marked `[Obsolete]` and will be removed in version 2.0. Every defined member is a country code, which BCP 47 doesn't allow, so every defined member throws `ArgumentException`. Use the `UnM49Area` overload. |
+| `UsingRegionSubtag(UnM49AreaByAlpha3CountryCode)` | `IBcp47LanguageTagBuilderStepUsingRegionSubtagNext` | **Deprecated.** As for the `UnM49AreaByAlpha2CountryCode` overload. |
 | `UsingRegionSubtag(string)` | `IBcp47LanguageTagBuilderStepUsingRegionSubtagNext` | |
 | `UsingScriptSubtag(Iso15924Script)` | `IBcp47LanguageTagBuilderStepUsingScriptSubtagNext` | Reached through `IBcp47LanguageTagBuilderStepUsingScriptSubtag`. |
 | `UsingScriptSubtag(string)` | `IBcp47LanguageTagBuilderStepUsingScriptSubtagNext` | |
