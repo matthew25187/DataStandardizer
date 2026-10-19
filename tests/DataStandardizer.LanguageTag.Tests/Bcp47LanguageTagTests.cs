@@ -3243,5 +3243,28 @@ namespace DataStandardizer.LanguageTag.Tests
         }
 
         #endregion
+
+        #region Test: CreateAndTryCreate_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsValidInRegistry
+
+        [Theory]
+        [InlineData("i-klingon"), InlineData("my-BU")]
+        public void CreateAndTryCreate_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsValidInRegistry_AllOverloadsSucceed(string testLanguageTag)
+        {
+            // act
+            var createResult = Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry);
+            var createWithTimeoutResult = Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry, Regex.InfiniteMatchTimeout);
+            var tryCreateResult = Bcp47LanguageTag.TryCreate(testLanguageTag, _fixture.IanaSubtagRegistry, out var tryCreateLanguageTag);
+            var tryCreateWithTimeoutResult = Bcp47LanguageTag.TryCreate(testLanguageTag, _fixture.IanaSubtagRegistry, Regex.InfiniteMatchTimeout, out var tryCreateWithTimeoutLanguageTag);
+
+            // assert
+            ((string)createResult).Should().Be(testLanguageTag);
+            ((string)createWithTimeoutResult).Should().Be(testLanguageTag);
+            tryCreateResult.Should().BeTrue("the Subtag Registry has a record for every subtag of '{0}'", testLanguageTag);
+            ((string)tryCreateLanguageTag).Should().Be(testLanguageTag);
+            tryCreateWithTimeoutResult.Should().BeTrue("the registry-based overloads must agree on '{0}'", testLanguageTag);
+            ((string)tryCreateWithTimeoutLanguageTag).Should().Be(testLanguageTag);
+        }
+
+        #endregion
     }
 }
