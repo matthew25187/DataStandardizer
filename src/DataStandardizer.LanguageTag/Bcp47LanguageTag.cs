@@ -638,7 +638,7 @@ namespace DataStandardizer.LanguageTag
         public static bool TryCreate([CanBeNull] string languageTag, [NotNull] SubtagRegistry.SubtagRegistry subtagRegistry, TimeSpan matchTimeout, out Bcp47LanguageTag result)
 #endif
         {
-            if (languageTag is null || subtagRegistry is null || !IsWellFormedLanguageTagString(languageTag))
+            if (languageTag is null || subtagRegistry is null)
             {
                 result = default;
                 return false;
