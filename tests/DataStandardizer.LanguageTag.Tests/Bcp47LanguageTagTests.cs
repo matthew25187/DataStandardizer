@@ -1273,6 +1273,28 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
 
     #endregion
 
+    #region Test: PrimaryLanguageSubtag_OnPrivateUseLanguageTag
+
+    [Theory]
+    [InlineData("x-private"), InlineData("X-PRIVATE"), InlineData("x-fr-CH")]
+    public void PrimaryLanguageSubtag_OnPrivateUseLanguageTag_ReturnsEmptyString(string testLanguageTag)
+    {
+        // arrange
+        var testSubjects = new[] { Bcp47LanguageTag.Create(testLanguageTag), Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry) };
+
+        foreach (var testSubject in testSubjects)
+        {
+            // act
+            var testResult = testSubject.PrimaryLanguageSubtag;
+
+            // assert
+            testResult.Should().BeEmpty("a private use language tag has no Primary Language subtag (RFC 5646 §2.2.7)");
+            testSubject.PrivateUseSubtag.Should().NotBeNull();
+        }
+    }
+
+    #endregion
+
     #region Test: PrivateUseSubtag_OnDefaultLanguageTag
 
     [Fact]
@@ -1959,6 +1981,27 @@ public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
 
         // assert
         testResult.Should().Be(Iso639Part5LanguageFamily.sla);
+    }
+
+    #endregion
+
+    #region Test: ToIso639_WithLanguageTagHavingNoPrimaryLanguageSubtag
+
+    [Theory]
+    [InlineData("x-private"), InlineData("i-klingon"), InlineData("art-lojban")]
+    public void ToIso639_WithLanguageTagHavingNoPrimaryLanguageSubtag_ReturnsNull(string testLanguageTag)
+    {
+        // arrange
+        var testSubjects = new[] { Bcp47LanguageTag.Create(testLanguageTag), Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry) };
+
+        foreach (var testSubject in testSubjects)
+        {
+            // assert
+            testSubject.ToIso639Part1().Should().BeNull();
+            testSubject.ToIso639Part2T().Should().BeNull();
+            testSubject.ToIso639Part3().Should().BeNull();
+            testSubject.ToIso639Part5().Should().BeNull();
+        }
     }
 
     #endregion
