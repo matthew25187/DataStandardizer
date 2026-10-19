@@ -112,7 +112,7 @@ Each getter throws `InvalidOperationException` if the instance is uninitialised.
 
 | Operator | Signature | Notes |
 | --- | --- | --- |
-| Explicit | `explicit operator Bcp47LanguageTag(string)` | Wraps a string *without* validation. |
+| Explicit | `explicit operator Bcp47LanguageTag(string)` | Validates with the default BCP 47 rules, like `Create(string)`. Throws `InvalidCastException` for `null` or a tag that is not well-formed. |
 | Implicit | `implicit operator string?(Bcp47LanguageTag)` | Unwraps to the underlying tag string. |
 | Equality | `operator ==`, `!=` `(Bcp47LanguageTag, Bcp47LanguageTag)` | Case-insensitive comparison of the tag string. |
 

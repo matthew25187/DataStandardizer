@@ -29,6 +29,7 @@ namespace DataStandardizer.LanguageTag
         internal static class ErrorMessage
         {
             internal const string LanguageTagInvalidFormat = "The language tag is not in a valid format.";
+            internal const string LanguageTagNull = "The language tag must not be null.";
             internal const string UninitializedInstance = "The " + nameof(Bcp47LanguageTag) + " instance is not initialised.";
         }
 
@@ -86,13 +87,32 @@ namespace DataStandardizer.LanguageTag
 
         #region Operators
 
+        /// <summary>
+        /// Convert a string to a language tag object.
+        /// </summary>
+        /// <param name="languageTag">Language tag on which the object will be based.</param>
+        /// <returns>Language tag object.</returns>
+        /// <exception cref="InvalidCastException">The language tag is <c>null</c> or was not recognised.</exception>
+        /// <remarks>
+        /// Validation will be performed using the default BCP 47 rules.
+        /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static explicit operator Bcp47LanguageTag(string languageTag)
 #else
         public static explicit operator Bcp47LanguageTag([NotNull] string languageTag)
 #endif
         {
-            return new Bcp47LanguageTag(languageTag);
+            if (languageTag is null)
+            {
+                throw new InvalidCastException(ErrorMessage.LanguageTagNull);
+            }
+
+            if (!TryCreate(languageTag, out var result))
+            {
+                throw new InvalidCastException(ErrorMessage.LanguageTagInvalidFormat);
+            }
+
+            return result;
         }
 
 #if NETCOREAPP3_0_OR_GREATER
