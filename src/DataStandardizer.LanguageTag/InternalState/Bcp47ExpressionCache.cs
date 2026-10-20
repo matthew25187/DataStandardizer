@@ -74,7 +74,7 @@ namespace DataStandardizer.LanguageTag.InternalState
                 if (_cachedExpressions.Count < MaxCacheSize)
                 {
                     var pattern = _factory.GetPattern();
-                    expression = matchTimeout == Regex.InfiniteMatchTimeout ? new Regex($"^{pattern}$", ExpressionOptions) : new Regex($"^{pattern}$", ExpressionOptions, matchTimeout);
+                    expression = matchTimeout == Regex.InfiniteMatchTimeout ? new Regex($"^{pattern}\\z", ExpressionOptions) : new Regex($"^{pattern}\\z", ExpressionOptions, matchTimeout);
                     _cachedExpressions.Add(matchTimeout.Ticks, expression);
                 }
 
