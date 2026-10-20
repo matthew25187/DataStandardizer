@@ -8,19 +8,25 @@ namespace DataStandardizer.LanguageTag.Tests
     {
         public Bcp47LanguageTagFixture()
         {
-            using (var resourceStream = this.GetType().Assembly.GetManifestResourceStream("DataStandardizer.LanguageTag.Tests.Resources.IanaSubtagRegistry.txt"))
-            {
-                if (resourceStream != null)
-                {
-                    IanaSubtagRegistry = SubtagRegistry.SubtagRegistry.CreateFromStream(resourceStream);
-                }
-                else
-                {
-                    IanaSubtagRegistry = SubtagRegistry.SubtagRegistry.CreateFromContent($"{SubtagRegistryConstants.FieldName.FileDate}: {DateTime.Today:yyyy-MM-dd}"); // this should never happen
-                }
-            }
+            IanaSubtagRegistry = CreateIanaSubtagRegistry();
         }
 
         public SubtagRegistry.SubtagRegistry IanaSubtagRegistry { get; private set; }
+
+        /// <summary>
+        /// Load a new copy of the IANA Subtag Registry fixture, for a test that must not share one with other tests.
+        /// </summary>
+        public static SubtagRegistry.SubtagRegistry CreateIanaSubtagRegistry()
+        {
+            using (var resourceStream = typeof(Bcp47LanguageTagFixture).Assembly.GetManifestResourceStream("DataStandardizer.LanguageTag.Tests.Resources.IanaSubtagRegistry.txt"))
+            {
+                if (resourceStream != null)
+                {
+                    return SubtagRegistry.SubtagRegistry.CreateFromStream(resourceStream);
+                }
+
+                return SubtagRegistry.SubtagRegistry.CreateFromContent($"{SubtagRegistryConstants.FieldName.FileDate}: {DateTime.Today:yyyy-MM-dd}"); // this should never happen
+            }
+        }
     }
 }

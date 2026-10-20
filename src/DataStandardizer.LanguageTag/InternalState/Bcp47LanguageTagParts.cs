@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Text.RegularExpressions;
 #if NETSTANDARD
 using JetBrains.Annotations;
 #endif
-using static DataStandardizer.LanguageTag.Bcp47Constants;
 
 namespace DataStandardizer.LanguageTag.InternalState
 {
@@ -112,53 +110,6 @@ namespace DataStandardizer.LanguageTag.InternalState
         }
 
         /// <summary>
-        /// Decompose a language tag from a match of a Subtag Registry language tag expression.
-        /// </summary>
-        /// <returns>The subtags; <c>null</c> if the match failed or the tag repeats a variant subtag or an extension singleton, so it is not well-formed.</returns>
-        /// <remarks>
-        /// The expression checks the syntax of each subtag but not that variant subtags and extension singletons are unique (ref. RFC 5646 §2.2.5¶5, §2.2.6¶3).
-        /// Private use subtags may repeat.
-        /// </remarks>
-#if NETCOREAPP3_0_OR_GREATER
-        internal static Bcp47LanguageTagParts? FromMatch(Match languageTagMatch)
-#else
-        [CanBeNull]
-        internal static Bcp47LanguageTagParts FromMatch([NotNull] Match languageTagMatch)
-#endif
-        {
-            if (!languageTagMatch.Success) return null;
-
-            var groups = languageTagMatch.Groups;
-
-            var variants = GetCaptures(groups[LanguageTagSubtagGroupName.Variant]);
-            if (Bcp47LanguageTag.IndexOfRepeatedVariantSubtag(variants) >= 0) return null;
-
-            var extensionStrings = GetCaptures(groups[LanguageTagSubtagGroupName.Extension]);
-            if (Bcp47LanguageTag.IndexOfRepeatedExtensionSingleton(extensionStrings) >= 0) return null;
-
-            var extensions = NoKeyedSubtags;
-            if (extensionStrings.Length > 0)
-            {
-                extensions = new Bcp47KeyedSubtag[extensionStrings.Length];
-                for (var index = 0; index < extensionStrings.Length; index++)
-                {
-                    extensions[index] = new Bcp47KeyedSubtag(extensionStrings[index]);
-                }
-            }
-
-            var privateUseGroup = groups[LanguageTagSubtagGroupName.PrivateUse];
-
-            return new Bcp47LanguageTagParts(
-                groups[LanguageTagSubtagGroupName.PrimaryLanguage].Value,
-                GetCaptures(groups[LanguageTagSubtagGroupName.ExtendedLanguage]),
-                GetValue(groups[LanguageTagSubtagGroupName.Script]),
-                GetValue(groups[LanguageTagSubtagGroupName.Region]),
-                variants,
-                extensions,
-                privateUseGroup.Success ? new Bcp47KeyedSubtag(privateUseGroup.Value) : (Bcp47KeyedSubtag?)null);
-        }
-
-        /// <summary>
         /// Copy an array of subtags for a caller.
         /// </summary>
         /// <remarks>
@@ -181,30 +132,6 @@ namespace DataStandardizer.LanguageTag.InternalState
         private static string Substring(string languageTag, Bcp47SubtagRange range)
         {
             return languageTag.Substring(range.Start, range.Length);
-        }
-
-        private static string[] GetCaptures(Group group)
-        {
-            var captures = group.Captures;
-            if (captures.Count == 0) return NoSubtags;
-
-            var values = new string[captures.Count];
-            for (var index = 0; index < values.Length; index++)
-            {
-                values[index] = captures[index].Value;
-            }
-
-            return values;
-        }
-
-#if NETCOREAPP3_0_OR_GREATER
-        private static string? GetValue(Group group)
-#else
-        [CanBeNull]
-        private static string GetValue(Group group)
-#endif
-        {
-            return group.Success ? group.Value : null;
         }
     }
 }

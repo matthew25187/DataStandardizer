@@ -12,17 +12,6 @@
         /// </summary>
         internal const string WithTimeoutObsoleteMessage = "Language tags are checked by a parser, which cannot time out, so the match timeout has no effect. Leave out the WithTimeout step. This member will be removed in version 2.0.";
 
-        internal static class LanguageTagSubtagGroupName
-        {
-            internal const string PrimaryLanguage = "PrimaryLanguage";
-            internal const string ExtendedLanguage = "ExtendedLanguage";
-            internal const string Script = "Script";
-            internal const string Region = "Region";
-            internal const string Variant = "Variant";
-            internal const string Extension = "Extension";
-            internal const string PrivateUse = "PrivateUse";
-        }
-
         internal static class RegistrySubtagGroupName
         {
             internal const string Added = "Added";

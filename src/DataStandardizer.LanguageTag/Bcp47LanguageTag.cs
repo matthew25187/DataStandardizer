@@ -200,7 +200,7 @@ namespace DataStandardizer.LanguageTag
                 throw new ArgumentNullException(nameof(subtagRegistry));
             }
 
-            var parts = Bcp47LanguageTagParts.FromMatch(GetRegistryExpression(subtagRegistry).Match(languageTag));
+            var parts = ParseByRegistry(languageTag, subtagRegistry);
             if (parts is null)
             {
                 throw new LanguageTagFormatException(ErrorMessage.LanguageTagInvalidFormat, languageTag);
@@ -234,7 +234,9 @@ namespace DataStandardizer.LanguageTag
                 throw new ArgumentNullException(nameof(subtagRegistry));
             }
 
-            var parts = Bcp47LanguageTagParts.FromMatch(GetRegistryExpression(subtagRegistry).Match(languageTag, matchTimeout));
+            ValidateMatchTimeout(matchTimeout);
+
+            var parts = ParseByRegistry(languageTag, subtagRegistry);
             if (parts is null)
             {
                 throw new LanguageTagFormatException(ErrorMessage.LanguageTagInvalidFormat, languageTag);
@@ -598,7 +600,7 @@ namespace DataStandardizer.LanguageTag
                 return false;
             }
 
-            var parts = Bcp47LanguageTagParts.FromMatch(GetRegistryExpression(subtagRegistry).Match(languageTag));
+            var parts = ParseByRegistry(languageTag, subtagRegistry);
             if (parts is null)
             {
                 result = default;
@@ -630,18 +632,9 @@ namespace DataStandardizer.LanguageTag
                 return false;
             }
 
-            Match languageTagMatch;
-            try
-            {
-                languageTagMatch = GetRegistryExpression(subtagRegistry).Match(languageTag, matchTimeout);
-            }
-            catch (RegexMatchTimeoutException)
-            {
-                result = default;
-                return false;
-            }
+            ValidateMatchTimeout(matchTimeout);
 
-            var parts = Bcp47LanguageTagParts.FromMatch(languageTagMatch);
+            var parts = ParseByRegistry(languageTag, subtagRegistry);
             if (parts is null)
             {
                 result = default;
@@ -867,23 +860,26 @@ namespace DataStandardizer.LanguageTag
         }
 
         /// <summary>
-        /// Gets the expression that matches a language tag against a Subtag Registry.
+        /// Parse a language tag against the records of a Subtag Registry.
         /// </summary>
+        /// <returns>The subtags; <c>null</c> if the language tag is not well-formed.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        private static IBcp47TagExpression GetRegistryExpression(SubtagRegistry.SubtagRegistry subtagRegistry)
+        private static Bcp47LanguageTagParts? ParseByRegistry(string languageTag, SubtagRegistry.SubtagRegistry subtagRegistry)
 #else
-        [NotNull]
-        private static IBcp47TagExpression GetRegistryExpression([NotNull] SubtagRegistry.SubtagRegistry subtagRegistry)
+        [CanBeNull]
+        private static Bcp47LanguageTagParts ParseByRegistry([NotNull] string languageTag, [NotNull] SubtagRegistry.SubtagRegistry subtagRegistry)
 #endif
         {
-            return new Bcp47TagExpression<Bcp47RegistryBasedLanguageTagExpressionFactory>(subtagRegistry);
+            if (Bcp47LanguageTagParser.Parse(languageTag.AsSpan(), subtagRegistry.Classifier, out var ranges) != Bcp47ParseStatus.WellFormed) return null;
+
+            return Bcp47LanguageTagParts.FromRanges(languageTag, ranges);
         }
 
         /// <summary>
         /// Validate a match timeout as the regular expressions did.
         /// </summary>
         /// <remarks>
-        /// The default BCP 47 rules are checked by a parser, which cannot time out, so the timeout is otherwise unused (#236).
+        /// Language tags are checked by a parser, which cannot time out, so the timeout is otherwise unused (#236).
         /// </remarks>
         private static void ValidateMatchTimeout(TimeSpan matchTimeout)
         {
