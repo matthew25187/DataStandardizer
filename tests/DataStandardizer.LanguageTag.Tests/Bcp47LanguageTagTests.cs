@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 using DataStandardizer.Core;
@@ -53,6 +54,23 @@ namespace DataStandardizer.LanguageTag.Tests
         private static readonly string TimeoutLanguageTag = "en-x" + string.Concat(Enumerable.Repeat("-abcdefgh", 100000));
 
         /// <summary>
+        /// Run an action with the current culture of the thread set to a given culture, then restore the culture.
+        /// </summary>
+        private static T RunUnderCulture<T>(string cultureName, Func<T> action)
+        {
+            var originalCulture = CultureInfo.CurrentCulture;
+            CultureInfo.CurrentCulture = new CultureInfo(cultureName);
+            try
+            {
+                return action();
+            }
+            finally
+            {
+                CultureInfo.CurrentCulture = originalCulture;
+            }
+        }
+
+        /// <summary>
         /// Subtag checks, each paired with a subtag it accepts followed by a line feed. A trailing line feed isn't part of any subtag
         /// (RFC 5646 §2.1), so every check must reject it.
         /// </summary>
@@ -65,6 +83,23 @@ namespace DataStandardizer.LanguageTag.Tests
             { nameof(Bcp47LanguageTag.CheckVariantSubtag), Bcp47LanguageTag.CheckVariantSubtag, "sursilv\n" },
             { nameof(Bcp47LanguageTag.CheckExtensionSubtag), Bcp47LanguageTag.CheckExtensionSubtag, "u-sd-chzh\n" },
             { nameof(Bcp47LanguageTag.CheckPrivateUseSubtag), Bcp47LanguageTag.CheckPrivateUseSubtag, "x-private\n" }
+        };
+
+        /// <summary>
+        /// Subtag checks, each paired with a subtag it accepts with one ASCII letter replaced by a non-ASCII case equivalent: the
+        /// Kelvin sign U+212A for K or the long s U+017F for S. Subtags have only ASCII letters and digits (RFC 5646 §2.1), so every
+        /// check must reject it.
+        /// </summary>
+        public static TheoryData<string, Func<string, bool>, string> NonAsciiCaseEquivalentSubtags => new TheoryData<string, Func<string, bool>, string>()
+        {
+            { nameof(Bcp47LanguageTag.CheckPrimaryLanguageSubtag), Bcp47LanguageTag.CheckPrimaryLanguageSubtag, "\u212Ao" },
+            { nameof(Bcp47LanguageTag.CheckPrimaryLanguageSubtag), Bcp47LanguageTag.CheckPrimaryLanguageSubtag, "\u017Fv" },
+            { nameof(Bcp47LanguageTag.CheckExtendedLanguageSubtag), Bcp47LanguageTag.CheckExtendedLanguageSubtag, "\u017Fgn" },
+            { nameof(Bcp47LanguageTag.CheckScriptSubtag), Bcp47LanguageTag.CheckScriptSubtag, "\u212Ana" },
+            { nameof(Bcp47LanguageTag.CheckRegionSubtag), Bcp47LanguageTag.CheckRegionSubtag, "\u212AR" },
+            { nameof(Bcp47LanguageTag.CheckVariantSubtag), Bcp47LanguageTag.CheckVariantSubtag, "\u017Fursilv" },
+            { nameof(Bcp47LanguageTag.CheckExtensionSubtag), Bcp47LanguageTag.CheckExtensionSubtag, "u-\u017Fd-chzh" },
+            { nameof(Bcp47LanguageTag.CheckPrivateUseSubtag), Bcp47LanguageTag.CheckPrivateUseSubtag, "x-\u212A" }
         };
 
         /// <summary>
@@ -564,6 +599,21 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #endregion
 
+        #region Test: CheckSubtag_WithNonAsciiCaseEquivalent
+
+        [Theory]
+        [MemberData(nameof(NonAsciiCaseEquivalentSubtags))]
+        public void CheckSubtag_WithNonAsciiCaseEquivalent_ReturnsFalse(string checkName, Func<string, bool> check, string testSubtag)
+        {
+            // act
+            var testResult = check(testSubtag);
+
+            // assert
+            testResult.Should().BeFalse("{0} must not accept a non-ASCII letter", checkName);
+        }
+
+        #endregion
+
         #region Test: CheckRegionSubtag_WithIso3166Part1Alpha2CodeSubtag
 
         [Theory]
@@ -936,6 +986,21 @@ namespace DataStandardizer.LanguageTag.Tests
 
             // assert
             testResult.Should().BeFalse("a language tag followed by a line feed is not well-formed");
+        }
+
+        #endregion
+
+        #region Test: IsWellFormedLanguageTagString_WithNonAsciiCaseEquivalent
+
+        [Theory]
+        [InlineData("\u212Ao"), InlineData("\u017Fv"), InlineData("en-x-\u212A"), InlineData("en-x-\u017F"), InlineData("en-\u212AR")]
+        public void IsWellFormedLanguageTagString_WithNonAsciiCaseEquivalent_ReturnsFalse(string testLanguageTag)
+        {
+            // act
+            var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag);
+
+            // assert
+            testResult.Should().BeFalse("a language tag has only ASCII letters and digits (RFC 5646 §2.1)");
         }
 
         #endregion
@@ -2224,6 +2289,83 @@ namespace DataStandardizer.LanguageTag.Tests
 
             // assert
             testAction.Should().Throw<LanguageTagFormatException>("a language tag followed by a line feed is not well-formed");
+        }
+
+        #endregion
+
+        #region Test: Create_WithLanguageTagAndMatchTimeoutUnderTurkishCulture
+
+        [Theory]
+        [InlineData("IT"), InlineData("it-CH"), InlineData("IT-ch"), InlineData("it")]
+        public void Create_WithLanguageTagAndMatchTimeoutUnderTurkishCulture_ReturnsLanguageTag(string testLanguageTag)
+        {
+            // act
+            // A match timeout no other test uses makes the language tag expression get built under the Turkish culture.
+            var testResult = RunUnderCulture("tr-TR", () => Bcp47LanguageTag.Create(testLanguageTag, TimeSpan.FromMilliseconds(25_101)));
+
+            // assert
+            ((string)testResult).Should().Be(testLanguageTag, "case-insensitive matching of a language tag doesn't depend on the current culture (RFC 5646 §2.1.1)");
+        }
+
+        #endregion
+
+        #region Test: Create_WithLanguageTagSubtagRegistryAndMatchTimeoutUnderTurkishCulture
+
+        [Theory]
+        [InlineData("IT"), InlineData("it-CH"), InlineData("IT-ch"), InlineData("it")]
+        public void Create_WithLanguageTagSubtagRegistryAndMatchTimeoutUnderTurkishCulture_ReturnsLanguageTag(string testLanguageTag)
+        {
+            // act
+            // A match timeout no other test uses makes the language tag expression get built under the Turkish culture.
+            var testResult = RunUnderCulture("tr-TR", () => Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry, TimeSpan.FromMilliseconds(25_102)));
+
+            // assert
+            ((string)testResult).Should().Be(testLanguageTag, "case-insensitive matching of a language tag doesn't depend on the current culture (RFC 5646 §2.1.1)");
+        }
+
+        #endregion
+
+        #region Test: Create_WithLanguageTagWhenLanguageTagHasNonAsciiCaseEquivalent
+
+        [Theory]
+        [InlineData("\u212Ao"), InlineData("\u017Fv"), InlineData("en-x-\u212A"), InlineData("en-x-\u017F"), InlineData("en-\u212AR")]
+        public void Create_WithLanguageTagWhenLanguageTagHasNonAsciiCaseEquivalent_ThrowsLanguageTagFormatException(string testLanguageTag)
+        {
+            // act
+            Action testAction = () => Bcp47LanguageTag.Create(testLanguageTag);
+
+            // assert
+            testAction.Should().Throw<LanguageTagFormatException>("a language tag has only ASCII letters and digits (RFC 5646 §2.1), so the Kelvin sign and long s aren't letters of one").WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
+        }
+
+        #endregion
+
+        #region Test: Create_WithLanguageTagAndMatchTimeoutWhenLanguageTagHasNonAsciiCaseEquivalent
+
+        [Theory]
+        [InlineData("\u212Ao"), InlineData("en-x-\u212A"), InlineData("en-x-\u017F")]
+        public void Create_WithLanguageTagAndMatchTimeoutWhenLanguageTagHasNonAsciiCaseEquivalent_ThrowsLanguageTagFormatException(string testLanguageTag)
+        {
+            // act
+            Action testAction = () => Bcp47LanguageTag.Create(testLanguageTag, TimeSpan.FromSeconds(10));
+
+            // assert
+            testAction.Should().Throw<LanguageTagFormatException>("a language tag has only ASCII letters and digits (RFC 5646 §2.1)").WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
+        }
+
+        #endregion
+
+        #region Test: Create_WithLanguageTagAndSubtagRegistryWhenLanguageTagHasNonAsciiCaseEquivalent
+
+        [Theory]
+        [InlineData("\u212Ao"), InlineData("en-x-\u212A"), InlineData("en-x-\u017F")]
+        public void Create_WithLanguageTagAndSubtagRegistryWhenLanguageTagHasNonAsciiCaseEquivalent_ThrowsLanguageTagFormatException(string testLanguageTag)
+        {
+            // act
+            Action testAction = () => Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry);
+
+            // assert
+            testAction.Should().Throw<LanguageTagFormatException>("a language tag has only ASCII letters and digits (RFC 5646 §2.1)");
         }
 
         #endregion

@@ -13,7 +13,7 @@ namespace DataStandardizer.LanguageTag.InternalState
 
         static Bcp47RulesBasedScriptSubtagExpressionFactory()
         {
-            ExpressionOptions = RegexOptions.IgnoreCase | RegexOptions.Singleline;
+            ExpressionOptions = RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline;
 #if NETCOREAPP3_0_OR_GREATER||NET
             ExpressionOptions |= RegexOptions.Compiled;
 #endif

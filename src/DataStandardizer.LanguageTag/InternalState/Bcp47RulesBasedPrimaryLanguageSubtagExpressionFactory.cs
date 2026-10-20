@@ -21,7 +21,7 @@ namespace DataStandardizer.LanguageTag.InternalState
 
         static Bcp47RulesBasedPrimaryLanguageSubtagExpressionFactory()
         {
-            ExpressionOptions = RegexOptions.IgnoreCase | RegexOptions.Singleline;
+            ExpressionOptions = RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline;
 #if NETSTANDARD1_3_OR_GREATER
             ExpressionOptions |= RegexOptions.Compiled;
 #endif

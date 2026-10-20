@@ -9,7 +9,7 @@ namespace DataStandardizer.LanguageTag.InternalState
 
         static Bcp47RulesBasedPrivateUseSubtagExpressionFactory()
         {
-            ExpressionOptions = RegexOptions.IgnoreCase | RegexOptions.Singleline;
+            ExpressionOptions = RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline;
 #if NETSTANDARD1_3_OR_GREATER||NET
             ExpressionOptions |= RegexOptions.Compiled;
 #endif
