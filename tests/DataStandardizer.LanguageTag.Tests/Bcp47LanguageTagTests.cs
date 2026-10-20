@@ -53,6 +53,21 @@ namespace DataStandardizer.LanguageTag.Tests
         private static readonly string TimeoutLanguageTag = "en-x" + string.Concat(Enumerable.Repeat("-abcdefgh", 100000));
 
         /// <summary>
+        /// Subtag checks, each paired with a subtag it accepts followed by a line feed. A trailing line feed isn't part of any subtag
+        /// (RFC 5646 §2.1), so every check must reject it.
+        /// </summary>
+        public static TheoryData<string, Func<string, bool>, string> TrailingNewlineSubtags => new TheoryData<string, Func<string, bool>, string>()
+        {
+            { nameof(Bcp47LanguageTag.CheckPrimaryLanguageSubtag), Bcp47LanguageTag.CheckPrimaryLanguageSubtag, "en\n" },
+            { nameof(Bcp47LanguageTag.CheckExtendedLanguageSubtag), Bcp47LanguageTag.CheckExtendedLanguageSubtag, "yue\n" },
+            { nameof(Bcp47LanguageTag.CheckScriptSubtag), Bcp47LanguageTag.CheckScriptSubtag, "Latn\n" },
+            { nameof(Bcp47LanguageTag.CheckRegionSubtag), Bcp47LanguageTag.CheckRegionSubtag, "US\n" },
+            { nameof(Bcp47LanguageTag.CheckVariantSubtag), Bcp47LanguageTag.CheckVariantSubtag, "sursilv\n" },
+            { nameof(Bcp47LanguageTag.CheckExtensionSubtag), Bcp47LanguageTag.CheckExtensionSubtag, "u-sd-chzh\n" },
+            { nameof(Bcp47LanguageTag.CheckPrivateUseSubtag), Bcp47LanguageTag.CheckPrivateUseSubtag, "x-private\n" }
+        };
+
+        /// <summary>
         /// Language tags that repeat a variant subtag (RFC 5646 §2.2.5¶5) or an extension singleton (§2.2.6¶3), each paired with
         /// the same tag without the repetition. The comparison is case-insensitive (§2.1.1). Private use subtags may repeat.
         /// </summary>
@@ -534,6 +549,21 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #endregion
 
+        #region Test: CheckSubtag_WithTrailingNewline
+
+        [Theory]
+        [MemberData(nameof(TrailingNewlineSubtags))]
+        public void CheckSubtag_WithTrailingNewline_ReturnsFalse(string checkName, Func<string, bool> check, string testSubtag)
+        {
+            // act
+            var testResult = check(testSubtag);
+
+            // assert
+            testResult.Should().BeFalse("{0} must not accept a subtag followed by a line feed", checkName);
+        }
+
+        #endregion
+
         #region Test: CheckRegionSubtag_WithIso3166Part1Alpha2CodeSubtag
 
         [Theory]
@@ -891,6 +921,21 @@ namespace DataStandardizer.LanguageTag.Tests
 
             // assert
             testResult.Should().BeFalse("the language tag {0} is not in a valid format", testLanguageTag);
+        }
+
+        #endregion
+
+        #region Test: IsWellFormedLanguageTagString_WithTrailingNewline
+
+        [Theory]
+        [InlineData("en\n"), InlineData("en-US\n"), InlineData("x-private\n")]
+        public void IsWellFormedLanguageTagString_WithTrailingNewline_ReturnsFalse(string testLanguageTag)
+        {
+            // act
+            var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag);
+
+            // assert
+            testResult.Should().BeFalse("a language tag followed by a line feed is not well-formed");
         }
 
         #endregion
@@ -2119,6 +2164,66 @@ namespace DataStandardizer.LanguageTag.Tests
 
             // assert
             testAction.Should().Throw<LanguageTagFormatException>("the language tag was not in a recognised format").WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
+        }
+
+        #endregion
+
+        #region Test: Create_WithLanguageTagWhenLanguageTagHasTrailingNewline
+
+        [Theory]
+        [InlineData("en\n"), InlineData("en-US\n")]
+        public void Create_WithLanguageTagWhenLanguageTagHasTrailingNewline_ThrowsLanguageTagFormatException(string testLanguageTag)
+        {
+            // act
+            Action testAction = () => Bcp47LanguageTag.Create(testLanguageTag);
+
+            // assert
+            testAction.Should().Throw<LanguageTagFormatException>("a language tag followed by a line feed is not well-formed").WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
+        }
+
+        #endregion
+
+        #region Test: Create_WithLanguageTagAndMatchTimeoutWhenLanguageTagHasTrailingNewline
+
+        [Theory]
+        [InlineData("en\n"), InlineData("en-US\n")]
+        public void Create_WithLanguageTagAndMatchTimeoutWhenLanguageTagHasTrailingNewline_ThrowsLanguageTagFormatException(string testLanguageTag)
+        {
+            // act
+            Action testAction = () => Bcp47LanguageTag.Create(testLanguageTag, TimeSpan.FromSeconds(10));
+
+            // assert
+            testAction.Should().Throw<LanguageTagFormatException>("a language tag followed by a line feed is not well-formed").WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
+        }
+
+        #endregion
+
+        #region Test: Create_WithLanguageTagAndSubtagRegistryWhenLanguageTagHasTrailingNewline
+
+        [Theory]
+        [InlineData("en\n"), InlineData("en-US\n")]
+        public void Create_WithLanguageTagAndSubtagRegistryWhenLanguageTagHasTrailingNewline_ThrowsLanguageTagFormatException(string testLanguageTag)
+        {
+            // act
+            Action testAction = () => Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry);
+
+            // assert
+            testAction.Should().Throw<LanguageTagFormatException>("a language tag followed by a line feed is not well-formed");
+        }
+
+        #endregion
+
+        #region Test: Create_WithLanguageTagSubtagRegistryAndMatchTimeoutWhenLanguageTagHasTrailingNewline
+
+        [Theory]
+        [InlineData("en\n"), InlineData("en-US\n")]
+        public void Create_WithLanguageTagSubtagRegistryAndMatchTimeoutWhenLanguageTagHasTrailingNewline_ThrowsLanguageTagFormatException(string testLanguageTag)
+        {
+            // act
+            Action testAction = () => Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry, TimeSpan.FromSeconds(10));
+
+            // assert
+            testAction.Should().Throw<LanguageTagFormatException>("a language tag followed by a line feed is not well-formed");
         }
 
         #endregion

@@ -40,7 +40,7 @@ namespace DataStandardizer.LanguageTag.InternalState
         public Regex Create()
         {
             var pattern = GetPattern();
-            return new Regex($"^{pattern}$", ExpressionOptions);
+            return new Regex($"^{pattern}\\z", ExpressionOptions);
         }
 
         public string GetPattern()

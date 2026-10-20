@@ -34,7 +34,7 @@ namespace DataStandardizer.LanguageTag.InternalState
         {
             var cachedExpression = _expressionCache.GetCachedExpression(matchTimeout);
             var pattern = _expressionFactory.GetPattern();
-            return cachedExpression?.IsMatch(input) ?? Regex.IsMatch(input, $"^{pattern}$", ExpressionOptions, matchTimeout);
+            return cachedExpression?.IsMatch(input) ?? Regex.IsMatch(input, $"^{pattern}\\z", ExpressionOptions, matchTimeout);
         }
 
         public Match Match(string input)
@@ -47,7 +47,7 @@ namespace DataStandardizer.LanguageTag.InternalState
         {
             var cachedExpression = _expressionCache.GetCachedExpression(matchTimeout);
             var pattern = _expressionFactory.GetPattern();
-            return cachedExpression?.Match(input) ?? Regex.Match(input, $"^{pattern}$", ExpressionOptions, matchTimeout);
+            return cachedExpression?.Match(input) ?? Regex.Match(input, $"^{pattern}\\z", ExpressionOptions, matchTimeout);
         }
 
         public MatchCollection Matches(string input)
@@ -60,7 +60,7 @@ namespace DataStandardizer.LanguageTag.InternalState
         {
             var cachedExpression = _expressionCache.GetCachedExpression(matchTimeout);
             var pattern = _expressionFactory.GetPattern();
-            return cachedExpression?.Matches(input) ?? Regex.Matches(input, $"^{pattern}$", ExpressionOptions, matchTimeout);
+            return cachedExpression?.Matches(input) ?? Regex.Matches(input, $"^{pattern}\\z", ExpressionOptions, matchTimeout);
         }
 
         private Regex GetExpression()

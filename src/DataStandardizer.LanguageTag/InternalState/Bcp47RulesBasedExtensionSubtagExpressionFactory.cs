@@ -17,7 +17,7 @@ namespace DataStandardizer.LanguageTag.InternalState
 
         public Regex Create()
         {
-            return new Regex($"^{Pattern}$", ExpressionOptions);
+            return new Regex($"^{Pattern}\\z", ExpressionOptions);
         }
 
         public string GetPattern()
