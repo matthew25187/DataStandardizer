@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
+using DataStandardizer.LanguageTag.InternalState;
 
 namespace DataStandardizer.LanguageTag.SubtagRegistry
 {
@@ -16,10 +17,21 @@ namespace DataStandardizer.LanguageTag.SubtagRegistry
 
         private readonly IReadOnlyCollection<ISubtagRegistryRecord> _records;
 
+        /// <summary>
+        /// Sets of the subtags and grandfathered tags in <see cref="_records"/>, built once, on first use, and shared by every thread.
+        /// </summary>
+        private readonly Lazy<Bcp47RegistryBasedSubtagClassifier> _classifier;
+
         private SubtagRegistry(ISubtagRegistryRecord[] records)
         {
             _records = records;
+            _classifier = new Lazy<Bcp47RegistryBasedSubtagClassifier>(() => new Bcp47RegistryBasedSubtagClassifier(records));
         }
+
+        /// <summary>
+        /// Gets the classifier that checks language tags against this registry.
+        /// </summary>
+        internal Bcp47SubtagClassifier Classifier => _classifier.Value;
 
         #region Public Methods
 
