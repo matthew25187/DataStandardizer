@@ -17,6 +17,19 @@ using Xunit;
 namespace DataStandardizer.LanguageTag.Tests.Parity
 {
     /// <summary>
+    /// Runs the parity test on its own, after the tests that run in parallel.
+    /// </summary>
+    /// <remarks>
+    /// The comparison uses every core. Run alongside other tests, it slowed down tests that depend on time, such as those with a short
+    /// match timeout, enough to make them fail on a build agent.
+    /// </remarks>
+    [CollectionDefinition(Name, DisableParallelization = true)]
+    public class Bcp47LanguageTagParityCollection
+    {
+        internal const string Name = nameof(Bcp47LanguageTagParityCollection);
+    }
+
+    /// <summary>
     /// Differential test of the parser that validates language tags by the default BCP 47 rules against the regular expressions it replaced (#221).
     /// </summary>
     /// <remarks>
@@ -24,6 +37,7 @@ namespace DataStandardizer.LanguageTag.Tests.Parity
     /// method and for the whole tag, and decompose it into the same subtags, including tags that repeat a subtag and so are not well-formed.
     /// </remarks>
     [SuppressMessage("ReSharper", "InconsistentNaming")]
+    [Collection(Bcp47LanguageTagParityCollection.Name)]
     public class Bcp47LanguageTagParityTests
     {
         private const int MaximumReportedMismatches = 50;
