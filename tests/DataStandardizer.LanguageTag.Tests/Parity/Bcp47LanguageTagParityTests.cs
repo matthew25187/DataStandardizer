@@ -40,7 +40,7 @@ namespace DataStandardizer.LanguageTag.Tests.Parity
     [Collection(Bcp47LanguageTagParityCollection.Name)]
     public class Bcp47LanguageTagParityTests
     {
-        private const int MaximumReportedMismatches = 50;
+        internal const int MaximumReportedMismatches = 50;
         private const string NoSubtag = "(none)";
 
         private static readonly string[] RfcAppendixAExamples =
@@ -136,7 +136,7 @@ namespace DataStandardizer.LanguageTag.Tests.Parity
             return Bcp47LanguageTagParser.Parse(input.AsSpan(), Bcp47RulesBasedSubtagClassifier.Instance, out ranges);
         }
 
-        private static string DescribeSubtags(Match match)
+        internal static string DescribeSubtags(Match match)
         {
             Func<string, string> single = groupName => match.Groups[groupName].Success ? match.Groups[groupName].Value : NoSubtag;
             Func<string, string> many = groupName => string.Join(",", match.Groups[groupName].Captures.Cast<Capture>().Select(capture => capture.Value));
@@ -151,7 +151,7 @@ namespace DataStandardizer.LanguageTag.Tests.Parity
                 single(FrozenRulesBasedExpressions.PrivateUseGroupName));
         }
 
-        private static string DescribeSubtags(string input, Bcp47LanguageTagRanges ranges)
+        internal static string DescribeSubtags(string input, Bcp47LanguageTagRanges ranges)
         {
             Func<Bcp47SubtagRange, string> single = range => range.IsEmpty ? NoSubtag : input.Substring(range.Start, range.Length);
             Func<Bcp47SubtagRange, string> many = range => range.IsEmpty ? string.Empty : string.Join(",", Bcp47LanguageTagParser.GetSubtags(input, range));
@@ -166,7 +166,7 @@ namespace DataStandardizer.LanguageTag.Tests.Parity
                 single(ranges.PrivateUse));
         }
 
-        private static string DescribeSubtags(Bcp47LanguageTag languageTag)
+        internal static string DescribeSubtags(Bcp47LanguageTag languageTag)
         {
             var privateUseSubtag = languageTag.PrivateUseSubtag;
 
@@ -180,7 +180,7 @@ namespace DataStandardizer.LanguageTag.Tests.Parity
                 privateUseSubtag.HasValue ? (string)privateUseSubtag.Value : NoSubtag);
         }
 
-        private static string Describe(string input)
+        internal static string Describe(string input)
         {
             var description = new StringBuilder("\"");
             foreach (var character in input)
@@ -200,7 +200,7 @@ namespace DataStandardizer.LanguageTag.Tests.Parity
 
         #region Corpus
 
-        private static List<string> BuildCorpus()
+        internal static List<string> BuildCorpus()
         {
             // All ISO enum names, and the reserved and numeric codes the rules accept.
             var primaryLanguageSubtags = new HashSet<string>(StringComparer.Ordinal);

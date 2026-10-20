@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 using DataStandardizer.Core;
 using DataStandardizer.Geography;
 using DataStandardizer.Language;
@@ -3533,20 +3534,20 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #endregion
 
-        #region Test: TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenMatchTimesOut
+        #region Test: TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenMatchWouldTimeOut
 
         [Fact]
-        public void TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenMatchTimesOut_ReturnsFalse()
+        public void TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenMatchWouldTimeOut_ReturnsTrue()
         {
             // act
             Bcp47LanguageTag languageTag = default;
-            var testResult = true;
+            var testResult = false;
             Action testAction = () => testResult = Bcp47LanguageTag.TryCreate(TimeoutLanguageTag, _fixture.IanaSubtagRegistry, TimeSpan.FromTicks(1), out languageTag);
 
             // assert
             testAction.Should().NotThrow("a Try method reports failure through its return value");
-            testResult.Should().BeFalse("matching the language tag took longer than the timeout");
-            languageTag.Should().Be(default(Bcp47LanguageTag));
+            testResult.Should().BeTrue("language tags are checked against the Subtag Registry by a parser, which cannot time out, and the language tag is well-formed");
+            ((string)languageTag).Should().Be(TimeoutLanguageTag);
         }
 
         #endregion
@@ -3570,6 +3571,102 @@ namespace DataStandardizer.LanguageTag.Tests
             ((string)tryCreateLanguageTag).Should().Be(testLanguageTag);
             tryCreateWithTimeoutResult.Should().BeTrue("the registry-based overloads must agree on '{0}'", testLanguageTag);
             ((string)tryCreateWithTimeoutLanguageTag).Should().Be(testLanguageTag);
+        }
+
+        #endregion
+
+        #region Test: CreateAndTryCreate_WithLanguageTagAndSubtagRegistryFromSeveralThreads
+
+        [Fact]
+        public void CreateAndTryCreate_WithLanguageTagAndSubtagRegistryFromSeveralThreads_AllThreadsGetTheSameResults()
+        {
+            // arrange
+            const int threadCount = 8;
+            var testLanguageTags = _validLanguageTags
+                .Concat(new[] { "i-klingon", "zh-min-nan", "qaa-Qaaa-QM-x-southern", "sl-rozaj-biske-1994", "de-CH-1901-u-co-phonebk", "x-private" })
+                .Concat(new[] { "", "en-", "invalid", "en-US-US", "de-1901-1901", "en-a-bb-a-cc" })
+                .ToArray();
+            var subtagRegistry = Bcp47LanguageTagFixture.CreateIanaSubtagRegistry();
+            var results = new string[threadCount];
+            var exceptions = new Exception[threadCount];
+
+            // act
+            using (var startBarrier = new Barrier(threadCount))
+            {
+                var threads = Enumerable.Range(0, threadCount).Select(threadIndex => new Thread(() =>
+                {
+                    try
+                    {
+                        // Release every thread at once, so that they all reach the registry while its index is still being built.
+                        startBarrier.SignalAndWait();
+                        results[threadIndex] = DescribeRegistryResults(subtagRegistry, testLanguageTags);
+                    }
+                    catch (Exception exception)
+                    {
+                        exceptions[threadIndex] = exception;
+                    }
+                })).ToArray();
+
+                foreach (var thread in threads) thread.Start();
+                foreach (var thread in threads) thread.Join();
+            }
+
+            // assert
+            exceptions.Should().AllSatisfy(exception => exception.Should().BeNull("creating language tags against a shared Subtag Registry is thread-safe"));
+
+            // Computed after the threads have run, so that they are the first to use the registry.
+            var expectedResult = DescribeRegistryResults(_fixture.IanaSubtagRegistry, testLanguageTags);
+            results.Should().AllBe(expectedResult, "every thread checks the same language tags against a copy of the same Subtag Registry");
+        }
+
+        private static string DescribeRegistryResults(SubtagRegistry.SubtagRegistry subtagRegistry, string[] languageTags)
+        {
+            return string.Join(Environment.NewLine, languageTags.Select(languageTag =>
+            {
+                if (!Bcp47LanguageTag.TryCreate(languageTag, subtagRegistry, out var result)) return languageTag + ": not valid";
+
+                var created = Bcp47LanguageTag.Create(languageTag, subtagRegistry);
+                return string.Join(" | ", languageTag, (string)created, result.PrimaryLanguageSubtag, string.Join(",", result.ExtendedLanguageSubtags), result.ScriptSubtag, result.RegionSubtag,
+                    string.Join(",", result.VariantSubtags), string.Join(",", result.ExtensionSubtags.Select(subtag => (string)subtag)), result.PrivateUseSubtag.HasValue ? (string)result.PrivateUseSubtag.Value : null);
+            }));
+        }
+
+        #endregion
+
+        #region Test: CreateAndTryCreate_WithLanguageTagAndSparseSubtagRegistryWhenLanguageTagHasEmptySubtag
+
+        /// <summary>
+        /// A Subtag Registry with one language and one region record, and no grandfathered, script or variant records.
+        /// </summary>
+        private static SubtagRegistry.SubtagRegistry CreateSparseSubtagRegistry()
+        {
+            return SubtagRegistry.SubtagRegistry.CreateFromContent(string.Join("\n",
+                "File-Date: 2026-10-21",
+                "%%", "Type: language", "Subtag: en", "Description: English", "Added: 2005-10-16",
+                "%%", "Type: region", "Subtag: US", "Description: United States", "Added: 2005-10-16"));
+        }
+
+        [Theory]
+        [InlineData("", "en"), InlineData("en-", "en"), InlineData("en--US", "en-US"), InlineData("en-US-", "en-US")]
+        public void CreateAndTryCreate_WithLanguageTagAndSparseSubtagRegistryWhenLanguageTagHasEmptySubtag_Fails(string testLanguageTag, string controlLanguageTag)
+        {
+            // arrange
+            var subtagRegistry = CreateSparseSubtagRegistry();
+
+            // act
+            Action controlAction = () => _ = Bcp47LanguageTag.Create(controlLanguageTag, subtagRegistry);
+            Action createAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag, subtagRegistry);
+            Action createWithTimeoutAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag, subtagRegistry, Regex.InfiniteMatchTimeout);
+            var tryCreateResult = Bcp47LanguageTag.TryCreate(testLanguageTag, subtagRegistry, out _);
+            var tryCreateWithTimeoutResult = Bcp47LanguageTag.TryCreate(testLanguageTag, subtagRegistry, Regex.InfiniteMatchTimeout, out _);
+
+            // assert
+            controlAction.Should().NotThrow("the Subtag Registry has a record for every subtag of '{0}'", controlLanguageTag);
+            createAction.Should().Throw<LanguageTagFormatException>("an empty subtag is not a subtag of any kind, even when the Subtag Registry has no records of that kind (RFC 5646 §2.1)")
+                .WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
+            createWithTimeoutAction.Should().Throw<LanguageTagFormatException>().WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
+            tryCreateResult.Should().BeFalse("'{0}' has an empty subtag", testLanguageTag);
+            tryCreateWithTimeoutResult.Should().BeFalse("'{0}' has an empty subtag", testLanguageTag);
         }
 
         #endregion

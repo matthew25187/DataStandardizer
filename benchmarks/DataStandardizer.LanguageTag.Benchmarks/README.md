@@ -69,7 +69,7 @@ Every class uses `[MemoryDiagnoser]`. Allocation is the main thing to watch.
 
 ## Cold start
 
-BenchmarkDotNet warms up before it measures, so it never sees the one-off cost of the first call in a process, such as building the regular expressions behind validation. To measure that, run the project with `--coldstart`:
+BenchmarkDotNet warms up before it measures, so it never sees the one-off cost of the first call in a process, such as building the code lists behind validation or the index of a Subtag Registry. To measure that, run the project with `--coldstart`:
 
 ```
 dotnet run -c Release -f net8.0 -- --coldstart
