@@ -4,7 +4,6 @@
     {
         internal static class LanguageTagStateName
         {
-            internal const string Default = "default";
             internal const string Registry = "registry";
         }
 
