@@ -882,6 +882,26 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #endregion
 
+        #region Test: ExtendedLanguageSubtags_WhenReturnedArrayIsChanged_DoesNotChangeLanguageTag
+
+        [Fact]
+        public void ExtendedLanguageSubtags_WhenReturnedArrayIsChanged_DoesNotChangeLanguageTag()
+        {
+            // arrange
+            var testLanguageTag = Bcp47LanguageTag.Create("zh-yue-HK");
+            var testChangedResult = testLanguageTag.ExtendedLanguageSubtags;
+            testChangedResult[0] = "cmn";
+
+            // act
+            var testResult = testLanguageTag.ExtendedLanguageSubtags;
+
+            // assert
+            testResult.Should().NotBeSameAs(testChangedResult);
+            testResult.Should().Equal("yue");
+        }
+
+        #endregion
+
         #region Test: ExtensionSubtags_OnDefaultLanguageTag
 
         [Fact]
@@ -1145,6 +1165,26 @@ namespace DataStandardizer.LanguageTag.Tests
 
             // assert
             testResult.Should().BeTrue("{0} is the language tag for {1}", testLanguageTag, testLanguageTagDescription);
+        }
+
+        #endregion
+
+        #region Test: ExtensionSubtags_WhenReturnedArrayIsChanged_DoesNotChangeLanguageTag
+
+        [Fact]
+        public void ExtensionSubtags_WhenReturnedArrayIsChanged_DoesNotChangeLanguageTag()
+        {
+            // arrange
+            var testLanguageTag = Bcp47LanguageTag.Create("he-IL-u-ca-hebrew");
+            var testChangedResult = testLanguageTag.ExtensionSubtags;
+            testChangedResult[0] = (Bcp47KeyedSubtag)"t-ca-hebrew";
+
+            // act
+            var testResult = testLanguageTag.ExtensionSubtags;
+
+            // assert
+            testResult.Should().NotBeSameAs(testChangedResult);
+            testResult.Should().Equal((Bcp47KeyedSubtag)"u-ca-hebrew");
         }
 
         #endregion
@@ -1834,6 +1874,26 @@ namespace DataStandardizer.LanguageTag.Tests
 
             // assert
             testResult.Should().BeEquivalentTo(variantSubtag);
+        }
+
+        #endregion
+
+        #region Test: VariantSubtags_WhenReturnedArrayIsChanged_DoesNotChangeLanguageTag
+
+        [Fact]
+        public void VariantSubtags_WhenReturnedArrayIsChanged_DoesNotChangeLanguageTag()
+        {
+            // arrange
+            var testLanguageTag = Bcp47LanguageTag.Create("sl-rozaj-biske-1994");
+            var testChangedResult = testLanguageTag.VariantSubtags;
+            testChangedResult[0] = "1901";
+
+            // act
+            var testResult = testLanguageTag.VariantSubtags;
+
+            // assert
+            testResult.Should().NotBeSameAs(testChangedResult);
+            testResult.Should().Equal("rozaj", "biske", "1994");
         }
 
         #endregion

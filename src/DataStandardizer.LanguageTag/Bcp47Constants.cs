@@ -2,11 +2,6 @@
 {
     internal static class Bcp47Constants
     {
-        internal static class LanguageTagStateName
-        {
-            internal const string Registry = "registry";
-        }
-
         internal static class LanguageTagSubtagGroupName
         {
             internal const string PrimaryLanguage = "PrimaryLanguage";

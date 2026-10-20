@@ -2,18 +2,14 @@
 using JetBrains.Annotations;
 #endif
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.Linq;
 using System.Text.RegularExpressions;
 using DataStandardizer.Core;
 using DataStandardizer.Geography;
 using DataStandardizer.Language;
 using DataStandardizer.LanguageTag.InternalState;
-using static DataStandardizer.LanguageTag.Bcp47Constants;
-using UnM49 = DataStandardizer.Geography.UnM49AreaByAlpha2CountryCode;
 
 namespace DataStandardizer.LanguageTag
 {
@@ -48,14 +44,11 @@ namespace DataStandardizer.LanguageTag
 
         // local (instance) declarations
 #if NETCOREAPP3_0_OR_GREATER
-        private readonly Bcp47LanguageTagContext? _context; // null when the tag follows the default BCP 47 rules
-#else
-        [CanBeNull] private readonly Bcp47LanguageTagContext _context; // null when the tag follows the default BCP 47 rules
-#endif
-#if NETCOREAPP3_0_OR_GREATER
         private readonly string? _languageTag;
+        private readonly Bcp47LanguageTagParts? _parts; // null only when _languageTag is
 #else
         [CanBeNull] private readonly string _languageTag;
+        [CanBeNull] private readonly Bcp47LanguageTagParts _parts; // null only when _languageTag is
 #endif
 
         #endregion
@@ -63,29 +56,13 @@ namespace DataStandardizer.LanguageTag
         #region Constructors
 
 #if NETCOREAPP3_0_OR_GREATER
-        private Bcp47LanguageTag(string languageTag)
+        private Bcp47LanguageTag(string languageTag, Bcp47LanguageTagParts parts)
 #else
-        private Bcp47LanguageTag([NotNull] string languageTag)
+        private Bcp47LanguageTag([NotNull] string languageTag, [NotNull] Bcp47LanguageTagParts parts)
 #endif
         {
             _languageTag = languageTag;
-            _context = null;
-        }
-
-#if NETCOREAPP3_0_OR_GREATER
-        private Bcp47LanguageTag(string languageTag, SubtagRegistry.SubtagRegistry subtagRegistry)
-#else
-        private Bcp47LanguageTag([NotNull] string languageTag, [NotNull] SubtagRegistry.SubtagRegistry subtagRegistry)
-#endif
-        {
-            _languageTag = languageTag;
-
-            var states = new Dictionary<string, IBcp47LanguageTagState>
-            {
-                { LanguageTagStateName.Registry, new Bcp47LanguageTagRegistryState(subtagRegistry) }
-            };
-            _context = new Bcp47LanguageTagContext(states);
-            _context.SelectState(LanguageTagStateName.Registry);
+            _parts = parts;
         }
 
         #endregion
@@ -161,12 +138,13 @@ namespace DataStandardizer.LanguageTag
                 throw new ArgumentNullException(nameof(languageTag));
             }
 
-            if (!IsWellFormedByRules(languageTag))
+            var parts = ParseByRules(languageTag);
+            if (parts is null)
             {
                 throw new LanguageTagFormatException(ErrorMessage.LanguageTagInvalidFormat, languageTag);
             }
 
-            return new Bcp47LanguageTag(languageTag);
+            return new Bcp47LanguageTag(languageTag, parts);
         }
 
         /// <summary>
@@ -189,12 +167,13 @@ namespace DataStandardizer.LanguageTag
 
             ValidateMatchTimeout(matchTimeout);
 
-            if (!IsWellFormedByRules(languageTag))
+            var parts = ParseByRules(languageTag);
+            if (parts is null)
             {
                 throw new LanguageTagFormatException(ErrorMessage.LanguageTagInvalidFormat, languageTag);
             }
 
-            return new Bcp47LanguageTag(languageTag);
+            return new Bcp47LanguageTag(languageTag, parts);
         }
 
         /// <summary>
@@ -220,14 +199,13 @@ namespace DataStandardizer.LanguageTag
                 throw new ArgumentNullException(nameof(subtagRegistry));
             }
 
-            var result = new Bcp47LanguageTag(languageTag, subtagRegistry);
-
-            if (!IsWellFormed(result.RegistryContext.LanguageTagExpression.Match(languageTag)))
+            var parts = Bcp47LanguageTagParts.FromMatch(GetRegistryExpression(subtagRegistry).Match(languageTag));
+            if (parts is null)
             {
                 throw new LanguageTagFormatException(ErrorMessage.LanguageTagInvalidFormat, languageTag);
             }
 
-            return result;
+            return new Bcp47LanguageTag(languageTag, parts);
         }
 
         /// <summary>
@@ -254,14 +232,13 @@ namespace DataStandardizer.LanguageTag
                 throw new ArgumentNullException(nameof(subtagRegistry));
             }
 
-            var result = new Bcp47LanguageTag(languageTag, subtagRegistry);
-
-            if (!IsWellFormed(result.RegistryContext.LanguageTagExpression.Match(languageTag, matchTimeout)))
+            var parts = Bcp47LanguageTagParts.FromMatch(GetRegistryExpression(subtagRegistry).Match(languageTag, matchTimeout));
+            if (parts is null)
             {
                 throw new LanguageTagFormatException(ErrorMessage.LanguageTagInvalidFormat, languageTag);
             }
 
-            return result;
+            return new Bcp47LanguageTag(languageTag, parts);
         }
 
         public bool Equals(Bcp47LanguageTag other)
@@ -356,8 +333,7 @@ namespace DataStandardizer.LanguageTag
         /// <returns>An M.49 code representing the Region subtag, if compatible; <c>null</c> if the Region subtag doesn't exist or is not an M.49 code.</returns>
         public ushort? ToUnM49()
         {
-            var m49Codes = UnM49Extensions.GetM49Codes(typeof(UnM49));
-            if (ushort.TryParse(RegionSubtag, NumberStyles.Integer, CultureInfo.InvariantCulture, out var unM49CandidateCodeResult) && m49Codes.Contains(unM49CandidateCodeResult))
+            if (ushort.TryParse(RegionSubtag, NumberStyles.Integer, CultureInfo.InvariantCulture, out var unM49CandidateCodeResult) && Bcp47UnM49Codes.Contains(unM49CandidateCodeResult))
             {
                 return unM49CandidateCodeResult;
             }
@@ -557,13 +533,14 @@ namespace DataStandardizer.LanguageTag
                 return false;
             }
 
-            if (!IsWellFormedByRules(languageTag))
+            var parts = ParseByRules(languageTag);
+            if (parts is null)
             {
                 result = default;
                 return false;
             }
 
-            result = new Bcp47LanguageTag(languageTag);
+            result = new Bcp47LanguageTag(languageTag, parts);
             return true;
         }
 
@@ -588,13 +565,14 @@ namespace DataStandardizer.LanguageTag
 
             ValidateMatchTimeout(matchTimeout);
 
-            if (!IsWellFormedByRules(languageTag))
+            var parts = ParseByRules(languageTag);
+            if (parts is null)
             {
                 result = default;
                 return false;
             }
 
-            result = new Bcp47LanguageTag(languageTag);
+            result = new Bcp47LanguageTag(languageTag, parts);
             return true;
         }
 
@@ -617,14 +595,14 @@ namespace DataStandardizer.LanguageTag
                 return false;
             }
 
-            result = new Bcp47LanguageTag(languageTag, subtagRegistry);
-
-            if (!IsWellFormed(result.RegistryContext.LanguageTagExpression.Match(languageTag)))
+            var parts = Bcp47LanguageTagParts.FromMatch(GetRegistryExpression(subtagRegistry).Match(languageTag));
+            if (parts is null)
             {
                 result = default;
                 return false;
             }
 
+            result = new Bcp47LanguageTag(languageTag, parts);
             return true;
         }
 
@@ -648,15 +626,10 @@ namespace DataStandardizer.LanguageTag
                 return false;
             }
 
-            result = new Bcp47LanguageTag(languageTag, subtagRegistry);
-
+            Match languageTagMatch;
             try
             {
-                if (!IsWellFormed(result.RegistryContext.LanguageTagExpression.Match(languageTag, matchTimeout)))
-                {
-                    result = default;
-                    return false;
-                }
+                languageTagMatch = GetRegistryExpression(subtagRegistry).Match(languageTag, matchTimeout);
             }
             catch (RegexMatchTimeoutException)
             {
@@ -664,6 +637,14 @@ namespace DataStandardizer.LanguageTag
                 return false;
             }
 
+            var parts = Bcp47LanguageTagParts.FromMatch(languageTagMatch);
+            if (parts is null)
+            {
+                result = default;
+                return false;
+            }
+
+            result = new Bcp47LanguageTag(languageTag, parts);
             return true;
         }
 
@@ -733,7 +714,7 @@ namespace DataStandardizer.LanguageTag
             {
                 if (_languageTag is null) throw new InvalidOperationException(ErrorMessage.UninitializedInstance);
 
-                return DoGetExtendedLanguageSubtags();
+                return Bcp47LanguageTagParts.Copy(Parts.ExtendedLanguages);
             }
         }
 
@@ -752,7 +733,7 @@ namespace DataStandardizer.LanguageTag
             {
                 if (_languageTag is null) throw new InvalidOperationException(ErrorMessage.UninitializedInstance);
 
-                return DoGetExtensionSubtags();
+                return Bcp47LanguageTagParts.Copy(Parts.Extensions);
             }
         }
 
@@ -774,7 +755,7 @@ namespace DataStandardizer.LanguageTag
             {
                 if (_languageTag is null) throw new InvalidOperationException(ErrorMessage.UninitializedInstance);
 
-                return DoGetPrimaryLanguageSubtag();
+                return Parts.PrimaryLanguage;
             }
         }
 
@@ -788,7 +769,7 @@ namespace DataStandardizer.LanguageTag
             {
                 if (_languageTag is null) throw new InvalidOperationException(ErrorMessage.UninitializedInstance);
 
-                return DoGetPrivateUseSubtag();
+                return Parts.PrivateUse;
             }
         }
 
@@ -807,7 +788,7 @@ namespace DataStandardizer.LanguageTag
             {
                 if (_languageTag is null) throw new InvalidOperationException(ErrorMessage.UninitializedInstance);
 
-                return DoGetRegionSubtag();
+                return Parts.Region;
             }
         }
 
@@ -826,7 +807,7 @@ namespace DataStandardizer.LanguageTag
             {
                 if (_languageTag is null) throw new InvalidOperationException(ErrorMessage.UninitializedInstance);
 
-                return DoGetScriptSubtag();
+                return Parts.Script;
             }
         }
 
@@ -845,7 +826,7 @@ namespace DataStandardizer.LanguageTag
             {
                 if (_languageTag is null) throw new InvalidOperationException(ErrorMessage.UninitializedInstance);
 
-                return DoGetVariantSubtags();
+                return Bcp47LanguageTagParts.Copy(Parts.Variants);
             }
         }
 
@@ -854,25 +835,19 @@ namespace DataStandardizer.LanguageTag
         #region Private Methods
 
         /// <summary>
-        /// Determine whether a language tag expression match is a well-formed language tag.
+        /// Parse a language tag by the default BCP 47 rules.
         /// </summary>
-        /// <remarks>
-        /// The expression checks the syntax of each subtag but not that variant subtags and extension singletons are unique (ref. RFC 5646 §2.2.5¶5, §2.2.6¶3).
-        /// Private use subtags may repeat.
-        /// </remarks>
+        /// <returns>The subtags; <c>null</c> if the language tag is not well-formed.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        private static bool IsWellFormed(Match languageTagMatch)
+        private static Bcp47LanguageTagParts? ParseByRules(string languageTag)
 #else
-        private static bool IsWellFormed([NotNull] Match languageTagMatch)
+        [CanBeNull]
+        private static Bcp47LanguageTagParts ParseByRules([NotNull] string languageTag)
 #endif
         {
-            if (!languageTagMatch.Success) return false;
+            if (Bcp47LanguageTagParser.Parse(languageTag.AsSpan(), Bcp47RulesBasedSubtagClassifier.Instance, out var ranges) != Bcp47ParseStatus.WellFormed) return null;
 
-            var variantSubtags = languageTagMatch.Groups[LanguageTagSubtagGroupName.Variant].Captures.Cast<Capture>().Select(capture => capture.Value).ToArray();
-            if (IndexOfRepeatedVariantSubtag(variantSubtags) >= 0) return false;
-
-            var extensionSubtags = languageTagMatch.Groups[LanguageTagSubtagGroupName.Extension].Captures.Cast<Capture>().Select(capture => capture.Value).ToArray();
-            return IndexOfRepeatedExtensionSingleton(extensionSubtags) < 0;
+            return Bcp47LanguageTagParts.FromRanges(languageTag, ranges);
         }
 
         /// <summary>
@@ -885,6 +860,19 @@ namespace DataStandardizer.LanguageTag
 #endif
         {
             return Bcp47LanguageTagParser.Parse(languageTag.AsSpan(), Bcp47RulesBasedSubtagClassifier.Instance, out _) == Bcp47ParseStatus.WellFormed;
+        }
+
+        /// <summary>
+        /// Gets the expression that matches a language tag against a Subtag Registry.
+        /// </summary>
+#if NETCOREAPP3_0_OR_GREATER
+        private static IBcp47TagExpression GetRegistryExpression(SubtagRegistry.SubtagRegistry subtagRegistry)
+#else
+        [NotNull]
+        private static IBcp47TagExpression GetRegistryExpression([NotNull] SubtagRegistry.SubtagRegistry subtagRegistry)
+#endif
+        {
+            return new Bcp47TagExpression<Bcp47RegistryBasedLanguageTagExpressionFactory>(subtagRegistry);
         }
 
         /// <summary>
@@ -901,237 +889,16 @@ namespace DataStandardizer.LanguageTag
         }
 
         /// <summary>
-        /// Decompose the language tag by the default BCP 47 rules.
+        /// Gets the subtags of an initialised language tag, decomposed when it was created.
         /// </summary>
-        /// <remarks>
-        /// Every tag that follows the default rules was validated when it was created, so the parse always succeeds.
-        /// </remarks>
-        private Bcp47LanguageTagRanges ParseByRules()
-        {
-            Debug.Assert(_languageTag != null);
-
-            var status = Bcp47LanguageTagParser.Parse(_languageTag.AsSpan(), Bcp47RulesBasedSubtagClassifier.Instance, out var ranges);
-            Debug.Assert(status == Bcp47ParseStatus.WellFormed);
-
-            return ranges;
-        }
-
-        /// <summary>
-        /// Gets the context of a tag created with a Subtag Registry.
-        /// </summary>
-        private Bcp47LanguageTagContext RegistryContext
+        private Bcp47LanguageTagParts Parts
         {
             get
             {
-                Debug.Assert(_context != null);
+                Debug.Assert(_parts != null);
 
-                return _context;
+                return _parts;
             }
-        }
-
-        /// <summary>
-        /// Match the language tag against the Subtag Registry it was created with.
-        /// </summary>
-        private Match MatchByRegistry()
-        {
-            Debug.Assert(_languageTag != null);
-
-            var languageTagMatch = RegistryContext.LanguageTagExpression.Match(_languageTag);
-            Debug.Assert(languageTagMatch.Success);
-
-            return languageTagMatch;
-        }
-
-#if NETCOREAPP3_0_OR_GREATER
-        private string[] DoGetExtendedLanguageSubtags()
-#else
-        [NotNull]
-        private string[] DoGetExtendedLanguageSubtags()
-#endif
-        {
-            Debug.Assert(_languageTag != null);
-
-            if (_context is null)
-            {
-                var extendedLanguageSubtagRange = ParseByRules().ExtendedLanguages;
-                if (!extendedLanguageSubtagRange.IsEmpty)
-                {
-                    return Bcp47LanguageTagParser.GetSubtags(_languageTag, extendedLanguageSubtagRange);
-                }
-            }
-            else
-            {
-                var extendedLanguageSubtagGroup = MatchByRegistry().Groups[LanguageTagSubtagGroupName.ExtendedLanguage];
-                if (extendedLanguageSubtagGroup.Success)
-                {
-                    return extendedLanguageSubtagGroup.Captures.Cast<Capture>().Select(capture => capture.Value).ToArray();
-                }
-            }
-
-#if NETSTANDARD1_3_OR_GREATER || NET
-            return Array.Empty<string>();
-#else
-            return new string[] { };
-#endif
-        }
-
-        private Bcp47KeyedSubtag[] DoGetExtensionSubtags()
-        {
-            Debug.Assert(_languageTag != null);
-
-            if (_context is null)
-            {
-                var extensionSubtagRange = ParseByRules().Extensions;
-                if (!extensionSubtagRange.IsEmpty)
-                {
-                    var extensions = Bcp47LanguageTagParser.GetExtensions(_languageTag, extensionSubtagRange);
-                    var extensionSubtags = new Bcp47KeyedSubtag[extensions.Length];
-                    for (var index = 0; index < extensions.Length; index++)
-                    {
-                        extensionSubtags[index] = new Bcp47KeyedSubtag(extensions[index]);
-                    }
-
-                    return extensionSubtags;
-                }
-            }
-            else
-            {
-                var extensionSubtagGroup = MatchByRegistry().Groups[LanguageTagSubtagGroupName.Extension];
-                if (extensionSubtagGroup.Success)
-                {
-                    return extensionSubtagGroup.Captures.Cast<Capture>().Select(capture => new Bcp47KeyedSubtag(capture.Value)).ToArray();
-                }
-            }
-
-#if NETSTANDARD1_3_OR_GREATER
-            return Array.Empty<Bcp47KeyedSubtag>();
-#else
-            return new Bcp47KeyedSubtag[] { };
-#endif
-        }
-
-#if NETCOREAPP3_0_OR_GREATER
-        private string DoGetPrimaryLanguageSubtag()
-#else
-        [NotNull]
-        private string DoGetPrimaryLanguageSubtag()
-#endif
-        {
-            Debug.Assert(_languageTag != null);
-
-            // A grandfathered or private use tag has no primary language subtag; it is then the empty string.
-            if (_context is null)
-            {
-                var primaryLanguageSubtagRange = ParseByRules().PrimaryLanguage;
-                return primaryLanguageSubtagRange.IsEmpty ? string.Empty : _languageTag.Substring(primaryLanguageSubtagRange.Start, primaryLanguageSubtagRange.Length);
-            }
-
-            return MatchByRegistry().Groups[LanguageTagSubtagGroupName.PrimaryLanguage].Value;
-        }
-
-        private Bcp47KeyedSubtag? DoGetPrivateUseSubtag()
-        {
-            Debug.Assert(_languageTag != null);
-
-            if (_context is null)
-            {
-                var privateUseSubtagRange = ParseByRules().PrivateUse;
-                if (!privateUseSubtagRange.IsEmpty)
-                {
-                    return new Bcp47KeyedSubtag(_languageTag.Substring(privateUseSubtagRange.Start, privateUseSubtagRange.Length));
-                }
-
-                return null;
-            }
-
-            var privateUseSubtagGroup = MatchByRegistry().Groups[LanguageTagSubtagGroupName.PrivateUse];
-            if (privateUseSubtagGroup.Success)
-            {
-                return new Bcp47KeyedSubtag(privateUseSubtagGroup.Value);
-            }
-
-            return null;
-        }
-
-#if NETCOREAPP3_0_OR_GREATER
-        private string? DoGetRegionSubtag()
-#else
-        [CanBeNull]
-        private string DoGetRegionSubtag()
-#endif
-        {
-            Debug.Assert(_languageTag != null);
-
-            if (_context is null)
-            {
-                var regionSubtagRange = ParseByRules().Region;
-                return regionSubtagRange.IsEmpty ? null : _languageTag.Substring(regionSubtagRange.Start, regionSubtagRange.Length);
-            }
-
-            var regionSubtagGroup = MatchByRegistry().Groups[LanguageTagSubtagGroupName.Region];
-            if (regionSubtagGroup.Success)
-            {
-                return regionSubtagGroup.Value;
-            }
-
-            return null;
-        }
-
-#if NETCOREAPP3_0_OR_GREATER
-        private string? DoGetScriptSubtag()
-#else
-        [CanBeNull]
-        private string DoGetScriptSubtag()
-#endif
-        {
-            Debug.Assert(_languageTag != null);
-
-            if (_context is null)
-            {
-                var scriptSubtagRange = ParseByRules().Script;
-                return scriptSubtagRange.IsEmpty ? null : _languageTag.Substring(scriptSubtagRange.Start, scriptSubtagRange.Length);
-            }
-
-            var scriptSubtagGroup = MatchByRegistry().Groups[LanguageTagSubtagGroupName.Script];
-            if (scriptSubtagGroup.Success)
-            {
-                return scriptSubtagGroup.Value;
-            }
-
-            return null;
-        }
-
-#if NETCOREAPP3_0_OR_GREATER
-        private string[] DoGetVariantSubtags()
-#else
-        [NotNull]
-        private string[] DoGetVariantSubtags()
-#endif
-        {
-            Debug.Assert(_languageTag != null);
-
-            if (_context is null)
-            {
-                var variantSubtagRange = ParseByRules().Variants;
-                if (!variantSubtagRange.IsEmpty)
-                {
-                    return Bcp47LanguageTagParser.GetSubtags(_languageTag, variantSubtagRange);
-                }
-            }
-            else
-            {
-                var variantSubtagGroup = MatchByRegistry().Groups[LanguageTagSubtagGroupName.Variant];
-                if (variantSubtagGroup.Success)
-                {
-                    return variantSubtagGroup.Captures.Cast<Capture>().Select(capture => capture.Value).ToArray();
-                }
-            }
-
-#if NETSTANDARD1_3_OR_GREATER || NET
-            return Array.Empty<string>();
-#else
-            return new string[] { };
-#endif
         }
 
         #endregion
