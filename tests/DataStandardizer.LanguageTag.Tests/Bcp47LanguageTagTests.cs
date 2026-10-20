@@ -1,4 +1,7 @@
-﻿using System;
+﻿// The matchTimeout overloads are obsolete but stay tested until v2.0 removes them (#256).
+#pragma warning disable CS0618
+
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;

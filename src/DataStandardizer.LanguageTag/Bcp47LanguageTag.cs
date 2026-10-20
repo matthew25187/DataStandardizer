@@ -148,12 +148,13 @@ namespace DataStandardizer.LanguageTag
         }
 
         /// <summary>
-        /// Create a language tag object with timeout for the regular expressions.
+        /// Create a language tag object with a match timeout, which has no effect.
         /// </summary>
         /// <param name="languageTag">Language tag on which the object will be based.</param>
-        /// <param name="matchTimeout">Time limit for evaluating the regular expressions.</param>
+        /// <param name="matchTimeout">Not used: language tags are checked by a parser, which cannot time out. Must be positive and no more than <see cref="int.MaxValue"/> - 1 milliseconds, or <see cref="Regex.InfiniteMatchTimeout"/>.</param>
         /// <returns>Language tag object.</returns>
         /// <exception cref="LanguageTagFormatException">The original language tag was not recognised.</exception>
+        [Obsolete(Bcp47Constants.MatchTimeoutObsoleteMessage)]
 #if NETCOREAPP3_0_OR_GREATER
         public static Bcp47LanguageTag Create(string languageTag, TimeSpan matchTimeout)
 #else
@@ -209,13 +210,14 @@ namespace DataStandardizer.LanguageTag
         }
 
         /// <summary>
-        /// Create a language tag object based on the Subtag Registry and with a timeout for the regular expressions.
+        /// Create a language tag object based on the Subtag Registry and with a match timeout, which has no effect.
         /// </summary>
         /// <param name="languageTag">Language tag on which the object will be based.</param>
         /// <param name="subtagRegistry">A copy of the IANA Subtag Registry.</param>
-        /// <param name="matchTimeout">Time limit for evaluating the regular expressions.</param>
+        /// <param name="matchTimeout">Not used: language tags are checked by a parser, which cannot time out. Must be positive and no more than <see cref="int.MaxValue"/> - 1 milliseconds, or <see cref="Regex.InfiniteMatchTimeout"/>.</param>
         /// <returns>Language tag object.</returns>
         /// <exception cref="LanguageTagFormatException">The original language tag was not recognised.</exception>
+        [Obsolete(Bcp47Constants.MatchTimeoutObsoleteMessage)]
 #if NETCOREAPP3_0_OR_GREATER
         public static Bcp47LanguageTag Create(string languageTag, SubtagRegistry.SubtagRegistry subtagRegistry, TimeSpan matchTimeout)
 #else
@@ -548,9 +550,10 @@ namespace DataStandardizer.LanguageTag
         /// Create a <see cref="Bcp47LanguageTag"/> with the specified language tag and timeout.
         /// </summary>
         /// <param name="languageTag">An IETF BCP 47 language tag.</param>
-        /// <param name="matchTimeout">Time limit for evaluating the regular expressions.</param>
+        /// <param name="matchTimeout">Not used: language tags are checked by a parser, which cannot time out. Must be positive and no more than <see cref="int.MaxValue"/> - 1 milliseconds, or <see cref="Regex.InfiniteMatchTimeout"/>.</param>
         /// <param name="result">When this method returns, contains the constructed <see cref="Bcp47LanguageTag"/>.</param>
         /// <returns><c>true</c> if the <see cref="Bcp47LanguageTag"/> was successfully created; otherwise, <c>false</c>.</returns>
+        [Obsolete(Bcp47Constants.MatchTimeoutObsoleteMessage)]
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryCreate(string? languageTag, TimeSpan matchTimeout, out Bcp47LanguageTag result)
 #else
@@ -611,9 +614,10 @@ namespace DataStandardizer.LanguageTag
         /// </summary>
         /// <param name="languageTag">An IETF BCP 47 language tag.</param>
         /// <param name="subtagRegistry">A copy of the Subtag Registry.</param>
-        /// <param name="matchTimeout">Time limit for evaluating the regular expressions.</param>
+        /// <param name="matchTimeout">Not used: language tags are checked by a parser, which cannot time out. Must be positive and no more than <see cref="int.MaxValue"/> - 1 milliseconds, or <see cref="Regex.InfiniteMatchTimeout"/>.</param>
         /// <param name="result">When this method returns, contains the constructed <see cref="Bcp47LanguageTag"/>.</param>
         /// <returns><c>true</c> if the <see cref="Bcp47LanguageTag"/> was successfully created; otherwise, <c>false</c>.</returns>
+        [Obsolete(Bcp47Constants.MatchTimeoutObsoleteMessage)]
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryCreate(string? languageTag, SubtagRegistry.SubtagRegistry subtagRegistry, TimeSpan matchTimeout, out Bcp47LanguageTag result)
 #else

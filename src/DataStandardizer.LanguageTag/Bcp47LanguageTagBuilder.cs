@@ -81,6 +81,7 @@ namespace DataStandardizer.LanguageTag
         }
 
         /// <inheritdoc />
+        [Obsolete(Bcp47Constants.WithTimeoutObsoleteMessage)]
         public IBcp47LanguageTagBuilderStepWithTimeoutNext WithTimeout(TimeSpan matchTimeout)
         {
             _matchTimeout = matchTimeout;
@@ -595,12 +596,15 @@ namespace DataStandardizer.LanguageTag
         private Bcp47LanguageTag CreateLanguageTag([NotNull] string languageTag)
 #endif
         {
+            // The timeout overloads are obsolete but still validate the timeout passed to WithTimeout, as they did before they became inert.
+#pragma warning disable CS0618
             if (_subtagRegistry != null)
             {
                 return _matchTimeout is null ? Bcp47LanguageTag.Create(languageTag, _subtagRegistry) : Bcp47LanguageTag.Create(languageTag, _subtagRegistry, _matchTimeout.Value);
             }
 
             return _matchTimeout is null ? Bcp47LanguageTag.Create(languageTag) : Bcp47LanguageTag.Create(languageTag, _matchTimeout.Value);
+#pragma warning restore CS0618
         }
 
         private bool IsValidRegionCodeFromUnM49(ushort candidateCode)
