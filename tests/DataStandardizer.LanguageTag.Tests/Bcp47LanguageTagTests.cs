@@ -3165,20 +3165,20 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #endregion
 
-        #region Test: TryCreate_WithLanguageTagAndTimeoutWhenMatchTimesOut
+        #region Test: TryCreate_WithLanguageTagAndTimeoutWhenMatchWouldTimeOut
 
         [Fact]
-        public void TryCreate_WithLanguageTagAndTimeoutWhenMatchTimesOut_ReturnsFalse()
+        public void TryCreate_WithLanguageTagAndTimeoutWhenMatchWouldTimeOut_ReturnsTrue()
         {
             // act
             Bcp47LanguageTag languageTag = default;
-            var testResult = true;
+            var testResult = false;
             Action testAction = () => testResult = Bcp47LanguageTag.TryCreate(TimeoutLanguageTag, TimeSpan.FromTicks(1), out languageTag);
 
             // assert
             testAction.Should().NotThrow("a Try method reports failure through its return value");
-            testResult.Should().BeFalse("matching the language tag took longer than the timeout");
-            languageTag.Should().Be(default(Bcp47LanguageTag));
+            testResult.Should().BeTrue("the default rules are checked by a parser, which cannot time out, and the language tag is well-formed");
+            ((string)languageTag).Should().Be(TimeoutLanguageTag);
         }
 
         #endregion

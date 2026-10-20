@@ -66,6 +66,10 @@ Includes:
     <PackageReference Include="JetBrains.Annotations" Version="2025.2.2" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="System.Memory" Version="4.6.3" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\DataStandardizer.Geography\DataStandardizer.Geography.csproj" />
     <ProjectReference Include="..\DataStandardizer.Language\DataStandardizer.Language.csproj" />
