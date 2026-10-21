@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 #if NETSTANDARD
 using JetBrains.Annotations; 
 #endif
@@ -114,8 +113,15 @@ namespace DataStandardizer.LanguageTag
             {
                 if (_subtag is null) throw new InvalidOperationException(ErrorMessage.UninitializedInstance);
 
-                var singletonCandidate = _subtag.Split('-').ElementAtOrDefault(0);
-                return !string.IsNullOrWhiteSpace(singletonCandidate) ? singletonCandidate[0] : (char?)null;
+                // The singleton is the first character of the first segment, or null when that segment is empty or whitespace.
+                var segmentEnd = _subtag.IndexOf('-');
+                if (segmentEnd < 0) segmentEnd = _subtag.Length;
+                for (var i = 0; i < segmentEnd; i++)
+                {
+                    if (!char.IsWhiteSpace(_subtag[i])) return _subtag[0];
+                }
+
+                return null;
             }
         }
 
@@ -134,7 +140,49 @@ namespace DataStandardizer.LanguageTag
             {
                 if (_subtag is null) throw new InvalidOperationException(ErrorMessage.UninitializedInstance);
 
-                return _subtag.Split('-').Skip(1).ToArray();
+                // Every segment after the first, so one per separator.
+#if NET10_0_OR_GREATER
+                var span = _subtag.AsSpan();
+                var subtags = new string[span.Count('-')];
+                var index = -1;
+                foreach (var range in span.Split('-'))
+                {
+                    if (index >= 0) subtags[index] = _subtag[range];
+                    index++;
+                }
+
+                return subtags;
+#elif NET8_0_OR_GREATER
+                var span = _subtag.AsSpan();
+                var segmentCount = span.Count('-') + 1;
+                var ranges = segmentCount <= 32 ? stackalloc Range[segmentCount] : new Range[segmentCount];
+                span.Split(ranges, '-');
+                var subtags = new string[segmentCount - 1];
+                for (var i = 1; i < segmentCount; i++)
+                {
+                    subtags[i - 1] = _subtag[ranges[i]];
+                }
+
+                return subtags;
+#else
+                var separatorCount = 0;
+                foreach (var c in _subtag)
+                {
+                    if (c == '-') separatorCount++;
+                }
+
+                var subtags = new string[separatorCount];
+                var segmentStart = _subtag.IndexOf('-') + 1;
+                for (var i = 0; i < separatorCount; i++)
+                {
+                    var segmentEnd = _subtag.IndexOf('-', segmentStart);
+                    if (segmentEnd < 0) segmentEnd = _subtag.Length;
+                    subtags[i] = _subtag.Substring(segmentStart, segmentEnd - segmentStart);
+                    segmentStart = segmentEnd + 1;
+                }
+
+                return subtags;
+#endif
             }
         }
 
