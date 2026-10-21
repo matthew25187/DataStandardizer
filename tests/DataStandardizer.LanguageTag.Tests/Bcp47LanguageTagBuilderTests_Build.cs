@@ -703,5 +703,49 @@ namespace DataStandardizer.LanguageTag.Tests
         }
 
         #endregion
+
+        #region Test: Build_ForEverySubtag
+
+        [Fact]
+        public void Build_ForEverySubtagWithUnM49Region_ProducesLanguageTagString()
+        {
+            // arrange
+            var builder = new Bcp47LanguageTagBuilder()
+                .UsingPrimaryLanguageSubtag(Iso639Part1Language.zh)
+                .UsingExtendedLanguageSubtags("yue")
+                .UsingScriptSubtag(Iso15924Script.Hant)
+                .UsingRegionSubtag(UnM49Area._005)
+                .UsingVariantSubtags("rozaj", "biske")
+                .UsingExtensionSubtags("a-bbb", "u-ca-hebrew")
+                .UsingPrivateUseSubtag("x-private");
+
+            // act
+            var testResult = builder.Build();
+
+            // assert
+            testResult.ToString().Should().Be("zh-yue-Hant-005-rozaj-biske-a-bbb-u-ca-hebrew-x-private");
+        }
+
+        [Fact]
+        public void Build_ForEverySubtagWithIso3166Region_ProducesLanguageTagString()
+        {
+            // arrange
+            var builder = new Bcp47LanguageTagBuilder()
+                .UsingPrimaryLanguageSubtag("zh")
+                .UsingExtendedLanguageSubtags("yue")
+                .UsingScriptSubtag("Hant")
+                .UsingRegionSubtag(Iso3166Part1Alpha2Country.HK)
+                .UsingVariantSubtags("1994")
+                .UsingExtensionSubtags("u-nu-hanidec")
+                .UsingPrivateUseSubtag("x-private");
+
+            // act
+            var testResult = builder.Build();
+
+            // assert
+            testResult.ToString().Should().Be("zh-yue-Hant-HK-1994-u-nu-hanidec-x-private");
+        }
+
+        #endregion
     }
 }

@@ -800,6 +800,274 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #endregion
 
+        #region Test: UsingVariantSubtags_WhenLaterVariantSubtagIsNull
+
+        [Fact]
+        public void UsingVariantSubtags_WhenLaterVariantSubtagIsNull_ThrowsArgumentNullException()
+        {
+            // arrange
+            var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
+            var testVariantSubtags = new[] { "biske", null };
+
+            // act
+            Action testAction = () => _ = builder.UsingVariantSubtags("rozaj", testVariantSubtags);
+
+            // assert
+            testAction.Should()
+                .Throw<ArgumentNullException>("the subtag must not be null")
+                .WithParameterName("variantSubtags");
+        }
+
+        #endregion
+
+        #region Test: UsingVariantSubtags_WhenLaterVariantSubtagIsInvalid
+
+        [Fact]
+        public void UsingVariantSubtags_WhenLaterVariantSubtagIsInvalid_ThrowsArgumentException()
+        {
+            // arrange
+            const string testSubject = "invalidvariant";
+            var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
+            var testVariantSubtags = new[] { "biske", testSubject };
+
+            // act
+            Action testAction = () => _ = builder.UsingVariantSubtags("rozaj", testVariantSubtags);
+
+            // assert
+            testAction.Should()
+                .Throw<ArgumentException>("'{0}' is not a valid subtag", testSubject)
+                .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SubtagInvalidTemplate, testSubject, "Variant subtag") + "*")
+                .WithParameterName("variantSubtags");
+        }
+
+        #endregion
+
+        #region Test: UsingExtensionSubtags_WhenLaterExtensionSubtagIsNull
+
+        [Fact]
+        public void UsingExtensionSubtags_WhenLaterExtensionSubtagIsNull_ThrowsArgumentNullException()
+        {
+            // arrange
+            var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
+            var testExtensionSubtags = new[] { "b-ccc", null };
+
+            // act
+            Action testAction = () => _ = builder.UsingExtensionSubtags("a-bbb", testExtensionSubtags);
+
+            // assert
+            testAction.Should()
+                .Throw<ArgumentNullException>("the subtag must not be null")
+                .WithParameterName("extensionSubtags");
+        }
+
+        #endregion
+
+        #region Test: UsingExtensionSubtags_WhenLaterExtensionSubtagIsInvalid
+
+        [Fact]
+        public void UsingExtensionSubtags_WhenLaterExtensionSubtagIsInvalid_ThrowsArgumentException()
+        {
+            // arrange
+            const string testSubject = "invalid";
+            var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
+            var testExtensionSubtags = new[] { "b-ccc", testSubject };
+
+            // act
+            Action testAction = () => _ = builder.UsingExtensionSubtags("a-bbb", testExtensionSubtags);
+
+            // assert
+            testAction.Should()
+                .Throw<ArgumentException>("'{0}' is not a valid subtag", testSubject)
+                .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SubtagInvalidTemplate, testSubject, "Extension subtag") + "*")
+                .WithParameterName("extensionSubtags");
+        }
+
+        #endregion
+
+#if NET9_0_OR_GREATER
+        #region Test: UsingVariantSubtags_FromSpan
+
+        [Fact]
+        public void UsingVariantSubtags_FromSpan_ProducesSameLanguageTagAsFromArray()
+        {
+            // arrange
+            var testVariantSubtags = new[] { "biske", "1994" };
+            var expectedResult = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag("sl").UsingVariantSubtags("rozaj", testVariantSubtags).Build();
+            var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag("sl");
+
+            // act
+            var testResult = builder.UsingVariantSubtags("rozaj", new ReadOnlySpan<string>(testVariantSubtags)).Build();
+
+            // assert
+            testResult.ToString().Should().Be(expectedResult.ToString()).And.Be("sl-rozaj-biske-1994");
+        }
+
+        #endregion
+
+        #region Test: UsingVariantSubtags_FromSpanWhenLaterVariantSubtagIsNull
+
+        [Fact]
+        public void UsingVariantSubtags_FromSpanWhenLaterVariantSubtagIsNull_ThrowsArgumentNullException()
+        {
+            // arrange
+            var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
+            var testVariantSubtags = new[] { "biske", null };
+
+            // act
+            Action testAction = () => _ = builder.UsingVariantSubtags("rozaj", new ReadOnlySpan<string>(testVariantSubtags));
+
+            // assert
+            testAction.Should()
+                .Throw<ArgumentNullException>("the subtag must not be null")
+                .WithParameterName("variantSubtags");
+        }
+
+        #endregion
+
+        #region Test: UsingVariantSubtags_FromSpanWhenVariantSubtagIsRepeated
+
+        [Fact]
+        public void UsingVariantSubtags_FromSpanWhenVariantSubtagIsRepeated_ThrowsArgumentException()
+        {
+            // arrange
+            var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
+            var testVariantSubtags = new[] { "biske", "ROZAJ" };
+
+            // act
+            Action testAction = () => _ = builder.UsingVariantSubtags("rozaj", new ReadOnlySpan<string>(testVariantSubtags));
+
+            // assert
+            testAction.Should()
+                .Throw<ArgumentException>("each variant subtag must appear at most once (RFC 5646 §2.2.5)")
+                .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SubtagRepeatedTemplate, "Variant subtag", "ROZAJ") + "*")
+                .WithParameterName("variantSubtags");
+        }
+
+        #endregion
+
+        #region Test: UsingVariantSubtags_FromSpanByDefaultImplementation
+
+        [Fact]
+        public void UsingVariantSubtags_FromSpanByDefaultImplementation_CallsArrayOverload()
+        {
+            // arrange
+            var step = new ArrayOnlyStep();
+            IBcp47LanguageTagBuilderStepUsingVariantSubtags testSubject = step;
+
+            // act
+            testSubject.UsingVariantSubtags("rozaj", new ReadOnlySpan<string>(new[] { "biske", "1994" }));
+
+            // assert
+            step.ReceivedFirstSubtag.Should().Be("rozaj");
+            step.ReceivedSubtags.Should().Equal("biske", "1994");
+        }
+
+        #endregion
+
+        #region Test: UsingExtensionSubtags_FromSpan
+
+        [Fact]
+        public void UsingExtensionSubtags_FromSpan_ProducesSameLanguageTagAsFromArray()
+        {
+            // arrange
+            var testExtensionSubtags = new[] { "u-ca-hebrew" };
+            var expectedResult = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag("he").UsingExtensionSubtags("a-bbb", testExtensionSubtags).Build();
+            var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag("he");
+
+            // act
+            var testResult = builder.UsingExtensionSubtags("a-bbb", new ReadOnlySpan<string>(testExtensionSubtags)).Build();
+
+            // assert
+            testResult.ToString().Should().Be(expectedResult.ToString()).And.Be("he-a-bbb-u-ca-hebrew");
+        }
+
+        #endregion
+
+        #region Test: UsingExtensionSubtags_FromSpanWhenLaterExtensionSubtagIsNull
+
+        [Fact]
+        public void UsingExtensionSubtags_FromSpanWhenLaterExtensionSubtagIsNull_ThrowsArgumentNullException()
+        {
+            // arrange
+            var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
+            var testExtensionSubtags = new[] { "b-ccc", null };
+
+            // act
+            Action testAction = () => _ = builder.UsingExtensionSubtags("a-bbb", new ReadOnlySpan<string>(testExtensionSubtags));
+
+            // assert
+            testAction.Should()
+                .Throw<ArgumentNullException>("the subtag must not be null")
+                .WithParameterName("extensionSubtags");
+        }
+
+        #endregion
+
+        #region Test: UsingExtensionSubtags_FromSpanWhenSingletonIsRepeated
+
+        [Fact]
+        public void UsingExtensionSubtags_FromSpanWhenSingletonIsRepeated_ThrowsArgumentException()
+        {
+            // arrange
+            var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
+            var testExtensionSubtags = new[] { "b-ccc", "A-ddd" };
+
+            // act
+            Action testAction = () => _ = builder.UsingExtensionSubtags("a-bbb", new ReadOnlySpan<string>(testExtensionSubtags));
+
+            // assert
+            testAction.Should()
+                .Throw<ArgumentException>("each extension singleton must appear at most once (RFC 5646 §2.2.6)")
+                .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SubtagRepeatedTemplate, "Extension singleton", "A") + "*")
+                .WithParameterName("extensionSubtags");
+        }
+
+        #endregion
+
+        #region Test: UsingExtensionSubtags_FromSpanByDefaultImplementation
+
+        [Fact]
+        public void UsingExtensionSubtags_FromSpanByDefaultImplementation_CallsArrayOverload()
+        {
+            // arrange
+            var step = new ArrayOnlyStep();
+            IBcp47LanguageTagBuilderStepUsingExtensionSubtags testSubject = step;
+
+            // act
+            testSubject.UsingExtensionSubtags("a-bbb", new ReadOnlySpan<string>(new[] { "u-ca-hebrew" }));
+
+            // assert
+            step.ReceivedFirstSubtag.Should().Be("a-bbb");
+            step.ReceivedSubtags.Should().Equal("u-ca-hebrew");
+        }
+
+        #endregion
+
+        /// <summary>
+        /// Implements only the array overloads, so that the span overloads use their default implementations.
+        /// </summary>
+        private sealed class ArrayOnlyStep : IBcp47LanguageTagBuilderStepUsingVariantSubtags, IBcp47LanguageTagBuilderStepUsingExtensionSubtags
+        {
+            public string ReceivedFirstSubtag { get; private set; }
+
+            public string[] ReceivedSubtags { get; private set; }
+
+            public IBcp47LanguageTagBuilderStepUsingVariantSubtagsNext UsingVariantSubtags(string variantSubtag, params string[] variantSubtags)
+            {
+                ReceivedFirstSubtag = variantSubtag;
+                ReceivedSubtags = variantSubtags;
+                return null;
+            }
+
+            public IBcp47LanguageTagBuilderStepUsingExtensionSubtagsNext UsingExtensionSubtags(string extensionSubtag, params string[] extensionSubtags)
+            {
+                ReceivedFirstSubtag = extensionSubtag;
+                ReceivedSubtags = extensionSubtags;
+                return null;
+            }
+        }
+#endif
+
         #region Test: UsingPrivateUseSubtag_WhenPrivateUseSubtagIsNull
 
         [Fact]
