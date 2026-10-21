@@ -57,7 +57,7 @@ Each getter throws `InvalidOperationException` if the instance is uninitialised.
 
 | Operator | Signature | Notes |
 | --- | --- | --- |
-| Explicit | `explicit operator Bcp47KeyedSubtag(string)` | |
+| Explicit | `explicit operator Bcp47KeyedSubtag(string)` | Throws `InvalidCastException` if `null`. |
 | Implicit | `implicit operator string?(Bcp47KeyedSubtag)` | Unwraps to the raw subtag string. |
 | Equality | `operator ==`, `!=` `(Bcp47KeyedSubtag, Bcp47KeyedSubtag)` | Case-insensitive comparison of the subtag string. |
 

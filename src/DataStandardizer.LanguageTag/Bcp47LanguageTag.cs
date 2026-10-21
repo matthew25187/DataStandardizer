@@ -30,14 +30,6 @@ namespace DataStandardizer.LanguageTag
         }
 
         /// <summary>
-        /// Parameter name of the <see cref="ArgumentNullException"/> that the static validation methods throw for <c>null</c>.
-        /// </summary>
-        /// <remarks>
-        /// D12 (#245): it is the name the regular expressions reported before the parser replaced them; #245 corrects it.
-        /// </remarks>
-        private const string NullInputParameterName = "input";
-
-        /// <summary>
         /// The longest match timeout that <see cref="Regex"/> accepts.
         /// </summary>
         private static readonly TimeSpan MaximumMatchTimeout = TimeSpan.FromMilliseconds(int.MaxValue - 1);
@@ -366,6 +358,7 @@ namespace DataStandardizer.LanguageTag
         /// </summary>
         /// <param name="extendedLanguageSubtag">Subtag to check.</param>
         /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <exception cref="ArgumentNullException">The subtag is <c>null</c>.</exception>
         /// <remarks>
         /// Validation will be performed using the default BCP 47 rules.
         /// </remarks>
@@ -375,7 +368,7 @@ namespace DataStandardizer.LanguageTag
         public static bool CheckExtendedLanguageSubtag([NotNull] string extendedLanguageSubtag)
 #endif
         {
-            if (extendedLanguageSubtag is null) throw new ArgumentNullException(NullInputParameterName); // D12 (#245)
+            if (extendedLanguageSubtag is null) throw new ArgumentNullException(nameof(extendedLanguageSubtag));
 
             return Bcp47RulesBasedSubtagClassifier.Instance.IsExtendedLanguage(extendedLanguageSubtag.AsSpan());
         }
@@ -385,6 +378,7 @@ namespace DataStandardizer.LanguageTag
         /// </summary>
         /// <param name="extensionSubtag">Subtag to check.</param>
         /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <exception cref="ArgumentNullException">The subtag is <c>null</c>.</exception>
         /// <remarks>
         /// Validation will be performed using the default BCP 47 rules. The string must contain exactly one extension: a singleton followed by its subtags.
         /// Whether a singleton is repeated within a language tag is checked when the whole tag is validated.
@@ -395,7 +389,7 @@ namespace DataStandardizer.LanguageTag
         public static bool CheckExtensionSubtag([NotNull] string extensionSubtag)
 #endif
         {
-            if (extensionSubtag is null) throw new ArgumentNullException(NullInputParameterName); // D12 (#245)
+            if (extensionSubtag is null) throw new ArgumentNullException(nameof(extensionSubtag));
 
             return Bcp47LanguageTagParser.IsExtension(extensionSubtag.AsSpan());
         }
@@ -405,6 +399,7 @@ namespace DataStandardizer.LanguageTag
         /// </summary>
         /// <param name="primaryLanguageSubtag">Subtag to check.</param>
         /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <exception cref="ArgumentNullException">The subtag is <c>null</c>.</exception>
         /// <remarks>
         /// Validation will be performed using the default BCP 47 rules.
         /// </remarks>
@@ -414,7 +409,7 @@ namespace DataStandardizer.LanguageTag
         public static bool CheckPrimaryLanguageSubtag([NotNull] string primaryLanguageSubtag)
 #endif
         {
-            if (primaryLanguageSubtag is null) throw new ArgumentNullException(NullInputParameterName); // D12 (#245)
+            if (primaryLanguageSubtag is null) throw new ArgumentNullException(nameof(primaryLanguageSubtag));
 
             return Bcp47RulesBasedSubtagClassifier.Instance.IsPrimaryLanguage(primaryLanguageSubtag.AsSpan(), out _);
         }
@@ -424,6 +419,7 @@ namespace DataStandardizer.LanguageTag
         /// </summary>
         /// <param name="privateUseSubtag">Subtag to check.</param>
         /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <exception cref="ArgumentNullException">The subtag is <c>null</c>.</exception>
         /// <remarks>
         /// Validation will be performed using the default BCP 47 rules.
         /// </remarks>
@@ -433,7 +429,7 @@ namespace DataStandardizer.LanguageTag
         public static bool CheckPrivateUseSubtag([NotNull] string privateUseSubtag)
 #endif
         {
-            if (privateUseSubtag is null) throw new ArgumentNullException(NullInputParameterName); // D12 (#245)
+            if (privateUseSubtag is null) throw new ArgumentNullException(nameof(privateUseSubtag));
 
             return Bcp47LanguageTagParser.IsPrivateUse(privateUseSubtag.AsSpan());
         }
@@ -443,6 +439,7 @@ namespace DataStandardizer.LanguageTag
         /// </summary>
         /// <param name="regionSubtag">Subtag to check.</param>
         /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <exception cref="ArgumentNullException">The subtag is <c>null</c>.</exception>
         /// <remarks>
         /// Validation will be performed using the default BCP 47 rules.
         /// </remarks>
@@ -452,7 +449,7 @@ namespace DataStandardizer.LanguageTag
         public static bool CheckRegionSubtag([NotNull] string regionSubtag)
 #endif
         {
-            if (regionSubtag is null) throw new ArgumentNullException(NullInputParameterName); // D12 (#245)
+            if (regionSubtag is null) throw new ArgumentNullException(nameof(regionSubtag));
 
             return Bcp47RulesBasedSubtagClassifier.Instance.IsRegion(regionSubtag.AsSpan());
         }
@@ -462,6 +459,7 @@ namespace DataStandardizer.LanguageTag
         /// </summary>
         /// <param name="scriptSubtag">Subtag to check.</param>
         /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <exception cref="ArgumentNullException">The subtag is <c>null</c>.</exception>
         /// <remarks>
         /// Validation will be performed using the default BCP 47 rules.
         /// </remarks>
@@ -471,7 +469,7 @@ namespace DataStandardizer.LanguageTag
         public static bool CheckScriptSubtag([NotNull] string scriptSubtag)
 #endif
         {
-            if (scriptSubtag is null) throw new ArgumentNullException(NullInputParameterName); // D12 (#245)
+            if (scriptSubtag is null) throw new ArgumentNullException(nameof(scriptSubtag));
 
             return Bcp47RulesBasedSubtagClassifier.Instance.IsScript(scriptSubtag.AsSpan());
         }
@@ -481,6 +479,7 @@ namespace DataStandardizer.LanguageTag
         /// </summary>
         /// <param name="variantSubtag">Subtag to check.</param>
         /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <exception cref="ArgumentNullException">The subtag is <c>null</c>.</exception>
         /// <remarks>
         /// Validation will be performed using the default BCP 47 rules. The string must contain exactly one subtag.
         /// Whether a variant is repeated within a language tag is checked when the whole tag is validated.
@@ -491,7 +490,7 @@ namespace DataStandardizer.LanguageTag
         public static bool CheckVariantSubtag([NotNull] string variantSubtag)
 #endif
         {
-            if (variantSubtag is null) throw new ArgumentNullException(NullInputParameterName); // D12 (#245)
+            if (variantSubtag is null) throw new ArgumentNullException(nameof(variantSubtag));
 
             return Bcp47RulesBasedSubtagClassifier.Instance.IsVariant(variantSubtag.AsSpan());
         }
@@ -501,6 +500,7 @@ namespace DataStandardizer.LanguageTag
         /// </summary>
         /// <param name="languageTagString">Language tag to test.</param>
         /// <returns><c>true</c> if the language tag is valid; <c>false</c> if not.</returns>
+        /// <exception cref="ArgumentNullException">The language tag is <c>null</c>.</exception>
         /// <remarks>
         /// Validation will be performed using the default BCP 47 rules. A language tag that repeats a variant subtag or an extension singleton,
         /// compared case-insensitively, is not well-formed (RFC 5646 §2.2.5, §2.2.6). The 26 grandfathered language tags are well-formed (§2.1, §2.2.9).
@@ -511,7 +511,7 @@ namespace DataStandardizer.LanguageTag
         public static bool IsWellFormedLanguageTagString([NotNull] string languageTagString)
 #endif
         {
-            if (languageTagString is null) throw new ArgumentNullException(NullInputParameterName); // D12 (#245)
+            if (languageTagString is null) throw new ArgumentNullException(nameof(languageTagString));
 
             return IsWellFormedByRules(languageTagString);
         }
