@@ -14,6 +14,7 @@ namespace DataStandardizer.LanguageTag
 
         private static class ErrorMessage
         {
+            internal const string SubtagNull = "The subtag must not be null.";
             internal const string UninitializedInstance = "The " + nameof(Bcp47KeyedSubtag) + " instance is not initialized.";
         }
 #if NETCOREAPP3_0_OR_GREATER
@@ -39,12 +40,22 @@ namespace DataStandardizer.LanguageTag
 
         #region Operators
 
+        /// <summary>
+        /// Convert a string to a keyed subtag.
+        /// </summary>
+        /// <param name="value">Subtag string.</param>
+        /// <exception cref="InvalidCastException">The subtag is <c>null</c>.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static explicit operator Bcp47KeyedSubtag(string value)
 #else
         public static explicit operator Bcp47KeyedSubtag([NotNull] string value)
 #endif
         {
+            if (value is null)
+            {
+                throw new InvalidCastException(ErrorMessage.SubtagNull);
+            }
+
             return new Bcp47KeyedSubtag(value);
         }
 

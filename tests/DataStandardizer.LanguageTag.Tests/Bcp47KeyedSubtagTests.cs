@@ -22,6 +22,16 @@ namespace DataStandardizer.LanguageTag.Tests
         }
 
         [Fact]
+        public void ExplicitOperator_WithNullString_ThrowsInvalidCastException()
+        {
+            // act
+            Action testAction = () => _ = (Bcp47KeyedSubtag)(string)null;
+
+            // assert
+            testAction.Should().Throw<InvalidCastException>();
+        }
+
+        [Fact]
         public void Singleton_OnInstanceWithNoSubtag_ThrowsInvalidOperationException()
         {
             // arrange

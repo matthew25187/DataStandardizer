@@ -107,6 +107,22 @@ namespace DataStandardizer.LanguageTag.Tests
         };
 
         /// <summary>
+        /// Static checks, each paired with the name of its parameter, which the <see cref="ArgumentNullException"/> it throws for
+        /// <c>null</c> must report.
+        /// </summary>
+        public static TheoryData<string, Func<string, bool>, string> NullArgumentChecks => new TheoryData<string, Func<string, bool>, string>()
+        {
+            { nameof(Bcp47LanguageTag.CheckPrimaryLanguageSubtag), Bcp47LanguageTag.CheckPrimaryLanguageSubtag, "primaryLanguageSubtag" },
+            { nameof(Bcp47LanguageTag.CheckExtendedLanguageSubtag), Bcp47LanguageTag.CheckExtendedLanguageSubtag, "extendedLanguageSubtag" },
+            { nameof(Bcp47LanguageTag.CheckScriptSubtag), Bcp47LanguageTag.CheckScriptSubtag, "scriptSubtag" },
+            { nameof(Bcp47LanguageTag.CheckRegionSubtag), Bcp47LanguageTag.CheckRegionSubtag, "regionSubtag" },
+            { nameof(Bcp47LanguageTag.CheckVariantSubtag), Bcp47LanguageTag.CheckVariantSubtag, "variantSubtag" },
+            { nameof(Bcp47LanguageTag.CheckExtensionSubtag), Bcp47LanguageTag.CheckExtensionSubtag, "extensionSubtag" },
+            { nameof(Bcp47LanguageTag.CheckPrivateUseSubtag), Bcp47LanguageTag.CheckPrivateUseSubtag, "privateUseSubtag" },
+            { nameof(Bcp47LanguageTag.IsWellFormedLanguageTagString), Bcp47LanguageTag.IsWellFormedLanguageTagString, "languageTagString" }
+        };
+
+        /// <summary>
         /// Language tags that repeat a variant subtag (RFC 5646 §2.2.5¶5) or an extension singleton (§2.2.6¶3), each paired with
         /// the same tag without the repetition. The comparison is case-insensitive (§2.1.1). Private use subtags may repeat.
         /// </summary>
@@ -614,6 +630,21 @@ namespace DataStandardizer.LanguageTag.Tests
 
             // assert
             testResult.Should().BeFalse("{0} must not accept a non-ASCII letter", checkName);
+        }
+
+        #endregion
+
+        #region Test: CheckSubtag_WithNull
+
+        [Theory]
+        [MemberData(nameof(NullArgumentChecks))]
+        public void CheckSubtag_WithNull_ThrowsArgumentNullException(string checkName, Func<string, bool> check, string expectedParameterName)
+        {
+            // act
+            Action testAction = () => check(null);
+
+            // assert
+            testAction.Should().Throw<ArgumentNullException>("{0} must reject null", checkName).WithParameterName(expectedParameterName);
         }
 
         #endregion

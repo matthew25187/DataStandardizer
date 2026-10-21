@@ -80,13 +80,13 @@ Each getter throws `InvalidOperationException` if the instance is uninitialised.
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `CheckExtendedLanguageSubtag(string extendedLanguageSubtag)` | `bool` | Static. Validates using the default BCP 47 rules. |
-| `CheckExtensionSubtag(string extensionSubtag)` | `bool` | Static. Validates one extension (a singleton and its subtags) using the default BCP 47 rules. |
-| `CheckPrimaryLanguageSubtag(string primaryLanguageSubtag)` | `bool` | Static. Validates using the default BCP 47 rules. `true` for an ISO 639 code or four to eight letters (RFC 5646 §2.2.1). |
-| `CheckPrivateUseSubtag(string privateUseSubtag)` | `bool` | Static. Validates using the default BCP 47 rules. |
-| `CheckRegionSubtag(string regionSubtag)` | `bool` | Static. Validates using the default BCP 47 rules. |
-| `CheckScriptSubtag(string scriptSubtag)` | `bool` | Static. Validates using the default BCP 47 rules. |
-| `CheckVariantSubtag(string variantSubtag)` | `bool` | Static. Validates one variant subtag using the default BCP 47 rules. |
+| `CheckExtendedLanguageSubtag(string extendedLanguageSubtag)` | `bool` | Static. Validates using the default BCP 47 rules. Throws `ArgumentNullException` if `null`. |
+| `CheckExtensionSubtag(string extensionSubtag)` | `bool` | Static. Validates one extension (a singleton and its subtags) using the default BCP 47 rules. Throws `ArgumentNullException` if `null`. |
+| `CheckPrimaryLanguageSubtag(string primaryLanguageSubtag)` | `bool` | Static. Validates using the default BCP 47 rules. `true` for an ISO 639 code or four to eight letters (RFC 5646 §2.2.1). Throws `ArgumentNullException` if `null`. |
+| `CheckPrivateUseSubtag(string privateUseSubtag)` | `bool` | Static. Validates using the default BCP 47 rules. Throws `ArgumentNullException` if `null`. |
+| `CheckRegionSubtag(string regionSubtag)` | `bool` | Static. Validates using the default BCP 47 rules. Throws `ArgumentNullException` if `null`. |
+| `CheckScriptSubtag(string scriptSubtag)` | `bool` | Static. Validates using the default BCP 47 rules. Throws `ArgumentNullException` if `null`. |
+| `CheckVariantSubtag(string variantSubtag)` | `bool` | Static. Validates one variant subtag using the default BCP 47 rules. Throws `ArgumentNullException` if `null`. |
 | `Create(string languageTag)` | `Bcp47LanguageTag` | Static. Throws `LanguageTagFormatException` if the tag is invalid, including when it repeats a variant subtag or extension singleton; `ArgumentNullException` if `null`. |
 | `Create(string languageTag, TimeSpan matchTimeout)` | `Bcp47LanguageTag` | Static. As above, with a regex match timeout. |
 | `Create(string languageTag, SubtagRegistry subtagRegistry)` | `Bcp47LanguageTag` | Static. Validates against a loaded subtag registry. |
@@ -94,7 +94,7 @@ Each getter throws `InvalidOperationException` if the instance is uninitialised.
 | `Equals(Bcp47LanguageTag other)` | `bool` | Case-insensitive comparison of the tag string. |
 | `Equals(object obj)` | `bool` | Override. |
 | `GetHashCode()` | `int` | Override. |
-| `IsWellFormedLanguageTagString(string languageTagString)` | `bool` | Static. Validates using the default BCP 47 rules. `false` if a variant subtag or extension singleton is repeated (RFC 5646 §2.2.5, §2.2.6). `true` for the grandfathered tags (§2.1). |
+| `IsWellFormedLanguageTagString(string languageTagString)` | `bool` | Static. Validates using the default BCP 47 rules. `false` if a variant subtag or extension singleton is repeated (RFC 5646 §2.2.5, §2.2.6). `true` for the grandfathered tags (§2.1). Throws `ArgumentNullException` if `null`. |
 | `ToIso15924()` | `Iso15924Script?` | From the script subtag; `null` if absent or unrecognised. |
 | `ToIso3166Part1Alpha2()` | `Iso3166Part1Alpha2Country?` | From the region subtag; `null` if absent or unrecognised. |
 | `ToIso639Part1()` | `Iso639Part1Language?` | From the primary language subtag; `null` if unrecognised. |
