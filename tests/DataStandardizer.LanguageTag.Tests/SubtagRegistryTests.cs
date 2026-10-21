@@ -403,6 +403,78 @@ namespace DataStandardizer.LanguageTag.Tests
             readings.Should().AllSatisfy(reading => reading.Should().Equal(readings[0]));
         }
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task CreateFromContent_WhenFieldIsFolded_JoinsLinesWithOneSpace(bool readAsync)
+        {
+            // arrange
+            var content = "Type: language\nSubtag: ia\nDescription: Interlingua (International Auxiliary Language\n  Association)\nComments: first\n\t  second \n   \n  third\nAdded: 2005-10-16";
+
+            // act
+            var registry = await CreateFromContentAsync(content, readAsync);
+
+            // assert
+            var record = registry.OfType<SubtagRegistry.SubtagRegistrySubtagRecord>().Single();
+            record.Description.Should().Equal(new[] { "Interlingua (International Auxiliary Language Association)" }, "a folded line is unfolded with one space (ref. RFC 5646 §3.1.1)");
+            GetFieldValue(record, "Comments").Should().Be("first second third", "each folded line is trimmed, and a blank one adds nothing");
+            record.Added.Should().Be(new DateTime(2005, 10, 16));
+        }
+
+        [Fact]
+        public void CreateFromContent_ForEveryFieldInRegistry_HasNoDoubledOrSurroundingSpaces()
+        {
+            // arrange
+            var registry = SubtagRegistry.SubtagRegistry.CreateFromContent(_fixture.IanaSubtagRegistry.ToString());
+
+            // act
+            var paddedFields = registry
+                .SelectMany(record => record)
+                .Where(field => field.Item2 is string value && (value.Contains("  ") || value.Trim() != value))
+                .ToList();
+
+            // assert
+            paddedFields.Should().BeEmpty("folded lines in the registry fixture are unfolded with one space");
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task CreateFromContent_WhenFieldNameIsUnknown_ReadsItAsSeparateField(bool readAsync)
+        {
+            // arrange
+            var content = "Type: language\nSubtag: qaa\nDescription: Private use\nFuture-Field: some value\nAdded: 2005-10-16";
+
+            // act
+            var registry = await CreateFromContentAsync(content, readAsync);
+
+            // assert
+            var record = registry.OfType<SubtagRegistry.SubtagRegistrySubtagRecord>().Single();
+            record.Description.Should().Equal(new[] { "Private use" }, "a field this version doesn't know is not part of the field before it");
+            GetFieldValue(record, "Future-Field").Should().Be("some value");
+        }
+
+        [Theory]
+        [InlineData("File-Date: 2025-01-01\n%%\n%%\nType: language\nSubtag: aa\n", false)]
+        [InlineData("File-Date: 2025-01-01\n%%\n%%\nType: language\nSubtag: aa\n", true)]
+        [InlineData("File-Date: 2025-01-01\n%%\nType: language\nDescription: No subtag or tag\n%%\nType: language\nSubtag: aa\n", false)]
+        [InlineData("File-Date: 2025-01-01\n%%\nType: language\nDescription: No subtag or tag\n%%\nType: language\nSubtag: aa\n", true)]
+        public async Task CreateFromContent_WhenRecordIsEmptyOrUnclassifiable_SkipsItAndReadsTheRest(string content, bool readAsync)
+        {
+            // act
+            var registry = await CreateFromContentAsync(content, readAsync);
+
+            // assert
+            registry.Count.Should().Be(2, "a record that is empty or has no File-Date, Subtag or Tag field is skipped, not taken as the end of the registry");
+            registry.OfType<SubtagRegistry.SubtagRegistrySubtagRecord>().Should().ContainSingle(record => record.Subtag == "aa");
+        }
+
+        private static async Task<SubtagRegistry.SubtagRegistry> CreateFromContentAsync(string content, bool readAsync)
+        {
+            // ReSharper disable once MethodHasAsyncOverload
+            return readAsync ? await SubtagRegistry.SubtagRegistry.CreateFromContentAsync(content) : SubtagRegistry.SubtagRegistry.CreateFromContent(content);
+        }
+
         private static string GetFieldValue(SubtagRegistry.ISubtagRegistryRecord record, string fieldName)
         {
             return record.Where(field => field.Item1 == fieldName).Select(field => field.Item2 as string).Single();
