@@ -49,6 +49,67 @@ namespace DataStandardizer.LanguageTag.Tests
             testResult.Should().Be(expectedResult, "{0} is the singleton component of the {1} subtag", expectedResult, testSubtag);
         }
 
+        [Theory]
+        [InlineData(""), InlineData("-a"), InlineData(" -a"), InlineData(" \t-a-b")]
+        public void Singleton_OnInstanceWithEmptyOrWhitespaceFirstSegment_ReturnsNull(string testSubtag)
+        {
+            // arrange
+            var keyedSubtag = new Bcp47KeyedSubtag(testSubtag);
+
+            // act
+            var testResult = keyedSubtag.Singleton;
+
+            // assert
+            testResult.Should().BeNull("the first segment of {0} has no non-whitespace character", testSubtag);
+        }
+
+        [Theory]
+        [InlineData("a", 'a'), InlineData("a-", 'a'), InlineData("a--b", 'a'), InlineData(" x-y", ' '), InlineData("ab-c", 'a')]
+        public void Singleton_OnInstanceWithNonWhitespaceFirstSegment_ReturnsFirstCharacter(string testSubtag, char expectedResult)
+        {
+            // arrange
+            var keyedSubtag = new Bcp47KeyedSubtag(testSubtag);
+
+            // act
+            var testResult = keyedSubtag.Singleton;
+
+            // assert
+            testResult.Should().Be(expectedResult);
+        }
+
+        [Theory]
+        [ClassData(typeof(Subtags_OnInstanceWithEmptySegments_TestCaseFactory))]
+        public void Subtags_OnInstanceWithEmptySegments_ReturnsEverySegmentAfterTheFirst(string testSubtag, string[] expectedResult)
+        {
+            // arrange
+            var keyedSubtag = new Bcp47KeyedSubtag(testSubtag);
+
+            // act
+            var testResult = keyedSubtag.Subtags;
+
+            // assert
+            testResult.Should().Equal(expectedResult);
+        }
+
+        private class Subtags_OnInstanceWithEmptySegments_TestCaseFactory : IEnumerable<object[]>
+        {
+            public IEnumerator<object[]> GetEnumerator()
+            {
+                yield return new object[] { "", new string[0] };
+                yield return new object[] { "a", new string[0] };
+                yield return new object[] { "a-", new[] { "" } };
+                yield return new object[] { "-a", new[] { "a" } };
+                yield return new object[] { "a--b", new[] { "", "b" } };
+                yield return new object[] { "-", new[] { "" } };
+                yield return new object[] { "x-" + string.Join("-", Enumerable.Range(0, 40).Select(i => "s" + i)), Enumerable.Range(0, 40).Select(i => "s" + i).ToArray() };
+            }
+
+            IEnumerator IEnumerable.GetEnumerator()
+            {
+                return GetEnumerator();
+            }
+        }
+
         [Fact]
         public void Subtags_OnInstanceWithNoSubtag_ThrowsInvalidOperationException()
         {
