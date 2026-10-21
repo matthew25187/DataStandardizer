@@ -90,7 +90,8 @@ step chain (the relevant `IBcp47LanguageTagBuilderStep…` interface), not on a
 | `UsingExtendedLanguageSubtags(string)` | `IBcp47LanguageTagBuilderStepUsingExtendedLanguageSubtagsNext` | Reached through `IBcp47LanguageTagBuilderStepUsingExtendedLanguageSubtags`. One subtag. |
 | `UsingExtendedLanguageSubtags(string, string)` | `IBcp47LanguageTagBuilderStepUsingExtendedLanguageSubtagsNext` | Two subtags. |
 | `UsingExtendedLanguageSubtags(string, string, string)` | `IBcp47LanguageTagBuilderStepUsingExtendedLanguageSubtagsNext` | Three subtags (the maximum). |
-| `UsingExtensionSubtags(string, params string[])` | `IBcp47LanguageTagBuilderStepUsingExtensionSubtagsNext` | Reached through `IBcp47LanguageTagBuilderStepUsingExtensionSubtags`. Throws `ArgumentException` if two extensions share a singleton (compared case-insensitively). |
+| `UsingExtensionSubtags(string, params string[])` | `IBcp47LanguageTagBuilderStepUsingExtensionSubtagsNext` | Reached through `IBcp47LanguageTagBuilderStepUsingExtensionSubtags`. Throws `ArgumentException` if two extensions share a singleton (compared case-insensitively). A `null` or invalid subtag in the array throws with `ParamName` `extensionSubtags`. |
+| `UsingExtensionSubtags(string, params ReadOnlySpan<string>)` | `IBcp47LanguageTagBuilderStepUsingExtensionSubtagsNext` | `net10.0` only. As for the array overload, but the builder reads the subtags from the span without copying them to an array first. The compiler picks this overload for a list of arguments. |
 | `UsingPrivateUseSubtag(string)` | `IBcp47LanguageTagBuilderStepUsingPrivateUseSubtagNext` | Reached through `IBcp47LanguageTagBuilderStepUsingPrivateUseSubtag`. |
 | `UsingRegionSubtag(Iso3166Part1Alpha2Country)` | `IBcp47LanguageTagBuilderStepUsingRegionSubtagNext` | Reached through `IBcp47LanguageTagBuilderStepUsingRegionSubtag`. |
 | `UsingRegionSubtag(UnM49Area)` | `IBcp47LanguageTagBuilderStepUsingRegionSubtagNext` | Accepts a UN M49 area made up of more than one country, such as `UnM49Area._419`, and writes it as a three-digit subtag (`es-419`). Throws `ArgumentException` for a country or area member such as `UnM49Area._840`, which BCP 47 doesn't allow; use the `Iso3166Part1Alpha2Country` overload for a country. |
@@ -99,13 +100,18 @@ step chain (the relevant `IBcp47LanguageTagBuilderStep…` interface), not on a
 | `UsingRegionSubtag(string)` | `IBcp47LanguageTagBuilderStepUsingRegionSubtagNext` | |
 | `UsingScriptSubtag(Iso15924Script)` | `IBcp47LanguageTagBuilderStepUsingScriptSubtagNext` | Reached through `IBcp47LanguageTagBuilderStepUsingScriptSubtag`. |
 | `UsingScriptSubtag(string)` | `IBcp47LanguageTagBuilderStepUsingScriptSubtagNext` | |
-| `UsingVariantSubtags(string, params string[])` | `IBcp47LanguageTagBuilderStepUsingVariantSubtagsNext` | Reached through `IBcp47LanguageTagBuilderStepUsingVariantSubtags`. Throws `ArgumentException` if a subtag is repeated (compared case-insensitively). |
+| `UsingVariantSubtags(string, params string[])` | `IBcp47LanguageTagBuilderStepUsingVariantSubtagsNext` | Reached through `IBcp47LanguageTagBuilderStepUsingVariantSubtags`. Throws `ArgumentException` if a subtag is repeated (compared case-insensitively). A `null` or invalid subtag in the array throws with `ParamName` `variantSubtags`. |
+| `UsingVariantSubtags(string, params ReadOnlySpan<string>)` | `IBcp47LanguageTagBuilderStepUsingVariantSubtagsNext` | `net10.0` only. As for the array overload, but the builder reads the subtags from the span without copying them to an array first. The compiler picks this overload for a list of arguments. |
 
 ## Applies to
 
 Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`. On the
 .NET Standard targets nullability is expressed through JetBrains
-`[NotNull]` / `[CanBeNull]` attributes; the public surface is otherwise the same.
+`[NotNull]` / `[CanBeNull]` attributes. The `params ReadOnlySpan<string>`
+overloads of `UsingVariantSubtags` and `UsingExtensionSubtags` exist only on
+`net10.0`; their interfaces give them a default implementation that copies the
+span to an array and calls the array overload. The public surface is otherwise
+the same.
 
 ## See also
 
