@@ -1,20 +1,34 @@
 ﻿using System;
 using System.Collections;
+#if !NETSTANDARD1_0
+using System.Collections.Concurrent;
+#endif
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
+using System.Globalization;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using JetBrains.Annotations;
 #endif
 
 namespace DataStandardizer.LanguageTag.SubtagRegistry
 {
     public abstract class SubtagRegistryRecordBase : ISubtagRegistryRecord
     {
-        private readonly IList<Tuple<string, object>> _fieldBag = new List<Tuple<string, object>>();
+        private const string DateFormat = "yyyy-MM-dd";
+
+        /// <summary>
+        /// The field name and value conversion of each record property, resolved once per record type and property name.
+        /// </summary>
+#if NETSTANDARD1_0
+        private static readonly Dictionary<FieldBindingKey, FieldBinding> FieldBindings = new Dictionary<FieldBindingKey, FieldBinding>();
+#else
+        private static readonly ConcurrentDictionary<FieldBindingKey, FieldBinding> FieldBindings = new ConcurrentDictionary<FieldBindingKey, FieldBinding>();
+#endif
+
+        private readonly List<Tuple<string, object>> _fieldBag = new List<Tuple<string, object>>();
 
         public override string ToString()
         {
@@ -36,38 +50,15 @@ namespace DataStandardizer.LanguageTag.SubtagRegistry
         protected T GetPropertyValue<T>([CallerMemberName] string propertyName = null)
 #endif
         {
-            var property = this.GetType().GetRuntimeProperty(propertyName ?? string.Empty);
-            var fieldAttribute = property?.GetCustomAttribute<SubtagRegistryFieldAttribute>();
-            var fieldName = fieldAttribute?.FieldName ?? propertyName;
+            var binding = GetFieldBinding(propertyName);
 
-#if NETCOREAPP3_0_OR_GREATER
-            T? result = default;
-#else
-            T result = default;
-#endif
-            var field = _fieldBag.FirstOrDefault(f => f.Item1 == fieldName);
-            if (field != null)
+            for (var index = 0; index < _fieldBag.Count; index++)
             {
-                if (field.Item2 is T)
-                {
-#if NETCOREAPP3_0_OR_GREATER
-                    result = (T?)field.Item2;
-#else
-                    result = (T)field.Item2;
-#endif
-                }
-                else if (field.Item2 is string fieldValueString && property != null)
-                {
-                    var converter = TypeDescriptor.GetConverter(property.PropertyType);
-#if NETCOREAPP3_0_OR_GREATER
-                    result = (T?)converter.ConvertFromInvariantString(fieldValueString);
-#else
-                    result = (T)converter.ConvertFromInvariantString(fieldValueString);
-#endif
-                }
+                var field = _fieldBag[index];
+                if (field.Item1 == binding.FieldName) return ConvertFieldValue<T>(binding, field.Item2);
             }
 
-            return result;
+            return default;
         }
 
 #if NETCOREAPP3_0_OR_GREATER
@@ -76,38 +67,189 @@ namespace DataStandardizer.LanguageTag.SubtagRegistry
         protected T[] GetPropertyValues<T>([CallerMemberName] string propertyName = null)
 #endif
         {
-            var property = this.GetType().GetRuntimeProperty(propertyName ?? string.Empty);
-            var fieldAttribute = property?.GetCustomAttribute<SubtagRegistryFieldAttribute>();
-            var fieldName = fieldAttribute?.FieldName ?? propertyName;
+            var binding = GetFieldBinding(propertyName);
 
-            var fieldValues = _fieldBag
-                .Where(field => field.Item1 == fieldName)
-                .Select(field =>
+            var count = 0;
+            for (var index = 0; index < _fieldBag.Count; index++)
+            {
+                if (_fieldBag[index].Item1 == binding.FieldName) count++;
+            }
+
+            if (count == 0) return EmptyArray<T>();
+
+            var fieldValues = new T[count];
+            var valueCount = 0;
+            for (var index = 0; index < _fieldBag.Count; index++)
+            {
+                var field = _fieldBag[index];
+                if (field.Item1 != binding.FieldName) continue;
+
+                var fieldValue = ConvertFieldValue<T>(binding, field.Item2);
+                if (fieldValue != null) fieldValues[valueCount++] = fieldValue;
+            }
+
+            if (valueCount < count) Array.Resize(ref fieldValues, valueCount);
+            return fieldValues;
+        }
+
+        #endregion
+
+        #region Private Methods
+
+#if NETCOREAPP3_0_OR_GREATER
+        private FieldBinding GetFieldBinding(string? propertyName)
+#else
+        [NotNull]
+        private FieldBinding GetFieldBinding([CanBeNull] string propertyName)
+#endif
+        {
+            var key = new FieldBindingKey(this.GetType(), propertyName ?? string.Empty);
+
+#if NETSTANDARD1_0
+            lock (FieldBindings)
+            {
+                if (!FieldBindings.TryGetValue(key, out var binding))
                 {
-#if NETCOREAPP3_0_OR_GREATER
-                    T? result = default;
-#else
-                    T result = default;
-#endif
-                    if (field.Item2 is T)
-                    {
-                        result = (T)field.Item2;
-                    }
-                    else if (field.Item2 is string fieldValueString && property != null)
-                    {
-                        var converter = TypeDescriptor.GetConverter(property.PropertyType);
-#if NETCOREAPP3_0_OR_GREATER
-                        result = (T?)converter.ConvertFromInvariantString(fieldValueString);
-#else
-                        result = (T)converter.ConvertFromInvariantString(fieldValueString);
-#endif
-                    }
+                    binding = FieldBinding.Create(key);
+                    FieldBindings.Add(key, binding);
+                }
 
-                    return result;
-                })
-                .Where(fieldValue => fieldValue != null)
-                .Cast<T>();
-            return fieldValues.ToArray();
+                return binding;
+            }
+#else
+            // TryGetValue first, so that reading a cached binding allocates no delegate on targets whose compiler doesn't cache method group conversions
+            return FieldBindings.TryGetValue(key, out var binding) ? binding : FieldBindings.GetOrAdd(key, FieldBinding.Create);
+#endif
+        }
+
+#if NETCOREAPP3_0_OR_GREATER
+        private static T? ConvertFieldValue<T>(FieldBinding binding, object fieldValue)
+#else
+        [CanBeNull]
+        private static T ConvertFieldValue<T>([NotNull] FieldBinding binding, [NotNull] object fieldValue)
+#endif
+        {
+            if (fieldValue is T value) return value;
+            if (!(fieldValue is string fieldValueString)) return default;
+
+            if (binding.IsDate)
+            {
+                var date = DateTime.ParseExact(fieldValueString, DateFormat, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces);
+
+                // the JIT removes the boxing from these casts when T is a value type
+                if (typeof(T) == typeof(DateTime)) return (T)(object)date;
+                if (typeof(T) == typeof(DateTime?)) return (T)(object)(DateTime?)date;
+                return (T)(object)date;
+            }
+
+            if (binding.Converter is null) return default;
+
+#if NETCOREAPP3_0_OR_GREATER
+            return (T?)binding.Converter.ConvertFromInvariantString(fieldValueString);
+#else
+            return (T)binding.Converter.ConvertFromInvariantString(fieldValueString);
+#endif
+        }
+
+        private static T[] EmptyArray<T>()
+        {
+#if NETSTANDARD1_0
+            return new T[0];
+#else
+            return Array.Empty<T>();
+#endif
+        }
+
+        #endregion
+
+        #region Nested Types
+
+        private readonly struct FieldBindingKey : IEquatable<FieldBindingKey>
+        {
+#if NETCOREAPP3_0_OR_GREATER
+            internal FieldBindingKey(Type recordType, string propertyName)
+#else
+            internal FieldBindingKey([NotNull] Type recordType, [NotNull] string propertyName)
+#endif
+            {
+                RecordType = recordType;
+                PropertyName = propertyName;
+            }
+
+            internal Type RecordType { get; }
+
+            internal string PropertyName { get; }
+
+            public bool Equals(FieldBindingKey other)
+            {
+                return RecordType == other.RecordType && string.Equals(PropertyName, other.PropertyName, StringComparison.Ordinal);
+            }
+
+#if NETCOREAPP3_0_OR_GREATER
+            public override bool Equals(object? obj)
+#else
+            public override bool Equals(object obj)
+#endif
+            {
+                return obj is FieldBindingKey other && Equals(other);
+            }
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    return (RecordType.GetHashCode() * 397) ^ StringComparer.Ordinal.GetHashCode(PropertyName);
+                }
+            }
+        }
+
+        /// <summary>
+        /// The field a record property reads, and how the field's string is converted to the property's type.
+        /// </summary>
+        /// <remarks>
+        /// The property is resolved through the type hierarchy, so a property inherited from a base record class is found with its <see cref="SubtagRegistryFieldAttribute"/> (#242).
+        /// </remarks>
+        private sealed class FieldBinding
+        {
+#if NETCOREAPP3_0_OR_GREATER
+            private FieldBinding(string fieldName, bool isDate, TypeConverter? converter)
+#else
+            private FieldBinding([NotNull] string fieldName, bool isDate, [CanBeNull] TypeConverter converter)
+#endif
+            {
+                FieldName = fieldName;
+                IsDate = isDate;
+                Converter = converter;
+            }
+
+            internal string FieldName { get; }
+
+            /// <summary>
+            /// Gets whether the property is a <see cref="DateTime"/>, or a nullable one, read from a registry date (<c>yyyy-MM-dd</c>, ref. RFC 5646 §3.1.2).
+            /// </summary>
+            internal bool IsDate { get; }
+
+            /// <summary>
+            /// Gets the converter for a property of any other type, or <see langword="null"/> when there is no such property.
+            /// </summary>
+#if NETCOREAPP3_0_OR_GREATER
+            internal TypeConverter? Converter { get; }
+#else
+            [CanBeNull]
+            internal TypeConverter Converter { get; }
+#endif
+
+            internal static FieldBinding Create(FieldBindingKey key)
+            {
+                var property = key.RecordType.GetRuntimeProperty(key.PropertyName);
+                if (property is null) return new FieldBinding(key.PropertyName, false, null);
+
+                var fieldName = property.GetCustomAttribute<SubtagRegistryFieldAttribute>()?.FieldName ?? key.PropertyName;
+                var propertyType = property.PropertyType;
+                if (propertyType == typeof(DateTime) || propertyType == typeof(DateTime?)) return new FieldBinding(fieldName, true, null);
+
+                return new FieldBinding(fieldName, false, TypeDescriptor.GetConverter(propertyType));
+            }
         }
 
         #endregion
@@ -155,7 +297,7 @@ namespace DataStandardizer.LanguageTag.SubtagRegistry
 
         int ICollection<Tuple<string, object>>.Count => _fieldBag.Count;
 
-        bool ICollection<Tuple<string, object>>.IsReadOnly => _fieldBag.IsReadOnly;
+        bool ICollection<Tuple<string, object>>.IsReadOnly => ((ICollection<Tuple<string, object>>)_fieldBag).IsReadOnly;
 
         #endregion
 

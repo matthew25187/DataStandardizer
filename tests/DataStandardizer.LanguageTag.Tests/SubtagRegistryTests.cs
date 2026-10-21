@@ -353,6 +353,61 @@ namespace DataStandardizer.LanguageTag.Tests
             suppressScript.Should().BeNull("the grandfathered tag zh-guoyu has no Suppress-Script");
         }
 
+        [Fact]
+        public void FileDateRecordFileDate_WhenRegistryHasFileDate_ReturnsFileDate()
+        {
+            // arrange
+            var registry = SubtagRegistry.SubtagRegistry.CreateFromContent(_fixture.IanaSubtagRegistry.ToString());
+            var record = registry.OfType<SubtagRegistry.SubtagRegistryFileDateRecord>().Single();
+
+            // act
+            var testResult = record.FileDate;
+
+            // assert
+            testResult.Should().Be(new DateTime(2025, 5, 15), "the registry fixture has that File-Date");
+        }
+
+        [Fact]
+        public void TagRecordAdded_ForEveryRecordInRegistry_ReturnsDateOfAddedField()
+        {
+            // arrange
+            var records = SubtagRegistry.SubtagRegistry.CreateFromContent(_fixture.IanaSubtagRegistry.ToString())
+                .OfType<SubtagRegistry.SubtagRegistryTagRecordBase>()
+                .ToList();
+
+            // act
+            var mismatchedRecords = records
+                .Where(record => record.Added.ToString("yyyy-MM-dd") != GetFieldValue(record, "Added"))
+                .ToList();
+
+            // assert
+            records.Should().NotBeEmpty();
+            mismatchedRecords.Should().BeEmpty("every record's Added property is the date in its Added field");
+        }
+
+        [Fact]
+        public void TagRecordProperties_WhenReadFromSeveralThreads_ReturnSameValues()
+        {
+            // arrange
+            var records = SubtagRegistry.SubtagRegistry.CreateFromContent(_fixture.IanaSubtagRegistry.ToString())
+                .OfType<SubtagRegistry.SubtagRegistryTagRecordBase>()
+                .ToList();
+
+            // act
+            var readings = Enumerable.Range(0, 8)
+                .AsParallel()
+                .Select(_ => records.Select(record => $"{record.Type}|{record.Added:yyyy-MM-dd}|{record.Deprecated:yyyy-MM-dd}|{record.PreferredValue}|{string.Join(",", record.Description)}").ToList())
+                .ToList();
+
+            // assert
+            readings.Should().AllSatisfy(reading => reading.Should().Equal(readings[0]));
+        }
+
+        private static string GetFieldValue(SubtagRegistry.ISubtagRegistryRecord record, string fieldName)
+        {
+            return record.Where(field => field.Item1 == fieldName).Select(field => field.Item2 as string).Single();
+        }
+
         private SubtagRegistry.SubtagRegistrySubtagRecord GetSubtagRecord(string type, string subtag)
         {
             var registry = SubtagRegistry.SubtagRegistry.CreateFromContent(_fixture.IanaSubtagRegistry.ToString());
