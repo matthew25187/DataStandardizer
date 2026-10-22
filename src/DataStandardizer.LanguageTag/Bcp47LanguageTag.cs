@@ -18,6 +18,11 @@ namespace DataStandardizer.LanguageTag
     /// </summary>
     [SuppressMessage("ReSharper", "UnusedMember.Global")]
     public readonly struct Bcp47LanguageTag : IEquatable<Bcp47LanguageTag>
+#if NET7_0_OR_GREATER
+        , ISpanFormattable, IParsable<Bcp47LanguageTag>, ISpanParsable<Bcp47LanguageTag>
+#elif NET6_0_OR_GREATER
+        , ISpanFormattable
+#endif
     {
         #region Declarations
 
@@ -237,6 +242,17 @@ namespace DataStandardizer.LanguageTag
             return new Bcp47LanguageTag(languageTag, parts);
         }
 
+#if !NETSTANDARD1_0
+        /// <summary>
+        /// Gets the language tag as a span of characters, without copying it.
+        /// </summary>
+        /// <returns>The language tag; an empty span if the <see cref="Bcp47LanguageTag"/> is not initialised.</returns>
+        public ReadOnlySpan<char> AsSpan()
+        {
+            return _languageTag.AsSpan();
+        }
+#endif
+
         public bool Equals(Bcp47LanguageTag other)
         {
             return string.Equals(_languageTag, other._languageTag, StringComparison.OrdinalIgnoreCase);
@@ -323,6 +339,37 @@ namespace DataStandardizer.LanguageTag
             return _languageTag ?? base.ToString() ?? GetType().FullName ?? GetType().Name;
         }
 
+#if NET6_0_OR_GREATER
+        /// <summary>
+        /// Copy the language tag into a span of characters.
+        /// </summary>
+        /// <param name="destination">Span to copy the language tag into.</param>
+        /// <param name="charsWritten">When this method returns, the number of characters written to <paramref name="destination"/>; 0 if it is too short.</param>
+        /// <param name="format">Ignored, as a language tag has only one form.</param>
+        /// <param name="provider">Ignored, as language tags do not depend on culture.</param>
+        /// <returns><c>true</c> if the language tag was copied; <c>false</c> if <paramref name="destination"/> is too short.</returns>
+        /// <remarks>
+        /// The characters written are those that <see cref="ToString()"/> returns.
+        /// </remarks>
+        public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+        {
+            var text = ToString();
+            if (!text.AsSpan().TryCopyTo(destination))
+            {
+                charsWritten = 0;
+                return false;
+            }
+
+            charsWritten = text.Length;
+            return true;
+        }
+
+        string IFormattable.ToString(string? format, IFormatProvider? formatProvider)
+        {
+            return ToString();
+        }
+#endif
+
         /// <summary>
         /// Convert the Region subtag of the language tag to an M.49 code.
         /// </summary>
@@ -373,6 +420,21 @@ namespace DataStandardizer.LanguageTag
             return Bcp47RulesBasedSubtagClassifier.Instance.IsExtendedLanguage(extendedLanguageSubtag.AsSpan());
         }
 
+#if !NETSTANDARD1_0
+        /// <summary>
+        /// Determine if a span of characters contains a valid Extended Language subtag.
+        /// </summary>
+        /// <param name="extendedLanguageSubtag">Subtag to check.</param>
+        /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <remarks>
+        /// Validation will be performed using the default BCP 47 rules.
+        /// </remarks>
+        public static bool CheckExtendedLanguageSubtag(ReadOnlySpan<char> extendedLanguageSubtag)
+        {
+            return Bcp47RulesBasedSubtagClassifier.Instance.IsExtendedLanguage(extendedLanguageSubtag);
+        }
+#endif
+
         /// <summary>
         /// Determine if a string contains a valid Extension subtag.
         /// </summary>
@@ -394,6 +456,22 @@ namespace DataStandardizer.LanguageTag
             return Bcp47LanguageTagParser.IsExtension(extensionSubtag.AsSpan());
         }
 
+#if !NETSTANDARD1_0
+        /// <summary>
+        /// Determine if a span of characters contains a valid Extension subtag.
+        /// </summary>
+        /// <param name="extensionSubtag">Subtag to check.</param>
+        /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <remarks>
+        /// Validation will be performed using the default BCP 47 rules. The span must contain exactly one extension: a singleton followed by its subtags.
+        /// Whether a singleton is repeated within a language tag is checked when the whole tag is validated.
+        /// </remarks>
+        public static bool CheckExtensionSubtag(ReadOnlySpan<char> extensionSubtag)
+        {
+            return Bcp47LanguageTagParser.IsExtension(extensionSubtag);
+        }
+#endif
+
         /// <summary>
         /// Determine if a string contains a valid Primary Language subtag.
         /// </summary>
@@ -413,6 +491,21 @@ namespace DataStandardizer.LanguageTag
 
             return Bcp47RulesBasedSubtagClassifier.Instance.IsPrimaryLanguage(primaryLanguageSubtag.AsSpan(), out _);
         }
+
+#if !NETSTANDARD1_0
+        /// <summary>
+        /// Determine if a span of characters contains a valid Primary Language subtag.
+        /// </summary>
+        /// <param name="primaryLanguageSubtag">Subtag to check.</param>
+        /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <remarks>
+        /// Validation will be performed using the default BCP 47 rules.
+        /// </remarks>
+        public static bool CheckPrimaryLanguageSubtag(ReadOnlySpan<char> primaryLanguageSubtag)
+        {
+            return Bcp47RulesBasedSubtagClassifier.Instance.IsPrimaryLanguage(primaryLanguageSubtag, out _);
+        }
+#endif
 
         /// <summary>
         /// Determine if a string contains a valid Private Use subtag.
@@ -434,6 +527,21 @@ namespace DataStandardizer.LanguageTag
             return Bcp47LanguageTagParser.IsPrivateUse(privateUseSubtag.AsSpan());
         }
 
+#if !NETSTANDARD1_0
+        /// <summary>
+        /// Determine if a span of characters contains a valid Private Use subtag.
+        /// </summary>
+        /// <param name="privateUseSubtag">Subtag to check.</param>
+        /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <remarks>
+        /// Validation will be performed using the default BCP 47 rules.
+        /// </remarks>
+        public static bool CheckPrivateUseSubtag(ReadOnlySpan<char> privateUseSubtag)
+        {
+            return Bcp47LanguageTagParser.IsPrivateUse(privateUseSubtag);
+        }
+#endif
+
         /// <summary>
         /// Determine if a string contains a valid Region subtag.
         /// </summary>
@@ -454,6 +562,21 @@ namespace DataStandardizer.LanguageTag
             return Bcp47RulesBasedSubtagClassifier.Instance.IsRegion(regionSubtag.AsSpan());
         }
 
+#if !NETSTANDARD1_0
+        /// <summary>
+        /// Determine if a span of characters contains a valid Region subtag.
+        /// </summary>
+        /// <param name="regionSubtag">Subtag to check.</param>
+        /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <remarks>
+        /// Validation will be performed using the default BCP 47 rules.
+        /// </remarks>
+        public static bool CheckRegionSubtag(ReadOnlySpan<char> regionSubtag)
+        {
+            return Bcp47RulesBasedSubtagClassifier.Instance.IsRegion(regionSubtag);
+        }
+#endif
+
         /// <summary>
         /// Determine if a string contains a valid Script subtag.
         /// </summary>
@@ -473,6 +596,21 @@ namespace DataStandardizer.LanguageTag
 
             return Bcp47RulesBasedSubtagClassifier.Instance.IsScript(scriptSubtag.AsSpan());
         }
+
+#if !NETSTANDARD1_0
+        /// <summary>
+        /// Determine if a span of characters contains a valid Script subtag.
+        /// </summary>
+        /// <param name="scriptSubtag">Subtag to check.</param>
+        /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <remarks>
+        /// Validation will be performed using the default BCP 47 rules.
+        /// </remarks>
+        public static bool CheckScriptSubtag(ReadOnlySpan<char> scriptSubtag)
+        {
+            return Bcp47RulesBasedSubtagClassifier.Instance.IsScript(scriptSubtag);
+        }
+#endif
 
         /// <summary>
         /// Determine if a string contains a valid Variant subtag.
@@ -495,6 +633,22 @@ namespace DataStandardizer.LanguageTag
             return Bcp47RulesBasedSubtagClassifier.Instance.IsVariant(variantSubtag.AsSpan());
         }
 
+#if !NETSTANDARD1_0
+        /// <summary>
+        /// Determine if a span of characters contains a valid Variant subtag.
+        /// </summary>
+        /// <param name="variantSubtag">Subtag to check.</param>
+        /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <remarks>
+        /// Validation will be performed using the default BCP 47 rules. The span must contain exactly one subtag.
+        /// Whether a variant is repeated within a language tag is checked when the whole tag is validated.
+        /// </remarks>
+        public static bool CheckVariantSubtag(ReadOnlySpan<char> variantSubtag)
+        {
+            return Bcp47RulesBasedSubtagClassifier.Instance.IsVariant(variantSubtag);
+        }
+#endif
+
         /// <summary>
         /// Determine if a string contains a valid BCP 47 language tag.
         /// </summary>
@@ -515,6 +669,22 @@ namespace DataStandardizer.LanguageTag
 
             return IsWellFormedByRules(languageTagString);
         }
+
+#if !NETSTANDARD1_0
+        /// <summary>
+        /// Determine if a span of characters contains a valid BCP 47 language tag.
+        /// </summary>
+        /// <param name="languageTagString">Language tag to test.</param>
+        /// <returns><c>true</c> if the language tag is valid; <c>false</c> if not.</returns>
+        /// <remarks>
+        /// Validation will be performed using the default BCP 47 rules. A language tag that repeats a variant subtag or an extension singleton,
+        /// compared case-insensitively, is not well-formed (RFC 5646 §2.2.5, §2.2.6). The 26 grandfathered language tags are well-formed (§2.1, §2.2.9).
+        /// </remarks>
+        public static bool IsWellFormedLanguageTagString(ReadOnlySpan<char> languageTagString)
+        {
+            return Bcp47LanguageTagParser.Parse(languageTagString, Bcp47RulesBasedSubtagClassifier.Instance, out _) == Bcp47ParseStatus.WellFormed;
+        }
+#endif
 
         /// <summary>
         /// Create a <see cref="Bcp47LanguageTag"/> with the specified language tag.
@@ -644,6 +814,114 @@ namespace DataStandardizer.LanguageTag
             result = new Bcp47LanguageTag(languageTag, parts);
             return true;
         }
+
+#if !NETSTANDARD1_0
+        /// <summary>
+        /// Create a <see cref="Bcp47LanguageTag"/> from a span of characters that contains a language tag.
+        /// </summary>
+        /// <param name="languageTag">An IETF BCP 47 language tag.</param>
+        /// <param name="result">When this method returns, contains the constructed <see cref="Bcp47LanguageTag"/>.</param>
+        /// <returns><c>true</c> if the <see cref="Bcp47LanguageTag"/> was successfully created; otherwise, <c>false</c>.</returns>
+        /// <remarks>
+        /// Validation will be performed using the default BCP 47 rules. The language tag is copied to a string only if it is valid.
+        /// </remarks>
+        public static bool TryCreate(ReadOnlySpan<char> languageTag, out Bcp47LanguageTag result)
+        {
+            return TryCreateFromSpan(languageTag, Bcp47RulesBasedSubtagClassifier.Instance, out result);
+        }
+
+        /// <summary>
+        /// Create a <see cref="Bcp47LanguageTag"/> based on the Subtag Registry from a span of characters that contains a language tag.
+        /// </summary>
+        /// <param name="languageTag">An IETF BCP 47 language tag.</param>
+        /// <param name="subtagRegistry">A copy of the Subtag Registry.</param>
+        /// <param name="result">When this method returns, contains the constructed <see cref="Bcp47LanguageTag"/>.</param>
+        /// <returns><c>true</c> if the <see cref="Bcp47LanguageTag"/> was successfully created; otherwise, <c>false</c>.</returns>
+        /// <remarks>
+        /// The language tag is copied to a string only if it is valid.
+        /// </remarks>
+#if NETCOREAPP3_0_OR_GREATER
+        public static bool TryCreate(ReadOnlySpan<char> languageTag, SubtagRegistry.SubtagRegistry subtagRegistry, out Bcp47LanguageTag result)
+#else
+        public static bool TryCreate(ReadOnlySpan<char> languageTag, [NotNull] SubtagRegistry.SubtagRegistry subtagRegistry, out Bcp47LanguageTag result)
+#endif
+        {
+            if (subtagRegistry is null)
+            {
+                result = default;
+                return false;
+            }
+
+            return TryCreateFromSpan(languageTag, subtagRegistry.Classifier, out result);
+        }
+#endif
+
+#if NET7_0_OR_GREATER
+        /// <summary>
+        /// Create a language tag object.
+        /// </summary>
+        /// <param name="s">Language tag on which the object will be based.</param>
+        /// <param name="provider">Ignored, as language tags do not depend on culture.</param>
+        /// <returns>Language tag object.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="s"/> is <c>null</c>.</exception>
+        /// <exception cref="LanguageTagFormatException">The language tag was not recognised.</exception>
+        /// <remarks>
+        /// Validation will be performed using the default BCP 47 rules, as by <see cref="Create(string)"/>.
+        /// </remarks>
+        public static Bcp47LanguageTag Parse(string s, IFormatProvider? provider)
+        {
+            if (s is null) throw new ArgumentNullException(nameof(s));
+
+            return Create(s);
+        }
+
+        /// <summary>
+        /// Create a language tag object from a span of characters.
+        /// </summary>
+        /// <param name="s">Language tag on which the object will be based.</param>
+        /// <param name="provider">Ignored, as language tags do not depend on culture.</param>
+        /// <returns>Language tag object.</returns>
+        /// <exception cref="LanguageTagFormatException">The language tag was not recognised.</exception>
+        /// <remarks>
+        /// Validation will be performed using the default BCP 47 rules.
+        /// </remarks>
+        public static Bcp47LanguageTag Parse(ReadOnlySpan<char> s, IFormatProvider? provider)
+        {
+            if (!TryCreate(s, out var result)) throw new LanguageTagFormatException(ErrorMessage.LanguageTagInvalidFormat, s.ToString());
+
+            return result;
+        }
+
+        /// <summary>
+        /// Create a <see cref="Bcp47LanguageTag"/> with the specified language tag.
+        /// </summary>
+        /// <param name="s">An IETF BCP 47 language tag.</param>
+        /// <param name="provider">Ignored, as language tags do not depend on culture.</param>
+        /// <param name="result">When this method returns, contains the constructed <see cref="Bcp47LanguageTag"/>.</param>
+        /// <returns><c>true</c> if the <see cref="Bcp47LanguageTag"/> was successfully created; otherwise, <c>false</c>, including for <c>null</c>.</returns>
+        /// <remarks>
+        /// Validation will be performed using the default BCP 47 rules, as by <see cref="TryCreate(string, out Bcp47LanguageTag)"/>.
+        /// </remarks>
+        public static bool TryParse([NotNullWhen(true)] string? s, IFormatProvider? provider, out Bcp47LanguageTag result)
+        {
+            return TryCreate(s, out result);
+        }
+
+        /// <summary>
+        /// Create a <see cref="Bcp47LanguageTag"/> from a span of characters that contains a language tag.
+        /// </summary>
+        /// <param name="s">An IETF BCP 47 language tag.</param>
+        /// <param name="provider">Ignored, as language tags do not depend on culture.</param>
+        /// <param name="result">When this method returns, contains the constructed <see cref="Bcp47LanguageTag"/>.</param>
+        /// <returns><c>true</c> if the <see cref="Bcp47LanguageTag"/> was successfully created; otherwise, <c>false</c>.</returns>
+        /// <remarks>
+        /// Validation will be performed using the default BCP 47 rules. The language tag is copied to a string only if it is valid.
+        /// </remarks>
+        public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out Bcp47LanguageTag result)
+        {
+            return TryCreate(s, out result);
+        }
+#endif
 
         #endregion
 
@@ -874,6 +1152,29 @@ namespace DataStandardizer.LanguageTag
 
             return Bcp47LanguageTagParts.FromRanges(languageTag, ranges);
         }
+
+#if !NETSTANDARD1_0
+        /// <summary>
+        /// Parse a span of characters with a classifier, and copy it to a string only if it is a well-formed language tag.
+        /// </summary>
+#if NETCOREAPP3_0_OR_GREATER
+        private static bool TryCreateFromSpan(ReadOnlySpan<char> languageTag, Bcp47SubtagClassifier classifier, out Bcp47LanguageTag result)
+#else
+        private static bool TryCreateFromSpan(ReadOnlySpan<char> languageTag, [NotNull] Bcp47SubtagClassifier classifier, out Bcp47LanguageTag result)
+#endif
+        {
+            if (Bcp47LanguageTagParser.Parse(languageTag, classifier, out var ranges) != Bcp47ParseStatus.WellFormed)
+            {
+                result = default;
+                return false;
+            }
+
+            // The ranges are positions in the span, so they apply equally to its copy.
+            var languageTagString = languageTag.ToString();
+            result = new Bcp47LanguageTag(languageTagString, Bcp47LanguageTagParts.FromRanges(languageTagString, ranges));
+            return true;
+        }
+#endif
 
         /// <summary>
         /// Validate a match timeout as the regular expressions did.

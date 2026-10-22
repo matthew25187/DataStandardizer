@@ -18,7 +18,8 @@ public class CreateBenchmarks
         // Fail fast if a change to the package makes the fixed inputs mean something else.
         foreach (var tag in BenchmarkData.ValidTags)
         {
-            if (!Bcp47LanguageTag.TryCreate(tag, out _) || !Bcp47LanguageTag.TryCreate(tag, _registry, out _) || !Bcp47LanguageTag.IsWellFormedLanguageTagString(tag))
+            if (!Bcp47LanguageTag.TryCreate(tag, out _) || !Bcp47LanguageTag.TryCreate(tag, _registry, out _) || !Bcp47LanguageTag.IsWellFormedLanguageTagString(tag)
+                || !Bcp47LanguageTag.TryCreate(tag.AsSpan(), out _) || !Bcp47LanguageTag.IsWellFormedLanguageTagString(tag.AsSpan()))
             {
                 throw new InvalidOperationException($"Valid tag '{tag}' was rejected.");
             }
@@ -26,7 +27,7 @@ public class CreateBenchmarks
 
         foreach (var tag in BenchmarkData.InvalidTags)
         {
-            if (Bcp47LanguageTag.TryCreate(tag, out _))
+            if (Bcp47LanguageTag.TryCreate(tag, out _) || Bcp47LanguageTag.TryCreate(tag.AsSpan(), out _))
             {
                 throw new InvalidOperationException($"Invalid tag '{tag}' was accepted.");
             }
@@ -79,6 +80,51 @@ public class CreateBenchmarks
         foreach (var tag in BenchmarkData.ValidTags)
         {
             if (Bcp47LanguageTag.IsWellFormedLanguageTagString(tag))
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    [Benchmark]
+    public int TryCreate_Span()
+    {
+        var length = 0;
+        foreach (var tag in BenchmarkData.ValidTags)
+        {
+            if (Bcp47LanguageTag.TryCreate(tag.AsSpan(), out var result))
+            {
+                length += result.PrimaryLanguageSubtag.Length;
+            }
+        }
+
+        return length;
+    }
+
+    [Benchmark]
+    public int TryCreate_Span_Invalid()
+    {
+        var count = 0;
+        foreach (var tag in BenchmarkData.InvalidTags)
+        {
+            if (!Bcp47LanguageTag.TryCreate(tag.AsSpan(), out _))
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    [Benchmark]
+    public int IsWellFormed_Span()
+    {
+        var count = 0;
+        foreach (var tag in BenchmarkData.ValidTags)
+        {
+            if (Bcp47LanguageTag.IsWellFormedLanguageTagString(tag.AsSpan()))
             {
                 count++;
             }

@@ -3070,7 +3070,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void TryCreate_WithLanguageTagWhenLanguageTagIsNull_ReturnsFalse()
         {
             // act
-            var testResult = Bcp47LanguageTag.TryCreate(null, out _);
+            var testResult = Bcp47LanguageTag.TryCreate((string)null, out _);
 
             // assert
             testResult.Should().BeFalse("the language tag must not be null");
@@ -3284,7 +3284,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void TryCreate_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsNull_ReturnsFalse()
         {
             // act
-            var testResult = Bcp47LanguageTag.TryCreate(null, _fixture.IanaSubtagRegistry, out _);
+            var testResult = Bcp47LanguageTag.TryCreate((string)null, _fixture.IanaSubtagRegistry, out _);
 
             // assert
             testResult.Should().BeFalse("the language tag must not be null");
