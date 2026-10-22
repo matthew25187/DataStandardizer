@@ -22,7 +22,7 @@ subtag, then the remaining optional subtags in spec order, and finally `Build()`
 ```text
 new Bcp47LanguageTagBuilder()
   ├─ WithLanguageSubtagRegistry(...)   (optional)
-  ├─ WithTimeout(...)                  (optional)
+  ├─ WithTimeout(...)                  (optional, deprecated)
   │
   ├─ UsingLanguageTag("...")  ───────────────────────────► Build()
   │
@@ -80,16 +80,18 @@ Two configuration steps may be applied before composition begins:
   loaded copy of the *IANA Language Subtag Registry*. When supplied, the final
   `Build()` constructs the tag through the registry-based
   `Bcp47LanguageTag.Create(..., subtagRegistry)` overload.
-- **`WithTimeout(matchTimeout)`** sets a time limit (`TimeSpan`) for the regular
-  expressions that validate the tag. Because validation is regex-driven, this lets
-  you bound the worst-case matching time; when set, `Build()` forwards it to the
-  `Bcp47LanguageTag.Create(..., matchTimeout)` overload.
+- **`WithTimeout(matchTimeout)`** is deprecated and will be removed in version
+  2.0. It used to bound the time spent matching the regular expressions that
+  validated the tag. Tags are now checked by a parser, which can't time out, so
+  the timeout has no effect; leave the step out. When it is set, `Build()` still
+  passes it to the obsolete `Bcp47LanguageTag.Create(..., matchTimeout)`
+  overload, which checks that it is in range and otherwise ignores it.
 
 ## How Build() assembles the tag
 
 `Build()` concatenates the supplied subtags, in order, into a single
 hyphen-separated string and then constructs the `Bcp47LanguageTag` from it (using
-the registry and/or timeout if they were configured). A few rules are enforced at
+the registry if one was configured). A few rules are enforced at
 this stage — for example, no more than three extended language subtags are
 permitted — and the resulting tag is validated as it is created, so an invalid
 combination surfaces as a `LanguageTagFormatException`.
