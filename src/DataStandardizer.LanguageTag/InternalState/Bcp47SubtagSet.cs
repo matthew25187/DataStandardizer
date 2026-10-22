@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+#if NET9_0_OR_GREATER
+using System.Collections.Frozen;
+#endif
 #if NETSTANDARD
 using JetBrains.Annotations;
 #endif
@@ -15,11 +18,16 @@ namespace DataStandardizer.LanguageTag.InternalState
     /// Set of subtags or tags, compared case-insensitively in the ASCII range only (ref. RFC 5646 §2.1.1).
     /// </summary>
     /// <remarks>
-    /// A sorted array searched by binary search: about 13 short comparisons for the largest set, and no allocation.
+    /// On .NET 9 and later, a frozen hash set queried through its span lookup: one hash probe, and no allocation.
+    /// On other targets, a sorted array searched by binary search: about 13 short comparisons for the largest set, and no allocation.
     /// </remarks>
     internal sealed class Bcp47SubtagSet
     {
+#if NET9_0_OR_GREATER
+        private readonly FrozenSet<string>.AlternateLookup<ReadOnlySpan<char>> _lookup;
+#else
         private readonly string[] _items;
+#endif
 
 #if NETCOREAPP3_0_OR_GREATER
         internal Bcp47SubtagSet(IEnumerable<string> items)
@@ -27,6 +35,10 @@ namespace DataStandardizer.LanguageTag.InternalState
         internal Bcp47SubtagSet([NotNull] IEnumerable<string> items)
 #endif
         {
+#if NET9_0_OR_GREATER
+            // Items that differ only in case are held once.
+            _lookup = items.ToFrozenSet(StringComparer.OrdinalIgnoreCase).GetAlternateLookup<ReadOnlySpan<char>>();
+#else
             var sortedItems = new List<string>(items);
             sortedItems.Sort(StringComparer.OrdinalIgnoreCase);
 
@@ -42,9 +54,14 @@ namespace DataStandardizer.LanguageTag.InternalState
 
             sortedItems.RemoveRange(distinctCount, sortedItems.Count - distinctCount);
             _items = sortedItems.ToArray();
+#endif
         }
 
+#if NET9_0_OR_GREATER
+        internal int Count => _lookup.Set.Count;
+#else
         internal int Count => _items.Length;
+#endif
 
         /// <summary>
         /// Determine whether the set contains a subtag.
@@ -60,6 +77,9 @@ namespace DataStandardizer.LanguageTag.InternalState
                 if (value[index] > '\u007F') return false;
             }
 
+#if NET9_0_OR_GREATER
+            return _lookup.Contains(value);
+#else
             var low = 0;
             var high = _items.Length - 1;
             while (low <= high)
@@ -79,6 +99,7 @@ namespace DataStandardizer.LanguageTag.InternalState
             }
 
             return false;
+#endif
         }
     }
 }
