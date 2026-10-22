@@ -67,7 +67,7 @@ namespace DataStandardizer.LanguageTag.Tests.Parity
         public void Parser_OverCorpus_AgreesWithFrozenRegularExpressions()
         {
             // arrange
-            var corpus = BuildCorpus();
+            var corpus = BuildCorpus().Where(input => !HasCorrectedPrivateUseScriptSubtag(input)).ToList();
             var mismatches = new List<string>();
             var mismatchCount = 0;
 
@@ -86,6 +86,18 @@ namespace DataStandardizer.LanguageTag.Tests.Parity
             // assert
             corpus.Count.Should().BeGreaterThan(100000, "the corpus covers every code list, the IANA registry, combinations and random strings");
             mismatchCount.Should().Be(0, "the parser must agree with the regular expressions it replaced; the first mismatches were:{0}{1}", Environment.NewLine, string.Join(Environment.NewLine, mismatches));
+        }
+
+        /// <summary>
+        /// Determine whether an input has a subtag that the frozen regular expressions wrongly rejected as a Script subtag reserved for private use.
+        /// </summary>
+        /// <remarks>
+        /// The frozen expressions left out <c>Qaay</c> and <c>Qaaz</c>, which RFC 5646 §2.2.3¶3 reserves for private use. The parser accepts them (#323),
+        /// so the comparison skips inputs that have either one as a subtag. The unit tests in <see cref="Bcp47LanguageTagTests"/> cover them instead.
+        /// </remarks>
+        private static bool HasCorrectedPrivateUseScriptSubtag(string input)
+        {
+            return input.Split('-').Any(subtag => string.Equals(subtag, "Qaay", StringComparison.OrdinalIgnoreCase) || string.Equals(subtag, "Qaaz", StringComparison.OrdinalIgnoreCase));
         }
 
         private static IEnumerable<string> Compare(string input)
