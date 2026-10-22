@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Xunit;
@@ -222,6 +223,115 @@ namespace DataStandardizer.LanguageTag.Tests
                 subtagRegistryStream.Position.Should().BeGreaterThan(startPosition);
                 subtagRegistryStream.Position = 0;
             }
+        }
+
+        [Fact]
+        public async Task CreateFromContentAsync_WhenTokenIsCancelled_ThrowsOperationCanceledException()
+        {
+            // arrange
+            var subtagRegistryContent = _fixture.IanaSubtagRegistry.ToString();
+            using (var cancellationTokenSource = new CancellationTokenSource())
+            {
+                cancellationTokenSource.Cancel();
+
+                // act
+                Func<Task> testAction = () => SubtagRegistry.SubtagRegistry.CreateFromContentAsync(subtagRegistryContent, cancellationTokenSource.Token);
+
+                // assert
+                await testAction.Should().ThrowAsync<OperationCanceledException>("the token was cancelled");
+            }
+        }
+
+        [Fact]
+        public async Task CreateFromFileAsync_WhenTokenIsCancelled_ThrowsOperationCanceledException()
+        {
+            // arrange
+            _tempFilePath = await CreateRegistryFileAsync(_fixture.IanaSubtagRegistry.ToString());
+            using (var cancellationTokenSource = new CancellationTokenSource())
+            {
+                cancellationTokenSource.Cancel();
+
+                // act
+                Func<Task> testAction = () => SubtagRegistry.SubtagRegistry.CreateFromFileAsync(_tempFilePath, cancellationTokenSource.Token);
+
+                // assert
+                await testAction.Should().ThrowAsync<OperationCanceledException>("the token was cancelled");
+            }
+        }
+
+        [Fact]
+        public async Task CreateFromStreamAsync_WhenTokenIsCancelledMidRead_ThrowsOperationCanceledException()
+        {
+            // arrange
+            var subtagRegistryBytes = Encoding.UTF8.GetBytes(_fixture.IanaSubtagRegistry.ToString());
+            using (var cancellationTokenSource = new CancellationTokenSource())
+            using (var subtagRegistryStream = new CancelOnFirstReadStream(subtagRegistryBytes, cancellationTokenSource))
+            {
+                // act
+                Func<Task> testAction = () => SubtagRegistry.SubtagRegistry.CreateFromStreamAsync(subtagRegistryStream, cancellationTokenSource.Token);
+
+                // assert
+                await testAction.Should().ThrowAsync<OperationCanceledException>("the token was cancelled after the first read from the stream");
+                subtagRegistryStream.Position.Should().BeLessThan(subtagRegistryBytes.Length, "reading stops once the token is cancelled");
+            }
+        }
+
+        [Fact]
+        public async Task CreateFromStreamAsync_WhenTokenIsNotCancelled_ReturnsDeserializedRegistry()
+        {
+            // arrange
+            var subtagRegistryContent = _fixture.IanaSubtagRegistry.ToString();
+            using (var cancellationTokenSource = new CancellationTokenSource())
+            using (var subtagRegistryStream = new MemoryStream(Encoding.UTF8.GetBytes(subtagRegistryContent)))
+            {
+                var expectedRecordCount = await this.GetRegistryRecordCountAsync(subtagRegistryContent);
+
+                // act
+                var testResult = await SubtagRegistry.SubtagRegistry.CreateFromStreamAsync(subtagRegistryStream, cancellationTokenSource.Token);
+
+                // assert
+                testResult.Count.Should().Be(expectedRecordCount, "there are {0} records in the subtag registry", expectedRecordCount);
+            }
+        }
+
+        /// <summary>
+        /// A stream that cancels a token the first time it is read, to cancel a load part way through.
+        /// </summary>
+        private sealed class CancelOnFirstReadStream : MemoryStream
+        {
+            private readonly CancellationTokenSource _cancellationTokenSource;
+
+            public CancelOnFirstReadStream(byte[] buffer, CancellationTokenSource cancellationTokenSource)
+                : base(buffer)
+            {
+                _cancellationTokenSource = cancellationTokenSource;
+            }
+
+            public override int Read(byte[] buffer, int offset, int count)
+            {
+                _cancellationTokenSource.Cancel();
+                return base.Read(buffer, offset, count);
+            }
+
+            public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+            {
+                _cancellationTokenSource.Cancel();
+                return base.ReadAsync(buffer, offset, count, CancellationToken.None);
+            }
+
+#if NET
+            public override int Read(Span<byte> buffer)
+            {
+                _cancellationTokenSource.Cancel();
+                return base.Read(buffer);
+            }
+
+            public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+            {
+                _cancellationTokenSource.Cancel();
+                return base.ReadAsync(buffer, CancellationToken.None);
+            }
+#endif
         }
 
         private static MemoryStream CreatePositionedRegistryStream(string registryContent, out long startPosition)

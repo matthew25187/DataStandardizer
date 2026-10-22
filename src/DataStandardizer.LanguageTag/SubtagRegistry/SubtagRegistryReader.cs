@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 #if NETSTANDARD
 using JetBrains.Annotations;
@@ -58,15 +59,23 @@ namespace DataStandardizer.LanguageTag.SubtagRegistry
         }
 
         /// <inheritdoc cref="ReadRecord"/>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <exception cref="OperationCanceledException">The cancellation token was cancelled.</exception>
 #if NETCOREAPP3_0_OR_GREATER
-        internal async Task<ISubtagRegistryRecord?> ReadRecordAsync()
+        internal async Task<ISubtagRegistryRecord?> ReadRecordAsync(CancellationToken cancellationToken)
 #else
-        internal async Task<ISubtagRegistryRecord> ReadRecordAsync()
+        internal async Task<ISubtagRegistryRecord> ReadRecordAsync(CancellationToken cancellationToken)
 #endif
         {
             while (true)
             {
-                var line = await _sourceReader.ReadLineAsync();
+                // checked between lines on every target, as a line already in the reader's buffer is returned without observing the token
+                cancellationToken.ThrowIfCancellationRequested();
+#if NET7_0_OR_GREATER
+                var line = await _sourceReader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+#else
+                var line = await _sourceReader.ReadLineAsync().ConfigureAwait(false);
+#endif
                 if (!AddLine(line)) continue;
 
                 var record = CreateRecord();
