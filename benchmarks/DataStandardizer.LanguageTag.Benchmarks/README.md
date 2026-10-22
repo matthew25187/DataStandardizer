@@ -22,7 +22,7 @@ dotnet run -c Release -f net10.0 -- --filter *Create_Registry* --runtimes net8.0
 dotnet run -c Release -f net10.0 -- --filter *.CheckBenchmarks.* *.PropertyBenchmarks.* --runtimes net8.0 net10.0
 ```
 
-Filters match the full name, including the namespace, so `*LanguageTag*` selects every benchmark. `*Create*` also selects `TryCreate_Invalid` and `Registry_CreateFromStream`.
+Filters match the full name, including the namespace, so `*LanguageTag*` selects every benchmark. `*Create*` also selects `TryCreate_Invalid`, the `TryCreate_Span` benchmarks and `Registry_CreateFromStream`.
 
 To check that every benchmark runs without waiting for a full measurement, use the dry job:
 
@@ -50,6 +50,9 @@ The inputs are fixed, so every run uses identical data. They are in `BenchmarkDa
 | | `Create_Registry` | `Bcp47LanguageTag.Create(tag, registry)` over the same tags, with the registry loaded in `[GlobalSetup]`. |
 | | `TryCreate_Invalid` | `Bcp47LanguageTag.TryCreate(tag, out _)` over the 12 invalid strings. |
 | | `IsWellFormed` | `Bcp47LanguageTag.IsWellFormedLanguageTagString(tag)` over the 12 valid tags. |
+| | `TryCreate_Span` | `Bcp47LanguageTag.TryCreate(tag.AsSpan(), out _)` over the 12 valid tags. |
+| | `TryCreate_Span_Invalid` | `Bcp47LanguageTag.TryCreate(tag.AsSpan(), out _)` over the 12 invalid strings. Should allocate nothing. |
+| | `IsWellFormed_Span` | `Bcp47LanguageTag.IsWellFormedLanguageTagString(tag.AsSpan())` over the 12 valid tags. Should allocate nothing. |
 | `CheckBenchmarks` | `Check_PrimaryLanguage` | `CheckPrimaryLanguageSubtag("zh")`. |
 | | `Check_ExtendedLanguage` | `CheckExtendedLanguageSubtag("yue")`. |
 | | `Check_Script` | `CheckScriptSubtag("Hant")`. |

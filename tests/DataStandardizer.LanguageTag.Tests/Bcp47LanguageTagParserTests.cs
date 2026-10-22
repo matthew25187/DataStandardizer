@@ -76,14 +76,14 @@ namespace DataStandardizer.LanguageTag.Tests
         public void CheckSubtag_WithNull_ThrowsArgumentNullException()
         {
             // assert
-            ((Action)(() => Bcp47LanguageTag.CheckPrimaryLanguageSubtag(null))).Should().Throw<ArgumentNullException>();
-            ((Action)(() => Bcp47LanguageTag.CheckExtendedLanguageSubtag(null))).Should().Throw<ArgumentNullException>();
-            ((Action)(() => Bcp47LanguageTag.CheckScriptSubtag(null))).Should().Throw<ArgumentNullException>();
-            ((Action)(() => Bcp47LanguageTag.CheckRegionSubtag(null))).Should().Throw<ArgumentNullException>();
-            ((Action)(() => Bcp47LanguageTag.CheckVariantSubtag(null))).Should().Throw<ArgumentNullException>();
-            ((Action)(() => Bcp47LanguageTag.CheckExtensionSubtag(null))).Should().Throw<ArgumentNullException>();
-            ((Action)(() => Bcp47LanguageTag.CheckPrivateUseSubtag(null))).Should().Throw<ArgumentNullException>();
-            ((Action)(() => Bcp47LanguageTag.IsWellFormedLanguageTagString(null))).Should().Throw<ArgumentNullException>();
+            ((Action)(() => Bcp47LanguageTag.CheckPrimaryLanguageSubtag((string)null))).Should().Throw<ArgumentNullException>();
+            ((Action)(() => Bcp47LanguageTag.CheckExtendedLanguageSubtag((string)null))).Should().Throw<ArgumentNullException>();
+            ((Action)(() => Bcp47LanguageTag.CheckScriptSubtag((string)null))).Should().Throw<ArgumentNullException>();
+            ((Action)(() => Bcp47LanguageTag.CheckRegionSubtag((string)null))).Should().Throw<ArgumentNullException>();
+            ((Action)(() => Bcp47LanguageTag.CheckVariantSubtag((string)null))).Should().Throw<ArgumentNullException>();
+            ((Action)(() => Bcp47LanguageTag.CheckExtensionSubtag((string)null))).Should().Throw<ArgumentNullException>();
+            ((Action)(() => Bcp47LanguageTag.CheckPrivateUseSubtag((string)null))).Should().Throw<ArgumentNullException>();
+            ((Action)(() => Bcp47LanguageTag.IsWellFormedLanguageTagString((string)null))).Should().Throw<ArgumentNullException>();
         }
 
         #endregion
