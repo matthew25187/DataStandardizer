@@ -54,6 +54,10 @@ dependency. Likewise, the `netstandard1.1` and `netstandard2.0` builds of
 `netstandard2.0` build gets `IAsyncEnumerable<T>` and `IAsyncDisposable` from
 `Microsoft.Bcl.AsyncInterfaces`.
 
+**DataStandardizer.LanguageTag** has no `netstandard2.1` target. Its
+`netstandard2.0` build gets the span types from `System.Memory`, and its
+`netstandard1.0` build has no span-based API.
+
 ## Framework-gated APIs
 
 A few APIs are available only on some targets. For example, on
@@ -61,6 +65,11 @@ A few APIs are available only on some targets. For example, on
 .NET Standard 1.3+ and modern .NET, but not on the `netstandard1.0` build;
 similarly, `Iso3166Part2Subdivision` in **DataStandardizer.Geography** implements
 `IConvertible` on .NET Standard 1.3+ and modern .NET only.
+
+In **DataStandardizer.LanguageTag**, the `ReadOnlySpan<char>` overloads of
+`Bcp47LanguageTag` exist on `netstandard2.0` and later, and the
+`ISpanFormattable`, `IParsable<T>` and `ISpanParsable<T>` implementations on
+`net8.0` and `net10.0` only.
 
 The `netstandard1.1` build of **DataStandardizer.File.iCal** is the most limited:
 

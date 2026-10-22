@@ -35,7 +35,7 @@ To use a particular standard in your application, find the corresponding package
 See the [Get started](https://matthew25187.github.io/DataStandardizer/get-started/) guide for step-by-step installation and a quickstart.
 
 ## Software dependencies
-Depending on which .Net platform you are targeting, the above packages will also depend on various other system- and third-party packages.  They will be included as static dependencies where required and should be automatically resolved, but if you are using a proxy for your package server you may need to make sure these other packages are also available.
+Depending on which .Net platform you are targeting, the above packages will also depend on various other system- and third-party packages.  They will be included as static dependencies where required and should be automatically resolved, but if you are using a proxy for your package server you may need to make sure these other packages are also available.  For example, the `netstandard2.0` build of **DataStandardizer.LanguageTag** depends on `System.Memory` for its span-based API.
 
 ## Latest releases
 | Package | Release version | Release status |
