@@ -29,8 +29,9 @@ namespace DataStandardizer.File.iCal
     /// is in progress throws <see cref="InvalidOperationException"/>.
     /// </para>
     /// <para>
-    /// For asynchronous file output, pass a <see cref="FileStream"/> opened with <c>FileOptions.Asynchronous</c> to a <see cref="Stream"/>
-    /// constructor.
+    /// A file-path constructor opens the file with <c>FileOptions.Asynchronous</c>, so the asynchronous methods do no synchronous I/O.  To
+    /// write a file only synchronously, without the small cost that option adds on Windows, pass a <c>FileStream</c> opened without it to
+    /// a <see cref="Stream"/> constructor.
     /// </para>
     /// </remarks>
     public sealed class IcalContentLineWriter : IDisposable
@@ -39,7 +40,7 @@ namespace DataStandardizer.File.iCal
 #endif
     {
         /// <summary>
-        /// Size of the buffers of the <see cref="StreamWriter"/> (in characters) and <see cref="FileStream"/> (in bytes) the writer creates
+        /// Size of the buffers of the <see cref="StreamWriter"/> (in characters) and <c>FileStream</c> (in bytes) the writer creates
         /// itself.  A caller-supplied <see cref="TextWriter"/> keeps its own buffering.
         /// </summary>
         internal const int StreamBufferSize = 16 * 1024;
@@ -62,6 +63,9 @@ namespace DataStandardizer.File.iCal
 
         private readonly bool _isInternalWriter;
         private long _linesWritten;
+
+        // Whether the writer opened the file it writes to, rather than writing to output the caller supplied.
+        private readonly bool _ownsOutput;
         private readonly TextWriter _writer;
 
         /// <summary>
@@ -106,7 +110,7 @@ namespace DataStandardizer.File.iCal
         /// <exception cref="ArgumentNullException"><paramref name="icalFilePath"/> or <paramref name="options"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><see cref="IcalOptions.FoldLength"/>, <see cref="IcalOptions.FoldWhitespace"/> or
         /// <see cref="IcalOptions.LineBreak"/> is not valid.</exception>
-        public IcalContentLineWriter(string icalFilePath, IcalOptions options) : this(CreateFileWriter(icalFilePath, options), true, options)
+        public IcalContentLineWriter(string icalFilePath, IcalOptions options) : this(CreateFileWriter(icalFilePath, options), true, true, options)
         {
         }
 #endif
@@ -131,7 +135,7 @@ namespace DataStandardizer.File.iCal
         /// -or-
         /// <see cref="IcalOptions.FoldLength"/>, <see cref="IcalOptions.FoldWhitespace"/> or <see cref="IcalOptions.LineBreak"/> is not
         /// valid.</exception>
-        public IcalContentLineWriter(TextWriter writer, IcalOptions options) : this(ValidateTextWriter(writer, options), false, options)
+        public IcalContentLineWriter(TextWriter writer, IcalOptions options) : this(ValidateTextWriter(writer, options), false, false, options)
         {
         }
 
@@ -140,14 +144,15 @@ namespace DataStandardizer.File.iCal
         /// writer to write through at chosen points.
         /// </summary>
         internal IcalContentLineWriter(Stream icalStream, IcalOptions options, int streamBufferSize)
-            : this(CreateStreamWriter(icalStream, options, streamBufferSize), true, options)
+            : this(CreateStreamWriter(icalStream, options, streamBufferSize), true, false, options)
         {
         }
 
-        private IcalContentLineWriter(TextWriter writer, bool isInternalWriter, IcalOptions options)
+        private IcalContentLineWriter(TextWriter writer, bool isInternalWriter, bool ownsOutput, IcalOptions options)
         {
             _writer = writer;
             _isInternalWriter = isInternalWriter;
+            _ownsOutput = ownsOutput;
             _formatter = new IcalContentLineFormatter(options.FoldLength, options.FoldWhitespace, options.LineBreak);
         }
 
@@ -373,7 +378,15 @@ namespace DataStandardizer.File.iCal
                 {
                     write = WriteLineCoreAsync(line, cancellationToken);
                 }
-                catch (IcalFileException exception)
+                catch (OperationCanceledException exception)
+                {
+                    // Thrown by the call when the text writer, or the netstandard2.0 check before the write, sees the cancellation first.
+                    _isCanceled = true;
+                    return new ValueTask(exception.CancellationToken.IsCancellationRequested
+                        ? Task.FromCanceled(exception.CancellationToken)
+                        : Task.FromException(exception));
+                }
+                catch (Exception exception)
                 {
                     return new ValueTask(Task.FromException(exception));
                 }
@@ -486,6 +499,10 @@ namespace DataStandardizer.File.iCal
         /// text writer takes the line without waiting.
         /// </summary>
         /// <exception cref="IcalFileException">The line cannot be written.  Thrown by this call, not the task.</exception>
+        /// <exception cref="OperationCanceledException">Thrown by this call, or by the task.</exception>
+        /// <remarks>
+        /// An exception the text writer throws from its call, rather than its task, is thrown by this call too.
+        /// </remarks>
         private ValueTask WriteLineCoreAsync(IcalContentLine line, CancellationToken cancellationToken)
         {
             var length = _formatter.Format(line, _linesWritten + 1);
@@ -663,7 +680,12 @@ namespace DataStandardizer.File.iCal
                     }
                     finally
                     {
-                        _writer.Dispose();
+                        // TextWriter has no DisposeAsync here, and Dispose would flush the caller's stream synchronously, even with nothing left
+                        // to write.  A stream writer over the caller's stream leaves the stream open, so disposing it would do nothing else.
+                        if (_ownsOutput)
+                        {
+                            _writer.Dispose();
+                        }
                     }
 #endif
                 }
@@ -783,7 +805,7 @@ namespace DataStandardizer.File.iCal
             ValidateOptions(options);
 
             // Open the file stream explicitly so both buffering layers are sized together.
-            var fileStream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.Read, StreamBufferSize);
+            var fileStream = IcalFileStreams.OpenWrite(path, StreamBufferSize);
             try
             {
                 return new StreamWriter(fileStream, options.Encoding ?? DefaultEncoding, StreamBufferSize, false);

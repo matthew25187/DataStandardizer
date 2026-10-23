@@ -1,7 +1,7 @@
 ---
 title: LanguageTag
 parent: Packages
-nav_order: 6
+nav_order: 7
 has_children: true
 ---
 
@@ -19,7 +19,11 @@ dotnet add package DataStandardizer.LanguageTag
 
 | Standard | What it provides |
 | --- | --- |
-| **BCP 47** | IETF language tags (RFC 5646), built from subtags for primary language, extended language, script, region, variant, extension, and private use. |
+| **RFC 5646** | *Tags for Identifying Languages* (part of IETF BCP 47): language tags built from subtags for primary language, extended language, script, region, variant, extension, and private use, together with the format of the *IANA Language Subtag Registry* (section 3.1). |
+
+BCP 47 also includes RFC 4647, *Matching of Language Tags*, which defines
+filtering and lookup of language ranges against tags. This package does not
+implement RFC 4647 matching.
 
 Validation draws on the codes implemented by the other *Data Standardizer*
 packages (ISO 639 languages, ISO 15924 scripts, ISO 3166-1 / UN M49 regions),
@@ -30,6 +34,25 @@ Registry*.
 
 Targets .NET Standard 1.0 and 2.0 for use in legacy applications, as well as
 in-support modern .NET runtimes (`net8.0`, `net10.0`).
+
+The `netstandard2.0` build depends on the `System.Memory` package, which
+provides the span types it uses. NuGet installs it automatically. The other
+builds have no extra dependency for spans: `net8.0` and `net10.0` have them
+built in, and `netstandard1.0` has no span-based API.
+
+> **Applies to:** the `ReadOnlySpan<char>` overloads of `TryCreate`,
+> `IsWellFormedLanguageTagString` and the `Check…Subtag` methods, and
+> `Bcp47LanguageTag.AsSpan()`, need `netstandard2.0`, `net8.0` or `net10.0`.
+> `Bcp47LanguageTag` implements `ISpanFormattable`, `IParsable<T>` and
+> `ISpanParsable<T>` on `net8.0` and `net10.0` only. The builder's
+> `params ReadOnlySpan<string>` overloads exist on `net10.0` only. Loading a
+> subtag registry from a file path (`SubtagRegistry.CreateFromFile` and
+> `CreateFromFileAsync`) needs `netstandard2.0` or later; on `netstandard1.0`,
+> load it from a `Stream` or a string.
+
+See [Platform support](../../overview/platform-support.md) for the full matrix,
+and [Use language tags](how-to/use-language-tags.md#performance) for performance
+notes.
 
 ## How-to guides
 

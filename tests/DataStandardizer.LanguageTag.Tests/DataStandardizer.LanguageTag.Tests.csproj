@@ -1,9 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
+    <TargetFrameworks>net48;net8.0;net10.0</TargetFrameworks>
 
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
@@ -29,10 +27,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\DataStandardizer.LanguageTag\DataStandardizer.LanguageTag.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Using Include="Xunit" />
   </ItemGroup>
 
 </Project>

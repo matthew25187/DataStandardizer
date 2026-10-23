@@ -1,54 +1,79 @@
-﻿using System.Text;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Xunit;
 
-namespace DataStandardizer.File.iCal.Tests;
-
-/// <summary>
-/// Builds iCalendar test input and readers over it.
-/// </summary>
-internal static class IcalTestData
+namespace DataStandardizer.File.iCal.Tests
 {
     /// <summary>
-    /// Character block sizes that force refills at many different points, plus the default.
+    /// Builds iCalendar test input and readers over it.
     /// </summary>
-    public static readonly int[] BufferSizes = [1, 2, 3, 4, 5, 7, 11, 16 * 1024];
-
-    public static TheoryData<int> BufferSizeData()
+    internal static class IcalTestData
     {
-        var data = new TheoryData<int>();
-        foreach (var bufferSize in BufferSizes)
+        /// <summary>
+        /// Character block sizes that force refills at many different points, plus the default.
+        /// </summary>
+        public static readonly int[] BufferSizes = new[] { 1, 2, 3, 4, 5, 7, 11, 16 * 1024 };
+
+        /// <summary>
+        /// Gets the ISO-8859-1 encoding, which .NET 5 and later give as <c>Encoding.Latin1</c>.
+        /// </summary>
+        public static Encoding Latin1 =>
+#if NET5_0_OR_GREATER
+            Encoding.Latin1;
+#else
+            Encoding.GetEncoding(28591);
+#endif
+
+        public static TheoryData<int> BufferSizeData()
         {
-            data.Add(bufferSize);
+            var data = new TheoryData<int>();
+            foreach (var bufferSize in BufferSizes)
+            {
+                data.Add(bufferSize);
+            }
+
+            return data;
         }
 
-        return data;
-    }
-
-    /// <summary>
-    /// Joins physical lines, each ending with CRLF.
-    /// </summary>
-    public static string Crlf(params string[] lines)
-    {
-        var builder = new StringBuilder();
-        foreach (var line in lines)
+        /// <summary>
+        /// Joins groups of lines into one array.
+        /// </summary>
+        public static string[] Lines(params string[][] groups)
         {
-            builder.Append(line).Append("\r\n");
+            return groups.SelectMany(group => group).ToArray();
         }
 
-        return builder.ToString();
-    }
+        /// <summary>
+        /// Joins physical lines, each ending with CRLF.
+        /// </summary>
+        public static string Crlf(params string[] lines)
+        {
+            var builder = new StringBuilder();
+            foreach (var line in lines)
+            {
+                builder.Append(line).Append("\r\n");
+            }
 
-    public static IcalContentLineReader CreateReader(string text, IcalOptions? options = null, int bufferSize = 16 * 1024)
-    {
-        return new IcalContentLineReader(new StringReader(text), options ?? new IcalOptions(), bufferSize);
-    }
+            return builder.ToString();
+        }
 
-    public static IcalContentLineReader CreateStreamReader(byte[] data, IcalOptions? options = null, int streamBufferSize = 16 * 1024, int bufferSize = 16 * 1024)
-    {
-        return new IcalContentLineReader(new MemoryStream(data), options ?? new IcalOptions(), streamBufferSize, bufferSize);
-    }
+        public static IcalContentLineReader CreateReader(string text, IcalOptions options = null, int bufferSize = 16 * 1024)
+        {
+            return new IcalContentLineReader(new StringReader(text), options ?? new IcalOptions(), bufferSize);
+        }
 
-    public static List<IcalContentLine> ReadAll(IcalContentLineReader reader)
-    {
-        return reader.ReadLines().ToList();
+        public static IcalContentLineReader CreateStreamReader(byte[] data, IcalOptions options = null, int streamBufferSize = 16 * 1024, int bufferSize = 16 * 1024)
+        {
+            return new IcalContentLineReader(new MemoryStream(data), options ?? new IcalOptions(), streamBufferSize, bufferSize);
+        }
+
+        public static List<IcalContentLine> ReadAll(IcalContentLineReader reader)
+        {
+            return reader.ReadLines().ToList();
+        }
     }
 }

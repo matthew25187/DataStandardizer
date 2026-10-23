@@ -19,6 +19,7 @@ to map each standard to its package.
 | **Chronology** | `DataStandardizer.Chronology` |
 | **Communication** | `DataStandardizer.Communication` |
 | **File.CSV** | `DataStandardizer.File.CSV` |
+| **File.iCal** | `DataStandardizer.File.iCal` |
 | **Geography** | `DataStandardizer.Geography` |
 | **Language** | `DataStandardizer.Language` |
 | **LanguageTag** | `DataStandardizer.LanguageTag` |

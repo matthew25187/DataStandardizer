@@ -22,6 +22,10 @@ param (
 )
 
 # Install from PowerShell Gallery
+# A hosted agent occasionally starts without PSGallery registered (actions/runner-images#13758), so register it if it's missing.
+if (-not (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) {
+    Register-PSRepository -Default
+}
 Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
 Install-Module -Name ConvertFrom-StringTable -Scope CurrentUser
 

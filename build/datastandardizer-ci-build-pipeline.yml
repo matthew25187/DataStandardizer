@@ -159,10 +159,12 @@ parameters:
     - 1
     - 2
 
+# Push builds run only on develop, where they publish preview packages.  Every other branch reaches develop or master
+# through a PR, and the PR trigger below builds it merged with its target.
 trigger:
   branches:
-    exclude:
-      - master
+    include:
+      - develop
   paths:
     exclude:
       - docs
@@ -219,6 +221,7 @@ stages:
           - checkout: self
             persistCredentials: true
             fetchDepth: 0
+            fetchTags: true # change detection compares against version tags; PR builds fetch only branch and pull refs otherwise
           - task: PowerShell@2
             displayName: 'Find changed packages'
             inputs:
@@ -459,6 +462,7 @@ stages:
     variables:
       changedPackageNames: $[stageDependencies.Configure.Production_packages.outputs['ChangedPackages.changedPackageNames']]
       dependentPackageNames: $[stageDependencies.Configure.Production_packages.outputs['DependentPackages.dependentPackageNames']]
+      changedTestPackageNames: $[stageDependencies.Configure.Production_packages.outputs['TestPackages.changedTestPackageNames']]
       versionNumbers: $[stageDependencies.Configure.Version_numbering.outputs['PromoteVersionList.versionNumberList']]
       hasAssemblyVersionNumbers: $[stageDependencies.Configure.Version_numbering.outputs['PromoteVersionList.hasAssemblyVersionPackageNames']]
       hasAssemblyFileVersionNumbers: $[stageDependencies.Configure.Version_numbering.outputs['PromoteVersionList.hasAssemblyFileVersionPackageNames']]
@@ -471,7 +475,7 @@ stages:
           and
           (
             succeeded(), 
-            or(containsValue(split(variables.buildRequiredPackageNames, ','), '${{packageName}}'), containsValue(split(variables.publicationRequiredPackageNames, ','), '${{packageName}}'), and(gt(length(coalesce(variables['changedPackageNames'], '')), 0), containsValue(split(variables['changedPackageNames'], ','), '${{packageName}}')), containsValue(split(coalesce(variables['dependentPackageNames'], ''), ','), '${{packageName}}'))
+            or(containsValue(split(variables.buildRequiredPackageNames, ','), '${{packageName}}'), containsValue(split(variables.publicationRequiredPackageNames, ','), '${{packageName}}'), and(gt(length(coalesce(variables['changedPackageNames'], '')), 0), containsValue(split(variables['changedPackageNames'], ','), '${{packageName}}')), containsValue(split(coalesce(variables['dependentPackageNames'], ''), ','), '${{packageName}}'), containsValue(split(coalesce(variables['changedTestPackageNames'], ''), ','), '${{packageName}}'))
           )        
         pool:
           vmImage: windows-latest
@@ -511,6 +515,7 @@ stages:
       changedPackageNames: $[stageDependencies.Configure.Production_packages.outputs['ChangedPackages.changedPackageNames']]
       dependentPackageNames: $[stageDependencies.Configure.Production_packages.outputs['DependentPackages.dependentPackageNames']]
       testPackageNames: $[stageDependencies.Configure.Production_packages.outputs['TestPackages.testPackageNames']]
+      changedTestPackageNames: $[stageDependencies.Configure.Production_packages.outputs['TestPackages.changedTestPackageNames']]
     jobs:
     - ${{ each packageName in split(variables.allPackageNames, ',') }}:
       - job:  # Required as first property. ID of the job.
@@ -521,7 +526,7 @@ stages:
           (
             succeeded(), 
             containsValue(split(coalesce(variables['testPackageNames'], ''), ','), '${{packageName}}'), 
-            or(containsValue(split(variables.buildRequiredPackageNames, ','), '${{packageName}}'), containsValue(split(variables.publicationRequiredPackageNames, ','), '${{packageName}}'), containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{packageName}}'), containsValue(split(coalesce(variables['dependentPackageNames'], ''), ','), '${{packageName}}'))
+            or(containsValue(split(variables.buildRequiredPackageNames, ','), '${{packageName}}'), containsValue(split(variables.publicationRequiredPackageNames, ','), '${{packageName}}'), containsValue(split(coalesce(variables['changedPackageNames'], ''), ','), '${{packageName}}'), containsValue(split(coalesce(variables['dependentPackageNames'], ''), ','), '${{packageName}}'), containsValue(split(coalesce(variables['changedTestPackageNames'], ''), ','), '${{packageName}}'))
           )
         # continueOnError: string # Continue running even on failure?
         # timeoutInMinutes: 480 # Time to wait for this job to complete before the server kills it.

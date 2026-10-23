@@ -81,6 +81,64 @@ var extensionSubtags = languageTag.ExtensionSubtags;
 For more on the parts that make up a tag, see
 [Anatomy of a language tag](../concepts/language-tag-anatomy.md).
 
+## Performance
+
+Validation is done by a parser that reads the tag once, from left to right, and
+looks each subtag up in the code lists. A few habits keep it fast:
+
+- **Parse once, then keep the tag.** Creating a `Bcp47LanguageTag` parses the
+  tag and keeps its subtags, so reading `PrimaryLanguageSubtag`, `RegionSubtag`
+  and the other properties doesn't parse it again. If you use a tag more than
+  once, keep the `Bcp47LanguageTag` rather than the string. The array
+  properties (`ExtendedLanguageSubtags`, `VariantSubtags` and
+  `ExtensionSubtags`) return a new copy of the array on each call when it isn't
+  empty, so read them once into a local if you need them in a loop.
+- **Validate spans, not substrings.** On `netstandard2.0`, `net8.0` and
+  `net10.0`, `IsWellFormedLanguageTagString`, the `Check…Subtag` methods and
+  `TryCreate` take a `ReadOnlySpan<char>`, so you can check a tag inside a
+  larger buffer without making a string of it first:
+
+  ```csharp
+  var header = "fr-CA;q=0.8".AsSpan();
+  var tagPart = header.Slice(0, header.IndexOf(';'));
+  if (Bcp47LanguageTag.TryCreate(tagPart, out var languageTag))
+  {
+      // languageTag is fr-CA
+  }
+  ```
+
+- **Load a subtag registry once.** Loading the *IANA Language Subtag Registry*
+  reads a file of about 800 KB, and the first validation against a loaded
+  registry builds an index of its subtags. Both are one-off costs for that
+  `SubtagRegistry` instance, so load it once and share it; it is safe to use
+  from several threads.
+- **Leave out the timeout.** The overloads and the builder step that take a
+  `TimeSpan matchTimeout` are deprecated. The parser can't time out, so the
+  timeout has no effect.
+
+Where allocation happens:
+
+| Operation | Allocates |
+| --- | --- |
+| `IsWellFormedLanguageTagString` and the `Check…Subtag` methods | Nothing. |
+| `TryCreate` with a `ReadOnlySpan<char>` that isn't a valid tag | Nothing. |
+| `Create` or `TryCreate` with a valid tag | The subtag strings and the object that holds them. From a span, the tag string too. |
+| `ExtendedLanguageSubtags`, `VariantSubtags`, `ExtensionSubtags` | A copy of the array, unless it is empty. |
+| The other subtag properties and `AsSpan()` | Nothing. |
+| `ToString()` and the implicit conversion to `string` | Nothing; they return the tag string kept by the instance. |
+
+The first validation in a process also builds the code lists that validation
+uses, once.
+
+On `net10.0`, subtags are looked up in hash sets; the other targets search
+sorted arrays. In the package's benchmarks, validating and creating tags on
+`net10.0` takes about half the time it takes on `net8.0`. The results are the
+same on every target.
+
+To measure the package on your own machine, or to compare a change, use the
+[LanguageTag benchmark project](https://github.com/matthew25187/DataStandardizer/tree/master/benchmarks/DataStandardizer.LanguageTag.Benchmarks).
+Its README explains how to run it and what each benchmark measures.
+
 ## Related
 
 - [Create language tags using the builder](create-language-tags-using-builder.md)

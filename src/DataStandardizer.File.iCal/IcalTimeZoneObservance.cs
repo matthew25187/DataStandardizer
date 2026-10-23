@@ -42,8 +42,9 @@ namespace DataStandardizer.File.iCal
         /// none.
         /// </summary>
         /// <remarks>
-        /// The <c>VALUE</c> and <c>TZID</c> parameters are read and written with the value.  The getter throws
-        /// <see cref="IcalFileException"/> if the value is not valid.
+        /// RFC 5545 §3.6.5 requires a local time here, with no <c>Z</c> and no <c>TZID</c>.  The <c>VALUE</c> and <c>TZID</c> parameters are
+        /// read and written with the value, but the <see cref="IcalTimeZoneResolver.Calendar"/> resolver uses only its date and wall-clock
+        /// time, ignoring any <c>Z</c> or <c>TZID</c>.  The getter throws <see cref="IcalFileException"/> if the value is not valid.
         /// </remarks>
         public IcalDateTime? DtStart
         {

@@ -55,6 +55,16 @@ root:
 dotnet test DataStandardizer.sln
 ```
 
+The `DataStandardizer.LanguageTag` and `DataStandardizer.File.iCal` tests also
+target .NET Framework 4.8, so that each package's `netstandard2.0` build is tested
+as well as its `net8.0` and `net10.0` builds. Running them on .NET Framework needs
+Windows. On other operating systems, choose a framework with `-f`:
+
+```shell
+dotnet test tests/DataStandardizer.LanguageTag.Tests -f net10.0
+dotnet test tests/DataStandardizer.File.iCal.Tests -f net10.0
+```
+
 In *Visual Studio*, the
 [Test Explorer](https://learn.microsoft.com/en-us/visualstudio/test/run-unit-tests-with-test-explorer?view=vs-2022)
 lets you discover and run tests by various categorizations. Testing is also

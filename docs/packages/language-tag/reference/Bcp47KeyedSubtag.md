@@ -28,6 +28,11 @@ instance is uninitialised (default-constructed). On the `netstandard1.0` and
 `netstandard2.0` targets nullability is expressed through JetBrains
 `[NotNull]` / `[CanBeNull]` attributes rather than C# nullable reference types.
 
+Equality and hashing ignore case, because RFC 5646 section 2.1.1 makes subtags
+case-insensitive and [Bcp47LanguageTag](Bcp47LanguageTag.md) equality does the
+same, so `u-co-phonebk` equals `U-CO-PHONEBK`. `ToString`, `Singleton` and
+`Subtags` return the subtag as written.
+
 ## Properties
 
 Each getter throws `InvalidOperationException` if the instance is uninitialised.
@@ -43,18 +48,18 @@ Each getter throws `InvalidOperationException` if the instance is uninitialised.
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `Equals(Bcp47KeyedSubtag other)` | `bool` | Value equality on the subtag. |
+| `Equals(Bcp47KeyedSubtag other)` | `bool` | Case-insensitive comparison of the subtag string. |
 | `Equals(object obj)` | `bool` | Override. |
-| `GetHashCode()` | `int` | Override. |
+| `GetHashCode()` | `int` | Override. Case-insensitive, consistent with `Equals`. |
 | `ToString()` | `string` | Override. Returns the raw subtag string. |
 
 ## Operators
 
 | Operator | Signature | Notes |
 | --- | --- | --- |
-| Explicit | `explicit operator Bcp47KeyedSubtag(string)` | |
+| Explicit | `explicit operator Bcp47KeyedSubtag(string)` | Throws `InvalidCastException` if `null`. |
 | Implicit | `implicit operator string?(Bcp47KeyedSubtag)` | Unwraps to the raw subtag string. |
-| Equality | `operator ==`, `!=` `(Bcp47KeyedSubtag, Bcp47KeyedSubtag)` | Value equality on the subtag. |
+| Equality | `operator ==`, `!=` `(Bcp47KeyedSubtag, Bcp47KeyedSubtag)` | Case-insensitive comparison of the subtag string. |
 
 ## Applies to
 

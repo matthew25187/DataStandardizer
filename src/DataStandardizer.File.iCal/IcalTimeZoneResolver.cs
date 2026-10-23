@@ -26,7 +26,7 @@ namespace DataStandardizer.File.iCal
     /// lacks.  Their data varies from one machine to another, so place it last, as in <c>Chain(Calendar, TzData, System)</c>.
     /// </para>
     /// <para>
-    /// When nothing resolves a <c>TZID</c>, <see cref="Resolve"/> and <see cref="ToUtc"/> throw.  To treat such a time as floating instead, call
+    /// When nothing resolves a <c>TZID</c>, <see cref="Resolve"/> and <see cref="ToUtc(IIcalTimeZoneResolver, IcalDateTime, IcalCalendar)"/> throw.  To treat such a time as floating instead, call
     /// <see cref="IIcalTimeZoneResolver.TryResolve"/> and handle the result.
     /// </para>
     /// </remarks>
@@ -64,6 +64,7 @@ namespace DataStandardizer.File.iCal
         /// </remarks>
         public static IIcalTimeZoneResolver TzData { get; } = new TzDataResolver();
 
+#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
         /// <summary>
         /// Gets the resolver that takes time zones from the operating system, through <see cref="TimeZoneInfo.FindSystemTimeZoneById"/>.
         /// </summary>
@@ -96,7 +97,6 @@ namespace DataStandardizer.File.iCal
         /// transition has no <see cref="IcalTimeZoneTransition.Name"/>, as <see cref="TimeZoneInfo"/> gives no customary abbreviation.
         /// </para>
         /// </remarks>
-#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
         public static IIcalTimeZoneResolver System { get; } = new SystemResolver();
 #endif
 
@@ -229,7 +229,9 @@ namespace DataStandardizer.File.iCal
                     throw new ArgumentNullException(nameof(timeZoneId));
 
                 rules = null;
-                if (calendar is null) return false;
+
+                // A VTIMEZONE with an empty TZID is invalid, and has no identifier for rules to carry.
+                if (calendar is null || timeZoneId.Length == 0) return false;
 
                 foreach (var timeZone in calendar.TimeZones)
                 {

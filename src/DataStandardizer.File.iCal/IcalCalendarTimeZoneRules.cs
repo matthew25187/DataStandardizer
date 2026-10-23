@@ -10,17 +10,12 @@ namespace DataStandardizer.File.iCal
     /// </summary>
     /// <remarks>
     /// The observances are read when the rules are created, so later changes to the VTIMEZONE do not affect them.  Before the first onset, the
-    /// <c>TZOFFSETFROM</c> of that onset is in use.
+    /// <c>TZOFFSETFROM</c> of that onset is in use.  The onsets of each observance are expanded a calendar year at a time, when first needed,
+    /// and kept, so that repeated lookups do not expand its <c>RRULE</c> again.
     /// </remarks>
     internal sealed class IcalCalendarTimeZoneRules : IcalTimeZoneRules
     {
         private const long TicksPerSecond = TimeSpan.TicksPerSecond;
-
-        /// <summary>
-        /// The span searched first for the latest onset of an observance before an instant: a little over a year, which holds an onset of any
-        /// yearly rule that is still in use.
-        /// </summary>
-        private static readonly long RecentSearchTicks = TimeSpan.TicksPerDay * 400;
 
         private static readonly IcalOptions ExpansionOptions = new IcalOptions();
 
@@ -33,7 +28,9 @@ namespace DataStandardizer.File.iCal
             _earliest = observances[0];
             foreach (var observance in observances)
             {
-                if (observance.EarliestOnset < _earliest.EarliestOnset)
+                // Compared as instants, as the observances' local times may be in different offsets; <= so that on a tie the last observance
+                // is kept, as in GetTransitionsCore.
+                if (observance.EarliestOnsetUtc <= _earliest.EarliestOnsetUtc)
                 {
                     _earliest = observance;
                 }
@@ -71,7 +68,8 @@ namespace DataStandardizer.File.iCal
             foreach (var observance in _observances)
             {
                 DateTime instant;
-                if (observance.TryGetLatestOnset(utc, out instant) && (latest is null || instant > latestInstant))
+                // >= so that on a tie the last observance is kept, as in GetTransitionsCore.
+                if (observance.TryGetLatestOnset(utc, out instant) && (latest is null || instant >= latestInstant))
                 {
                     latest = observance;
                     latestInstant = instant;
@@ -126,6 +124,11 @@ namespace DataStandardizer.File.iCal
             private readonly IcalDateTime _start;
             private readonly IReadOnlyList<IcalRecurrenceRule> _rules;
             private readonly List<DateTime> _recurrenceDates;
+
+            // The onsets in each calendar year of local time, and the latest onset before the start of a year where the year before has none;
+            // each filled when first asked for.  Both are guarded by a lock on _onsetsByYear, as the rules may be shared between threads.
+            private readonly Dictionary<int, DateTime[]> _onsetsByYear = new Dictionary<int, DateTime[]>();
+            private readonly Dictionary<int, DateTime?> _latestOnsetBeforeYear = new Dictionary<int, DateTime?>();
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             private readonly string? _name;
 #else
@@ -150,6 +153,7 @@ namespace DataStandardizer.File.iCal
 
                 var startLocal = ToLocalDateTime(start);
                 EarliestOnset = recurrenceDates.Count > 0 && recurrenceDates[0] < startLocal ? recurrenceDates[0] : startLocal;
+                EarliestOnsetUtc = ToInstant(EarliestOnset);
             }
 
             internal IcalTimeZoneObservanceKind Kind { get; }
@@ -162,6 +166,11 @@ namespace DataStandardizer.File.iCal
             /// Gets the earliest onset, in local time: the earlier of <c>DTSTART</c> and the first <c>RDATE</c>.
             /// </summary>
             internal DateTime EarliestOnset { get; }
+
+            /// <summary>
+            /// Gets the instant of the earliest onset.
+            /// </summary>
+            internal DateTime EarliestOnsetUtc { get; }
 
             internal static Observance Create(string timeZoneId, IcalTimeZoneObservance component)
             {
@@ -192,9 +201,10 @@ namespace DataStandardizer.File.iCal
                 var localLimit = AddClamped(utc, OffsetFrom.Offset.Ticks, DateTimeKind.Unspecified);
                 if (EarliestOnset > localLimit) return false;
 
-                var to = AddClamped(localLimit, TicksPerSecond, DateTimeKind.Unspecified);
-                var latest = GetLatestOnset(AddClamped(localLimit, -RecentSearchTicks, DateTimeKind.Unspecified), to) ??
-                             GetLatestOnset(null, to);
+                var year = localLimit.Year;
+                var onsets = GetOnsetsInYear(year);
+                var index = CountOnsetsAtOrBefore(onsets, localLimit) - 1;
+                var latest = index >= 0 ? onsets[index] : GetLatestOnsetBeforeYear(year);
                 if (!latest.HasValue) return false;
 
                 instant = ToInstant(latest.Value);
@@ -208,7 +218,26 @@ namespace DataStandardizer.File.iCal
             {
                 var fromLocal = AddClamped(fromUtc, OffsetFrom.Offset.Ticks, DateTimeKind.Unspecified);
                 var toLocal = AddClamped(toUtc, OffsetFrom.Offset.Ticks, DateTimeKind.Unspecified);
-                foreach (var onset in GetOnsets(fromLocal, toLocal))
+                if (toLocal < EarliestOnset) return;
+
+                // A short period, such as the days around a local time that the conversions look at, is served from the onsets of its years;
+                // a long one is expanded directly, so that it does not fill the cache.
+                if (toLocal.Year - fromLocal.Year <= 1)
+                {
+                    for (var year = fromLocal.Year; year <= toLocal.Year; year++)
+                    {
+                        AddTransitions(GetOnsetsInYear(year), fromUtc, toUtc, transitions);
+                    }
+                }
+                else
+                {
+                    AddTransitions(GetOnsets(fromLocal, toLocal), fromUtc, toUtc, transitions);
+                }
+            }
+
+            private void AddTransitions(IEnumerable<DateTime> onsets, DateTime fromUtc, DateTime toUtc, List<IcalTimeZoneTransition> transitions)
+            {
+                foreach (var onset in onsets)
                 {
                     var instant = ToInstant(onset);
                     if (instant >= fromUtc && instant < toUtc)
@@ -218,10 +247,76 @@ namespace DataStandardizer.File.iCal
                 }
             }
 
-            private DateTime? GetLatestOnset(DateTime? fromLocal, DateTime toLocal)
+            /// <summary>
+            /// Gets the onsets in a calendar year of local time, in order, expanding them the first time they are asked for.
+            /// </summary>
+            private DateTime[] GetOnsetsInYear(int year)
             {
-                var onsets = GetOnsets(fromLocal, toLocal);
-                return onsets.Count > 0 ? onsets[onsets.Count - 1] : (DateTime?)null;
+                lock (_onsetsByYear)
+                {
+                    if (_onsetsByYear.TryGetValue(year, out var cached)) return cached;
+
+                    var onsets = GetOnsets(GetStartOfYear(year), GetEndOfYear(year)).ToArray();
+                    _onsetsByYear.Add(year, onsets);
+                    return onsets;
+                }
+            }
+
+            /// <summary>
+            /// Gets the latest onset before the start of a calendar year of local time; or <c>null</c> if there is none.
+            /// </summary>
+            private DateTime? GetLatestOnsetBeforeYear(int year)
+            {
+                var startOfYear = GetStartOfYear(year);
+                if (EarliestOnset >= startOfYear) return null;
+
+                // The year before holds an onset of any yearly rule that is still in use; only a rule that has ended, or onsets given by RDATE
+                // alone, need the expansion from DTSTART.
+                var previous = GetOnsetsInYear(year - 1);
+                if (previous.Length > 0) return previous[previous.Length - 1];
+
+                lock (_onsetsByYear)
+                {
+                    if (_latestOnsetBeforeYear.TryGetValue(year, out var cached)) return cached;
+
+                    var onsets = GetOnsets(null, startOfYear);
+                    var latest = onsets.Count > 0 ? onsets[onsets.Count - 1] : (DateTime?)null;
+                    _latestOnsetBeforeYear.Add(year, latest);
+                    return latest;
+                }
+            }
+
+            /// <summary>
+            /// Counts the onsets, which are in order, that are at or before a local time.
+            /// </summary>
+            private static int CountOnsetsAtOrBefore(DateTime[] onsets, DateTime local)
+            {
+                var low = 0;
+                var high = onsets.Length;
+                while (low < high)
+                {
+                    var middle = low + (high - low) / 2;
+                    if (onsets[middle] <= local)
+                    {
+                        low = middle + 1;
+                    }
+                    else
+                    {
+                        high = middle;
+                    }
+                }
+
+                return low;
+            }
+
+            private static DateTime GetStartOfYear(int year)
+            {
+                return new DateTime(year, 1, 1, 0, 0, 0, DateTimeKind.Unspecified);
+            }
+
+            private static DateTime GetEndOfYear(int year)
+            {
+                return year < DateTime.MaxValue.Year ? GetStartOfYear(year + 1) : DateTime.MaxValue;
             }
 
             /// <summary>

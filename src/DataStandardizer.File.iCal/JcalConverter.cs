@@ -505,7 +505,7 @@ namespace DataStandardizer.File.iCal
             }
 
             // The JSON writer would escape a lone surrogate, but a JSON reader cannot read it back as text, so it is refused.
-            if (property.Parameters.Any(parameter => parameter.Values.Any(HasLoneSurrogate)) || values.Any(HasLoneSurrogate))
+            if (property.ParameterArray.Any(parameter => parameter.ValueArray.Any(HasLoneSurrogate)) || values.Any(HasLoneSurrogate))
                 throw BuildWriteException(
                     string.Format(CultureInfo.InvariantCulture,
                         "The {0} property holds a lone surrogate, which cannot be written in jCal, since it is not valid Unicode text.",
@@ -544,7 +544,7 @@ namespace DataStandardizer.File.iCal
             // is an array of strings.
             var names = new List<string>();
             writer.WriteStartObject();
-            foreach (var parameter in property.Parameters)
+            foreach (var parameter in property.ParameterArray)
             {
                 if (!isValueParameterKept && IsName(parameter.Name, IcalParameterNames.Value)) continue;
 
@@ -558,14 +558,14 @@ namespace DataStandardizer.File.iCal
 
                 names.Add(name);
                 writer.WritePropertyName(name);
-                if (parameter.Values.Count == 1)
+                if (parameter.ValueArray.Length == 1)
                 {
-                    writer.WriteStringValue(parameter.Values[0]);
+                    writer.WriteStringValue(parameter.ValueArray[0]);
                 }
                 else
                 {
                     writer.WriteStartArray();
-                    foreach (var value in parameter.Values)
+                    foreach (var value in parameter.ValueArray)
                     {
                         writer.WriteStringValue(value);
                     }

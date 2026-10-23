@@ -63,9 +63,13 @@ namespace DataStandardizer.File.iCal
         private readonly XcalDocumentBuilder _builder = new XcalDocumentBuilder();
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private IcalCalendar? _calendar;
+        private readonly Stream? _fileStream;
         private readonly IXmlLineInfo? _lineInfo;
 #else
         private IcalCalendar _calendar;
+#if NETSTANDARD2_0_OR_GREATER
+        private readonly Stream _fileStream;
+#endif
         private readonly IXmlLineInfo _lineInfo;
 #endif
         private bool _isFaulted;
@@ -120,8 +124,10 @@ namespace DataStandardizer.File.iCal
         /// <param name="options">The options.  When <see cref="IcalOptions.Encoding"/> is set, it is used in place of the encoding the XML
         /// document declares, unless the file starts with a byte order mark.</param>
         /// <exception cref="ArgumentNullException"><paramref name="xcalFilePath"/> or <paramref name="options"/> is <c>null</c>.</exception>
-        public XcalReader(string xcalFilePath, IcalOptions options) : this(CreateFileReader(xcalFilePath, options), true, options)
+        public XcalReader(string xcalFilePath, IcalOptions options) : this(CreateFileReader(xcalFilePath, options, out var fileStream), true, options)
         {
+            // The XML reader takes ownership of the file only when it is first read, so the file is closed here too.
+            _fileStream = fileStream;
         }
 #endif
 
@@ -676,6 +682,9 @@ namespace DataStandardizer.File.iCal
             {
                 _reader.Dispose();
             }
+#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
+            _fileStream?.Dispose();
+#endif
         }
 
         private void ThrowIfDisposed()
@@ -723,14 +732,14 @@ namespace DataStandardizer.File.iCal
         }
 
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
-        private static XmlReader CreateFileReader(string path, IcalOptions options)
+        private static XmlReader CreateFileReader(string path, IcalOptions options, out Stream fileStream)
         {
             if (path is null)
                 throw new ArgumentNullException("xcalFilePath");
             if (options is null)
                 throw new ArgumentNullException(nameof(options));
 
-            var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.SequentialScan);
+            fileStream = IcalFileStreams.OpenRead(path, 4096);
             try
             {
                 return CreateStreamReader(fileStream, options, true);

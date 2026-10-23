@@ -500,13 +500,13 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Gets the parameters of the first property of a name, without those that a value being set will decide.
         /// </summary>
-        private List<IcalContentLineParameter> KeepParameters(string name, params string[] excludedNames)
+        internal List<IcalContentLineParameter> KeepParameters(string name, params string[] excludedNames)
         {
             var parameters = new List<IcalContentLineParameter>();
             var property = GetProperty(name);
             if (property is null) return parameters;
 
-            foreach (var parameter in property.Parameters)
+            foreach (var parameter in property.ParameterArray)
             {
                 var isExcluded = false;
                 foreach (var excludedName in excludedNames)
@@ -526,7 +526,7 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Replaces the properties of a name with others, in the place of the first, or at the end if there was none.
         /// </summary>
-        private void ReplaceProperties(string name, IList<IcalContentLine> replacements)
+        internal void ReplaceProperties(string name, IList<IcalContentLine> replacements)
         {
             var insertAt = -1;
             for (var index = Properties.Count - 1; index >= 0; index--)
