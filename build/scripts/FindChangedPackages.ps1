@@ -47,7 +47,7 @@ $env:PACKAGEINFOS |
     ForEach-Object {
         Write-Verbose "Checking for changes made to package $($_.packageName)"
 
-        [string] $diffFilesOutput
+        $diffFilesOutput = $null
         $packageMatchPattern = "v*$($_.packageName)"
         $tagsOutput = & git tag --list $packageMatchPattern --sort=-version:refname --merged $env:BUILD_SOURCEVERSION
         # $latestTagName = & git for-each-ref refs/tags --sort=-taggerdate --format='%(refname:short)' --count=1 --points-at=HEAD

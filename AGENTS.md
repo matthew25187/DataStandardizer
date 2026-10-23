@@ -14,6 +14,7 @@ This repository follows Gitflow. The long-lived branches are:
 - Branch from `develop` as `feature/<issue>-<short-name>` (or `docs/...`).
 - Open the PR into `develop` and complete it with **Squash and merge**. Never target `master` with a feature PR.
 - Pushes to a feature branch don't start a CI build. Only a PR does, and it builds the branch merged with its target. To get builds for work that isn't ready to merge, open the PR as a draft.
+- CI builds and tests the packages whose `src/<Package>` folder changed, the packages that depend on them, and any package whose `tests/<Package>.Tests` folder the build changes. A test-only change never versions or publishes the package.
 - Never commit or push directly to `master` or `develop`, and never open a PR into `master` from any branch other than `develop`.
 - Changes to either pipeline (`build/datastandardizer-ci-build-pipeline.yml` or `build/datastandardizer-release-build-pipeline.yml`) or to the shared templates and scripts in `build/` go through `develop` like any other change. They reach `master` with the next release.
 
