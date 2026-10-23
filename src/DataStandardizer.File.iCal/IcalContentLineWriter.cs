@@ -63,6 +63,9 @@ namespace DataStandardizer.File.iCal
 
         private readonly bool _isInternalWriter;
         private long _linesWritten;
+
+        // Whether the writer opened the file it writes to, rather than writing to output the caller supplied.
+        private readonly bool _ownsOutput;
         private readonly TextWriter _writer;
 
         /// <summary>
@@ -107,7 +110,7 @@ namespace DataStandardizer.File.iCal
         /// <exception cref="ArgumentNullException"><paramref name="icalFilePath"/> or <paramref name="options"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><see cref="IcalOptions.FoldLength"/>, <see cref="IcalOptions.FoldWhitespace"/> or
         /// <see cref="IcalOptions.LineBreak"/> is not valid.</exception>
-        public IcalContentLineWriter(string icalFilePath, IcalOptions options) : this(CreateFileWriter(icalFilePath, options), true, options)
+        public IcalContentLineWriter(string icalFilePath, IcalOptions options) : this(CreateFileWriter(icalFilePath, options), true, true, options)
         {
         }
 #endif
@@ -132,7 +135,7 @@ namespace DataStandardizer.File.iCal
         /// -or-
         /// <see cref="IcalOptions.FoldLength"/>, <see cref="IcalOptions.FoldWhitespace"/> or <see cref="IcalOptions.LineBreak"/> is not
         /// valid.</exception>
-        public IcalContentLineWriter(TextWriter writer, IcalOptions options) : this(ValidateTextWriter(writer, options), false, options)
+        public IcalContentLineWriter(TextWriter writer, IcalOptions options) : this(ValidateTextWriter(writer, options), false, false, options)
         {
         }
 
@@ -141,14 +144,15 @@ namespace DataStandardizer.File.iCal
         /// writer to write through at chosen points.
         /// </summary>
         internal IcalContentLineWriter(Stream icalStream, IcalOptions options, int streamBufferSize)
-            : this(CreateStreamWriter(icalStream, options, streamBufferSize), true, options)
+            : this(CreateStreamWriter(icalStream, options, streamBufferSize), true, false, options)
         {
         }
 
-        private IcalContentLineWriter(TextWriter writer, bool isInternalWriter, IcalOptions options)
+        private IcalContentLineWriter(TextWriter writer, bool isInternalWriter, bool ownsOutput, IcalOptions options)
         {
             _writer = writer;
             _isInternalWriter = isInternalWriter;
+            _ownsOutput = ownsOutput;
             _formatter = new IcalContentLineFormatter(options.FoldLength, options.FoldWhitespace, options.LineBreak);
         }
 
@@ -676,7 +680,12 @@ namespace DataStandardizer.File.iCal
                     }
                     finally
                     {
-                        _writer.Dispose();
+                        // TextWriter has no DisposeAsync here, and Dispose would flush the caller's stream synchronously, even with nothing left
+                        // to write.  A stream writer over the caller's stream leaves the stream open, so disposing it would do nothing else.
+                        if (_ownsOutput)
+                        {
+                            _writer.Dispose();
+                        }
                     }
 #endif
                 }
