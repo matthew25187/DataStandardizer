@@ -45,6 +45,15 @@ steps:
     #retryCount: '0' # string. Retry count to copy the file. Default: 0.
     #delayBetweenRetries: '1000' # string. Delay between two retries. Default: 1000.
     #ignoreMakeDirErrors: false # boolean. Ignore errors during creation of target folder. Default: false.
+# Without pathtoCustomTestAdapters, VSTest passes the search folder as /TestAdapterPath.  The .NET Framework
+# testhost then loads the .NET Core xUnit adapter from it and finds no tests in net48 assemblies.  An empty
+# adapter folder lets each testhost load the adapter beside its own test assembly.
+- task: PowerShell@2
+  displayName: '[${{parameters.packageName}}] Create empty test adapter folder'
+  inputs:
+    targetType: 'inline' # 'filePath' | 'inline'. Type. Default: filePath.
+    script: 'New-Item -ItemType Directory -Path ''$(Agent.TempDirectory)\NoCustomTestAdapters'' -Force | Out-Null' # string. Required when targetType = inline. Script.
+    pwsh: true # boolean. Use PowerShell Core. Default: false.
 - task: VSTest@3
   displayName: '[${{parameters.packageName}}] Run automated tests'
   inputs:
@@ -57,7 +66,7 @@ steps:
     #testConfiguration: # string. Required when testSelector = testPlan. Test configuration. 
     #tcmTestRun: '$(test.RunId)' # string. Optional. Use when testSelector = testRun. Test Run. Default: $(test.RunId).
     searchFolder: '$(System.DefaultWorkingDirectory)' # string. Required. Search folder. Default: $(System.DefaultWorkingDirectory).
-    #resultsFolder: '$(Agent.TempDirectory)\TestResults' # string. Test results folder. Default: $(Agent.TempDirectory)\TestResults.
+    resultsFolder: '$(Agent.TempDirectory)\TestResults' # string. Test results folder. Default: $(Agent.TempDirectory)\TestResults.
     #testFiltercriteria: # string. Optional. Use when testSelector = testAssemblies. Test filter criteria. 
     #runOnlyImpactedTests: False # boolean. Optional. Use when testSelector = testAssemblies. Run only impacted tests. Default: False.
     #runAllTestsAfterXBuilds: '50' # string. Optional. Use when testSelector = testAssemblies && runOnlyImpactedTests = true. Number of builds after which all tests should be run. Default: 50.
@@ -68,7 +77,7 @@ steps:
     #vstestLocation: # string. Optional. Use when vstestLocationMethod = location. Path to vstest.console.exe. 
     #runSettingsFile: # string. Settings file. 
     #overrideTestrunParameters: # string. Override test run parameters. 
-    #pathtoCustomTestAdapters: # string. Path to custom test adapters. 
+    pathtoCustomTestAdapters: '$(Agent.TempDirectory)\NoCustomTestAdapters' # string. Path to custom test adapters.
     #runInParallel: False # boolean. Run tests in parallel on multi-core machines. Default: False.
     #runTestsInIsolation: False # boolean. Run tests in isolation. Default: False.
     #codeCoverageEnabled: False # boolean. Code coverage enabled. Default: False.
@@ -87,4 +96,12 @@ steps:
     #publishRunAttachments: true # boolean. Upload test attachments. Default: true.
     #donotPublishTestResults: false # boolean. Optional. Use when runInParallel = false. Disable publishing test results. Default: false.
     failOnMinTestsNotRun: true # boolean. Fail the task if a minimum number of tests are not run. Default: False.
-    #minimumExpectedTests: '1' # string. Optional. Use when failOnMinTestsNotRun = true. Minimum # of tests. Default: 1.            
+    #minimumExpectedTests: '1' # string. Optional. Use when failOnMinTestsNotRun = true. Minimum # of tests. Default: 1.
+- task: PowerShell@2
+  displayName: '[${{parameters.packageName}}] Confirm every test assembly ran tests'
+  inputs:
+    #targetType: 'filePath' # 'filePath' | 'inline'. Type. Default: filePath.
+    filePath: 'build/scripts/ConfirmTestAssembliesRan.ps1' # string. Required when targetType = filePath. Script Path.
+    arguments: '-ResultsFolder ''$(Agent.TempDirectory)\TestResults''' # string. Optional. Use when targetType = filePath. Arguments.
+    informationPreference: 'continue' # 'default' | 'stop' | 'continue' | 'silentlyContinue'. InformationPreference. Default: default.
+    pwsh: true # boolean. Use PowerShell Core. Default: false.            
