@@ -715,7 +715,12 @@ namespace DataStandardizer.File.iCal
 #if NETCOREAPP3_0_OR_GREATER
                     await _writer.DisposeAsync().ConfigureAwait(false);
 #else
-                    _writer.Dispose();
+                    // XmlWriter has no DisposeAsync here, and Dispose would flush the caller's stream or text writer synchronously, even with
+                    // nothing left to write.  An XML writer over the caller's output leaves it open, so disposing it would do nothing else.
+                    if (_writer.Settings is null || _writer.Settings.CloseOutput)
+                    {
+                        _writer.Dispose();
+                    }
 #endif
                 }
             }
