@@ -1,9 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
+    <TargetFrameworks>net48;net8.0;net10.0</TargetFrameworks>
 
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
@@ -28,10 +26,6 @@
     <!-- Builds the netstandard1.1 target too, without referencing it, so that JcalPlatformTests can check it has no jCal types. -->
     <ProjectReference Include="..\..\src\DataStandardizer.File.iCal\DataStandardizer.File.iCal.csproj" SetTargetFramework="TargetFramework=netstandard1.1"
                       ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" Private="false" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Using Include="Xunit" />
   </ItemGroup>
 
 </Project>
