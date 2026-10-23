@@ -83,8 +83,9 @@ This runs no benchmarks. It times, with `Stopwatch`, in a fresh process:
 
 1. The first `Bcp47LanguageTag.Create("en")`.
 2. Loading the registry fixture, for context only (`RegistryBenchmarks` measures it properly).
-3. The first `Bcp47LanguageTag.Create("en", registry)`.
+3. The first `Bcp47LanguageTag.Create("en", registry)`, which builds the registry's index, and how much of that was JIT compilation (`JitInfo.GetCompilationTime`, on every thread).
 4. The second `Bcp47LanguageTag.Create("en", registry)`, to show how much of the first was one-off.
+5. The first `Bcp47LanguageTag.Create("en", registry)` against a second copy of the registry, after a forced garbage collection. The code is already compiled, so this is the cost of building an index alone, and the difference from step 3 is the one-off cost of the first registry in a process.
 
 Each figure is a single sample, including JIT compilation, and varies from run to run. Build once, then run the process several times and report every run, for example in PowerShell:
 

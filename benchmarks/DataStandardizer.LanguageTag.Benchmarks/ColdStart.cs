@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Runtime;
 using System.Runtime.InteropServices;
 
 namespace DataStandardizer.LanguageTag.Benchmarks;
@@ -27,15 +28,27 @@ internal static class ColdStart
         stopwatch.Stop();
         Report("Registry load (fixture)", stopwatch.Elapsed);
 
+        var jitTime = JitInfo.GetCompilationTime();
         stopwatch.Restart();
         var registryTag = Bcp47LanguageTag.Create("en", registry);
         stopwatch.Stop();
         Report("First Create(\"en\", registry)", stopwatch.Elapsed);
+        Report("  of which JIT compilation", JitInfo.GetCompilationTime() - jitTime);
 
         stopwatch.Restart();
         _ = Bcp47LanguageTag.Create("en", registry);
         stopwatch.Stop();
         Report("Second Create(\"en\", registry)", stopwatch.Elapsed);
+
+        // A second registry builds its own index with code that is already compiled, so this is the cost of building an index alone.
+        // Collect first, so that a collection triggered by loading it doesn't land in the measurement.
+        var secondRegistry = BenchmarkData.LoadRegistry();
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        stopwatch.Restart();
+        _ = Bcp47LanguageTag.Create("en", secondRegistry);
+        stopwatch.Stop();
+        Report("First Create(\"en\", registry 2)", stopwatch.Elapsed);
 
         if (rulesTag != registryTag)
         {
