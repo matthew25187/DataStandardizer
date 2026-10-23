@@ -39,6 +39,150 @@
           "text": "Setting IcalAlarm.TriggerDateTime, or TriggerDuration on an alarm with an absolute trigger, now keeps the TRIGGER's other parameters and its position instead of dropping them and moving it to the end"
         }
       ]
+    },
+    "56c0aeeb803c8e4ee8ceed4d1689405a5b675c91": {
+      "subject": "IcalTimeZoneResolver.Calendar rules give the right offset before a VTIMEZONE's first onset (#294)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "IcalTimeZoneResolver.Calendar rules give the right offset before a VTIMEZONE's first onset"
+        }
+      ]
+    },
+    "319bcf011b3ae8b27eec7bc560c72bcd08359eb8": {
+      "subject": "Language tags that repeat a variant subtag or extension singleton are rejected (#318)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "A language tag that repeats a variant subtag or an extension singleton, ignoring case, is rejected as RFC 5646 requires, by `Create`, `TryCreate`, `IsWellFormedLanguageTagString` and the builder's `UsingVariantSubtags` and `UsingExtensionSubtags`"
+        }
+      ]
+    },
+    "8c69c57005bf9342550d31c56bb1c694e10acdd7": {
+      "subject": "Default rules follow the RFC 5646 primary language subtag grammar (#320)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "Without a subtag registry, primary language subtags follow RFC 5646: one of five to eight characters must be letters only, so `12345` is rejected, and an extended language subtag must follow one of two or three letters, so `abcde-yue` is rejected"
+        },
+        {
+          "category": "changed",
+          "text": "Without a subtag registry, four-letter primary language subtags, which RFC 5646 reserves for future use, are accepted as well-formed"
+        }
+      ]
+    },
+    "fb24de6b9156b8db2f12f081b236c882a4c6ca5e": {
+      "subject": "Builder takes a UN M49 area through UsingRegionSubtag(UnM49Area) (#326)",
+      "notes": [
+        {
+          "category": "added",
+          "text": "`Bcp47LanguageTagBuilder.UsingRegionSubtag(UnM49Area)` sets a UN M.49 area such as `UnM49Area._419` (Latin America and the Caribbean) as the region, and throws `ArgumentException` for a country"
+        },
+        {
+          "category": "deprecated",
+          "text": "The builder's `UsingRegionSubtag(UnM49AreaByAlpha2CountryCode)` and `UsingRegionSubtag(UnM49AreaByAlpha3CountryCode)` overloads are obsolete, because they reject every member of those enums, and will be removed in v2.0; use `UsingRegionSubtag(UnM49Area)` or `UsingRegionSubtag(Iso3166Part1Alpha2Country)`"
+        }
+      ]
+    },
+    "983790fa282c26c630e5065be0b2132a438952bd": {
+      "subject": "Language tag and subtag matching no longer depends on the current culture or accepts non-ASCII letters (#335)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "Language tag and subtag validation no longer depends on the current culture or accepts non-ASCII letters, so `IT` is accepted under the Turkish culture and the Kelvin sign (U+212A) is not accepted in place of `K`"
+        }
+      ]
+    },
+    "eae2dbcc625c731b0291f3d03edd478a8a7d442d": {
+      "subject": "Default rules validate language tags with a parser instead of regular expressions (#322)",
+      "notes": [
+        {
+          "category": "changed",
+          "text": "Validation by the default BCP 47 rules uses a parser instead of regular expressions: the first Create is about 20 times faster, later calls 30 to 300 times faster, and validation no longer allocates"
+        },
+        {
+          "category": "changed",
+          "text": "The netstandard2.0 build depends on System.Memory"
+        }
+      ]
+    },
+    "fa92dfa9c0423fc27e102b6a675c20dfb30cbad5": {
+      "subject": "Language tags are checked against a Subtag Registry with a parser instead of regular expressions (#338)",
+      "notes": [
+        {
+          "category": "changed",
+          "text": "Checking a language tag against a Subtag Registry uses a parser instead of regular expressions: Create is about 10,000 times faster, the first call in a process takes milliseconds instead of more than a second, and checking no longer allocates"
+        },
+        {
+          "category": "fixed",
+          "text": "Creating language tags against the same Subtag Registry from several threads at once no longer throws or corrupts a shared cache"
+        },
+        {
+          "category": "fixed",
+          "text": "A Subtag Registry with no grandfathered records, or no records of some subtag type, no longer accepts the empty string or a tag with an empty subtag such as \"en-\""
+        }
+      ]
+    },
+    "7e8c6ce9762adc90656f31fb2d08f6ed44547947": {
+      "subject": "Default rules accept the grandfathered language tags as whole tags (#319)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "Without a subtag registry, the irregular grandfathered tags, such as `i-klingon` and `en-GB-oed`, are accepted as RFC 5646 requires"
+        },
+        {
+          "category": "changed",
+          "text": "Without a subtag registry, regular grandfathered tags such as `art-lojban` are treated as whole tags, as they are with one: `PrimaryLanguageSubtag` is empty and the other subtag properties are `null` or empty"
+        }
+      ]
+    },
+    "736c5c2458bf8e57f6f365f557b0e415c77b8835": {
+      "subject": "Default rules reject the unregistered region subtag 830 (#321)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "Without a subtag registry, the region subtag `830` (Channel Islands), which isn't in the IANA Language Subtag Registry, is rejected as RFC 5646 requires"
+        }
+      ]
+    },
+    "efc410ebc3bb5a0dc7928b3b587ad52887c97267": {
+      "subject": "TryCreate(tag, registry, timeout, out) accepts tags that are valid only in the Subtag Registry (#333)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "`TryCreate(string, SubtagRegistry, TimeSpan, out Bcp47LanguageTag)` accepts tags that are valid only in the Subtag Registry, as the other registry overloads do"
+        }
+      ]
+    },
+    "cf1066d2a70498b186c78e9b8f78893b688dc015": {
+      "subject": "Loading a Subtag Registry is about 2.3 times faster and allocates 73% less (#345)",
+      "notes": [
+        {
+          "category": "changed",
+          "text": "Loading a Subtag Registry is about 2.3 times faster and allocates 73% less"
+        },
+        {
+          "category": "fixed",
+          "text": "Loading a Subtag Registry unfolds a folded Description or Comments value with one space, skips an empty record or one with no File-Date, Subtag or Tag field instead of stopping there, and reads a field it doesn't know as a field of its own instead of appending it to the field before"
+        }
+      ]
+    },
+    "496343f8601596f462338194deb06a6999fd014d": {
+      "subject": "Bcp47LanguageTag validates and parses spans of characters, and implements ISpanParsable and ISpanFormattable (#347)",
+      "notes": [
+        {
+          "category": "added",
+          "text": "On netstandard2.0 and .NET 8 and later, `Bcp47LanguageTag.TryCreate`, `IsWellFormedLanguageTagString` and the `Check*` methods accept a `ReadOnlySpan<char>`; only `TryCreate` allocates, and only to copy a valid tag to a string. `AsSpan()` returns the tag without copying it"
+        },
+        {
+          "category": "added",
+          "text": "`Bcp47LanguageTag` implements `IParsable<T>` and `ISpanParsable<T>` on .NET 7 and later, and `ISpanFormattable` on .NET 6 and later"
+        },
+        {
+          "category": "changed",
+          "text": "The new span overloads make a literal `null` or `default` argument to `TryCreate`, `IsWellFormedLanguageTagString` or a `Check*` method ambiguous on C# 7.3; cast it to `string`. On C# 10 and later, `IsWellFormedLanguageTagString` and the `Check*` methods can no longer be assigned to `var`; give the variable a delegate type such as `Func<string, bool>`. `Type.GetMethod(name)` throws `AmbiguousMatchException` for them; pass the parameter types. Compiled code is unaffected"
+        }
+      ]
     }
   }
 }
