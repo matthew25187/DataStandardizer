@@ -14,9 +14,6 @@ and XML (xCal) forms, with recurrence expansion and time-zone resolution.
 dotnet add package DataStandardizer.File.iCal
 ```
 
-> **Preview.** This package is a pre-v1 preview. Its API can change between
-> previews.
-
 ## Standards
 
 | Standard | What it provides |
