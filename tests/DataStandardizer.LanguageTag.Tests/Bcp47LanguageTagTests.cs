@@ -201,11 +201,11 @@ namespace DataStandardizer.LanguageTag.Tests
 
         /// <summary>
         /// Language tags whose subtags are registered only through the private use range records <c>qaa..qtz</c>, <c>Qaaa..Qabx</c>, <c>QM..QZ</c> and <c>XA..XZ</c> (RFC 5646 §3.1.1, §3.1.4),
-        /// at each end of a range and inside it, in various cases (§2.1.1). <c>Qaay</c> and <c>Qaaz</c> are left out until the default rules accept them (#323).
+        /// at each end of a range and inside it, in various cases (§2.1.1).
         /// </summary>
         public static TheoryData<string> PrivateUseRangeLanguageTags => new TheoryData<string>()
         {
-            "qaa", "qtz", "qbm", "QTZ", "en-Qaaa", "en-Qaba", "en-Qabx", "en-QM", "en-QS", "en-QZ", "en-XA", "en-XZ", "qaa-Qabx-XZ",
+            "qaa", "qtz", "qbm", "QTZ", "en-Qaaa", "en-Qaaz", "en-Qaba", "en-Qabx", "en-QM", "en-QS", "en-QZ", "en-XA", "en-XZ", "qaa-Qabx-XZ",
         };
 
         /// <summary>
@@ -215,6 +215,15 @@ namespace DataStandardizer.LanguageTag.Tests
         {
             { "en-Qaby", "en-Qabx" },
             { "en-QL", "en-QM" },
+        };
+
+        /// <summary>
+        /// Language tags with a Script subtag reserved for private use, <c>Qaaa</c> to <c>Qaaz</c> and then <c>Qaba</c> to <c>Qabx</c> (RFC 5646 §2.2.3¶3), at each end of
+        /// both runs and in various cases (§2.1.1).
+        /// </summary>
+        public static TheoryData<string> PrivateUseScriptLanguageTags => new TheoryData<string>()
+        {
+            "en-Qaaa", "en-Qaax", "en-Qaay", "en-Qaaz", "en-QAAZ", "en-qaay", "en-Qaba", "en-Qabx", "qaa-Qaaz-XZ",
         };
 
         #region Test: CheckExtendedLanguageSubtag_WithInvalidSubtag
@@ -737,7 +746,7 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: CheckScriptSubtag_WithInvalidSubtag
 
         [Theory]
-        [InlineData("1"), InlineData("a"), InlineData("a2cd")]
+        [InlineData("1"), InlineData("a"), InlineData("a2cd"), InlineData("Qaby"), InlineData("Qabz"), InlineData("Qaca")]
         public void CheckScriptSubtag_WithInvalidSubtag_ReturnsFalse(string testSubtag)
         {
             // act
@@ -745,6 +754,21 @@ namespace DataStandardizer.LanguageTag.Tests
 
             // assert
             testResult.Should().BeFalse("the subtag {0} is not a valid Script subtag", testSubtag);
+        }
+
+        #endregion
+
+        #region Test: CheckScriptSubtag_WithPrivateUseSubtag
+
+        [Theory]
+        [InlineData("Qaaa"), InlineData("Qaax"), InlineData("Qaay"), InlineData("Qaaz"), InlineData("QAAZ"), InlineData("qaay"), InlineData("Qaba"), InlineData("Qabx")]
+        public void CheckScriptSubtag_WithPrivateUseSubtag_ReturnsTrue(string testSubtag)
+        {
+            // act
+            var testResult = Bcp47LanguageTag.CheckScriptSubtag(testSubtag);
+
+            // assert
+            testResult.Should().BeTrue("the subtag {0} is reserved for private use, which is a valid Script subtag (RFC 5646 §2.2.3¶3)", testSubtag);
         }
 
         #endregion
@@ -1141,6 +1165,21 @@ namespace DataStandardizer.LanguageTag.Tests
                 // assert
                 testResult.Should().BeTrue("'{0}' has a reserved Primary Language subtag, which is well-formed (RFC 5646 §2.1, §2.2.1¶4)", testLanguageTag);
             }
+        }
+
+        #endregion
+
+        #region Test: IsWellFormedLanguageTagString_WithPrivateUseScriptSubtag
+
+        [Theory]
+        [MemberData(nameof(PrivateUseScriptLanguageTags))]
+        public void IsWellFormedLanguageTagString_WithPrivateUseScriptSubtag_ReturnsTrue(string testLanguageTag)
+        {
+            // act
+            var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag);
+
+            // assert
+            testResult.Should().BeTrue("'{0}' has a Script subtag reserved for private use, which is well-formed (RFC 5646 §2.2.3¶3)", testLanguageTag);
         }
 
         #endregion
@@ -2496,6 +2535,22 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #endregion
 
+        #region Test: Create_WithLanguageTagWhenScriptSubtagIsPrivateUse
+
+        [Theory]
+        [MemberData(nameof(PrivateUseScriptLanguageTags))]
+        public void Create_WithLanguageTagWhenScriptSubtagIsPrivateUse_ReturnsBcp47LanguageTag(string testLanguageTag)
+        {
+            // act
+            var languageTag = Bcp47LanguageTag.Create(testLanguageTag);
+            var testResult = (string)languageTag;
+
+            // assert
+            testResult.Should().Be(testLanguageTag, "'{0}' has a Script subtag reserved for private use, which is well-formed (RFC 5646 §2.2.3¶3)", testLanguageTag);
+        }
+
+        #endregion
+
         #region Test: Create_WithLanguageTagWhenExtendedLanguageSubtagsAreMisplaced
 
         [Theory]
@@ -3106,6 +3161,22 @@ namespace DataStandardizer.LanguageTag.Tests
             // assert
             controlResult.Should().BeTrue("the language tag '{0}' has no repeated subtags", controlLanguageTag);
             testResult.Should().BeFalse("the language tag '{0}' repeats a variant subtag or extension singleton (RFC 5646 §2.2.5, §2.2.6)", testLanguageTag);
+        }
+
+        #endregion
+
+        #region Test: TryCreate_WithLanguageTagWhenScriptSubtagIsPrivateUse
+
+        [Theory]
+        [MemberData(nameof(PrivateUseScriptLanguageTags))]
+        public void TryCreate_WithLanguageTagWhenScriptSubtagIsPrivateUse_ReturnsTrue(string testLanguageTag)
+        {
+            // act
+            var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, out var languageTag);
+
+            // assert
+            testResult.Should().BeTrue("'{0}' has a Script subtag reserved for private use, which is well-formed (RFC 5646 §2.2.3¶3)", testLanguageTag);
+            ((string)languageTag).Should().Be(testLanguageTag);
         }
 
         #endregion

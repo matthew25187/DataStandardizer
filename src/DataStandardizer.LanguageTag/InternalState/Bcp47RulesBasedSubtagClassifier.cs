@@ -112,10 +112,10 @@ namespace DataStandardizer.LanguageTag.InternalState
             // Include alpha-4 codes from ISO 15924 (ref. RFC 5646 §2.2.3¶2)
             var iso15924Names = Enum.GetNames(typeof(Iso15924Script));
 
-            // Include alpha-4 codes reserved for private use (ref. RFC 5646 §2.2.3¶3)
+            // Include alpha-4 codes reserved for private use, Qaaa to Qaaz and then Qaba to Qabx (ref. RFC 5646 §2.2.3¶3)
             var iso15924ReservedNames = new List<string>();
             for (var thirdCharacter = 'a'; thirdCharacter <= 'b'; thirdCharacter++)
-            for (var fourthCharacter = 'a'; fourthCharacter <= 'x'; fourthCharacter++)
+            for (var fourthCharacter = 'a'; fourthCharacter <= (thirdCharacter == 'a' ? 'z' : 'x'); fourthCharacter++)
             {
                 iso15924ReservedNames.Add(string.Concat("Qa", thirdCharacter.ToString(), fourthCharacter.ToString()));
             }

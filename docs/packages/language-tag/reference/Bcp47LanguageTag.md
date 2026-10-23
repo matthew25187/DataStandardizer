@@ -77,6 +77,10 @@ Subtags of four or more characters are letters only, so `12345` is rejected.
 Extended language subtags may follow only a two- or three-letter primary
 language subtag (§2.2.2), so `zh-yue` is accepted and `abcde-yue` is not.
 
+Without a subtag registry, the script subtag is an ISO 15924 code or one of the
+50 codes reserved for private use (§2.2.3¶3): `Qaaa` to `Qaaz`, then `Qaba` to
+`Qabx`. So `en-Qaaz` and `en-Qabx` are accepted, and `en-Qaby` is not.
+
 Without a subtag registry, the region subtag is an ISO 3166-1 alpha-2 code, a
 private use code (§2.2.4¶3), or a UN M49 code for the world, a region, a
 sub-region or an intermediate region. The UN M49 code `830` (Channel Islands) is rejected: §2.2.4
