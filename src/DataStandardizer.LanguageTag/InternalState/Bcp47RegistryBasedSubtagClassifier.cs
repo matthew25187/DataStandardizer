@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+#if NETCOREAPP3_0_OR_GREATER
+using System.Runtime.CompilerServices;
+#endif
 using DataStandardizer.LanguageTag.SubtagRegistry;
 #if NETSTANDARD
 using JetBrains.Annotations;
@@ -36,53 +39,15 @@ namespace DataStandardizer.LanguageTag.InternalState
         internal Bcp47RegistryBasedSubtagClassifier([NotNull] IEnumerable<ISubtagRegistryRecord> records)
 #endif
         {
-            var grandfatheredLanguageTags = new List<string>();
-            var primaryLanguageSubtags = new List<string>();
-            var extendedLanguageSubtags = new List<string>();
-            var scriptSubtags = new List<string>();
-            var regionSubtags = new List<string>();
-            var variantSubtags = new List<string>();
+            var subtags = new SubtagLists();
+            subtags.AddRecords(records);
 
-            foreach (var record in records)
-            {
-                var subtag = GetFirstValue(record, FieldName.Subtag);
-                var tag = GetFirstValue(record, FieldName.Tag);
-
-                for (var index = 0; index < record.Count; index++)
-                {
-                    var field = record[index];
-                    if (field.Item1 != FieldName.Type) continue;
-
-                    switch (field.Item2 as string)
-                    {
-                        case Type.Grandfathered:
-                            Add(grandfatheredLanguageTags, tag);
-                            break;
-                        case Type.PrimaryLanguage:
-                            AddExpanded(primaryLanguageSubtags, subtag);
-                            break;
-                        case Type.ExtendedLanguage:
-                            AddExpanded(extendedLanguageSubtags, subtag);
-                            break;
-                        case Type.Script:
-                            AddExpanded(scriptSubtags, subtag);
-                            break;
-                        case Type.Region:
-                            AddExpanded(regionSubtags, subtag);
-                            break;
-                        case Type.Variant:
-                            AddExpanded(variantSubtags, subtag);
-                            break;
-                    }
-                }
-            }
-
-            _grandfatheredLanguageTags = new Bcp47SubtagSet(grandfatheredLanguageTags);
-            _primaryLanguageSubtags = new Bcp47SubtagSet(primaryLanguageSubtags);
-            _extendedLanguageSubtags = new Bcp47SubtagSet(extendedLanguageSubtags);
-            _scriptSubtags = new Bcp47SubtagSet(scriptSubtags);
-            _regionSubtags = new Bcp47SubtagSet(regionSubtags);
-            _variantSubtags = new Bcp47SubtagSet(variantSubtags);
+            _grandfatheredLanguageTags = new Bcp47SubtagSet(subtags.GrandfatheredLanguageTags);
+            _primaryLanguageSubtags = new Bcp47SubtagSet(subtags.PrimaryLanguageSubtags);
+            _extendedLanguageSubtags = new Bcp47SubtagSet(subtags.ExtendedLanguageSubtags);
+            _scriptSubtags = new Bcp47SubtagSet(subtags.ScriptSubtags);
+            _regionSubtags = new Bcp47SubtagSet(subtags.RegionSubtags);
+            _variantSubtags = new Bcp47SubtagSet(subtags.VariantSubtags);
         }
 
         internal override bool IsGrandfathered(CharSpan languageTag)
@@ -117,45 +82,129 @@ namespace DataStandardizer.LanguageTag.InternalState
             return _variantSubtags.Contains(subtag);
         }
 
-#if NETCOREAPP3_0_OR_GREATER
-        private static string? GetFirstValue(ISubtagRegistryRecord record, string fieldName)
-#else
-        [CanBeNull]
-        private static string GetFirstValue([NotNull] ISubtagRegistryRecord record, [NotNull] string fieldName)
-#endif
+        /// <summary>
+        /// The subtags and tags of each type, collected from the records before the sets are built from them.
+        /// </summary>
+        /// <remarks>
+        /// The loop over the records runs once per registry, so on .NET Core it is compiled fully optimized on first use rather than recompiled while it runs, and it is kept apart
+        /// from building the sets so that compilation doesn't include them. On .NET 10, recompiling a loop that also built the sets and expanded every subtag as a possible range took
+        /// about two thirds of the first use of a registry (#339). Fully optimized code has no profile to turn the interface calls on a record into direct calls, so each record's
+        /// fields are read in a single pass.
+        /// </remarks>
+        private sealed class SubtagLists
         {
-            for (var index = 0; index < record.Count; index++)
+            internal readonly List<string> GrandfatheredLanguageTags = new List<string>();
+            internal readonly List<string> PrimaryLanguageSubtags = new List<string>();
+            internal readonly List<string> ExtendedLanguageSubtags = new List<string>();
+            internal readonly List<string> ScriptSubtags = new List<string>();
+            internal readonly List<string> RegionSubtags = new List<string>();
+            internal readonly List<string> VariantSubtags = new List<string>();
+
+#if NETCOREAPP3_0_OR_GREATER
+            [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+            internal void AddRecords(IEnumerable<ISubtagRegistryRecord> records)
+#else
+            internal void AddRecords([NotNull] IEnumerable<ISubtagRegistryRecord> records)
+#endif
             {
-                var field = record[index];
-                if (field.Item1 == fieldName) return field.Item2 as string;
+#if NETCOREAPP3_0_OR_GREATER
+                var types = new List<string?>();
+#else
+                var types = new List<string>();
+#endif
+
+                foreach (var record in records)
+                {
+                    // One pass over the fields, as each access is an interface call. The first Subtag and Tag fields are the ones used.
+#if NETCOREAPP3_0_OR_GREATER
+                    string? subtag = null;
+                    string? tag = null;
+#else
+                    string subtag = null;
+                    string tag = null;
+#endif
+                    var hasSubtag = false;
+                    var hasTag = false;
+                    types.Clear();
+
+                    var fieldCount = record.Count;
+                    for (var index = 0; index < fieldCount; index++)
+                    {
+                        var field = record[index];
+                        if (field.Item1 == FieldName.Type)
+                        {
+                            types.Add(field.Item2 as string);
+                        }
+                        else if (!hasSubtag && field.Item1 == FieldName.Subtag)
+                        {
+                            subtag = field.Item2 as string;
+                            hasSubtag = true;
+                        }
+                        else if (!hasTag && field.Item1 == FieldName.Tag)
+                        {
+                            tag = field.Item2 as string;
+                            hasTag = true;
+                        }
+                    }
+
+                    for (var index = 0; index < types.Count; index++)
+                    {
+                        switch (types[index])
+                        {
+                            case Type.Grandfathered:
+                                Add(GrandfatheredLanguageTags, tag);
+                                break;
+                            case Type.PrimaryLanguage:
+                                AddExpanded(PrimaryLanguageSubtags, subtag);
+                                break;
+                            case Type.ExtendedLanguage:
+                                AddExpanded(ExtendedLanguageSubtags, subtag);
+                                break;
+                            case Type.Script:
+                                AddExpanded(ScriptSubtags, subtag);
+                                break;
+                            case Type.Region:
+                                AddExpanded(RegionSubtags, subtag);
+                                break;
+                            case Type.Variant:
+                                AddExpanded(VariantSubtags, subtag);
+                                break;
+                        }
+                    }
+                }
             }
 
-            return null;
-        }
-
-        /// <summary>
-        /// Add a value to a set, unless it is empty: no subtag or tag is empty, so an empty value would only let an empty subtag through (#253).
-        /// </summary>
+            /// <summary>
+            /// Add a value to a set, unless it is empty: no subtag or tag is empty, so an empty value would only let an empty subtag through (#253).
+            /// </summary>
 #if NETCOREAPP3_0_OR_GREATER
-        private static void Add(List<string> values, string? value)
+            private static void Add(List<string> values, string? value)
 #else
-        private static void Add([NotNull] List<string> values, [CanBeNull] string value)
+            private static void Add([NotNull] List<string> values, [CanBeNull] string value)
 #endif
-        {
-            if (!string.IsNullOrEmpty(value)) values.Add(value);
-        }
-
-#if NETCOREAPP3_0_OR_GREATER
-        private static void AddExpanded(List<string> values, string? subtag)
-#else
-        private static void AddExpanded([NotNull] List<string> values, [CanBeNull] string subtag)
-#endif
-        {
-            if (string.IsNullOrEmpty(subtag)) return;
-
-            foreach (var expandedSubtag in SubtagRegistrySubtagRange.Expand(subtag))
             {
-                Add(values, expandedSubtag);
+                if (!string.IsNullOrEmpty(value)) values.Add(value);
+            }
+
+#if NETCOREAPP3_0_OR_GREATER
+            private static void AddExpanded(List<string> values, string? subtag)
+#else
+            private static void AddExpanded([NotNull] List<string> values, [CanBeNull] string subtag)
+#endif
+            {
+                if (string.IsNullOrEmpty(subtag)) return;
+
+                // Only a handful of records denote a range.
+                if (subtag.IndexOf(SubtagRegistrySubtagRange.Separator, StringComparison.Ordinal) < 0)
+                {
+                    values.Add(subtag);
+                    return;
+                }
+
+                foreach (var expandedSubtag in SubtagRegistrySubtagRange.Expand(subtag))
+                {
+                    Add(values, expandedSubtag);
+                }
             }
         }
     }
