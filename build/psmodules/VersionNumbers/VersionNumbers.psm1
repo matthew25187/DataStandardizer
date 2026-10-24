@@ -85,7 +85,8 @@ function New-PackageVersions {
     <#
     .SYNOPSIS
     The version record of a package before this run produces anything: its stored versions, with the production version
-    equal to the current one.  Matches the record DeclareRequiredVersionNumbers.ps1 builds, property for property.
+    equal to the current one.  The property names are those the Azure DevOps pipelines used, so existing tooling still reads
+    them.
 
     .PARAMETER State
     The stored versions, as returned by Get-PackageVersionState.
@@ -126,8 +127,7 @@ function New-PackageVersions {
 function Add-ProductionVersion {
     <#
     .SYNOPSIS
-    Sets the version this run produces, and the next version to reserve, on a package's version record.  Matches
-    DeclareOptionalVersionNumbers.ps1.
+    Sets the version this run produces, and the next version to reserve, on a package's version record.
 
     .DESCRIPTION
     - Production version: the stored next version.  A preview uses its prerelease number (at least 1); a release uses 0.

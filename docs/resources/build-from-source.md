@@ -43,7 +43,7 @@ package:
 dotnet build DataStandardizer.Money.slnf
 ```
 
-The CI pipelines use these filters to build and test each package individually.
+The GitHub Actions workflows use these filters to build and test each package individually.
 
 ## Run the tests
 

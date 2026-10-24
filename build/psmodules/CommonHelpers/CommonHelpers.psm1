@@ -24,8 +24,8 @@ function ConvertTo-Base64String {
     }
 }
 
-# The helpers below let a build script run unchanged under Azure Pipelines (TF_BUILD) and GitHub Actions (GITHUB_ACTIONS).
-# Under Azure Pipelines they produce exactly the logging commands the scripts used to write themselves.
+# The helpers below connect the build scripts to GitHub Actions.  Outside GitHub Actions, such as in a local run or a test,
+# outputs go to the verbose stream.
 
 function Get-RepositoryRoot {
     [OutputType([string])]
@@ -50,8 +50,8 @@ function Get-PackageManifest {
 function Get-PackageInfo {
     <#
     .SYNOPSIS
-    Returns the package list, in build order.  The PACKAGEINFOS environment variable, set by the Azure DevOps pipelines and
-    by tests, takes precedence over build/packages.json.
+    Returns the package list, in build order.  The PACKAGEINFOS environment variable, set by tests, takes precedence over
+    build/packages.json.
     #>
     [OutputType([pscustomobject[]])]
     param (
@@ -124,15 +124,14 @@ function Get-FirstValue {
 function Get-BuildCommit {
     <#
     .SYNOPSIS
-    The commit being built: BUILD_SOURCEVERSION under Azure Pipelines, GITHUB_SHA under GitHub Actions.  For a pull request
-    both are the merge commit of the PR into its target.
+    The commit being built, GITHUB_SHA.  For a pull request it is the merge commit of the PR into its target.
     #>
     [OutputType([string])]
     param ()
 
-    $commit = Get-FirstValue $env:BUILD_SOURCEVERSION $env:GITHUB_SHA
+    $commit = Get-FirstValue $env:GITHUB_SHA
     if ([string]::IsNullOrEmpty($commit)) {
-        throw 'The commit being built is unknown: set BUILD_SOURCEVERSION or GITHUB_SHA.'
+        throw 'The commit being built is unknown: set GITHUB_SHA.'
     }
 
     return $commit
@@ -142,7 +141,7 @@ function Get-BuildRef {
     [OutputType([string])]
     param ()
 
-    return Get-FirstValue $env:BUILD_SOURCEBRANCH $env:GITHUB_REF
+    return Get-FirstValue $env:GITHUB_REF
 }
 
 function Test-ReleaseBuild {
@@ -164,8 +163,7 @@ function Test-ReleaseBuild {
 function Set-CiOutput {
     <#
     .SYNOPSIS
-    Publishes a value to later steps: an Azure Pipelines variable (an output variable with -IsOutput), or a GitHub Actions
-    step output.  Outside CI it only writes the value to the verbose stream.
+    Publishes a value as a GitHub Actions step output.  Outside GitHub Actions it only writes the value to the verbose stream.
     #>
     param (
         [Parameter(Mandatory)]
@@ -175,18 +173,11 @@ function Set-CiOutput {
         [Parameter(Mandatory)]
         [AllowEmptyString()]
         [AllowNull()]
-        [string]    $Value,
-
-        [Parameter()]
-        [switch]    $IsOutput
+        [string]    $Value
     )
 
     $Value = $Value ?? [string]::Empty
-    if (-not [string]::IsNullOrEmpty($env:TF_BUILD)) {
-        $outputArgument = $IsOutput ? ';isOutput=true' : [string]::Empty
-        Write-Host "##vso[task.setvariable variable=$Name$outputArgument]$Value"
-    }
-    elseif (-not [string]::IsNullOrEmpty($env:GITHUB_OUTPUT)) {
+    if (-not [string]::IsNullOrEmpty($env:GITHUB_OUTPUT)) {
         Add-CiFileEntry -Path $env:GITHUB_OUTPUT -Name $Name -Value $Value
     }
     else {
@@ -211,10 +202,7 @@ function Set-CiVariable {
     )
 
     $Value = $Value ?? [string]::Empty
-    if (-not [string]::IsNullOrEmpty($env:TF_BUILD)) {
-        Write-Host "##vso[task.setvariable variable=$Name]$Value"
-    }
-    elseif (-not [string]::IsNullOrEmpty($env:GITHUB_ENV)) {
+    if (-not [string]::IsNullOrEmpty($env:GITHUB_ENV)) {
         Add-CiFileEntry -Path $env:GITHUB_ENV -Name $Name -Value $Value
     }
     else {
@@ -249,7 +237,7 @@ function Add-CiFileEntry {
 function Write-CiIssue {
     <#
     .SYNOPSIS
-    Writes an error or warning that the CI system shows as an annotation.
+    Writes an error or warning that GitHub Actions shows as an annotation.
     #>
     param (
         [Parameter(Mandatory)]
@@ -260,10 +248,7 @@ function Write-CiIssue {
         [string]    $Message
     )
 
-    if (-not [string]::IsNullOrEmpty($env:TF_BUILD)) {
-        Write-Host "##vso[task.logissue type=$Type]$Message"
-    }
-    elseif (-not [string]::IsNullOrEmpty($env:GITHUB_ACTIONS)) {
+    if (-not [string]::IsNullOrEmpty($env:GITHUB_ACTIONS)) {
         $escaped = $Message.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
         Write-Host "::${Type}::$escaped"
     }
