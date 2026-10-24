@@ -227,6 +227,27 @@ Describe 'BuildPlan' {
         }
     }
 
+    Context 'Get-TestMatrix' {
+        It 'gives each package a leg per configuration on its own runners, or the default ones' {
+            $packages = @(New-TestPackageInfo -PackageName 'DataStandardizer.Core', 'DataStandardizer.File', 'DataStandardizer.File.CSV')
+            $packages[1] | Add-Member -NotePropertyName testRunners -NotePropertyValue @('windows-2025')
+            $legs = @(Get-TestMatrix -PackageInfo $packages -TestPackageName 'DataStandardizer.File', 'DataStandardizer.File.CSV' -DefaultRunner 'ubuntu-24.04', 'windows-2025')
+            $legs | ForEach-Object { "$($_.package)|$($_.configuration)|$($_.os)" } | Should -Be @(
+                'DataStandardizer.File|Debug|windows-2025', 'DataStandardizer.File|Release|windows-2025'
+                'DataStandardizer.File.CSV|Debug|ubuntu-24.04', 'DataStandardizer.File.CSV|Release|ubuntu-24.04'
+                'DataStandardizer.File.CSV|Debug|windows-2025', 'DataStandardizer.File.CSV|Release|windows-2025')
+        }
+
+        It 'tests the deprecated packages on Windows only' {
+            Import-Module (Join-Path $PSScriptRoot '../psmodules/CommonHelpers/CommonHelpers.psm1') -Force
+            $manifest = Get-PackageManifest
+            $windowsOnly = @($manifest.packages | Where-Object { $_.PSObject.Properties['testRunners'] } | Select-Object -ExpandProperty packageName)
+            $windowsOnly | Should -Be @('DataStandardizer.BCP47', 'DataStandardizer.File', 'DataStandardizer.ISO15924', 'DataStandardizer.ISO3166',
+                'DataStandardizer.ISO4217', 'DataStandardizer.ISO639', 'DataStandardizer.UNM49')
+            $manifest.defaultTestRunners | Should -Be @('ubuntu-24.04', 'windows-2025')
+        }
+    }
+
     Context 'Azure DevOps scripts' {
         It 'FindChangedPackages.ps1 writes the same pipeline variable as before' {
             Push-Location (Initialize-Repository)
@@ -276,6 +297,9 @@ Describe 'BuildPlan' {
             $outputs['build-set'] | Should -Be '["DataStandardizer.Core","DataStandardizer.File","DataStandardizer.File.CSV"]'
             $outputs['has-build'] | Should -Be 'true'
             $outputs['has-publish'] | Should -Be 'true'
+            $legs = @($outputs['test-matrix'] | ConvertFrom-Json)
+            $legs.Count | Should -Be 12
+            ($legs | Where-Object package -EQ 'DataStandardizer.Core').os | Sort-Object -Unique | Should -Be @('ubuntu-24.04', 'windows-2025')
         }
 
         It 'uses the override instead of change detection, and writes empty arrays' {

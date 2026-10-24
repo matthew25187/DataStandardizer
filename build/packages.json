@@ -1,11 +1,15 @@
 {
-  "$comment": "The packages built by CI, in build order, and the shared build files whose change marks every package as changed. Read by the scripts in build/ and the GitHub workflows. variableSuffix names each package's version variables: DATASTANDARDIZER_<variableSuffix>__<STABLE|CURRENT|NEXT>_<part>.",
+  "$comment": "The packages built by CI, in build order, and the shared build files whose change marks every package as changed. Read by the scripts in build/ and the GitHub workflows. variableSuffix names each package's version variables: DATASTANDARDIZER_<variableSuffix>__<STABLE|CURRENT|NEXT>_<part>. A package's tests run on each of its testRunners (defaultTestRunners when it has none). The deprecated packages test on Windows only, as on Azure DevOps, until their removal (#98).",
   "sharedBuildFiles": [
     "Directory.Build.props",
     "Directory.Build.targets",
     "Directory.Packages.props",
     "src/Directory.Build.props",
     "src/Directory.Build.targets"
+  ],
+  "defaultTestRunners": [
+    "ubuntu-24.04",
+    "windows-2025"
   ],
   "packages": [
     {
@@ -18,7 +22,10 @@
       "packageName": "DataStandardizer.BCP47",
       "packageSourcePath": "src/DataStandardizer.BCP47",
       "variableSuffix": "BCP47",
-      "enableTests": true
+      "enableTests": true,
+      "testRunners": [
+        "windows-2025"
+      ]
     },
     {
       "packageName": "DataStandardizer.Chronology",
@@ -36,7 +43,10 @@
       "packageName": "DataStandardizer.File",
       "packageSourcePath": "src/DataStandardizer.File",
       "variableSuffix": "FILE",
-      "enableTests": true
+      "enableTests": true,
+      "testRunners": [
+        "windows-2025"
+      ]
     },
     {
       "packageName": "DataStandardizer.File.CSV",
@@ -60,25 +70,37 @@
       "packageName": "DataStandardizer.ISO15924",
       "packageSourcePath": "src/DataStandardizer.ISO15924",
       "variableSuffix": "ISO15924",
-      "enableTests": true
+      "enableTests": true,
+      "testRunners": [
+        "windows-2025"
+      ]
     },
     {
       "packageName": "DataStandardizer.ISO3166",
       "packageSourcePath": "src/DataStandardizer.ISO3166",
       "variableSuffix": "ISO3166",
-      "enableTests": true
+      "enableTests": true,
+      "testRunners": [
+        "windows-2025"
+      ]
     },
     {
       "packageName": "DataStandardizer.ISO4217",
       "packageSourcePath": "src/DataStandardizer.ISO4217",
       "variableSuffix": "ISO4217",
-      "enableTests": true
+      "enableTests": true,
+      "testRunners": [
+        "windows-2025"
+      ]
     },
     {
       "packageName": "DataStandardizer.ISO639",
       "packageSourcePath": "src/DataStandardizer.ISO639",
       "variableSuffix": "ISO639",
-      "enableTests": true
+      "enableTests": true,
+      "testRunners": [
+        "windows-2025"
+      ]
     },
     {
       "packageName": "DataStandardizer.Language",
@@ -102,7 +124,10 @@
       "packageName": "DataStandardizer.UNM49",
       "packageSourcePath": "src/DataStandardizer.UNM49",
       "variableSuffix": "UNM49",
-      "enableTests": true
+      "enableTests": true,
+      "testRunners": [
+        "windows-2025"
+      ]
     }
   ]
 }
