@@ -45,7 +45,7 @@ foreach ($package in Get-PackageInfo) {
 
     foreach ($name in $variables.Keys) {
         if ($PSCmdlet.ShouldProcess($name, "Set to '$($variables[$name])'")) {
-            $null = Invoke-Gh variable set $name --body $variables[$name]
+            [void](Invoke-Gh variable set $name --body $variables[$name])
             $count++
         }
     }
