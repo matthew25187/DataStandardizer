@@ -69,7 +69,8 @@ function Save-NuGetPackage {
         [hashtable[]]   $Source
     )
 
-    [void](New-Item -ItemType Directory -Path $DestinationFolder -Force)
+    # A scratch folder, so it is created even under -WhatIf.
+    [void](New-Item -ItemType Directory -Path $DestinationFolder -Force -WhatIf:$false)
     $lowerId = $PackageId.ToLowerInvariant()
     $lowerVersion = $Version.ToLowerInvariant()
     $destination = Join-Path $DestinationFolder "$lowerId.$lowerVersion.nupkg"
