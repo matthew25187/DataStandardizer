@@ -193,7 +193,10 @@ jobs:
           $VerbosePreference = '${{ inputs.verbose && 'Continue' || 'SilentlyContinue' }}'
           # A dry run with the real variables reserves nothing; a dry run against a prefixed copy exercises the reservation.
           $reserve = '${{ !(inputs.dry-run && inputs.variable-prefix == '') }}' -eq 'true'
-          ./build/scripts/ResolveVersionNumbers.ps1 -PublishSet $env:PUBLISH_SET -Reserve:$reserve `
+          # A dry run publishes nothing, so a version recorded as current by an earlier dry run was never published: it can
+          # only warn when the current package is missing.  A real run must find it.
+          $allowMissing = '${{ inputs.dry-run }}' -eq 'true'
+          ./build/scripts/ResolveVersionNumbers.ps1 -PublishSet $env:PUBLISH_SET -Reserve:$reserve -AllowMissingCurrentPackage:$allowMissing `
             -VariablePrefix '${{ inputs.variable-prefix }}' -TraceLevel ${{ inputs.trace-level }}
 
   build:
