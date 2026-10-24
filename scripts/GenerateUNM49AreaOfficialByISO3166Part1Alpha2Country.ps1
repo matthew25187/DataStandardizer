@@ -6,6 +6,7 @@
 # Source: Standard country or area codes for statistical use (M49), United Nations Statistics Division. #
 # https://unstats.un.org/unsd/methodology/m49/overview/                                                 #
 #########################################################################################################
+#Requires -Version 7.4
 
 param (
     [Parameter(Mandatory, HelpMessage = 'Path to the file containing official English-language codes.')]
@@ -233,6 +234,12 @@ function Out-SourceCode {
         }
         if (-not [string]::IsNullOrWhiteSpace($arabicCodeItem.'Country or Area')) {
             $codeAttributeArguments += [System.CodeDom.CodeAttributeArgument]::new('ArabicCountryOrAreaName', [System.CodeDom.CodePrimitiveExpression]::new($arabicCodeItem.'Country or Area'))
+        }
+        if (-not [string]::IsNullOrWhiteSpace($_.'ISO-alpha2 Code')) {
+            $codeAttributeArguments += [System.CodeDom.CodeAttributeArgument]::new('Iso3166Part1Alpha2Code', [System.CodeDom.CodePrimitiveExpression]::new($_.'ISO-alpha2 Code'))
+        }
+        if (-not [string]::IsNullOrWhiteSpace($_.'ISO-alpha3 Code')) {
+            $codeAttributeArguments += [System.CodeDom.CodeAttributeArgument]::new('Iso3166Part1Alpha3Code', [System.CodeDom.CodePrimitiveExpression]::new($_.'ISO-alpha3 Code'))
         }
         $codeAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.Geography.UnM49AreaCodeAttribute', $codeAttributeArguments)
         [void]$enumField.CustomAttributes.Add($codeAttribute)

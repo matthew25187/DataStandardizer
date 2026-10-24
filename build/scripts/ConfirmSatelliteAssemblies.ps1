@@ -34,6 +34,8 @@ param (
 
 $ErrorActionPreference = 'Stop'
 
+Import-Module (Join-Path $PSScriptRoot '../psmodules/CommonHelpers/CommonHelpers.psm1') -Scope Local
+
 if (-not (Test-Path -Path $PackageFolder)) {
     Write-Error "Package folder $PackageFolder does not exist."
     exit 1
@@ -74,7 +76,7 @@ try {
             Sort-Object -Unique
 
         if ($cultures.Count -lt $MinimumCultureCount) {
-            Write-Host "##vso[task.logissue type=error]$framework carries $($cultures.Count) cultures; at least $MinimumCultureCount were expected."
+            Write-CiIssue -Type error -Message "$framework carries $($cultures.Count) cultures; at least $MinimumCultureCount were expected."
             $failed = $true
         }
         else {

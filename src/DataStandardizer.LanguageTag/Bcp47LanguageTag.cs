@@ -2,18 +2,14 @@
 using JetBrains.Annotations;
 #endif
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.Linq;
 using System.Text.RegularExpressions;
 using DataStandardizer.Core;
 using DataStandardizer.Geography;
 using DataStandardizer.Language;
 using DataStandardizer.LanguageTag.InternalState;
-using static DataStandardizer.LanguageTag.Bcp47Constants;
-using UnM49 = DataStandardizer.Geography.UnM49AreaByAlpha2CountryCode;
 
 namespace DataStandardizer.LanguageTag
 {
@@ -22,6 +18,11 @@ namespace DataStandardizer.LanguageTag
     /// </summary>
     [SuppressMessage("ReSharper", "UnusedMember.Global")]
     public readonly struct Bcp47LanguageTag : IEquatable<Bcp47LanguageTag>
+#if NET7_0_OR_GREATER
+        , ISpanFormattable, IParsable<Bcp47LanguageTag>, ISpanParsable<Bcp47LanguageTag>
+#elif NET6_0_OR_GREATER
+        , ISpanFormattable
+#endif
     {
         #region Declarations
 
@@ -29,70 +30,68 @@ namespace DataStandardizer.LanguageTag
         internal static class ErrorMessage
         {
             internal const string LanguageTagInvalidFormat = "The language tag is not in a valid format.";
+            internal const string LanguageTagNull = "The language tag must not be null.";
             internal const string UninitializedInstance = "The " + nameof(Bcp47LanguageTag) + " instance is not initialised.";
         }
 
-        // global (static) declarations
-        private static readonly Bcp47LanguageTagDefaultState DefaultState = new Bcp47LanguageTagDefaultState();
-        private static readonly Bcp47LanguageTagContext GlobalContext;
+        /// <summary>
+        /// The longest match timeout that <see cref="Regex"/> accepts.
+        /// </summary>
+        private static readonly TimeSpan MaximumMatchTimeout = TimeSpan.FromMilliseconds(int.MaxValue - 1);
 
         // local (instance) declarations
-        private readonly Bcp47LanguageTagContext _context;
 #if NETCOREAPP3_0_OR_GREATER
         private readonly string? _languageTag;
+        private readonly Bcp47LanguageTagParts? _parts; // null only when _languageTag is
 #else
         [CanBeNull] private readonly string _languageTag;
+        [CanBeNull] private readonly Bcp47LanguageTagParts _parts; // null only when _languageTag is
 #endif
 
         #endregion
 
         #region Constructors
 
-        static Bcp47LanguageTag()
-        {
-            var states = new Dictionary<string, IBcp47LanguageTagState> { { LanguageTagStateName.Default, DefaultState } };
-            GlobalContext = new Bcp47LanguageTagContext(states);
-        }
-
 #if NETCOREAPP3_0_OR_GREATER
-        private Bcp47LanguageTag(string languageTag)
+        private Bcp47LanguageTag(string languageTag, Bcp47LanguageTagParts parts)
 #else
-        private Bcp47LanguageTag([NotNull] string languageTag)
+        private Bcp47LanguageTag([NotNull] string languageTag, [NotNull] Bcp47LanguageTagParts parts)
 #endif
         {
             _languageTag = languageTag;
-
-            var states = new Dictionary<string, IBcp47LanguageTagState> { { LanguageTagStateName.Default, DefaultState } };
-            _context = new Bcp47LanguageTagContext(states);
-        }
-
-#if NETCOREAPP3_0_OR_GREATER
-        private Bcp47LanguageTag(string languageTag, SubtagRegistry.SubtagRegistry subtagRegistry)
-#else
-        private Bcp47LanguageTag([NotNull] string languageTag, [NotNull] SubtagRegistry.SubtagRegistry subtagRegistry)
-#endif
-        {
-            _languageTag = languageTag;
-
-            var states = new Dictionary<string, IBcp47LanguageTagState>
-            {
-                { LanguageTagStateName.Default, DefaultState },
-                { LanguageTagStateName.Registry, new Bcp47LanguageTagRegistryState(subtagRegistry) }
-            };
-            _context = new Bcp47LanguageTagContext(states);
+            _parts = parts;
         }
 
         #endregion
 
         #region Operators
 
+        /// <summary>
+        /// Convert a string to a language tag object.
+        /// </summary>
+        /// <param name="languageTag">Language tag on which the object will be based.</param>
+        /// <returns>Language tag object.</returns>
+        /// <exception cref="InvalidCastException">The language tag is <c>null</c> or was not recognised.</exception>
+        /// <remarks>
+        /// Validation will be performed using the default BCP 47 rules.
+        /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static explicit operator Bcp47LanguageTag(string languageTag)
 #else
         public static explicit operator Bcp47LanguageTag([NotNull] string languageTag)
 #endif
         {
-            return new Bcp47LanguageTag(languageTag);
+            if (languageTag is null)
+            {
+                throw new InvalidCastException(ErrorMessage.LanguageTagNull);
+            }
+
+            if (!TryCreate(languageTag, out var result))
+            {
+                throw new InvalidCastException(ErrorMessage.LanguageTagInvalidFormat);
+            }
+
+            return result;
         }
 
 #if NETCOREAPP3_0_OR_GREATER
@@ -136,24 +135,23 @@ namespace DataStandardizer.LanguageTag
                 throw new ArgumentNullException(nameof(languageTag));
             }
 
-            var result = new Bcp47LanguageTag(languageTag);
-            result._context.SelectState(LanguageTagStateName.Default);
-
-            if (!result._context.LanguageTagExpression.IsMatch(languageTag))
+            var parts = ParseByRules(languageTag);
+            if (parts is null)
             {
                 throw new LanguageTagFormatException(ErrorMessage.LanguageTagInvalidFormat, languageTag);
             }
 
-            return result;
+            return new Bcp47LanguageTag(languageTag, parts);
         }
 
         /// <summary>
-        /// Create a language tag object with timeout for the regular expressions.
+        /// Create a language tag object with a match timeout, which has no effect.
         /// </summary>
         /// <param name="languageTag">Language tag on which the object will be based.</param>
-        /// <param name="matchTimeout">Time limit for evaluating the regular expressions.</param>
+        /// <param name="matchTimeout">Not used: language tags are checked by a parser, which cannot time out. Must be positive and no more than <see cref="int.MaxValue"/> - 1 milliseconds, or <see cref="Regex.InfiniteMatchTimeout"/>.</param>
         /// <returns>Language tag object.</returns>
         /// <exception cref="LanguageTagFormatException">The original language tag was not recognised.</exception>
+        [Obsolete(Bcp47Constants.MatchTimeoutObsoleteMessage)]
 #if NETCOREAPP3_0_OR_GREATER
         public static Bcp47LanguageTag Create(string languageTag, TimeSpan matchTimeout)
 #else
@@ -165,15 +163,15 @@ namespace DataStandardizer.LanguageTag
                 throw new ArgumentNullException(nameof(languageTag));
             }
 
-            var result = new Bcp47LanguageTag(languageTag);
-            result._context.SelectState(LanguageTagStateName.Default);
+            ValidateMatchTimeout(matchTimeout);
 
-            if (!result._context.LanguageTagExpression.IsMatch(languageTag, matchTimeout))
+            var parts = ParseByRules(languageTag);
+            if (parts is null)
             {
                 throw new LanguageTagFormatException(ErrorMessage.LanguageTagInvalidFormat, languageTag);
             }
 
-            return result;
+            return new Bcp47LanguageTag(languageTag, parts);
         }
 
         /// <summary>
@@ -199,25 +197,24 @@ namespace DataStandardizer.LanguageTag
                 throw new ArgumentNullException(nameof(subtagRegistry));
             }
 
-            var result = new Bcp47LanguageTag(languageTag, subtagRegistry);
-            result._context.SelectState(LanguageTagStateName.Registry);
-
-            if (!result._context.LanguageTagExpression.IsMatch(languageTag))
+            var parts = ParseByRegistry(languageTag, subtagRegistry);
+            if (parts is null)
             {
                 throw new LanguageTagFormatException(ErrorMessage.LanguageTagInvalidFormat, languageTag);
             }
 
-            return result;
+            return new Bcp47LanguageTag(languageTag, parts);
         }
 
         /// <summary>
-        /// Create a language tag object based on the Subtag Registry and with a timeout for the regular expressions.
+        /// Create a language tag object based on the Subtag Registry and with a match timeout, which has no effect.
         /// </summary>
         /// <param name="languageTag">Language tag on which the object will be based.</param>
         /// <param name="subtagRegistry">A copy of the IANA Subtag Registry.</param>
-        /// <param name="matchTimeout">Time limit for evaluating the regular expressions.</param>
+        /// <param name="matchTimeout">Not used: language tags are checked by a parser, which cannot time out. Must be positive and no more than <see cref="int.MaxValue"/> - 1 milliseconds, or <see cref="Regex.InfiniteMatchTimeout"/>.</param>
         /// <returns>Language tag object.</returns>
         /// <exception cref="LanguageTagFormatException">The original language tag was not recognised.</exception>
+        [Obsolete(Bcp47Constants.MatchTimeoutObsoleteMessage)]
 #if NETCOREAPP3_0_OR_GREATER
         public static Bcp47LanguageTag Create(string languageTag, SubtagRegistry.SubtagRegistry subtagRegistry, TimeSpan matchTimeout)
 #else
@@ -234,16 +231,27 @@ namespace DataStandardizer.LanguageTag
                 throw new ArgumentNullException(nameof(subtagRegistry));
             }
 
-            var result = new Bcp47LanguageTag(languageTag, subtagRegistry);
-            result._context.SelectState(LanguageTagStateName.Registry);
+            ValidateMatchTimeout(matchTimeout);
 
-            if (!result._context.LanguageTagExpression.IsMatch(languageTag, matchTimeout))
+            var parts = ParseByRegistry(languageTag, subtagRegistry);
+            if (parts is null)
             {
                 throw new LanguageTagFormatException(ErrorMessage.LanguageTagInvalidFormat, languageTag);
             }
 
-            return result;
+            return new Bcp47LanguageTag(languageTag, parts);
         }
+
+#if !NETSTANDARD1_0
+        /// <summary>
+        /// Gets the language tag as a span of characters, without copying it.
+        /// </summary>
+        /// <returns>The language tag; an empty span if the <see cref="Bcp47LanguageTag"/> is not initialised.</returns>
+        public ReadOnlySpan<char> AsSpan()
+        {
+            return _languageTag.AsSpan();
+        }
+#endif
 
         public bool Equals(Bcp47LanguageTag other)
         {
@@ -252,7 +260,8 @@ namespace DataStandardizer.LanguageTag
 
         public override int GetHashCode()
         {
-            return (_languageTag != null ? _languageTag.GetHashCode() : 0);
+            // Must agree with Equals, which compares case-insensitively.
+            return (_languageTag != null ? StringComparer.OrdinalIgnoreCase.GetHashCode(_languageTag) : 0);
         }
 
         /// <summary>
@@ -272,7 +281,11 @@ namespace DataStandardizer.LanguageTag
         /// <returns>A <see cref="Iso3166Part1Alpha2Country"/> enum representing the Region subtag, if compatible; <c>null</c> if the Region subtag does not exist or is not an ISO 3166-1 alpha-2 code.</returns>
         public Iso3166Part1Alpha2Country? ToIso3166Part1Alpha2()
         {
-            if (!Enum.TryParse<Iso3166Part1Alpha2Country>(RegionSubtag, true, out var result)) return null;
+            // A region subtag is either 2ALPHA or 3DIGIT. Enum.TryParse would accept a 3DIGIT (UN M.49) subtag
+            // as a raw numeric value, so only the two-letter form is an ISO 3166-1 alpha-2 candidate.
+            var regionSubtag = RegionSubtag;
+            if (regionSubtag == null || regionSubtag.Length != 2) return null;
+            if (!Enum.TryParse<Iso3166Part1Alpha2Country>(regionSubtag, true, out var result)) return null;
             return result;
 
         }
@@ -326,14 +339,44 @@ namespace DataStandardizer.LanguageTag
             return _languageTag ?? base.ToString() ?? GetType().FullName ?? GetType().Name;
         }
 
+#if NET6_0_OR_GREATER
+        /// <summary>
+        /// Copy the language tag into a span of characters.
+        /// </summary>
+        /// <param name="destination">Span to copy the language tag into.</param>
+        /// <param name="charsWritten">When this method returns, the number of characters written to <paramref name="destination"/>; 0 if it is too short.</param>
+        /// <param name="format">Ignored, as a language tag has only one form.</param>
+        /// <param name="provider">Ignored, as language tags do not depend on culture.</param>
+        /// <returns><c>true</c> if the language tag was copied; <c>false</c> if <paramref name="destination"/> is too short.</returns>
+        /// <remarks>
+        /// The characters written are those that <see cref="ToString()"/> returns.
+        /// </remarks>
+        public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+        {
+            var text = ToString();
+            if (!text.AsSpan().TryCopyTo(destination))
+            {
+                charsWritten = 0;
+                return false;
+            }
+
+            charsWritten = text.Length;
+            return true;
+        }
+
+        string IFormattable.ToString(string? format, IFormatProvider? formatProvider)
+        {
+            return ToString();
+        }
+#endif
+
         /// <summary>
         /// Convert the Region subtag of the language tag to an M.49 code.
         /// </summary>
         /// <returns>An M.49 code representing the Region subtag, if compatible; <c>null</c> if the Region subtag doesn't exist or is not an M.49 code.</returns>
         public ushort? ToUnM49()
         {
-            var m49Codes = UnM49Extensions.GetM49Codes(typeof(UnM49));
-            if (ushort.TryParse(RegionSubtag, NumberStyles.Integer, CultureInfo.InvariantCulture, out var unM49CandidateCodeResult) && m49Codes.Contains(unM49CandidateCodeResult))
+            if (ushort.TryParse(RegionSubtag, NumberStyles.Integer, CultureInfo.InvariantCulture, out var unM49CandidateCodeResult) && Bcp47UnM49Codes.Contains(unM49CandidateCodeResult))
             {
                 return unM49CandidateCodeResult;
             }
@@ -362,6 +405,7 @@ namespace DataStandardizer.LanguageTag
         /// </summary>
         /// <param name="extendedLanguageSubtag">Subtag to check.</param>
         /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <exception cref="ArgumentNullException">The subtag is <c>null</c>.</exception>
         /// <remarks>
         /// Validation will be performed using the default BCP 47 rules.
         /// </remarks>
@@ -371,16 +415,35 @@ namespace DataStandardizer.LanguageTag
         public static bool CheckExtendedLanguageSubtag([NotNull] string extendedLanguageSubtag)
 #endif
         {
-            return GlobalContext.ExtendedLanguageSubtagExpression.IsMatch(extendedLanguageSubtag);
+            if (extendedLanguageSubtag is null) throw new ArgumentNullException(nameof(extendedLanguageSubtag));
+
+            return Bcp47RulesBasedSubtagClassifier.Instance.IsExtendedLanguage(extendedLanguageSubtag.AsSpan());
         }
+
+#if !NETSTANDARD1_0
+        /// <summary>
+        /// Determine if a span of characters contains a valid Extended Language subtag.
+        /// </summary>
+        /// <param name="extendedLanguageSubtag">Subtag to check.</param>
+        /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <remarks>
+        /// Validation will be performed using the default BCP 47 rules.
+        /// </remarks>
+        public static bool CheckExtendedLanguageSubtag(ReadOnlySpan<char> extendedLanguageSubtag)
+        {
+            return Bcp47RulesBasedSubtagClassifier.Instance.IsExtendedLanguage(extendedLanguageSubtag);
+        }
+#endif
 
         /// <summary>
         /// Determine if a string contains a valid Extension subtag.
         /// </summary>
         /// <param name="extensionSubtag">Subtag to check.</param>
         /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <exception cref="ArgumentNullException">The subtag is <c>null</c>.</exception>
         /// <remarks>
-        /// Validation will be performed using the default BCP 47 rules.
+        /// Validation will be performed using the default BCP 47 rules. The string must contain exactly one extension: a singleton followed by its subtags.
+        /// Whether a singleton is repeated within a language tag is checked when the whole tag is validated.
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool CheckExtensionSubtag(string extensionSubtag)
@@ -388,31 +451,33 @@ namespace DataStandardizer.LanguageTag
         public static bool CheckExtensionSubtag([NotNull] string extensionSubtag)
 #endif
         {
-            var extensionSubtagMatch = GlobalContext.ExtensionSubtagExpression.Match(extensionSubtag);
-            if (extensionSubtagMatch.Success)
-            {
-                var extensionSubtagGroup = extensionSubtagMatch.Groups[LanguageTagSubtagGroupName.Extension];
-                if (extensionSubtagGroup.Success && !string.IsNullOrEmpty(extensionSubtagGroup.Value))
-                {
-                    var extensionSubtags = extensionSubtagGroup.Captures
-                        .Cast<Capture>()
-                        .ToLookup(capture => capture.Value.Split('-').ElementAtOrDefault(0), capture => capture.Value.Split('-').Skip(1));
-                    if (extensionSubtags.Any(subtag => subtag.Count() > 1))
-                    {
-                        // Duplicate extensions detected; extension subtags must be unique (ref. RFC 5646 §2.2.6¶3).
-                        return false;
-                    }
-                }
-            }
+            if (extensionSubtag is null) throw new ArgumentNullException(nameof(extensionSubtag));
 
-            return extensionSubtagMatch.Success;
+            return Bcp47LanguageTagParser.IsExtension(extensionSubtag.AsSpan());
         }
+
+#if !NETSTANDARD1_0
+        /// <summary>
+        /// Determine if a span of characters contains a valid Extension subtag.
+        /// </summary>
+        /// <param name="extensionSubtag">Subtag to check.</param>
+        /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <remarks>
+        /// Validation will be performed using the default BCP 47 rules. The span must contain exactly one extension: a singleton followed by its subtags.
+        /// Whether a singleton is repeated within a language tag is checked when the whole tag is validated.
+        /// </remarks>
+        public static bool CheckExtensionSubtag(ReadOnlySpan<char> extensionSubtag)
+        {
+            return Bcp47LanguageTagParser.IsExtension(extensionSubtag);
+        }
+#endif
 
         /// <summary>
         /// Determine if a string contains a valid Primary Language subtag.
         /// </summary>
         /// <param name="primaryLanguageSubtag">Subtag to check.</param>
         /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <exception cref="ArgumentNullException">The subtag is <c>null</c>.</exception>
         /// <remarks>
         /// Validation will be performed using the default BCP 47 rules.
         /// </remarks>
@@ -422,14 +487,32 @@ namespace DataStandardizer.LanguageTag
         public static bool CheckPrimaryLanguageSubtag([NotNull] string primaryLanguageSubtag)
 #endif
         {
-            return GlobalContext.PrimaryLanguageSubtagExpression.IsMatch(primaryLanguageSubtag);
+            if (primaryLanguageSubtag is null) throw new ArgumentNullException(nameof(primaryLanguageSubtag));
+
+            return Bcp47RulesBasedSubtagClassifier.Instance.IsPrimaryLanguage(primaryLanguageSubtag.AsSpan(), out _);
         }
+
+#if !NETSTANDARD1_0
+        /// <summary>
+        /// Determine if a span of characters contains a valid Primary Language subtag.
+        /// </summary>
+        /// <param name="primaryLanguageSubtag">Subtag to check.</param>
+        /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <remarks>
+        /// Validation will be performed using the default BCP 47 rules.
+        /// </remarks>
+        public static bool CheckPrimaryLanguageSubtag(ReadOnlySpan<char> primaryLanguageSubtag)
+        {
+            return Bcp47RulesBasedSubtagClassifier.Instance.IsPrimaryLanguage(primaryLanguageSubtag, out _);
+        }
+#endif
 
         /// <summary>
         /// Determine if a string contains a valid Private Use subtag.
         /// </summary>
         /// <param name="privateUseSubtag">Subtag to check.</param>
         /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <exception cref="ArgumentNullException">The subtag is <c>null</c>.</exception>
         /// <remarks>
         /// Validation will be performed using the default BCP 47 rules.
         /// </remarks>
@@ -439,14 +522,32 @@ namespace DataStandardizer.LanguageTag
         public static bool CheckPrivateUseSubtag([NotNull] string privateUseSubtag)
 #endif
         {
-            return GlobalContext.PrivateUseSubtagExpression.IsMatch(privateUseSubtag);
+            if (privateUseSubtag is null) throw new ArgumentNullException(nameof(privateUseSubtag));
+
+            return Bcp47LanguageTagParser.IsPrivateUse(privateUseSubtag.AsSpan());
         }
+
+#if !NETSTANDARD1_0
+        /// <summary>
+        /// Determine if a span of characters contains a valid Private Use subtag.
+        /// </summary>
+        /// <param name="privateUseSubtag">Subtag to check.</param>
+        /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <remarks>
+        /// Validation will be performed using the default BCP 47 rules.
+        /// </remarks>
+        public static bool CheckPrivateUseSubtag(ReadOnlySpan<char> privateUseSubtag)
+        {
+            return Bcp47LanguageTagParser.IsPrivateUse(privateUseSubtag);
+        }
+#endif
 
         /// <summary>
         /// Determine if a string contains a valid Region subtag.
         /// </summary>
         /// <param name="regionSubtag">Subtag to check.</param>
         /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <exception cref="ArgumentNullException">The subtag is <c>null</c>.</exception>
         /// <remarks>
         /// Validation will be performed using the default BCP 47 rules.
         /// </remarks>
@@ -456,14 +557,32 @@ namespace DataStandardizer.LanguageTag
         public static bool CheckRegionSubtag([NotNull] string regionSubtag)
 #endif
         {
-            return GlobalContext.RegionSubtagExpression.IsMatch(regionSubtag);
+            if (regionSubtag is null) throw new ArgumentNullException(nameof(regionSubtag));
+
+            return Bcp47RulesBasedSubtagClassifier.Instance.IsRegion(regionSubtag.AsSpan());
         }
+
+#if !NETSTANDARD1_0
+        /// <summary>
+        /// Determine if a span of characters contains a valid Region subtag.
+        /// </summary>
+        /// <param name="regionSubtag">Subtag to check.</param>
+        /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <remarks>
+        /// Validation will be performed using the default BCP 47 rules.
+        /// </remarks>
+        public static bool CheckRegionSubtag(ReadOnlySpan<char> regionSubtag)
+        {
+            return Bcp47RulesBasedSubtagClassifier.Instance.IsRegion(regionSubtag);
+        }
+#endif
 
         /// <summary>
         /// Determine if a string contains a valid Script subtag.
         /// </summary>
         /// <param name="scriptSubtag">Subtag to check.</param>
         /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <exception cref="ArgumentNullException">The subtag is <c>null</c>.</exception>
         /// <remarks>
         /// Validation will be performed using the default BCP 47 rules.
         /// </remarks>
@@ -473,16 +592,35 @@ namespace DataStandardizer.LanguageTag
         public static bool CheckScriptSubtag([NotNull] string scriptSubtag)
 #endif
         {
-            return GlobalContext.ScriptSubtagExpression.IsMatch(scriptSubtag);
+            if (scriptSubtag is null) throw new ArgumentNullException(nameof(scriptSubtag));
+
+            return Bcp47RulesBasedSubtagClassifier.Instance.IsScript(scriptSubtag.AsSpan());
         }
+
+#if !NETSTANDARD1_0
+        /// <summary>
+        /// Determine if a span of characters contains a valid Script subtag.
+        /// </summary>
+        /// <param name="scriptSubtag">Subtag to check.</param>
+        /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <remarks>
+        /// Validation will be performed using the default BCP 47 rules.
+        /// </remarks>
+        public static bool CheckScriptSubtag(ReadOnlySpan<char> scriptSubtag)
+        {
+            return Bcp47RulesBasedSubtagClassifier.Instance.IsScript(scriptSubtag);
+        }
+#endif
 
         /// <summary>
         /// Determine if a string contains a valid Variant subtag.
         /// </summary>
         /// <param name="variantSubtag">Subtag to check.</param>
         /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <exception cref="ArgumentNullException">The subtag is <c>null</c>.</exception>
         /// <remarks>
-        /// Validation will be performed using the default BCP 47 rules.
+        /// Validation will be performed using the default BCP 47 rules. The string must contain exactly one subtag.
+        /// Whether a variant is repeated within a language tag is checked when the whole tag is validated.
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool CheckVariantSubtag(string variantSubtag)
@@ -490,31 +628,36 @@ namespace DataStandardizer.LanguageTag
         public static bool CheckVariantSubtag([NotNull] string variantSubtag)
 #endif
         {
-            var variantSubtagMatch = GlobalContext.VariantSubtagExpression.Match(variantSubtag);
-            if (variantSubtagMatch?.Success ?? false)
-            {
-                var variantSubtagGroup = variantSubtagMatch.Groups[LanguageTagSubtagGroupName.Variant];
-                if (variantSubtagGroup.Success && !string.IsNullOrEmpty(variantSubtagGroup.Value))
-                {
-                    var variantSubtags = variantSubtagGroup.Captures.Cast<Capture>().Select(capture => capture.Value).ToArray();
-                    if (variantSubtags.Length > variantSubtags.Distinct(StringComparer.OrdinalIgnoreCase).Count())
-                    {
-                        // Duplicate subtags detected; variant subtags must be unique (ref. RFC 5646 §2.2.5¶5).
-                        return false;
-                    }
-                }
-            }
+            if (variantSubtag is null) throw new ArgumentNullException(nameof(variantSubtag));
 
-            return variantSubtagMatch?.Success ?? false;
+            return Bcp47RulesBasedSubtagClassifier.Instance.IsVariant(variantSubtag.AsSpan());
         }
+
+#if !NETSTANDARD1_0
+        /// <summary>
+        /// Determine if a span of characters contains a valid Variant subtag.
+        /// </summary>
+        /// <param name="variantSubtag">Subtag to check.</param>
+        /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <remarks>
+        /// Validation will be performed using the default BCP 47 rules. The span must contain exactly one subtag.
+        /// Whether a variant is repeated within a language tag is checked when the whole tag is validated.
+        /// </remarks>
+        public static bool CheckVariantSubtag(ReadOnlySpan<char> variantSubtag)
+        {
+            return Bcp47RulesBasedSubtagClassifier.Instance.IsVariant(variantSubtag);
+        }
+#endif
 
         /// <summary>
         /// Determine if a string contains a valid BCP 47 language tag.
         /// </summary>
         /// <param name="languageTagString">Language tag to test.</param>
         /// <returns><c>true</c> if the language tag is valid; <c>false</c> if not.</returns>
+        /// <exception cref="ArgumentNullException">The language tag is <c>null</c>.</exception>
         /// <remarks>
-        /// Validation will be performed using the default BCP 47 rules.
+        /// Validation will be performed using the default BCP 47 rules. A language tag that repeats a variant subtag or an extension singleton,
+        /// compared case-insensitively, is not well-formed (RFC 5646 §2.2.5, §2.2.6). The 26 grandfathered language tags are well-formed (§2.1, §2.2.9).
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool IsWellFormedLanguageTagString(string languageTagString)
@@ -522,27 +665,26 @@ namespace DataStandardizer.LanguageTag
         public static bool IsWellFormedLanguageTagString([NotNull] string languageTagString)
 #endif
         {
-            var languageTagMatch = GlobalContext.LanguageTagExpression.Match(languageTagString);
-            var isValidLanguageTag = languageTagMatch?.Success ?? false;
+            if (languageTagString is null) throw new ArgumentNullException(nameof(languageTagString));
 
-            if (languageTagMatch?.Groups[LanguageTagSubtagGroupName.Variant] is Group variantSubtagGroup)
-            {
-                if (variantSubtagGroup.Success && !string.IsNullOrEmpty(variantSubtagGroup.Value) && !CheckVariantSubtag(variantSubtagGroup.Value))
-                {
-                    isValidLanguageTag = false;
-                }
-            }
-
-            if (languageTagMatch?.Groups[LanguageTagSubtagGroupName.Extension] is Group extensionSubtagGroup)
-            {
-                if (extensionSubtagGroup.Success && !string.IsNullOrEmpty(extensionSubtagGroup.Value) && !CheckExtensionSubtag(extensionSubtagGroup.Value))
-                {
-                    isValidLanguageTag = false;
-                }
-            }
-
-            return isValidLanguageTag;
+            return IsWellFormedByRules(languageTagString);
         }
+
+#if !NETSTANDARD1_0
+        /// <summary>
+        /// Determine if a span of characters contains a valid BCP 47 language tag.
+        /// </summary>
+        /// <param name="languageTagString">Language tag to test.</param>
+        /// <returns><c>true</c> if the language tag is valid; <c>false</c> if not.</returns>
+        /// <remarks>
+        /// Validation will be performed using the default BCP 47 rules. A language tag that repeats a variant subtag or an extension singleton,
+        /// compared case-insensitively, is not well-formed (RFC 5646 §2.2.5, §2.2.6). The 26 grandfathered language tags are well-formed (§2.1, §2.2.9).
+        /// </remarks>
+        public static bool IsWellFormedLanguageTagString(ReadOnlySpan<char> languageTagString)
+        {
+            return Bcp47LanguageTagParser.Parse(languageTagString, Bcp47RulesBasedSubtagClassifier.Instance, out _) == Bcp47ParseStatus.WellFormed;
+        }
+#endif
 
         /// <summary>
         /// Create a <see cref="Bcp47LanguageTag"/> with the specified language tag.
@@ -565,15 +707,14 @@ namespace DataStandardizer.LanguageTag
                 return false;
             }
 
-            result = new Bcp47LanguageTag(languageTag);
-            result._context.SelectState(LanguageTagStateName.Default);
-
-            if (!result._context.LanguageTagExpression.IsMatch(languageTag))
+            var parts = ParseByRules(languageTag);
+            if (parts is null)
             {
                 result = default;
                 return false;
             }
 
+            result = new Bcp47LanguageTag(languageTag, parts);
             return true;
         }
 
@@ -581,9 +722,10 @@ namespace DataStandardizer.LanguageTag
         /// Create a <see cref="Bcp47LanguageTag"/> with the specified language tag and timeout.
         /// </summary>
         /// <param name="languageTag">An IETF BCP 47 language tag.</param>
-        /// <param name="matchTimeout">Time limit for evaluating the regular expressions.</param>
+        /// <param name="matchTimeout">Not used: language tags are checked by a parser, which cannot time out. Must be positive and no more than <see cref="int.MaxValue"/> - 1 milliseconds, or <see cref="Regex.InfiniteMatchTimeout"/>.</param>
         /// <param name="result">When this method returns, contains the constructed <see cref="Bcp47LanguageTag"/>.</param>
         /// <returns><c>true</c> if the <see cref="Bcp47LanguageTag"/> was successfully created; otherwise, <c>false</c>.</returns>
+        [Obsolete(Bcp47Constants.MatchTimeoutObsoleteMessage)]
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryCreate(string? languageTag, TimeSpan matchTimeout, out Bcp47LanguageTag result)
 #else
@@ -596,15 +738,16 @@ namespace DataStandardizer.LanguageTag
                 return false;
             }
 
-            result = new Bcp47LanguageTag(languageTag);
-            result._context.SelectState(LanguageTagStateName.Default);
+            ValidateMatchTimeout(matchTimeout);
 
-            if (!result._context.LanguageTagExpression.IsMatch(languageTag, matchTimeout))
+            var parts = ParseByRules(languageTag);
+            if (parts is null)
             {
                 result = default;
                 return false;
             }
 
+            result = new Bcp47LanguageTag(languageTag, parts);
             return true;
         }
 
@@ -627,15 +770,14 @@ namespace DataStandardizer.LanguageTag
                 return false;
             }
 
-            result = new Bcp47LanguageTag(languageTag, subtagRegistry);
-            result._context.SelectState(LanguageTagStateName.Registry);
-
-            if (!result._context.LanguageTagExpression.IsMatch(languageTag))
+            var parts = ParseByRegistry(languageTag, subtagRegistry);
+            if (parts is null)
             {
                 result = default;
                 return false;
             }
 
+            result = new Bcp47LanguageTag(languageTag, parts);
             return true;
         }
 
@@ -644,31 +786,188 @@ namespace DataStandardizer.LanguageTag
         /// </summary>
         /// <param name="languageTag">An IETF BCP 47 language tag.</param>
         /// <param name="subtagRegistry">A copy of the Subtag Registry.</param>
-        /// <param name="matchTimeout">Time limit for evaluating the regular expressions.</param>
+        /// <param name="matchTimeout">Not used: language tags are checked by a parser, which cannot time out. Must be positive and no more than <see cref="int.MaxValue"/> - 1 milliseconds, or <see cref="Regex.InfiniteMatchTimeout"/>.</param>
         /// <param name="result">When this method returns, contains the constructed <see cref="Bcp47LanguageTag"/>.</param>
         /// <returns><c>true</c> if the <see cref="Bcp47LanguageTag"/> was successfully created; otherwise, <c>false</c>.</returns>
+        [Obsolete(Bcp47Constants.MatchTimeoutObsoleteMessage)]
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryCreate(string? languageTag, SubtagRegistry.SubtagRegistry subtagRegistry, TimeSpan matchTimeout, out Bcp47LanguageTag result)
 #else
         public static bool TryCreate([CanBeNull] string languageTag, [NotNull] SubtagRegistry.SubtagRegistry subtagRegistry, TimeSpan matchTimeout, out Bcp47LanguageTag result)
 #endif
         {
-            if (languageTag is null || subtagRegistry is null || !IsWellFormedLanguageTagString(languageTag))
+            if (languageTag is null || subtagRegistry is null)
             {
                 result = default;
                 return false;
             }
 
-            result = new Bcp47LanguageTag(languageTag, subtagRegistry);
-            result._context.SelectState(LanguageTagStateName.Registry);
+            ValidateMatchTimeout(matchTimeout);
 
-            if (!result._context.LanguageTagExpression.IsMatch(languageTag, matchTimeout))
+            var parts = ParseByRegistry(languageTag, subtagRegistry);
+            if (parts is null)
             {
                 result = default;
                 return false;
             }
 
+            result = new Bcp47LanguageTag(languageTag, parts);
             return true;
+        }
+
+#if !NETSTANDARD1_0
+        /// <summary>
+        /// Create a <see cref="Bcp47LanguageTag"/> from a span of characters that contains a language tag.
+        /// </summary>
+        /// <param name="languageTag">An IETF BCP 47 language tag.</param>
+        /// <param name="result">When this method returns, contains the constructed <see cref="Bcp47LanguageTag"/>.</param>
+        /// <returns><c>true</c> if the <see cref="Bcp47LanguageTag"/> was successfully created; otherwise, <c>false</c>.</returns>
+        /// <remarks>
+        /// Validation will be performed using the default BCP 47 rules. The language tag is copied to a string only if it is valid.
+        /// </remarks>
+        public static bool TryCreate(ReadOnlySpan<char> languageTag, out Bcp47LanguageTag result)
+        {
+            return TryCreateFromSpan(languageTag, Bcp47RulesBasedSubtagClassifier.Instance, out result);
+        }
+
+        /// <summary>
+        /// Create a <see cref="Bcp47LanguageTag"/> based on the Subtag Registry from a span of characters that contains a language tag.
+        /// </summary>
+        /// <param name="languageTag">An IETF BCP 47 language tag.</param>
+        /// <param name="subtagRegistry">A copy of the Subtag Registry.</param>
+        /// <param name="result">When this method returns, contains the constructed <see cref="Bcp47LanguageTag"/>.</param>
+        /// <returns><c>true</c> if the <see cref="Bcp47LanguageTag"/> was successfully created; otherwise, <c>false</c>.</returns>
+        /// <remarks>
+        /// The language tag is copied to a string only if it is valid.
+        /// </remarks>
+#if NETCOREAPP3_0_OR_GREATER
+        public static bool TryCreate(ReadOnlySpan<char> languageTag, SubtagRegistry.SubtagRegistry subtagRegistry, out Bcp47LanguageTag result)
+#else
+        public static bool TryCreate(ReadOnlySpan<char> languageTag, [NotNull] SubtagRegistry.SubtagRegistry subtagRegistry, out Bcp47LanguageTag result)
+#endif
+        {
+            if (subtagRegistry is null)
+            {
+                result = default;
+                return false;
+            }
+
+            return TryCreateFromSpan(languageTag, subtagRegistry.Classifier, out result);
+        }
+#endif
+
+#if NET7_0_OR_GREATER
+        /// <summary>
+        /// Create a language tag object.
+        /// </summary>
+        /// <param name="s">Language tag on which the object will be based.</param>
+        /// <param name="provider">Ignored, as language tags do not depend on culture.</param>
+        /// <returns>Language tag object.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="s"/> is <c>null</c>.</exception>
+        /// <exception cref="LanguageTagFormatException">The language tag was not recognised.</exception>
+        /// <remarks>
+        /// Validation will be performed using the default BCP 47 rules, as by <see cref="Create(string)"/>.
+        /// </remarks>
+        public static Bcp47LanguageTag Parse(string s, IFormatProvider? provider)
+        {
+            if (s is null) throw new ArgumentNullException(nameof(s));
+
+            return Create(s);
+        }
+
+        /// <summary>
+        /// Create a language tag object from a span of characters.
+        /// </summary>
+        /// <param name="s">Language tag on which the object will be based.</param>
+        /// <param name="provider">Ignored, as language tags do not depend on culture.</param>
+        /// <returns>Language tag object.</returns>
+        /// <exception cref="LanguageTagFormatException">The language tag was not recognised.</exception>
+        /// <remarks>
+        /// Validation will be performed using the default BCP 47 rules.
+        /// </remarks>
+        public static Bcp47LanguageTag Parse(ReadOnlySpan<char> s, IFormatProvider? provider)
+        {
+            if (!TryCreate(s, out var result)) throw new LanguageTagFormatException(ErrorMessage.LanguageTagInvalidFormat, s.ToString());
+
+            return result;
+        }
+
+        /// <summary>
+        /// Create a <see cref="Bcp47LanguageTag"/> with the specified language tag.
+        /// </summary>
+        /// <param name="s">An IETF BCP 47 language tag.</param>
+        /// <param name="provider">Ignored, as language tags do not depend on culture.</param>
+        /// <param name="result">When this method returns, contains the constructed <see cref="Bcp47LanguageTag"/>.</param>
+        /// <returns><c>true</c> if the <see cref="Bcp47LanguageTag"/> was successfully created; otherwise, <c>false</c>, including for <c>null</c>.</returns>
+        /// <remarks>
+        /// Validation will be performed using the default BCP 47 rules, as by <see cref="TryCreate(string, out Bcp47LanguageTag)"/>.
+        /// </remarks>
+        public static bool TryParse([NotNullWhen(true)] string? s, IFormatProvider? provider, out Bcp47LanguageTag result)
+        {
+            return TryCreate(s, out result);
+        }
+
+        /// <summary>
+        /// Create a <see cref="Bcp47LanguageTag"/> from a span of characters that contains a language tag.
+        /// </summary>
+        /// <param name="s">An IETF BCP 47 language tag.</param>
+        /// <param name="provider">Ignored, as language tags do not depend on culture.</param>
+        /// <param name="result">When this method returns, contains the constructed <see cref="Bcp47LanguageTag"/>.</param>
+        /// <returns><c>true</c> if the <see cref="Bcp47LanguageTag"/> was successfully created; otherwise, <c>false</c>.</returns>
+        /// <remarks>
+        /// Validation will be performed using the default BCP 47 rules. The language tag is copied to a string only if it is valid.
+        /// </remarks>
+        public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out Bcp47LanguageTag result)
+        {
+            return TryCreate(s, out result);
+        }
+#endif
+
+        #endregion
+
+        #region Internal Static Methods
+
+        /// <summary>
+        /// Find the first variant subtag that repeats an earlier one, compared case-insensitively (ref. RFC 5646 §2.1.1, §2.2.5¶5).
+        /// </summary>
+        /// <returns>Index of the repeated subtag; -1 if every subtag is unique.</returns>
+#if NETCOREAPP3_0_OR_GREATER
+        internal static int IndexOfRepeatedVariantSubtag(string[] variantSubtags)
+#else
+        internal static int IndexOfRepeatedVariantSubtag([NotNull] string[] variantSubtags)
+#endif
+        {
+            for (var index = 1; index < variantSubtags.Length; index++)
+            {
+                for (var earlierIndex = 0; earlierIndex < index; earlierIndex++)
+                {
+                    if (string.Equals(variantSubtags[index], variantSubtags[earlierIndex], StringComparison.OrdinalIgnoreCase)) return index;
+                }
+            }
+
+            return -1;
+        }
+
+        /// <summary>
+        /// Find the first extension whose singleton repeats an earlier one, compared case-insensitively (ref. RFC 5646 §2.1.1, §2.2.6¶3).
+        /// </summary>
+        /// <param name="extensionSubtags">Extensions, each a singleton followed by its subtags.</param>
+        /// <returns>Index of the extension with the repeated singleton; -1 if every singleton is unique.</returns>
+#if NETCOREAPP3_0_OR_GREATER
+        internal static int IndexOfRepeatedExtensionSingleton(string[] extensionSubtags)
+#else
+        internal static int IndexOfRepeatedExtensionSingleton([NotNull] string[] extensionSubtags)
+#endif
+        {
+            for (var index = 1; index < extensionSubtags.Length; index++)
+            {
+                for (var earlierIndex = 0; earlierIndex < index; earlierIndex++)
+                {
+                    if (char.ToLowerInvariant(extensionSubtags[index][0]) == char.ToLowerInvariant(extensionSubtags[earlierIndex][0])) return index;
+                }
+            }
+
+            return -1;
         }
 
         #endregion
@@ -690,7 +989,7 @@ namespace DataStandardizer.LanguageTag
             {
                 if (_languageTag is null) throw new InvalidOperationException(ErrorMessage.UninitializedInstance);
 
-                return DoGetExtendedLanguageSubtags();
+                return Bcp47LanguageTagParts.Copy(Parts.ExtendedLanguages);
             }
         }
 
@@ -709,13 +1008,16 @@ namespace DataStandardizer.LanguageTag
             {
                 if (_languageTag is null) throw new InvalidOperationException(ErrorMessage.UninitializedInstance);
 
-                return DoGetExtensionSubtags();
+                return Bcp47LanguageTagParts.Copy(Parts.Extensions);
             }
         }
 
         /// <summary>
         /// Gets the Primary Language Subtag of the BCP 47 language tag.
         /// </summary>
+        /// <remarks>
+        /// The empty string for a grandfathered language tag, which is interpreted as a whole and has no subtags (RFC 5646 §2.2.8), and for a private use language tag.
+        /// </remarks>
         /// <exception cref="InvalidOperationException">The <see cref="Bcp47LanguageTag"/> is not initialised.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public string PrimaryLanguageSubtag
@@ -728,7 +1030,7 @@ namespace DataStandardizer.LanguageTag
             {
                 if (_languageTag is null) throw new InvalidOperationException(ErrorMessage.UninitializedInstance);
 
-                return DoGetPrimaryLanguageSubtag();
+                return Parts.PrimaryLanguage;
             }
         }
 
@@ -742,7 +1044,7 @@ namespace DataStandardizer.LanguageTag
             {
                 if (_languageTag is null) throw new InvalidOperationException(ErrorMessage.UninitializedInstance);
 
-                return DoGetPrivateUseSubtag();
+                return Parts.PrivateUse;
             }
         }
 
@@ -761,7 +1063,7 @@ namespace DataStandardizer.LanguageTag
             {
                 if (_languageTag is null) throw new InvalidOperationException(ErrorMessage.UninitializedInstance);
 
-                return DoGetRegionSubtag();
+                return Parts.Region;
             }
         }
 
@@ -780,7 +1082,7 @@ namespace DataStandardizer.LanguageTag
             {
                 if (_languageTag is null) throw new InvalidOperationException(ErrorMessage.UninitializedInstance);
 
-                return DoGetScriptSubtag();
+                return Parts.Script;
             }
         }
 
@@ -799,7 +1101,7 @@ namespace DataStandardizer.LanguageTag
             {
                 if (_languageTag is null) throw new InvalidOperationException(ErrorMessage.UninitializedInstance);
 
-                return DoGetVariantSubtags();
+                return Bcp47LanguageTagParts.Copy(Parts.Variants);
             }
         }
 
@@ -807,150 +1109,97 @@ namespace DataStandardizer.LanguageTag
 
         #region Private Methods
 
+        /// <summary>
+        /// Parse a language tag by the default BCP 47 rules.
+        /// </summary>
+        /// <returns>The subtags; <c>null</c> if the language tag is not well-formed.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        private string[] DoGetExtendedLanguageSubtags()
-#else
-        [NotNull]
-        private string[] DoGetExtendedLanguageSubtags()
-#endif
-        {
-            Debug.Assert(_languageTag != null);
-
-            var languageTagMatch = _context.LanguageTagExpression.Match(_languageTag);
-            Debug.Assert(languageTagMatch.Success);
-
-            var extendedLanguageSubtagGroup = languageTagMatch.Groups[LanguageTagSubtagGroupName.ExtendedLanguage];
-            if (extendedLanguageSubtagGroup.Success)
-            {
-                return extendedLanguageSubtagGroup.Captures.Cast<Capture>().Select(capture => capture.Value).ToArray();
-            }
-
-#if NETSTANDARD1_3_OR_GREATER || NET
-            return Array.Empty<string>();
-#else
-            return new string[] { };
-#endif
-        }
-
-        private Bcp47KeyedSubtag[] DoGetExtensionSubtags()
-        {
-            Debug.Assert(_languageTag != null);
-
-            var languageTagMatch = _context.LanguageTagExpression.Match(_languageTag);
-            Debug.Assert(languageTagMatch.Success);
-
-            var extensionSubtagGroup = languageTagMatch.Groups[LanguageTagSubtagGroupName.Extension];
-            if (extensionSubtagGroup.Success)
-            {
-                return extensionSubtagGroup.Captures.Cast<Capture>().Select(capture => new Bcp47KeyedSubtag(capture.Value)).ToArray();
-            }
-
-#if NETSTANDARD1_3_OR_GREATER
-            return Array.Empty<Bcp47KeyedSubtag>();
-#else
-            return new Bcp47KeyedSubtag[] { };
-#endif
-        }
-
-#if NETCOREAPP3_0_OR_GREATER
-        private string DoGetPrimaryLanguageSubtag()
-#else
-        [NotNull]
-        private string DoGetPrimaryLanguageSubtag()
-#endif
-        {
-            Debug.Assert(_languageTag != null);
-
-            var languageTagMatch = _context.LanguageTagExpression.Match(_languageTag);
-            Debug.Assert(languageTagMatch.Success);
-
-            var primaryLanguageSubtagGroup = languageTagMatch.Groups[LanguageTagSubtagGroupName.PrimaryLanguage];
-            Debug.Assert(primaryLanguageSubtagGroup.Success);
-
-            return primaryLanguageSubtagGroup.Value;
-        }
-
-        private Bcp47KeyedSubtag? DoGetPrivateUseSubtag()
-        {
-            Debug.Assert(_languageTag != null);
-
-            var languageTagMatch = _context.LanguageTagExpression.Match(_languageTag);
-            Debug.Assert(languageTagMatch.Success);
-
-            var privateUseSubtagGroup = languageTagMatch.Groups[LanguageTagSubtagGroupName.PrivateUse];
-            if (privateUseSubtagGroup.Success)
-            {
-                return new Bcp47KeyedSubtag(privateUseSubtagGroup.Value);
-            }
-
-            return null;
-        }
-
-#if NETCOREAPP3_0_OR_GREATER
-        private string? DoGetRegionSubtag()
+        private static Bcp47LanguageTagParts? ParseByRules(string languageTag)
 #else
         [CanBeNull]
-        private string DoGetRegionSubtag()
+        private static Bcp47LanguageTagParts ParseByRules([NotNull] string languageTag)
 #endif
         {
-            Debug.Assert(_languageTag != null);
+            if (Bcp47LanguageTagParser.Parse(languageTag.AsSpan(), Bcp47RulesBasedSubtagClassifier.Instance, out var ranges) != Bcp47ParseStatus.WellFormed) return null;
 
-            var languageTagMatch = _context.LanguageTagExpression.Match(_languageTag);
-            Debug.Assert(languageTagMatch.Success);
-
-            var regionSubtagGroup = languageTagMatch.Groups[LanguageTagSubtagGroupName.Region];
-            if (regionSubtagGroup.Success)
-            {
-                return regionSubtagGroup.Value;
-            }
-
-            return null;
+            return Bcp47LanguageTagParts.FromRanges(languageTag, ranges);
         }
 
+        /// <summary>
+        /// Determine whether a string is a well-formed language tag by the default BCP 47 rules.
+        /// </summary>
 #if NETCOREAPP3_0_OR_GREATER
-        private string? DoGetScriptSubtag()
+        private static bool IsWellFormedByRules(string languageTag)
+#else
+        private static bool IsWellFormedByRules([NotNull] string languageTag)
+#endif
+        {
+            return Bcp47LanguageTagParser.Parse(languageTag.AsSpan(), Bcp47RulesBasedSubtagClassifier.Instance, out _) == Bcp47ParseStatus.WellFormed;
+        }
+
+        /// <summary>
+        /// Parse a language tag against the records of a Subtag Registry.
+        /// </summary>
+        /// <returns>The subtags; <c>null</c> if the language tag is not well-formed.</returns>
+#if NETCOREAPP3_0_OR_GREATER
+        private static Bcp47LanguageTagParts? ParseByRegistry(string languageTag, SubtagRegistry.SubtagRegistry subtagRegistry)
 #else
         [CanBeNull]
-        private string DoGetScriptSubtag()
+        private static Bcp47LanguageTagParts ParseByRegistry([NotNull] string languageTag, [NotNull] SubtagRegistry.SubtagRegistry subtagRegistry)
 #endif
         {
-            Debug.Assert(_languageTag != null);
+            if (Bcp47LanguageTagParser.Parse(languageTag.AsSpan(), subtagRegistry.Classifier, out var ranges) != Bcp47ParseStatus.WellFormed) return null;
 
-            var languageTagMatch = _context.LanguageTagExpression.Match(_languageTag);
-            Debug.Assert(languageTagMatch.Success);
-
-            var scriptSubtagGroup = languageTagMatch.Groups[LanguageTagSubtagGroupName.Script];
-            if (scriptSubtagGroup.Success)
-            {
-                return scriptSubtagGroup.Value;
-            }
-
-            return null;
+            return Bcp47LanguageTagParts.FromRanges(languageTag, ranges);
         }
 
+#if !NETSTANDARD1_0
+        /// <summary>
+        /// Parse a span of characters with a classifier, and copy it to a string only if it is a well-formed language tag.
+        /// </summary>
 #if NETCOREAPP3_0_OR_GREATER
-        private string[] DoGetVariantSubtags()
+        private static bool TryCreateFromSpan(ReadOnlySpan<char> languageTag, Bcp47SubtagClassifier classifier, out Bcp47LanguageTag result)
 #else
-        [NotNull]
-        private string[] DoGetVariantSubtags()
+        private static bool TryCreateFromSpan(ReadOnlySpan<char> languageTag, [NotNull] Bcp47SubtagClassifier classifier, out Bcp47LanguageTag result)
 #endif
         {
-            Debug.Assert(_languageTag != null);
-
-            var languageTagMatch = _context.LanguageTagExpression.Match(_languageTag);
-            Debug.Assert(languageTagMatch.Success);
-
-            var variantSubtagGroup = languageTagMatch.Groups[LanguageTagSubtagGroupName.Variant];
-            if (variantSubtagGroup.Success)
+            if (Bcp47LanguageTagParser.Parse(languageTag, classifier, out var ranges) != Bcp47ParseStatus.WellFormed)
             {
-                return variantSubtagGroup.Captures.Cast<Capture>().Select(capture => capture.Value).ToArray();
+                result = default;
+                return false;
             }
 
-#if NETSTANDARD1_3_OR_GREATER || NET
-            return Array.Empty<string>();
-#else
-            return new string[] { };
+            // The ranges are positions in the span, so they apply equally to its copy.
+            var languageTagString = languageTag.ToString();
+            result = new Bcp47LanguageTag(languageTagString, Bcp47LanguageTagParts.FromRanges(languageTagString, ranges));
+            return true;
+        }
 #endif
+
+        /// <summary>
+        /// Validate a match timeout as the regular expressions did.
+        /// </summary>
+        /// <remarks>
+        /// Language tags are checked by a parser, which cannot time out, so the timeout is otherwise unused (#236).
+        /// </remarks>
+        private static void ValidateMatchTimeout(TimeSpan matchTimeout)
+        {
+            if (matchTimeout == Regex.InfiniteMatchTimeout) return;
+
+            if (matchTimeout <= TimeSpan.Zero || matchTimeout > MaximumMatchTimeout) throw new ArgumentOutOfRangeException(nameof(matchTimeout));
+        }
+
+        /// <summary>
+        /// Gets the subtags of an initialised language tag, decomposed when it was created.
+        /// </summary>
+        private Bcp47LanguageTagParts Parts
+        {
+            get
+            {
+                Debug.Assert(_parts != null);
+
+                return _parts;
+            }
         }
 
         #endregion

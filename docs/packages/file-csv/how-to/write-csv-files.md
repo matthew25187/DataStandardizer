@@ -32,6 +32,10 @@ using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>("file_name.csv"))
 }
 ```
 
+Constructing the writer from a file path or a `Stream` lets the package create the
+`StreamWriter` and size its I/O buffer. A `TextWriter` you supply keeps control of
+its own buffering.
+
 ## Write a header
 
 The header line is just a different type of line to write to the CSV file. It is

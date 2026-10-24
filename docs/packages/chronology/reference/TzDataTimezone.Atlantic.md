@@ -22,6 +22,15 @@ Predefined time zones under `TzDataTimezone.Atlantic`, members of [TzDataTimezon
 | `South_Georgia` | Atlantic/South_Georgia | GS | -54.2667 | -36.5333 |
 | `Stanley` | Atlantic/Stanley | FK | -51.7000 | -57.8500 |
 
+## Links
+
+These fields are links: time zones of their own countries, listed in `zone.tab`, that share the zone lines of a canonical time zone. `IsLink` returns `true` for them, and `Canonical` returns the time zone they link to. Their location metadata is their own, but their history, including that before 1970, is that of the canonical time zone. See [Links and canonical time zones](TzDataTimezone.md#links-and-canonical-time-zones).
+
+| Field | Identifier | Canonical | Country codes | Latitude | Longitude |
+| --- | --- | --- | --- | --- | --- |
+| `Reykjavik` | Atlantic/Reykjavik | `Africa.Abidjan` | IS | 64.1500 | -21.8500 |
+| `St_Helena` | Atlantic/St_Helena | `Africa.Abidjan` | SH | -15.9167 | -5.7000 |
+
 ## See also
 
 - [TzDataTimezone](TzDataTimezone.md)

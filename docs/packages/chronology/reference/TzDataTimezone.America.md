@@ -135,6 +135,36 @@ Predefined time zones under `TzDataTimezone.America`, members of [TzDataTimezone
 | `Winnipeg` | America/Winnipeg | CA | 49.8833 | -97.1500 |
 | `Yakutat` | America/Yakutat | US, Alaska - Yakutat | 59.5469 | -139.7272 |
 
+## Links
+
+These fields are links: time zones of their own countries, listed in `zone.tab`, that share the zone lines of a canonical time zone. `IsLink` returns `true` for them, and `Canonical` returns the time zone they link to. Their location metadata is their own, but their history, including that before 1970, is that of the canonical time zone. See [Links and canonical time zones](TzDataTimezone.md#links-and-canonical-time-zones).
+
+| Field | Identifier | Canonical | Country codes | Latitude | Longitude |
+| --- | --- | --- | --- | --- | --- |
+| `Anguilla` | America/Anguilla | `America.Puerto_Rico` | AI | 18.2000 | -63.0667 |
+| `Antigua` | America/Antigua | `America.Puerto_Rico` | AG | 17.0500 | -61.8000 |
+| `Aruba` | America/Aruba | `America.Puerto_Rico` | AW | 12.5000 | -69.9667 |
+| `Atikokan` | America/Atikokan | `America.Panama` | CA, EST - ON (Atikokan), NU (Coral H) | 48.7586 | -91.6217 |
+| `Blanc_Sablon` | America/Blanc-Sablon | `America.Puerto_Rico` | CA, AST - QC (Lower North Shore) | 51.4167 | -57.1167 |
+| `Cayman` | America/Cayman | `America.Panama` | KY | 19.3000 | -81.3833 |
+| `Creston` | America/Creston | `America.Phoenix` | CA, MST - BC (Creston) | 49.1000 | -116.5167 |
+| `Curacao` | America/Curacao | `America.Puerto_Rico` | CW | 12.1833 | -69.0000 |
+| `Dominica` | America/Dominica | `America.Puerto_Rico` | DM | 15.3000 | -61.4000 |
+| `Grenada` | America/Grenada | `America.Puerto_Rico` | GD | 12.0500 | -61.7500 |
+| `Guadeloupe` | America/Guadeloupe | `America.Puerto_Rico` | GP | 16.2333 | -61.5333 |
+| `Kralendijk` | America/Kralendijk | `America.Puerto_Rico` | BQ | 12.1508 | -68.2767 |
+| `Lower_Princes` | America/Lower_Princes | `America.Puerto_Rico` | SX | 18.0514 | -63.0472 |
+| `Marigot` | America/Marigot | `America.Puerto_Rico` | MF | 18.0667 | -63.0833 |
+| `Montserrat` | America/Montserrat | `America.Puerto_Rico` | MS | 16.7167 | -62.2167 |
+| `Nassau` | America/Nassau | `America.Toronto` | BS | 25.0833 | -77.3500 |
+| `Port_of_Spain` | America/Port_of_Spain | `America.Puerto_Rico` | TT | 10.6500 | -61.5167 |
+| `St_Barthelemy` | America/St_Barthelemy | `America.Puerto_Rico` | BL | 17.8833 | -62.8500 |
+| `St_Kitts` | America/St_Kitts | `America.Puerto_Rico` | KN | 17.3000 | -62.7167 |
+| `St_Lucia` | America/St_Lucia | `America.Puerto_Rico` | LC | 14.0167 | -61.0000 |
+| `St_Thomas` | America/St_Thomas | `America.Puerto_Rico` | VI | 18.3500 | -64.9333 |
+| `St_Vincent` | America/St_Vincent | `America.Puerto_Rico` | VC | 13.1500 | -61.2333 |
+| `Tortola` | America/Tortola | `America.Puerto_Rico` | VG | 18.4500 | -64.6167 |
+
 ## See also
 
 - [TzDataTimezone](TzDataTimezone.md)

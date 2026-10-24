@@ -1,0 +1,4 @@
+[*.cs]
+
+# Every await in this library uses ConfigureAwait(false).
+dotnet_diagnostic.CA2007.severity = warning

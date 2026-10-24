@@ -32,7 +32,8 @@ public class Bcp47LanguageTagBuilder :
 ## Remarks
 
 The builder's call sequence is, in order: an optional registry step
-(`WithLanguageSubtagRegistry`), an optional timeout step (`WithTimeout`), then
+(`WithLanguageSubtagRegistry`), an optional, deprecated timeout step
+(`WithTimeout`), then
 either a full-tag step (`UsingLanguageTag`, which leads straight to `Build()`) or
 the required primary-language step (`UsingPrimaryLanguageSubtag`) followed by the
 optional extended-language, script, region, variant, extension, and private-use
@@ -51,8 +52,9 @@ implementations** (see [Explicit implementation](#explicit-implementation)) reac
 only through the chain — they cannot be called on a `Bcp47LanguageTagBuilder`-typed
 variable directly.
 
-Undefined enum values and malformed string subtags throw `ArgumentException` (or
-`ArgumentNullException` for `null`) at the point of the call; `Build()` may throw
+Undefined enum values, malformed string subtags and repeated variant subtags or
+extension singletons throw `ArgumentException` (or `ArgumentNullException` for
+`null`) at the point of the call; `Build()` may throw
 `LanguageTagFormatException` (the resulting tag is invalid) or
 `InvalidOperationException` (e.g. more than three extended language subtags, or an
 internal state error).
@@ -74,7 +76,7 @@ they are callable directly on a `Bcp47LanguageTagBuilder` instance. Each returns
 | `UsingPrimaryLanguageSubtag(Iso639Part5LanguageFamily primaryLanguageSubtag)` | `IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext` | Throws `ArgumentException` if the code is undefined. |
 | `UsingPrimaryLanguageSubtag(string primaryLanguageSubtag)` | `IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext` | Registry/string form. Throws `ArgumentNullException` / `ArgumentException` for an invalid subtag. |
 | `WithLanguageSubtagRegistry(SubtagRegistry subtagRegistry)` | `IBcp47LanguageTagBuilderStepWithLanguageSubtagRegistryNext` | Optional registry step. Throws `ArgumentNullException` if `null`. |
-| `WithTimeout(TimeSpan matchTimeout)` | `IBcp47LanguageTagBuilderStepWithTimeoutNext` | Optional timeout step; bounds the validation regex match time. |
+| `WithTimeout(TimeSpan matchTimeout)` | `IBcp47LanguageTagBuilderStepWithTimeoutNext` | **Deprecated.** Marked `[Obsolete]` and will be removed in version 2.0. Language tags are checked by a parser, which can't time out, so the timeout has no effect; leave the step out. `Build()` still checks the value as `Bcp47LanguageTag.Create(string, TimeSpan)` does, and throws `ArgumentOutOfRangeException` for one out of range. |
 
 ### Explicit implementation
 
@@ -89,21 +91,28 @@ step chain (the relevant `IBcp47LanguageTagBuilderStep…` interface), not on a
 | `UsingExtendedLanguageSubtags(string)` | `IBcp47LanguageTagBuilderStepUsingExtendedLanguageSubtagsNext` | Reached through `IBcp47LanguageTagBuilderStepUsingExtendedLanguageSubtags`. One subtag. |
 | `UsingExtendedLanguageSubtags(string, string)` | `IBcp47LanguageTagBuilderStepUsingExtendedLanguageSubtagsNext` | Two subtags. |
 | `UsingExtendedLanguageSubtags(string, string, string)` | `IBcp47LanguageTagBuilderStepUsingExtendedLanguageSubtagsNext` | Three subtags (the maximum). |
-| `UsingExtensionSubtags(string, params string[])` | `IBcp47LanguageTagBuilderStepUsingExtensionSubtagsNext` | Reached through `IBcp47LanguageTagBuilderStepUsingExtensionSubtags`. |
+| `UsingExtensionSubtags(string, params string[])` | `IBcp47LanguageTagBuilderStepUsingExtensionSubtagsNext` | Reached through `IBcp47LanguageTagBuilderStepUsingExtensionSubtags`. Throws `ArgumentException` if two extensions share a singleton (compared case-insensitively). A `null` or invalid subtag in the array throws with `ParamName` `extensionSubtags`. |
+| `UsingExtensionSubtags(string, params ReadOnlySpan<string>)` | `IBcp47LanguageTagBuilderStepUsingExtensionSubtagsNext` | `net10.0` only. As for the array overload, but the builder reads the subtags from the span without copying them to an array first. The compiler picks this overload for a list of arguments. |
 | `UsingPrivateUseSubtag(string)` | `IBcp47LanguageTagBuilderStepUsingPrivateUseSubtagNext` | Reached through `IBcp47LanguageTagBuilderStepUsingPrivateUseSubtag`. |
 | `UsingRegionSubtag(Iso3166Part1Alpha2Country)` | `IBcp47LanguageTagBuilderStepUsingRegionSubtagNext` | Reached through `IBcp47LanguageTagBuilderStepUsingRegionSubtag`. |
-| `UsingRegionSubtag(UnM49AreaByAlpha2CountryCode)` | `IBcp47LanguageTagBuilderStepUsingRegionSubtagNext` | |
-| `UsingRegionSubtag(UnM49AreaByAlpha3CountryCode)` | `IBcp47LanguageTagBuilderStepUsingRegionSubtagNext` | |
+| `UsingRegionSubtag(UnM49Area)` | `IBcp47LanguageTagBuilderStepUsingRegionSubtagNext` | Accepts a UN M49 area made up of more than one country, such as `UnM49Area._419`, and writes it as a three-digit subtag (`es-419`). Throws `ArgumentException` for a country or area member such as `UnM49Area._840`, which BCP 47 doesn't allow; use the `Iso3166Part1Alpha2Country` overload for a country. |
+| `UsingRegionSubtag(UnM49AreaByAlpha2CountryCode)` | `IBcp47LanguageTagBuilderStepUsingRegionSubtagNext` | **Deprecated.** Marked `[Obsolete]` and will be removed in version 2.0. Every defined member is a country code, which BCP 47 doesn't allow, so every defined member throws `ArgumentException`. Use the `UnM49Area` overload. |
+| `UsingRegionSubtag(UnM49AreaByAlpha3CountryCode)` | `IBcp47LanguageTagBuilderStepUsingRegionSubtagNext` | **Deprecated.** As for the `UnM49AreaByAlpha2CountryCode` overload. |
 | `UsingRegionSubtag(string)` | `IBcp47LanguageTagBuilderStepUsingRegionSubtagNext` | |
 | `UsingScriptSubtag(Iso15924Script)` | `IBcp47LanguageTagBuilderStepUsingScriptSubtagNext` | Reached through `IBcp47LanguageTagBuilderStepUsingScriptSubtag`. |
 | `UsingScriptSubtag(string)` | `IBcp47LanguageTagBuilderStepUsingScriptSubtagNext` | |
-| `UsingVariantSubtags(string, params string[])` | `IBcp47LanguageTagBuilderStepUsingVariantSubtagsNext` | Reached through `IBcp47LanguageTagBuilderStepUsingVariantSubtags`. |
+| `UsingVariantSubtags(string, params string[])` | `IBcp47LanguageTagBuilderStepUsingVariantSubtagsNext` | Reached through `IBcp47LanguageTagBuilderStepUsingVariantSubtags`. Throws `ArgumentException` if a subtag is repeated (compared case-insensitively). A `null` or invalid subtag in the array throws with `ParamName` `variantSubtags`. |
+| `UsingVariantSubtags(string, params ReadOnlySpan<string>)` | `IBcp47LanguageTagBuilderStepUsingVariantSubtagsNext` | `net10.0` only. As for the array overload, but the builder reads the subtags from the span without copying them to an array first. The compiler picks this overload for a list of arguments. |
 
 ## Applies to
 
 Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`. On the
 .NET Standard targets nullability is expressed through JetBrains
-`[NotNull]` / `[CanBeNull]` attributes; the public surface is otherwise the same.
+`[NotNull]` / `[CanBeNull]` attributes. The `params ReadOnlySpan<string>`
+overloads of `UsingVariantSubtags` and `UsingExtensionSubtags` exist only on
+`net10.0`; their interfaces give them a default implementation that copies the
+span to an array and calls the array overload. The public surface is otherwise
+the same.
 
 ## See also
 

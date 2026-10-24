@@ -52,6 +52,33 @@ Predefined time zones under `TzDataTimezone.Europe`, members of [TzDataTimezone]
 | `Warsaw` | Europe/Warsaw | PL | 52.2500 | 21.0000 |
 | `Zurich` | Europe/Zurich | CH, DE, LI, Büsingen | 47.3833 | 8.5333 |
 
+## Links
+
+These fields are links: time zones of their own countries, listed in `zone.tab`, that share the zone lines of a canonical time zone. `IsLink` returns `true` for them, and `Canonical` returns the time zone they link to. Their location metadata is their own, but their history, including that before 1970, is that of the canonical time zone. See [Links and canonical time zones](TzDataTimezone.md#links-and-canonical-time-zones).
+
+| Field | Identifier | Canonical | Country codes | Latitude | Longitude |
+| --- | --- | --- | --- | --- | --- |
+| `Amsterdam` | Europe/Amsterdam | `Europe.Brussels` | NL | 52.3667 | 4.9000 |
+| `Bratislava` | Europe/Bratislava | `Europe.Prague` | SK | 48.1500 | 17.1167 |
+| `Busingen` | Europe/Busingen | `Europe.Zurich` | DE, Busingen | 47.7000 | 8.6833 |
+| `Copenhagen` | Europe/Copenhagen | `Europe.Berlin` | DK | 55.6667 | 12.5833 |
+| `Guernsey` | Europe/Guernsey | `Europe.London` | GG | 49.4547 | -2.5361 |
+| `Isle_of_Man` | Europe/Isle_of_Man | `Europe.London` | IM | 54.1500 | -4.4667 |
+| `Jersey` | Europe/Jersey | `Europe.London` | JE | 49.1836 | -2.1067 |
+| `Ljubljana` | Europe/Ljubljana | `Europe.Belgrade` | SI | 46.0500 | 14.5167 |
+| `Luxembourg` | Europe/Luxembourg | `Europe.Brussels` | LU | 49.6000 | 6.1500 |
+| `Mariehamn` | Europe/Mariehamn | `Europe.Helsinki` | AX | 60.1000 | 19.9500 |
+| `Monaco` | Europe/Monaco | `Europe.Paris` | MC | 43.7000 | 7.3833 |
+| `Oslo` | Europe/Oslo | `Europe.Berlin` | NO | 59.9167 | 10.7500 |
+| `Podgorica` | Europe/Podgorica | `Europe.Belgrade` | ME | 42.4333 | 19.2667 |
+| `San_Marino` | Europe/San_Marino | `Europe.Rome` | SM | 43.9167 | 12.4667 |
+| `Sarajevo` | Europe/Sarajevo | `Europe.Belgrade` | BA | 43.8667 | 18.4167 |
+| `Skopje` | Europe/Skopje | `Europe.Belgrade` | MK | 41.9833 | 21.4333 |
+| `Stockholm` | Europe/Stockholm | `Europe.Berlin` | SE | 59.3333 | 18.0500 |
+| `Vaduz` | Europe/Vaduz | `Europe.Zurich` | LI | 47.1500 | 9.5167 |
+| `Vatican` | Europe/Vatican | `Europe.Rome` | VA | 41.9022 | 12.4531 |
+| `Zagreb` | Europe/Zagreb | `Europe.Belgrade` | HR | 45.8000 | 15.9667 |
+
 ## See also
 
 - [TzDataTimezone](TzDataTimezone.md)

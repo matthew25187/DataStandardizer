@@ -18,7 +18,7 @@ dotnet add package DataStandardizer.Chronology
 
 | Standard | What it provides |
 | --- | --- |
-| **TZ Database** | Standardised, named time zones (e.g. `Europe/Berlin`) with associated metadata. |
+| **TZ Database** | Standardised, named time zones (e.g. `Europe/Berlin`) with associated metadata, and their UTC offsets, daylight saving time and abbreviations at any instant. |
 | **Unix time** | A point in time as seconds since the Unix epoch (1 January 1970 UTC). |
 | **DOS date & time** | A packed date/time as used by the MS-DOS file system (1980–2107). |
 
@@ -31,6 +31,7 @@ in-support modern .NET runtimes.
 
 - [Use time zones](how-to/use-timezones.md)
 - [Access time zone metadata](how-to/access-timezone-metadata.md)
+- [Calculate UTC offsets](how-to/calculate-utc-offsets.md)
 - [Use Unix time](how-to/use-unix-time.md)
 - [Use DOS date/time](how-to/use-dos-datetime.md)
 

@@ -1,0 +1,76 @@
+# Pushes packages' current versions from GitHub Packages to MyGet.  Builds push to MyGet themselves, but a MyGet failure
+# never fails a build, so this makes up a missed push.  Versions MyGet already has are skipped.
+
+name: Publish to MyGet
+
+on:
+  workflow_dispatch:
+    inputs:
+      packages:
+        description: 'Packages to push (comma-separated; IDs or short names such as File.CSV; * for all)'
+        type: string
+        default: '*'
+      dry-run:
+        description: 'List what would be pushed without pushing it'
+        type: boolean
+        default: false
+
+permissions: {}
+
+jobs:
+  publish:
+    name: Push current versions
+    runs-on: ubuntu-24.04
+    environment: myget
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The checkout brings in global.json, whose exact SDK pin dotnet then requires.
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - name: Push
+        shell: pwsh
+        env:
+          PACKAGES: ${{ inputs.packages }}
+          DRY_RUN: ${{ inputs.dry-run }}
+          VARIABLES_JSON: ${{ toJSON(vars) }}
+          GITHUB_TOKEN: ${{ github.token }}
+          MYGET_FEED_URL: ${{ vars.MYGET_FEED_URL }}
+          MYGET_API_KEY: ${{ secrets.MYGET_API_KEY }}
+        run: |
+          $InformationPreference = 'Continue'
+          Import-Module ./build/psmodules/CommonHelpers/CommonHelpers.psm1
+          Import-Module ./build/psmodules/VersionNumbers/VersionNumbers.psm1
+          Import-Module ./build/psmodules/VersionVariables/VersionVariables.psm1
+          Import-Module ./build/psmodules/PackageRegistry/PackageRegistry.psm1
+
+          if (-not $env:MYGET_FEED_URL -or -not $env:MYGET_API_KEY) { throw 'MyGet is not configured in the myget environment.' }
+          $snapshot = Join-Path $env:RUNNER_TEMP 'vars.json'
+          Set-Content -LiteralPath $snapshot -Value $env:VARIABLES_JSON
+          $variables = Read-VersionVariableSet -SnapshotPath $snapshot
+          $packageInfo = Get-PackageInfo
+          $names = @(Resolve-PackageName -Name $env:PACKAGES -PackageInfo $packageInfo)
+          $source = @{ ServiceIndexUrl = 'https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json'; Token = $env:GITHUB_TOKEN }
+          $folder = Join-Path $env:RUNNER_TEMP 'myget'
+
+          foreach ($package in $packageInfo | Where-Object { $names -contains $_.packageName }) {
+            $state = Get-PackageVersionState -PackageInfo $package -Variables $variables
+            if ($state.CurrentVersion -eq [version]'0.0.0.0') {
+              Write-Information "$($package.packageName): never published; skipped."
+              continue
+            }
+            $version = ConvertTo-SemanticVersion -Version $state.CurrentVersion -PrereleaseLabel $state.CurrentPrereleaseLabel
+            if ($env:DRY_RUN -eq 'true') {
+              Write-Information "$($package.packageName) $version would be pushed."
+              continue
+            }
+            $packagePath = Save-NuGetPackage -PackageId $package.packageName -Version $version -DestinationFolder $folder -Source $source
+            if ($null -eq $packagePath) { throw "$($package.packageName) $version not found in GitHub Packages." }
+            dotnet nuget push $packagePath --source $env:MYGET_FEED_URL --api-key $env:MYGET_API_KEY --skip-duplicate
+            if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          }

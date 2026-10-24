@@ -1,0 +1,8 @@
+<Project>
+  <!--
+    CI writes the assembly versions a build stamps into Version.g.props beside each package project
+    (build/scripts/WriteVersionProps.ps1).  The file is generated and git-ignored; without it, a build is unstamped.
+    It is imported here, after the project file, so the generated values take precedence.
+  -->
+  <Import Project="$(MSBuildProjectDirectory)/Version.g.props" Condition="Exists('$(MSBuildProjectDirectory)/Version.g.props')" />
+</Project>

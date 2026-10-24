@@ -26,15 +26,16 @@ line breaks, quoting rules, headers — can be configured.
 
 ## Platform support
 
-Targets .NET Standard 1.x and 2.0 for use in legacy applications, as well as
-in-support modern .NET runtimes.
+Targets .NET Standard 1.3, 2.0, and 2.1 for use in legacy applications and on
+platforms such as Mono and Unity, as well as in-support modern .NET runtimes.
 
 > **Applies to:** the `string` file-path constructors on `CsvFileReader<T>` /
-> `CsvFileWriter<T>` require .NET Standard 2.0 or a .NET Core / modern .NET
-> target; on .NET Standard 1.3 construct the reader/writer from a `Stream` or a
+> `CsvFileWriter<T>` require .NET Standard 2.0 or later, or a .NET Core / modern
+> .NET target; on .NET Standard 1.3 construct the reader/writer from a `Stream` or a
 > `TextReader` / `TextWriter`. The `with`-expression syntax shown in some
 > examples requires .NET 5 or later (`CsvFileOptions` is a `record` there and a
-> plain `class` on earlier targets).
+> plain `class` on the `netstandard1.3`, `netstandard2.0`, and `netstandard2.1`
+> targets).
 
 ## How-to guides
 

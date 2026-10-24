@@ -1,3 +1,5 @@
+#Requires -Version 7.1
+
 function Get-ValueFieldDeclaration {
     [OutputType([System.CodeDom.CodeMemberField])]
     param (

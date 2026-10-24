@@ -44,6 +44,21 @@ Predefined time zones under `TzDataTimezone.Pacific`, members of [TzDataTimezone
 | `Tarawa` | Pacific/Tarawa | KI, MH, TV, UM, WF, Gilberts, Marshalls, Wake | 1.4167 | 173.0000 |
 | `Tongatapu` | Pacific/Tongatapu | TO | -21.1333 | -175.2000 |
 
+## Links
+
+These fields are links: time zones of their own countries, listed in `zone.tab`, that share the zone lines of a canonical time zone. `IsLink` returns `true` for them, and `Canonical` returns the time zone they link to. Their location metadata is their own, but their history, including that before 1970, is that of the canonical time zone. See [Links and canonical time zones](TzDataTimezone.md#links-and-canonical-time-zones).
+
+| Field | Identifier | Canonical | Country codes | Latitude | Longitude |
+| --- | --- | --- | --- | --- | --- |
+| `Chuuk` | Pacific/Chuuk | `Pacific.Port_Moresby` | FM, Chuuk/Truk, Yap | 7.4167 | 151.7833 |
+| `Funafuti` | Pacific/Funafuti | `Pacific.Tarawa` | TV | -8.5167 | 179.2167 |
+| `Majuro` | Pacific/Majuro | `Pacific.Tarawa` | MH, most of Marshall Islands | 7.1500 | 171.2000 |
+| `Midway` | Pacific/Midway | `Pacific.Pago_Pago` | UM, Midway Islands | 28.2167 | -177.3667 |
+| `Pohnpei` | Pacific/Pohnpei | `Pacific.Guadalcanal` | FM, Pohnpei/Ponape | 6.9667 | 158.2167 |
+| `Saipan` | Pacific/Saipan | `Pacific.Guam` | MP | 15.2000 | 145.7500 |
+| `Wake` | Pacific/Wake | `Pacific.Tarawa` | UM, Wake Island | 19.2833 | 166.6167 |
+| `Wallis` | Pacific/Wallis | `Pacific.Tarawa` | WF | -13.3000 | -176.1667 |
+
 ## See also
 
 - [TzDataTimezone](TzDataTimezone.md)

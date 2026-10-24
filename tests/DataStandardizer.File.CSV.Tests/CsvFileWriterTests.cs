@@ -42,7 +42,7 @@ public class CsvFileWriterTests : IDisposable
         // arrange
         ICsvFileLine testLine = new CsvFileHeaderLine();
         testLine.Add("1", "One,Two");
-        testLine.Add("2", $"Three{Environment.NewLine}Four");
+        testLine.Add("2", "Three\r\nFour");
         testLine.Add("3", "Five\"Six");
         testLine.Add("4", "Last");
 
@@ -141,7 +141,7 @@ public class CsvFileWriterTests : IDisposable
         testLine.Add("One", "1");
         testLine.Add("Two", "Two");
         testLine.Add("Three", "Left\"Right");
-        testLine.Add("Four", $"Left{Environment.NewLine}Right");
+        testLine.Add("Four", "Left\r\nRight");
         testLine.Add("Five", "Left,Right");
 
         var options = new CsvFileOptions { QuoteHandling = CsvFieldQuoteHandling.Always };
@@ -192,7 +192,7 @@ public class CsvFileWriterTests : IDisposable
         testLine.Add("One", "1");
         testLine.Add("Two", "Two");
         testLine.Add("Three", "Left\"Right");
-        testLine.Add("Four", $"Left{Environment.NewLine}Right");
+        testLine.Add("Four", "Left\r\nRight");
         testLine.Add("Five", "Left,Right");
 
         var options = new CsvFileOptions { QuoteHandling = CsvFieldQuoteHandling.Required };
@@ -234,6 +234,35 @@ public class CsvFileWriterTests : IDisposable
 
         // assert
         testResult.Should().Be(expectedResult);
+    }
+
+    [Fact]
+    public void WriteLine_ConcurrentWritersRegisteringSameMapper_DoNotThrow()
+    {
+        // arrange
+        const int runCount = 5, writerCount = 32;
+
+        for (var run = 0; run < runCount; run++)
+        {
+            // The race is probabilistic, so start each run from empty caches and repeat it.
+            CacheRepositoryConfiguration.Reset();
+
+            // act
+            var act = () => Parallel.For(0, writerCount, _ =>
+            {
+                var buffer = new StringBuilder();
+                using var stringWriter = new StringWriter(buffer);
+                using var csvWriter = new CsvFileWriter<TestLine>(stringWriter);
+                csvWriter.RegisterMapper<TestLineMapperAllIndexed>();
+
+                csvWriter.WriteLine(new TestLine { Id = 1 });
+
+                buffer.ToString().Should().Be("1,,\r\n");
+            });
+
+            // assert
+            act.Should().NotThrow();
+        }
     }
 
     [Fact]
@@ -667,6 +696,553 @@ public class CsvFileWriterTests : IDisposable
         testAction.Should().Throw<CsvFileException>().WithMessage("Expected 2 fields; found 3 fields.");
     }
 
+    [Fact]
+    public void WriteLine_FilePathWithEncodingOption_WritesUsingEncoding()
+    {
+        // arrange
+        var testFilePath = Path.GetTempFileName();
+        try
+        {
+            ICsvFileLine testRecordLine = new CsvFileRecordLine();
+            testRecordLine.Add("0", "Café");
+            var options = new CsvFileOptions { Encoding = Encoding.Latin1 };
+
+            // act
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(testFilePath, options))
+            {
+                csvWriter.WriteLine(testRecordLine);
+            }
+
+            var testResult = System.IO.File.ReadAllBytes(testFilePath);
+
+            // assert
+            testResult.Should().Equal(0x43, 0x61, 0x66, 0xE9, 0x0D, 0x0A);
+        }
+        finally
+        {
+            System.IO.File.Delete(testFilePath);
+        }
+    }
+
+    [Fact]
+    public void Dispose_WriterConstructedFromFilePathWithOptions_ClosesFile()
+    {
+        // arrange
+        var testFilePath = Path.GetTempFileName();
+        try
+        {
+            var options = new CsvFileOptions { Encoding = Encoding.UTF8 };
+
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(testFilePath, options))
+            {
+                ICsvFileLine testRecordLine = new CsvFileRecordLine();
+                testRecordLine.Add("0", "1");
+                csvWriter.WriteLine(testRecordLine);
+            }
+
+            // act
+            var testAction = () =>
+            {
+                using var exclusiveStream = new FileStream(testFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+            };
+
+            // assert
+            testAction.Should().NotThrow();
+        }
+        finally
+        {
+            System.IO.File.Delete(testFilePath);
+        }
+    }
+
+    [Fact]
+    public void Dispose_WriterConstructedFromFilePathWithoutEncoding_ClosesFile()
+    {
+        // arrange
+        var testFilePath = Path.GetTempFileName();
+        try
+        {
+            using (new CsvFileWriter<CsvFileRecordLine>(testFilePath, new CsvFileOptions()))
+            {
+            }
+
+            // act
+            var testAction = () => System.IO.File.Delete(testFilePath);
+
+            // assert
+            testAction.Should().NotThrow();
+        }
+        finally
+        {
+            System.IO.File.Delete(testFilePath);
+        }
+    }
+
+    [Fact]
+    public void Constructor_FilePathWithNullOptions_ThrowsArgumentNullException()
+    {
+        // arrange
+        var testFilePath = Path.GetTempFileName();
+        try
+        {
+            // act
+            var testAction = () => new CsvFileWriter<CsvFileRecordLine>(testFilePath, null!);
+
+            // assert
+            testAction.Should().Throw<ArgumentNullException>().WithParameterName("options");
+        }
+        finally
+        {
+            System.IO.File.Delete(testFilePath);
+        }
+    }
+
+    [Fact]
+    public void Constructor_Stream_UsesStreamBufferSize()
+    {
+        // arrange
+        using var testStream = new MemoryStream();
+
+        // act
+        using var csvWriter = new CsvFileWriter<CsvFileRecordLine>(testStream);
+
+        // assert
+        var streamWriter = StreamBufferInspector.GetUnderlyingWriter(csvWriter).Should().BeOfType<StreamWriter>().Subject;
+        StreamBufferInspector.GetBufferSize(streamWriter).Should().Be(CsvFileWriter<CsvFileRecordLine>.StreamBufferSize);
+    }
+
+    [Fact]
+    public void Constructor_StreamWithEncodingOption_UsesStreamBufferSize()
+    {
+        // arrange
+        using var testStream = new MemoryStream();
+        var options = new CsvFileOptions { Encoding = Encoding.Latin1 };
+
+        // act
+        using var csvWriter = new CsvFileWriter<CsvFileRecordLine>(testStream, options);
+
+        // assert
+        var streamWriter = StreamBufferInspector.GetUnderlyingWriter(csvWriter).Should().BeOfType<StreamWriter>().Subject;
+        StreamBufferInspector.GetBufferSize(streamWriter).Should().Be(CsvFileWriter<CsvFileRecordLine>.StreamBufferSize);
+        streamWriter.Encoding.Should().Be(Encoding.Latin1);
+    }
+
+    [Fact]
+    public void Constructor_FilePath_UsesStreamBufferSize()
+    {
+        // arrange
+        var testFilePath = Path.GetTempFileName();
+        try
+        {
+            // act
+            using var csvWriter = new CsvFileWriter<CsvFileRecordLine>(testFilePath);
+
+            // assert
+            var streamWriter = StreamBufferInspector.GetUnderlyingWriter(csvWriter).Should().BeOfType<StreamWriter>().Subject;
+            StreamBufferInspector.GetBufferSize(streamWriter).Should().Be(CsvFileWriter<CsvFileRecordLine>.StreamBufferSize);
+            var fileStream = streamWriter.BaseStream.Should().BeOfType<FileStream>().Subject;
+            StreamBufferInspector.GetBufferSize(fileStream).Should().Be(CsvFileWriter<CsvFileRecordLine>.StreamBufferSize);
+        }
+        finally
+        {
+            System.IO.File.Delete(testFilePath);
+        }
+    }
+
+    [Fact]
+    public void Constructor_FilePathWithEncodingOption_UsesStreamBufferSize()
+    {
+        // arrange
+        var testFilePath = Path.GetTempFileName();
+        try
+        {
+            var options = new CsvFileOptions { Encoding = Encoding.Latin1 };
+
+            // act
+            using var csvWriter = new CsvFileWriter<CsvFileRecordLine>(testFilePath, options);
+
+            // assert
+            var streamWriter = StreamBufferInspector.GetUnderlyingWriter(csvWriter).Should().BeOfType<StreamWriter>().Subject;
+            StreamBufferInspector.GetBufferSize(streamWriter).Should().Be(CsvFileWriter<CsvFileRecordLine>.StreamBufferSize);
+            var fileStream = streamWriter.BaseStream.Should().BeOfType<FileStream>().Subject;
+            StreamBufferInspector.GetBufferSize(fileStream).Should().Be(CsvFileWriter<CsvFileRecordLine>.StreamBufferSize);
+            streamWriter.Encoding.Should().Be(Encoding.Latin1);
+        }
+        finally
+        {
+            System.IO.File.Delete(testFilePath);
+        }
+    }
+
+    [Fact]
+    public void Constructor_TextWriter_UsesCallerSuppliedWriter()
+    {
+        // arrange
+        using var streamWriter = new StreamWriter(new MemoryStream(), Encoding.UTF8, 256);
+
+        // act
+        using var csvWriter = new CsvFileWriter<CsvFileRecordLine>(streamWriter);
+
+        // assert
+        StreamBufferInspector.GetUnderlyingWriter(csvWriter).Should().BeSameAs(streamWriter);
+        StreamBufferInspector.GetBufferSize(streamWriter).Should().Be(256);
+    }
+
+    [Fact]
+    public void WriteLine_StreamWithoutEncodingOption_WritesUtf8WithoutByteOrderMark()
+    {
+        // arrange
+        using var testStream = new MemoryStream();
+        ICsvFileLine testRecordLine = new CsvFileRecordLine();
+        testRecordLine.Add("0", "é");
+
+        // act
+        using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(testStream))
+        {
+            csvWriter.WriteLine(testRecordLine);
+        }
+
+        // assert
+        testStream.ToArray().Should().Equal(0xC3, 0xA9, 0x0D, 0x0A);
+    }
+
+    [Fact]
+    public void WriteLine_FilePathWithoutEncodingOption_WritesUtf8WithoutByteOrderMark()
+    {
+        // arrange
+        var testFilePath = Path.GetTempFileName();
+        try
+        {
+            ICsvFileLine testRecordLine = new CsvFileRecordLine();
+            testRecordLine.Add("0", "é");
+
+            // act
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(testFilePath))
+            {
+                csvWriter.WriteLine(testRecordLine);
+            }
+
+            var testResult = System.IO.File.ReadAllBytes(testFilePath);
+
+            // assert
+            testResult.Should().Equal(0xC3, 0xA9, 0x0D, 0x0A);
+        }
+        finally
+        {
+            System.IO.File.Delete(testFilePath);
+        }
+    }
+
+    [Fact]
+    public void Constructor_StreamWithNullOptions_ThrowsArgumentNullException()
+    {
+        // arrange
+        using var stream = new MemoryStream();
+
+        // act
+        var testAction = () => new CsvFileWriter<CsvFileRecordLine>(stream, null!);
+
+        // assert
+        testAction.Should().Throw<ArgumentNullException>().WithParameterName("options");
+    }
+
+    [Fact]
+    public void WriteLine_AfterDisposeWithStream_ThrowsObjectDisposedException()
+    {
+        // arrange
+        ICsvFileLine testLine = new CsvFileRecordLine();
+        testLine.Add("0", "1");
+
+        using var stream = new MemoryStream();
+        var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stream);
+        csvWriter.Dispose();
+
+        // act
+        var testAction = () => csvWriter.WriteLine(testLine);
+
+        // assert
+        testAction.Should().Throw<ObjectDisposedException>();
+    }
+
+    [Fact]
+    public void WriteLine_AfterDisposeWithCallerSuppliedWriter_ThrowsObjectDisposedExceptionAndWritesNothing()
+    {
+        // arrange
+        ICsvFileLine testLine = new CsvFileRecordLine();
+        testLine.Add("0", "1");
+
+        var buffer = new StringBuilder();
+        using var stringWriter = new StringWriter(buffer);
+        var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter);
+        csvWriter.Dispose();
+
+        // act
+        var testAction = () => csvWriter.WriteLine(testLine);
+
+        // assert
+        testAction.Should().Throw<ObjectDisposedException>();
+        buffer.ToString().Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Dispose_CalledTwice_DoesNotThrow()
+    {
+        // arrange
+        using var stream = new MemoryStream();
+        var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stream);
+        csvWriter.Dispose();
+
+        // act
+        var testAction = () => csvWriter.Dispose();
+
+        // assert
+        testAction.Should().NotThrow();
+    }
+
+    [Fact]
+    public void RegisterMapper_AfterDispose_ThrowsObjectDisposedException()
+    {
+        // arrange
+        using var stream = new MemoryStream();
+        var csvWriter = new CsvFileWriter<TestLine>(stream);
+        csvWriter.Dispose();
+
+        // act
+        var testAction = () => csvWriter.RegisterMapper<TestLineMapperAllIndexed>();
+
+        // assert
+        testAction.Should().Throw<ObjectDisposedException>();
+    }
+
+    [Theory]
+    [InlineData("\"", null, "\"\"\"\"")]
+    [InlineData(",", null, "\",\"")]
+    [InlineData("Say \"hi\" \"\"", null, "\"Say \"\"hi\"\" \"\"\"\"\"")]
+    [InlineData("Left\rRight", null, "\"Left\rRight\"")]
+    [InlineData("Left\nRight", null, "\"Left\nRight\"")]
+    [InlineData("Left\r\nRight", null, "\"Left\r\nRight\"")]
+    [InlineData("Plain", null, "Plain")]
+    [InlineData("Left\rRight", "<br>", "\"Left<br>Right\"")]
+    [InlineData("Left\nRight", "<br>", "\"Left<br>Right\"")]
+    [InlineData("Left\r\nRight", "<br>", "\"Left<br>Right\"")]
+    [InlineData("Left<br>Right", "<br>", "\"Left<br>Right\"")]
+    [InlineData("bar", "<br>", "bar")]
+    [InlineData("Left\nRight", "\n", "\"Left\nRight\"")]
+    public void WriteLine_RecordLineAndQuoteHandlingRequired_QuotesOnlyValuesRequiringQuotes(string testFieldValue, string? testEmbeddedLineBreak, string expectedFieldValue)
+    {
+        // arrange
+        ICsvFileLine testLine = new CsvFileRecordLine();
+        testLine.Add("One", "1");
+        testLine.Add("Two", testFieldValue);
+
+        var options = new CsvFileOptions { QuoteHandling = CsvFieldQuoteHandling.Required, EmbeddedLineBreak = testEmbeddedLineBreak };
+
+        var buffer = new StringBuilder();
+        using var stringWriter = new StringWriter(buffer);
+        using var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options);
+
+        var expectedResult = $"1,{expectedFieldValue}\r\n";
+
+        // act
+        csvWriter.WriteLine(testLine);
+        var testResult = buffer.ToString();
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    [Fact]
+    public void WriteLine_RecordLineAndQuoteHandlingRequiredWithEmptyEmbeddedLineBreak_WritesAllValuesQuoted()
+    {
+        // arrange
+        ICsvFileLine testLine = new CsvFileRecordLine();
+        testLine.Add("One", "1");
+        testLine.Add("Two", "Plain");
+
+        var options = new CsvFileOptions { QuoteHandling = CsvFieldQuoteHandling.Required, EmbeddedLineBreak = string.Empty };
+
+        var buffer = new StringBuilder();
+        using var stringWriter = new StringWriter(buffer);
+        using var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options);
+
+        // Every value contains the empty line break sequence, so every value is quoted.
+        const string expectedResult = "\"1\",\"Plain\"\r\n";
+
+        // act
+        csvWriter.WriteLine(testLine);
+        var testResult = buffer.ToString();
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    [Fact]
+    public void WriteLine_RecordLineWithFormattableValueAndNonInvariantCulture_WritesValueFormattedWithCulture()
+    {
+        // arrange
+        ICsvFileLine testLine = new CsvFileRecordLine();
+        testLine.Add("Amount", 1234.5m);
+        testLine.Add("Name", "One");
+
+        var options = new CsvFileOptions { Culture = new CultureInfo("de-DE") };
+
+        var buffer = new StringBuilder();
+        using var stringWriter = new StringWriter(buffer);
+        using var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options);
+
+        // The culture's decimal separator is the field delimiter, so the value is quoted.
+        const string expectedResult = "\"1234,5\",One\r\n";
+
+        // act
+        csvWriter.WriteLine(testLine);
+        var testResult = buffer.ToString();
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    [Fact]
+    public void WriteLine_RecordLinesWithToStringConverter_CallsConverterOncePerField()
+    {
+        // arrange
+        TestLineMapperIdConverter.CallCount = 0;
+
+        var testLines = new[]
+        {
+            new TestLine { Id = 1, Name = "One", Description = "First" },
+            new TestLine { Id = 2, Name = "Two", Description = "Second" },
+            new TestLine { Id = 3, Name = "Three", Description = "Third" }
+        };
+
+        var buffer = new StringBuilder();
+        using var stringWriter = new StringWriter(buffer);
+        using var csvWriter = new CsvFileWriter<TestLine>(stringWriter);
+        csvWriter.RegisterMapper<TestLineMapperIdConverter>();
+
+        const string expectedResult = "#1,One,First\r\n#2,Two,Second\r\n#3,Three,Third\r\n";
+
+        // act
+        foreach (var testLine in testLines)
+        {
+            csvWriter.WriteLine(testLine);
+        }
+
+        var testResult = buffer.ToString();
+
+        // assert
+        testResult.Should().Be(expectedResult);
+        TestLineMapperIdConverter.CallCount.Should().Be(testLines.Length);
+    }
+
+    [Fact]
+    public void WriteLine_MapperRegisteredAfterFirstLine_WritesLaterLinesInOrderByMapping()
+    {
+        // arrange
+        var testLine1 = new TestLine { Id = 1, Name = "One", Description = "First" };
+        var testLine2 = new TestLine { Id = 2, Name = "Two", Description = "Second" };
+
+        var buffer = new StringBuilder();
+        using var stringWriter = new StringWriter(buffer);
+        using var csvWriter = new CsvFileWriter<TestLine>(stringWriter);
+
+        const string expectedResult = "1,One,First\r\nSecond,Two,2\r\n";
+
+        // act
+        csvWriter.WriteLine(testLine1);
+        csvWriter.RegisterMapper<TestLineMapperReversed>();
+        csvWriter.WriteLine(testLine2);
+        var testResult = buffer.ToString();
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    [Fact]
+    public void WriteLine_ConverterThrowsPartWayThroughLine_WritesNothingForLine()
+    {
+        // arrange
+        var testLine1 = new TestLine { Id = 1, Name = "One", Description = "First" };
+        var testLine2 = new TestLine { Id = -1, Name = "Two", Description = "Second" };
+
+        var buffer = new StringBuilder();
+        using var stringWriter = new StringWriter(buffer);
+        using var csvWriter = new CsvFileWriter<TestLine>(stringWriter);
+        csvWriter.RegisterMapper<TestLineMapperThrowingConverter>();
+
+        const string expectedResult = "One,1,First\r\n";
+
+        // act
+        csvWriter.WriteLine(testLine1);
+        Action testAction = () => csvWriter.WriteLine(testLine2);
+
+        // assert
+        testAction.Should().Throw<InvalidOperationException>();
+        buffer.ToString().Should().Be(expectedResult);
+    }
+
+    [Fact]
+    public void WriteLine_RecordLineWithConstantAndVariableValueMappings_WritesMappedValues()
+    {
+        // arrange
+        var testLine = new TestLine { Id = 1, Name = "One", Description = "First" };
+
+        var buffer = new StringBuilder();
+        using var stringWriter = new StringWriter(buffer);
+        using var csvWriter = new CsvFileWriter<TestLine>(stringWriter);
+        csvWriter.RegisterMapper<TestLineMapperConstantAndVariable>();
+
+        const string expectedResult = "42,Constant,First\r\n";
+
+        // act
+        csvWriter.WriteLine(testLine);
+        var testResult = buffer.ToString();
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    [Fact]
+    public void WriteLine_RecordLinesOfDifferentTypesWithoutRegisteredMapper_WritesEachLineWithItsOwnMapping()
+    {
+        // arrange
+        ICsvFileLine testLine1 = new CsvFileRecordLine();
+        testLine1.Add(nameof(AttributeMappedLine.First), "1st");
+        testLine1.Add(nameof(AttributeMappedLine.Second), "2nd");
+
+        var testLine2 = new AttributeMappedLine { First = "1st", Second = "2nd" };
+
+        var buffer = new StringBuilder();
+        using var stringWriter = new StringWriter(buffer);
+        using var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter);
+
+        const string expectedResult = "1st,2nd\r\n2nd,1st\r\n";
+
+        // act
+        csvWriter.WriteLine(testLine1);
+        csvWriter.WriteLine(testLine2);
+        var testResult = buffer.ToString();
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    private class AttributeMappedLine : CsvFileRecordLine
+    {
+        [CsvFieldMapping(1)]
+        public string? First
+        {
+            get => GetPropertyValue<string?>();
+            init => SetPropertyValue(value);
+        }
+
+        [CsvFieldMapping(0)]
+        public string? Second
+        {
+            get => GetPropertyValue<string?>();
+            init => SetPropertyValue(value);
+        }
+    }
+
     private class TestLine : CsvFileRecordLine
     {
         public int Id
@@ -751,13 +1327,87 @@ public class CsvFileWriterTests : IDisposable
         }
     }
 
+    private class TestLineMapperIdConverter : CsvFileMapperBase<TestLine>
+    {
+        public static int CallCount;
+
+        public TestLineMapperIdConverter()
+        {
+            this.Map()
+                .Property(x => x.Id)
+                .HasFieldIndex(0)
+                .ConvertUsing(context =>
+                {
+                    CallCount++;
+                    return $"#{context.Model!.Id}";
+                });
+            this.Map()
+                .Property(x => x.Name)
+                .HasFieldIndex(1);
+            this.Map()
+                .Property(x => x.Description)
+                .HasFieldIndex(2);
+        }
+    }
+
+    private class TestLineMapperReversed : CsvFileMapperBase<TestLine>
+    {
+        public TestLineMapperReversed()
+        {
+            this.Map()
+                .Property(x => x.Description)
+                .HasFieldIndex(0);
+            this.Map()
+                .Property(x => x.Name)
+                .HasFieldIndex(1);
+            this.Map()
+                .Property(x => x.Id)
+                .HasFieldIndex(2)
+                .ConvertUsing(typeof(Int32Converter));
+        }
+    }
+
+    private class TestLineMapperThrowingConverter : CsvFileMapperBase<TestLine>
+    {
+        public TestLineMapperThrowingConverter()
+        {
+            this.Map()
+                .Property(x => x.Name)
+                .HasFieldIndex(0);
+            this.Map()
+                .Property(x => x.Id)
+                .HasFieldIndex(1)
+                .ConvertUsing(context => context.Model!.Id >= 0 ? context.Model.Id.ToString(CultureInfo.InvariantCulture) : throw new InvalidOperationException("Negative ID."));
+            this.Map()
+                .Property(x => x.Description)
+                .HasFieldIndex(2);
+        }
+    }
+
+    private class TestLineMapperConstantAndVariable : CsvFileMapperBase<TestLine>
+    {
+        public TestLineMapperConstantAndVariable()
+        {
+            this.Map()
+                .Property(x => x.Id)
+                .HasFieldIndex(0)
+                .HasVariableValue(() => 42);
+            this.Map()
+                .Property(x => x.Name)
+                .HasFieldIndex(1)
+                .HasConstantValue("Constant");
+            this.Map()
+                .Property(x => x.Description)
+                .HasFieldIndex(2);
+        }
+    }
+
     // ReSharper disable once ClassNeverInstantiated.Local
     private class CacheRepositoryConfiguration : CsvFileCacheRepositoryBase
     {
         public static void Reset()
         {
-            DeclarativeMapperCache.Clear();
-            ImperativeMapperCache.Clear();
+            ClearMapperCaches();
         }
     }
 }

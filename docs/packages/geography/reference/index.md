@@ -29,8 +29,10 @@ The public types of **DataStandardizer.Geography**. All types are in the
 | [Iso3166CountryName](Iso3166CountryName.md) | Selects the form of a country name to retrieve. |
 | [Iso3166Part1Alpha2Country](Iso3166Part1Alpha2Country.md) | ISO 3166-1 alpha-2 country codes (e.g. `GB`). |
 | [Iso3166Part1Alpha3Country](Iso3166Part1Alpha3Country.md) | ISO 3166-1 alpha-3 country codes (e.g. `GRC`). |
+| [UnM49Area](UnM49Area.md) | UN M49 area codes for every level of the M49 hierarchy. |
 | [UnM49AreaByAlpha2CountryCode](UnM49AreaByAlpha2CountryCode.md) | UN M49 area codes keyed by ISO 3166-1 alpha-2 country code. |
 | [UnM49AreaByAlpha3CountryCode](UnM49AreaByAlpha3CountryCode.md) | UN M49 area codes keyed by ISO 3166-1 alpha-3 country code. |
+| [UnM49AreaLevel](UnM49AreaLevel.md) | Level of the UN M49 hierarchy occupied by an area. |
 
 ## Classes
 

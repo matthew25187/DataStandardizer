@@ -36,8 +36,8 @@ and private-use positions.
 
 | Subtag | `Bcp47LanguageTag` member | Purpose |
 | --- | --- | --- |
-| **Primary language** | `PrimaryLanguageSubtag` | The core language (e.g. `en`, `mas`, `gsw`). Always present. Backed by ISO 639-1/-2/-3/-5 codes. |
-| **Extended language** | `ExtendedLanguageSubtags` | Up to three optional subtags that further specify the language. |
+| **Primary language** | `PrimaryLanguageSubtag` | The core language (e.g. `en`, `mas`, `gsw`). Always present. Backed by ISO 639-1/-2/-3/-5 codes, or four to eight letters for a reserved or registered subtag. |
+| **Extended language** | `ExtendedLanguageSubtags` | Up to three optional subtags that further specify the language. Only after a two- or three-letter primary language subtag. |
 | **Script** | `ScriptSubtag` | The writing system (e.g. `Hans`, `Cyrl`). Backed by ISO 15924. |
 | **Region** | `RegionSubtag` | A country or area (e.g. `CA`, `419`). Backed by ISO 3166-1 alpha-2 or UN M49. |
 | **Variant** | `VariantSubtags` | Registered variations such as dialects or orthographies (e.g. `1606nict`). |

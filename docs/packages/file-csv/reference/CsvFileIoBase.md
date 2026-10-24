@@ -37,12 +37,12 @@ helpers (`DeserializeCsvLineFieldValue`, `SerializeCsvLineFieldValue`,
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `RegisterMapper<TMapper>()` | `void` | `where TMapper : CsvFileMapperBase<TRecordLine>, new()`. Registers an imperative mapper; a no-op if one is already registered. |
-| `UnregisterMapper<TMapper>()` | `void` | `where TMapper : CsvFileMapperBase<TRecordLine>, new()`. Removes a registered mapper. |
+| `RegisterMapper<TMapper>()` | `void` | `where TMapper : CsvFileMapperBase<TRecordLine>, new()`. Registers an imperative mapper; a no-op if one is already registered. Throws `ObjectDisposedException` if the reader or writer has been disposed. |
+| `UnregisterMapper<TMapper>()` | `void` | `where TMapper : CsvFileMapperBase<TRecordLine>, new()`. Removes a registered mapper. Throws `ObjectDisposedException` if the reader or writer has been disposed. |
 
 ## Applies to
 
-Targets `netstandard1.3`, `netstandard2.0`, `net8.0`, and `net10.0`.
+Targets `netstandard1.3`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0`.
 
 ## See also
 

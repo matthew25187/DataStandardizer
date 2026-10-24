@@ -6,6 +6,7 @@
 # Source: ITU-T E.164 International Shared Country Codes Database.          #
 # https://www.itu.int/net/ITU-T/inrdb/e164_intlsharedcc.aspx?cc=881,882,883 #
 #############################################################################
+#Requires -Version 7.4
 
 [CmdletBinding()]
 param (

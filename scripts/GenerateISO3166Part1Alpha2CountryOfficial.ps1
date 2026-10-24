@@ -6,7 +6,7 @@
 # Source: Country Codes Collection, ISO.                                #
 # https://www.iso.org/obp/ui#iso:pub:PUB500001:en                       #
 #########################################################################
-#Requires -Version 7.0
+#Requires -Version 7.4
 
 param (
     [Parameter(Mandatory, HelpMessage = 'Path to the folder containing the official files for script codes.')]

@@ -138,7 +138,7 @@ public class Iso15924ExtensionsTests
         {
             get
             {
-                yield return new object[] { Iso15924Script.Ahom, "âhom" };
+                yield return new object[] { Iso15924Script.Ahom, "Ã¢hom" };
                 yield return new object[] { Iso15924Script.Bopo, "bopomofo" };
                 yield return new object[] { Iso15924Script.Blis, "symboles Bliss" };
                 yield return new object[] { Iso15924Script.Aran, "arabe (variante nastalique)" };

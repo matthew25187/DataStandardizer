@@ -6,6 +6,7 @@
 # Source: ISO 639 Set 1, Infoterm.                                              #
 # http://www.infoterm.info/standardization/iso_639_1_2002.php                   #
 #################################################################################
+#Requires -Version 7.4
 
 param (
     [Parameter(Mandatory)]

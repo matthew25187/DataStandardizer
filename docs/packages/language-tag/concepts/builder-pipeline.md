@@ -22,7 +22,7 @@ subtag, then the remaining optional subtags in spec order, and finally `Build()`
 ```text
 new Bcp47LanguageTagBuilder()
   ├─ WithLanguageSubtagRegistry(...)   (optional)
-  ├─ WithTimeout(...)                  (optional)
+  ├─ WithTimeout(...)                  (optional, deprecated)
   │
   ├─ UsingLanguageTag("...")  ───────────────────────────► Build()
   │
@@ -60,11 +60,14 @@ other *Data Standardizer* packages:
 - Primary language — `Iso639Part1Language`, `Iso639Part2TLanguage`,
   `Iso639Part3Language`, `Iso639Part5LanguageFamily`, or `string`.
 - Script — `Iso15924Script` or `string`.
-- Region — `Iso3166Part1Alpha2Country`, `UnM49AreaByAlpha2CountryCode`,
-  `UnM49AreaByAlpha3CountryCode`, or `string`.
+- Region — `Iso3166Part1Alpha2Country` for a country, `UnM49Area` for an area
+  made up of more than one country (such as `UnM49Area._419`), or `string`. The
+  `UnM49AreaByAlpha2CountryCode` and `UnM49AreaByAlpha3CountryCode` overloads
+  are deprecated.
 
-When you pass an enum, the builder checks that the value is defined; when you pass
-a string, it checks the subtag against the BCP 47 rules (via the matching
+When you pass an enum, the builder checks that the value is defined (and, for
+`UnM49Area`, that the member is an area BCP 47 allows); when you pass a string,
+it checks the subtag against the BCP 47 rules (via the matching
 `Bcp47LanguageTag.Check…` method). An undefined enum value or a malformed string
 throws `ArgumentException` at the point of the call, so mistakes surface early
 rather than at `Build()`.
@@ -77,16 +80,18 @@ Two configuration steps may be applied before composition begins:
   loaded copy of the *IANA Language Subtag Registry*. When supplied, the final
   `Build()` constructs the tag through the registry-based
   `Bcp47LanguageTag.Create(..., subtagRegistry)` overload.
-- **`WithTimeout(matchTimeout)`** sets a time limit (`TimeSpan`) for the regular
-  expressions that validate the tag. Because validation is regex-driven, this lets
-  you bound the worst-case matching time; when set, `Build()` forwards it to the
-  `Bcp47LanguageTag.Create(..., matchTimeout)` overload.
+- **`WithTimeout(matchTimeout)`** is deprecated and will be removed in version
+  2.0. It used to bound the time spent matching the regular expressions that
+  validated the tag. Tags are now checked by a parser, which can't time out, so
+  the timeout has no effect; leave the step out. When it is set, `Build()` still
+  passes it to the obsolete `Bcp47LanguageTag.Create(..., matchTimeout)`
+  overload, which checks that it is in range and otherwise ignores it.
 
 ## How Build() assembles the tag
 
 `Build()` concatenates the supplied subtags, in order, into a single
 hyphen-separated string and then constructs the `Bcp47LanguageTag` from it (using
-the registry and/or timeout if they were configured). A few rules are enforced at
+the registry if one was configured). A few rules are enforced at
 this stage — for example, no more than three extended language subtags are
 permitted — and the resulting tag is validated as it is created, so an invalid
 combination surfaces as a `LanguageTagFormatException`.

@@ -6,6 +6,7 @@
 # Source: ISO 639 Set 2, Library of Congress.                                   #
 # https://www.loc.gov/standards/iso639-2/ascii_8bits.html                       #
 #################################################################################
+#Requires -Version 7.4
 
 param (
     [Parameter(Mandatory, HelpMessage = 'Path to the file containing the official list of language codes.')]

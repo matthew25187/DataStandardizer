@@ -6,7 +6,7 @@
 # Source: ISO 639 Code Tables, SIL Global.                                      #
 # https://iso639-3.sil.org/code_tables/download_tables                          #
 #################################################################################
-#Requires -Version 7.0
+#Requires -Version 7.4
 
 param (
     [Parameter(HelpMessage = 'Path to the folder containing the source files.')]

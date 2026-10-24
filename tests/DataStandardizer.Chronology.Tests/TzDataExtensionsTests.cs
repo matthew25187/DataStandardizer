@@ -1,3 +1,5 @@
+#pragma warning disable CS0618 // The obsolete metadata accessors are tested until they are removed.
+
 using FluentAssertions;
 
 namespace DataStandardizer.Chronology.Tests
@@ -19,7 +21,7 @@ namespace DataStandardizer.Chronology.Tests
         {
             get
             {
-                yield return new object[] { TzDataTimezone.Europe.Zurich, "Büsingen" };
+                yield return new object[] { TzDataTimezone.Europe.Zurich, "BÃ¼singen" };
                 yield return new object[] { TzDataTimezone.America.Argentina.Buenos_Aires, "Buenos Aires (BA, CF)" };
             }
         }

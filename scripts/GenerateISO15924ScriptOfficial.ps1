@@ -6,6 +6,7 @@
 # Source: Codes for the representation of names of scripts, Unicode, Inc.   #
 # https://www.unicode.org/iso15924/codelists.html                           #
 #############################################################################
+#Requires -Version 7.4
 
 param (
     [Parameter(Mandatory, HelpMessage = 'Path to the file containing the official list of script codes.')]

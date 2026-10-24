@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Text;
 using DataStandardizer.Core;
 using DataStandardizer.Geography;
 using DataStandardizer.Language;
+using DataStandardizer.LanguageTag.InternalState;
 #if NETSTANDARD
 using JetBrains.Annotations; 
 #endif
@@ -28,6 +26,7 @@ namespace DataStandardizer.LanguageTag
             internal const string InternalStateErrorTryAgain = "Internal state error.  Please instantiate a new instance of the builder and try again.";
             internal const string SpecifiedCodeUndefinedTemplate = "The {0} code '{1}' is undefined.";
             internal const string SubtagInvalidTemplate = "'{0}' is not a valid {1}.";
+            internal const string SubtagRepeatedTemplate = "The {0} '{1}' appears more than once.";
             internal const string UnspecifiedCodeUndefinedTemplate = "The {0} code is undefined.";
         }
 
@@ -80,6 +79,7 @@ namespace DataStandardizer.LanguageTag
         }
 
         /// <inheritdoc />
+        [Obsolete(Bcp47Constants.WithTimeoutObsoleteMessage)]
         public IBcp47LanguageTagBuilderStepWithTimeoutNext WithTimeout(TimeSpan matchTimeout)
         {
             _matchTimeout = matchTimeout;
@@ -239,7 +239,11 @@ namespace DataStandardizer.LanguageTag
         /// <exception cref="ArgumentException">The subtag code is undefined.</exception>
         IBcp47LanguageTagBuilderStepUsingScriptSubtagNext IBcp47LanguageTagBuilderStepUsingScriptSubtag.UsingScriptSubtag(Iso15924Script scriptSubtag)
         {
-            if (!Enum.IsDefined(scriptSubtag.GetType(), scriptSubtag)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "ISO 15924", scriptSubtag), nameof(scriptSubtag));
+#if NET5_0_OR_GREATER
+            if (!Enum.IsDefined(scriptSubtag)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "ISO 15924", scriptSubtag), nameof(scriptSubtag));
+#else
+            if (!Enum.IsDefined(typeof(Iso15924Script), scriptSubtag)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "ISO 15924", scriptSubtag), nameof(scriptSubtag));
+#endif
 
             _scriptSubtag = scriptSubtag;
 
@@ -264,7 +268,11 @@ namespace DataStandardizer.LanguageTag
         /// <exception cref="ArgumentException">The subtag code is undefined.</exception>
         IBcp47LanguageTagBuilderStepUsingRegionSubtagNext IBcp47LanguageTagBuilderStepUsingRegionSubtag.UsingRegionSubtag(Iso3166Part1Alpha2Country regionSubtag)
         {
-            if (!Enum.IsDefined(regionSubtag.GetType(), regionSubtag)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "ISO 3166-1 Alpha-2", regionSubtag), nameof(regionSubtag));
+#if NET5_0_OR_GREATER
+            if (!Enum.IsDefined(regionSubtag)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "ISO 3166-1 Alpha-2", regionSubtag), nameof(regionSubtag));
+#else
+            if (!Enum.IsDefined(typeof(Iso3166Part1Alpha2Country), regionSubtag)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "ISO 3166-1 Alpha-2", regionSubtag), nameof(regionSubtag));
+#endif
 
             _regionSubtag = regionSubtag;
 
@@ -275,7 +283,7 @@ namespace DataStandardizer.LanguageTag
         /// <exception cref="ArgumentException">The subtag code is undefined.</exception>
         IBcp47LanguageTagBuilderStepUsingRegionSubtagNext IBcp47LanguageTagBuilderStepUsingRegionSubtag.UsingRegionSubtag(UnM49AreaByAlpha2CountryCode regionSubtag)
         {
-            if (!IsValidRegionCodeFromUnM49((ushort)regionSubtag)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "UN M49", ((ushort)regionSubtag).ToString("000")), nameof(regionSubtag));
+            if (!Bcp47UnM49Codes.ContainsSupranational((ushort)regionSubtag)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "UN M49", ((ushort)regionSubtag).ToString("000")), nameof(regionSubtag));
 
             _regionSubtag = regionSubtag;
 
@@ -286,7 +294,24 @@ namespace DataStandardizer.LanguageTag
         /// <exception cref="ArgumentException">The subtag code is undefined.</exception>
         IBcp47LanguageTagBuilderStepUsingRegionSubtagNext IBcp47LanguageTagBuilderStepUsingRegionSubtag.UsingRegionSubtag(UnM49AreaByAlpha3CountryCode regionSubtag)
         {
-            if (!IsValidRegionCodeFromUnM49((ushort)regionSubtag)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "UN M49", ((ushort)regionSubtag).ToString("000")), nameof(regionSubtag));
+            if (!Bcp47UnM49Codes.ContainsSupranational((ushort)regionSubtag)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "UN M49", ((ushort)regionSubtag).ToString("000")), nameof(regionSubtag));
+
+            _regionSubtag = regionSubtag;
+
+            return this;
+        }
+
+        /// <inheritdoc />
+        /// <exception cref="ArgumentException">The subtag code is undefined, or is not a valid Region subtag.</exception>
+        IBcp47LanguageTagBuilderStepUsingRegionSubtagNext IBcp47LanguageTagBuilderStepUsingRegionSubtag.UsingRegionSubtag(UnM49Area regionSubtag)
+        {
+            var code = ((ushort)regionSubtag).ToString("000");
+#if NET5_0_OR_GREATER
+            if (!Enum.IsDefined(regionSubtag)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "UN M49", code), nameof(regionSubtag));
+#else
+            if (!Enum.IsDefined(typeof(UnM49Area), regionSubtag)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "UN M49", code), nameof(regionSubtag));
+#endif
+            if (!Bcp47LanguageTag.CheckRegionSubtag(code)) throw new ArgumentException(string.Format(ErrorMessage.SubtagInvalidTemplate, code, "Region subtag"), nameof(regionSubtag));
 
             _regionSubtag = regionSubtag;
 
@@ -309,51 +334,59 @@ namespace DataStandardizer.LanguageTag
 
         /// <inheritdoc />
         /// <exception cref="ArgumentNullException">A Variant subtag is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException">A Variant subtag is not valid, or appears more than once (compared case-insensitively).</exception>
         IBcp47LanguageTagBuilderStepUsingVariantSubtagsNext IBcp47LanguageTagBuilderStepUsingVariantSubtags.UsingVariantSubtags(string variantSubtag, params string[] variantSubtags)
         {
-            const string subject = "Variant subtag";
-            if (variantSubtag is null)
-                throw new ArgumentNullException(nameof(variantSubtag));
-            if (!Bcp47LanguageTag.CheckVariantSubtag(variantSubtag))
-                throw new ArgumentException(string.Format(ErrorMessage.SubtagInvalidTemplate, variantSubtag, subject), nameof(variantSubtag));
+            CheckVariantSubtagArgument(variantSubtag, nameof(variantSubtag));
             if (variantSubtags is null)
                 throw new ArgumentNullException(nameof(variantSubtags));
-            if (!variantSubtags.All(Bcp47LanguageTag.CheckVariantSubtag))
-            {
-                var invalidSubtag = variantSubtags.First(subtag => !Bcp47LanguageTag.CheckVariantSubtag(subtag));
-                throw new ArgumentException(string.Format(ErrorMessage.SubtagInvalidTemplate, invalidSubtag, subject), nameof(invalidSubtag));
-            }
 
-            var useVariantSubtags = new List<string> { variantSubtag };
-            useVariantSubtags.AddRange(variantSubtags);
-            _variantSubtags = useVariantSubtags.ToArray();
+            _variantSubtags = CreateVariantSubtags(variantSubtag, variantSubtags);
 
             return this;
         }
+
+#if NET9_0_OR_GREATER
+        /// <inheritdoc />
+        /// <exception cref="ArgumentNullException">A Variant subtag is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException">A Variant subtag is not valid, or appears more than once (compared case-insensitively).</exception>
+        IBcp47LanguageTagBuilderStepUsingVariantSubtagsNext IBcp47LanguageTagBuilderStepUsingVariantSubtags.UsingVariantSubtags(string variantSubtag, params ReadOnlySpan<string> variantSubtags)
+        {
+            CheckVariantSubtagArgument(variantSubtag, nameof(variantSubtag));
+
+            _variantSubtags = CreateVariantSubtags(variantSubtag, variantSubtags);
+
+            return this;
+        }
+#endif
 
         /// <inheritdoc />
         /// <exception cref="ArgumentNullException">An Extension subtag is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException">An Extension subtag is not valid, or its singleton appears more than once (compared case-insensitively).</exception>
         IBcp47LanguageTagBuilderStepUsingExtensionSubtagsNext IBcp47LanguageTagBuilderStepUsingExtensionSubtags.UsingExtensionSubtags(string extensionSubtag, params string[] extensionSubtags)
         {
-            const string subject = "Extension subtag";
-            if (extensionSubtag is null)
-                throw new ArgumentNullException(nameof(extensionSubtag));
-            if (!Bcp47LanguageTag.CheckExtensionSubtag(extensionSubtag))
-                throw new ArgumentException(string.Format(ErrorMessage.SubtagInvalidTemplate, extensionSubtag, subject), nameof(extensionSubtag));
+            CheckExtensionSubtagArgument(extensionSubtag, nameof(extensionSubtag));
             if (extensionSubtags is null)
                 throw new ArgumentNullException(nameof(extensionSubtags));
-            if (!extensionSubtags.All(Bcp47LanguageTag.CheckExtensionSubtag))
-            {
-                var invalidSubtag = extensionSubtags.First(subtag => !Bcp47LanguageTag.CheckExtensionSubtag(subtag));
-                throw new ArgumentException(string.Format(ErrorMessage.SubtagInvalidTemplate, invalidSubtag, subject), nameof(invalidSubtag));
-            }
 
-            var useExtensionSubtags = new List<string> { extensionSubtag };
-            useExtensionSubtags.AddRange(extensionSubtags);
-            _extensionSubtags = useExtensionSubtags.ToArray();
+            _extensionSubtags = CreateExtensionSubtags(extensionSubtag, extensionSubtags);
 
             return this;
         }
+
+#if NET9_0_OR_GREATER
+        /// <inheritdoc />
+        /// <exception cref="ArgumentNullException">An Extension subtag is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException">An Extension subtag is not valid, or its singleton appears more than once (compared case-insensitively).</exception>
+        IBcp47LanguageTagBuilderStepUsingExtensionSubtagsNext IBcp47LanguageTagBuilderStepUsingExtensionSubtags.UsingExtensionSubtags(string extensionSubtag, params ReadOnlySpan<string> extensionSubtags)
+        {
+            CheckExtensionSubtagArgument(extensionSubtag, nameof(extensionSubtag));
+
+            _extensionSubtags = CreateExtensionSubtags(extensionSubtag, extensionSubtags);
+
+            return this;
+        }
+#endif
 
         /// <inheritdoc />
         /// <exception cref="ArgumentNullException">The Private Use subtag is <c>null</c>.</exception>
@@ -398,166 +431,300 @@ namespace DataStandardizer.LanguageTag
         /// </exception>
         Bcp47LanguageTag IBcp47LanguageTagBuilderStepBuild.Build()
         {
-            var languageTagBuilder = new StringBuilder();
-
             // Use full language tag, if specified.
             if (_languageTag != null)
             {
                 return CreateLanguageTag(_languageTag);
             }
 
-            // Add Primary Language subtag.
+            // Resolve each subtag to its text, in the order the tag is written.
             if (_primaryLanguageSubtag is null) throw new InvalidOperationException(ErrorMessage.InternalStateErrorTryAgain);
-            AppendPrimaryLanguageSubtag(languageTagBuilder, _primaryLanguageSubtag);
+            var primaryLanguageSubtag = GetPrimaryLanguageSubtag(_primaryLanguageSubtag);
+            if (_extendedLanguageSubtags.Length > 3) throw new InvalidOperationException("A maximum of 3 Extended Language subtags are permitted.");
+            var scriptSubtag = _scriptSubtag is null ? null : GetScriptSubtag(_scriptSubtag);
+            var numericRegionSubtag = -1;
+            var regionSubtag = _regionSubtag is null ? null : GetRegionSubtag(_regionSubtag, out numericRegionSubtag);
 
-            // Add Extended Language subtags.
-            if (_extendedLanguageSubtags.Any())
-            {
-                AppendExtendedLanguageSubtags(languageTagBuilder, _extendedLanguageSubtags);
-            }
-
-            // Add Script subtag.
-            if (_scriptSubtag != null)
-            {
-                AppendScriptSubtag(languageTagBuilder, _scriptSubtag);
-            }
-
-            // Add Region subtag.
-            if (_regionSubtag != null)
-            {
-                AppendRegionSubtag(languageTagBuilder, _regionSubtag);
-            }
-
-            // Add Variant subtags.
-            if (_variantSubtags.Any())
-            {
-                AppendVariantSubtags(languageTagBuilder, _variantSubtags);
-            }
-
-            // Add Extension subtags.
-            if (_extensionSubtags.Any())
-            {
-                AppendExtensionSubtags(languageTagBuilder, _extensionSubtags);
-            }
-
-            // Add Private Use subtag.
-            if (_privateUseSubtag != null)
-            {
-                AppendPrivateUseSubtag(languageTagBuilder, _privateUseSubtag);
-            }
+            // Measure the tag, so that it is written into a buffer of exactly its length.
+            var length = primaryLanguageSubtag.Length + GetSubtagsLength(_extendedLanguageSubtags) + GetSubtagsLength(_variantSubtags) + GetSubtagsLength(_extensionSubtags);
+            if (scriptSubtag != null) length += 1 + scriptSubtag.Length;
+            if (regionSubtag != null) length += 1 + regionSubtag.Length;
+            else if (numericRegionSubtag >= 0) length += 1 + NumericRegionSubtagLength;
+            if (_privateUseSubtag != null) length += 1 + _privateUseSubtag.Length;
 
             // Return new instance of language tag.
+#if NETCOREAPP2_1_OR_GREATER
+            var languageTag = string.Create(length, (Builder: this, PrimaryLanguageSubtag: primaryLanguageSubtag, ScriptSubtag: scriptSubtag, RegionSubtag: regionSubtag, NumericRegionSubtag: numericRegionSubtag),
+                static (destination, state) =>
+                {
+                    var position = Write(destination, 0, state.PrimaryLanguageSubtag);
+                    position = WriteSubtags(destination, position, state.Builder._extendedLanguageSubtags);
+                    if (state.ScriptSubtag != null) position = WriteSubtag(destination, position, state.ScriptSubtag);
+                    if (state.RegionSubtag != null) position = WriteSubtag(destination, position, state.RegionSubtag);
+                    else if (state.NumericRegionSubtag >= 0) position = WriteNumericSubtag(destination, position, state.NumericRegionSubtag);
+                    position = WriteSubtags(destination, position, state.Builder._variantSubtags);
+                    position = WriteSubtags(destination, position, state.Builder._extensionSubtags);
+                    if (state.Builder._privateUseSubtag != null) WriteSubtag(destination, position, state.Builder._privateUseSubtag);
+                });
+
+            return CreateLanguageTag(languageTag);
+#else
+            var languageTagBuilder = new StringBuilder(length);
+            languageTagBuilder.Append(primaryLanguageSubtag);
+            AppendSubtags(languageTagBuilder, _extendedLanguageSubtags);
+            if (scriptSubtag != null) languageTagBuilder.Append('-').Append(scriptSubtag);
+            if (regionSubtag != null) languageTagBuilder.Append('-').Append(regionSubtag);
+            else if (numericRegionSubtag >= 0) AppendNumericSubtag(languageTagBuilder, numericRegionSubtag);
+            AppendSubtags(languageTagBuilder, _variantSubtags);
+            AppendSubtags(languageTagBuilder, _extensionSubtags);
+            if (_privateUseSubtag != null) languageTagBuilder.Append('-').Append(_privateUseSubtag);
+
             return CreateLanguageTag(languageTagBuilder.ToString());
+#endif
         }
 
         #endregion
 
         #region Private Methods
 
-        private void AppendExtendedLanguageSubtags(StringBuilder languageTagBuilder, string[] extendedLanguageSubtags)
+        /// <summary>
+        /// Number of digits in a UN M.49 Region subtag (ref. RFC 5646 §2.2.4¶4).
+        /// </summary>
+        private const int NumericRegionSubtagLength = 3;
+
+#if NETCOREAPP3_0_OR_GREATER
+        private static void CheckVariantSubtagArgument(string? variantSubtag, string parameterName)
+#else
+        private static void CheckVariantSubtagArgument([CanBeNull] string variantSubtag, [NotNull] string parameterName)
+#endif
         {
-            if (extendedLanguageSubtags.Length >= 1 && extendedLanguageSubtags.Length <= 3)
-            {
-                foreach (var extendedLanguageSubtag in extendedLanguageSubtags)
-                {
-                    languageTagBuilder.AppendFormat("-{0}", extendedLanguageSubtag);
-                }
-            }
-            else if (extendedLanguageSubtags.Length > 3)
-            {
-                throw new InvalidOperationException("A maximum of 3 Extended Language subtags are permitted.");
-            }
+            if (variantSubtag is null)
+                throw new ArgumentNullException(parameterName);
+            if (!Bcp47LanguageTag.CheckVariantSubtag(variantSubtag))
+                throw new ArgumentException(string.Format(ErrorMessage.SubtagInvalidTemplate, variantSubtag, "Variant subtag"), parameterName);
         }
 
-        private void AppendExtensionSubtags(StringBuilder languageTagBuilder, string[] extensionSubtags)
+#if NETCOREAPP3_0_OR_GREATER
+        private static void CheckExtensionSubtagArgument(string? extensionSubtag, string parameterName)
+#else
+        private static void CheckExtensionSubtagArgument([CanBeNull] string extensionSubtag, [NotNull] string parameterName)
+#endif
         {
-            foreach (var extensionSubtag in extensionSubtags)
-            {
-                languageTagBuilder.AppendFormat("-{0}", extensionSubtag);
-            }
+            if (extensionSubtag is null)
+                throw new ArgumentNullException(parameterName);
+            if (!Bcp47LanguageTag.CheckExtensionSubtag(extensionSubtag))
+                throw new ArgumentException(string.Format(ErrorMessage.SubtagInvalidTemplate, extensionSubtag, "Extension subtag"), parameterName);
         }
 
-        private void AppendPrimaryLanguageSubtag(StringBuilder languageTagBuilder, object primaryLanguageSubtag)
+#if NET9_0_OR_GREATER
+        private static string[] CreateVariantSubtags(string variantSubtag, ReadOnlySpan<string> variantSubtags)
+#elif NETCOREAPP3_0_OR_GREATER
+        private static string[] CreateVariantSubtags(string variantSubtag, string[] variantSubtags)
+#else
+        [NotNull]
+        private static string[] CreateVariantSubtags([NotNull] string variantSubtag, [NotNull] string[] variantSubtags)
+#endif
         {
+            var useVariantSubtags = new string[variantSubtags.Length + 1];
+            useVariantSubtags[0] = variantSubtag;
+            for (var index = 0; index < variantSubtags.Length; index++)
+            {
+                CheckVariantSubtagArgument(variantSubtags[index], nameof(variantSubtags));
+                useVariantSubtags[index + 1] = variantSubtags[index];
+            }
+
+            var repeatedIndex = Bcp47LanguageTag.IndexOfRepeatedVariantSubtag(useVariantSubtags);
+            if (repeatedIndex >= 0)
+                throw new ArgumentException(string.Format(ErrorMessage.SubtagRepeatedTemplate, "Variant subtag", useVariantSubtags[repeatedIndex]), nameof(variantSubtags));
+
+            return useVariantSubtags;
+        }
+
+#if NET9_0_OR_GREATER
+        private static string[] CreateExtensionSubtags(string extensionSubtag, ReadOnlySpan<string> extensionSubtags)
+#elif NETCOREAPP3_0_OR_GREATER
+        private static string[] CreateExtensionSubtags(string extensionSubtag, string[] extensionSubtags)
+#else
+        [NotNull]
+        private static string[] CreateExtensionSubtags([NotNull] string extensionSubtag, [NotNull] string[] extensionSubtags)
+#endif
+        {
+            var useExtensionSubtags = new string[extensionSubtags.Length + 1];
+            useExtensionSubtags[0] = extensionSubtag;
+            for (var index = 0; index < extensionSubtags.Length; index++)
+            {
+                CheckExtensionSubtagArgument(extensionSubtags[index], nameof(extensionSubtags));
+                useExtensionSubtags[index + 1] = extensionSubtags[index];
+            }
+
+            var repeatedIndex = Bcp47LanguageTag.IndexOfRepeatedExtensionSingleton(useExtensionSubtags);
+            if (repeatedIndex >= 0)
+                throw new ArgumentException(string.Format(ErrorMessage.SubtagRepeatedTemplate, "Extension singleton", useExtensionSubtags[repeatedIndex][0]), nameof(extensionSubtags));
+
+            return useExtensionSubtags;
+        }
+
+#if NETCOREAPP3_0_OR_GREATER
+        private static string GetPrimaryLanguageSubtag(object primaryLanguageSubtag)
+#else
+        [NotNull]
+        private static string GetPrimaryLanguageSubtag([NotNull] object primaryLanguageSubtag)
+#endif
+        {
+#if NETCOREAPP3_0_OR_GREATER
+            string? primaryLanguageSubtagString;
+#else
+            string primaryLanguageSubtagString;
+#endif
             if (primaryLanguageSubtag is Iso639Part1Language primaryLanguageSubtagFromIso639Part1)
             {
-                languageTagBuilder.Append(primaryLanguageSubtagFromIso639Part1);
+                primaryLanguageSubtagString = primaryLanguageSubtagFromIso639Part1;
             }
             else if (primaryLanguageSubtag is Iso639Part2TLanguage primaryLanguageSubtagFromIso639Part2T)
             {
-                languageTagBuilder.Append(primaryLanguageSubtagFromIso639Part2T);
+                primaryLanguageSubtagString = primaryLanguageSubtagFromIso639Part2T;
             }
             else if (primaryLanguageSubtag is Iso639Part3Language primaryLanguageSubtagFromIso639Part3)
             {
-                languageTagBuilder.Append(primaryLanguageSubtagFromIso639Part3);
+                primaryLanguageSubtagString = primaryLanguageSubtagFromIso639Part3;
             }
             else if (primaryLanguageSubtag is Iso639Part5LanguageFamily primaryLanguageSubtagFromIso639Part5)
             {
-                languageTagBuilder.Append(primaryLanguageSubtagFromIso639Part5);
-            }
-            else if (primaryLanguageSubtag is string primaryLanguageSubtagFromRegistry)
-            {
-                languageTagBuilder.Append(primaryLanguageSubtagFromRegistry);
+                primaryLanguageSubtagString = primaryLanguageSubtagFromIso639Part5;
             }
             else
             {
-                throw new InvalidOperationException("The Primary Language subtag is invalid.");
+                primaryLanguageSubtagString = primaryLanguageSubtag as string;
             }
+
+            return primaryLanguageSubtagString ?? throw new InvalidOperationException("The Primary Language subtag is invalid.");
         }
 
-        [SuppressMessage("ReSharper", "ParameterOnlyUsedForPreconditionCheck.Local")]
-        private void AppendPrivateUseSubtag(StringBuilder languageTagBuilder, string privateUseSubtag)
+        /// <summary>
+        /// Get the text of the Region subtag, or its UN M.49 code.
+        /// </summary>
+        /// <param name="regionSubtag">Region subtag.</param>
+        /// <param name="numericRegionSubtag">UN M.49 code of the Region subtag, if it is one; otherwise -1.</param>
+        /// <returns>Text of the Region subtag; <c>null</c> if it is a UN M.49 code.</returns>
+#if NETCOREAPP3_0_OR_GREATER
+        private static string? GetRegionSubtag(object regionSubtag, out int numericRegionSubtag)
+#else
+        [CanBeNull]
+        private static string GetRegionSubtag([NotNull] object regionSubtag, out int numericRegionSubtag)
+#endif
         {
-            languageTagBuilder.AppendFormat("-{0}", privateUseSubtag);
-        }
-
-        private void AppendRegionSubtag(StringBuilder languageTagBuilder, object regionSubtag)
-        {
+            numericRegionSubtag = -1;
             if (regionSubtag is Iso3166Part1Alpha2Country regionSubtagFromIso3166Part1)
             {
-                languageTagBuilder.AppendFormat("-{0}", Enum.GetName(regionSubtagFromIso3166Part1.GetType(), regionSubtagFromIso3166Part1));
+#if NET5_0_OR_GREATER
+                return Enum.GetName(regionSubtagFromIso3166Part1) ?? throw new InvalidOperationException("The Region subtag is invalid.");
+#else
+                return Enum.GetName(typeof(Iso3166Part1Alpha2Country), regionSubtagFromIso3166Part1) ?? throw new InvalidOperationException("The Region subtag is invalid.");
+#endif
             }
-            else if (regionSubtag is UnM49AreaByAlpha2CountryCode regionSubtagFromUnM49ByAlpha2Code)
+
+            if (regionSubtag is string regionSubtagFromRegistry)
             {
-                languageTagBuilder.AppendFormat("-{0:000}", (ushort)regionSubtagFromUnM49ByAlpha2Code);
+                return regionSubtagFromRegistry;
+            }
+
+            if (regionSubtag is UnM49AreaByAlpha2CountryCode regionSubtagFromUnM49ByAlpha2Code)
+            {
+                numericRegionSubtag = (ushort)regionSubtagFromUnM49ByAlpha2Code;
             }
             else if (regionSubtag is UnM49AreaByAlpha3CountryCode regionSubtagFromUnM49ByAlpha3Code)
             {
-                languageTagBuilder.AppendFormat("-{0:000}", (ushort)regionSubtagFromUnM49ByAlpha3Code);
+                numericRegionSubtag = (ushort)regionSubtagFromUnM49ByAlpha3Code;
             }
-            else if (regionSubtag is string regionSubtagFromRegistry)
+            else if (regionSubtag is UnM49Area regionSubtagFromUnM49Area)
             {
-                languageTagBuilder.AppendFormat("-{0}", regionSubtagFromRegistry);
+                numericRegionSubtag = (ushort)regionSubtagFromUnM49Area;
             }
-            else
-            {
-                throw new InvalidOperationException("The Region subtag is invalid.");
-            }
+
+            // The setters admit only UN M.49 codes of three digits.
+            if (numericRegionSubtag < 0 || numericRegionSubtag > 999) throw new InvalidOperationException("The Region subtag is invalid.");
+
+            return null;
         }
 
-        private void AppendScriptSubtag(StringBuilder languageTagBuilder, object scriptSubtag)
+#if NETCOREAPP3_0_OR_GREATER
+        private static string GetScriptSubtag(object scriptSubtag)
+#else
+        [NotNull]
+        private static string GetScriptSubtag([NotNull] object scriptSubtag)
+#endif
         {
             if (scriptSubtag is Iso15924Script scriptSubtagFromIso15924)
             {
-                languageTagBuilder.AppendFormat("-{0}", Enum.GetName(scriptSubtagFromIso15924.GetType(), scriptSubtagFromIso15924));
+#if NET5_0_OR_GREATER
+                return Enum.GetName(scriptSubtagFromIso15924) ?? throw new InvalidOperationException("The Script subtag is invalid.");
+#else
+                return Enum.GetName(typeof(Iso15924Script), scriptSubtagFromIso15924) ?? throw new InvalidOperationException("The Script subtag is invalid.");
+#endif
             }
-            else if (scriptSubtag is string scriptSubtagFromRegistry)
-            {
-                languageTagBuilder.AppendFormat("-{0}", scriptSubtagFromRegistry);
-            }
-            else
-            {
-                throw new InvalidOperationException("The Script subtag is invalid.");
-            }
+
+            return scriptSubtag as string ?? throw new InvalidOperationException("The Script subtag is invalid.");
         }
 
-        private void AppendVariantSubtags(StringBuilder languageTagBuilder, string[] variantSubtags)
+        private static int GetSubtagsLength(string[] subtags)
         {
-            foreach (var variantSubtag in variantSubtags)
+            var length = 0;
+            foreach (var subtag in subtags)
             {
-                languageTagBuilder.AppendFormat("-{0}", variantSubtag);
+                length += 1 + subtag.Length;
+            }
+
+            return length;
+        }
+
+#if NETCOREAPP2_1_OR_GREATER
+        private static int Write(Span<char> destination, int position, string value)
+        {
+            value.AsSpan().CopyTo(destination.Slice(position));
+            return position + value.Length;
+        }
+
+        private static int WriteNumericSubtag(Span<char> destination, int position, int numericSubtag)
+        {
+            destination[position] = '-';
+            destination[position + 1] = (char)('0' + numericSubtag / 100);
+            destination[position + 2] = (char)('0' + numericSubtag / 10 % 10);
+            destination[position + 3] = (char)('0' + numericSubtag % 10);
+            return position + 1 + NumericRegionSubtagLength;
+        }
+
+        private static int WriteSubtag(Span<char> destination, int position, string subtag)
+        {
+            destination[position] = '-';
+            return Write(destination, position + 1, subtag);
+        }
+
+        private static int WriteSubtags(Span<char> destination, int position, string[] subtags)
+        {
+            foreach (var subtag in subtags)
+            {
+                position = WriteSubtag(destination, position, subtag);
+            }
+
+            return position;
+        }
+#else
+        private static void AppendNumericSubtag(StringBuilder languageTagBuilder, int numericSubtag)
+        {
+            languageTagBuilder.Append('-')
+                .Append((char)('0' + numericSubtag / 100))
+                .Append((char)('0' + numericSubtag / 10 % 10))
+                .Append((char)('0' + numericSubtag % 10));
+        }
+
+        private static void AppendSubtags(StringBuilder languageTagBuilder, string[] subtags)
+        {
+            foreach (var subtag in subtags)
+            {
+                languageTagBuilder.Append('-').Append(subtag);
             }
         }
+#endif
 
 #if NETCOREAPP3_0_OR_GREATER
         private Bcp47LanguageTag CreateLanguageTag(string languageTag)
@@ -565,22 +732,15 @@ namespace DataStandardizer.LanguageTag
         private Bcp47LanguageTag CreateLanguageTag([NotNull] string languageTag)
 #endif
         {
+            // The timeout overloads are obsolete but still validate the timeout passed to WithTimeout, as they did before they became inert.
+#pragma warning disable CS0618
             if (_subtagRegistry != null)
             {
                 return _matchTimeout is null ? Bcp47LanguageTag.Create(languageTag, _subtagRegistry) : Bcp47LanguageTag.Create(languageTag, _subtagRegistry, _matchTimeout.Value);
             }
 
             return _matchTimeout is null ? Bcp47LanguageTag.Create(languageTag) : Bcp47LanguageTag.Create(languageTag, _matchTimeout.Value);
-        }
-
-        private bool IsValidRegionCodeFromUnM49(ushort candidateCode)
-        {
-            var globalCodes = Enum.GetValues(typeof(UnM49AreaByAlpha2CountryCode)).Cast<UnM49AreaByAlpha2CountryCode>().Select(code => code.GetGlobalCode()).Where(code => code.HasValue).Cast<ushort>();
-            var regionCodes = Enum.GetValues(typeof(UnM49AreaByAlpha2CountryCode)).Cast<UnM49AreaByAlpha2CountryCode>().Select(code => code.GetRegionCode()).Where(code => code.HasValue).Cast<ushort>();
-            var subRegionCodes = Enum.GetValues(typeof(UnM49AreaByAlpha2CountryCode)).Cast<UnM49AreaByAlpha2CountryCode>().Select(code => code.GetSubRegionCode()).Where(code => code.HasValue).Cast<ushort>();
-            var intermediateRegionCodes = Enum.GetValues(typeof(UnM49AreaByAlpha2CountryCode)).Cast<UnM49AreaByAlpha2CountryCode>().Select(code => code.GetIntermediateRegionCode()).Where(code => code.HasValue).Cast<ushort>();
-            var m49Codes = globalCodes.Union(regionCodes).Union(subRegionCodes).Union(intermediateRegionCodes);
-            return m49Codes.Contains(candidateCode);
+#pragma warning restore CS0618
         }
 
         #endregion

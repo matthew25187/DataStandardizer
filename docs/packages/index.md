@@ -22,6 +22,7 @@ more formal standards for it. Every package guide follows the same shape:
 | [Chronology](chronology/index.md) | TZ Database · Unix time · DOS date & time |
 | [Communication](communication/index.md) | ITU-T E.164 |
 | [File.CSV](file-csv/index.md) | RFC 4180 |
+| [File.iCal](file-ical/index.md) | RFC 5545 · RFC 6868 · RFC 7986 · RFC 7265 · RFC 6321 |
 | [Geography](geography/index.md) | ISO 3166-1 · ISO 3166-2 · UN M49 |
 | [Language](language/index.md) | ISO 639 · ISO 15924 |
 | [LanguageTag](language-tag/index.md) | BCP 47 |

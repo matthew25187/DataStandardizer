@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 #if NETSTANDARD
 using JetBrains.Annotations; 
 #endif
@@ -15,6 +14,7 @@ namespace DataStandardizer.LanguageTag
 
         private static class ErrorMessage
         {
+            internal const string SubtagNull = "The subtag must not be null.";
             internal const string UninitializedInstance = "The " + nameof(Bcp47KeyedSubtag) + " instance is not initialized.";
         }
 #if NETCOREAPP3_0_OR_GREATER
@@ -40,12 +40,22 @@ namespace DataStandardizer.LanguageTag
 
         #region Operators
 
+        /// <summary>
+        /// Convert a string to a keyed subtag.
+        /// </summary>
+        /// <param name="value">Subtag string.</param>
+        /// <exception cref="InvalidCastException">The subtag is <c>null</c>.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static explicit operator Bcp47KeyedSubtag(string value)
 #else
         public static explicit operator Bcp47KeyedSubtag([NotNull] string value)
 #endif
         {
+            if (value is null)
+            {
+                throw new InvalidCastException(ErrorMessage.SubtagNull);
+            }
+
             return new Bcp47KeyedSubtag(value);
         }
 
@@ -75,7 +85,7 @@ namespace DataStandardizer.LanguageTag
 
         public bool Equals(Bcp47KeyedSubtag other)
         {
-            return _subtag == other._subtag;
+            return string.Equals(_subtag, other._subtag, StringComparison.OrdinalIgnoreCase);
         }
 
 #if NETCOREAPP3_0_OR_GREATER
@@ -92,7 +102,7 @@ namespace DataStandardizer.LanguageTag
 
         public override int GetHashCode()
         {
-            return (_subtag != null ? _subtag.GetHashCode() : 0);
+            return (_subtag != null ? StringComparer.OrdinalIgnoreCase.GetHashCode(_subtag) : 0);
         }
 
         public override string ToString()
@@ -114,8 +124,15 @@ namespace DataStandardizer.LanguageTag
             {
                 if (_subtag is null) throw new InvalidOperationException(ErrorMessage.UninitializedInstance);
 
-                var singletonCandidate = _subtag.Split('-').ElementAtOrDefault(0);
-                return !string.IsNullOrWhiteSpace(singletonCandidate) ? singletonCandidate[0] : (char?)null;
+                // The singleton is the first character of the first segment, or null when that segment is empty or whitespace.
+                var segmentEnd = _subtag.IndexOf('-');
+                if (segmentEnd < 0) segmentEnd = _subtag.Length;
+                for (var i = 0; i < segmentEnd; i++)
+                {
+                    if (!char.IsWhiteSpace(_subtag[i])) return _subtag[0];
+                }
+
+                return null;
             }
         }
 
@@ -134,7 +151,49 @@ namespace DataStandardizer.LanguageTag
             {
                 if (_subtag is null) throw new InvalidOperationException(ErrorMessage.UninitializedInstance);
 
-                return _subtag.Split('-').Skip(1).ToArray();
+                // Every segment after the first, so one per separator.
+#if NET10_0_OR_GREATER
+                var span = _subtag.AsSpan();
+                var subtags = new string[span.Count('-')];
+                var index = -1;
+                foreach (var range in span.Split('-'))
+                {
+                    if (index >= 0) subtags[index] = _subtag[range];
+                    index++;
+                }
+
+                return subtags;
+#elif NET8_0_OR_GREATER
+                var span = _subtag.AsSpan();
+                var segmentCount = span.Count('-') + 1;
+                var ranges = segmentCount <= 32 ? stackalloc Range[segmentCount] : new Range[segmentCount];
+                span.Split(ranges, '-');
+                var subtags = new string[segmentCount - 1];
+                for (var i = 1; i < segmentCount; i++)
+                {
+                    subtags[i - 1] = _subtag[ranges[i]];
+                }
+
+                return subtags;
+#else
+                var separatorCount = 0;
+                foreach (var c in _subtag)
+                {
+                    if (c == '-') separatorCount++;
+                }
+
+                var subtags = new string[separatorCount];
+                var segmentStart = _subtag.IndexOf('-') + 1;
+                for (var i = 0; i < separatorCount; i++)
+                {
+                    var segmentEnd = _subtag.IndexOf('-', segmentStart);
+                    if (segmentEnd < 0) segmentEnd = _subtag.Length;
+                    subtags[i] = _subtag.Substring(segmentStart, segmentEnd - segmentStart);
+                    segmentStart = segmentEnd + 1;
+                }
+
+                return subtags;
+#endif
             }
         }
 

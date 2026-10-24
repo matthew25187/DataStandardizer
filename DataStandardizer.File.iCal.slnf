@@ -1,0 +1,12 @@
+{
+  "solution": {
+    "path": "DataStandardizer.sln",
+    "projects": [
+      "benchmarks\\DataStandardizer.File.iCal.Benchmarks\\DataStandardizer.File.iCal.Benchmarks.csproj",
+      "src\\DataStandardizer.Chronology\\DataStandardizer.Chronology.csproj",
+      "src\\DataStandardizer.Core\\DataStandardizer.Core.csproj",
+      "src\\DataStandardizer.File.iCal\\DataStandardizer.File.iCal.csproj",
+      "tests\\DataStandardizer.File.iCal.Tests\\DataStandardizer.File.iCal.Tests.csproj"
+    ]
+  }
+}

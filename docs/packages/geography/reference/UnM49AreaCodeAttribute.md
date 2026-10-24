@@ -62,8 +62,8 @@ reads as `null`. `CodeAttributeBase` is defined in `DataStandardizer.Core`.
 | `FrenchSubRegionName` | `string? FrenchSubRegionName { get; set; }` | Sub-region name in French. |
 | `GlobalCode` | `ushort? GlobalCode { get; }` | Related global code. |
 | `IntermediateRegionCode` | `ushort? IntermediateRegionCode { get; }` | Related intermediate region code. |
-| `Iso3166Part1Alpha2Code` | `string? Iso3166Part1Alpha2Code { get; set; }` | Related ISO 3166-1 alpha-2 code. |
-| `Iso3166Part1Alpha3Code` | `string? Iso3166Part1Alpha3Code { get; set; }` | Related ISO 3166-1 alpha-3 code. |
+| `Iso3166Part1Alpha2Code` | `string? Iso3166Part1Alpha2Code { get; set; }` | Related ISO 3166-1 alpha-2 country code. Set only at the country or area level; `null` for the world, regions, sub-regions, and intermediate regions. |
+| `Iso3166Part1Alpha3Code` | `string? Iso3166Part1Alpha3Code { get; set; }` | Related ISO 3166-1 alpha-3 country code. Set only at the country or area level; `null` for the world, regions, sub-regions, and intermediate regions. |
 | `RegionCode` | `ushort? RegionCode { get; }` | Related region code. |
 | `RussianCountryOrAreaName` | `string? RussianCountryOrAreaName { get; set; }` | Country or area name in Russian. |
 | `RussianGlobalName` | `string? RussianGlobalName { get; set; }` | Global name in Russian. |
@@ -84,6 +84,7 @@ Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`.
 ## See also
 
 - [UnM49Extensions](UnM49Extensions.md)
+- [UnM49Area](UnM49Area.md)
 - [UnM49AreaByAlpha2CountryCode](UnM49AreaByAlpha2CountryCode.md)
 - [UnM49AreaByAlpha3CountryCode](UnM49AreaByAlpha3CountryCode.md)
 - [Geography API reference](index.md)

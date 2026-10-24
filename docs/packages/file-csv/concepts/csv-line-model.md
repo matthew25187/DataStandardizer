@@ -20,7 +20,7 @@ Every CSV line implements the `ICsvFileLine` interface, which is simply an
 
 ```text
 ICsvFileLine : IOrderedDictionary        // ordered name → value field bag
-└── CsvFileLineBase (abstract)           // backs the bag with an OrderedDictionary
+└── CsvFileLineBase (abstract)           // holds the field bag
     ├── CsvFileHeaderLine (sealed)       // a header line; values are the field names
     └── CsvFileRecordLine                // a data record; base for custom models
 ```
@@ -34,8 +34,8 @@ ICsvFileLine line = /* read from a file */;
 var name = line["person_name"] as string;
 ```
 
-`CsvFileLineBase` holds the actual fields in a private `OrderedDictionary` (the
-"field bag") and provides the protected `GetFieldValue` / `SetFieldValue`
+`CsvFileLineBase` holds the actual fields in a private, ordered, name-keyed
+"field bag" and provides the protected `GetFieldValue` / `SetFieldValue`
 helpers, the `Add(key, value)` method, and the full `IOrderedDictionary`
 surface.
 
