@@ -360,10 +360,13 @@ jobs:
             if ($LASTEXITCODE) { exit $LASTEXITCODE }
           }
 
-  # MyGet is a convenience channel: its failure never fails the run.
+  # MyGet is a convenience channel: its failure never fails the run.  A missed push is made up with publish-myget.yml.
   publish-myget:
     name: Publish to MyGet
     needs: publish-github
+    # An explicit condition: the default success() is false whenever any job upstream was skipped, as preview-versions
+    # always is in a publishing run.
+    if: ${{ !cancelled() && needs.publish-github.result == 'success' }}
     runs-on: ubuntu-24.04
     environment: myget
     continue-on-error: true
