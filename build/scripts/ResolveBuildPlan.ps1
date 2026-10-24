@@ -6,7 +6,9 @@ Decides which packages a GitHub Actions run builds, tests and publishes, and wri
 
 .DESCRIPTION
 Outputs, each a JSON array of package IDs: changed, tests-changed, dependent, build-set, test-set, publish-set; and
-has-build / has-publish ('true' or 'false').  See Get-BuildPlan for how the sets combine.
+has-build / has-publish ('true' or 'false').  See Get-BuildPlan for how the sets combine.  Also build-matrix and test-matrix,
+the build and test legs as matrix 'include' lists of package, configuration and os (see Get-BuildMatrix and
+Get-TestMatrix).
 
 The package-list parameters take free text (commas or spaces; full IDs or short names such as File.CSV; '*' for all).
 #>
@@ -67,6 +69,12 @@ Set-CiOutput -Name 'dependent' -Value (& $toJson $plan.Dependent)
 Set-CiOutput -Name 'build-set' -Value (& $toJson $plan.Build)
 Set-CiOutput -Name 'test-set' -Value (& $toJson $plan.Test)
 Set-CiOutput -Name 'publish-set' -Value (& $toJson $plan.Publish)
+$defaultBuildRunner = $manifest.PSObject.Properties['defaultBuildRunner'] ? $manifest.defaultBuildRunner : 'ubuntu-24.04'
+$buildMatrix = @(Get-BuildMatrix -PackageInfo $packageInfo -BuildPackageName $plan.Build -DefaultRunner $defaultBuildRunner)
+Set-CiOutput -Name 'build-matrix' -Value (ConvertTo-Json -InputObject $buildMatrix -Compress -Depth 3)
+$defaultRunners = @($manifest.PSObject.Properties['defaultTestRunners'] ? $manifest.defaultTestRunners : @('ubuntu-24.04', 'windows-2025'))
+$testMatrix = @(Get-TestMatrix -PackageInfo $packageInfo -TestPackageName $plan.Test -DefaultRunner $defaultRunners)
+Set-CiOutput -Name 'test-matrix' -Value (ConvertTo-Json -InputObject $testMatrix -Compress -Depth 3)
 Set-CiOutput -Name 'has-build' -Value ($plan.Build.Count -gt 0 ? 'true' : 'false')
 Set-CiOutput -Name 'has-publish' -Value ($plan.Publish.Count -gt 0 ? 'true' : 'false')
 

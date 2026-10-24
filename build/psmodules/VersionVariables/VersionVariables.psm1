@@ -186,4 +186,49 @@ function Set-PackageVersionState {
     return [string[]]$written
 }
 
-Export-ModuleMember -Function Get-VersionVariableName, Read-VersionVariableSet, Get-PackageVersionState, Set-PackageVersionState
+function ConvertFrom-AdoVersionVariable {
+    <#
+    .SYNOPSIS
+    Maps one package's Azure DevOps variable-group version variables (stable-major-number, next-prerelease-label and so on)
+    to the GitHub repository variables that replace them.  Other variables in the group are ignored.  Used once, to migrate.
+
+    .PARAMETER AdoVariable
+    The group's variables, name => value.
+    #>
+    [OutputType([hashtable])]
+    param (
+        [Parameter(Mandatory)]
+        [pscustomobject]    $PackageInfo,
+
+        [Parameter(Mandatory)]
+        [hashtable]     $AdoVariable,
+
+        [Parameter()]
+        [string]    $Prefix = ''
+    )
+
+    $parts = @{ major = 'Major'; minor = 'Minor'; patch = 'Patch'; prerelease = 'Prerelease' }
+    $result = [ordered]@{}
+    foreach ($name in @($AdoVariable.Keys | Sort-Object)) {
+        if ($name -match '^(?<group>stable|current|next)-(?<part>major|minor|patch|prerelease)-number$') {
+            $part = $parts[$Matches.part]
+        }
+        elseif ($name -match '^(?<group>current|next)-prerelease-label$') {
+            $part = 'Label'
+        }
+        else {
+            continue
+        }
+
+        $group = (Get-Culture).TextInfo.ToTitleCase($Matches.group)
+        $value = [string]$AdoVariable[$name]
+        if ($part -ne 'Label' -and $value -notmatch '^\d+$') {
+            throw "$($PackageInfo.packageName): $name has the value '$value', which isn't a version number part."
+        }
+        $result[(Get-VersionVariableName -VariableSuffix $PackageInfo.variableSuffix -Group $group -Part $part -Prefix $Prefix)] = $value
+    }
+
+    return $result
+}
+
+Export-ModuleMember -Function Get-VersionVariableName, Read-VersionVariableSet, Get-PackageVersionState, Set-PackageVersionState, ConvertFrom-AdoVersionVariable

@@ -1,0 +1,83 @@
+# Builds, tests and publishes the release packages when a release merges into master.  Replaces the Azure DevOps release
+# pipeline (build/datastandardizer-release-build-pipeline.yml).  Releasing a package to nuget.org is a separate, manual
+# step: publish-package.yml.
+#
+# Publishing stays switched off, and runs against the SHADOW_ copy of the version variables, until the repository
+# variable DS_PUBLISH_ENABLED is 'true'.
+
+name: DataStandardizer-Release
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'build/**'
+      - 'images/**'
+      - 'src/**'
+      - 'tests/**'
+      - 'global.json'
+      - 'Directory.Build.props'
+      - 'Directory.Build.targets'
+      - 'Directory.Packages.props'
+      - '*.md'
+      - '*.sln'
+      - '*.slnf'
+      - '.github/workflows/**'
+  workflow_dispatch:
+    inputs:
+      force-publication:
+        description: 'Packages to publish whether or not they changed (comma-separated; IDs or short names such as File.CSV; * for all)'
+        type: string
+        default: ''
+      override-changed-packages:
+        description: 'Packages to treat as changed, instead of detecting changes'
+        type: string
+        default: ''
+      dry-run:
+        description: 'Push no packages and no tags'
+        type: boolean
+        default: false
+      variable-prefix:
+        description: 'Prefix of the version variables to use, such as SHADOW_ (blank for the real ones)'
+        type: string
+        default: ''
+      verbose:
+        description: 'Verbose script output'
+        type: boolean
+        default: false
+      trace-level:
+        description: 'PowerShell trace level'
+        type: choice
+        options: ['0', '1', '2']
+        default: '0'
+
+permissions: {}
+
+jobs:
+  pipeline:
+    name: Build
+    uses: ./.github/workflows/build-and-publish.yml
+    permissions:
+      contents: write
+      packages: write
+    secrets: inherit
+    with:
+      release: true
+      publish: ${{ vars.VERSION_STATE_CLIENT_ID != '' }}
+      dry-run: ${{ inputs.dry-run == true || vars.DS_PUBLISH_ENABLED != 'true' }}
+      variable-prefix: ${{ inputs.variable-prefix || (vars.DS_PUBLISH_ENABLED != 'true' && 'SHADOW_' || '') }}
+      force-publication: ${{ inputs.force-publication || '' }}
+      override-changed-packages: ${{ inputs.override-changed-packages || '' }}
+      verbose: ${{ inputs.verbose == true }}
+      trace-level: ${{ inputs.trace-level || '0' }}
+
+  # The released previews have served their purpose.
+  prune:
+    name: Prune previews
+    needs: pipeline
+    uses: ./.github/workflows/prune-packages.yml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      what-if: ${{ vars.DS_PUBLISH_ENABLED != 'true' }}

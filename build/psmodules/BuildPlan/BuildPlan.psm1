@@ -357,5 +357,65 @@ function Get-BuildPlan {
     }
 }
 
+function Get-BuildMatrix {
+    <#
+    .SYNOPSIS
+    One build leg per package and configuration, as a GitHub Actions matrix 'include' list.  A package builds on its
+    buildRunner, or the default runner when it has none.
+    #>
+    param (
+        [Parameter(Mandatory)]
+        [pscustomobject[]]  $PackageInfo,
+
+        [Parameter()]
+        [AllowEmptyCollection()]
+        [string[]]  $BuildPackageName = @(),
+
+        [Parameter(Mandatory)]
+        [string]    $DefaultRunner,
+
+        [Parameter()]
+        [string[]]  $Configuration = @('Debug', 'Release')
+    )
+
+    foreach ($package in $PackageInfo | Where-Object { $BuildPackageName -contains $_.packageName }) {
+        $runner = $package.PSObject.Properties['buildRunner'] ? $package.buildRunner : $DefaultRunner
+        foreach ($buildConfiguration in $Configuration) {
+            [ordered]@{ package = $package.packageName; configuration = $buildConfiguration; os = $runner }
+        }
+    }
+}
+
+function Get-TestMatrix {
+    <#
+    .SYNOPSIS
+    One test leg per package, configuration and runner, as a GitHub Actions matrix 'include' list.  A package's runners are
+    its testRunners, or the default runners when it has none.
+    #>
+    param (
+        [Parameter(Mandatory)]
+        [pscustomobject[]]  $PackageInfo,
+
+        [Parameter()]
+        [AllowEmptyCollection()]
+        [string[]]  $TestPackageName = @(),
+
+        [Parameter(Mandatory)]
+        [string[]]  $DefaultRunner,
+
+        [Parameter()]
+        [string[]]  $Configuration = @('Debug', 'Release')
+    )
+
+    foreach ($package in $PackageInfo | Where-Object { $TestPackageName -contains $_.packageName }) {
+        $runners = @($package.PSObject.Properties['testRunners'] ? $package.testRunners : $DefaultRunner)
+        foreach ($runner in $runners) {
+            foreach ($buildConfiguration in $Configuration) {
+                [ordered]@{ package = $package.packageName; configuration = $buildConfiguration; os = $runner }
+            }
+        }
+    }
+}
+
 Export-ModuleMember -Function Test-PathInFolder, Get-PackageBaselineTag, Get-ChangedPackageName, Get-DependentPackageName, `
-    Get-TestPackageName, Get-ChangedTestPackageName, Get-BuildPlan
+    Get-TestPackageName, Get-ChangedTestPackageName, Get-BuildPlan, Get-BuildMatrix, Get-TestMatrix
