@@ -1,0 +1,448 @@
+# Builds, tests and (optionally) publishes the packages a run covers.  Called by ci.yml (pull requests and develop) and
+# release.yml (master).  The scripts in build/ do the work; see build/packages.json for the package list.
+#
+# Any failure abandons the run: build and test legs fail fast, and nothing downstream of a failed leg runs, because the
+# packages in a run can depend on each other.  Only finalize runs after a failure, to release the reserved versions.
+
+name: Build and publish
+
+on:
+  workflow_call:
+    inputs:
+      release:
+        description: A release build (master); otherwise a preview build.
+        type: boolean
+        default: false
+      publish:
+        description: Reserve versions, pack and publish the changed and forced packages.
+        type: boolean
+        default: false
+      dry-run:
+        description: Push no packages and no tags.
+        type: boolean
+        default: false
+      variable-prefix:
+        description: Prefix of the version variables to use, such as SHADOW_.
+        type: string
+        default: ''
+      force-publication:
+        description: Packages to publish whether or not they changed.
+        type: string
+        default: ''
+      override-changed-packages:
+        description: Packages to treat as changed instead of detecting changes.
+        type: string
+        default: ''
+      force-tagging:
+        description: Tag the published packages even off develop and master.
+        type: boolean
+        default: false
+      verbose:
+        type: boolean
+        default: false
+      trace-level:
+        type: string
+        default: '0'
+
+permissions: {}
+
+defaults:
+  run:
+    shell: pwsh
+
+env:
+  DS_RELEASE_BUILD: ${{ inputs.release }}
+  DOTNET_NOLOGO: 'true'
+  DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 'true'
+  PESTER_VERSION: '5.9.1'
+  GH_REPO: ${{ github.repository }}
+
+jobs:
+  scripts-tests:
+    name: Build script tests (${{ matrix.os }})
+    strategy:
+      matrix:
+        os: [ubuntu-24.04, windows-2025]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Pester
+        run: |
+          # A hosted runner occasionally starts without PSGallery registered (actions/runner-images#13758).
+          if (-not (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) { Register-PSRepository -Default }
+          Install-Module Pester -RequiredVersion $env:PESTER_VERSION -Scope CurrentUser -Force -SkipPublisherCheck
+      - name: Run Pester
+        run: |
+          git config --global user.name 'Build Tests'
+          git config --global user.email 'build-tests@example.com'
+          Import-Module Pester -RequiredVersion $env:PESTER_VERSION
+          $configuration = New-PesterConfiguration
+          $configuration.Run.Path = 'build/tests'
+          $configuration.Run.Exit = $true
+          $configuration.Output.Verbosity = 'Detailed'
+          $configuration.TestResult.Enabled = $true
+          $configuration.TestResult.OutputFormat = 'JUnitXml'
+          $configuration.TestResult.OutputPath = 'pester-results.xml'
+          Invoke-Pester -Configuration $configuration
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: pester-${{ matrix.os }}
+          path: pester-results.xml
+          if-no-files-found: ignore
+
+  detect-changes:
+    name: Detect changes
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      changed: ${{ steps.plan.outputs.changed }}
+      tests-changed: ${{ steps.plan.outputs.tests-changed }}
+      dependent: ${{ steps.plan.outputs.dependent }}
+      build-set: ${{ steps.plan.outputs.build-set }}
+      test-set: ${{ steps.plan.outputs.test-set }}
+      publish-set: ${{ steps.plan.outputs.publish-set }}
+      has-build: ${{ steps.plan.outputs.has-build }}
+      has-publish: ${{ steps.plan.outputs.has-publish }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+      - name: Resolve the build plan
+        id: plan
+        env:
+          FORCE_PUBLICATION: ${{ inputs.force-publication }}
+          OVERRIDE_CHANGED: ${{ inputs.override-changed-packages }}
+        run: |
+          $InformationPreference = 'Continue'
+          $VerbosePreference = '${{ inputs.verbose && 'Continue' || 'SilentlyContinue' }}'
+          ./build/scripts/ResolveBuildPlan.ps1 -Publish:$${{ inputs.publish }} -ForcePublication $env:FORCE_PUBLICATION `
+            -OverrideChangedPackages $env:OVERRIDE_CHANGED -TraceLevel ${{ inputs.trace-level }}
+
+  # Versions for a run that publishes nothing: read from the run's variable snapshot, nothing written.
+  preview-versions:
+    name: Read versions
+    needs: detect-changes
+    if: needs.detect-changes.outputs.has-build == 'true' && !(inputs.publish && needs.detect-changes.outputs.has-publish == 'true')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      versions: ${{ steps.versions.outputs.versions }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Resolve versions
+        id: versions
+        env:
+          VARIABLES_JSON: ${{ toJSON(vars) }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $InformationPreference = 'Continue'
+          $VerbosePreference = '${{ inputs.verbose && 'Continue' || 'SilentlyContinue' }}'
+          $snapshot = Join-Path $env:RUNNER_TEMP 'vars.json'
+          Set-Content -LiteralPath $snapshot -Value $env:VARIABLES_JSON
+          ./build/scripts/ResolveVersionNumbers.ps1 -VariablesFile $snapshot -VariablePrefix '${{ inputs.variable-prefix }}' `
+            -AllowMissingCurrentPackage -TraceLevel ${{ inputs.trace-level }}
+
+  # Versions for a run that publishes: read fresh, and the next versions reserved so a concurrent run can't take them.
+  reserve:
+    name: Reserve versions
+    needs: detect-changes
+    if: inputs.publish && needs.detect-changes.outputs.has-publish == 'true'
+    runs-on: ubuntu-24.04
+    environment: version-state
+    concurrency:
+      group: version-reservation
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      versions: ${{ steps.versions.outputs.versions }}
+      reserved: ${{ steps.versions.outputs.reserved }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        id: token
+        with:
+          client-id: ${{ vars.VERSION_STATE_CLIENT_ID }}
+          private-key: ${{ secrets.VERSION_STATE_PRIVATE_KEY }}
+      - name: Resolve and reserve versions
+        id: versions
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+          PUBLISH_SET: ${{ needs.detect-changes.outputs.publish-set }}
+        run: |
+          $InformationPreference = 'Continue'
+          $VerbosePreference = '${{ inputs.verbose && 'Continue' || 'SilentlyContinue' }}'
+          # A dry run with the real variables reserves nothing; a dry run against a prefixed copy exercises the reservation.
+          $reserve = '${{ !(inputs.dry-run && inputs.variable-prefix == '') }}' -eq 'true'
+          ./build/scripts/ResolveVersionNumbers.ps1 -PublishSet $env:PUBLISH_SET -Reserve:$reserve `
+            -VariablePrefix '${{ inputs.variable-prefix }}' -TraceLevel ${{ inputs.trace-level }}
+
+  build:
+    name: Build (${{ matrix.package }}, ${{ matrix.configuration }})
+    needs: [detect-changes, preview-versions, reserve]
+    if: >-
+      !cancelled() && needs.detect-changes.outputs.has-build == 'true' &&
+      (needs.reserve.result == 'success' || needs.preview-versions.result == 'success')
+    strategy:
+      fail-fast: true
+      matrix:
+        package: ${{ fromJSON(needs.detect-changes.outputs.build-set) }}
+        configuration: [Debug, Release]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    env:
+      VERSIONS: ${{ needs.reserve.outputs.versions || needs.preview-versions.outputs.versions }}
+      PACK: ${{ matrix.configuration == 'Release' && contains(fromJSON(needs.detect-changes.outputs.publish-set), matrix.package) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - name: Show the .NET SDK
+        run: |
+          dotnet --version
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          dotnet --list-runtimes
+      - name: Write assembly versions
+        run: |
+          $InformationPreference = 'Continue'
+          ./build/scripts/WriteVersionProps.ps1 -PackageName '${{ matrix.package }}' -TraceLevel ${{ inputs.trace-level }}
+      - name: Restore
+        run: dotnet restore '${{ matrix.package }}.slnf' -p:DisableWorkloadAutoImportPropsLocator=true
+      - name: Build
+        run: >-
+          dotnet build '${{ matrix.package }}.slnf' --configuration ${{ matrix.configuration }} --no-restore
+          -p:ProduceReferenceAssembly=true -p:ProduceReferenceAssemblyInOutDir=true -p:ContinuousIntegrationBuild=true
+          -p:DisableWorkloadAutoImportPropsLocator=true -p:UseSharedCompilation=false
+      - name: Generate release notes
+        id: notes
+        if: env.PACK == 'true'
+        run: |
+          $InformationPreference = 'Continue'
+          ./build/scripts/SetReleaseNotesArgument.ps1 -PackageName '${{ matrix.package }}' -TraceLevel ${{ inputs.trace-level }}
+      - name: Pack
+        if: env.PACK == 'true'
+        run: |
+          $versions = $env:VERSIONS | ForEach-Object { [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($_)) } | ConvertFrom-Json
+          $packageVersion = ($versions | Where-Object PackageName -EQ '${{ matrix.package }}').PackageProductionVersionSemVer
+          dotnet pack 'src/${{ matrix.package }}/${{ matrix.package }}.csproj' --configuration Release --no-build --no-restore `
+            --output artifacts/packages "-p:PackageVersion=$packageVersion" -p:WarningsAsErrors=NU5104 -p:ContinuousIntegrationBuild=true
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          "PACKAGE_FILE=artifacts/packages/${{ matrix.package }}.$packageVersion.nupkg" | Out-File -FilePath $env:GITHUB_ENV -Append
+      - name: Update package metadata
+        if: env.PACK == 'true'
+        env:
+          RELEASE_NOTES: ${{ steps.notes.outputs.releaseNotesArg }}
+        run: |
+          $InformationPreference = 'Continue'
+          ./build/scripts/UpdatePackageMetadata.ps1 -PackageName '${{ matrix.package }}' -EncodedPackageVersions $env:VERSIONS `
+            -PackageFilePath $env:PACKAGE_FILE -EncodedReleaseNotes $env:RELEASE_NOTES -TraceLevel ${{ inputs.trace-level }}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: env.PACK == 'true'
+        with:
+          name: packages-${{ matrix.package }}
+          path: ${{ env.PACKAGE_FILE }}
+          if-no-files-found: error
+          retention-days: 1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: build-${{ matrix.package }}-${{ matrix.configuration }}
+          path: |
+            src/${{ matrix.package }}/bin/${{ matrix.configuration }}/
+            tests/${{ matrix.package }}.Tests/bin/${{ matrix.configuration }}/
+          if-no-files-found: error
+          retention-days: 1
+
+  test:
+    name: Test (${{ matrix.package }}, ${{ matrix.configuration }}, ${{ matrix.os }})
+    needs: [detect-changes, build]
+    if: >-
+      !cancelled() && needs.build.result == 'success' && needs.detect-changes.outputs.test-set != '[]'
+    strategy:
+      fail-fast: true
+      matrix:
+        package: ${{ fromJSON(needs.detect-changes.outputs.test-set) }}
+        configuration: [Debug, Release]
+        os: [ubuntu-24.04, windows-2025]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: build-${{ matrix.package }}-${{ matrix.configuration }}
+      - name: Run tests
+        run: |
+          $package = '${{ matrix.package }}'
+          $assemblies = @(Get-ChildItem -Path "tests/$package.Tests/bin/${{ matrix.configuration }}" -Filter "$package.Tests.dll" -Recurse -File |
+            Where-Object { $IsWindows -or $_.Directory.Name -notlike 'net4*' } |
+            Sort-Object FullName)
+          if ($assemblies.Count -eq 0) {
+            Write-Error "No test assemblies found for $package."
+          }
+          $failed = 0
+          foreach ($assembly in $assemblies) {
+            $framework = $assembly.Directory.Name
+            Write-Host "::group::$package tests on $framework"
+            dotnet test $assembly.FullName --logger "trx;LogFileName=$package.$framework.trx" --results-directory TestResults
+            if ($LASTEXITCODE) { $failed++ }
+            Write-Host '::endgroup::'
+          }
+          if ($failed) {
+            Write-Error "Tests failed on $failed target framework$(($failed -eq 1) ? '' : 's')."
+          }
+      - name: Confirm every test assembly ran tests
+        run: ./build/scripts/ConfirmTestAssembliesRan.ps1 -ResultsFolder TestResults
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: test-results-${{ matrix.package }}-${{ matrix.configuration }}-${{ matrix.os }}
+          path: TestResults/
+          if-no-files-found: ignore
+
+  publish-github:
+    name: Publish to GitHub Packages
+    needs: [detect-changes, reserve, build, test]
+    if: >-
+      !cancelled() && inputs.publish && !inputs.dry-run && needs.reserve.result == 'success' &&
+      needs.build.result == 'success' && (needs.test.result == 'success' || needs.test.result == 'skipped')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: packages-*
+          merge-multiple: true
+          path: packages
+      - name: Push
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          # No --skip-duplicate: an existing version means the stored versions are out of step, which must fail.
+          foreach ($package in Get-ChildItem packages -Filter *.nupkg) {
+            dotnet nuget push $package.FullName --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" --api-key $env:GITHUB_TOKEN
+            if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          }
+
+  # MyGet is a convenience channel: its failure never fails the run.
+  publish-myget:
+    name: Publish to MyGet
+    needs: publish-github
+    runs-on: ubuntu-24.04
+    environment: myget
+    continue-on-error: true
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: packages-*
+          merge-multiple: true
+          path: packages
+      - name: Push
+        env:
+          MYGET_FEED_URL: ${{ vars.MYGET_FEED_URL }}
+          MYGET_API_KEY: ${{ secrets.MYGET_API_KEY }}
+        run: |
+          if (-not $env:MYGET_FEED_URL -or -not $env:MYGET_API_KEY) {
+            Write-Host '::warning::MyGet is not configured; skipped.'
+            exit 0
+          }
+          foreach ($package in Get-ChildItem packages -Filter *.nupkg) {
+            dotnet nuget push $package.FullName --source $env:MYGET_FEED_URL --api-key $env:MYGET_API_KEY --skip-duplicate
+            if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          }
+
+  tag:
+    name: Tag
+    needs: [detect-changes, reserve, publish-github]
+    if: >-
+      !cancelled() && needs.publish-github.result == 'success' &&
+      (inputs.release || github.ref == 'refs/heads/develop' || inputs.force-tagging)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - name: Tag the built commit
+        env:
+          PUBLISH_SET: ${{ needs.detect-changes.outputs.publish-set }}
+          VERSIONS: ${{ needs.reserve.outputs.versions }}
+        run: |
+          $InformationPreference = 'Continue'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          ./build/scripts/TagPackageVersions.ps1 -PackageSet $env:PUBLISH_SET -EncodedPackageVersions $env:VERSIONS -TraceLevel ${{ inputs.trace-level }}
+
+  finalize:
+    name: Finalize versions
+    needs: [detect-changes, reserve, build, test, publish-github, publish-myget, tag]
+    if: always() && inputs.publish && needs.reserve.result == 'success'
+    runs-on: ubuntu-24.04
+    environment: version-state
+    concurrency:
+      group: version-reservation
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        id: token
+        with:
+          client-id: ${{ vars.VERSION_STATE_CLIENT_ID }}
+          private-key: ${{ secrets.VERSION_STATE_PRIVATE_KEY }}
+      - name: Record or roll back versions
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          VERSIONS: ${{ needs.reserve.outputs.versions }}
+          RESERVED: ${{ needs.reserve.outputs.reserved }}
+          DRY_RUN: ${{ inputs.dry-run }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          TEST_RESULT: ${{ needs.test.result }}
+          PUBLISH_RESULT: ${{ needs.publish-github.result }}
+        run: |
+          $InformationPreference = 'Continue'
+          # A dry run publishes nothing, so it counts as published when everything before publication succeeded.
+          $result = $env:PUBLISH_RESULT
+          if ($env:DRY_RUN -eq 'true') {
+            $result = ($env:BUILD_RESULT -eq 'success' -and $env:TEST_RESULT -in 'success', 'skipped') ? 'success' : 'failure'
+          }
+          ./build/scripts/FinalizeVersionNumbers.ps1 -PublishResult $result -EncodedPackageVersions $env:VERSIONS `
+            -EncodedReserved $env:RESERVED -VariablePrefix '${{ inputs.variable-prefix }}' -TraceLevel ${{ inputs.trace-level }}

@@ -1,0 +1,207 @@
+# Promotes one package version: creates a GitHub Release on its tag, with the package attached, and optionally pushes it
+# to nuget.org.  Replaces the Azure DevOps feed's @Release view and the classic release pipeline.  The package always
+# comes from GitHub Packages, the store every CI build publishes to, so what is promoted is exactly what was built and
+# tested.
+#
+# The nuget.org push runs in the nuget-org environment, which requires the maintainer's approval.  It uses nuget.org
+# Trusted Publishing when the repository variable NUGET_TRUSTED_PUBLISHING is 'true', and the environment secret
+# NUGET_API_KEY otherwise.
+
+name: Promote package
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: 'Package (ID or short name, such as File.CSV)'
+        type: string
+        required: true
+      version:
+        description: 'Package version as published, such as 1.4.0 or 1.4.0-preview.3'
+        type: string
+        required: true
+      allow-prerelease:
+        description: 'Allow a preview version'
+        type: boolean
+        default: false
+      push-nuget-org:
+        description: 'Also push the package to nuget.org'
+        type: boolean
+        default: false
+      dry-run:
+        description: 'Check the version and package only'
+        type: boolean
+        default: false
+
+permissions: {}
+
+defaults:
+  run:
+    shell: pwsh
+
+env:
+  GH_REPO: ${{ github.repository }}
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      package: ${{ steps.check.outputs.package }}
+      version: ${{ steps.check.outputs.version }}
+      tag: ${{ steps.check.outputs.tag }}
+      prerelease: ${{ steps.check.outputs.prerelease }}
+      sha256: ${{ steps.check.outputs.sha256 }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+      - name: Check the version and download the package
+        id: check
+        env:
+          PACKAGE: ${{ inputs.package }}
+          VERSION: ${{ inputs.version }}
+          ALLOW_PRERELEASE: ${{ inputs.allow-prerelease }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $InformationPreference = 'Continue'
+          Import-Module ./build/psmodules/CommonHelpers/CommonHelpers.psm1
+          Import-Module ./build/psmodules/VersionNumbers/VersionNumbers.psm1
+          Import-Module ./build/psmodules/PackageRegistry/PackageRegistry.psm1
+
+          $names = @(Resolve-PackageName -Name $env:PACKAGE -PackageInfo (Get-PackageInfo))
+          if ($names.Count -ne 1) { throw "Name exactly one package; '$env:PACKAGE' names $($names.Count)." }
+          $packageName = $names[0]
+
+          $parsed = ConvertFrom-SemanticVersion -SemanticVersion $env:VERSION.Trim()
+          if ($null -eq $parsed) { throw "'$env:VERSION' is not a package version CI publishes (M.m.p or M.m.p-<label>.<n>)." }
+          if ($parsed.IsPrerelease -and $env:ALLOW_PRERELEASE -ne 'true') { throw "$env:VERSION is a preview.  Tick 'Allow a preview version' to promote it." }
+          $version = $env:VERSION.Trim()
+
+          $tag = ConvertTo-PackageTagName -Version $parsed.Version -PackageName $packageName
+          git rev-parse --verify --quiet "refs/tags/$tag" | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw "Tag $tag not found: $packageName $version was not built by CI." }
+
+          $folder = Join-Path $env:RUNNER_TEMP 'promote'
+          $source = @{ ServiceIndexUrl = 'https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json'; Token = $env:GITHUB_TOKEN }
+          $packagePath = Save-NuGetPackage -PackageId $packageName -Version $version -DestinationFolder $folder -Source $source
+          if ($null -eq $packagePath) { throw "$packageName $version not found in GitHub Packages." }
+          $finalPath = Join-Path $folder "$packageName.$version.nupkg"
+          if ($packagePath -ne $finalPath) { Move-Item -LiteralPath $packagePath -Destination $finalPath -Force }
+
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $archive = [System.IO.Compression.ZipFile]::OpenRead($finalPath)
+          try {
+            $entry = $archive.Entries | Where-Object { $_.FullName -like '*.nuspec' -and $_.FullName -notlike '*/*' } | Select-Object -First 1
+            $reader = [System.IO.StreamReader]::new($entry.Open())
+            [xml]$nuspec = $reader.ReadToEnd()
+            $reader.Dispose()
+          }
+          finally { $archive.Dispose() }
+          $notes = $nuspec.package.metadata.releaseNotes
+          Set-Content -LiteralPath (Join-Path $folder 'notes.md') -Value ($notes ? $notes : "$packageName $version")
+
+          $sha256 = (Get-FileHash -LiteralPath $finalPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          Write-Information "Promoting $packageName $version (tag $tag, SHA-256 $sha256)."
+          Set-CiOutput -Name package -Value $packageName
+          Set-CiOutput -Name version -Value $version
+          Set-CiOutput -Name tag -Value $tag
+          Set-CiOutput -Name prerelease -Value ($parsed.IsPrerelease ? 'true' : 'false')
+          Set-CiOutput -Name sha256 -Value $sha256
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: promote
+          path: ${{ runner.temp }}/promote/
+          if-no-files-found: error
+          retention-days: 7
+
+  promote:
+    name: Create the GitHub Release
+    needs: validate
+    if: ${{ !inputs.dry-run }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: promote
+          path: promote
+      - name: Create or reuse the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PACKAGE: ${{ needs.validate.outputs.package }}
+          VERSION: ${{ needs.validate.outputs.version }}
+          TAG: ${{ needs.validate.outputs.tag }}
+          PRERELEASE: ${{ needs.validate.outputs.prerelease }}
+          SHA256: ${{ needs.validate.outputs.sha256 }}
+          PUSH_NUGET_ORG: ${{ inputs.push-nuget-org }}
+        run: |
+          $packagePath = "promote/$env:PACKAGE.$env:VERSION.nupkg"
+          $existing = gh release view $env:TAG --json 'isDraft,assets' 2>$null | ConvertFrom-Json
+          if ($existing) {
+            # A release made earlier must hold the same package.
+            $asset = $existing.assets | Where-Object name -EQ (Split-Path $packagePath -Leaf)
+            if (-not $asset) { throw "Release $env:TAG exists without $(Split-Path $packagePath -Leaf)." }
+            $downloaded = Join-Path $env:RUNNER_TEMP 'existing'
+            gh release download $env:TAG --pattern $asset.name --dir $downloaded --clobber
+            if ($LASTEXITCODE) { exit $LASTEXITCODE }
+            $existingHash = (Get-FileHash -LiteralPath (Join-Path $downloaded $asset.name) -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($existingHash -ne $env:SHA256) { throw "Release $env:TAG holds a different package (SHA-256 $existingHash, expected $env:SHA256)." }
+            Write-Host "Release $env:TAG already exists ($($existing.isDraft ? 'draft' : 'published')); reusing it."
+            if ($existing.isDraft -and $env:PUSH_NUGET_ORG -ne 'true') {
+              gh release edit $env:TAG --draft=false
+              if ($LASTEXITCODE) { exit $LASTEXITCODE }
+            }
+            exit 0
+          }
+
+          # With a nuget.org push, the release stays a draft until the push succeeds, so nothing public claims a version
+          # nuget.org doesn't have.
+          $arguments = @('release', 'create', $env:TAG, $packagePath, '--verify-tag', '--title', "$env:PACKAGE $env:VERSION", '--notes-file', 'promote/notes.md')
+          if ($env:PRERELEASE -eq 'true') { $arguments += '--prerelease' }
+          if ($env:PUSH_NUGET_ORG -eq 'true') { $arguments += '--draft' }
+          gh @arguments
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+
+  publish-nuget:
+    name: Push to nuget.org
+    needs: [validate, promote]
+    if: ${{ !inputs.dry-run && inputs.push-nuget-org }}
+    runs-on: ubuntu-24.04
+    environment: nuget-org
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: promote
+          path: promote
+      - name: Log in to nuget.org (Trusted Publishing)
+        id: login
+        if: vars.NUGET_TRUSTED_PUBLISHING == 'true'
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        with:
+          user: ${{ vars.NUGET_USER }}
+      - name: Push
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY || secrets.NUGET_API_KEY }}
+          PACKAGE: ${{ needs.validate.outputs.package }}
+          VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          if (-not $env:NUGET_API_KEY) { throw 'No nuget.org API key: set NUGET_TRUSTED_PUBLISHING or the NUGET_API_KEY secret.' }
+          dotnet nuget push "promote/$env:PACKAGE.$env:VERSION.nupkg" --source https://api.nuget.org/v3/index.json --api-key $env:NUGET_API_KEY
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.validate.outputs.tag }}
+        run: |
+          gh release edit $env:TAG --draft=false
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
