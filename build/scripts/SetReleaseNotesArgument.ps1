@@ -31,7 +31,7 @@ if (0 -lt $TraceLevel) {
 
 # Resolve the package's source folder so release notes can be scoped to commits that
 # actually touched this package (rather than every change across the repository).
-$packageInfo = $env:PACKAGEINFOS | ConvertFrom-Json | Where-Object -Property packageName -EQ -Value $PackageName
+$packageInfo = Get-PackageInfo | Where-Object -Property packageName -EQ -Value $PackageName
 if ($null -eq $packageInfo) {
     Write-Error "No package information found for $PackageName."
     exit
@@ -41,12 +41,13 @@ $packageSourcePath = $packageInfo.packageSourcePath
 # Find the most recent tag for the package that is an ancestor of the build commit.
 # `--merged` (not `--no-contains`) restricts the candidates to tags reachable from the
 # build commit, so the chosen baseline is genuinely the previous tag on this history.
+$buildCommit = Get-BuildCommit
 $escapedPackageName = [regex]::Escape($PackageName)
 $packageMatchPattern = "v*$PackageName"
-$tagsOutput = & git tag --list $packageMatchPattern --sort=-version:refname --merged $env:BUILD_SOURCEVERSION
+$tagsOutput = & git tag --list $packageMatchPattern --sort=-version:refname --merged $buildCommit
 # On master the package is promoted to a 3-part release version, so notes accumulate from
 # the previous release tag; otherwise (pre-release) they accumulate from the previous 4-part tag.
-$tagMatchPattern = ($env:BUILD_SOURCEBRANCH -eq 'refs/heads/master') ? "^v\d+\.\d+\.\d+-$escapedPackageName$" : "^v\d+\.\d+\.\d+\.\d+-$escapedPackageName$"
+$tagMatchPattern = (Test-ReleaseBuild) ? "^v\d+\.\d+\.\d+-$escapedPackageName$" : "^v\d+\.\d+\.\d+\.\d+-$escapedPackageName$"
 [string]$latestTagName = $tagsOutput -split '\r?\n' | Select-String -Pattern $tagMatchPattern -Raw | Select-Object -First 1
 
 # Find the repository object preceding the source commit.
@@ -58,12 +59,12 @@ else {
     $previousCommitObject = & git log --format="%H" --no-abbrev-commit | Select-Object -Last 1
 }
 
-$revisionRange = "$previousCommitObject..$env:BUILD_SOURCEVERSION"
+$revisionRange = "$previousCommitObject..$buildCommit"
 
-Write-Information "Using commit messages between $previousCommitObject and $env:BUILD_SOURCEVERSION scoped to $packageSourcePath."
+Write-Information "Using commit messages between $previousCommitObject and $buildCommit scoped to $packageSourcePath."
 
 # Patterns to scrub from commit messages before they become release notes.
-[string[]]$sanitiseTags = @('[skip ci]', '[ci skip]', 'skip-checks: true', 'skip-checks:true', '[skip azurepipelines]', '[azurepipelines skip]', '[skip azpipelines]', '[azpipelines skip]', '[skip azp]', '[azp skip]', '***NO_CI***')
+[string[]]$sanitiseTags = @('[skip ci]', '[ci skip]', 'skip-checks: true', 'skip-checks:true', '[skip azurepipelines]', '[azurepipelines skip]', '[skip azpipelines]', '[azpipelines skip]', '[skip azp]', '[azp skip]', '***NO_CI***', '[no ci]', '[skip actions]', '[actions skip]')
 $sanitisePattern = [string]::Join('|', [System.Linq.Enumerable]::Select[string, string]($sanitiseTags, [System.Func[string, string]] { param($tag)[regex]::Escape($tag) }))
 
 # Read the commits in the range as structured records. A commit body spans many lines, so a record
@@ -843,6 +844,6 @@ if ([string]::IsNullOrWhiteSpace($releaseNotes)) {
 }
 $releaseNotes
 
-# Output release notes to pipeline variable.
+# Output release notes to a pipeline variable or step output.
 $encodedReleaseNotes = $releaseNotes | ConvertTo-Base64String
-Write-Host "##vso[task.setvariable variable=releaseNotesArg]$encodedReleaseNotes"
+Set-CiOutput -Name 'releaseNotesArg' -Value $encodedReleaseNotes
