@@ -104,7 +104,8 @@ try {
     }
 }
 finally {
-    Remove-Item -LiteralPath $folder -Recurse -Force -ErrorAction SilentlyContinue
+    # A scratch folder, so it is removed even under -WhatIf.
+    Remove-Item -LiteralPath $folder -Recurse -Force -ErrorAction SilentlyContinue -WhatIf:$false
 }
 
 Write-Host "Copied $copied package version$(($copied -eq 1) ? [string]::Empty : 's')."
