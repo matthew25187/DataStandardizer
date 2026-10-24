@@ -1,5 +1,6 @@
 #Requires -Version 7.0
 
+[CmdletBinding(DefaultParameterSetName = 'StagingFolder')]
 param (
     [Parameter(Mandatory)]
     [ValidateNotNullOrEmpty()]
@@ -9,9 +10,15 @@ param (
     [ValidateNotNullOrEmpty()]
     [string]    $EncodedPackageVersions,
 
-    [Parameter(Mandatory)]
+    # Azure DevOps: the package is found under the artifact staging folder, in packages/<BuildConfiguration>.
+    [Parameter(Mandatory, ParameterSetName = 'StagingFolder')]
     [ValidateNotNullOrEmpty()]
     [string]    $BuildConfiguration,
+
+    # The package file to update.
+    [Parameter(Mandatory, ParameterSetName = 'PackageFile')]
+    [ValidateNotNullOrEmpty()]
+    [string]    $PackageFilePath,
 
     [Parameter()]
     [ValidateNotNull()]
@@ -32,11 +39,21 @@ if (0 -lt $TraceLevel) {
 $packageVersionsList = $EncodedPackageVersions | ConvertFrom-Base64String | ConvertFrom-Json
 
 #   Extract the package file to temporary location.
-$packageSearchPath = $env:BUILD_ARTIFACTSTAGINGDIRECTORY | Join-Path -ChildPath 'packages' | Join-Path -ChildPath $BuildConfiguration
-$packageFilePath = Get-ChildItem $packageSearchPath -Recurse -Filter "$PackageName*.nupkg" | Select-Object -First 1 -ExpandProperty FullName
+if ($PSCmdlet.ParameterSetName -eq 'PackageFile') {
+    if (-not (Test-Path -LiteralPath $PackageFilePath -PathType Leaf)) {
+        Write-Error "Package file $PackageFilePath not found."
+        exit 1
+    }
+    $packageFilePath = (Resolve-Path -LiteralPath $PackageFilePath).Path
+}
+else {
+    $packageSearchPath = $env:BUILD_ARTIFACTSTAGINGDIRECTORY | Join-Path -ChildPath 'packages' | Join-Path -ChildPath $BuildConfiguration
+    $packageFilePath = Get-ChildItem $packageSearchPath -Recurse -Filter "$PackageName*.nupkg" | Select-Object -First 1 -ExpandProperty FullName
+}
 Write-Information "Found package file at $packageFilePath."
 
-$tempPackagePath = $env:AGENT_TEMPDIRECTORY | Join-Path -ChildPath $PackageName
+$tempRootPath = @($env:AGENT_TEMPDIRECTORY, $env:RUNNER_TEMP, [System.IO.Path]::GetTempPath()) | Where-Object { $_ } | Select-Object -First 1
+$tempPackagePath = $tempRootPath | Join-Path -ChildPath $PackageName
 if (-not (Test-Path $tempPackagePath -PathType Container)) {
     New-Item $tempPackagePath -ItemType Directory
 }
@@ -155,8 +172,8 @@ if ($repositoryNode.Attributes['type'].Value.Length -gt $repositoryTypeLengthLim
 }
 
 $repositoryUrlLengthLimit = 4000
-if ($repositoryNode.Attributes['repository'].Value.Length -gt $repositoryUrlLengthLimit) {
-    Write-Error "Attribute 'repository' exceeds the limit of $repositoryUrlLengthLimit characters for NuGet."
+if ($repositoryNode.Attributes['url'].Value.Length -gt $repositoryUrlLengthLimit) {
+    Write-Error "Attribute 'url' exceeds the limit of $repositoryUrlLengthLimit characters for NuGet."
 }
 
 Write-Verbose "Validated 'repository' property - OK."
@@ -203,6 +220,21 @@ foreach ($dependencyNode in $dependencyNodes) {
 }
 
 Write-Information "Updated $dependenciesUpdatedCount dependencies."
+
+# A release package must never declare a prerelease dependency, whether on a package built here or a third-party one.
+# The rule above uses a dependency's stable version for a release, but leaves its preview in place when no stable version
+# is recorded, and doesn't look at third-party dependencies.
+$packageVersion = $versionNode.InnerText
+if ($packageVersion -notmatch '-') {
+    $prereleaseDependencies = @($dependencyNodes |
+        Where-Object { $_.Attributes['version'].Value -match '-' } |
+        ForEach-Object { "$($_.Attributes['id'].Value) $($_.Attributes['version'].Value)" } |
+        Sort-Object -Unique)
+    if ($prereleaseDependencies.Count -gt 0) {
+        Write-Error "Release package $PackageName $packageVersion has prerelease dependencies: $($prereleaseDependencies -join ', ')."
+        exit 1
+    }
+}
 
 # Replace the .nuspec file in the package with the copy having updated dependency version numbers.
 if ($isChangedPackageNuspecDocument) {

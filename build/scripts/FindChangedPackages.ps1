@@ -1,112 +1,23 @@
-#Requires -Version 7.0
+#Requires -Version 7.4
 
 param (
     [Parameter()]
     [int]   $TraceLevel = 0
 )
 
-function Get-FileMatchToPackage {
-    [OutputType([bool])]
-    param (
-        [Parameter()]
-        [ValidateNotNullOrEmpty()]
-        [string] $PackageSourcePath,
-        
-        [Parameter()]
-        [ValidateNotNullOrEmpty()]
-        [string] $FilePath
-    )
-    
-    $packageSourcePathFolders = $PackageSourcePath -split '[/\\]'
-    $filePathFolders = $FilePath -split '[/\\]'
-
-    $isMatch = $true
-    for ($folderIndex = 0; $folderIndex -lt $packageSourcePathFolders.Count -and $isMatch; $folderIndex++) {
-        if ($filePathFolders[$folderIndex] -ne $packageSourcePathFolders[$folderIndex]) {
-            $isMatch = $false
-        }
-    }
-
-    return $isMatch
-}
+Import-Module (Join-Path $PSScriptRoot '../psmodules/CommonHelpers/CommonHelpers.psm1') -Scope Local
+Import-Module (Join-Path $PSScriptRoot '../psmodules/BuildPlan/BuildPlan.psm1') -Scope Local
 
 if (0 -lt $TraceLevel) {
     Set-PSDebug -Trace $TraceLevel
 }
 
-# Without version tags every package would be compared against the first commit and reported as changed, so a checkout
-# that didn't fetch tags must fail here instead.
-if (-not (& git tag --list 'v*')) {
-    Write-Error 'No version tags found in the checkout.  The checkout step must fetch tags (fetchTags: true).'
-}
+$changedPackages = @(Get-ChangedPackageName -PackageInfo (Get-PackageInfo) -Commit (Get-BuildCommit) -IsRelease (Test-ReleaseBuild))
 
-# Get list of changed files since most recent build on current branch.
-$changedPackages = @()
-$env:PACKAGEINFOS |
-    ConvertFrom-Json |
-    ForEach-Object {
-        Write-Verbose "Checking for changes made to package $($_.packageName)"
-
-        $diffFilesOutput = $null
-        $packageMatchPattern = "v*$($_.packageName)"
-        $tagsOutput = & git tag --list $packageMatchPattern --sort=-version:refname --merged $env:BUILD_SOURCEVERSION
-        # $latestTagName = & git for-each-ref refs/tags --sort=-taggerdate --format='%(refname:short)' --count=1 --points-at=HEAD
-        # $latestTagName = & git describe --tags --abbrev=0 --match $packageMatchPattern $SourceCommitHash
-        $latestReleaseTagName = $tagsOutput -split '\r?\n' | Select-String -Pattern "^v\d+\.\d+\.\d+-$($_.packageName)$" | Select-Object -First 1 -ExpandProperty Matches | Select-Object -First 1 -ExpandProperty Value
-        $latestPreviewTagName = $tagsOutput -split '\r?\n' | Select-String -Pattern "^v\d+\.\d+\.\d+\.\d+-$($_.packageName)$" | Select-Object -First 1 -ExpandProperty Matches | Select-Object -First 1 -ExpandProperty Value
-        if ($env:BUILD_SOURCEBRANCH -eq 'refs/heads/master') {
-            # Release builds compare against the previous release only.  Preview tags are ignored, so a package that has never
-            # been released compares against the whole history and its first release includes everything.
-            $latestTagName = $latestReleaseTagName
-        }
-        else {
-            # Other builds compare against the most recent build, which is a preview made since the last release when that
-            # preview is not an ancestor of the release (develop includes releases through back-merges from master).
-            $latestTagName = $latestReleaseTagName ?? $latestPreviewTagName
-            if ($latestReleaseTagName -and $latestPreviewTagName) {
-                & git merge-base --is-ancestor "tags/$latestPreviewTagName" "tags/$latestReleaseTagName"
-                switch ($LASTEXITCODE) {
-                    0 { }
-                    1 { $latestTagName = $latestPreviewTagName }
-                    default { Write-Error "Failed to compare tags $latestPreviewTagName and $latestReleaseTagName." }
-                }
-            }
-        }
-        if (-not [string]::IsNullOrWhiteSpace($latestTagName)) {
-            Write-Debug "Found most recent project tag $latestTagName."
-
-            $tagRefName = "tags/$latestTagName"
-            Write-Debug "Getting file differences between $tagRefName and $env:BUILD_SOURCEVERSION."
-            $diffFilesOutput = & git diff --name-only $tagRefName $env:BUILD_SOURCEVERSION
-        }
-        else {
-            Write-Debug 'Failed to find standard differences; using all differences instead.'
-
-            $firstCommitHash = & git log --format="%H" --no-abbrev-commit | tail -1
-            Write-Debug "Getting file differences between $firstCommitHash and $env:BUILD_SOURCEVERSION."
-            $diffFilesOutput = & git diff --name-only $firstCommitHash $env:BUILD_SOURCEVERSION
-        }
-        
-        $changedFiles = (-not [string]::IsNullOrEmpty($diffFilesOutput))? $diffFilesOutput.Trim() -split '\r?\n':@()
-
-        $isFileFromProject = $false
-        for ($fileIndex = 0; $fileIndex -lt $changedFiles.Count -and (-not $isFileFromProject); $fileIndex++) {
-            $changedFilePath = $changedFiles[$fileIndex]
-            Write-Debug "Checking if file $changedFilePath is a member of project $($_.packageName)."
-
-            $changedFileFolderPath = $changedFilePath | Split-Path -Parent
-            $isFileFromProject = (-not [string]::IsNullOrEmpty($changedFileFolderPath))? (Get-FileMatchToPackage $_.packageSourcePath $changedFileFolderPath):$false
-            if ($isFileFromProject) {
-                Write-Debug "File $changedFilePath found in project; listing project $($_.packageName) as changed."
-                $changedPackages += $_.packageName
-            }
-        }
-    }
-
-Write-Host "##vso[task.setvariable variable=changedPackageNamesList]$($changedPackages -join ',')"
+Set-CiOutput -Name 'changedPackageNamesList' -Value ($changedPackages -join ',')
 
 if ($changedPackages.Count -gt 0) {
-    Write-Information "Detected $($changedPackages.Count) changed package$(($changedPackages.Count -eq 1) ? '' : 's')."
+    Write-Information "Detected $($changedPackages.Count) changed package$(($changedPackages.Count -eq 1) ? [string]::Empty : 's')."
 }
 else {
     Write-Information "No package changes were detected."
