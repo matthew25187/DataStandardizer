@@ -42,7 +42,7 @@ public class CsvFileWriterTests : IDisposable
         // arrange
         ICsvFileLine testLine = new CsvFileHeaderLine();
         testLine.Add("1", "One,Two");
-        testLine.Add("2", $"Three{Environment.NewLine}Four");
+        testLine.Add("2", "Three\r\nFour");
         testLine.Add("3", "Five\"Six");
         testLine.Add("4", "Last");
 
@@ -141,7 +141,7 @@ public class CsvFileWriterTests : IDisposable
         testLine.Add("One", "1");
         testLine.Add("Two", "Two");
         testLine.Add("Three", "Left\"Right");
-        testLine.Add("Four", $"Left{Environment.NewLine}Right");
+        testLine.Add("Four", "Left\r\nRight");
         testLine.Add("Five", "Left,Right");
 
         var options = new CsvFileOptions { QuoteHandling = CsvFieldQuoteHandling.Always };
@@ -192,7 +192,7 @@ public class CsvFileWriterTests : IDisposable
         testLine.Add("One", "1");
         testLine.Add("Two", "Two");
         testLine.Add("Three", "Left\"Right");
-        testLine.Add("Four", $"Left{Environment.NewLine}Right");
+        testLine.Add("Four", "Left\r\nRight");
         testLine.Add("Five", "Left,Right");
 
         var options = new CsvFileOptions { QuoteHandling = CsvFieldQuoteHandling.Required };
