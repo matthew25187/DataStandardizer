@@ -98,9 +98,12 @@ jobs:
           $archive = [System.IO.Compression.ZipFile]::OpenRead($finalPath)
           try {
             $entry = $archive.Entries | Where-Object { $_.FullName -like '*.nuspec' -and $_.FullName -notlike '*/*' } | Select-Object -First 1
+            if ($null -eq $entry) { throw "$packageName $version has no .nuspec." }
             $reader = [System.IO.StreamReader]::new($entry.Open())
-            [xml]$nuspec = $reader.ReadToEnd()
-            $reader.Dispose()
+            try {
+              [xml]$nuspec = $reader.ReadToEnd()
+            }
+            finally { $reader.Dispose() }
           }
           finally { $archive.Dispose() }
           $notes = $nuspec.package.metadata.releaseNotes
