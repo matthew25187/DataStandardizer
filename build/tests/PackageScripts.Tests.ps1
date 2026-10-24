@@ -60,7 +60,7 @@ Describe 'Package scripts' {
         BeforeEach {
             $script:Root = New-TestFolder
             foreach ($package in $script:Packages) {
-                $null = New-Item -ItemType Directory -Path (Join-Path $script:Root $package.packageSourcePath)
+                [void](New-Item -ItemType Directory -Path (Join-Path $script:Root $package.packageSourcePath))
             }
             $script:PropsPath = { param($Name) Join-Path $script:Root "src/$Name/Version.g.props" }
         }

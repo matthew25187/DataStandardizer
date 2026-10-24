@@ -176,7 +176,7 @@ function Set-PackageVersionState {
 
         $value = [string]$values[$part]
         if ($PSCmdlet.ShouldProcess($name, "Set to '$value'")) {
-            $null = Invoke-Gh variable set $name --body $value
+            [void](Invoke-Gh variable set $name --body $value)
             $Variables[$name] = $value
             $written += $name
             Write-Verbose "Set $name to '$value'."

@@ -217,7 +217,7 @@ function Get-DependentPackageName {
                         if (-not $dependentsByPackageName.ContainsKey($dependencyPackageName)) {
                             $dependentsByPackageName[$dependencyPackageName] = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
                         }
-                        $null = $dependentsByPackageName[$dependencyPackageName].Add($dependentPackageName)
+                        [void] $dependentsByPackageName[$dependencyPackageName].Add($dependentPackageName)
                     }
                 }
         }
@@ -226,7 +226,7 @@ function Get-DependentPackageName {
     $reachedPackageNames = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
     $pendingPackageNames = [System.Collections.Generic.Queue[string]]::new()
     $ChangedPackageName | Where-Object { $_ } | ForEach-Object {
-        $null = $reachedPackageNames.Add($_)
+        [void] $reachedPackageNames.Add($_)
         $pendingPackageNames.Enqueue($_)
     }
     while ($pendingPackageNames.Count -gt 0) {

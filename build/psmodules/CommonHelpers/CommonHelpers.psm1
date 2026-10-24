@@ -96,7 +96,7 @@ function Resolve-PackageName {
     $selected = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
     foreach ($token in $tokens) {
         if ($token -eq '*') {
-            $PackageInfo | ForEach-Object { $null = $selected.Add($_.packageName) }
+            $PackageInfo | ForEach-Object { [void] $selected.Add($_.packageName) }
             continue
         }
 
@@ -108,7 +108,7 @@ function Resolve-PackageName {
             throw "Unknown package '$token'.  Valid names are: $validNames (or '*' for all)."
         }
 
-        $null = $selected.Add($match.packageName)
+        [void] $selected.Add($match.packageName)
     }
 
     return [string[]]@($PackageInfo | Where-Object { $selected.Contains($_.packageName) } | Select-Object -ExpandProperty packageName)

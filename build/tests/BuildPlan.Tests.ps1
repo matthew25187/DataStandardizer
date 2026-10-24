@@ -151,7 +151,7 @@ Describe 'BuildPlan' {
             $project = { param($Path, [string[]]$References)
                 $items = ($References | ForEach-Object { "<ProjectReference Include=`"$_`" />" }) -join ''
                 $full = Join-Path $script:GraphRoot $Path
-                $null = New-Item -ItemType Directory -Path (Split-Path $full -Parent) -Force
+                [void](New-Item -ItemType Directory -Path (Split-Path $full -Parent) -Force)
                 [System.IO.File]::WriteAllText($full, "<Project><ItemGroup>$items</ItemGroup></Project>")
             }
             & $project 'src/DataStandardizer.Core/DataStandardizer.Core.csproj' @()

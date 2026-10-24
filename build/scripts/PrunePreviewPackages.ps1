@@ -78,7 +78,7 @@ foreach ($package in $packageInfo) {
         -PromotedTag $publishedReleaseTags -NuGetOrgVersion $nugetOrgVersions -CurrentVersion $currentVersion -MaxAgeDays $MaxAgeDays)
     foreach ($candidate in $prunable) {
         if ($PSCmdlet.ShouldProcess("$packageName $($candidate.Name)", "Delete ($($candidate.Reason))")) {
-            $null = Invoke-Gh api -X DELETE "/users/$Owner/packages/nuget/$packageName/versions/$($candidate.Id)"
+            [void](Invoke-Gh api -X DELETE "/users/$Owner/packages/nuget/$packageName/versions/$($candidate.Id)")
             Write-Information "Deleted $packageName $($candidate.Name): $($candidate.Reason)."
             $deleted++
         }

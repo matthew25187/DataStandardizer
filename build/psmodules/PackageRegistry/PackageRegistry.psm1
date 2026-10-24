@@ -69,7 +69,7 @@ function Save-NuGetPackage {
         [hashtable[]]   $Source
     )
 
-    $null = New-Item -ItemType Directory -Path $DestinationFolder -Force
+    [void](New-Item -ItemType Directory -Path $DestinationFolder -Force)
     $lowerId = $PackageId.ToLowerInvariant()
     $lowerVersion = $Version.ToLowerInvariant()
     $destination = Join-Path $DestinationFolder "$lowerId.$lowerVersion.nupkg"
@@ -254,7 +254,7 @@ function Get-PrunablePreviewVersion {
     foreach ($stored in $StoredVersion) {
         $parsed = ConvertFrom-SemanticVersion -SemanticVersion $stored.Name
         if ($null -ne $parsed -and -not $parsed.IsPrerelease) {
-            $null = $storedReleases.Add($stored.Name)
+            [void] $storedReleases.Add($stored.Name)
         }
     }
 

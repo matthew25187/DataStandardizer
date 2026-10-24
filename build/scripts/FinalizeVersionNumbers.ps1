@@ -74,8 +74,8 @@ foreach ($action in $actions) {
 
     $package = $packageInfo | Where-Object -Property packageName -EQ -Value $action.PackageName
     $setLabel = $action.Group -eq 'Current'
-    $null = Set-PackageVersionState -PackageInfo $package -Group $action.Group -Version $action.Version `
-        -PrereleaseLabel $action.PrereleaseLabel -SetPrereleaseLabel:$setLabel -Variables $variables -Prefix $VariablePrefix
+    [void](Set-PackageVersionState -PackageInfo $package -Group $action.Group -Version $action.Version `
+        -PrereleaseLabel $action.PrereleaseLabel -SetPrereleaseLabel:$setLabel -Variables $variables -Prefix $VariablePrefix)
 }
 
 # Read back every write.

@@ -7,7 +7,7 @@ function New-TestFolder {
     param ()
 
     $path = Join-Path ([System.IO.Path]::GetTempPath()) "ds-build-tests-$([guid]::NewGuid().ToString('N'))"
-    $null = New-Item -ItemType Directory -Path $path
+    [void](New-Item -ItemType Directory -Path $path)
     return $path
 }
 
@@ -60,7 +60,7 @@ function Add-TestCommit {
 
     foreach ($relativePath in $File.Keys) {
         $fullPath = Join-Path (Get-Location) $relativePath
-        $null = New-Item -ItemType Directory -Path (Split-Path $fullPath -Parent) -Force
+        [void](New-Item -ItemType Directory -Path (Split-Path $fullPath -Parent) -Force)
         [System.IO.File]::WriteAllText($fullPath, [string]$File[$relativePath])
         Invoke-Git add -- $relativePath | Out-Null
     }
@@ -160,16 +160,16 @@ $dependencies
 </package>
 "@
     $staging = Join-Path $Folder "staging-$([guid]::NewGuid().ToString('N'))"
-    $null = New-Item -ItemType Directory -Path $staging
+    [void](New-Item -ItemType Directory -Path $staging)
     [System.IO.File]::WriteAllText((Join-Path $staging "$Id.nuspec"), $nuspec)
 
     $packagePath = Join-Path $Folder "$Id.$Version.nupkg"
     Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
     $archive = [System.IO.Compression.ZipFile]::Open($packagePath, [System.IO.Compression.ZipArchiveMode]::Create)
     try {
-        $null = [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, (Join-Path $staging "$Id.nuspec"), "$Id.nuspec")
+        [void] [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, (Join-Path $staging "$Id.nuspec"), "$Id.nuspec")
         foreach ($entryName in $ExtraFile.Keys) {
-            $null = [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, $ExtraFile[$entryName], $entryName)
+            [void] [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, $ExtraFile[$entryName], $entryName)
         }
     }
     finally {
