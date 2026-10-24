@@ -1924,6 +1924,60 @@ namespace DataStandardizer.BCP47.Tests
 
         #endregion
 
+        #region Test: GetHashCode_WhenTagsDifferOnlyInCase
+
+        [Theory]
+        [InlineData("en-US", "en-us"), InlineData("zh-Hant-TW", "ZH-HANT-TW"), InlineData("x-fr-CH", "X-FR-ch")]
+        public void GetHashCode_WhenTagsDifferOnlyInCase_ReturnsEqualHashCodes(string firstLanguageTag, string secondLanguageTag)
+        {
+            // arrange
+            var first = Bcp47LanguageTag.Create(firstLanguageTag);
+            var second = Bcp47LanguageTag.Create(secondLanguageTag);
+
+            // act
+            var testResult = second.GetHashCode();
+
+            // assert
+            first.Should().Be(second, "language tags are compared case-insensitively");
+            testResult.Should().Be(first.GetHashCode(), "'{0}' and '{1}' are equal, so their hash codes must be equal", firstLanguageTag, secondLanguageTag);
+        }
+
+        #endregion
+
+        #region Test: GetHashCode_WhenTagsDifferOnlyInCaseInHashSet
+
+        [Fact]
+        public void GetHashCode_WhenTagsDifferOnlyInCaseInHashSet_DeduplicatesTags()
+        {
+            // arrange
+            var testSet = new HashSet<Bcp47LanguageTag>();
+
+            // act
+            testSet.Add(Bcp47LanguageTag.Create("en-US"));
+            var testResult = testSet.Add(Bcp47LanguageTag.Create("en-us"));
+
+            // assert
+            testResult.Should().BeFalse("'en-us' is equal to 'en-US', which the set already holds");
+            testSet.Should().ContainSingle();
+            testSet.Contains(Bcp47LanguageTag.Create("EN-us")).Should().BeTrue("'EN-us' is equal to 'en-US'");
+        }
+
+        #endregion
+
+        #region Test: GetHashCode_WhenUninitialised
+
+        [Fact]
+        public void GetHashCode_WhenUninitialised_ReturnsZero()
+        {
+            // act
+            var testResult = default(Bcp47LanguageTag).GetHashCode();
+
+            // assert
+            testResult.Should().Be(0, "an uninitialised language tag has no value to hash");
+        }
+
+        #endregion
+
         #region Test: TryCreate_WithLanguageTagWhenLanguageTagIsNull
 
         [Fact]
