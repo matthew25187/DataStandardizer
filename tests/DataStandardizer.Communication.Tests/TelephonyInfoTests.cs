@@ -1,4 +1,5 @@
-﻿using DataStandardizer.Communication.E164;
+﻿using System.Globalization;
+using DataStandardizer.Communication.E164;
 using DataStandardizer.Geography;
 using FluentAssertions;
 
@@ -6,6 +7,51 @@ namespace DataStandardizer.Communication.Tests;
 
 public class TelephonyInfoTests
 {
+    [Theory]
+    [InlineData(""), InlineData("en")]
+    public void CurrentTelephony_CurrentCultureWithoutRegion_ReturnsReadOnlyTelephonyWithoutCountry(string cultureName)
+    {
+        // arrange
+        var originalCulture = CultureInfo.CurrentCulture;
+        CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(cultureName);
+
+        try
+        {
+            // act
+            var testResult = TelephonyInfo.CurrentTelephony;
+
+            // assert
+            testResult.Iso3166Part1Alpha2Code.Should().BeNull();
+            testResult.IsReadOnly.Should().BeTrue();
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = originalCulture;
+        }
+    }
+
+    [Fact]
+    public void CurrentTelephony_CurrentCultureWithCountry_ReturnsReadOnlyTelephonyForCountry()
+    {
+        // arrange
+        var originalCulture = CultureInfo.CurrentCulture;
+        CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-AU");
+
+        try
+        {
+            // act
+            var testResult = TelephonyInfo.CurrentTelephony;
+
+            // assert
+            testResult.Iso3166Part1Alpha2Code.Should().Be(Iso3166Part1Alpha2Country.AU);
+            testResult.IsReadOnly.Should().BeTrue();
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = originalCulture;
+        }
+    }
+
     [Fact]
     public void GetFormat_RequestICustomFormatter_ReturnsCustomFormatter()
     {
