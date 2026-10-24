@@ -58,7 +58,8 @@ if (-not (Test-Path $tempPackagePath -PathType Container)) {
     New-Item $tempPackagePath -ItemType Directory
 }
 
-Expand-Archive -Path $packageFilePath -DestinationPath $tempPackagePath -PassThru
+# No -PassThru: on Linux it lists the files with Get-Item, which can't see the hidden _rels/.rels.
+Expand-Archive -Path $packageFilePath -DestinationPath $tempPackagePath
 
 # Load .nuspec file extracted from package.
 $packageNuspecFilePath = Get-ChildItem $tempPackagePath -Filter "$PackageName.nuspec" | Select-Object -First 1 -ExpandProperty FullName

@@ -45,7 +45,7 @@ $packageInfo = Get-PackageInfo
 $commit = Get-BuildCommit
 $isRelease = Test-ReleaseBuild
 
-$forcePublication = @(Resolve-PackageName -Name $ForcePublication -PackageInfo $packageInfo)
+$forcePublicationNames = @(Resolve-PackageName -Name $ForcePublication -PackageInfo $packageInfo)
 $override = @(Resolve-PackageName -Name $OverrideChangedPackages -PackageInfo $packageInfo)
 
 if ($override.Count -gt 0) {
@@ -60,7 +60,7 @@ $changedTests = @(Get-ChangedTestPackageName -TestPackageName (Get-TestPackageNa
 $dependent = @(Get-DependentPackageName -PackageInfo $packageInfo -ChangedPackageName $changed -RepositoryRoot (Get-RepositoryRoot))
 
 $plan = Get-BuildPlan -PackageInfo $packageInfo -ChangedPackageName $changed -ChangedTestPackageName $changedTests `
-    -DependentPackageName $dependent -ForcePublicationPackageName $forcePublication -Publish $Publish.IsPresent
+    -DependentPackageName $dependent -ForcePublicationPackageName $forcePublicationNames -Publish $Publish.IsPresent
 
 $toJson = { param([string[]]$Names) ConvertTo-Json -InputObject ([string[]]@($Names | Where-Object { $_ })) -Compress }
 Set-CiOutput -Name 'changed' -Value (& $toJson $plan.Changed)

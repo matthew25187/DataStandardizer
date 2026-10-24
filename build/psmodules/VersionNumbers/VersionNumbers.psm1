@@ -251,13 +251,14 @@ function Get-FinalizeAction {
             continue
         }
 
+        # Not $storedNext: PowerShell names are case-insensitive, so that would overwrite the $StoredNext parameter.
         [version]$writtenNext = $Reserved[$packageName].WrittenNext
-        [version]$storedNext = $StoredNext[$packageName]
-        if ($storedNext -eq $writtenNext) {
+        [version]$packageStoredNext = $StoredNext[$packageName]
+        if ($packageStoredNext -eq $writtenNext) {
             [pscustomobject]@{ PackageName = $packageName; Group = 'Next'; Version = [version]$Reserved[$packageName].PreviousNext; PrereleaseLabel = $null; Reason = 'rolled back' }
         }
         else {
-            [pscustomobject]@{ PackageName = $packageName; Group = $null; Version = $storedNext; PrereleaseLabel = $null; Reason = "left alone: next version is $storedNext, not the $writtenNext this run reserved" }
+            [pscustomobject]@{ PackageName = $packageName; Group = $null; Version = $packageStoredNext; PrereleaseLabel = $null; Reason = "left alone: next version is $packageStoredNext, not the $writtenNext this run reserved" }
         }
     }
 }

@@ -183,6 +183,13 @@ Describe 'VersionNumbers' {
             $actions[0].Version | Should -Be ([version]'1.4.0.3')
         }
 
+        It 'restores every package''s next version after a failure' {
+            $reserved = @{ P = $script:Reserved.P; R = $script:Reserved.R }
+            $actions = @(Get-FinalizeAction -PublishSucceeded $false -PackageVersions $script:Preview, $script:Release -Reserved $reserved `
+                -StoredNext @{ P = [version]'1.4.0.4'; R = [version]'1.5.0.0' })
+            $actions | ForEach-Object { "$($_.PackageName) $($_.Group) $($_.Version)" } | Should -Be @('P Next 1.4.0.3', 'R Next 1.4.0.3')
+        }
+
         It 'leaves the next version alone after a failure when it has changed since' {
             $actions = @(Get-FinalizeAction -PublishSucceeded $false -PackageVersions $script:Release -Reserved @{ R = $script:Reserved.R } -StoredNext @{ R = [version]'1.4.1.0' })
             $actions[0].Group | Should -BeNullOrEmpty
