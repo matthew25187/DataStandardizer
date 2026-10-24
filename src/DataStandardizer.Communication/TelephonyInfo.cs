@@ -172,8 +172,10 @@ namespace DataStandardizer.Communication
 #if NETSTANDARD2_0_OR_GREATER || NET
         private static TelephonyInfo DoGetCurrentTelephony()
         {
-            var currentCultureTag = Bcp47LanguageTag.Create(Thread.CurrentThread.CurrentCulture.Name);
-            Iso3166Part1Alpha2Country? countryCode = Enum.TryParse(currentCultureTag.RegionSubtag, out Iso3166Part1Alpha2Country countryCodeValue)
+            // The invariant culture's name is empty, which isn't a language tag; like any culture without a country, it gets
+            // the default instance.
+            Iso3166Part1Alpha2Country? countryCode = Bcp47LanguageTag.TryCreate(Thread.CurrentThread.CurrentCulture.Name, out var currentCultureTag)
+                && Enum.TryParse(currentCultureTag.RegionSubtag, out Iso3166Part1Alpha2Country countryCodeValue)
                 ? countryCodeValue
                 : default(Iso3166Part1Alpha2Country?);
             return countryCode.HasValue
