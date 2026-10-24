@@ -63,7 +63,8 @@ function Read-VersionVariableSet {
         return $variables
     }
 
-    $listed = (Invoke-Gh variable list --json 'name,value' --limit 1000) -join "`n" | ConvertFrom-Json
+    # gh fetches every page of variables itself; 'variable list' has no --limit.
+    $listed = (Invoke-Gh variable list --json 'name,value') -join "`n" | ConvertFrom-Json
     foreach ($variable in $listed) {
         $variables[$variable.name] = [string]$variable.value
     }

@@ -215,7 +215,8 @@ function Install-FakeGh {
     <#
     .SYNOPSIS
     Puts a fake gh first on PATH, keeping repository variables in a JSON file.  Supports 'variable list --json name,value'
-    and 'variable set NAME --body VALUE'.  Returns the folder; restore PATH with Uninstall-FakeGh.
+    and 'variable set NAME --body VALUE', and, like the real gh, rejects any other flag.  Returns the folder; restore PATH
+    with Uninstall-FakeGh.
     #>
     [OutputType([string])]
     param (
@@ -230,10 +231,18 @@ function Install-FakeGh {
 $statePath = $env:FAKE_GH_STATE
 $state = Get-Content -LiteralPath $statePath -Raw | ConvertFrom-Json -AsHashtable
 if ($args[0] -eq 'variable' -and $args[1] -eq 'list') {
+    if ($args.Count -ne 4 -or $args[2] -ne '--json') {
+        [Console]::Error.WriteLine("fake gh: 'variable list' accepts only --json <fields>: $args")
+        exit 1
+    }
     ConvertTo-Json -InputObject @($state.Keys | Sort-Object | ForEach-Object { [pscustomobject]@{ name = $_; value = $state[$_] } }) -Compress
     exit 0
 }
 if ($args[0] -eq 'variable' -and $args[1] -eq 'set') {
+    if ($args.Count -ne 5 -or $args[3] -ne '--body') {
+        [Console]::Error.WriteLine("fake gh: 'variable set' accepts only NAME --body VALUE: $args")
+        exit 1
+    }
     $name = $args[2]
     $value = $args[[array]::IndexOf($args, '--body') + 1]
     $state[$name] = $value
