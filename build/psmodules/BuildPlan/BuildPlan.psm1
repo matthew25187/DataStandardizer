@@ -357,6 +357,35 @@ function Get-BuildPlan {
     }
 }
 
+function Get-BuildMatrix {
+    <#
+    .SYNOPSIS
+    One build leg per package and configuration, as a GitHub Actions matrix 'include' list.  A package builds on its
+    buildRunner, or the default runner when it has none.
+    #>
+    param (
+        [Parameter(Mandatory)]
+        [pscustomobject[]]  $PackageInfo,
+
+        [Parameter()]
+        [AllowEmptyCollection()]
+        [string[]]  $BuildPackageName = @(),
+
+        [Parameter(Mandatory)]
+        [string]    $DefaultRunner,
+
+        [Parameter()]
+        [string[]]  $Configuration = @('Debug', 'Release')
+    )
+
+    foreach ($package in $PackageInfo | Where-Object { $BuildPackageName -contains $_.packageName }) {
+        $runner = $package.PSObject.Properties['buildRunner'] ? $package.buildRunner : $DefaultRunner
+        foreach ($buildConfiguration in $Configuration) {
+            [ordered]@{ package = $package.packageName; configuration = $buildConfiguration; os = $runner }
+        }
+    }
+}
+
 function Get-TestMatrix {
     <#
     .SYNOPSIS
@@ -389,4 +418,4 @@ function Get-TestMatrix {
 }
 
 Export-ModuleMember -Function Test-PathInFolder, Get-PackageBaselineTag, Get-ChangedPackageName, Get-DependentPackageName, `
-    Get-TestPackageName, Get-ChangedTestPackageName, Get-BuildPlan, Get-TestMatrix
+    Get-TestPackageName, Get-ChangedTestPackageName, Get-BuildPlan, Get-BuildMatrix, Get-TestMatrix

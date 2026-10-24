@@ -238,13 +238,24 @@ Describe 'BuildPlan' {
                 'DataStandardizer.File.CSV|Debug|windows-2025', 'DataStandardizer.File.CSV|Release|windows-2025')
         }
 
-        It 'tests the deprecated packages on Windows only' {
+        It 'builds each package on its own runner, or the default one' {
+            $packages = @(New-TestPackageInfo -PackageName 'DataStandardizer.Core', 'DataStandardizer.File')
+            $packages[1] | Add-Member -NotePropertyName buildRunner -NotePropertyValue 'windows-2025'
+            $legs = @(Get-BuildMatrix -PackageInfo $packages -BuildPackageName 'DataStandardizer.Core', 'DataStandardizer.File' -DefaultRunner 'ubuntu-24.04')
+            $legs | ForEach-Object { "$($_.package)|$($_.configuration)|$($_.os)" } | Should -Be @(
+                'DataStandardizer.Core|Debug|ubuntu-24.04', 'DataStandardizer.Core|Release|ubuntu-24.04'
+                'DataStandardizer.File|Debug|windows-2025', 'DataStandardizer.File|Release|windows-2025')
+        }
+
+        It 'builds and tests the deprecated packages on Windows only' {
             Import-Module (Join-Path $PSScriptRoot '../psmodules/CommonHelpers/CommonHelpers.psm1') -Force
             $manifest = Get-PackageManifest
             $windowsOnly = @($manifest.packages | Where-Object { $_.PSObject.Properties['testRunners'] } | Select-Object -ExpandProperty packageName)
+            @($manifest.packages | Where-Object { $_.PSObject.Properties['buildRunner'] } | Select-Object -ExpandProperty packageName) | Should -Be $windowsOnly
             $windowsOnly | Should -Be @('DataStandardizer.BCP47', 'DataStandardizer.File', 'DataStandardizer.ISO15924', 'DataStandardizer.ISO3166',
                 'DataStandardizer.ISO4217', 'DataStandardizer.ISO639', 'DataStandardizer.UNM49')
             $manifest.defaultTestRunners | Should -Be @('ubuntu-24.04', 'windows-2025')
+            $manifest.defaultBuildRunner | Should -Be 'ubuntu-24.04'
         }
     }
 
@@ -299,6 +310,7 @@ Describe 'BuildPlan' {
             $outputs['has-publish'] | Should -Be 'true'
             $legs = @($outputs['test-matrix'] | ConvertFrom-Json)
             $legs.Count | Should -Be 12
+            @($outputs['build-matrix'] | ConvertFrom-Json).Count | Should -Be 6
             ($legs | Where-Object package -EQ 'DataStandardizer.Core').os | Sort-Object -Unique | Should -Be @('ubuntu-24.04', 'windows-2025')
         }
 

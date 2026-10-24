@@ -107,6 +107,7 @@ jobs:
       dependent: ${{ steps.plan.outputs.dependent }}
       build-set: ${{ steps.plan.outputs.build-set }}
       test-set: ${{ steps.plan.outputs.test-set }}
+      build-matrix: ${{ steps.plan.outputs.build-matrix }}
       test-matrix: ${{ steps.plan.outputs.test-matrix }}
       publish-set: ${{ steps.plan.outputs.publish-set }}
       has-build: ${{ steps.plan.outputs.has-build }}
@@ -201,12 +202,12 @@ jobs:
     if: >-
       !cancelled() && needs.detect-changes.outputs.has-build == 'true' &&
       (needs.reserve.result == 'success' || needs.preview-versions.result == 'success')
+    # Each package's runner comes from build/packages.json; the deprecated packages build on Windows only.
     strategy:
       fail-fast: true
       matrix:
-        package: ${{ fromJSON(needs.detect-changes.outputs.build-set) }}
-        configuration: [Debug, Release]
-    runs-on: ubuntu-24.04
+        include: ${{ fromJSON(needs.detect-changes.outputs.build-matrix) }}
+    runs-on: ${{ matrix.os }}
     permissions:
       contents: read
     env:
