@@ -204,7 +204,7 @@ namespace DataStandardizer.File.CSV.Tests
         {
             // arrange
             var testFileLines = new List<string>();
-            AddTestFileLine(testFileLines, null, "One Two", $"\"Three{Environment.NewLine}Four\"", "Five Six");
+            AddTestFileLine(testFileLines, null, "One Two", "\"Three\r\nFour\"", "Five Six");
             var testFile = string.Join(CsvLineBreak, testFileLines);
 
             var options = new CsvFileOptions { EmbeddedLineBreak = lineBreak };

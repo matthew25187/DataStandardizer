@@ -21,7 +21,7 @@ namespace DataStandardizer.Chronology.Tests
         {
             get
             {
-                yield return new object[] { TzDataTimezone.Europe.Zurich, "Büsingen" };
+                yield return new object[] { TzDataTimezone.Europe.Zurich, "BÃ¼singen" };
                 yield return new object[] { TzDataTimezone.America.Argentina.Buenos_Aires, "Buenos Aires (BA, CF)" };
             }
         }
