@@ -168,6 +168,9 @@ $dependencies
     $archive = [System.IO.Compression.ZipFile]::Open($packagePath, [System.IO.Compression.ZipArchiveMode]::Create)
     try {
         [void] [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, (Join-Path $staging "$Id.nuspec"), "$Id.nuspec")
+        # Like a real package, with a file that is hidden on Linux.
+        [System.IO.File]::WriteAllText((Join-Path $staging 'rels.xml'), '<?xml version="1.0" encoding="utf-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships" />')
+        [void] [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, (Join-Path $staging 'rels.xml'), '_rels/.rels')
         foreach ($entryName in $ExtraFile.Keys) {
             [void] [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, $ExtraFile[$entryName], $entryName)
         }
