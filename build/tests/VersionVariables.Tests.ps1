@@ -116,6 +116,43 @@ Describe 'VersionVariables' {
         }
     }
 
+    Context 'ConvertFrom-AdoVersionVariable' {
+        It 'maps the Azure DevOps variable names and ignores the others' {
+            $ado = @{
+                'stable-major-number' = '1'; 'stable-minor-number' = '3'; 'stable-patch-number' = '0'
+                'current-major-number' = '1'; 'current-minor-number' = '4'; 'current-patch-number' = '0'; 'current-prerelease-number' = '2'; 'current-prerelease-label' = 'preview'
+                'next-major-number' = '1'; 'next-minor-number' = '4'; 'next-patch-number' = '0'; 'next-prerelease-number' = '3'; 'next-prerelease-label' = 'preview'
+                'unrelated' = 'x'
+            }
+            $mapped = ConvertFrom-AdoVersionVariable -PackageInfo $script:Csv -AdoVariable $ado -Prefix 'SHADOW_'
+            $mapped.Count | Should -Be 13
+            $mapped['SHADOW_DATASTANDARDIZER_FILE_CSV__STABLE_MINOR_NUMBER'] | Should -Be '3'
+            $mapped['SHADOW_DATASTANDARDIZER_FILE_CSV__NEXT_PRERELEASE_NUMBER'] | Should -Be '3'
+            $mapped['SHADOW_DATASTANDARDIZER_FILE_CSV__CURRENT_PRERELEASE_LABEL'] | Should -Be 'preview'
+            $state = Get-PackageVersionState -PackageInfo $script:Csv -Variables ([hashtable]$mapped) -Prefix 'SHADOW_'
+            $state.CurrentVersion | Should -Be ([version]'1.4.0.2')
+            $state.StableVersion | Should -Be ([version]'1.3.0')
+        }
+
+        It 'rejects a number part that is not a number' {
+            { ConvertFrom-AdoVersionVariable -PackageInfo $script:Csv -AdoVariable @{ 'next-major-number' = 'one' } } | Should -Throw '*next-major-number*one*'
+        }
+    }
+
+    Context 'Import-VersionVariables.ps1' {
+        It 'creates the variables for each exported package' {
+            $env:PACKAGEINFOS = ConvertTo-Json -InputObject @($script:Core, $script:Csv) -Compress
+            $export = Join-Path (New-TestFolder) 'export.json'
+            ConvertTo-Json -InputObject @{ 'DataStandardizer.Core' = @{ 'next-major-number' = '2'; 'next-prerelease-label' = 'preview' } } | Set-Content -LiteralPath $export
+            Install-FakeGh | Out-Null
+            & (Join-Path $PSScriptRoot '..' 'migration' 'Import-VersionVariables.ps1') -Path $export -Prefix 'SHADOW_' 6>$null 3>$null
+            $stored = Get-FakeGhVariable
+            $stored['SHADOW_DATASTANDARDIZER_CORE__NEXT_MAJOR_NUMBER'] | Should -Be '2'
+            $stored['SHADOW_DATASTANDARDIZER_CORE__NEXT_PRERELEASE_LABEL'] | Should -Be 'preview'
+            $stored.Count | Should -Be 2
+        }
+    }
+
     Context 'ResolveVersionNumbers.ps1' {
         BeforeEach {
             # Never-released packages, so nothing is downloaded.
