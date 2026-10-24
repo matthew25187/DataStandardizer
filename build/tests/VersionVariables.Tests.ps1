@@ -10,7 +10,7 @@ BeforeAll {
     $script:Core = New-TestPackageInfo -PackageName 'DataStandardizer.Core'
     $script:Csv = New-TestPackageInfo -PackageName 'DataStandardizer.File.CSV'
 
-    $script:CiVariables = 'TF_BUILD', 'GITHUB_ACTIONS', 'GITHUB_OUTPUT', 'GITHUB_SHA', 'GITHUB_REF', 'DS_RELEASE_BUILD', 'PACKAGEINFOS'
+    $script:CiVariables = 'GITHUB_ACTIONS', 'GITHUB_OUTPUT', 'GITHUB_SHA', 'GITHUB_REF', 'DS_RELEASE_BUILD', 'PACKAGEINFOS'
     $script:SavedVariables = @{}
     foreach ($name in $script:CiVariables) {
         $script:SavedVariables[$name] = [System.Environment]::GetEnvironmentVariable($name)

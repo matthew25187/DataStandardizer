@@ -4,7 +4,7 @@ BeforeAll {
     Import-Module (Join-Path $PSScriptRoot '../psmodules/CommonHelpers/CommonHelpers.psm1') -Force
     Import-Module (Join-Path $PSScriptRoot 'TestHelpers.psm1') -Force
 
-    $script:CiVariables = 'TF_BUILD', 'GITHUB_ACTIONS', 'GITHUB_OUTPUT', 'GITHUB_ENV', 'BUILD_SOURCEVERSION', 'BUILD_SOURCEBRANCH', 'GITHUB_SHA', 'GITHUB_REF', 'DS_RELEASE_BUILD', 'PACKAGEINFOS'
+    $script:CiVariables = 'GITHUB_ACTIONS', 'GITHUB_OUTPUT', 'GITHUB_ENV', 'GITHUB_SHA', 'GITHUB_REF', 'DS_RELEASE_BUILD', 'PACKAGEINFOS'
     $script:SavedVariables = @{}
     foreach ($name in $script:CiVariables) {
         $script:SavedVariables[$name] = [System.Environment]::GetEnvironmentVariable($name)
@@ -36,12 +36,6 @@ Describe 'CommonHelpers' {
             $suffixes = @(Get-PackageInfo | Select-Object -ExpandProperty variableSuffix)
             ($suffixes | Sort-Object -Unique).Count | Should -Be $suffixes.Count
             $suffixes | ForEach-Object { $_ | Should -Match '^[A-Z0-9_]+$' }
-        }
-
-        It 'matches the Azure DevOps package list' {
-            $pipelineVars = Get-Content (Join-Path (Get-RepositoryRoot) 'build' 'build-pipeline-vars.yml') -Raw
-            $pipelineNames = [regex]::Matches($pipelineVars, '(?m)^  - packageName: (\S+)') | ForEach-Object { $_.Groups[1].Value }
-            @(Get-PackageInfo | Select-Object -ExpandProperty packageName) | Should -Be @($pipelineNames)
         }
 
         It 'prefers PACKAGEINFOS when set' {
@@ -79,11 +73,9 @@ Describe 'CommonHelpers' {
     }
 
     Context 'Build commit and release detection' {
-        It 'prefers BUILD_SOURCEVERSION to GITHUB_SHA' {
+        It 'reads GITHUB_SHA' {
             $env:GITHUB_SHA = 'github'
             Get-BuildCommit | Should -Be 'github'
-            $env:BUILD_SOURCEVERSION = 'azure'
-            Get-BuildCommit | Should -Be 'azure'
         }
 
         It 'fails when no commit is known' {
@@ -95,8 +87,6 @@ Describe 'CommonHelpers' {
             Test-ReleaseBuild | Should -BeTrue
             $env:GITHUB_REF = 'refs/heads/develop'
             Test-ReleaseBuild | Should -BeFalse
-            $env:BUILD_SOURCEBRANCH = 'refs/heads/master'
-            Test-ReleaseBuild | Should -BeTrue
         }
 
         It 'lets DS_RELEASE_BUILD override the branch' {
@@ -110,14 +100,6 @@ Describe 'CommonHelpers' {
     }
 
     Context 'Set-CiOutput' {
-        It 'writes the Azure Pipelines command under TF_BUILD' {
-            $env:TF_BUILD = 'True'
-            $output = Set-CiOutput -Name 'testPackageNames' -Value 'A,B' -IsOutput 6>&1
-            "$output" | Should -BeExactly '##vso[task.setvariable variable=testPackageNames;isOutput=true]A,B'
-            $output = Set-CiOutput -Name 'changedPackageNamesList' -Value '' 6>&1
-            "$output" | Should -BeExactly '##vso[task.setvariable variable=changedPackageNamesList]'
-        }
-
         It 'appends to GITHUB_OUTPUT under GitHub Actions' {
             $env:GITHUB_OUTPUT = Join-Path (New-TestFolder) 'output'
             Set-CiOutput -Name 'build-set' -Value '["A"]'

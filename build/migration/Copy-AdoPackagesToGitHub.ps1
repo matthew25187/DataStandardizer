@@ -6,8 +6,8 @@ Copies each package's current version (and its stable version, where different) 
 GitHub Packages.
 
 .DESCRIPTION
-A one-off step of the move to GitHub Actions (#365).  The versions come from an export made by
-Export-AdoVariableGroups.ps1.  CI reads each package's current version from GitHub Packages to learn its assembly
+A one-off step of the move to GitHub Actions (#365).  The versions come from the export of the Azure DevOps
+version variables made during the migration.  CI reads each package's current version from GitHub Packages to learn its assembly
 versions, so the copy must be done before the real version variables are imported at cut-over.  Older versions stay on
 nuget.org where they were published.
 
@@ -22,7 +22,7 @@ After copying, check each package on GitHub: it should show "Connected repositor
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param (
-    # The export made by Export-AdoVariableGroups.ps1.
+    # The export of the Azure DevOps version variables made during the migration.
     [Parameter(Mandatory)]
     [string]    $ExportPath,
 

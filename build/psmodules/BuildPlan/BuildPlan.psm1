@@ -1,7 +1,6 @@
 #Requires -Version 7.4
 
-# Decides which packages a build covers.  Used by the Azure DevOps scripts FindChangedPackages.ps1, FindDependentPackages.ps1
-# and FindTestPackages.ps1, and by ResolveBuildPlan.ps1 for the GitHub workflows.
+# Decides which packages a build covers.  Used by ResolveBuildPlan.ps1.
 
 function Test-PathInFolder {
     <#

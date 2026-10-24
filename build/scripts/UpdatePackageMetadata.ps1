@@ -1,6 +1,5 @@
 #Requires -Version 7.0
 
-[CmdletBinding(DefaultParameterSetName = 'StagingFolder')]
 param (
     [Parameter(Mandatory)]
     [ValidateNotNullOrEmpty()]
@@ -10,13 +9,8 @@ param (
     [ValidateNotNullOrEmpty()]
     [string]    $EncodedPackageVersions,
 
-    # Azure DevOps: the package is found under the artifact staging folder, in packages/<BuildConfiguration>.
-    [Parameter(Mandatory, ParameterSetName = 'StagingFolder')]
-    [ValidateNotNullOrEmpty()]
-    [string]    $BuildConfiguration,
-
     # The package file to update.
-    [Parameter(Mandatory, ParameterSetName = 'PackageFile')]
+    [Parameter(Mandatory)]
     [ValidateNotNullOrEmpty()]
     [string]    $PackageFilePath,
 
@@ -39,20 +33,14 @@ if (0 -lt $TraceLevel) {
 $packageVersionsList = $EncodedPackageVersions | ConvertFrom-Base64String | ConvertFrom-Json
 
 #   Extract the package file to temporary location.
-if ($PSCmdlet.ParameterSetName -eq 'PackageFile') {
-    if (-not (Test-Path -LiteralPath $PackageFilePath -PathType Leaf)) {
-        Write-Error "Package file $PackageFilePath not found."
-        exit 1
-    }
-    $packageFilePath = (Resolve-Path -LiteralPath $PackageFilePath).Path
+if (-not (Test-Path -LiteralPath $PackageFilePath -PathType Leaf)) {
+    Write-Error "Package file $PackageFilePath not found."
+    exit 1
 }
-else {
-    $packageSearchPath = $env:BUILD_ARTIFACTSTAGINGDIRECTORY | Join-Path -ChildPath 'packages' | Join-Path -ChildPath $BuildConfiguration
-    $packageFilePath = Get-ChildItem $packageSearchPath -Recurse -Filter "$PackageName*.nupkg" | Select-Object -First 1 -ExpandProperty FullName
-}
+$packageFilePath = (Resolve-Path -LiteralPath $PackageFilePath).Path
 Write-Information "Found package file at $packageFilePath."
 
-$tempRootPath = @($env:AGENT_TEMPDIRECTORY, $env:RUNNER_TEMP, [System.IO.Path]::GetTempPath()) | Where-Object { $_ } | Select-Object -First 1
+$tempRootPath = @($env:RUNNER_TEMP, [System.IO.Path]::GetTempPath()) | Where-Object { $_ } | Select-Object -First 1
 $tempPackagePath = $tempRootPath | Join-Path -ChildPath $PackageName
 if (-not (Test-Path $tempPackagePath -PathType Container)) {
     New-Item $tempPackagePath -ItemType Directory

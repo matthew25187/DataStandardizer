@@ -7,7 +7,7 @@ BeforeAll {
     $script:Packages = @(New-TestPackageInfo -PackageName 'DataStandardizer.Core', 'DataStandardizer.File', 'DataStandardizer.File.CSV')
     $script:ScriptsFolder = Join-Path $PSScriptRoot '..' 'scripts'
 
-    $script:CiVariables = 'TF_BUILD', 'GITHUB_ACTIONS', 'GITHUB_OUTPUT', 'BUILD_SOURCEVERSION', 'BUILD_SOURCEBRANCH', 'GITHUB_SHA', 'GITHUB_REF', 'DS_RELEASE_BUILD', 'PACKAGEINFOS', 'CHANGEDPACKAGENAMESLIST'
+    $script:CiVariables = 'GITHUB_ACTIONS', 'GITHUB_OUTPUT', 'GITHUB_SHA', 'GITHUB_REF', 'DS_RELEASE_BUILD', 'PACKAGEINFOS'
     $script:SavedVariables = @{}
     foreach ($name in $script:CiVariables) {
         $script:SavedVariables[$name] = [System.Environment]::GetEnvironmentVariable($name)
@@ -256,39 +256,6 @@ Describe 'BuildPlan' {
                 'DataStandardizer.ISO4217', 'DataStandardizer.ISO639', 'DataStandardizer.UNM49')
             $manifest.defaultTestRunners | Should -Be @('ubuntu-24.04', 'windows-2025')
             $manifest.defaultBuildRunner | Should -Be 'ubuntu-24.04'
-        }
-    }
-
-    Context 'Azure DevOps scripts' {
-        It 'FindChangedPackages.ps1 writes the same pipeline variable as before' {
-            Push-Location (Initialize-Repository)
-            $env:TF_BUILD = 'True'
-            $env:BUILD_SOURCEVERSION = Add-TestCommit -File @{ 'src/DataStandardizer.Core/Core.cs' = 'core 3'; 'src/DataStandardizer.File/File.cs' = 'file 3' }
-            $env:BUILD_SOURCEBRANCH = 'refs/heads/develop'
-            $env:PACKAGEINFOS = ConvertTo-Json -InputObject $script:Packages -Compress
-            $output = & (Join-Path $script:ScriptsFolder 'FindChangedPackages.ps1') 6>&1 | ForEach-Object { "$_" }
-            $output | Should -Contain '##vso[task.setvariable variable=changedPackageNamesList]DataStandardizer.Core,DataStandardizer.File'
-        }
-
-        It 'FindTestPackages.ps1 writes the same output variables as before' {
-            Push-Location (Initialize-Repository)
-            $env:TF_BUILD = 'True'
-            $env:BUILD_SOURCEVERSION = Add-TestCommit -File @{ 'tests/DataStandardizer.Core.Tests/T.cs' = 'test 2' }
-            $env:PACKAGEINFOS = ConvertTo-Json -InputObject $script:Packages -Compress
-            $output = & (Join-Path $script:ScriptsFolder 'FindTestPackages.ps1') 6>&1 | ForEach-Object { "$_" }
-            $output | Should -Contain '##vso[task.setvariable variable=testPackageNames;isOutput=true]DataStandardizer.Core,DataStandardizer.File,DataStandardizer.File.CSV'
-            $output | Should -Contain '##vso[task.setvariable variable=changedTestPackageNames;isOutput=true]DataStandardizer.Core'
-        }
-
-        It 'FindDependentPackages.ps1 writes the same output variable as before' {
-            $env:TF_BUILD = 'True'
-            $env:CHANGEDPACKAGENAMESLIST = 'DataStandardizer.Core'
-            $output = & (Join-Path $script:ScriptsFolder 'FindDependentPackages.ps1') 6>&1 | ForEach-Object { "$_" }
-            # Against the real repository's project references, File.CSV depends on Core.
-            $line = $output | Where-Object { $_ -like '##vso*' }
-            $line | Should -Match '^##vso\[task\.setvariable variable=dependentPackageNames;isOutput=true\]DataStandardizer\.'
-            $line | Should -Match 'DataStandardizer\.File\.CSV'
-            $line | Should -Not -Match 'DataStandardizer\.Core(,|$)'
         }
     }
 

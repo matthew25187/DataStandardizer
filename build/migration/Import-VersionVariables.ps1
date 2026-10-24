@@ -2,7 +2,7 @@
 
 <#
 .SYNOPSIS
-Creates the GitHub repository version variables from an export made by Export-AdoVariableGroups.ps1.
+Creates the GitHub repository version variables from the export of the Azure DevOps version variables made during the migration.
 
 .DESCRIPTION
 A one-off step of the move to GitHub Actions (#365).  For each package in build/packages.json, maps its Azure DevOps

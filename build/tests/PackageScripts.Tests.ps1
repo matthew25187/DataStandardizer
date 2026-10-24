@@ -8,7 +8,7 @@ BeforeAll {
     $script:ScriptsFolder = Join-Path $PSScriptRoot '..' 'scripts'
     $script:Packages = @(New-TestPackageInfo -PackageName 'DataStandardizer.Core', 'DataStandardizer.Geography', 'DataStandardizer.LanguageTag')
 
-    $script:CiVariables = 'TF_BUILD', 'GITHUB_ACTIONS', 'GITHUB_OUTPUT', 'BUILD_SOURCEVERSION', 'BUILD_SOURCEBRANCH', 'GITHUB_SHA', 'GITHUB_REF', 'DS_RELEASE_BUILD', 'PACKAGEINFOS', 'AGENT_TEMPDIRECTORY', 'RUNNER_TEMP', 'VERSIONS'
+    $script:CiVariables = 'GITHUB_ACTIONS', 'GITHUB_OUTPUT', 'GITHUB_SHA', 'GITHUB_REF', 'DS_RELEASE_BUILD', 'PACKAGEINFOS', 'RUNNER_TEMP', 'VERSIONS'
     $script:SavedVariables = @{}
     foreach ($name in $script:CiVariables) {
         $script:SavedVariables[$name] = [System.Environment]::GetEnvironmentVariable($name)
