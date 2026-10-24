@@ -92,7 +92,9 @@ jobs:
           $packagePath = Save-NuGetPackage -PackageId $packageName -Version $version -DestinationFolder $folder -Source $source
           if ($null -eq $packagePath) { throw "$packageName $version not found in GitHub Packages." }
           $finalPath = Join-Path $folder "$packageName.$version.nupkg"
-          if ($packagePath -ne $finalPath) { Move-Item -LiteralPath $packagePath -Destination $finalPath -Force }
+          # Save-NuGetPackage names the file in lower case.  -cne: the paths differ only in case, and Linux file names are
+          # case-sensitive.
+          if ($packagePath -cne $finalPath) { Move-Item -LiteralPath $packagePath -Destination $finalPath -Force }
 
           Add-Type -AssemblyName System.IO.Compression.FileSystem
           $archive = [System.IO.Compression.ZipFile]::OpenRead($finalPath)
