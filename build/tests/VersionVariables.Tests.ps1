@@ -163,6 +163,23 @@ Describe 'VersionVariables' {
             (Read-Outputs)['versions'] | Should -Not -BeNullOrEmpty
         }
 
+        It 'reports no reservation without -Reserve' {
+            Install-FakeGh -Variables $script:Variables | Out-Null
+            & (Join-Path $script:ScriptsFolder 'ResolveVersionNumbers.ps1') -PublishSet 'File.CSV' 6>$null
+            @((ConvertFrom-EncodedVersionList -EncodedValue (Read-Outputs)['reserved']).PSObject.Properties).Count | Should -Be 0
+        }
+
+        It 'fails when a current package cannot be downloaded, unless allowed' {
+            $variables = (New-TestVersionVariables -Suffix 'CORE' -Current '1.0.0.1') + (New-TestVersionVariables -Suffix 'FILE_CSV' -Current '0.0.0.0')
+            Install-FakeGh -Variables $variables | Out-Null
+            $noFeed = 'https://localhost.invalid/index.json'
+            { & (Join-Path $script:ScriptsFolder 'ResolveVersionNumbers.ps1') -PackageSource $noFeed 6>$null } | Should -Throw '*Failed to acquire package DataStandardizer.Core 1.0.0-preview.1*'
+            & (Join-Path $script:ScriptsFolder 'ResolveVersionNumbers.ps1') -PackageSource $noFeed -AllowMissingCurrentPackage 6>$null 3>$null
+            $core = ConvertFrom-EncodedVersionList -EncodedValue (Read-Outputs)['versions'] | Where-Object PackageName -EQ 'DataStandardizer.Core'
+            $core.PackageProductionVersionSemVer | Should -Be '1.0.0-preview.1'
+            $core.AssemblyProductionVersion | Should -BeNullOrEmpty
+        }
+
         It 'refuses to reserve from a snapshot' {
             { & (Join-Path $script:ScriptsFolder 'ResolveVersionNumbers.ps1') -PublishSet 'File.CSV' -Reserve -VariablesFile 'x.json' } | Should -Throw '*-Reserve*'
         }

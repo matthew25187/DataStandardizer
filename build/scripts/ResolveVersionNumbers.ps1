@@ -23,9 +23,14 @@ param (
     [AllowEmptyString()]
     [string]    $PublishSet = '',
 
-    # Write the reserved next versions.  Without it nothing is written.
+    # Write the reserved next versions.  Without it nothing is written and the 'reserved' output is empty.
     [Parameter()]
     [switch]    $Reserve,
+
+    # Warn, rather than fail, when a package's current version can't be downloaded; its build is then unstamped.  For
+    # builds that publish nothing, such as pull requests.
+    [Parameter()]
+    [switch]    $AllowMissingCurrentPackage,
 
     # Read variables from this JSON file (toJSON(vars)) instead of the GitHub API.  Not allowed with -Reserve.
     [Parameter()]
@@ -85,10 +90,15 @@ foreach ($package in $packageInfo) {
     else {
         $currentSemVer = ConvertTo-SemanticVersion -Version $state.CurrentVersion -PrereleaseLabel $state.CurrentPrereleaseLabel
         $packagePath = Save-NuGetPackage -PackageId $package.packageName -Version $currentSemVer -DestinationFolder $downloadFolder -Source $sources
-        if ($null -eq $packagePath) {
+        if ($null -ne $packagePath) {
+            $assemblyVersions = Get-PackageAssemblyVersion -PackagePath $packagePath -PackageId $package.packageName -PackageVersion $state.CurrentVersion
+        }
+        elseif ($AllowMissingCurrentPackage) {
+            Write-CiIssue -Type warning -Message "Package $($package.packageName) $currentSemVer not found in any feed; its current assembly versions are unknown and its build is not stamped."
+        }
+        else {
             throw "Failed to acquire package $($package.packageName) $currentSemVer from any feed.  Unable to determine current package assembly version."
         }
-        $assemblyVersions = Get-PackageAssemblyVersion -PackagePath $packagePath -PackageId $package.packageName -PackageVersion $state.CurrentVersion
     }
 
     $versions = New-PackageVersions -PackageName $package.packageName -State $state -AssemblyVersions $assemblyVersions
@@ -128,4 +138,4 @@ if ($Reserve) {
 Remove-Item -LiteralPath $downloadFolder -Recurse -Force -ErrorAction SilentlyContinue
 
 Set-CiOutput -Name 'versions' -Value (ConvertTo-EncodedVersionList -InputObject @($versionsList))
-Set-CiOutput -Name 'reserved' -Value (ConvertTo-EncodedVersionList -InputObject $reserved)
+Set-CiOutput -Name 'reserved' -Value (ConvertTo-EncodedVersionList -InputObject ($Reserve ? $reserved : [ordered]@{}))
