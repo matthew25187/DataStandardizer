@@ -302,7 +302,9 @@ jobs:
       - name: Run tests
         run: |
           $package = '${{ matrix.package }}'
-          $assemblies = @(Get-ChildItem -Path "tests/$package.Tests/bin/${{ matrix.configuration }}" -Filter "$package.Tests.dll" -Recurse -File |
+          # One assembly per target framework, bin/<configuration>/<framework>/<package>.Tests.dll.  Not the reference
+          # assemblies in <framework>/ref/; and not .NET Framework on Linux, where it doesn't run.
+          $assemblies = @(Get-ChildItem -Path "tests/$package.Tests/bin/${{ matrix.configuration }}/*/$package.Tests.dll" -File |
             Where-Object { $IsWindows -or $_.Directory.Name -notlike 'net4*' } |
             Sort-Object FullName)
           if ($assemblies.Count -eq 0) {

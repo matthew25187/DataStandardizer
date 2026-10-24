@@ -7,6 +7,8 @@ param (
     [int]   $TraceLevel = 0
 )
 
+Import-Module (Join-Path $PSScriptRoot '../psmodules/CommonHelpers/CommonHelpers.psm1') -Scope Local
+
 if (0 -lt $TraceLevel) {
     Set-PSDebug -Trace $TraceLevel
 }
@@ -36,7 +38,7 @@ $emptyAssemblyMessages = foreach ($resultFile in $resultFiles) {
 
 if ($emptyAssemblyMessages) {
     $emptyAssemblyMessages | ForEach-Object {
-        Write-Host "##vso[task.logissue type=error]$($_)"
+        Write-CiIssue -Type error -Message $_
     }
     Write-Error "$(@($emptyAssemblyMessages).Count) matched test assembl$((@($emptyAssemblyMessages).Count -eq 1) ? 'y' : 'ies') ran no tests."
     exit 1
