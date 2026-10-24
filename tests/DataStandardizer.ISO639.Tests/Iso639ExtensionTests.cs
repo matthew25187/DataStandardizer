@@ -230,7 +230,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part1Language.fr, "français" }; }
+                get { yield return new object[] { Iso639Part1Language.fr, "franÃ§ais" }; }
             }
         }
 
@@ -253,7 +253,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part2BLanguage.fre, "français" }; }
+                get { yield return new object[] { Iso639Part2BLanguage.fre, "franÃ§ais" }; }
             }
         }
 
@@ -276,7 +276,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part2TLanguage.fra, "français" }; }
+                get { yield return new object[] { Iso639Part2TLanguage.fra, "franÃ§ais" }; }
             }
         }
 
@@ -299,7 +299,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part5LanguageFamily.ine, "indo-européennes, langues" }; }
+                get { yield return new object[] { Iso639Part5LanguageFamily.ine, "indo-europÃ©ennes, langues" }; }
             }
         }
 
@@ -322,7 +322,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part1Language.gd, new[] { "gaélique", "gaélique écossais" } }; }
+                get { yield return new object[] { Iso639Part1Language.gd, new[] { "gaÃ©lique", "gaÃ©lique Ã©cossais" } }; }
             }
         }
 
@@ -345,7 +345,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part2BLanguage.gsw, new[] { "suisse alémanique", "alémanique", "alsacien" } }; }
+                get { yield return new object[] { Iso639Part2BLanguage.gsw, new[] { "suisse alÃ©manique", "alÃ©manique", "alsacien" } }; }
             }
         }
 
@@ -368,7 +368,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part2TLanguage.nno, new[] { "norvégien nynorsk", "nynorsk, norvégien" } }; }
+                get { yield return new object[] { Iso639Part2TLanguage.nno, new[] { "norvÃ©gien nynorsk", "nynorsk, norvÃ©gien" } }; }
             }
         }
 
@@ -414,7 +414,7 @@ namespace DataStandardizer.ISO639.Tests
         {
             public static IEnumerable<object[]> TestCases
             {
-                get { yield return new object[] { Iso639Part3Language.rcf, "Creole French, Réunion" }; }
+                get { yield return new object[] { Iso639Part3Language.rcf, "Creole French, RÃ©union" }; }
             }
         }
 
