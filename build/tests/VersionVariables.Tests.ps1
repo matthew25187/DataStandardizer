@@ -324,6 +324,17 @@ Describe 'VersionVariables' {
             (Get-PackageVersionState -PackageInfo $script:Csv -Variables $stored).NextVersion | Should -Be ([version]'1.4.0.3')
         }
 
+        It 'starts a chosen major version, for a new package aligning with the others' {
+            Install-FakeGh -Variables (New-TestVersionVariables -Suffix 'CORE' -Stable '0.4.0' -Current '0.5.0.1' -Next '0.5.0.2') | Out-Null
+            & (Join-Path $script:ScriptsFolder 'StartMajorVersion.ps1') -Package 'Core' -Major 2 6>$null
+            (Get-PackageVersionState -PackageInfo $script:Core -Variables (Get-FakeGhVariable)).NextVersion | Should -Be ([version]'2.0.0.0')
+        }
+
+        It 'refuses a chosen major version that is not above the next version''s' {
+            Install-FakeGh -Variables (New-TestVersionVariables -Suffix 'CORE' -Next '2.0.0.1') | Out-Null
+            { & (Join-Path $script:ScriptsFolder 'StartMajorVersion.ps1') -Package 'Core' -Major 2 } | Should -Throw '*not above*'
+        }
+
         It 'writes nothing with -WhatIf' {
             Install-FakeGh -Variables (New-TestVersionVariables -Suffix 'CORE') | Out-Null
             & (Join-Path $script:ScriptsFolder 'StartMajorVersion.ps1') -Package 'Core' -WhatIf *>$null

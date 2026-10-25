@@ -1,4 +1,6 @@
-# Starts a new major version of a package: increments the major number of its next version and resets the rest to zero.
+# Starts a new major version of a package: increments the major number of its next version, or sets it to the major-version
+# input, and resets the rest to zero.  Setting it suits a new package's first public release, which takes the major version
+# the other packages are at (0.x -> 2.0).
 # Run by the maintainer just before merging a release PR from develop into master.  The minor and prerelease numbers
 # are incremented by the builds themselves (see build/psmodules/VersionNumbers); the patch number by Start patch release.
 #
@@ -13,6 +15,10 @@ on:
         description: 'Package (ID or short name, such as File.CSV)'
         type: string
         required: true
+      major-version:
+        description: 'Major number to start, above the next version''s (blank for the next version''s plus one)'
+        type: string
+        default: ''
       variable-prefix:
         description: 'Prefix of the version variables to use, such as SHADOW_ (blank for the real ones)'
         type: string
@@ -54,7 +60,9 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.token.outputs.token }}
           PACKAGE: ${{ inputs.package }}
+          MAJOR_VERSION: ${{ inputs.major-version }}
           VARIABLE_PREFIX: ${{ inputs.variable-prefix }}
         run: |
           $InformationPreference = 'Continue'
-          ./build/scripts/StartMajorVersion.ps1 -Package $env:PACKAGE -VariablePrefix $env:VARIABLE_PREFIX -WhatIf:$${{ inputs.dry-run }}
+          $major = $env:MAJOR_VERSION.Trim() ? @{ Major = [int]$env:MAJOR_VERSION } : @{}
+          ./build/scripts/StartMajorVersion.ps1 -Package $env:PACKAGE @major -VariablePrefix $env:VARIABLE_PREFIX -WhatIf:$${{ inputs.dry-run }}

@@ -182,11 +182,15 @@ function Add-ProductionVersion {
 function Get-MajorStartVersion {
     <#
     .SYNOPSIS
-    The next version that starts a new major version: the next major number, with minor, patch and prerelease reset to 0.
+    The next version that starts a new major version: the next major number, or -Major, with minor, patch and prerelease
+    reset to 0.
 
     .DESCRIPTION
-    A next version already ahead of the last release's major number means a new major version has been started, so asking
-    again is an error.
+    Without -Major, a next version already ahead of the last release's major number means a new major version has been
+    started, so asking again is an error.
+
+    -Major jumps to a chosen major number, as when a new package's first public release takes the major version the other
+    packages are at (0.x -> 2.0).  It must be above the next version's major number.
     #>
     [OutputType([version])]
     param (
@@ -194,8 +198,20 @@ function Get-MajorStartVersion {
         [version]   $StableVersion,
 
         [Parameter(Mandatory)]
-        [version]   $NextVersion
+        [version]   $NextVersion,
+
+        [Parameter()]
+        [ValidateRange(1, [int]::MaxValue)]
+        [int]   $Major
     )
+
+    if ($PSBoundParameters.ContainsKey('Major')) {
+        if ($Major -le $NextVersion.Major) {
+            throw "Major version $Major is not above the next version $(ConvertTo-DisplayVersion -Version $NextVersion)."
+        }
+
+        return [version]::new($Major, 0, 0, 0)
+    }
 
     if ($NextVersion.Major -gt $StableVersion.Major) {
         throw "The next version $(ConvertTo-DisplayVersion -Version $NextVersion) is already ahead of the last release ${StableVersion}: a new major version has been started."

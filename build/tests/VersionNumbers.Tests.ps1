@@ -151,6 +151,18 @@ Describe 'VersionNumbers' {
         }
     }
 
+    Context 'Get-MajorStartVersion -Major' {
+        It 'jumps a pre-1.0 package to the chosen major version' {
+            Get-MajorStartVersion -StableVersion '0.4.0' -NextVersion '0.5.0.2' -Major 2 | Should -Be ([version]'2.0.0.0')
+            Get-MajorStartVersion -StableVersion '0.0.0' -NextVersion '0.1.0.0' -Major 1 | Should -Be ([version]'1.0.0.0')
+        }
+
+        It 'must be above the next version''s major number' {
+            { Get-MajorStartVersion -StableVersion '1.3.0' -NextVersion '1.4.0.3' -Major 1 } | Should -Throw '*not above*'
+            { Get-MajorStartVersion -StableVersion '1.3.0' -NextVersion '2.0.0.4' -Major 2 } | Should -Throw '*not above*'
+        }
+    }
+
     Context 'Get-PatchStartVersion' {
         It 'is the first patch of the last release' {
             Get-PatchStartVersion -StableVersion '1.1.0' -PackageName 'P' | Should -Be ([version]'1.1.1.0')
