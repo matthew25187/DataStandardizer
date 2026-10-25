@@ -9,8 +9,12 @@
 #   DATASTANDARDIZER_<suffix>__NEXT_{MAJOR,MINOR,PATCH,PRERELEASE}_NUMBER       the version the next build produces
 #   DATASTANDARDIZER_<suffix>__NEXT_PRERELEASE_LABEL
 #
+#   DATASTANDARDIZER_<suffix>__RESUME_NEXT_VERSION                              the next version to return to after a patch
+#                                                                               series; present only while one is open
+#
 # <suffix> is the package's variableSuffix in build/packages.json.  A prefix such as SHADOW_ selects a separate copy, used to
-# trial the workflows without touching the real numbers.  Edit the NEXT_* variables by hand to set up a patch release.
+# trial the workflows without touching the real numbers.  The start-major-version and start-patch-release workflows set up
+# a major version and a patch release by writing the NEXT_* variables.
 
 Import-Module (Join-Path $PSScriptRoot '../CommonHelpers/CommonHelpers.psm1') -Scope Local
 
@@ -187,6 +191,91 @@ function Set-PackageVersionState {
     return [string[]]$written
 }
 
+function Get-ResumeVersionVariableName {
+    [OutputType([string])]
+    param (
+        [Parameter(Mandatory)]
+        [ValidatePattern('^[A-Z0-9_]+$')]
+        [string]    $VariableSuffix,
+
+        [Parameter()]
+        [ValidatePattern('^([A-Z0-9_]*)$')]
+        [string]    $Prefix = ''
+    )
+
+    return "${Prefix}DATASTANDARDIZER_${VariableSuffix}__RESUME_NEXT_VERSION"
+}
+
+function Get-ResumeNextVersion {
+    <#
+    .SYNOPSIS
+    The next version saved while a patch series is open, or $null when none is.
+    #>
+    [OutputType([version])]
+    param (
+        [Parameter(Mandatory)]
+        [pscustomobject]    $PackageInfo,
+
+        [Parameter(Mandatory)]
+        [hashtable]     $Variables,
+
+        [Parameter()]
+        [string]    $Prefix = ''
+    )
+
+    $name = Get-ResumeVersionVariableName -VariableSuffix $PackageInfo.variableSuffix -Prefix $Prefix
+    $value = $Variables[$name]
+    if ([string]::IsNullOrWhiteSpace($value)) {
+        return $null
+    }
+
+    $version = $null
+    if (-not [version]::TryParse($value.Trim(), [ref]$version) -or $version.Revision -lt 0) {
+        throw "Variable $name has the value '$value', which isn't a four-part version."
+    }
+
+    return $version
+}
+
+function Set-ResumeNextVersion {
+    <#
+    .SYNOPSIS
+    Saves, or with -Remove deletes, the next version to return to after a patch series.
+    #>
+    [CmdletBinding(SupportsShouldProcess)]
+    param (
+        [Parameter(Mandatory)]
+        [pscustomobject]    $PackageInfo,
+
+        [Parameter(Mandatory, ParameterSetName = 'Save')]
+        [version]   $Version,
+
+        [Parameter(Mandatory, ParameterSetName = 'Remove')]
+        [switch]    $Remove,
+
+        [Parameter(Mandatory)]
+        [hashtable]     $Variables,
+
+        [Parameter()]
+        [string]    $Prefix = ''
+    )
+
+    $name = Get-ResumeVersionVariableName -VariableSuffix $PackageInfo.variableSuffix -Prefix $Prefix
+    if ($Remove) {
+        if ($PSCmdlet.ShouldProcess($name, 'Delete')) {
+            [void](Invoke-Gh variable delete $name)
+            $Variables.Remove($name)
+        }
+        return
+    }
+
+    $value = $Version.ToString()
+    if ($PSCmdlet.ShouldProcess($name, "Set to '$value'")) {
+        [void](Invoke-Gh variable set $name --body $value)
+        $Variables[$name] = $value
+    }
+}
+
 function ConvertFrom-AdoVersionVariable {
     <#
     .SYNOPSIS
@@ -232,4 +321,5 @@ function ConvertFrom-AdoVersionVariable {
     return $result
 }
 
-Export-ModuleMember -Function Get-VersionVariableName, Read-VersionVariableSet, Get-PackageVersionState, Set-PackageVersionState, ConvertFrom-AdoVersionVariable
+Export-ModuleMember -Function Get-VersionVariableName, Read-VersionVariableSet, Get-PackageVersionState, Set-PackageVersionState, `
+    Get-ResumeVersionVariableName, Get-ResumeNextVersion, Set-ResumeNextVersion, ConvertFrom-AdoVersionVariable

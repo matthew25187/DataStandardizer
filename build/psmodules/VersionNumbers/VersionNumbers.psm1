@@ -132,7 +132,9 @@ function Add-ProductionVersion {
     .DESCRIPTION
     - Production version: the stored next version.  A preview uses its prerelease number (at least 1); a release uses 0.
     - Post-production version, reserved as the new next version: a preview increments the prerelease number; a release
-      increments the minor number and resets patch and prerelease.  A patch release is set up by editing the next version.
+      increments the minor number and resets patch and prerelease, unless it is a patch release (patch above 0), when it
+      increments the patch number instead and so continues the patch series.  Start-PatchVersion.ps1 sets up a patch
+      release and ends the series.
     - Assembly versions: FileVersion is the production version.  AssemblyVersion is M.m.p plus a time-of-day revision.
       InformationalVersion is M.m.
     #>
@@ -157,9 +159,15 @@ function Add-ProductionVersion {
         $PackageVersions.PackageProductionVersionSemVer = ConvertTo-SemanticVersion -Version $production -PrereleaseLabel $PackageVersions.PackageNextPrereleaseLabel
         $PackageVersions.PackageProductionPrereleaseLabel = $PackageVersions.PackageNextPrereleaseLabel
 
-        $postProduction = $IsRelease ?
-            [version]::new($production.Major, $production.Minor + 1, 0, 0) :
+        $postProduction = if (-not $IsRelease) {
             [version]::new($production.Major, $production.Minor, $production.Build, $production.Revision + 1)
+        }
+        elseif ($production.Build -gt 0) {
+            [version]::new($production.Major, $production.Minor, $production.Build + 1, 0)
+        }
+        else {
+            [version]::new($production.Major, $production.Minor + 1, 0, 0)
+        }
         $PackageVersions | Add-Member -MemberType NoteProperty -Name 'PackagePostProductionVersion' -Value $postProduction.ToString() -Force
 
         $assemblyRevision = [System.Convert]::ToInt32($UtcNow.TimeOfDay.TotalSeconds / 2)
@@ -169,6 +177,72 @@ function Add-ProductionVersion {
 
         return $PackageVersions
     }
+}
+
+function Get-MajorStartVersion {
+    <#
+    .SYNOPSIS
+    The next version that starts a new major version: the next major number, with minor, patch and prerelease reset to 0.
+
+    .DESCRIPTION
+    A next version already ahead of the last release's major number means a new major version has been started, so asking
+    again is an error.
+    #>
+    [OutputType([version])]
+    param (
+        [Parameter(Mandatory)]
+        [version]   $StableVersion,
+
+        [Parameter(Mandatory)]
+        [version]   $NextVersion
+    )
+
+    if ($NextVersion.Major -gt $StableVersion.Major) {
+        throw "The next version $(ConvertTo-DisplayVersion -Version $NextVersion) is already ahead of the last release ${StableVersion}: a new major version has been started."
+    }
+
+    return [version]::new($NextVersion.Major + 1, 0, 0, 0)
+}
+
+function Get-PatchStartVersion {
+    <#
+    .SYNOPSIS
+    The next version that starts a patch release of the last release: its major and minor numbers, and the patch number
+    after the highest one already released for them.
+
+    .PARAMETER StableVersion
+    The last release.
+
+    .PARAMETER TagName
+    The repository's tag names.  Those of the form v<major>.<minor>.<patch>-<Package> are the package's releases.
+    #>
+    [OutputType([version])]
+    param (
+        [Parameter(Mandatory)]
+        [version]   $StableVersion,
+
+        [Parameter(Mandatory)]
+        [string]    $PackageName,
+
+        [Parameter()]
+        [AllowEmptyCollection()]
+        [string[]]  $TagName = @()
+    )
+
+    if ($StableVersion -le [version]'0.0.0') {
+        throw "$PackageName has no released version to patch."
+    }
+
+    $highest = [System.Math]::Max($StableVersion.Build, 0)
+    foreach ($tag in $TagName) {
+        if ($tag -match '^v(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)-(?<package>.+)$' -and
+            $Matches.package -eq $PackageName -and
+            [int]$Matches.major -eq $StableVersion.Major -and [int]$Matches.minor -eq $StableVersion.Minor) {
+            $highest = [System.Math]::Max($highest, [int]$Matches.patch)
+        }
+    }
+
+    return [version]::new($StableVersion.Major, $StableVersion.Minor, $highest + 1, 0)
 }
 
 function ConvertTo-EncodedVersionList {
@@ -264,4 +338,4 @@ function Get-FinalizeAction {
 }
 
 Export-ModuleMember -Function ConvertTo-DisplayVersion, ConvertTo-SemanticVersion, ConvertTo-PackageTagName, ConvertFrom-SemanticVersion, `
-    New-PackageVersions, Add-ProductionVersion, ConvertTo-EncodedVersionList, ConvertFrom-EncodedVersionList, Get-FinalizeAction
+    New-PackageVersions, Add-ProductionVersion, Get-MajorStartVersion, Get-PatchStartVersion, ConvertTo-EncodedVersionList, ConvertFrom-EncodedVersionList, Get-FinalizeAction

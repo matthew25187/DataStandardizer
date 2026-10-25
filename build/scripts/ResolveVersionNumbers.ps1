@@ -104,6 +104,10 @@ foreach ($package in $packageInfo) {
     $versions = New-PackageVersions -PackageName $package.packageName -State $state -AssemblyVersions $assemblyVersions
     if ($publishNames -contains $package.packageName) {
         $versions = $versions | Add-ProductionVersion -IsRelease $isRelease
+        $resumeVersion = Get-ResumeNextVersion -PackageInfo $package -Variables $variables -Prefix $VariablePrefix
+        if ($null -ne $resumeVersion) {
+            Write-CiIssue -Type warning -Message "Package $($package.packageName) has a patch series open: after it, run the Start patch release workflow with resume-development to return the next version to $resumeVersion."
+        }
         $reserved[$package.packageName] = [ordered]@{ PreviousNext = $versions.PackageNextVersion; WrittenNext = $versions.PackagePostProductionVersion }
         Write-Information "Package $($package.packageName) will be $($versions.PackageProductionVersionSemVer); next version $($versions.PackagePostProductionVersion)."
     }

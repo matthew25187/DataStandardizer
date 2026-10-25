@@ -102,11 +102,18 @@ Describe 'VersionNumbers' {
             $versions.PackagePostProductionVersion | Should -Be '1.5.0.0'
         }
 
-        It 'produces a patch release that has been set up by hand' {
+        It 'produces a patch release and reserves the next patch, to continue the series' {
             $versions = New-PackageVersions -PackageName 'P' -State (New-State -Next '1.4.1.0') -AssemblyVersions $null |
                 Add-ProductionVersion -IsRelease $true -UtcNow $script:Noon
             $versions.PackageProductionVersionSemVer | Should -Be '1.4.1'
-            $versions.PackagePostProductionVersion | Should -Be '1.5.0.0'
+            $versions.PackagePostProductionVersion | Should -Be '1.4.2.0'
+        }
+
+        It 'numbers previews of a patch from the prerelease number' {
+            $versions = New-PackageVersions -PackageName 'P' -State (New-State -Next '1.4.1.0') -AssemblyVersions $null |
+                Add-ProductionVersion -IsRelease $false -UtcNow $script:Noon
+            $versions.PackageProductionVersionSemVer | Should -Be '1.4.1-preview.1'
+            $versions.PackagePostProductionVersion | Should -Be '1.4.1.2'
         }
 
         It 'takes the prerelease label from the next version' {
@@ -129,6 +136,42 @@ Describe 'VersionNumbers' {
             $versions = New-PackageVersions -PackageName 'P' -State (New-State) -AssemblyVersions $null |
                 Add-ProductionVersion -IsRelease $false -UtcNow $endOfDay
             ([version]$versions.AssemblyProductionVersion).Revision | Should -BeLessOrEqual 65534
+        }
+    }
+
+    Context 'Get-MajorStartVersion' {
+        It 'increments the major number and resets the rest' {
+            Get-MajorStartVersion -StableVersion '1.3.0' -NextVersion '1.4.0.3' | Should -Be ([version]'2.0.0.0')
+            Get-MajorStartVersion -StableVersion '0.2.1' -NextVersion '0.3.2.7' | Should -Be ([version]'1.0.0.0')
+        }
+
+        It 'refuses when a major version has already been started' {
+            { Get-MajorStartVersion -StableVersion '1.3.0' -NextVersion '2.0.0.4' } | Should -Throw '*already ahead*'
+            { Get-MajorStartVersion -StableVersion '0.0.0' -NextVersion '1.0.0.0' } | Should -Throw '*already ahead*'
+        }
+    }
+
+    Context 'Get-PatchStartVersion' {
+        It 'is the first patch of the last release' {
+            Get-PatchStartVersion -StableVersion '1.1.0' -PackageName 'P' | Should -Be ([version]'1.1.1.0')
+        }
+
+        It 'follows the highest patch tagged for the last release, whatever the order' {
+            $tags = 'v1.1.0-P', 'v1.1.2-P', 'v1.1.1-P', 'v1.2.0.4-P', 'v1.2.0-P'
+            Get-PatchStartVersion -StableVersion '1.1.0' -PackageName 'P' -TagName $tags | Should -Be ([version]'1.1.3.0')
+        }
+
+        It 'ignores other majors, previews and packages' {
+            $tags = 'v2.1.5-P', 'v1.1.7.2-P', 'v1.1.9-Q', 'v1.1.8-XP', 'v1.1.4-P'
+            Get-PatchStartVersion -StableVersion '1.1.0' -PackageName 'P' -TagName $tags | Should -Be ([version]'1.1.5.0')
+        }
+
+        It 'does not go below the last release when its tag is missing' {
+            Get-PatchStartVersion -StableVersion '1.1.3' -PackageName 'P' -TagName @() | Should -Be ([version]'1.1.4.0')
+        }
+
+        It 'refuses a package with no release' {
+            { Get-PatchStartVersion -StableVersion '0.0.0' -PackageName 'P' } | Should -Throw '*no released version*'
         }
     }
 

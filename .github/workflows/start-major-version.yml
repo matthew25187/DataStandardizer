@@ -1,0 +1,60 @@
+# Starts a new major version of a package: increments the major number of its next version and resets the rest to zero.
+# Run by the maintainer just before merging a release PR from develop into master.  The minor and prerelease numbers
+# are incremented by the builds themselves (see build/psmodules/VersionNumbers); the patch number by Start patch release.
+#
+# The version variables are written with the version-state GitHub App, as the builds do.
+
+name: Start major version
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: 'Package (ID or short name, such as File.CSV)'
+        type: string
+        required: true
+      variable-prefix:
+        description: 'Prefix of the version variables to use, such as SHADOW_ (blank for the real ones)'
+        type: string
+        default: ''
+      dry-run:
+        description: 'Show the change without making it'
+        type: boolean
+        default: false
+
+permissions: {}
+
+defaults:
+  run:
+    shell: pwsh
+
+env:
+  GH_REPO: ${{ github.repository }}
+
+jobs:
+  start:
+    name: Start major version
+    runs-on: ubuntu-24.04
+    environment: version-state
+    concurrency:
+      group: version-reservation
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        id: token
+        with:
+          client-id: ${{ vars.VERSION_STATE_CLIENT_ID }}
+          private-key: ${{ secrets.VERSION_STATE_PRIVATE_KEY }}
+      - name: Set the next version
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          PACKAGE: ${{ inputs.package }}
+          VARIABLE_PREFIX: ${{ inputs.variable-prefix }}
+        run: |
+          $InformationPreference = 'Continue'
+          ./build/scripts/StartMajorVersion.ps1 -Package $env:PACKAGE -VariablePrefix $env:VARIABLE_PREFIX -WhatIf:$${{ inputs.dry-run }}
