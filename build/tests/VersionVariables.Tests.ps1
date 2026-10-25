@@ -116,6 +116,34 @@ Describe 'VersionVariables' {
         }
     }
 
+    Context 'Resume next version' {
+        It 'reads none when no patch series is open' {
+            Get-ResumeNextVersion -PackageInfo $script:Core -Variables @{} | Should -BeNullOrEmpty
+        }
+
+        It 'saves, reads and deletes the version, in the prefixed copy' {
+            Install-FakeGh | Out-Null
+            $variables = Read-VersionVariableSet
+            Set-ResumeNextVersion -PackageInfo $script:Core -Version '1.2.0.4' -Variables $variables -Prefix 'SHADOW_'
+            (Get-FakeGhVariable)['SHADOW_DATASTANDARDIZER_CORE__RESUME_NEXT_VERSION'] | Should -Be '1.2.0.4'
+            Get-ResumeNextVersion -PackageInfo $script:Core -Variables (Read-VersionVariableSet) -Prefix 'SHADOW_' | Should -Be ([version]'1.2.0.4')
+            Get-ResumeNextVersion -PackageInfo $script:Core -Variables (Read-VersionVariableSet) | Should -BeNullOrEmpty
+
+            Set-ResumeNextVersion -PackageInfo $script:Core -Remove -Variables $variables -Prefix 'SHADOW_'
+            (Get-FakeGhVariable).Count | Should -Be 0
+        }
+
+        It 'changes nothing with -WhatIf' {
+            Install-FakeGh | Out-Null
+            Set-ResumeNextVersion -PackageInfo $script:Core -Version '1.2.0.4' -Variables @{} -WhatIf *>$null
+            Get-FakeGhLog | Should -BeNullOrEmpty
+        }
+
+        It 'rejects a value that is not a four-part version' {
+            { Get-ResumeNextVersion -PackageInfo $script:Core -Variables @{ DATASTANDARDIZER_CORE__RESUME_NEXT_VERSION = '1.2' } } | Should -Throw '*RESUME_NEXT_VERSION*1.2*'
+        }
+    }
+
     Context 'ConvertFrom-AdoVersionVariable' {
         It 'maps the Azure DevOps variable names and ignores the others' {
             $ado = @{
@@ -278,6 +306,115 @@ Describe 'VersionVariables' {
         It 'does nothing when nothing was reserved' {
             Install-FakeGh -Variables (New-TestVersionVariables -Suffix 'CORE') | Out-Null
             & (Join-Path $script:ScriptsFolder 'FinalizeVersionNumbers.ps1') -PublishResult success -EncodedPackageVersions $script:Versions -EncodedReserved '' 6>$null
+            Get-FakeGhLog | Should -BeNullOrEmpty
+        }
+    }
+
+    Context 'StartMajorVersion.ps1' {
+        BeforeEach {
+            $env:PACKAGEINFOS = ConvertTo-Json -InputObject @($script:Core, $script:Csv) -Compress
+        }
+
+        It 'increments the major number of the next version and resets the rest' {
+            Install-FakeGh -Variables ((New-TestVersionVariables -Suffix 'CORE' -Stable '1.3.0' -Next '1.4.0.3') + (New-TestVersionVariables -Suffix 'FILE_CSV')) | Out-Null
+            & (Join-Path $script:ScriptsFolder 'StartMajorVersion.ps1') -Package 'Core' 6>$null
+            $stored = Get-FakeGhVariable
+            (Get-PackageVersionState -PackageInfo $script:Core -Variables $stored).NextVersion | Should -Be ([version]'2.0.0.0')
+            (Get-PackageVersionState -PackageInfo $script:Core -Variables $stored).NextPrereleaseLabel | Should -Be 'preview'
+            (Get-PackageVersionState -PackageInfo $script:Csv -Variables $stored).NextVersion | Should -Be ([version]'1.4.0.3')
+        }
+
+        It 'starts a chosen major version, for a new package aligning with the others' {
+            Install-FakeGh -Variables (New-TestVersionVariables -Suffix 'CORE' -Stable '0.4.0' -Current '0.5.0.1' -Next '0.5.0.2') | Out-Null
+            & (Join-Path $script:ScriptsFolder 'StartMajorVersion.ps1') -Package 'Core' -Major 2 6>$null
+            (Get-PackageVersionState -PackageInfo $script:Core -Variables (Get-FakeGhVariable)).NextVersion | Should -Be ([version]'2.0.0.0')
+        }
+
+        It 'refuses a chosen major version that is not above the next version''s' {
+            Install-FakeGh -Variables (New-TestVersionVariables -Suffix 'CORE' -Next '2.0.0.1') | Out-Null
+            { & (Join-Path $script:ScriptsFolder 'StartMajorVersion.ps1') -Package 'Core' -Major 2 } | Should -Throw '*not above*'
+        }
+
+        It 'writes nothing with -WhatIf' {
+            Install-FakeGh -Variables (New-TestVersionVariables -Suffix 'CORE') | Out-Null
+            & (Join-Path $script:ScriptsFolder 'StartMajorVersion.ps1') -Package 'Core' -WhatIf *>$null
+            Get-FakeGhLog | Should -BeNullOrEmpty
+        }
+
+        It 'works on a prefixed copy only' {
+            Install-FakeGh -Variables ((New-TestVersionVariables -Suffix 'CORE') + (New-TestVersionVariables -Suffix 'CORE' -Next '1.4.0.9' -Prefix 'SHADOW_')) | Out-Null
+            & (Join-Path $script:ScriptsFolder 'StartMajorVersion.ps1') -Package 'Core' -VariablePrefix 'SHADOW_' 6>$null
+            $stored = Get-FakeGhVariable
+            (Get-PackageVersionState -PackageInfo $script:Core -Variables $stored -Prefix 'SHADOW_').NextVersion | Should -Be ([version]'2.0.0.0')
+            (Get-PackageVersionState -PackageInfo $script:Core -Variables $stored).NextVersion | Should -Be ([version]'1.4.0.3')
+        }
+
+        It 'names exactly one package' {
+            Install-FakeGh | Out-Null
+            { & (Join-Path $script:ScriptsFolder 'StartMajorVersion.ps1') -Package '*' } | Should -Throw '*exactly one package*'
+        }
+
+        It 'refuses while a patch series is open' {
+            Install-FakeGh -Variables ((New-TestVersionVariables -Suffix 'CORE') + @{ DATASTANDARDIZER_CORE__RESUME_NEXT_VERSION = '1.4.0.3' }) | Out-Null
+            { & (Join-Path $script:ScriptsFolder 'StartMajorVersion.ps1') -Package 'Core' } | Should -Throw '*patch series open*'
+        }
+
+        It 'fails for a package with no next-version variables' {
+            Install-FakeGh | Out-Null
+            { & (Join-Path $script:ScriptsFolder 'StartMajorVersion.ps1') -Package 'Core' 6>$null } | Should -Throw '*no NEXT_* variables*'
+        }
+    }
+
+    Context 'StartPatchVersion.ps1' {
+        BeforeEach {
+            $env:PACKAGEINFOS = ConvertTo-Json -InputObject @($script:Core) -Compress
+            Push-Location (New-TestRepository)
+            Add-TestCommit -File @{ 'README.md' = 'readme' } | Out-Null
+            foreach ($tag in 'v1.1.0-DataStandardizer.Core', 'v1.1.1-DataStandardizer.Core', 'v1.2.0.4-DataStandardizer.Core') {
+                Add-TestTag -Name $tag
+            }
+            Install-FakeGh -Variables (New-TestVersionVariables -Suffix 'CORE' -Stable '1.1.1' -Current '1.2.0.3' -Next '1.2.0.4') | Out-Null
+        }
+
+        AfterEach {
+            while ((Get-Location).Path -like '*ds-build-tests-*') {
+                Pop-Location
+            }
+        }
+
+        It 'starts the next patch of the last release and saves the next version' {
+            & (Join-Path $script:ScriptsFolder 'StartPatchVersion.ps1') -Package 'Core' 6>$null
+            $stored = Get-FakeGhVariable
+            (Get-PackageVersionState -PackageInfo $script:Core -Variables $stored).NextVersion | Should -Be ([version]'1.1.2.0')
+            $stored['DATASTANDARDIZER_CORE__RESUME_NEXT_VERSION'] | Should -Be '1.2.0.4'
+        }
+
+        It 'carries the series through a release and back to development' {
+            & (Join-Path $script:ScriptsFolder 'StartPatchVersion.ps1') -Package 'Core' 6>$null
+            $state = Get-PackageVersionState -PackageInfo $script:Core -Variables (Get-FakeGhVariable)
+            $release = New-PackageVersions -PackageName 'DataStandardizer.Core' -State $state -AssemblyVersions $null | Add-ProductionVersion -IsRelease $true
+            $release.PackageProductionVersionSemVer | Should -Be '1.1.2'
+            $release.PackagePostProductionVersion | Should -Be '1.1.3.0'
+
+            [void](Set-PackageVersionState -PackageInfo $script:Core -Group Next -Version $release.PackagePostProductionVersion -Variables (Read-VersionVariableSet))
+            & (Join-Path $script:ScriptsFolder 'StartPatchVersion.ps1') -Package 'Core' -Action resume-development 6>$null
+            $stored = Get-FakeGhVariable
+            (Get-PackageVersionState -PackageInfo $script:Core -Variables $stored).NextVersion | Should -Be ([version]'1.2.0.4')
+            $stored.ContainsKey('DATASTANDARDIZER_CORE__RESUME_NEXT_VERSION') | Should -BeFalse
+        }
+
+        It 'does not start a second series' {
+            & (Join-Path $script:ScriptsFolder 'StartPatchVersion.ps1') -Package 'Core' 6>$null
+            { & (Join-Path $script:ScriptsFolder 'StartPatchVersion.ps1') -Package 'Core' } | Should -Throw '*already has a patch series open*'
+            (Get-FakeGhVariable)['DATASTANDARDIZER_CORE__RESUME_NEXT_VERSION'] | Should -Be '1.2.0.4'
+        }
+
+        It 'cannot resume when no series is open' {
+            { & (Join-Path $script:ScriptsFolder 'StartPatchVersion.ps1') -Package 'Core' -Action resume-development } | Should -Throw '*no patch series open*'
+        }
+
+        It 'writes nothing with -WhatIf' {
+            & (Join-Path $script:ScriptsFolder 'StartPatchVersion.ps1') -Package 'Core' -WhatIf *>$null
             Get-FakeGhLog | Should -BeNullOrEmpty
         }
     }
