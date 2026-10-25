@@ -1,6 +1,5 @@
-# Builds, tests and publishes the release packages when a release merges into master.  Replaces the Azure DevOps release
-# pipeline (build/datastandardizer-release-build-pipeline.yml).  Releasing a package to nuget.org is a separate, manual
-# step: publish-package.yml.
+# Builds, tests and publishes the release packages when a release merges into master.  Releasing a package to nuget.org
+# is a separate, manual step: publish-package.yml.
 #
 # Publishing stays switched off, and runs against the SHADOW_ copy of the version variables, until the repository
 # variable DS_PUBLISH_ENABLED is 'true'.

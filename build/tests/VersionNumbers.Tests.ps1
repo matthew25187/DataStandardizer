@@ -63,7 +63,7 @@ Describe 'VersionNumbers' {
             $versions.PackageProductionVersionSemVer | Should -Be '0.0.0'
         }
 
-        It 'has the properties the Azure DevOps version record has' {
+        It 'has the properties of a version record' {
             $versions = New-PackageVersions -PackageName 'P' -State (New-State) -AssemblyVersions $null
             $versions.PSObject.Properties.Name | Should -Be @(
                 'PackageName', 'PackageStableVersion', 'PackageCurrentVersion', 'PackageCurrentPrereleaseLabel', 'PackageNextVersion',
