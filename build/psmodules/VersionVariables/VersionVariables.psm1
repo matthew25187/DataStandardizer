@@ -1,7 +1,6 @@
 #Requires -Version 7.4
 
-# Reads and writes the per-package version numbers kept as GitHub repository variables.  They replace the Azure DevOps
-# variable groups, one set per package:
+# Reads and writes the per-package version numbers kept as GitHub repository variables, one set per package:
 #
 #   DATASTANDARDIZER_<suffix>__STABLE_{MAJOR,MINOR,PATCH}_NUMBER                 the last release
 #   DATASTANDARDIZER_<suffix>__CURRENT_{MAJOR,MINOR,PATCH,PRERELEASE}_NUMBER    the last published version
@@ -129,8 +128,8 @@ function Set-PackageVersionState {
     <#
     .SYNOPSIS
     Writes one of a package's stored versions, part by part from major to prerelease, then the label if one is given.  Only
-    variables that already exist are written, as with the Azure DevOps variable groups, so the stable group's prerelease
-    number need not exist.  Returns the names written.
+    variables that already exist are written, so the stable group's prerelease number need not exist.  Returns the names
+    written.
     #>
     [CmdletBinding(SupportsShouldProcess)]
     [OutputType([string[]])]
@@ -276,50 +275,5 @@ function Set-ResumeNextVersion {
     }
 }
 
-function ConvertFrom-AdoVersionVariable {
-    <#
-    .SYNOPSIS
-    Maps one package's Azure DevOps variable-group version variables (stable-major-number, next-prerelease-label and so on)
-    to the GitHub repository variables that replace them.  Other variables in the group are ignored.  Used once, to migrate.
-
-    .PARAMETER AdoVariable
-    The group's variables, name => value.
-    #>
-    [OutputType([hashtable])]
-    param (
-        [Parameter(Mandatory)]
-        [pscustomobject]    $PackageInfo,
-
-        [Parameter(Mandatory)]
-        [hashtable]     $AdoVariable,
-
-        [Parameter()]
-        [string]    $Prefix = ''
-    )
-
-    $parts = @{ major = 'Major'; minor = 'Minor'; patch = 'Patch'; prerelease = 'Prerelease' }
-    $result = [ordered]@{}
-    foreach ($name in @($AdoVariable.Keys | Sort-Object)) {
-        if ($name -match '^(?<group>stable|current|next)-(?<part>major|minor|patch|prerelease)-number$') {
-            $part = $parts[$Matches.part]
-        }
-        elseif ($name -match '^(?<group>current|next)-prerelease-label$') {
-            $part = 'Label'
-        }
-        else {
-            continue
-        }
-
-        $group = (Get-Culture).TextInfo.ToTitleCase($Matches.group)
-        $value = [string]$AdoVariable[$name]
-        if ($part -ne 'Label' -and $value -notmatch '^\d+$') {
-            throw "$($PackageInfo.packageName): $name has the value '$value', which isn't a version number part."
-        }
-        $result[(Get-VersionVariableName -VariableSuffix $PackageInfo.variableSuffix -Group $group -Part $part -Prefix $Prefix)] = $value
-    }
-
-    return $result
-}
-
 Export-ModuleMember -Function Get-VersionVariableName, Read-VersionVariableSet, Get-PackageVersionState, Set-PackageVersionState, `
-    Get-ResumeVersionVariableName, Get-ResumeNextVersion, Set-ResumeNextVersion, ConvertFrom-AdoVersionVariable
+    Get-ResumeVersionVariableName, Get-ResumeNextVersion, Set-ResumeNextVersion

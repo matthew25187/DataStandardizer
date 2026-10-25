@@ -85,8 +85,7 @@ function New-PackageVersions {
     <#
     .SYNOPSIS
     The version record of a package before this run produces anything: its stored versions, with the production version
-    equal to the current one.  The property names are those the Azure DevOps pipelines used, so existing tooling still reads
-    them.
+    equal to the current one.
 
     .PARAMETER State
     The stored versions, as returned by Get-PackageVersionState.
@@ -295,8 +294,7 @@ function ConvertFrom-EncodedVersionList {
 function Get-FinalizeAction {
     <#
     .SYNOPSIS
-    Decides how the end of a run updates each package's stored versions.  Matches the Version_rollback and
-    Update_package_version jobs of the Azure DevOps pipelines.
+    Decides how the end of a run updates each package's stored versions.
 
     .DESCRIPTION
     For each package this run reserved a version for:

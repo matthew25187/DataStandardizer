@@ -1,6 +1,5 @@
-# Builds and tests every pull request, and publishes preview packages from develop.  Replaces the Azure DevOps CI pipeline
-# (build/datastandardizer-ci-build-pipeline.yml).  The final job, DataStandardizer-CI, is the check the branch rulesets
-# require.
+# Builds and tests every pull request, and publishes preview packages from develop.  The final job, DataStandardizer-CI,
+# is the check the branch rulesets require.
 #
 # Publishing stays switched off, and runs against the SHADOW_ copy of the version variables, until the repository
 # variable DS_PUBLISH_ENABLED is 'true'.  Without VERSION_STATE_CLIENT_ID nothing is published at all.
