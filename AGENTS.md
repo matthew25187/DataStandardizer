@@ -45,6 +45,10 @@ Each package's NuGet release notes are generated from the commits that changed i
 - **`BREAKING CHANGE: <text>`** is still published under Breaking changes, whatever else the commit declares.
 - **Commits already on `develop`** can't be changed. Correct their notes in `build/release-notes-overrides.json`, keyed by the full commit id. An empty `notes` list leaves the commit out. Check the notes each package will get before a release, and add overrides where they would mislead.
 
+## Copyright notices
+
+When you change a file that contains a copyright notice, update the notice so its year of publication is the current calendar year. In a range such as `2024-2026`, keep the first year (the year of first publication) and change the last year to the current one. A notice that is a single year becomes a range from that year to the current one. Leave the notice alone if its last year is already the current year, and don't touch files you aren't otherwise changing.
+
 ## Repository rules
 
 Branch rules for `develop` and `master` are kept as GitHub rulesets in `.github/rulesets/` and applied with `.github/rulesets/UpdateRepositoryRulesets.ps1`. Change the JSON there rather than in the GitHub UI, so the repo stays the source of truth. Both branches require a PR and a passing `DataStandardizer-CI` check.
