@@ -1,5 +1,5 @@
 ---
-title: Tutorial: normalize a non-standard CSV file
+title: "Tutorial: normalize a non-standard CSV file"
 parent: File.CSV
 grand_parent: Packages
 nav_order: 30
