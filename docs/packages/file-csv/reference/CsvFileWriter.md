@@ -85,6 +85,7 @@ writer from a `Stream` or `TextWriter`.
 ## See also
 
 - [Write CSV files](../how-to/write-csv-files.md)
+- [Performance](../how-to/performance.md)
 - [The CSV line model](../concepts/csv-line-model.md)
 - [CsvFileReader](CsvFileReader.md)
 - [CsvFileIoBase](CsvFileIoBase.md)

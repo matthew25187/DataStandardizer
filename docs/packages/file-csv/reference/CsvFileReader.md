@@ -87,6 +87,7 @@ reader from a `Stream` or `TextReader`.
 ## See also
 
 - [Read CSV files](../how-to/read-csv-files.md)
+- [Performance](../how-to/performance.md)
 - [The CSV line model](../concepts/csv-line-model.md)
 - [CsvFileWriter](CsvFileWriter.md)
 - [CsvFileIoBase](CsvFileIoBase.md)
