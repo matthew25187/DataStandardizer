@@ -218,5 +218,26 @@ Describe 'Package scripts' {
             $notes | Should -Match 'Fixed'
             $notes | Should -Match 'Fix the core thing'
         }
+
+        It 'publishes <Subject> as <Expected>' -ForEach @(
+            # An apostrophe within a word is not a quote, so it doesn't keep the reference (#353).
+            @{ Subject = "Give the right offset before a VTIMEZONE's first onset (#294)"; Expected = "Give the right offset before a VTIMEZONE's first onset" }
+            @{ Subject = "Keep the TRIGGER's parameters (#264, #282)"; Expected = "Keep the TRIGGER's parameters" }
+            @{ Subject = "Don't drop the users' data (#12)"; Expected = "Don't drop the users' data" }
+            # A reference between a matching pair of quotes is the subject matter, and is kept.
+            @{ Subject = "Report '(#12)' as text"; Expected = "Report '(#12)' as text" }
+            @{ Subject = 'Report "it''s (#12)" as text'; Expected = 'Report "it''s (#12)" as text' }
+        ) {
+            Push-Location (New-TestRepository)
+            Add-TestCommit -File @{ 'src/DataStandardizer.Core/Core.cs' = 'core' } -Message 'Initial commit' | Out-Null
+            Add-TestTag -Name 'v1.0.0.1-DataStandardizer.Core'
+            $env:GITHUB_SHA = Add-TestCommit -File @{ 'src/DataStandardizer.Core/Core.cs' = 'core 2' } -Message "$Subject`n`nRelease-note: fixed"
+            $env:GITHUB_REF = 'refs/heads/develop'
+            $env:GITHUB_OUTPUT = Join-Path (New-TestFolder) 'output'
+            & (Join-Path $script:ScriptsFolder 'SetReleaseNotesArgument.ps1') -PackageName 'DataStandardizer.Core' *>$null
+            $line = Get-Content $env:GITHUB_OUTPUT | Where-Object { $_ -like 'releaseNotesArg=*' }
+            $notes = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String(($line -split '=', 2)[1]))
+            $notes | Should -Match "(?m)^- $([regex]::Escape($Expected))\.?$"
+        }
     }
 }
