@@ -436,23 +436,75 @@ $script:trackerReferencePattern = '(?:\bAB)?#\d+'
 # and the backtick which sets code and file names apart.
 $script:quotingChars = [char[]]@('"', "'", '`', [char]0x2018, [char]0x2019, [char]0x201C, [char]0x201D)
 
-# Test whether the character at an index falls inside a quoted or backticked run. Counting the
-# quoting characters which precede it is enough: an odd count means one is still open. This is
-# what distinguishes a reference the prose is discussing from one a tool appended.
+# The character which closes a run each quoting character opens. Curly quotes close with their
+# counterpart; every other quoting character closes with itself.
+$script:closingQuoteChars = @{
+    ([char]0x2018) = [char]0x2019
+    ([char]0x201C) = [char]0x201D
+}
+
+# The characters which also serve as an apostrophe, and are one rather than a quote where they
+# stand between two letters or digits, as in "VTIMEZONE's" or "doesn't".
+$script:apostropheChars = [char[]]@("'", [char]0x2019)
+
+# Test whether the character at an index of a note is a quoting character, rather than another
+# character or an apostrophe within a word.
+function Test-QuotingCharacter {
+    param (
+        [string]    $Note,
+        [int]       $Index
+    )
+
+    $character = $Note[$Index]
+    if ($script:quotingChars -notcontains $character) {
+        return $false
+    }
+
+    if ($script:apostropheChars -contains $character -and
+        $Index -gt 0 -and $Index -lt ($Note.Length - 1) -and
+        [char]::IsLetterOrDigit($Note[$Index - 1]) -and [char]::IsLetterOrDigit($Note[$Index + 1])) {
+        return $false
+    }
+
+    return $true
+}
+
+# Test whether the character at an index falls inside a quoted or backticked run: after a quoting
+# character that is still open, and before the character that closes it. This is what
+# distinguishes a reference the prose is discussing from one a tool appended. Quotes of another
+# kind inside an open run don't close it, and a quote that is never closed quotes nothing.
 function Test-QuotedPosition {
     param (
         [string]    $Note,
         [int]       $Index
     )
 
-    $quoteCount = 0
+    $closingChar = $null
     for ($characterIndex = 0; $characterIndex -lt $Index; $characterIndex++) {
-        if ($script:quotingChars -contains $Note[$characterIndex]) {
-            $quoteCount++
+        if (-not (Test-QuotingCharacter -Note $Note -Index $characterIndex)) {
+            continue
+        }
+
+        $character = $Note[$characterIndex]
+        if ($null -eq $closingChar) {
+            $closingChar = $script:closingQuoteChars.ContainsKey($character) ? $script:closingQuoteChars[$character] : $character
+        }
+        elseif ($character -ceq $closingChar) {
+            $closingChar = $null
         }
     }
 
-    return (0 -ne ($quoteCount % 2))
+    if ($null -eq $closingChar) {
+        return $false
+    }
+
+    for ($characterIndex = $Index; $characterIndex -lt $Note.Length; $characterIndex++) {
+        if ($Note[$characterIndex] -ceq $closingChar -and (Test-QuotingCharacter -Note $Note -Index $characterIndex)) {
+            return $true
+        }
+    }
+
+    return $false
 }
 
 # Remove the tracker references a tool appended to a commit subject, leaving those the prose is
