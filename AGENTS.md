@@ -20,7 +20,7 @@ This repository follows Gitflow. The long-lived branches are:
 
 ### Releasing
 
-1. Open a PR from `develop` into `master`.
+1. Open a PR from `develop` into `master` with the release template: `gh pr create --base master --head develop --template release.md` (or add `?template=release.md` to the compare URL). Work through its checklist. The PR description is public, so it records only that each step was done. Security findings go in private security advisories, never in the PR or an issue.
 2. Complete it with **Create a merge commit**. Never squash or rebase a release PR. The release workflow (`.github/workflows/release.yml`) tags the merge commit (`v<major>.<minor>.<patch>-<package>`), and change detection depends on that commit's ancestry.
 3. Don't put `[skip ci]` in the release PR title or merge commit. The merge to `master` is what triggers the release build.
 4. Wait for the release workflow to succeed. If it fails, fix the cause on `develop` and release again. Don't patch `master`.
