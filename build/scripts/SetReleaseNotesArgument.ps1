@@ -79,7 +79,16 @@ function Get-CommitRecord {
     $recordSeparator = [char]0x1e
     $unitSeparator = [char]0x1f
     $commitFormat = "%H$unitSeparator%s$unitSeparator%b$recordSeparator"
-    $output = & git rev-list $RevisionRange --no-merges --reverse --no-commit-header --format=$commitFormat -- $PackageSourcePath
+    # PowerShell decodes git's output with the console encoding, which on Windows is an OEM code
+    # page, so have git emit UTF-8 and decode it as UTF-8 for notes to match on every runner (#438).
+    $savedOutputEncoding = [Console]::OutputEncoding
+    try {
+        [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+        $output = & git -c i18n.logOutputEncoding=UTF-8 rev-list $RevisionRange --no-merges --reverse --no-commit-header --format=$commitFormat -- $PackageSourcePath
+    }
+    finally {
+        [Console]::OutputEncoding = $savedOutputEncoding
+    }
 
     # Git emits each record over several lines, which PowerShell surfaces as an array; rejoin them
     # before splitting so that the record separator is found regardless of the line boundaries.
