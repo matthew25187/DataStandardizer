@@ -247,13 +247,10 @@ Describe 'BuildPlan' {
                 'DataStandardizer.File|Debug|windows-2025', 'DataStandardizer.File|Release|windows-2025')
         }
 
-        It 'builds and tests the deprecated packages on Windows only' {
+        It 'builds and tests every package on the default runners' {
             Import-Module (Join-Path $PSScriptRoot '../psmodules/CommonHelpers/CommonHelpers.psm1') -Force
             $manifest = Get-PackageManifest
-            $windowsOnly = @($manifest.packages | Where-Object { $_.PSObject.Properties['testRunners'] } | Select-Object -ExpandProperty packageName)
-            @($manifest.packages | Where-Object { $_.PSObject.Properties['buildRunner'] } | Select-Object -ExpandProperty packageName) | Should -Be $windowsOnly
-            $windowsOnly | Should -Be @('DataStandardizer.BCP47', 'DataStandardizer.File', 'DataStandardizer.ISO15924', 'DataStandardizer.ISO3166',
-                'DataStandardizer.ISO4217', 'DataStandardizer.ISO639', 'DataStandardizer.UNM49')
+            @($manifest.packages | Where-Object { $_.PSObject.Properties['buildRunner'] -or $_.PSObject.Properties['testRunners'] }) | Should -BeNullOrEmpty
             $manifest.defaultTestRunners | Should -Be @('ubuntu-24.04', 'windows-2025')
             $manifest.defaultBuildRunner | Should -Be 'ubuntu-24.04'
         }

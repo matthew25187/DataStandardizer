@@ -27,7 +27,7 @@ Describe 'CommonHelpers' {
     Context 'Get-PackageInfo' {
         It 'reads build/packages.json' {
             $packages = @(Get-PackageInfo)
-            $packages.Count | Should -Be 16
+            $packages.Count | Should -Be 9
             $packages[0].packageName | Should -Be 'DataStandardizer.Core'
             $packages | Where-Object packageName -EQ 'DataStandardizer.File.iCal' | Select-Object -ExpandProperty variableSuffix | Should -Be 'FILE_ICAL'
         }
