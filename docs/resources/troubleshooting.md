@@ -32,6 +32,17 @@ currencies, historic codes for superseded ones. See
 [Use currency codes](../packages/money/how-to/use-currency-codes.md) for
 examples of both.
 
+## Reading or writing CSV files is slower than I expect
+
+**DataStandardizer.File.CSV** is fastest when it creates its own stream reader or
+writer (construct it from a file path or a `Stream`), when one reader or writer
+handles a whole file, and when mappers are registered once rather than around
+each file. Memory grows with a file's size only if you keep the lines the reader
+returns.
+
+See [Performance](../packages/file-csv/how-to/performance.md) for the details
+and for the package's measured results.
+
 ## A package won't resolve behind a proxy
 
 Depending on the .NET platform you target, the packages also depend on various

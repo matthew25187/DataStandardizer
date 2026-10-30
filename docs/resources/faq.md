@@ -19,6 +19,14 @@ See [Standards coverage](../overview/standards-coverage.md) for the full
 standard-to-package mapping, then head to that package's overview under
 [Packages](../packages/index.md) for install instructions and guides.
 
+## What happened to the ISO 3166, ISO 4217 and other ISO packages?
+
+The legacy `DataStandardizer.BCP47`, `DataStandardizer.File`,
+`DataStandardizer.ISO*` and `DataStandardizer.UNM49` packages are removed in v2.0.
+Their codes and features live on in the Geography, Language, LanguageTag, Money
+and File.CSV packages. See [Removed in v2.0](removed-in-v2.md) for the package
+that replaces each one and the types that were renamed.
+
 ## What platforms are supported?
 
 Every package multi-targets modern .NET **and** .NET Standard, so it can be used

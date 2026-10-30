@@ -44,6 +44,7 @@ platforms such as Mono and Unity, as well as in-support modern .NET runtimes.
 - [Read CSV files](how-to/read-csv-files.md)
 - [Write CSV files](how-to/write-csv-files.md)
 - [Map CSV files](how-to/map-csv-files.md)
+- [Performance](how-to/performance.md)
 
 ## Concepts
 

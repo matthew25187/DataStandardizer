@@ -1,1 +1,0 @@
-﻿[assembly: System.Reflection.AssemblyTitle("Data Standardizer: UN M49")]

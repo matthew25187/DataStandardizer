@@ -20,13 +20,13 @@ This repository follows Gitflow. The long-lived branches are:
 
 ### Releasing
 
-1. Open a PR from `develop` into `master`.
+1. Open a PR from `develop` into `master` with the release template: `gh pr create --base master --head develop --template release.md` (or add `?template=release.md` to the compare URL). Work through its checklist. The PR description is public, so it records only that each step was done. Security findings go in private security advisories, never in the PR or an issue.
 2. Complete it with **Create a merge commit**. Never squash or rebase a release PR. The release workflow (`.github/workflows/release.yml`) tags the merge commit (`v<major>.<minor>.<patch>-<package>`), and change detection depends on that commit's ancestry.
 3. Don't put `[skip ci]` in the release PR title or merge commit. The merge to `master` is what triggers the release build.
 4. Wait for the release workflow to succeed. If it fails, fix the cause on `develop` and release again. Don't patch `master`.
 5. Back-merge: open a PR from `master` into `develop` and complete it with **Create a merge commit**, never squash. Do this after every successful release, before any other PR merges into `develop`. Don't resolve a conflict by deleting a file that exists on `master`.
 
-Promoting a package version, and publishing it to nuget.org, is a separate, manual step that the maintainer does per package with `.github/workflows/publish-package.yml`. Promotion creates a GitHub Release on the version's tag, which the README badges show; the nuget.org push waits for the maintainer's approval in the `nuget-org` environment. A release build may produce packages that are never promoted. Patch versions are set up by hand before a release build, by editing the package's `DATASTANDARDIZER_<suffix>__NEXT_*` repository variables (the suffix is in `build/packages.json`). Agents don't do any of these.
+Promoting a package version, and publishing it to nuget.org, is a separate, manual step that the maintainer does per package with `.github/workflows/publish-package.yml`. Promotion creates a GitHub Release on the version's tag, which the README badges show; the nuget.org push waits for the maintainer's approval in the `nuget-org` environment. A release build may produce packages that are never promoted. A new major version, or a patch release, is set up before a release build with the `Start major version` and `Start patch release` workflows (`.github/workflows/start-major-version.yml` and `start-patch-release.yml`), which write the package's `DATASTANDARDIZER_<suffix>__NEXT_*` repository variables (the suffix is in `build/packages.json`). A patch series continues by itself with each release build, until `Start patch release` is run with `resume-development`. Agents don't do any of these.
 
 ### Why the merge method matters
 
@@ -44,6 +44,10 @@ Each package's NuGet release notes are generated from the commits that changed i
   - Declare a note on every PR that touches `src/`. Without one, the heading is guessed from the subject's first word (`Fix`/`Correct`, `Add`/`Support`/`Expose`, `Deprecate`/`Remove`/`Drop`), and anything else lands under Changed.
 - **`BREAKING CHANGE: <text>`** is still published under Breaking changes, whatever else the commit declares.
 - **Commits already on `develop`** can't be changed. Correct their notes in `build/release-notes-overrides.json`, keyed by the full commit id. An empty `notes` list leaves the commit out. Check the notes each package will get before a release, and add overrides where they would mislead.
+
+## Copyright notices
+
+When you change a file that contains a copyright notice, update the notice so its year of publication is the current calendar year. In a range such as `2024-2026`, keep the first year (the year of first publication) and change the last year to the current one. A notice that is a single year becomes a range from that year to the current one. Leave the notice alone if its last year is already the current year, and don't touch files you aren't otherwise changing.
 
 ## Repository rules
 

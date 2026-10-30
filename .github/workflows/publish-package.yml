@@ -1,7 +1,6 @@
 # Promotes one package version: creates a GitHub Release on its tag, with the package attached, and optionally pushes it
-# to nuget.org.  Replaces the Azure DevOps feed's @Release view and the classic release pipeline.  The package always
-# comes from GitHub Packages, the store every CI build publishes to, so what is promoted is exactly what was built and
-# tested.
+# to nuget.org.  The package always comes from GitHub Packages, the store every CI build publishes to, so what is promoted
+# is exactly what was built and tested.
 #
 # The nuget.org push runs in the nuget-org environment, which requires the maintainer's approval.  It uses nuget.org
 # Trusted Publishing when the repository variable NUGET_TRUSTED_PUBLISHING is 'true', and the environment secret

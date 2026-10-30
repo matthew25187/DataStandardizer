@@ -10,7 +10,7 @@ src/Directory.Build.targets imports Version.g.props when it exists.  The file is
 The package being built gets its AssemblyVersion, FileVersion and InformationalVersion.  Every other package gets its
 AssemblyVersion only, so a dependency built from source in the same solution filter carries its own released assembly
 version.  A version that is unknown, such as for a package that has never been released, is left out, and a package with
-none gets no file.  This reproduces the Azure DevOps version-stamping steps.
+none gets no file.
 #>
 param (
     [Parameter(Mandatory)]

@@ -15,6 +15,14 @@ history of released packages, see each package's listing on NuGet:
 
 Each package page on NuGet lists its published versions and release dates.
 
+## Removed in v2.0
+
+Version 2.0 removes the legacy `DataStandardizer.BCP47`, `DataStandardizer.File`,
+`DataStandardizer.ISO15924`, `DataStandardizer.ISO3166`,
+`DataStandardizer.ISO4217`, `DataStandardizer.ISO639` and
+`DataStandardizer.UNM49` packages. See [Removed in v2.0](removed-in-v2.md) for the
+package that replaces each one and the types that were renamed.
+
 ## How the docs track versions
 
 This documentation reflects the **current state of the packages** rather than any

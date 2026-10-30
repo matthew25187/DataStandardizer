@@ -218,7 +218,7 @@ function Install-FakeGh {
     <#
     .SYNOPSIS
     Puts a fake gh first on PATH, keeping repository variables in a JSON file.  Supports 'variable list --json name,value'
-    and 'variable set NAME --body VALUE', and, like the real gh, rejects any other flag.  Returns the folder; restore PATH
+    'variable set NAME --body VALUE' and 'variable delete NAME', and, like the real gh, rejects any other flag.  Returns the folder; restore PATH
     with Uninstall-FakeGh.
     #>
     [OutputType([string])]
@@ -251,6 +251,16 @@ if ($args[0] -eq 'variable' -and $args[1] -eq 'set') {
     $state[$name] = $value
     ConvertTo-Json -InputObject $state | Set-Content -LiteralPath $statePath
     Add-Content -LiteralPath "$statePath.log" -Value "set $name=$value"
+    exit 0
+}
+if ($args[0] -eq 'variable' -and $args[1] -eq 'delete') {
+    if ($args.Count -ne 3 -or -not $state.ContainsKey($args[2])) {
+        [Console]::Error.WriteLine("fake gh: 'variable delete' needs the NAME of an existing variable: $args")
+        exit 1
+    }
+    $state.Remove($args[2])
+    ConvertTo-Json -InputObject $state | Set-Content -LiteralPath $statePath
+    Add-Content -LiteralPath "$statePath.log" -Value "delete $($args[2])"
     exit 0
 }
 [Console]::Error.WriteLine("fake gh: unsupported command: $args")
