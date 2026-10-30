@@ -18,6 +18,8 @@ Supporting material for using the packages and working with the source.
   development.
 - [Version history](version-history.md) — where to find released versions of
   each package.
+- [Removed in v2.0](removed-in-v2.md) — the legacy packages removed in v2.0 and
+  what replaces each one.
 
 > *Data Standardizer* is open source so you can read, build, and adapt it for
 > your own use. The project does **not** currently accept third-party code
