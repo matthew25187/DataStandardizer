@@ -1,0 +1,50 @@
+# Scans the C# sources with CodeQL and sends the results to code scanning.  Advanced setup, so that the CodeQL bundle
+# changes only when the pinned action is bumped.  build-mode none analyses the sources without building them, so the SDK
+# pinned in global.json isn't involved.
+#
+# The SARIF results go to code scanning only.  Never upload them as a workflow artifact: artifacts on a public repository
+# can be downloaded by anyone.
+
+name: CodeQL
+
+on:
+  pull_request:
+    branches: [develop, master]
+  push:
+    branches: [develop]
+  schedule:
+    - cron: '41 3 * * 0'
+
+permissions: {}
+
+# A newer push to a pull request supersedes its running scan.
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('codeql-pr-{0}', github.event.pull_request.number) || format('codeql-run-{0}', github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  analyze:
+    name: Analyze (csharp)
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          languages: csharp
+          build-mode: none
+          queries: security-extended
+          config: |
+            paths-ignore:
+              - tests
+              - benchmarks
+
+      - uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          category: /language:csharp
