@@ -135,6 +135,23 @@ namespace DataStandardizer.Communication.Mime
         }
 
         /// <summary>
+        /// Determine if a string equals a lower-case US-ASCII string, ignoring the case of US-ASCII letters.
+        /// </summary>
+        internal static bool EqualsIgnoreCase(ReadOnlySpan<char> value, string lowerCase)
+        {
+            if (value.Length != lowerCase.Length) return false;
+
+            for (var index = 0; index < value.Length; index++)
+            {
+                var c = value[index];
+                if (c >= 'A' && c <= 'Z') c = (char)(c + ('a' - 'A'));
+                if (c != lowerCase[index]) return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// Get the number of characters a parameter value takes when written, quoted if it is not a token.
         /// </summary>
         internal static int GetFormattedValueLength(string value)
