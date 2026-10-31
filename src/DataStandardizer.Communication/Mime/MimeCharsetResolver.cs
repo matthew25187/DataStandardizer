@@ -135,17 +135,17 @@ namespace DataStandardizer.Communication.Mime
             // names (RFC 2978 §2.3), such as ANSI_X3.4-1968 and ISO_8859-1:1987, are left out, as a MimeCharset can't hold them.
             return new Dictionary<string, Encoding>(StringComparer.OrdinalIgnoreCase)
             {
-                { "US-ASCII", ascii }, { "iso-ir-6", ascii }, { "ISO646-US", ascii }, { "us", ascii }, { "IBM367", ascii }, { "cp367", ascii },
-                { "csASCII", ascii },
-                { "ISO-8859-1", latin1 }, { "ISO_8859-1", latin1 }, { "iso-ir-100", latin1 }, { "latin1", latin1 }, { "l1", latin1 },
-                { "IBM819", latin1 }, { "CP819", latin1 }, { "csISOLatin1", latin1 },
-                { "UTF-8", utf8 }, { "csUTF8", utf8 },
-                { "UTF-16", utf16 }, { "csUTF16", utf16 },
-                { "UTF-16BE", utf16.BigEndian }, { "csUTF16BE", utf16.BigEndian },
-                { "UTF-16LE", utf16.LittleEndian }, { "csUTF16LE", utf16.LittleEndian },
-                { "UTF-32", utf32 }, { "csUTF32", utf32 },
-                { "UTF-32BE", utf32.BigEndian }, { "csUTF32BE", utf32.BigEndian },
-                { "UTF-32LE", utf32.LittleEndian }, { "csUTF32LE", utf32.LittleEndian },
+                { MimeCharset.UsAscii.Name, ascii }, { "iso-ir-6", ascii }, { "ISO646-US", ascii }, { "us", ascii }, { "IBM367", ascii },
+                { "cp367", ascii }, { "csASCII", ascii },
+                { MimeCharset.Iso88591.Name, latin1 }, { "ISO_8859-1", latin1 }, { "iso-ir-100", latin1 }, { "latin1", latin1 },
+                { "l1", latin1 }, { "IBM819", latin1 }, { "CP819", latin1 }, { "csISOLatin1", latin1 },
+                { MimeCharset.Utf8.Name, utf8 }, { "csUTF8", utf8 },
+                { MimeCharset.Utf16.Name, utf16 }, { "csUTF16", utf16 },
+                { MimeCharset.Utf16BigEndian.Name, utf16.BigEndian }, { "csUTF16BE", utf16.BigEndian },
+                { MimeCharset.Utf16LittleEndian.Name, utf16.LittleEndian }, { "csUTF16LE", utf16.LittleEndian },
+                { MimeCharset.Utf32.Name, utf32 }, { "csUTF32", utf32 },
+                { MimeCharset.Utf32BigEndian.Name, utf32.BigEndian }, { "csUTF32BE", utf32.BigEndian },
+                { MimeCharset.Utf32LittleEndian.Name, utf32.LittleEndian }, { "csUTF32LE", utf32.LittleEndian },
             };
         }
     }
