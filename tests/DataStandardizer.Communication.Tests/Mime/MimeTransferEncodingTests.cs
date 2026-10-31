@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using DataStandardizer.Communication.Mime;
 using FluentAssertions;
@@ -105,7 +105,7 @@ namespace DataStandardizer.Communication.Tests.Mime
         public void TryParse_Null_ReturnsFalse()
         {
             MimeTransferEncoding result;
-            MimeTransferEncoding.TryParse((string)null!, out result).Should().BeFalse();
+            MimeTransferEncoding.TryParse((string)null, out result).Should().BeFalse();
         }
 
         [Fact]
@@ -120,7 +120,7 @@ namespace DataStandardizer.Communication.Tests.Mime
         [Fact]
         public void Parse_Null_ThrowsArgumentNullException()
         {
-            Action act = () => MimeTransferEncoding.Parse((string)null!);
+            Action act = () => MimeTransferEncoding.Parse((string)null);
 
             act.Should().Throw<ArgumentNullException>();
         }

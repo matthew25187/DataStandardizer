@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using DataStandardizer.Communication.Mime;
 using FluentAssertions;
@@ -113,7 +113,7 @@ namespace DataStandardizer.Communication.Tests.Mime
         public void TryParse_Null_ReturnsFalse()
         {
             MimeMediaType result;
-            MimeMediaType.TryParse((string)null!, out result).Should().BeFalse();
+            MimeMediaType.TryParse((string)null, out result).Should().BeFalse();
         }
 
         [Fact]
@@ -127,7 +127,7 @@ namespace DataStandardizer.Communication.Tests.Mime
         [Fact]
         public void Parse_Null_ThrowsArgumentNullException()
         {
-            Action act = () => MimeMediaType.Parse((string)null!);
+            Action act = () => MimeMediaType.Parse((string)null);
 
             act.Should().Throw<ArgumentNullException>();
         }
@@ -395,9 +395,9 @@ namespace DataStandardizer.Communication.Tests.Mime
         [Fact]
         public void Constructor_NullArgument_ThrowsArgumentNullException()
         {
-            ((Action)(() => new MimeMediaType(null!, "plain"))).Should().Throw<ArgumentNullException>();
-            ((Action)(() => new MimeMediaType("text", null!))).Should().Throw<ArgumentNullException>();
-            ((Action)(() => new MimeMediaType("text", "plain", null!))).Should().Throw<ArgumentNullException>();
+            ((Action)(() => new MimeMediaType(null, "plain"))).Should().Throw<ArgumentNullException>();
+            ((Action)(() => new MimeMediaType("text", null))).Should().Throw<ArgumentNullException>();
+            ((Action)(() => new MimeMediaType("text", "plain", null))).Should().Throw<ArgumentNullException>();
         }
 
         [Fact]

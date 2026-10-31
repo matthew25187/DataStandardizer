@@ -1,8 +1,14 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
 using DataStandardizer.Communication.E164;
 using FluentAssertions;
+using Xunit;
 
 namespace DataStandardizer.Communication.Tests.E164
 {
@@ -122,14 +128,14 @@ namespace DataStandardizer.Communication.Tests.E164
         {
             var cacheField = typeof(ItuE164InternationalNumberStructureBase).GetField("ParseExpressions", BindingFlags.NonPublic | BindingFlags.Static);
             cacheField.Should().NotBeNull("the parse expression cache is accessed by name");
-            return (IDictionary)cacheField!.GetValue(null)!;
+            return (IDictionary)cacheField.GetValue(null);
         }
 
         private static void ResetParseExpressionCache()
         {
             var lockField = typeof(ItuE164InternationalNumberStructureBase).GetField("ParseExpressionsLock", BindingFlags.NonPublic | BindingFlags.Static);
             lockField.Should().NotBeNull("the parse expression cache lock is accessed by name");
-            lock (lockField!.GetValue(null)!)
+            lock (lockField.GetValue(null))
             {
                 GetParseExpressionCache().Clear();
             }

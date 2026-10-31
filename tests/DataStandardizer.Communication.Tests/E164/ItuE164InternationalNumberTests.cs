@@ -1,6 +1,10 @@
-﻿using System.Reflection;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using DataStandardizer.Communication.E164;
 using FluentAssertions;
+using Xunit;
 using static DataStandardizer.Communication.E164.ItuE164Constants;
 
 namespace DataStandardizer.Communication.Tests.E164
@@ -1228,7 +1232,7 @@ namespace DataStandardizer.Communication.Tests.E164
                 {
                     const int areaCode = 411;
                     var subscriberNumberIndex = 0;
-                    foreach (var countryCode in Enum.GetValues<ItuE164AssignedCountryCodesForGeographicAreas>().Cast<ushort>().Distinct())
+                    foreach (var countryCode in Enum.GetValues(typeof(ItuE164AssignedCountryCodesForGeographicAreas)).Cast<ushort>().Distinct())
                     {
                         foreach (var separator in Separators)
                         {
@@ -1257,7 +1261,7 @@ namespace DataStandardizer.Communication.Tests.E164
                 get
                 {
                     var subscriberNumberIndex = 0;
-                    foreach (var countryCode in Enum.GetValues<ItuE164AssignedCountryCodesForGlobalServices>().Cast<ushort>())
+                    foreach (var countryCode in Enum.GetValues(typeof(ItuE164AssignedCountryCodesForGlobalServices)).Cast<ushort>())
                     {
                         foreach (var separator in Separators)
                         {
@@ -1286,8 +1290,8 @@ namespace DataStandardizer.Communication.Tests.E164
                 get
                 {
                     var identificationCodeLookup = (
-                            from countryCode in Enum.GetValues<ItuE164AssignedCountryCodesForNetworks>().Cast<ushort>()
-                            from identificationCode in Enum.GetValues<ItuE164AssignedIdentificationCodesForNetworks>()
+                            from countryCode in Enum.GetValues(typeof(ItuE164AssignedCountryCodesForNetworks)).Cast<ushort>()
+                            from identificationCode in Enum.GetValues(typeof(ItuE164AssignedIdentificationCodesForNetworks)).Cast<ItuE164AssignedIdentificationCodesForNetworks>()
                             let sharedCodeAttribute = identificationCode.GetType().GetFields()
                                 .First(@field => @field.GetValue(identificationCode)?.Equals(identificationCode) ?? false)
                                 .GetCustomAttribute<ItuE164SharedCodeAttribute>()
