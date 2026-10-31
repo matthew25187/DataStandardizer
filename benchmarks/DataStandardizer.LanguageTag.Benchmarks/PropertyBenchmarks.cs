@@ -20,11 +20,11 @@ public class PropertyBenchmarks
     public int Properties_All()
     {
         var length = _tag.PrimaryLanguageSubtag.Length;
-        length += _tag.ExtendedLanguageSubtags.Length;
+        length += _tag.ExtendedLanguageSubtags.Count;
         length += _tag.ScriptSubtag?.Length ?? 0;
         length += _tag.RegionSubtag?.Length ?? 0;
-        length += _tag.VariantSubtags.Length;
-        length += _tag.ExtensionSubtags.Length;
+        length += _tag.VariantSubtags.Count;
+        length += _tag.ExtensionSubtags.Count;
         length += _tag.PrivateUseSubtag.HasValue ? 1 : 0;
 
         return length;

@@ -40,7 +40,7 @@ Each getter throws `InvalidOperationException` if the instance is uninitialised.
 | Property | Signature | Notes |
 | --- | --- | --- |
 | `Singleton` | `char? Singleton { get; }` | The leading single character, or `null` if empty. |
-| `Subtags` | `string[] Subtags { get; }` | The remaining hyphen-separated parts. |
+| `Subtags` | `IReadOnlyList<string> Subtags { get; }` | The remaining hyphen-separated parts. Each read splits the subtag again and returns a new list. |
 
 ## Methods
 

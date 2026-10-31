@@ -932,22 +932,41 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #endregion
 
-        #region Test: ExtendedLanguageSubtags_WhenReturnedArrayIsChanged_DoesNotChangeLanguageTag
+        #region Test: ExtendedLanguageSubtags_OnRepeatedReads
 
         [Fact]
-        public void ExtendedLanguageSubtags_WhenReturnedArrayIsChanged_DoesNotChangeLanguageTag()
+        public void ExtendedLanguageSubtags_OnRepeatedReads_ReturnsSameCollection()
         {
             // arrange
             var testLanguageTag = Bcp47LanguageTag.Create("zh-yue-HK");
-            var testChangedResult = testLanguageTag.ExtendedLanguageSubtags;
-            testChangedResult[0] = "cmn";
+            var testFirstResult = testLanguageTag.ExtendedLanguageSubtags;
 
             // act
             var testResult = testLanguageTag.ExtendedLanguageSubtags;
 
             // assert
-            testResult.Should().NotBeSameAs(testChangedResult);
+            testResult.Should().BeSameAs(testFirstResult, "the decomposition is made once and shared, not copied per read");
             testResult.Should().Equal("yue");
+        }
+
+        #endregion
+
+        #region Test: ExtendedLanguageSubtags_WhenCollectionIsChanged
+
+        [Fact]
+        public void ExtendedLanguageSubtags_WhenCollectionIsChanged_ThrowsNotSupportedExceptionAndDoesNotChangeLanguageTag()
+        {
+            // arrange
+            var testLanguageTag = Bcp47LanguageTag.Create("zh-yue-HK");
+            var testSubject = testLanguageTag.ExtendedLanguageSubtags;
+
+            // act
+            Action testAction = () => ((IList<string>)testSubject)[0] = "cmn";
+
+            // assert
+            testSubject.Should().NotBeAssignableTo<string[]>("a cast must not reach the array behind the collection");
+            testAction.Should().Throw<NotSupportedException>();
+            testLanguageTag.ExtendedLanguageSubtags.Should().Equal("yue");
         }
 
         #endregion
@@ -1234,22 +1253,41 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #endregion
 
-        #region Test: ExtensionSubtags_WhenReturnedArrayIsChanged_DoesNotChangeLanguageTag
+        #region Test: ExtensionSubtags_OnRepeatedReads
 
         [Fact]
-        public void ExtensionSubtags_WhenReturnedArrayIsChanged_DoesNotChangeLanguageTag()
+        public void ExtensionSubtags_OnRepeatedReads_ReturnsSameCollection()
         {
             // arrange
             var testLanguageTag = Bcp47LanguageTag.Create("he-IL-u-ca-hebrew");
-            var testChangedResult = testLanguageTag.ExtensionSubtags;
-            testChangedResult[0] = (Bcp47KeyedSubtag)"t-ca-hebrew";
+            var testFirstResult = testLanguageTag.ExtensionSubtags;
 
             // act
             var testResult = testLanguageTag.ExtensionSubtags;
 
             // assert
-            testResult.Should().NotBeSameAs(testChangedResult);
+            testResult.Should().BeSameAs(testFirstResult, "the decomposition is made once and shared, not copied per read");
             testResult.Should().Equal((Bcp47KeyedSubtag)"u-ca-hebrew");
+        }
+
+        #endregion
+
+        #region Test: ExtensionSubtags_WhenCollectionIsChanged
+
+        [Fact]
+        public void ExtensionSubtags_WhenCollectionIsChanged_ThrowsNotSupportedExceptionAndDoesNotChangeLanguageTag()
+        {
+            // arrange
+            var testLanguageTag = Bcp47LanguageTag.Create("he-IL-u-ca-hebrew");
+            var testSubject = testLanguageTag.ExtensionSubtags;
+
+            // act
+            Action testAction = () => ((IList<Bcp47KeyedSubtag>)testSubject)[0] = (Bcp47KeyedSubtag)"t-ca-hebrew";
+
+            // assert
+            testSubject.Should().NotBeAssignableTo<Bcp47KeyedSubtag[]>("a cast must not reach the array behind the collection");
+            testAction.Should().Throw<NotSupportedException>();
+            testLanguageTag.ExtensionSubtags.Should().Equal((Bcp47KeyedSubtag)"u-ca-hebrew");
         }
 
         #endregion
@@ -1943,22 +1981,41 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #endregion
 
-        #region Test: VariantSubtags_WhenReturnedArrayIsChanged_DoesNotChangeLanguageTag
+        #region Test: VariantSubtags_OnRepeatedReads
 
         [Fact]
-        public void VariantSubtags_WhenReturnedArrayIsChanged_DoesNotChangeLanguageTag()
+        public void VariantSubtags_OnRepeatedReads_ReturnsSameCollection()
         {
             // arrange
             var testLanguageTag = Bcp47LanguageTag.Create("sl-rozaj-biske-1994");
-            var testChangedResult = testLanguageTag.VariantSubtags;
-            testChangedResult[0] = "1901";
+            var testFirstResult = testLanguageTag.VariantSubtags;
 
             // act
             var testResult = testLanguageTag.VariantSubtags;
 
             // assert
-            testResult.Should().NotBeSameAs(testChangedResult);
+            testResult.Should().BeSameAs(testFirstResult, "the decomposition is made once and shared, not copied per read");
             testResult.Should().Equal("rozaj", "biske", "1994");
+        }
+
+        #endregion
+
+        #region Test: VariantSubtags_WhenCollectionIsChanged
+
+        [Fact]
+        public void VariantSubtags_WhenCollectionIsChanged_ThrowsNotSupportedExceptionAndDoesNotChangeLanguageTag()
+        {
+            // arrange
+            var testLanguageTag = Bcp47LanguageTag.Create("sl-rozaj-biske-1994");
+            var testSubject = testLanguageTag.VariantSubtags;
+
+            // act
+            Action testAction = () => ((IList<string>)testSubject)[0] = "1901";
+
+            // assert
+            testSubject.Should().NotBeAssignableTo<string[]>("a cast must not reach the array behind the collection");
+            testAction.Should().Throw<NotSupportedException>();
+            testLanguageTag.VariantSubtags.Should().Equal("rozaj", "biske", "1994");
         }
 
         #endregion

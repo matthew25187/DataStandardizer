@@ -89,10 +89,10 @@ looks each subtag up in the code lists. A few habits keep it fast:
 - **Parse once, then keep the tag.** Creating a `Bcp47LanguageTag` parses the
   tag and keeps its subtags, so reading `PrimaryLanguageSubtag`, `RegionSubtag`
   and the other properties doesn't parse it again. If you use a tag more than
-  once, keep the `Bcp47LanguageTag` rather than the string. The array
+  once, keep the `Bcp47LanguageTag` rather than the string. The list
   properties (`ExtendedLanguageSubtags`, `VariantSubtags` and
-  `ExtensionSubtags`) return a new copy of the array on each call when it isn't
-  empty, so read them once into a local if you need them in a loop.
+  `ExtensionSubtags`) return the same read-only list on every read, so there is
+  no need to copy them into a local first.
 - **Validate spans, not substrings.** `IsWellFormedLanguageTagString`, the
   `Check…Subtag` methods and `TryCreate` take a `ReadOnlySpan<char>` on every
   target, so you can check a tag inside a
@@ -120,7 +120,7 @@ Where allocation happens:
 | `IsWellFormedLanguageTagString` and the `Check…Subtag` methods | Nothing. |
 | `TryCreate` with a `ReadOnlySpan<char>` that isn't a valid tag | Nothing. |
 | `Create` or `TryCreate` with a valid tag | The subtag strings and the object that holds them. From a span, the tag string too. |
-| `ExtendedLanguageSubtags`, `VariantSubtags`, `ExtensionSubtags` | A copy of the array, unless it is empty. |
+| `ExtendedLanguageSubtags`, `VariantSubtags`, `ExtensionSubtags` | A small read-only wrapper the first time a non-empty list is read; nothing after that. |
 | The other subtag properties and `AsSpan()` | Nothing. |
 | `ToString()` and the implicit conversion to `string` | Nothing; they return the tag string kept by the instance. |
 

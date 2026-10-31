@@ -44,9 +44,11 @@ nothing that can time out. Version 2.0 removed the overloads that took a
 [Removed in v2.0](../../../resources/removed-in-v2.md#languagetag-match-timeouts).
 
 A tag is parsed once, when it is created. The subtag properties return parts
-kept from that parse, so reading them doesn't parse the tag again. The array
-properties return a new copy of a non-empty array on each call, so a caller
-can't change the tag's own subtags.
+kept from that parse, so reading them doesn't parse the tag again.
+`ExtendedLanguageSubtags`, `VariantSubtags` and `ExtensionSubtags` return
+read-only lists. Each read returns the same list, without copying it, and the
+list can't be changed, even by casting it to `IList<T>` or an array, so a
+caller can't change the tag's own subtags.
 
 The overloads that take a `ReadOnlySpan<char>` validate the characters in place,
 so a tag or subtag that is part of a larger buffer, such as an HTTP header or a
@@ -93,13 +95,13 @@ Each getter throws `InvalidOperationException` if the instance is uninitialised.
 
 | Property | Signature | Notes |
 | --- | --- | --- |
-| `ExtendedLanguageSubtags` | `string[] ExtendedLanguageSubtags { get; }` | Empty if absent. |
-| `ExtensionSubtags` | `Bcp47KeyedSubtag[] ExtensionSubtags { get; }` | Empty if absent. |
+| `ExtendedLanguageSubtags` | `IReadOnlyList<string> ExtendedLanguageSubtags { get; }` | Empty if absent. |
+| `ExtensionSubtags` | `IReadOnlyList<Bcp47KeyedSubtag> ExtensionSubtags { get; }` | Empty if absent. |
 | `PrimaryLanguageSubtag` | `string PrimaryLanguageSubtag { get; }` | Empty on a grandfathered or private use tag; otherwise always present. |
 | `PrivateUseSubtag` | `Bcp47KeyedSubtag? PrivateUseSubtag { get; }` | `null` if absent. |
 | `RegionSubtag` | `string? RegionSubtag { get; }` | `null` if absent. |
 | `ScriptSubtag` | `string? ScriptSubtag { get; }` | `null` if absent. |
-| `VariantSubtags` | `string[] VariantSubtags { get; }` | Empty if absent. |
+| `VariantSubtags` | `IReadOnlyList<string> VariantSubtags { get; }` | Empty if absent. |
 
 ## Methods
 
