@@ -8,6 +8,7 @@ This description is public. Record only that each step was done; never describe 
 ### Before opening this PR
 - [ ] Release notes checked for each package being released, with overrides added to `build/release-notes-overrides.json` where a note would mislead
 - [ ] [Security-audit skill](https://github.com/cloudflare/security-audit-skill) run locally on the packages being released; confirmed findings fixed, or recorded in a private security advisory
+- [ ] Open security alerts triaged
 
 ### Merging
 - [ ] Complete with **Create a merge commit** (never squash or rebase)

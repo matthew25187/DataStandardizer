@@ -49,6 +49,10 @@ Each package's NuGet release notes are generated from the commits that changed i
 
 When you change a file that contains a copyright notice, update the notice so its year of publication is the current calendar year. In a range such as `2024-2026`, keep the first year (the year of first publication) and change the last year to the current one. A notice that is a single year becomes a range from that year to the current one. Leave the notice alone if its last year is already the current year, and don't touch files you aren't otherwise changing.
 
+## Security findings
+
+A vulnerability found by any means (a security audit, a fuzzing run, a code-scanning, secret-scanning or Dependabot alert, or while doing other work) goes in a private [repository security advisory](https://github.com/matthew25187/DataStandardizer/security/advisories), never in a public issue, PR, commit message or comment. Keep commit subjects and release notes for the fix free of exploit detail until the advisory is published. `SECURITY.md` is the public policy for outside reporters.
+
 ## Repository rules
 
 Branch rules for `develop` and `master` are kept as GitHub rulesets in `.github/rulesets/` and applied with `.github/rulesets/UpdateRepositoryRulesets.ps1`. Change the JSON there rather than in the GitHub UI, so the repo stays the source of truth. Both branches require a PR and a passing `DataStandardizer-CI` check.
