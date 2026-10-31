@@ -53,6 +53,23 @@ When you change a file that contains a copyright notice, update the notice so it
 
 A vulnerability found by any means (a security audit, a fuzzing run, a code-scanning, secret-scanning or Dependabot alert, or while doing other work) goes in a private [repository security advisory](https://github.com/matthew25187/DataStandardizer/security/advisories), never in a public issue, PR, commit message or comment. Keep commit subjects and release notes for the fix free of exploit detail until the advisory is published. `SECURITY.md` is the public policy for outside reporters.
 
+## Unit tests
+
+Every .NET test follows Microsoft's [Unit testing best practices for .NET](https://learn.microsoft.com/en-us/dotnet/core/testing/unit-testing-best-practices). This applies to every test you write or change. Tests on `develop` that don't follow it yet are listed under #465.
+
+- **No logic in a test.** A test method has no `if`, `switch`, `?:`, `for`, `foreach`, `while` or `try`. It doesn't build its inputs or expected values by concatenation, interpolation or calculation. There are no exceptions.
+  - When a test has several cases and they can't be written inline as `[InlineData]`, write a test case factory (`TheoryData`, `MemberData` or `ClassData`) that yields each case's inputs and expected result, and feed it to a `[Theory]`. The factory may use loops to generate cases. The test may not.
+  - Take expected values from the standard or work them out by hand, and write them as literals or named constants. Never compute them with the logic under test.
+  - A test that would branch on its input is two tests.
+  - Helpers that run during a test's Act or Assert follow the same rule. A helper may build objects, but it may not loop, branch or calculate.
+  - To dispose of something or restore it, such as `CultureInfo.CurrentCulture`, use a `using` scope, not `try`/`finally`.
+- **Arrange, Act, Assert.** Keep the three sections separate, marked with `// arrange`, `// act` and `// assert`. A test has one Act. Assign its result in Act and assert on that, never call the code under test inside an assertion. For an expected exception, assign the call to an `Action` or `Func<Task>` in Act. To check several overloads or entry points with the same input, write a theory over a factory of delegates, not several calls in one test.
+- **Names.** Every test is named `Method_Scenario_ExpectedBehavior`.
+- **Minimal, readable inputs.** Use the simplest input that shows the behaviour. A value that isn't self-explanatory gets a named constant, or a comment that cites the RFC or specification section it comes from.
+- **No Setup, Teardown or shared state.** Build what each test needs inside the test, with helper methods. Don't share state between tests through constructors, `IDisposable` teardown, fixtures or mutable static fields. An expensive, immutable resource, such as a parsed registry, may be cached by a static helper, but no test may change it.
+- **No infrastructure.** Unit tests don't use the file system, the network, environment variables or the clock. Use the `Stream`, `TextReader` and `TextWriter` overloads with in-memory data, and fixed dates instead of `DateTime.Now`. A behaviour that can only be shown with a real file or a long run, such as a constructor that takes a path, isn't a unit test; #466 decides where those tests go.
+- **Test through the public API.** Don't read or set private members through reflection. If a behaviour can't be observed through the public API, add a seam to the library that the tests reach through `InternalsVisibleTo`, and declare `Release-note: none` on its commit.
+
 ## Repository rules
 
 Branch rules for `develop` and `master` are kept as GitHub rulesets in `.github/rulesets/` and applied with `.github/rulesets/UpdateRepositoryRulesets.ps1`. Change the JSON there rather than in the GitHub UI, so the repo stays the source of truth. Both branches require a PR and a passing `DataStandardizer-CI` check.
