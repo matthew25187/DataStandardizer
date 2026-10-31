@@ -132,13 +132,17 @@ namespace DataStandardizer.Communication.Tests.Mime
             act.Should().Throw<ArgumentNullException>();
         }
 
+        // The lowest bit that no MimeMediaTypeParseOptions member uses.
+        private const MimeMediaTypeParseOptions UndefinedOption = (MimeMediaTypeParseOptions)256;
+
         [Fact]
         public void TryParse_UndefinedOptions_ThrowsArgumentOutOfRangeException()
         {
-            MimeMediaType result;
-            Action act = () => MimeMediaType.TryParse("text/plain", (MimeMediaTypeParseOptions)4, out result);
+            // act
+            Action testAction = () => MimeMediaType.TryParse("text/plain", UndefinedOption, out _);
 
-            act.Should().Throw<ArgumentOutOfRangeException>();
+            // assert
+            testAction.Should().Throw<ArgumentOutOfRangeException>();
         }
 
         [Theory]
@@ -165,19 +169,36 @@ namespace DataStandardizer.Communication.Tests.Mime
             MimeMediaType.TryParse(value, MimeMediaTypeParseOptions.AllowWhitespaceAroundDelimiters, out result).Should().BeFalse();
         }
 
-        [Theory]
-        [InlineData("application/*")]
-        [InlineData("application/x~y")]
-        [InlineData("application/-dash")]
-        [InlineData("application/.dot")]
-        [InlineData("x{y}/plain")]
-        [InlineData("text/plain;title*=us-ascii'en'This%20is%20%2A%2A%2Afun%2A%2A%2A")]
-        [InlineData("text/plain;na|me=x")]
-        public void TryParse_Rfc2045TokenNotRfc6838Name_IsOptIn(string value)
+        public static TheoryData<string> Rfc2045TokensThatAreNotRfc6838Names => new TheoryData<string>
         {
-            MimeMediaType result;
-            MimeMediaType.TryParse(value, out result).Should().BeFalse();
-            MimeMediaType.TryParse(value, MimeMediaTypeParseOptions.AllowRfc2045Tokens, out result).Should().BeTrue();
+            "application/*",
+            "application/x~y",
+            "application/-dash",
+            "application/.dot",
+            "x{y}/plain",
+            "text/plain;na|me=x",
+        };
+
+        [Theory]
+        [MemberData(nameof(Rfc2045TokensThatAreNotRfc6838Names))]
+        public void TryParse_Rfc2045TokenNotRfc6838NameParsedStrictly_ReturnsFalse(string value)
+        {
+            // act
+            var parsed = MimeMediaType.TryParse(value, out _);
+
+            // assert
+            parsed.Should().BeFalse();
+        }
+
+        [Theory]
+        [MemberData(nameof(Rfc2045TokensThatAreNotRfc6838Names))]
+        public void TryParse_Rfc2045TokenNotRfc6838NameWithRfc2045TokensAllowed_ReturnsTrue(string value)
+        {
+            // act
+            var parsed = MimeMediaType.TryParse(value, MimeMediaTypeParseOptions.AllowRfc2045Tokens, out _);
+
+            // assert
+            parsed.Should().BeTrue();
         }
 
         [Fact]
@@ -204,15 +225,18 @@ namespace DataStandardizer.Communication.Tests.Mime
             MimeMediaType.TryParse(value, MimeMediaTypeParseOptions.AllowRfc2045Tokens, out result).Should().BeTrue();
         }
 
-        [Fact]
-        public void TryParse_BothOptions_AcceptsBoth()
-        {
-            MimeMediaType result;
-            var options = MimeMediaTypeParseOptions.AllowWhitespaceAroundDelimiters | MimeMediaTypeParseOptions.AllowRfc2045Tokens;
-            MimeMediaType.TryParse("application/x~y; a*=b", options, out result).Should().BeTrue();
+        private const MimeMediaTypeParseOptions WhitespaceAndRfc2045Tokens =
+            MimeMediaTypeParseOptions.AllowWhitespaceAroundDelimiters | MimeMediaTypeParseOptions.AllowRfc2045Tokens;
 
+        [Fact]
+        public void Parse_BothOptions_AcceptsBoth()
+        {
+            // act
+            var result = MimeMediaType.Parse("application/x~y; a~b=c", WhitespaceAndRfc2045Tokens);
+
+            // assert
             result.Subtype.Should().Be("x~y");
-            result.Parameters[0].Name.Should().Be("a*");
+            result.Parameters[0].Name.Should().Be("a~b");
         }
 
         [Theory]

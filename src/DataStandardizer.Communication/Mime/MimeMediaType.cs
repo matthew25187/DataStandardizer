@@ -17,6 +17,12 @@ namespace DataStandardizer.Communication.Mime
     /// </para>
     /// <para>
     /// A media type is written with no whitespace, and with each parameter value as a token if it is one, or otherwise as a quoted-string.
+    /// A parameter value that is not US-ASCII, or that has a language, is written as an RFC 2231 extended value.
+    /// </para>
+    /// <para>
+    /// When parsed, a parameter value split into RFC 2231 sections is joined, and an RFC 2231 extended value is decoded, so that each
+    /// parameter appears once with its whole value. When a parameter is given both as <c>name</c> and in an RFC 2231 form, such as
+    /// <c>name*</c>, the RFC 2231 form is used.
     /// </para>
     /// </remarks>
     public readonly struct MimeMediaType : IEquatable<MimeMediaType>
@@ -29,7 +35,10 @@ namespace DataStandardizer.Communication.Mime
         private const string InvalidFormatMessage = "The media type is not in a valid format.";
         private const string UninitializedMessage = nameof(MimeMediaType) + " is uninitialized.";
         private const MimeMediaTypeParseOptions AllParseOptions =
-            MimeMediaTypeParseOptions.AllowWhitespaceAroundDelimiters | MimeMediaTypeParseOptions.AllowRfc2045Tokens;
+            MimeMediaTypeParseOptions.AllowWhitespaceAroundDelimiters | MimeMediaTypeParseOptions.AllowRfc2045Tokens |
+            MimeMediaTypeParseOptions.AllowMissingSections | MimeMediaTypeParseOptions.AllowDuplicateSections |
+            MimeMediaTypeParseOptions.AllowLeadingZeroSectionNumbers | MimeMediaTypeParseOptions.AllowUnknownCharsets |
+            MimeMediaTypeParseOptions.AllowQuotedExtendedValues | MimeMediaTypeParseOptions.AllowLowercaseHexDigits;
 
         private static readonly ReadOnlyCollection<MimeParameter> NoParameters = new ReadOnlyCollection<MimeParameter>(new MimeParameter[0]);
 
@@ -211,12 +220,11 @@ namespace DataStandardizer.Communication.Mime
         /// </summary>
         /// <param name="name">The parameter name, which must follow the RFC 6838 §4.2 naming rules. A parameter of the same name, compared
         /// case-insensitively, keeps its position.</param>
-        /// <param name="value">The parameter value, which may be empty. It must contain only printable US-ASCII characters, spaces and
-        /// horizontal tabs.</param>
+        /// <param name="value">The parameter value, which may be empty. It must not contain an unpaired surrogate.</param>
         /// <returns>The modified copy.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="name"/> or <paramref name="value"/> is <c>null</c>.</exception>
-        /// <exception cref="ArgumentException"><paramref name="name"/> is not a valid parameter name, or <paramref name="value"/> contains a
-        /// character that can't be written.</exception>
+        /// <exception cref="ArgumentException"><paramref name="name"/> is not a valid parameter name, or <paramref name="value"/> contains an
+        /// unpaired surrogate.</exception>
         /// <exception cref="InvalidOperationException">The <see cref="MimeMediaType"/> is not initialised.</exception>
         public MimeMediaType WithParameter(string name, string value)
         {
@@ -281,9 +289,27 @@ namespace DataStandardizer.Communication.Mime
         /// <see cref="MimeMediaTypeParseOptions"/> members.</exception>
         public static bool TryParse(ReadOnlySpan<char> value, MimeMediaTypeParseOptions options, out MimeMediaType result)
         {
-            CheckOptions(options);
+            return TryParse(value, options, MimeCharsetResolver.Default, out result);
+        }
 
-            return TryParseCore(value, options, out result);
+        /// <summary>
+        /// Parses a media type, decoding RFC 2231 extended parameter values with a given character set resolver.
+        /// </summary>
+        /// <param name="value">The media type, such as <c>text/plain;charset=us-ascii</c>, with no comments.</param>
+        /// <param name="options">The accommodations to make for media types that don't follow the strict grammar.</param>
+        /// <param name="charsetResolver">The resolver for the character sets of extended parameter values.</param>
+        /// <param name="result">The media type, if the value is valid.</param>
+        /// <returns><c>true</c> if the value is a valid media type; otherwise <c>false</c>.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="charsetResolver"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="options"/> is not a combination of
+        /// <see cref="MimeMediaTypeParseOptions"/> members.</exception>
+        public static bool TryParse(ReadOnlySpan<char> value, MimeMediaTypeParseOptions options, IMimeCharsetResolver charsetResolver,
+            out MimeMediaType result)
+        {
+            CheckOptions(options);
+            if (charsetResolver is null) throw new ArgumentNullException(nameof(charsetResolver));
+
+            return TryParseCore(value, options, charsetResolver, out result);
         }
 
         /// <summary>
@@ -316,7 +342,30 @@ namespace DataStandardizer.Communication.Mime
         public static bool TryParse(string value, MimeMediaTypeParseOptions options, out MimeMediaType result)
 #endif
         {
+            return TryParse(value, options, MimeCharsetResolver.Default, out result);
+        }
+
+        /// <summary>
+        /// Parses a media type, decoding RFC 2231 extended parameter values with a given character set resolver.
+        /// </summary>
+        /// <param name="value">The media type, such as <c>text/plain;charset=us-ascii</c>, with no comments.</param>
+        /// <param name="options">The accommodations to make for media types that don't follow the strict grammar.</param>
+        /// <param name="charsetResolver">The resolver for the character sets of extended parameter values.</param>
+        /// <param name="result">The media type, if the value is valid.</param>
+        /// <returns><c>true</c> if the value is a valid media type; otherwise <c>false</c>, including for <c>null</c>.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="charsetResolver"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="options"/> is not a combination of
+        /// <see cref="MimeMediaTypeParseOptions"/> members.</exception>
+#if NETCOREAPP3_0_OR_GREATER
+        public static bool TryParse([NotNullWhen(true)] string? value, MimeMediaTypeParseOptions options, IMimeCharsetResolver charsetResolver,
+            out MimeMediaType result)
+#else
+        public static bool TryParse(string value, MimeMediaTypeParseOptions options, IMimeCharsetResolver charsetResolver,
+            out MimeMediaType result)
+#endif
+        {
             CheckOptions(options);
+            if (charsetResolver is null) throw new ArgumentNullException(nameof(charsetResolver));
 
             if (value is null)
             {
@@ -324,7 +373,7 @@ namespace DataStandardizer.Communication.Mime
                 return false;
             }
 
-            return TryParseCore(value.AsSpan(), options, out result);
+            return TryParseCore(value.AsSpan(), options, charsetResolver, out result);
         }
 
         /// <summary>
@@ -349,8 +398,24 @@ namespace DataStandardizer.Communication.Mime
         /// <see cref="MimeMediaTypeParseOptions"/> members.</exception>
         public static MimeMediaType Parse(ReadOnlySpan<char> value, MimeMediaTypeParseOptions options)
         {
+            return Parse(value, options, MimeCharsetResolver.Default);
+        }
+
+        /// <summary>
+        /// Parses a media type, decoding RFC 2231 extended parameter values with a given character set resolver.
+        /// </summary>
+        /// <param name="value">The media type, such as <c>text/plain;charset=us-ascii</c>, with no comments.</param>
+        /// <param name="options">The accommodations to make for media types that don't follow the strict grammar.</param>
+        /// <param name="charsetResolver">The resolver for the character sets of extended parameter values.</param>
+        /// <returns>The media type.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="charsetResolver"/> is <c>null</c>.</exception>
+        /// <exception cref="FormatException">The value is not a valid media type.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="options"/> is not a combination of
+        /// <see cref="MimeMediaTypeParseOptions"/> members.</exception>
+        public static MimeMediaType Parse(ReadOnlySpan<char> value, MimeMediaTypeParseOptions options, IMimeCharsetResolver charsetResolver)
+        {
             MimeMediaType result;
-            if (!TryParse(value, options, out result)) throw new FormatException(InvalidFormatMessage);
+            if (!TryParse(value, options, charsetResolver, out result)) throw new FormatException(InvalidFormatMessage);
 
             return result;
         }
@@ -379,9 +444,25 @@ namespace DataStandardizer.Communication.Mime
         /// <see cref="MimeMediaTypeParseOptions"/> members.</exception>
         public static MimeMediaType Parse(string value, MimeMediaTypeParseOptions options)
         {
+            return Parse(value, options, MimeCharsetResolver.Default);
+        }
+
+        /// <summary>
+        /// Parses a media type, decoding RFC 2231 extended parameter values with a given character set resolver.
+        /// </summary>
+        /// <param name="value">The media type, such as <c>text/plain;charset=us-ascii</c>, with no comments.</param>
+        /// <param name="options">The accommodations to make for media types that don't follow the strict grammar.</param>
+        /// <param name="charsetResolver">The resolver for the character sets of extended parameter values.</param>
+        /// <returns>The media type.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="value"/> or <paramref name="charsetResolver"/> is <c>null</c>.</exception>
+        /// <exception cref="FormatException">The value is not a valid media type.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="options"/> is not a combination of
+        /// <see cref="MimeMediaTypeParseOptions"/> members.</exception>
+        public static MimeMediaType Parse(string value, MimeMediaTypeParseOptions options, IMimeCharsetResolver charsetResolver)
+        {
             if (value is null) throw new ArgumentNullException(nameof(value));
 
-            return Parse(value.AsSpan(), options);
+            return Parse(value.AsSpan(), options, charsetResolver);
         }
 
 #if NET7_0_OR_GREATER
@@ -569,7 +650,8 @@ namespace DataStandardizer.Communication.Mime
             return true;
         }
 
-        private static bool TryParseCore(ReadOnlySpan<char> value, MimeMediaTypeParseOptions options, out MimeMediaType result)
+        private static bool TryParseCore(ReadOnlySpan<char> value, MimeMediaTypeParseOptions options, IMimeCharsetResolver charsetResolver,
+            out MimeMediaType result)
         {
             // ref. RFC 2045 §5.1: content := "Content-Type" ":" type "/" subtype *(";" parameter)
             //                     parameter := attribute "=" value; attribute := token; value := token / quoted-string
@@ -585,7 +667,7 @@ namespace DataStandardizer.Communication.Mime
             var subtype = ReadToken(value, ref position);
             if (!MimeGrammar.IsName(subtype, allowRfc2045Tokens)) return false;
 
-            var parameters = default(List<MimeParameter>);
+            var rawParameters = default(List<MimeExtendedParameter.RawParameter>);
             while (true)
             {
                 if (allowWhitespace) SkipWhitespace(value, ref position);
@@ -595,8 +677,14 @@ namespace DataStandardizer.Communication.Mime
                 position++;
                 if (allowWhitespace) SkipWhitespace(value, ref position);
 
+                // ref. RFC 2231 §7: parameter := regular-parameter / extended-parameter
                 var name = ReadToken(value, ref position);
-                if (!MimeGrammar.IsName(name, allowRfc2045Tokens)) return false;
+                var rawParameter = default(MimeExtendedParameter.RawParameter);
+                int baseNameLength;
+                if (!MimeExtendedParameter.TrySplitName(name, out baseNameLength, ref rawParameter)) return false;
+
+                var baseName = name.Slice(0, baseNameLength);
+                if (!MimeGrammar.IsName(baseName, allowRfc2045Tokens)) return false;
 
                 if (allowWhitespace) SkipWhitespace(value, ref position);
                 if (position >= value.Length || value[position] != '=') return false;
@@ -608,6 +696,8 @@ namespace DataStandardizer.Communication.Mime
                 if (position < value.Length && value[position] == '"')
                 {
                     if (!MimeGrammar.TryReadQuotedString(value, ref position, out parameterValue)) return false;
+
+                    rawParameter.IsQuoted = true;
                 }
                 else
                 {
@@ -617,21 +707,75 @@ namespace DataStandardizer.Communication.Mime
                     parameterValue = token.ToString();
                 }
 
-                var nameString = name.ToString();
-                if (parameters is null)
+                rawParameter.Name = baseName.ToString();
+                rawParameter.Value = parameterValue;
+                if (rawParameters is null) rawParameters = new List<MimeExtendedParameter.RawParameter>();
+                rawParameters.Add(rawParameter);
+            }
+
+            ReadOnlyCollection<MimeParameter> parameters;
+            if (!TryJoinParameters(rawParameters, options, charsetResolver, out parameters)) return false;
+
+            result = new MimeMediaType(type.ToString(), subtype.ToString(), parameters);
+            return true;
+        }
+
+#if NETCOREAPP3_0_OR_GREATER
+        private static bool TryJoinParameters(List<MimeExtendedParameter.RawParameter>? rawParameters, MimeMediaTypeParseOptions options,
+            IMimeCharsetResolver charsetResolver, out ReadOnlyCollection<MimeParameter> parameters)
+#else
+        private static bool TryJoinParameters(List<MimeExtendedParameter.RawParameter> rawParameters, MimeMediaTypeParseOptions options,
+            IMimeCharsetResolver charsetResolver, out ReadOnlyCollection<MimeParameter> parameters)
+#endif
+        {
+            parameters = NoParameters;
+            if (rawParameters is null) return true;
+
+            // Each parameter takes the place of the first of its forms.
+            var list = new List<MimeParameter>();
+            var isJoined = new bool[rawParameters.Count];
+            for (var index = 0; index < rawParameters.Count; index++)
+            {
+                if (isJoined[index]) continue;
+
+                var name = rawParameters[index].Name;
+                var plainIndex = -1;
+                var forms = default(List<MimeExtendedParameter.RawParameter>);
+                for (var formIndex = index; formIndex < rawParameters.Count; formIndex++)
                 {
-                    parameters = new List<MimeParameter>();
+                    var form = rawParameters[formIndex];
+                    if (!string.Equals(form.Name, name, StringComparison.OrdinalIgnoreCase)) continue;
+
+                    isJoined[formIndex] = true;
+                    if (form.IsRfc2231)
+                    {
+                        if (forms is null) forms = new List<MimeExtendedParameter.RawParameter>();
+                        forms.Add(form);
+                    }
+                    else
+                    {
+                        // ref. RFC 6838 §4.3: it is an error for a specific parameter to be specified more than once.
+                        if (plainIndex >= 0) return false;
+
+                        plainIndex = formIndex;
+                    }
                 }
-                else if (IndexOfParameter(parameters, nameString) >= 0)
+
+                // ref. RFC 2231 §4: the RFC 2231 form is used in preference to a plain one, which is there for readers that don't know it.
+                MimeParameter parameter;
+                if (forms is null)
                 {
-                    // ref. RFC 6838 §4.3: it is an error for a specific parameter to be specified more than once.
+                    parameter = MimeParameter.CreateUnchecked(name, rawParameters[plainIndex].Value, null, null);
+                }
+                else if (!MimeExtendedParameter.TryJoin(forms, options, charsetResolver, out parameter))
+                {
                     return false;
                 }
 
-                parameters.Add(MimeParameter.CreateUnchecked(nameString, parameterValue));
+                list.Add(parameter);
             }
 
-            result = new MimeMediaType(type.ToString(), subtype.ToString(), parameters is null ? NoParameters : new ReadOnlyCollection<MimeParameter>(parameters));
+            parameters = new ReadOnlyCollection<MimeParameter>(list);
             return true;
         }
 
