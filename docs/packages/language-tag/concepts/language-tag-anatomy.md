@@ -46,8 +46,8 @@ and private-use positions.
 
 The primary language subtag is the only one guaranteed to exist; `ScriptSubtag`
 and `RegionSubtag` are nullable, while the extended-language, variant, and
-extension members return arrays (empty when the corresponding subtags are
-absent).
+extension members return read-only lists (empty when the corresponding subtags
+are absent).
 
 ## Raw values and strongly-typed conversions
 
@@ -74,7 +74,7 @@ struct captures both halves:
 
 - `Singleton` — the leading single character (e.g. `'u'` or `'x'`), or `null` if
   the subtag is empty.
-- `Subtags` — the remaining hyphen-separated parts as a string array.
+- `Subtags` — the remaining hyphen-separated parts as a read-only list of strings.
 
 So an extension subtag `u-sd-chzh` exposes a `Singleton` of `'u'` and `Subtags`
 of `["sd", "chzh"]`.

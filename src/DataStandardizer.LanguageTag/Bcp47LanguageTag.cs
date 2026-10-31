@@ -2,6 +2,7 @@
 using JetBrains.Annotations;
 #endif
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -957,38 +958,44 @@ namespace DataStandardizer.LanguageTag
         /// <summary>
         /// Gets the Extended Language Subtags of the BCP 47 language tag.
         /// </summary>
+        /// <remarks>
+        /// The list is read-only, and every read returns the same list without copying it.
+        /// </remarks>
         /// <exception cref="InvalidOperationException">The <see cref="Bcp47LanguageTag"/> is not initialised.</exception>
 #if NETCOREAPP3_0_OR_GREATER
-        public string[] ExtendedLanguageSubtags
+        public IReadOnlyList<string> ExtendedLanguageSubtags
 #else
         [NotNull]
-        public string[] ExtendedLanguageSubtags
+        public IReadOnlyList<string> ExtendedLanguageSubtags
 #endif
         {
             get
             {
                 if (_languageTag is null) throw new InvalidOperationException(ErrorMessage.UninitializedInstance);
 
-                return Bcp47LanguageTagParts.Copy(Parts.ExtendedLanguages);
+                return Parts.ExtendedLanguages;
             }
         }
 
         /// <summary>
         /// Gets the Extension Subtags of the BCP 47 language tag.
         /// </summary>
+        /// <remarks>
+        /// The list is read-only, and every read returns the same list without copying it.
+        /// </remarks>
         /// <exception cref="InvalidOperationException">The <see cref="Bcp47LanguageTag"/> is not initialised.</exception>
 #if NETCOREAPP3_0_OR_GREATER
-        public Bcp47KeyedSubtag[] ExtensionSubtags
+        public IReadOnlyList<Bcp47KeyedSubtag> ExtensionSubtags
 #else
         [NotNull]
-        public Bcp47KeyedSubtag[] ExtensionSubtags
+        public IReadOnlyList<Bcp47KeyedSubtag> ExtensionSubtags
 #endif
         {
             get
             {
                 if (_languageTag is null) throw new InvalidOperationException(ErrorMessage.UninitializedInstance);
 
-                return Bcp47LanguageTagParts.Copy(Parts.Extensions);
+                return Parts.Extensions;
             }
         }
 
@@ -1069,19 +1076,22 @@ namespace DataStandardizer.LanguageTag
         /// <summary>
         /// Gets the Variant Subtags of the BCP 47 language tag.
         /// </summary>
+        /// <remarks>
+        /// The list is read-only, and every read returns the same list without copying it.
+        /// </remarks>
         /// <exception cref="InvalidOperationException">The <see cref="Bcp47LanguageTag"/> is not initialised.</exception>
 #if NETCOREAPP3_0_OR_GREATER
-        public string[] VariantSubtags
+        public IReadOnlyList<string> VariantSubtags
 #else
         [NotNull]
-        public string[] VariantSubtags
+        public IReadOnlyList<string> VariantSubtags
 #endif
         {
             get
             {
                 if (_languageTag is null) throw new InvalidOperationException(ErrorMessage.UninitializedInstance);
 
-                return Bcp47LanguageTagParts.Copy(Parts.Variants);
+                return Parts.Variants;
             }
         }
 

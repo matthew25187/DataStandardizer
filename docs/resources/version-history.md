@@ -24,7 +24,9 @@ Version 2.0 removes the legacy `DataStandardizer.BCP47`, `DataStandardizer.File`
 package that replaces each one and the types that were renamed. It also raises
 the lowest target of `DataStandardizer.Communication`,
 `DataStandardizer.LanguageTag` and `DataStandardizer.Money` from `netstandard1.0`
-to `netstandard1.1`.
+to `netstandard1.1`, and changes the `ExtendedLanguageSubtags`, `VariantSubtags`
+and `ExtensionSubtags` properties of `Bcp47LanguageTag`, and the `Subtags`
+property of `Bcp47KeyedSubtag`, from arrays to `IReadOnlyList<T>`.
 
 ## How the docs track versions
 

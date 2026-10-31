@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 #if NETSTANDARD
 using JetBrains.Annotations;
 #endif
@@ -10,7 +12,8 @@ namespace DataStandardizer.LanguageTag.InternalState
     /// </summary>
     /// <remarks>
     /// Instances are immutable and may be shared between copies of a <see cref="Bcp47LanguageTag"/>. The arrays are never handed out
-    /// directly: <see cref="Copy{T}"/> gives each caller its own, because the public properties return mutable arrays (#255).
+    /// directly: callers get a read-only view of each, created on first read and then reused, so a caller can neither change the
+    /// decomposition nor reach the array behind it by a cast.
     /// </remarks>
     internal sealed class Bcp47LanguageTagParts
     {
@@ -21,6 +24,19 @@ namespace DataStandardizer.LanguageTag.InternalState
         private static readonly string[] NoSubtags = new string[0];
         private static readonly Bcp47KeyedSubtag[] NoKeyedSubtags = new Bcp47KeyedSubtag[0];
 #endif
+        private static readonly ReadOnlyCollection<string> NoSubtagsView = new ReadOnlyCollection<string>(NoSubtags);
+        private static readonly ReadOnlyCollection<Bcp47KeyedSubtag> NoKeyedSubtagsView = new ReadOnlyCollection<Bcp47KeyedSubtag>(NoKeyedSubtags);
+
+        // Read-only views of the arrays, created on first read. A race only creates an equivalent view, so no lock is taken.
+#if NETCOREAPP3_0_OR_GREATER
+        private ReadOnlyCollection<string>? _extendedLanguagesView;
+        private ReadOnlyCollection<string>? _variantsView;
+        private ReadOnlyCollection<Bcp47KeyedSubtag>? _extensionsView;
+#else
+        [CanBeNull] private ReadOnlyCollection<string> _extendedLanguagesView;
+        [CanBeNull] private ReadOnlyCollection<string> _variantsView;
+        [CanBeNull] private ReadOnlyCollection<Bcp47KeyedSubtag> _extensionsView;
+#endif
 
 #if NETCOREAPP3_0_OR_GREATER
         private Bcp47LanguageTagParts(string primaryLanguage, string[] extendedLanguages, string? script, string? region, string[] variants, Bcp47KeyedSubtag[] extensions, Bcp47KeyedSubtag? privateUse)
@@ -29,11 +45,11 @@ namespace DataStandardizer.LanguageTag.InternalState
 #endif
         {
             PrimaryLanguage = primaryLanguage;
-            ExtendedLanguages = extendedLanguages;
+            _extendedLanguages = extendedLanguages;
             Script = script;
             Region = region;
-            Variants = variants;
-            Extensions = extensions;
+            _variants = variants;
+            _extensions = extensions;
             PrivateUse = privateUse;
         }
 
@@ -46,11 +62,19 @@ namespace DataStandardizer.LanguageTag.InternalState
         [NotNull] internal string PrimaryLanguage { get; }
 #endif
 
+        private readonly string[] _extendedLanguages;
+
+        /// <summary>
+        /// The Extended Language subtags, as a read-only view.
+        /// </summary>
 #if NETCOREAPP3_0_OR_GREATER
-        internal string[] ExtendedLanguages { get; }
+        internal IReadOnlyList<string> ExtendedLanguages
 #else
-        [NotNull] internal string[] ExtendedLanguages { get; }
+        [NotNull] internal IReadOnlyList<string> ExtendedLanguages
 #endif
+        {
+            get { return _extendedLanguages.Length == 0 ? NoSubtagsView : _extendedLanguagesView ?? (_extendedLanguagesView = new ReadOnlyCollection<string>(_extendedLanguages)); }
+        }
 
 #if NETCOREAPP3_0_OR_GREATER
         internal string? Script { get; }
@@ -64,17 +88,33 @@ namespace DataStandardizer.LanguageTag.InternalState
         [CanBeNull] internal string Region { get; }
 #endif
 
-#if NETCOREAPP3_0_OR_GREATER
-        internal string[] Variants { get; }
-#else
-        [NotNull] internal string[] Variants { get; }
-#endif
+        private readonly string[] _variants;
 
+        /// <summary>
+        /// The Variant subtags, as a read-only view.
+        /// </summary>
 #if NETCOREAPP3_0_OR_GREATER
-        internal Bcp47KeyedSubtag[] Extensions { get; }
+        internal IReadOnlyList<string> Variants
 #else
-        [NotNull] internal Bcp47KeyedSubtag[] Extensions { get; }
+        [NotNull] internal IReadOnlyList<string> Variants
 #endif
+        {
+            get { return _variants.Length == 0 ? NoSubtagsView : _variantsView ?? (_variantsView = new ReadOnlyCollection<string>(_variants)); }
+        }
+
+        private readonly Bcp47KeyedSubtag[] _extensions;
+
+        /// <summary>
+        /// The Extension subtags, as a read-only view.
+        /// </summary>
+#if NETCOREAPP3_0_OR_GREATER
+        internal IReadOnlyList<Bcp47KeyedSubtag> Extensions
+#else
+        [NotNull] internal IReadOnlyList<Bcp47KeyedSubtag> Extensions
+#endif
+        {
+            get { return _extensions.Length == 0 ? NoKeyedSubtagsView : _extensionsView ?? (_extensionsView = new ReadOnlyCollection<Bcp47KeyedSubtag>(_extensions)); }
+        }
 
         internal Bcp47KeyedSubtag? PrivateUse { get; }
 
@@ -107,26 +147,6 @@ namespace DataStandardizer.LanguageTag.InternalState
                 ranges.Variants.IsEmpty ? NoSubtags : Bcp47LanguageTagParser.GetSubtags(languageTag, ranges.Variants),
                 extensions,
                 ranges.PrivateUse.IsEmpty ? (Bcp47KeyedSubtag?)null : new Bcp47KeyedSubtag(Substring(languageTag, ranges.PrivateUse)));
-        }
-
-        /// <summary>
-        /// Copy an array of subtags for a caller.
-        /// </summary>
-        /// <remarks>
-        /// An empty array is returned as it is, since it cannot be changed.
-        /// </remarks>
-#if NETCOREAPP3_0_OR_GREATER
-        internal static T[] Copy<T>(T[] subtags)
-#else
-        [NotNull]
-        internal static T[] Copy<T>([NotNull] T[] subtags)
-#endif
-        {
-            if (subtags.Length == 0) return subtags;
-
-            var copy = new T[subtags.Length];
-            Array.Copy(subtags, copy, subtags.Length);
-            return copy;
         }
 
         private static string Substring(string languageTag, Bcp47SubtagRange range)
