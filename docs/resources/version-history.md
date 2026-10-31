@@ -28,6 +28,31 @@ to `netstandard1.1`, and changes the `ExtendedLanguageSubtags`, `VariantSubtags`
 and `ExtensionSubtags` properties of `Bcp47LanguageTag`, and the `Subtags`
 property of `Bcp47KeyedSubtag`, from arrays to `IReadOnlyList<T>`.
 
+In `DataStandardizer.LanguageTag`, Subtag Registry records are now immutable,
+with their fields parsed once when the registry is loaded:
+
+- `ISubtagRegistryRecord` is no longer an `IList<Tuple<string, object>>`. Read a
+  record's raw fields from its `Fields` property, a read-only list of
+  `KeyValuePair<string, string>` (`Key` and `Value` in place of `Item1` and
+  `Item2`).
+- `SubtagRegistryTagRecordBase.Type` is a `SubtagRegistryRecordType` instead of a
+  string: compare with `SubtagRegistryRecordType.Language` rather than
+  `"language"`.
+- `Description` and `Prefix` are `IReadOnlyList<string>` instead of arrays, and
+  `Comments` is an `IReadOnlyList<string>` with every `Comments` field instead of a
+  string with only the first.
+- A date that isn't in the `yyyy-MM-dd` form reads as the default `DateTime` (or
+  `null` for `Deprecated`) instead of throwing `FormatException`.
+- `SubtagRegistryFieldAttribute`, the protected `GetPropertyValue<T>()` and
+  `GetPropertyValues<T>()` helpers, and the public `SubtagRegistryFileDateRecord`
+  constructor are removed. The record classes are sealed and their constructors
+  internal, so records come only from a loaded `SubtagRegistry`.
+
+`SubtagRegistry` gains `TryGetSubtag`, `IsGrandfathered`, `FileDate` and a list of
+the records of each type (`Languages`, `ExtendedLanguages`, `Scripts`, `Regions`,
+`Variants`, `GrandfatheredTags` and `RedundantTags`), so code that filtered the
+records by type can use those instead.
+
 ## How the docs track versions
 
 This documentation reflects the **current state of the packages** rather than any

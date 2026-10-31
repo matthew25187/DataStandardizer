@@ -12,10 +12,11 @@ nav_exclude: true
 Namespace: `DataStandardizer.LanguageTag.SubtagRegistry`
 
 A *tag* entry from the IANA Subtag Registry. The constructor is internal; you
-obtain instances by enumerating a [SubtagRegistry](SubtagRegistry.md).
+get instances from a [SubtagRegistry](SubtagRegistry.md): by enumerating it, or
+from its `GrandfatheredTags` and `RedundantTags` lists.
 
 ```csharp
-public class SubtagRegistryTagRecord : SubtagRegistryTagRecordBase
+public sealed class SubtagRegistryTagRecord : SubtagRegistryTagRecordBase
 ```
 
 ## Remarks

@@ -1,17 +1,27 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+#if NETCOREAPP3_0_OR_GREATER
+using System.Diagnostics.CodeAnalysis;
+#endif
 using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using DataStandardizer.LanguageTag.InternalState;
+#if NETSTANDARD
+using JetBrains.Annotations;
+#endif
 
 namespace DataStandardizer.LanguageTag.SubtagRegistry
 {
     /// <summary>
     /// Collection of records that comprise the Subtag Registry.
     /// </summary>
+    /// <remarks>
+    /// A registry and its records never change once loaded, so one instance may be used from several threads.
+    /// </remarks>
     public class SubtagRegistry : IReadOnlyCollection<ISubtagRegistryRecord>
     {
         private const int StreamReaderBufferSize = 16384;
@@ -21,23 +31,130 @@ namespace DataStandardizer.LanguageTag.SubtagRegistry
         /// </summary>
         private const int FileStreamBufferSize = 4096;
 
-        private readonly IReadOnlyCollection<ISubtagRegistryRecord> _records;
+        private readonly ISubtagRegistryRecord[] _records;
 
         /// <summary>
         /// Sets of the subtags and grandfathered tags in <see cref="_records"/>, built once, on first use, and shared by every thread.
         /// </summary>
         private readonly Lazy<Bcp47RegistryBasedSubtagClassifier> _classifier;
 
+        /// <summary>
+        /// Maps of the subtags in <see cref="_records"/> to their records, built once, on first lookup, and shared by every thread.
+        /// </summary>
+        private readonly Lazy<Bcp47RegistrySubtagIndex> _subtagIndex;
+
         private SubtagRegistry(ISubtagRegistryRecord[] records)
         {
             _records = records;
-            _classifier = new Lazy<Bcp47RegistryBasedSubtagClassifier>(() => new Bcp47RegistryBasedSubtagClassifier(records));
+            _classifier = new Lazy<Bcp47RegistryBasedSubtagClassifier>(() => new Bcp47RegistryBasedSubtagClassifier(this));
+            _subtagIndex = new Lazy<Bcp47RegistrySubtagIndex>(() => new Bcp47RegistrySubtagIndex(this));
+
+            var languages = new List<SubtagRegistrySubtagRecord>();
+            var extendedLanguages = new List<SubtagRegistrySubtagRecord>();
+            var scripts = new List<SubtagRegistrySubtagRecord>();
+            var regions = new List<SubtagRegistrySubtagRecord>();
+            var variants = new List<SubtagRegistrySubtagRecord>();
+            var grandfatheredTags = new List<SubtagRegistryTagRecord>();
+            var redundantTags = new List<SubtagRegistryTagRecord>();
+
+            foreach (var record in records)
+            {
+                if (record is SubtagRegistrySubtagRecord subtagRecord)
+                {
+                    switch (subtagRecord.Type)
+                    {
+                        case SubtagRegistryRecordType.Language:
+                            languages.Add(subtagRecord);
+                            break;
+                        case SubtagRegistryRecordType.ExtendedLanguage:
+                            extendedLanguages.Add(subtagRecord);
+                            break;
+                        case SubtagRegistryRecordType.Script:
+                            scripts.Add(subtagRecord);
+                            break;
+                        case SubtagRegistryRecordType.Region:
+                            regions.Add(subtagRecord);
+                            break;
+                        case SubtagRegistryRecordType.Variant:
+                            variants.Add(subtagRecord);
+                            break;
+                    }
+                }
+                else if (record is SubtagRegistryTagRecord tagRecord)
+                {
+                    switch (tagRecord.Type)
+                    {
+                        case SubtagRegistryRecordType.Grandfathered:
+                            grandfatheredTags.Add(tagRecord);
+                            break;
+                        case SubtagRegistryRecordType.Redundant:
+                            redundantTags.Add(tagRecord);
+                            break;
+                    }
+                }
+                else if (record is SubtagRegistryFileDateRecord fileDateRecord && FileDate is null)
+                {
+                    FileDate = fileDateRecord.FileDate;
+                }
+            }
+
+            Languages = new ReadOnlyCollection<SubtagRegistrySubtagRecord>(languages);
+            ExtendedLanguages = new ReadOnlyCollection<SubtagRegistrySubtagRecord>(extendedLanguages);
+            Scripts = new ReadOnlyCollection<SubtagRegistrySubtagRecord>(scripts);
+            Regions = new ReadOnlyCollection<SubtagRegistrySubtagRecord>(regions);
+            Variants = new ReadOnlyCollection<SubtagRegistrySubtagRecord>(variants);
+            GrandfatheredTags = new ReadOnlyCollection<SubtagRegistryTagRecord>(grandfatheredTags);
+            RedundantTags = new ReadOnlyCollection<SubtagRegistryTagRecord>(redundantTags);
         }
 
         /// <summary>
         /// Gets the classifier that checks language tags against this registry.
         /// </summary>
         internal Bcp47SubtagClassifier Classifier => _classifier.Value;
+
+        #region Public Properties
+
+        /// <summary>
+        /// Gets the date of the registry's File-Date record, or <see langword="null"/> when it has none.
+        /// </summary>
+        public DateTime? FileDate { get; }
+
+        /// <summary>
+        /// Gets the records of Primary Language subtags (Type <c>language</c>), in registry order.
+        /// </summary>
+        public IReadOnlyList<SubtagRegistrySubtagRecord> Languages { get; }
+
+        /// <summary>
+        /// Gets the records of Extended Language subtags (Type <c>extlang</c>), in registry order.
+        /// </summary>
+        public IReadOnlyList<SubtagRegistrySubtagRecord> ExtendedLanguages { get; }
+
+        /// <summary>
+        /// Gets the records of Script subtags (Type <c>script</c>), in registry order.
+        /// </summary>
+        public IReadOnlyList<SubtagRegistrySubtagRecord> Scripts { get; }
+
+        /// <summary>
+        /// Gets the records of Region subtags (Type <c>region</c>), in registry order.
+        /// </summary>
+        public IReadOnlyList<SubtagRegistrySubtagRecord> Regions { get; }
+
+        /// <summary>
+        /// Gets the records of Variant subtags (Type <c>variant</c>), in registry order.
+        /// </summary>
+        public IReadOnlyList<SubtagRegistrySubtagRecord> Variants { get; }
+
+        /// <summary>
+        /// Gets the records of grandfathered tags (Type <c>grandfathered</c>), in registry order.
+        /// </summary>
+        public IReadOnlyList<SubtagRegistryTagRecord> GrandfatheredTags { get; }
+
+        /// <summary>
+        /// Gets the records of redundant tags (Type <c>redundant</c>), in registry order.
+        /// </summary>
+        public IReadOnlyList<SubtagRegistryTagRecord> RedundantTags { get; }
+
+        #endregion
 
         #region Public Methods
 
@@ -242,9 +359,76 @@ namespace DataStandardizer.LanguageTag.SubtagRegistry
             }
         }
 
+        /// <summary>
+        /// Gets the record of a subtag.
+        /// </summary>
+        /// <param name="type">Type of the subtag: <see cref="SubtagRegistryRecordType.Language"/>, <see cref="SubtagRegistryRecordType.ExtendedLanguage"/>,
+        /// <see cref="SubtagRegistryRecordType.Script"/>, <see cref="SubtagRegistryRecordType.Region"/> or <see cref="SubtagRegistryRecordType.Variant"/>.</param>
+        /// <param name="subtag">Subtag to look up, in any case.</param>
+        /// <param name="record">When this method returns <see langword="true"/>, the record of the subtag; otherwise, <see langword="null"/>.</param>
+        /// <returns>
+        /// <see langword="true"/> if the registry has a record of that type for the subtag; otherwise, <see langword="false"/>, including for a
+        /// <see langword="null"/> subtag and for any other type.
+        /// </returns>
+        /// <remarks>
+        /// Subtags are compared case-insensitively (ref. RFC 5646 §2.1.1). A subtag in a range that a record denotes, such as <c>qab</c> in <c>qaa..qtz</c>,
+        /// finds that record. The first lookup builds a map of the registry's subtags to their records, which every later lookup uses.
+        /// </remarks>
+#if NETCOREAPP3_0_OR_GREATER
+        public bool TryGetSubtag(SubtagRegistryRecordType type, string? subtag, [NotNullWhen(true)] out SubtagRegistrySubtagRecord? record)
+#else
+        public bool TryGetSubtag(SubtagRegistryRecordType type, [CanBeNull] string subtag, [CanBeNull] out SubtagRegistrySubtagRecord record)
+#endif
+        {
+            if (subtag is null)
+            {
+                record = null;
+                return false;
+            }
+
+            return _subtagIndex.Value.TryGetSubtag(type, subtag.AsSpan(), out record);
+        }
+
+        /// <inheritdoc cref="TryGetSubtag(SubtagRegistryRecordType, string, out SubtagRegistrySubtagRecord)"/>
+#if NETCOREAPP3_0_OR_GREATER
+        public bool TryGetSubtag(SubtagRegistryRecordType type, ReadOnlySpan<char> subtag, [NotNullWhen(true)] out SubtagRegistrySubtagRecord? record)
+#else
+        public bool TryGetSubtag(SubtagRegistryRecordType type, ReadOnlySpan<char> subtag, [CanBeNull] out SubtagRegistrySubtagRecord record)
+#endif
+        {
+            return _subtagIndex.Value.TryGetSubtag(type, subtag, out record);
+        }
+
+        /// <summary>
+        /// Determine whether a language tag is one of the registry's grandfathered tags.
+        /// </summary>
+        /// <param name="languageTag">Language tag to check, in any case.</param>
+        /// <returns>
+        /// <see langword="true"/> if the registry has a record of type <c>grandfathered</c> for the tag; otherwise, <see langword="false"/>, including for
+        /// <see langword="null"/>.
+        /// </returns>
+        /// <remarks>
+        /// Tags are compared case-insensitively (ref. RFC 5646 §2.1.1). This uses the index that validation against the registry builds on first use, and builds it if
+        /// it hasn't been built yet.
+        /// </remarks>
+#if NETCOREAPP3_0_OR_GREATER
+        public bool IsGrandfathered(string? languageTag)
+#else
+        public bool IsGrandfathered([CanBeNull] string languageTag)
+#endif
+        {
+            return languageTag != null && _classifier.Value.IsGrandfathered(languageTag.AsSpan());
+        }
+
+        /// <inheritdoc cref="IsGrandfathered(string)"/>
+        public bool IsGrandfathered(ReadOnlySpan<char> languageTag)
+        {
+            return _classifier.Value.IsGrandfathered(languageTag);
+        }
+
         public override string ToString()
         {
-            return string.Join(string.Concat(Environment.NewLine, "%%", Environment.NewLine), _records);
+            return string.Join(string.Concat(Environment.NewLine, "%%", Environment.NewLine), (IEnumerable<ISubtagRegistryRecord>)_records);
         }
 
         #endregion
@@ -269,7 +453,7 @@ namespace DataStandardizer.LanguageTag.SubtagRegistry
 
         IEnumerator<ISubtagRegistryRecord> IEnumerable<ISubtagRegistryRecord>.GetEnumerator()
         {
-            return _records.GetEnumerator();
+            return ((IEnumerable<ISubtagRegistryRecord>)_records).GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -281,7 +465,7 @@ namespace DataStandardizer.LanguageTag.SubtagRegistry
 
         #region Implementation of IReadOnlyCollection<out ISubtagRegistryRecord>
 
-        public int Count => _records.Count;
+        public int Count => _records.Length;
 
         #endregion
     }

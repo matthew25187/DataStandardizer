@@ -40,6 +40,20 @@ var subtagRegistry = SubtagRegistry.CreateFromFile("subtag_registry.txt");
 var languageTag = Bcp47LanguageTag.Create("en", subtagRegistry);
 ```
 
+The registry can also answer questions about a subtag directly, such as whether
+it is deprecated and what replaces it:
+
+```csharp
+if (subtagRegistry.TryGetSubtag(SubtagRegistryRecordType.Region, "BU", out var region)
+    && region.Deprecated != null)
+{
+    Console.WriteLine($"Use {region.PreferredValue} instead of BU.");
+}
+```
+
+See [SubtagRegistry](../reference/SubtagRegistry.md) for the typed lists of
+records and the other lookups.
+
 If you would rather avoid exceptions for invalid input, the type also provides
 `TryCreate` overloads that return `false` instead of throwing.
 

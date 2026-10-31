@@ -34,7 +34,7 @@ public class RegistryBenchmarks
         {
             if (record is SubtagRegistryTagRecordBase tagRecord)
             {
-                length += tagRecord.Type.Length;
+                length += (int)tagRecord.Type;
                 length += tagRecord switch
                 {
                     SubtagRegistrySubtagRecord subtagRecord => subtagRecord.Subtag.Length,
@@ -42,9 +42,23 @@ public class RegistryBenchmarks
                     _ => 0,
                 };
                 length += tagRecord.Added.Day;
-                length += tagRecord.Description.Length;
+                length += tagRecord.Description.Count;
             }
         }
+
+        return length;
+    }
+
+    [Benchmark]
+    public int Registry_TryGetSubtag()
+    {
+        var length = 0;
+        if (_registry.TryGetSubtag(SubtagRegistryRecordType.Language, "zh", out var language)) length += language.Description.Count;
+        if (_registry.TryGetSubtag(SubtagRegistryRecordType.ExtendedLanguage, "yue", out var extendedLanguage)) length += extendedLanguage.Description.Count;
+        if (_registry.TryGetSubtag(SubtagRegistryRecordType.Script, "Hant", out var script)) length += script.Description.Count;
+        if (_registry.TryGetSubtag(SubtagRegistryRecordType.Region, "TW", out var region)) length += region.Description.Count;
+        if (_registry.TryGetSubtag(SubtagRegistryRecordType.Variant, "1994", out var variant)) length += variant.Description.Count;
+        if (_registry.IsGrandfathered("i-klingon")) length++;
 
         return length;
     }

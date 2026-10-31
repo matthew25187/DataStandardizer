@@ -15,14 +15,15 @@ The registry's `File-Date` header record — carries the date the loaded copy of
 IANA Subtag Registry was published.
 
 ```csharp
-public class SubtagRegistryFileDateRecord : SubtagRegistryRecordBase
+public sealed class SubtagRegistryFileDateRecord : SubtagRegistryRecordBase
 ```
 
-## Constructors
+## Remarks
 
-| Constructor | Notes |
-| --- | --- |
-| `SubtagRegistryFileDateRecord(Tuple<string, object> field)` | Wraps the single `File-Date` field pair. |
+The constructor is internal; the record is created when a
+[SubtagRegistry](SubtagRegistry.md) is loaded, and the registry's `FileDate`
+property returns its date. A `File-Date` that isn't in the `yyyy-MM-dd` form
+reads as the default `DateTime`.
 
 ## Properties
 
