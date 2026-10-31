@@ -1,13 +1,9 @@
-﻿// The matchTimeout overloads are obsolete but stay tested until v2.0 removes them (#256).
-#pragma warning disable CS0618
-
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading;
 using DataStandardizer.Core;
 using DataStandardizer.Geography;
@@ -51,11 +47,6 @@ namespace DataStandardizer.LanguageTag.Tests
         {
             _fixture = fixture;
         }
-
-        /// <summary>
-        /// A well-formed language tag long enough that matching it can't finish within a one-tick timeout.
-        /// </summary>
-        private static readonly string TimeoutLanguageTag = "en-x" + string.Concat(Enumerable.Repeat("-abcdefgh", 100000));
 
         /// <summary>
         /// Run an action with the current culture of the thread set to a given culture, then restore the culture.
@@ -2382,21 +2373,6 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #endregion
 
-        #region Test: Create_WithLanguageTagAndMatchTimeoutWhenLanguageTagHasTrailingNewline
-
-        [Theory]
-        [InlineData("en\n"), InlineData("en-US\n")]
-        public void Create_WithLanguageTagAndMatchTimeoutWhenLanguageTagHasTrailingNewline_ThrowsLanguageTagFormatException(string testLanguageTag)
-        {
-            // act
-            Action testAction = () => Bcp47LanguageTag.Create(testLanguageTag, TimeSpan.FromSeconds(10));
-
-            // assert
-            testAction.Should().Throw<LanguageTagFormatException>("a language tag followed by a line feed is not well-formed").WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
-        }
-
-        #endregion
-
         #region Test: Create_WithLanguageTagAndSubtagRegistryWhenLanguageTagHasTrailingNewline
 
         [Theory]
@@ -2412,30 +2388,14 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #endregion
 
-        #region Test: Create_WithLanguageTagSubtagRegistryAndMatchTimeoutWhenLanguageTagHasTrailingNewline
-
-        [Theory]
-        [InlineData("en\n"), InlineData("en-US\n")]
-        public void Create_WithLanguageTagSubtagRegistryAndMatchTimeoutWhenLanguageTagHasTrailingNewline_ThrowsLanguageTagFormatException(string testLanguageTag)
-        {
-            // act
-            Action testAction = () => Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry, TimeSpan.FromSeconds(10));
-
-            // assert
-            testAction.Should().Throw<LanguageTagFormatException>("a language tag followed by a line feed is not well-formed");
-        }
-
-        #endregion
-
-        #region Test: Create_WithLanguageTagAndMatchTimeoutUnderTurkishCulture
+        #region Test: Create_WithLanguageTagUnderTurkishCulture
 
         [Theory]
         [InlineData("IT"), InlineData("it-CH"), InlineData("IT-ch"), InlineData("it")]
-        public void Create_WithLanguageTagAndMatchTimeoutUnderTurkishCulture_ReturnsLanguageTag(string testLanguageTag)
+        public void Create_WithLanguageTagUnderTurkishCulture_ReturnsLanguageTag(string testLanguageTag)
         {
             // act
-            // A match timeout no other test uses makes the language tag expression get built under the Turkish culture.
-            var testResult = RunUnderCulture("tr-TR", () => Bcp47LanguageTag.Create(testLanguageTag, TimeSpan.FromMilliseconds(25_101)));
+            var testResult = RunUnderCulture("tr-TR", () => Bcp47LanguageTag.Create(testLanguageTag));
 
             // assert
             ((string)testResult).Should().Be(testLanguageTag, "case-insensitive matching of a language tag doesn't depend on the current culture (RFC 5646 §2.1.1)");
@@ -2443,15 +2403,14 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #endregion
 
-        #region Test: Create_WithLanguageTagSubtagRegistryAndMatchTimeoutUnderTurkishCulture
+        #region Test: Create_WithLanguageTagAndSubtagRegistryUnderTurkishCulture
 
         [Theory]
         [InlineData("IT"), InlineData("it-CH"), InlineData("IT-ch"), InlineData("it")]
-        public void Create_WithLanguageTagSubtagRegistryAndMatchTimeoutUnderTurkishCulture_ReturnsLanguageTag(string testLanguageTag)
+        public void Create_WithLanguageTagAndSubtagRegistryUnderTurkishCulture_ReturnsLanguageTag(string testLanguageTag)
         {
             // act
-            // A match timeout no other test uses makes the language tag expression get built under the Turkish culture.
-            var testResult = RunUnderCulture("tr-TR", () => Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry, TimeSpan.FromMilliseconds(25_102)));
+            var testResult = RunUnderCulture("tr-TR", () => Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry));
 
             // assert
             ((string)testResult).Should().Be(testLanguageTag, "case-insensitive matching of a language tag doesn't depend on the current culture (RFC 5646 §2.1.1)");
@@ -2470,21 +2429,6 @@ namespace DataStandardizer.LanguageTag.Tests
 
             // assert
             testAction.Should().Throw<LanguageTagFormatException>("a language tag has only ASCII letters and digits (RFC 5646 §2.1), so the Kelvin sign and long s aren't letters of one").WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
-        }
-
-        #endregion
-
-        #region Test: Create_WithLanguageTagAndMatchTimeoutWhenLanguageTagHasNonAsciiCaseEquivalent
-
-        [Theory]
-        [InlineData("\u212Ao"), InlineData("en-x-\u212A"), InlineData("en-x-\u017F")]
-        public void Create_WithLanguageTagAndMatchTimeoutWhenLanguageTagHasNonAsciiCaseEquivalent_ThrowsLanguageTagFormatException(string testLanguageTag)
-        {
-            // act
-            Action testAction = () => Bcp47LanguageTag.Create(testLanguageTag, TimeSpan.FromSeconds(10));
-
-            // assert
-            testAction.Should().Throw<LanguageTagFormatException>("a language tag has only ASCII letters and digits (RFC 5646 §2.1)").WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
         }
 
         #endregion
@@ -2686,101 +2630,6 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #endregion
 
-        #region Test: Create_WithLanguageTagAndTimeoutWhenLanguageTagIsNull
-
-        [Fact]
-        public void Create_WithLanguageTagAndTimeoutWhenLanguageTagIsNull_ThrowsArgumentNullException()
-        {
-            // act
-            Action testAction = () => _ = Bcp47LanguageTag.Create(null, Regex.InfiniteMatchTimeout);
-
-            // assert
-            testAction.Should().Throw<ArgumentNullException>("the language tag must not be null").WithParameterName("languageTag");
-        }
-
-        #endregion
-
-        #region Test: Create_WithLanguageTagAndTimeoutWhenLanguageTagIsInvalid
-
-        [Theory]
-        [InlineData(""), InlineData("NotAValidLanguageTag")]
-        public void Create_WithLanguageTagAndTimeoutWhenLanguageTagIsInvalid_ThrowsLanguageTagFormatException(string testLanguageTag)
-        {
-            // act
-            Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag, Regex.InfiniteMatchTimeout);
-
-            // assert
-            testAction.Should().Throw<LanguageTagFormatException>("the language tag was not in a recognised format").WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
-        }
-
-        #endregion
-
-        #region Test: Create_WithLanguageTagAndTimeoutWhenLanguageTagHasDuplicateSubtags
-
-        [Theory]
-        [MemberData(nameof(DuplicateSubtagLanguageTags))]
-        public void Create_WithLanguageTagAndTimeoutWhenLanguageTagHasDuplicateSubtags_ThrowsLanguageTagFormatException(string testLanguageTag, string controlLanguageTag)
-        {
-            // act
-            Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag, Regex.InfiniteMatchTimeout);
-            Action controlAction = () => _ = Bcp47LanguageTag.Create(controlLanguageTag, Regex.InfiniteMatchTimeout);
-
-            // assert
-            controlAction.Should().NotThrow("the language tag '{0}' has no repeated subtags", controlLanguageTag);
-            testAction.Should().Throw<LanguageTagFormatException>("a variant subtag or extension singleton is repeated (RFC 5646 §2.2.5, §2.2.6)").WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
-        }
-
-        #endregion
-
-        #region Test: Create_WithLanguageTagAndTimeoutWhenLanguageTagIsGrandfathered
-
-        [Theory]
-        [MemberData(nameof(GrandfatheredLanguageTags))]
-        public void Create_WithLanguageTagAndTimeoutWhenLanguageTagIsGrandfathered_ReturnsBcp47LanguageTag(string testLanguageTag)
-        {
-            // act
-            var languageTag = Bcp47LanguageTag.Create(testLanguageTag, Regex.InfiniteMatchTimeout);
-            var testResult = (string)languageTag;
-
-            // assert
-            testResult.Should().Be(testLanguageTag, "'{0}' is a grandfathered language tag (RFC 5646 §2.1, §2.2.8)", testLanguageTag);
-        }
-
-        #endregion
-
-        #region Test: Create_WithLanguageTagAndTimeoutWhenLanguageTagIsValid
-
-        [Theory]
-        [MemberData(nameof(Create_WithLanguageTagAndTimeoutWhenLanguageTagIsValid_TestCaseGenerator.TestCases), MemberType = typeof(Create_WithLanguageTagAndTimeoutWhenLanguageTagIsValid_TestCaseGenerator))]
-        public void Create_WithLanguageTagAndTimeoutWhenLanguageTagIsValid_ReturnsBcp47LanguageTag(string testLanguageTag, TimeSpan testTimeout, string expectedResult)
-        {
-            // act
-            var languageTag = Bcp47LanguageTag.Create(testLanguageTag, testTimeout);
-            var testResult = (string)languageTag;
-
-            // assert
-            testResult.Should().Be(expectedResult, "'{0}' is a correctly formatted language tag", testLanguageTag);
-        }
-
-        private class Create_WithLanguageTagAndTimeoutWhenLanguageTagIsValid_TestCaseGenerator
-        {
-            public static IEnumerable<object[]> TestCases
-            {
-                get
-                {
-                    foreach (var validLanguageTag in _validLanguageTags)
-                    {
-                        yield return new object[] { validLanguageTag, Regex.InfiniteMatchTimeout, validLanguageTag };
-                    }
-
-                    yield return new object[] { "x-fr-CH", Regex.InfiniteMatchTimeout, "x-fr-CH" };
-                    yield return new object[] { "x-fr-CH-x-valid-private-use-subtag",Regex.InfiniteMatchTimeout, "x-fr-CH-x-valid-private-use-subtag" };
-                }
-            }
-        }
-
-        #endregion
-
         #region Test: Create_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsNull
 
         [Fact]
@@ -2917,148 +2766,6 @@ namespace DataStandardizer.LanguageTag.Tests
 
                     yield return new object[] { "x-fr-CH", "x-fr-CH" };
                     yield return new object[] { "x-fr-CH-x-valid-private-use-subtag", "x-fr-CH-x-valid-private-use-subtag" };
-                }
-            }
-        }
-
-        #endregion
-
-        #region Test: Create_WithLanguageTagAndSubtagRegistryAndTimeoutWhenLanguageTagIsNull
-
-        [Fact]
-        public void Create_WithLanguageTagAndSubtagRegistryAndTimeoutWhenLanguageTagIsNull_ThrowsArgumentNullException()
-        {
-            // act
-            Action testAction = () => _ = Bcp47LanguageTag.Create(null, _fixture.IanaSubtagRegistry, Regex.InfiniteMatchTimeout);
-
-            // assert
-            testAction.Should().Throw<ArgumentNullException>("the language tag must not be null").WithParameterName("languageTag");
-        }
-
-        #endregion
-
-        #region Test: Create_WithLanguageTagAndSubtagRegistryAndTimeoutWhenSubtagRegistryIsNull
-
-        [Fact]
-        public void Create_WithLanguageTagAndSubtagRegistryAndTimeoutWhenSubtagRegistryIsNull_ThrowsArgumentNullException()
-        {
-            // act
-            Action testAction = () => _ = Bcp47LanguageTag.Create("en", null, Regex.InfiniteMatchTimeout);
-
-            // assert
-            testAction.Should().Throw<ArgumentNullException>("the subtag registry must not be null").WithParameterName("subtagRegistry");
-        }
-
-        #endregion
-
-        #region Test: Create_WithLanguageTagAndSubtagRegistryAndTimeoutWhenLanguageTagIsInvalid
-
-        [Theory]
-        [InlineData(""), InlineData("invalid")]
-        public void Create_WithLanguageTagAndSubtagRegistryAndTimeoutWhenLanguageTagIsInvalid_ThrowsLanguageTagFormatException(string testLanguageTag)
-        {
-            // act
-            Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry, Regex.InfiniteMatchTimeout);
-
-            // assert
-            testAction.Should().Throw<LanguageTagFormatException>("the language tag was not in a recognised format").WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
-        }
-
-        #endregion
-
-        #region Test: Create_WithLanguageTagAndSubtagRegistryAndTimeoutWhenLanguageTagHasDuplicateSubtags
-
-        [Theory]
-        [MemberData(nameof(DuplicateSubtagLanguageTags))]
-        public void Create_WithLanguageTagAndSubtagRegistryAndTimeoutWhenLanguageTagHasDuplicateSubtags_ThrowsLanguageTagFormatException(string testLanguageTag, string controlLanguageTag)
-        {
-            // act
-            Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry, Regex.InfiniteMatchTimeout);
-            Action controlAction = () => _ = Bcp47LanguageTag.Create(controlLanguageTag, _fixture.IanaSubtagRegistry, Regex.InfiniteMatchTimeout);
-
-            // assert
-            controlAction.Should().NotThrow("the language tag '{0}' has no repeated subtags", controlLanguageTag);
-            testAction.Should().Throw<LanguageTagFormatException>("a variant subtag or extension singleton is repeated (RFC 5646 §2.2.5, §2.2.6)").WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
-        }
-
-        #endregion
-
-        #region Test: Create_WithLanguageTagAndSubtagRegistryAndTimeoutWhenSubtagIsInPrivateUseRange
-
-        [Theory]
-        [MemberData(nameof(PrivateUseRangeLanguageTags))]
-        public void Create_WithLanguageTagAndSubtagRegistryAndTimeoutWhenSubtagIsInPrivateUseRange_ReturnsBcp47LanguageTag(string testLanguageTag)
-        {
-            // act
-            var languageTag = Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry, Regex.InfiniteMatchTimeout);
-            var testResult = (string)languageTag;
-
-            // assert
-            testResult.Should().Be(testLanguageTag, "the subtags of '{0}' are registered by private use range records (RFC 5646 §3.1.1)", testLanguageTag);
-        }
-
-        #endregion
-
-        #region Test: Create_WithLanguageTagAndSubtagRegistryAndTimeoutWhenSubtagIsOutsidePrivateUseRange
-
-        [Theory]
-        [MemberData(nameof(OutsidePrivateUseRangeLanguageTags))]
-        public void Create_WithLanguageTagAndSubtagRegistryAndTimeoutWhenSubtagIsOutsidePrivateUseRange_ThrowsLanguageTagFormatException(string testLanguageTag, string controlLanguageTag)
-        {
-            // act
-            Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry, Regex.InfiniteMatchTimeout);
-            Action controlAction = () => _ = Bcp47LanguageTag.Create(controlLanguageTag, _fixture.IanaSubtagRegistry, Regex.InfiniteMatchTimeout);
-
-            // assert
-            controlAction.Should().NotThrow("the language tag '{0}' ends a private use range record", controlLanguageTag);
-            testAction.Should().Throw<LanguageTagFormatException>("the Subtag Registry has no record or range for a subtag of '{0}'", testLanguageTag).WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
-        }
-
-        #endregion
-
-        #region Test: Create_WithLanguageTagAndSubtagRegistryAndTimeoutWhenLanguageTagIsGrandfathered
-
-        [Theory]
-        [MemberData(nameof(GrandfatheredLanguageTags))]
-        public void Create_WithLanguageTagAndSubtagRegistryAndTimeoutWhenLanguageTagIsGrandfathered_ReturnsBcp47LanguageTag(string testLanguageTag)
-        {
-            // act
-            var languageTag = Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry, Regex.InfiniteMatchTimeout);
-            var testResult = (string)languageTag;
-
-            // assert
-            testResult.Should().Be(testLanguageTag, "'{0}' is a grandfathered language tag (RFC 5646 §2.1, §2.2.8)", testLanguageTag);
-        }
-
-        #endregion
-
-        #region Test: Create_WithLanguageTagAndSubtagRegistryAndTimeoutWhenLanguageTagIsValid
-
-        [Theory]
-        [MemberData(nameof(Create_WithLanguageTagAndSubtagRegistryAndTimeoutWhenLanguageTagIsValid_TestCaseGenerator.TestCases), MemberType = typeof(Create_WithLanguageTagAndSubtagRegistryAndTimeoutWhenLanguageTagIsValid_TestCaseGenerator))]
-        public void Create_WithLanguageTagAndSubtagRegistryAndTimeoutWhenLanguageTagIsValid_ReturnsBcp47LanguageTag(string testLanguageTag, TimeSpan testTimeout, string expectedResult)
-        {
-            // arrange
-            var languageTag = Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry, testTimeout);
-            var testResult = (string)languageTag;
-
-            // assert
-            testResult.Should().Be(expectedResult, "'{0}' is a correctly formatted language tag", testLanguageTag);
-        }
-
-        private class Create_WithLanguageTagAndSubtagRegistryAndTimeoutWhenLanguageTagIsValid_TestCaseGenerator
-        {
-            public static IEnumerable<object[]> TestCases
-            {
-                get
-                {
-                    foreach (var validLanguageTag in _validLanguageTags)
-                    {
-                        yield return new object[] { validLanguageTag, Regex.InfiniteMatchTimeout, validLanguageTag };
-                    }
-
-                    yield return new object[] { "x-fr-CH", Regex.InfiniteMatchTimeout, "x-fr-CH" };
-                    yield return new object[] { "x-fr-CH-x-valid-private-use-subtag",Regex.InfiniteMatchTimeout, "x-fr-CH-x-valid-private-use-subtag" };
                 }
             }
         }
@@ -3233,122 +2940,6 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #endregion
 
-        #region Test: TryCreate_WithLanguageTagAndTimeoutWhenLanguageTagIsNull
-
-        [Fact]
-        public void TryCreate_WithLanguageTagAndTimeoutWhenLanguageTagIsNull_ReturnsFalse()
-        {
-            // act
-            var testResult = Bcp47LanguageTag.TryCreate(null, Regex.InfiniteMatchTimeout, out _);
-
-            // assert
-            testResult.Should().BeFalse("the language tag must not be null");
-        }
-
-        #endregion
-
-        #region Test: TryCreate_WithLanguageTagAndTimeoutWhenLanguageTagIsInvalid
-
-        [Theory]
-        [InlineData(""), InlineData("NotAValidLanguageTag")]
-        public void TryCreate_WithLanguageTagAndTimeoutWhenLanguageTagIsInvalid_ReturnsFalse(string testLanguageTag)
-        {
-            // act
-            var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, Regex.InfiniteMatchTimeout, out _);
-
-            // assert
-            testResult.Should().BeFalse("language tag '{0}' is not correctly formatted", testLanguageTag);
-        }
-
-        #endregion
-
-        #region Test: TryCreate_WithLanguageTagAndTimeoutWhenLanguageTagHasDuplicateSubtags
-
-        [Theory]
-        [MemberData(nameof(DuplicateSubtagLanguageTags))]
-        public void TryCreate_WithLanguageTagAndTimeoutWhenLanguageTagHasDuplicateSubtags_ReturnsFalse(string testLanguageTag, string controlLanguageTag)
-        {
-            // act
-            var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, Regex.InfiniteMatchTimeout, out _);
-            var controlResult = Bcp47LanguageTag.TryCreate(controlLanguageTag, Regex.InfiniteMatchTimeout, out _);
-
-            // assert
-            controlResult.Should().BeTrue("the language tag '{0}' has no repeated subtags", controlLanguageTag);
-            testResult.Should().BeFalse("the language tag '{0}' repeats a variant subtag or extension singleton (RFC 5646 §2.2.5, §2.2.6)", testLanguageTag);
-        }
-
-        #endregion
-
-        #region Test: TryCreate_WithLanguageTagAndTimeoutWhenLanguageTagIsGrandfathered
-
-        [Theory]
-        [MemberData(nameof(GrandfatheredLanguageTags))]
-        public void TryCreate_WithLanguageTagAndTimeoutWhenLanguageTagIsGrandfathered_ReturnsTrue(string testLanguageTag)
-        {
-            // act
-            var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, Regex.InfiniteMatchTimeout, out var languageTag);
-
-            // assert
-            testResult.Should().BeTrue("'{0}' is a grandfathered language tag (RFC 5646 §2.1, §2.2.8)", testLanguageTag);
-            ((string)languageTag).Should().Be(testLanguageTag);
-        }
-
-        #endregion
-
-        #region Test: TryCreate_WithLanguageTagAndTimeoutWhenLanguageTagIsValid
-
-        [Theory]
-        [MemberData(nameof(TryCreate_WithLanguageTagAndTimeoutWhenLanguageTagIsValid_TestCaseGenerator.TestCases), MemberType = typeof(TryCreate_WithLanguageTagAndTimeoutWhenLanguageTagIsValid_TestCaseGenerator))]
-        public void TryCreate_WithLanguageTagAndTimeoutWhenLanguageTagIsValid_ReturnsTrue(string testLanguageTag, TimeSpan testTimeout, string expectedResult)
-        {
-            // arrange
-            Bcp47LanguageTag languageTag;
-
-            // act
-            var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, testTimeout, out languageTag);
-
-            // assert
-            testResult.Should().BeTrue("the language tag '{0}' is correctly formatted", testLanguageTag);
-            ((string)languageTag).Should().Be(expectedResult, "the language tag '{0}' is correctly formatted", testLanguageTag);
-        }
-
-        private class TryCreate_WithLanguageTagAndTimeoutWhenLanguageTagIsValid_TestCaseGenerator
-        {
-            public static IEnumerable<object[]> TestCases
-            {
-                get
-                {
-                    foreach (var validLanguageTag in _validLanguageTags)
-                    {
-                        yield return new object[] { validLanguageTag, Regex.InfiniteMatchTimeout, validLanguageTag };
-                    }
-
-                    yield return new object[] { "x-fr-CH", Regex.InfiniteMatchTimeout, "x-fr-CH" };
-                    yield return new object[] { "x-fr-CH-x-valid-private-use-subtag",Regex.InfiniteMatchTimeout, "x-fr-CH-x-valid-private-use-subtag" };
-                }
-            }
-        }
-
-        #endregion
-
-        #region Test: TryCreate_WithLanguageTagAndTimeoutWhenMatchWouldTimeOut
-
-        [Fact]
-        public void TryCreate_WithLanguageTagAndTimeoutWhenMatchWouldTimeOut_ReturnsTrue()
-        {
-            // act
-            Bcp47LanguageTag languageTag = default;
-            var testResult = false;
-            Action testAction = () => testResult = Bcp47LanguageTag.TryCreate(TimeoutLanguageTag, TimeSpan.FromTicks(1), out languageTag);
-
-            // assert
-            testAction.Should().NotThrow("a Try method reports failure through its return value");
-            testResult.Should().BeTrue("the default rules are checked by a parser, which cannot time out, and the language tag is well-formed");
-            ((string)languageTag).Should().Be(TimeoutLanguageTag);
-        }
-
-        #endregion
-
         #region Test: TryCreate_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsNull
 
         [Fact]
@@ -3494,169 +3085,6 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #endregion
 
-        #region Test: TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenLanguageTagIsNull
-
-        [Fact]
-        public void TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenLanguageTagIsNull_ReturnsFalse()
-        {
-            // act
-            var testResult = Bcp47LanguageTag.TryCreate(null, _fixture.IanaSubtagRegistry, Regex.InfiniteMatchTimeout, out _);
-
-            // assert
-            testResult.Should().BeFalse("the language tag must not be null");
-        }
-
-        #endregion
-
-        #region Test: TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenSubtagRegistryIsNull
-
-        [Fact]
-        public void TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenSubtagRegistryIsNull_ReturnsFalse()
-        {
-            // act
-            var testResult = Bcp47LanguageTag.TryCreate("en", null, Regex.InfiniteMatchTimeout, out _);
-
-            // assert
-            testResult.Should().BeFalse("the subtag registry must not be null");
-        }
-
-        #endregion
-
-        #region Test: TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenLanguageTagIsInvalid
-
-        [Theory]
-        [InlineData(""), InlineData("invalid")]
-        public void TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenLanguageTagIsInvalid_ReturnsFalse(string testLanguageTag)
-        {
-            // act
-            var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, _fixture.IanaSubtagRegistry, Regex.InfiniteMatchTimeout, out _);
-
-            // assert
-            testResult.Should().BeFalse("the language tag '{0}' is not correctly formatted", testLanguageTag);
-        }
-
-        #endregion
-
-        #region Test: TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenLanguageTagHasDuplicateSubtags
-
-        [Theory]
-        [MemberData(nameof(DuplicateSubtagLanguageTags))]
-        public void TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenLanguageTagHasDuplicateSubtags_ReturnsFalse(string testLanguageTag, string controlLanguageTag)
-        {
-            // act
-            var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, _fixture.IanaSubtagRegistry, Regex.InfiniteMatchTimeout, out _);
-            var controlResult = Bcp47LanguageTag.TryCreate(controlLanguageTag, _fixture.IanaSubtagRegistry, Regex.InfiniteMatchTimeout, out _);
-
-            // assert
-            controlResult.Should().BeTrue("the language tag '{0}' has no repeated subtags", controlLanguageTag);
-            testResult.Should().BeFalse("the language tag '{0}' repeats a variant subtag or extension singleton (RFC 5646 §2.2.5, §2.2.6)", testLanguageTag);
-        }
-
-        #endregion
-
-        #region Test: TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenSubtagIsInPrivateUseRange
-
-        [Theory]
-        [MemberData(nameof(PrivateUseRangeLanguageTags))]
-        public void TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenSubtagIsInPrivateUseRange_ReturnsTrue(string testLanguageTag)
-        {
-            // act
-            var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, _fixture.IanaSubtagRegistry, Regex.InfiniteMatchTimeout, out var languageTag);
-
-            // assert
-            testResult.Should().BeTrue("the subtags of '{0}' are registered by private use range records (RFC 5646 §3.1.1)", testLanguageTag);
-            ((string)languageTag).Should().Be(testLanguageTag);
-        }
-
-        #endregion
-
-        #region Test: TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenSubtagIsOutsidePrivateUseRange
-
-        [Theory]
-        [MemberData(nameof(OutsidePrivateUseRangeLanguageTags))]
-        public void TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenSubtagIsOutsidePrivateUseRange_ReturnsFalse(string testLanguageTag, string controlLanguageTag)
-        {
-            // act
-            var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, _fixture.IanaSubtagRegistry, Regex.InfiniteMatchTimeout, out _);
-            var controlResult = Bcp47LanguageTag.TryCreate(controlLanguageTag, _fixture.IanaSubtagRegistry, Regex.InfiniteMatchTimeout, out _);
-
-            // assert
-            controlResult.Should().BeTrue("the language tag '{0}' ends a private use range record", controlLanguageTag);
-            testResult.Should().BeFalse("the Subtag Registry has no record or range for a subtag of '{0}'", testLanguageTag);
-        }
-
-        #endregion
-
-        #region Test: TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenLanguageTagIsGrandfathered
-
-        [Theory]
-        [MemberData(nameof(GrandfatheredLanguageTags))]
-        public void TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenLanguageTagIsGrandfathered_ReturnsTrue(string testLanguageTag)
-        {
-            // act
-            var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, _fixture.IanaSubtagRegistry, Regex.InfiniteMatchTimeout, out var languageTag);
-
-            // assert
-            testResult.Should().BeTrue("'{0}' is a grandfathered language tag (RFC 5646 §2.1, §2.2.8)", testLanguageTag);
-            ((string)languageTag).Should().Be(testLanguageTag);
-        }
-
-        #endregion
-
-        #region Test: TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenLanguageTagIsValid
-
-        [Theory]
-        [MemberData(nameof(TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenLanguageTagIsValid_TestCaseGenerator.TestCases), MemberType = typeof(TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenLanguageTagIsValid_TestCaseGenerator))]
-        public void TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenLanguageTagIsValid_ReturnsTrue(string testLanguageTag, TimeSpan testTimeout, string expectedResult)
-        {
-            // arrange
-            Bcp47LanguageTag languageTag;
-
-            // act
-            var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, _fixture.IanaSubtagRegistry, testTimeout, out languageTag);
-
-            // assert
-            testResult.Should().BeTrue("the language tag '{0}' is correctly formatted", testLanguageTag);
-            ((string)languageTag).Should().Be(expectedResult, "the language tag '{0}' is correctly formatted", testLanguageTag);
-        }
-
-        private class TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenLanguageTagIsValid_TestCaseGenerator
-        {
-            public static IEnumerable<object[]> TestCases
-            {
-                get
-                {
-                    foreach (var validLanguageTag in _validLanguageTags)
-                    {
-                        yield return new object[] { validLanguageTag, Regex.InfiniteMatchTimeout, validLanguageTag };
-                    }
-
-                    yield return new object[] { "x-fr-CH", Regex.InfiniteMatchTimeout, "x-fr-CH" };
-                    yield return new object[] { "x-fr-CH-x-valid-private-use-subtag",Regex.InfiniteMatchTimeout, "x-fr-CH-x-valid-private-use-subtag" };
-                }
-            }
-        }
-
-        #endregion
-
-        #region Test: TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenMatchWouldTimeOut
-
-        [Fact]
-        public void TryCreate_WithLanguageTagAndSubtagRegistryAndTimeoutWhenMatchWouldTimeOut_ReturnsTrue()
-        {
-            // act
-            Bcp47LanguageTag languageTag = default;
-            var testResult = false;
-            Action testAction = () => testResult = Bcp47LanguageTag.TryCreate(TimeoutLanguageTag, _fixture.IanaSubtagRegistry, TimeSpan.FromTicks(1), out languageTag);
-
-            // assert
-            testAction.Should().NotThrow("a Try method reports failure through its return value");
-            testResult.Should().BeTrue("language tags are checked against the Subtag Registry by a parser, which cannot time out, and the language tag is well-formed");
-            ((string)languageTag).Should().Be(TimeoutLanguageTag);
-        }
-
-        #endregion
-
         #region Test: CreateAndTryCreate_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsValidInRegistry
 
         [Theory]
@@ -3665,17 +3093,12 @@ namespace DataStandardizer.LanguageTag.Tests
         {
             // act
             var createResult = Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry);
-            var createWithTimeoutResult = Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry, Regex.InfiniteMatchTimeout);
             var tryCreateResult = Bcp47LanguageTag.TryCreate(testLanguageTag, _fixture.IanaSubtagRegistry, out var tryCreateLanguageTag);
-            var tryCreateWithTimeoutResult = Bcp47LanguageTag.TryCreate(testLanguageTag, _fixture.IanaSubtagRegistry, Regex.InfiniteMatchTimeout, out var tryCreateWithTimeoutLanguageTag);
 
             // assert
             ((string)createResult).Should().Be(testLanguageTag);
-            ((string)createWithTimeoutResult).Should().Be(testLanguageTag);
             tryCreateResult.Should().BeTrue("the Subtag Registry has a record for every subtag of '{0}'", testLanguageTag);
             ((string)tryCreateLanguageTag).Should().Be(testLanguageTag);
-            tryCreateWithTimeoutResult.Should().BeTrue("the registry-based overloads must agree on '{0}'", testLanguageTag);
-            ((string)tryCreateWithTimeoutLanguageTag).Should().Be(testLanguageTag);
         }
 
         #endregion
@@ -3761,17 +3184,13 @@ namespace DataStandardizer.LanguageTag.Tests
             // act
             Action controlAction = () => _ = Bcp47LanguageTag.Create(controlLanguageTag, subtagRegistry);
             Action createAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag, subtagRegistry);
-            Action createWithTimeoutAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag, subtagRegistry, Regex.InfiniteMatchTimeout);
             var tryCreateResult = Bcp47LanguageTag.TryCreate(testLanguageTag, subtagRegistry, out _);
-            var tryCreateWithTimeoutResult = Bcp47LanguageTag.TryCreate(testLanguageTag, subtagRegistry, Regex.InfiniteMatchTimeout, out _);
 
             // assert
             controlAction.Should().NotThrow("the Subtag Registry has a record for every subtag of '{0}'", controlLanguageTag);
             createAction.Should().Throw<LanguageTagFormatException>("an empty subtag is not a subtag of any kind, even when the Subtag Registry has no records of that kind (RFC 5646 §2.1)")
                 .WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
-            createWithTimeoutAction.Should().Throw<LanguageTagFormatException>().WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
             tryCreateResult.Should().BeFalse("'{0}' has an empty subtag", testLanguageTag);
-            tryCreateWithTimeoutResult.Should().BeFalse("'{0}' has an empty subtag", testLanguageTag);
         }
 
         #endregion

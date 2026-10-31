@@ -39,13 +39,9 @@ The `Create` and `TryCreate` overloads that take a `SubtagRegistry` constrain
 validation to a loaded copy of the *IANA Language Subtag Registry*.
 
 Language tags are checked by a parser, not by regular expressions, so there is
-nothing that can time out. The overloads that take a `TimeSpan matchTimeout` are
-**deprecated**: they are marked `[Obsolete]`, they accept the timeout and ignore
-it, and they will be removed in version 2.0. They still check the timeout as
-before, so a value that is zero, negative or more than `int.MaxValue` - 1
-milliseconds, other than `Regex.InfiniteMatchTimeout`, throws
-`ArgumentOutOfRangeException`. Use the overload without the `matchTimeout`
-parameter.
+nothing that can time out. Version 2.0 removed the overloads that took a
+`TimeSpan matchTimeout`; see
+[Removed in v2.0](../../../resources/removed-in-v2.md#languagetag-match-timeouts).
 
 A tag is parsed once, when it is created. The subtag properties return parts
 kept from that parse, so reading them doesn't parse the tag again. The array
@@ -127,9 +123,7 @@ Each getter throws `InvalidOperationException` if the instance is uninitialised.
 | `CheckVariantSubtag(string variantSubtag)` | `bool` | Static. Validates one variant subtag using the default BCP 47 rules. Throws `ArgumentNullException` if `null`. |
 | `CheckVariantSubtag(ReadOnlySpan<char> variantSubtag)` | `bool` | Static. As for the `string` overload. |
 | `Create(string languageTag)` | `Bcp47LanguageTag` | Static. Throws `LanguageTagFormatException` if the tag is invalid, including when it repeats a variant subtag or extension singleton; `ArgumentNullException` if `null`. |
-| `Create(string languageTag, TimeSpan matchTimeout)` | `Bcp47LanguageTag` | **Deprecated.** Static. As for `Create(string)`; the timeout has no effect. See [Remarks](#remarks). |
 | `Create(string languageTag, SubtagRegistry subtagRegistry)` | `Bcp47LanguageTag` | Static. Validates against a loaded subtag registry. |
-| `Create(string languageTag, SubtagRegistry subtagRegistry, TimeSpan matchTimeout)` | `Bcp47LanguageTag` | **Deprecated.** Static. As for `Create(string, SubtagRegistry)`; the timeout has no effect. |
 | `Equals(Bcp47LanguageTag other)` | `bool` | Case-insensitive comparison of the tag string. |
 | `Equals(object obj)` | `bool` | Override. |
 | `GetHashCode()` | `int` | Override. |
@@ -146,9 +140,7 @@ Each getter throws `InvalidOperationException` if the instance is uninitialised.
 | `ToString()` | `string` | Override. Returns the underlying tag string. |
 | `ToUnM49()` | `ushort?` | From the region subtag; `null` if absent or not a UN M49 code. |
 | `TryCreate(string? languageTag, out Bcp47LanguageTag result)` | `bool` | Static. Returns `false` instead of throwing. |
-| `TryCreate(string? languageTag, TimeSpan matchTimeout, out Bcp47LanguageTag result)` | `bool` | **Deprecated.** Static. As for `TryCreate(string?, out Bcp47LanguageTag)`; the timeout has no effect. |
 | `TryCreate(string? languageTag, SubtagRegistry subtagRegistry, out Bcp47LanguageTag result)` | `bool` | Static. Validates against a loaded subtag registry. |
-| `TryCreate(string? languageTag, SubtagRegistry subtagRegistry, TimeSpan matchTimeout, out Bcp47LanguageTag result)` | `bool` | **Deprecated.** Static. As for `TryCreate(string?, SubtagRegistry, out Bcp47LanguageTag)`; the timeout has no effect. |
 | `TryCreate(ReadOnlySpan<char> languageTag, out Bcp47LanguageTag result)` | `bool` | Static. Validates the span in place and copies it to a string only if it is valid, so invalid input allocates nothing. |
 | `TryCreate(ReadOnlySpan<char> languageTag, SubtagRegistry subtagRegistry, out Bcp47LanguageTag result)` | `bool` | Static. As above, validating against a loaded subtag registry. Returns `false` if `subtagRegistry` is `null`. |
 | `TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)` | `bool` | Implements `ISpanFormattable`. Copies the tag string, as `ToString()` returns it, into `destination`; `false`, with `charsWritten` 0, if it is too short. `format` and `provider` are ignored. `net8.0` and `net10.0` only. |

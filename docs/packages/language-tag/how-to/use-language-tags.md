@@ -112,9 +112,6 @@ looks each subtag up in the code lists. A few habits keep it fast:
   registry builds an index of its subtags. Both are one-off costs for that
   `SubtagRegistry` instance, so load it once and share it; it is safe to use
   from several threads.
-- **Leave out the timeout.** The overloads and the builder step that take a
-  `TimeSpan matchTimeout` are deprecated. The parser can't time out, so the
-  timeout has no effect.
 
 Where allocation happens:
 
