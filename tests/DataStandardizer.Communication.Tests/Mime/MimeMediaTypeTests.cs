@@ -136,7 +136,7 @@ namespace DataStandardizer.Communication.Tests.Mime
         public void TryParse_UndefinedOptions_ThrowsArgumentOutOfRangeException()
         {
             MimeMediaType result;
-            Action act = () => MimeMediaType.TryParse("text/plain", (MimeMediaTypeParseOptions)4, out result);
+            Action act = () => MimeMediaType.TryParse("text/plain", (MimeMediaTypeParseOptions)128, out result);
 
             act.Should().Throw<ArgumentOutOfRangeException>();
         }
@@ -171,7 +171,6 @@ namespace DataStandardizer.Communication.Tests.Mime
         [InlineData("application/-dash")]
         [InlineData("application/.dot")]
         [InlineData("x{y}/plain")]
-        [InlineData("text/plain;title*=us-ascii'en'This%20is%20%2A%2A%2Afun%2A%2A%2A")]
         [InlineData("text/plain;na|me=x")]
         public void TryParse_Rfc2045TokenNotRfc6838Name_IsOptIn(string value)
         {
@@ -209,10 +208,10 @@ namespace DataStandardizer.Communication.Tests.Mime
         {
             MimeMediaType result;
             var options = MimeMediaTypeParseOptions.AllowWhitespaceAroundDelimiters | MimeMediaTypeParseOptions.AllowRfc2045Tokens;
-            MimeMediaType.TryParse("application/x~y; a*=b", options, out result).Should().BeTrue();
+            MimeMediaType.TryParse("application/x~y; a~b=c", options, out result).Should().BeTrue();
 
             result.Subtype.Should().Be("x~y");
-            result.Parameters[0].Name.Should().Be("a*");
+            result.Parameters[0].Name.Should().Be("a~b");
         }
 
         [Theory]

@@ -50,13 +50,12 @@ namespace DataStandardizer.Communication.Tests.Mime
             act.Should().Throw<ArgumentException>();
         }
 
+        public static TheoryData<string> UnpairedSurrogates => new TheoryData<string> { "a\xD800", "\xDC00a", "\xDC00\xD800" };
+
+        // Not enumerated at discovery, as the test runner may not keep unpaired surrogates when it serializes the data.
         [Theory]
-        [InlineData("café")]
-        [InlineData("a\rb")]
-        [InlineData("a\nb")]
-        [InlineData("a\0b")]
-        [InlineData("a\u007Fb")]
-        public void Constructor_ValueThatCannotBeWritten_ThrowsArgumentException(string value)
+        [MemberData(nameof(UnpairedSurrogates), DisableDiscoveryEnumeration = true)]
+        public void Constructor_UnpairedSurrogate_ThrowsArgumentException(string value)
         {
             Action act = () => new MimeParameter("name", value);
 
@@ -103,6 +102,10 @@ namespace DataStandardizer.Communication.Tests.Mime
 
             ((Action)(() => _ = parameter.Name)).Should().Throw<InvalidOperationException>();
             ((Action)(() => _ = parameter.Value)).Should().Throw<InvalidOperationException>();
+            ((Action)(() => _ = parameter.Charset)).Should().Throw<InvalidOperationException>();
+            ((Action)(() => _ = parameter.Language)).Should().Throw<InvalidOperationException>();
+            ((Action)(() => parameter.TryGetLanguageTag(out _))).Should().Throw<InvalidOperationException>();
+            ((Action)(() => parameter.FormatSections(78))).Should().Throw<InvalidOperationException>();
             ((Action)(() => parameter.TryFormat(new char[10], out _))).Should().Throw<InvalidOperationException>();
             parameter.ToString().Should().BeEmpty();
             parameter.Equals(default(MimeParameter)).Should().BeTrue();
