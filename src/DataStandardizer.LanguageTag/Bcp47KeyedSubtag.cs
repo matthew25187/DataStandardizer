@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 #if NETSTANDARD
 using JetBrains.Annotations; 
 #endif
@@ -139,12 +140,15 @@ namespace DataStandardizer.LanguageTag
         /// <summary>
         /// Gets the subtags that provide additional information related to the singleton.
         /// </summary>
+        /// <remarks>
+        /// Each read splits the subtag afresh, so the list belongs to the caller.
+        /// </remarks>
         /// <exception cref="InvalidOperationException">The <see cref="Bcp47KeyedSubtag"/> is not initialized.</exception>
 #if NETCOREAPP3_0_OR_GREATER
-        public string[] Subtags
+        public IReadOnlyList<string> Subtags
 #else
         [NotNull]
-        public string[] Subtags
+        public IReadOnlyList<string> Subtags
 #endif
         {
             get
