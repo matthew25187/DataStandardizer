@@ -56,6 +56,11 @@ Provides types supporting communication-related standards, including:
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.1'">
     <PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
     <PackageReference Include="System.ValueTuple" Version="[4.5.0]" />
+    <PackageReference Include="System.Memory" Version="[4.5.5]" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="System.Memory" Version="4.6.3" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.1' Or '$(TargetFramework)' == 'netstandard2.0'">
