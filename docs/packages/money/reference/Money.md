@@ -28,7 +28,7 @@ public readonly struct Money : IComparable, IComparable<Money>, IEquatable<Money
 public readonly struct Money : IComparable, IComparable<Money>, IEquatable<Money>, IFormattable, IConvertible
 ```
 
-**.NET Standard 1.0:**
+**.NET Standard 1.1:**
 
 ```csharp
 public readonly struct Money : IComparable, IComparable<Money>, IEquatable<Money>, IFormattable
@@ -142,9 +142,9 @@ underlying `decimal` and is callable only through an `IConvertible` reference.
 
 ## Applies to
 
-Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`. `IConvertible`
+Targets `netstandard1.1`, `netstandard2.0`, `net8.0`, and `net10.0`. `IConvertible`
 is available on the `netstandard2.0`, `net8.0`, and `net10.0` builds, but **not**
-on `netstandard1.0`.
+on `netstandard1.1`.
 
 ## See also
 

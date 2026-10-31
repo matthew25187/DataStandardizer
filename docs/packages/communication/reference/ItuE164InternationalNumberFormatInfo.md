@@ -40,7 +40,7 @@ read-only. `GetFormat` returns the instance itself when asked for an
 
 ## Applies to
 
-Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`. On the
+Targets `netstandard1.1`, `netstandard2.0`, `net8.0`, and `net10.0`. On the
 .NET Standard targets the `formatType` parameter and the return value of
 `GetFormat` are non-nullable; on `net8.0`/`net10.0` they are nullable
 (`Type?` / `object?`).

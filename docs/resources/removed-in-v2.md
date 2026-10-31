@@ -102,3 +102,24 @@ string? name = country.GetEnglishName(Iso3166CountryName.Short);
 they took over from the removed packages, so check their pages for anything your
 code relies on, such as the
 [deprecated LanguageTag timeouts](../packages/language-tag/concepts/builder-pipeline.md).
+
+## The netstandard1.0 target
+
+Version 2.0 also drops the `netstandard1.0` target from three packages that stay:
+
+| Package | Lowest target in v1.x | Lowest target in v2.0 |
+| --- | --- | --- |
+| `DataStandardizer.Communication` | `netstandard1.0` | `netstandard1.1` |
+| `DataStandardizer.LanguageTag` | `netstandard1.0` | `netstandard1.1` |
+| `DataStandardizer.Money` | `netstandard1.0` | `netstandard1.1` |
+
+**DataStandardizer.LanguageTag** now uses `System.Memory` spans on every target,
+and `System.Memory` starts at `netstandard1.1`. That puts the `ReadOnlySpan<char>`
+overloads of `Bcp47LanguageTag` on its lowest target as well.
+**DataStandardizer.Communication** and **DataStandardizer.Money** depend on
+**DataStandardizer.LanguageTag**, so they move with it.
+
+.NET Standard 1.0 and 1.1 run on the same platforms, so no application loses
+support. The change matters only to a library that itself targets
+`netstandard1.0` and references one of these packages. Retarget that library to
+`netstandard1.1` or later, or keep it on version 1.x of the package.

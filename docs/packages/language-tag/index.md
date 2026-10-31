@@ -32,22 +32,21 @@ Registry*.
 
 ## Platform support
 
-Targets .NET Standard 1.0 and 2.0 for use in legacy applications, as well as
+Targets .NET Standard 1.1 and 2.0 for use in legacy applications, as well as
 in-support modern .NET runtimes (`net8.0`, `net10.0`).
 
-The `netstandard2.0` build depends on the `System.Memory` package, which
-provides the span types it uses. NuGet installs it automatically. The other
-builds have no extra dependency for spans: `net8.0` and `net10.0` have them
-built in, and `netstandard1.0` has no span-based API.
+The `netstandard1.1` and `netstandard2.0` builds depend on the `System.Memory`
+package, which provides the span types they use. NuGet installs it
+automatically. The `net8.0` and `net10.0` builds have the span types built in,
+so they have no extra dependency.
 
 > **Applies to:** the `ReadOnlySpan<char>` overloads of `TryCreate`,
 > `IsWellFormedLanguageTagString` and the `Check…Subtag` methods, and
-> `Bcp47LanguageTag.AsSpan()`, need `netstandard2.0`, `net8.0` or `net10.0`.
-> `Bcp47LanguageTag` implements `ISpanFormattable`, `IParsable<T>` and
+> `Bcp47LanguageTag.AsSpan()`, exist on every target. `Bcp47LanguageTag` implements `ISpanFormattable`, `IParsable<T>` and
 > `ISpanParsable<T>` on `net8.0` and `net10.0` only. The builder's
 > `params ReadOnlySpan<string>` overloads exist on `net10.0` only. Loading a
 > subtag registry from a file path (`SubtagRegistry.CreateFromFile` and
-> `CreateFromFileAsync`) needs `netstandard2.0` or later; on `netstandard1.0`,
+> `CreateFromFileAsync`) needs `netstandard2.0` or later; on `netstandard1.1`,
 > load it from a `Stream` or a string.
 
 See [Platform support](../../overview/platform-support.md) for the full matrix,

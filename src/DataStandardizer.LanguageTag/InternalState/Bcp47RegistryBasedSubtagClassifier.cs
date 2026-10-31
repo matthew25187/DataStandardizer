@@ -9,11 +9,6 @@ using JetBrains.Annotations;
 #endif
 using static DataStandardizer.LanguageTag.SubtagRegistry.SubtagRegistryConstants;
 using Type = DataStandardizer.LanguageTag.SubtagRegistry.SubtagRegistryConstants.Type;
-#if NETSTANDARD1_0
-using CharSpan = DataStandardizer.LanguageTag.InternalState.Bcp47CharSpan;
-#else
-using CharSpan = System.ReadOnlySpan<char>;
-#endif
 
 namespace DataStandardizer.LanguageTag.InternalState
 {
@@ -50,34 +45,34 @@ namespace DataStandardizer.LanguageTag.InternalState
             _variantSubtags = new Bcp47SubtagSet(subtags.VariantSubtags);
         }
 
-        internal override bool IsGrandfathered(CharSpan languageTag)
+        internal override bool IsGrandfathered(ReadOnlySpan<char> languageTag)
         {
             return _grandfatheredLanguageTags.Contains(languageTag);
         }
 
-        internal override bool IsPrimaryLanguage(CharSpan subtag, out bool allowsExtendedLanguage)
+        internal override bool IsPrimaryLanguage(ReadOnlySpan<char> subtag, out bool allowsExtendedLanguage)
         {
             // The registry's Prefix fields are not checked, so any registered Primary Language subtag may be followed by Extended Language subtags.
             allowsExtendedLanguage = _primaryLanguageSubtags.Contains(subtag);
             return allowsExtendedLanguage;
         }
 
-        internal override bool IsExtendedLanguage(CharSpan subtag)
+        internal override bool IsExtendedLanguage(ReadOnlySpan<char> subtag)
         {
             return _extendedLanguageSubtags.Contains(subtag);
         }
 
-        internal override bool IsScript(CharSpan subtag)
+        internal override bool IsScript(ReadOnlySpan<char> subtag)
         {
             return _scriptSubtags.Contains(subtag);
         }
 
-        internal override bool IsRegion(CharSpan subtag)
+        internal override bool IsRegion(ReadOnlySpan<char> subtag)
         {
             return _regionSubtags.Contains(subtag);
         }
 
-        internal override bool IsVariant(CharSpan subtag)
+        internal override bool IsVariant(ReadOnlySpan<char> subtag)
         {
             return _variantSubtags.Contains(subtag);
         }

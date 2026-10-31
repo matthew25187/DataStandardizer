@@ -242,7 +242,6 @@ namespace DataStandardizer.LanguageTag
             return new Bcp47LanguageTag(languageTag, parts);
         }
 
-#if !NETSTANDARD1_0
         /// <summary>
         /// Gets the language tag as a span of characters, without copying it.
         /// </summary>
@@ -251,7 +250,6 @@ namespace DataStandardizer.LanguageTag
         {
             return _languageTag.AsSpan();
         }
-#endif
 
         public bool Equals(Bcp47LanguageTag other)
         {
@@ -420,7 +418,6 @@ namespace DataStandardizer.LanguageTag
             return Bcp47RulesBasedSubtagClassifier.Instance.IsExtendedLanguage(extendedLanguageSubtag.AsSpan());
         }
 
-#if !NETSTANDARD1_0
         /// <summary>
         /// Determine if a span of characters contains a valid Extended Language subtag.
         /// </summary>
@@ -433,7 +430,6 @@ namespace DataStandardizer.LanguageTag
         {
             return Bcp47RulesBasedSubtagClassifier.Instance.IsExtendedLanguage(extendedLanguageSubtag);
         }
-#endif
 
         /// <summary>
         /// Determine if a string contains a valid Extension subtag.
@@ -456,7 +452,6 @@ namespace DataStandardizer.LanguageTag
             return Bcp47LanguageTagParser.IsExtension(extensionSubtag.AsSpan());
         }
 
-#if !NETSTANDARD1_0
         /// <summary>
         /// Determine if a span of characters contains a valid Extension subtag.
         /// </summary>
@@ -470,7 +465,6 @@ namespace DataStandardizer.LanguageTag
         {
             return Bcp47LanguageTagParser.IsExtension(extensionSubtag);
         }
-#endif
 
         /// <summary>
         /// Determine if a string contains a valid Primary Language subtag.
@@ -492,7 +486,6 @@ namespace DataStandardizer.LanguageTag
             return Bcp47RulesBasedSubtagClassifier.Instance.IsPrimaryLanguage(primaryLanguageSubtag.AsSpan(), out _);
         }
 
-#if !NETSTANDARD1_0
         /// <summary>
         /// Determine if a span of characters contains a valid Primary Language subtag.
         /// </summary>
@@ -505,7 +498,6 @@ namespace DataStandardizer.LanguageTag
         {
             return Bcp47RulesBasedSubtagClassifier.Instance.IsPrimaryLanguage(primaryLanguageSubtag, out _);
         }
-#endif
 
         /// <summary>
         /// Determine if a string contains a valid Private Use subtag.
@@ -527,7 +519,6 @@ namespace DataStandardizer.LanguageTag
             return Bcp47LanguageTagParser.IsPrivateUse(privateUseSubtag.AsSpan());
         }
 
-#if !NETSTANDARD1_0
         /// <summary>
         /// Determine if a span of characters contains a valid Private Use subtag.
         /// </summary>
@@ -540,7 +531,6 @@ namespace DataStandardizer.LanguageTag
         {
             return Bcp47LanguageTagParser.IsPrivateUse(privateUseSubtag);
         }
-#endif
 
         /// <summary>
         /// Determine if a string contains a valid Region subtag.
@@ -562,7 +552,6 @@ namespace DataStandardizer.LanguageTag
             return Bcp47RulesBasedSubtagClassifier.Instance.IsRegion(regionSubtag.AsSpan());
         }
 
-#if !NETSTANDARD1_0
         /// <summary>
         /// Determine if a span of characters contains a valid Region subtag.
         /// </summary>
@@ -575,7 +564,6 @@ namespace DataStandardizer.LanguageTag
         {
             return Bcp47RulesBasedSubtagClassifier.Instance.IsRegion(regionSubtag);
         }
-#endif
 
         /// <summary>
         /// Determine if a string contains a valid Script subtag.
@@ -597,7 +585,6 @@ namespace DataStandardizer.LanguageTag
             return Bcp47RulesBasedSubtagClassifier.Instance.IsScript(scriptSubtag.AsSpan());
         }
 
-#if !NETSTANDARD1_0
         /// <summary>
         /// Determine if a span of characters contains a valid Script subtag.
         /// </summary>
@@ -610,7 +597,6 @@ namespace DataStandardizer.LanguageTag
         {
             return Bcp47RulesBasedSubtagClassifier.Instance.IsScript(scriptSubtag);
         }
-#endif
 
         /// <summary>
         /// Determine if a string contains a valid Variant subtag.
@@ -633,7 +619,6 @@ namespace DataStandardizer.LanguageTag
             return Bcp47RulesBasedSubtagClassifier.Instance.IsVariant(variantSubtag.AsSpan());
         }
 
-#if !NETSTANDARD1_0
         /// <summary>
         /// Determine if a span of characters contains a valid Variant subtag.
         /// </summary>
@@ -647,7 +632,6 @@ namespace DataStandardizer.LanguageTag
         {
             return Bcp47RulesBasedSubtagClassifier.Instance.IsVariant(variantSubtag);
         }
-#endif
 
         /// <summary>
         /// Determine if a string contains a valid BCP 47 language tag.
@@ -670,7 +654,6 @@ namespace DataStandardizer.LanguageTag
             return IsWellFormedByRules(languageTagString);
         }
 
-#if !NETSTANDARD1_0
         /// <summary>
         /// Determine if a span of characters contains a valid BCP 47 language tag.
         /// </summary>
@@ -684,7 +667,6 @@ namespace DataStandardizer.LanguageTag
         {
             return Bcp47LanguageTagParser.Parse(languageTagString, Bcp47RulesBasedSubtagClassifier.Instance, out _) == Bcp47ParseStatus.WellFormed;
         }
-#endif
 
         /// <summary>
         /// Create a <see cref="Bcp47LanguageTag"/> with the specified language tag.
@@ -815,7 +797,6 @@ namespace DataStandardizer.LanguageTag
             return true;
         }
 
-#if !NETSTANDARD1_0
         /// <summary>
         /// Create a <see cref="Bcp47LanguageTag"/> from a span of characters that contains a language tag.
         /// </summary>
@@ -854,7 +835,6 @@ namespace DataStandardizer.LanguageTag
 
             return TryCreateFromSpan(languageTag, subtagRegistry.Classifier, out result);
         }
-#endif
 
 #if NET7_0_OR_GREATER
         /// <summary>
@@ -1153,7 +1133,6 @@ namespace DataStandardizer.LanguageTag
             return Bcp47LanguageTagParts.FromRanges(languageTag, ranges);
         }
 
-#if !NETSTANDARD1_0
         /// <summary>
         /// Parse a span of characters with a classifier, and copy it to a string only if it is a well-formed language tag.
         /// </summary>
@@ -1174,7 +1153,6 @@ namespace DataStandardizer.LanguageTag
             result = new Bcp47LanguageTag(languageTagString, Bcp47LanguageTagParts.FromRanges(languageTagString, ranges));
             return true;
         }
-#endif
 
         /// <summary>
         /// Validate a match timeout as the regular expressions did.

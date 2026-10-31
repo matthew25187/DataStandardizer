@@ -30,7 +30,7 @@ Standard targets it implements `IEquatable<Bcp47LanguageTag>` alone.
 ## Remarks
 
 Each subtag property getter throws `InvalidOperationException` when the instance
-is uninitialised (default-constructed). On the `netstandard1.0` and
+is uninitialised (default-constructed). On the `netstandard1.1` and
 `netstandard2.0` targets the nullability of the operators, parameters, and return
 values is expressed through JetBrains `[NotNull]` / `[CanBeNull]` attributes
 rather than C# nullable reference types.
@@ -58,10 +58,9 @@ file being read, can be checked without first making a string of it.
 `IsWellFormedLanguageTagString` and the `Check…Subtag` methods allocate nothing,
 and `TryCreate` copies the tag to a string only when it is valid, so rejecting
 invalid input allocates nothing either. (The first call in a process builds the
-code lists that validation uses, once.) These overloads exist on
-`netstandard2.0`, `net8.0` and `net10.0`, but not on `netstandard1.0`; the
-`netstandard2.0` build gets `ReadOnlySpan<char>` from the `System.Memory`
-package.
+code lists that validation uses, once.) These overloads exist on every target;
+the `netstandard1.1` and `netstandard2.0` builds get `ReadOnlySpan<char>` from
+the `System.Memory` package.
 
 The 26 grandfathered tags listed in RFC 5646 §2.1, such as `i-klingon`,
 `en-GB-oed` and `zh-min-nan`, are accepted in both modes and compared
@@ -112,21 +111,21 @@ Each getter throws `InvalidOperationException` if the instance is uninitialised.
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `AsSpan()` | `ReadOnlySpan<char>` | The tag string as a span, without copying it. An empty span if the instance is uninitialised. `netstandard2.0`, `net8.0` and `net10.0` only. |
+| `AsSpan()` | `ReadOnlySpan<char>` | The tag string as a span, without copying it. An empty span if the instance is uninitialised. |
 | `CheckExtendedLanguageSubtag(string extendedLanguageSubtag)` | `bool` | Static. Validates using the default BCP 47 rules. Throws `ArgumentNullException` if `null`. |
-| `CheckExtendedLanguageSubtag(ReadOnlySpan<char> extendedLanguageSubtag)` | `bool` | Static. As for the `string` overload. `netstandard2.0`, `net8.0` and `net10.0` only. |
+| `CheckExtendedLanguageSubtag(ReadOnlySpan<char> extendedLanguageSubtag)` | `bool` | Static. As for the `string` overload. |
 | `CheckExtensionSubtag(string extensionSubtag)` | `bool` | Static. Validates one extension (a singleton and its subtags) using the default BCP 47 rules. Throws `ArgumentNullException` if `null`. |
-| `CheckExtensionSubtag(ReadOnlySpan<char> extensionSubtag)` | `bool` | Static. As for the `string` overload. `netstandard2.0`, `net8.0` and `net10.0` only. |
+| `CheckExtensionSubtag(ReadOnlySpan<char> extensionSubtag)` | `bool` | Static. As for the `string` overload. |
 | `CheckPrimaryLanguageSubtag(string primaryLanguageSubtag)` | `bool` | Static. Validates using the default BCP 47 rules. `true` for an ISO 639 code or four to eight letters (RFC 5646 §2.2.1). Throws `ArgumentNullException` if `null`. |
-| `CheckPrimaryLanguageSubtag(ReadOnlySpan<char> primaryLanguageSubtag)` | `bool` | Static. As for the `string` overload. `netstandard2.0`, `net8.0` and `net10.0` only. |
+| `CheckPrimaryLanguageSubtag(ReadOnlySpan<char> primaryLanguageSubtag)` | `bool` | Static. As for the `string` overload. |
 | `CheckPrivateUseSubtag(string privateUseSubtag)` | `bool` | Static. Validates using the default BCP 47 rules. Throws `ArgumentNullException` if `null`. |
-| `CheckPrivateUseSubtag(ReadOnlySpan<char> privateUseSubtag)` | `bool` | Static. As for the `string` overload. `netstandard2.0`, `net8.0` and `net10.0` only. |
+| `CheckPrivateUseSubtag(ReadOnlySpan<char> privateUseSubtag)` | `bool` | Static. As for the `string` overload. |
 | `CheckRegionSubtag(string regionSubtag)` | `bool` | Static. Validates using the default BCP 47 rules. Throws `ArgumentNullException` if `null`. |
-| `CheckRegionSubtag(ReadOnlySpan<char> regionSubtag)` | `bool` | Static. As for the `string` overload. `netstandard2.0`, `net8.0` and `net10.0` only. |
+| `CheckRegionSubtag(ReadOnlySpan<char> regionSubtag)` | `bool` | Static. As for the `string` overload. |
 | `CheckScriptSubtag(string scriptSubtag)` | `bool` | Static. Validates using the default BCP 47 rules. Throws `ArgumentNullException` if `null`. |
-| `CheckScriptSubtag(ReadOnlySpan<char> scriptSubtag)` | `bool` | Static. As for the `string` overload. `netstandard2.0`, `net8.0` and `net10.0` only. |
+| `CheckScriptSubtag(ReadOnlySpan<char> scriptSubtag)` | `bool` | Static. As for the `string` overload. |
 | `CheckVariantSubtag(string variantSubtag)` | `bool` | Static. Validates one variant subtag using the default BCP 47 rules. Throws `ArgumentNullException` if `null`. |
-| `CheckVariantSubtag(ReadOnlySpan<char> variantSubtag)` | `bool` | Static. As for the `string` overload. `netstandard2.0`, `net8.0` and `net10.0` only. |
+| `CheckVariantSubtag(ReadOnlySpan<char> variantSubtag)` | `bool` | Static. As for the `string` overload. |
 | `Create(string languageTag)` | `Bcp47LanguageTag` | Static. Throws `LanguageTagFormatException` if the tag is invalid, including when it repeats a variant subtag or extension singleton; `ArgumentNullException` if `null`. |
 | `Create(string languageTag, TimeSpan matchTimeout)` | `Bcp47LanguageTag` | **Deprecated.** Static. As for `Create(string)`; the timeout has no effect. See [Remarks](#remarks). |
 | `Create(string languageTag, SubtagRegistry subtagRegistry)` | `Bcp47LanguageTag` | Static. Validates against a loaded subtag registry. |
@@ -135,7 +134,7 @@ Each getter throws `InvalidOperationException` if the instance is uninitialised.
 | `Equals(object obj)` | `bool` | Override. |
 | `GetHashCode()` | `int` | Override. |
 | `IsWellFormedLanguageTagString(string languageTagString)` | `bool` | Static. Validates using the default BCP 47 rules. `false` if a variant subtag or extension singleton is repeated (RFC 5646 §2.2.5, §2.2.6). `true` for the grandfathered tags (§2.1). Throws `ArgumentNullException` if `null`. |
-| `IsWellFormedLanguageTagString(ReadOnlySpan<char> languageTagString)` | `bool` | Static. As for the `string` overload. `netstandard2.0`, `net8.0` and `net10.0` only. |
+| `IsWellFormedLanguageTagString(ReadOnlySpan<char> languageTagString)` | `bool` | Static. As for the `string` overload. |
 | `Parse(string s, IFormatProvider? provider)` | `Bcp47LanguageTag` | Static; implements `IParsable<Bcp47LanguageTag>`. As for `Create(string)`; `provider` is ignored. `net8.0` and `net10.0` only. |
 | `Parse(ReadOnlySpan<char> s, IFormatProvider? provider)` | `Bcp47LanguageTag` | Static; implements `ISpanParsable<Bcp47LanguageTag>`. Throws `LanguageTagFormatException` if the tag is invalid. `provider` is ignored. `net8.0` and `net10.0` only. |
 | `ToIso15924()` | `Iso15924Script?` | From the script subtag; `null` if absent or unrecognised. |
@@ -150,8 +149,8 @@ Each getter throws `InvalidOperationException` if the instance is uninitialised.
 | `TryCreate(string? languageTag, TimeSpan matchTimeout, out Bcp47LanguageTag result)` | `bool` | **Deprecated.** Static. As for `TryCreate(string?, out Bcp47LanguageTag)`; the timeout has no effect. |
 | `TryCreate(string? languageTag, SubtagRegistry subtagRegistry, out Bcp47LanguageTag result)` | `bool` | Static. Validates against a loaded subtag registry. |
 | `TryCreate(string? languageTag, SubtagRegistry subtagRegistry, TimeSpan matchTimeout, out Bcp47LanguageTag result)` | `bool` | **Deprecated.** Static. As for `TryCreate(string?, SubtagRegistry, out Bcp47LanguageTag)`; the timeout has no effect. |
-| `TryCreate(ReadOnlySpan<char> languageTag, out Bcp47LanguageTag result)` | `bool` | Static. Validates the span in place and copies it to a string only if it is valid, so invalid input allocates nothing. `netstandard2.0`, `net8.0` and `net10.0` only. |
-| `TryCreate(ReadOnlySpan<char> languageTag, SubtagRegistry subtagRegistry, out Bcp47LanguageTag result)` | `bool` | Static. As above, validating against a loaded subtag registry. Returns `false` if `subtagRegistry` is `null`. `netstandard2.0`, `net8.0` and `net10.0` only. |
+| `TryCreate(ReadOnlySpan<char> languageTag, out Bcp47LanguageTag result)` | `bool` | Static. Validates the span in place and copies it to a string only if it is valid, so invalid input allocates nothing. |
+| `TryCreate(ReadOnlySpan<char> languageTag, SubtagRegistry subtagRegistry, out Bcp47LanguageTag result)` | `bool` | Static. As above, validating against a loaded subtag registry. Returns `false` if `subtagRegistry` is `null`. |
 | `TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)` | `bool` | Implements `ISpanFormattable`. Copies the tag string, as `ToString()` returns it, into `destination`; `false`, with `charsWritten` 0, if it is too short. `format` and `provider` are ignored. `net8.0` and `net10.0` only. |
 | `TryParse(string? s, IFormatProvider? provider, out Bcp47LanguageTag result)` | `bool` | Static; implements `IParsable<Bcp47LanguageTag>`. As for `TryCreate(string?, out Bcp47LanguageTag)`; `provider` is ignored. `net8.0` and `net10.0` only. |
 | `TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out Bcp47LanguageTag result)` | `bool` | Static; implements `ISpanParsable<Bcp47LanguageTag>`. As for `TryCreate(ReadOnlySpan<char>, out Bcp47LanguageTag)`; `provider` is ignored. `net8.0` and `net10.0` only. |
@@ -172,14 +171,14 @@ Each getter throws `InvalidOperationException` if the instance is uninitialised.
 
 ## Applies to
 
-Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`. On the
+Targets `netstandard1.1`, `netstandard2.0`, `net8.0`, and `net10.0`. On the
 .NET Standard targets nullability is expressed through JetBrains
 `[NotNull]` / `[CanBeNull]` attributes. The public surface otherwise differs by
 target as follows:
 
-| Members | `netstandard1.0` | `netstandard2.0` | `net8.0` | `net10.0` |
+| Members | `netstandard1.1` | `netstandard2.0` | `net8.0` | `net10.0` |
 | --- | --- | --- | --- | --- |
-| `AsSpan()` and the `ReadOnlySpan<char>` overloads of `Check…Subtag`, `IsWellFormedLanguageTagString` and `TryCreate` | No | Yes | Yes | Yes |
+| `AsSpan()` and the `ReadOnlySpan<char>` overloads of `Check…Subtag`, `IsWellFormedLanguageTagString` and `TryCreate` | Yes | Yes | Yes | Yes |
 | `ISpanFormattable` (`TryFormat`, `IFormattable.ToString`) | No | No | Yes | Yes |
 | `IParsable<Bcp47LanguageTag>` and `ISpanParsable<Bcp47LanguageTag>` (`Parse`, `TryParse`) | No | No | Yes | Yes |
 

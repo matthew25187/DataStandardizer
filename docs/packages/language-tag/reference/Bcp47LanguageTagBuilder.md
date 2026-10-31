@@ -106,7 +106,7 @@ step chain (the relevant `IBcp47LanguageTagBuilderStep…` interface), not on a
 
 ## Applies to
 
-Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`. On the
+Targets `netstandard1.1`, `netstandard2.0`, `net8.0`, and `net10.0`. On the
 .NET Standard targets nullability is expressed through JetBrains
 `[NotNull]` / `[CanBeNull]` attributes. The `params ReadOnlySpan<string>`
 overloads of `UsingVariantSubtags` and `UsingExtensionSubtags` exist only on

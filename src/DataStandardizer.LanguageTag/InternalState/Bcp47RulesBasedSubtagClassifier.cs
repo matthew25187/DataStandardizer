@@ -6,11 +6,6 @@ using DataStandardizer.Core;
 using DataStandardizer.Geography;
 using DataStandardizer.Language;
 using static DataStandardizer.LanguageTag.Bcp47Constants;
-#if NETSTANDARD1_0
-using CharSpan = DataStandardizer.LanguageTag.InternalState.Bcp47CharSpan;
-#else
-using CharSpan = System.ReadOnlySpan<char>;
-#endif
 
 namespace DataStandardizer.LanguageTag.InternalState
 {
@@ -38,12 +33,12 @@ namespace DataStandardizer.LanguageTag.InternalState
         {
         }
 
-        internal override bool IsGrandfathered(CharSpan languageTag)
+        internal override bool IsGrandfathered(ReadOnlySpan<char> languageTag)
         {
             return GrandfatheredLanguageTagSet.Contains(languageTag);
         }
 
-        internal override bool IsPrimaryLanguage(CharSpan subtag, out bool allowsExtendedLanguage)
+        internal override bool IsPrimaryLanguage(ReadOnlySpan<char> subtag, out bool allowsExtendedLanguage)
         {
             allowsExtendedLanguage = false;
             if (!Bcp47LanguageTagParser.IsAsciiLetters(subtag)) return false;
@@ -58,23 +53,23 @@ namespace DataStandardizer.LanguageTag.InternalState
             return subtag.Length <= 8;
         }
 
-        internal override bool IsExtendedLanguage(CharSpan subtag)
+        internal override bool IsExtendedLanguage(ReadOnlySpan<char> subtag)
         {
             // ref. RFC 5646 §2.2.2
             return subtag.Length == 3 && Bcp47LanguageTagParser.IsAsciiLetters(subtag);
         }
 
-        internal override bool IsScript(CharSpan subtag)
+        internal override bool IsScript(ReadOnlySpan<char> subtag)
         {
             return subtag.Length == 4 && ScriptSubtagSet.Contains(subtag);
         }
 
-        internal override bool IsRegion(CharSpan subtag)
+        internal override bool IsRegion(ReadOnlySpan<char> subtag)
         {
             return (subtag.Length == 2 || subtag.Length == 3) && RegionSubtagSet.Contains(subtag);
         }
 
-        internal override bool IsVariant(CharSpan subtag)
+        internal override bool IsVariant(ReadOnlySpan<char> subtag)
         {
             // Five to eight characters starting with a letter, or four to eight starting with a digit (ref. RFC 5646 §2.2.5).
             if (subtag.Length < 4 || subtag.Length > 8 || !Bcp47LanguageTagParser.IsAsciiLettersOrDigits(subtag)) return false;

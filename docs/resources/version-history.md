@@ -21,7 +21,10 @@ Version 2.0 removes the legacy `DataStandardizer.BCP47`, `DataStandardizer.File`
 `DataStandardizer.ISO15924`, `DataStandardizer.ISO3166`,
 `DataStandardizer.ISO4217`, `DataStandardizer.ISO639` and
 `DataStandardizer.UNM49` packages. See [Removed in v2.0](removed-in-v2.md) for the
-package that replaces each one and the types that were renamed.
+package that replaces each one and the types that were renamed. It also raises
+the lowest target of `DataStandardizer.Communication`,
+`DataStandardizer.LanguageTag` and `DataStandardizer.Money` from `netstandard1.0`
+to `netstandard1.1`.
 
 ## How the docs track versions
 
