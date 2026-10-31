@@ -256,6 +256,14 @@ jobs:
             --output artifacts/packages "-p:PackageVersion=$packageVersion" -p:WarningsAsErrors=NU5104 -p:ContinuousIntegrationBuild=true
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           "PACKAGE_FILE=artifacts/packages/${{ matrix.package }}.$packageVersion.nupkg" | Out-File -FilePath $env:GITHUB_ENV -Append
+      # A package whose culture-specific resources are absent does not fail to load: every culture
+      # silently falls back to the neutral resources. Their presence is confirmed rather than assumed.
+      - name: Confirm satellite assemblies
+        if: env.PACK == 'true' && matrix.package == 'DataStandardizer.Money'
+        run: |
+          $InformationPreference = 'Continue'
+          ./build/scripts/ConfirmSatelliteAssemblies.ps1 -PackageFolder (Split-Path $env:PACKAGE_FILE) `
+            -PackageName '${{ matrix.package }}' -MinimumCultureCount 16
       - name: Update package metadata
         if: env.PACK == 'true'
         env:

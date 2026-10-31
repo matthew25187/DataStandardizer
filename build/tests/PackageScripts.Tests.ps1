@@ -254,4 +254,44 @@ Describe 'Package scripts' {
             $notes | Should -Match "(?m)^- $([regex]::Escape($Expected))\.?$"
         }
     }
+
+    Context 'ConfirmSatelliteAssemblies.ps1' {
+        BeforeAll {
+            # A package whose lib/<framework> folders carry the given cultures' satellite assemblies.
+            function New-SatellitePackage {
+                param ([string]$Folder, [string[]]$Framework, [string[]]$Culture)
+                $content = Join-Path $Folder 'content.dll'
+                [System.IO.File]::WriteAllText($content, 'not really an assembly')
+                $files = @{}
+                foreach ($tfm in $Framework) {
+                    $files["lib/$tfm/DataStandardizer.Money.dll"] = $content
+                    foreach ($name in $Culture) {
+                        $files["lib/$tfm/$name/DataStandardizer.Money.resources.dll"] = $content
+                    }
+                }
+                [void](New-TestNuGetPackage -Folder $Folder -Id 'DataStandardizer.Money' -Version '1.0.0-preview.1' -ExtraFile $files)
+            }
+        }
+
+        It 'passes when every target framework carries enough cultures' {
+            $folder = New-TestFolder
+            New-SatellitePackage -Folder $folder -Framework 'netstandard2.0', 'net10.0' -Culture 'de', 'fr', 'ja'
+            { & (Join-Path $script:ScriptsFolder 'ConfirmSatelliteAssemblies.ps1') -PackageFolder $folder -PackageName 'DataStandardizer.Money' -MinimumCultureCount 3 6>$null } |
+                Should -Not -Throw
+        }
+
+        It 'fails when a target framework carries too few cultures' {
+            $folder = New-TestFolder
+            New-SatellitePackage -Folder $folder -Framework 'netstandard2.0' -Culture 'de', 'fr'
+            { & (Join-Path $script:ScriptsFolder 'ConfirmSatelliteAssemblies.ps1') -PackageFolder $folder -PackageName 'DataStandardizer.Money' -MinimumCultureCount 3 6>$null } |
+                Should -Throw '*missing satellite assemblies*'
+        }
+
+        It 'fails when the package carries no satellite assemblies' {
+            $folder = New-TestFolder
+            New-SatellitePackage -Folder $folder -Framework 'netstandard2.0' -Culture @()
+            { & (Join-Path $script:ScriptsFolder 'ConfirmSatelliteAssemblies.ps1') -PackageFolder $folder -PackageName 'DataStandardizer.Money' 6>$null } |
+                Should -Throw '*contains no satellite assemblies*'
+        }
+    }
 }
