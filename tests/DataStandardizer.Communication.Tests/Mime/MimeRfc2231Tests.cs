@@ -29,10 +29,8 @@ namespace DataStandardizer.Communication.Tests.Mime
         private const string Rfc2231ExampleCharset = "us-ascii";
         private const string Rfc2231ExampleName = "title";
 
-        private const MimeMediaTypeParseOptions AllRfc2231Options = MimeMediaTypeParseOptions.AllowMissingSections |
-            MimeMediaTypeParseOptions.AllowDuplicateSections | MimeMediaTypeParseOptions.AllowLeadingZeroSectionNumbers |
-            MimeMediaTypeParseOptions.AllowUnknownCharsets | MimeMediaTypeParseOptions.AllowQuotedExtendedValues |
-            MimeMediaTypeParseOptions.AllowLowercaseHexDigits;
+        private const MimeMediaTypeParseOptions AllRfc2231Options = MimeMediaTypeParseOptions.AllowNonstandardSections |
+            MimeMediaTypeParseOptions.AllowUnknownCharsets | MimeMediaTypeParseOptions.AllowNonstandardExtendedValues;
         private const MimeMediaTypeParseOptions MissingSectionsAndUnknownCharsets =
             MimeMediaTypeParseOptions.AllowMissingSections | MimeMediaTypeParseOptions.AllowUnknownCharsets;
 
@@ -241,6 +239,31 @@ namespace DataStandardizer.Communication.Tests.Mime
         {
             // act
             var parsed = MimeMediaType.TryParse(value, AllRfc2231Options, out _);
+
+            // assert
+            parsed.Should().BeFalse();
+        }
+
+        [Theory]
+        [InlineData("text/plain;a*0=x;a*2=z", MimeMediaTypeParseOptions.AllowNonstandardSections)]
+        [InlineData("text/plain;a*0=x;a*0=y", MimeMediaTypeParseOptions.AllowNonstandardSections)]
+        [InlineData("text/plain;a*00=x;a*01=y", MimeMediaTypeParseOptions.AllowNonstandardSections)]
+        [InlineData("text/plain;a*=\"UTF-8''a%20b\"", MimeMediaTypeParseOptions.AllowNonstandardExtendedValues)]
+        [InlineData("text/plain;a*=UTF-8''%C3%a9", MimeMediaTypeParseOptions.AllowNonstandardExtendedValues)]
+        public void TryParse_DeviationWithItsGroupOption_ReturnsTrue(string value, MimeMediaTypeParseOptions options)
+        {
+            // act
+            var parsed = MimeMediaType.TryParse(value, options, out _);
+
+            // assert
+            parsed.Should().BeTrue();
+        }
+
+        [Fact]
+        public void TryParse_UnknownCharsetWithNonstandardExtendedValues_ReturnsFalse()
+        {
+            // act
+            var parsed = MimeMediaType.TryParse(UnknownCharsetMediaType, MimeMediaTypeParseOptions.AllowNonstandardExtendedValues, out _);
 
             // assert
             parsed.Should().BeFalse();

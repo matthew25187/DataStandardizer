@@ -36,9 +36,8 @@ namespace DataStandardizer.Communication.Mime
         private const string UninitializedMessage = nameof(MimeMediaType) + " is uninitialized.";
         private const MimeMediaTypeParseOptions AllParseOptions =
             MimeMediaTypeParseOptions.AllowWhitespaceAroundDelimiters | MimeMediaTypeParseOptions.AllowRfc2045Tokens |
-            MimeMediaTypeParseOptions.AllowMissingSections | MimeMediaTypeParseOptions.AllowDuplicateSections |
-            MimeMediaTypeParseOptions.AllowLeadingZeroSectionNumbers | MimeMediaTypeParseOptions.AllowUnknownCharsets |
-            MimeMediaTypeParseOptions.AllowQuotedExtendedValues | MimeMediaTypeParseOptions.AllowLowercaseHexDigits;
+            MimeMediaTypeParseOptions.AllowNonstandardSections | MimeMediaTypeParseOptions.AllowUnknownCharsets |
+            MimeMediaTypeParseOptions.AllowNonstandardExtendedValues;
 
         private static readonly ReadOnlyCollection<MimeParameter> NoParameters = new ReadOnlyCollection<MimeParameter>(new MimeParameter[0]);
 

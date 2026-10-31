@@ -133,7 +133,8 @@ namespace DataStandardizer.Communication.Tests.Mime
         }
 
         // The lowest bit that no MimeMediaTypeParseOptions member uses.
-        private const MimeMediaTypeParseOptions UndefinedOption = (MimeMediaTypeParseOptions)256;
+        // The lowest bit that no option uses.
+        private const MimeMediaTypeParseOptions UndefinedOption = (MimeMediaTypeParseOptions)(1 << 8);
 
         [Fact]
         public void TryParse_UndefinedOptions_ThrowsArgumentOutOfRangeException()

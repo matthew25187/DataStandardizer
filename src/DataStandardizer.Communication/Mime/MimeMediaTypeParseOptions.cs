@@ -30,7 +30,7 @@ namespace DataStandardizer.Communication.Mime
         /// <remarks>
         /// Comments and folding are still not accepted. Remove them first.
         /// </remarks>
-        AllowWhitespaceAroundDelimiters = 1,
+        AllowWhitespaceAroundDelimiters = 1 << 0,
 
         /// <summary>
         /// Accept type, subtype and parameter names that are RFC 2045 §5.1 tokens but not RFC 6838 §4.2 restricted names, such as names
@@ -41,7 +41,7 @@ namespace DataStandardizer.Communication.Mime
         /// A parameter name in an RFC 2231 form, such as <c>title*</c>, <c>title*1</c> or <c>title*1*</c>, is always read as that form, and
         /// only the part before the <c>*</c> must be a valid name.
         /// </remarks>
-        AllowRfc2045Tokens = 2,
+        AllowRfc2045Tokens = 1 << 1,
 
         /// <summary>
         /// Accept a parameter whose sections are not numbered from 0 with no gaps, such as <c>title*0</c> and <c>title*2</c> with no
@@ -51,19 +51,19 @@ namespace DataStandardizer.Communication.Mime
         /// When there is no section 0, the value has no character set or language, so its extended sections must be US-ASCII unless
         /// <see cref="AllowUnknownCharsets"/> is also given.
         /// </remarks>
-        AllowMissingSections = 4,
+        AllowMissingSections = 1 << 2,
 
         /// <summary>
         /// Accept a parameter with more than one section of the same number, such as two <c>title*1</c> sections (RFC 2231 §3). The first
         /// is used, and the others are ignored.
         /// </summary>
-        AllowDuplicateSections = 8,
+        AllowDuplicateSections = 1 << 3,
 
         /// <summary>
         /// Accept a section number with a leading zero, such as <c>title*01</c> (RFC 2231 §3). It is read as the number without the zeros,
         /// so <c>title*01</c> is section 1.
         /// </summary>
-        AllowLeadingZeroSectionNumbers = 16,
+        AllowLeadingZeroSectionNumbers = 1 << 4,
 
         /// <summary>
         /// Accept an extended parameter value whose character set the <see cref="IMimeCharsetResolver"/> doesn't resolve, or whose octets
@@ -73,18 +73,34 @@ namespace DataStandardizer.Communication.Mime
         /// Each octet of the value is read as the character with the same number, as ISO-8859-1 does, so that the caller can recover the
         /// octets and decode them. <see cref="MimeParameter.Charset"/> holds the character set name as written.
         /// </remarks>
-        AllowUnknownCharsets = 32,
+        AllowUnknownCharsets = 1 << 5,
 
         /// <summary>
         /// Accept an extended parameter value written as a quoted-string, such as <c>title*="utf-8''a%20b"</c>, which RFC 2231 §7 doesn't
         /// allow. The value may then also hold spaces and the other characters that a quoted-string can.
         /// </summary>
-        AllowQuotedExtendedValues = 64,
+        AllowQuotedExtendedValues = 1 << 6,
 
         /// <summary>
         /// Accept lower-case hexadecimal digits in the <c>%</c> escapes of an extended parameter value, such as <c>%c3%a9</c>, which
         /// RFC 2231 §7 doesn't allow.
         /// </summary>
-        AllowLowercaseHexDigits = 128,
+        AllowLowercaseHexDigits = 1 << 7,
+
+        /// <summary>
+        /// Accept a parameter whose sections break any of the RFC 2231 §3 numbering rules: <see cref="AllowMissingSections"/>,
+        /// <see cref="AllowDuplicateSections"/> and <see cref="AllowLeadingZeroSectionNumbers"/>.
+        /// </summary>
+        AllowNonstandardSections = AllowMissingSections | AllowDuplicateSections | AllowLeadingZeroSectionNumbers,
+
+        /// <summary>
+        /// Accept an extended parameter value that breaks the RFC 2231 §7 grammar in either of the ways that mail clients commonly do:
+        /// <see cref="AllowQuotedExtendedValues"/> and <see cref="AllowLowercaseHexDigits"/>.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="AllowUnknownCharsets"/> is not included, as it changes how a value is decoded rather than which values are accepted.
+        /// Give it as well to accept character sets that the <see cref="IMimeCharsetResolver"/> doesn't resolve.
+        /// </remarks>
+        AllowNonstandardExtendedValues = AllowQuotedExtendedValues | AllowLowercaseHexDigits,
     }
 }
