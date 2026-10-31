@@ -23,6 +23,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\DataStandardizer.Communication\DataStandardizer.Communication.csproj" />
+    <!-- Builds the netstandard1.1 target too, without referencing it, so that NetStandard11CharsetTests can load it and check its
+         built-in encodings, some of which are hand-coded for that target. -->
+    <ProjectReference Include="..\..\src\DataStandardizer.Communication\DataStandardizer.Communication.csproj" SetTargetFramework="TargetFramework=netstandard1.1"
+                      ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" Private="false" />
   </ItemGroup>
 
   <ItemGroup>

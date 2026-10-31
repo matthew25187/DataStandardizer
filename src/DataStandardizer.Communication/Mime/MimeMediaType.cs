@@ -168,6 +168,8 @@ namespace DataStandardizer.Communication.Mime
         /// <exception cref="InvalidOperationException">The <see cref="MimeMediaType"/> is not initialised.</exception>
         public IReadOnlyList<MimeParameter> Parameters => _parameters ?? throw new InvalidOperationException(UninitializedMessage);
 
+        internal bool IsInitialized => _type != null;
+
         /// <summary>
         /// Gets a parameter by its name, compared case-insensitively.
         /// </summary>

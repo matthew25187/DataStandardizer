@@ -77,6 +77,34 @@ namespace DataStandardizer.Communication.Mime
         }
 
         /// <summary>
+        /// Determine if a string is an RFC 2978 §2.3 mime-charset.
+        /// </summary>
+        /// <remarks>
+        /// mime-charset = 1*mime-charset-chars;
+        /// mime-charset-chars = ALPHA / DIGIT / "!" / "#" / "$" / "%" / "&amp;" / "'" / "+" / "-" / "^" / "_" / "`" / "{" / "}" / "~"
+        /// </remarks>
+        internal static bool IsCharsetName(ReadOnlySpan<char> value)
+        {
+            if (value.IsEmpty) return false;
+
+            foreach (var c in value)
+            {
+                if (IsAsciiLetterOrDigit(c)) continue;
+
+                switch (c)
+                {
+                    case '!': case '#': case '$': case '%': case '&': case '\'': case '+':
+                    case '-': case '^': case '_': case '`': case '{': case '}': case '~':
+                        continue;
+                    default:
+                        return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// Determine if a string is a valid type, subtype or parameter name.
         /// </summary>
         internal static bool IsName(ReadOnlySpan<char> value, bool allowRfc2045Tokens)
