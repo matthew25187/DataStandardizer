@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,6 +18,9 @@ namespace DataStandardizer.Communication.Tests.Mime
         private const MimeQuotedPrintableDecoderOptions Lowercase = MimeQuotedPrintableDecoderOptions.AllowLowercaseHexDigits;
         private const MimeQuotedPrintableDecoderOptions BareLineFeeds = MimeQuotedPrintableDecoderOptions.AllowBareLineFeeds;
         private const MimeQuotedPrintableDecoderOptions LiteralEquals = MimeQuotedPrintableDecoderOptions.AllowLiteralEqualsSigns;
+
+        // ISO-8859-1. Encoding.Latin1 is .NET 5 or later, but every runtime has code page 28591 built in.
+        private static readonly Encoding Latin1Encoding = Encoding.GetEncoding(28591);
 
         // ref. RFC 2045 §6.7, the example of rule 5.
         private const string Rfc2045Text = "Now's the time for all folk to come to the aid of their country.";
@@ -653,7 +656,7 @@ namespace DataStandardizer.Communication.Tests.Mime
 
             var encoded = MimeQuotedPrintable.Encode(bytes, mode, Text);
 
-            Encoding.Latin1.GetString(MimeQuotedPrintable.Decode(encoded.AsSpan(), mode, Strict)).Should().Be(text);
+            Latin1Encoding.GetString(MimeQuotedPrintable.Decode(encoded.AsSpan(), mode, Strict)).Should().Be(text);
         }
 
         [Theory]
@@ -746,7 +749,7 @@ namespace DataStandardizer.Communication.Tests.Mime
 
         private static byte[] Latin1(string value)
         {
-            return Encoding.Latin1.GetBytes(value);
+            return Latin1Encoding.GetBytes(value);
         }
 
         // Text, with spaces, tabs, line breaks of every kind and octets that need encoding.

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,6 +12,9 @@ namespace DataStandardizer.Communication.Tests.Mime
     public class MimeBase64Tests
     {
         private const MimeBase64DecoderOptions Reject = MimeBase64DecoderOptions.RejectNonAlphabetCharacters;
+
+        // ISO-8859-1. Encoding.Latin1 is .NET 5 or later, but every runtime has code page 28591 built in.
+        private static readonly Encoding Latin1Encoding = Encoding.GetEncoding(28591);
 
         public static IEnumerable<object[]> Rfc4648Vectors()
         {
@@ -283,7 +286,7 @@ namespace DataStandardizer.Communication.Tests.Mime
                 decoder.Decode(encoded.AsSpan(), destination, out var consumed, out _, true).Should().Be(OperationStatus.InvalidData);
                 consumed.Should().Be(position);
                 decoder.Reset();
-                decoder.Decode(Encoding.Latin1.GetBytes(encoded), destination, out consumed, out _, true)
+                decoder.Decode(Latin1Encoding.GetBytes(encoded), destination, out consumed, out _, true)
                     .Should().Be(OperationStatus.InvalidData);
                 consumed.Should().Be(position);
                 MimeBase64.TryDecode(encoded.AsSpan(), MimeBase64Mode.Strict, options, out var result).Should().BeFalse();

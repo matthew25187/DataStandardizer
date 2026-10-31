@@ -1,80 +1,83 @@
-﻿using DataStandardizer.Communication.E164;
+﻿using System;
+using DataStandardizer.Communication.E164;
 using FluentAssertions;
+using Xunit;
 
-namespace DataStandardizer.Communication.Tests.E164;
-
-public class ItuE164InternationalNumberFormatInfoTests
+namespace DataStandardizer.Communication.Tests.E164
 {
-    [Fact]
-    public void GetFormat_ForItuE164InternationalNumberFormatInfo_ReturnsInternationalNumberFormatInfo()
+    public class ItuE164InternationalNumberFormatInfoTests
     {
-        // arrange
-        var testSubject = new ItuE164InternationalNumberFormatInfo();
+        [Fact]
+        public void GetFormat_ForItuE164InternationalNumberFormatInfo_ReturnsInternationalNumberFormatInfo()
+        {
+            // arrange
+            var testSubject = new ItuE164InternationalNumberFormatInfo();
 
-        // act
-        var testResult = testSubject.GetFormat(typeof(ItuE164InternationalNumberFormatInfo));
+            // act
+            var testResult = testSubject.GetFormat(typeof(ItuE164InternationalNumberFormatInfo));
 
-        // assert
-        testResult.Should().BeSameAs(testSubject);
-    }
+            // assert
+            testResult.Should().BeSameAs(testSubject);
+        }
 
-    [Fact]
-    public void LongInternationalNumberPattern_FormatInfoIsNotReadOnly_SuccessfullySet()
-    {
-        // arrange
-        var testSubject = new ItuE164InternationalNumberFormatInfo { IsReadOnly = false };
+        [Fact]
+        public void LongInternationalNumberPattern_FormatInfoIsNotReadOnly_SuccessfullySet()
+        {
+            // arrange
+            var testSubject = new ItuE164InternationalNumberFormatInfo { IsReadOnly = false };
 
-        const string testValue = "++#-###-#######";
+            const string testValue = "++#-###-#######";
 
-        // act
-        testSubject.LongInternationalNumberPattern = testValue;
+            // act
+            testSubject.LongInternationalNumberPattern = testValue;
 
-        // assert
-        testSubject.LongInternationalNumberPattern.Should().Be(testValue);
-    }
+            // assert
+            testSubject.LongInternationalNumberPattern.Should().Be(testValue);
+        }
 
-    [Fact]
-    public void LongInternationalNumberPattern_FormatInfoIsReadOnly_ThrowsInvalidOperationExceptionOnSet()
-    {
-        // arrange
-        var testSubject = new ItuE164InternationalNumberFormatInfo { IsReadOnly = true };
+        [Fact]
+        public void LongInternationalNumberPattern_FormatInfoIsReadOnly_ThrowsInvalidOperationExceptionOnSet()
+        {
+            // arrange
+            var testSubject = new ItuE164InternationalNumberFormatInfo { IsReadOnly = true };
 
-        // act
-        Action testAction = () => testSubject.LongInternationalNumberPattern = "++#-###-#######";
+            // act
+            Action testAction = () => testSubject.LongInternationalNumberPattern = "++#-###-#######";
 
-        // assert
-        testAction.Should()
-            .Throw<InvalidOperationException>()
-            .WithMessage($"{nameof(ItuE164InternationalNumberFormatInfo)} is read only.");
-    }
+            // assert
+            testAction.Should()
+                .Throw<InvalidOperationException>()
+                .WithMessage($"{nameof(ItuE164InternationalNumberFormatInfo)} is read only.");
+        }
 
-    [Fact]
-    public void ShortInternationalNumberPattern_FormatInfoIsNotReadOnly_SuccessfullySet()
-    {
-        // arrange
-        var testSubject = new ItuE164InternationalNumberFormatInfo { IsReadOnly = false };
+        [Fact]
+        public void ShortInternationalNumberPattern_FormatInfoIsNotReadOnly_SuccessfullySet()
+        {
+            // arrange
+            var testSubject = new ItuE164InternationalNumberFormatInfo { IsReadOnly = false };
 
-        const string testValue = "pcssssssssss";
+            const string testValue = "pcssssssssss";
 
-        // act
-        testSubject.ShortInternationalNumberPattern = testValue;
+            // act
+            testSubject.ShortInternationalNumberPattern = testValue;
 
-        // assert
-        testSubject.ShortInternationalNumberPattern.Should().Be(testValue);
-    }
+            // assert
+            testSubject.ShortInternationalNumberPattern.Should().Be(testValue);
+        }
 
-    [Fact]
-    public void ShortInternationalNumberPattern_FormatInfoIsReadOnly_ThrowsInvalidOperationException()
-    {
-        // arrange
-        var testSubject = new ItuE164InternationalNumberFormatInfo { IsReadOnly = true };
+        [Fact]
+        public void ShortInternationalNumberPattern_FormatInfoIsReadOnly_ThrowsInvalidOperationException()
+        {
+            // arrange
+            var testSubject = new ItuE164InternationalNumberFormatInfo { IsReadOnly = true };
 
-        // act
-        Action testAction = () => testSubject.ShortInternationalNumberPattern = "cc xxxnnnnnnnnnn";
+            // act
+            Action testAction = () => testSubject.ShortInternationalNumberPattern = "cc xxxnnnnnnnnnn";
 
-        // assert
-        testAction.Should()
-            .Throw<InvalidOperationException>()
-            .WithMessage($"{nameof(ItuE164InternationalNumberFormatInfo)} is read only.");
+            // assert
+            testAction.Should()
+                .Throw<InvalidOperationException>()
+                .WithMessage($"{nameof(ItuE164InternationalNumberFormatInfo)} is read only.");
+        }
     }
 }

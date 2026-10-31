@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using DataStandardizer.Communication.Mime;
 using FluentAssertions;
 using Xunit;
@@ -66,8 +66,8 @@ namespace DataStandardizer.Communication.Tests.Mime
         [Fact]
         public void Constructor_NullArgument_ThrowsArgumentNullException()
         {
-            ((Action)(() => new MimeParameter(null!, "value"))).Should().Throw<ArgumentNullException>();
-            ((Action)(() => new MimeParameter("name", null!))).Should().Throw<ArgumentNullException>();
+            ((Action)(() => new MimeParameter(null, "value"))).Should().Throw<ArgumentNullException>();
+            ((Action)(() => new MimeParameter("name", null))).Should().Throw<ArgumentNullException>();
         }
 
         [Fact]
