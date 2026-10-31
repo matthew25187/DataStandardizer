@@ -13,7 +13,7 @@ namespace DataStandardizer.LanguageTag
     /// <summary>
     /// Builder for constructing an IETF BCP 47 language tag.
     /// </summary>
-    public class Bcp47LanguageTagBuilder : IBcp47LanguageTagBuilderStepWithLanguageSubtagRegistryNext, IBcp47LanguageTagBuilderStepWithTimeoutNext, IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext,
+    public class Bcp47LanguageTagBuilder : IBcp47LanguageTagBuilderStepWithLanguageSubtagRegistryNext, IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext,
         IBcp47LanguageTagBuilderStepUsingExtendedLanguageSubtagsNext, IBcp47LanguageTagBuilderStepUsingScriptSubtagNext, IBcp47LanguageTagBuilderStepUsingRegionSubtagNext, IBcp47LanguageTagBuilderStepUsingVariantSubtagsNext,
         IBcp47LanguageTagBuilderStepUsingExtensionSubtagsNext, IBcp47LanguageTagBuilderStepUsingPrivateUseSubtagNext
     {
@@ -33,8 +33,6 @@ namespace DataStandardizer.LanguageTag
         #endregion
 
         #region Instance Declarations
-
-        private TimeSpan? _matchTimeout;
 
 #if NETSTANDARD1_3_OR_GREATER||NET
         private string[] _extendedLanguageSubtags = Array.Empty<string>();
@@ -74,15 +72,6 @@ namespace DataStandardizer.LanguageTag
         public IBcp47LanguageTagBuilderStepWithLanguageSubtagRegistryNext WithLanguageSubtagRegistry(SubtagRegistry.SubtagRegistry subtagRegistry)
         {
             _subtagRegistry = subtagRegistry ?? throw new ArgumentNullException(nameof(subtagRegistry));
-
-            return this;
-        }
-
-        /// <inheritdoc />
-        [Obsolete(Bcp47Constants.WithTimeoutObsoleteMessage)]
-        public IBcp47LanguageTagBuilderStepWithTimeoutNext WithTimeout(TimeSpan matchTimeout)
-        {
-            _matchTimeout = matchTimeout;
 
             return this;
         }
@@ -732,15 +721,7 @@ namespace DataStandardizer.LanguageTag
         private Bcp47LanguageTag CreateLanguageTag([NotNull] string languageTag)
 #endif
         {
-            // The timeout overloads are obsolete but still validate the timeout passed to WithTimeout, as they did before they became inert.
-#pragma warning disable CS0618
-            if (_subtagRegistry != null)
-            {
-                return _matchTimeout is null ? Bcp47LanguageTag.Create(languageTag, _subtagRegistry) : Bcp47LanguageTag.Create(languageTag, _subtagRegistry, _matchTimeout.Value);
-            }
-
-            return _matchTimeout is null ? Bcp47LanguageTag.Create(languageTag) : Bcp47LanguageTag.Create(languageTag, _matchTimeout.Value);
-#pragma warning restore CS0618
+            return _subtagRegistry != null ? Bcp47LanguageTag.Create(languageTag, _subtagRegistry) : Bcp47LanguageTag.Create(languageTag);
         }
 
         #endregion

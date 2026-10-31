@@ -25,7 +25,7 @@ namespace DataStandardizer.LanguageTag
     /// <summary>
     /// BCP 47 Language Tag Builder steps that follow from having specified whether to use the IANA Language Subtag Registry.
     /// </summary>
-    public interface IBcp47LanguageTagBuilderStepWithLanguageSubtagRegistryNext : IBcp47LanguageTagBuilderStepWithTimeout, IBcp47LanguageTagBuilderStepUsingLanguageTag, IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtag
+    public interface IBcp47LanguageTagBuilderStepWithLanguageSubtagRegistryNext : IBcp47LanguageTagBuilderStepUsingLanguageTag, IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtag
     {
     }
 }

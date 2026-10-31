@@ -1,7 +1,4 @@
-﻿// The matchTimeout overloads are obsolete but stay tested until v2.0 removes them (#256).
-#pragma warning disable CS0618
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -98,9 +95,6 @@ namespace DataStandardizer.LanguageTag.Tests.Parity
             Bcp47LanguageTag languageTag;
             var actualTryCreate = Bcp47LanguageTag.TryCreate(input, subtagRegistry, out languageTag);
             if (actualTryCreate != expectedWellFormed) yield return $"TryCreate({Bcp47LanguageTagParityTests.Describe(input)}, registry): expected {expectedWellFormed}, parser returned {actualTryCreate}";
-
-            var actualTryCreateWithTimeout = Bcp47LanguageTag.TryCreate(input, subtagRegistry, Regex.InfiniteMatchTimeout, out _);
-            if (actualTryCreateWithTimeout != expectedWellFormed) yield return $"TryCreate({Bcp47LanguageTagParityTests.Describe(input)}, registry, timeout): expected {expectedWellFormed}, parser returned {actualTryCreateWithTimeout}";
 
             // The parser decomposes any input with the syntax of a language tag, including one that repeats a subtag.
             Bcp47LanguageTagRanges ranges;

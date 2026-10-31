@@ -101,7 +101,44 @@ string? name = country.GetEnglishName(Iso3166CountryName.Short);
 `DataStandardizer.LanguageTag` and `DataStandardizer.File.CSV` have changed since
 they took over from the removed packages, so check their pages for anything your
 code relies on, such as the
-[deprecated LanguageTag timeouts](../packages/language-tag/concepts/builder-pipeline.md).
+[LanguageTag match timeouts](#languagetag-match-timeouts) below.
+
+## LanguageTag match timeouts
+
+`DataStandardizer.LanguageTag` checks language tags with a parser, which can't
+time out, so a match timeout has had no effect since version 1.x. The members
+that took one were marked `[Obsolete]` in version 1.x and are removed in version
+2.0:
+
+| Removed | Use instead |
+| --- | --- |
+| `Bcp47LanguageTag.Create(string, TimeSpan)` | `Bcp47LanguageTag.Create(string)` |
+| `Bcp47LanguageTag.Create(string, SubtagRegistry, TimeSpan)` | `Bcp47LanguageTag.Create(string, SubtagRegistry)` |
+| `Bcp47LanguageTag.TryCreate(string?, TimeSpan, out Bcp47LanguageTag)` | `Bcp47LanguageTag.TryCreate(string?, out Bcp47LanguageTag)` |
+| `Bcp47LanguageTag.TryCreate(string?, SubtagRegistry, TimeSpan, out Bcp47LanguageTag)` | `Bcp47LanguageTag.TryCreate(string?, SubtagRegistry, out Bcp47LanguageTag)` |
+| `Bcp47LanguageTagBuilder.WithTimeout(TimeSpan)` | Leave the step out |
+| `IBcp47LanguageTagBuilderStepWithTimeout` | No replacement |
+| `IBcp47LanguageTagBuilderStepWithTimeoutNext` | No replacement |
+
+Drop the timeout argument, or the `WithTimeout(...)` call, and the code builds
+against version 2.0 with the same behaviour. The removed overloads threw
+`ArgumentOutOfRangeException` for a timeout out of range; the ones that remain
+have no timeout to check.
+
+```csharp
+// Before
+var languageTag = Bcp47LanguageTag.Create("en-NZ", TimeSpan.FromSeconds(1));
+var built = new Bcp47LanguageTagBuilder()
+    .WithTimeout(TimeSpan.FromSeconds(1))
+    .UsingLanguageTag("en-NZ")
+    .Build();
+
+// After
+var languageTag = Bcp47LanguageTag.Create("en-NZ");
+var built = new Bcp47LanguageTagBuilder()
+    .UsingLanguageTag("en-NZ")
+    .Build();
+```
 
 ## The netstandard1.0 target
 

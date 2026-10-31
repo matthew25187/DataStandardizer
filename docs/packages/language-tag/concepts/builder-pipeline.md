@@ -22,7 +22,6 @@ subtag, then the remaining optional subtags in spec order, and finally `Build()`
 ```text
 new Bcp47LanguageTagBuilder()
   ├─ WithLanguageSubtagRegistry(...)   (optional)
-  ├─ WithTimeout(...)                  (optional, deprecated)
   │
   ├─ UsingLanguageTag("...")  ───────────────────────────► Build()
   │
@@ -72,20 +71,16 @@ it checks the subtag against the BCP 47 rules (via the matching
 throws `ArgumentException` at the point of the call, so mistakes surface early
 rather than at `Build()`.
 
-## Optional configuration: registry and timeout
+## Optional configuration: the subtag registry
 
-Two configuration steps may be applied before composition begins:
+**`WithLanguageSubtagRegistry(subtagRegistry)`** may be applied before
+composition begins. It constrains validation to a loaded copy of the *IANA
+Language Subtag Registry*. When supplied, the final `Build()` constructs the tag
+through the registry-based `Bcp47LanguageTag.Create(..., subtagRegistry)`
+overload.
 
-- **`WithLanguageSubtagRegistry(subtagRegistry)`** constrains validation to a
-  loaded copy of the *IANA Language Subtag Registry*. When supplied, the final
-  `Build()` constructs the tag through the registry-based
-  `Bcp47LanguageTag.Create(..., subtagRegistry)` overload.
-- **`WithTimeout(matchTimeout)`** is deprecated and will be removed in version
-  2.0. It used to bound the time spent matching the regular expressions that
-  validated the tag. Tags are now checked by a parser, which can't time out, so
-  the timeout has no effect; leave the step out. When it is set, `Build()` still
-  passes it to the obsolete `Bcp47LanguageTag.Create(..., matchTimeout)`
-  overload, which checks that it is in range and otherwise ignores it.
+Version 2.0 removed the `WithTimeout` step, which had no effect: tags are checked
+by a parser, which can't time out. See [Removed in v2.0](../../../resources/removed-in-v2.md#languagetag-match-timeouts).
 
 ## How Build() assembles the tag
 

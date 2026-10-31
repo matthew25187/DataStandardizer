@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.Text.RegularExpressions;
 using DataStandardizer.Core;
 using DataStandardizer.Geography;
 using DataStandardizer.Language;
@@ -34,11 +33,6 @@ namespace DataStandardizer.LanguageTag
             internal const string LanguageTagNull = "The language tag must not be null.";
             internal const string UninitializedInstance = "The " + nameof(Bcp47LanguageTag) + " instance is not initialised.";
         }
-
-        /// <summary>
-        /// The longest match timeout that <see cref="Regex"/> accepts.
-        /// </summary>
-        private static readonly TimeSpan MaximumMatchTimeout = TimeSpan.FromMilliseconds(int.MaxValue - 1);
 
         // local (instance) declarations
 #if NETCOREAPP3_0_OR_GREATER
@@ -146,36 +140,6 @@ namespace DataStandardizer.LanguageTag
         }
 
         /// <summary>
-        /// Create a language tag object with a match timeout, which has no effect.
-        /// </summary>
-        /// <param name="languageTag">Language tag on which the object will be based.</param>
-        /// <param name="matchTimeout">Not used: language tags are checked by a parser, which cannot time out. Must be positive and no more than <see cref="int.MaxValue"/> - 1 milliseconds, or <see cref="Regex.InfiniteMatchTimeout"/>.</param>
-        /// <returns>Language tag object.</returns>
-        /// <exception cref="LanguageTagFormatException">The original language tag was not recognised.</exception>
-        [Obsolete(Bcp47Constants.MatchTimeoutObsoleteMessage)]
-#if NETCOREAPP3_0_OR_GREATER
-        public static Bcp47LanguageTag Create(string languageTag, TimeSpan matchTimeout)
-#else
-        public static Bcp47LanguageTag Create([NotNull] string languageTag, TimeSpan matchTimeout)
-#endif
-        {
-            if (languageTag is null)
-            {
-                throw new ArgumentNullException(nameof(languageTag));
-            }
-
-            ValidateMatchTimeout(matchTimeout);
-
-            var parts = ParseByRules(languageTag);
-            if (parts is null)
-            {
-                throw new LanguageTagFormatException(ErrorMessage.LanguageTagInvalidFormat, languageTag);
-            }
-
-            return new Bcp47LanguageTag(languageTag, parts);
-        }
-
-        /// <summary>
         /// Create a language tag object based on the Subtag Registry.
         /// </summary>
         /// <param name="languageTag">Language tag on which the object will be based.</param>
@@ -197,42 +161,6 @@ namespace DataStandardizer.LanguageTag
             {
                 throw new ArgumentNullException(nameof(subtagRegistry));
             }
-
-            var parts = ParseByRegistry(languageTag, subtagRegistry);
-            if (parts is null)
-            {
-                throw new LanguageTagFormatException(ErrorMessage.LanguageTagInvalidFormat, languageTag);
-            }
-
-            return new Bcp47LanguageTag(languageTag, parts);
-        }
-
-        /// <summary>
-        /// Create a language tag object based on the Subtag Registry and with a match timeout, which has no effect.
-        /// </summary>
-        /// <param name="languageTag">Language tag on which the object will be based.</param>
-        /// <param name="subtagRegistry">A copy of the IANA Subtag Registry.</param>
-        /// <param name="matchTimeout">Not used: language tags are checked by a parser, which cannot time out. Must be positive and no more than <see cref="int.MaxValue"/> - 1 milliseconds, or <see cref="Regex.InfiniteMatchTimeout"/>.</param>
-        /// <returns>Language tag object.</returns>
-        /// <exception cref="LanguageTagFormatException">The original language tag was not recognised.</exception>
-        [Obsolete(Bcp47Constants.MatchTimeoutObsoleteMessage)]
-#if NETCOREAPP3_0_OR_GREATER
-        public static Bcp47LanguageTag Create(string languageTag, SubtagRegistry.SubtagRegistry subtagRegistry, TimeSpan matchTimeout)
-#else
-        public static Bcp47LanguageTag Create([NotNull] string languageTag, [NotNull] SubtagRegistry.SubtagRegistry subtagRegistry, TimeSpan matchTimeout)
-#endif
-        {
-            if (languageTag is null)
-            {
-                throw new ArgumentNullException(nameof(languageTag));
-            }
-
-            if (subtagRegistry is null)
-            {
-                throw new ArgumentNullException(nameof(subtagRegistry));
-            }
-
-            ValidateMatchTimeout(matchTimeout);
 
             var parts = ParseByRegistry(languageTag, subtagRegistry);
             if (parts is null)
@@ -702,39 +630,6 @@ namespace DataStandardizer.LanguageTag
         }
 
         /// <summary>
-        /// Create a <see cref="Bcp47LanguageTag"/> with the specified language tag and timeout.
-        /// </summary>
-        /// <param name="languageTag">An IETF BCP 47 language tag.</param>
-        /// <param name="matchTimeout">Not used: language tags are checked by a parser, which cannot time out. Must be positive and no more than <see cref="int.MaxValue"/> - 1 milliseconds, or <see cref="Regex.InfiniteMatchTimeout"/>.</param>
-        /// <param name="result">When this method returns, contains the constructed <see cref="Bcp47LanguageTag"/>.</param>
-        /// <returns><c>true</c> if the <see cref="Bcp47LanguageTag"/> was successfully created; otherwise, <c>false</c>.</returns>
-        [Obsolete(Bcp47Constants.MatchTimeoutObsoleteMessage)]
-#if NETCOREAPP3_0_OR_GREATER
-        public static bool TryCreate(string? languageTag, TimeSpan matchTimeout, out Bcp47LanguageTag result)
-#else
-        public static bool TryCreate([CanBeNull] string languageTag, TimeSpan matchTimeout, out Bcp47LanguageTag result)
-#endif
-        {
-            if (languageTag is null)
-            {
-                result = default;
-                return false;
-            }
-
-            ValidateMatchTimeout(matchTimeout);
-
-            var parts = ParseByRules(languageTag);
-            if (parts is null)
-            {
-                result = default;
-                return false;
-            }
-
-            result = new Bcp47LanguageTag(languageTag, parts);
-            return true;
-        }
-
-        /// <summary>
         /// Create a <see cref="Bcp47LanguageTag"/> based on the Subtag Registry with the specified language tag.
         /// </summary>
         /// <param name="languageTag">An IETF BCP 47 language tag.</param>
@@ -752,40 +647,6 @@ namespace DataStandardizer.LanguageTag
                 result = default;
                 return false;
             }
-
-            var parts = ParseByRegistry(languageTag, subtagRegistry);
-            if (parts is null)
-            {
-                result = default;
-                return false;
-            }
-
-            result = new Bcp47LanguageTag(languageTag, parts);
-            return true;
-        }
-
-        /// <summary>
-        /// Create a <see cref="Bcp47LanguageTag"/> based on the Subtag Registry with the specified language tag and match timeout.
-        /// </summary>
-        /// <param name="languageTag">An IETF BCP 47 language tag.</param>
-        /// <param name="subtagRegistry">A copy of the Subtag Registry.</param>
-        /// <param name="matchTimeout">Not used: language tags are checked by a parser, which cannot time out. Must be positive and no more than <see cref="int.MaxValue"/> - 1 milliseconds, or <see cref="Regex.InfiniteMatchTimeout"/>.</param>
-        /// <param name="result">When this method returns, contains the constructed <see cref="Bcp47LanguageTag"/>.</param>
-        /// <returns><c>true</c> if the <see cref="Bcp47LanguageTag"/> was successfully created; otherwise, <c>false</c>.</returns>
-        [Obsolete(Bcp47Constants.MatchTimeoutObsoleteMessage)]
-#if NETCOREAPP3_0_OR_GREATER
-        public static bool TryCreate(string? languageTag, SubtagRegistry.SubtagRegistry subtagRegistry, TimeSpan matchTimeout, out Bcp47LanguageTag result)
-#else
-        public static bool TryCreate([CanBeNull] string languageTag, [NotNull] SubtagRegistry.SubtagRegistry subtagRegistry, TimeSpan matchTimeout, out Bcp47LanguageTag result)
-#endif
-        {
-            if (languageTag is null || subtagRegistry is null)
-            {
-                result = default;
-                return false;
-            }
-
-            ValidateMatchTimeout(matchTimeout);
 
             var parts = ParseByRegistry(languageTag, subtagRegistry);
             if (parts is null)
@@ -1162,19 +1023,6 @@ namespace DataStandardizer.LanguageTag
             var languageTagString = languageTag.ToString();
             result = new Bcp47LanguageTag(languageTagString, Bcp47LanguageTagParts.FromRanges(languageTagString, ranges));
             return true;
-        }
-
-        /// <summary>
-        /// Validate a match timeout as the regular expressions did.
-        /// </summary>
-        /// <remarks>
-        /// Language tags are checked by a parser, which cannot time out, so the timeout is otherwise unused (#236).
-        /// </remarks>
-        private static void ValidateMatchTimeout(TimeSpan matchTimeout)
-        {
-            if (matchTimeout == Regex.InfiniteMatchTimeout) return;
-
-            if (matchTimeout <= TimeSpan.Zero || matchTimeout > MaximumMatchTimeout) throw new ArgumentOutOfRangeException(nameof(matchTimeout));
         }
 
         /// <summary>

@@ -19,7 +19,6 @@ with `Build()`.
 ```csharp
 public class Bcp47LanguageTagBuilder :
     IBcp47LanguageTagBuilderStepWithLanguageSubtagRegistryNext,
-    IBcp47LanguageTagBuilderStepWithTimeoutNext,
     IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext,
     IBcp47LanguageTagBuilderStepUsingExtendedLanguageSubtagsNext,
     IBcp47LanguageTagBuilderStepUsingScriptSubtagNext,
@@ -32,20 +31,18 @@ public class Bcp47LanguageTagBuilder :
 ## Remarks
 
 The builder's call sequence is, in order: an optional registry step
-(`WithLanguageSubtagRegistry`), an optional, deprecated timeout step
-(`WithTimeout`), then
-either a full-tag step (`UsingLanguageTag`, which leads straight to `Build()`) or
+(`WithLanguageSubtagRegistry`), then either a full-tag step (`UsingLanguageTag`, which leads straight to `Build()`) or
 the required primary-language step (`UsingPrimaryLanguageSubtag`) followed by the
 optional extended-language, script, region, variant, extension, and private-use
 steps, ending with `Build()`. See
 [The language-tag builder pipeline](../concepts/builder-pipeline.md) for the flow.
 
-The order is enforced by ~15 step interfaces in the `DataStandardizer.LanguageTag`
+The order is enforced by 18 step interfaces in the `DataStandardizer.LanguageTag`
 namespace (`IBcp47LanguageTagBuilderStep…` and the companion `…Next` interfaces).
 Each `…Next` interface inherits exactly the stages that may follow its stage; you
 normally never name these interfaces yourself, but instead let IntelliSense
 surface the next valid step on the chain. Because of this design, the
-registry, timeout, full-tag, and primary-language methods are declared as ordinary
+registry, full-tag, and primary-language methods are declared as ordinary
 `public` methods (see [Implicit implementation](#implicit-implementation)), while
 the remaining subtag setters and `Build()` are **explicit interface
 implementations** (see [Explicit implementation](#explicit-implementation)) reached
@@ -76,7 +73,6 @@ they are callable directly on a `Bcp47LanguageTagBuilder` instance. Each returns
 | `UsingPrimaryLanguageSubtag(Iso639Part5LanguageFamily primaryLanguageSubtag)` | `IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext` | Throws `ArgumentException` if the code is undefined. |
 | `UsingPrimaryLanguageSubtag(string primaryLanguageSubtag)` | `IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext` | Registry/string form. Throws `ArgumentNullException` / `ArgumentException` for an invalid subtag. |
 | `WithLanguageSubtagRegistry(SubtagRegistry subtagRegistry)` | `IBcp47LanguageTagBuilderStepWithLanguageSubtagRegistryNext` | Optional registry step. Throws `ArgumentNullException` if `null`. |
-| `WithTimeout(TimeSpan matchTimeout)` | `IBcp47LanguageTagBuilderStepWithTimeoutNext` | **Deprecated.** Marked `[Obsolete]` and will be removed in version 2.0. Language tags are checked by a parser, which can't time out, so the timeout has no effect; leave the step out. `Build()` still checks the value as `Bcp47LanguageTag.Create(string, TimeSpan)` does, and throws `ArgumentOutOfRangeException` for one out of range. |
 
 ### Explicit implementation
 
