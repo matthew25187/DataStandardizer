@@ -74,10 +74,10 @@ stream's current position and leave the stream open; the caller disposes it.
 
 ## Applies to
 
-Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`. The
+Targets `netstandard1.1`, `netstandard2.0`, `net8.0`, and `net10.0`. The
 `CreateFromFile` and `CreateFromFileAsync` methods, including the
 `CancellationToken` overload, exist on `netstandard2.0`, `net8.0` and `net10.0`
-only; on `netstandard1.0`, load the registry from a `Stream` or a string.
+only; on `netstandard1.1`, load the registry from a `Stream` or a string.
 The public surface is otherwise the same.
 
 ## See also

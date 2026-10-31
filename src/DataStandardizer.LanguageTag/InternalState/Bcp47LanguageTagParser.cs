@@ -1,10 +1,6 @@
-﻿#if NETSTANDARD
+﻿using System;
+#if NETSTANDARD
 using JetBrains.Annotations;
-#endif
-#if NETSTANDARD1_0
-using CharSpan = DataStandardizer.LanguageTag.InternalState.Bcp47CharSpan;
-#else
-using CharSpan = System.ReadOnlySpan<char>;
 #endif
 
 namespace DataStandardizer.LanguageTag.InternalState
@@ -28,9 +24,9 @@ namespace DataStandardizer.LanguageTag.InternalState
         /// <param name="ranges">When this method returns other than <see cref="Bcp47ParseStatus.Invalid"/>, where each kind of subtag lies in <paramref name="languageTag"/>; otherwise, empty ranges.</param>
         /// <returns>Whether the language tag is well-formed.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        internal static Bcp47ParseStatus Parse(CharSpan languageTag, Bcp47SubtagClassifier classifier, out Bcp47LanguageTagRanges ranges)
+        internal static Bcp47ParseStatus Parse(ReadOnlySpan<char> languageTag, Bcp47SubtagClassifier classifier, out Bcp47LanguageTagRanges ranges)
 #else
-        internal static Bcp47ParseStatus Parse(CharSpan languageTag, [NotNull] Bcp47SubtagClassifier classifier, out Bcp47LanguageTagRanges ranges)
+        internal static Bcp47ParseStatus Parse(ReadOnlySpan<char> languageTag, [NotNull] Bcp47SubtagClassifier classifier, out Bcp47LanguageTagRanges ranges)
 #endif
         {
             ranges = default;
@@ -142,7 +138,7 @@ namespace DataStandardizer.LanguageTag.InternalState
         /// <summary>
         /// Determine whether a string is one extension: a singleton other than <c>x</c> followed by one or more subtags of two to eight characters (ref. RFC 5646 §2.2.6).
         /// </summary>
-        internal static bool IsExtension(CharSpan extension)
+        internal static bool IsExtension(ReadOnlySpan<char> extension)
         {
             var start = 0;
             var length = GetSubtagLength(extension, start);
@@ -161,7 +157,7 @@ namespace DataStandardizer.LanguageTag.InternalState
         /// <summary>
         /// Determine whether a string is a private use sequence: <c>x</c> followed by one or more subtags of one to eight characters (ref. RFC 5646 §2.2.7).
         /// </summary>
-        internal static bool IsPrivateUse(CharSpan privateUse)
+        internal static bool IsPrivateUse(ReadOnlySpan<char> privateUse)
         {
             var start = 0;
             var length = GetSubtagLength(privateUse, start);
@@ -243,7 +239,7 @@ namespace DataStandardizer.LanguageTag.InternalState
             return (uint)((character | 0x20) - 'a') <= (uint)('z' - 'a');
         }
 
-        internal static bool IsAsciiLetters(CharSpan value)
+        internal static bool IsAsciiLetters(ReadOnlySpan<char> value)
         {
             for (var index = 0; index < value.Length; index++)
             {
@@ -253,7 +249,7 @@ namespace DataStandardizer.LanguageTag.InternalState
             return true;
         }
 
-        internal static bool IsAsciiLettersOrDigits(CharSpan value)
+        internal static bool IsAsciiLettersOrDigits(ReadOnlySpan<char> value)
         {
             for (var index = 0; index < value.Length; index++)
             {
@@ -264,7 +260,7 @@ namespace DataStandardizer.LanguageTag.InternalState
             return true;
         }
 
-        private static bool IsExtensionSingleton(CharSpan subtag)
+        private static bool IsExtensionSingleton(ReadOnlySpan<char> subtag)
         {
             if (subtag.Length != 1) return false;
 
@@ -272,12 +268,12 @@ namespace DataStandardizer.LanguageTag.InternalState
             return IsAsciiDigit(character) || (IsAsciiLetter(character) && (character | 0x20) != 'x');
         }
 
-        private static bool IsExtensionSubtag(CharSpan subtag)
+        private static bool IsExtensionSubtag(ReadOnlySpan<char> subtag)
         {
             return subtag.Length >= 2 && subtag.Length <= 8 && IsAsciiLettersOrDigits(subtag);
         }
 
-        private static bool IsPrivateUseSingleton(CharSpan subtag)
+        private static bool IsPrivateUseSingleton(ReadOnlySpan<char> subtag)
         {
             return subtag.Length == 1 && (subtag[0] | 0x20) == 'x';
         }
@@ -293,7 +289,7 @@ namespace DataStandardizer.LanguageTag.InternalState
         /// <summary>
         /// Determine whether a run of letter and digit subtags contains a subtag, compared case-insensitively (ref. RFC 5646 §2.1.1).
         /// </summary>
-        private static bool ContainsSubtag(CharSpan subtags, CharSpan subtag)
+        private static bool ContainsSubtag(ReadOnlySpan<char> subtags, ReadOnlySpan<char> subtag)
         {
             var start = 0;
             var length = GetSubtagLength(subtags, start);
@@ -308,7 +304,7 @@ namespace DataStandardizer.LanguageTag.InternalState
         /// <summary>
         /// Compare two runs of ASCII letters and digits case-insensitively.
         /// </summary>
-        private static bool EqualsIgnoreCase(CharSpan left, CharSpan right)
+        private static bool EqualsIgnoreCase(ReadOnlySpan<char> left, ReadOnlySpan<char> right)
         {
             for (var index = 0; index < left.Length; index++)
             {
@@ -323,7 +319,7 @@ namespace DataStandardizer.LanguageTag.InternalState
         /// Move to the subtag after the current one.
         /// </summary>
         /// <returns><c>true</c> if there is a next subtag, which may be empty; <c>false</c> if the current subtag is the last.</returns>
-        private static bool MoveToNextSubtag(CharSpan value, ref int start, ref int length)
+        private static bool MoveToNextSubtag(ReadOnlySpan<char> value, ref int start, ref int length)
         {
             var end = start + length;
             if (end >= value.Length) return false;
@@ -333,7 +329,7 @@ namespace DataStandardizer.LanguageTag.InternalState
             return true;
         }
 
-        private static int GetSubtagLength(CharSpan value, int start)
+        private static int GetSubtagLength(ReadOnlySpan<char> value, int start)
         {
             var end = start;
             while (end < value.Length && value[end] != SubtagSeparator) end++;

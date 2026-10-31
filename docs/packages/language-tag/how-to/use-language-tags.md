@@ -93,9 +93,9 @@ looks each subtag up in the code lists. A few habits keep it fast:
   properties (`ExtendedLanguageSubtags`, `VariantSubtags` and
   `ExtensionSubtags`) return a new copy of the array on each call when it isn't
   empty, so read them once into a local if you need them in a loop.
-- **Validate spans, not substrings.** On `netstandard2.0`, `net8.0` and
-  `net10.0`, `IsWellFormedLanguageTagString`, the `Check…Subtag` methods and
-  `TryCreate` take a `ReadOnlySpan<char>`, so you can check a tag inside a
+- **Validate spans, not substrings.** `IsWellFormedLanguageTagString`, the
+  `Check…Subtag` methods and `TryCreate` take a `ReadOnlySpan<char>` on every
+  target, so you can check a tag inside a
   larger buffer without making a string of it first:
 
   ```csharp

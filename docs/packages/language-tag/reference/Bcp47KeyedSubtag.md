@@ -24,7 +24,7 @@ public readonly struct Bcp47KeyedSubtag : IEquatable<Bcp47KeyedSubtag>
 ## Remarks
 
 The `Singleton` and `Subtags` getters throw `InvalidOperationException` when the
-instance is uninitialised (default-constructed). On the `netstandard1.0` and
+instance is uninitialised (default-constructed). On the `netstandard1.1` and
 `netstandard2.0` targets nullability is expressed through JetBrains
 `[NotNull]` / `[CanBeNull]` attributes rather than C# nullable reference types.
 
@@ -63,7 +63,7 @@ Each getter throws `InvalidOperationException` if the instance is uninitialised.
 
 ## Applies to
 
-Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`. On the
+Targets `netstandard1.1`, `netstandard2.0`, `net8.0`, and `net10.0`. On the
 .NET Standard targets nullability is expressed through JetBrains
 `[NotNull]` / `[CanBeNull]` attributes; the public surface is otherwise the same.
 

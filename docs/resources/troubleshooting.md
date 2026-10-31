@@ -13,7 +13,7 @@ packages, grounded in the documented behaviour of the packages.
 
 A few APIs are available only on some target frameworks. For example, the `Money`
 struct in **DataStandardizer.Money** implements `IConvertible` on .NET Standard
-1.3+ and modern .NET but not on the `netstandard1.0` build, and
+1.3+ and modern .NET but not on the `netstandard1.1` build, and
 `Iso3166Part2Subdivision` in **DataStandardizer.Geography** behaves the same way.
 
 If a member you expect is missing, check the **"Applies to"** note on the relevant

@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections;
-#if !NETSTANDARD1_0
 using System.Collections.Concurrent;
-#endif
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
@@ -22,11 +20,7 @@ namespace DataStandardizer.LanguageTag.SubtagRegistry
         /// <summary>
         /// The field name and value conversion of each record property, resolved once per record type and property name.
         /// </summary>
-#if NETSTANDARD1_0
-        private static readonly Dictionary<FieldBindingKey, FieldBinding> FieldBindings = new Dictionary<FieldBindingKey, FieldBinding>();
-#else
         private static readonly ConcurrentDictionary<FieldBindingKey, FieldBinding> FieldBindings = new ConcurrentDictionary<FieldBindingKey, FieldBinding>();
-#endif
 
         private readonly List<Tuple<string, object>> _fieldBag = new List<Tuple<string, object>>();
 
@@ -105,21 +99,8 @@ namespace DataStandardizer.LanguageTag.SubtagRegistry
         {
             var key = new FieldBindingKey(this.GetType(), propertyName ?? string.Empty);
 
-#if NETSTANDARD1_0
-            lock (FieldBindings)
-            {
-                if (!FieldBindings.TryGetValue(key, out var binding))
-                {
-                    binding = FieldBinding.Create(key);
-                    FieldBindings.Add(key, binding);
-                }
-
-                return binding;
-            }
-#else
             // TryGetValue first, so that reading a cached binding allocates no delegate on targets whose compiler doesn't cache method group conversions
             return FieldBindings.TryGetValue(key, out var binding) ? binding : FieldBindings.GetOrAdd(key, FieldBinding.Create);
-#endif
         }
 
 #if NETCOREAPP3_0_OR_GREATER
@@ -153,7 +134,7 @@ namespace DataStandardizer.LanguageTag.SubtagRegistry
 
         private static T[] EmptyArray<T>()
         {
-#if NETSTANDARD1_0
+#if NETSTANDARD1_1
             return new T[0];
 #else
             return Array.Empty<T>();

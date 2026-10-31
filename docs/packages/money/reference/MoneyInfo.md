@@ -65,10 +65,10 @@ falls back to the culture-independent information rather than failing.
 
 ## Applies to
 
-Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`.
+Targets `netstandard1.1`, `netstandard2.0`, `net8.0`, and `net10.0`.
 
 `CurrentMoney` requires `netstandard2.0` or later, because the current culture is
-unavailable on `netstandard1.0`.
+unavailable on `netstandard1.1`.
 
 ## See also
 

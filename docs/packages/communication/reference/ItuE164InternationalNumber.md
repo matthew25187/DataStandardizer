@@ -96,7 +96,7 @@ interface; reading it on a number of a different kind throws
 
 ## Applies to
 
-Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`. On the
+Targets `netstandard1.1`, `netstandard2.0`, `net8.0`, and `net10.0`. On the
 .NET Standard targets the `string`/`IFormatProvider` parameters of the `ToString`
 overloads are non-nullable; on `net8.0`/`net10.0` they are nullable reference types
 (`string?` / `IFormatProvider?`). The available overloads are otherwise the same on

@@ -89,9 +89,8 @@ namespace DataStandardizer.Communication.E164
         {
             // The cache is shared by every number structure type and is populated lazily from
             // ItuE164InternationalNumber.Parse/TryParse, so unsynchronized access would let concurrent
-            // callers corrupt the Dictionary. A lock is used in preference to ConcurrentDictionary
-            // because the netstandard1.0 target does not offer one; contention is negligible, as the
-            // cache saturates after a handful of calls and every later call is a lookup under the lock.
+            // callers corrupt the Dictionary. Contention on the lock is negligible, as the cache
+            // saturates after a handful of calls and every later call is a lookup under the lock.
             lock (ParseExpressionsLock)
             {
                 if (!ParseExpressions.TryGetValue((discriminatorType, numberStyles), out var parseExpression))
