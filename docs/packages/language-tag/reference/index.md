@@ -29,7 +29,12 @@ The public types of **DataStandardizer.LanguageTag**. The core types are in the
 | [SubtagRegistryTagRecord](SubtagRegistryTagRecord.md) | A registry *tag* entry. |
 | [SubtagRegistrySubtagRecord](SubtagRegistrySubtagRecord.md) | A registry *subtag* entry. |
 | [SubtagRegistryFileDateRecord](SubtagRegistryFileDateRecord.md) | The registry's `File-Date` header record. |
-| [SubtagRegistryFieldAttribute](SubtagRegistryFieldAttribute.md) | Maps a record property to its underlying registry field name. |
+
+## Enumerations
+
+| Type | Description |
+| --- | --- |
+| [SubtagRegistryRecordType](SubtagRegistryRecordType.md) | The `Type` of a registry record. |
 
 ## Interfaces
 

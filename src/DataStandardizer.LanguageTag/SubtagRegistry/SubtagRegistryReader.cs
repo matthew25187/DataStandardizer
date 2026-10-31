@@ -20,7 +20,7 @@ namespace DataStandardizer.LanguageTag.SubtagRegistry
 
         private readonly TextReader _sourceReader;
 
-        private readonly List<Tuple<string, object>> _fields = new List<Tuple<string, object>>();
+        private readonly List<KeyValuePair<string, string>> _fields = new List<KeyValuePair<string, string>>();
 
 #if NETCOREAPP3_0_OR_GREATER
         private string? _fieldName;
@@ -142,7 +142,7 @@ namespace DataStandardizer.LanguageTag.SubtagRegistry
             if (_fieldName is null) return;
 
             var fieldBody = _foldedFieldBody?.Length > 0 ? _foldedFieldBody.ToString() : _fieldBody;
-            if (!string.IsNullOrEmpty(fieldBody)) _fields.Add(Tuple.Create<string, object>(_fieldName, fieldBody));
+            if (!string.IsNullOrEmpty(fieldBody)) _fields.Add(new KeyValuePair<string, string>(_fieldName, fieldBody));
 
             _fieldName = null;
             _fieldBody = null;
@@ -156,18 +156,14 @@ namespace DataStandardizer.LanguageTag.SubtagRegistry
         private ISubtagRegistryRecord CreateRecord()
 #endif
         {
+            var isFileDate = false;
             var hasSubtag = false;
             var hasTag = false;
             foreach (var field in _fields)
             {
-                if (field.Item1 == FieldName.FileDate)
-                {
-                    _fields.Clear();
-                    return new SubtagRegistryFileDateRecord(field);
-                }
-
-                hasSubtag |= field.Item1 == FieldName.Subtag;
-                hasTag |= field.Item1 == FieldName.Tag;
+                isFileDate |= field.Key == FieldName.FileDate;
+                hasSubtag |= field.Key == FieldName.Subtag;
+                hasTag |= field.Key == FieldName.Tag;
             }
 
 #if NETCOREAPP3_0_OR_GREATER
@@ -175,13 +171,17 @@ namespace DataStandardizer.LanguageTag.SubtagRegistry
 #else
             ISubtagRegistryRecord subtagRegistryRecord = null;
 #endif
-            if (hasSubtag)
+            if (isFileDate)
             {
-                subtagRegistryRecord = new SubtagRegistrySubtagRecord(_fields);
+                subtagRegistryRecord = new SubtagRegistryFileDateRecord(_fields.ToArray());
+            }
+            else if (hasSubtag)
+            {
+                subtagRegistryRecord = new SubtagRegistrySubtagRecord(_fields.ToArray());
             }
             else if (hasTag)
             {
-                subtagRegistryRecord = new SubtagRegistryTagRecord(_fields);
+                subtagRegistryRecord = new SubtagRegistryTagRecord(_fields.ToArray());
             }
 
             _fields.Clear();

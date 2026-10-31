@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -349,10 +350,10 @@ namespace DataStandardizer.LanguageTag.Tests
         }
 
         [Theory]
-        [InlineData("region", "BU", 2005, 10, 16)]
-        [InlineData("language", "en", 2005, 10, 16)]
-        [InlineData("extlang", "ase", 2009, 7, 29)]
-        public void SubtagRecordAdded_WhenRecordHasAddedField_ReturnsAddedDate(string type, string subtag, int year, int month, int day)
+        [InlineData(SubtagRegistry.SubtagRegistryRecordType.Region, "BU", 2005, 10, 16)]
+        [InlineData(SubtagRegistry.SubtagRegistryRecordType.Language, "en", 2005, 10, 16)]
+        [InlineData(SubtagRegistry.SubtagRegistryRecordType.ExtendedLanguage, "ase", 2009, 7, 29)]
+        public void SubtagRecordAdded_WhenRecordHasAddedField_ReturnsAddedDate(SubtagRegistry.SubtagRegistryRecordType type, string subtag, int year, int month, int day)
         {
             // arrange
             var record = this.GetSubtagRecord(type, subtag);
@@ -368,7 +369,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void SubtagRecordDeprecated_WhenRecordHasDeprecatedField_ReturnsDeprecatedDate()
         {
             // arrange
-            var record = this.GetSubtagRecord("region", "BU");
+            var record = this.GetSubtagRecord(SubtagRegistry.SubtagRegistryRecordType.Region, "BU");
 
             // act
             var testResult = record.Deprecated;
@@ -381,7 +382,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void SubtagRecordDeprecated_WhenRecordHasNoDeprecatedField_ReturnsNull()
         {
             // arrange
-            var record = this.GetSubtagRecord("language", "en");
+            var record = this.GetSubtagRecord(SubtagRegistry.SubtagRegistryRecordType.Language, "en");
 
             // act
             var testResult = record.Deprecated;
@@ -391,9 +392,9 @@ namespace DataStandardizer.LanguageTag.Tests
         }
 
         [Theory]
-        [InlineData("region", "BU", "MM")]
-        [InlineData("extlang", "ase", "ase")]
-        public void SubtagRecordPreferredValue_WhenRecordHasPreferredValueField_ReturnsPreferredValue(string type, string subtag, string expectedPreferredValue)
+        [InlineData(SubtagRegistry.SubtagRegistryRecordType.Region, "BU", "MM")]
+        [InlineData(SubtagRegistry.SubtagRegistryRecordType.ExtendedLanguage, "ase", "ase")]
+        public void SubtagRecordPreferredValue_WhenRecordHasPreferredValueField_ReturnsPreferredValue(SubtagRegistry.SubtagRegistryRecordType type, string subtag, string expectedPreferredValue)
         {
             // arrange
             var record = this.GetSubtagRecord(type, subtag);
@@ -409,7 +410,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void SubtagRecordPreferredValue_WhenRecordHasNoPreferredValueField_ReturnsNull()
         {
             // arrange
-            var record = this.GetSubtagRecord("language", "en");
+            var record = this.GetSubtagRecord(SubtagRegistry.SubtagRegistryRecordType.Language, "en");
 
             // act
             var testResult = record.PreferredValue;
@@ -422,7 +423,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void SubtagRecordSuppressScript_WhenRecordHasSuppressScriptField_ReturnsSuppressScript()
         {
             // arrange
-            var record = this.GetSubtagRecord("language", "en");
+            var record = this.GetSubtagRecord(SubtagRegistry.SubtagRegistryRecordType.Language, "en");
 
             // act
             var testResult = record.SuppressScript;
@@ -435,7 +436,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void SubtagRecordSuppressScript_WhenRecordHasNoSuppressScriptField_ReturnsNull()
         {
             // arrange
-            var record = this.GetSubtagRecord("language", "jbo");
+            var record = this.GetSubtagRecord(SubtagRegistry.SubtagRegistryRecordType.Language, "jbo");
 
             // act
             var testResult = record.SuppressScript;
@@ -448,7 +449,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void TagRecord_WhenGrandfatheredTagHasDateAndPreferredValueFields_ReturnsFieldValues()
         {
             // arrange
-            var record = this.GetTagRecord("grandfathered", "zh-guoyu");
+            var record = this.GetTagRecord(SubtagRegistry.SubtagRegistryRecordType.Grandfathered, "zh-guoyu");
 
             // act
             var added = record.Added;
@@ -513,6 +514,240 @@ namespace DataStandardizer.LanguageTag.Tests
             readings.Should().AllSatisfy(reading => reading.Should().Equal(readings[0]));
         }
 
+        [Fact]
+        public void TagRecordComments_WhenRecordHasSeveralCommentsFields_ReturnsEveryComment()
+        {
+            // arrange
+            var record = this.GetSubtagRecord(SubtagRegistry.SubtagRegistryRecordType.Variant, "vaidika");
+
+            // act
+            var testResult = record.Comments;
+
+            // assert
+            testResult.Should().Equal(
+                new[] { "The most ancient dialect of Sanskrit used in verse and prose composed until about the 4th century B.C.E.", "Preferred tag is vsn" },
+                "the Comments field may appear more than once per record (ref. RFC 5646 §3.1.2)");
+        }
+
+        [Fact]
+        public void TagRecordPrefix_WhenRecordHasSeveralPrefixFields_ReturnsEveryPrefixInOrder()
+        {
+            // arrange
+            var record = this.GetSubtagRecord(SubtagRegistry.SubtagRegistryRecordType.Variant, "1994");
+
+            // act
+            var testResult = record.Prefix;
+
+            // assert
+            testResult.Should().Equal(new[] { "sl-rozaj", "sl-rozaj-biske", "sl-rozaj-njiva", "sl-rozaj-osojs", "sl-rozaj-solba" });
+        }
+
+        [Fact]
+        public void TagRecordLists_WhenCastToMutableList_CannotBeChanged()
+        {
+            // arrange
+            var record = this.GetSubtagRecord(SubtagRegistry.SubtagRegistryRecordType.Language, "en");
+
+            // act
+            Action changeDescription = () => ((IList<string>)record.Description)[0] = "Changed";
+            Action changePrefix = () => ((IList<string>)record.Prefix).Add("Changed");
+            Action changeFields = () => ((IList<KeyValuePair<string, string>>)record.Fields).Clear();
+
+            // assert
+            changeDescription.Should().Throw<NotSupportedException>("records are immutable");
+            changePrefix.Should().Throw<NotSupportedException>("records are immutable");
+            changeFields.Should().Throw<NotSupportedException>("records are immutable");
+            record.Description.Should().Equal(new[] { "English" });
+            record.Description.Should().BeSameAs(record.Description, "the read-only view is created once");
+        }
+
+        [Fact]
+        public void TagRecordType_ForEveryRecordInRegistry_IsTheTypeInItsTypeField()
+        {
+            // arrange
+            var records = _fixture.IanaSubtagRegistry.OfType<SubtagRegistry.SubtagRegistryTagRecordBase>().ToList();
+            var typeNames = new Dictionary<SubtagRegistry.SubtagRegistryRecordType, string>
+            {
+                [SubtagRegistry.SubtagRegistryRecordType.Language] = "language",
+                [SubtagRegistry.SubtagRegistryRecordType.ExtendedLanguage] = "extlang",
+                [SubtagRegistry.SubtagRegistryRecordType.Script] = "script",
+                [SubtagRegistry.SubtagRegistryRecordType.Region] = "region",
+                [SubtagRegistry.SubtagRegistryRecordType.Variant] = "variant",
+                [SubtagRegistry.SubtagRegistryRecordType.Grandfathered] = "grandfathered",
+                [SubtagRegistry.SubtagRegistryRecordType.Redundant] = "redundant",
+            };
+
+            // act
+            var mismatchedRecords = records.Where(record => !typeNames.TryGetValue(record.Type, out var typeName) || typeName != GetFieldValue(record, "Type")).ToList();
+
+            // assert
+            records.Should().NotBeEmpty();
+            mismatchedRecords.Should().BeEmpty("every record in the fixture has a Type that RFC 5646 defines");
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task CreateFromContent_WhenTypeIsUnknown_ReadsRecordWithUnknownType(bool readAsync)
+        {
+            // arrange
+            var content = "Type: future\nSubtag: qaa\nDescription: Private use\nAdded: 2005-10-16";
+
+            // act
+            var registry = await CreateFromContentAsync(content, readAsync);
+
+            // assert
+            var record = registry.OfType<SubtagRegistry.SubtagRegistrySubtagRecord>().Single();
+            record.Type.Should().Be(SubtagRegistry.SubtagRegistryRecordType.Unknown);
+            GetFieldValue(record, "Type").Should().Be("future", "the field is kept as it was read");
+            registry.Languages.Should().BeEmpty("a record of an unknown type is not a language record");
+        }
+
+        [Theory]
+        [InlineData("2005-13-01")]
+        [InlineData("2005-02-30")]
+        [InlineData("16 Oct 2005")]
+        [InlineData("2005-1-16")]
+        public void CreateFromContent_WhenDateIsMalformed_ReadsDateAsAbsentAndKeepsField(string date)
+        {
+            // arrange
+            var content = $"Type: language\nSubtag: qaa\nDescription: Private use\nAdded: {date}\nDeprecated: {date}";
+
+            // act
+            var registry = SubtagRegistry.SubtagRegistry.CreateFromContent(content);
+
+            // assert
+            var record = registry.Languages.Single();
+            record.Added.Should().Be(default(DateTime), "{0} is not a date in the yyyy-MM-dd form", date);
+            record.Deprecated.Should().BeNull("{0} is not a date in the yyyy-MM-dd form", date);
+            GetFieldValue(record, "Added").Should().Be(date);
+        }
+
+        [Fact]
+        public void TypedRecordLists_ForFixture_HoldEveryRecordOfEachTypeInRegistryOrder()
+        {
+            // arrange
+            var registry = _fixture.IanaSubtagRegistry;
+            var subtagRecords = registry.OfType<SubtagRegistry.SubtagRegistrySubtagRecord>().ToList();
+            var tagRecords = registry.OfType<SubtagRegistry.SubtagRegistryTagRecord>().ToList();
+
+            // act & assert
+            registry.Languages.Should().Equal(subtagRecords.Where(record => record.Type == SubtagRegistry.SubtagRegistryRecordType.Language));
+            registry.ExtendedLanguages.Should().Equal(subtagRecords.Where(record => record.Type == SubtagRegistry.SubtagRegistryRecordType.ExtendedLanguage));
+            registry.Scripts.Should().Equal(subtagRecords.Where(record => record.Type == SubtagRegistry.SubtagRegistryRecordType.Script));
+            registry.Regions.Should().Equal(subtagRecords.Where(record => record.Type == SubtagRegistry.SubtagRegistryRecordType.Region));
+            registry.Variants.Should().Equal(subtagRecords.Where(record => record.Type == SubtagRegistry.SubtagRegistryRecordType.Variant));
+            registry.GrandfatheredTags.Should().Equal(tagRecords.Where(record => record.Type == SubtagRegistry.SubtagRegistryRecordType.Grandfathered));
+            registry.RedundantTags.Should().Equal(tagRecords.Where(record => record.Type == SubtagRegistry.SubtagRegistryRecordType.Redundant));
+            (registry.Languages.Count + registry.ExtendedLanguages.Count + registry.Scripts.Count + registry.Regions.Count + registry.Variants.Count
+                + registry.GrandfatheredTags.Count + registry.RedundantTags.Count + 1)
+                .Should().Be(registry.Count, "every record but the File-Date record has one of the seven types");
+            registry.FileDate.Should().Be(new DateTime(2025, 5, 15));
+        }
+
+        [Theory]
+        [InlineData(SubtagRegistry.SubtagRegistryRecordType.Language, "en", "en")]
+        [InlineData(SubtagRegistry.SubtagRegistryRecordType.Language, "EN", "en")]
+        [InlineData(SubtagRegistry.SubtagRegistryRecordType.Language, "qab", "qaa..qtz")]
+        [InlineData(SubtagRegistry.SubtagRegistryRecordType.ExtendedLanguage, "yue", "yue")]
+        [InlineData(SubtagRegistry.SubtagRegistryRecordType.Script, "hant", "Hant")]
+        [InlineData(SubtagRegistry.SubtagRegistryRecordType.Script, "Qabx", "Qaaa..Qabx")]
+        [InlineData(SubtagRegistry.SubtagRegistryRecordType.Region, "tw", "TW")]
+        [InlineData(SubtagRegistry.SubtagRegistryRecordType.Region, "XB", "XA..XZ")]
+        [InlineData(SubtagRegistry.SubtagRegistryRecordType.Variant, "1994", "1994")]
+        public void TryGetSubtag_WhenSubtagIsRegistered_ReturnsItsRecord(SubtagRegistry.SubtagRegistryRecordType type, string subtag, string expectedSubtag)
+        {
+            // act
+            var found = _fixture.IanaSubtagRegistry.TryGetSubtag(type, subtag, out var record);
+            var foundBySpan = _fixture.IanaSubtagRegistry.TryGetSubtag(type, subtag.AsSpan(), out var recordBySpan);
+
+            // assert
+            found.Should().BeTrue("{0} is a registered {1} subtag", subtag, type);
+            record.Subtag.Should().Be(expectedSubtag);
+            record.Type.Should().Be(type);
+            foundBySpan.Should().BeTrue();
+            recordBySpan.Should().BeSameAs(record);
+        }
+
+        [Theory]
+        [InlineData(SubtagRegistry.SubtagRegistryRecordType.Language, "Hant")]
+        [InlineData(SubtagRegistry.SubtagRegistryRecordType.Script, "en")]
+        [InlineData(SubtagRegistry.SubtagRegistryRecordType.Language, "zz")]
+        [InlineData(SubtagRegistry.SubtagRegistryRecordType.Language, "")]
+        [InlineData(SubtagRegistry.SubtagRegistryRecordType.Language, "\u0131a")]
+        [InlineData(SubtagRegistry.SubtagRegistryRecordType.Grandfathered, "i-klingon")]
+        [InlineData(SubtagRegistry.SubtagRegistryRecordType.Unknown, "en")]
+        [InlineData((SubtagRegistry.SubtagRegistryRecordType)99, "en")]
+        public void TryGetSubtag_WhenTypeHasNoSuchSubtag_ReturnsFalse(SubtagRegistry.SubtagRegistryRecordType type, string subtag)
+        {
+            // act
+            var found = _fixture.IanaSubtagRegistry.TryGetSubtag(type, subtag, out var record);
+
+            // assert
+            found.Should().BeFalse("the registry has no {0} subtag {1}", type, subtag);
+            record.Should().BeNull();
+        }
+
+        [Theory]
+        [InlineData("aa")]
+        [InlineData("AA")]
+        public void TryGetSubtag_WhenTwoRecordsHaveSubtagsThatDifferOnlyInCase_ReturnsTheFirst(string subtag)
+        {
+            // arrange
+            var registry = SubtagRegistry.SubtagRegistry.CreateFromContent(
+                "Type: language\nSubtag: ab\nDescription: Other\n%%\nType: language\nSubtag: AA\nDescription: First\n%%\nType: language\nSubtag: aa\nDescription: Second\n%%\nType: language\nSubtag: zz\nDescription: Other");
+
+            // act
+            var found = registry.TryGetSubtag(SubtagRegistry.SubtagRegistryRecordType.Language, subtag, out var record);
+
+            // assert
+            found.Should().BeTrue();
+            record.Description.Should().Equal(new[] { "First" }, "subtags are compared case-insensitively, and the first record for a subtag is the one found");
+        }
+
+        [Fact]
+        public void TryGetSubtag_WhenSubtagIsNull_ReturnsFalse()
+        {
+            // act
+            var found = _fixture.IanaSubtagRegistry.TryGetSubtag(SubtagRegistry.SubtagRegistryRecordType.Language, (string)null, out var record);
+
+            // assert
+            found.Should().BeFalse();
+            record.Should().BeNull();
+        }
+
+        [Theory]
+        [InlineData("i-klingon", true)]
+        [InlineData("I-KLINGON", true)]
+        [InlineData("zh-min-nan", true)]
+        [InlineData("zh-Hant", false)]
+        [InlineData("en", false)]
+        [InlineData("", false)]
+        [InlineData(null, false)]
+        public void IsGrandfathered_ForLanguageTag_ReturnsWhetherRegistryHasGrandfatheredRecordForIt(string languageTag, bool expected)
+        {
+            // act
+            var testResult = _fixture.IanaSubtagRegistry.IsGrandfathered(languageTag);
+
+            // assert
+            testResult.Should().Be(expected, "zh-Hant is a redundant tag and en a language subtag, not grandfathered tags");
+            if (languageTag != null) _fixture.IanaSubtagRegistry.IsGrandfathered(languageTag.AsSpan()).Should().Be(expected);
+        }
+
+        [Fact]
+        public void ToString_WhenRegistryIsLoadedAgainFromIt_HasSameRecords()
+        {
+            // arrange
+            var registry = _fixture.IanaSubtagRegistry;
+
+            // act
+            var reloaded = SubtagRegistry.SubtagRegistry.CreateFromContent(registry.ToString());
+
+            // assert
+            reloaded.Select(record => record.ToString()).Should().Equal(registry.Select(record => record.ToString()));
+            reloaded.Select(record => record.Fields).Should().BeEquivalentTo(registry.Select(record => record.Fields), options => options.WithStrictOrdering());
+        }
+
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
@@ -527,7 +762,7 @@ namespace DataStandardizer.LanguageTag.Tests
             // assert
             var record = registry.OfType<SubtagRegistry.SubtagRegistrySubtagRecord>().Single();
             record.Description.Should().Equal(new[] { "Interlingua (International Auxiliary Language Association)" }, "a folded line is unfolded with one space (ref. RFC 5646 §3.1.1)");
-            GetFieldValue(record, "Comments").Should().Be("first second third", "each folded line is trimmed, and a blank one adds nothing");
+            record.Comments.Should().Equal(new[] { "first second third" }, "each folded line is trimmed, and a blank one adds nothing");
             record.Added.Should().Be(new DateTime(2005, 10, 16));
         }
 
@@ -539,8 +774,8 @@ namespace DataStandardizer.LanguageTag.Tests
 
             // act
             var paddedFields = registry
-                .SelectMany(record => record)
-                .Where(field => field.Item2 is string value && (value.Contains("  ") || value.Trim() != value))
+                .SelectMany(record => record.Fields)
+                .Where(field => field.Value.Contains("  ") || field.Value.Trim() != field.Value)
                 .ToList();
 
             // assert
@@ -587,10 +822,10 @@ namespace DataStandardizer.LanguageTag.Tests
 
         private static string GetFieldValue(SubtagRegistry.ISubtagRegistryRecord record, string fieldName)
         {
-            return record.Where(field => field.Item1 == fieldName).Select(field => field.Item2 as string).Single();
+            return record.Fields.Where(field => field.Key == fieldName).Select(field => field.Value).Single();
         }
 
-        private SubtagRegistry.SubtagRegistrySubtagRecord GetSubtagRecord(string type, string subtag)
+        private SubtagRegistry.SubtagRegistrySubtagRecord GetSubtagRecord(SubtagRegistry.SubtagRegistryRecordType type, string subtag)
         {
             var registry = SubtagRegistry.SubtagRegistry.CreateFromContent(_fixture.IanaSubtagRegistry.ToString());
             return registry
@@ -598,7 +833,7 @@ namespace DataStandardizer.LanguageTag.Tests
                 .Single(record => record.Type == type && record.Subtag == subtag);
         }
 
-        private SubtagRegistry.SubtagRegistryTagRecord GetTagRecord(string type, string tag)
+        private SubtagRegistry.SubtagRegistryTagRecord GetTagRecord(SubtagRegistry.SubtagRegistryRecordType type, string tag)
         {
             var registry = SubtagRegistry.SubtagRegistry.CreateFromContent(_fixture.IanaSubtagRegistry.ToString());
             return registry

@@ -11,9 +11,8 @@ nav_exclude: true
 
 Namespace: `DataStandardizer.LanguageTag.SubtagRegistry`
 
-The shared base for every subtag-registry record. It stores the raw field pairs
-(implementing `IList<Tuple<string, object>>` explicitly) and provides the protected
-helpers that derived records use to expose typed, named fields.
+The shared base for every subtag-registry record. It holds the record's fields
+and renders them back to registry text.
 
 ```csharp
 public abstract class SubtagRegistryRecordBase : ISubtagRegistryRecord
@@ -21,12 +20,15 @@ public abstract class SubtagRegistryRecordBase : ISubtagRegistryRecord
 
 ## Remarks
 
-The protected `GetPropertyValue<T>()` / `GetPropertyValues<T>()` helpers resolve a
-calling property to its underlying registry field — by the field name supplied via
-[SubtagRegistryFieldAttribute](SubtagRegistryFieldAttribute.md), or the property
-name when no attribute is present — and convert the raw value to the requested
-type. The `IList<Tuple<string, object>>` members are implemented explicitly, so the
-record presents typed properties rather than the raw field list by default.
+Records are created only when a [SubtagRegistry](SubtagRegistry.md) is loaded.
+The constructor is internal, so the class can't be derived from outside the
+package. A record never changes once it is loaded.
+
+## Properties
+
+| Property | Signature | Notes |
+| --- | --- | --- |
+| `Fields` | `IReadOnlyList<KeyValuePair<string, string>> Fields { get; }` | The record's fields in registry order. See [ISubtagRegistryRecord](ISubtagRegistryRecord.md). |
 
 ## Methods
 
@@ -45,5 +47,4 @@ Targets `netstandard1.1`, `netstandard2.0`, `net8.0`, and `net10.0`.
 - [ISubtagRegistryRecord](ISubtagRegistryRecord.md)
 - [SubtagRegistryTagRecordBase](SubtagRegistryTagRecordBase.md)
 - [SubtagRegistryFileDateRecord](SubtagRegistryFileDateRecord.md)
-- [SubtagRegistryFieldAttribute](SubtagRegistryFieldAttribute.md)
 - [LanguageTag API reference](index.md)

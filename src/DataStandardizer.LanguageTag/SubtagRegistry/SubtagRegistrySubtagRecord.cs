@@ -1,5 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+#if NETSTANDARD
+using JetBrains.Annotations;
+#endif
 using static DataStandardizer.LanguageTag.SubtagRegistry.SubtagRegistryConstants;
 
 namespace DataStandardizer.LanguageTag.SubtagRegistry
@@ -7,24 +9,24 @@ namespace DataStandardizer.LanguageTag.SubtagRegistry
     /// <summary>
     /// Subtag record from the IANA Subtag Registry.
     /// </summary>
-    public class SubtagRegistrySubtagRecord : SubtagRegistryTagRecordBase
+    public sealed class SubtagRegistrySubtagRecord : SubtagRegistryTagRecordBase
     {
-        internal SubtagRegistrySubtagRecord(IEnumerable<Tuple<string, object>> fields)
+#if NETCOREAPP3_0_OR_GREATER
+        internal SubtagRegistrySubtagRecord(KeyValuePair<string, string>[] fields)
+#else
+        internal SubtagRegistrySubtagRecord([NotNull] KeyValuePair<string, string>[] fields)
+#endif
+            : base(fields)
         {
-            foreach (var field in fields)
-            {
-                ((IList<Tuple<string, object>>)this).Add(field);
-            }
+            Subtag = GetFirstValue(fields, FieldName.Subtag) ?? string.Empty;
         }
 
         /// <summary>
         /// Gets the Subtag field value.
         /// </summary>
-        [SubtagRegistryField(FieldName.Subtag)]
-#if NETCOREAPP3_0_OR_GREATER
-        public string Subtag => GetPropertyValue<string>()!;
-#else
-        public string Subtag => GetPropertyValue<string>();
-#endif
+        /// <remarks>
+        /// The value may denote a range of subtags, such as <c>qaa..qtz</c> (ref. RFC 5646 §3.1.4).
+        /// </remarks>
+        public string Subtag { get; }
     }
 }

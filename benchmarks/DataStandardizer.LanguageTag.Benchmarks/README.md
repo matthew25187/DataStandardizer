@@ -67,6 +67,7 @@ The inputs are fixed, so every run uses identical data. They are in `BenchmarkDa
 | | `KeyedSubtag_Subtags` | `Bcp47KeyedSubtag.Subtags` of the same subtag. |
 | `RegistryBenchmarks` | `Registry_CreateFromStream` | `SubtagRegistry.CreateFromStream` over the registry fixture. |
 | | `Registry_RecordProperties` | Reads `Type`, `Subtag` or `Tag`, `Added` and `Description` of every record of a registry loaded in `[GlobalSetup]`. |
+| | `Registry_TryGetSubtag` | `SubtagRegistry.TryGetSubtag` for one subtag of each of the five subtag types, and `IsGrandfathered("i-klingon")`, on the same registry. Should allocate nothing. |
 
 Every class uses `[MemoryDiagnoser]`. Allocation is the main thing to watch.
 

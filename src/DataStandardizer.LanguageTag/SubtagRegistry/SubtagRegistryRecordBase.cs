@@ -1,11 +1,6 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Globalization;
-using System.Reflection;
-using System.Runtime.CompilerServices;
+using System.Collections.ObjectModel;
 using System.Text;
 #if NETSTANDARD
 using JetBrains.Annotations;
@@ -13,298 +8,132 @@ using JetBrains.Annotations;
 
 namespace DataStandardizer.LanguageTag.SubtagRegistry
 {
+    /// <summary>
+    /// The shared base of the records of the Subtag Registry.
+    /// </summary>
+    /// <remarks>
+    /// Records are created only by <see cref="SubtagRegistry"/>, and never change once it has loaded them.
+    /// </remarks>
     public abstract class SubtagRegistryRecordBase : ISubtagRegistryRecord
     {
-        private const string DateFormat = "yyyy-MM-dd";
+        private static readonly string[] NoValues = new string[0];
+        private static readonly ReadOnlyCollection<string> NoValuesView = new ReadOnlyCollection<string>(NoValues);
 
-        /// <summary>
-        /// The field name and value conversion of each record property, resolved once per record type and property name.
-        /// </summary>
-        private static readonly ConcurrentDictionary<FieldBindingKey, FieldBinding> FieldBindings = new ConcurrentDictionary<FieldBindingKey, FieldBinding>();
+        private readonly KeyValuePair<string, string>[] _fields;
 
-        private readonly List<Tuple<string, object>> _fieldBag = new List<Tuple<string, object>>();
+        // A read-only view of the fields, created on first read. A race only creates an equivalent view, so no lock is taken.
+#if NETCOREAPP3_0_OR_GREATER
+        private ReadOnlyCollection<KeyValuePair<string, string>>? _fieldsView;
+#else
+        [CanBeNull] private ReadOnlyCollection<KeyValuePair<string, string>> _fieldsView;
+#endif
+
+#if NETCOREAPP3_0_OR_GREATER
+        internal SubtagRegistryRecordBase(KeyValuePair<string, string>[] fields)
+#else
+        internal SubtagRegistryRecordBase([NotNull] KeyValuePair<string, string>[] fields)
+#endif
+        {
+            _fields = fields;
+        }
+
+        /// <inheritdoc />
+        public IReadOnlyList<KeyValuePair<string, string>> Fields
+        {
+            get { return _fieldsView ?? (_fieldsView = new ReadOnlyCollection<KeyValuePair<string, string>>(_fields)); }
+        }
 
         public override string ToString()
         {
             var recordBuilder = new StringBuilder();
-            foreach (var field in _fieldBag)
+            foreach (var field in _fields)
             {
-                recordBuilder.AppendLine($"{field.Item1}: {field.Item2}");
+                recordBuilder.Append(field.Key).Append(": ").Append(field.Value).AppendLine();
             }
 
             return recordBuilder.ToString().TrimEnd();
         }
 
-        #region Protected Methods
-
+        /// <summary>
+        /// Parse a registry date, in the <c>yyyy-MM-dd</c> form of the RFC 3339 full-date (ref. RFC 5646 §3.1.1).
+        /// </summary>
+        /// <returns>The date, or <see langword="null"/> when the value is not a date in that form.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        protected T? GetPropertyValue<T>([CallerMemberName] string? propertyName = null)
+        internal static DateTime? ParseDate(string value)
 #else
-        [CanBeNull]
-        protected T GetPropertyValue<T>([CallerMemberName] string propertyName = null)
+        internal static DateTime? ParseDate([NotNull] string value)
 #endif
         {
-            var binding = GetFieldBinding(propertyName);
+            if (value.Length != 10 || value[4] != '-' || value[7] != '-') return null;
+            if (!TryParseDigits(value, 0, 4, out var year) || !TryParseDigits(value, 5, 2, out var month) || !TryParseDigits(value, 8, 2, out var day)) return null;
+            if (year < 1 || month < 1 || month > 12 || day < 1 || day > DateTime.DaysInMonth(year, month)) return null;
 
-            for (var index = 0; index < _fieldBag.Count; index++)
-            {
-                var field = _fieldBag[index];
-                if (field.Item1 == binding.FieldName) return ConvertFieldValue<T>(binding, field.Item2);
-            }
-
-            return default;
-        }
-
-#if NETCOREAPP3_0_OR_GREATER
-        protected T[] GetPropertyValues<T>([CallerMemberName] string? propertyName = null)
-#else
-        protected T[] GetPropertyValues<T>([CallerMemberName] string propertyName = null)
-#endif
-        {
-            var binding = GetFieldBinding(propertyName);
-
-            var count = 0;
-            for (var index = 0; index < _fieldBag.Count; index++)
-            {
-                if (_fieldBag[index].Item1 == binding.FieldName) count++;
-            }
-
-            if (count == 0) return EmptyArray<T>();
-
-            var fieldValues = new T[count];
-            var valueCount = 0;
-            for (var index = 0; index < _fieldBag.Count; index++)
-            {
-                var field = _fieldBag[index];
-                if (field.Item1 != binding.FieldName) continue;
-
-                var fieldValue = ConvertFieldValue<T>(binding, field.Item2);
-                if (fieldValue != null) fieldValues[valueCount++] = fieldValue;
-            }
-
-            if (valueCount < count) Array.Resize(ref fieldValues, valueCount);
-            return fieldValues;
-        }
-
-        #endregion
-
-        #region Private Methods
-
-#if NETCOREAPP3_0_OR_GREATER
-        private FieldBinding GetFieldBinding(string? propertyName)
-#else
-        [NotNull]
-        private FieldBinding GetFieldBinding([CanBeNull] string propertyName)
-#endif
-        {
-            var key = new FieldBindingKey(this.GetType(), propertyName ?? string.Empty);
-
-            // TryGetValue first, so that reading a cached binding allocates no delegate on targets whose compiler doesn't cache method group conversions
-            return FieldBindings.TryGetValue(key, out var binding) ? binding : FieldBindings.GetOrAdd(key, FieldBinding.Create);
-        }
-
-#if NETCOREAPP3_0_OR_GREATER
-        private static T? ConvertFieldValue<T>(FieldBinding binding, object fieldValue)
-#else
-        [CanBeNull]
-        private static T ConvertFieldValue<T>([NotNull] FieldBinding binding, [NotNull] object fieldValue)
-#endif
-        {
-            if (fieldValue is T value) return value;
-            if (!(fieldValue is string fieldValueString)) return default;
-
-            if (binding.IsDate)
-            {
-                var date = DateTime.ParseExact(fieldValueString, DateFormat, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces);
-
-                // the JIT removes the boxing from these casts when T is a value type
-                if (typeof(T) == typeof(DateTime)) return (T)(object)date;
-                if (typeof(T) == typeof(DateTime?)) return (T)(object)(DateTime?)date;
-                return (T)(object)date;
-            }
-
-            if (binding.Converter is null) return default;
-
-#if NETCOREAPP3_0_OR_GREATER
-            return (T?)binding.Converter.ConvertFromInvariantString(fieldValueString);
-#else
-            return (T)binding.Converter.ConvertFromInvariantString(fieldValueString);
-#endif
-        }
-
-        private static T[] EmptyArray<T>()
-        {
-#if NETSTANDARD1_1
-            return new T[0];
-#else
-            return Array.Empty<T>();
-#endif
-        }
-
-        #endregion
-
-        #region Nested Types
-
-        private readonly struct FieldBindingKey : IEquatable<FieldBindingKey>
-        {
-#if NETCOREAPP3_0_OR_GREATER
-            internal FieldBindingKey(Type recordType, string propertyName)
-#else
-            internal FieldBindingKey([NotNull] Type recordType, [NotNull] string propertyName)
-#endif
-            {
-                RecordType = recordType;
-                PropertyName = propertyName;
-            }
-
-            internal Type RecordType { get; }
-
-            internal string PropertyName { get; }
-
-            public bool Equals(FieldBindingKey other)
-            {
-                return RecordType == other.RecordType && string.Equals(PropertyName, other.PropertyName, StringComparison.Ordinal);
-            }
-
-#if NETCOREAPP3_0_OR_GREATER
-            public override bool Equals(object? obj)
-#else
-            public override bool Equals(object obj)
-#endif
-            {
-                return obj is FieldBindingKey other && Equals(other);
-            }
-
-            public override int GetHashCode()
-            {
-                unchecked
-                {
-                    return (RecordType.GetHashCode() * 397) ^ StringComparer.Ordinal.GetHashCode(PropertyName);
-                }
-            }
+            return new DateTime(year, month, day);
         }
 
         /// <summary>
-        /// The field a record property reads, and how the field's string is converted to the property's type.
+        /// Gets a read-only view of the bodies of a field that may appear more than once, creating it if it doesn't exist yet.
         /// </summary>
-        /// <remarks>
-        /// The property is resolved through the type hierarchy, so a property inherited from a base record class is found with its <see cref="SubtagRegistryFieldAttribute"/> (#242).
-        /// </remarks>
-        private sealed class FieldBinding
-        {
 #if NETCOREAPP3_0_OR_GREATER
-            private FieldBinding(string fieldName, bool isDate, TypeConverter? converter)
+        internal static IReadOnlyList<string> GetValuesView(string[] values, ref ReadOnlyCollection<string>? view)
 #else
-            private FieldBinding([NotNull] string fieldName, bool isDate, [CanBeNull] TypeConverter converter)
+        internal static IReadOnlyList<string> GetValuesView([NotNull] string[] values, [CanBeNull] ref ReadOnlyCollection<string> view)
 #endif
+        {
+            return values.Length == 0 ? NoValuesView : view ?? (view = new ReadOnlyCollection<string>(values));
+        }
+
+        /// <summary>
+        /// Gets the first body of a field, or <see langword="null"/> when the record has no such field.
+        /// </summary>
+#if NETCOREAPP3_0_OR_GREATER
+        internal static string? GetFirstValue(KeyValuePair<string, string>[] fields, string fieldName)
+#else
+        [CanBeNull]
+        internal static string GetFirstValue([NotNull] KeyValuePair<string, string>[] fields, [NotNull] string fieldName)
+#endif
+        {
+            foreach (var field in fields)
             {
-                FieldName = fieldName;
-                IsDate = isDate;
-                Converter = converter;
+                if (field.Key == fieldName) return field.Value;
             }
 
-            internal string FieldName { get; }
+            return null;
+        }
 
-            /// <summary>
-            /// Gets whether the property is a <see cref="DateTime"/>, or a nullable one, read from a registry date (<c>yyyy-MM-dd</c>, ref. RFC 5646 §3.1.2).
-            /// </summary>
-            internal bool IsDate { get; }
-
-            /// <summary>
-            /// Gets the converter for a property of any other type, or <see langword="null"/> when there is no such property.
-            /// </summary>
+        /// <summary>
+        /// Collect the bodies of every field with a name, in the order they appear.
+        /// </summary>
 #if NETCOREAPP3_0_OR_GREATER
-            internal TypeConverter? Converter { get; }
+        internal static string[] GetValues(KeyValuePair<string, string>[] fields, string fieldName, int count)
 #else
-            [CanBeNull]
-            internal TypeConverter Converter { get; }
+        internal static string[] GetValues([NotNull] KeyValuePair<string, string>[] fields, [NotNull] string fieldName, int count)
 #endif
+        {
+            if (count == 0) return NoValues;
 
-            internal static FieldBinding Create(FieldBindingKey key)
+            var values = new string[count];
+            var valueCount = 0;
+            for (var index = 0; index < fields.Length && valueCount < count; index++)
             {
-                var property = key.RecordType.GetRuntimeProperty(key.PropertyName);
-                if (property is null) return new FieldBinding(key.PropertyName, false, null);
-
-                var fieldName = property.GetCustomAttribute<SubtagRegistryFieldAttribute>()?.FieldName ?? key.PropertyName;
-                var propertyType = property.PropertyType;
-                if (propertyType == typeof(DateTime) || propertyType == typeof(DateTime?)) return new FieldBinding(fieldName, true, null);
-
-                return new FieldBinding(fieldName, false, TypeDescriptor.GetConverter(propertyType));
+                if (fields[index].Key == fieldName) values[valueCount++] = fields[index].Value;
             }
+
+            return values;
         }
 
-        #endregion
-
-        #region Implementation of IEnumerable
-
-        IEnumerator<Tuple<string, object>> IEnumerable<Tuple<string, object>>.GetEnumerator()
+        private static bool TryParseDigits(string value, int start, int length, out int number)
         {
-            return _fieldBag.GetEnumerator();
+            number = 0;
+            for (var index = start; index < start + length; index++)
+            {
+                var digit = value[index] - '0';
+                if (digit < 0 || digit > 9) return false;
+
+                number = number * 10 + digit;
+            }
+
+            return true;
         }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return ((IEnumerable)_fieldBag).GetEnumerator();
-        }
-
-        #endregion
-
-        #region Implementation of ICollection<Tuple<string,object>>
-
-        void ICollection<Tuple<string, object>>.Add(Tuple<string, object> item)
-        {
-            _fieldBag.Add(item);
-        }
-
-        void ICollection<Tuple<string, object>>.Clear()
-        {
-            _fieldBag.Clear();
-        }
-
-        bool ICollection<Tuple<string, object>>.Contains(Tuple<string, object> item)
-        {
-            return _fieldBag.Contains(item);
-        }
-
-        void ICollection<Tuple<string, object>>.CopyTo(Tuple<string, object>[] array, int arrayIndex)
-        {
-            _fieldBag.CopyTo(array, arrayIndex);
-        }
-
-        bool ICollection<Tuple<string, object>>.Remove(Tuple<string, object> item)
-        {
-            return _fieldBag.Remove(item);
-        }
-
-        int ICollection<Tuple<string, object>>.Count => _fieldBag.Count;
-
-        bool ICollection<Tuple<string, object>>.IsReadOnly => ((ICollection<Tuple<string, object>>)_fieldBag).IsReadOnly;
-
-        #endregion
-
-        #region Implementation of IList<Tuple<string,object>>
-
-        int IList<Tuple<string, object>>.IndexOf(Tuple<string, object> item)
-        {
-            return _fieldBag.IndexOf(item);
-        }
-
-        void IList<Tuple<string, object>>.Insert(int index, Tuple<string, object> item)
-        {
-            _fieldBag.Insert(index, item);
-        }
-
-        void IList<Tuple<string, object>>.RemoveAt(int index)
-        {
-            _fieldBag.RemoveAt(index);
-        }
-
-        Tuple<string, object> IList<Tuple<string, object>>.this[int index]
-        {
-            get => _fieldBag[index];
-            set => _fieldBag[index] = value;
-        }
-
-        #endregion
     }
 }

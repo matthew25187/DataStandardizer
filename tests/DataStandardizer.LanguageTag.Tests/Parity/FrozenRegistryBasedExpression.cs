@@ -69,10 +69,8 @@ namespace DataStandardizer.LanguageTag.Tests.Parity
         private static IEnumerable<string> GetValues(SubtagRegistry.SubtagRegistry subtagRegistry, string type, string fieldName)
         {
             return subtagRegistry
-                .Where(record => record.Any(field => field.Item1 == FieldNameType && field.Item2.Equals(type)))
-                .Select(record => record.FirstOrDefault(field => field.Item1 == fieldName))
-                .Where(field => field != null)
-                .Select(field => field.Item2 as string)
+                .Where(record => record.Fields.Any(field => field.Key == FieldNameType && field.Value == type))
+                .Select(record => record.Fields.Where(field => field.Key == fieldName).Select(field => field.Value).FirstOrDefault())
                 .Where(value => value != null);
         }
 

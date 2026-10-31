@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
+#if NETSTANDARD
+using JetBrains.Annotations;
+#endif
 using static DataStandardizer.LanguageTag.SubtagRegistry.SubtagRegistryConstants;
 
 namespace DataStandardizer.LanguageTag.SubtagRegistry
@@ -8,18 +10,22 @@ namespace DataStandardizer.LanguageTag.SubtagRegistry
     /// <summary>
     /// File-Date record from the IANA Subtag Registry.
     /// </summary>
-    public class SubtagRegistryFileDateRecord : SubtagRegistryRecordBase
+    public sealed class SubtagRegistryFileDateRecord : SubtagRegistryRecordBase
     {
-        public SubtagRegistryFileDateRecord(Tuple<string, object> field)
+#if NETCOREAPP3_0_OR_GREATER
+        internal SubtagRegistryFileDateRecord(KeyValuePair<string, string>[] fields)
+#else
+        internal SubtagRegistryFileDateRecord([NotNull] KeyValuePair<string, string>[] fields)
+#endif
+            : base(fields)
         {
-            ((IList<Tuple<string, object>>)this).Add(field);
+            var fileDate = GetFirstValue(fields, FieldName.FileDate);
+            FileDate = (fileDate is null ? null : ParseDate(fileDate)) ?? default(DateTime);
         }
 
         /// <summary>
-        /// Gets or sets the File-Date field value.
+        /// Gets the File-Date field value, or the default <see cref="DateTime"/> when it is not a date in the <c>yyyy-MM-dd</c> form.
         /// </summary>
-        [SubtagRegistryField(FieldName.FileDate)]
-        [TypeConverter(typeof(DateTimeConverter))]
-        public DateTime FileDate => GetPropertyValue<DateTime>();
+        public DateTime FileDate { get; }
     }
 }
