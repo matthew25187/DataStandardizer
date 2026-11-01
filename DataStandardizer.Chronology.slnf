@@ -3,6 +3,7 @@
     "path": "DataStandardizer.sln",
     "projects": [
       "src\\DataStandardizer.Chronology\\DataStandardizer.Chronology.csproj",
+      "tests\\DataStandardizer.Chronology.IntegrationTests\\DataStandardizer.Chronology.IntegrationTests.csproj",
       "tests\\DataStandardizer.Chronology.Tests\\DataStandardizer.Chronology.Tests.csproj"
     ]
   }

@@ -1,6 +1,6 @@
-using System.Globalization;
-using System.Reflection;
 using FluentAssertions;
+using static DataStandardizer.Chronology.Tests.TzAbbreviations;
+using static DataStandardizer.Chronology.Tests.TzOffsets;
 
 namespace DataStandardizer.Chronology.Tests;
 
@@ -9,524 +9,809 @@ namespace DataStandardizer.Chronology.Tests;
 /// </remarks>
 public class TzDataExtensionsOffsetTests
 {
+    // The FORMAT column of a Zone line (zic(8)): a numeric abbreviation, a letter substitution, and a pair of abbreviations.
+    private const string NumericFormat = "%z";
+    private const string EasternFormat = "E%sT";
+    private const string IrishFormat = "IST/GMT";
+    private const string LetterFormat = "%s";
+    private const string LondonFormat = "GMT/BST";
+
     private static readonly TzDataTimezone UnknownTimezone = (TzDataTimezone)"Nowhere/Nothing";
 
-    private static IEnumerable<TzDataTimezone> GetTimezoneFields(Type hostType)
-    {
-        var fields = hostType.GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
-            .Where(field => field.FieldType == typeof(TzDataTimezone))
-            .Select(field => (TzDataTimezone)field.GetValue(null)!);
-        var nestedFields = hostType.GetNestedTypes(BindingFlags.Public)
-            .SelectMany(GetTimezoneFields);
+    // An instant away from any transition.
+    private static readonly DateTime July2025 = new(2025, 7, 1, 12, 0, 0, DateTimeKind.Utc);
 
-        return fields.Concat(nestedFields);
-    }
+    // The start of a period, and the last tick before it.
+    private static readonly DateTime StartOfJuly2025 = new(2025, 7, 1, 0, 0, 0, DateTimeKind.Utc);
+    private static readonly DateTime JustBeforeJuly2025 = StartOfJuly2025.AddTicks(-1);
 
-    private static DateTime ParseUtc(string value) => DateTime.ParseExact(value, "yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal);
+    // America/New_York: the start of daylight saving time in 2007, under the rules then new; the same instant in Asia/Kolkata time,
+    // and the last tick before it; and the same instant as a time of unspecified kind.
+    private static readonly DateTime NewYorkDaylightStart2007 = new(2007, 3, 11, 7, 0, 0, DateTimeKind.Utc);
+    private static readonly DateTimeOffset NewYorkDaylightStart2007InKolkata = new(2007, 3, 11, 12, 30, 0, UtcPlus0530);
+    private static readonly DateTimeOffset JustBeforeNewYorkDaylightStart2007InKolkata = NewYorkDaylightStart2007InKolkata.AddTicks(-1);
+    private static readonly DateTimeOffset JustAfterNewYorkDaylightStart2007InKolkata = NewYorkDaylightStart2007InKolkata.AddTicks(1);
+    private static readonly DateTime NewYorkDaylightStart2007Unspecified = new(2007, 3, 11, 7, 0, 0, DateTimeKind.Unspecified);
+    private static readonly DateTime JustAfterNewYorkDaylightStart2007Unspecified = NewYorkDaylightStart2007Unspecified.AddTicks(1);
 
-    private static TimeSpan ParseOffset(string value) => TimeSpan.Parse(value, CultureInfo.InvariantCulture);
+    // America/New_York: the end of local mean time.
+    private static readonly DateTime NewYorkStandardTimeStart = new(1883, 11, 18, 17, 0, 0, DateTimeKind.Utc);
+    private static readonly DateTime JustBeforeNewYorkStandardTimeStart = NewYorkStandardTimeStart.AddTicks(-1);
 
-    public static IEnumerable<object[]> KnownTransition_TestCases
-    {
-        get
-        {
-            // America/New_York: local mean time with seconds, then the US rules before and after the 2007 change.
-            yield return new object[] { "America/New_York", "1883-11-18T17:00:00", "-04:56:02", false, "LMT", "-05:00", false, "EST" };
-            yield return new object[] { "America/New_York", "2006-04-02T07:00:00", "-05:00", false, "EST", "-04:00", true, "EDT" };
-            yield return new object[] { "America/New_York", "2006-10-29T06:00:00", "-04:00", true, "EDT", "-05:00", false, "EST" };
-            yield return new object[] { "America/New_York", "2007-03-11T07:00:00", "-05:00", false, "EST", "-04:00", true, "EDT" };
-            yield return new object[] { "America/New_York", "2007-11-04T06:00:00", "-04:00", true, "EDT", "-05:00", false, "EST" };
-            // Europe/London: British Standard Time, +1 as standard time all year from 1968 to 1971.
-            yield return new object[] { "Europe/London", "1968-02-18T02:00:00", "00:00", false, "GMT", "01:00", true, "BST" };
-            yield return new object[] { "Europe/London", "1968-10-26T23:00:00", "01:00", true, "BST", "01:00", false, "BST" };
-            yield return new object[] { "Europe/London", "1971-10-31T02:00:00", "01:00", false, "BST", "00:00", false, "GMT" };
-            // Europe/Dublin: negative daylight saving, so that summer time is standard time.
-            yield return new object[] { "Europe/Dublin", "2025-03-30T01:00:00", "00:00", true, "GMT", "01:00", false, "IST" };
-            yield return new object[] { "Europe/Dublin", "2025-10-26T01:00:00", "01:00", false, "IST", "00:00", true, "GMT" };
-            // Australia/Lord_Howe: 30 minutes of daylight saving.
-            yield return new object[] { "Australia/Lord_Howe", "2025-04-05T15:00:00", "11:00", true, "+11", "10:30", false, "+1030" };
-            yield return new object[] { "Australia/Lord_Howe", "2025-10-04T15:30:00", "10:30", false, "+1030", "11:00", true, "+11" };
-            // Antarctica/Troll: two hours of daylight saving.
-            yield return new object[] { "Antarctica/Troll", "2025-03-30T01:00:00", "00:00", false, "+00", "02:00", true, "+02" };
-            yield return new object[] { "Antarctica/Troll", "2025-10-26T01:00:00", "02:00", true, "+02", "00:00", false, "+00" };
-            // Africa/Casablanca: negative daylight saving for Ramadan, then permanent +00 from September 2026.
-            yield return new object[] { "Africa/Casablanca", "2026-02-15T02:00:00", "01:00", false, "+01", "00:00", true, "+00" };
-            yield return new object[] { "Africa/Casablanca", "2026-03-22T02:00:00", "00:00", true, "+00", "01:00", false, "+01" };
-            yield return new object[] { "Africa/Casablanca", "2026-09-20T01:00:00", "01:00", false, "+01", "00:00", false, "+00" };
-            // Pacific/Apia: the move across the date line, which skipped December 30, 2011.
-            yield return new object[] { "Pacific/Apia", "2011-12-30T10:00:00", "-10:00", true, "-10", "14:00", true, "+14" };
-            // America/Sao_Paulo: the last transition before daylight saving was abolished in 2019.
-            yield return new object[] { "America/Sao_Paulo", "2019-02-17T02:00:00", "-02:00", true, "-02", "-03:00", false, "-03" };
-            // Asia/Kolkata: the last transition, after which +05:30 applies all year.
-            yield return new object[] { "Asia/Kolkata", "1945-10-14T17:30:00", "06:30", true, "+0630", "05:30", false, "IST" };
-            // America/New_York: beyond the last year of explicit data, from the rules that apply indefinitely.
-            yield return new object[] { "America/New_York", "2149-03-09T07:00:00", "-05:00", false, "EST", "-04:00", true, "EDT" };
-            yield return new object[] { "America/New_York", "2149-11-02T06:00:00", "-04:00", true, "EDT", "-05:00", false, "EST" };
-        }
-    }
+    // Pacific/Apia: the move across the date line, which skipped December 30, 2011.
+    private static readonly DateTime ApiaDateLineChange = new(2011, 12, 30, 10, 0, 0, DateTimeKind.Utc);
+    private static readonly DateTime JustBeforeApiaDateLineChange = ApiaDateLineChange.AddTicks(-1);
 
-    [Theory]
-    [MemberData(nameof(KnownTransition_TestCases))]
-    public void GetOffsetInfo_AroundTransition_ReturnsOldOffsetBeforeAndNewOffsetAt(string testIdentifier, string testInstant, string beforeOffset, bool beforeIsDaylightSavingTime, string beforeAbbreviation, string afterOffset, bool afterIsDaylightSavingTime, string afterAbbreviation)
-    {
-        // arrange
-        var testTimezone = (TzDataTimezone)testIdentifier;
-        var testInstantUtc = ParseUtc(testInstant);
+    // Europe/London: British Standard Time, +1 as standard time all year from 1968 to 1971.
+    private static readonly DateTime BritishStandardTimeStart = new(1968, 10, 26, 23, 0, 0, DateTimeKind.Utc);
+    private static readonly DateTime BritishStandardTimeEnd = new(1971, 10, 31, 2, 0, 0, DateTimeKind.Utc);
+    private static readonly DateTime StartOf1970 = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
-        // act
-        var testBefore = testTimezone.GetOffsetInfo(testInstantUtc.AddTicks(-1));
-        var testAt = testTimezone.GetOffsetInfo(testInstantUtc);
+    // The timezone and instant of a transition, then the offset, whether daylight saving time is in effect and the abbreviation, before and after it.
+    private static readonly (TzDataTimezone Timezone, DateTime Instant, TimeSpan BeforeOffset, bool BeforeIsDaylightSavingTime, string BeforeAbbreviation, TimeSpan AfterOffset, bool AfterIsDaylightSavingTime, string AfterAbbreviation)[] KnownTransitionCases =
+    [
+        // America/New_York: local mean time with seconds, then the US rules before and after the 2007 change.
+        (TzDataTimezone.America.New_York, NewYorkStandardTimeStart, UtcMinus045602, false, Lmt, UtcMinus0500, false, Est),
+        (TzDataTimezone.America.New_York, new DateTime(2006, 4, 2, 7, 0, 0, DateTimeKind.Utc), UtcMinus0500, false, Est, UtcMinus0400, true, Edt),
+        (TzDataTimezone.America.New_York, new DateTime(2006, 10, 29, 6, 0, 0, DateTimeKind.Utc), UtcMinus0400, true, Edt, UtcMinus0500, false, Est),
+        (TzDataTimezone.America.New_York, NewYorkDaylightStart2007, UtcMinus0500, false, Est, UtcMinus0400, true, Edt),
+        (TzDataTimezone.America.New_York, new DateTime(2007, 11, 4, 6, 0, 0, DateTimeKind.Utc), UtcMinus0400, true, Edt, UtcMinus0500, false, Est),
+        // Europe/London: British Standard Time, +1 as standard time all year from 1968 to 1971.
+        (TzDataTimezone.Europe.London, new DateTime(1968, 2, 18, 2, 0, 0, DateTimeKind.Utc), UtcZero, false, Gmt, UtcPlus0100, true, Bst),
+        (TzDataTimezone.Europe.London, BritishStandardTimeStart, UtcPlus0100, true, Bst, UtcPlus0100, false, Bst),
+        (TzDataTimezone.Europe.London, BritishStandardTimeEnd, UtcPlus0100, false, Bst, UtcZero, false, Gmt),
+        // Europe/Dublin: negative daylight saving, so that summer time is standard time.
+        (TzDataTimezone.Europe.Dublin, new DateTime(2025, 3, 30, 1, 0, 0, DateTimeKind.Utc), UtcZero, true, Gmt, UtcPlus0100, false, Ist),
+        (TzDataTimezone.Europe.Dublin, new DateTime(2025, 10, 26, 1, 0, 0, DateTimeKind.Utc), UtcPlus0100, false, Ist, UtcZero, true, Gmt),
+        // Australia/Lord_Howe: 30 minutes of daylight saving.
+        (TzDataTimezone.Australia.Lord_Howe, new DateTime(2025, 4, 5, 15, 0, 0, DateTimeKind.Utc), UtcPlus1100, true, Plus11, UtcPlus1030, false, Plus1030),
+        (TzDataTimezone.Australia.Lord_Howe, new DateTime(2025, 10, 4, 15, 30, 0, DateTimeKind.Utc), UtcPlus1030, false, Plus1030, UtcPlus1100, true, Plus11),
+        // Antarctica/Troll: two hours of daylight saving.
+        (TzDataTimezone.Antarctica.Troll, new DateTime(2025, 3, 30, 1, 0, 0, DateTimeKind.Utc), UtcZero, false, Plus00, UtcPlus0200, true, Plus02),
+        (TzDataTimezone.Antarctica.Troll, new DateTime(2025, 10, 26, 1, 0, 0, DateTimeKind.Utc), UtcPlus0200, true, Plus02, UtcZero, false, Plus00),
+        // Africa/Casablanca: negative daylight saving for Ramadan, then permanent +00 from September 2026.
+        (TzDataTimezone.Africa.Casablanca, new DateTime(2026, 2, 15, 2, 0, 0, DateTimeKind.Utc), UtcPlus0100, false, Plus01, UtcZero, true, Plus00),
+        (TzDataTimezone.Africa.Casablanca, new DateTime(2026, 3, 22, 2, 0, 0, DateTimeKind.Utc), UtcZero, true, Plus00, UtcPlus0100, false, Plus01),
+        (TzDataTimezone.Africa.Casablanca, new DateTime(2026, 9, 20, 1, 0, 0, DateTimeKind.Utc), UtcPlus0100, false, Plus01, UtcZero, false, Plus00),
+        // Pacific/Apia: the move across the date line, which skipped December 30, 2011.
+        (TzDataTimezone.Pacific.Apia, ApiaDateLineChange, UtcMinus1000, true, Minus10, UtcPlus1400, true, Plus14),
+        // America/Sao_Paulo: the last transition before daylight saving was abolished in 2019.
+        (TzDataTimezone.America.Sao_Paulo, new DateTime(2019, 2, 17, 2, 0, 0, DateTimeKind.Utc), UtcMinus0200, true, Minus02, UtcMinus0300, false, Minus03),
+        // Asia/Kolkata: the last transition, after which +05:30 applies all year.
+        (TzDataTimezone.Asia.Kolkata, new DateTime(1945, 10, 14, 17, 30, 0, DateTimeKind.Utc), UtcPlus0630, true, Plus0630, UtcPlus0530, false, Ist),
+        // America/New_York: beyond the last year of explicit data, from the rules that apply indefinitely.
+        (TzDataTimezone.America.New_York, new DateTime(2149, 3, 9, 7, 0, 0, DateTimeKind.Utc), UtcMinus0500, false, Est, UtcMinus0400, true, Edt),
+        (TzDataTimezone.America.New_York, new DateTime(2149, 11, 2, 6, 0, 0, DateTimeKind.Utc), UtcMinus0400, true, Edt, UtcMinus0500, false, Est),
+    ];
 
-        // assert
-        testBefore.UtcOffset.Should().Be(ParseOffset(beforeOffset), "{0} is at {1} until {2}", testIdentifier, beforeAbbreviation, testInstant);
-        testBefore.IsDaylightSavingTime.Should().Be(beforeIsDaylightSavingTime);
-        testBefore.Abbreviation.Should().Be(beforeAbbreviation);
-        testBefore.ValidUntilUtc.Should().Be(testInstantUtc, "the old offset ceases at the transition");
-        testAt.UtcOffset.Should().Be(ParseOffset(afterOffset), "{0} changes to {1} at {2}", testIdentifier, afterAbbreviation, testInstant);
-        testAt.IsDaylightSavingTime.Should().Be(afterIsDaylightSavingTime);
-        testAt.Abbreviation.Should().Be(afterAbbreviation);
-        testAt.ValidFromUtc.Should().Be(testInstantUtc, "the new offset takes effect at the transition");
-    }
+    // The timezone and instant, then the offset from universal time, the standard offset, the daylight saving, whether daylight saving time is in effect and the abbreviation.
+    private static readonly (TzDataTimezone Timezone, DateTime Instant, TimeSpan UtcOffset, TimeSpan StandardOffset, TimeSpan DaylightSavings, bool IsDaylightSavingTime, string Abbreviation)[] OffsetComponentCases =
+    [
+        (TzDataTimezone.America.New_York, new DateTime(1880, 1, 1, 0, 0, 0, DateTimeKind.Utc), UtcMinus045602, UtcMinus045602, UtcZero, false, Lmt),
+        (TzDataTimezone.America.New_York, new DateTime(2025, 1, 15, 12, 0, 0, DateTimeKind.Utc), UtcMinus0500, UtcMinus0500, UtcZero, false, Est),
+        (TzDataTimezone.America.New_York, July2025, UtcMinus0400, UtcMinus0500, UtcPlus0100, true, Edt),
+        (TzDataTimezone.Europe.London, StartOf1970, UtcPlus0100, UtcPlus0100, UtcZero, false, Bst),
+        (TzDataTimezone.Europe.London, July2025, UtcPlus0100, UtcZero, UtcPlus0100, true, Bst),
+        (TzDataTimezone.Europe.Dublin, new DateTime(2025, 1, 15, 12, 0, 0, DateTimeKind.Utc), UtcZero, UtcPlus0100, UtcMinus0100, true, Gmt),
+        (TzDataTimezone.Europe.Dublin, July2025, UtcPlus0100, UtcPlus0100, UtcZero, false, Ist),
+        (TzDataTimezone.Australia.Lord_Howe, new DateTime(2025, 1, 15, 12, 0, 0, DateTimeKind.Utc), UtcPlus1100, UtcPlus1030, UtcPlus0030, true, Plus11),
+        (TzDataTimezone.Antarctica.Troll, July2025, UtcPlus0200, UtcZero, UtcPlus0200, true, Plus02),
+        (TzDataTimezone.Africa.Casablanca, new DateTime(2026, 3, 1, 12, 0, 0, DateTimeKind.Utc), UtcZero, UtcPlus0100, UtcMinus0100, true, Plus00),
+        (TzDataTimezone.Africa.Casablanca, new DateTime(2027, 3, 1, 12, 0, 0, DateTimeKind.Utc), UtcZero, UtcZero, UtcZero, false, Plus00),
+        (TzDataTimezone.Pacific.Apia, new DateTime(2011, 12, 31, 12, 0, 0, DateTimeKind.Utc), UtcPlus1400, UtcPlus1300, UtcPlus0100, true, Plus14),
+        (TzDataTimezone.America.Sao_Paulo, new DateTime(2025, 1, 15, 12, 0, 0, DateTimeKind.Utc), UtcMinus0300, UtcMinus0300, UtcZero, false, Minus03),
+        (TzDataTimezone.Asia.Kolkata, July2025, UtcPlus0530, UtcPlus0530, UtcZero, false, Ist),
+    ];
 
-    [Theory]
-    [MemberData(nameof(KnownTransition_TestCases))]
-    public void GetTransitions_PeriodAroundTransition_ReturnsTransition(string testIdentifier, string testInstant, string beforeOffset, bool beforeIsDaylightSavingTime, string beforeAbbreviation, string afterOffset, bool afterIsDaylightSavingTime, string afterAbbreviation)
-    {
-        // arrange
-        var testTimezone = (TzDataTimezone)testIdentifier;
-        var testInstantUtc = ParseUtc(testInstant);
+    // America/New_York beyond the last year of explicit data: the US rules from 2007 move clocks forward on the second Sunday in March,
+    // and back on the first Sunday in November, both at 2:00 wall clock time, which is 07:00 and 06:00 universal time.
+    private static readonly (int Year, DateTime DaylightStart, DateTime DaylightEnd)[] IndefiniteRuleYearCases =
+    [
+        (2150, new DateTime(2150, 3, 8, 7, 0, 0, DateTimeKind.Utc), new DateTime(2150, 11, 1, 6, 0, 0, DateTimeKind.Utc)),
+        (2500, new DateTime(2500, 3, 14, 7, 0, 0, DateTimeKind.Utc), new DateTime(2500, 11, 7, 6, 0, 0, DateTimeKind.Utc)),
+        (5000, new DateTime(5000, 3, 9, 7, 0, 0, DateTimeKind.Utc), new DateTime(5000, 11, 2, 6, 0, 0, DateTimeKind.Utc)),
+        (9998, new DateTime(9998, 3, 8, 7, 0, 0, DateTimeKind.Utc), new DateTime(9998, 11, 1, 6, 0, 0, DateTimeKind.Utc)),
+    ];
 
-        // act
-        var testResult = testTimezone.GetTransitions(testInstantUtc.AddDays(-1), testInstantUtc.AddDays(1)).ToList();
-        var testStartingAtTransition = testTimezone.GetTransitions(testInstantUtc, testInstantUtc.AddTicks(1)).ToList();
-        var testEndingAtTransition = testTimezone.GetTransitions(testInstantUtc.AddDays(-1), testInstantUtc).ToList();
+    #region Transitions
 
-        // assert
-        testResult.Should().ContainSingle("{0} has one transition within a day of {1}", testIdentifier, testInstant);
-        var transition = testResult[0];
-        transition.InstantUtc.Should().Be(testInstantUtc);
-        transition.InstantUtc.Kind.Should().Be(DateTimeKind.Utc);
-        transition.Before.UtcOffset.Should().Be(ParseOffset(beforeOffset));
-        transition.Before.IsDaylightSavingTime.Should().Be(beforeIsDaylightSavingTime);
-        transition.Before.Abbreviation.Should().Be(beforeAbbreviation);
-        transition.Before.ValidUntilUtc.Should().Be(testInstantUtc);
-        transition.After.UtcOffset.Should().Be(ParseOffset(afterOffset));
-        transition.After.IsDaylightSavingTime.Should().Be(afterIsDaylightSavingTime);
-        transition.After.Abbreviation.Should().Be(afterAbbreviation);
-        transition.After.ValidFromUtc.Should().Be(testInstantUtc);
-        testStartingAtTransition.Should().Equal(new[] { transition }, "the start of the period is included");
-        testEndingAtTransition.Should().BeEmpty("the end of the period is excluded");
-    }
-
-    public static IEnumerable<object[]> OffsetComponents_TestCases
+    public static TheoryData<TzDataTimezone, DateTime, TimeSpan, bool, string, DateTime> JustBeforeTransition_TestCases
     {
         get
         {
-            yield return new object[] { "America/New_York", "1880-01-01T00:00:00", "-04:56:02", "00:00", false, "LMT" };
-            yield return new object[] { "America/New_York", "2025-01-15T12:00:00", "-05:00", "00:00", false, "EST" };
-            yield return new object[] { "America/New_York", "2025-07-01T12:00:00", "-05:00", "01:00", true, "EDT" };
-            yield return new object[] { "Europe/London", "1970-01-01T00:00:00", "01:00", "00:00", false, "BST" };
-            yield return new object[] { "Europe/London", "2025-07-01T12:00:00", "00:00", "01:00", true, "BST" };
-            yield return new object[] { "Europe/Dublin", "2025-01-15T12:00:00", "01:00", "-01:00", true, "GMT" };
-            yield return new object[] { "Europe/Dublin", "2025-07-01T12:00:00", "01:00", "00:00", false, "IST" };
-            yield return new object[] { "Australia/Lord_Howe", "2025-01-15T12:00:00", "10:30", "00:30", true, "+11" };
-            yield return new object[] { "Antarctica/Troll", "2025-07-01T12:00:00", "00:00", "02:00", true, "+02" };
-            yield return new object[] { "Africa/Casablanca", "2026-03-01T12:00:00", "01:00", "-01:00", true, "+00" };
-            yield return new object[] { "Africa/Casablanca", "2027-03-01T12:00:00", "00:00", "00:00", false, "+00" };
-            yield return new object[] { "Pacific/Apia", "2011-12-31T12:00:00", "13:00", "01:00", true, "+14" };
-            yield return new object[] { "America/Sao_Paulo", "2025-01-15T12:00:00", "-03:00", "00:00", false, "-03" };
-            yield return new object[] { "Asia/Kolkata", "2025-07-01T12:00:00", "05:30", "00:00", false, "IST" };
+            var testCases = new TheoryData<TzDataTimezone, DateTime, TimeSpan, bool, string, DateTime>();
+            foreach (var testCase in KnownTransitionCases)
+                testCases.Add(testCase.Timezone, testCase.Instant.AddTicks(-1), testCase.BeforeOffset, testCase.BeforeIsDaylightSavingTime, testCase.BeforeAbbreviation, testCase.Instant);
+
+            return testCases;
         }
     }
 
-    [Theory]
-    [MemberData(nameof(OffsetComponents_TestCases))]
-    public void OffsetMethods_Instant_ReturnOffsetComponents(string testIdentifier, string testInstant, string expectedStandardOffset, string expectedDaylightSavings, bool expectedIsDaylightSavingTime, string expectedAbbreviation)
-    {
-        // arrange
-        var testTimezone = (TzDataTimezone)testIdentifier;
-        var testInstantUtc = ParseUtc(testInstant);
-        var standardOffset = ParseOffset(expectedStandardOffset);
-        var daylightSavings = ParseOffset(expectedDaylightSavings);
-
-        // act
-        var testUtcOffset = testTimezone.GetUtcOffset(testInstantUtc);
-        var testStandardOffset = testTimezone.GetStandardOffset(testInstantUtc);
-        var testDaylightSavings = testTimezone.GetDaylightSavings(testInstantUtc);
-        var testIsDaylightSavingTime = testTimezone.IsDaylightSavingTime(testInstantUtc);
-        var testOffsetInfo = testTimezone.GetOffsetInfo(testInstantUtc);
-
-        // assert
-        testUtcOffset.Should().Be(standardOffset + daylightSavings, "the offset of {0} at {1} is the sum of its standard offset and daylight saving", testIdentifier, testInstant);
-        testStandardOffset.Should().Be(standardOffset);
-        testDaylightSavings.Should().Be(daylightSavings);
-        testIsDaylightSavingTime.Should().Be(expectedIsDaylightSavingTime);
-        testOffsetInfo.Abbreviation.Should().Be(expectedAbbreviation);
-    }
-
-    [Theory]
-    [InlineData("America/Sao_Paulo", "2019-02-17T02:00:01")]
-    [InlineData("Asia/Kolkata", "1945-10-14T17:30:01")]
-    [InlineData("Africa/Casablanca", "2026-09-20T01:00:01")]
-    public void GetTransitions_AfterLastTransition_ReturnsNone(string testIdentifier, string testFrom)
-    {
-        // arrange
-        var testTimezone = (TzDataTimezone)testIdentifier;
-
-        // act
-        var testResult = testTimezone.GetTransitions(ParseUtc(testFrom), DateTime.MaxValue);
-
-        // assert
-        testResult.Should().BeEmpty("{0} has no transitions after {1}", testIdentifier, testFrom);
-        testTimezone.GetOffsetInfo(DateTime.MaxValue).ValidUntilUtc.Should().BeNull("the last offset of {0} applies indefinitely", testIdentifier);
-    }
-
-    [Theory]
-    [InlineData(2150)]
-    [InlineData(2500)]
-    [InlineData(5000)]
-    [InlineData(9998)]
-    public void GetTransitions_YearBeyondExplicitData_ReturnsTransitionsOfIndefiniteRules(int testYear)
-    {
-        // arrange
-        var testTimezone = TzDataTimezone.America.New_York;
-        // The US rules from 2007: the second Sunday in March and the first Sunday in November, both at 2:00 wall clock time.
-        var expectedStart = TzDataDayRule.Resolve(testYear, 3, TzDataDayKind.WeekdayOnOrAfter, 8, DayOfWeek.Sunday).AddHours(7);
-        var expectedEnd = TzDataDayRule.Resolve(testYear, 11, TzDataDayKind.WeekdayOnOrAfter, 1, DayOfWeek.Sunday).AddHours(6);
-
-        // act
-        var testResult = testTimezone.GetTransitions(new DateTime(testYear, 1, 1, 0, 0, 0, DateTimeKind.Utc), new DateTime(testYear + 1, 1, 1, 0, 0, 0, DateTimeKind.Utc)).ToList();
-
-        // assert
-        testResult.Select(transition => transition.InstantUtc).Should().Equal(DateTime.SpecifyKind(expectedStart, DateTimeKind.Utc), DateTime.SpecifyKind(expectedEnd, DateTimeKind.Utc));
-        testResult[0].After.Abbreviation.Should().Be("EDT");
-        testResult[1].After.Abbreviation.Should().Be("EST");
-        testTimezone.GetUtcOffset(new DateTime(testYear, 7, 1, 0, 0, 0, DateTimeKind.Utc)).Should().Be(TimeSpan.FromHours(-4));
-    }
-
-    [Fact]
-    public void GetTransitions_WholeRange_ChainsOffsetsForEveryTimezone()
-    {
-        // arrange
-        var testTimezones = GetTimezoneFields(typeof(TzDataTimezone)).ToList();
-
-        foreach (var testTimezone in testTimezones)
-        {
-            // act
-            var testResult = testTimezone.GetTransitions(DateTime.MinValue, DateTime.MaxValue).ToList();
-
-            // assert
-            var expectedBefore = testTimezone.GetOffsetInfo(DateTime.MinValue);
-            foreach (var transition in testResult)
-            {
-                transition.Before.Should().Be(expectedBefore, "each transition of {0} follows the offset before it", (string)testTimezone!);
-                transition.After.ValidFromUtc.Should().Be(transition.InstantUtc);
-                expectedBefore = transition.After;
-            }
-
-            expectedBefore.ValidUntilUtc.Should().BeNull("the offset after the last transition of {0} applies indefinitely", (string)testTimezone!);
-        }
-    }
-
-    [Fact]
-    public void GetZoneLine_InstantsAroundZoneLineChange_ReturnZoneLineInForce()
-    {
-        // arrange
-        var testTimezone = TzDataTimezone.America.New_York;
-        var testChange = ParseUtc("1883-11-18T17:00:00");
-
-        // act
-        var testBefore = testTimezone.GetZoneLine(testChange.AddTicks(-1));
-        var testAt = testTimezone.GetZoneLine(testChange);
-
-        // assert
-        testBefore.Should().BeSameAs(testTimezone.ZoneLines[0], "local mean time applies until 17:00 universal time");
-        testAt.Should().BeSameAs(testTimezone.ZoneLines[1], "Eastern Standard Time applies from 17:00 universal time");
-    }
-
-    [Fact]
-    public void GetZoneLine_DateLineChange_ReturnsZoneLineInForce()
-    {
-        // arrange
-        var testTimezone = TzDataTimezone.Pacific.Apia;
-        var testChange = ParseUtc("2011-12-30T10:00:00");
-
-        // act
-        var testBefore = testTimezone.GetZoneLine(testChange.AddTicks(-1));
-        var testAt = testTimezone.GetZoneLine(testChange);
-
-        // assert
-        testBefore.StandardOffset.Should().Be(TimeSpan.FromHours(-11));
-        testAt.StandardOffset.Should().Be(TimeSpan.FromHours(13));
-        testAt.Should().BeSameAs(testTimezone.ZoneLines[testTimezone.ZoneLines.Count - 1]);
-    }
-
-    [Fact]
-    public void GetZoneLine_RangeLimits_ReturnFirstAndLastZoneLines()
-    {
-        // arrange
-        var testTimezone = TzDataTimezone.Europe.London;
-
-        // act
-        var testFirst = testTimezone.GetZoneLine(DateTime.MinValue);
-        var testLast = testTimezone.GetZoneLine(DateTime.MaxValue);
-
-        // assert
-        testFirst.Should().BeSameAs(testTimezone.ZoneLines[0]);
-        testLast.Should().BeSameAs(testTimezone.ZoneLines[testTimezone.ZoneLines.Count - 1]);
-    }
-
-    [Fact]
-    public void OffsetMethods_UnspecifiedKind_TreatedAsUniversalTime()
-    {
-        // arrange
-        var testTimezone = TzDataTimezone.America.New_York;
-        var testUtc = ParseUtc("2007-03-11T07:00:00");
-        var testUnspecified = DateTime.SpecifyKind(testUtc, DateTimeKind.Unspecified);
-
-        // act
-        var testResult = testTimezone.GetOffsetInfo(testUnspecified);
-
-        // assert
-        testResult.Should().Be(testTimezone.GetOffsetInfo(testUtc));
-        testTimezone.GetTransitions(testUnspecified, testUnspecified.AddTicks(1)).Should().ContainSingle();
-    }
-
-    [Fact]
-    public void OffsetMethods_DateTimeOffset_UseInstant()
-    {
-        // arrange
-        var testTimezone = TzDataTimezone.America.New_York;
-        var testUtc = ParseUtc("2007-03-11T07:00:00");
-        var testInstant = new DateTimeOffset(testUtc).ToOffset(TimeSpan.FromHours(5.5));
-
-        // act & assert
-        testTimezone.GetZoneLine(testInstant).Should().BeSameAs(testTimezone.GetZoneLine(testUtc));
-        testTimezone.GetUtcOffset(testInstant).Should().Be(TimeSpan.FromHours(-4));
-        testTimezone.GetStandardOffset(testInstant).Should().Be(TimeSpan.FromHours(-5));
-        testTimezone.GetDaylightSavings(testInstant).Should().Be(TimeSpan.FromHours(1));
-        testTimezone.IsDaylightSavingTime(testInstant).Should().BeTrue();
-        testTimezone.GetOffsetInfo(testInstant).Should().Be(testTimezone.GetOffsetInfo(testUtc));
-        testTimezone.GetOffsetInfo(testInstant.AddTicks(-1)).Should().Be(testTimezone.GetOffsetInfo(testUtc.AddTicks(-1)));
-        testTimezone.GetTransitions(testInstant, testInstant.AddTicks(1)).Should().ContainSingle().Which.InstantUtc.Should().Be(testUtc);
-    }
-
-    [Fact]
-    public void OffsetMethods_CastInstance_MatchField()
-    {
-        // arrange
-        var testField = TzDataTimezone.Europe.London;
-        var testCast = (TzDataTimezone)"Europe/London";
-        var testUtc = ParseUtc("1970-01-01T00:00:00");
-
-        // act
-        var testResult = testCast.GetOffsetInfo(testUtc);
-
-        // assert
-        testResult.Should().Be(testField.GetOffsetInfo(testUtc));
-    }
-
-    public static IEnumerable<object[]> OffsetMethod_TestCases
+    public static TheoryData<TzDataTimezone, DateTime, TimeSpan, bool, string> AtTransition_TestCases
     {
         get
         {
-            yield return new object[] { nameof(TzDataExtensions.GetZoneLine), new Action<TzDataTimezone, DateTime>((timezone, utc) => timezone.GetZoneLine(utc)) };
-            yield return new object[] { nameof(TzDataExtensions.GetUtcOffset), new Action<TzDataTimezone, DateTime>((timezone, utc) => timezone.GetUtcOffset(utc)) };
-            yield return new object[] { nameof(TzDataExtensions.GetStandardOffset), new Action<TzDataTimezone, DateTime>((timezone, utc) => timezone.GetStandardOffset(utc)) };
-            yield return new object[] { nameof(TzDataExtensions.GetDaylightSavings), new Action<TzDataTimezone, DateTime>((timezone, utc) => timezone.GetDaylightSavings(utc)) };
-            yield return new object[] { nameof(TzDataExtensions.IsDaylightSavingTime), new Action<TzDataTimezone, DateTime>((timezone, utc) => timezone.IsDaylightSavingTime(utc)) };
-            yield return new object[] { nameof(TzDataExtensions.GetOffsetInfo), new Action<TzDataTimezone, DateTime>((timezone, utc) => timezone.GetOffsetInfo(utc)) };
-            yield return new object[] { nameof(TzDataExtensions.GetAbbreviation), new Action<TzDataTimezone, DateTime>((timezone, utc) => timezone.GetAbbreviation(utc)) };
-            yield return new object[] { nameof(TzDataExtensions.GetStandardAbbreviation), new Action<TzDataTimezone, DateTime>((timezone, utc) => timezone.GetStandardAbbreviation(utc)) };
-            yield return new object[] { nameof(TzDataExtensions.GetDaylightAbbreviation), new Action<TzDataTimezone, DateTime>((timezone, utc) => timezone.GetDaylightAbbreviation(utc)) };
-            yield return new object[] { $"{nameof(TzDataExtensions.GetTransitions)}(from)", new Action<TzDataTimezone, DateTime>((timezone, utc) => timezone.GetTransitions(utc, DateTime.MaxValue)) };
-            yield return new object[] { $"{nameof(TzDataExtensions.GetTransitions)}(to)", new Action<TzDataTimezone, DateTime>((timezone, utc) => timezone.GetTransitions(DateTime.MinValue, utc)) };
+            var testCases = new TheoryData<TzDataTimezone, DateTime, TimeSpan, bool, string>();
+            foreach (var testCase in KnownTransitionCases)
+                testCases.Add(testCase.Timezone, testCase.Instant, testCase.AfterOffset, testCase.AfterIsDaylightSavingTime, testCase.AfterAbbreviation);
+
+            return testCases;
         }
     }
 
-    public static IEnumerable<object[]> OffsetMethodWithDateTimeOffset_TestCases
+    public static TheoryData<TzDataTimezone, DateTime, DateTime, DateTime, TimeSpan, bool, string, TimeSpan, bool, string> DayEitherSideOfTransition_TestCases
     {
         get
         {
-            yield return new object[] { nameof(TzDataExtensions.GetZoneLine), new Action<TzDataTimezone, DateTimeOffset>((timezone, instant) => timezone.GetZoneLine(instant)) };
-            yield return new object[] { nameof(TzDataExtensions.GetUtcOffset), new Action<TzDataTimezone, DateTimeOffset>((timezone, instant) => timezone.GetUtcOffset(instant)) };
-            yield return new object[] { nameof(TzDataExtensions.GetStandardOffset), new Action<TzDataTimezone, DateTimeOffset>((timezone, instant) => timezone.GetStandardOffset(instant)) };
-            yield return new object[] { nameof(TzDataExtensions.GetDaylightSavings), new Action<TzDataTimezone, DateTimeOffset>((timezone, instant) => timezone.GetDaylightSavings(instant)) };
-            yield return new object[] { nameof(TzDataExtensions.IsDaylightSavingTime), new Action<TzDataTimezone, DateTimeOffset>((timezone, instant) => timezone.IsDaylightSavingTime(instant)) };
-            yield return new object[] { nameof(TzDataExtensions.GetOffsetInfo), new Action<TzDataTimezone, DateTimeOffset>((timezone, instant) => timezone.GetOffsetInfo(instant)) };
-            yield return new object[] { nameof(TzDataExtensions.GetAbbreviation), new Action<TzDataTimezone, DateTimeOffset>((timezone, instant) => timezone.GetAbbreviation(instant)) };
-            yield return new object[] { nameof(TzDataExtensions.GetStandardAbbreviation), new Action<TzDataTimezone, DateTimeOffset>((timezone, instant) => timezone.GetStandardAbbreviation(instant)) };
-            yield return new object[] { nameof(TzDataExtensions.GetDaylightAbbreviation), new Action<TzDataTimezone, DateTimeOffset>((timezone, instant) => timezone.GetDaylightAbbreviation(instant)) };
-            yield return new object[] { nameof(TzDataExtensions.GetTransitions), new Action<TzDataTimezone, DateTimeOffset>((timezone, instant) => timezone.GetTransitions(instant, DateTimeOffset.MaxValue)) };
+            var testCases = new TheoryData<TzDataTimezone, DateTime, DateTime, DateTime, TimeSpan, bool, string, TimeSpan, bool, string>();
+            foreach (var testCase in KnownTransitionCases)
+                testCases.Add(testCase.Timezone, testCase.Instant.AddDays(-1), testCase.Instant.AddDays(1), testCase.Instant, testCase.BeforeOffset, testCase.BeforeIsDaylightSavingTime, testCase.BeforeAbbreviation, testCase.AfterOffset, testCase.AfterIsDaylightSavingTime, testCase.AfterAbbreviation);
+
+            return testCases;
+        }
+    }
+
+    public static TheoryData<TzDataTimezone, DateTime, DateTime, DateTime> PeriodStartingAtTransition_TestCases
+    {
+        get
+        {
+            var testCases = new TheoryData<TzDataTimezone, DateTime, DateTime, DateTime>();
+            foreach (var testCase in KnownTransitionCases)
+                testCases.Add(testCase.Timezone, testCase.Instant, testCase.Instant.AddTicks(1), testCase.Instant);
+
+            return testCases;
+        }
+    }
+
+    public static TheoryData<TzDataTimezone, DateTime, DateTime> PeriodEndingAtTransition_TestCases
+    {
+        get
+        {
+            var testCases = new TheoryData<TzDataTimezone, DateTime, DateTime>();
+            foreach (var testCase in KnownTransitionCases)
+                testCases.Add(testCase.Timezone, testCase.Instant.AddDays(-1), testCase.Instant);
+
+            return testCases;
         }
     }
 
     [Theory]
-    [MemberData(nameof(OffsetMethod_TestCases))]
-    public void OffsetMethod_LocalKind_ThrowsArgumentException(string testMethod, Action<TzDataTimezone, DateTime> testAction)
+    [MemberData(nameof(JustBeforeTransition_TestCases))]
+    public void GetOffsetInfo_JustBeforeTransition_ReturnsOldOffsetUntilTransition(TzDataTimezone testTimezone, DateTime testInstant, TimeSpan expectedOffset, bool expectedIsDaylightSavingTime, string expectedAbbreviation, DateTime expectedValidUntilUtc)
     {
-        // arrange
-        var testLocal = new DateTime(2025, 7, 1, 12, 0, 0, DateTimeKind.Local);
-
         // act
-        var testResult = () => testAction(TzDataTimezone.Europe.London, testLocal);
+        var testResult = testTimezone.GetOffsetInfo(testInstant);
 
         // assert
-        testResult.Should().Throw<ArgumentException>("{0} accepts only universal times", testMethod);
+        testResult.UtcOffset.Should().Be(expectedOffset, "{0} is at {1} until {2:O}", testTimezone, expectedAbbreviation, expectedValidUntilUtc);
+        testResult.IsDaylightSavingTime.Should().Be(expectedIsDaylightSavingTime);
+        testResult.Abbreviation.Should().Be(expectedAbbreviation);
+        testResult.ValidUntilUtc.Should().Be(expectedValidUntilUtc, "the old offset ceases at the transition");
     }
 
     [Theory]
-    [MemberData(nameof(OffsetMethod_TestCases))]
-    public void OffsetMethod_DefaultTimezone_ThrowsInvalidOperationException(string testMethod, Action<TzDataTimezone, DateTime> testAction)
+    [MemberData(nameof(AtTransition_TestCases))]
+    public void GetOffsetInfo_AtTransition_ReturnsNewOffsetFromTransition(TzDataTimezone testTimezone, DateTime testInstant, TimeSpan expectedOffset, bool expectedIsDaylightSavingTime, string expectedAbbreviation)
     {
         // act
-        var testResult = () => testAction(default, new DateTime(2025, 7, 1, 12, 0, 0, DateTimeKind.Utc));
+        var testResult = testTimezone.GetOffsetInfo(testInstant);
 
         // assert
-        testResult.Should().Throw<InvalidOperationException>("{0} needs a timezone with an identifier", testMethod);
+        testResult.UtcOffset.Should().Be(expectedOffset, "{0} changes to {1} at {2:O}", testTimezone, expectedAbbreviation, testInstant);
+        testResult.IsDaylightSavingTime.Should().Be(expectedIsDaylightSavingTime);
+        testResult.Abbreviation.Should().Be(expectedAbbreviation);
+        testResult.ValidFromUtc.Should().Be(testInstant, "the new offset takes effect at the transition");
     }
 
     [Theory]
-    [MemberData(nameof(OffsetMethod_TestCases))]
-    public void OffsetMethod_UnknownTimezone_ThrowsInvalidOperationException(string testMethod, Action<TzDataTimezone, DateTime> testAction)
+    [MemberData(nameof(DayEitherSideOfTransition_TestCases))]
+    public void GetTransitions_DayEitherSideOfTransition_ReturnsTransition(TzDataTimezone testTimezone, DateTime testFrom, DateTime testTo, DateTime expectedInstant, TimeSpan expectedBeforeOffset, bool expectedBeforeIsDaylightSavingTime, string expectedBeforeAbbreviation, TimeSpan expectedAfterOffset, bool expectedAfterIsDaylightSavingTime, string expectedAfterAbbreviation)
     {
         // act
-        var testResult = () => testAction(UnknownTimezone, new DateTime(2025, 7, 1, 12, 0, 0, DateTimeKind.Utc));
+        var testResult = testTimezone.GetTransitions(testFrom, testTo).ToList();
 
         // assert
-        testResult.Should().Throw<InvalidOperationException>("{0} needs a known timezone", testMethod);
+        var testTransition = testResult.Should().ContainSingle("{0} has one transition within a day of {1:O}", testTimezone, expectedInstant).Which;
+        testTransition.InstantUtc.Should().Be(expectedInstant);
+        testTransition.InstantUtc.Kind.Should().Be(DateTimeKind.Utc);
+        testTransition.Before.UtcOffset.Should().Be(expectedBeforeOffset);
+        testTransition.Before.IsDaylightSavingTime.Should().Be(expectedBeforeIsDaylightSavingTime);
+        testTransition.Before.Abbreviation.Should().Be(expectedBeforeAbbreviation);
+        testTransition.Before.ValidUntilUtc.Should().Be(expectedInstant);
+        testTransition.After.UtcOffset.Should().Be(expectedAfterOffset);
+        testTransition.After.IsDaylightSavingTime.Should().Be(expectedAfterIsDaylightSavingTime);
+        testTransition.After.Abbreviation.Should().Be(expectedAfterAbbreviation);
+        testTransition.After.ValidFromUtc.Should().Be(expectedInstant);
     }
 
     [Theory]
-    [MemberData(nameof(OffsetMethodWithDateTimeOffset_TestCases))]
-    public void OffsetMethodWithDateTimeOffset_InvalidTimezone_ThrowsInvalidOperationException(string testMethod, Action<TzDataTimezone, DateTimeOffset> testAction)
+    [MemberData(nameof(PeriodStartingAtTransition_TestCases))]
+    public void GetTransitions_PeriodStartingAtTransition_IncludesTransition(TzDataTimezone testTimezone, DateTime testFrom, DateTime testTo, DateTime expectedInstant)
     {
-        // arrange
-        var testInstant = new DateTimeOffset(2025, 7, 1, 12, 0, 0, TimeSpan.Zero);
-
         // act
-        var testDefault = () => testAction(default, testInstant);
-        var testUnknown = () => testAction(UnknownTimezone, testInstant);
+        var testResult = testTimezone.GetTransitions(testFrom, testTo).ToList();
 
         // assert
-        testDefault.Should().Throw<InvalidOperationException>("{0} needs a timezone with an identifier", testMethod);
-        testUnknown.Should().Throw<InvalidOperationException>("{0} needs a known timezone", testMethod);
+        testResult.Should().ContainSingle("the start of the period is included").Which.InstantUtc.Should().Be(expectedInstant);
+    }
+
+    [Theory]
+    [MemberData(nameof(PeriodEndingAtTransition_TestCases))]
+    public void GetTransitions_PeriodEndingAtTransition_ExcludesTransition(TzDataTimezone testTimezone, DateTime testFrom, DateTime testTo)
+    {
+        // act
+        var testResult = testTimezone.GetTransitions(testFrom, testTo).ToList();
+
+        // assert
+        testResult.Should().BeEmpty("the end of the period is excluded");
+    }
+
+    public static TheoryData<TzDataTimezone, DateTime> AfterLastTransition_TestCases => new()
+    {
+        { TzDataTimezone.America.Sao_Paulo, new DateTime(2019, 2, 17, 2, 0, 1, DateTimeKind.Utc) },
+        { TzDataTimezone.Asia.Kolkata, new DateTime(1945, 10, 14, 17, 30, 1, DateTimeKind.Utc) },
+        { TzDataTimezone.Africa.Casablanca, new DateTime(2026, 9, 20, 1, 0, 1, DateTimeKind.Utc) },
+    };
+
+    [Theory]
+    [MemberData(nameof(AfterLastTransition_TestCases))]
+    public void GetTransitions_AfterLastTransition_ReturnsNone(TzDataTimezone testTimezone, DateTime testFrom)
+    {
+        // act
+        var testResult = testTimezone.GetTransitions(testFrom, DateTime.MaxValue);
+
+        // assert
+        testResult.Should().BeEmpty("{0} has no transitions after {1:O}", testTimezone, testFrom);
+    }
+
+    public static TheoryData<TzDataTimezone, DateTime, DateTime, DateTime, DateTime> IndefiniteRuleYear_TestCases
+    {
+        get
+        {
+            var testCases = new TheoryData<TzDataTimezone, DateTime, DateTime, DateTime, DateTime>();
+            foreach (var testCase in IndefiniteRuleYearCases)
+                testCases.Add(TzDataTimezone.America.New_York, new DateTime(testCase.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc), new DateTime(testCase.Year + 1, 1, 1, 0, 0, 0, DateTimeKind.Utc), testCase.DaylightStart, testCase.DaylightEnd);
+
+            return testCases;
+        }
+    }
+
+    public static TheoryData<TzDataTimezone, DateTime> IndefiniteRuleSummer_TestCases
+    {
+        get
+        {
+            var testCases = new TheoryData<TzDataTimezone, DateTime>();
+            foreach (var testCase in IndefiniteRuleYearCases)
+                testCases.Add(TzDataTimezone.America.New_York, new DateTime(testCase.Year, 7, 1, 0, 0, 0, DateTimeKind.Utc));
+
+            return testCases;
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(IndefiniteRuleYear_TestCases))]
+    public void GetTransitions_YearBeyondExplicitData_ReturnsTransitionsOfIndefiniteRules(TzDataTimezone testTimezone, DateTime testFrom, DateTime testTo, DateTime expectedDaylightStart, DateTime expectedDaylightEnd)
+    {
+        // act
+        var testResult = testTimezone.GetTransitions(testFrom, testTo).ToList();
+
+        // assert
+        testResult.Should().HaveCount(2);
+        testResult[0].InstantUtc.Should().Be(expectedDaylightStart);
+        testResult[0].After.Abbreviation.Should().Be(Edt);
+        testResult[1].InstantUtc.Should().Be(expectedDaylightEnd);
+        testResult[1].After.Abbreviation.Should().Be(Est);
+    }
+
+    [Theory]
+    [MemberData(nameof(IndefiniteRuleSummer_TestCases))]
+    public void GetUtcOffset_SummerBeyondExplicitData_ReturnsDaylightSavingTimeOffset(TzDataTimezone testTimezone, DateTime testInstant)
+    {
+        // act
+        var testResult = testTimezone.GetUtcOffset(testInstant);
+
+        // assert
+        testResult.Should().Be(UtcMinus0400);
+    }
+
+    #endregion
+
+    #region Every timezone
+
+    public static TheoryData<TzDataTimezone> EveryTimezone_TestCases => TimezoneFieldCatalog.CreateTimezoneTestCases();
+
+    [Theory]
+    [MemberData(nameof(EveryTimezone_TestCases), DisableDiscoveryEnumeration = true)]
+    public void GetTransitions_WholeRange_EachTransitionStartsFromOffsetThePreviousOneEndedWith(TzDataTimezone testTimezone)
+    {
+        // act
+        var testResult = testTimezone.GetTransitions(DateTime.MinValue, DateTime.MaxValue).ToList();
+
+        // assert
+        testResult.Skip(1).Select(transition => transition.Before).Should().Equal(testResult.SkipLast(1).Select(transition => transition.After), "each transition of {0} follows the offset before it", testTimezone);
+    }
+
+    [Theory]
+    [MemberData(nameof(EveryTimezone_TestCases), DisableDiscoveryEnumeration = true)]
+    public void GetTransitions_WholeRange_EachTransitionEndsOneOffsetAndStartsTheNext(TzDataTimezone testTimezone)
+    {
+        // act
+        var testResult = testTimezone.GetTransitions(DateTime.MinValue, DateTime.MaxValue).ToList();
+
+        // assert
+        testResult.Should().OnlyContain(transition => transition.Before.ValidUntilUtc == transition.InstantUtc && transition.After.ValidFromUtc == transition.InstantUtc, "each offset of {0} changes at the instant of the transition", testTimezone);
+    }
+
+    [Theory]
+    [MemberData(nameof(EveryTimezone_TestCases), DisableDiscoveryEnumeration = true)]
+    public void GetOffsetInfo_MinimumInstant_AppliesFromBeginning(TzDataTimezone testTimezone)
+    {
+        // act
+        var testResult = testTimezone.GetOffsetInfo(DateTime.MinValue);
+
+        // assert
+        testResult.ValidFromUtc.Should().BeNull("the first offset of {0} has no start", testTimezone);
+    }
+
+    [Theory]
+    [MemberData(nameof(EveryTimezone_TestCases), DisableDiscoveryEnumeration = true)]
+    public void GetOffsetInfo_MaximumInstant_AppliesIndefinitely(TzDataTimezone testTimezone)
+    {
+        // act
+        var testResult = testTimezone.GetOffsetInfo(DateTime.MaxValue);
+
+        // assert
+        testResult.ValidUntilUtc.Should().BeNull("the offset after the last transition of {0} applies indefinitely", testTimezone);
+    }
+
+    #endregion
+
+    #region Zone lines
+
+    [Fact]
+    public void GetZoneLine_JustBeforeZoneLineChange_ReturnsLocalMeanTimeZoneLine()
+    {
+        // act
+        var testResult = TzDataTimezone.America.New_York.GetZoneLine(JustBeforeNewYorkStandardTimeStart);
+
+        // assert
+        testResult.StandardOffset.Should().Be(UtcMinus045602, "local mean time applies until 17:00 universal time");
+        testResult.Format.Should().Be(Lmt);
     }
 
     [Fact]
-    public void GetTransitions_EndPrecedesStart_ThrowsArgumentOutOfRangeException()
+    public void GetZoneLine_AtZoneLineChange_ReturnsEasternStandardTimeZoneLine()
     {
-        // arrange
-        var testFrom = new DateTime(2025, 7, 1, 0, 0, 0, DateTimeKind.Utc);
-
         // act
-        var testResult = () => TzDataTimezone.Europe.London.GetTransitions(testFrom, testFrom.AddTicks(-1));
+        var testResult = TzDataTimezone.America.New_York.GetZoneLine(NewYorkStandardTimeStart);
 
         // assert
-        testResult.Should().Throw<ArgumentOutOfRangeException>("the end of the period must not precede its start");
+        testResult.StandardOffset.Should().Be(UtcMinus0500, "Eastern Standard Time applies from 17:00 universal time");
+        testResult.Format.Should().Be(EasternFormat);
+    }
+
+    [Fact]
+    public void GetZoneLine_JustBeforeDateLineChange_ReturnsZoneLineWestOfDateLine()
+    {
+        // act
+        var testResult = TzDataTimezone.Pacific.Apia.GetZoneLine(JustBeforeApiaDateLineChange);
+
+        // assert
+        testResult.StandardOffset.Should().Be(UtcMinus1100);
+    }
+
+    [Fact]
+    public void GetZoneLine_AtDateLineChange_ReturnsLastZoneLine()
+    {
+        // act
+        var testResult = TzDataTimezone.Pacific.Apia.GetZoneLine(ApiaDateLineChange);
+
+        // assert
+        testResult.StandardOffset.Should().Be(UtcPlus1300);
+        testResult.Until.Should().BeNull("the zone line east of the date line is the last");
+    }
+
+    [Fact]
+    public void GetZoneLine_MinimumInstant_ReturnsFirstZoneLine()
+    {
+        // act
+        var testResult = TzDataTimezone.Europe.London.GetZoneLine(DateTime.MinValue);
+
+        // assert
+        // Europe/London kept local mean time, -0:01:15, until 1847.
+        testResult.StandardOffset.Should().Be(new TimeSpan(0, -1, -15));
+        testResult.Format.Should().Be(Lmt);
+    }
+
+    [Fact]
+    public void GetZoneLine_MaximumInstant_ReturnsLastZoneLine()
+    {
+        // act
+        var testResult = TzDataTimezone.Europe.London.GetZoneLine(DateTime.MaxValue);
+
+        // assert
+        testResult.Format.Should().Be(LondonFormat);
+        testResult.Until.Should().BeNull();
+    }
+
+    #endregion
+
+    #region Kinds and offsets of the instant
+
+    [Fact]
+    public void GetOffsetInfo_UnspecifiedKind_TreatedAsUniversalTime()
+    {
+        // act
+        var testResult = TzDataTimezone.America.New_York.GetOffsetInfo(NewYorkDaylightStart2007Unspecified);
+
+        // assert
+        testResult.UtcOffset.Should().Be(UtcMinus0400);
+        testResult.ValidFromUtc.Should().Be(NewYorkDaylightStart2007);
+    }
+
+    [Fact]
+    public void GetTransitions_UnspecifiedKind_TreatedAsUniversalTime()
+    {
+        // act
+        var testResult = TzDataTimezone.America.New_York.GetTransitions(NewYorkDaylightStart2007Unspecified, JustAfterNewYorkDaylightStart2007Unspecified);
+
+        // assert
+        testResult.Should().ContainSingle().Which.InstantUtc.Should().Be(NewYorkDaylightStart2007);
+    }
+
+    [Fact]
+    public void GetZoneLine_DateTimeOffset_UsesInstant()
+    {
+        // act
+        var testResult = TzDataTimezone.America.New_York.GetZoneLine(NewYorkDaylightStart2007InKolkata);
+
+        // assert
+        testResult.StandardOffset.Should().Be(UtcMinus0500);
+        testResult.Format.Should().Be(EasternFormat);
+        testResult.Until.Should().BeNull("the zone line from 1967 is the last");
+    }
+
+    [Fact]
+    public void GetUtcOffset_DateTimeOffset_UsesInstant()
+    {
+        // act
+        var testResult = TzDataTimezone.America.New_York.GetUtcOffset(NewYorkDaylightStart2007InKolkata);
+
+        // assert
+        testResult.Should().Be(UtcMinus0400);
+    }
+
+    [Fact]
+    public void GetStandardOffset_DateTimeOffset_UsesInstant()
+    {
+        // act
+        var testResult = TzDataTimezone.America.New_York.GetStandardOffset(NewYorkDaylightStart2007InKolkata);
+
+        // assert
+        testResult.Should().Be(UtcMinus0500);
+    }
+
+    [Fact]
+    public void GetDaylightSavings_DateTimeOffset_UsesInstant()
+    {
+        // act
+        var testResult = TzDataTimezone.America.New_York.GetDaylightSavings(NewYorkDaylightStart2007InKolkata);
+
+        // assert
+        testResult.Should().Be(UtcPlus0100);
+    }
+
+    [Fact]
+    public void IsDaylightSavingTime_DateTimeOffset_UsesInstant()
+    {
+        // act
+        var testResult = TzDataTimezone.America.New_York.IsDaylightSavingTime(NewYorkDaylightStart2007InKolkata);
+
+        // assert
+        testResult.Should().BeTrue();
+    }
+
+    [Fact]
+    public void GetOffsetInfo_DateTimeOffset_UsesInstant()
+    {
+        // act
+        var testResult = TzDataTimezone.America.New_York.GetOffsetInfo(NewYorkDaylightStart2007InKolkata);
+
+        // assert
+        testResult.UtcOffset.Should().Be(UtcMinus0400);
+        testResult.ValidFromUtc.Should().Be(NewYorkDaylightStart2007);
+    }
+
+    [Fact]
+    public void GetOffsetInfo_DateTimeOffsetJustBeforeTransition_UsesInstant()
+    {
+        // act
+        var testResult = TzDataTimezone.America.New_York.GetOffsetInfo(JustBeforeNewYorkDaylightStart2007InKolkata);
+
+        // assert
+        testResult.UtcOffset.Should().Be(UtcMinus0500);
+        testResult.ValidUntilUtc.Should().Be(NewYorkDaylightStart2007);
+    }
+
+    [Fact]
+    public void GetTransitions_DateTimeOffset_UsesInstant()
+    {
+        // act
+        var testResult = TzDataTimezone.America.New_York.GetTransitions(NewYorkDaylightStart2007InKolkata, JustAfterNewYorkDaylightStart2007InKolkata);
+
+        // assert
+        testResult.Should().ContainSingle().Which.InstantUtc.Should().Be(NewYorkDaylightStart2007);
+    }
+
+    #endregion
+
+    #region Offset components
+
+    public static TheoryData<TzDataTimezone, DateTime, TimeSpan> UtcOffset_TestCases
+    {
+        get
+        {
+            var testCases = new TheoryData<TzDataTimezone, DateTime, TimeSpan>();
+            foreach (var testCase in OffsetComponentCases)
+                testCases.Add(testCase.Timezone, testCase.Instant, testCase.UtcOffset);
+
+            return testCases;
+        }
+    }
+
+    public static TheoryData<TzDataTimezone, DateTime, TimeSpan> StandardOffset_TestCases
+    {
+        get
+        {
+            var testCases = new TheoryData<TzDataTimezone, DateTime, TimeSpan>();
+            foreach (var testCase in OffsetComponentCases)
+                testCases.Add(testCase.Timezone, testCase.Instant, testCase.StandardOffset);
+
+            return testCases;
+        }
+    }
+
+    public static TheoryData<TzDataTimezone, DateTime, TimeSpan> DaylightSavings_TestCases
+    {
+        get
+        {
+            var testCases = new TheoryData<TzDataTimezone, DateTime, TimeSpan>();
+            foreach (var testCase in OffsetComponentCases)
+                testCases.Add(testCase.Timezone, testCase.Instant, testCase.DaylightSavings);
+
+            return testCases;
+        }
+    }
+
+    public static TheoryData<TzDataTimezone, DateTime, bool> IsDaylightSavingTime_TestCases
+    {
+        get
+        {
+            var testCases = new TheoryData<TzDataTimezone, DateTime, bool>();
+            foreach (var testCase in OffsetComponentCases)
+                testCases.Add(testCase.Timezone, testCase.Instant, testCase.IsDaylightSavingTime);
+
+            return testCases;
+        }
+    }
+
+    public static TheoryData<TzDataTimezone, DateTime, string> OffsetInfoAbbreviation_TestCases
+    {
+        get
+        {
+            var testCases = new TheoryData<TzDataTimezone, DateTime, string>();
+            foreach (var testCase in OffsetComponentCases)
+                testCases.Add(testCase.Timezone, testCase.Instant, testCase.Abbreviation);
+
+            return testCases;
+        }
     }
 
     [Theory]
-    [InlineData("%z", "04:00", false, null, "+04")]
-    [InlineData("%z", "05:30", false, null, "+0530")]
-    [InlineData("%z", "-03:30", false, null, "-0330")]
-    [InlineData("%z", "-04:56:02", false, null, "-045602")]
-    [InlineData("%z", "00:00", false, null, "+00")]
-    [InlineData("E%sT", "-04:00", true, "D", "EDT")]
-    [InlineData("E%sT", "-05:00", false, "S", "EST")]
-    [InlineData("%s", "00:00", false, "GMT", "GMT")]
-    [InlineData("IST/GMT", "00:00", true, "", "GMT")]
-    [InlineData("IST/GMT", "01:00", false, "", "IST")]
-    [InlineData("LMT", "-04:56:02", false, null, "LMT")]
-    public void FormatAbbreviation_Format_ReturnsAbbreviation(string testFormat, string testOffset, bool testIsDaylightSavingTime, string? testLetter, string expectedResult)
+    [MemberData(nameof(UtcOffset_TestCases))]
+    public void GetUtcOffset_Instant_ReturnsOffsetFromUniversalTime(TzDataTimezone testTimezone, DateTime testInstant, TimeSpan expectedResult)
     {
         // act
-        var testResult = TzDataZoneCalculator.FormatAbbreviation(testFormat, testLetter, testIsDaylightSavingTime, ParseOffset(testOffset));
+        var testResult = testTimezone.GetUtcOffset(testInstant);
+
+        // assert
+        testResult.Should().Be(expectedResult, "the offset of {0} at {1:O} is the sum of its standard offset and daylight saving", testTimezone, testInstant);
+    }
+
+    [Theory]
+    [MemberData(nameof(StandardOffset_TestCases))]
+    public void GetStandardOffset_Instant_ReturnsStandardOffset(TzDataTimezone testTimezone, DateTime testInstant, TimeSpan expectedResult)
+    {
+        // act
+        var testResult = testTimezone.GetStandardOffset(testInstant);
 
         // assert
         testResult.Should().Be(expectedResult);
     }
 
-    [Fact]
-    public void CalculatorCache_ConcurrentFirstUse_ReturnsSameCalculatorToEveryThread()
+    [Theory]
+    [MemberData(nameof(DaylightSavings_TestCases))]
+    public void GetDaylightSavings_Instant_ReturnsDaylightSaving(TzDataTimezone testTimezone, DateTime testInstant, TimeSpan expectedResult)
     {
-        // arrange
-        const int threadCount = 8;
-        var timeout = TimeSpan.FromSeconds(30);
-        var testCache = new TzDataZoneCalculator.Cache();
-        var testZoneLines = TzDataTimezone.America.New_York.ZoneLines.ToArray();
-        var testResults = new TzDataZoneCalculator?[threadCount];
-        var exceptions = new Exception?[threadCount];
-        using var barrier = new Barrier(threadCount);
-        var threads = Enumerable.Range(0, threadCount)
-            .Select(index => new Thread(() =>
-            {
-                try
-                {
-                    if (!barrier.SignalAndWait(timeout))
-                        throw new TimeoutException("The threads were not released together.");
-                    testResults[index] = testCache.GetCalculator("America/New_York", testZoneLines);
-                }
-                catch (Exception exception)
-                {
-                    exceptions[index] = exception;
-                }
-            }))
-            .ToList();
-
         // act
-        threads.ForEach(thread => thread.Start());
-        var joined = threads.All(thread => thread.Join(timeout));
+        var testResult = testTimezone.GetDaylightSavings(testInstant);
 
         // assert
-        joined.Should().BeTrue("every thread completes within {0}", timeout);
-        exceptions.Should().OnlyContain(exception => exception == null, "first use of the cache succeeds on every thread");
-        testResults.Should().OnlyContain(calculator => ReferenceEquals(calculator, testResults[0]), "the calculator is built once and shared by every thread");
-        testResults[0].Should().NotBeNull();
+        testResult.Should().Be(expectedResult);
+    }
+
+    [Theory]
+    [MemberData(nameof(IsDaylightSavingTime_TestCases))]
+    public void IsDaylightSavingTime_Instant_ReturnsWhetherDaylightSavingTimeIsInEffect(TzDataTimezone testTimezone, DateTime testInstant, bool expectedResult)
+    {
+        // act
+        var testResult = testTimezone.IsDaylightSavingTime(testInstant);
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    [Theory]
+    [MemberData(nameof(OffsetInfoAbbreviation_TestCases))]
+    public void GetOffsetInfo_Instant_ReturnsAbbreviation(TzDataTimezone testTimezone, DateTime testInstant, string expectedResult)
+    {
+        // act
+        var testResult = testTimezone.GetOffsetInfo(testInstant);
+
+        // assert
+        testResult.Abbreviation.Should().Be(expectedResult);
     }
 
     [Fact]
-    public void OffsetMethods_ConcurrentFirstUse_ReturnSameOffsetsOnEveryThread()
+    public void GetOffsetInfo_CastInstance_ReturnsOffsetInForce()
     {
         // arrange
-        const int threadCount = 8;
-        var timeout = TimeSpan.FromSeconds(30);
-        var testTimezones = GetTimezoneFields(typeof(TzDataTimezone)).ToList();
-        var testInstant = new DateTime(2025, 7, 1, 12, 0, 0, DateTimeKind.Utc);
-        var testResults = new List<TimeSpan>?[threadCount];
-        var exceptions = new Exception?[threadCount];
-        using var barrier = new Barrier(threadCount);
-        var threads = Enumerable.Range(0, threadCount)
-            .Select(index => new Thread(() =>
-            {
-                try
-                {
-                    if (!barrier.SignalAndWait(timeout))
-                        throw new TimeoutException("The threads were not released together.");
-                    // Each thread visits the timezones in a different order, so that calculators are built concurrently.
-                    var results = new TimeSpan[testTimezones.Count];
-                    for (var step = 0; step < testTimezones.Count; step++)
-                    {
-                        var position = (step + index * 37) % testTimezones.Count;
-                        results[position] = testTimezones[position].GetUtcOffset(testInstant);
-                    }
-
-                    testResults[index] = results.ToList();
-                }
-                catch (Exception exception)
-                {
-                    exceptions[index] = exception;
-                }
-            }))
-            .ToList();
+        var testTimezone = (TzDataTimezone)"Europe/London";
 
         // act
-        threads.ForEach(thread => thread.Start());
-        var joined = threads.All(thread => thread.Join(timeout));
+        var testResult = testTimezone.GetOffsetInfo(StartOf1970);
 
         // assert
-        joined.Should().BeTrue("every thread completes within {0}", timeout);
-        exceptions.Should().OnlyContain(exception => exception == null, "concurrent use succeeds on every thread");
-        testResults.Should().OnlyContain(results => results!.SequenceEqual(testResults[0]!), "every thread finds the same offsets");
+        testResult.UtcOffset.Should().Be(UtcPlus0100);
+        testResult.StandardOffset.Should().Be(UtcPlus0100);
+        testResult.IsDaylightSavingTime.Should().BeFalse();
+        testResult.Abbreviation.Should().Be(Bst);
+        testResult.ValidFromUtc.Should().Be(BritishStandardTimeStart);
+        testResult.ValidUntilUtc.Should().Be(BritishStandardTimeEnd);
+    }
+
+    #endregion
+
+    #region Invalid arguments
+
+    public static TheoryData<string, Action<TzDataTimezone, DateTime>> OffsetMethod_TestCases => new()
+    {
+        { nameof(TzDataExtensions.GetZoneLine), (timezone, utc) => timezone.GetZoneLine(utc) },
+        { nameof(TzDataExtensions.GetUtcOffset), (timezone, utc) => timezone.GetUtcOffset(utc) },
+        { nameof(TzDataExtensions.GetStandardOffset), (timezone, utc) => timezone.GetStandardOffset(utc) },
+        { nameof(TzDataExtensions.GetDaylightSavings), (timezone, utc) => timezone.GetDaylightSavings(utc) },
+        { nameof(TzDataExtensions.IsDaylightSavingTime), (timezone, utc) => timezone.IsDaylightSavingTime(utc) },
+        { nameof(TzDataExtensions.GetOffsetInfo), (timezone, utc) => timezone.GetOffsetInfo(utc) },
+        { nameof(TzDataExtensions.GetAbbreviation), (timezone, utc) => timezone.GetAbbreviation(utc) },
+        { nameof(TzDataExtensions.GetStandardAbbreviation), (timezone, utc) => timezone.GetStandardAbbreviation(utc) },
+        { nameof(TzDataExtensions.GetDaylightAbbreviation), (timezone, utc) => timezone.GetDaylightAbbreviation(utc) },
+        { $"{nameof(TzDataExtensions.GetTransitions)}(from)", (timezone, utc) => timezone.GetTransitions(utc, DateTime.MaxValue) },
+        { $"{nameof(TzDataExtensions.GetTransitions)}(to)", (timezone, utc) => timezone.GetTransitions(DateTime.MinValue, utc) },
+    };
+
+    public static TheoryData<string, Action<TzDataTimezone, DateTimeOffset>> OffsetMethodWithDateTimeOffset_TestCases => new()
+    {
+        { nameof(TzDataExtensions.GetZoneLine), (timezone, instant) => timezone.GetZoneLine(instant) },
+        { nameof(TzDataExtensions.GetUtcOffset), (timezone, instant) => timezone.GetUtcOffset(instant) },
+        { nameof(TzDataExtensions.GetStandardOffset), (timezone, instant) => timezone.GetStandardOffset(instant) },
+        { nameof(TzDataExtensions.GetDaylightSavings), (timezone, instant) => timezone.GetDaylightSavings(instant) },
+        { nameof(TzDataExtensions.IsDaylightSavingTime), (timezone, instant) => timezone.IsDaylightSavingTime(instant) },
+        { nameof(TzDataExtensions.GetOffsetInfo), (timezone, instant) => timezone.GetOffsetInfo(instant) },
+        { nameof(TzDataExtensions.GetAbbreviation), (timezone, instant) => timezone.GetAbbreviation(instant) },
+        { nameof(TzDataExtensions.GetStandardAbbreviation), (timezone, instant) => timezone.GetStandardAbbreviation(instant) },
+        { nameof(TzDataExtensions.GetDaylightAbbreviation), (timezone, instant) => timezone.GetDaylightAbbreviation(instant) },
+        { nameof(TzDataExtensions.GetTransitions), (timezone, instant) => timezone.GetTransitions(instant, DateTimeOffset.MaxValue) },
+    };
+
+    [Theory]
+    [MemberData(nameof(OffsetMethod_TestCases))]
+    public void OffsetMethod_LocalKind_ThrowsArgumentException(string testMethod, Action<TzDataTimezone, DateTime> testMethodAction)
+    {
+        // arrange
+        var testLocal = DateTime.SpecifyKind(July2025, DateTimeKind.Local);
+
+        // act
+        Action testAction = () => testMethodAction(TzDataTimezone.Europe.London, testLocal);
+
+        // assert
+        testAction.Should().Throw<ArgumentException>("{0} accepts only universal times", testMethod);
+    }
+
+    [Theory]
+    [MemberData(nameof(OffsetMethod_TestCases))]
+    public void OffsetMethod_DefaultTimezone_ThrowsInvalidOperationException(string testMethod, Action<TzDataTimezone, DateTime> testMethodAction)
+    {
+        // act
+        Action testAction = () => testMethodAction(default, July2025);
+
+        // assert
+        testAction.Should().Throw<InvalidOperationException>("{0} needs a timezone with an identifier", testMethod);
+    }
+
+    [Theory]
+    [MemberData(nameof(OffsetMethod_TestCases))]
+    public void OffsetMethod_UnknownTimezone_ThrowsInvalidOperationException(string testMethod, Action<TzDataTimezone, DateTime> testMethodAction)
+    {
+        // act
+        Action testAction = () => testMethodAction(UnknownTimezone, July2025);
+
+        // assert
+        testAction.Should().Throw<InvalidOperationException>("{0} needs a known timezone", testMethod);
+    }
+
+    [Theory]
+    [MemberData(nameof(OffsetMethodWithDateTimeOffset_TestCases))]
+    public void OffsetMethodWithDateTimeOffset_DefaultTimezone_ThrowsInvalidOperationException(string testMethod, Action<TzDataTimezone, DateTimeOffset> testMethodAction)
+    {
+        // arrange
+        var testInstant = new DateTimeOffset(July2025);
+
+        // act
+        Action testAction = () => testMethodAction(default, testInstant);
+
+        // assert
+        testAction.Should().Throw<InvalidOperationException>("{0} needs a timezone with an identifier", testMethod);
+    }
+
+    [Theory]
+    [MemberData(nameof(OffsetMethodWithDateTimeOffset_TestCases))]
+    public void OffsetMethodWithDateTimeOffset_UnknownTimezone_ThrowsInvalidOperationException(string testMethod, Action<TzDataTimezone, DateTimeOffset> testMethodAction)
+    {
+        // arrange
+        var testInstant = new DateTimeOffset(July2025);
+
+        // act
+        Action testAction = () => testMethodAction(UnknownTimezone, testInstant);
+
+        // assert
+        testAction.Should().Throw<InvalidOperationException>("{0} needs a known timezone", testMethod);
+    }
+
+    [Fact]
+    public void GetTransitions_EndPrecedesStart_ThrowsArgumentOutOfRangeException()
+    {
+        // act
+        Action testAction = () => TzDataTimezone.Europe.London.GetTransitions(StartOfJuly2025, JustBeforeJuly2025);
+
+        // assert
+        testAction.Should().Throw<ArgumentOutOfRangeException>("the end of the period must not precede its start");
+    }
+
+    #endregion
+
+    public static TheoryData<string, TimeSpan, bool, string?, string> FormatAbbreviation_TestCases => new()
+    {
+        { NumericFormat, TimeSpan.FromHours(4), false, null, Plus04 },
+        { NumericFormat, UtcPlus0530, false, null, "+0530" },
+        { NumericFormat, new TimeSpan(-3, -30, 0), false, null, "-0330" },
+        { NumericFormat, UtcMinus045602, false, null, "-045602" },
+        { NumericFormat, UtcZero, false, null, Plus00 },
+        { EasternFormat, UtcMinus0400, true, "D", Edt },
+        { EasternFormat, UtcMinus0500, false, "S", Est },
+        { LetterFormat, UtcZero, false, Gmt, Gmt },
+        { IrishFormat, UtcZero, true, string.Empty, Gmt },
+        { IrishFormat, UtcPlus0100, false, string.Empty, Ist },
+        { Lmt, UtcMinus045602, false, null, Lmt },
+    };
+
+    [Theory]
+    [MemberData(nameof(FormatAbbreviation_TestCases))]
+    public void FormatAbbreviation_Format_ReturnsAbbreviation(string testFormat, TimeSpan testOffset, bool testIsDaylightSavingTime, string? testLetter, string expectedResult)
+    {
+        // act
+        var testResult = TzDataZoneCalculator.FormatAbbreviation(testFormat, testLetter, testIsDaylightSavingTime, testOffset);
+
+        // assert
+        testResult.Should().Be(expectedResult);
     }
 }
