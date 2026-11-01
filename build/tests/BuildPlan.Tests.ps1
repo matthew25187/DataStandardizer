@@ -172,6 +172,19 @@ Describe 'BuildPlan' {
         It 'lists nothing when nothing changed' {
             @(Get-DependentPackageName -PackageInfo $script:Packages -ChangedPackageName @() -RepositoryRoot $script:GraphRoot).Count | Should -Be 0
         }
+
+        It 'counts an integration test project''s references as its package''s' {
+            $root = New-TestFolder
+            foreach ($path in 'src/DataStandardizer.Core/DataStandardizer.Core.csproj', 'src/DataStandardizer.File.CSV/DataStandardizer.File.CSV.csproj') {
+                [void](New-Item -ItemType Directory -Path (Split-Path (Join-Path $root $path) -Parent) -Force)
+                [System.IO.File]::WriteAllText((Join-Path $root $path), '<Project />')
+            }
+            $integrationProject = Join-Path $root 'tests' 'DataStandardizer.File.CSV.IntegrationTests' 'DataStandardizer.File.CSV.IntegrationTests.csproj'
+            [void](New-Item -ItemType Directory -Path (Split-Path $integrationProject -Parent) -Force)
+            [System.IO.File]::WriteAllText($integrationProject, '<Project><ItemGroup><ProjectReference Include="..\..\src\DataStandardizer.Core\DataStandardizer.Core.csproj" /></ItemGroup></Project>')
+            Get-DependentPackageName -PackageInfo $script:Packages -ChangedPackageName 'DataStandardizer.Core' -RepositoryRoot $root |
+                Should -Be @('DataStandardizer.File.CSV')
+        }
     }
 
     Context 'Get-ChangedTestPackageName' {
@@ -192,6 +205,197 @@ Describe 'BuildPlan' {
             Push-Location (New-TestRepository)
             $commit = Add-TestCommit -File @{ 'tests/DataStandardizer.Core.Tests/T.cs' = 'test' }
             @(Get-ChangedTestPackageName -TestPackageName $script:Packages.packageName -Commit $commit).Count | Should -Be 0
+        }
+
+        It 'lists the packages whose integration tests the commit changes' {
+            Push-Location (Initialize-Repository)
+            $commit = Add-TestCommit -File @{ 'tests/DataStandardizer.File.IntegrationTests/T.cs' = 'test'; 'tests/DataStandardizer.Core.IntegrationTests.Extra/X.cs' = 'x' }
+            Get-ChangedTestPackageName -TestPackageName $script:Packages.packageName -Commit $commit | Should -Be @('DataStandardizer.File')
+        }
+
+        It 'does not count an integration test change as a package change' {
+            Push-Location (Initialize-Repository)
+            $commit = Add-TestCommit -File @{ 'tests/DataStandardizer.File.IntegrationTests/T.cs' = 'test' }
+            @(Get-ChangedPackageName -PackageInfo $script:Packages -Commit $commit -IsRelease $false).Count | Should -Be 0
+        }
+    }
+
+    Context 'Get-TestProjectName' {
+        It 'names the unit test project, then the integration test project' {
+            Get-TestProjectName -PackageName 'DataStandardizer.Core' | Should -Be @('DataStandardizer.Core.Tests', 'DataStandardizer.Core.IntegrationTests')
+        }
+
+        It 'names the test project of one kind' {
+            Get-TestProjectName -PackageName 'DataStandardizer.Core' -Kind Unit | Should -Be @('DataStandardizer.Core.Tests')
+            Get-TestProjectName -PackageName 'DataStandardizer.Core' -Kind Integration | Should -Be @('DataStandardizer.Core.IntegrationTests')
+        }
+    }
+
+    Context 'Get-ProjectPackageName' {
+        It 'maps a source project, a unit test project and an integration test project to their package' {
+            Get-ProjectPackageName -PackageInfo $script:Packages -ProjectFolderPath 'src/DataStandardizer.File.CSV' | Should -Be 'DataStandardizer.File.CSV'
+            Get-ProjectPackageName -PackageInfo $script:Packages -ProjectFolderPath 'tests/DataStandardizer.File.Tests' | Should -Be 'DataStandardizer.File'
+            Get-ProjectPackageName -PackageInfo $script:Packages -ProjectFolderPath 'tests/DataStandardizer.File.IntegrationTests' | Should -Be 'DataStandardizer.File'
+            Get-ProjectPackageName -PackageInfo $script:Packages -ProjectFolderPath 'tests\DataStandardizer.File.CSV.IntegrationTests' | Should -Be 'DataStandardizer.File.CSV'
+        }
+
+        It 'maps no other project under tests/' {
+            Get-ProjectPackageName -PackageInfo $script:Packages -ProjectFolderPath 'tests/DataStandardizer.File.Benchmarks' | Should -BeNullOrEmpty
+            Get-ProjectPackageName -PackageInfo $script:Packages -ProjectFolderPath 'tests/DataStandardizer.New.IntegrationTests' | Should -BeNullOrEmpty
+            Get-ProjectPackageName -PackageInfo $script:Packages -ProjectFolderPath 'tests/Sub/DataStandardizer.File.IntegrationTests' | Should -BeNullOrEmpty
+        }
+    }
+
+    Context 'Get-TestAssemblyPath' {
+        BeforeEach {
+            $script:ProjectFolder = Join-Path (New-TestFolder) 'tests' 'DataStandardizer.Core.IntegrationTests'
+            foreach ($relativePath in 'bin/Release/net10.0/DataStandardizer.Core.IntegrationTests.dll', 'bin/Release/net48/DataStandardizer.Core.IntegrationTests.dll',
+                'bin/Release/net8.0/DataStandardizer.Core.IntegrationTests.dll', 'bin/Release/net8.0/ref/DataStandardizer.Core.IntegrationTests.dll',
+                'bin/Release/netstandard2.0/Other.dll', 'bin/Debug/net10.0/DataStandardizer.Core.IntegrationTests.dll') {
+                $path = Join-Path $script:ProjectFolder $relativePath
+                [void](New-Item -ItemType Directory -Path (Split-Path $path -Parent) -Force)
+                [System.IO.File]::WriteAllText($path, 'not really an assembly')
+            }
+            $script:Assembly = { param($Framework) Join-Path $script:ProjectFolder 'bin' 'Release' $Framework 'DataStandardizer.Core.IntegrationTests.dll' }
+        }
+
+        It 'lists one assembly per target framework of the configuration, with .NET Framework when asked' {
+            Get-TestAssemblyPath -ProjectFolderPath $script:ProjectFolder -Configuration 'Release' -IncludeNetFramework $true |
+                Should -Be @((& $script:Assembly 'net10.0'), (& $script:Assembly 'net48'), (& $script:Assembly 'net8.0'))
+        }
+
+        It 'leaves out .NET Framework when not asked' {
+            Get-TestAssemblyPath -ProjectFolderPath $script:ProjectFolder -Configuration 'Release' -IncludeNetFramework $false |
+                Should -Be @((& $script:Assembly 'net10.0'), (& $script:Assembly 'net8.0'))
+        }
+
+        It 'lists nothing for a project that was not built' {
+            @(Get-TestAssemblyPath -ProjectFolderPath (Join-Path (New-TestFolder) 'tests' 'DataStandardizer.Core.Tests') -Configuration 'Release').Count | Should -Be 0
+        }
+    }
+
+    Context 'InvokePackageTests.ps1' {
+        BeforeAll {
+            # The script runs 'dotnet test'; this stands in for it, recording each call's arguments.
+            function global:dotnet {
+                $global:DotnetCalls.Add($args -join ' ')
+                $global:LASTEXITCODE = $global:DotnetExitCode
+            }
+
+            # A repository with the given test projects; the built ones have an assembly for each of the given frameworks.
+            function New-TestProjectRoot {
+                param ([string[]]$Project, [string[]]$BuiltProject = @(), [string[]]$Framework = @('net10.0', 'net8.0'))
+                $root = New-TestFolder
+                foreach ($name in $Project) {
+                    $folder = Join-Path $root 'tests' $name
+                    [void](New-Item -ItemType Directory -Path $folder -Force)
+                    [System.IO.File]::WriteAllText((Join-Path $folder "$name.csproj"), '<Project />')
+                    foreach ($tfm in $Framework | Where-Object { $BuiltProject -contains $name }) {
+                        $binFolder = Join-Path $folder 'bin' 'Release' $tfm
+                        [void](New-Item -ItemType Directory -Path $binFolder -Force)
+                        [System.IO.File]::WriteAllText((Join-Path $binFolder "$name.dll"), 'not really an assembly')
+                    }
+                }
+                return $root
+            }
+
+            $script:InvokeTests = { param($Root, $Kind)
+                & (Join-Path $script:ScriptsFolder 'InvokePackageTests.ps1') -PackageName 'DataStandardizer.Core' -Configuration 'Release' -Kind $Kind `
+                    -ResultsFolder 'TestResults' -RepositoryRoot $Root 6>$null
+            }
+        }
+
+        AfterAll {
+            Remove-Item -Path 'function:global:dotnet'
+            Remove-Variable -Name 'DotnetCalls', 'DotnetExitCode' -Scope Global
+        }
+
+        BeforeEach {
+            $global:DotnetCalls = [System.Collections.Generic.List[string]]::new()
+            $global:DotnetExitCode = 0
+        }
+
+        It 'runs the unit tests on each target framework' {
+            $root = New-TestProjectRoot -Project 'DataStandardizer.Core.Tests' -BuiltProject 'DataStandardizer.Core.Tests'
+            & $script:InvokeTests $root 'Unit' | Out-Null
+            $assembly = { param($Framework) Join-Path $root 'tests' 'DataStandardizer.Core.Tests' 'bin' 'Release' $Framework 'DataStandardizer.Core.Tests.dll' }
+            $global:DotnetCalls | Should -Be @(
+                "test $(& $assembly 'net10.0') --logger trx;LogFileName=DataStandardizer.Core.Tests.net10.0.trx --results-directory TestResults"
+                "test $(& $assembly 'net8.0') --logger trx;LogFileName=DataStandardizer.Core.Tests.net8.0.trx --results-directory TestResults")
+        }
+
+        It 'runs the integration tests on each target framework when the package has them' {
+            $root = New-TestProjectRoot -Project 'DataStandardizer.Core.Tests', 'DataStandardizer.Core.IntegrationTests' -BuiltProject 'DataStandardizer.Core.Tests', 'DataStandardizer.Core.IntegrationTests'
+            & $script:InvokeTests $root 'Integration' | Out-Null
+            $assembly = { param($Framework) Join-Path $root 'tests' 'DataStandardizer.Core.IntegrationTests' 'bin' 'Release' $Framework 'DataStandardizer.Core.IntegrationTests.dll' }
+            $global:DotnetCalls | Should -Be @(
+                "test $(& $assembly 'net10.0') --logger trx;LogFileName=DataStandardizer.Core.IntegrationTests.net10.0.trx --results-directory TestResults"
+                "test $(& $assembly 'net8.0') --logger trx;LogFileName=DataStandardizer.Core.IntegrationTests.net8.0.trx --results-directory TestResults")
+        }
+
+        It 'passes without running anything when the package has no integration tests' {
+            $root = New-TestProjectRoot -Project 'DataStandardizer.Core.Tests' -BuiltProject 'DataStandardizer.Core.Tests'
+            { & $script:InvokeTests $root 'Integration' } | Should -Not -Throw
+            $global:DotnetCalls.Count | Should -Be 0
+        }
+
+        It 'fails when the package has no unit tests' {
+            $root = New-TestProjectRoot -Project @()
+            { & $script:InvokeTests $root 'Unit' } | Should -Throw '*no unit test project*'
+        }
+
+        It 'fails when a test project was not built' {
+            $root = New-TestProjectRoot -Project 'DataStandardizer.Core.Tests', 'DataStandardizer.Core.IntegrationTests' -BuiltProject 'DataStandardizer.Core.Tests'
+            { & $script:InvokeTests $root 'Integration' } | Should -Throw '*No Release assemblies found for tests/DataStandardizer.Core.IntegrationTests*'
+        }
+
+        It 'runs every target framework and then fails when tests fail' {
+            $root = New-TestProjectRoot -Project 'DataStandardizer.Core.IntegrationTests' -BuiltProject 'DataStandardizer.Core.IntegrationTests'
+            $global:DotnetExitCode = 1
+            { & $script:InvokeTests $root 'Integration' } | Should -Throw '*integration tests failed on 2 target frameworks*'
+            $global:DotnetCalls.Count | Should -Be 2
+        }
+    }
+
+    Context 'Repository test projects' {
+        BeforeAll {
+            Import-Module (Join-Path $PSScriptRoot '../psmodules/CommonHelpers/CommonHelpers.psm1') -Force
+            $script:RepositoryRoot = Get-RepositoryRoot
+            $script:RepositoryPackages = @(Get-PackageInfo)
+            $script:Solution = Get-Content -LiteralPath (Join-Path $script:RepositoryRoot 'DataStandardizer.sln') -Raw
+            # Every test project in the repository, with the package it belongs to.
+            $script:TestProjects = @(Get-ChildItem -Path (Join-Path $script:RepositoryRoot 'tests' '*' '*.csproj') -File | ForEach-Object {
+                    [pscustomobject]@{
+                        Path        = "tests\$($_.Directory.Name)\$($_.Name)"
+                        PackageName = Get-ProjectPackageName -PackageInfo $script:RepositoryPackages -ProjectFolderPath "tests/$($_.Directory.Name)"
+                    }
+                })
+        }
+
+        It 'names every test project after its package and its kind' {
+            @($script:TestProjects | Where-Object { [string]::IsNullOrEmpty($_.PackageName) }).Path | Should -BeNullOrEmpty
+            @($script:TestProjects | Where-Object { (Split-Path $_.Path -Leaf) -ne "$(Split-Path (Split-Path $_.Path -Parent) -Leaf).csproj" }).Path | Should -BeNullOrEmpty
+        }
+
+        It 'has unit tests for every package with tests enabled' {
+            $unitTestProjects = @(Get-TestPackageName -PackageInfo $script:RepositoryPackages | ForEach-Object {
+                    $name = Get-TestProjectName -PackageName $_ -Kind Unit
+                    "tests\$name\$name.csproj"
+                })
+            @($unitTestProjects | Where-Object { $script:TestProjects.Path -notcontains $_ }) | Should -BeNullOrEmpty
+        }
+
+        It 'lists every test project in DataStandardizer.sln and in its package''s solution filter, which CI builds' {
+            $missing = foreach ($project in $script:TestProjects) {
+                if (-not $script:Solution.Contains("`"$($project.Path)`"")) {
+                    "$($project.Path) in DataStandardizer.sln"
+                }
+                $filter = Get-Content -LiteralPath (Join-Path $script:RepositoryRoot "$($project.PackageName).slnf") -Raw | ConvertFrom-Json
+                if ($filter.solution.projects -notcontains $project.Path) {
+                    "$($project.Path) in $($project.PackageName).slnf"
+                }
+            }
+            @($missing) | Should -BeNullOrEmpty
         }
     }
 
@@ -276,6 +480,23 @@ Describe 'BuildPlan' {
             $legs.Count | Should -Be 12
             @($outputs['build-matrix'] | ConvertFrom-Json).Count | Should -Be 6
             ($legs | Where-Object package -EQ 'DataStandardizer.Core').os | Sort-Object -Unique | Should -Be @('ubuntu-24.04', 'windows-2025')
+        }
+
+        It 'builds and tests a package whose integration tests alone changed, without publishing it' {
+            Push-Location (Initialize-Repository)
+            $env:GITHUB_OUTPUT = Join-Path (New-TestFolder) 'output'
+            $env:GITHUB_SHA = Add-TestCommit -File @{ 'tests/DataStandardizer.File.CSV.IntegrationTests/T.cs' = 'test' }
+            $env:GITHUB_REF = 'refs/heads/develop'
+            $env:PACKAGEINFOS = ConvertTo-Json -InputObject $script:Packages -Compress
+            & (Join-Path $script:ScriptsFolder 'ResolveBuildPlan.ps1') -Publish 6>$null
+            $outputs = @{}
+            Get-Content $env:GITHUB_OUTPUT | ForEach-Object { $name, $value = $_ -split '=', 2; $outputs[$name] = $value }
+            $outputs['changed'] | Should -Be '[]'
+            $outputs['tests-changed'] | Should -Be '["DataStandardizer.File.CSV"]'
+            $outputs['build-set'] | Should -Be '["DataStandardizer.File.CSV"]'
+            $outputs['test-set'] | Should -Be '["DataStandardizer.File.CSV"]'
+            $outputs['publish-set'] | Should -Be '[]'
+            $outputs['has-publish'] | Should -Be 'false'
         }
 
         It 'uses the override instead of change detection, and writes empty arrays' {
