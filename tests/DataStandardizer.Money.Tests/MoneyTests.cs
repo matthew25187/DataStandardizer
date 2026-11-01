@@ -5,332 +5,330 @@ namespace DataStandardizer.Money.Tests
 {
     public class MoneyTests
     {
+        private const string CurrencyNotSetReason = "the currency of the result is not set";
+        private const string RoundingPrecisionNotSetReason = "the rounding precision of the result is not set";
+        private const string RoundingMethodNotSetReason = "the rounding method of the result is not set";
+        private const string ResultCurrencyReason = "the currency of the result is {0}";
+        private const string ResultRoundingPrecisionReason = "the rounding precision of the result is {0}";
+        private const string ResultRoundingMethodReason = "the rounding method of the result is {0}";
+        private const string AdditionResultReason = "the result of the addition operation is {0}";
+        private const string SubtractionResultReason = "the result of the subtraction operation is {0}";
+        private const string MultiplicationResultReason = "the result of the multiplication operation is {0}";
+        private const string DivisionResultReason = "the result of the division operation is {0}";
+
+        private const string LeftLessThanRightReason = "the left operand {0} is less than the right operand {1}";
+        private const string LeftEqualToRightReason = "the left operand {0} is equal to the right operand {1}";
+        private const string LeftGreaterThanRightReason = "the left operand {0} is greater than the right operand {1}";
+        private const string LeftNotEqualToRightReason = "the left operand {0} is not equal to the right operand {1}";
+
+        private const string NoRoundingReason = "the money value has no rounding";
+        private const string InputIsNullReason = "the input is null";
+        private const string InputIsBlankReason = "the input is blank";
+        private const string InputIsValidReason = "the input is a valid money value";
+        private const string MoneyValueContainsAmountReason = "the money value contains the amount {0}";
+        private const string InputContainsMoneyValueReason = "the input contains the money value {0}";
+        private const string ArgumentIsNotMoneyValueReason = "the argument is not a money value";
+
+        private const string NotAMoneyValue = "not a money value";
+        private const decimal ObjectTestAmount = 1234m;
+
+        // ISO 4217 List One gives the US Dollar two minor units.
+        private const int UsDollarMinorUnits = 2;
+
         [Fact]
         public void AdditionOperator_MoneyValueWithAmount_ReturnsMoneyValueResult()
         {
             // arrange
-            const decimal testAmount = 1234, testAdditionOperand = 13;
+            const decimal testAmount = 1234, testAdditionOperand = 13, expectedResult = 1247;
             var testValue = Money.Create(testAmount);
-
-            var expectedResult = testAmount + testAdditionOperand;
 
             // act
             var testResult = testValue + testAdditionOperand;
 
             // assert
-            ((decimal)testResult).Should().Be(expectedResult, "the result of the addition operation is {0}", expectedResult);
-            testResult.IsoCurrencyCode.Should().Be(Iso4217CurrencyCurrent.XXX, "the currency of the result is not set");
-            testResult.RoundingPrecision.Should().BeNull("the rounding precision of the result is not set");
-            testResult.RoundingMethod.Should().BeNull("the rounding method of the result is not set");
+            ((decimal)testResult).Should().Be(expectedResult, AdditionResultReason, expectedResult);
+            testResult.IsoCurrencyCode.Should().Be(Iso4217CurrencyCurrent.XXX, CurrencyNotSetReason);
+            testResult.RoundingPrecision.Should().BeNull(RoundingPrecisionNotSetReason);
+            testResult.RoundingMethod.Should().BeNull(RoundingMethodNotSetReason);
         }
 
         [Fact]
         public void AdditionOperator_MoneyValueWithAmountAndCurrency_ReturnsMoneyValueResult()
         {
             // arrange
-            const decimal testAmount = 1357, testAdditionOperand = 24;
+            const decimal testAmount = 1357, testAdditionOperand = 24, expectedResult = 1381;
             const Iso4217CurrencyCurrent testCurrency = Iso4217CurrencyCurrent.USD;
             var testValue = Money.Create(testAmount, testCurrency);
-
-            var expectedResult = testAmount + testAdditionOperand;
 
             // act
             var testResult = testValue + testAdditionOperand;
 
             // assert
-            ((decimal)testResult).Should().Be(expectedResult, "the result of the addition operation is {0}", expectedResult);
-            testResult.IsoCurrencyCode.Should().Be(testCurrency, "the currency of the result is {0}", testCurrency);
-            testResult.RoundingPrecision.Should().BeNull("the rounding precision of the result is not set");
-            testResult.RoundingMethod.Should().BeNull("the rounding method of the result is not set");
+            ((decimal)testResult).Should().Be(expectedResult, AdditionResultReason, expectedResult);
+            testResult.IsoCurrencyCode.Should().Be(testCurrency, ResultCurrencyReason, testCurrency);
+            testResult.RoundingPrecision.Should().BeNull(RoundingPrecisionNotSetReason);
+            testResult.RoundingMethod.Should().BeNull(RoundingMethodNotSetReason);
         }
 
         [Fact]
         public void AdditionOperator_MoneyValueWithAmountAndCurrencyAndRoundingPrecision_ReturnsMoneyValueResult()
         {
             // arrange
-            const decimal testAmount = 2468, testAdditionOperand = 57;
+            const decimal testAmount = 2468, testAdditionOperand = 57, expectedResult = 2525;
             const Iso4217CurrencyCurrent testCurrency = Iso4217CurrencyCurrent.USD;
             const int testRoundingPrecision = 4;
             var testValue = Money.Create(testAmount, testCurrency, testRoundingPrecision);
-
-            var expectedResult = testAmount + testAdditionOperand;
 
             // act
             var testResult = testValue + testAdditionOperand;
 
             // assert
-            ((decimal)testResult).Should().Be(expectedResult, "the result of the addition operation is {0}", expectedResult);
-            testResult.IsoCurrencyCode.Should().Be(testCurrency, "the currency of the result is {0}", testCurrency);
-            testResult.RoundingPrecision.Should().Be(testRoundingPrecision, "the rounding precision of the result is {0}", testRoundingPrecision);
-            testResult.RoundingMethod.Should().BeNull("the rounding method of the result is not set");
+            ((decimal)testResult).Should().Be(expectedResult, AdditionResultReason, expectedResult);
+            testResult.IsoCurrencyCode.Should().Be(testCurrency, ResultCurrencyReason, testCurrency);
+            testResult.RoundingPrecision.Should().Be(testRoundingPrecision, ResultRoundingPrecisionReason, testRoundingPrecision);
+            testResult.RoundingMethod.Should().BeNull(RoundingMethodNotSetReason);
         }
 
         [Fact]
         public void AdditionOperator_MoneyValueWithAmountAndCurrencyAndRoundingPrecisionAndRoundingMethod_ReturnsMoneyValueResult()
         {
             // arrange
-            const decimal testAmount = 3579, testAdditionOperand = 68;
+            const decimal testAmount = 3579, testAdditionOperand = 68, expectedResult = 3647;
             const Iso4217CurrencyCurrent testCurrency = Iso4217CurrencyCurrent.USD;
             const int testRoundingPrecision = 3;
             const MidpointRounding testRoundingMethod = MidpointRounding.AwayFromZero;
             var testValue = Money.Create(testAmount, testCurrency, testRoundingPrecision, testRoundingMethod);
 
-            var expectedResult = testAmount + testAdditionOperand;
-
             // act
             var testResult = testValue + testAdditionOperand;
 
             // assert
-            ((decimal)testResult).Should().Be(expectedResult, "the result of the addition operation is {0}", expectedResult);
-            testResult.IsoCurrencyCode.Should().Be(testCurrency, "the currency of the result is {0}", testCurrency);
-            testResult.RoundingPrecision.Should().Be(testRoundingPrecision, "the rounding precision of the result is {0}", testRoundingPrecision);
-            testResult.RoundingMethod.Should().Be(testRoundingMethod, "the rounding method of the result is {0}", testRoundingMethod);
+            ((decimal)testResult).Should().Be(expectedResult, AdditionResultReason, expectedResult);
+            testResult.IsoCurrencyCode.Should().Be(testCurrency, ResultCurrencyReason, testCurrency);
+            testResult.RoundingPrecision.Should().Be(testRoundingPrecision, ResultRoundingPrecisionReason, testRoundingPrecision);
+            testResult.RoundingMethod.Should().Be(testRoundingMethod, ResultRoundingMethodReason, testRoundingMethod);
         }
 
         [Fact]
         public void SubtractionOperator_MoneyValueWithAmount_ReturnsMoneyValueResult()
         {
             // arrange
-            const decimal testAmount = 1234, testSubtractionOperand = 12;
+            const decimal testAmount = 1234, testSubtractionOperand = 12, expectedResult = 1222;
             var testValue = Money.Create(testAmount);
-
-            var expectedResult = testAmount - testSubtractionOperand;
 
             // act
             var testResult = testValue - testSubtractionOperand;
 
             // assert
-            ((decimal)testResult).Should().Be(expectedResult, "the result of the subtraction operation is {0}", expectedResult);
-            testResult.IsoCurrencyCode.Should().Be(Iso4217CurrencyCurrent.XXX, "the currency of the result is not set");
-            testResult.RoundingPrecision.Should().BeNull("the rounding precision of the result is not set");
-            testResult.RoundingMethod.Should().BeNull("the rounding method of the result is not set");
+            ((decimal)testResult).Should().Be(expectedResult, SubtractionResultReason, expectedResult);
+            testResult.IsoCurrencyCode.Should().Be(Iso4217CurrencyCurrent.XXX, CurrencyNotSetReason);
+            testResult.RoundingPrecision.Should().BeNull(RoundingPrecisionNotSetReason);
+            testResult.RoundingMethod.Should().BeNull(RoundingMethodNotSetReason);
         }
 
         [Fact]
         public void SubtractionOperator_MoneyValueWithAmountAndCurrency_ReturnsMoneyValueResult()
         {
             // arrange
-            const decimal testAmount = 5678, testSubtractionOperand = 34;
+            const decimal testAmount = 5678, testSubtractionOperand = 34, expectedResult = 5644;
             const Iso4217CurrencyCurrent testCurrency = Iso4217CurrencyCurrent.USD;
             var testValue = Money.Create(testAmount, testCurrency);
-
-            var expectedResult = testAmount - testSubtractionOperand;
 
             // act
             var testResult = testValue - testSubtractionOperand;
 
             // assert
-            ((decimal)testResult).Should().Be(expectedResult, "the result of the subtraction operation is {0}", expectedResult);
-            testResult.IsoCurrencyCode.Should().Be(testCurrency, "the currency of the result is {0}", testCurrency);
-            testResult.RoundingPrecision.Should().BeNull("the rounding precision of the result is not set");
-            testResult.RoundingMethod.Should().BeNull("the rounding method of the result is not set");
+            ((decimal)testResult).Should().Be(expectedResult, SubtractionResultReason, expectedResult);
+            testResult.IsoCurrencyCode.Should().Be(testCurrency, ResultCurrencyReason, testCurrency);
+            testResult.RoundingPrecision.Should().BeNull(RoundingPrecisionNotSetReason);
+            testResult.RoundingMethod.Should().BeNull(RoundingMethodNotSetReason);
         }
 
         [Fact]
         public void SubtractionOperator_MoneyValueWithAmountAndCurrencyAndRoundingPrecision_ReturnsMoneyValueResult()
         {
             // arrange
-            const decimal testAmount = 1357, testSubtractionOperand = 56;
+            const decimal testAmount = 1357, testSubtractionOperand = 56, expectedResult = 1301;
             const Iso4217CurrencyCurrent testCurrency = Iso4217CurrencyCurrent.USD;
             const int testRoundingPrecision = 4;
             var testValue = Money.Create(testAmount, testCurrency, testRoundingPrecision);
-
-            var expectedResult = testAmount - testSubtractionOperand;
 
             // act
             var testResult = testValue - testSubtractionOperand;
 
             // assert
-            ((decimal)testResult).Should().Be(expectedResult, "the result of the subtraction operation is {0}", expectedResult);
-            testResult.IsoCurrencyCode.Should().Be(testCurrency, "the currency of the result is {0}", testCurrency);
-            testResult.RoundingPrecision.Should().Be(testRoundingPrecision, "the rounding precision of the result is {0}", testRoundingPrecision);
-            testResult.RoundingMethod.Should().BeNull("the rounding method of the result is not set");
+            ((decimal)testResult).Should().Be(expectedResult, SubtractionResultReason, expectedResult);
+            testResult.IsoCurrencyCode.Should().Be(testCurrency, ResultCurrencyReason, testCurrency);
+            testResult.RoundingPrecision.Should().Be(testRoundingPrecision, ResultRoundingPrecisionReason, testRoundingPrecision);
+            testResult.RoundingMethod.Should().BeNull(RoundingMethodNotSetReason);
         }
 
         [Fact]
         public void SubtractionOperator_MoneyValueWithAmountAndCurrencyAndRoundingPrecisionAndRoundingMethod_ReturnsMoneyValueResult()
         {
             // arrange
-            const decimal testAmount = 2468, testSubtractionOperand = 78;
+            const decimal testAmount = 2468, testSubtractionOperand = 78, expectedResult = 2390;
             const Iso4217CurrencyCurrent testCurrency = Iso4217CurrencyCurrent.USD;
             const int testRoundingPrecision = 3;
             const MidpointRounding testRoundingMethod = MidpointRounding.ToEven;
             var testValue = Money.Create(testAmount, testCurrency, testRoundingPrecision, testRoundingMethod);
 
-            var expectedResult = testAmount - testSubtractionOperand;
-
             // act
             var testResult = testValue - testSubtractionOperand;
 
             // assert
-            ((decimal)testResult).Should().Be(expectedResult, "the result of the subtraction operation is {0}", expectedResult);
-            testResult.IsoCurrencyCode.Should().Be(testCurrency, "the currency of the result is {0}", testCurrency);
-            testResult.RoundingPrecision.Should().Be(testRoundingPrecision, "the rounding precision of the result is {0}", testRoundingPrecision);
-            testResult.RoundingMethod.Should().Be(testRoundingMethod, "the rounding method of the result is {0}", testRoundingMethod);
+            ((decimal)testResult).Should().Be(expectedResult, SubtractionResultReason, expectedResult);
+            testResult.IsoCurrencyCode.Should().Be(testCurrency, ResultCurrencyReason, testCurrency);
+            testResult.RoundingPrecision.Should().Be(testRoundingPrecision, ResultRoundingPrecisionReason, testRoundingPrecision);
+            testResult.RoundingMethod.Should().Be(testRoundingMethod, ResultRoundingMethodReason, testRoundingMethod);
         }
 
         [Fact]
         public void MultiplicationOperator_MoneyValueWithAmount_ReturnsMoneyValueResult()
         {
             // arrange
-            const decimal testAmount = 1234, testMultiplicationOperand = 12;
+            const decimal testAmount = 1234, testMultiplicationOperand = 12, expectedResult = 14808;
             var testValue = Money.Create(testAmount);
-
-            var expectedResult = testAmount * testMultiplicationOperand;
 
             // act
             var testResult = testValue * testMultiplicationOperand;
 
             // assert
-            ((decimal)testResult).Should().Be(expectedResult, "the result of the multiplication operation is {0}", expectedResult);
-            testResult.IsoCurrencyCode.Should().Be(Iso4217CurrencyCurrent.XXX, "the currency of the result is not set");
-            testResult.RoundingPrecision.Should().BeNull("the rounding precision of the result is not set");
-            testResult.RoundingMethod.Should().BeNull("the rounding method of the result is not set");
+            ((decimal)testResult).Should().Be(expectedResult, MultiplicationResultReason, expectedResult);
+            testResult.IsoCurrencyCode.Should().Be(Iso4217CurrencyCurrent.XXX, CurrencyNotSetReason);
+            testResult.RoundingPrecision.Should().BeNull(RoundingPrecisionNotSetReason);
+            testResult.RoundingMethod.Should().BeNull(RoundingMethodNotSetReason);
         }
 
         [Fact]
         public void MultiplicationOperator_MoneyValueWithAmountAndCurrency_ReturnsMoneyValueResult()
         {
             // arrange
-            const decimal testAmount = 5678, testMultiplicationOperand = 34;
+            const decimal testAmount = 5678, testMultiplicationOperand = 34, expectedResult = 193052;
             const Iso4217CurrencyCurrent testCurrency = Iso4217CurrencyCurrent.USD;
             var testValue = Money.Create(testAmount, testCurrency);
-
-            var expectedResult = testAmount * testMultiplicationOperand;
 
             // act
             var testResult = testValue * testMultiplicationOperand;
 
             // assert
-            ((decimal)testResult).Should().Be(expectedResult, "the result of the multiplication operation is {0}", expectedResult);
-            testResult.IsoCurrencyCode.Should().Be(testCurrency, "the currency of the result is {0}", testCurrency);
-            testResult.RoundingPrecision.Should().BeNull("the rounding precision of the result is not set");
-            testResult.RoundingMethod.Should().BeNull("the rounding method of the result is not set");
+            ((decimal)testResult).Should().Be(expectedResult, MultiplicationResultReason, expectedResult);
+            testResult.IsoCurrencyCode.Should().Be(testCurrency, ResultCurrencyReason, testCurrency);
+            testResult.RoundingPrecision.Should().BeNull(RoundingPrecisionNotSetReason);
+            testResult.RoundingMethod.Should().BeNull(RoundingMethodNotSetReason);
         }
 
         [Fact]
         public void MultiplicationOperator_MoneyValueWithAmountAndCurrencyAndRoundingPrecision_ReturnsMoneyValueResult()
         {
             // arrange
-            const decimal testAmount = 1357, testMultiplicationOperand = 56;
+            const decimal testAmount = 1357, testMultiplicationOperand = 56, expectedResult = 75992;
             const Iso4217CurrencyCurrent testCurrency = Iso4217CurrencyCurrent.USD;
             const int testRoundingPrecision = 4;
             var testValue = Money.Create(testAmount, testCurrency, testRoundingPrecision);
-
-            var expectedResult = testAmount * testMultiplicationOperand;
 
             // act
             var testResult = testValue * testMultiplicationOperand;
 
             // assert
-            ((decimal)testResult).Should().Be(expectedResult, "the result of the multiplication operation is {0}", expectedResult);
-            testResult.IsoCurrencyCode.Should().Be(testCurrency, "the currency of the result is {0}", testCurrency);
-            testResult.RoundingPrecision.Should().Be(testRoundingPrecision, "the rounding precision of the result is {0}", testRoundingPrecision);
-            testResult.RoundingMethod.Should().BeNull("the rounding method of the result is not set");
+            ((decimal)testResult).Should().Be(expectedResult, MultiplicationResultReason, expectedResult);
+            testResult.IsoCurrencyCode.Should().Be(testCurrency, ResultCurrencyReason, testCurrency);
+            testResult.RoundingPrecision.Should().Be(testRoundingPrecision, ResultRoundingPrecisionReason, testRoundingPrecision);
+            testResult.RoundingMethod.Should().BeNull(RoundingMethodNotSetReason);
         }
 
         [Fact]
         public void MultiplicationOperator_MoneyValueWithAmountAndCurrencyAndRoundingPrecisionAndRoundingMethod_ReturnsMoneyValueResult()
         {
             // arrange
-            const decimal testAmount = 2468, testMultiplicationOperand = 78;
+            const decimal testAmount = 2468, testMultiplicationOperand = 78, expectedResult = 192504;
             const Iso4217CurrencyCurrent testCurrency = Iso4217CurrencyCurrent.USD;
             const int testRoundingPrecision = 3;
             const MidpointRounding testRoundingMethod = MidpointRounding.AwayFromZero;
             var testValue = Money.Create(testAmount, testCurrency, testRoundingPrecision, testRoundingMethod);
 
-            var expectedResult = testAmount * testMultiplicationOperand;
-
             // act
             var testResult = testValue * testMultiplicationOperand;
 
             // assert
-            ((decimal)testResult).Should().Be(expectedResult, "the result of the multiplication operation is {0}", expectedResult);
-            testResult.IsoCurrencyCode.Should().Be(testCurrency, "the currency of the result is {0}", testCurrency);
-            testResult.RoundingPrecision.Should().Be(testRoundingPrecision, "the rounding precision of the result is {0}", testRoundingPrecision);
-            testResult.RoundingMethod.Should().Be(testRoundingMethod, "the rounding method of the result is {0}", testRoundingMethod);
+            ((decimal)testResult).Should().Be(expectedResult, MultiplicationResultReason, expectedResult);
+            testResult.IsoCurrencyCode.Should().Be(testCurrency, ResultCurrencyReason, testCurrency);
+            testResult.RoundingPrecision.Should().Be(testRoundingPrecision, ResultRoundingPrecisionReason, testRoundingPrecision);
+            testResult.RoundingMethod.Should().Be(testRoundingMethod, ResultRoundingMethodReason, testRoundingMethod);
         }
 
         [Fact]
         public void DivisionOperator_MoneyValueWithAmount_ReturnsMoneyValueResult()
         {
             // arrange
-            const decimal testAmount = 2677, testDivisionOperand = 63;
+            const decimal testAmount = 2677, testDivisionOperand = 63, expectedResult = 42.492063492063492063492063492m; // 31 / 63 = 0.492063 recurring, rounded to the 29 significant digits a decimal holds
             var testValue = Money.Create(testAmount);
-
-            var expectedResult = testAmount / testDivisionOperand;
 
             // act
             var testResult = testValue / testDivisionOperand;
 
             // assert
-            ((decimal)testResult).Should().Be(expectedResult, "the result of the division operation is {0}", expectedResult);
-            testResult.IsoCurrencyCode.Should().Be(Iso4217CurrencyCurrent.XXX, "the currency of the result is not set");
-            testResult.RoundingPrecision.Should().BeNull("the rounding precision of the result is not set");
-            testResult.RoundingMethod.Should().BeNull("the rounding method of the result is not set");
+            ((decimal)testResult).Should().Be(expectedResult, DivisionResultReason, expectedResult);
+            testResult.IsoCurrencyCode.Should().Be(Iso4217CurrencyCurrent.XXX, CurrencyNotSetReason);
+            testResult.RoundingPrecision.Should().BeNull(RoundingPrecisionNotSetReason);
+            testResult.RoundingMethod.Should().BeNull(RoundingMethodNotSetReason);
         }
 
         [Fact]
         public void DivisionOperator_MoneyValueWithAmountAndCurrency_ReturnsMoneyValueResult()
         {
             // arrange
-            const decimal testAmount = 1553, testDivisionOperand = 25;
+            const decimal testAmount = 1553, testDivisionOperand = 25, expectedResult = 62.12m;
             const Iso4217CurrencyCurrent testCurrency = Iso4217CurrencyCurrent.USD;
             var testValue = Money.Create(testAmount, testCurrency);
-
-            var expectedResult = testAmount / testDivisionOperand;
 
             // act
             var testResult = testValue / testDivisionOperand;
 
             // assert
-            ((decimal)testResult).Should().Be(expectedResult, "the result of the division operation is {0}", expectedResult);
-            testResult.IsoCurrencyCode.Should().Be(testCurrency, "the currency of the result is {0}", testCurrency);
-            testResult.RoundingPrecision.Should().BeNull("the rounding precision of the result is not set");
-            testResult.RoundingMethod.Should().BeNull("the rounding method of the result is not set");
+            ((decimal)testResult).Should().Be(expectedResult, DivisionResultReason, expectedResult);
+            testResult.IsoCurrencyCode.Should().Be(testCurrency, ResultCurrencyReason, testCurrency);
+            testResult.RoundingPrecision.Should().BeNull(RoundingPrecisionNotSetReason);
+            testResult.RoundingMethod.Should().BeNull(RoundingMethodNotSetReason);
         }
 
         [Fact]
         public void DivisionOperator_MoneyValueWithAmountAndCurrencyAndRoundingPrecision_ReturnsMoneyValueResult()
         {
             // arrange
-            const decimal testAmount = 2542, testDivisionOperand = 25;
+            const decimal testAmount = 2542, testDivisionOperand = 25, expectedResult = 101.68m;
             const Iso4217CurrencyCurrent testCurrency = Iso4217CurrencyCurrent.USD;
             const int testRoundingPrecision = 4;
             var testValue = Money.Create(testAmount, testCurrency, testRoundingPrecision);
-
-            var expectedResult = testAmount / testDivisionOperand;
 
             // act
             var testResult = testValue / testDivisionOperand;
 
             // assert
-            ((decimal)testResult).Should().Be(expectedResult, "the result of the division operation is {0}", expectedResult);
-            testResult.IsoCurrencyCode.Should().Be(testCurrency, "the currency of the result is {0}", testCurrency);
-            testResult.RoundingPrecision.Should().Be(testRoundingPrecision, "the rounding precision of the result is {0}", testRoundingPrecision);
-            testResult.RoundingMethod.Should().BeNull("the rounding method of the result is not set");
+            ((decimal)testResult).Should().Be(expectedResult, DivisionResultReason, expectedResult);
+            testResult.IsoCurrencyCode.Should().Be(testCurrency, ResultCurrencyReason, testCurrency);
+            testResult.RoundingPrecision.Should().Be(testRoundingPrecision, ResultRoundingPrecisionReason, testRoundingPrecision);
+            testResult.RoundingMethod.Should().BeNull(RoundingMethodNotSetReason);
         }
 
         [Fact]
         public void DivisionOperator_MoneyValueWithAmountAndCurrencyAndRoundingPrecisionAndRoundingMethod_ReturnsMoneyValueResult()
         {
             // arrange
-            const decimal testAmount = 8127, testDivisionOperand = 36;
+            const decimal testAmount = 8127, testDivisionOperand = 36, expectedResult = 225.75m;
             const Iso4217CurrencyCurrent testCurrency = Iso4217CurrencyCurrent.USD;
             const int testRoundingPrecision = 3;
             const MidpointRounding testRoundingMethod = MidpointRounding.AwayFromZero;
             var testValue = Money.Create(testAmount, testCurrency, testRoundingPrecision, testRoundingMethod);
 
-            var expectedResult = testAmount / testDivisionOperand;
-
             // act
             var testResult = testValue / testDivisionOperand;
 
             // assert
-            ((decimal)testResult).Should().Be(expectedResult, "the result of the division operation is {0}", expectedResult);
-            testResult.IsoCurrencyCode.Should().Be(testCurrency, "the currency of the result is {0}", testCurrency);
-            testResult.RoundingPrecision.Should().Be(testRoundingPrecision, "the rounding precision of the result is {0}", testRoundingPrecision);
-            testResult.RoundingMethod.Should().Be(testRoundingMethod, "the rounding method of the result is {0}", testRoundingMethod);
+            ((decimal)testResult).Should().Be(expectedResult, DivisionResultReason, expectedResult);
+            testResult.IsoCurrencyCode.Should().Be(testCurrency, ResultCurrencyReason, testCurrency);
+            testResult.RoundingPrecision.Should().Be(testRoundingPrecision, ResultRoundingPrecisionReason, testRoundingPrecision);
+            testResult.RoundingMethod.Should().Be(testRoundingMethod, ResultRoundingMethodReason, testRoundingMethod);
         }
 
         [Fact]
@@ -340,7 +338,7 @@ namespace DataStandardizer.Money.Tests
             Money testValue1 = Money.Create(1535m, Iso4217CurrencyCurrent.USD), testValue2 = Money.Create(8127m, Iso4217CurrencyCurrent.GBP);
 
             // act
-            Func<bool> testAction = () => testValue1 < testValue2;
+            Action testAction = () => _ = testValue1 < testValue2;
 
             // assert
             testAction.Should().Throw<InvalidOperationException>("comparing money values with different currencies is not supported");
@@ -356,20 +354,21 @@ namespace DataStandardizer.Money.Tests
             var testResult = testValueLeft < testValueRight;
 
             // assert
-            testResult.Should().BeTrue("the left operand {0} is less than the right operand {1}", (decimal)testValueLeft, (decimal)testValueRight);
+            testResult.Should().BeTrue(LeftLessThanRightReason, (decimal)testValueLeft, (decimal)testValueRight);
         }
 
         [Fact]
         public void LessThanOperator_MoneyValueEqualToOperand_ReturnsFalse()
         {
             // arrange
-            Money testValueLeft = Money.Create(45), testValueRight = Money.Create(45);
+            const decimal testAmount = 45;
+            Money testValueLeft = Money.Create(testAmount), testValueRight = Money.Create(testAmount);
 
             // act
             var testResult = testValueLeft < testValueRight;
 
             // assert
-            testResult.Should().BeFalse("the left operand {0} is equal to the right operand {1}", (decimal)testValueLeft, (decimal)testValueRight);
+            testResult.Should().BeFalse(LeftEqualToRightReason, (decimal)testValueLeft, (decimal)testValueRight);
         }
 
         [Fact]
@@ -382,7 +381,7 @@ namespace DataStandardizer.Money.Tests
             var testResult = testValueLeft < testValueRight;
 
             // assert
-            testResult.Should().BeFalse("the left operand {0} is greater than the right operand {1}", (decimal)testValueLeft, (decimal)testValueRight);
+            testResult.Should().BeFalse(LeftGreaterThanRightReason, (decimal)testValueLeft, (decimal)testValueRight);
         }
 
         [Fact]
@@ -392,7 +391,7 @@ namespace DataStandardizer.Money.Tests
             Money testValueLeft = Money.Create(235, Iso4217CurrencyCurrent.USD), testValueRight = Money.Create(165, Iso4217CurrencyCurrent.GBP);
 
             // act
-            Func<bool> testAction = () => testValueLeft <= testValueRight;
+            Action testAction = () => _ = testValueLeft <= testValueRight;
 
             // assert
             testAction.Should().Throw<InvalidOperationException>();
@@ -408,20 +407,21 @@ namespace DataStandardizer.Money.Tests
             var testResult = testValueLeft <= testValueRight;
 
             // assert
-            testResult.Should().BeTrue("the left operand {0} is less than the right operand {1}", (decimal)testValueLeft, (decimal)testValueRight);
+            testResult.Should().BeTrue(LeftLessThanRightReason, (decimal)testValueLeft, (decimal)testValueRight);
         }
 
         [Fact]
         public void LessThanOrEqualToOperator_MoneyValueEqualToOperand_ReturnsTrue()
         {
             // arrange
-            Money testValueLeft = Money.Create(142), testValueRight = Money.Create(142);
+            const decimal testAmount = 142;
+            Money testValueLeft = Money.Create(testAmount), testValueRight = Money.Create(testAmount);
 
             // act
             var testResult = testValueLeft <= testValueRight;
 
             // assert
-            testResult.Should().BeTrue("the left operand {0} is equal to the right operand {1}", (decimal)testValueLeft, (decimal)testValueRight);
+            testResult.Should().BeTrue(LeftEqualToRightReason, (decimal)testValueLeft, (decimal)testValueRight);
         }
 
         [Fact]
@@ -434,7 +434,7 @@ namespace DataStandardizer.Money.Tests
             var testResult = testValueLeft <= testValueRight;
 
             // assert
-            testResult.Should().BeFalse("the left operand {0} is greater than the right operand {1}", (decimal)testValueLeft, (decimal)testValueRight);
+            testResult.Should().BeFalse(LeftGreaterThanRightReason, (decimal)testValueLeft, (decimal)testValueRight);
         }
 
         [Fact]
@@ -444,7 +444,7 @@ namespace DataStandardizer.Money.Tests
             Money testValueLeft = Money.Create(1356, Iso4217CurrencyCurrent.USD), testValueRight = Money.Create(176, Iso4217CurrencyCurrent.GBP);
 
             // act
-            Func<bool> testAction = () => testValueLeft > testValueRight;
+            Action testAction = () => _ = testValueLeft > testValueRight;
 
             // assert
             testAction.Should().Throw<InvalidOperationException>();
@@ -460,20 +460,21 @@ namespace DataStandardizer.Money.Tests
             var testResult = testValueLeft > testValueRight;
 
             // assert
-            testResult.Should().BeFalse("the left operand {0} is less than the right operand {0}", (decimal)testValueLeft, (decimal)testValueRight);
+            testResult.Should().BeFalse(LeftLessThanRightReason, (decimal)testValueLeft, (decimal)testValueRight);
         }
 
         [Fact]
         public void GreaterThanOperator_MoneyValueEqualToOperand_ReturnsFalse()
         {
             // arrange
-            Money testValueLeft = Money.Create(62), testValueRight = Money.Create(62);
+            const decimal testAmount = 62;
+            Money testValueLeft = Money.Create(testAmount), testValueRight = Money.Create(testAmount);
 
             // act
             var testResult = testValueLeft > testValueRight;
 
             // assert
-            testResult.Should().BeFalse("the left operand {0} is equal to the right operand {1}", (decimal)testValueLeft, (decimal)testValueRight);
+            testResult.Should().BeFalse(LeftEqualToRightReason, (decimal)testValueLeft, (decimal)testValueRight);
         }
 
         [Fact]
@@ -486,7 +487,7 @@ namespace DataStandardizer.Money.Tests
             var testResult = testValueLeft > testValueRight;
 
             // assert
-            testResult.Should().BeTrue("the left operand {0} is greater than the right operand {1}", (decimal)testValueLeft, (decimal)testValueRight);
+            testResult.Should().BeTrue(LeftGreaterThanRightReason, (decimal)testValueLeft, (decimal)testValueRight);
         }
 
         [Fact]
@@ -496,7 +497,7 @@ namespace DataStandardizer.Money.Tests
             Money testValueLeft = Money.Create(14, Iso4217CurrencyCurrent.USD), testValueRight = Money.Create(9124, Iso4217CurrencyCurrent.GBP);
 
             // act
-            Func<bool> testAction = () => testValueLeft >= testValueRight;
+            Action testAction = () => _ = testValueLeft >= testValueRight;
 
             // assert
             testAction.Should().Throw<InvalidOperationException>();
@@ -512,20 +513,21 @@ namespace DataStandardizer.Money.Tests
             var testResult = testValueLeft >= testValueRight;
 
             // assert
-            testResult.Should().BeFalse("the left operand {0} is less than the right operand {1}", (decimal)testValueLeft, (decimal)testValueRight);
+            testResult.Should().BeFalse(LeftLessThanRightReason, (decimal)testValueLeft, (decimal)testValueRight);
         }
 
         [Fact]
         public void GreaterThanOrEqualToOperator_MoneyValueEqualToOperand_ReturnsTrue()
         {
             // arrange
-            Money testValueLeft = Money.Create(198), testValueRight = Money.Create(198);
+            const decimal testAmount = 198;
+            Money testValueLeft = Money.Create(testAmount), testValueRight = Money.Create(testAmount);
 
             // act
             var testResult = testValueLeft >= testValueRight;
 
             // assert
-            testResult.Should().BeTrue("the left operand {0} is equal to the right operand {1}", (decimal)testValueLeft, (decimal)testValueRight);
+            testResult.Should().BeTrue(LeftEqualToRightReason, (decimal)testValueLeft, (decimal)testValueRight);
         }
 
         [Fact]
@@ -538,20 +540,21 @@ namespace DataStandardizer.Money.Tests
             var testResult = testValueLeft >= testValueRight;
 
             // assert
-            testResult.Should().BeTrue("the left operand {0} is greater than the right operand {1}", (decimal)testValueLeft, (decimal)testValueRight);
+            testResult.Should().BeTrue(LeftGreaterThanRightReason, (decimal)testValueLeft, (decimal)testValueRight);
         }
 
         [Fact]
         public void EqualsOperator_OperandsAreEqual_ReturnsTrue()
         {
             // arrange
-            Money testValueLeft = Money.Create(2734), testValueRight = Money.Create(2734);
+            const decimal testAmount = 2734;
+            Money testValueLeft = Money.Create(testAmount), testValueRight = Money.Create(testAmount);
 
             // act
             var testResult = testValueLeft == testValueRight;
 
             // assert
-            testResult.Should().BeTrue("the lft operand {0} is equal to the right operand {1}", (decimal)testValueLeft, (decimal)testValueRight);
+            testResult.Should().BeTrue(LeftEqualToRightReason, (decimal)testValueLeft, (decimal)testValueRight);
         }
 
         [Fact]
@@ -564,33 +567,34 @@ namespace DataStandardizer.Money.Tests
             var testResult = testValueLeft == testValueRight;
 
             // assert
-            testResult.Should().BeFalse("the left operand {1} is not equal to the right operand {1}", (decimal)testValueLeft, (decimal)testValueRight);
+            testResult.Should().BeFalse(LeftNotEqualToRightReason, (decimal)testValueLeft, (decimal)testValueRight);
         }
 
         [Fact]
         public void NotEqualsOperator_OperandsAreEqual_ReturnsFalse()
         {
             // arrange
-            Money testValueLeft = Money.Create(1223), testValueRight = Money.Create(1223);
+            const decimal testAmount = 1223;
+            Money testValueLeft = Money.Create(testAmount), testValueRight = Money.Create(testAmount);
 
             // act
             var testResult = testValueLeft != testValueRight;
 
             // assert
-            testResult.Should().BeFalse("the left operand {0} is not equal to the right operand {1}", (decimal)testValueLeft, (decimal)testValueRight);
+            testResult.Should().BeFalse(LeftEqualToRightReason, (decimal)testValueLeft, (decimal)testValueRight);
         }
 
         [Fact]
         public void NotEqualsOperator_OperandsNotEqual_ReturnsTrue()
         {
             // arrange
-            Money testValueLeft = Money.Create(092), testValueRight = Money.Create(3);
+            Money testValueLeft = Money.Create(92), testValueRight = Money.Create(3);
 
             // act
             var testResult = testValueLeft != testValueRight;
 
             // assert
-            testResult.Should().BeTrue("the left operand {0} is not equal to the right operand {1}", (decimal)testValueLeft, (decimal)testValueRight);
+            testResult.Should().BeTrue(LeftNotEqualToRightReason, (decimal)testValueLeft, (decimal)testValueRight);
         }
 
         [Fact]
@@ -604,7 +608,7 @@ namespace DataStandardizer.Money.Tests
             var testResult = testValue.CurrencyMinorUnits;
 
             // assert
-            testResult.Should().Be(2, "currency {0} has 2 minor units", currency);
+            testResult.Should().Be(UsDollarMinorUnits, "currency {0} has {1} minor units", currency, UsDollarMinorUnits);
         }
 
         [Fact]
@@ -618,7 +622,7 @@ namespace DataStandardizer.Money.Tests
             var testResult = testValue.CurrencyMinorUnits;
 
             // assert
-            testResult.Should().BeNull("currency {0} has no minor units");
+            testResult.Should().BeNull("currency {0} has no minor units", currency);
         }
 
         [Fact]
@@ -652,8 +656,9 @@ namespace DataStandardizer.Money.Tests
         public void RoundingMethod_MoneyValueWithRounding_ReturnsRoundingMethod()
         {
             // arrange
+            const int roundingPrecision = 2;
             const MidpointRounding roundingMethod = MidpointRounding.ToEven;
-            var testValue = Money.Create(50, Iso4217CurrencyCurrent.USD, 2, roundingMethod);
+            var testValue = Money.Create(50, Iso4217CurrencyCurrent.USD, roundingPrecision, roundingMethod);
 
             // act
             var testResult = testValue.RoundingMethod;
@@ -672,7 +677,7 @@ namespace DataStandardizer.Money.Tests
             var testResult = testValue.RoundingMethod;
 
             // assert
-            testResult.Should().BeNull("the money value has no rounding");
+            testResult.Should().BeNull(NoRoundingReason);
         }
 
         [Fact]
@@ -699,7 +704,7 @@ namespace DataStandardizer.Money.Tests
             var testResult = testValue.RoundingPrecision;
 
             // assert
-            testResult.Should().BeNull("the money value has no rounding");
+            testResult.Should().BeNull(NoRoundingReason);
         }
 
         [Fact]
@@ -712,17 +717,18 @@ namespace DataStandardizer.Money.Tests
             var testResult = testValue.CompareTo(234);
 
             // assert
-            testResult.Should().Be(-1, "the argument is less than the money value");
+            testResult.Should().Be(-1, "the argument is greater than the money value");
         }
 
         [Fact]
         public void CompareTo_ArgumentEqualToMoneyValue_ReturnsZero()
         {
             // arrange
-            var testValue = Money.Create(46);
+            const decimal testAmount = 46;
+            var testValue = Money.Create(testAmount);
 
             // act
-            var testResult = testValue.CompareTo(46);
+            var testResult = testValue.CompareTo(testAmount);
 
             // assert
             testResult.Should().Be(0, "the argument is equal to the money value");
@@ -738,17 +744,18 @@ namespace DataStandardizer.Money.Tests
             var testResult = testValue.CompareTo(3245);
 
             // assert
-            testResult.Should().Be(1, "the argument is greater than the money value");
+            testResult.Should().Be(1, "the argument is less than the money value");
         }
 
         [Fact]
         public void Equals_ArgumentEqualToMoneyValue_ReturnsTrue()
         {
             // arrange
-            var testValue = Money.Create(23);
+            const decimal testAmount = 23;
+            var testValue = Money.Create(testAmount);
 
             // act
-            var testResult = testValue.Equals(23);
+            var testResult = testValue.Equals(testAmount);
 
             // assert
             testResult.Should().BeTrue("the argument is equal to the money value");
@@ -774,219 +781,120 @@ namespace DataStandardizer.Money.Tests
             Action testAction = () => _ = Money.Parse(null!);
 
             // assert
-            testAction.Should().Throw<ArgumentNullException>("the input is null");
+            testAction.Should().Throw<ArgumentNullException>(InputIsNullReason);
         }
 
         [Theory]
-        [InlineData("(USD12.34)", -12.34),
-         InlineData("-USD23.45", -23.45),
-         InlineData("USD-34.56", -34.56),
-         InlineData("USD45.67-", -45.67),
-         InlineData("(56.78USD)", -56.78),
-         InlineData("-67.89USD", -67.89),
-         InlineData("78.90-USD", -78.90),
-         InlineData("89.01USD-", -89.01),
-         InlineData("-90.12 USD", -90.12),
-         InlineData("-USD 1.23", -1.23),
-         InlineData("23.45 USD-", -23.45),
-         InlineData("USD 34.56-", -34.56),
-         InlineData("USD -45.67", -45.67),
-         InlineData("56.78- USD", -56.78),
-         InlineData("(USD 67.89)", -67.89),
-         InlineData("(78.90 USD)", -78.90),
-         InlineData("(USD12)", -12),
-         InlineData("-USD23", -23),
-         InlineData("USD-34", -34),
-         InlineData("USD45-", -45),
-         InlineData("(56USD)", -56),
-         InlineData("-67USD", -67),
-         InlineData("78-USD", -78),
-         InlineData("89USD-", -89),
-         InlineData("-90 USD", -90),
-         InlineData("-USD 01", -1),
-         InlineData("12 USD-", -12),
-         InlineData("USD 23-", -23),
-         InlineData("USD -34", -34),
-         InlineData("45- USD", -45),
-         InlineData("(USD 56)", -56),
-         InlineData("(67 USD)", -67)]
+        [MemberData(nameof(NegativeAmountTestCases))]
         public void Parse_InputIsNegativeAmount_ReturnsMoneyValue(string testInput, decimal expectedResult)
         {
+            // arrange
+            using var cultureScope = new CurrentCultureScope(CultureInfo.InvariantCulture);
+
             // act
             var testResult = Money.Parse(testInput);
 
             // assert
-            ((decimal)testResult).Should().Be(expectedResult, "the money value contains the amount {0}", expectedResult);
+            ((decimal)testResult).Should().Be(expectedResult, MoneyValueContainsAmountReason, expectedResult);
         }
 
         [Theory]
-        [InlineData("USD12.34", 12.34),
-         InlineData("23.45USD", 23.45),
-         InlineData("USD 34.56", 34.56),
-         InlineData("45.67 USD", 45.67),
-         InlineData("USD78", 78),
-         InlineData("89USD", 89),
-         InlineData("USD 90", 90),
-         InlineData("01 USD", 1)]
+        [MemberData(nameof(PositiveAmountTestCases))]
         public void Parse_InputIsPositiveAmount_ReturnsMoneyValue(string testInput, decimal expectedResult)
         {
+            // arrange
+            using var cultureScope = new CurrentCultureScope(CultureInfo.InvariantCulture);
+
             // act
             var testResult = Money.Parse(testInput);
 
             // assert
-            ((decimal)testResult).Should().Be(expectedResult, "the money value contains the amount {0}", expectedResult);
+            ((decimal)testResult).Should().Be(expectedResult, MoneyValueContainsAmountReason, expectedResult);
         }
 
         [Fact]
         public void Parse_ProviderSetAndInputIsNull_ThrowsArgumentNullException()
         {
             // arrange
-            IFormatProvider provider = CultureInfo.CurrentCulture;
+            IFormatProvider provider = CultureInfo.InvariantCulture;
 
             // act
             Action testAction = () => _ = Money.Parse(null!, provider);
 
             // assert
-            testAction.Should().Throw<ArgumentNullException>("the input is null");
+            testAction.Should().Throw<ArgumentNullException>(InputIsNullReason);
         }
 
         [Theory]
-        [InlineData("(USD12.34)", -12.34),
-         InlineData("-USD23.45", -23.45),
-         InlineData("USD-34.56", -34.56),
-         InlineData("USD45.67-", -45.67),
-         InlineData("(56.78USD)", -56.78),
-         InlineData("-67.89USD", -67.89),
-         InlineData("78.90-USD", -78.90),
-         InlineData("89.01USD-", -89.01),
-         InlineData("-90.12 USD", -90.12),
-         InlineData("-USD 1.23", -1.23),
-         InlineData("23.45 USD-", -23.45),
-         InlineData("USD 34.56-", -34.56),
-         InlineData("USD -45.67", -45.67),
-         InlineData("56.78- USD", -56.78),
-         InlineData("(USD 67.89)", -67.89),
-         InlineData("(78.90 USD)", -78.90),
-         InlineData("(USD12)", -12),
-         InlineData("-USD23", -23),
-         InlineData("USD-34", -34),
-         InlineData("USD45-", -45),
-         InlineData("(56USD)", -56),
-         InlineData("-67USD", -67),
-         InlineData("78-USD", -78),
-         InlineData("89USD-", -89),
-         InlineData("-90 USD", -90),
-         InlineData("-USD 01", -1),
-         InlineData("12 USD-", -12),
-         InlineData("USD 23-", -23),
-         InlineData("USD -34", -34),
-         InlineData("45- USD", -45),
-         InlineData("(USD 56)", -56),
-         InlineData("(67 USD)", -67)]
+        [MemberData(nameof(NegativeAmountTestCases))]
         public void Parse_ProviderSetAndInputIsNegativeAmount_ReturnsMoneyValue(string testInput, decimal expectedResult)
         {
             // arrange
-            IFormatProvider provider = CultureInfo.CurrentCulture;
+            IFormatProvider provider = CultureInfo.InvariantCulture;
 
             // act
             var testResult = Money.Parse(testInput, provider);
 
             // assert
-            ((decimal)testResult).Should().Be(expectedResult, "the money value contains the amount {0}", expectedResult);
+            ((decimal)testResult).Should().Be(expectedResult, MoneyValueContainsAmountReason, expectedResult);
         }
 
         [Theory]
-        [InlineData("USD12.34", 12.34),
-         InlineData("23.45USD", 23.45),
-         InlineData("USD 34.56", 34.56),
-         InlineData("45.67 USD", 45.67),
-         InlineData("USD78", 78),
-         InlineData("89USD", 89),
-         InlineData("USD 90", 90),
-         InlineData("01 USD", 1)]
+        [MemberData(nameof(PositiveAmountTestCases))]
         public void Parse_ProviderSetAndInputIsPositiveAmount_ReturnsMoneyValue(string testInput, decimal expectedResult)
         {
             // arrange
-            IFormatProvider provider = CultureInfo.CurrentCulture;
+            IFormatProvider provider = CultureInfo.InvariantCulture;
 
             // act
             var testResult = Money.Parse(testInput, provider);
 
             // assert
-            ((decimal)testResult).Should().Be(expectedResult, "the money value contains the amount {0}", expectedResult);
+            ((decimal)testResult).Should().Be(expectedResult, MoneyValueContainsAmountReason, expectedResult);
         }
 
         [Theory]
         [InlineData(null), InlineData("")]
         public void TryParse_InputIsBlank_ReturnsFalse(string? testValue)
         {
+            // arrange
+            using var cultureScope = new CurrentCultureScope(CultureInfo.InvariantCulture);
+
             // act
             var testResult = Money.TryParse(testValue, out _);
 
             // assert
-            testResult.Should().BeFalse("the input is blank");
+            testResult.Should().BeFalse(InputIsBlankReason);
         }
 
         [Theory]
-        [InlineData("(USD12.34)", -12.34),
-         InlineData("-USD23.45", -23.45),
-         InlineData("USD-34.56", -34.56),
-         InlineData("USD45.67-", -45.67),
-         InlineData("(56.78USD)", -56.78),
-         InlineData("-67.89USD", -67.89),
-         InlineData("78.90-USD", -78.90),
-         InlineData("89.01USD-", -89.01),
-         InlineData("-90.12 USD", -90.12),
-         InlineData("-USD 1.23", -1.23),
-         InlineData("23.45 USD-", -23.45),
-         InlineData("USD 34.56-", -34.56),
-         InlineData("USD -45.67", -45.67),
-         InlineData("56.78- USD", -56.78),
-         InlineData("(USD 67.89)", -67.89),
-         InlineData("(78.90 USD)", -78.90),
-         InlineData("(USD12)", -12),
-         InlineData("-USD23", -23),
-         InlineData("USD-34", -34),
-         InlineData("USD45-", -45),
-         InlineData("(56USD)", -56),
-         InlineData("-67USD", -67),
-         InlineData("78-USD", -78),
-         InlineData("89USD-", -89),
-         InlineData("-90 USD", -90),
-         InlineData("-USD 01", -1),
-         InlineData("12 USD-", -12),
-         InlineData("USD 23-", -23),
-         InlineData("USD -34", -34),
-         InlineData("45- USD", -45),
-         InlineData("(USD 56)", -56),
-         InlineData("(67 USD)", -67)]
+        [MemberData(nameof(NegativeAmountTestCases))]
         public void TryParse_InputIsNegativeAmount_ReturnsTrueAndOutputsMoneyValue(string testValue, decimal expectedResult)
         {
+            // arrange
+            using var cultureScope = new CurrentCultureScope(CultureInfo.InvariantCulture);
+
             // act
             var testResult = Money.TryParse(testValue, out var result);
 
             // assert
-            testResult.Should().BeTrue("the input is a valid money value");
-            ((decimal)result).Should().Be(expectedResult, "the input contains the money value {0}", expectedResult);
+            testResult.Should().BeTrue(InputIsValidReason);
+            ((decimal)result).Should().Be(expectedResult, InputContainsMoneyValueReason, expectedResult);
         }
 
         [Theory]
-        [InlineData("USD12.34", 12.34),
-         InlineData("23.45USD", 23.45),
-         InlineData("USD 34.56", 34.56),
-         InlineData("45.67 USD", 45.67),
-         InlineData("USD78", 78),
-         InlineData("89USD", 89),
-         InlineData("USD 90", 90),
-         InlineData("01 USD", 1)]
+        [MemberData(nameof(PositiveAmountTestCases))]
         public void TryParse_InputIsPositiveAmount_ReturnsTrueAndOutputsMoneyValue(string testValue, decimal expectedResult)
         {
+            // arrange
+            using var cultureScope = new CurrentCultureScope(CultureInfo.InvariantCulture);
+
             // act
             var testResult = Money.TryParse(testValue, out var result);
 
             // assert
-            testResult.Should().BeTrue("the input is a valid money value");
-            ((decimal)result).Should().Be(expectedResult, "the input contains the money value {0}", expectedResult);
+            testResult.Should().BeTrue(InputIsValidReason);
+            ((decimal)result).Should().Be(expectedResult, InputContainsMoneyValueReason, expectedResult);
         }
 
         [Theory]
@@ -994,141 +902,124 @@ namespace DataStandardizer.Money.Tests
         public void TryParse_ProviderSetAndInputIsBlank_ReturnsFalse(string? testValue)
         {
             // arrange
-            IFormatProvider provider = CultureInfo.CurrentCulture;
+            IFormatProvider provider = CultureInfo.InvariantCulture;
 
             // act
             var testResult = Money.TryParse(testValue, provider, out _);
 
             // assert
-            testResult.Should().BeFalse("the input is blank");
+            testResult.Should().BeFalse(InputIsBlankReason);
         }
 
         [Theory]
-        [InlineData("(USD12.34)", -12.34),
-         InlineData("-USD23.45", -23.45),
-         InlineData("USD-34.56", -34.56),
-         InlineData("USD45.67-", -45.67),
-         InlineData("(56.78USD)", -56.78),
-         InlineData("-67.89USD", -67.89),
-         InlineData("78.90-USD", -78.90),
-         InlineData("89.01USD-", -89.01),
-         InlineData("-90.12 USD", -90.12),
-         InlineData("-USD 1.23", -1.23),
-         InlineData("23.45 USD-", -23.45),
-         InlineData("USD 34.56-", -34.56),
-         InlineData("USD -45.67", -45.67),
-         InlineData("56.78- USD", -56.78),
-         InlineData("(USD 67.89)", -67.89),
-         InlineData("(78.90 USD)", -78.90),
-         InlineData("(USD12)", -12),
-         InlineData("-USD23", -23),
-         InlineData("USD-34", -34),
-         InlineData("USD45-", -45),
-         InlineData("(56USD)", -56),
-         InlineData("-67USD", -67),
-         InlineData("78-USD", -78),
-         InlineData("89USD-", -89),
-         InlineData("-90 USD", -90),
-         InlineData("-USD 01", -1),
-         InlineData("12 USD-", -12),
-         InlineData("USD 23-", -23),
-         InlineData("USD -34", -34),
-         InlineData("45- USD", -45),
-         InlineData("(USD 56)", -56),
-         InlineData("(67 USD)", -67)]
+        [MemberData(nameof(NegativeAmountTestCases))]
         public void TryParse_ProviderSetAndInputIsNegativeAmount_ReturnsTrueAndOutputsMoneyValue(string testValue, decimal expectedResult)
         {
             // arrange
-            IFormatProvider provider = CultureInfo.CurrentCulture;
+            IFormatProvider provider = CultureInfo.InvariantCulture;
 
             // act
             var testResult = Money.TryParse(testValue, provider, out var result);
 
             // assert
-            testResult.Should().BeTrue("the input is a valid money value");
-            ((decimal)result).Should().Be(expectedResult, "the input contains the money value {0}", expectedResult);
+            testResult.Should().BeTrue(InputIsValidReason);
+            ((decimal)result).Should().Be(expectedResult, InputContainsMoneyValueReason, expectedResult);
         }
 
         [Theory]
-        [InlineData("USD12.34", 12.34),
-         InlineData("23.45USD", 23.45),
-         InlineData("USD 34.56", 34.56),
-         InlineData("45.67 USD", 45.67),
-         InlineData("USD78", 78),
-         InlineData("89USD", 89),
-         InlineData("USD 90", 90),
-         InlineData("01 USD", 1)]
+        [MemberData(nameof(PositiveAmountTestCases))]
         public void TryParse_ProviderSetAndInputIsPositiveAmount_ReturnsTrueAndOutputsMoneyValue(string testValue, decimal expectedResult)
         {
             // arrange
-            IFormatProvider provider = CultureInfo.CurrentCulture;
+            IFormatProvider provider = CultureInfo.InvariantCulture;
 
             // act
             var testResult = Money.TryParse(testValue, provider, out var result);
 
             // assert
-            testResult.Should().BeTrue("the input is a valid money value");
-            ((decimal)result).Should().Be(expectedResult, "the input contains the money value {0}", expectedResult);
+            testResult.Should().BeTrue(InputIsValidReason);
+            ((decimal)result).Should().Be(expectedResult, InputContainsMoneyValueReason, expectedResult);
         }
 
-        #region Test: Parse_ProviderSetAndInputIsNegativeAmount
-
-        [Theory]
-        [InlineData("-USD23.45", -23.45)]
-        [InlineData("(USD23.45)", -23.45)]
-        [InlineData("-90.12 USD", -90.12)]
-        [InlineData("USD23.45-", -23.45)]
-        public void Parse_ProviderSetAndInputIsNegativeAmount_ReturnsNegativeMoneyValue(string testValue, decimal expectedResult)
+        // Each placement of the currency code and of the sign or parentheses that a negative amount may take.
+        public static TheoryData<string, decimal> NegativeAmountTestCases => new()
         {
-            // arrange
-            IFormatProvider provider = CultureInfo.CurrentCulture;
+            { "(USD12.34)", -12.34m },
+            { "-USD23.45", -23.45m },
+            { "USD-34.56", -34.56m },
+            { "USD45.67-", -45.67m },
+            { "(56.78USD)", -56.78m },
+            { "-67.89USD", -67.89m },
+            { "78.90-USD", -78.90m },
+            { "89.01USD-", -89.01m },
+            { "-90.12 USD", -90.12m },
+            { "-USD 1.23", -1.23m },
+            { "23.45 USD-", -23.45m },
+            { "USD 34.56-", -34.56m },
+            { "USD -45.67", -45.67m },
+            { "56.78- USD", -56.78m },
+            { "(USD 67.89)", -67.89m },
+            { "(78.90 USD)", -78.90m },
+            { "(USD12)", -12m },
+            { "-USD23", -23m },
+            { "USD-34", -34m },
+            { "USD45-", -45m },
+            { "(56USD)", -56m },
+            { "-67USD", -67m },
+            { "78-USD", -78m },
+            { "89USD-", -89m },
+            { "-90 USD", -90m },
+            { "-USD 01", -1m },
+            { "12 USD-", -12m },
+            { "USD 23-", -23m },
+            { "USD -34", -34m },
+            { "45- USD", -45m },
+            { "(USD 56)", -56m },
+            { "(67 USD)", -67m },
+        };
 
-            // act
-            var testResult = Money.Parse(testValue, provider);
-
-            // assert
-            ((decimal)testResult).Should().Be(expectedResult, "the input contains the negative money value {0}", expectedResult);
-        }
-
-        [Theory]
-        [InlineData("-USD23.45", -23.45)]
-        [InlineData("(USD23.45)", -23.45)]
-        [InlineData("-90.12 USD", -90.12)]
-        public void Parse_ProviderSetAndInputIsNegativeAmount_MatchesParameterlessOverload(string testValue, decimal expectedResult)
+        // Each placement of the currency code that a positive amount may take.
+        public static TheoryData<string, decimal> PositiveAmountTestCases => new()
         {
-            // act
-            var withProvider = Money.Parse(testValue, CultureInfo.CurrentCulture);
-            var withoutProvider = Money.Parse(testValue);
-
-            // assert
-            ((decimal)withProvider).Should().Be(expectedResult, "the input contains the negative money value {0}", expectedResult);
-            ((decimal)withProvider).Should().Be((decimal)withoutProvider, "both overloads must agree on the sign of the result");
-        }
-
-        #endregion
+            { "USD12.34", 12.34m },
+            { "23.45USD", 23.45m },
+            { "USD 34.56", 34.56m },
+            { "45.67 USD", 45.67m },
+            { "USD78", 78m },
+            { "89USD", 89m },
+            { "USD 90", 90m },
+            { "01 USD", 1m },
+        };
 
         #region Test: CompareTo_ObjectArgument
 
-        [Fact]
-        public void CompareTo_ObjectArgumentIsMoneyValue_ReturnsComparisonResult()
+        [Theory]
+        [MemberData(nameof(CompareToObjectArgumentTestCases))]
+        public void CompareTo_ObjectArgumentIsMoneyValue_ReturnsComparisonResult(decimal testAmount, int expectedResult)
         {
             // arrange
-            var testSubject = Money.Create(1234m, Iso4217CurrencyCurrent.NZD);
-            object testValue = Money.Create(1234m, Iso4217CurrencyCurrent.NZD);
-            object lesserValue = Money.Create(12m, Iso4217CurrencyCurrent.NZD);
-            object greaterValue = Money.Create(12345m, Iso4217CurrencyCurrent.NZD);
+            var testSubject = Money.Create(ObjectTestAmount, Iso4217CurrencyCurrent.NZD);
+            object testValue = Money.Create(testAmount, Iso4217CurrencyCurrent.NZD);
 
-            // act & assert
-            testSubject.CompareTo(testValue).Should().Be(0, "the values are equal");
-            testSubject.CompareTo(lesserValue).Should().BePositive("the argument is less than this instance");
-            testSubject.CompareTo(greaterValue).Should().BeNegative("the argument is greater than this instance");
+            // act
+            var testResult = testSubject.CompareTo(testValue);
+
+            // assert
+            testResult.Should().Be(expectedResult, "the argument has the amount {0}", testAmount);
         }
+
+        public static TheoryData<decimal, int> CompareToObjectArgumentTestCases => new()
+        {
+            { ObjectTestAmount, 0 },  // the values are equal
+            { 12m, 1 },               // the argument is less than this instance
+            { 12345m, -1 },           // the argument is greater than this instance
+        };
 
         [Fact]
         public void CompareTo_ObjectArgumentIsNull_ReturnsPositive()
         {
             // arrange
-            var testSubject = Money.Create(1234m, Iso4217CurrencyCurrent.NZD);
+            var testSubject = Money.Create(ObjectTestAmount, Iso4217CurrencyCurrent.NZD);
 
             // act
             var testResult = testSubject.CompareTo(null);
@@ -1141,13 +1032,13 @@ namespace DataStandardizer.Money.Tests
         public void CompareTo_ObjectArgumentIsDifferentType_ThrowsArgumentException()
         {
             // arrange
-            var testSubject = Money.Create(1234m, Iso4217CurrencyCurrent.NZD);
+            var testSubject = Money.Create(ObjectTestAmount, Iso4217CurrencyCurrent.NZD);
 
             // act
-            var testAction = () => testSubject.CompareTo("not a money value");
+            Action testAction = () => testSubject.CompareTo(NotAMoneyValue);
 
             // assert
-            testAction.Should().Throw<ArgumentException>("the argument is not a money value");
+            testAction.Should().Throw<ArgumentException>(ArgumentIsNotMoneyValueReason);
         }
 
         #endregion
@@ -1158,8 +1049,8 @@ namespace DataStandardizer.Money.Tests
         public void Equals_ObjectArgumentIsEquivalentMoneyValue_ReturnsTrue()
         {
             // arrange
-            var testSubject = Money.Create(1234m, Iso4217CurrencyCurrent.NZD);
-            object testValue = Money.Create(1234m, Iso4217CurrencyCurrent.NZD);
+            var testSubject = Money.Create(ObjectTestAmount, Iso4217CurrencyCurrent.NZD);
+            object testValue = Money.Create(ObjectTestAmount, Iso4217CurrencyCurrent.NZD);
 
             // act
             var testResult = testSubject.Equals(testValue);
@@ -1169,12 +1060,11 @@ namespace DataStandardizer.Money.Tests
         }
 
         [Theory]
-        [InlineData(1234, Iso4217CurrencyCurrent.AUD)]
-        [InlineData(4321, Iso4217CurrencyCurrent.NZD)]
+        [MemberData(nameof(EqualsDifferentMoneyValueTestCases))]
         public void Equals_ObjectArgumentIsDifferentMoneyValue_ReturnsFalse(decimal testAmount, Iso4217CurrencyCurrent testCurrency)
         {
             // arrange
-            var testSubject = Money.Create(1234m, Iso4217CurrencyCurrent.NZD);
+            var testSubject = Money.Create(ObjectTestAmount, Iso4217CurrencyCurrent.NZD);
             object testValue = Money.Create(testAmount, testCurrency);
 
             // act
@@ -1184,17 +1074,23 @@ namespace DataStandardizer.Money.Tests
             testResult.Should().BeFalse("the values differ in amount or currency");
         }
 
+        public static TheoryData<decimal, Iso4217CurrencyCurrent> EqualsDifferentMoneyValueTestCases => new()
+        {
+            { ObjectTestAmount, Iso4217CurrencyCurrent.AUD },  // the same amount in a different currency
+            { 4321m, Iso4217CurrencyCurrent.NZD },             // a different amount in the same currency
+        };
+
         [Fact]
         public void Equals_ObjectArgumentIsNotMoneyValue_ReturnsFalse()
         {
             // arrange
-            var testSubject = Money.Create(1234m, Iso4217CurrencyCurrent.NZD);
+            var testSubject = Money.Create(ObjectTestAmount, Iso4217CurrencyCurrent.NZD);
 
             // act
-            var testResult = testSubject.Equals("not a money value");
+            var testResult = testSubject.Equals(NotAMoneyValue);
 
             // assert
-            testResult.Should().BeFalse("the argument is not a money value");
+            testResult.Should().BeFalse(ArgumentIsNotMoneyValueReason);
         }
 
         #endregion
