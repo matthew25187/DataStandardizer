@@ -1285,6 +1285,26 @@ namespace DataStandardizer.Communication.Tests.Mime
             testResult.Should().Be(expected);
         }
 
+        [Fact]
+        public void Encode_BackslashInComment_IsEncoded()
+        {
+            // act
+            var testResult = MimeQuotedPrintable.Encode(Latin1("a\\b"), MimeQuotedPrintableMode.EncodedWordComment, Text);
+
+            // assert
+            testResult.Should().Be("a=5Cb");
+        }
+
+        [Fact]
+        public void Decode_BackslashInComment_IsAccepted()
+        {
+            // act
+            var testResult = MimeQuotedPrintable.Decode("a\\b".AsSpan(), MimeQuotedPrintableMode.EncodedWordComment, Strict);
+
+            // assert
+            testResult.Should().Equal(Latin1("a\\b"));
+        }
+
         // ref. RFC 2047 §5(3): the characters that a "Q" encoded word may hold as themselves in a phrase.
         private const string PhraseSafeCharacters = "ABCXYZabcxyz0189!*+-/";
 

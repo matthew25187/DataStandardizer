@@ -515,7 +515,7 @@ namespace DataStandardizer.Communication.Mime
             return true;
         }
 
-        private static bool TryGetString(Encoding encoding, byte[] bytes, int byteCount, bool allowInvalidOctets, out string value)
+        internal static bool TryGetString(Encoding encoding, byte[] bytes, int byteCount, bool allowInvalidOctets, out string value)
         {
             value = string.Empty;
 
@@ -524,13 +524,17 @@ namespace DataStandardizer.Communication.Mime
             var decoding = (Encoding)encoding.Clone();
             decoding.DecoderFallback = allowInvalidOctets ? new DecoderReplacementFallback(ReplacementString) : DecoderFallback.ExceptionFallback;
 #else
-            // TODO: netstandard1.1 has no Encoding.Clone or DecoderFallback, so the octets are read as the encoding reads them, and invalid
-            // octets are only rejected by an encoding that throws. Decode strictly, as the other builds do, if netstandard1.1 is dropped.
+            // TODO: netstandard1.1 has no Encoding.Clone or DecoderFallback, so the octets are read as the encoding reads them, and then
+            // checked with IsDecodedExactly. Decode strictly, as the other builds do, if netstandard1.1 is dropped.
             var decoding = encoding;
 #endif
             try
             {
-                value = decoding.GetString(bytes, 0, byteCount);
+                var text = decoding.GetString(bytes, 0, byteCount);
+#if !(NETSTANDARD2_0_OR_GREATER || NETCOREAPP)
+                if (!allowInvalidOctets && !IsDecodedExactly(encoding, bytes, byteCount, text)) return false;
+#endif
+                value = text;
                 return true;
             }
             catch (DecoderFallbackException)
@@ -539,7 +543,36 @@ namespace DataStandardizer.Communication.Mime
             }
         }
 
-        private static string DecodeLatin1(byte[] bytes, int byteCount)
+        // Indicates whether text read with an encoding that may replace invalid octets, with U+FFFD, '?' or anything else, came from valid
+        // octets: whether writing the text with the encoding gives the same octets back. An encoding that can't write the text didn't read
+        // it from valid octets. The byte order mark that MimeUnicodeSchemeEncoding reads and doesn't write is left out of the comparison.
+        internal static bool IsDecodedExactly(Encoding encoding, byte[] bytes, int byteCount, string text)
+        {
+            var start = 0;
+            var scheme = encoding as MimeUnicodeSchemeEncoding;
+            if (scheme != null) encoding = scheme.SelectEncoding(bytes, 0, byteCount, out start);
+
+            byte[] written;
+            try
+            {
+                written = encoding.GetBytes(text);
+            }
+            catch (EncoderFallbackException)
+            {
+                return false;
+            }
+
+            if (written.Length != byteCount - start) return false;
+
+            for (var index = 0; index < written.Length; index++)
+            {
+                if (written[index] != bytes[start + index]) return false;
+            }
+
+            return true;
+        }
+
+        internal static string DecodeLatin1(byte[] bytes, int byteCount)
         {
             // Each octet becomes the character with the same number, so the octets can be recovered.
             var chars = new char[byteCount];

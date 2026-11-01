@@ -101,9 +101,10 @@ namespace DataStandardizer.Communication.Mime
         /// The octets of a value with no character set must still be US-ASCII, unless <see cref="AllowUnknownCharsets"/> is also given.
         /// </para>
         /// <para>
-        /// The netstandard1.1 build can't change how an encoding treats invalid octets, so there, the value is read as the encoding from the
-        /// <see cref="IMimeCharsetResolver"/> reads it, whether or not this option is given: the built-in encodings read invalid octets as
-        /// U+FFFD, and a value whose encoding throws <see cref="DecoderFallbackException"/> is not valid.
+        /// The netstandard1.1 build can't change how an encoding treats invalid octets. So there, without this option, the value that the
+        /// encoding from the <see cref="IMimeCharsetResolver"/> reads is accepted only if writing it with the encoding gives the same octets
+        /// back, and the encoding doesn't throw <see cref="DecoderFallbackException"/> or <see cref="EncoderFallbackException"/>. A valid
+        /// value in a character set that can write a character in more than one way needs this option on that build.
         /// </para>
         /// </remarks>
         AllowInvalidOctets = 1 << 8,
