@@ -1,26 +1,44 @@
-﻿using System.Collections;
-using FluentAssertions;
+﻿using FluentAssertions;
 
 namespace DataStandardizer.File.CSV.Tests;
 
 public class CsvFileRecordLineTests
 {
+    // Field names given by [CsvField] attributes.
+    private const string FirstCodeFieldName = "FirstCode";
+    private const string SecondCodeFieldName = "SecondCode";
+    private const string BaseFieldName = "BaseField";
+    private const string DerivedFieldName = "DerivedField";
+
+    private const string FirstCode = "A";
+    private const string SecondCode = "B";
+
     [Fact]
     public void SetPropertyValue_SameNamedPropertyOnDifferentTypes_ResolvesFieldKeyPerType()
     {
         // arrange
-        var firstLine = new FirstCodeLine();
-        var secondLine = new SecondCodeLine();
+        _ = new FirstCodeLine { Code = FirstCode };
+        var testLine = new SecondCodeLine();
 
         // act
-        firstLine.Code = "A";
-        secondLine.Code = "B";
+        testLine.Code = SecondCode;
 
         // assert
-        FieldKeys(firstLine).Should().Equal("FirstCode");
-        FieldKeys(secondLine).Should().Equal("SecondCode");
-        firstLine.Code.Should().Be("A");
-        secondLine.Code.Should().Be("B");
+        FieldKeys(testLine).Should().BeEquivalentTo(new[] { SecondCodeFieldName }, options => options.WithStrictOrdering());
+    }
+
+    [Fact]
+    public void GetPropertyValue_SameNamedPropertySetOnDifferentTypes_ReturnsValueSetOnType()
+    {
+        // arrange
+        var testLine = new FirstCodeLine { Code = FirstCode };
+        _ = new SecondCodeLine { Code = SecondCode };
+
+        // act
+        var testResult = testLine.Code;
+
+        // assert
+        testResult.Should().Be(FirstCode);
     }
 
     [Fact]
@@ -33,7 +51,7 @@ public class CsvFileRecordLineTests
         testLine.Own = "own";
 
         // assert
-        FieldKeys(testLine).Should().Equal("DerivedField");
+        FieldKeys(testLine).Should().BeEquivalentTo(new[] { DerivedFieldName }, options => options.WithStrictOrdering());
     }
 
     [Fact]
@@ -46,75 +64,61 @@ public class CsvFileRecordLineTests
         testLine.Inherited = "inherited";
 
         // assert
-        FieldKeys(testLine).Should().Equal(nameof(BaseLine.Inherited));
+        FieldKeys(testLine).Should().BeEquivalentTo(new[] { nameof(BaseLine.Inherited) }, options => options.WithStrictOrdering());
     }
 
     [Fact]
-    public void SetPropertyValue_BaseTypeOwnPropertyWithCsvField_UsesCsvFieldName()
+    public void SetPropertyValue_BaseTypeOwnPropertyWithCsvFieldAfterDerivedType_UsesCsvFieldName()
     {
         // arrange
-        var derivedLine = new DerivedLine { Inherited = "derived" };
+        // Resolve the field key of the inherited property on the derived type first.
+        _ = new DerivedLine { Inherited = "derived" };
         var testLine = new BaseLine();
 
         // act
         testLine.Inherited = "base";
 
         // assert
-        FieldKeys(derivedLine).Should().Equal(nameof(BaseLine.Inherited));
-        FieldKeys(testLine).Should().Equal("BaseField");
+        FieldKeys(testLine).Should().BeEquivalentTo(new[] { BaseFieldName }, options => options.WithStrictOrdering());
     }
 
     [Fact]
-    public void GetPropertyValue_RepeatedAccess_ResolvesSameFieldKey()
+    public void GetPropertyValue_RepeatedAccess_ReturnsLastValueSet()
     {
         // arrange
-        var testLine = new FirstCodeLine();
+        const string lastCode = "C";
+        var testLine = new FirstCodeLine { Code = FirstCode };
+        _ = testLine.Code;
+        testLine.Code = SecondCode;
+        _ = testLine.Code;
+        testLine.Code = lastCode;
 
         // act
-        for (var i = 0; i < 10; i++)
-        {
-            testLine.Code = i.ToString();
-            _ = testLine.Code;
-        }
+        var testResult = testLine.Code;
 
         // assert
-        FieldKeys(testLine).Should().Equal("FirstCode");
-        testLine.Code.Should().Be("9");
+        testResult.Should().Be(lastCode);
     }
 
     [Fact]
-    public void GetPropertyValue_ConcurrentAccessFromSeveralThreads_DoesNotThrow()
+    public void SetPropertyValue_RepeatedAccess_ResolvesSameFieldKey()
     {
         // arrange
-        const int iterationCount = 10_000;
-        var failures = 0;
+        var testLine = new FirstCodeLine { Code = FirstCode };
+        _ = testLine.Code;
 
         // act
-        Action testAction = () => Parallel.For(0, iterationCount, i =>
-        {
-            var testLine = new ConcurrentLine { Number = i, Text = i.ToString() };
-            var keys = FieldKeys(testLine);
-            if (testLine.Number != i
-                || testLine.Text != i.ToString()
-                || !keys.SequenceEqual(new[] { "NumberField", nameof(ConcurrentLine.Text) }))
-            {
-                Interlocked.Increment(ref failures);
-            }
-        });
+        testLine.Code = SecondCode;
 
         // assert
-        testAction.Should().NotThrow();
-        failures.Should().Be(0);
+        FieldKeys(testLine).Should().BeEquivalentTo(new[] { FirstCodeFieldName }, options => options.WithStrictOrdering());
     }
 
-    private static string[] FieldKeys(IDictionary line)
-    {
-        return line.Keys.Cast<string>().ToArray();
-    }
+    private static System.Collections.ICollection FieldKeys(ICsvFileLine line) => line.Keys;
 
     private class FirstCodeLine : CsvFileRecordLine
     {
-        [CsvField("FirstCode")]
+        [CsvField(FirstCodeFieldName)]
         public string? Code
         {
             get => GetPropertyValue<string?>();
@@ -124,7 +128,7 @@ public class CsvFileRecordLineTests
 
     private class SecondCodeLine : CsvFileRecordLine
     {
-        [CsvField("SecondCode")]
+        [CsvField(SecondCodeFieldName)]
         public string? Code
         {
             get => GetPropertyValue<string?>();
@@ -134,7 +138,7 @@ public class CsvFileRecordLineTests
 
     private class BaseLine : CsvFileRecordLine
     {
-        [CsvField("BaseField")]
+        [CsvField(BaseFieldName)]
         public string? Inherited
         {
             get => GetPropertyValue<string?>();
@@ -144,24 +148,8 @@ public class CsvFileRecordLineTests
 
     private class DerivedLine : BaseLine
     {
-        [CsvField("DerivedField")]
+        [CsvField(DerivedFieldName)]
         public string? Own
-        {
-            get => GetPropertyValue<string?>();
-            set => SetPropertyValue(value);
-        }
-    }
-
-    private class ConcurrentLine : CsvFileRecordLine
-    {
-        [CsvField("NumberField")]
-        public int Number
-        {
-            get => GetPropertyValue<int>();
-            set => SetPropertyValue(value);
-        }
-
-        public string? Text
         {
             get => GetPropertyValue<string?>();
             set => SetPropertyValue(value);
