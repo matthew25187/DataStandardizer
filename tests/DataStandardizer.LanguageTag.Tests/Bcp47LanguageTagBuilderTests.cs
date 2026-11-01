@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using DataStandardizer.Geography;
 using DataStandardizer.Language;
@@ -13,6 +12,61 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Declarations
 
         private const string DefaultPrimaryLanguageSubtag = "en";
+
+        /// <summary>
+        /// A value that is not a member of any of the code lists.
+        /// </summary>
+        private const string UndefinedCode = "test";
+
+        /// <summary>
+        /// A string that is not a subtag of any kind: it is longer than eight characters (RFC 5646 §2.1).
+        /// </summary>
+        private const string InvalidSubtag = "invalid";
+
+        private const string ValidExtendedLanguageSubtag = "abc";
+        private const string OtherValidExtendedLanguageSubtag = "def";
+
+        // Variant subtags registered for Slovenian dialects (RFC 5646 §2.2.5; IANA Language Subtag Registry), from the RFC 5646 Appendix A example sl-rozaj-biske.
+        private const string RozajVariantSubtag = "rozaj";
+        private const string BiskeVariantSubtag = "biske";
+
+        /// <summary>
+        /// The variant subtag registered for Valencian (RFC 5646 §2.2.5; IANA Language Subtag Registry).
+        /// </summary>
+        private const string ValenciaVariantSubtag = "valencia";
+
+        // Extensions with the singletons a and b (RFC 5646 §2.2.6), from the RFC 5646 Appendix A example en-a-myext-b-another.
+        private const string ExtensionA = "a-bbb";
+        private const string ExtensionB = "b-ccc";
+
+        /// <summary>
+        /// A Unicode locale extension with the calendar key (RFC 5646 §2.2.6; RFC 6067).
+        /// </summary>
+        private const string HebrewCalendarExtension = "u-ca-hebrew";
+
+        private const string PrimaryLanguageSubtagParameterName = "primaryLanguageSubtag";
+        private const string FirstExtendedLanguageSubtagParameterName = "firstExtendedLanguageSubtag";
+        private const string SecondExtendedLanguageSubtagParameterName = "secondExtendedLanguageSubtag";
+        private const string ThirdExtendedLanguageSubtagParameterName = "thirdExtendedLanguageSubtag";
+        private const string ScriptSubtagParameterName = "scriptSubtag";
+        private const string RegionSubtagParameterName = "regionSubtag";
+        private const string VariantSubtagParameterName = "variantSubtag";
+        private const string VariantSubtagsParameterName = "variantSubtags";
+        private const string ExtensionSubtagParameterName = "extensionSubtag";
+        private const string ExtensionSubtagsParameterName = "extensionSubtags";
+        private const string PrivateUseSubtagParameterName = "privateUseSubtag";
+
+        // The messages of the exceptions the builder throws. Each ends with a wildcard for the parameter name that ArgumentException appends to it.
+        private const string Iso639Part1CodeUndefinedMessage = "The ISO 639-1 code is undefined.*";
+        private const string Iso639Part2TCodeUndefinedMessage = "The ISO 639-2T code is undefined.*";
+        private const string Iso639Part3CodeUndefinedMessage = "The ISO 639-3 code is undefined.*";
+        private const string Iso639Part5CodeUndefinedMessage = "The ISO 639-5 code is undefined.*";
+        private const string UnM49CodeZeroUndefinedMessage = "The UN M49 code '000' is undefined.*";
+        private const string InvalidExtendedLanguageSubtagMessage = "'invalid' is not a valid Extended Language subtag.*";
+        private const string InvalidVariantSubtagMessage = "'invalidvariant' is not a valid Variant subtag.*";
+        private const string InvalidExtensionSubtagMessage = "'invalid' is not a valid Extension subtag.*";
+
+        private const string InvalidVariantSubtag = "invalidvariant";
 
         #endregion
 
@@ -50,8 +104,8 @@ namespace DataStandardizer.LanguageTag.Tests
             // assert
             testAction.Should()
                 .Throw<ArgumentException>("the code must be initialised")
-                .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.UnspecifiedCodeUndefinedTemplate + "*", "ISO 639-1"))
-                .WithParameterName("primaryLanguageSubtag");
+                .WithMessage(Iso639Part1CodeUndefinedMessage)
+                .WithParameterName(PrimaryLanguageSubtagParameterName);
         }
 
         #endregion
@@ -62,7 +116,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsNotDefinedMemberOfIso639Part1_ThrowsArgumentException()
         {
             // arrange
-            var testValue = (Iso639Part1Language)"test";
+            var testValue = (Iso639Part1Language)UndefinedCode;
             var builder = new Bcp47LanguageTagBuilder();
 
             // act
@@ -71,8 +125,8 @@ namespace DataStandardizer.LanguageTag.Tests
             // assert
             testAction.Should()
                 .Throw<ArgumentException>("the code must be a member of {0}", nameof(Iso639Part1Language))
-                .WithMessage(string.Format((string)(Bcp47LanguageTagBuilder.ErrorMessage.SpecifiedCodeUndefinedTemplate + "*"), "ISO 639-1", testValue))
-                .WithParameterName("primaryLanguageSubtag");
+                .WithMessage("The ISO 639-1 code 'test' is undefined.*")
+                .WithParameterName(PrimaryLanguageSubtagParameterName);
         }
 
         #endregion
@@ -92,8 +146,8 @@ namespace DataStandardizer.LanguageTag.Tests
             // assert
             testAction.Should()
                 .Throw<ArgumentException>("the code must be initialised")
-                .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.UnspecifiedCodeUndefinedTemplate + "*", "ISO 639-2T"))
-                .WithParameterName("primaryLanguageSubtag");
+                .WithMessage(Iso639Part2TCodeUndefinedMessage)
+                .WithParameterName(PrimaryLanguageSubtagParameterName);
         }
 
         #endregion
@@ -104,7 +158,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsNotDefinedMemberOfIso639Part2T_ThrowsArgumentException()
         {
             // arrange
-            var testValue = (Iso639Part2TLanguage)"test";
+            var testValue = (Iso639Part2TLanguage)UndefinedCode;
             var builder = new Bcp47LanguageTagBuilder();
 
             // act
@@ -113,8 +167,8 @@ namespace DataStandardizer.LanguageTag.Tests
             // assert
             testAction.Should()
                 .Throw<ArgumentException>("the code must be a member of {0}", nameof(Iso639Part2TLanguage))
-                .WithMessage(string.Format((string)(Bcp47LanguageTagBuilder.ErrorMessage.SpecifiedCodeUndefinedTemplate + "*"), "ISO 639-2T", testValue))
-                .WithParameterName("primaryLanguageSubtag");
+                .WithMessage("The ISO 639-2T code 'test' is undefined.*")
+                .WithParameterName(PrimaryLanguageSubtagParameterName);
         }
 
         #endregion
@@ -134,8 +188,8 @@ namespace DataStandardizer.LanguageTag.Tests
             // assert
             testAction.Should()
                 .Throw<ArgumentException>("the code must be initialised")
-                .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.UnspecifiedCodeUndefinedTemplate + "*", "ISO 639-3"))
-                .WithParameterName("primaryLanguageSubtag");
+                .WithMessage(Iso639Part3CodeUndefinedMessage)
+                .WithParameterName(PrimaryLanguageSubtagParameterName);
         }
 
         #endregion
@@ -146,7 +200,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsNotDefinedMemberOfIso639Part3_ThrowsArgumentException()
         {
             // arrange
-            var testValue = (Iso639Part3Language)"test";
+            var testValue = (Iso639Part3Language)UndefinedCode;
             var builder = new Bcp47LanguageTagBuilder();
 
             // act
@@ -155,8 +209,8 @@ namespace DataStandardizer.LanguageTag.Tests
             // assert
             testAction.Should()
                 .Throw<ArgumentException>("the code must be a member of {0}", nameof(Iso639Part3Language))
-                .WithMessage(string.Format((string)(Bcp47LanguageTagBuilder.ErrorMessage.SpecifiedCodeUndefinedTemplate + "*"), "ISO 639-3", testValue))
-                .WithParameterName("primaryLanguageSubtag");
+                .WithMessage("The ISO 639-3 code 'test' is undefined.*")
+                .WithParameterName(PrimaryLanguageSubtagParameterName);
         }
 
         #endregion
@@ -176,8 +230,8 @@ namespace DataStandardizer.LanguageTag.Tests
             // assert
             testAction.Should()
                 .Throw<ArgumentException>("the code must be initialised")
-                .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.UnspecifiedCodeUndefinedTemplate + "*", "ISO 639-5"))
-                .WithParameterName("primaryLanguageSubtag");
+                .WithMessage(Iso639Part5CodeUndefinedMessage)
+                .WithParameterName(PrimaryLanguageSubtagParameterName);
         }
 
         #endregion
@@ -188,7 +242,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsNotDefinedMemberOfIso639Part5_ThrowsArgumentException()
         {
             // arrange
-            var testValue = (Iso639Part5LanguageFamily)"test";
+            var testValue = (Iso639Part5LanguageFamily)UndefinedCode;
             var builder = new Bcp47LanguageTagBuilder();
 
             // act
@@ -197,8 +251,8 @@ namespace DataStandardizer.LanguageTag.Tests
             // assert
             testAction.Should()
                 .Throw<ArgumentException>("the code must be a member of {0}", nameof(Iso639Part5LanguageFamily))
-                .WithMessage(string.Format((string)(Bcp47LanguageTagBuilder.ErrorMessage.SpecifiedCodeUndefinedTemplate + "*"), "ISO 639-5", testValue))
-                .WithParameterName("primaryLanguageSubtag");
+                .WithMessage("The ISO 639-5 code 'test' is undefined.*")
+                .WithParameterName(PrimaryLanguageSubtagParameterName);
         }
 
         #endregion
@@ -209,17 +263,16 @@ namespace DataStandardizer.LanguageTag.Tests
         public void UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsInvalid_ThrowsArgumentException()
         {
             // arrange
-            const string testSubject = "invalidprimarysubtag";
             var builder = new Bcp47LanguageTagBuilder();
 
             // act
-            Action testAction = () => _ = builder.UsingPrimaryLanguageSubtag(testSubject);
+            Action testAction = () => _ = builder.UsingPrimaryLanguageSubtag("invalidprimarysubtag");
 
             // assert
             testAction.Should()
-                .Throw<ArgumentException>("'{0}' is not a valid subtag", testSubject)
-                .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SubtagInvalidTemplate, testSubject, "Primary Language subtag") + "*")
-                .WithParameterName("primaryLanguageSubtag");
+                .Throw<ArgumentException>("a Primary Language subtag has at most eight letters (RFC 5646 §2.1)")
+                .WithMessage("'invalidprimarysubtag' is not a valid Primary Language subtag.*")
+                .WithParameterName(PrimaryLanguageSubtagParameterName);
         }
 
         #endregion
@@ -227,8 +280,10 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsNonAlpha
 
         [Theory]
-        [InlineData("12345"), InlineData("abcd1"), InlineData("a1b2c3d4")]
-        public void UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsNonAlpha_ThrowsArgumentException(string testSubject)
+        [InlineData("12345", "'12345' is not a valid Primary Language subtag.*"),
+         InlineData("abcd1", "'abcd1' is not a valid Primary Language subtag.*"),
+         InlineData("a1b2c3d4", "'a1b2c3d4' is not a valid Primary Language subtag.*")]
+        public void UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsNonAlpha_ThrowsArgumentException(string testSubject, string expectedMessage)
         {
             // arrange
             var builder = new Bcp47LanguageTagBuilder();
@@ -239,8 +294,8 @@ namespace DataStandardizer.LanguageTag.Tests
             // assert
             testAction.Should()
                 .Throw<ArgumentException>("'{0}' contains a digit, and a Primary Language subtag is letters only (RFC 5646 §2.1, §2.2.1)", testSubject)
-                .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SubtagInvalidTemplate, testSubject, "Primary Language subtag") + "*")
-                .WithParameterName("primaryLanguageSubtag");
+                .WithMessage(expectedMessage)
+                .WithParameterName(PrimaryLanguageSubtagParameterName);
         }
 
         #endregion
@@ -251,11 +306,12 @@ namespace DataStandardizer.LanguageTag.Tests
         public void UsingPrimaryLanguageSubtag_WhenPrimaryLanguageSubtagIsReserved_ProducesBcp47LanguageTag()
         {
             // arrange
+            // A four-letter Primary Language subtag is reserved for future use (RFC 5646 §2.2.1¶4).
             const string testSubject = "abcd";
-            var builder = new Bcp47LanguageTagBuilder();
+            var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(testSubject);
 
             // act
-            var testResult = builder.UsingPrimaryLanguageSubtag(testSubject).Build();
+            var testResult = builder.Build();
 
             // assert
             testResult.PrimaryLanguageSubtag.Should().Be(testSubject, "a four-letter Primary Language subtag is reserved, and well-formed (RFC 5646 §2.1, §2.2.1¶4)");
@@ -294,7 +350,7 @@ namespace DataStandardizer.LanguageTag.Tests
             // assert
             testAction.Should()
                 .Throw<ArgumentNullException>("the subtag must not be null")
-                .WithParameterName("primaryLanguageSubtag");
+                .WithParameterName(PrimaryLanguageSubtagParameterName);
         }
 
         #endregion
@@ -305,17 +361,16 @@ namespace DataStandardizer.LanguageTag.Tests
         public void UsingExtendedLanguageSubtags_WithOneExtendedLanguageSubtagAndExtendedLanguageSubtagIsInvalid_ThrowsArgumentException()
         {
             // arrange
-            const string testSubject = "invalid";
             var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
 
             // act
-            Action testAction = () => _ = builder.UsingExtendedLanguageSubtags(testSubject);
+            Action testAction = () => _ = builder.UsingExtendedLanguageSubtags(InvalidSubtag);
 
             // assert
             testAction.Should()
-                .Throw<ArgumentException>("'{0}' is not a valid subtag", testSubject)
-                .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SubtagInvalidTemplate, testSubject, "Extended Language subtag") + "*")
-                .WithParameterName("firstExtendedLanguageSubtag");
+                .Throw<ArgumentException>("an Extended Language subtag has three letters (RFC 5646 §2.1)")
+                .WithMessage(InvalidExtendedLanguageSubtagMessage)
+                .WithParameterName(FirstExtendedLanguageSubtagParameterName);
         }
 
         #endregion
@@ -334,7 +389,7 @@ namespace DataStandardizer.LanguageTag.Tests
             // assert
             testAction.Should()
                 .Throw<ArgumentNullException>("the subtag must not be null")
-                .WithParameterName("firstExtendedLanguageSubtag");
+                .WithParameterName(FirstExtendedLanguageSubtagParameterName);
         }
 
         #endregion
@@ -342,9 +397,9 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: UsingExtendedLanguageSubtags_WithTwoExtendedLanguageSubtagsAndExtendedLanguageSubtagIsNull
 
         [Theory]
-        [InlineData(null, null, "firstExtendedLanguageSubtag"), 
-         InlineData(null, "bbb", "firstExtendedLanguageSubtag"), 
-         InlineData("aaa", null, "secondExtendedLanguageSubtag")]
+        [InlineData(null, null, FirstExtendedLanguageSubtagParameterName),
+         InlineData(null, "bbb", FirstExtendedLanguageSubtagParameterName),
+         InlineData("aaa", null, SecondExtendedLanguageSubtagParameterName)]
         public void UsingExtendedLanguageSubtags_WithTwoExtendedLanguageSubtagsAndExtendedLanguageSubtagIsNull_ThrowsArgumentNullException(string firstExtendedLanguageSubtag, string secondExtendedLanguageSubtag, string parameterName)
         {
             // arrange
@@ -367,17 +422,16 @@ namespace DataStandardizer.LanguageTag.Tests
         public void UsingExtendedLanguageSubtags_WithTwoExtendedLanguageSubtagsAndExtendedLanguageSubtagIsInvalid_ThrowsArgumentException()
         {
             // arrange
-            const string testSubject = "invalid";
             var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
 
             // act
-            Action testAction = () => _ = builder.UsingExtendedLanguageSubtags("abc", testSubject);
+            Action testAction = () => _ = builder.UsingExtendedLanguageSubtags(ValidExtendedLanguageSubtag, InvalidSubtag);
 
             // assert
             testAction.Should()
-                .Throw<ArgumentException>("'{0}' is not a valid subtag", testSubject)
-                .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SubtagInvalidTemplate, testSubject, "Extended Language subtag") + "*")
-                .WithParameterName("secondExtendedLanguageSubtag");
+                .Throw<ArgumentException>("an Extended Language subtag has three letters (RFC 5646 §2.1)")
+                .WithMessage(InvalidExtendedLanguageSubtagMessage)
+                .WithParameterName(SecondExtendedLanguageSubtagParameterName);
         }
 
         #endregion
@@ -385,13 +439,13 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: UsingExtendedLanguageSubtags_WithThreeExtendedLanguageSubtagsAndExtendedLanguageSubtagIsNull
 
         [Theory]
-        [InlineData(null, null, null, "firstExtendedLanguageSubtag"),
-         InlineData(null, "abc", null, "firstExtendedLanguageSubtag"),
-         InlineData(null, null, "abc", "firstExtendedLanguageSubtag"),
-         InlineData(null, "abc", "def", "firstExtendedLanguageSubtag"),
-         InlineData("abc", null, null, "secondExtendedLanguageSubtag"),
-         InlineData("abc", "def", null, "thirdExtendedLanguageSubtag"),
-         InlineData("abc", null, "def", "secondExtendedLanguageSubtag")]
+        [InlineData(null, null, null, FirstExtendedLanguageSubtagParameterName),
+         InlineData(null, ValidExtendedLanguageSubtag, null, FirstExtendedLanguageSubtagParameterName),
+         InlineData(null, null, ValidExtendedLanguageSubtag, FirstExtendedLanguageSubtagParameterName),
+         InlineData(null, ValidExtendedLanguageSubtag, OtherValidExtendedLanguageSubtag, FirstExtendedLanguageSubtagParameterName),
+         InlineData(ValidExtendedLanguageSubtag, null, null, SecondExtendedLanguageSubtagParameterName),
+         InlineData(ValidExtendedLanguageSubtag, OtherValidExtendedLanguageSubtag, null, ThirdExtendedLanguageSubtagParameterName),
+         InlineData(ValidExtendedLanguageSubtag, null, OtherValidExtendedLanguageSubtag, SecondExtendedLanguageSubtagParameterName)]
         public void UsingExtendedLanguageSubtags_WithThreeExtendedLanguageSubtagsAndExtendedLanguageSubtagIsNull_ThrowsArgumentNullException(string firstExtendedLanguageSubtag, string secondExtendedLanguageSubtag, string thirdExtendedLanguageSubtag,
             string parameterName)
         {
@@ -415,17 +469,16 @@ namespace DataStandardizer.LanguageTag.Tests
         public void UsingExtendedLanguageSubtags_WithThreeExtendedLanguageSubtagsAndExtendedLanguageSubtagIsInvalid_ThrowsArgumentException()
         {
             // arrange
-            const string testSubject = "invalid";
             var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
 
             // act
-            Action testAction = () => _ = builder.UsingExtendedLanguageSubtags("abc", "def", testSubject);
+            Action testAction = () => _ = builder.UsingExtendedLanguageSubtags(ValidExtendedLanguageSubtag, OtherValidExtendedLanguageSubtag, InvalidSubtag);
 
             // assert
             testAction.Should()
-                .Throw<ArgumentException>("'{0}' is not a valid subtag", testSubject)
-                .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SubtagInvalidTemplate, testSubject, "Extended Language subtag") + "*")
-                .WithParameterName("thirdExtendedLanguageSubtag");
+                .Throw<ArgumentException>("an Extended Language subtag has three letters (RFC 5646 §2.1)")
+                .WithMessage(InvalidExtendedLanguageSubtagMessage)
+                .WithParameterName(ThirdExtendedLanguageSubtagParameterName);
         }
 
         #endregion
@@ -445,8 +498,8 @@ namespace DataStandardizer.LanguageTag.Tests
             // assert
             testAction.Should()
                 .Throw<ArgumentException>("the code must be a member of {0}", nameof(Iso15924Script))
-                .WithMessage(string.Format((string)(Bcp47LanguageTagBuilder.ErrorMessage.SpecifiedCodeUndefinedTemplate + "*"), "ISO 15924", testValue))
-                .WithParameterName("scriptSubtag");
+                .WithMessage("The ISO 15924 code '0' is undefined.*")
+                .WithParameterName(ScriptSubtagParameterName);
         }
 
         #endregion
@@ -465,7 +518,7 @@ namespace DataStandardizer.LanguageTag.Tests
             // assert
             testAction.Should()
                 .Throw<ArgumentNullException>("the subtag must not be null")
-                .WithParameterName("scriptSubtag");
+                .WithParameterName(ScriptSubtagParameterName);
         }
 
         #endregion
@@ -476,17 +529,16 @@ namespace DataStandardizer.LanguageTag.Tests
         public void UsingScriptSubtag_WhenScriptSubtagIsInvalid_ThrowsArgumentException()
         {
             // arrange
-            const string testSubject = "invalid";
             var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
 
             // act
-            Action testAction = () => _ = builder.UsingScriptSubtag(testSubject);
+            Action testAction = () => _ = builder.UsingScriptSubtag(InvalidSubtag);
 
             // assert
             testAction.Should()
-                .Throw<ArgumentException>("'{0}' is not a valid subtag", testSubject)
-                .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SubtagInvalidTemplate, testSubject, "Script subtag") + "*")
-                .WithParameterName("scriptSubtag");
+                .Throw<ArgumentException>("a Script subtag has four letters (RFC 5646 §2.1)")
+                .WithMessage("'invalid' is not a valid Script subtag.*")
+                .WithParameterName(ScriptSubtagParameterName);
         }
 
         #endregion
@@ -506,8 +558,8 @@ namespace DataStandardizer.LanguageTag.Tests
             // assert
             testAction.Should()
                 .Throw<ArgumentException>("the code must be a member of {0}", nameof(Iso3166Part1Alpha2Country))
-                .WithMessage(string.Format((string)(Bcp47LanguageTagBuilder.ErrorMessage.SpecifiedCodeUndefinedTemplate + "*"), "ISO 3166-1 Alpha-2", testValue))
-                .WithParameterName("regionSubtag");
+                .WithMessage("The ISO 3166-1 Alpha-2 code '0' is undefined.*")
+                .WithParameterName(RegionSubtagParameterName);
         }
 
         #endregion
@@ -528,8 +580,8 @@ namespace DataStandardizer.LanguageTag.Tests
             // assert
             testAction.Should()
                 .Throw<ArgumentException>("the code must be a member of {0}", nameof(UnM49AreaByAlpha2CountryCode))
-                .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SpecifiedCodeUndefinedTemplate + "*", "UN M49", ((ushort)testValue).ToString("000")))
-                .WithParameterName("regionSubtag");
+                .WithMessage(UnM49CodeZeroUndefinedMessage)
+                .WithParameterName(RegionSubtagParameterName);
         }
 
         #endregion
@@ -548,9 +600,9 @@ namespace DataStandardizer.LanguageTag.Tests
 
             // assert
             testAction.Should()
-                .Throw<ArgumentException>()
-                .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SpecifiedCodeUndefinedTemplate + "*", "UN M49", ((ushort)testValue).ToString("000")))
-                .WithParameterName("regionSubtag");
+                .Throw<ArgumentException>("the code must be a member of {0}", nameof(UnM49AreaByAlpha3CountryCode))
+                .WithMessage(UnM49CodeZeroUndefinedMessage)
+                .WithParameterName(RegionSubtagParameterName);
         }
 
         #endregion
@@ -572,17 +624,35 @@ namespace DataStandardizer.LanguageTag.Tests
             // assert
             testAction.Should()
                 .Throw<ArgumentException>("the code must be a member of {0}", nameof(UnM49Area))
-                .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SpecifiedCodeUndefinedTemplate + "*", "UN M49", ((ushort)testValue).ToString("000")))
-                .WithParameterName("regionSubtag");
+                .WithMessage(UnM49CodeZeroUndefinedMessage)
+                .WithParameterName(RegionSubtagParameterName);
         }
 
         #endregion
 
         #region Test: UsingRegionSubtag_WhenRegionSubtagIsUnM49CountryOrArea
 
+        /// <summary>
+        /// Every UN M49 country or area code, which BCP 47 does not allow as a Region subtag (RFC 5646 §2.2.4¶4B), with the message the builder
+        /// gives for it.
+        /// </summary>
+        public static TheoryData<UnM49Area, string> UnM49CountryOrAreaCodes
+        {
+            get
+            {
+                var data = new TheoryData<UnM49Area, string>();
+                foreach (var testValue in Enum.GetValues(typeof(UnM49Area)).Cast<UnM49Area>().Where(code => code.GetLevel() == UnM49AreaLevel.CountryOrArea))
+                {
+                    data.Add(testValue, "'" + ((ushort)testValue).ToString("000") + "' is not a valid Region subtag.*");
+                }
+
+                return data;
+            }
+        }
+
         [Theory]
-        [MemberData(nameof(UsingRegionSubtag_WhenRegionSubtagIsUnM49CountryOrArea_TestCaseGenerator.TestCases), MemberType = typeof(UsingRegionSubtag_WhenRegionSubtagIsUnM49CountryOrArea_TestCaseGenerator))]
-        public void UsingRegionSubtag_WhenRegionSubtagIsUnM49CountryOrArea_ThrowsArgumentException(UnM49Area testValue)
+        [MemberData(nameof(UnM49CountryOrAreaCodes))]
+        public void UsingRegionSubtag_WhenRegionSubtagIsUnM49CountryOrArea_ThrowsArgumentException(UnM49Area testValue, string expectedMessage)
         {
             // arrange
             var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
@@ -593,22 +663,8 @@ namespace DataStandardizer.LanguageTag.Tests
             // assert
             testAction.Should()
                 .Throw<ArgumentException>("BCP 47 does not allow a UN M49 country or area code as a Region subtag")
-                .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SubtagInvalidTemplate, ((ushort)testValue).ToString("000"), "Region subtag") + "*")
-                .WithParameterName("regionSubtag");
-        }
-
-        private class UsingRegionSubtag_WhenRegionSubtagIsUnM49CountryOrArea_TestCaseGenerator
-        {
-            public static IEnumerable<object[]> TestCases
-            {
-                get
-                {
-                    foreach (var testValue in Enum.GetValues(typeof(UnM49Area)).Cast<UnM49Area>().Where(code => code.GetLevel() == UnM49AreaLevel.CountryOrArea))
-                    {
-                        yield return new object[] { testValue };
-                    }
-                }
-            }
+                .WithMessage(expectedMessage)
+                .WithParameterName(RegionSubtagParameterName);
         }
 
         #endregion
@@ -627,7 +683,7 @@ namespace DataStandardizer.LanguageTag.Tests
             // assert
             testAction.Should()
                 .Throw<ArgumentNullException>("the subtag must not be null")
-                .WithParameterName("regionSubtag");
+                .WithParameterName(RegionSubtagParameterName);
         }
 
         #endregion
@@ -638,17 +694,18 @@ namespace DataStandardizer.LanguageTag.Tests
         public void UsingRegionSubtag_WhenRegionSubtagIsChannelIslands_ThrowsArgumentException()
         {
             // arrange
-            const string testSubject = "830";
+            // The UN M49 code for the Channel Islands, which may be registered as a Region subtag but is not (RFC 5646 §2.2.4¶4E-F).
+            const string channelIslandsCode = "830";
             var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
 
             // act
-            Action testAction = () => _ = builder.UsingRegionSubtag(testSubject);
+            Action testAction = () => _ = builder.UsingRegionSubtag(channelIslandsCode);
 
             // assert
             testAction.Should()
                 .Throw<ArgumentException>("830 (Channel Islands) is not a registered Region subtag (RFC 5646 §2.2.4¶4E-F)")
-                .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SubtagInvalidTemplate, testSubject, "Region subtag") + "*")
-                .WithParameterName("regionSubtag");
+                .WithMessage("'830' is not a valid Region subtag.*")
+                .WithParameterName(RegionSubtagParameterName);
         }
 
         #endregion
@@ -659,17 +716,16 @@ namespace DataStandardizer.LanguageTag.Tests
         public void UsingRegionSubtag_WhenRegionSubtagIsInvalid_ThrowsArgumentException()
         {
             // arrange
-            const string testSubject = "invalid";
             var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
 
             // act
-            Action testAction = () => _ = builder.UsingRegionSubtag(testSubject);
+            Action testAction = () => _ = builder.UsingRegionSubtag(InvalidSubtag);
 
             // assert
             testAction.Should()
-                .Throw<ArgumentException>("'{0}' is not a valid subtag", testSubject)
-                .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SubtagInvalidTemplate, testSubject, "Region subtag") + "*")
-                .WithParameterName("regionSubtag");
+                .Throw<ArgumentException>("a Region subtag has two letters or three digits (RFC 5646 §2.1)")
+                .WithMessage("'invalid' is not a valid Region subtag.*")
+                .WithParameterName(RegionSubtagParameterName);
         }
 
         #endregion
@@ -688,7 +744,7 @@ namespace DataStandardizer.LanguageTag.Tests
             // assert
             testAction.Should()
                 .Throw<ArgumentNullException>("the subtag must not be null")
-                .WithParameterName("variantSubtag");
+                .WithParameterName(VariantSubtagParameterName);
         }
 
         #endregion
@@ -699,17 +755,16 @@ namespace DataStandardizer.LanguageTag.Tests
         public void UsingVariantSubtags_WhenVariantSubtagIsInvalid_ThrowsArgumentException()
         {
             // arrange
-            const string testSubject = "invalidvariant";
             var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
 
             // act
-            Action testAction = () => _ = builder.UsingVariantSubtags(testSubject);
+            Action testAction = () => _ = builder.UsingVariantSubtags(InvalidVariantSubtag);
 
             // assert
             testAction.Should()
-                .Throw<ArgumentException>("'{0}' is not a valid subtag", testSubject)
-                .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SubtagInvalidTemplate, testSubject, "Variant subtag") + "*")
-                .WithParameterName("variantSubtag");
+                .Throw<ArgumentException>("a Variant subtag has at most eight characters (RFC 5646 §2.1)")
+                .WithMessage(InvalidVariantSubtagMessage)
+                .WithParameterName(VariantSubtagParameterName);
         }
 
         #endregion
@@ -717,10 +772,10 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: UsingVariantSubtags_WhenVariantSubtagIsRepeated
 
         [Theory]
-        [InlineData("valencia", new[] { "valencia" }, "valencia"),
-         InlineData("valencia", new[] { "VALENCIA" }, "VALENCIA"),
-         InlineData("rozaj", new[] { "biske", "rozaj" }, "rozaj")]
-        public void UsingVariantSubtags_WhenVariantSubtagIsRepeated_ThrowsArgumentException(string testVariantSubtag, string[] testVariantSubtags, string expectedRepeatedSubtag)
+        [InlineData(ValenciaVariantSubtag, new[] { ValenciaVariantSubtag }, "The Variant subtag 'valencia' appears more than once.*"),
+         InlineData(ValenciaVariantSubtag, new[] { "VALENCIA" }, "The Variant subtag 'VALENCIA' appears more than once.*"),
+         InlineData(RozajVariantSubtag, new[] { BiskeVariantSubtag, RozajVariantSubtag }, "The Variant subtag 'rozaj' appears more than once.*")]
+        public void UsingVariantSubtags_WhenVariantSubtagIsRepeated_ThrowsArgumentException(string testVariantSubtag, string[] testVariantSubtags, string expectedMessage)
         {
             // arrange
             var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
@@ -731,8 +786,8 @@ namespace DataStandardizer.LanguageTag.Tests
             // assert
             testAction.Should()
                 .Throw<ArgumentException>("each variant subtag must appear at most once (RFC 5646 §2.2.5)")
-                .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SubtagRepeatedTemplate, "Variant subtag", expectedRepeatedSubtag) + "*")
-                .WithParameterName("variantSubtags");
+                .WithMessage(expectedMessage)
+                .WithParameterName(VariantSubtagsParameterName);
         }
 
         #endregion
@@ -751,7 +806,7 @@ namespace DataStandardizer.LanguageTag.Tests
             // assert
             testAction.Should()
                 .Throw<ArgumentNullException>("the subtag must not be null")
-                .WithParameterName("extensionSubtag");
+                .WithParameterName(ExtensionSubtagParameterName);
         }
 
         #endregion
@@ -762,17 +817,16 @@ namespace DataStandardizer.LanguageTag.Tests
         public void UsingExtensionSubtags_WhenExtensionSubtagIsInvalid_ThrowsArgumentException()
         {
             // arrange
-            const string testSubject = "invalid";
             var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
 
             // act
-            Action testAction = () => _ = builder.UsingExtensionSubtags(testSubject);
+            Action testAction = () => _ = builder.UsingExtensionSubtags(InvalidSubtag);
 
             // assert
             testAction.Should()
-                .Throw<ArgumentException>("'{0}' is not a valid subtag")
-                .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SubtagInvalidTemplate, testSubject, "Extension subtag") + "*")
-                .WithParameterName("extensionSubtag");
+                .Throw<ArgumentException>("an Extension subtag starts with a singleton (RFC 5646 §2.1)")
+                .WithMessage(InvalidExtensionSubtagMessage)
+                .WithParameterName(ExtensionSubtagParameterName);
         }
 
         #endregion
@@ -780,10 +834,10 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: UsingExtensionSubtags_WhenSingletonIsRepeated
 
         [Theory]
-        [InlineData("a-bbb", new[] { "a-ccc" }, "a"),
-         InlineData("a-bbb", new[] { "A-ccc" }, "A"),
-         InlineData("a-bbb", new[] { "b-ccc", "a-ddd" }, "a")]
-        public void UsingExtensionSubtags_WhenSingletonIsRepeated_ThrowsArgumentException(string testExtensionSubtag, string[] testExtensionSubtags, string expectedRepeatedSingleton)
+        [InlineData(ExtensionA, new[] { "a-ccc" }, "The Extension singleton 'a' appears more than once.*"),
+         InlineData(ExtensionA, new[] { "A-ccc" }, "The Extension singleton 'A' appears more than once.*"),
+         InlineData(ExtensionA, new[] { ExtensionB, "a-ddd" }, "The Extension singleton 'a' appears more than once.*")]
+        public void UsingExtensionSubtags_WhenSingletonIsRepeated_ThrowsArgumentException(string testExtensionSubtag, string[] testExtensionSubtags, string expectedMessage)
         {
             // arrange
             var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
@@ -794,8 +848,8 @@ namespace DataStandardizer.LanguageTag.Tests
             // assert
             testAction.Should()
                 .Throw<ArgumentException>("each extension singleton must appear at most once (RFC 5646 §2.2.6)")
-                .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SubtagRepeatedTemplate, "Extension singleton", expectedRepeatedSingleton) + "*")
-                .WithParameterName("extensionSubtags");
+                .WithMessage(expectedMessage)
+                .WithParameterName(ExtensionSubtagsParameterName);
         }
 
         #endregion
@@ -807,15 +861,15 @@ namespace DataStandardizer.LanguageTag.Tests
         {
             // arrange
             var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
-            var testVariantSubtags = new[] { "biske", null };
+            var testVariantSubtags = new[] { BiskeVariantSubtag, null };
 
             // act
-            Action testAction = () => _ = builder.UsingVariantSubtags("rozaj", testVariantSubtags);
+            Action testAction = () => _ = builder.UsingVariantSubtags(RozajVariantSubtag, testVariantSubtags);
 
             // assert
             testAction.Should()
                 .Throw<ArgumentNullException>("the subtag must not be null")
-                .WithParameterName("variantSubtags");
+                .WithParameterName(VariantSubtagsParameterName);
         }
 
         #endregion
@@ -826,18 +880,17 @@ namespace DataStandardizer.LanguageTag.Tests
         public void UsingVariantSubtags_WhenLaterVariantSubtagIsInvalid_ThrowsArgumentException()
         {
             // arrange
-            const string testSubject = "invalidvariant";
             var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
-            var testVariantSubtags = new[] { "biske", testSubject };
+            var testVariantSubtags = new[] { BiskeVariantSubtag, InvalidVariantSubtag };
 
             // act
-            Action testAction = () => _ = builder.UsingVariantSubtags("rozaj", testVariantSubtags);
+            Action testAction = () => _ = builder.UsingVariantSubtags(RozajVariantSubtag, testVariantSubtags);
 
             // assert
             testAction.Should()
-                .Throw<ArgumentException>("'{0}' is not a valid subtag", testSubject)
-                .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SubtagInvalidTemplate, testSubject, "Variant subtag") + "*")
-                .WithParameterName("variantSubtags");
+                .Throw<ArgumentException>("a Variant subtag has at most eight characters (RFC 5646 §2.1)")
+                .WithMessage(InvalidVariantSubtagMessage)
+                .WithParameterName(VariantSubtagsParameterName);
         }
 
         #endregion
@@ -849,15 +902,15 @@ namespace DataStandardizer.LanguageTag.Tests
         {
             // arrange
             var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
-            var testExtensionSubtags = new[] { "b-ccc", null };
+            var testExtensionSubtags = new[] { ExtensionB, null };
 
             // act
-            Action testAction = () => _ = builder.UsingExtensionSubtags("a-bbb", testExtensionSubtags);
+            Action testAction = () => _ = builder.UsingExtensionSubtags(ExtensionA, testExtensionSubtags);
 
             // assert
             testAction.Should()
                 .Throw<ArgumentNullException>("the subtag must not be null")
-                .WithParameterName("extensionSubtags");
+                .WithParameterName(ExtensionSubtagsParameterName);
         }
 
         #endregion
@@ -868,18 +921,17 @@ namespace DataStandardizer.LanguageTag.Tests
         public void UsingExtensionSubtags_WhenLaterExtensionSubtagIsInvalid_ThrowsArgumentException()
         {
             // arrange
-            const string testSubject = "invalid";
             var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
-            var testExtensionSubtags = new[] { "b-ccc", testSubject };
+            var testExtensionSubtags = new[] { ExtensionB, InvalidSubtag };
 
             // act
-            Action testAction = () => _ = builder.UsingExtensionSubtags("a-bbb", testExtensionSubtags);
+            Action testAction = () => _ = builder.UsingExtensionSubtags(ExtensionA, testExtensionSubtags);
 
             // assert
             testAction.Should()
-                .Throw<ArgumentException>("'{0}' is not a valid subtag", testSubject)
-                .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SubtagInvalidTemplate, testSubject, "Extension subtag") + "*")
-                .WithParameterName("extensionSubtags");
+                .Throw<ArgumentException>("an Extension subtag starts with a singleton (RFC 5646 §2.1)")
+                .WithMessage(InvalidExtensionSubtagMessage)
+                .WithParameterName(ExtensionSubtagsParameterName);
         }
 
         #endregion
@@ -888,18 +940,17 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: UsingVariantSubtags_FromSpan
 
         [Fact]
-        public void UsingVariantSubtags_FromSpan_ProducesSameLanguageTagAsFromArray()
+        public void UsingVariantSubtags_FromSpan_ProducesLanguageTagWithEveryVariantSubtag()
         {
             // arrange
-            var testVariantSubtags = new[] { "biske", "1994" };
-            var expectedResult = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag("sl").UsingVariantSubtags("rozaj", testVariantSubtags).Build();
-            var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag("sl");
+            var testVariantSubtags = new[] { BiskeVariantSubtag, "1994" };
+            var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag("sl").UsingVariantSubtags(RozajVariantSubtag, new ReadOnlySpan<string>(testVariantSubtags));
 
             // act
-            var testResult = builder.UsingVariantSubtags("rozaj", new ReadOnlySpan<string>(testVariantSubtags)).Build();
+            string testResult = builder.Build();
 
             // assert
-            testResult.ToString().Should().Be(expectedResult.ToString()).And.Be("sl-rozaj-biske-1994");
+            testResult.Should().Be("sl-rozaj-biske-1994", "the span overload adds the same subtags as the array overload");
         }
 
         #endregion
@@ -911,15 +962,15 @@ namespace DataStandardizer.LanguageTag.Tests
         {
             // arrange
             var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
-            var testVariantSubtags = new[] { "biske", null };
+            var testVariantSubtags = new[] { BiskeVariantSubtag, null };
 
             // act
-            Action testAction = () => _ = builder.UsingVariantSubtags("rozaj", new ReadOnlySpan<string>(testVariantSubtags));
+            Action testAction = () => _ = builder.UsingVariantSubtags(RozajVariantSubtag, new ReadOnlySpan<string>(testVariantSubtags));
 
             // assert
             testAction.Should()
                 .Throw<ArgumentNullException>("the subtag must not be null")
-                .WithParameterName("variantSubtags");
+                .WithParameterName(VariantSubtagsParameterName);
         }
 
         #endregion
@@ -931,16 +982,16 @@ namespace DataStandardizer.LanguageTag.Tests
         {
             // arrange
             var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
-            var testVariantSubtags = new[] { "biske", "ROZAJ" };
+            var testVariantSubtags = new[] { BiskeVariantSubtag, "ROZAJ" };
 
             // act
-            Action testAction = () => _ = builder.UsingVariantSubtags("rozaj", new ReadOnlySpan<string>(testVariantSubtags));
+            Action testAction = () => _ = builder.UsingVariantSubtags(RozajVariantSubtag, new ReadOnlySpan<string>(testVariantSubtags));
 
             // assert
             testAction.Should()
                 .Throw<ArgumentException>("each variant subtag must appear at most once (RFC 5646 §2.2.5)")
-                .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SubtagRepeatedTemplate, "Variant subtag", "ROZAJ") + "*")
-                .WithParameterName("variantSubtags");
+                .WithMessage("The Variant subtag 'ROZAJ' appears more than once.*")
+                .WithParameterName(VariantSubtagsParameterName);
         }
 
         #endregion
@@ -955,11 +1006,11 @@ namespace DataStandardizer.LanguageTag.Tests
             IBcp47LanguageTagBuilderStepUsingVariantSubtags testSubject = step;
 
             // act
-            testSubject.UsingVariantSubtags("rozaj", new ReadOnlySpan<string>(new[] { "biske", "1994" }));
+            testSubject.UsingVariantSubtags(RozajVariantSubtag, new ReadOnlySpan<string>(new[] { BiskeVariantSubtag, "1994" }));
 
             // assert
-            step.ReceivedFirstSubtag.Should().Be("rozaj");
-            step.ReceivedSubtags.Should().Equal("biske", "1994");
+            step.ReceivedFirstSubtag.Should().Be(RozajVariantSubtag);
+            step.ReceivedSubtags.Should().Equal(BiskeVariantSubtag, "1994");
         }
 
         #endregion
@@ -967,18 +1018,17 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: UsingExtensionSubtags_FromSpan
 
         [Fact]
-        public void UsingExtensionSubtags_FromSpan_ProducesSameLanguageTagAsFromArray()
+        public void UsingExtensionSubtags_FromSpan_ProducesLanguageTagWithEveryExtensionSubtag()
         {
             // arrange
-            var testExtensionSubtags = new[] { "u-ca-hebrew" };
-            var expectedResult = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag("he").UsingExtensionSubtags("a-bbb", testExtensionSubtags).Build();
-            var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag("he");
+            var testExtensionSubtags = new[] { HebrewCalendarExtension };
+            var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag("he").UsingExtensionSubtags(ExtensionA, new ReadOnlySpan<string>(testExtensionSubtags));
 
             // act
-            var testResult = builder.UsingExtensionSubtags("a-bbb", new ReadOnlySpan<string>(testExtensionSubtags)).Build();
+            string testResult = builder.Build();
 
             // assert
-            testResult.ToString().Should().Be(expectedResult.ToString()).And.Be("he-a-bbb-u-ca-hebrew");
+            testResult.Should().Be("he-a-bbb-u-ca-hebrew", "the span overload adds the same subtags as the array overload");
         }
 
         #endregion
@@ -990,15 +1040,15 @@ namespace DataStandardizer.LanguageTag.Tests
         {
             // arrange
             var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
-            var testExtensionSubtags = new[] { "b-ccc", null };
+            var testExtensionSubtags = new[] { ExtensionB, null };
 
             // act
-            Action testAction = () => _ = builder.UsingExtensionSubtags("a-bbb", new ReadOnlySpan<string>(testExtensionSubtags));
+            Action testAction = () => _ = builder.UsingExtensionSubtags(ExtensionA, new ReadOnlySpan<string>(testExtensionSubtags));
 
             // assert
             testAction.Should()
                 .Throw<ArgumentNullException>("the subtag must not be null")
-                .WithParameterName("extensionSubtags");
+                .WithParameterName(ExtensionSubtagsParameterName);
         }
 
         #endregion
@@ -1010,16 +1060,16 @@ namespace DataStandardizer.LanguageTag.Tests
         {
             // arrange
             var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
-            var testExtensionSubtags = new[] { "b-ccc", "A-ddd" };
+            var testExtensionSubtags = new[] { ExtensionB, "A-ddd" };
 
             // act
-            Action testAction = () => _ = builder.UsingExtensionSubtags("a-bbb", new ReadOnlySpan<string>(testExtensionSubtags));
+            Action testAction = () => _ = builder.UsingExtensionSubtags(ExtensionA, new ReadOnlySpan<string>(testExtensionSubtags));
 
             // assert
             testAction.Should()
                 .Throw<ArgumentException>("each extension singleton must appear at most once (RFC 5646 §2.2.6)")
-                .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SubtagRepeatedTemplate, "Extension singleton", "A") + "*")
-                .WithParameterName("extensionSubtags");
+                .WithMessage("The Extension singleton 'A' appears more than once.*")
+                .WithParameterName(ExtensionSubtagsParameterName);
         }
 
         #endregion
@@ -1034,11 +1084,11 @@ namespace DataStandardizer.LanguageTag.Tests
             IBcp47LanguageTagBuilderStepUsingExtensionSubtags testSubject = step;
 
             // act
-            testSubject.UsingExtensionSubtags("a-bbb", new ReadOnlySpan<string>(new[] { "u-ca-hebrew" }));
+            testSubject.UsingExtensionSubtags(ExtensionA, new ReadOnlySpan<string>(new[] { HebrewCalendarExtension }));
 
             // assert
-            step.ReceivedFirstSubtag.Should().Be("a-bbb");
-            step.ReceivedSubtags.Should().Equal("u-ca-hebrew");
+            step.ReceivedFirstSubtag.Should().Be(ExtensionA);
+            step.ReceivedSubtags.Should().Equal(HebrewCalendarExtension);
         }
 
         #endregion
@@ -1082,7 +1132,7 @@ namespace DataStandardizer.LanguageTag.Tests
             // assert
             testAction.Should()
                 .Throw<ArgumentNullException>("the subtag must not be null")
-                .WithParameterName("privateUseSubtag");
+                .WithParameterName(PrivateUseSubtagParameterName);
         }
 
         #endregion
@@ -1093,17 +1143,16 @@ namespace DataStandardizer.LanguageTag.Tests
         public void UsingPrivateUseSubtag_WhenPrivateUseSubtagIsInvalid_ThrowsArgumentException()
         {
             // arrange
-            const string testSubject = "invalidprivateuse";
             var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
 
             // act
-            Action testAction = () => _ = builder.UsingPrivateUseSubtag(testSubject);
+            Action testAction = () => _ = builder.UsingPrivateUseSubtag("invalidprivateuse");
 
             // assert
             testAction.Should()
-                .Throw<ArgumentException>("'{0}' is not a valid subtag", testSubject)
-                .WithMessage(string.Format(Bcp47LanguageTagBuilder.ErrorMessage.SubtagInvalidTemplate, testSubject, "Private Use subtag") + "*")
-                .WithParameterName("privateUseSubtag");
+                .Throw<ArgumentException>("a Private Use subtag starts with the singleton x (RFC 5646 §2.1)")
+                .WithMessage("'invalidprivateuse' is not a valid Private Use subtag.*")
+                .WithParameterName(PrivateUseSubtagParameterName);
         }
 
         #endregion

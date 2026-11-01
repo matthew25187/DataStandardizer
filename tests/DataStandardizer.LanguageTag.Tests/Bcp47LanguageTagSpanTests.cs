@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using FluentAssertions;
 using Xunit;
 
@@ -14,26 +15,90 @@ namespace DataStandardizer.LanguageTag.Tests
     /// interfaces; the <c>net8.0</c> and <c>net10.0</c> runs test everything.
     /// </remarks>
     [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class Bcp47LanguageTagSpanTests : IClassFixture<Bcp47LanguageTagFixture>
+    public class Bcp47LanguageTagSpanTests
     {
         #region Declarations
 
-        private delegate bool SpanCheck(ReadOnlySpan<char> subtag);
+        public delegate bool SpanCheck(ReadOnlySpan<char> subtag);
+
+        public delegate (bool Success, string Result) SpanTryParse(SpanInput input);
 
         /// <summary>
-        /// Characters around a span taken from the middle of a string. A check that read outside its span would see a longer subtag.
+        /// Serbian written in Latin script as used in Serbia, an example from RFC 5646 Appendix A.
         /// </summary>
-        private const string Padding = "zz";
+        private const string SerbianLatinSerbia = "sr-Latn-RS";
 
-        private static readonly Dictionary<string, Func<string, bool>> StringChecks = new Dictionary<string, Func<string, bool>>
+        /// <summary>
+        /// The number of characters in <see cref="SerbianLatinSerbia"/>.
+        /// </summary>
+        private const int SerbianLatinSerbiaLength = 10;
+
+        /// <summary>
+        /// One character too few for <see cref="SerbianLatinSerbia"/>.
+        /// </summary>
+        private const int ShortDestinationLength = 9;
+
+        /// <summary>
+        /// Swiss German in the orthography of 1901, an example from RFC 5646 Appendix A.
+        /// </summary>
+        private const string SwissGerman1901 = "de-CH-1901";
+
+        /// <summary>
+        /// Chinese written in traditional script as used in Taiwan (RFC 5646 §2.2.3, §2.2.4).
+        /// </summary>
+        private const string TraditionalChineseTaiwan = "zh-Hant-TW";
+
+        /// <summary>
+        /// Cantonese, as an Extended Language subtag of Chinese, as used in Hong Kong, an example from RFC 5646 Appendix A.
+        /// </summary>
+        private const string CantoneseHongKong = "zh-yue-HK";
+
+        /// <summary>
+        /// Resian dialect of Slovenian in the San Giorgio / Bila spelling of 1994, from the RFC 5646 Appendix A examples sl-rozaj-biske and the 1994 variant (§2.2.5).
+        /// </summary>
+        private const string ResianSanGiorgio1994 = "sl-rozaj-biske-1994";
+
+        /// <summary>
+        /// The irregular grandfathered tag for Klingon (RFC 5646 §2.1, §2.2.8).
+        /// </summary>
+        private const string KlingonGrandfathered = "i-klingon";
+
+        /// <summary>
+        /// A tag that is only a Private Use subtag (RFC 5646 §2.2.7).
+        /// </summary>
+        private const string PrivateUseOnly = "x-private";
+
+        /// <summary>
+        /// A variant subtag repeated, which makes a tag not well-formed (RFC 5646 §2.2.5¶5).
+        /// </summary>
+        private const string RepeatedVariant = "de-1901-1901";
+
+        /// <summary>
+        /// A Region subtag repeated, which a tag can't have (RFC 5646 §2.1).
+        /// </summary>
+        private const string RepeatedRegion = "en-US-US";
+
+        /// <summary>
+        /// What <see cref="Bcp47LanguageTag.ToString"/> returns for an uninitialised tag: the name of the type, as for any struct.
+        /// </summary>
+        private const string UninitialisedToString = "DataStandardizer.LanguageTag.Bcp47LanguageTag";
+
+        /// <summary>
+        /// Strings that are well-formed language tags.
+        /// </summary>
+        private static readonly string[] ValidLanguageTagStrings =
         {
-            { nameof(Bcp47LanguageTag.CheckExtendedLanguageSubtag), Bcp47LanguageTag.CheckExtendedLanguageSubtag },
-            { nameof(Bcp47LanguageTag.CheckExtensionSubtag), Bcp47LanguageTag.CheckExtensionSubtag },
-            { nameof(Bcp47LanguageTag.CheckPrimaryLanguageSubtag), Bcp47LanguageTag.CheckPrimaryLanguageSubtag },
-            { nameof(Bcp47LanguageTag.CheckPrivateUseSubtag), Bcp47LanguageTag.CheckPrivateUseSubtag },
-            { nameof(Bcp47LanguageTag.CheckRegionSubtag), Bcp47LanguageTag.CheckRegionSubtag },
-            { nameof(Bcp47LanguageTag.CheckScriptSubtag), Bcp47LanguageTag.CheckScriptSubtag },
-            { nameof(Bcp47LanguageTag.CheckVariantSubtag), Bcp47LanguageTag.CheckVariantSubtag }
+            "en", "es-419", TraditionalChineseTaiwan, CantoneseHongKong, SerbianLatinSerbia, SwissGerman1901, ResianSanGiorgio1994, "hy-Latn-IT-arevela", "gsw-u-sd-chzh",
+            "he-IL-u-ca-hebrew-tz-jeruslm", "en-US-x-twain", PrivateUseOnly, KlingonGrandfathered, "zh-min-nan", "EN-us"
+        };
+
+        /// <summary>
+        /// Strings that are not well-formed language tags, including two that only repeat a subtag.
+        /// </summary>
+        private static readonly string[] InvalidLanguageTagStrings =
+        {
+            "", "e", "en-", "-en", "en--US", "abcdefghi", RepeatedRegion, "zh-Hant-Hans", "de-CH-123456789", "en-US-a", "en-x-", "x-abcdefghi",
+            RepeatedVariant, "en-a-bbb-a-ccc"
         };
 
         private static readonly Dictionary<string, SpanCheck> SpanChecks = new Dictionary<string, SpanCheck>
@@ -48,105 +113,162 @@ namespace DataStandardizer.LanguageTag.Tests
         };
 
         /// <summary>
-        /// Subtags that between them are valid and invalid for every check.
+        /// Subtags that each check accepts and rejects, by the rules of RFC 5646 §2.1 and §2.2: the ABNF of each kind of subtag, and the code
+        /// lists of ISO 639, ISO 15924, ISO 3166-1 and UN M49 that the subtags of each kind come from.
         /// </summary>
-        private static readonly string[] Subtags =
+        private static readonly (string CheckName, string Subtag, bool Expected)[] CheckCases =
         {
-            "", "-", "a", "x", "en", "EN", "zh", "qaa", "yue", "YUE", "abc", "Hant", "hant", "Zzzz", "TW", "tw", "419", "999", "AA", "CQ",
-            "1994", "rozaj", "1abc", "abcdefghi", "u-ca-hebrew", "u-ca-hebrew-tz-jeruslm", "u-a", "u", "x-private", "X-a-b", "x-", "x-abcdefghi",
-            "u-ca-x-a", "en\n", "İ"
+            (nameof(Bcp47LanguageTag.CheckPrimaryLanguageSubtag), "en", true),
+            (nameof(Bcp47LanguageTag.CheckPrimaryLanguageSubtag), "EN", true),
+            (nameof(Bcp47LanguageTag.CheckPrimaryLanguageSubtag), "qaa", true),
+            (nameof(Bcp47LanguageTag.CheckPrimaryLanguageSubtag), "yue", true),
+            (nameof(Bcp47LanguageTag.CheckPrimaryLanguageSubtag), "Hant", true),
+            (nameof(Bcp47LanguageTag.CheckPrimaryLanguageSubtag), "rozaj", true),
+            (nameof(Bcp47LanguageTag.CheckPrimaryLanguageSubtag), "", false),
+            (nameof(Bcp47LanguageTag.CheckPrimaryLanguageSubtag), "a", false),
+            (nameof(Bcp47LanguageTag.CheckPrimaryLanguageSubtag), "419", false),
+            (nameof(Bcp47LanguageTag.CheckPrimaryLanguageSubtag), "1994", false),
+            (nameof(Bcp47LanguageTag.CheckPrimaryLanguageSubtag), "abcdefghi", false),
+            (nameof(Bcp47LanguageTag.CheckPrimaryLanguageSubtag), "en\n", false),
+            (nameof(Bcp47LanguageTag.CheckPrimaryLanguageSubtag), "\x0130", false),
+            (nameof(Bcp47LanguageTag.CheckExtendedLanguageSubtag), "yue", true),
+            (nameof(Bcp47LanguageTag.CheckExtendedLanguageSubtag), "YUE", true),
+            (nameof(Bcp47LanguageTag.CheckExtendedLanguageSubtag), "abc", true),
+            (nameof(Bcp47LanguageTag.CheckExtendedLanguageSubtag), "", false),
+            (nameof(Bcp47LanguageTag.CheckExtendedLanguageSubtag), "en", false),
+            (nameof(Bcp47LanguageTag.CheckExtendedLanguageSubtag), "Hant", false),
+            (nameof(Bcp47LanguageTag.CheckExtendedLanguageSubtag), "419", false),
+            (nameof(Bcp47LanguageTag.CheckScriptSubtag), "Hant", true),
+            (nameof(Bcp47LanguageTag.CheckScriptSubtag), "hant", true),
+            (nameof(Bcp47LanguageTag.CheckScriptSubtag), "Zzzz", true),
+            (nameof(Bcp47LanguageTag.CheckScriptSubtag), "", false),
+            (nameof(Bcp47LanguageTag.CheckScriptSubtag), "en", false),
+            (nameof(Bcp47LanguageTag.CheckScriptSubtag), "TW", false),
+            (nameof(Bcp47LanguageTag.CheckScriptSubtag), "1994", false),
+            (nameof(Bcp47LanguageTag.CheckRegionSubtag), "TW", true),
+            (nameof(Bcp47LanguageTag.CheckRegionSubtag), "tw", true),
+            (nameof(Bcp47LanguageTag.CheckRegionSubtag), "419", true),
+            (nameof(Bcp47LanguageTag.CheckRegionSubtag), "AA", true),
+            (nameof(Bcp47LanguageTag.CheckRegionSubtag), "", false),
+            (nameof(Bcp47LanguageTag.CheckRegionSubtag), "a", false),
+            (nameof(Bcp47LanguageTag.CheckRegionSubtag), "999", false),
+            (nameof(Bcp47LanguageTag.CheckRegionSubtag), "Hant", false),
+            (nameof(Bcp47LanguageTag.CheckVariantSubtag), "rozaj", true),
+            (nameof(Bcp47LanguageTag.CheckVariantSubtag), "1994", true),
+            (nameof(Bcp47LanguageTag.CheckVariantSubtag), "1abc", true),
+            (nameof(Bcp47LanguageTag.CheckVariantSubtag), "", false),
+            (nameof(Bcp47LanguageTag.CheckVariantSubtag), "en", false),
+            (nameof(Bcp47LanguageTag.CheckVariantSubtag), "abcd", false),
+            (nameof(Bcp47LanguageTag.CheckVariantSubtag), "abcdefghi", false),
+            (nameof(Bcp47LanguageTag.CheckExtensionSubtag), "u-ca-hebrew", true),
+            (nameof(Bcp47LanguageTag.CheckExtensionSubtag), "u-ca-hebrew-tz-jeruslm", true),
+            (nameof(Bcp47LanguageTag.CheckExtensionSubtag), "", false),
+            (nameof(Bcp47LanguageTag.CheckExtensionSubtag), "u", false),
+            (nameof(Bcp47LanguageTag.CheckExtensionSubtag), "u-a", false),
+            (nameof(Bcp47LanguageTag.CheckExtensionSubtag), "u-ca-x-a", false),
+            (nameof(Bcp47LanguageTag.CheckExtensionSubtag), PrivateUseOnly, false),
+            (nameof(Bcp47LanguageTag.CheckPrivateUseSubtag), PrivateUseOnly, true),
+            (nameof(Bcp47LanguageTag.CheckPrivateUseSubtag), "X-a-b", true),
+            (nameof(Bcp47LanguageTag.CheckPrivateUseSubtag), "", false),
+            (nameof(Bcp47LanguageTag.CheckPrivateUseSubtag), "x", false),
+            (nameof(Bcp47LanguageTag.CheckPrivateUseSubtag), "x-", false),
+            (nameof(Bcp47LanguageTag.CheckPrivateUseSubtag), "x-abcdefghi", false),
+            (nameof(Bcp47LanguageTag.CheckPrivateUseSubtag), "u-ca-hebrew", false)
         };
 
         /// <summary>
-        /// Strings that are well-formed language tags.
+        /// Each case of <see cref="CheckCases"/>, as a span over the whole of the subtag and as one from the middle of a longer string.
         /// </summary>
-        private static readonly string[] ValidLanguageTagStrings =
-        {
-            "en", "es-419", "zh-Hant-TW", "zh-yue-HK", "sr-Latn-RS", "de-CH-1901", "sl-rozaj-biske-1994", "hy-Latn-IT-arevela", "gsw-u-sd-chzh",
-            "he-IL-u-ca-hebrew-tz-jeruslm", "en-US-x-twain", "x-private", "i-klingon", "zh-min-nan", "EN-us"
-        };
-
-        /// <summary>
-        /// Strings that are not well-formed language tags, including two that only repeat a subtag.
-        /// </summary>
-        private static readonly string[] InvalidLanguageTagStrings =
-        {
-            "", "e", "en-", "-en", "en--US", "abcdefghi", "en-US-US", "zh-Hant-Hans", "de-CH-123456789", "en-US-a", "en-x-", "x-abcdefghi",
-            "de-1901-1901", "en-a-bbb-a-ccc"
-        };
-
-        public static TheoryData<string> ValidLanguageTags => new TheoryData<string>(ValidLanguageTagStrings);
-
-        public static TheoryData<string> InvalidLanguageTags => new TheoryData<string>(InvalidLanguageTagStrings);
-
-        public static TheoryData<string, string> CheckCases
+        public static TheoryData<string, SpanCheck, SpanInput, bool> SpanCheckCases
         {
             get
             {
-                var data = new TheoryData<string, string>();
-                foreach (var checkName in StringChecks.Keys)
+                var data = new TheoryData<string, SpanCheck, SpanInput, bool>();
+                foreach (var checkCase in CheckCases)
                 {
-                    foreach (var subtag in Subtags)
-                    {
-                        data.Add(checkName, subtag);
-                    }
+                    data.Add(checkCase.CheckName, SpanChecks[checkCase.CheckName], SpanInput.Whole(checkCase.Subtag), checkCase.Expected);
+                    data.Add(checkCase.CheckName, SpanChecks[checkCase.CheckName], SpanInput.Padded(checkCase.Subtag), checkCase.Expected);
                 }
 
                 return data;
             }
         }
 
-        private readonly Bcp47LanguageTagFixture _fixture;
+        public static TheoryData<string, SpanCheck> EverySpanCheck
+        {
+            get
+            {
+                var data = new TheoryData<string, SpanCheck>();
+                foreach (var check in SpanChecks)
+                {
+                    data.Add(check.Key, check.Value);
+                }
+
+                return data;
+            }
+        }
+
+        public static TheoryData<SpanInput> ValidLanguageTagSpans => CreateSpanInputs(ValidLanguageTagStrings);
+
+        public static TheoryData<SpanInput> InvalidLanguageTagSpans => CreateSpanInputs(InvalidLanguageTagStrings);
+
+        public static TheoryData<string> ValidLanguageTags => new TheoryData<string>(ValidLanguageTagStrings);
+
+        public static TheoryData<string> InvalidLanguageTags => new TheoryData<string>(InvalidLanguageTagStrings);
+
+        /// <summary>
+        /// Each valid language tag, from the middle of a longer string, with the tag itself.
+        /// </summary>
+        public static TheoryData<SpanInput, string> PaddedValidLanguageTags
+        {
+            get
+            {
+                var data = new TheoryData<SpanInput, string>();
+                foreach (var languageTag in ValidLanguageTagStrings)
+                {
+                    data.Add(SpanInput.Padded(languageTag), languageTag);
+                }
+
+                return data;
+            }
+        }
+
+        private static TheoryData<SpanInput> CreateSpanInputs(IEnumerable<string> values)
+        {
+            var data = new TheoryData<SpanInput>();
+            foreach (var value in values)
+            {
+                data.Add(SpanInput.Whole(value));
+                data.Add(SpanInput.Padded(value));
+            }
+
+            return data;
+        }
 
         #endregion
-
-        public Bcp47LanguageTagSpanTests(Bcp47LanguageTagFixture fixture)
-        {
-            _fixture = fixture;
-        }
-
-        private static ReadOnlySpan<char> PaddedSpan(string value)
-        {
-            return (Padding + value + Padding).AsSpan(Padding.Length, value.Length);
-        }
 
         #region Test: Check*(ReadOnlySpan<char>)
 
         [Theory]
-        [MemberData(nameof(CheckCases))]
-        public void CheckSubtag_WithSpan_AgreesWithString(string checkName, string testSubtag)
+        [MemberData(nameof(SpanCheckCases), DisableDiscoveryEnumeration = true)]
+        public void CheckSubtag_WithSpan_ReturnsWhetherSubtagIsValid(string checkName, SpanCheck check, SpanInput testSubtag, bool expectedResult)
         {
-            // arrange
-            var expectedResult = StringChecks[checkName](testSubtag);
-
             // act
-            var result = SpanChecks[checkName](testSubtag.AsSpan());
-            var paddedResult = SpanChecks[checkName](PaddedSpan(testSubtag));
+            var testResult = check(testSubtag.AsSpan());
 
             // assert
-            result.Should().Be(expectedResult, "{0} must give the same result for a span as for a string", checkName);
-            paddedResult.Should().Be(expectedResult, "{0} must read only the characters in the span", checkName);
+            testResult.Should().Be(expectedResult, "{0} must check only the characters of the span {1}", checkName, testSubtag);
         }
 
-        [Fact]
-        public void CheckSubtag_WithSpanCases_CoverValidAndInvalidForEveryCheck()
+        [Theory]
+        [MemberData(nameof(EverySpanCheck), DisableDiscoveryEnumeration = true)]
+        public void CheckSubtag_WithDefaultSpan_ReturnsFalse(string checkName, SpanCheck check)
         {
-            // assert
-            foreach (var check in StringChecks)
-            {
-                Subtags.Should().Contain(subtag => check.Value(subtag), "the cases must include a subtag that {0} accepts", check.Key);
-                Subtags.Should().Contain(subtag => !check.Value(subtag), "the cases must include a subtag that {0} rejects", check.Key);
-            }
-        }
+            // act
+            var testResult = check(default);
 
-        [Fact]
-        public void CheckSubtag_WithDefaultSpan_ReturnsFalse()
-        {
             // assert
-            foreach (var check in SpanChecks)
-            {
-                check.Value(default).Should().BeFalse("{0} must reject an empty span rather than throw", check.Key);
-            }
+            testResult.Should().BeFalse("{0} must reject an empty span rather than throw", checkName);
         }
 
         #endregion
@@ -154,28 +276,36 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: IsWellFormedLanguageTagString(ReadOnlySpan<char>)
 
         [Theory]
-        [MemberData(nameof(ValidLanguageTags))]
-        public void IsWellFormedLanguageTagString_WithValidSpan_ReturnsTrue(string testLanguageTag)
+        [MemberData(nameof(ValidLanguageTagSpans), DisableDiscoveryEnumeration = true)]
+        public void IsWellFormedLanguageTagString_WithValidSpan_ReturnsTrue(SpanInput testLanguageTag)
         {
             // act
-            var result = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag.AsSpan());
-            var paddedResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(PaddedSpan(testLanguageTag));
+            var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag.AsSpan());
 
             // assert
-            result.Should().BeTrue();
-            paddedResult.Should().BeTrue("only the characters in the span are read");
+            testResult.Should().BeTrue("only the characters in the span are read");
+        }
+
+        [Theory]
+        [MemberData(nameof(InvalidLanguageTagSpans), DisableDiscoveryEnumeration = true)]
+        public void IsWellFormedLanguageTagString_WithInvalidSpan_ReturnsFalse(SpanInput testLanguageTag)
+        {
+            // act
+            var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag.AsSpan());
+
+            // assert
+            testResult.Should().BeFalse();
         }
 
         [Theory]
         [MemberData(nameof(InvalidLanguageTags))]
-        public void IsWellFormedLanguageTagString_WithInvalidSpan_ReturnsFalse(string testLanguageTag)
+        public void IsWellFormedLanguageTagString_WithInvalidString_ReturnsFalse(string testLanguageTag)
         {
             // act
-            var result = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag.AsSpan());
+            var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag);
 
             // assert
-            result.Should().BeFalse();
-            Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag).Should().BeFalse("the string overload must agree");
+            testResult.Should().BeFalse("the string overload must agree with the span overload");
         }
 
         #endregion
@@ -183,88 +313,124 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: TryCreate(ReadOnlySpan<char>, ...)
 
         [Theory]
-        [MemberData(nameof(ValidLanguageTags))]
-        public void TryCreate_WithValidSpan_ReturnsSameTagAsString(string testLanguageTag)
+        [MemberData(nameof(PaddedValidLanguageTags), DisableDiscoveryEnumeration = true)]
+        public void TryCreate_WithValidSpan_ReturnsTrueAndCopyOfSpan(SpanInput testLanguageTag, string expectedResult)
         {
-            // arrange
-            var expectedResult = Bcp47LanguageTag.Create(testLanguageTag);
-
             // act
-            var success = Bcp47LanguageTag.TryCreate(PaddedSpan(testLanguageTag), out var result);
+            var testResult = (Bcp47LanguageTag.TryCreate(testLanguageTag.AsSpan(), out var languageTag), (string)languageTag);
 
             // assert
-            success.Should().BeTrue();
-            ((string)result).Should().Be(testLanguageTag, "the stored string is a copy of the span, with its case kept");
-            result.PrimaryLanguageSubtag.Should().Be(expectedResult.PrimaryLanguageSubtag);
-            result.ExtendedLanguageSubtags.Should().Equal(expectedResult.ExtendedLanguageSubtags);
-            result.ScriptSubtag.Should().Be(expectedResult.ScriptSubtag);
-            result.RegionSubtag.Should().Be(expectedResult.RegionSubtag);
-            result.VariantSubtags.Should().Equal(expectedResult.VariantSubtags);
-            result.ExtensionSubtags.Should().Equal(expectedResult.ExtensionSubtags);
-            result.PrivateUseSubtag.Should().Be(expectedResult.PrivateUseSubtag);
+            testResult.Should().Be((true, expectedResult), "the stored string is a copy of the span, with its case kept");
+        }
+
+        /// <summary>
+        /// Language tags from the middle of a longer string, each with the subtags it decomposes into (RFC 5646 §2.2).
+        /// </summary>
+        public static TheoryData<SpanInput, LanguageTagSubtags> PaddedLanguageTagsWithSubtags => new TheoryData<SpanInput, LanguageTagSubtags>
+        {
+            { SpanInput.Padded(CantoneseHongKong), new LanguageTagSubtags("zh", new[] { "yue" }, null, "HK", new string[0], new Bcp47KeyedSubtag[0], null) },
+            { SpanInput.Padded(SerbianLatinSerbia), new LanguageTagSubtags("sr", new string[0], "Latn", "RS", new string[0], new Bcp47KeyedSubtag[0], null) },
+            { SpanInput.Padded(ResianSanGiorgio1994), new LanguageTagSubtags("sl", new string[0], null, null, new[] { "rozaj", "biske", "1994" }, new Bcp47KeyedSubtag[0], null) },
+            {
+                SpanInput.Padded("he-IL-u-ca-hebrew-tz-jeruslm"),
+                new LanguageTagSubtags("he", new string[0], null, "IL", new string[0], new[] { new Bcp47KeyedSubtag("u-ca-hebrew-tz-jeruslm") }, null)
+            },
+            { SpanInput.Padded("en-US-x-twain"), new LanguageTagSubtags("en", new string[0], null, "US", new string[0], new Bcp47KeyedSubtag[0], new Bcp47KeyedSubtag("x-twain")) },
+            { SpanInput.Padded(KlingonGrandfathered), LanguageTagSubtags.None }
+        };
+
+        [Theory]
+        [MemberData(nameof(PaddedLanguageTagsWithSubtags), DisableDiscoveryEnumeration = true)]
+        public void Subtags_OnLanguageTagCreatedFromSpan_AreTheSubtagsOfTheSpan(SpanInput testLanguageTag, LanguageTagSubtags expectedResult)
+        {
+            // arrange
+            Bcp47LanguageTag.TryCreate(testLanguageTag.AsSpan(), out var languageTag);
+
+            // act
+            var testResult = LanguageTagSubtags.Of(languageTag);
+
+            // assert
+            testResult.Should().BeEquivalentTo(expectedResult, options => options.WithStrictOrdering());
         }
 
         [Theory]
-        [MemberData(nameof(InvalidLanguageTags))]
-        public void TryCreate_WithInvalidSpan_ReturnsFalseAndDefault(string testLanguageTag)
+        [MemberData(nameof(InvalidLanguageTagSpans), DisableDiscoveryEnumeration = true)]
+        public void TryCreate_WithInvalidSpan_ReturnsFalseAndDefault(SpanInput testLanguageTag)
         {
             // act
-            var success = Bcp47LanguageTag.TryCreate(testLanguageTag.AsSpan(), out var result);
+            var testResult = (Bcp47LanguageTag.TryCreate(testLanguageTag.AsSpan(), out var languageTag), languageTag);
 
             // assert
-            success.Should().BeFalse();
-            result.Should().Be(default(Bcp47LanguageTag));
+            testResult.Should().Be((false, default(Bcp47LanguageTag)));
         }
 
+        public static TheoryData<SpanInput, string> PaddedRegisteredLanguageTags => new TheoryData<SpanInput, string>
+        {
+            { SpanInput.Padded("en-GB"), "en-GB" },
+            { SpanInput.Padded(CantoneseHongKong), CantoneseHongKong },
+            { SpanInput.Padded(ResianSanGiorgio1994), ResianSanGiorgio1994 },
+            { SpanInput.Padded(KlingonGrandfathered), KlingonGrandfathered }
+        };
+
         [Theory]
-        [InlineData("en-GB")]
-        [InlineData("zh-yue-HK")]
-        [InlineData("sl-rozaj-biske-1994")]
-        [InlineData("i-klingon")]
-        public void TryCreate_WithRegistryAndValidSpan_ReturnsSameTagAsString(string testLanguageTag)
+        [MemberData(nameof(PaddedRegisteredLanguageTags), DisableDiscoveryEnumeration = true)]
+        public void TryCreate_WithRegistryAndValidSpan_ReturnsTrueAndCopyOfSpan(SpanInput testLanguageTag, string expectedResult)
         {
             // arrange
-            var expectedResult = Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry);
+            var subtagRegistry = IanaSubtagRegistryResource.Shared;
 
             // act
-            var success = Bcp47LanguageTag.TryCreate(PaddedSpan(testLanguageTag), _fixture.IanaSubtagRegistry, out var result);
+            var testResult = (Bcp47LanguageTag.TryCreate(testLanguageTag.AsSpan(), subtagRegistry, out var languageTag), (string)languageTag);
 
             // assert
-            success.Should().BeTrue();
-            ((string)result).Should().Be(testLanguageTag);
-            result.PrimaryLanguageSubtag.Should().Be(expectedResult.PrimaryLanguageSubtag);
-            result.ExtendedLanguageSubtags.Should().Equal(expectedResult.ExtendedLanguageSubtags);
-            result.RegionSubtag.Should().Be(expectedResult.RegionSubtag);
-            result.VariantSubtags.Should().Equal(expectedResult.VariantSubtags);
+            testResult.Should().Be((true, expectedResult));
+        }
+
+        public static TheoryData<SpanInput, LanguageTagSubtags> PaddedRegisteredLanguageTagsWithSubtags => new TheoryData<SpanInput, LanguageTagSubtags>
+        {
+            { SpanInput.Padded(CantoneseHongKong), new LanguageTagSubtags("zh", new[] { "yue" }, null, "HK", new string[0], new Bcp47KeyedSubtag[0], null) },
+            { SpanInput.Padded(ResianSanGiorgio1994), new LanguageTagSubtags("sl", new string[0], null, null, new[] { "rozaj", "biske", "1994" }, new Bcp47KeyedSubtag[0], null) }
+        };
+
+        [Theory]
+        [MemberData(nameof(PaddedRegisteredLanguageTagsWithSubtags), DisableDiscoveryEnumeration = true)]
+        public void Subtags_OnLanguageTagCreatedFromSpanAndRegistry_AreTheSubtagsOfTheSpan(SpanInput testLanguageTag, LanguageTagSubtags expectedResult)
+        {
+            // arrange
+            Bcp47LanguageTag.TryCreate(testLanguageTag.AsSpan(), IanaSubtagRegistryResource.Shared, out var languageTag);
+
+            // act
+            var testResult = LanguageTagSubtags.Of(languageTag);
+
+            // assert
+            testResult.Should().BeEquivalentTo(expectedResult, options => options.WithStrictOrdering());
         }
 
         [Theory]
         [InlineData("xyz")]
-        [InlineData("en-US-US")]
-        [InlineData("de-1901-1901")]
+        [InlineData(RepeatedRegion)]
+        [InlineData(RepeatedVariant)]
         [InlineData("")]
         public void TryCreate_WithRegistryAndInvalidSpan_ReturnsFalse(string testLanguageTag)
         {
             // arrange
-            Bcp47LanguageTag.TryCreate(testLanguageTag, _fixture.IanaSubtagRegistry, out _).Should().BeFalse("the case must be one the string overload rejects");
+            var subtagRegistry = IanaSubtagRegistryResource.Shared;
 
             // act
-            var success = Bcp47LanguageTag.TryCreate(testLanguageTag.AsSpan(), _fixture.IanaSubtagRegistry, out var result);
+            var testResult = (Bcp47LanguageTag.TryCreate(testLanguageTag.AsSpan(), subtagRegistry, out var languageTag), languageTag);
 
             // assert
-            success.Should().BeFalse();
-            result.Should().Be(default(Bcp47LanguageTag));
+            testResult.Should().Be((false, default(Bcp47LanguageTag)));
         }
 
         [Fact]
         public void TryCreate_WithSpanAndNullRegistry_ReturnsFalse()
         {
             // act
-            var success = Bcp47LanguageTag.TryCreate("en".AsSpan(), (SubtagRegistry.SubtagRegistry)null, out var result);
+            var testResult = (Bcp47LanguageTag.TryCreate("en".AsSpan(), (SubtagRegistry.SubtagRegistry)null, out var languageTag), languageTag);
 
             // assert
-            success.Should().BeFalse("the string overload returns false for a null registry too");
-            result.Should().Be(default(Bcp47LanguageTag));
+            testResult.Should().Be((false, default(Bcp47LanguageTag)), "the string overload returns false for a null registry too");
         }
 
         #endregion
@@ -275,25 +441,27 @@ namespace DataStandardizer.LanguageTag.Tests
         public void AsSpan_OnValidLanguageTag_ReturnsStoredStringWithoutCopying()
         {
             // arrange
-            var testLanguageTag = Bcp47LanguageTag.Create("zh-Hant-TW");
-            var expectedResult = ((string)testLanguageTag).AsSpan();
+            const string languageTagString = TraditionalChineseTaiwan;
+            var testLanguageTag = Bcp47LanguageTag.Create(languageTagString);
 
             // act
-            var result = testLanguageTag.AsSpan();
+            var testResult = testLanguageTag.AsSpan();
 
             // assert
-            (result == expectedResult).Should().BeTrue("the span must refer to the stored string itself");
-            result.ToString().Should().Be("zh-Hant-TW");
+            (testResult == languageTagString.AsSpan()).Should().BeTrue("the span must refer to the string the tag was created from");
         }
 
         [Fact]
         public void AsSpan_OnDefaultLanguageTag_ReturnsEmptySpan()
         {
+            // arrange
+            var testLanguageTag = default(Bcp47LanguageTag);
+
             // act
-            var result = default(Bcp47LanguageTag).AsSpan();
+            var testResult = testLanguageTag.AsSpan();
 
             // assert
-            result.IsEmpty.Should().BeTrue("an uninitialised tag converts to a null string, which has no characters");
+            testResult.IsEmpty.Should().BeTrue("an uninitialised tag converts to a null string, which has no characters");
         }
 
         #endregion
@@ -305,47 +473,45 @@ namespace DataStandardizer.LanguageTag.Tests
         public void TryFormat_WithLongEnoughDestination_CopiesLanguageTag()
         {
             // arrange
-            var testLanguageTag = Bcp47LanguageTag.Create("sr-Latn-RS");
-            Span<char> destination = stackalloc char[16];
+            const int destinationLength = 16;
+            var testLanguageTag = Bcp47LanguageTag.Create(SerbianLatinSerbia);
+            var destination = new char[destinationLength];
 
             // act
-            var success = testLanguageTag.TryFormat(destination, out var charsWritten, "G", System.Globalization.CultureInfo.InvariantCulture);
+            var testResult = (testLanguageTag.TryFormat(destination, out var charsWritten, "G", CultureInfo.InvariantCulture), charsWritten);
 
             // assert
-            success.Should().BeTrue();
-            charsWritten.Should().Be(10);
-            destination.Slice(0, charsWritten).ToString().Should().Be("sr-Latn-RS");
+            testResult.Should().Be((true, SerbianLatinSerbiaLength));
+            destination.Should().Equal('s', 'r', '-', 'L', 'a', 't', 'n', '-', 'R', 'S', '\0', '\0', '\0', '\0', '\0', '\0');
         }
 
         [Fact]
         public void TryFormat_WithExactLengthDestination_CopiesLanguageTag()
         {
             // arrange
-            var testLanguageTag = Bcp47LanguageTag.Create("sr-Latn-RS");
-            var destination = new char[10];
+            var testLanguageTag = Bcp47LanguageTag.Create(SerbianLatinSerbia);
+            var destination = new char[SerbianLatinSerbiaLength];
 
             // act
-            var success = testLanguageTag.TryFormat(destination, out var charsWritten, default, null);
+            var testResult = (testLanguageTag.TryFormat(destination, out var charsWritten, default, null), charsWritten);
 
             // assert
-            success.Should().BeTrue();
-            charsWritten.Should().Be(10);
-            new string(destination).Should().Be("sr-Latn-RS");
+            testResult.Should().Be((true, SerbianLatinSerbiaLength));
+            destination.Should().Equal('s', 'r', '-', 'L', 'a', 't', 'n', '-', 'R', 'S');
         }
 
         [Fact]
         public void TryFormat_WithShortDestination_ReturnsFalseAndWritesNothing()
         {
             // arrange
-            var testLanguageTag = Bcp47LanguageTag.Create("sr-Latn-RS");
-            var destination = new char[9];
+            var testLanguageTag = Bcp47LanguageTag.Create(SerbianLatinSerbia);
+            var destination = new char[ShortDestinationLength];
 
             // act
-            var success = testLanguageTag.TryFormat(destination, out var charsWritten, default, null);
+            var testResult = (testLanguageTag.TryFormat(destination, out var charsWritten, default, null), charsWritten);
 
             // assert
-            success.Should().BeFalse();
-            charsWritten.Should().Be(0);
+            testResult.Should().Be((false, 0));
             destination.Should().OnlyContain(character => character == '\0');
         }
 
@@ -353,30 +519,42 @@ namespace DataStandardizer.LanguageTag.Tests
         public void TryFormat_OnDefaultLanguageTag_WritesToString()
         {
             // arrange
+            const int destinationLength = 256;
             var testLanguageTag = default(Bcp47LanguageTag);
-            var destination = new char[256];
+            var destination = new char[destinationLength];
 
             // act
-            var success = testLanguageTag.TryFormat(destination, out var charsWritten, default, null);
+            var testResult = (testLanguageTag.TryFormat(destination, out var charsWritten, default, null), charsWritten);
 
             // assert
-            success.Should().BeTrue();
-            new string(destination, 0, charsWritten).Should().Be(testLanguageTag.ToString());
+            testResult.Should().Be((true, UninitialisedToString.Length));
+            destination.Should().StartWith(UninitialisedToString.ToCharArray());
         }
 
         [Fact]
-        public void Format_InInterpolatedStringWithFormat_WritesLanguageTag()
+        public void Format_InCompositeFormatWithFormatAndAlignment_WritesLanguageTag()
         {
             // arrange
-            var testLanguageTag = Bcp47LanguageTag.Create("de-CH-1901");
+            var testLanguageTag = Bcp47LanguageTag.Create(SwissGerman1901);
 
             // act
-            var result = $"[{testLanguageTag:X}] [{testLanguageTag,12}]";
-            var formattableResult = ((IFormattable)testLanguageTag).ToString("X", System.Globalization.CultureInfo.InvariantCulture);
+            var testResult = string.Format(CultureInfo.InvariantCulture, "[{0:X}] [{0,12}]", testLanguageTag);
 
             // assert
-            result.Should().Be("[de-CH-1901] [  de-CH-1901]", "the format is ignored and alignment still applies");
-            formattableResult.Should().Be("de-CH-1901");
+            testResult.Should().Be("[de-CH-1901] [  de-CH-1901]", "the format is ignored and alignment still applies");
+        }
+
+        [Fact]
+        public void ToString_AsFormattableWithFormat_ReturnsLanguageTag()
+        {
+            // arrange
+            IFormattable testLanguageTag = Bcp47LanguageTag.Create(SwissGerman1901);
+
+            // act
+            var testResult = testLanguageTag.ToString("X", CultureInfo.InvariantCulture);
+
+            // assert
+            testResult.Should().Be(SwissGerman1901, "the format is ignored");
         }
 
         #endregion
@@ -405,38 +583,108 @@ namespace DataStandardizer.LanguageTag.Tests
             return T.TryParse(s, null, out result);
         }
 
-        [Theory]
-        [MemberData(nameof(ValidLanguageTags))]
-        public void Parse_WithValidLanguageTag_ReturnsLanguageTag(string testLanguageTag)
+        /// <summary>
+        /// Each way to parse a language tag, taking a span from the middle of a longer string or the whole of a string.
+        /// </summary>
+        private static readonly Dictionary<string, Func<SpanInput, Bcp47LanguageTag>> SpanParsers = new Dictionary<string, Func<SpanInput, Bcp47LanguageTag>>
         {
-            // arrange
-            var expectedResult = Bcp47LanguageTag.Create(testLanguageTag);
+            { "Parse(string) under the tr-TR culture", input => Bcp47LanguageTag.Parse(input.AsSpan().ToString(), CultureInfo.GetCultureInfo("tr-TR")) },
+            { "IParsable.Parse", input => ParseGeneric<Bcp47LanguageTag>(input.AsSpan().ToString()) },
+            { "Parse(ReadOnlySpan<char>)", input => Bcp47LanguageTag.Parse(input.AsSpan(), null) },
+            { "ISpanParsable.Parse", input => ParseSpanGeneric<Bcp47LanguageTag>(input.AsSpan()) }
+        };
 
-            // act
-            var result = Bcp47LanguageTag.Parse(testLanguageTag, System.Globalization.CultureInfo.GetCultureInfo("tr-TR"));
-            var genericResult = ParseGeneric<Bcp47LanguageTag>(testLanguageTag);
-            var spanResult = Bcp47LanguageTag.Parse(PaddedSpan(testLanguageTag), null);
-            var genericSpanResult = ParseSpanGeneric<Bcp47LanguageTag>(PaddedSpan(testLanguageTag));
+        private static readonly Dictionary<string, SpanTryParse> SpanTryParsers = new Dictionary<string, SpanTryParse>
+        {
+            { "TryParse(string)", input => (Bcp47LanguageTag.TryParse(input.AsSpan().ToString(), null, out var result), (string)result) },
+            { "IParsable.TryParse", input => (TryParseGeneric<Bcp47LanguageTag>(input.AsSpan().ToString(), out var result), (string)result) },
+            { "TryParse(ReadOnlySpan<char>)", input => (Bcp47LanguageTag.TryParse(input.AsSpan(), null, out var result), (string)result) },
+            { "ISpanParsable.TryParse", input => (TryParseSpanGeneric<Bcp47LanguageTag>(input.AsSpan(), out var result), (string)result) }
+        };
 
-            // assert
-            result.Should().Be(expectedResult);
-            genericResult.Should().Be(expectedResult);
-            spanResult.Should().Be(expectedResult);
-            genericSpanResult.Should().Be(expectedResult);
-            ((string)spanResult).Should().Be(testLanguageTag);
+        /// <summary>
+        /// Each parser, with each valid language tag from the middle of a longer string and the tag itself.
+        /// </summary>
+        public static TheoryData<string, Func<SpanInput, Bcp47LanguageTag>, SpanInput, string> ValidLanguageTagParseCases
+        {
+            get
+            {
+                var data = new TheoryData<string, Func<SpanInput, Bcp47LanguageTag>, SpanInput, string>();
+                foreach (var parser in SpanParsers)
+                foreach (var languageTag in ValidLanguageTagStrings)
+                {
+                    data.Add(parser.Key, parser.Value, SpanInput.Padded(languageTag), languageTag);
+                }
+
+                return data;
+            }
+        }
+
+        public static TheoryData<string, Func<SpanInput, Bcp47LanguageTag>, SpanInput, string> InvalidLanguageTagParseCases
+        {
+            get
+            {
+                var data = new TheoryData<string, Func<SpanInput, Bcp47LanguageTag>, SpanInput, string>();
+                foreach (var parser in SpanParsers)
+                foreach (var languageTag in InvalidLanguageTagStrings)
+                {
+                    data.Add(parser.Key, parser.Value, SpanInput.Whole(languageTag), languageTag);
+                }
+
+                return data;
+            }
+        }
+
+        public static TheoryData<string, SpanTryParse, SpanInput, string> ValidLanguageTagTryParseCases
+        {
+            get
+            {
+                var data = new TheoryData<string, SpanTryParse, SpanInput, string>();
+                foreach (var parser in SpanTryParsers)
+                foreach (var languageTag in ValidLanguageTagStrings)
+                {
+                    data.Add(parser.Key, parser.Value, SpanInput.Padded(languageTag), languageTag);
+                }
+
+                return data;
+            }
+        }
+
+        public static TheoryData<string, SpanTryParse, SpanInput> InvalidLanguageTagTryParseCases
+        {
+            get
+            {
+                var data = new TheoryData<string, SpanTryParse, SpanInput>();
+                foreach (var parser in SpanTryParsers)
+                foreach (var languageTag in InvalidLanguageTagStrings)
+                {
+                    data.Add(parser.Key, parser.Value, SpanInput.Whole(languageTag));
+                }
+
+                return data;
+            }
         }
 
         [Theory]
-        [MemberData(nameof(InvalidLanguageTags))]
-        public void Parse_WithInvalidLanguageTag_ThrowsLanguageTagFormatException(string testLanguageTag)
+        [MemberData(nameof(ValidLanguageTagParseCases), DisableDiscoveryEnumeration = true)]
+        public void Parse_WithValidLanguageTag_ReturnsLanguageTag(string parserName, Func<SpanInput, Bcp47LanguageTag> parse, SpanInput testLanguageTag, string expectedResult)
         {
             // act
-            Action stringAction = () => Bcp47LanguageTag.Parse(testLanguageTag, null);
-            Action spanAction = () => Bcp47LanguageTag.Parse(testLanguageTag.AsSpan(), null);
+            string testResult = parse(testLanguageTag);
 
             // assert
-            stringAction.Should().Throw<LanguageTagFormatException>().Which.LanguageTag.Should().Be(testLanguageTag);
-            spanAction.Should().Throw<LanguageTagFormatException>().Which.LanguageTag.Should().Be(testLanguageTag);
+            testResult.Should().Be(expectedResult, "{0} keeps the language tag as it was written", parserName);
+        }
+
+        [Theory]
+        [MemberData(nameof(InvalidLanguageTagParseCases), DisableDiscoveryEnumeration = true)]
+        public void Parse_WithInvalidLanguageTag_ThrowsLanguageTagFormatException(string parserName, Func<SpanInput, Bcp47LanguageTag> parse, SpanInput testLanguageTag, string expectedLanguageTag)
+        {
+            // act
+            Action testAction = () => parse(testLanguageTag);
+
+            // assert
+            testAction.Should().Throw<LanguageTagFormatException>("{0} must reject a tag that is not well-formed", parserName).Which.LanguageTag.Should().Be(expectedLanguageTag);
         }
 
         [Fact]
@@ -450,92 +698,35 @@ namespace DataStandardizer.LanguageTag.Tests
         }
 
         [Theory]
-        [MemberData(nameof(ValidLanguageTags))]
-        public void TryParse_WithValidLanguageTag_ReturnsTrue(string testLanguageTag)
+        [MemberData(nameof(ValidLanguageTagTryParseCases), DisableDiscoveryEnumeration = true)]
+        public void TryParse_WithValidLanguageTag_ReturnsTrueAndLanguageTag(string parserName, SpanTryParse tryParse, SpanInput testLanguageTag, string expectedResult)
         {
-            // arrange
-            var expectedResult = Bcp47LanguageTag.Create(testLanguageTag);
-
             // act
-            var success = Bcp47LanguageTag.TryParse(testLanguageTag, null, out var result);
-            var genericSuccess = TryParseGeneric<Bcp47LanguageTag>(testLanguageTag, out var genericResult);
-            var spanSuccess = Bcp47LanguageTag.TryParse(PaddedSpan(testLanguageTag), null, out var spanResult);
-            var genericSpanSuccess = TryParseSpanGeneric<Bcp47LanguageTag>(PaddedSpan(testLanguageTag), out var genericSpanResult);
+            var testResult = tryParse(testLanguageTag);
 
             // assert
-            new[] { success, genericSuccess, spanSuccess, genericSpanSuccess }.Should().OnlyContain(value => value);
-            new[] { result, genericResult, spanResult, genericSpanResult }.Should().OnlyContain(value => value == expectedResult);
+            testResult.Should().Be((true, expectedResult), "{0} keeps the language tag as it was written", parserName);
         }
 
         [Theory]
-        [MemberData(nameof(InvalidLanguageTags))]
-        [InlineData(null)]
-        public void TryParse_WithInvalidLanguageTag_ReturnsFalse(string testLanguageTag)
+        [MemberData(nameof(InvalidLanguageTagTryParseCases), DisableDiscoveryEnumeration = true)]
+        public void TryParse_WithInvalidLanguageTag_ReturnsFalseAndDefault(string parserName, SpanTryParse tryParse, SpanInput testLanguageTag)
         {
             // act
-            var success = Bcp47LanguageTag.TryParse(testLanguageTag, null, out var result);
-            var spanSuccess = Bcp47LanguageTag.TryParse(testLanguageTag.AsSpan(), null, out var spanResult);
+            var testResult = tryParse(testLanguageTag);
 
             // assert
-            success.Should().BeFalse();
-            spanSuccess.Should().BeFalse();
-            result.Should().Be(default(Bcp47LanguageTag));
-            spanResult.Should().Be(default(Bcp47LanguageTag));
+            testResult.Should().Be((false, (string)null), "{0} must reject a tag that is not well-formed", parserName);
         }
 
-        #endregion
-#endif
-
-#if NETCOREAPP3_0_OR_GREATER
-        #region Test: allocation
-
         [Fact]
-        public void SpanValidation_WithWarmCaches_DoesNotAllocate()
+        public void TryParse_WithNull_ReturnsFalseAndDefault()
         {
-            // arrange
-            var validTags = ValidLanguageTagStrings;
-            var invalidTags = InvalidLanguageTagStrings;
-            var subtags = Subtags;
-
-            // Run once first, so that the one-off work of building the code lists and compiling the methods is not counted.
-            var count = Validate();
-
             // act
-            var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
-            count += Validate();
-            var allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+            var testResult = (Bcp47LanguageTag.TryParse((string)null, null, out var languageTag), languageTag);
 
             // assert
-            count.Should().BeGreaterThan(0);
-            allocated.Should().Be(0, "validating a span and failing to create a tag from one must not allocate");
-
-            int Validate()
-            {
-                var result = 0;
-                foreach (var tag in validTags)
-                {
-                    if (Bcp47LanguageTag.IsWellFormedLanguageTagString(tag.AsSpan())) result++;
-                }
-
-                foreach (var tag in invalidTags)
-                {
-                    if (!Bcp47LanguageTag.TryCreate(tag.AsSpan(), out _)) result++;
-                }
-
-                foreach (var subtag in subtags)
-                {
-                    var span = subtag.AsSpan();
-                    if (Bcp47LanguageTag.CheckExtendedLanguageSubtag(span)) result++;
-                    if (Bcp47LanguageTag.CheckExtensionSubtag(span)) result++;
-                    if (Bcp47LanguageTag.CheckPrimaryLanguageSubtag(span)) result++;
-                    if (Bcp47LanguageTag.CheckPrivateUseSubtag(span)) result++;
-                    if (Bcp47LanguageTag.CheckRegionSubtag(span)) result++;
-                    if (Bcp47LanguageTag.CheckScriptSubtag(span)) result++;
-                    if (Bcp47LanguageTag.CheckVariantSubtag(span)) result++;
-                }
-
-                return result;
-            }
+            testResult.Should().Be((false, default(Bcp47LanguageTag)));
         }
 
         #endregion

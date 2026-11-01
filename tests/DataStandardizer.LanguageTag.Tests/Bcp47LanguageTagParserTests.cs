@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
-using DataStandardizer.LanguageTag.InternalState;
 using FluentAssertions;
 using Xunit;
 
@@ -12,20 +11,32 @@ namespace DataStandardizer.LanguageTag.Tests
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     public class Bcp47LanguageTagParserTests
     {
-        #region Test: Validation_WithNull
+        #region Test: CheckSubtag_WithNull
 
-        [Fact]
-        public void CheckSubtag_WithNull_ThrowsArgumentNullException()
+        /// <summary>
+        /// Each static check of the string overloads, called with <c>null</c>.
+        /// </summary>
+        public static TheoryData<string, Action> NullStringChecks => new TheoryData<string, Action>
         {
+            { nameof(Bcp47LanguageTag.CheckPrimaryLanguageSubtag), () => Bcp47LanguageTag.CheckPrimaryLanguageSubtag((string)null) },
+            { nameof(Bcp47LanguageTag.CheckExtendedLanguageSubtag), () => Bcp47LanguageTag.CheckExtendedLanguageSubtag((string)null) },
+            { nameof(Bcp47LanguageTag.CheckScriptSubtag), () => Bcp47LanguageTag.CheckScriptSubtag((string)null) },
+            { nameof(Bcp47LanguageTag.CheckRegionSubtag), () => Bcp47LanguageTag.CheckRegionSubtag((string)null) },
+            { nameof(Bcp47LanguageTag.CheckVariantSubtag), () => Bcp47LanguageTag.CheckVariantSubtag((string)null) },
+            { nameof(Bcp47LanguageTag.CheckExtensionSubtag), () => Bcp47LanguageTag.CheckExtensionSubtag((string)null) },
+            { nameof(Bcp47LanguageTag.CheckPrivateUseSubtag), () => Bcp47LanguageTag.CheckPrivateUseSubtag((string)null) },
+            { nameof(Bcp47LanguageTag.IsWellFormedLanguageTagString), () => Bcp47LanguageTag.IsWellFormedLanguageTagString((string)null) }
+        };
+
+        [Theory]
+        [MemberData(nameof(NullStringChecks), DisableDiscoveryEnumeration = true)]
+        public void CheckSubtag_WithNull_ThrowsArgumentNullException(string checkName, Action check)
+        {
+            // act
+            Action testAction = check;
+
             // assert
-            ((Action)(() => Bcp47LanguageTag.CheckPrimaryLanguageSubtag((string)null))).Should().Throw<ArgumentNullException>();
-            ((Action)(() => Bcp47LanguageTag.CheckExtendedLanguageSubtag((string)null))).Should().Throw<ArgumentNullException>();
-            ((Action)(() => Bcp47LanguageTag.CheckScriptSubtag((string)null))).Should().Throw<ArgumentNullException>();
-            ((Action)(() => Bcp47LanguageTag.CheckRegionSubtag((string)null))).Should().Throw<ArgumentNullException>();
-            ((Action)(() => Bcp47LanguageTag.CheckVariantSubtag((string)null))).Should().Throw<ArgumentNullException>();
-            ((Action)(() => Bcp47LanguageTag.CheckExtensionSubtag((string)null))).Should().Throw<ArgumentNullException>();
-            ((Action)(() => Bcp47LanguageTag.CheckPrivateUseSubtag((string)null))).Should().Throw<ArgumentNullException>();
-            ((Action)(() => Bcp47LanguageTag.IsWellFormedLanguageTagString((string)null))).Should().Throw<ArgumentNullException>();
+            testAction.Should().Throw<ArgumentNullException>("{0} must reject null", checkName);
         }
 
         #endregion

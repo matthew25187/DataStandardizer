@@ -7,6 +7,7 @@
       "src\\DataStandardizer.Geography\\DataStandardizer.Geography.csproj",
       "src\\DataStandardizer.LanguageTag\\DataStandardizer.LanguageTag.csproj",
       "src\\DataStandardizer.Language\\DataStandardizer.Language.csproj",
+      "tests\\DataStandardizer.LanguageTag.IntegrationTests\\DataStandardizer.LanguageTag.IntegrationTests.csproj",
       "tests\\DataStandardizer.LanguageTag.Tests\\DataStandardizer.LanguageTag.Tests.csproj"
     ]
   }
