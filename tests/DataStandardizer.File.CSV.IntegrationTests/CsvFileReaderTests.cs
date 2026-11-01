@@ -39,7 +39,7 @@ public class CsvFileReaderTests
         csvReader.Dispose();
 
         // act
-        Action testAction = () => System.IO.File.Delete(testFile.Path);
+        Action testAction = () => OpenExclusively(testFile.Path);
 
         // assert
         testAction.Should().NotThrow();
