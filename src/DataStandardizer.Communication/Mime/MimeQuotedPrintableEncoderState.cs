@@ -115,7 +115,7 @@ namespace DataStandardizer.Communication.Mime
             {
                 // ref. RFC 2047 §4.2 rule 2: "_" always represents hexadecimal 20.
                 if (unit == 0x20) step = new Step('_', 1);
-                else if (MimeQuotedPrintable.IsLiteral(unit, _mode)) step = new Step((char)unit, 1);
+                else if (MimeQuotedPrintable.IsWrittenAsLiteral(unit, _mode)) step = new Step((char)unit, 1);
                 else step = Step.Escape(unit, 1);
 
                 return true;

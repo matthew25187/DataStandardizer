@@ -98,6 +98,15 @@ namespace DataStandardizer.Communication.Tests.Mime
         private const string FullStopBWord = "=?UTF-8?B?YS5i?=";
         private const string FullStopText = "a.b";
 
+        // ref. RFC 2047 §5 (2): a comment's "Q" text may hold "\", although a writer encodes it.
+        private const string Backslash = "a\\b";
+        private const string BackslashWord = "=?UTF-8?Q?a\\b?=";
+
+        // ref. RFC 822 §3.3: linear-white-space = 1*([CRLF] LWSP-char), so a bare LF, or a CRLF with no SPACE or HTAB after it, is not
+        // whitespace, and the words around it are one run of text.
+        private const string WordsAroundBareLineFeed = "=?UTF-8?Q?a?=\n=?UTF-8?Q?b?=";
+        private const string WordsAroundUnfoldedLineBreak = "=?UTF-8?Q?a?=\r\n=?UTF-8?Q?b?=";
+
         private const string TextWithoutWords = "Re: hello";
         private const string EmbeddedWord = "Re:=?UTF-8?Q?caf=C3=A9?=";
         private const string EmbeddedWordText = "Re:caf\x00E9";
@@ -224,6 +233,9 @@ namespace DataStandardizer.Communication.Tests.Mime
             { ParenthesisedWord, ParenthesisedWord },
             { "Hello  =?UTF-8?Q?w=C3=B6rld?=", "Hello  w\x00F6rld" },
             { "=?UTF-8?Q?a?=\t=?UTF-8?Q?b?= c", "ab c" },
+            { "=?UTF-8?Q?a?=\r\n\t=?UTF-8?Q?b?=", AB },
+            { WordsAroundBareLineFeed, WordsAroundBareLineFeed },
+            { WordsAroundUnfoldedLineBreak, WordsAroundUnfoldedLineBreak },
             { UnknownThenKnownWords, "=?x-unknown?Q?a?= b" },
             { "=?UTF-8?B?ww==?= =?ISO-8859-1?Q?a?=", "=?UTF-8?B?ww==?= a" },
             { MaxLengthWord, MaxLengthText },
@@ -329,6 +341,9 @@ namespace DataStandardizer.Communication.Tests.Mime
                 { "a(b.c", MimeEncodedWordEncoding.Q, MimeEncodedWordContext.Text, "=?UTF-8?Q?a(b.c?=" },
                 { "a(b.c", MimeEncodedWordEncoding.Q, MimeEncodedWordContext.Comment, "=?UTF-8?Q?a=28b.c?=" },
                 { "a(b.c", MimeEncodedWordEncoding.Q, MimeEncodedWordContext.Phrase, "=?UTF-8?Q?a=28b=2Ec?=" },
+                // ref. RFC 5322 §3.2.2: "\" starts a quoted-pair in a comment, so it is encoded there.
+                { Backslash, MimeEncodedWordEncoding.Q, MimeEncodedWordContext.Text, BackslashWord },
+                { Backslash, MimeEncodedWordEncoding.Q, MimeEncodedWordContext.Comment, "=?UTF-8?Q?a=5Cb?=" },
                 { MaxLengthText, MimeEncodedWordEncoding.Q, MimeEncodedWordContext.Text, MaxLengthWord },
                 { Emoji, MimeEncodedWordEncoding.B, MimeEncodedWordContext.Phrase, EmojiWord },
             };
@@ -508,6 +523,16 @@ namespace DataStandardizer.Communication.Tests.Mime
 
             // assert
             success.Should().Be(expected);
+        }
+
+        [Fact]
+        public void Parse_QWordWithBackslashInComment_DecodesText()
+        {
+            // act
+            var result = MimeEncodedWord.Parse(BackslashWord, MimeEncodedWordContext.Comment, MimeEncodedWordParseOptions.None, MimeCharsetResolver.Default);
+
+            // assert
+            result.Text.Should().Be(Backslash);
         }
 
         [Fact]

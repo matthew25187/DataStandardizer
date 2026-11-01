@@ -758,7 +758,7 @@ namespace DataStandardizer.Communication.Mime
             for (var index = 0; index < count; index++)
             {
                 var octet = octets[index];
-                length += octet == 0x20 || MimeQuotedPrintable.IsLiteral(octet, mode) ? 1 : 3;
+                length += octet == 0x20 || MimeQuotedPrintable.IsWrittenAsLiteral(octet, mode) ? 1 : 3;
             }
 
             return length;
@@ -959,10 +959,13 @@ namespace DataStandardizer.Communication.Mime
             for (var index = 0; index < text.Length;)
             {
                 var start = index;
-                var isWhitespace = IsLinearWhitespace(text[index]);
-                while (index < text.Length && IsLinearWhitespace(text[index]) == isWhitespace)
+                var isWhitespace = GetLinearWhitespaceLength(text, index) > 0;
+                while (index < text.Length)
                 {
-                    index++;
+                    var whitespaceLength = GetLinearWhitespaceLength(text, index);
+                    if ((whitespaceLength > 0) != isWhitespace) break;
+
+                    index += isWhitespace ? whitespaceLength : 1;
                 }
 
                 if (isWhitespace)
@@ -1129,10 +1132,13 @@ namespace DataStandardizer.Communication.Mime
             return true;
         }
 
-        // ref. RFC 822 §3.3: linear-white-space = 1*([CRLF] LWSP-char), where LWSP-char = SPACE / HTAB.
-        private static bool IsLinearWhitespace(char c)
+        // Gets the length of one ([CRLF] LWSP-char) at a position, or 0 if there is none (ref. RFC 822 §3.3: linear-white-space =
+        // 1*([CRLF] LWSP-char), where LWSP-char = SPACE / HTAB). A bare CR or LF, or a CRLF that isn't a fold, is not whitespace.
+        private static int GetLinearWhitespaceLength(ReadOnlySpan<char> text, int index)
         {
-            return c == ' ' || c == '\t' || c == '\r' || c == '\n';
+            if (MimeGrammar.IsWhitespace(text[index])) return 1;
+
+            return text[index] == '\r' && index + 2 < text.Length && text[index + 1] == '\n' && MimeGrammar.IsWhitespace(text[index + 2]) ? 3 : 0;
         }
 
         private static MimeQuotedPrintableMode GetMode(MimeEncodedWordContext context)

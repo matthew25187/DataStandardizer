@@ -20,6 +20,9 @@ namespace DataStandardizer.Communication.Mime
         /// An encoded word in a comment (RFC 2047 §5(2)): as <see cref="Text"/>, except that its "Q"-encoded text may not hold <c>(</c>,
         /// <c>)</c> or <c>"</c>.
         /// </summary>
+        /// <remarks>
+        /// A word that is written also encodes <c>\</c>, as it would start a quoted-pair in a comment (RFC 5322 §3.2.2).
+        /// </remarks>
         Comment = 1,
 
         /// <summary>

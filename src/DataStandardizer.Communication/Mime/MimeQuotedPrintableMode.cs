@@ -29,6 +29,10 @@ namespace DataStandardizer.Communication.Mime
         /// The "Q" encoding of RFC 2047 §4.2, for an encoded word in a comment (RFC 2047 §5(2)): as
         /// <see cref="EncodedWordText"/>, except that <c>(</c>, <c>)</c> and <c>"</c> are encoded too.
         /// </summary>
+        /// <remarks>
+        /// When encoding, <c>\</c> is written as <c>=5C</c> as well, as it would start a quoted-pair in a comment (RFC 5322 §3.2.2). When
+        /// decoding, a literal <c>\</c> is accepted, as RFC 2047 §5(2) allows it.
+        /// </remarks>
         EncodedWordComment = 2,
 
         /// <summary>
