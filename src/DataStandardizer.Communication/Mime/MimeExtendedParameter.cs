@@ -515,7 +515,7 @@ namespace DataStandardizer.Communication.Mime
             return true;
         }
 
-        private static bool TryGetString(Encoding encoding, byte[] bytes, int byteCount, bool allowInvalidOctets, out string value)
+        internal static bool TryGetString(Encoding encoding, byte[] bytes, int byteCount, bool allowInvalidOctets, out string value)
         {
             value = string.Empty;
 
@@ -539,7 +539,7 @@ namespace DataStandardizer.Communication.Mime
             }
         }
 
-        private static string DecodeLatin1(byte[] bytes, int byteCount)
+        internal static string DecodeLatin1(byte[] bytes, int byteCount)
         {
             // Each octet becomes the character with the same number, so the octets can be recovered.
             var chars = new char[byteCount];
