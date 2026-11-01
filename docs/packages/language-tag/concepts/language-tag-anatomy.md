@@ -16,8 +16,9 @@ property so you can read them back independently.
 ## The subtag sequence
 
 Subtags always appear in the same order. Only the primary language subtag is
-required; the rest are optional refinements. Taking `zh-cmn-Hans-CN-x-private` as
-an illustrative shape:
+required, except on a grandfathered or private use tag, which has none; the rest
+are optional refinements. Taking `zh-cmn-Hans-CN-x-private` as an illustrative
+shape:
 
 ```text
 zh    -cmn   -Hans  -CN     -x-private
