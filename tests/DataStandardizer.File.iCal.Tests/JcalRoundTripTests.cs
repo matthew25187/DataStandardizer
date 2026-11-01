@@ -58,10 +58,10 @@ namespace DataStandardizer.File.iCal.Tests
             var expected = Model(calendars, options);
 
             // act
-            var testResult = ReadJcal(WriteJcal(calendars, options), options);
+            var testResult = Model(ReadJcal(WriteJcal(calendars, options), options), options);
 
             // assert
-            Model(testResult, options).Should().Equal(expected);
+            testResult.Should().Equal(expected);
         }
 
         [Theory]
@@ -74,10 +74,10 @@ namespace DataStandardizer.File.iCal.Tests
             var expected = Model(calendars, options);
 
             // act
-            var testResult = ReadCalendars(WriteCalendars(calendars, options), options);
+            var testResult = Model(ReadCalendars(WriteCalendars(calendars, options), options), options);
 
             // assert
-            Model(testResult, options).Should().Equal(expected);
+            testResult.Should().Equal(expected);
         }
 
         [Theory]
@@ -106,10 +106,10 @@ namespace DataStandardizer.File.iCal.Tests
             var expected = Model(calendars, options);
 
             // act
-            var testResult = XcalTestData.ReadXcal(XcalTestData.WriteXcal(calendars, options), options);
+            var testResult = Model(XcalTestData.ReadXcal(XcalTestData.WriteXcal(calendars, options), options), options);
 
             // assert
-            Model(testResult, options).Should().Equal(expected);
+            testResult.Should().Equal(expected);
         }
 
         [Theory]
@@ -138,10 +138,10 @@ namespace DataStandardizer.File.iCal.Tests
             var expected = Model(calendars, options);
 
             // act
-            var testResult = ReadJcal(WriteJcal(calendars, options), options);
+            var testResult = Model(ReadJcal(WriteJcal(calendars, options), options), options);
 
             // assert
-            Model(testResult, options).Should().Equal(expected);
+            testResult.Should().Equal(expected);
         }
 
         [Theory]
@@ -167,10 +167,10 @@ namespace DataStandardizer.File.iCal.Tests
             var expected = Model(ReadCalendars(Example1Ical));
 
             // act
-            var testResult = ReadJcal(Example1Jcal);
+            var testResult = Model(ReadJcal(Example1Jcal));
 
             // assert
-            Model(testResult).Should().Equal(expected);
+            testResult.Should().Equal(expected);
         }
 
         [Fact]
@@ -180,10 +180,10 @@ namespace DataStandardizer.File.iCal.Tests
             var expected = Model(ReadCalendars(Example1Ical));
 
             // act
-            var testResult = XcalTestData.ReadXcal(XcalTestData.Example1Xcal);
+            var testResult = Model(XcalTestData.ReadXcal(XcalTestData.Example1Xcal));
 
             // assert
-            Model(testResult).Should().Equal(expected);
+            testResult.Should().Equal(expected);
         }
 
         [Fact]
@@ -193,10 +193,10 @@ namespace DataStandardizer.File.iCal.Tests
             var expected = Model(ReadCalendars(Example2Ical));
 
             // act
-            var testResult = ReadJcal(Example2Jcal);
+            var testResult = Model(ReadJcal(Example2Jcal));
 
             // assert
-            Model(testResult).Should().Equal(expected);
+            testResult.Should().Equal(expected);
         }
 
         [Fact]

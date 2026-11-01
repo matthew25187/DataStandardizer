@@ -67,10 +67,10 @@ namespace DataStandardizer.File.iCal.Tests
             var expected = Model(calendars, options);
 
             // act
-            var testResult = ReadXcal(WriteXcal(calendars, options), options);
+            var testResult = Model(ReadXcal(WriteXcal(calendars, options), options), options);
 
             // assert
-            Model(testResult, options).Should().Equal(expected);
+            testResult.Should().Equal(expected);
         }
 
         [Theory]
@@ -83,10 +83,10 @@ namespace DataStandardizer.File.iCal.Tests
             var expected = Model(calendars, options);
 
             // act
-            var testResult = ReadCalendars(WriteCalendars(calendars, options), options);
+            var testResult = Model(ReadCalendars(WriteCalendars(calendars, options), options), options);
 
             // assert
-            Model(testResult, options).Should().Equal(expected);
+            testResult.Should().Equal(expected);
         }
 
         [Theory]
