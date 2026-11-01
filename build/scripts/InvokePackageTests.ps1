@@ -56,7 +56,7 @@ $kindDescription = ($Kind -eq 'Unit') ? 'unit tests' : 'integration tests'
 if (-not (Test-Path -LiteralPath (Join-Path $projectFolderPath "$projectName.csproj") -PathType Leaf)) {
     if ($Kind -eq 'Integration') {
         Write-Information "$PackageName has no integration tests (tests/$projectName); nothing to run."
-        exit 0
+        return
     }
 
     Write-Error "$PackageName has no unit test project, tests/$projectName/$projectName.csproj."
