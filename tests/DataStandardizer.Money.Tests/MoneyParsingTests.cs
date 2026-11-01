@@ -5,12 +5,45 @@ namespace DataStandardizer.Money.Tests;
 
 public class MoneyParsingTests
 {
+    private const string NewZealandCulture = "en-NZ";
+    private const string GermanCulture = "de-DE";
+    private const string IndianCulture = "en-IN";
+    private const string BrazilianCulture = "pt-BR";
+    private const string UnitedStatesCulture = "en-US";
+    private const string FrenchCulture = "fr-FR";
+
+    private const string StandardSymbolFormat = "C";
+    private const string NarrowSymbolFormat = "H";
+    private const string CurrencyCodeFormat = "I";
+
+    private const decimal TestAmount = 1234.50m;
+    private const string NzdCurrencyCodeValue = "NZD1,234.50";
+    private const string NzdStandardSymbolValue = "NZ$1,234.50";
+    private const string AmbiguousDollarValue = "$100";
+
+    private const MoneyStyles CurrencyCodeOnlyStyles = MoneyStyles.Number | MoneyStyles.AllowCurrencyCode;
+    private const MoneyStyles CurrencyStylesWithoutParentheses = MoneyStyles.Number | MoneyStyles.AllowCurrencyCode | MoneyStyles.AllowCurrencySymbol;
+
+    // The representations of RoundTripAmount in the currency of each culture, under that culture.
+    private const decimal RoundTripAmount = 1234.56m;
+    private const string NewZealandCurrencyCodeRepresentation = "NZD1,234.56";
+    private const string NewZealandStandardSymbolRepresentation = "NZ$1,234.56";
+    private const string NewZealandNarrowSymbolRepresentation = "$1,234.56";
+    private const string GermanCurrencyCodeRepresentation = "1.234,56 EUR";
+    private const string GermanStandardSymbolRepresentation = "1.234,56 \x20AC";
+    private const string IndianCurrencyCodeRepresentation = "INR1,234.56";
+    private const string IndianStandardSymbolRepresentation = "\x20B91,234.56";
+    private const string BrazilianCurrencyCodeRepresentation = "BRL 1.234,56";
+    private const string BrazilianStandardSymbolRepresentation = "R$ 1.234,56";
+    private const string UnitedStatesCurrencyCodeRepresentation = "USD1,234.56";
+    private const string FrenchCurrencyCodeRepresentation = "1\x202F234,56 EUR"; // the group separator is a narrow no-break space
+
     private static MoneyInfo MoneyInfoFor(string cultureName) => MoneyInfo.GetMoneyInfo(new CultureInfo(cultureName));
 
     #region Test: TryParse_CurrencyCode
 
     [Theory]
-    [InlineData("NZD1,234.50", 1234.50)]
+    [InlineData(NzdCurrencyCodeValue, 1234.50)]
     [InlineData("1,234.50NZD", 1234.50)]
     [InlineData("NZD 1234.50", 1234.50)]
     [InlineData("-NZD1,234.50", -1234.50)]
@@ -18,7 +51,7 @@ public class MoneyParsingTests
     public void TryParse_InputContainsCurrencyCode_ReturnsTrueAndResolvesCurrency(string testValue, decimal expectedAmount)
     {
         // act
-        var testResult = Money.TryParse(testValue, MoneyStyles.Currency, MoneyInfoFor("en-NZ"), out var result);
+        var testResult = Money.TryParse(testValue, MoneyStyles.Currency, MoneyInfoFor(NewZealandCulture), out var result);
 
         // assert
         testResult.Should().BeTrue("a currency code identifies a currency without ambiguity");
@@ -30,11 +63,11 @@ public class MoneyParsingTests
     public void TryParse_InputContainsGroupSeparator_RetainsMinorUnits()
     {
         // act
-        var testResult = Money.TryParse("NZD1,234.50", MoneyStyles.Currency, MoneyInfoFor("en-NZ"), out var result);
+        var testResult = Money.TryParse(NzdCurrencyCodeValue, MoneyStyles.Currency, MoneyInfoFor(NewZealandCulture), out var result);
 
         // assert
         testResult.Should().BeTrue();
-        ((decimal)result).Should().Be(1234.50m, "the minor units must not be discarded when a group separator is present");
+        ((decimal)result).Should().Be(TestAmount, "the minor units must not be discarded when a group separator is present");
     }
 
     #endregion
@@ -42,13 +75,16 @@ public class MoneyParsingTests
     #region Test: TryParse_UnambiguousCurrencySymbol
 
     [Theory]
-    [InlineData("₹1,234.50", Iso4217CurrencyCurrent.INR)]
-    [InlineData("NZ$1,234.50", Iso4217CurrencyCurrent.NZD)]
+    [InlineData("\x20B91,234.50", Iso4217CurrencyCurrent.INR)]
+    [InlineData(NzdStandardSymbolValue, Iso4217CurrencyCurrent.NZD)]
     [InlineData("CA$1,234.50", Iso4217CurrencyCurrent.CAD)]
-    [InlineData("Kč1234", Iso4217CurrencyCurrent.CZK)]
+    [InlineData("K\x010D1234", Iso4217CurrencyCurrent.CZK)]
     [InlineData("Ft1234", Iso4217CurrencyCurrent.HUF)]
     public void TryParse_InputContainsUnambiguousCurrencySymbol_ResolvesCurrencyWithoutCulture(string testValue, Iso4217CurrencyCurrent expectedCurrency)
     {
+        // arrange
+        using var cultureScope = new CurrentCultureScope(CultureInfo.InvariantCulture);
+
         // act
         var testResult = Money.TryParse(testValue, MoneyStyles.Currency, null, out var result);
 
@@ -60,6 +96,9 @@ public class MoneyParsingTests
     [Fact]
     public void TryParse_InputContainsSymbolWhichIsAlsoTheSuffixOfALongerSymbol_PrefersTheLongerSymbol()
     {
+        // arrange
+        using var cultureScope = new CurrentCultureScope(CultureInfo.InvariantCulture);
+
         // act
         var testResult = Money.TryParse("NZ$100", MoneyStyles.Currency, null, out var result);
 
@@ -73,14 +112,14 @@ public class MoneyParsingTests
     #region Test: TryParse_AmbiguousCurrencySymbol
 
     [Theory]
-    [InlineData("en-NZ", Iso4217CurrencyCurrent.NZD)]
+    [InlineData(NewZealandCulture, Iso4217CurrencyCurrent.NZD)]
     [InlineData("en-AU", Iso4217CurrencyCurrent.AUD)]
-    [InlineData("en-US", Iso4217CurrencyCurrent.USD)]
+    [InlineData(UnitedStatesCulture, Iso4217CurrencyCurrent.USD)]
     [InlineData("en-CA", Iso4217CurrencyCurrent.CAD)]
     public void TryParse_InputContainsAmbiguousCurrencySymbolAndCultureResolvesIt_ReturnsTrue(string testCulture, Iso4217CurrencyCurrent expectedCurrency)
     {
         // act
-        var testResult = Money.TryParse("$100", MoneyStyles.Any, MoneyInfoFor(testCulture), out var result);
+        var testResult = Money.TryParse(AmbiguousDollarValue, MoneyStyles.Any, MoneyInfoFor(testCulture), out var result);
 
         // assert
         testResult.Should().BeTrue("the culture {0} accounts for the dollar sign", testCulture);
@@ -91,7 +130,7 @@ public class MoneyParsingTests
     public void TryParse_InputContainsAmbiguousCurrencySymbolWithoutOptIn_ReturnsFalse()
     {
         // act
-        var testResult = Money.TryParse("$100", MoneyStyles.Currency, MoneyInfoFor("en-NZ"), out _);
+        var testResult = Money.TryParse(AmbiguousDollarValue, MoneyStyles.Currency, MoneyInfoFor(NewZealandCulture), out _);
 
         // assert
         testResult.Should().BeFalse("resolving a shared symbol must be asked for explicitly");
@@ -101,7 +140,7 @@ public class MoneyParsingTests
     public void TryParse_InputContainsAmbiguousCurrencySymbolAndCultureDoesNotResolveIt_ReturnsFalse()
     {
         // act
-        var testResult = Money.TryParse("$100", MoneyStyles.Any, MoneyInfoFor("de-DE"), out _);
+        var testResult = Money.TryParse(AmbiguousDollarValue, MoneyStyles.Any, MoneyInfoFor(GermanCulture), out _);
 
         // assert
         testResult.Should().BeFalse("the currency of the culture is not denoted by the dollar sign");
@@ -110,8 +149,11 @@ public class MoneyParsingTests
     [Fact]
     public void TryParse_InputContainsAmbiguousCurrencySymbolWithoutProvider_ReturnsFalse()
     {
+        // arrange
+        using var cultureScope = new CurrentCultureScope(CultureInfo.InvariantCulture);
+
         // act
-        var testResult = Money.TryParse("$100", MoneyStyles.Any, null, out _);
+        var testResult = Money.TryParse(AmbiguousDollarValue, MoneyStyles.Any, null, out _);
 
         // assert
         testResult.Should().BeFalse("without a culture there is no context in which to resolve a shared symbol");
@@ -122,18 +164,23 @@ public class MoneyParsingTests
     #region Test: TryParse_Styles
 
     [Fact]
-    public void TryParse_StylesPermitCurrencyCodeOnly_RejectsCurrencySymbol()
+    public void TryParse_StylesPermitCurrencyCodeOnlyAndInputContainsCurrencyCode_ReturnsTrue()
     {
-        // arrange
-        const MoneyStyles testStyles = MoneyStyles.Number | MoneyStyles.AllowCurrencyCode;
-
         // act
-        var codeResult = Money.TryParse("NZD1234.50", testStyles, MoneyInfoFor("en-NZ"), out _);
-        var symbolResult = Money.TryParse("₹100", testStyles, MoneyInfoFor("en-NZ"), out _);
+        var testResult = Money.TryParse("NZD1234.50", CurrencyCodeOnlyStyles, MoneyInfoFor(NewZealandCulture), out _);
 
         // assert
-        codeResult.Should().BeTrue("a currency code is permitted");
-        symbolResult.Should().BeFalse("a currency symbol is not permitted");
+        testResult.Should().BeTrue("a currency code is permitted");
+    }
+
+    [Fact]
+    public void TryParse_StylesPermitCurrencyCodeOnlyAndInputContainsCurrencySymbol_ReturnsFalse()
+    {
+        // act
+        var testResult = Money.TryParse("\x20B9100", CurrencyCodeOnlyStyles, MoneyInfoFor(NewZealandCulture), out _);
+
+        // assert
+        testResult.Should().BeFalse("a currency symbol is not permitted");
     }
 
     [Theory]
@@ -144,7 +191,7 @@ public class MoneyParsingTests
     public void TryParse_StylesGovernPermittedElements_ReturnsExpectedOutcome(MoneyStyles testStyles, string testValue, bool expectedResult)
     {
         // act
-        var testResult = Money.TryParse(testValue, testStyles, MoneyInfoFor("en-NZ"), out _);
+        var testResult = Money.TryParse(testValue, testStyles, MoneyInfoFor(NewZealandCulture), out _);
 
         // assert
         testResult.Should().Be(expectedResult, "the styles {0} were requested for the input {1}", testStyles, testValue);
@@ -153,11 +200,8 @@ public class MoneyParsingTests
     [Fact]
     public void TryParse_StylesExcludeParentheses_RejectsParenthesisedValue()
     {
-        // arrange
-        var testStyles = MoneyStyles.Currency & ~MoneyStyles.AllowParentheses;
-
         // act
-        var testResult = Money.TryParse("(NZD1234.50)", testStyles, MoneyInfoFor("en-NZ"), out _);
+        var testResult = Money.TryParse("(NZD1234.50)", CurrencyStylesWithoutParentheses, MoneyInfoFor(NewZealandCulture), out _);
 
         // assert
         testResult.Should().BeFalse("parentheses are not permitted");
@@ -168,8 +212,8 @@ public class MoneyParsingTests
     #region Test: TryParse_CultureSeparators
 
     [Theory]
-    [InlineData("de-DE", "zł1.234,50", 1234.50)]
-    [InlineData("en-NZ", "R$1,234.50", 1234.50)]
+    [InlineData(GermanCulture, "z\x01421.234,50", 1234.50)]
+    [InlineData(NewZealandCulture, "R$1,234.50", 1234.50)]
     public void TryParse_SeparatorsOfSuppliedCulture_InterpretsAmountAccordingly(string testCulture, string testValue, decimal expectedAmount)
     {
         // act
@@ -187,12 +231,8 @@ public class MoneyParsingTests
     [Fact]
     public void TryParseExact_InputMatchesRequestedFormat_ReturnsTrue()
     {
-        // arrange
-        var testProvider = MoneyInfoFor("en-NZ");
-        var testValue = Money.Create(1234.5m, Iso4217CurrencyCurrent.NZD).ToString("I", testProvider);
-
         // act
-        var testResult = Money.TryParseExact(testValue, new[] { "I" }, testProvider, MoneyStyles.Currency, out var result);
+        var testResult = Money.TryParseExact(NzdCurrencyCodeValue, new[] { CurrencyCodeFormat }, MoneyInfoFor(NewZealandCulture), MoneyStyles.Currency, out var result);
 
         // assert
         testResult.Should().BeTrue();
@@ -202,12 +242,8 @@ public class MoneyParsingTests
     [Fact]
     public void TryParseExact_InputIsInADifferentFormat_ReturnsFalse()
     {
-        // arrange
-        var testProvider = MoneyInfoFor("en-NZ");
-        var testValue = Money.Create(1234.5m, Iso4217CurrencyCurrent.NZD).ToString("C", testProvider);
-
         // act
-        var testResult = Money.TryParseExact(testValue, new[] { "I" }, testProvider, MoneyStyles.Currency, out _);
+        var testResult = Money.TryParseExact(NzdStandardSymbolValue, new[] { CurrencyCodeFormat }, MoneyInfoFor(NewZealandCulture), MoneyStyles.Currency, out _);
 
         // assert
         testResult.Should().BeFalse("the value carries a currency symbol rather than a currency code");
@@ -216,12 +252,8 @@ public class MoneyParsingTests
     [Fact]
     public void TryParseExact_InputMatchesOneOfSeveralFormats_ReturnsTrue()
     {
-        // arrange
-        var testProvider = MoneyInfoFor("en-NZ");
-        var testValue = Money.Create(1234.5m, Iso4217CurrencyCurrent.NZD).ToString("C", testProvider);
-
         // act
-        var testResult = Money.TryParseExact(testValue, new[] { "I", "C" }, testProvider, MoneyStyles.Currency, out var result);
+        var testResult = Money.TryParseExact(NzdStandardSymbolValue, new[] { CurrencyCodeFormat, StandardSymbolFormat }, MoneyInfoFor(NewZealandCulture), MoneyStyles.Currency, out var result);
 
         // assert
         testResult.Should().BeTrue();
@@ -231,12 +263,8 @@ public class MoneyParsingTests
     [Fact]
     public void TryParseExact_FormatNamesADifferentCurrency_ReturnsFalse()
     {
-        // arrange
-        var testProvider = MoneyInfoFor("en-NZ");
-        var testValue = Money.Create(1234.5m, Iso4217CurrencyCurrent.NZD).ToString("I", testProvider);
-
         // act
-        var testResult = Money.TryParseExact(testValue, new[] { "USD" }, testProvider, MoneyStyles.Currency, out _);
+        var testResult = Money.TryParseExact(NzdCurrencyCodeValue, new[] { nameof(Iso4217CurrencyCurrent.USD) }, MoneyInfoFor(NewZealandCulture), MoneyStyles.Currency, out _);
 
         // assert
         testResult.Should().BeFalse("the format names a currency other than that of the value");
@@ -246,67 +274,76 @@ public class MoneyParsingTests
 
     #region Test: RoundTrip
 
-    [Theory]
-    [InlineData("en-NZ", Iso4217CurrencyCurrent.NZD)]
-    [InlineData("de-DE", Iso4217CurrencyCurrent.EUR)]
-    [InlineData("en-IN", Iso4217CurrencyCurrent.INR)]
-    [InlineData("pt-BR", Iso4217CurrencyCurrent.BRL)]
-    [InlineData("en-US", Iso4217CurrencyCurrent.USD)]
-    [InlineData("fr-FR", Iso4217CurrencyCurrent.EUR)]
-    public void RoundTrip_CurrencyCodeFormat_ReturnsAnEquivalentValue(string testCulture, Iso4217CurrencyCurrent testCurrency)
-    {
-        // arrange
-        var testProvider = MoneyInfoFor(testCulture);
-        var testSubject = Money.Create(1234.56m, testCurrency);
-
-        // act
-        var formatted = testSubject.ToString("I", testProvider);
-        var testResult = Money.TryParse(formatted, MoneyStyles.Currency, testProvider, out var result);
-
-        // assert
-        testResult.Should().BeTrue("the currency code form must be parseable, for the input {0}", formatted);
-        result.IsoCurrencyCode.Should().Be(testSubject.IsoCurrencyCode, "the currency must survive the round trip");
-        ((decimal)result).Should().Be((decimal)testSubject, "the amount must survive the round trip");
-    }
+    // A round trip is shown in two halves: ToString produces each representation below, and TryParse
+    // returns the original value from that same representation.
 
     [Theory]
-    [InlineData("en-NZ", Iso4217CurrencyCurrent.NZD)]
-    [InlineData("de-DE", Iso4217CurrencyCurrent.EUR)]
-    [InlineData("en-IN", Iso4217CurrencyCurrent.INR)]
-    [InlineData("pt-BR", Iso4217CurrencyCurrent.BRL)]
-    public void RoundTrip_CurrencySymbolFormatForUnambiguousSymbol_ReturnsAnEquivalentValue(string testCulture, Iso4217CurrencyCurrent testCurrency)
+    [MemberData(nameof(RoundTripFormatTestCases))]
+    public void ToString_RoundTripFormat_ProducesParseableRepresentation(string testCulture, Iso4217CurrencyCurrent testCurrency, string testFormat, string expectedResult)
     {
         // arrange
-        var testProvider = MoneyInfoFor(testCulture);
-        var testSubject = Money.Create(1234.56m, testCurrency);
+        var testSubject = Money.Create(RoundTripAmount, testCurrency);
 
         // act
-        var formatted = testSubject.ToString("C", testProvider);
-        var testResult = Money.TryParse(formatted, MoneyStyles.Currency, testProvider, out var result);
+        var testResult = testSubject.ToString(testFormat, MoneyInfoFor(testCulture));
 
         // assert
-        testResult.Should().BeTrue("the standard symbol of {0} denotes exactly one currency, for the input {1}", testCurrency, formatted);
-        result.IsoCurrencyCode.Should().Be(testSubject.IsoCurrencyCode);
-        ((decimal)result).Should().Be((decimal)testSubject);
+        testResult.Should().Be(expectedResult, "the format {0} was requested under the culture {1}", testFormat, testCulture);
     }
+
+    public static TheoryData<string, Iso4217CurrencyCurrent, string, string> RoundTripFormatTestCases => new()
+    {
+        { NewZealandCulture, Iso4217CurrencyCurrent.NZD, CurrencyCodeFormat, NewZealandCurrencyCodeRepresentation },
+        { GermanCulture, Iso4217CurrencyCurrent.EUR, CurrencyCodeFormat, GermanCurrencyCodeRepresentation },
+        { IndianCulture, Iso4217CurrencyCurrent.INR, CurrencyCodeFormat, IndianCurrencyCodeRepresentation },
+        { BrazilianCulture, Iso4217CurrencyCurrent.BRL, CurrencyCodeFormat, BrazilianCurrencyCodeRepresentation },
+        { UnitedStatesCulture, Iso4217CurrencyCurrent.USD, CurrencyCodeFormat, UnitedStatesCurrencyCodeRepresentation },
+        { FrenchCulture, Iso4217CurrencyCurrent.EUR, CurrencyCodeFormat, FrenchCurrencyCodeRepresentation },
+        { NewZealandCulture, Iso4217CurrencyCurrent.NZD, StandardSymbolFormat, NewZealandStandardSymbolRepresentation },
+        { GermanCulture, Iso4217CurrencyCurrent.EUR, StandardSymbolFormat, GermanStandardSymbolRepresentation },
+        { IndianCulture, Iso4217CurrencyCurrent.INR, StandardSymbolFormat, IndianStandardSymbolRepresentation },
+        { BrazilianCulture, Iso4217CurrencyCurrent.BRL, StandardSymbolFormat, BrazilianStandardSymbolRepresentation },
+        { NewZealandCulture, Iso4217CurrencyCurrent.NZD, NarrowSymbolFormat, NewZealandNarrowSymbolRepresentation },
+    };
+
+    [Theory]
+    [MemberData(nameof(RoundTripParseTestCases))]
+    public void TryParse_RoundTripRepresentation_ReturnsTheFormattedValue(string testCulture, MoneyStyles testStyles, string testValue, Iso4217CurrencyCurrent expectedCurrency)
+    {
+        // act
+        var testResult = Money.TryParse(testValue, testStyles, MoneyInfoFor(testCulture), out var result);
+
+        // assert
+        testResult.Should().BeTrue("the representation {0} must be parseable under the culture {1}", testValue, testCulture);
+        result.IsoCurrencyCode.Should().Be(expectedCurrency, "the currency must survive the round trip");
+        ((decimal)result).Should().Be(RoundTripAmount, "the amount must survive the round trip");
+    }
+
+    public static TheoryData<string, MoneyStyles, string, Iso4217CurrencyCurrent> RoundTripParseTestCases => new()
+    {
+        { NewZealandCulture, MoneyStyles.Currency, NewZealandCurrencyCodeRepresentation, Iso4217CurrencyCurrent.NZD },
+        { GermanCulture, MoneyStyles.Currency, GermanCurrencyCodeRepresentation, Iso4217CurrencyCurrent.EUR },
+        { IndianCulture, MoneyStyles.Currency, IndianCurrencyCodeRepresentation, Iso4217CurrencyCurrent.INR },
+        { BrazilianCulture, MoneyStyles.Currency, BrazilianCurrencyCodeRepresentation, Iso4217CurrencyCurrent.BRL },
+        { UnitedStatesCulture, MoneyStyles.Currency, UnitedStatesCurrencyCodeRepresentation, Iso4217CurrencyCurrent.USD },
+        { FrenchCulture, MoneyStyles.Currency, FrenchCurrencyCodeRepresentation, Iso4217CurrencyCurrent.EUR },
+        // The standard symbol of each of these currencies denotes exactly one currency.
+        { NewZealandCulture, MoneyStyles.Currency, NewZealandStandardSymbolRepresentation, Iso4217CurrencyCurrent.NZD },
+        { GermanCulture, MoneyStyles.Currency, GermanStandardSymbolRepresentation, Iso4217CurrencyCurrent.EUR },
+        { IndianCulture, MoneyStyles.Currency, IndianStandardSymbolRepresentation, Iso4217CurrencyCurrent.INR },
+        { BrazilianCulture, MoneyStyles.Currency, BrazilianStandardSymbolRepresentation, Iso4217CurrencyCurrent.BRL },
+        // The narrow symbol is shared by several currencies, so it is resolved only by opting in and from the culture.
+        { NewZealandCulture, MoneyStyles.Any, NewZealandNarrowSymbolRepresentation, Iso4217CurrencyCurrent.NZD },
+    };
 
     [Fact]
-    public void RoundTrip_NarrowSymbolSharedBySeveralCurrencies_RequiresCultureContext()
+    public void TryParse_RoundTripNarrowSymbolRepresentationWithoutOptIn_ReturnsFalse()
     {
-        // arrange
-        var testProvider = MoneyInfoFor("en-NZ");
-        var testSubject = Money.Create(1234.56m, Iso4217CurrencyCurrent.NZD);
-        var formatted = testSubject.ToString("H", testProvider);
-
         // act
-        var withoutOptIn = Money.TryParse(formatted, MoneyStyles.Currency, testProvider, out _);
-        var withOptIn = Money.TryParse(formatted, MoneyStyles.Any, testProvider, out var result);
+        var testResult = Money.TryParse(NewZealandNarrowSymbolRepresentation, MoneyStyles.Currency, MoneyInfoFor(NewZealandCulture), out _);
 
         // assert
-        formatted.Should().StartWith("$", "the narrow symbol of the New Zealand Dollar is the dollar sign");
-        withoutOptIn.Should().BeFalse("a shared symbol is not resolved without opting in");
-        withOptIn.Should().BeTrue("the culture accounts for the dollar sign");
-        result.IsoCurrencyCode.Should().Be(Iso4217CurrencyCurrent.NZD);
+        testResult.Should().BeFalse("a shared symbol is not resolved without opting in");
     }
 
     #endregion

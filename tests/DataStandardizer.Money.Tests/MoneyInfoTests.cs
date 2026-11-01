@@ -7,6 +7,12 @@ namespace DataStandardizer.Money.Tests;
 
 public class MoneyInfoTests
 {
+    private const string NewZealandCulture = "en-NZ";
+
+    // ISO 639-1 language codes.
+    private const string EnglishLanguageCode = "en";
+    private const string AfarLanguageCode = "aa";
+
     #region Test: GetFormat
 
     [Fact]
@@ -26,7 +32,7 @@ public class MoneyInfoTests
     public void GetFormat_ForCurrencyFormatInformation_ReturnsTheCurrencyFormat()
     {
         // arrange
-        var testSubject = MoneyInfo.GetMoneyInfo(new CultureInfo("en-NZ"));
+        var testSubject = MoneyInfo.GetMoneyInfo(new CultureInfo(NewZealandCulture));
 
         // act
         var testResult = testSubject.GetFormat(typeof(CurrencyFormatInfo));
@@ -66,7 +72,7 @@ public class MoneyInfoTests
     public void Constructor_WithLanguageAndCountry_ReturnsInformationForThatCulture()
     {
         // act
-        var testResult = new MoneyInfo((Iso639Part1Language)"en", Iso3166Part1Alpha2Country.NZ);
+        var testResult = new MoneyInfo((Iso639Part1Language)EnglishLanguageCode, Iso3166Part1Alpha2Country.NZ);
 
         // assert
         testResult.CurrencyFormat.CurrencyCode.Should().Be(nameof(Iso4217CurrencyCurrent.NZD));
@@ -86,11 +92,11 @@ public class MoneyInfoTests
     public void Constructor_WithLanguageAndCountryWhichAreNotACulture_FallsBackToCultureIndependentInformation()
     {
         // act
-        var testAction = () => new MoneyInfo((Iso639Part1Language)"aa", Iso3166Part1Alpha2Country.AQ);
+        var testResult = new MoneyInfo((Iso639Part1Language)AfarLanguageCode, Iso3166Part1Alpha2Country.AQ);
 
         // assert
         // Not every well-formed combination of a language and a country is a culture the host knows about.
-        testAction.Should().NotThrow("an unknown culture must not prevent the information from being constructed");
+        testResult.CurrencyFormat.CurrencyCode.Should().Be(nameof(Iso4217CurrencyCurrent.XXX), "an unknown culture falls back to the culture-independent information");
     }
 
     #endregion
@@ -101,20 +107,20 @@ public class MoneyInfoTests
     public void CurrencyFormat_WhenSetOnAReadOnlyInstance_ThrowsInvalidOperationException()
     {
         // arrange
-        var testSubject = MoneyInfo.GetMoneyInfo(new CultureInfo("en-NZ"));
+        var testSubject = MoneyInfo.GetMoneyInfo(new CultureInfo(NewZealandCulture));
 
         // act
-        var testAction = () => testSubject.CurrencyFormat = new CurrencyFormatInfo();
+        Action testAction = () => testSubject.CurrencyFormat = new CurrencyFormatInfo();
 
         // assert
         testAction.Should().Throw<InvalidOperationException>("the instance is read only");
     }
 
     [Fact]
-    public void GetMoneyInfo_ReturnsAReadOnlyInstance()
+    public void GetMoneyInfo_ForCulture_ReturnsAReadOnlyInstance()
     {
         // act
-        var testResult = MoneyInfo.GetMoneyInfo(new CultureInfo("en-NZ"));
+        var testResult = MoneyInfo.GetMoneyInfo(new CultureInfo(NewZealandCulture));
 
         // assert
         testResult.IsReadOnly.Should().BeTrue();
@@ -126,34 +132,28 @@ public class MoneyInfoTests
     #region Test: CurrentMoney
 
     [Fact]
-    public void CurrentMoney_WhenCurrentCultureChanges_ReflectsTheNewCulture()
+    public void CurrentMoney_AfterCurrentCultureChanges_ReflectsTheNewCulture()
     {
         // arrange
-        var originalCulture = CultureInfo.CurrentCulture;
-        try
-        {
-            // act
-            CultureInfo.CurrentCulture = new CultureInfo("en-NZ");
-            var newZealandResult = MoneyInfo.CurrentMoney.CurrencyFormat.CurrencyCode;
+        using var newZealandCultureScope = new CurrentCultureScope(new CultureInfo(NewZealandCulture));
+        _ = MoneyInfo.CurrentMoney; // the information for the first culture is cached here
+        using var japaneseCultureScope = new CurrentCultureScope(new CultureInfo("ja-JP"));
 
-            CultureInfo.CurrentCulture = new CultureInfo("ja-JP");
-            var japaneseResult = MoneyInfo.CurrentMoney.CurrencyFormat.CurrencyCode;
+        // act
+        var testResult = MoneyInfo.CurrentMoney;
 
-            // assert
-            newZealandResult.Should().Be(nameof(Iso4217CurrencyCurrent.NZD));
-            japaneseResult.Should().Be(nameof(Iso4217CurrencyCurrent.JPY), "the information must track a change of culture");
-        }
-        finally
-        {
-            CultureInfo.CurrentCulture = originalCulture;
-        }
+        // assert
+        testResult.CurrencyFormat.CurrencyCode.Should().Be(nameof(Iso4217CurrencyCurrent.JPY), "the information must track a change of culture");
     }
 
     [Fact]
     public void CurrentMoney_WhenRead_DoesNotThrow()
     {
+        // arrange
+        using var cultureScope = new CurrentCultureScope(new CultureInfo(NewZealandCulture));
+
         // act
-        var testAction = () => MoneyInfo.CurrentMoney;
+        Action testAction = () => _ = MoneyInfo.CurrentMoney;
 
         // assert
         testAction.Should().NotThrow("the current information is derived from the current culture");

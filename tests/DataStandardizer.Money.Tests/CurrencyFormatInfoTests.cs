@@ -5,10 +5,13 @@ namespace DataStandardizer.Money.Tests;
 
 public class CurrencyFormatInfoTests
 {
+    private const string NewZealandCulture = "en-NZ";
+    private const string GermanCulture = "de-DE";
+
     #region Test: InvariantInfo
 
     [Fact]
-    public void InvariantInfo_ReturnsCultureIndependentInformation()
+    public void InvariantInfo_WhenRead_ReturnsCultureIndependentInformation()
     {
         // act
         var testResult = CurrencyFormatInfo.InvariantInfo;
@@ -26,7 +29,7 @@ public class CurrencyFormatInfoTests
     public void InvariantInfo_WhenModified_ThrowsInvalidOperationException()
     {
         // act
-        var testAction = () => CurrencyFormatInfo.InvariantInfo.CurrencyCode = nameof(Iso4217CurrencyCurrent.NZD);
+        Action testAction = () => CurrencyFormatInfo.InvariantInfo.CurrencyCode = nameof(Iso4217CurrencyCurrent.NZD);
 
         // assert
         testAction.Should().Throw<InvalidOperationException>("the instance is read only");
@@ -37,8 +40,8 @@ public class CurrencyFormatInfoTests
     #region Test: CreateForCulture
 
     [Theory]
-    [InlineData("en-NZ", nameof(Iso4217CurrencyCurrent.NZD), ".", ",")]
-    [InlineData("de-DE", nameof(Iso4217CurrencyCurrent.EUR), ",", ".")]
+    [InlineData(NewZealandCulture, nameof(Iso4217CurrencyCurrent.NZD), ".", ",")]
+    [InlineData(GermanCulture, nameof(Iso4217CurrencyCurrent.EUR), ",", ".")]
     [InlineData("pt-BR", nameof(Iso4217CurrencyCurrent.BRL), ",", ".")]
     [InlineData("ja-JP", nameof(Iso4217CurrencyCurrent.JPY), ".", ",")]
     public void CreateForCulture_ForCultureWithResources_ReturnsInformationForThatCulture(string testCulture, string expectedCurrencyCode, string expectedDecimalSeparator, string expectedGroupSeparator)
@@ -69,7 +72,7 @@ public class CurrencyFormatInfoTests
         var testResult = CurrencyFormatInfo.CreateForCulture(new CultureInfo("ru-RU"));
 
         // assert
-        testResult.CurrencyGroupSeparator.Should().Be(" ", "the group separator is a no-break space");
+        testResult.CurrencyGroupSeparator.Should().Be("\x00A0", "the group separator is a no-break space");
     }
 
     [Fact]
@@ -93,10 +96,10 @@ public class CurrencyFormatInfoTests
     }
 
     [Fact]
-    public void CreateForCulture_ReturnsAWritableInstance()
+    public void CreateForCulture_ForCultureWithResources_ReturnsAWritableInstance()
     {
         // act
-        var testResult = CurrencyFormatInfo.CreateForCulture(new CultureInfo("en-NZ"));
+        var testResult = CurrencyFormatInfo.CreateForCulture(new CultureInfo(NewZealandCulture));
 
         // assert
         testResult.IsReadOnly.Should().BeFalse("sealing the instance is the responsibility of whatever takes ownership of it");
@@ -107,32 +110,26 @@ public class CurrencyFormatInfoTests
     #region Test: CurrentInfo
 
     [Fact]
-    public void CurrentInfo_WhenCurrentCultureChanges_ReflectsTheNewCulture()
+    public void CurrentInfo_AfterCurrentCultureChanges_ReflectsTheNewCulture()
     {
         // arrange
-        var originalCulture = CultureInfo.CurrentCulture;
-        try
-        {
-            // act
-            CultureInfo.CurrentCulture = new CultureInfo("en-NZ");
-            var newZealandResult = CurrencyFormatInfo.CurrentInfo.CurrencyCode;
+        using var newZealandCultureScope = new CurrentCultureScope(new CultureInfo(NewZealandCulture));
+        _ = CurrencyFormatInfo.CurrentInfo; // the information for the first culture is cached here
+        using var germanCultureScope = new CurrentCultureScope(new CultureInfo(GermanCulture));
 
-            CultureInfo.CurrentCulture = new CultureInfo("de-DE");
-            var germanResult = CurrencyFormatInfo.CurrentInfo.CurrencyCode;
+        // act
+        var testResult = CurrencyFormatInfo.CurrentInfo;
 
-            // assert
-            newZealandResult.Should().Be(nameof(Iso4217CurrencyCurrent.NZD));
-            germanResult.Should().Be(nameof(Iso4217CurrencyCurrent.EUR), "the information must track a change of culture");
-        }
-        finally
-        {
-            CultureInfo.CurrentCulture = originalCulture;
-        }
+        // assert
+        testResult.CurrencyCode.Should().Be(nameof(Iso4217CurrencyCurrent.EUR), "the information must track a change of culture");
     }
 
     [Fact]
-    public void CurrentInfo_ReturnsAReadOnlyInstance()
+    public void CurrentInfo_WhenRead_ReturnsAReadOnlyInstance()
     {
+        // arrange
+        using var cultureScope = new CurrentCultureScope(new CultureInfo(NewZealandCulture));
+
         // act
         var testResult = CurrencyFormatInfo.CurrentInfo;
 
