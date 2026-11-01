@@ -483,8 +483,16 @@ namespace DataStandardizer.Communication.Mime
             }
             else if (MimeCharset.TryParse(charsetName, out charset) && charsetResolver.TryGetEncoding(charset, out encoding))
             {
-                value = encoding.GetString(bytes, 0, byteCount);
-                return true;
+                try
+                {
+                    value = encoding.GetString(bytes, 0, byteCount);
+                    return true;
+                }
+                catch (DecoderFallbackException)
+                {
+                    // The encoding rejects octets that are not valid in the character set, so the value is not valid.
+                    return false;
+                }
             }
 
             if ((options & MimeMediaTypeParseOptions.AllowUnknownCharsets) == 0) return false;

@@ -700,8 +700,10 @@ namespace DataStandardizer.Communication.Mime
                 }
                 else
                 {
+                    // ref. RFC 2231 §7: a regular value is a token, which can't be empty, but extended-other-values := *(ext-octet /
+                    // attribute-char) can be. An extended-initial-value without its quotes is rejected when the sections are joined.
                     var token = ReadToken(value, ref position);
-                    if (token.IsEmpty) return false;
+                    if (token.IsEmpty && !rawParameter.IsExtended) return false;
 
                     parameterValue = token.ToString();
                 }

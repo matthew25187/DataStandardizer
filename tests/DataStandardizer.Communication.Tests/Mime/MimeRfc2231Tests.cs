@@ -41,6 +41,9 @@ namespace DataStandardizer.Communication.Tests.Mime
         private const string EAcute = "\xE9";
         private const string Euro = "\x20AC";
 
+        // An octet that is not valid UTF-8 (RFC 3629 §3: 0xFF never appears), in a character set that only a test resolver knows.
+        private const string InvalidUtf8MediaType = "text/plain;a*=x-test''%FF";
+
         // The euro sign in UTF-8, in a character set that the default resolver doesn't know.
         private const string UnknownCharsetMediaType = "text/plain;a*=x-test''%E2%82%AC";
 
@@ -177,6 +180,46 @@ namespace DataStandardizer.Communication.Tests.Mime
             result.Parameters[1].Name.Should().Be("a");
             result.Parameters[1].Value.Should().Be("abcdefghijkl");
             result.Parameters[2].Name.Should().Be("y");
+        }
+
+        [Theory]
+        // ref. RFC 2231 §7: extended-other-values := *(ext-octet / attribute-char)
+        [InlineData("text/plain;a*0*=UTF-8''abc;a*1*=", "abc")]
+        [InlineData("text/plain;a*0*=UTF-8'';a*1*=abc", "abc")]
+        public void Parse_EmptyExtendedSection_JoinsSections(string value, string expected)
+        {
+            // act
+            var result = MimeMediaType.Parse(value);
+
+            // assert
+            result.Parameters[0].Value.Should().Be(expected);
+        }
+
+        [Theory]
+        // ref. RFC 2231 §7: extended-initial-value := [charset] "'" [language] "'" extended-other-values, and a regular value is a token.
+        [InlineData("text/plain;a*=")]
+        [InlineData("text/plain;a*0*=;a*1*=abc")]
+        [InlineData("text/plain;a*0=abc;a*1=")]
+        public void TryParse_EmptyValueThatMustNotBeEmpty_ReturnsFalse(string value)
+        {
+            // act
+            var parsed = MimeMediaType.TryParse(value, out _);
+
+            // assert
+            parsed.Should().BeFalse();
+        }
+
+        [Fact]
+        public void TryParse_OctetsThatTheEncodingRejects_ReturnsFalse()
+        {
+            // arrange
+            var resolver = new MimeCharsetResolver(new ThrowingUtf8CharsetResolver());
+
+            // act
+            var parsed = MimeMediaType.TryParse(InvalidUtf8MediaType, MimeMediaTypeParseOptions.None, resolver, out _);
+
+            // assert
+            parsed.Should().BeFalse();
         }
 
         [Fact]
@@ -1012,6 +1055,16 @@ namespace DataStandardizer.Communication.Tests.Mime
             }
 
             return data;
+        }
+
+        // Resolves every character set as UTF-8 that throws on bytes that are not valid UTF-8.
+        private sealed class ThrowingUtf8CharsetResolver : IMimeCharsetResolver
+        {
+            public bool TryGetEncoding(MimeCharset charset, out Encoding encoding)
+            {
+                encoding = new UTF8Encoding(false, true);
+                return true;
+            }
         }
 
         // Resolves every character set as UTF-8.
