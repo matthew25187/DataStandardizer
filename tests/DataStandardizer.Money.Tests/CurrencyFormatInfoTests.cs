@@ -114,14 +114,15 @@ public class CurrencyFormatInfoTests
     {
         // arrange
         using var newZealandCultureScope = new CurrentCultureScope(new CultureInfo(NewZealandCulture));
-        _ = CurrencyFormatInfo.CurrentInfo; // the information for the first culture is cached here
-        using var germanCultureScope = new CurrentCultureScope(new CultureInfo(GermanCulture));
 
         // act
-        var testResult = CurrencyFormatInfo.CurrentInfo;
+        var newZealandResult = CurrencyFormatInfo.CurrentInfo;
+        using var germanCultureScope = new CurrentCultureScope(new CultureInfo(GermanCulture));
+        var germanResult = CurrencyFormatInfo.CurrentInfo;
 
         // assert
-        testResult.CurrencyCode.Should().Be(nameof(Iso4217CurrencyCurrent.EUR), "the information must track a change of culture");
+        newZealandResult.CurrencyCode.Should().Be(nameof(Iso4217CurrencyCurrent.NZD), "the information reflects the culture in effect when it is read");
+        germanResult.CurrencyCode.Should().Be(nameof(Iso4217CurrencyCurrent.EUR), "the information must track a change of culture");
     }
 
     [Fact]

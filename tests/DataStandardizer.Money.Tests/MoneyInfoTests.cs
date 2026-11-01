@@ -136,14 +136,15 @@ public class MoneyInfoTests
     {
         // arrange
         using var newZealandCultureScope = new CurrentCultureScope(new CultureInfo(NewZealandCulture));
-        _ = MoneyInfo.CurrentMoney; // the information for the first culture is cached here
-        using var japaneseCultureScope = new CurrentCultureScope(new CultureInfo("ja-JP"));
 
         // act
-        var testResult = MoneyInfo.CurrentMoney;
+        var newZealandResult = MoneyInfo.CurrentMoney;
+        using var japaneseCultureScope = new CurrentCultureScope(new CultureInfo("ja-JP"));
+        var japaneseResult = MoneyInfo.CurrentMoney;
 
         // assert
-        testResult.CurrencyFormat.CurrencyCode.Should().Be(nameof(Iso4217CurrencyCurrent.JPY), "the information must track a change of culture");
+        newZealandResult.CurrencyFormat.CurrencyCode.Should().Be(nameof(Iso4217CurrencyCurrent.NZD), "the information reflects the culture in effect when it is read");
+        japaneseResult.CurrencyFormat.CurrencyCode.Should().Be(nameof(Iso4217CurrencyCurrent.JPY), "the information must track a change of culture");
     }
 
     [Fact]
