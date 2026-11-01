@@ -15,6 +15,10 @@ namespace DataStandardizer.Communication.Mime
     /// <c>Encoding.GetEncoding("utf-16")</c> and <c>Encoding.GetEncoding("utf-32")</c> are little-endian, and don't look for a byte order
     /// mark, so they can't be used for these character sets.
     /// </para>
+    /// <para>
+    /// Invalid bytes are read as U+FFFD, and unpaired surrogates are written as U+FFFD, unless a clone is given other fallbacks. The
+    /// netstandard1.1 build has no fallbacks to change.
+    /// </para>
     /// </remarks>
     internal sealed class MimeUnicodeSchemeEncoding : Encoding
     {
@@ -33,6 +37,10 @@ namespace DataStandardizer.Communication.Mime
 
         private static readonly byte[] NoPreamble = new byte[0];
 
+#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP
+        private const string ReplacementString = "�";
+#endif
+
         private readonly string _webName;
         private readonly string _encodingName;
         private readonly byte[] _bigEndianMark;
@@ -40,6 +48,10 @@ namespace DataStandardizer.Communication.Mime
 
         private MimeUnicodeSchemeEncoding(string webName, string encodingName, Encoding bigEndian, Encoding littleEndian, byte[] bigEndianMark,
             byte[] littleEndianMark)
+#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP
+            // The fallbacks of the inner encodings, so that they are replaced only when a caller changes the fallbacks of a clone.
+            : base(0, new EncoderReplacementFallback(ReplacementString), new DecoderReplacementFallback(ReplacementString))
+#endif
         {
             _webName = webName;
             _encodingName = encodingName;
@@ -74,12 +86,12 @@ namespace DataStandardizer.Communication.Mime
 
         public override int GetByteCount(char[] chars, int index, int count)
         {
-            return BigEndian.GetByteCount(chars, index, count);
+            return WithFallbacks(BigEndian).GetByteCount(chars, index, count);
         }
 
         public override int GetBytes(char[] chars, int charIndex, int charCount, byte[] bytes, int byteIndex)
         {
-            return BigEndian.GetBytes(chars, charIndex, charCount, bytes, byteIndex);
+            return WithFallbacks(BigEndian).GetBytes(chars, charIndex, charCount, bytes, byteIndex);
         }
 
         public override int GetCharCount(byte[] bytes, int index, int count)
@@ -112,7 +124,7 @@ namespace DataStandardizer.Communication.Mime
 
         public override Encoder GetEncoder()
         {
-            return BigEndian.GetEncoder();
+            return WithFallbacks(BigEndian).GetEncoder();
         }
 
         public override Decoder GetDecoder()
@@ -145,11 +157,28 @@ namespace DataStandardizer.Communication.Mime
         private Encoding SelectEncoding(byte[] bytes, int index, int count, out int markLength)
         {
             markLength = MarkLength;
-            if (StartsWith(bytes, index, count, _littleEndianMark)) return LittleEndian;
-            if (StartsWith(bytes, index, count, _bigEndianMark)) return BigEndian;
+            if (StartsWith(bytes, index, count, _littleEndianMark)) return WithFallbacks(LittleEndian);
+            if (StartsWith(bytes, index, count, _bigEndianMark)) return WithFallbacks(BigEndian);
 
             markLength = 0;
-            return BigEndian;
+            return WithFallbacks(BigEndian);
+        }
+
+        /// <summary>
+        /// Get an inner encoding with the fallbacks of this encoding, which a caller may have changed on a clone.
+        /// </summary>
+        private Encoding WithFallbacks(Encoding inner)
+        {
+#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP
+            if (inner.EncoderFallback.Equals(EncoderFallback) && inner.DecoderFallback.Equals(DecoderFallback)) return inner;
+
+            var clone = (Encoding)inner.Clone();
+            clone.EncoderFallback = EncoderFallback;
+            clone.DecoderFallback = DecoderFallback;
+            return clone;
+#else
+            return inner;
+#endif
         }
 
         private static bool StartsWith(byte[] bytes, int index, int count, byte[] prefix)

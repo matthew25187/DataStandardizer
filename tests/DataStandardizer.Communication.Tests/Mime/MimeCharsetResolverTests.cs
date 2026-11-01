@@ -215,6 +215,65 @@ namespace DataStandardizer.Communication.Tests.Mime
             fallback.Requested.Should().BeEmpty();
         }
 
+        // Bytes that are not valid in an unmarked Unicode scheme, which is read as big-endian.
+        public static TheoryData<string, byte[]> InvalidSchemeBytes => new TheoryData<string, byte[]>
+        {
+            // ref. RFC 2781 §2.2: 0xD800 is a high surrogate, which must be followed by a low surrogate.
+            { "UTF-16", new byte[] { 0xD8, 0x00 } },
+            // ref. The Unicode Standard §3.9, D76: 0x00110000 is above U+10FFFF, so it is not a Unicode scalar value.
+            { "UTF-32", new byte[] { 0x00, 0x11, 0x00, 0x00 } },
+        };
+
+        [Theory]
+        [MemberData(nameof(InvalidSchemeBytes))]
+        public void GetString_UnmarkedSchemeWithExceptionFallback_ThrowsDecoderFallbackException(string name, byte[] bytes)
+        {
+            // arrange
+            var encoding = (Encoding)Resolve(name).Clone();
+            encoding.DecoderFallback = DecoderFallback.ExceptionFallback;
+
+            // act
+            Action testAction = () => encoding.GetString(bytes);
+
+            // assert
+            testAction.Should().Throw<DecoderFallbackException>();
+        }
+
+        [Theory]
+        [MemberData(nameof(InvalidSchemeBytes))]
+        public void GetDecoder_UnmarkedSchemeWithExceptionFallback_ThrowsDecoderFallbackException(string name, byte[] bytes)
+        {
+            // arrange
+            var encoding = (Encoding)Resolve(name).Clone();
+            encoding.DecoderFallback = DecoderFallback.ExceptionFallback;
+            var decoder = encoding.GetDecoder();
+
+            // act
+            Action testAction = () => decoder.GetChars(bytes, 0, bytes.Length, new char[bytes.Length], 0, true);
+
+            // assert
+            testAction.Should().Throw<DecoderFallbackException>();
+        }
+
+        // ref. RFC 2781 §2.1: an unpaired surrogate can't be written in UTF-16, and has no Unicode scalar value to write in UTF-32.
+        private const string UnpairedHighSurrogate = "\xD800";
+
+        [Theory]
+        [InlineData("UTF-16")]
+        [InlineData("UTF-32")]
+        public void GetBytes_UnmarkedSchemeWithExceptionFallback_ThrowsEncoderFallbackException(string name)
+        {
+            // arrange
+            var encoding = (Encoding)Resolve(name).Clone();
+            encoding.EncoderFallback = EncoderFallback.ExceptionFallback;
+
+            // act
+            Action testAction = () => encoding.GetBytes(UnpairedHighSurrogate);
+
+            // assert
+            testAction.Should().Throw<EncoderFallbackException>();
+        }
+
         [Fact]
         public void TryGetEncoding_UninitializedCharset_ThrowsArgumentException()
         {
