@@ -352,14 +352,8 @@ namespace DataStandardizer.File.iCal.Tests
         [Fact]
         public void EnumerateTextList_XmlForm_IsOneItem()
         {
-            // arrange
-            var testResult = new List<string>();
-
             // act
-            foreach (var item in IcalValue.EnumerateTextList("a,b\\,c".AsSpan(), IcalValueFormat.Xml))
-            {
-                testResult.Add(item.ToString());
-            }
+            var testResult = IcalTestData.TextListItems("a,b\\,c", IcalValueFormat.Xml);
 
             // assert
             testResult.Should().Equal("a,b\\,c");

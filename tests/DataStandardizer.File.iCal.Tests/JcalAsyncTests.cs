@@ -36,6 +36,9 @@ namespace DataStandardizer.File.iCal.Tests
         private static readonly string Example1ThenExample2WithPeriodArray = "[" + Example1Jcal + "," + Example2JcalWithPeriodArray + "]";
         private static readonly string Example1ThenExample2Ical = Example1Ical + Example2Ical;
 
+        // A document of RFC 7265 Appendix B.1 twice.
+        private static readonly string Example1Twice = "[" + Example1Jcal + "," + Example1Jcal + "]";
+
         // A document of one calendar.
         private const int OneCalendar = 1;
 
@@ -181,8 +184,7 @@ namespace DataStandardizer.File.iCal.Tests
         public async Task ReadCalendarAsync_BufferedData_CompletesSynchronously()
         {
             // arrange
-            var json = "[" + Example1Jcal + "," + Example1Jcal + "]";
-            var reader = new JcalReader(new AsyncOnlyStream(Utf8(json)));
+            var reader = new JcalReader(new AsyncOnlyStream(Utf8(Example1Twice)));
             await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 await reader.ReadCalendarAsync();

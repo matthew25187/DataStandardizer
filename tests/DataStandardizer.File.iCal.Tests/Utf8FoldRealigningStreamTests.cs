@@ -13,6 +13,9 @@ namespace DataStandardizer.File.iCal.Tests
         // Content lines with folds before and inside multi-octet characters: the euro sign, a grinning face and e-acute.
         private const string FoldedUtf8Text = "SUMMARY:a\r\n b \x20AC\r\n\t\xD83D\xDE00 \xE9\r\nX:\n y\r\n";
 
+        // A UTF-16 byte order mark and U+0DE2 U+200A U+0D82, which in UTF-16 is E2 0D 0A 20 82 0D.
+        private static readonly byte[] WideByteOrderMarkInput = Encoding.Unicode.GetPreamble().Concat(Encoding.Unicode.GetBytes("\x0DE2\x200A\x0D82")).ToArray();
+
         public static TheoryData<int> BufferSizeData()
         {
             return new TheoryData<int>(1, 2, 3, 4, 5, 6, 7, 16 * 1024);
@@ -136,7 +139,7 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             // In UTF-16, U+0DE2 U+200A is E2 0D 0A 20, which would otherwise look like a fold inside a UTF-8 sequence.
-            var input = Encoding.Unicode.GetPreamble().Concat(Encoding.Unicode.GetBytes("෢ ං")).ToArray();
+            var input = WideByteOrderMarkInput;
 
             // act
             var testResult = ReadThrough(input, bufferSize);
@@ -188,6 +191,31 @@ namespace DataStandardizer.File.iCal.Tests
             inner.CanRead.Should().BeFalse();
         }
 
+        // Inputs of the synchronous tests, each with what the stream gives for it, and each buffer size and overload it is read with.
+        public static TheoryData<byte[], byte[], int, bool> AsyncCases()
+        {
+            var cases = new[]
+            {
+                (Encoding.UTF8.GetBytes(FoldedUtf8Text), Encoding.UTF8.GetBytes(FoldedUtf8Text)),
+                (new byte[] { 0x41, 0xE2, 0x0D, 0x0A, 0x20, 0x82, 0xAC, 0x42 }, new byte[] { 0x41, 0xE2, 0x82, 0xAC, 0x0D, 0x0A, 0x20, 0x42 }),
+                (new byte[] { 0xF0, 0x0D, 0x0A, 0x20, 0x9F, 0x0A, 0x09, 0x98, 0x0D, 0x0A, 0x09, 0x80, 0x41 },
+                    new byte[] { 0xF0, 0x9F, 0x98, 0x80, 0x0D, 0x0A, 0x20, 0x0A, 0x09, 0x0D, 0x0A, 0x09, 0x41 }),
+                (new byte[] { 0xE2, 0x82, 0x0D }, new byte[] { 0xE2, 0x82, 0x0D }),
+                (new byte[] { 0xFF, 0xFE, 0x41, 0x00, 0x0D, 0x00 }, new byte[] { 0xFF, 0xFE, 0x41, 0x00, 0x0D, 0x00 }),
+                (new byte[0], new byte[0]),
+            };
+            var data = new TheoryData<byte[], byte[], int, bool>();
+            foreach (var (input, expected) in cases)
+            {
+                foreach (var row in AsyncBufferSizeData())
+                {
+                    data.Add(input, expected, (int)row[0], (bool)row[1]);
+                }
+            }
+
+            return data;
+        }
+
         public static TheoryData<int, bool> AsyncBufferSizeData()
         {
             var data = new TheoryData<int, bool>();
@@ -203,28 +231,14 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Theory]
-        [MemberData(nameof(AsyncBufferSizeData))]
-        public async Task ReadAsync_AsyncOnlyInnerStream_MatchesRead(int bufferSize, bool useMemoryOverload)
+        [MemberData(nameof(AsyncCases))]
+        public async Task ReadAsync_AsyncOnlyInnerStream_RealignsFolds(byte[] input, byte[] expected, int bufferSize, bool useMemoryOverload)
         {
-            // arrange
-            byte[][] inputs =
-            {
-                Encoding.UTF8.GetBytes(FoldedUtf8Text),
-                new byte[] { 0x41, 0xE2, 0x0D, 0x0A, 0x20, 0x82, 0xAC, 0x42 },
-                new byte[] { 0xF0, 0x0D, 0x0A, 0x20, 0x9F, 0x0A, 0x09, 0x98, 0x0D, 0x0A, 0x09, 0x80, 0x41 },
-                new byte[] { 0xE2, 0x82, 0x0D },
-                new byte[] { 0xFF, 0xFE, 0x41, 0x00, 0x0D, 0x00 },
-                new byte[0]
-            };
+            // act
+            var testResult = await ReadThroughAsync(input, bufferSize, useMemoryOverload);
 
-            foreach (var input in inputs)
-            {
-                // act
-                var testResult = await ReadThroughAsync(input, bufferSize, useMemoryOverload);
-
-                // assert
-                testResult.Should().Equal(ReadThrough(input, bufferSize));
-            }
+            // assert
+            testResult.Should().Equal(expected);
         }
 
         [Fact]

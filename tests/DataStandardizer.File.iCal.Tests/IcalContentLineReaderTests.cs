@@ -34,6 +34,11 @@ namespace DataStandardizer.File.iCal.Tests
 
         // Text with a letter, a symbol inside the Basic Multilingual Plane and an emoji outside it: "Caf\xE9", a hot beverage and a grinning face.
         private const string NonAsciiText = "Caf\xE9 \x2615 \xD83D\xDE00";
+        private const string NonAsciiSummaryLine = "SUMMARY:" + NonAsciiText;
+
+        // A DESCRIPTION of a million characters.
+        private static readonly string MillionXs = new string('x', 1_000_000);
+        private static readonly string MillionXsDescription = "DESCRIPTION:" + MillionXs;
 
         // A content line read after U+FEFF ZERO WIDTH NO-BREAK SPACE, which is the byte order mark as a character.
         private const string ByteOrderMarkThenBegin = "\xFEFFBEGIN:VCALENDAR\r\n";
@@ -137,7 +142,7 @@ namespace DataStandardizer.File.iCal.Tests
         public void ReadLine_NonAsciiValue_ReturnsValue()
         {
             // arrange
-            using (var reader = CreateReader(Crlf("SUMMARY:" + NonAsciiText)))
+            using (var reader = CreateReader(Crlf(NonAsciiSummaryLine)))
             {
                 // act
                 var testResult = reader.ReadLine();
@@ -457,20 +462,20 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Theory]
-        [InlineData("^n", "\n")]
-        [InlineData("^'", "\"")]
-        [InlineData("^^", "^")]
-        [InlineData("a^nb^'c^^d", "a\nb\"c^d")]
-        [InlineData("^x", "^x")]
-        [InlineData("^N", "^N")]
-        [InlineData("a^", "a^")]
-        [InlineData("^^n", "^n")]
-        [InlineData("^^^n", "^\n")]
-        [InlineData("no carets", "no carets")]
-        public void ReadLine_CaretEncodedParameterValue_IsDecoded(string rawValue, string expectedValue)
+        [InlineData("X-TEST;X-P=\"^n\";X-Q=^n:v", "\n")]
+        [InlineData("X-TEST;X-P=\"^'\";X-Q=^':v", "\"")]
+        [InlineData("X-TEST;X-P=\"^^\";X-Q=^^:v", "^")]
+        [InlineData("X-TEST;X-P=\"a^nb^'c^^d\";X-Q=a^nb^'c^^d:v", "a\nb\"c^d")]
+        [InlineData("X-TEST;X-P=\"^x\";X-Q=^x:v", "^x")]
+        [InlineData("X-TEST;X-P=\"^N\";X-Q=^N:v", "^N")]
+        [InlineData("X-TEST;X-P=\"a^\";X-Q=a^:v", "a^")]
+        [InlineData("X-TEST;X-P=\"^^n\";X-Q=^^n:v", "^n")]
+        [InlineData("X-TEST;X-P=\"^^^n\";X-Q=^^^n:v", "^\n")]
+        [InlineData("X-TEST;X-P=\"no carets\";X-Q=no carets:v", "no carets")]
+        public void ReadLine_CaretEncodedParameterValue_IsDecoded(string line, string expectedValue)
         {
             // arrange
-            using (var reader = CreateReader(Crlf($"X-TEST;X-P=\"{rawValue}\";X-Q={rawValue}:v")))
+            using (var reader = CreateReader(Crlf(line)))
             {
                 // act
                 var testResult = reader.ReadLine();
@@ -1203,14 +1208,13 @@ namespace DataStandardizer.File.iCal.Tests
         public void ReadLine_NoMaxLineLength_ReadsVeryLongLine()
         {
             // arrange: a value of a million characters, read through a small buffer.
-            var value = new string('x', 1_000_000);
-            using (var reader = CreateReader(Crlf("DESCRIPTION:" + value), bufferSize: 64))
+            using (var reader = CreateReader(Crlf(MillionXsDescription), bufferSize: 64))
             {
                 // act
                 var testResult = reader.ReadLine();
 
                 // assert
-                testResult.Value.Should().Be(value);
+                testResult.Value.Should().Be(MillionXs);
             }
         }
 

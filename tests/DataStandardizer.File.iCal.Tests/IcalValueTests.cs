@@ -228,14 +228,8 @@ namespace DataStandardizer.File.iCal.Tests
         [InlineData("a,,b,", new[] { "a", "", "b", "" })]
         public void EnumerateTextList_Value_SplitsOnUnescapedCommas(string value, string[] expected)
         {
-            // arrange
-            var testResult = new List<string>();
-
             // act
-            foreach (var item in IcalValue.EnumerateTextList(value.AsSpan(), IcalValueFormat.Text))
-            {
-                testResult.Add(item.ToString());
-            }
+            var testResult = IcalTestData.TextListItems(value, IcalValueFormat.Text);
 
             // assert
             testResult.Should().Equal(expected);

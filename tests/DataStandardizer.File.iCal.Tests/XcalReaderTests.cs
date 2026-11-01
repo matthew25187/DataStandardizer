@@ -20,6 +20,10 @@ namespace DataStandardizer.File.iCal.Tests
         private const string VcalendarStart = "<vcalendar>";
 
         private const string CafeSummary = "<summary><text>Caf\xE9</text></summary>";
+
+        // A journal document with CafeSummary that declares UTF-8, and one with a document type definition that declares an entity.
+        private static readonly string CafeDocumentDeclaringUtf8 = "<?xml version=\"1.0\" encoding=\"utf-8\"?>" + JournalDocument(CafeSummary);
+        private static readonly string DocumentWithEntity = "<!DOCTYPE icalendar [<!ENTITY e \"x\">]>" + JournalDocument("<summary><text>&e;</text></summary>");
         private const string Cafe = "Caf\xE9";
         private const string ValueParameter = "VALUE";
         private const string ExampleNotValidDateTime = "2026-02-30T00:00:00";
@@ -160,29 +164,29 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Theory]
-        [InlineData("<binary>SGVs\n bG8=</binary>", "X-PROPERTY;VALUE=BINARY;ENCODING=BASE64:SGVsbG8=")]
-        [InlineData("<boolean>true</boolean>", "X-PROPERTY;VALUE=BOOLEAN:TRUE")]
-        [InlineData("<boolean>0</boolean>", "X-PROPERTY;VALUE=BOOLEAN:FALSE")]
-        [InlineData("<cal-address>mailto:a@example.com</cal-address>", "X-PROPERTY;VALUE=CAL-ADDRESS:mailto:a@example.com")]
-        [InlineData("<date>2011-05-17</date>", "X-PROPERTY;VALUE=DATE:20110517")]
-        [InlineData("<date-time>2011-05-17T12:00:00Z</date-time>", "X-PROPERTY;VALUE=DATE-TIME:20110517T120000Z")]
-        [InlineData("<duration>-P1DT2H</duration>", "X-PROPERTY;VALUE=DURATION:-P1DT2H")]
-        [InlineData("<float>1.50</float>", "X-PROPERTY;VALUE=FLOAT:1.50")]
-        [InlineData("<float> 1.5E2 </float>", "X-PROPERTY;VALUE=FLOAT:150")]
-        [InlineData("<integer>-100</integer>", "X-PROPERTY;VALUE=INTEGER:-100")]
-        [InlineData("<period><start>2011-05-17T12:00:00Z</start><end>2011-05-17T13:00:00Z</end></period>",
+        [InlineData("<x-property><binary>SGVs\n bG8=</binary></x-property>", "X-PROPERTY;VALUE=BINARY;ENCODING=BASE64:SGVsbG8=")]
+        [InlineData("<x-property><boolean>true</boolean></x-property>", "X-PROPERTY;VALUE=BOOLEAN:TRUE")]
+        [InlineData("<x-property><boolean>0</boolean></x-property>", "X-PROPERTY;VALUE=BOOLEAN:FALSE")]
+        [InlineData("<x-property><cal-address>mailto:a@example.com</cal-address></x-property>", "X-PROPERTY;VALUE=CAL-ADDRESS:mailto:a@example.com")]
+        [InlineData("<x-property><date>2011-05-17</date></x-property>", "X-PROPERTY;VALUE=DATE:20110517")]
+        [InlineData("<x-property><date-time>2011-05-17T12:00:00Z</date-time></x-property>", "X-PROPERTY;VALUE=DATE-TIME:20110517T120000Z")]
+        [InlineData("<x-property><duration>-P1DT2H</duration></x-property>", "X-PROPERTY;VALUE=DURATION:-P1DT2H")]
+        [InlineData("<x-property><float>1.50</float></x-property>", "X-PROPERTY;VALUE=FLOAT:1.50")]
+        [InlineData("<x-property><float> 1.5E2 </float></x-property>", "X-PROPERTY;VALUE=FLOAT:150")]
+        [InlineData("<x-property><integer>-100</integer></x-property>", "X-PROPERTY;VALUE=INTEGER:-100")]
+        [InlineData("<x-property><period><start>2011-05-17T12:00:00Z</start><end>2011-05-17T13:00:00Z</end></period></x-property>",
             "X-PROPERTY;VALUE=PERIOD:20110517T120000Z/20110517T130000Z")]
-        [InlineData("<recur><freq>WEEKLY</freq><until>2011-05-17</until><byday>MO</byday><byday>-1FR</byday><wkst>SU</wkst></recur>",
+        [InlineData("<x-property><recur><freq>WEEKLY</freq><until>2011-05-17</until><byday>MO</byday><byday>-1FR</byday><wkst>SU</wkst></recur></x-property>",
             "X-PROPERTY;VALUE=RECUR:FREQ=WEEKLY;UNTIL=20110517;BYDAY=MO,-1FR;WKST=SU")]
-        [InlineData("<text>a,b;c\\d\ne</text>", "X-PROPERTY;VALUE=TEXT:a\\,b\\;c\\\\d\\ne")]
-        [InlineData("<time>12:00:00Z</time>", "X-PROPERTY;VALUE=TIME:120000Z")]
-        [InlineData("<uri>http://example.com/</uri>", "X-PROPERTY;VALUE=URI:http://example.com/")]
-        [InlineData("<utc-offset>+01:30:45</utc-offset>", "X-PROPERTY;VALUE=UTC-OFFSET:+013045")]
-        [InlineData("<unknown>20110512T120000Z</unknown>", "X-PROPERTY:20110512T120000Z")]
-        public void ReadCalendar_ValueElement_ConvertsToTextForm(string value, string expected)
+        [InlineData("<x-property><text>a,b;c\\d\ne</text></x-property>", "X-PROPERTY;VALUE=TEXT:a\\,b\\;c\\\\d\\ne")]
+        [InlineData("<x-property><time>12:00:00Z</time></x-property>", "X-PROPERTY;VALUE=TIME:120000Z")]
+        [InlineData("<x-property><uri>http://example.com/</uri></x-property>", "X-PROPERTY;VALUE=URI:http://example.com/")]
+        [InlineData("<x-property><utc-offset>+01:30:45</utc-offset></x-property>", "X-PROPERTY;VALUE=UTC-OFFSET:+013045")]
+        [InlineData("<x-property><unknown>20110512T120000Z</unknown></x-property>", "X-PROPERTY:20110512T120000Z")]
+        public void ReadCalendar_ValueElement_ConvertsToTextForm(string property, string expected)
         {
             // arrange
-            var xml = JournalDocument("<x-property>" + value + "</x-property>");
+            var xml = JournalDocument(property);
 
             // act
             var testResult = FormatLine(JournalProperty(ReadXcal(xml).Single()));
@@ -466,8 +470,8 @@ namespace DataStandardizer.File.iCal.Tests
         public void ReadCalendar_EncodingOption_OverridesDeclaration()
         {
             // arrange
-            var xml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>" + JournalDocument(CafeSummary);
-            using (var reader = new XcalReader(new MemoryStream(IcalTestData.Latin1.GetBytes(xml)), new IcalOptions { Encoding = IcalTestData.Latin1 }))
+            using (var reader = new XcalReader(new MemoryStream(IcalTestData.Latin1.GetBytes(CafeDocumentDeclaringUtf8)),
+                new IcalOptions { Encoding = IcalTestData.Latin1 }))
             {
                 // act
                 var testResult = reader.ReadCalendar();
@@ -531,8 +535,7 @@ namespace DataStandardizer.File.iCal.Tests
         public void ReadCalendar_DocumentTypeDefinition_IsRejected()
         {
             // arrange
-            var xml = "<!DOCTYPE icalendar [<!ENTITY e \"x\">]>" + JournalDocument("<summary><text>&e;</text></summary>");
-            using (var reader = new XcalReader(new StringReader(xml)))
+            using (var reader = new XcalReader(new StringReader(DocumentWithEntity)))
             {
                 // act
                 Action testAction = () => reader.ReadCalendar();

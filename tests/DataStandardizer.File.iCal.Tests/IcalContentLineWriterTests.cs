@@ -20,6 +20,54 @@ namespace DataStandardizer.File.iCal.Tests
         private const string LineAThenLineC = "A:1\r\nC:3\r\n";
 
         // A line whose parameters are quoted, caret-encoded and plain as they would not be written from the model.
+        // ref. RFC 5545 §3.1: lines of exactly 75 octets, one octet more, and longer, as the writer folds them.
+        private static readonly string SixtyThreeAs = new string('a', 63);
+        private static readonly string DescriptionOfSixtyThreeAs = "DESCRIPTION:" + SixtyThreeAs + "\r\n";
+        private static readonly string SixtyThreeAsAndB = SixtyThreeAs + "b";
+        private static readonly string DescriptionOfSixtyThreeAsAndBFolded = "DESCRIPTION:" + SixtyThreeAs + "\r\n b\r\n";
+        private static readonly string LongValue = new string('a', 63) + new string('b', 74) + new string('c', 74) + "dd";
+        private static readonly string LongDescriptionFolded =
+            "DESCRIPTION:" + new string('a', 63) + "\r\n " + new string('b', 74) + "\r\n " + new string('c', 74) + "\r\n dd\r\n";
+
+        // An ATTENDEE whose CN of 80 octets crosses the fold length, as the writer folds it.
+        private static readonly string EightyNs = new string('n', 80);
+        private static readonly string AttendeeWithEightyNsFolded =
+            "ATTENDEE;CN=" + new string('n', 63) + "\r\n " + new string('n', 17) + ":mailto:a@example.com\r\n";
+
+        // A value of 100 octets, written as X with a tab as the fold white space, and with a bare line feed as the line break before a Y line.
+        private static readonly string HundredAs = new string('a', 100);
+        private static readonly string HundredAsFoldedWithTab = "X:" + new string('a', 73) + "\r\n\t" + new string('a', 27) + "\r\n";
+        private static readonly string HundredAsFoldedWithLineFeedThenY = "X:" + new string('a', 73) + "\n " + new string('a', 27) + "\nY:1\n";
+
+        // A value of 40 repeats of characters of one, two and four octets, whose DESCRIPTION of 452 octets takes 7 physical lines once folded.
+        private static readonly string RepeatedMultiOctetValue = string.Concat(Enumerable.Repeat("Caf\xE9 \xD83D\xDE00 ", 40));
+        private const int RepeatedMultiOctetDescriptionPhysicalLines = 7;
+
+        // Each value of an X property with a character of two, three or four octets where the line reaches 75 octets, and the line written:
+        // the character is written on the first physical line if it fits there, and starts the next one if not.
+        public static TheoryData<string, string> MultiOctetCharactersAtFoldLength => new TheoryData<string, string>
+        {
+            { new string('a', 72) + "\xE9z", "X:" + new string('a', 72) + "\r\n \xE9z\r\n" },
+            { new string('a', 71) + "\xE9z", "X:" + new string('a', 71) + "\xE9\r\n z\r\n" },
+            { new string('a', 71) + "\x20ACz", "X:" + new string('a', 71) + "\r\n \x20ACz\r\n" },
+            { new string('a', 70) + "\x20ACz", "X:" + new string('a', 70) + "\x20AC\r\n z\r\n" },
+            { new string('a', 70) + "\xD83D\xDE00z", "X:" + new string('a', 70) + "\r\n \xD83D\xDE00z\r\n" },
+            { new string('a', 69) + "\xD83D\xDE00z", "X:" + new string('a', 69) + "\xD83D\xDE00\r\n z\r\n" },
+        };
+
+        // An event whose long lines are folded at 75 octets, in a value, before a multi-octet character, and between parameters.
+        private static readonly string EventFoldedAtFoldLength = Crlf(
+            "BEGIN:VEVENT",
+            "ATTENDEE;CN=\"Jane Doe\";X-NOTE=a^xb:mailto:jane.doe@example.com",
+            "DESCRIPTION:" + new string('a', 63),
+            " " + new string('b', 74),
+            " ccc",
+            "SUMMARY:" + new string('x', 66),
+            " \xE9\x20AC\xD83D\xDE00",
+            "ORGANIZER;CN=" + new string('o', 62),
+            " ;ROLE=CHAIR:mailto:o@example.com",
+            "END:VEVENT");
+
         private const string RawParametersLine = "ATTENDEE;CN=\"John\";X-A=a^xb;ROLE=CHAIR;MEMBER=\"mailto:a@b.c\",x:mailto:x\r\n";
 
         #region Content line structure
@@ -99,10 +147,10 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Theory]
-        [InlineData("mailto:a@example.com", "\"mailto:a@example.com\"")]
-        [InlineData("a;b", "\"a;b\"")]
-        [InlineData("Doe, Jane", "\"Doe, Jane\"")]
-        public void WriteLine_ParameterValueWithDelimiter_IsQuoted(string value, string expectedValue)
+        [InlineData("mailto:a@example.com", "ATTENDEE;X-P=\"mailto:a@example.com\":x\r\n")]
+        [InlineData("a;b", "ATTENDEE;X-P=\"a;b\":x\r\n")]
+        [InlineData("Doe, Jane", "ATTENDEE;X-P=\"Doe, Jane\":x\r\n")]
+        public void WriteLine_ParameterValueWithDelimiter_IsQuoted(string value, string expected)
         {
             // arrange
             var line = new IcalContentLine("ATTENDEE", new[] { new IcalContentLineParameter(ParameterP, value) }, "x");
@@ -111,7 +159,7 @@ namespace DataStandardizer.File.iCal.Tests
             var testResult = WriteAll(line);
 
             // assert
-            testResult.Should().Be($"ATTENDEE;X-P={expectedValue}:x\r\n");
+            testResult.Should().Be(expected);
         }
 
         [Fact]
@@ -128,14 +176,14 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Theory]
-        [InlineData("a^b", "a^^b")]
-        [InlineData("say \"hi\"", "say ^'hi^'")]
-        [InlineData("one\ntwo", "one^ntwo")]
-        [InlineData("one\r\ntwo", "one^ntwo")]
-        [InlineData("one\rtwo", "one^ntwo")]
-        [InlineData("^^\n\"", "^^^^^n^'")]
-        [InlineData("tab\there", "tab\there")]
-        public void WriteLine_ParameterValue_IsCaretEncoded(string value, string expectedValue)
+        [InlineData("a^b", "X-A;X-P=a^^b:x\r\n")]
+        [InlineData("say \"hi\"", "X-A;X-P=say ^'hi^':x\r\n")]
+        [InlineData("one\ntwo", "X-A;X-P=one^ntwo:x\r\n")]
+        [InlineData("one\r\ntwo", "X-A;X-P=one^ntwo:x\r\n")]
+        [InlineData("one\rtwo", "X-A;X-P=one^ntwo:x\r\n")]
+        [InlineData("^^\n\"", "X-A;X-P=^^^^^n^':x\r\n")]
+        [InlineData("tab\there", "X-A;X-P=tab\there:x\r\n")]
+        public void WriteLine_ParameterValue_IsCaretEncoded(string value, string expected)
         {
             // arrange
             var line = new IcalContentLine("X-A", new[] { new IcalContentLineParameter(ParameterP, value) }, "x");
@@ -144,7 +192,7 @@ namespace DataStandardizer.File.iCal.Tests
             var testResult = WriteAll(line);
 
             // assert
-            testResult.Should().Be($"X-A;X-P={expectedValue}:x\r\n");
+            testResult.Should().Be(expected);
         }
 
         [Fact]
@@ -423,58 +471,49 @@ namespace DataStandardizer.File.iCal.Tests
         public void WriteLine_ExactlyFoldLength_IsNotFolded()
         {
             // arrange
-            var value = new string('a', 75 - "DESCRIPTION:".Length);
+            var line = new IcalContentLine(Description, SixtyThreeAs);
 
             // act
-            var testResult = WriteAll(new IcalContentLine(Description, value));
+            var testResult = WriteAll(line);
 
             // assert
-            testResult.Should().Be($"DESCRIPTION:{value}\r\n");
+            testResult.Should().Be(DescriptionOfSixtyThreeAs);
         }
 
         [Fact]
         public void WriteLine_OneOctetOverFoldLength_IsFoldedAtFoldLength()
         {
             // arrange
-            var value = new string('a', 75 - "DESCRIPTION:".Length) + "b";
+            var line = new IcalContentLine(Description, SixtyThreeAsAndB);
 
             // act
-            var testResult = WriteAll(new IcalContentLine(Description, value));
+            var testResult = WriteAll(line);
 
             // assert
-            testResult.Should().Be(Crlf("DESCRIPTION:" + value.Substring(0, value.Length - 1), " b"));
+            testResult.Should().Be(DescriptionOfSixtyThreeAsAndBFolded);
         }
 
         [Fact]
         public void WriteLine_LongLine_EveryPhysicalLineIsFoldLength()
         {
             // arrange
-            var value = new string('a', 63) + new string('b', 74) + new string('c', 74) + "dd";
+            var line = new IcalContentLine(Description, LongValue);
 
             // act
-            var testResult = WriteAll(new IcalContentLine(Description, value));
+            var testResult = WriteAll(line);
 
             // assert
-            testResult.Should().Be(Crlf("DESCRIPTION:" + new string('a', 63), " " + new string('b', 74), " " + new string('c', 74), " dd"));
+            testResult.Should().Be(LongDescriptionFolded);
         }
 
         [Theory]
-        [InlineData("é", 72, false)] // 2 + 72 + 2 = 76 octets
-        [InlineData("é", 71, true)] // 2 + 71 + 2 = 75 octets
-        [InlineData("€", 71, false)] // 2 + 71 + 3 = 76 octets
-        [InlineData("€", 70, true)] // 2 + 70 + 3 = 75 octets
-        [InlineData("😀", 70, false)] // 2 + 70 + 4 = 76 octets
-        [InlineData("😀", 69, true)] // 2 + 69 + 4 = 75 octets
-        public void WriteLine_MultiOctetCharacterAtFoldLength_IsNeverSplit(string character, int asciiLength, bool fits)
+        [MemberData(nameof(MultiOctetCharactersAtFoldLength))]
+        public void WriteLine_MultiOctetCharacterAtFoldLength_IsNeverSplit(string value, string expected)
         {
-            // arrange
-            var prefix = new string('a', asciiLength);
-
             // act
-            var testResult = WriteAll(new IcalContentLine("X", prefix + character + "z"));
+            var testResult = WriteAll(new IcalContentLine("X", value));
 
             // assert
-            var expected = fits ? Crlf("X:" + prefix + character, " z") : Crlf("X:" + prefix, " " + character + "z");
             testResult.Should().Be(expected);
         }
 
@@ -482,13 +521,13 @@ namespace DataStandardizer.File.iCal.Tests
         public void WriteLine_FoldInsideParameters_IsAllowed()
         {
             // arrange
-            var line = new IcalContentLine("ATTENDEE", new[] { new IcalContentLineParameter("CN", new string('n', 80)) }, "mailto:a@example.com");
+            var line = new IcalContentLine("ATTENDEE", new[] { new IcalContentLineParameter("CN", EightyNs) }, "mailto:a@example.com");
 
             // act
             var testResult = WriteAll(line);
 
             // assert
-            AssertFolded(testResult, "ATTENDEE;CN=" + new string('n', 80) + ":mailto:a@example.com", new IcalOptions());
+            testResult.Should().Be(AttendeeWithEightyNsFolded);
         }
 
         [Fact]
@@ -496,13 +535,12 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var options = new IcalOptions { FoldWhitespace = '\t' };
-            var value = new string('a', 100);
 
             // act
-            var testResult = WriteAll(options, new IcalContentLine("X", value));
+            var testResult = WriteAll(options, new IcalContentLine("X", HundredAs));
 
             // assert
-            testResult.Should().Be(Crlf("X:" + new string('a', 73), "\t" + new string('a', 27)));
+            testResult.Should().Be(HundredAsFoldedWithTab);
         }
 
         [Fact]
@@ -510,30 +548,28 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var options = new IcalOptions { LineBreak = "\n" };
-            var value = new string('a', 100);
 
             // act
-            var testResult = WriteAll(options, new IcalContentLine("X", value), new IcalContentLine("Y", "1"));
+            var testResult = WriteAll(options, new IcalContentLine("X", HundredAs), new IcalContentLine("Y", "1"));
 
             // assert
-            testResult.Should().Be("X:" + new string('a', 73) + "\n " + new string('a', 27) + "\nY:1\n");
+            testResult.Should().Be(HundredAsFoldedWithLineFeedThenY);
         }
 
         [Fact]
-        public void WriteLine_BareLineFeed_ReadsBackWhenAccepted()
+        public void ReadLine_WrittenWithBareLineFeedAndAccepted_IsTheLineWritten()
         {
             // arrange
             var options = new IcalOptions { LineBreak = "\n" };
-            var line = new IcalContentLine(Description, string.Concat(Enumerable.Repeat("Café 😀 ", 40)));
-
-            // act
+            var line = new IcalContentLine(Description, RepeatedMultiOctetValue);
             using (var reader = CreateReader(WriteAll(options, line), new IcalOptions { AcceptBareLineFeed = true }))
             {
+                // act
                 var testResult = reader.ReadLine();
 
                 // assert
-                testResult.Value.Should().Be(line.Value);
-                reader.PhysicalLinesRead.Should().BeGreaterThan(1);
+                testResult.Value.Should().Be(RepeatedMultiOctetValue);
+                reader.PhysicalLinesRead.Should().Be(RepeatedMultiOctetDescriptionPhysicalLines);
             }
         }
 
@@ -564,43 +600,19 @@ namespace DataStandardizer.File.iCal.Tests
             testResult.Should().Be(Crlf("X:", " 😀", " 😀", " ab", " €"));
         }
 
-        public static TheoryData<int, string, char> FoldOptionsData()
-        {
-            var data = new TheoryData<int, string, char>();
-            foreach (var foldLength in new[] { 5, 6, 7, 8, 13, 75, 76 })
-            {
-                data.Add(foldLength, "\r\n", ' ');
-            }
-
-            data.Add(75, "\n", ' ');
-            data.Add(75, "\r\n", '\t');
-            data.Add(9, "\n", '\t');
-            return data;
-        }
-
         [Theory]
-        [MemberData(nameof(FoldOptionsData))]
-        public void WriteLine_RandomLines_FoldGreedilyWithoutSplittingCharacters(int foldLength, string lineBreak, char foldWhitespace)
+        [MemberData(nameof(FoldingCases.RandomLines), MemberType = typeof(FoldingCases), DisableDiscoveryEnumeration = true)]
+        public void WriteLine_RandomLine_FoldsGreedilyWithoutSplittingCharacters(int foldLength, string lineBreak, char foldWhitespace, string value,
+            string expected)
         {
             // arrange
             var options = new IcalOptions { FoldLength = foldLength, LineBreak = lineBreak, FoldWhitespace = foldWhitespace };
-            string[] pieces = new[] { "a", "Z", " ", "\t", "é", "€", "会", "😀", "^", "\"", ":", ";", ",", "\\n" };
-            var random = new Random(181);
-            using (var text = new StringWriter())
-            using (var writer = new IcalContentLineWriter(text, options))
-            {
-                for (var lineIndex = 0; lineIndex < 200; lineIndex++)
-                {
-                    var value = string.Concat(Enumerable.Range(0, random.Next(0, 120)).Select(_ => pieces[random.Next(pieces.Length)]));
-                    text.GetStringBuilder().Clear();
 
-                    // act
-                    writer.WriteLine(new IcalContentLine("X-TEST", value));
+            // act
+            var testResult = WriteAll(options, new IcalContentLine("X-TEST", value));
 
-                    // assert
-                    AssertFolded(text.ToString(), "X-TEST:" + value, options);
-                }
-            }
+            // assert
+            testResult.Should().Be(expected);
         }
 
         #endregion
@@ -660,18 +672,7 @@ namespace DataStandardizer.File.iCal.Tests
         public void WriteLines_InputFoldedAtFoldLength_IsWrittenBackByteForByte()
         {
             // arrange
-            var text = Crlf(
-                "BEGIN:VEVENT",
-                "ATTENDEE;CN=\"Jane Doe\";X-NOTE=a^xb:mailto:jane.doe@example.com",
-                "DESCRIPTION:" + new string('a', 63),
-                " " + new string('b', 74),
-                " ccc",
-                "SUMMARY:" + new string('x', 66),
-                " é€😀",
-                "ORGANIZER;CN=" + new string('o', 62),
-                " ;ROLE=CHAIR:mailto:o@example.com",
-                "END:VEVENT");
-            var data = new UTF8Encoding(false).GetBytes(text);
+            var data = new UTF8Encoding(false).GetBytes(EventFoldedAtFoldLength);
             using (var reader = CreateStreamReader(data))
             {
                 var lines = ReadAll(reader);
@@ -781,25 +782,25 @@ namespace DataStandardizer.File.iCal.Tests
             testAction.Should().Throw<ArgumentException>().Which.ParamName.Should().Be("options");
         }
 
-        [Fact]
-        public void Constructor_NullArguments_Throw()
+        public static TheoryData<Action> NullConstructorArguments => new TheoryData<Action>
+        {
+            () => _ = new IcalContentLineWriter((Stream)null),
+            () => _ = new IcalContentLineWriter((TextWriter)null),
+            () => _ = new IcalContentLineWriter((string)null),
+            () => _ = new IcalContentLineWriter(new MemoryStream(), null),
+            () => _ = new IcalContentLineWriter(new StringWriter(), null),
+            () => _ = new IcalContentLineWriter("unused.ics", null)
+        };
+
+        [Theory]
+        [MemberData(nameof(NullConstructorArguments), DisableDiscoveryEnumeration = true)]
+        public void Constructor_NullArgument_ThrowsArgumentNull(Action call)
         {
             // act
-            var testActions = new Action[]
-            {
-                () => _ = new IcalContentLineWriter((Stream)null),
-                () => _ = new IcalContentLineWriter((TextWriter)null),
-                () => _ = new IcalContentLineWriter((string)null),
-                () => _ = new IcalContentLineWriter(new MemoryStream(), null),
-                () => _ = new IcalContentLineWriter(new StringWriter(), null),
-                () => _ = new IcalContentLineWriter("unused.ics", null)
-            };
+            var testAction = call;
 
             // assert
-            foreach (var testAction in testActions)
-            {
-                testAction.Should().Throw<ArgumentNullException>();
-            }
+            testAction.Should().Throw<ArgumentNullException>();
         }
 
         [Fact]
@@ -1160,38 +1161,6 @@ namespace DataStandardizer.File.iCal.Tests
         /// Checks that a written line is folded greedily at the fold length, with no character split across physical lines, and unfolds to the
         /// logical line.
         /// </summary>
-        private static void AssertFolded(string written, string logicalLine, IcalOptions options)
-        {
-            var strictUtf8 = new UTF8Encoding(false, true);
-            written.Should().EndWith(options.LineBreak);
-            var physicalLines = written.Substring(0, written.Length - options.LineBreak.Length).Split(new[] { options.LineBreak }, StringSplitOptions.None);
-
-            var unfolded = new StringBuilder(physicalLines[0]);
-            for (var lineIndex = 0; lineIndex < physicalLines.Length; lineIndex++)
-            {
-                var physicalLine = physicalLines[lineIndex];
-
-                // Strict encoding throws on a lone surrogate, which is what splitting a pair would leave.
-                var octets = strictUtf8.GetByteCount(physicalLine);
-                octets.Should().BeLessThanOrEqualTo(options.FoldLength, "physical line {0} is \"{1}\"", lineIndex, physicalLine);
-                if (lineIndex > 0)
-                {
-                    physicalLine[0].Should().Be(options.FoldWhitespace);
-                    physicalLine.Length.Should().BeGreaterThan(1);
-                    unfolded.Append(physicalLine, 1, physicalLine.Length - 1);
-                }
-
-                if (lineIndex < physicalLines.Length - 1)
-                {
-                    var nextLine = physicalLines[lineIndex + 1];
-                    var nextCharacter = nextLine.Substring(1, char.IsSurrogatePair(nextLine, 1) ? 2 : 1);
-                    (octets + strictUtf8.GetByteCount(nextCharacter)).Should().BeGreaterThan(options.FoldLength, "lines are folded only when the next character does not fit");
-                }
-            }
-
-            unfolded.ToString().Should().Be(logicalLine);
-        }
-
         private static IcalContentLine ReadFirstLine(string text)
         {
             using (var reader = CreateReader(text))

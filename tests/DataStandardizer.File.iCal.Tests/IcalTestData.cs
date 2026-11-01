@@ -71,6 +71,20 @@ namespace DataStandardizer.File.iCal.Tests
             return new IcalContentLineReader(new MemoryStream(data), options ?? new IcalOptions(), streamBufferSize, bufferSize);
         }
 
+        /// <summary>
+        /// Gets each item that <see cref="IcalValue.EnumerateTextList"/> gives for a value.
+        /// </summary>
+        public static List<string> TextListItems(string value, IcalValueFormat format)
+        {
+            var items = new List<string>();
+            foreach (var item in IcalValue.EnumerateTextList(value.AsSpan(), format))
+            {
+                items.Add(item.ToString());
+            }
+
+            return items;
+        }
+
         public static List<IcalContentLine> ReadAll(IcalContentLineReader reader)
         {
             return reader.ReadLines().ToList();
