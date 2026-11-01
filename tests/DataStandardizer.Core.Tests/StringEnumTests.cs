@@ -8,6 +8,56 @@ namespace DataStandardizer.Core.Tests
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     public class StringEnumTests
     {
+        // Parameter names of the StringEnum methods.
+        private const string EnumTypeParameterName = "enumType";
+        private const string ValueParameterName = "value";
+
+        // Exception messages thrown by StringEnum.
+        private const string NotStringEnumerationMessage = "enumType is not a string enumeration.*";
+        private const string EmptyOrWhiteSpaceValueMessage = "value is either an empty string or only contains white space.*";
+        private const string NotNamedConstantMessage = "value is a name, but not one of the named constants defined for the enumeration.*";
+        private const string NoEnumerationInformationMessage = "value does not contain enumeration information.*";
+
+        // Reasons given in assertions.
+        private const string IsNameOfEnumValueReason = "{0} is the name of enum value {1}";
+        private const string IsMemberReason = "{0} is a member of {1}";
+        private const string IsNotMemberReason = "{0} is not a member of {1}";
+        private const string NotStringEnumReason = "{0} does not represent a string enum";
+        private const string DoesNotRepresentMemberReason = "{0} does not represent a member of {1}";
+        private const string IsNameOfMemberReason = "{0} is the name of a member of {1}";
+        private const string IsValueOfMemberReason = "{0} is the value of a member of {1}";
+        private const string IsMemberHavingNameReason = "{0} is the member having the name {1}";
+        private const string IsMemberHavingValueReason = "{0} is the member having the value {1}";
+
+        // Values that are empty or contain only white space.
+        private const string EmptyValue = "";
+        private const string SpaceValue = " ";
+        private const string TabValue = "\t";
+
+        // Values of the members of SimpleEnum and ComplexEnum.
+        private const string SimpleEnumOneValue = "1";
+        private const string SimpleEnumTwoValue = "2";
+        private const string SimpleEnumThreeValue = "3";
+        private const string ComplexEnumFirstValue = "1";
+        private const string BirdValue = "bird";
+        private const string CatValue = "cat";
+        private const string DogValue = "dog";
+        private const string BlackValue = "black";
+        private const string RedValue = "red";
+        private const string GreenValue = "green";
+        private const string BlueValue = "blue";
+
+        // Names and values that the test enumerations don't define.
+        private const string ZeroName = "Zero";
+        private const string FourName = "Four";
+        private const string FiveName = "Five";
+        private const string SecondName = "Second";
+        private const string FishName = "Fish";
+        private const string LizardName = "Lizard";
+        private const string YellowName = "Yellow";
+        private const string SimpleEnumUndefinedValue = "0";
+        private const string ComplexEnumUndefinedValue = "2";
+
         [Fact]
         public void GetNameNonGeneric_WithNullEnumType_ThrowsArgumentNullException()
         {
@@ -15,7 +65,7 @@ namespace DataStandardizer.Core.Tests
             Action testAction = () => StringEnum.GetName(null!, SimpleEnum.One);
 
             // assert
-            testAction.Should().Throw<ArgumentNullException>().WithParameterName("enumType");
+            testAction.Should().Throw<ArgumentNullException>().WithParameterName(EnumTypeParameterName);
         }
 
         [Fact]
@@ -25,7 +75,7 @@ namespace DataStandardizer.Core.Tests
             Action testAction = () => StringEnum.GetName(typeof(SimpleEnum), null!);
 
             // assert
-            testAction.Should().Throw<ArgumentNullException>().WithParameterName("value");
+            testAction.Should().Throw<ArgumentNullException>().WithParameterName(ValueParameterName);
         }
 
         [Fact]
@@ -35,7 +85,7 @@ namespace DataStandardizer.Core.Tests
             Action testAction = () => StringEnum.GetName(typeof(DayOfWeek), DayOfWeek.Sunday);
 
             // assert
-            testAction.Should().Throw<ArgumentException>().WithMessage("enumType is not a string enumeration.*").WithParameterName("enumType");
+            testAction.Should().Throw<ArgumentException>().WithMessage(NotStringEnumerationMessage).WithParameterName(EnumTypeParameterName);
         }
 
         [Fact]
@@ -45,7 +95,7 @@ namespace DataStandardizer.Core.Tests
             Action testAction = () => StringEnum.GetName(typeof(ComplexEnum), SimpleEnum.One);
 
             // assert
-            testAction.Should().Throw<ArgumentException>().WithMessage("value is not of type enumType.*").WithParameterName("value");
+            testAction.Should().Throw<ArgumentException>().WithMessage("value is not of type enumType.*").WithParameterName(ValueParameterName);
         }
 
         [Theory]
@@ -56,7 +106,7 @@ namespace DataStandardizer.Core.Tests
             var testResult = StringEnum.GetName(enumType, enumValue);
 
             // assert
-            testResult.Should().Be(expectedResult, "{0} is the name of enum value {1}", expectedResult, enumValue);
+            testResult.Should().Be(expectedResult, IsNameOfEnumValueReason, expectedResult, enumValue);
         }
 
         [Theory]
@@ -67,7 +117,7 @@ namespace DataStandardizer.Core.Tests
             var testResult = StringEnum.GetName(enumValue);
 
             // assert
-            testResult.Should().Be(expectedResult, "{0} is the name of enum value {1}", expectedResult, enumValue);
+            testResult.Should().Be(expectedResult, IsNameOfEnumValueReason, expectedResult, enumValue);
         }
 
         [Fact]
@@ -77,7 +127,7 @@ namespace DataStandardizer.Core.Tests
             Action testAction = () => StringEnum.GetNames(null!);
 
             // assert
-            testAction.Should().Throw<ArgumentNullException>().WithParameterName("enumType");
+            testAction.Should().Throw<ArgumentNullException>().WithParameterName(EnumTypeParameterName);
         }
 
         [Fact]
@@ -87,7 +137,7 @@ namespace DataStandardizer.Core.Tests
             Action testAction = () => StringEnum.GetNames(typeof(DayOfWeek));
 
             // assert
-            testAction.Should().Throw<ArgumentException>().WithParameterName("enumType");
+            testAction.Should().Throw<ArgumentException>().WithParameterName(EnumTypeParameterName);
         }
 
         [Fact]
@@ -157,7 +207,7 @@ namespace DataStandardizer.Core.Tests
             Action testAction = () => StringEnum.GetValues(null!);
 
             // assert
-            testAction.Should().Throw<ArgumentNullException>().WithParameterName("enumType");
+            testAction.Should().Throw<ArgumentNullException>().WithParameterName(EnumTypeParameterName);
         }
 
         [Fact]
@@ -167,7 +217,7 @@ namespace DataStandardizer.Core.Tests
             Action testAction = () => StringEnum.GetValues(typeof(DayOfWeek));
 
             // assert
-            testAction.Should().Throw<ArgumentException>().WithMessage("enumType is not a string enumeration.*").WithParameterName("enumType");
+            testAction.Should().Throw<ArgumentException>().WithMessage(NotStringEnumerationMessage).WithParameterName(EnumTypeParameterName);
         }
 
         [Fact]
@@ -229,7 +279,7 @@ namespace DataStandardizer.Core.Tests
             Action testAction = () => StringEnum.IsDefined(null!, "Hi");
 
             // assert
-            testAction.Should().Throw<ArgumentNullException>().WithParameterName("enumType");
+            testAction.Should().Throw<ArgumentNullException>().WithParameterName(EnumTypeParameterName);
         }
 
         [Fact]
@@ -239,7 +289,7 @@ namespace DataStandardizer.Core.Tests
             Action testAction = () => StringEnum.IsDefined(typeof(SimpleEnum), null!);
 
             // assert
-            testAction.Should().Throw<ArgumentNullException>().WithParameterName("value");
+            testAction.Should().Throw<ArgumentNullException>().WithParameterName(ValueParameterName);
         }
 
         [Fact]
@@ -249,18 +299,18 @@ namespace DataStandardizer.Core.Tests
             Action testAction = () => StringEnum.IsDefined(typeof(DayOfWeek), "Sunday");
 
             // assert
-            testAction.Should().Throw<ArgumentException>().WithMessage("enumType is not a string enumeration.*").WithParameterName("enumType");
+            testAction.Should().Throw<ArgumentException>().WithMessage(NotStringEnumerationMessage).WithParameterName(EnumTypeParameterName);
         }
 
         [Theory]
-        [InlineData("Zero"), InlineData("Four"), InlineData("Ten")]
+        [InlineData(ZeroName), InlineData(FourName), InlineData("Ten")]
         public void IsDefinedNonGeneric_WithFlatStringEnumNonMember_ReturnsFalse(string enumValue)
         {
             // act
             var testResult = StringEnum.IsDefined(typeof(SimpleEnum), enumValue);
 
             // assert
-            testResult.Should().BeFalse("{0} is not a member of {1}", enumValue, nameof(SimpleEnum));
+            testResult.Should().BeFalse(IsNotMemberReason, enumValue, nameof(SimpleEnum));
         }
 
         [Theory]
@@ -271,29 +321,29 @@ namespace DataStandardizer.Core.Tests
             var testResult = StringEnum.IsDefined(typeof(SimpleEnum), enumMemberName);
 
             // assert
-            testResult.Should().BeTrue("{0} is a member of {1}", enumMemberName, nameof(SimpleEnum));
+            testResult.Should().BeTrue(IsMemberReason, enumMemberName, nameof(SimpleEnum));
         }
 
         [Theory]
-        [InlineData("1"), InlineData("2"), InlineData("3")]
+        [InlineData(SimpleEnumOneValue), InlineData(SimpleEnumTwoValue), InlineData(SimpleEnumThreeValue)]
         public void IsDefinedNonGeneric_WithFlatStringEnumMemberValue_ReturnsTrue(string enumMemberValue)
         {
             // act
             var testResult = StringEnum.IsDefined(typeof(SimpleEnum), enumMemberValue);
 
             // assert
-            testResult.Should().BeTrue("{0} is a member of {1}", enumMemberValue, nameof(SimpleEnum));
+            testResult.Should().BeTrue(IsMemberReason, enumMemberValue, nameof(SimpleEnum));
         }
 
         [Theory]
-        [InlineData("Zero"), InlineData("Second"), InlineData("Snake"), InlineData("Yellow")]
+        [InlineData(ZeroName), InlineData(SecondName), InlineData("Snake"), InlineData(YellowName)]
         public void IsDefinedNonGeneric_WithHierarchicalStringEnumNonMember_ReturnsFalse(string enumValue)
         {
             // act
             var testResult = StringEnum.IsDefined(typeof(ComplexEnum), enumValue);
 
             // assert
-            testResult.Should().BeFalse("{0} is not a member of {1}", enumValue, nameof(ComplexEnum));
+            testResult.Should().BeFalse(IsNotMemberReason, enumValue, nameof(ComplexEnum));
         }
 
         [Theory]
@@ -304,29 +354,29 @@ namespace DataStandardizer.Core.Tests
             var testResult = StringEnum.IsDefined(typeof(ComplexEnum), enumMemberName);
 
             // assert
-            testResult.Should().BeTrue("{0} is a member of {1}", enumMemberName, nameof(ComplexEnum));
+            testResult.Should().BeTrue(IsMemberReason, enumMemberName, nameof(ComplexEnum));
         }
 
         [Theory]
-        [InlineData("1"), InlineData("bird"), InlineData("black")]
+        [InlineData(ComplexEnumFirstValue), InlineData(BirdValue), InlineData(BlackValue)]
         public void IsDefinedNonGeneric_WithHierarchicalStringEnumMemberValue_ReturnsTrue(string enumMemberValue)
         {
             // act
             var testResult = StringEnum.IsDefined(typeof(ComplexEnum), enumMemberValue);
 
             // assert
-            testResult.Should().BeTrue("{0} is a member of {1}", enumMemberValue, nameof(ComplexEnum));
+            testResult.Should().BeTrue(IsMemberReason, enumMemberValue, nameof(ComplexEnum));
         }
 
         [Theory]
-        [InlineData("Zero"), InlineData("Four"), InlineData("Twelve")]
+        [InlineData(ZeroName), InlineData(FourName), InlineData("Twelve")]
         public void IsDefinedGeneric_WithFlatStringEnumNonMember_ReturnsFalse(string enumValue)
         {
             // act
             var testResult = StringEnum.IsDefined<SimpleEnum>(enumValue);
 
             // assert
-            testResult.Should().BeFalse("{0} is not a member of {1}", enumValue, nameof(SimpleEnum));
+            testResult.Should().BeFalse(IsNotMemberReason, enumValue, nameof(SimpleEnum));
         }
 
         [Theory]
@@ -337,29 +387,29 @@ namespace DataStandardizer.Core.Tests
             var testResult = StringEnum.IsDefined<SimpleEnum>(enumMemberName);
 
             // assert
-            testResult.Should().BeTrue("{0} is a member of {1}", enumMemberName, nameof(SimpleEnum));
+            testResult.Should().BeTrue(IsMemberReason, enumMemberName, nameof(SimpleEnum));
         }
 
         [Theory]
-        [InlineData("1"), InlineData("2"), InlineData("3")]
+        [InlineData(SimpleEnumOneValue), InlineData(SimpleEnumTwoValue), InlineData(SimpleEnumThreeValue)]
         public void IsDefinedGeneric_WithFlatStringEnumMemberValue_ReturnsTrue(string enumMemberValue)
         {
             // act
             var testResult = StringEnum.IsDefined<SimpleEnum>(enumMemberValue);
 
             // assert
-            testResult.Should().BeTrue("{0} is a member of {1}", enumMemberValue, nameof(SimpleEnum));
+            testResult.Should().BeTrue(IsMemberReason, enumMemberValue, nameof(SimpleEnum));
         }
 
         [Theory]
-        [InlineData("Zero"), InlineData("Two"), InlineData("Lizard"), InlineData("Purple")]
+        [InlineData(ZeroName), InlineData("Two"), InlineData(LizardName), InlineData("Purple")]
         public void IsDefinedGeneric_WithHierarchicalStringEnumNonMember_ReturnsFalse(string enumValue)
         {
             // act
             var testResult = StringEnum.IsDefined<ComplexEnum>(enumValue);
 
             // assert
-            testResult.Should().BeFalse("{0} is not a member of {1}", enumValue, nameof(ComplexEnum));
+            testResult.Should().BeFalse(IsNotMemberReason, enumValue, nameof(ComplexEnum));
         }
 
         [Theory]
@@ -370,18 +420,18 @@ namespace DataStandardizer.Core.Tests
             var testResult = StringEnum.IsDefined<ComplexEnum>(enumMemberName);
 
             // assert
-            testResult.Should().BeTrue("{0} is a member of {1}", enumMemberName, nameof(ComplexEnum));
+            testResult.Should().BeTrue(IsMemberReason, enumMemberName, nameof(ComplexEnum));
         }
 
         [Theory]
-        [InlineData("1"), InlineData("dog"), InlineData("Black")]
+        [InlineData(ComplexEnumFirstValue), InlineData(DogValue), InlineData(RedValue)]
         public void IsDefinedGeneric_WithHierarchicalStringEnumMemberValue_ReturnsTrue(string enumMemberValue)
         {
             // act
             var testResult = StringEnum.IsDefined<ComplexEnum>(enumMemberValue);
 
             // assert
-            testResult.Should().BeTrue("{0} is a member of {1}", enumMemberValue, nameof(ComplexEnum));
+            testResult.Should().BeTrue(IsMemberReason, enumMemberValue, nameof(ComplexEnum));
         }
 
         [Theory]
@@ -392,7 +442,7 @@ namespace DataStandardizer.Core.Tests
             Action testAction = () => StringEnum.Parse(null!, enumValue);
 
             // assert
-            testAction.Should().Throw<ArgumentNullException>().WithParameterName("enumType");
+            testAction.Should().Throw<ArgumentNullException>().WithParameterName(EnumTypeParameterName);
         }
 
         [Theory]
@@ -403,7 +453,7 @@ namespace DataStandardizer.Core.Tests
             Action testAction = () => StringEnum.Parse(enumType, null!);
 
             // assert
-            testAction.Should().Throw<ArgumentNullException>().WithParameterName("value");
+            testAction.Should().Throw<ArgumentNullException>().WithParameterName(ValueParameterName);
         }
 
         [Theory]
@@ -414,29 +464,29 @@ namespace DataStandardizer.Core.Tests
             Action testAction = () => StringEnum.Parse(enumType, enumValue);
 
             // assert
-            testAction.Should().Throw<ArgumentException>().WithMessage("enumType is not a string enumeration.*").WithParameterName("enumType");
+            testAction.Should().Throw<ArgumentException>().WithMessage(NotStringEnumerationMessage).WithParameterName(EnumTypeParameterName);
         }
 
         [Theory]
-        [InlineData(typeof(SimpleEnum), ""), InlineData(typeof(ComplexEnum), " "), InlineData(typeof(SimpleEnum), "\t")]
+        [InlineData(typeof(SimpleEnum), EmptyValue), InlineData(typeof(ComplexEnum), SpaceValue), InlineData(typeof(SimpleEnum), TabValue)]
         public void ParseNonGeneric_WithWhiteSpaceValue_ThrowsArgumentException(Type enumType, string enumValue)
         {
             // act
             Action testAction = () => StringEnum.Parse(enumType, enumValue);
 
             // assert
-            testAction.Should().Throw<ArgumentException>().WithMessage("value is either an empty string or only contains white space.*").WithParameterName("value");
+            testAction.Should().Throw<ArgumentException>().WithMessage(EmptyOrWhiteSpaceValueMessage).WithParameterName(ValueParameterName);
         }
 
         [Theory]
-        [InlineData(typeof(SimpleEnum), "Zero"), InlineData(typeof(SimpleEnum), "Four"), InlineData(typeof(ComplexEnum), "Second"), InlineData(typeof(ComplexEnum), "Fish"), InlineData(typeof(ComplexEnum), "Yellow")]
+        [InlineData(typeof(SimpleEnum), ZeroName), InlineData(typeof(SimpleEnum), FourName), InlineData(typeof(ComplexEnum), SecondName), InlineData(typeof(ComplexEnum), FishName), InlineData(typeof(ComplexEnum), YellowName)]
         public void ParseNonGeneric_WithNonStringEnumValue_ThrowsArgumentException(Type enumType, string enumValue)
         {
             // act
             Action testAction = () => StringEnum.Parse(enumType, enumValue);
 
             // assert
-            testAction.Should().Throw<ArgumentException>().WithMessage("value is a name, but not one of the named constants defined for the enumeration.*").WithParameterName("value");
+            testAction.Should().Throw<ArgumentException>().WithMessage(NotNamedConstantMessage).WithParameterName(ValueParameterName);
         }
 
         [Theory]
@@ -469,7 +519,7 @@ namespace DataStandardizer.Core.Tests
             Action testAction = () => StringEnum.Parse(null!, enumValue, ignoreCase);
 
             // assert
-            testAction.Should().Throw<ArgumentNullException>().WithParameterName("enumType");
+            testAction.Should().Throw<ArgumentNullException>().WithParameterName(EnumTypeParameterName);
         }
 
         [Theory]
@@ -480,7 +530,7 @@ namespace DataStandardizer.Core.Tests
             Action testAction = () => StringEnum.Parse(enumType, null!, ignoreCase);
 
             // assert
-            testAction.Should().Throw<ArgumentNullException>().WithParameterName("value");
+            testAction.Should().Throw<ArgumentNullException>().WithParameterName(ValueParameterName);
         }
 
         [Theory]
@@ -491,29 +541,29 @@ namespace DataStandardizer.Core.Tests
             Action testAction = () => StringEnum.Parse(enumType, enumValue, ignoreCase);
 
             // assert
-            testAction.Should().Throw<ArgumentException>().WithMessage("enumType is not a string enumeration.*").WithParameterName("enumType");
+            testAction.Should().Throw<ArgumentException>().WithMessage(NotStringEnumerationMessage).WithParameterName(EnumTypeParameterName);
         }
 
         [Theory]
-        [InlineData(typeof(SimpleEnum), ""), InlineData(typeof(SimpleEnum), " "), InlineData(typeof(SimpleEnum), "\t")]
+        [InlineData(typeof(SimpleEnum), EmptyValue), InlineData(typeof(SimpleEnum), SpaceValue), InlineData(typeof(SimpleEnum), TabValue)]
         public void ParseNonGenericIgnoreCaseOverload_WithWhiteSpaceValue_ThrowsArgumentException(Type enumType, string enumValue)
         {
             // act
             Action testAction = () => StringEnum.Parse(enumType, enumValue, false);
 
             // assert
-            testAction.Should().Throw<ArgumentException>().WithMessage("value is either an empty string (\"\") or only contains white space.*").WithParameterName("value");
+            testAction.Should().Throw<ArgumentException>().WithMessage("value is either an empty string (\"\") or only contains white space.*").WithParameterName(ValueParameterName);
         }
 
         [Theory]
-        [InlineData(typeof(SimpleEnum), "Zero", false), InlineData(typeof(SimpleEnum), "Four", true), InlineData(typeof(ComplexEnum), "Second", false)]
+        [InlineData(typeof(SimpleEnum), ZeroName, false), InlineData(typeof(SimpleEnum), FourName, true), InlineData(typeof(ComplexEnum), SecondName, false)]
         public void ParseNonGenericIgnoreCaseOverload_WithNonStringEnumValue_ThrowsArgumentException(Type enumType, string enumValue, bool ignoreCase)
         {
             // act
             Action testAction = () => StringEnum.Parse(enumType, enumValue, ignoreCase);
 
             // assert
-            testAction.Should().Throw<ArgumentException>().WithMessage("value is a name, but not one of the named constants defined for the enumeration.*").WithParameterName("value");
+            testAction.Should().Throw<ArgumentException>().WithMessage(NotNamedConstantMessage).WithParameterName(ValueParameterName);
         }
 
         [Theory]
@@ -545,29 +595,29 @@ namespace DataStandardizer.Core.Tests
             Action testAction = () => StringEnum.Parse<SimpleEnum>(null!);
 
             // assert
-            testAction.Should().Throw<ArgumentNullException>().WithParameterName("value");
+            testAction.Should().Throw<ArgumentNullException>().WithParameterName(ValueParameterName);
         }
 
         [Theory]
-        [InlineData(""), InlineData(" "), InlineData("\t")]
+        [InlineData(EmptyValue), InlineData(SpaceValue), InlineData(TabValue)]
         public void ParseGeneric_WithWhiteSpaceValue_ThrowsArgumentException(string enumValue)
         {
             // act
             Action testAction = () => StringEnum.Parse<SimpleEnum>(enumValue);
 
             // assert
-            testAction.Should().Throw<ArgumentException>().WithMessage("value is either an empty string or only contains white space.*").WithParameterName("value");
+            testAction.Should().Throw<ArgumentException>().WithMessage(EmptyOrWhiteSpaceValueMessage).WithParameterName(ValueParameterName);
         }
 
         [Theory]
-        [InlineData("0"), InlineData("4"), InlineData("Zero"), InlineData("Four")]
+        [InlineData(SimpleEnumUndefinedValue), InlineData("4"), InlineData(ZeroName), InlineData(FourName)]
         public void ParseGeneric_WithNonStringEnumValue_ThrowsArgumentException(string enumValue)
         {
             // act
             Action testAction = () => StringEnum.Parse<SimpleEnum>(enumValue);
 
             // assert
-            testAction.Should().Throw<ArgumentException>().WithMessage("value does not contain enumeration information.*").WithParameterName("value");
+            testAction.Should().Throw<ArgumentException>().WithMessage(NoEnumerationInformationMessage).WithParameterName(ValueParameterName);
         }
 
         [Theory]
@@ -578,7 +628,7 @@ namespace DataStandardizer.Core.Tests
             var testResult = StringEnum.Parse<T>(enumMemberName);
 
             // assert
-            testResult.Should().Be(expectedResult, "{0} is a member of {1}", enumMemberName, typeof(T).Name);
+            testResult.Should().Be(expectedResult, IsMemberReason, enumMemberName, typeof(T).Name);
         }
 
         [Theory]
@@ -589,7 +639,7 @@ namespace DataStandardizer.Core.Tests
             var testResult = StringEnum.Parse<T>(enumMemberValue);
 
             // assert
-            testResult.Should().Be(expectedResult, "{0} is a member of {1}", enumMemberValue, typeof(T).Name);
+            testResult.Should().Be(expectedResult, IsMemberReason, enumMemberValue, typeof(T).Name);
         }
 
         [Theory]
@@ -600,29 +650,29 @@ namespace DataStandardizer.Core.Tests
             Action testAction = () => StringEnum.Parse<SimpleEnum>(null!, ignoreCase);
 
             // assert
-            testAction.Should().Throw<ArgumentNullException>().WithParameterName("value");
+            testAction.Should().Throw<ArgumentNullException>().WithParameterName(ValueParameterName);
         }
 
         [Theory]
-        [InlineData(""), InlineData(" "), InlineData("\t")]
+        [InlineData(EmptyValue), InlineData(SpaceValue), InlineData(TabValue)]
         public void ParseGenericIgnoreCaseOverload_WithWhiteSpaceValue_ThrowsArgumentException(string enumValue)
         {
             // act
             Action testAction = () => StringEnum.Parse<SimpleEnum>(enumValue, false);
 
             // assert
-            testAction.Should().Throw<ArgumentException>().WithMessage("value is either an empty string or only contains white space.*").WithParameterName("value");
+            testAction.Should().Throw<ArgumentException>().WithMessage(EmptyOrWhiteSpaceValueMessage).WithParameterName(ValueParameterName);
         }
 
         [Theory]
-        [InlineData("Zero", false), InlineData("Zero", true), InlineData("Four", false), InlineData("Four", true)]
+        [InlineData(ZeroName, false), InlineData(ZeroName, true), InlineData(FourName, false), InlineData(FourName, true)]
         public void ParseGenericIgnoreCaseOverload_WithNonStringEnumValue_ThrowsArgumentException(string enumValue, bool ignoreCase)
         {
             // act
             Action testAction = () => StringEnum.Parse<SimpleEnum>(enumValue, ignoreCase);
 
             // assert
-            testAction.Should().Throw<ArgumentException>("value is a name, but not one of the named constants defined for the enumeration.").WithParameterName("value");
+            testAction.Should().Throw<ArgumentException>().WithMessage(NoEnumerationInformationMessage).WithParameterName(ValueParameterName);
         }
 
         [Theory]
@@ -633,7 +683,7 @@ namespace DataStandardizer.Core.Tests
             var testResult = StringEnum.Parse<T>(enumMemberName, ignoreCase);
 
             // assert
-            testResult.Should().Be(expectedResult, "{0} is a member of {1}", enumMemberName, typeof(T).Name);
+            testResult.Should().Be(expectedResult, IsMemberReason, enumMemberName, typeof(T).Name);
         }
 
         [Theory]
@@ -644,7 +694,7 @@ namespace DataStandardizer.Core.Tests
             var testResult = StringEnum.Parse<T>(enumMemberValue, ignoreCase);
 
             // assert
-            testResult.Should().Be(expectedResult, "{0} is a member of {1}", enumMemberValue, typeof(T).Name);
+            testResult.Should().Be(expectedResult, IsMemberReason, enumMemberValue, typeof(T).Name);
         }
 
         [Fact]
@@ -654,7 +704,7 @@ namespace DataStandardizer.Core.Tests
             Action testAction = () => StringEnum.ToObject(null!, String.Empty);
 
             // assert
-            testAction.Should().Throw<ArgumentNullException>().WithParameterName("enumType");
+            testAction.Should().Throw<ArgumentNullException>().WithParameterName(EnumTypeParameterName);
         }
 
         [Theory]
@@ -665,7 +715,7 @@ namespace DataStandardizer.Core.Tests
             Action testAction = () => StringEnum.ToObject(enumType, null!);
 
             // assert
-            testAction.Should().Throw<ArgumentNullException>().WithParameterName("value");
+            testAction.Should().Throw<ArgumentNullException>().WithParameterName(ValueParameterName);
         }
 
         [Theory]
@@ -676,7 +726,7 @@ namespace DataStandardizer.Core.Tests
             Action testAction = () => StringEnum.ToObject(enumType, String.Empty);
 
             // assert
-            testAction.Should().Throw<ArgumentException>().WithMessage("enumType is not a string enumeration.*").WithParameterName("enumType");
+            testAction.Should().Throw<ArgumentException>().WithMessage(NotStringEnumerationMessage).WithParameterName(EnumTypeParameterName);
         }
 
         [Theory]
@@ -697,7 +747,7 @@ namespace DataStandardizer.Core.Tests
             Action testAction = () => StringEnum.ToObject<SimpleEnum>(null!);
 
             // assert
-            testAction.Should().Throw<ArgumentNullException>().WithParameterName("value");
+            testAction.Should().Throw<ArgumentNullException>().WithParameterName(ValueParameterName);
         }
 
         [Theory]
@@ -719,42 +769,42 @@ namespace DataStandardizer.Core.Tests
             var testResult = StringEnum.TryParse(enumType, value, out _);
 
             // assert
-            testResult.Should().BeFalse("{0} does not represent a string enum", nameof(enumType));
+            testResult.Should().BeFalse(NotStringEnumReason, nameof(enumType));
         }
 
         [Theory]
-        [InlineData(typeof(SimpleEnum), "Zero"), InlineData(typeof(SimpleEnum), "0"), InlineData(typeof(ComplexEnum), "Second"), InlineData(typeof(ComplexEnum), "2")]
+        [InlineData(typeof(SimpleEnum), ZeroName), InlineData(typeof(SimpleEnum), SimpleEnumUndefinedValue), InlineData(typeof(ComplexEnum), SecondName), InlineData(typeof(ComplexEnum), ComplexEnumUndefinedValue)]
         public void TryParseNonGeneric_WithNonStringEnumValue_ReturnsFalse(Type enumType, string value)
         {
             // act
             var testResult = StringEnum.TryParse(enumType, value, out _);
 
             // assert
-            testResult.Should().BeFalse("{0} is does not represent a member of {1}", value, enumType.Name);
+            testResult.Should().BeFalse(DoesNotRepresentMemberReason, value, enumType.Name);
         }
 
         [Theory]
         [ClassData(typeof(TryParseNonGeneric_WithStringEnumMemberName_TestCaseFactory))]
-        public void TryParseNonGeneric_WithStringEnumMemberName_ReturnsStringEnumMember(string enumMemberName, object expectedResult)
+        public void TryParseNonGeneric_WithStringEnumMemberName_ReturnsStringEnumMember(Type enumType, string enumMemberName, object expectedResult)
         {
             // act
-            var testResult = StringEnum.TryParse(expectedResult.GetType(), enumMemberName, out var actualResult);
+            var testResult = StringEnum.TryParse(enumType, enumMemberName, out var actualResult);
 
             // assert
-            testResult.Should().BeTrue("{0} is the name of a member of {1}", enumMemberName, expectedResult.GetType().Name);
-            actualResult.Should().Be(expectedResult, "{0} is the member having the name {1}", expectedResult, enumMemberName);
+            testResult.Should().BeTrue(IsNameOfMemberReason, enumMemberName, enumType.Name);
+            actualResult.Should().Be(expectedResult, IsMemberHavingNameReason, expectedResult, enumMemberName);
         }
 
         [Theory]
         [ClassData(typeof(TryParseNonGeneric_WithStringEnumMemberValue_TestCaseFactory))]
-        public void TryParseNonGeneric_WithStringEnumMemberValue_ReturnsStringEnumMember(string enumMemberValue, object expectedResult)
+        public void TryParseNonGeneric_WithStringEnumMemberValue_ReturnsStringEnumMember(Type enumType, string enumMemberValue, object expectedResult)
         {
             // act
-            var testResult = StringEnum.TryParse(expectedResult.GetType(), enumMemberValue, out var actualResult);
+            var testResult = StringEnum.TryParse(enumType, enumMemberValue, out var actualResult);
 
             // assert
-            testResult.Should().BeTrue("{0} is the value of a member of {1}", enumMemberValue, expectedResult.GetType().Name);
-            actualResult.Should().Be(expectedResult, "{0} is the member having the value {1}", expectedResult, enumMemberValue);
+            testResult.Should().BeTrue(IsValueOfMemberReason, enumMemberValue, enumType.Name);
+            actualResult.Should().Be(expectedResult, IsMemberHavingValueReason, expectedResult, enumMemberValue);
         }
 
         [Theory]
@@ -765,40 +815,42 @@ namespace DataStandardizer.Core.Tests
             var testResult = StringEnum.TryParse(enumType, value, false, out _);
 
             // assert
-            testResult.Should().BeFalse("{0} does not represent a string enum", nameof(enumType));
+            testResult.Should().BeFalse(NotStringEnumReason, nameof(enumType));
         }
 
         [Theory]
-        [InlineData(typeof(SimpleEnum), "Zero"), InlineData(typeof(SimpleEnum), "0"), InlineData(typeof(ComplexEnum), "Second"), InlineData(typeof(ComplexEnum), "2")]
+        [InlineData(typeof(SimpleEnum), ZeroName), InlineData(typeof(SimpleEnum), SimpleEnumUndefinedValue), InlineData(typeof(ComplexEnum), SecondName), InlineData(typeof(ComplexEnum), ComplexEnumUndefinedValue)]
         public void TryParseNonGenericIgnoreCaseOverload_WithNonStringEnumValue_ReturnsFalse(Type enumType, string value)
         {
             // act
             var testResult = StringEnum.TryParse(enumType, value, false, out _);
 
             // assert
-            testResult.Should().BeFalse("{0} does not represent a member of {1}", value, enumType.Name);
+            testResult.Should().BeFalse(DoesNotRepresentMemberReason, value, enumType.Name);
         }
 
         [Theory]
         [ClassData(typeof(TryParseNonGenericIgnoreCaseOverload_WithStringEnumMemberName_TestCaseFactory))]
-        public void TryParseNonGenericIgnoreCaseOverload_WithStringEnumMemberName_ReturnsStringEnumMember(string enumMemberName, bool ignoreCase, object expectedResult)
+        public void TryParseNonGenericIgnoreCaseOverload_WithStringEnumMemberName_ReturnsStringEnumMember(Type enumType, string enumMemberName, bool ignoreCase, object expectedResult)
         {
             // act
-            var testResult = StringEnum.TryParse(expectedResult.GetType(), enumMemberName, ignoreCase, out var actualResult);
+            var testResult = StringEnum.TryParse(enumType, enumMemberName, ignoreCase, out var actualResult);
 
             // assert
-            testResult.Should().BeTrue("{0} is the name of a member of {1}", enumMemberName, expectedResult.GetType().Name);
+            testResult.Should().BeTrue(IsNameOfMemberReason, enumMemberName, enumType.Name);
+            actualResult.Should().Be(expectedResult, IsMemberHavingNameReason, expectedResult, enumMemberName);
         }
 
         [Theory]
         [ClassData(typeof(TryParseNonGenericIgnoreCaseOverload_WithStringEnumMemberValue_TestCaseFactory))]
-        public void TryParseNonGenericIgnoreCaseOverload_WithStringEnumMemberValue_ReturnsStringEnumMember(string enumMemberValue, bool ignoreCase, object expectedResult)
+        public void TryParseNonGenericIgnoreCaseOverload_WithStringEnumMemberValue_ReturnsStringEnumMember(Type enumType, string enumMemberValue, bool ignoreCase, object expectedResult)
         {
             // act
-            var testResult = StringEnum.TryParse(expectedResult.GetType(), enumMemberValue, ignoreCase, out var actualResult);
+            var testResult = StringEnum.TryParse(enumType, enumMemberValue, ignoreCase, out var actualResult);
 
             // assert
-            testResult.Should().BeTrue("{0} is the value of a member of {1}", enumMemberValue, expectedResult.GetType().Name);
+            testResult.Should().BeTrue(IsValueOfMemberReason, enumMemberValue, enumType.Name);
+            actualResult.Should().Be(expectedResult, IsMemberHavingValueReason, expectedResult, enumMemberValue);
         }
 
         [Theory]
@@ -830,7 +882,7 @@ namespace DataStandardizer.Core.Tests
         public void TryParse_WithMissingMemberNameOnFlatEnum_ReturnsFalse(string testValue)
         {
             // act
-            var result = StringEnum.TryParse(testValue, out ComplexEnum _);
+            var result = StringEnum.TryParse(testValue, out SimpleEnum _);
 
             // assert
             result.Should().BeFalse();
@@ -935,10 +987,10 @@ namespace DataStandardizer.Core.Tests
         {
             public IEnumerator<object[]> GetEnumerator()
             {
-                yield return new object[] { typeof(SimpleEnum), (string)SimpleEnum.One, SimpleEnum.One };
-                yield return new object[] { typeof(ComplexEnum), (string)ComplexEnum.First, ComplexEnum.First };
-                yield return new object[] { typeof(ComplexEnum), (string)ComplexEnum.Animal.Dog, ComplexEnum.Animal.Dog };
-                yield return new object[] { typeof(ComplexEnum), (string)ComplexEnum.Color.Green, ComplexEnum.Color.Green };
+                yield return new object[] { typeof(SimpleEnum), SimpleEnumOneValue, SimpleEnum.One };
+                yield return new object[] { typeof(ComplexEnum), ComplexEnumFirstValue, ComplexEnum.First };
+                yield return new object[] { typeof(ComplexEnum), DogValue, ComplexEnum.Animal.Dog };
+                yield return new object[] { typeof(ComplexEnum), GreenValue, ComplexEnum.Color.Green };
             }
 
             IEnumerator IEnumerable.GetEnumerator()
@@ -951,10 +1003,10 @@ namespace DataStandardizer.Core.Tests
         {
             public IEnumerator<object[]> GetEnumerator()
             {
-                yield return new object[] { (string)SimpleEnum.One, SimpleEnum.One };
-                yield return new object[] { (string)ComplexEnum.First, ComplexEnum.First };
-                yield return new object[] { (string)ComplexEnum.Animal.Bird, ComplexEnum.Animal.Bird };
-                yield return new object[] { (string)ComplexEnum.Color.Blue, ComplexEnum.Color.Blue };
+                yield return new object[] { SimpleEnumOneValue, SimpleEnum.One };
+                yield return new object[] { ComplexEnumFirstValue, ComplexEnum.First };
+                yield return new object[] { BirdValue, ComplexEnum.Animal.Bird };
+                yield return new object[] { BlueValue, ComplexEnum.Color.Blue };
             }
 
             IEnumerator IEnumerable.GetEnumerator()
@@ -983,10 +1035,10 @@ namespace DataStandardizer.Core.Tests
         {
             public IEnumerator<object[]> GetEnumerator()
             {
-                yield return new object[] { typeof(SimpleEnum), (string)SimpleEnum.One, SimpleEnum.One };
-                yield return new object[] { typeof(ComplexEnum), (string)ComplexEnum.First, ComplexEnum.First };
-                yield return new object[] { typeof(ComplexEnum), (string)ComplexEnum.Animal.Bird, ComplexEnum.Animal.Bird };
-                yield return new object[] { typeof(ComplexEnum), (string)ComplexEnum.Color.Red, ComplexEnum.Color.Red };
+                yield return new object[] { typeof(SimpleEnum), SimpleEnumOneValue, SimpleEnum.One };
+                yield return new object[] { typeof(ComplexEnum), ComplexEnumFirstValue, ComplexEnum.First };
+                yield return new object[] { typeof(ComplexEnum), BirdValue, ComplexEnum.Animal.Bird };
+                yield return new object[] { typeof(ComplexEnum), RedValue, ComplexEnum.Color.Red };
             }
 
             IEnumerator IEnumerable.GetEnumerator()
@@ -1015,9 +1067,9 @@ namespace DataStandardizer.Core.Tests
         {
             public IEnumerator<object[]> GetEnumerator()
             {
-                yield return new object[] { typeof(SimpleEnum), (string)SimpleEnum.One, false, SimpleEnum.One };
-                yield return new object[] { typeof(ComplexEnum), (string)ComplexEnum.First, false, ComplexEnum.First };
-                yield return new object[] { typeof(ComplexEnum), (string)ComplexEnum.First, true, ComplexEnum.First };
+                yield return new object[] { typeof(SimpleEnum), SimpleEnumOneValue, false, SimpleEnum.One };
+                yield return new object[] { typeof(ComplexEnum), ComplexEnumFirstValue, false, ComplexEnum.First };
+                yield return new object[] { typeof(ComplexEnum), ComplexEnumFirstValue, true, ComplexEnum.First };
             }
 
             IEnumerator IEnumerable.GetEnumerator()
@@ -1046,10 +1098,10 @@ namespace DataStandardizer.Core.Tests
         {
             public IEnumerator<object[]> GetEnumerator()
             {
-                yield return new object[] { (string)SimpleEnum.One, SimpleEnum.One };
-                yield return new object[] { (string)ComplexEnum.First, ComplexEnum.First };
-                yield return new object[] { (string)ComplexEnum.Animal.Cat, ComplexEnum.Animal.Cat };
-                yield return new object[] { (string)ComplexEnum.Color.Green, ComplexEnum.Color.Green };
+                yield return new object[] { SimpleEnumOneValue, SimpleEnum.One };
+                yield return new object[] { ComplexEnumFirstValue, ComplexEnum.First };
+                yield return new object[] { CatValue, ComplexEnum.Animal.Cat };
+                yield return new object[] { GreenValue, ComplexEnum.Color.Green };
             }
 
             IEnumerator IEnumerable.GetEnumerator()
@@ -1080,10 +1132,10 @@ namespace DataStandardizer.Core.Tests
         {
             public IEnumerator<object[]> GetEnumerator()
             {
-                yield return new object[] { (string)SimpleEnum.One, false, SimpleEnum.One };
-                yield return new object[] { (string)SimpleEnum.One, true, SimpleEnum.One };
-                yield return new object[] { (string)ComplexEnum.First, false, ComplexEnum.First };
-                yield return new object[] { (string)ComplexEnum.First, true, ComplexEnum.First };
+                yield return new object[] { SimpleEnumOneValue, false, SimpleEnum.One };
+                yield return new object[] { SimpleEnumOneValue, true, SimpleEnum.One };
+                yield return new object[] { ComplexEnumFirstValue, false, ComplexEnum.First };
+                yield return new object[] { ComplexEnumFirstValue, true, ComplexEnum.First };
             }
 
             IEnumerator IEnumerable.GetEnumerator()
@@ -1096,10 +1148,10 @@ namespace DataStandardizer.Core.Tests
         {
             public IEnumerator<object[]> GetEnumerator()
             {
-                yield return new object[] { nameof(SimpleEnum.One), SimpleEnum.One };
-                yield return new object[] { nameof(ComplexEnum.First), ComplexEnum.First };
-                yield return new object[] { nameof(ComplexEnum.Animal.Cat), ComplexEnum.Animal.Cat };
-                yield return new object[] { nameof(ComplexEnum.Color.Black), ComplexEnum.Color.Black };
+                yield return new object[] { typeof(SimpleEnum), nameof(SimpleEnum.One), SimpleEnum.One };
+                yield return new object[] { typeof(ComplexEnum), nameof(ComplexEnum.First), ComplexEnum.First };
+                yield return new object[] { typeof(ComplexEnum), nameof(ComplexEnum.Animal.Cat), ComplexEnum.Animal.Cat };
+                yield return new object[] { typeof(ComplexEnum), nameof(ComplexEnum.Color.Black), ComplexEnum.Color.Black };
             }
 
             IEnumerator IEnumerable.GetEnumerator()
@@ -1112,10 +1164,10 @@ namespace DataStandardizer.Core.Tests
         {
             public IEnumerator<object[]> GetEnumerator()
             {
-                yield return new object[] { (string)SimpleEnum.One, SimpleEnum.One };
-                yield return new object[] { (string)ComplexEnum.First, ComplexEnum.First };
-                yield return new object[] { (string)ComplexEnum.Animal.Bird, ComplexEnum.Animal.Bird };
-                yield return new object[] { (string)ComplexEnum.Color.Blue, ComplexEnum.Color.Blue };
+                yield return new object[] { typeof(SimpleEnum), SimpleEnumOneValue, SimpleEnum.One };
+                yield return new object[] { typeof(ComplexEnum), ComplexEnumFirstValue, ComplexEnum.First };
+                yield return new object[] { typeof(ComplexEnum), BirdValue, ComplexEnum.Animal.Bird };
+                yield return new object[] { typeof(ComplexEnum), BlueValue, ComplexEnum.Color.Blue };
             }
 
             IEnumerator IEnumerable.GetEnumerator()
@@ -1128,10 +1180,10 @@ namespace DataStandardizer.Core.Tests
         {
             public IEnumerator<object[]> GetEnumerator()
             {
-                yield return new object[] { nameof(SimpleEnum.One), false, SimpleEnum.One };
-                yield return new object[] { nameof(SimpleEnum.One), true, SimpleEnum.One };
-                yield return new object[] { nameof(ComplexEnum.First), false, ComplexEnum.First };
-                yield return new object[] { nameof(ComplexEnum.First), true, ComplexEnum.First };
+                yield return new object[] { typeof(SimpleEnum), nameof(SimpleEnum.One), false, SimpleEnum.One };
+                yield return new object[] { typeof(SimpleEnum), nameof(SimpleEnum.One), true, SimpleEnum.One };
+                yield return new object[] { typeof(ComplexEnum), nameof(ComplexEnum.First), false, ComplexEnum.First };
+                yield return new object[] { typeof(ComplexEnum), nameof(ComplexEnum.First), true, ComplexEnum.First };
             }
 
             IEnumerator IEnumerable.GetEnumerator()
@@ -1144,10 +1196,10 @@ namespace DataStandardizer.Core.Tests
         {
             public IEnumerator<object[]> GetEnumerator()
             {
-                yield return new object[] { (string)SimpleEnum.One, false, SimpleEnum.One };
-                yield return new object[] { (string)SimpleEnum.One, true, SimpleEnum.One };
-                yield return new object[] { (string)ComplexEnum.First, false, ComplexEnum.First };
-                yield return new object[] { (string)ComplexEnum.First, true, ComplexEnum.First };
+                yield return new object[] { typeof(SimpleEnum), SimpleEnumOneValue, false, SimpleEnum.One };
+                yield return new object[] { typeof(SimpleEnum), SimpleEnumOneValue, true, SimpleEnum.One };
+                yield return new object[] { typeof(ComplexEnum), ComplexEnumFirstValue, false, ComplexEnum.First };
+                yield return new object[] { typeof(ComplexEnum), ComplexEnumFirstValue, true, ComplexEnum.First };
             }
 
             IEnumerator IEnumerable.GetEnumerator()
@@ -1224,9 +1276,9 @@ namespace DataStandardizer.Core.Tests
             {
                 TestData = new (string Name, bool IgnoreCase, SimpleEnum EnumObject)[]
                     {
-                        (nameof(SimpleEnum.One).ToLower(), true, SimpleEnum.One),
+                        ("one", true, SimpleEnum.One),
                         (nameof(SimpleEnum.Two), false, SimpleEnum.Two),
-                        (nameof(SimpleEnum.Three).ToUpper(), true, SimpleEnum.Three)
+                        ("THREE", true, SimpleEnum.Three)
                     }
                     .Select(testCase => new object[] { testCase.Name, testCase.IgnoreCase, testCase.EnumObject });
             }
@@ -1254,9 +1306,9 @@ namespace DataStandardizer.Core.Tests
             {
                 TestData = new (string Name, bool IgnoreCase, ComplexEnum EnumObject)[]
                     {
-                        (nameof(ComplexEnum.First).ToLower(), true, ComplexEnum.First),
+                        ("first", true, ComplexEnum.First),
                         (nameof(ComplexEnum.Animal.Cat), false, ComplexEnum.Animal.Cat),
-                        (nameof(ComplexEnum.Color.Blue).ToUpper(), true, ComplexEnum.Color.Blue)
+                        ("BLUE", true, ComplexEnum.Color.Blue)
                     }
                     .Select(testCase => new object[] { testCase.Name, testCase.IgnoreCase, testCase.EnumObject });
             }
@@ -1282,7 +1334,7 @@ namespace DataStandardizer.Core.Tests
 
             static WithMissingMemberNameOnFlatEnum_TestCaseFactory()
             {
-                TestData = new[] { "Four", "Five", "Six" }.Select(testCase => new object[] { testCase });
+                TestData = new[] { FourName, FiveName, "Six" }.Select(testCase => new object[] { testCase });
             }
 
             #region Implementation of IEnumerable
@@ -1306,7 +1358,7 @@ namespace DataStandardizer.Core.Tests
 
             static WithMissingMemberNameOnHierarchicalEnum_TestCaseFactory()
             {
-                TestData = new[] { "Second", "Fish", "Yellow" }.Select(testCase => new object[] { testCase });
+                TestData = new[] { SecondName, FishName, YellowName }.Select(testCase => new object[] { testCase });
             }
 
             #region Implementation of IEnumerable
@@ -1333,7 +1385,7 @@ namespace DataStandardizer.Core.Tests
                 TestData = new (string Name, bool IgnoreCase)[]
                     {
                         ("four", true),
-                        ("Five", false),
+                        (FiveName, false),
                         ("SIX", true)
                     }
                     .Select(testCase => new object[] { testCase.Name, testCase.IgnoreCase });
@@ -1363,7 +1415,7 @@ namespace DataStandardizer.Core.Tests
                 TestData = new (string Name, bool IgnoreCase)[]
                     {
                         ("second", true),
-                        ("Lizard", false),
+                        (LizardName, false),
                         ("BROWN", true)
                     }
                     .Select(testCase => new object[] { testCase.Name, testCase.IgnoreCase });
@@ -1421,9 +1473,9 @@ namespace DataStandardizer.Core.Tests
 
             #endregion
 
-            public static readonly SimpleEnum One = new SimpleEnum("1");
-            public static readonly SimpleEnum Two = new SimpleEnum("2");
-            public static readonly SimpleEnum Three = new SimpleEnum("3");
+            public static readonly SimpleEnum One = new SimpleEnum(SimpleEnumOneValue);
+            public static readonly SimpleEnum Two = new SimpleEnum(SimpleEnumTwoValue);
+            public static readonly SimpleEnum Three = new SimpleEnum(SimpleEnumThreeValue);
 
             #region Equality members
 
@@ -1580,21 +1632,21 @@ namespace DataStandardizer.Core.Tests
                 return value._value;
             }
 
-            public static readonly ComplexEnum First = new ComplexEnum("1");
+            public static readonly ComplexEnum First = new ComplexEnum(ComplexEnumFirstValue);
 
             public static class Animal
             {
-                public static readonly ComplexEnum Bird = new ComplexEnum("bird");
-                public static readonly ComplexEnum Cat = new ComplexEnum("cat");
-                public static readonly ComplexEnum Dog = new ComplexEnum("dog");
+                public static readonly ComplexEnum Bird = new ComplexEnum(BirdValue);
+                public static readonly ComplexEnum Cat = new ComplexEnum(CatValue);
+                public static readonly ComplexEnum Dog = new ComplexEnum(DogValue);
             }
 
             public static class Color
             {
-                public static readonly ComplexEnum Black = new ComplexEnum("black");
-                public static readonly ComplexEnum Red = new ComplexEnum("red");
-                public static readonly ComplexEnum Green = new ComplexEnum("green");
-                public static readonly ComplexEnum Blue = new ComplexEnum("blue");
+                public static readonly ComplexEnum Black = new ComplexEnum(BlackValue);
+                public static readonly ComplexEnum Red = new ComplexEnum(RedValue);
+                public static readonly ComplexEnum Green = new ComplexEnum(GreenValue);
+                public static readonly ComplexEnum Blue = new ComplexEnum(BlueValue);
             }
 
             #region Equality members
