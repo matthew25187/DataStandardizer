@@ -28,7 +28,7 @@ public class CsvFileRecordLineTests
     }
 
     [Fact]
-    public void GetPropertyValue_SameNamedPropertySetOnDifferentTypes_ReturnsValueSetOnType()
+    public void GetPropertyValue_SameNamedPropertySetOnDifferentTypes_ReturnsValueSetOnFirstType()
     {
         // arrange
         var testLine = new FirstCodeLine { Code = FirstCode };
@@ -39,6 +39,20 @@ public class CsvFileRecordLineTests
 
         // assert
         testResult.Should().Be(FirstCode);
+    }
+
+    [Fact]
+    public void GetPropertyValue_SameNamedPropertySetOnDifferentTypes_ReturnsValueSetOnSecondType()
+    {
+        // arrange
+        _ = new FirstCodeLine { Code = FirstCode };
+        var testLine = new SecondCodeLine { Code = SecondCode };
+
+        // act
+        var testResult = testLine.Code;
+
+        // assert
+        testResult.Should().Be(SecondCode);
     }
 
     [Fact]

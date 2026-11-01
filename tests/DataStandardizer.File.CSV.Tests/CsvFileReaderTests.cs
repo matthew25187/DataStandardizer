@@ -64,6 +64,7 @@ namespace DataStandardizer.File.CSV.Tests
         private const string EmbeddedQuoteLine = "One Two,Three\"Four,Five Six";
         private const string FirstLongRecordLine = "1,One,This is the first";
         private const string TwoRecordsFile = "1,One,First\r\n2,Two,Second";
+        private const string ThreeRecordsWithHeaderFile = "Id,Name,Description\r\n1,One,First\r\n2,Two,Second\r\n3,Three,Third";
 
         // NumbersLine and TwoNumberLinesFile in ASCII.
         private static readonly byte[] NumbersLineBytes = [0x31, 0x2C, 0x32, 0x2C, 0x33];
@@ -481,11 +482,48 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
-        public void ReadLine_SeveralMappedRecordLines_MapsEachLine()
+        public void ReadLine_SeveralMappedRecordLines_MapsFirstLine()
         {
             // arrange
             var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
-            using var csvReader = new CsvFileReader<FirstIndexLine>(new StringReader("Id,Name,Description\r\n1,One,First\r\n2,Two,Second\r\n3,Three,Third"), options);
+            using var csvReader = new CsvFileReader<FirstIndexLine>(new StringReader(ThreeRecordsWithHeaderFile), options);
+            csvReader.RegisterMapper<FirstIndexLineMapper>();
+            _ = csvReader.ReadLine(); // the header line
+
+            // act
+            var testResult = csvReader.ReadLine() as FirstIndexLine;
+
+            // assert
+            testResult!.Id.Should().Be(1);
+            testResult.Name.Should().Be(FirstName);
+            testResult.Description.Should().Be(FirstDescription);
+        }
+
+        [Fact]
+        public void ReadLine_SeveralMappedRecordLines_MapsSecondLine()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using var csvReader = new CsvFileReader<FirstIndexLine>(new StringReader(ThreeRecordsWithHeaderFile), options);
+            csvReader.RegisterMapper<FirstIndexLineMapper>();
+            _ = csvReader.ReadLine(); // the header line
+            _ = csvReader.ReadLine(); // the first record line
+
+            // act
+            var testResult = csvReader.ReadLine() as FirstIndexLine;
+
+            // assert
+            testResult!.Id.Should().Be(2);
+            testResult.Name.Should().Be(SecondName);
+            testResult.Description.Should().Be(SecondDescription);
+        }
+
+        [Fact]
+        public void ReadLine_SeveralMappedRecordLines_MapsThirdLine()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using var csvReader = new CsvFileReader<FirstIndexLine>(new StringReader(ThreeRecordsWithHeaderFile), options);
             csvReader.RegisterMapper<FirstIndexLineMapper>();
             _ = csvReader.ReadLine(); // the header line
             _ = csvReader.ReadLine(); // the first record line
@@ -548,7 +586,23 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
-        public void ReadLine_MapperWithVariableValueGenerators_SetsGeneratedValues()
+        public void ReadLine_MapperWithVariableValueGenerators_SetsGeneratedValuesOnFirstLine()
+        {
+            // arrange
+            using var csvReader = new CsvFileReader<GeneratorLine>(new StringReader(TwoRecordsFile));
+            csvReader.RegisterMapper<GeneratorLineMapper>();
+
+            // act
+            var testResult = csvReader.ReadLine() as GeneratorLine;
+
+            // assert
+            testResult!.Id.Should().Be(GeneratorLineMapper.GeneratedId);
+            testResult.Name.Should().Be(GeneratorLineMapper.GeneratedName);
+            testResult.Description.Should().Be(FirstDescription);
+        }
+
+        [Fact]
+        public void ReadLine_MapperWithVariableValueGenerators_SetsGeneratedValuesOnLaterLine()
         {
             // arrange
             using var csvReader = new CsvFileReader<GeneratorLine>(new StringReader(TwoRecordsFile));
