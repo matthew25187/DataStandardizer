@@ -1,8 +1,5 @@
 ﻿using System;
-using System.IO;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using FluentAssertions;
 using Xunit;
 
@@ -10,7 +7,53 @@ namespace DataStandardizer.File.iCal.Tests
 {
     public class IcalOccurrenceTests
     {
-        private const string NewYork = "America/New_York";
+        private const string NewYork = Rfc5545Examples.NewYorkTimeZoneId;
+        private const string London = "Europe/London";
+        private const string Dublin = "Europe/Dublin";
+
+        // The starts that the tests give their events.
+        private const string March2Start = "DTSTART:20260302T090000Z";
+        private const string March3NoonStart = "DTSTART:20260303T120000Z";
+        private const string March3TenStart = "DTSTART:20260303T100000Z";
+        private const string March7Start = "DTSTART:20260307T090000Z";
+        private const string NewYorkMarch2Start = "DTSTART;TZID=America/New_York:20260302T090000";
+        private const string NewYorkMarch7Start = "DTSTART;TZID=America/New_York:20260307T090000";
+        private const string NewYorkMarch7NoonStart = "DTSTART;TZID=America/New_York:20260307T120000";
+        private const string AllDayMarch1Start = "DTSTART;VALUE=DATE:20260301";
+        private const string AllDayMarch2Start = "DTSTART;VALUE=DATE:20260302";
+        private const string AllDayMarch7Start = "DTSTART;VALUE=DATE:20260307";
+
+        // The values of those starts, and of other instances that the tests expect.
+        private const string March2NineUtc = "20260302T090000Z";
+        private const string March3NineUtc = "20260303T090000Z";
+        private const string March3NoonUtc = "20260303T120000Z";
+        private const string March4NineUtc = "20260304T090000Z";
+        private const string March7NineUtc = "20260307T090000Z";
+        private const string March2NineLocal = "20260302T090000";
+        private const string March3NineLocal = "20260303T090000";
+        private const string March8NoonLocal = "20260308T120000";
+        private const string March2NineNewYorkInUtc = "20260302T140000Z";
+        private const string March2NineToTenLocal = "20260302T090000/20260302T100000";
+        private const string March2 = "20260302";
+        private const string March7 = "20260307";
+
+        private const string March3RecurrenceId = "RECURRENCE-ID:20260303T090000Z";
+        private const string March3ThisAndFutureRecurrenceId = "RECURRENCE-ID;RANGE=THISANDFUTURE:20260303T090000Z";
+        private const string March3ExDate = "EXDATE:20260303T090000Z";
+
+        private const string Daily = "RRULE:FREQ=DAILY";
+        private const string DailyTwice = "RRULE:FREQ=DAILY;COUNT=2";
+        private const string DailyThreeTimes = "RRULE:FREQ=DAILY;COUNT=3";
+        private const string DailyFourTimes = "RRULE:FREQ=DAILY;COUNT=4";
+        private const string WeeklyTwice = "RRULE:FREQ=WEEKLY;COUNT=2";
+        private const string WeeklyThreeTimes = "RRULE:FREQ=WEEKLY;COUNT=3";
+        private const string MonthlyTwice = "RRULE:FREQ=MONTHLY;COUNT=2";
+        private const string TwoMondays = "RRULE:FREQ=WEEKLY;BYDAY=MO;COUNT=2";
+        private const string OneHour = "DURATION:PT1H";
+        private const string HalfAnHour = "DURATION:PT30M";
+        private const string TodoUid = "UID:todo@example.com";
+        private const string BeforeSummary = "Before";
+        private const string AfterSummary = "After";
 
         private static readonly IcalOptions UndefinedTimeZones = new IcalOptions() { AllowUndefinedTimeZones = true };
 
@@ -22,124 +65,174 @@ namespace DataStandardizer.File.iCal.Tests
         /// </summary>
         private static readonly string[] NewYorkTimeZone =
         {
-            "BEGIN:VTIMEZONE", "TZID:America/New_York",
-            "BEGIN:DAYLIGHT", "DTSTART:20070311T020000", "RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU",
-            "TZOFFSETFROM:-0500", "TZOFFSETTO:-0400", "TZNAME:EDT", "END:DAYLIGHT",
-            "BEGIN:STANDARD", "DTSTART:20071104T020000", "RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU",
-            "TZOFFSETFROM:-0400", "TZOFFSETTO:-0500", "TZNAME:EST", "END:STANDARD",
-            "END:VTIMEZONE"
+            IcalLines.BeginTimeZone, "TZID:America/New_York",
+            IcalLines.BeginDaylight, "DTSTART:20070311T020000", "RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU",
+            "TZOFFSETFROM:-0500", "TZOFFSETTO:-0400", "TZNAME:EDT", IcalLines.EndDaylight,
+            IcalLines.BeginStandard, "DTSTART:20071104T020000", "RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU",
+            "TZOFFSETFROM:-0400", "TZOFFSETTO:-0500", "TZNAME:EST", IcalLines.EndStandard,
+            IcalLines.EndTimeZone
         };
 
         #region Time zones
 
-        public static TheoryData<string, string, string, int, int> DaylightSavingChanges => new TheoryData<string, string, string, int, int>()
+        /// <summary>
+        /// A start at 09:00 local time on the day before a change to or from daylight saving time, with the UTC starts and ends of the three
+        /// daily one-hour instances from it.
+        /// </summary>
+        public static TheoryData<string, string, string[], string[]> DaylightSavingChanges => new TheoryData<string, string, string[], string[]>()
         {
-            // The zone, the day before a change, the day after it, and the UTC hour of 09:00 local time before and after.
-            { NewYork, "20260307", "20260309", 14, 13 },
-            { NewYork, "20261031", "20261102", 13, 14 },
-            { "Europe/London", "20260328", "20260330", 9, 8 },
-            { "Europe/London", "20261024", "20261026", 8, 9 },
+            {
+                NewYork, NewYorkMarch7Start,
+                new[] { "20260307T140000Z", "20260308T130000Z", "20260309T130000Z" },
+                new[] { "20260307T150000Z", "20260308T140000Z", "20260309T140000Z" }
+            },
+            {
+                NewYork, "DTSTART;TZID=America/New_York:20261031T090000",
+                new[] { "20261031T130000Z", "20261101T140000Z", "20261102T140000Z" },
+                new[] { "20261031T140000Z", "20261101T150000Z", "20261102T150000Z" }
+            },
+            {
+                London, "DTSTART;TZID=Europe/London:20260328T090000",
+                new[] { "20260328T090000Z", "20260329T080000Z", "20260330T080000Z" },
+                new[] { "20260328T100000Z", "20260329T090000Z", "20260330T090000Z" }
+            },
+            {
+                London, "DTSTART;TZID=Europe/London:20261024T090000",
+                new[] { "20261024T080000Z", "20261025T090000Z", "20261026T090000Z" },
+                new[] { "20261024T090000Z", "20261025T100000Z", "20261026T100000Z" }
+            },
             // Ireland observes a negative daylight saving time: its standard time is in summer, and winter is the "daylight" offset of +00:00.
-            { "Europe/Dublin", "20260328", "20260330", 9, 8 },
-            { "Europe/Dublin", "20261024", "20261026", 8, 9 }
+            {
+                Dublin, "DTSTART;TZID=Europe/Dublin:20260328T090000",
+                new[] { "20260328T090000Z", "20260329T080000Z", "20260330T080000Z" },
+                new[] { "20260328T100000Z", "20260329T090000Z", "20260330T090000Z" }
+            },
+            {
+                Dublin, "DTSTART;TZID=Europe/Dublin:20261024T090000",
+                new[] { "20261024T080000Z", "20261025T090000Z", "20261026T090000Z" },
+                new[] { "20261024T090000Z", "20261025T100000Z", "20261026T100000Z" }
+            },
         };
 
         [Theory]
         [MemberData(nameof(DaylightSavingChanges))]
-        public void GetOccurrences_DailyAcrossADaylightSavingChange_KeepsTheLocalTimeAndMovesTheUtcTime(string zone, string before,
-            string after, int hourBefore, int hourAfter)
+        public void GetOccurrences_DailyAcrossADaylightSavingChange_KeepsTheLocalTimeAndMovesTheUtcTime(string zone, string start,
+            string[] expectedStartsUtc, string[] expectedEndsUtc)
         {
-            var calendar = Read(Event($"DTSTART;TZID={zone}:{before}T090000", "DURATION:PT1H", "RRULE:FREQ=DAILY;COUNT=3"));
+            // arrange
+            var calendar = Read(Event(start, OneHour, DailyThreeTimes));
+            var testEvent = calendar.Events.Single();
 
-            var occurrences = calendar.Events.Single().GetOccurrences(calendar, null, null, CalendarThenTzData).ToList();
+            // act
+            var testResult = testEvent.GetOccurrences(calendar, null, null, CalendarThenTzData).ToList();
 
-            occurrences.Select(occurrence => occurrence.Start.DateTime).Should().OnlyContain(start =>
-                start.Time == new IcalTime(9, 0, 0) && start.TimeZoneId == zone);
-            occurrences[0].StartUtc.Value.Time.Hour.Should().Be(hourBefore);
-            occurrences[2].StartUtc.Value.Time.Hour.Should().Be(hourAfter);
-            occurrences[2].StartUtc.Value.Date.ToString().Should().Be(after);
-            occurrences.Select(occurrence => occurrence.EndUtc.Value.Time.Hour - occurrence.StartUtc.Value.Time.Hour).Should().OnlyContain(
-                hours => hours == 1);
+            // assert
+            testResult.Should().OnlyContain(occurrence => occurrence.Start.DateTime.Time == new IcalTime(9, 0, 0)
+                && occurrence.Start.DateTime.TimeZoneId == zone);
+            testResult.Select(occurrence => occurrence.StartUtc.ToString()).Should().Equal(expectedStartsUtc);
+            testResult.Select(occurrence => occurrence.EndUtc.ToString()).Should().Equal(expectedEndsUtc);
         }
 
         [Fact]
         public void GetOccurrences_DefaultResolver_ReadsTheCalendarsVTimeZone()
         {
-            var calendar = Read(IcalTestData.Lines(NewYorkTimeZone,
-                Event("DTSTART;TZID=America/New_York:20260307T090000", "RRULE:FREQ=DAILY;COUNT=3")));
+            // arrange
+            var calendar = Read(IcalTestData.Lines(NewYorkTimeZone, Event(NewYorkMarch7Start, DailyThreeTimes)));
+            var testEvent = calendar.Events.Single();
 
-            var starts = calendar.Events.Single().GetOccurrences(calendar, null, null).Select(occurrence => occurrence.StartUtc.ToString());
+            // act
+            var testResult = testEvent.GetOccurrences(calendar, null, null).ToList();
 
-            starts.Should().Equal("20260307T140000Z", "20260308T130000Z", "20260309T130000Z");
+            // assert
+            testResult.Select(occurrence => occurrence.StartUtc.ToString()).Should().Equal("20260307T140000Z", "20260308T130000Z", "20260309T130000Z");
         }
 
         [Fact]
         public void GetOccurrences_DefaultResolver_WithoutAVTimeZone_Throws()
         {
-            var calendar = Read(Event("DTSTART;TZID=America/New_York:20260307T090000"));
+            // arrange
+            var calendar = Read(Event(NewYorkMarch7Start));
+            var testEvent = calendar.Events.Single();
 
-            Action act = () => calendar.Events.Single().GetOccurrences(calendar, null, null);
+            // act
+            Action testAction = () => testEvent.GetOccurrences(calendar, null, null);
 
-            act.Should().Throw<IcalFileException>().WithMessage("*'America/New_York'*");
+            // assert
+            testAction.Should().Throw<IcalFileException>().WithMessage("*'America/New_York'*");
         }
 
         [Fact]
         public void GetOccurrences_TimeInADaylightSavingGap_IsReadWithTheOffsetBeforeTheGap()
         {
-            // ref. RFC 5545§3.3.5: 02:30 does not exist on 2026-03-08 in New York, so it is read as 02:30 EST, which is 03:30 EDT.
-            var calendar = Read(Event("DTSTART;TZID=America/New_York:20260307T023000", "RRULE:FREQ=DAILY;COUNT=3"));
+            // arrange: ref. RFC 5545 §3.3.5: 02:30 does not exist on 2026-03-08 in New York, so it is read as 02:30 EST, which is 03:30 EDT.
+            var calendar = Read(Event("DTSTART;TZID=America/New_York:20260307T023000", DailyThreeTimes));
+            var testEvent = calendar.Events.Single();
 
-            var occurrences = calendar.Events.Single().GetOccurrences(calendar, null, null, CalendarThenTzData).ToList();
+            // act
+            var testResult = testEvent.GetOccurrences(calendar, null, null, CalendarThenTzData).ToList();
 
-            occurrences.Select(occurrence => occurrence.Start.ToString()).Should().Equal("20260307T023000", "20260308T023000", "20260309T023000");
-            occurrences.Select(occurrence => occurrence.StartUtc.ToString()).Should().Equal(
-                "20260307T073000Z", "20260308T073000Z", "20260309T063000Z");
+            // assert
+            testResult.Select(occurrence => occurrence.Start.ToString()).Should().Equal("20260307T023000", "20260308T023000", "20260309T023000");
+            testResult.Select(occurrence => occurrence.StartUtc.ToString()).Should().Equal("20260307T073000Z", "20260308T073000Z", "20260309T063000Z");
         }
 
         [Fact]
         public void GetOccurrences_TimeInADaylightSavingOverlap_TakesItsFirstOccurrence()
         {
-            // ref. RFC 5545§3.3.5: 01:30 happens twice on 2026-11-01 in New York; the first, in EDT, is 05:30 UTC.
-            var calendar = Read(Event("DTSTART;TZID=America/New_York:20261031T013000", "RRULE:FREQ=DAILY;COUNT=3"));
+            // arrange: ref. RFC 5545 §3.3.5: 01:30 happens twice on 2026-11-01 in New York; the first, in EDT, is 05:30 UTC.
+            var calendar = Read(Event("DTSTART;TZID=America/New_York:20261031T013000", DailyThreeTimes));
+            var testEvent = calendar.Events.Single();
 
-            var starts = calendar.Events.Single().GetOccurrences(calendar, null, null, CalendarThenTzData)
-                .Select(occurrence => occurrence.StartUtc.ToString());
+            // act
+            var testResult = testEvent.GetOccurrences(calendar, null, null, CalendarThenTzData).ToList();
 
-            starts.Should().Equal("20261031T053000Z", "20261101T053000Z", "20261102T063000Z");
+            // assert
+            testResult.Select(occurrence => occurrence.StartUtc.ToString()).Should().Equal("20261031T053000Z", "20261101T053000Z", "20261102T063000Z");
         }
 
         [Fact]
         public void GetOccurrences_FloatingTime_StaysFloating()
         {
-            var calendar = Read(Event("DTSTART:20260307T090000", "DTEND:20260307T100000", "RRULE:FREQ=DAILY;COUNT=2"));
+            // arrange
+            var calendar = Read(Event("DTSTART:20260307T090000", "DTEND:20260307T100000", DailyTwice));
+            var testEvent = calendar.Events.Single();
 
-            var occurrences = calendar.Events.Single().GetOccurrences(calendar, null, null).ToList();
+            // act
+            var testResult = testEvent.GetOccurrences(calendar, null, null).ToList();
 
-            occurrences.Select(occurrence => occurrence.Start.DateTime.Kind).Should().OnlyContain(kind => kind == IcalDateTimeKind.Floating);
-            occurrences.Select(occurrence => occurrence.End.Value.ToString()).Should().Equal("20260307T100000", "20260308T100000");
-            occurrences.Should().OnlyContain(occurrence => occurrence.StartUtc == null && occurrence.EndUtc == null);
+            // assert
+            testResult.Should().OnlyContain(occurrence => occurrence.Start.DateTime.Kind == IcalDateTimeKind.Floating);
+            testResult.Select(occurrence => occurrence.End.Value.ToString()).Should().Equal("20260307T100000", "20260308T100000");
+            testResult.Should().OnlyContain(occurrence => occurrence.StartUtc == null && occurrence.EndUtc == null);
         }
 
         [Fact]
         public void GetOccurrences_UtcTime_StaysInUtc()
         {
-            var calendar = Read(Event("DTSTART:20260307T090000Z", "DURATION:PT30M", "RRULE:FREQ=WEEKLY;COUNT=2"));
+            // arrange
+            var calendar = Read(Event(March7Start, HalfAnHour, WeeklyTwice));
+            var testEvent = calendar.Events.Single();
 
-            var occurrences = calendar.Events.Single().GetOccurrences(calendar, null, null).ToList();
+            // act
+            var testResult = testEvent.GetOccurrences(calendar, null, null).ToList();
 
-            occurrences.Select(occurrence => occurrence.StartUtc.ToString()).Should().Equal("20260307T090000Z", "20260314T090000Z");
-            occurrences.Select(occurrence => occurrence.End.Value.ToString()).Should().Equal("20260307T093000Z", "20260314T093000Z");
+            // assert
+            testResult.Select(occurrence => occurrence.StartUtc.ToString()).Should().Equal(March7NineUtc, "20260314T090000Z");
+            testResult.Select(occurrence => occurrence.End.Value.ToString()).Should().Equal("20260307T093000Z", "20260314T093000Z");
         }
 
         [Fact]
         public void GetOccurrences_UntilInUtcWithAZonedStart_ComparesTheInstant()
         {
-            // 09:00 EDT on 2026-03-10 is 13:00 UTC, after the UNTIL, so the last instance is on the 9th.
-            var calendar = Read(Event("DTSTART;TZID=America/New_York:20260307T090000", "RRULE:FREQ=DAILY;UNTIL=20260310T125959Z"));
+            // arrange: 09:00 EDT on 2026-03-10 is 13:00 UTC, after the UNTIL, so the last instance is on the 9th.
+            var calendar = Read(Event(NewYorkMarch7Start, "RRULE:FREQ=DAILY;UNTIL=20260310T125959Z"));
+            var testEvent = calendar.Events.Single();
 
-            var starts = calendar.Events.Single().GetOccurrences(calendar, null, null, CalendarThenTzData).Select(occurrence => occurrence.Start.ToString());
+            // act
+            var testResult = testEvent.GetOccurrences(calendar, null, null, CalendarThenTzData).ToList();
 
-            starts.Should().Equal("20260307T090000", "20260308T090000", "20260309T090000");
+            // assert
+            testResult.Select(occurrence => occurrence.Start.ToString()).Should().Equal("20260307T090000", "20260308T090000", "20260309T090000");
         }
 
         #endregion
@@ -147,65 +240,92 @@ namespace DataStandardizer.File.iCal.Tests
         #region Durations
 
         [Fact]
-        public void GetOccurrences_NominalAndExactDurations_DifferAcrossADaylightSavingChange()
+        public void GetOccurrences_NominalDayAcrossADaylightSavingChange_KeepsTheLocalTime()
         {
-            var nominal = Read(Event("DTSTART;TZID=America/New_York:20260307T120000", "DURATION:P1D"));
-            var exact = Read(Event("DTSTART;TZID=America/New_York:20260307T120000", "DURATION:PT24H"));
+            // arrange: a nominal day keeps 12:00 local time, so it is 23 hours long.
+            var calendar = Read(Event(NewYorkMarch7NoonStart, "DURATION:P1D"));
+            var testEvent = calendar.Events.Single();
 
-            var nominalOccurrence = nominal.Events.Single().GetOccurrences(nominal, null, null, CalendarThenTzData).Single();
-            var exactOccurrence = exact.Events.Single().GetOccurrences(exact, null, null, CalendarThenTzData).Single();
+            // act
+            var testResult = testEvent.GetOccurrences(calendar, null, null, CalendarThenTzData).ToList();
 
-            // A nominal day keeps 12:00 local time, so it is 23 hours long; 24 exact hours end at 13:00 EDT.
-            nominalOccurrence.End.ToString().Should().Be("20260308T120000");
-            nominalOccurrence.EndUtc.ToString().Should().Be("20260308T160000Z");
-            exactOccurrence.End.ToString().Should().Be("20260308T130000");
-            exactOccurrence.EndUtc.ToString().Should().Be("20260308T170000Z");
-            exactOccurrence.End.Value.DateTime.TimeZoneId.Should().Be(NewYork);
+            // assert
+            testResult.Select(occurrence => occurrence.End.ToString()).Should().Equal(March8NoonLocal);
+            testResult.Select(occurrence => occurrence.EndUtc.ToString()).Should().Equal("20260308T160000Z");
+        }
+
+        [Fact]
+        public void GetOccurrences_ExactDayAcrossADaylightSavingChange_KeepsTheExactTime()
+        {
+            // arrange: 24 exact hours end at 13:00 EDT.
+            var calendar = Read(Event(NewYorkMarch7NoonStart, "DURATION:PT24H"));
+            var testEvent = calendar.Events.Single();
+
+            // act
+            var testResult = testEvent.GetOccurrences(calendar, null, null, CalendarThenTzData).ToList();
+
+            // assert
+            testResult.Select(occurrence => occurrence.End.ToString()).Should().Equal("20260308T130000");
+            testResult.Select(occurrence => occurrence.EndUtc.ToString()).Should().Equal("20260308T170000Z");
+            testResult.Should().OnlyContain(occurrence => occurrence.End.Value.DateTime.TimeZoneId == NewYork);
         }
 
         [Fact]
         public void GetOccurrences_NominalDurationWithAnExactPart_AddsTheExactPartAfterTheDays()
         {
-            var calendar = Read(Event("DTSTART;TZID=America/New_York:20260307T120000", "DURATION:P1DT2H"));
+            // arrange
+            var calendar = Read(Event(NewYorkMarch7NoonStart, "DURATION:P1DT2H"));
+            var testEvent = calendar.Events.Single();
 
-            var occurrence = calendar.Events.Single().GetOccurrences(calendar, null, null, CalendarThenTzData).Single();
+            // act
+            var testResult = testEvent.GetOccurrences(calendar, null, null, CalendarThenTzData).ToList();
 
-            occurrence.End.ToString().Should().Be("20260308T140000");
-            occurrence.EndUtc.ToString().Should().Be("20260308T180000Z");
+            // assert
+            testResult.Select(occurrence => occurrence.End.ToString()).Should().Equal("20260308T140000");
+            testResult.Select(occurrence => occurrence.EndUtc.ToString()).Should().Equal("20260308T180000Z");
         }
 
         [Fact]
         public void GetOccurrences_DtEnd_GivesEveryInstanceTheSameExactDuration()
         {
-            // ref. RFC 5545§3.8.5.3: DTEND gives the first instance 23 exact hours, across the change, and so every instance.
-            var calendar = Read(Event("DTSTART;TZID=America/New_York:20260307T120000", "DTEND;TZID=America/New_York:20260308T120000",
-                "RRULE:FREQ=DAILY;COUNT=2"));
+            // arrange: ref. RFC 5545 §3.8.5.3: DTEND gives the first instance 23 exact hours, across the change, and so every instance.
+            var calendar = Read(Event(NewYorkMarch7NoonStart, "DTEND;TZID=America/New_York:20260308T120000", DailyTwice));
+            var testEvent = calendar.Events.Single();
 
-            var occurrences = calendar.Events.Single().GetOccurrences(calendar, null, null, CalendarThenTzData).ToList();
+            // act
+            var testResult = testEvent.GetOccurrences(calendar, null, null, CalendarThenTzData).ToList();
 
-            occurrences.Select(occurrence => occurrence.End.ToString()).Should().Equal("20260308T120000", "20260309T110000");
+            // assert
+            testResult.Select(occurrence => occurrence.End.ToString()).Should().Equal(March8NoonLocal, "20260309T110000");
         }
 
         [Fact]
         public void GetOccurrences_DtEndInAnotherTimeZone_EndsInThatTimeZone()
         {
-            var calendar = Read(Event("DTSTART;TZID=America/New_York:20260601T090000", "DTEND;TZID=Europe/London:20260601T160000",
-                "RRULE:FREQ=WEEKLY;COUNT=2"));
+            // arrange
+            var calendar = Read(Event("DTSTART;TZID=America/New_York:20260601T090000", "DTEND;TZID=Europe/London:20260601T160000", WeeklyTwice));
+            var testEvent = calendar.Events.Single();
 
-            var occurrences = calendar.Events.Single().GetOccurrences(calendar, null, null, CalendarThenTzData).ToList();
+            // act
+            var testResult = testEvent.GetOccurrences(calendar, null, null, CalendarThenTzData).ToList();
 
-            occurrences.Select(occurrence => occurrence.End.Value.DateTime.TimeZoneId).Should().OnlyContain(zone => zone == "Europe/London");
-            occurrences.Select(occurrence => occurrence.End.ToString()).Should().Equal("20260601T160000", "20260608T160000");
+            // assert
+            testResult.Should().OnlyContain(occurrence => occurrence.End.Value.DateTime.TimeZoneId == London);
+            testResult.Select(occurrence => occurrence.End.ToString()).Should().Equal("20260601T160000", "20260608T160000");
         }
 
         [Fact]
         public void GetOccurrences_EventWithNeitherDtEndNorDuration_EndsAtItsStart()
         {
-            var calendar = Read(Event("DTSTART;TZID=America/New_York:20260307T090000", "RRULE:FREQ=DAILY;COUNT=2"));
+            // arrange
+            var calendar = Read(Event(NewYorkMarch7Start, DailyTwice));
+            var testEvent = calendar.Events.Single();
 
-            var occurrences = calendar.Events.Single().GetOccurrences(calendar, null, null, CalendarThenTzData).ToList();
+            // act
+            var testResult = testEvent.GetOccurrences(calendar, null, null, CalendarThenTzData).ToList();
 
-            occurrences.Should().OnlyContain(occurrence => occurrence.End == occurrence.Start && occurrence.EndUtc == occurrence.StartUtc);
+            // assert
+            testResult.Should().OnlyContain(occurrence => occurrence.End == occurrence.Start && occurrence.EndUtc == occurrence.StartUtc);
         }
 
         #endregion
@@ -215,35 +335,47 @@ namespace DataStandardizer.File.iCal.Tests
         [Fact]
         public void GetOccurrences_AllDayEvent_StaysADate()
         {
-            var calendar = Read(Event("DTSTART;VALUE=DATE:20260301", "RRULE:FREQ=WEEKLY;COUNT=3"));
+            // arrange
+            var calendar = Read(Event(AllDayMarch1Start, WeeklyThreeTimes));
+            var testEvent = calendar.Events.Single();
 
-            var occurrences = calendar.Events.Single().GetOccurrences(calendar, null, null).ToList();
+            // act
+            var testResult = testEvent.GetOccurrences(calendar, null, null).ToList();
 
-            occurrences.Should().OnlyContain(occurrence => occurrence.Start.IsDate && occurrence.End.Value.IsDate &&
-                                                           occurrence.StartUtc == null && occurrence.EndUtc == null);
-            occurrences.Select(occurrence => occurrence.ToString()).Should().Equal(
-                "20260301/20260302", "20260308/20260309", "20260315/20260316");
+            // assert
+            testResult.Should().OnlyContain(occurrence => occurrence.Start.IsDate && occurrence.End.Value.IsDate &&
+                                                          occurrence.StartUtc == null && occurrence.EndUtc == null);
+            testResult.Select(occurrence => occurrence.ToString()).Should().Equal("20260301/20260302", "20260308/20260309", "20260315/20260316");
         }
 
         [Fact]
         public void GetOccurrences_AllDayEventWithDtEnd_KeepsItsNumberOfDays()
         {
-            var calendar = Read(Event("DTSTART;VALUE=DATE:20260301", "DTEND;VALUE=DATE:20260304", "RRULE:FREQ=MONTHLY;COUNT=2"));
+            // arrange
+            var calendar = Read(Event(AllDayMarch1Start, "DTEND;VALUE=DATE:20260304", MonthlyTwice));
+            var testEvent = calendar.Events.Single();
 
-            var ends = calendar.Events.Single().GetOccurrences(calendar, null, null).Select(occurrence => occurrence.End.ToString());
+            // act
+            var testResult = testEvent.GetOccurrences(calendar, null, null).ToList();
 
-            ends.Should().Equal("20260304", "20260404");
+            // assert
+            testResult.Select(occurrence => occurrence.End.ToString()).Should().Equal("20260304", "20260404");
         }
 
         [Fact]
         public void GetOccurrences_AllDayEventWithAWindowInUtc_ComparesTheDate()
         {
-            var calendar = Read(Event("DTSTART;VALUE=DATE:20260301", "RRULE:FREQ=DAILY"));
+            // arrange
+            var calendar = Read(Event(AllDayMarch1Start, Daily));
+            var testEvent = calendar.Events.Single();
+            var from = Utc("20260305T000000Z");
+            var to = Utc("20260308T000000Z");
 
-            var starts = calendar.Events.Single().GetOccurrences(calendar, Utc("20260305T000000Z"), Utc("20260308T000000Z"))
-                .Select(occurrence => occurrence.Start.ToString());
+            // act
+            var testResult = testEvent.GetOccurrences(calendar, from, to).ToList();
 
-            starts.Should().Equal("20260305", "20260306", "20260307");
+            // assert
+            testResult.Select(occurrence => occurrence.Start.ToString()).Should().Equal("20260305", "20260306", March7);
         }
 
         #endregion
@@ -253,130 +385,173 @@ namespace DataStandardizer.File.iCal.Tests
         [Fact]
         public void GetOccurrences_DtStartThatTheRuleDoesNotGive_IsTheFirstInstance()
         {
-            // ref. RFC 5545§3.3.10: DTSTART on a Saturday is an instance, although the rule gives only Mondays, and counts towards COUNT.
-            var calendar = Read(Event("DTSTART:20260307T090000Z", "RRULE:FREQ=WEEKLY;BYDAY=MO;COUNT=2"));
+            // arrange: ref. RFC 5545 §3.3.10: DTSTART on a Saturday is an instance, although the rule gives only Mondays, and counts towards COUNT.
+            var calendar = Read(Event(March7Start, TwoMondays));
+            var testEvent = calendar.Events.Single();
 
-            var starts = calendar.Events.Single().GetOccurrences(calendar, null, null).Select(occurrence => occurrence.Start.ToString());
+            // act
+            var testResult = testEvent.GetOccurrences(calendar, null, null).ToList();
 
-            starts.Should().Equal("20260307T090000Z", "20260309T090000Z");
+            // assert
+            testResult.Select(occurrence => occurrence.Start.ToString()).Should().Equal(March7NineUtc, "20260309T090000Z");
         }
 
         [Fact]
         public void GetOccurrences_RuleThatGivesDtStart_CountsItOnce()
         {
-            var calendar = Read(Event("DTSTART:20260309T090000Z", "RRULE:FREQ=WEEKLY;BYDAY=MO;COUNT=2"));
+            // arrange
+            var calendar = Read(Event("DTSTART:20260309T090000Z", TwoMondays));
+            var testEvent = calendar.Events.Single();
 
-            var starts = calendar.Events.Single().GetOccurrences(calendar, null, null).Select(occurrence => occurrence.Start.ToString());
+            // act
+            var testResult = testEvent.GetOccurrences(calendar, null, null).ToList();
 
-            starts.Should().Equal("20260309T090000Z", "20260316T090000Z");
+            // assert
+            testResult.Select(occurrence => occurrence.Start.ToString()).Should().Equal("20260309T090000Z", "20260316T090000Z");
         }
 
         [Fact]
         public void GetOccurrences_CountOfOneThatDoesNotGiveDtStart_GivesOnlyDtStart()
         {
-            var calendar = Read(Event("DTSTART;VALUE=DATE:20260307", "RRULE:FREQ=WEEKLY;BYDAY=MO;COUNT=1"));
+            // arrange
+            var calendar = Read(Event(AllDayMarch7Start, "RRULE:FREQ=WEEKLY;BYDAY=MO;COUNT=1"));
+            var testEvent = calendar.Events.Single();
 
-            var starts = calendar.Events.Single().GetOccurrences(calendar, null, null).Select(occurrence => occurrence.Start.ToString());
+            // act
+            var testResult = testEvent.GetOccurrences(calendar, null, null).ToList();
 
-            starts.Should().Equal("20260307");
+            // assert
+            testResult.Select(occurrence => occurrence.Start.ToString()).Should().Equal(March7);
         }
 
         [Fact]
         public void GetOccurrences_AllDayDtStartThatTheRuleDoesNotGive_CountsTowardsCount()
         {
-            var calendar = Read(Event("DTSTART;VALUE=DATE:20260307", "RRULE:FREQ=WEEKLY;BYDAY=MO;COUNT=3"));
+            // arrange
+            var calendar = Read(Event(AllDayMarch7Start, "RRULE:FREQ=WEEKLY;BYDAY=MO;COUNT=3"));
+            var testEvent = calendar.Events.Single();
 
-            var starts = calendar.Events.Single().GetOccurrences(calendar, null, null).Select(occurrence => occurrence.Start.ToString());
+            // act
+            var testResult = testEvent.GetOccurrences(calendar, null, null).ToList();
 
-            starts.Should().Equal("20260307", "20260309", "20260316");
+            // assert
+            testResult.Select(occurrence => occurrence.Start.ToString()).Should().Equal(March7, "20260309", "20260316");
         }
 
         [Fact]
         public void GetOccurrences_NonRecurringEvent_GivesOneInstance()
         {
-            var calendar = Read(Event("DTSTART:20260307T090000Z", "DTEND:20260307T100000Z"));
+            // arrange
+            var calendar = Read(Event(March7Start, "DTEND:20260307T100000Z"));
+            var testEvent = calendar.Events.Single();
 
-            var occurrence = calendar.Events.Single().GetOccurrences(calendar, null, null).Single();
+            // act
+            var testResult = testEvent.GetOccurrences(calendar, null, null).ToList();
 
-            occurrence.ToString().Should().Be("20260307T090000Z/20260307T100000Z");
-            occurrence.RecurrenceId.Should().Be(occurrence.Start);
-            occurrence.IsOverride.Should().BeFalse();
-            occurrence.Component.Should().BeSameAs(calendar.Events.Single());
+            // assert
+            testResult.Select(occurrence => occurrence.ToString()).Should().Equal("20260307T090000Z/20260307T100000Z");
+            testResult.Should().OnlyContain(occurrence => occurrence.RecurrenceId == occurrence.Start && !occurrence.IsOverride
+                && occurrence.Component == testEvent);
         }
 
         [Fact]
         public void GetOccurrences_RDatePeriod_GivesTheInstanceItsOwnEnd()
         {
-            var calendar = Read(Event("DTSTART:20260302T090000Z", "DURATION:PT1H", "RRULE:FREQ=WEEKLY;COUNT=2",
-                "RDATE;VALUE=PERIOD:20260304T140000Z/20260304T170000Z,20260305T080000Z/PT30M"));
+            // arrange
+            var calendar = Read(Event(March2Start, OneHour, WeeklyTwice, "RDATE;VALUE=PERIOD:20260304T140000Z/20260304T170000Z,20260305T080000Z/PT30M"));
+            var testEvent = calendar.Events.Single();
 
-            var occurrences = calendar.Events.Single().GetOccurrences(calendar, null, null).Select(occurrence => occurrence.ToString());
+            // act
+            var testResult = testEvent.GetOccurrences(calendar, null, null).ToList();
 
-            occurrences.Should().Equal("20260302T090000Z/20260302T100000Z", "20260304T140000Z/20260304T170000Z",
-                "20260305T080000Z/20260305T083000Z", "20260309T090000Z/20260309T100000Z");
+            // assert
+            testResult.Select(occurrence => occurrence.ToString()).Should().Equal("20260302T090000Z/20260302T100000Z",
+                "20260304T140000Z/20260304T170000Z", "20260305T080000Z/20260305T083000Z", "20260309T090000Z/20260309T100000Z");
         }
 
         [Fact]
         public void GetOccurrences_RDateDatesAndDateTimes_AreAddedInOrder()
         {
-            var calendar = Read(Event("DTSTART;TZID=America/New_York:20260302T090000", "RDATE;TZID=America/New_York:20260310T090000,20260303T090000",
-                "RDATE:20260305T120000Z"));
+            // arrange
+            var calendar = Read(Event(NewYorkMarch2Start, "RDATE;TZID=America/New_York:20260310T090000,20260303T090000", "RDATE:20260305T120000Z"));
+            var testEvent = calendar.Events.Single();
 
-            var starts = calendar.Events.Single().GetOccurrences(calendar, null, null, CalendarThenTzData)
-                .Select(occurrence => occurrence.StartUtc.ToString());
+            // act
+            var testResult = testEvent.GetOccurrences(calendar, null, null, CalendarThenTzData).ToList();
 
-            starts.Should().Equal("20260302T140000Z", "20260303T140000Z", "20260305T120000Z", "20260310T130000Z");
+            // assert
+            testResult.Select(occurrence => occurrence.StartUtc.ToString()).Should()
+                .Equal(March2NineNewYorkInUtc, "20260303T140000Z", "20260305T120000Z", "20260310T130000Z");
         }
 
         [Fact]
         public void GetOccurrences_InstanceGivenMoreThanOnce_AppearsOnce()
         {
-            var calendar = Read(Event("DTSTART:20260302T090000Z", "RRULE:FREQ=DAILY;COUNT=3", "RDATE:20260303T090000Z,20260302T090000Z"));
+            // arrange
+            var calendar = Read(Event(March2Start, DailyThreeTimes, "RDATE:20260303T090000Z,20260302T090000Z"));
+            var testEvent = calendar.Events.Single();
 
-            var starts = calendar.Events.Single().GetOccurrences(calendar, null, null).Select(occurrence => occurrence.Start.ToString());
+            // act
+            var testResult = testEvent.GetOccurrences(calendar, null, null).ToList();
 
-            starts.Should().Equal("20260302T090000Z", "20260303T090000Z", "20260304T090000Z");
+            // assert
+            testResult.Select(occurrence => occurrence.Start.ToString()).Should().Equal(March2NineUtc, March3NineUtc, March4NineUtc);
         }
 
         [Fact]
         public void GetOccurrences_ExDate_RemovesTheDtStartInstance()
         {
-            var calendar = Read(Event("DTSTART;TZID=America/New_York:20260302T090000", "RRULE:FREQ=DAILY;COUNT=3",
-                "EXDATE;TZID=America/New_York:20260302T090000"));
+            // arrange
+            var calendar = Read(Event(NewYorkMarch2Start, DailyThreeTimes, "EXDATE;TZID=America/New_York:20260302T090000"));
+            var testEvent = calendar.Events.Single();
 
-            var starts = calendar.Events.Single().GetOccurrences(calendar, null, null, CalendarThenTzData).Select(occurrence => occurrence.Start.ToString());
+            // act
+            var testResult = testEvent.GetOccurrences(calendar, null, null, CalendarThenTzData).ToList();
 
-            starts.Should().Equal("20260303T090000", "20260304T090000");
+            // assert
+            testResult.Select(occurrence => occurrence.Start.ToString()).Should().Equal(March3NineLocal, "20260304T090000");
         }
 
         [Fact]
         public void GetOccurrences_ExDateInUtc_RemovesTheZonedInstanceAtThatInstant()
         {
-            var calendar = Read(Event("DTSTART;TZID=America/New_York:20260302T090000", "RRULE:FREQ=DAILY;COUNT=3", "EXDATE:20260303T140000Z"));
+            // arrange
+            var calendar = Read(Event(NewYorkMarch2Start, DailyThreeTimes, "EXDATE:20260303T140000Z"));
+            var testEvent = calendar.Events.Single();
 
-            var starts = calendar.Events.Single().GetOccurrences(calendar, null, null, CalendarThenTzData).Select(occurrence => occurrence.Start.ToString());
+            // act
+            var testResult = testEvent.GetOccurrences(calendar, null, null, CalendarThenTzData).ToList();
 
-            starts.Should().Equal("20260302T090000", "20260304T090000");
+            // assert
+            testResult.Select(occurrence => occurrence.Start.ToString()).Should().Equal(March2NineLocal, "20260304T090000");
         }
 
         [Fact]
         public void GetOccurrences_ExDateAsADate_RemovesEveryInstanceOnThatDate()
         {
-            var calendar = Read(Event("DTSTART:20260302T090000Z", "RRULE:FREQ=HOURLY;INTERVAL=8;COUNT=6", "EXDATE;VALUE=DATE:20260303"));
+            // arrange
+            var calendar = Read(Event(March2Start, "RRULE:FREQ=HOURLY;INTERVAL=8;COUNT=6", "EXDATE;VALUE=DATE:20260303"));
+            var testEvent = calendar.Events.Single();
 
-            var starts = calendar.Events.Single().GetOccurrences(calendar, null, null).Select(occurrence => occurrence.Start.ToString());
+            // act
+            var testResult = testEvent.GetOccurrences(calendar, null, null).ToList();
 
-            starts.Should().Equal("20260302T090000Z", "20260302T170000Z", "20260304T010000Z");
+            // assert
+            testResult.Select(occurrence => occurrence.Start.ToString()).Should().Equal(March2NineUtc, "20260302T170000Z", "20260304T010000Z");
         }
 
         [Fact]
         public void GetOccurrences_ExDate_RemovesAnRDateInstance()
         {
-            var calendar = Read(Event("DTSTART:20260302T090000Z", "RDATE:20260303T090000Z,20260304T090000Z", "EXDATE:20260303T090000Z"));
+            // arrange
+            var calendar = Read(Event(March2Start, "RDATE:20260303T090000Z,20260304T090000Z", March3ExDate));
+            var testEvent = calendar.Events.Single();
 
-            var starts = calendar.Events.Single().GetOccurrences(calendar, null, null).Select(occurrence => occurrence.Start.ToString());
+            // act
+            var testResult = testEvent.GetOccurrences(calendar, null, null).ToList();
 
-            starts.Should().Equal("20260302T090000Z", "20260304T090000Z");
+            // assert
+            testResult.Select(occurrence => occurrence.Start.ToString()).Should().Equal(March2NineUtc, March4NineUtc);
         }
 
         #endregion
@@ -386,189 +561,228 @@ namespace DataStandardizer.File.iCal.Tests
         [Fact]
         public void GetOccurrences_Override_ReplacesTheInstanceItNames()
         {
+            // arrange
             var calendar = Read(IcalTestData.Lines(
-                Event("DTSTART;TZID=America/New_York:20260302T090000", "DURATION:PT1H", "RRULE:FREQ=DAILY;COUNT=3", "SUMMARY:Stand-up"),
-                Override("RECURRENCE-ID;TZID=America/New_York:20260303T090000", "DTSTART;TZID=America/New_York:20260303T113000",
-                    "DURATION:PT30M", "SUMMARY:Moved")));
+                Event(NewYorkMarch2Start, OneHour, DailyThreeTimes, "SUMMARY:Stand-up"),
+                Override("RECURRENCE-ID;TZID=America/New_York:20260303T090000", "DTSTART;TZID=America/New_York:20260303T113000", HalfAnHour,
+                    "SUMMARY:Moved")));
             var master = calendar.Events.First();
 
-            var occurrences = master.GetOccurrences(calendar, null, null, CalendarThenTzData).ToList();
+            // act
+            var testResult = master.GetOccurrences(calendar, null, null, CalendarThenTzData).ToList();
 
-            occurrences.Select(occurrence => occurrence.ToString()).Should().Equal(
-                "20260302T090000/20260302T100000", "20260303T113000/20260303T120000", "20260304T090000/20260304T100000");
-            occurrences.Select(occurrence => occurrence.Component.Summary).Should().Equal("Stand-up", "Moved", "Stand-up");
-            occurrences.Select(occurrence => occurrence.IsOverride).Should().Equal(false, true, false);
-            occurrences[1].RecurrenceId.ToString().Should().Be("20260303T090000");
+            // assert
+            testResult.Select(occurrence => occurrence.ToString()).Should().Equal(
+                March2NineToTenLocal, "20260303T113000/20260303T120000", "20260304T090000/20260304T100000");
+            testResult.Select(occurrence => occurrence.Component.Summary).Should().Equal("Stand-up", "Moved", "Stand-up");
+            testResult.Select(occurrence => occurrence.IsOverride).Should().Equal(false, true, false);
+            testResult.Select(occurrence => occurrence.RecurrenceId.ToString()).Should().Equal(March2NineLocal, March3NineLocal, "20260304T090000");
         }
 
         [Fact]
         public void GetOccurrences_OverrideThatMovesAnInstanceLater_IsGivenInOrderOfStart()
         {
-            var calendar = Read(IcalTestData.Lines(
-                Event("DTSTART:20260302T090000Z", "RRULE:FREQ=DAILY;COUNT=4"),
-                Override("RECURRENCE-ID:20260303T090000Z", "DTSTART:20260305T120000Z")));
+            // arrange
+            var calendar = Read(IcalTestData.Lines(Event(March2Start, DailyFourTimes), Override(March3RecurrenceId, "DTSTART:20260305T120000Z")));
+            var master = calendar.Events.First();
 
-            var starts = calendar.Events.First().GetOccurrences(calendar, null, null).Select(occurrence => occurrence.Start.ToString());
+            // act
+            var testResult = master.GetOccurrences(calendar, null, null).ToList();
 
-            starts.Should().Equal("20260302T090000Z", "20260304T090000Z", "20260305T090000Z", "20260305T120000Z");
+            // assert
+            testResult.Select(occurrence => occurrence.Start.ToString()).Should()
+                .Equal(March2NineUtc, March4NineUtc, "20260305T090000Z", "20260305T120000Z");
         }
 
         [Fact]
         public void GetOccurrences_OverrideThatMovesAnInstanceIntoTheWindow_IsGiven()
         {
-            var calendar = Read(IcalTestData.Lines(
-                Event("DTSTART:20260302T090000Z", "RRULE:FREQ=DAILY"),
-                Override("RECURRENCE-ID:20260302T090000Z", "DTSTART:20270101T080000Z")));
+            // arrange
+            var calendar = Read(IcalTestData.Lines(Event(March2Start, Daily), Override("RECURRENCE-ID:20260302T090000Z", "DTSTART:20270101T080000Z")));
+            var master = calendar.Events.First();
+            var from = Utc("20261231T120000Z");
+            var to = Utc("20270102T000000Z");
 
-            var occurrences = calendar.Events.First().GetOccurrences(calendar, Utc("20261231T120000Z"), Utc("20270102T000000Z")).ToList();
+            // act
+            var testResult = master.GetOccurrences(calendar, from, to).ToList();
 
-            occurrences.Select(occurrence => occurrence.Start.ToString()).Should().Equal("20270101T080000Z", "20270101T090000Z");
-            occurrences.Select(occurrence => occurrence.IsOverride).Should().Equal(true, false);
+            // assert
+            testResult.Select(occurrence => occurrence.Start.ToString()).Should().Equal("20270101T080000Z", "20270101T090000Z");
+            testResult.Select(occurrence => occurrence.IsOverride).Should().Equal(true, false);
         }
 
         [Fact]
         public void GetOccurrences_OverrideMatchedByItsInstant_ReplacesAZonedInstance()
         {
-            // The RECURRENCE-ID is in UTC, the instance in New York time; they name the same instant.
+            // arrange: the RECURRENCE-ID is in UTC, the instance in New York time; they name the same instant.
             var calendar = Read(IcalTestData.Lines(
-                Event("DTSTART;TZID=America/New_York:20260302T090000", "RRULE:FREQ=DAILY;COUNT=2"),
+                Event(NewYorkMarch2Start, DailyTwice),
                 Override("RECURRENCE-ID:20260303T140000Z", "DTSTART;TZID=America/New_York:20260303T100000")));
+            var master = calendar.Events.First();
 
-            var starts = calendar.Events.First().GetOccurrences(calendar, null, null, CalendarThenTzData).Select(occurrence => occurrence.Start.ToString());
+            // act
+            var testResult = master.GetOccurrences(calendar, null, null, CalendarThenTzData).ToList();
 
-            starts.Should().Equal("20260302T090000", "20260303T100000");
+            // assert
+            testResult.Select(occurrence => occurrence.Start.ToString()).Should().Equal(March2NineLocal, "20260303T100000");
         }
 
         [Fact]
         public void GetOccurrences_ThisAndFutureOverride_ShiftsEveryLaterInstance()
         {
-            // The override moves 09:00 to 10:30 and shortens the meeting, from the 4th onwards; the shift is in local time, so it holds across
-            // the change to daylight saving time on the 8th.
+            // arrange: the override moves 09:00 to 10:30 and shortens the meeting, from the 4th onwards; the shift is in local time, so it holds
+            // across the change to daylight saving time on the 8th.
             var calendar = Read(IcalTestData.Lines(
-                Event("DTSTART;TZID=America/New_York:20260302T090000", "DURATION:PT1H", "RRULE:FREQ=DAILY;COUNT=8", "SUMMARY:Before"),
+                Event(NewYorkMarch2Start, OneHour, "RRULE:FREQ=DAILY;COUNT=8", "SUMMARY:Before"),
                 Override("RECURRENCE-ID;RANGE=THISANDFUTURE;TZID=America/New_York:20260304T090000",
-                    "DTSTART;TZID=America/New_York:20260304T103000", "DURATION:PT30M", "SUMMARY:After")));
+                    "DTSTART;TZID=America/New_York:20260304T103000", HalfAnHour, "SUMMARY:After")));
+            var master = calendar.Events.First();
 
-            var occurrences = calendar.Events.First().GetOccurrences(calendar, null, null, CalendarThenTzData).ToList();
+            // act
+            var testResult = master.GetOccurrences(calendar, null, null, CalendarThenTzData).ToList();
 
-            occurrences.Select(occurrence => occurrence.ToString()).Should().Equal(
-                "20260302T090000/20260302T100000", "20260303T090000/20260303T100000", "20260304T103000/20260304T110000",
+            // assert
+            testResult.Select(occurrence => occurrence.ToString()).Should().Equal(
+                March2NineToTenLocal, "20260303T090000/20260303T100000", "20260304T103000/20260304T110000",
                 "20260305T103000/20260305T110000", "20260306T103000/20260306T110000", "20260307T103000/20260307T110000",
                 "20260308T103000/20260308T110000", "20260309T103000/20260309T110000");
-            occurrences.Select(occurrence => occurrence.Component.Summary).Should().Equal(
-                "Before", "Before", "After", "After", "After", "After", "After", "After");
-            occurrences[7].StartUtc.ToString().Should().Be("20260309T143000Z");
-            occurrences[7].RecurrenceId.ToString().Should().Be("20260309T090000");
+            testResult.Select(occurrence => occurrence.Component.Summary).Should().Equal(
+                BeforeSummary, BeforeSummary, AfterSummary, AfterSummary, AfterSummary, AfterSummary, AfterSummary, AfterSummary);
+            testResult.Select(occurrence => occurrence.StartUtc.ToString()).Should().EndWith("20260309T143000Z");
+            testResult.Select(occurrence => occurrence.RecurrenceId.ToString()).Should().EndWith("20260309T090000");
         }
 
         [Fact]
         public void GetOccurrences_LaterThisAndFutureOverride_TakesOverFromAnEarlierOne()
         {
+            // arrange
             var calendar = Read(IcalTestData.Lines(
-                Event("DTSTART:20260302T090000Z", "RRULE:FREQ=DAILY;COUNT=6"),
-                Override("RECURRENCE-ID;RANGE=THISANDFUTURE:20260303T090000Z", "DTSTART:20260303T100000Z"),
+                Event(March2Start, "RRULE:FREQ=DAILY;COUNT=6"),
+                Override(March3ThisAndFutureRecurrenceId, March3TenStart),
                 Override("RECURRENCE-ID;RANGE=THISANDFUTURE:20260305T090000Z", "DTSTART:20260305T080000Z")));
+            var master = calendar.Events.First();
 
-            var starts = calendar.Events.First().GetOccurrences(calendar, null, null).Select(occurrence => occurrence.Start.ToString());
+            // act
+            var testResult = master.GetOccurrences(calendar, null, null).ToList();
 
-            starts.Should().Equal("20260302T090000Z", "20260303T100000Z", "20260304T100000Z", "20260305T080000Z", "20260306T080000Z",
-                "20260307T080000Z");
+            // assert
+            testResult.Select(occurrence => occurrence.Start.ToString()).Should().Equal(March2NineUtc, "20260303T100000Z", "20260304T100000Z",
+                "20260305T080000Z", "20260306T080000Z", "20260307T080000Z");
         }
 
         [Fact]
         public void GetOccurrences_SingleOverrideAfterAThisAndFutureOverride_ReplacesOnlyItsInstance()
         {
+            // arrange
             var calendar = Read(IcalTestData.Lines(
-                Event("DTSTART:20260302T090000Z", "RRULE:FREQ=DAILY;COUNT=4"),
-                Override("RECURRENCE-ID;RANGE=THISANDFUTURE:20260303T090000Z", "DTSTART:20260303T100000Z"),
+                Event(March2Start, DailyFourTimes),
+                Override(March3ThisAndFutureRecurrenceId, March3TenStart),
                 Override("RECURRENCE-ID:20260304T090000Z", "DTSTART:20260304T150000Z")));
+            var master = calendar.Events.First();
 
-            var starts = calendar.Events.First().GetOccurrences(calendar, null, null).Select(occurrence => occurrence.Start.ToString());
+            // act
+            var testResult = master.GetOccurrences(calendar, null, null).ToList();
 
-            starts.Should().Equal("20260302T090000Z", "20260303T100000Z", "20260304T150000Z", "20260305T100000Z");
+            // assert
+            testResult.Select(occurrence => occurrence.Start.ToString()).Should()
+                .Equal(March2NineUtc, "20260303T100000Z", "20260304T150000Z", "20260305T100000Z");
         }
 
         [Fact]
         public void GetOccurrences_ThisAndFutureOverrideOfAnAllDayEvent_ShiftsByWholeDays()
         {
+            // arrange
             var calendar = Read(IcalTestData.Lines(
-                Event("DTSTART;VALUE=DATE:20260302", "RRULE:FREQ=WEEKLY;COUNT=3"),
+                Event(AllDayMarch2Start, WeeklyThreeTimes),
                 Override("RECURRENCE-ID;RANGE=THISANDFUTURE;VALUE=DATE:20260309", "DTSTART;VALUE=DATE:20260310")));
+            var master = calendar.Events.First();
 
-            var starts = calendar.Events.First().GetOccurrences(calendar, null, null).Select(occurrence => occurrence.Start.ToString());
+            // act
+            var testResult = master.GetOccurrences(calendar, null, null).ToList();
 
-            starts.Should().Equal("20260302", "20260310", "20260317");
+            // assert
+            testResult.Select(occurrence => occurrence.Start.ToString()).Should().Equal(March2, "20260310", "20260317");
         }
 
         [Fact]
         public void GetOccurrences_TwoOverridesOfTheSameInstance_TheHigherSequenceWins()
         {
+            // arrange
             var calendar = Read(IcalTestData.Lines(
-                Event("DTSTART:20260302T090000Z", "RRULE:FREQ=DAILY;COUNT=2"),
-                Override("RECURRENCE-ID:20260303T090000Z", "DTSTART:20260303T120000Z", "SEQUENCE:2"),
-                Override("RECURRENCE-ID:20260303T090000Z", "DTSTART:20260303T110000Z", "SEQUENCE:1")));
+                Event(March2Start, DailyTwice),
+                Override(March3RecurrenceId, March3NoonStart, "SEQUENCE:2"),
+                Override(March3RecurrenceId, "DTSTART:20260303T110000Z", "SEQUENCE:1")));
+            var master = calendar.Events.First();
 
-            var starts = calendar.Events.First().GetOccurrences(calendar, null, null).Select(occurrence => occurrence.Start.ToString());
+            // act
+            var testResult = master.GetOccurrences(calendar, null, null).ToList();
 
-            starts.Should().Equal("20260302T090000Z", "20260303T120000Z");
+            // assert
+            testResult.Select(occurrence => occurrence.Start.ToString()).Should().Equal(March2NineUtc, March3NoonUtc);
         }
 
         [Fact]
         public void GetOccurrences_OverrideOfAnExcludedInstance_IsIgnored()
         {
-            var calendar = Read(IcalTestData.Lines(
-                Event("DTSTART:20260302T090000Z", "RRULE:FREQ=DAILY;COUNT=3", "EXDATE:20260303T090000Z"),
-                Override("RECURRENCE-ID:20260303T090000Z", "DTSTART:20260303T120000Z")));
+            // arrange
+            var calendar = Read(IcalTestData.Lines(Event(March2Start, DailyThreeTimes, March3ExDate), Override(March3RecurrenceId, March3NoonStart)));
+            var master = calendar.Events.First();
 
-            var starts = calendar.Events.First().GetOccurrences(calendar, null, null).Select(occurrence => occurrence.Start.ToString());
+            // act
+            var testResult = master.GetOccurrences(calendar, null, null).ToList();
 
-            starts.Should().Equal("20260302T090000Z", "20260304T090000Z");
+            // assert
+            testResult.Select(occurrence => occurrence.Start.ToString()).Should().Equal(March2NineUtc, March4NineUtc);
         }
 
         [Fact]
         public void GetOccurrences_ComponentsOfAnotherUidOrType_AreNotOverrides()
         {
+            // arrange
             var calendar = Read(IcalTestData.Lines(
-                Event("DTSTART:20260302T090000Z", "RRULE:FREQ=DAILY;COUNT=2"),
+                Event(March2Start, DailyTwice),
                 new[]
                 {
-                    "BEGIN:VEVENT", "UID:other@example.com", "DTSTAMP:20260101T000000Z", "RECURRENCE-ID:20260303T090000Z", "DTSTART:20260303T120000Z",
-                    "END:VEVENT",
-                    "BEGIN:VTODO", "UID:event@example.com", "DTSTAMP:20260101T000000Z", "RECURRENCE-ID:20260303T090000Z", "DTSTART:20260303T120000Z",
-                    "END:VTODO"
+                    IcalLines.BeginEvent, "UID:other@example.com", IcalLines.NewYearStamp, March3RecurrenceId, March3NoonStart, IcalLines.EndEvent,
+                    IcalLines.BeginTodo, IcalLines.EventUid, IcalLines.NewYearStamp, March3RecurrenceId, March3NoonStart, IcalLines.EndTodo
                 }));
+            var master = calendar.Events.First();
 
-            var starts = calendar.Events.First().GetOccurrences(calendar, null, null).Select(occurrence => occurrence.Start.ToString());
+            // act
+            var testResult = master.GetOccurrences(calendar, null, null).ToList();
 
-            starts.Should().Equal("20260302T090000Z", "20260303T090000Z");
+            // assert
+            testResult.Select(occurrence => occurrence.Start.ToString()).Should().Equal(March2NineUtc, March3NineUtc);
         }
 
         [Fact]
         public void GetOccurrences_WithoutACalendar_IgnoresOverrides()
         {
-            var calendar = Read(IcalTestData.Lines(
-                Event("DTSTART:20260302T090000Z", "RRULE:FREQ=DAILY;COUNT=2"),
-                Override("RECURRENCE-ID:20260303T090000Z", "DTSTART:20260303T120000Z")));
+            // arrange
+            var calendar = Read(IcalTestData.Lines(Event(March2Start, DailyTwice), Override(March3RecurrenceId, March3NoonStart)));
+            var master = calendar.Events.First();
 
-            var starts = calendar.Events.First().GetOccurrences(null, null, null).Select(occurrence => occurrence.Start.ToString());
+            // act
+            var testResult = master.GetOccurrences(null, null, null).ToList();
 
-            starts.Should().Equal("20260302T090000Z", "20260303T090000Z");
+            // assert
+            testResult.Select(occurrence => occurrence.Start.ToString()).Should().Equal(March2NineUtc, March3NineUtc);
         }
 
         [Fact]
         public void GetOccurrences_OfAnOverride_GivesOnlyItsOwnInstance()
         {
-            var calendar = Read(IcalTestData.Lines(
-                Event("DTSTART:20260302T090000Z", "RRULE:FREQ=DAILY;COUNT=3"),
-                Override("RECURRENCE-ID:20260303T090000Z", "DTSTART:20260303T120000Z", "DURATION:PT15M")));
+            // arrange
+            var calendar = Read(IcalTestData.Lines(Event(March2Start, DailyThreeTimes), Override(March3RecurrenceId, March3NoonStart, "DURATION:PT15M")));
             var overriding = calendar.Events.Last();
 
-            var occurrence = overriding.GetOccurrences(calendar, null, null).Single();
+            // act
+            var testResult = overriding.GetOccurrences(calendar, null, null).ToList();
 
-            occurrence.ToString().Should().Be("20260303T120000Z/20260303T121500Z");
-            occurrence.RecurrenceId.ToString().Should().Be("20260303T090000Z");
-            occurrence.Component.Should().BeSameAs(overriding);
-            occurrence.IsOverride.Should().BeFalse();
+            // assert
+            testResult.Select(occurrence => occurrence.ToString()).Should().Equal("20260303T120000Z/20260303T121500Z");
+            testResult.Select(occurrence => occurrence.RecurrenceId.ToString()).Should().Equal(March3NineUtc);
+            testResult.Should().OnlyContain(occurrence => occurrence.Component == overriding && !occurrence.IsOverride);
         }
 
         #endregion
@@ -578,105 +792,164 @@ namespace DataStandardizer.File.iCal.Tests
         [Fact]
         public void GetOccurrences_Window_IncludesItsStartAndExcludesItsEnd()
         {
-            var calendar = Read(Event("DTSTART:20260302T090000Z", "RRULE:FREQ=DAILY"));
+            // arrange
+            var calendar = Read(Event(March2Start, Daily));
+            var testEvent = calendar.Events.Single();
+            var from = Utc(March4NineUtc);
+            var to = Utc("20260306T090000Z");
 
-            var starts = calendar.Events.Single().GetOccurrences(calendar, Utc("20260304T090000Z"), Utc("20260306T090000Z"))
-                .Select(occurrence => occurrence.Start.ToString());
+            // act
+            var testResult = testEvent.GetOccurrences(calendar, from, to).ToList();
 
-            starts.Should().Equal("20260304T090000Z", "20260305T090000Z");
+            // assert
+            testResult.Select(occurrence => occurrence.Start.ToString()).Should().Equal(March4NineUtc, "20260305T090000Z");
         }
 
         [Fact]
         public void GetOccurrences_ZonedWindow_IsResolvedToUtc()
         {
+            // arrange
             var calendar = Read(Event("DTSTART:20260302T130000Z", "RRULE:FREQ=HOURLY;COUNT=4"));
+            var testEvent = calendar.Events.Single();
             var from = new IcalDateTime(new IcalDate(2026, 3, 2), new IcalTime(9, 0, 0), NewYork);
 
-            var starts = calendar.Events.Single().GetOccurrences(calendar, from, null, CalendarThenTzData)
-                .Select(occurrence => occurrence.Start.ToString());
+            // act
+            var testResult = testEvent.GetOccurrences(calendar, from, null, CalendarThenTzData).ToList();
 
-            starts.Should().Equal("20260302T140000Z", "20260302T150000Z", "20260302T160000Z");
+            // assert
+            testResult.Select(occurrence => occurrence.Start.ToString()).Should().Equal(March2NineNewYorkInUtc, "20260302T150000Z", "20260302T160000Z");
         }
 
         [Fact]
         public void GetOccurrences_WindowFarFromDtStart_GivesTheInstancesInIt()
         {
+            // arrange
             var calendar = Read(Event("DTSTART;TZID=America/New_York:20000103T090000", "RRULE:FREQ=WEEKLY;BYDAY=MO"));
+            var testEvent = calendar.Events.Single();
+            var from = Utc("20260301T000000Z");
+            var to = Utc("20260317T000000Z");
 
-            var starts = calendar.Events.Single().GetOccurrences(calendar, Utc("20260301T000000Z"), Utc("20260317T000000Z"), CalendarThenTzData)
-                .Select(occurrence => occurrence.StartUtc.ToString());
+            // act
+            var testResult = testEvent.GetOccurrences(calendar, from, to, CalendarThenTzData).ToList();
 
-            starts.Should().Equal("20260302T140000Z", "20260309T130000Z", "20260316T130000Z");
+            // assert
+            testResult.Select(occurrence => occurrence.StartUtc.ToString()).Should().Equal(March2NineNewYorkInUtc, "20260309T130000Z", "20260316T130000Z");
         }
 
         [Fact]
         public void GetOccurrences_RuleThatRepeatsForeverWithoutAnEnd_Throws()
         {
-            var calendar = Read(Event("DTSTART:20260302T090000Z", "RRULE:FREQ=DAILY"));
+            // arrange
+            var calendar = Read(Event(March2Start, Daily));
+            var testEvent = calendar.Events.Single();
+            var from = Utc("20260302T000000Z");
 
-            Action act = () => calendar.Events.Single().GetOccurrences(calendar, Utc("20260302T000000Z"), null);
+            // act
+            Action testAction = () => testEvent.GetOccurrences(calendar, from, null);
 
-            act.Should().Throw<ArgumentException>().WithParameterName("to");
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithParameterName("to");
         }
 
         [Fact]
         public void GetOccurrences_RuleThatNeverMatches_ThrowsAtTheIterationCap()
         {
-            var calendar = Read(Event("DTSTART:20260302T090000Z", "RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=30"));
+            // arrange
+            var calendar = Read(Event(March2Start, "RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=30"));
+            var testEvent = calendar.Events.Single();
             var options = new IcalOptions { MaxRecurrenceIterations = 50 };
+            var occurrences = testEvent.GetOccurrences(calendar, Utc("20260303T000000Z"), Utc("21000101T000000Z"), IcalTimeZoneResolver.Default, options);
 
-            Action act = () => calendar.Events.Single()
-                .GetOccurrences(calendar, Utc("20260303T000000Z"), Utc("21000101T000000Z"), IcalTimeZoneResolver.Default, options).ToList();
+            // act
+            Action testAction = () => occurrences.ToList();
 
-            act.Should().Throw<InvalidOperationException>();
+            // assert
+            testAction.Should().Throw<InvalidOperationException>();
         }
 
         [Fact]
-        public void GetOccurrences_IsLazy()
+        public void GetOccurrences_RuleWithoutEnd_GivesTheFirstInstancesWithoutReadingThemAll()
         {
-            var calendar = Read(Event("DTSTART:20260302T090000Z", "RRULE:FREQ=MINUTELY"));
+            // arrange
+            var calendar = Read(Event(March2Start, "RRULE:FREQ=MINUTELY"));
+            var testEvent = calendar.Events.Single();
+            var to = Utc("99991231T000000Z");
 
-            var starts = calendar.Events.Single().GetOccurrences(calendar, null, Utc("99991231T000000Z")).Take(3)
-                .Select(occurrence => occurrence.Start.ToString());
+            // act
+            var testResult = testEvent.GetOccurrences(calendar, null, to).Take(3).ToList();
 
-            starts.Should().Equal("20260302T090000Z", "20260302T090100Z", "20260302T090200Z");
+            // assert
+            testResult.Select(occurrence => occurrence.Start.ToString()).Should().Equal(March2NineUtc, "20260302T090100Z", "20260302T090200Z");
         }
 
         [Fact]
-        public void GetOccurrences_CanBeEnumeratedMoreThanOnce()
+        public void GetOccurrences_EnumeratedASecondTime_GivesTheSameInstances()
         {
-            var calendar = Read(IcalTestData.Lines(
-                Event("DTSTART:20260302T090000Z", "RRULE:FREQ=DAILY;COUNT=3", "RDATE:20260310T090000Z"),
-                Override("RECURRENCE-ID:20260303T090000Z", "DTSTART:20260303T120000Z")));
-
+            // arrange
+            var calendar = Read(IcalTestData.Lines(Event(March2Start, DailyThreeTimes, "RDATE:20260310T090000Z"), Override(March3RecurrenceId, March3NoonStart)));
             var occurrences = calendar.Events.First().GetOccurrences(calendar, null, null);
+            occurrences.ToList();
 
-            occurrences.Select(occurrence => occurrence.Start.ToString()).Should().Equal(
-                occurrences.Select(occurrence => occurrence.Start.ToString())).And.HaveCount(4);
+            // act
+            var testResult = occurrences.ToList();
+
+            // assert
+            testResult.Select(occurrence => occurrence.Start.ToString()).Should().Equal(March2NineUtc, March3NoonUtc, March4NineUtc, "20260310T090000Z");
         }
 
         [Fact]
         public void GetOccurrences_EventWithoutDtStart_HasNoInstances()
         {
-            var calendar = Read(Event("DTSTART:20260302T090000Z"));
+            // arrange
+            var calendar = Read(Event(March2Start));
             var component = calendar.Events.Single();
             component.DtStart = null;
 
-            component.GetOccurrences(calendar, null, null).Should().BeEmpty();
+            // act
+            var testResult = component.GetOccurrences(calendar, null, null).ToList();
+
+            // assert
+            testResult.Should().BeEmpty();
         }
 
         [Fact]
-        public void GetOccurrences_NullArguments_Throw()
+        public void GetOccurrences_NullResolver_ThrowsArgumentNull()
         {
+            // arrange
             var component = new IcalEvent();
 
-            Action noResolver = () => component.GetOccurrences(null, null, null, null);
-            Action noOptions = () => component.GetOccurrences(null, null, null, IcalTimeZoneResolver.Default, null);
-            Action badOptions = () => component.GetOccurrences(null, null, null, IcalTimeZoneResolver.Default, new IcalOptions { MaxRecurrenceIterations = 0 });
+            // act
+            Action testAction = () => component.GetOccurrences(null, null, null, null);
 
-            noResolver.Should().Throw<ArgumentNullException>().WithParameterName("resolver");
-            noOptions.Should().Throw<ArgumentNullException>().WithParameterName("options");
-            badOptions.Should().Throw<ArgumentException>().WithParameterName("options");
+            // assert
+            testAction.Should().Throw<ArgumentNullException>().WithParameterName("resolver");
+        }
+
+        [Fact]
+        public void GetOccurrences_NullOptions_ThrowsArgumentNull()
+        {
+            // arrange
+            var component = new IcalEvent();
+
+            // act
+            Action testAction = () => component.GetOccurrences(null, null, null, IcalTimeZoneResolver.Default, null);
+
+            // assert
+            testAction.Should().Throw<ArgumentNullException>().WithParameterName("options");
+        }
+
+        [Fact]
+        public void GetOccurrences_NoRecurrenceIterations_ThrowsArgumentException()
+        {
+            // arrange
+            var component = new IcalEvent();
+            var options = new IcalOptions { MaxRecurrenceIterations = 0 };
+
+            // act
+            Action testAction = () => component.GetOccurrences(null, null, null, IcalTimeZoneResolver.Default, options);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithParameterName("options");
         }
 
         #endregion
@@ -686,49 +959,62 @@ namespace DataStandardizer.File.iCal.Tests
         [Fact]
         public void GetOccurrences_TodoWithDue_EndsAtTheSameExactDuration()
         {
-            var calendar = Read("BEGIN:VTODO", "UID:todo@example.com", "DTSTAMP:20260101T000000Z", "DTSTART:20260302T090000Z",
-                "DUE:20260302T170000Z", "RRULE:FREQ=WEEKLY;COUNT=2", "END:VTODO");
+            // arrange
+            var calendar = Read(IcalLines.BeginTodo, TodoUid, IcalLines.NewYearStamp, March2Start, "DUE:20260302T170000Z", WeeklyTwice, IcalLines.EndTodo);
+            var todo = calendar.Todos.Single();
 
-            var occurrences = calendar.Todos.Single().GetOccurrences(calendar, null, null).Select(occurrence => occurrence.ToString());
+            // act
+            var testResult = todo.GetOccurrences(calendar, null, null).ToList();
 
-            occurrences.Should().Equal("20260302T090000Z/20260302T170000Z", "20260309T090000Z/20260309T170000Z");
+            // assert
+            testResult.Select(occurrence => occurrence.ToString()).Should().Equal("20260302T090000Z/20260302T170000Z", "20260309T090000Z/20260309T170000Z");
         }
 
         [Fact]
         public void GetOccurrences_TodoWithoutDueOrDuration_HasNoEnd()
         {
-            var calendar = Read("BEGIN:VTODO", "UID:todo@example.com", "DTSTAMP:20260101T000000Z", "DTSTART:20260302T090000Z",
-                "RRULE:FREQ=DAILY;COUNT=2", "END:VTODO");
+            // arrange
+            var calendar = Read(IcalLines.BeginTodo, TodoUid, IcalLines.NewYearStamp, March2Start, DailyTwice, IcalLines.EndTodo);
+            var todo = calendar.Todos.Single();
 
-            var occurrences = calendar.Todos.Single().GetOccurrences(calendar, null, null).ToList();
+            // act
+            var testResult = todo.GetOccurrences(calendar, null, null).ToList();
 
-            occurrences.Should().HaveCount(2).And.OnlyContain(occurrence => occurrence.End == null && occurrence.EndUtc == null);
+            // assert
+            testResult.Should().HaveCount(2).And.OnlyContain(occurrence => occurrence.End == null && occurrence.EndUtc == null);
         }
 
         [Fact]
         public void GetOccurrences_TodoOverride_ReplacesTheInstance()
         {
-            var calendar = Read("BEGIN:VTODO", "UID:todo@example.com", "DTSTAMP:20260101T000000Z", "DTSTART:20260302T090000Z",
-                "RRULE:FREQ=DAILY;COUNT=2", "END:VTODO",
-                "BEGIN:VTODO", "UID:todo@example.com", "DTSTAMP:20260101T000000Z", "RECURRENCE-ID:20260303T090000Z", "DTSTART:20260303T100000Z",
-                "END:VTODO");
+            // arrange
+            var calendar = Read(IcalLines.BeginTodo, TodoUid, IcalLines.NewYearStamp, March2Start, DailyTwice, IcalLines.EndTodo,
+                IcalLines.BeginTodo, TodoUid, IcalLines.NewYearStamp, March3RecurrenceId, March3TenStart, IcalLines.EndTodo);
+            var master = calendar.Todos.First();
+            var overriding = calendar.Todos.Last();
 
-            var occurrences = calendar.Todos.First().GetOccurrences(calendar, null, null).ToList();
+            // act
+            var testResult = master.GetOccurrences(calendar, null, null).ToList();
 
-            occurrences.Select(occurrence => occurrence.Start.ToString()).Should().Equal("20260302T090000Z", "20260303T100000Z");
-            occurrences[1].Component.Should().BeSameAs(calendar.Todos.Last());
+            // assert
+            testResult.Select(occurrence => occurrence.Start.ToString()).Should().Equal(March2NineUtc, "20260303T100000Z");
+            testResult.Select(occurrence => occurrence.Component).Should().Equal(master, overriding);
         }
 
         [Fact]
         public void GetOccurrences_Journal_HasNoEnd()
         {
-            var calendar = Read("BEGIN:VJOURNAL", "UID:journal@example.com", "DTSTAMP:20260101T000000Z", "DTSTART;VALUE=DATE:20260302",
-                "RRULE:FREQ=MONTHLY;COUNT=2", "END:VJOURNAL");
+            // arrange
+            var calendar = Read(IcalLines.BeginJournal, "UID:journal@example.com", IcalLines.NewYearStamp, AllDayMarch2Start, MonthlyTwice,
+                IcalLines.EndJournal);
+            var journal = calendar.Journals.Single();
 
-            var occurrences = calendar.Journals.Single().GetOccurrences(calendar, null, null).ToList();
+            // act
+            var testResult = journal.GetOccurrences(calendar, null, null).ToList();
 
-            occurrences.Select(occurrence => occurrence.Start.ToString()).Should().Equal("20260302", "20260402");
-            occurrences.Should().OnlyContain(occurrence => occurrence.End == null);
+            // assert
+            testResult.Select(occurrence => occurrence.Start.ToString()).Should().Equal(March2, "20260402");
+            testResult.Should().OnlyContain(occurrence => occurrence.End == null);
         }
 
         #endregion
@@ -740,7 +1026,7 @@ namespace DataStandardizer.File.iCal.Tests
 
         private static string[] Event(params string[] lines)
         {
-            return IcalTestData.Lines(new[] { "BEGIN:VEVENT", "UID:event@example.com", "DTSTAMP:20260101T000000Z" }, lines, new[] { "END:VEVENT" });
+            return IcalTestData.Lines(new[] { IcalLines.BeginEvent, IcalLines.EventUid, IcalLines.NewYearStamp }, lines, new[] { IcalLines.EndEvent });
         }
 
         private static string[] Override(params string[] lines)
