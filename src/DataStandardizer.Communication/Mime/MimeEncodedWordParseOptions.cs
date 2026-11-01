@@ -66,22 +66,24 @@ namespace DataStandardizer.Communication.Mime
         /// U+FFFD.
         /// </summary>
         /// <remarks>
-        /// The netstandard1.1 build can't change how an encoding treats invalid octets, so there, the text is read as the encoding from the
-        /// <see cref="IMimeCharsetResolver"/> reads it. Without this option, a word whose encoding throws <see cref="DecoderFallbackException"/>
-        /// is not valid, nor is one read as text with U+FFFD, the character that the built-in encodings read invalid octets as, unless
-        /// writing the text with the encoding gives the same octets back.
+        /// The netstandard1.1 build can't change how an encoding treats invalid octets. So there, without this option, the text that the
+        /// encoding from the <see cref="IMimeCharsetResolver"/> reads is accepted only if writing it with the encoding gives the same octets
+        /// back, and the encoding doesn't throw <see cref="DecoderFallbackException"/> or <see cref="EncoderFallbackException"/>. A valid
+        /// word in a character set that can write a character in more than one way needs this option on that build.
         /// </remarks>
         AllowInvalidOctets = 1 << 4,
 
         /// <summary>
         /// In <see cref="MimeEncodedWord.DecodeText(ReadOnlySpan{char}, MimeEncodedWordContext, MimeEncodedWordParseOptions, IMimeCharsetResolver)"/>,
-        /// join the octets of an encoded word that doesn't hold whole characters with those of the next words, up to 4 words in all, that
-        /// have the same character set and language, so that a character split between the words is read whole. RFC 2047 §5 says that each
+        /// read a character that an encoded word ends partway through with the octets that finish it at the start of the next words that
+        /// have the same character set and language, so that a character split between words is read whole. RFC 2047 §5 says that each
         /// encoded word must hold a whole number of characters.
         /// </summary>
         /// <remarks>
         /// <para>
-        /// A word that holds whole characters is decoded by itself, as are the words of a run whose joined octets are still not valid.
+        /// A word that holds whole characters is decoded by itself. The unfinished part of a character is at most 3 octets, as a character
+        /// is at most 4 octets in the multi-octet character sets in use, such as UTF-8 (RFC 3629 §3). A word whose last character isn't
+        /// finished that way is decoded by itself, as it is without this option.
         /// </para>
         /// <para>
         /// This option has no effect on <see cref="MimeEncodedWord.TryParse(ReadOnlySpan{char}, out MimeEncodedWord)"/>, which reads one

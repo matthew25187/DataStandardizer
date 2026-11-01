@@ -95,6 +95,18 @@ namespace DataStandardizer.Communication.Tests.Mime
         private const string InvalidOctetThenSplitEAcute = "=?UTF-8?Q?=FF?= =?UTF-8?B?ww==?= =?UTF-8?B?qQ==?=";
         private const string InvalidOctetThenEAcute = "=?UTF-8?Q?=FF?= \x00E9";
 
+        // ref. RFC 3629 §3: each word but the first finishes an e-acute (C3 A9) and each but the last starts one, so no word holds whole
+        // characters.
+        private const string EAcutesSplitInEveryWord = "=?UTF-8?Q?=C3?= =?UTF-8?Q?=A9=C3?= =?UTF-8?Q?=A9=C3?= =?UTF-8?Q?=A9=C3?= =?UTF-8?Q?=A9?=";
+        private const string FourEAcutes = "\x00E9\x00E9\x00E9\x00E9";
+
+        // ref. RFC 3629 §3: letters around an e-acute (C3 A9) that is split between the words.
+        private const string LettersAroundSplitEAcute = "=?UTF-8?Q?a=C3?= =?UTF-8?Q?=A9b?=";
+        private const string LettersAroundEAcute = "a\x00E9b";
+
+        // ref. RFC 3629 §3: C3 starts an e-acute that no word finishes, so the word stays as it is.
+        private const string UnfinishedEAcute = "=?UTF-8?Q?a=C3?= b";
+
         // ref. RFC 3629 §3: U+1F600 is F0 9F 98 80 in UTF-8, so each of these words holds a quarter of it.
         private const string SplitEmoji = "=?UTF-8?Q?=F0?= =?UTF-8?Q?=9F?= =?UTF-8?Q?=98?= =?UTF-8?Q?=80?=";
 
@@ -244,6 +256,9 @@ namespace DataStandardizer.Communication.Tests.Mime
                 { SplitEAcuteThenInvalidOctet, MimeEncodedWordParseOptions.AllowSplitCharacters, EAcuteThenInvalidOctet },
                 { InvalidOctetThenSplitEAcute, MimeEncodedWordParseOptions.AllowSplitCharacters, InvalidOctetThenEAcute },
                 { SplitEmoji, MimeEncodedWordParseOptions.AllowSplitCharacters, Emoji },
+                { EAcutesSplitInEveryWord, MimeEncodedWordParseOptions.AllowSplitCharacters, FourEAcutes },
+                { LettersAroundSplitEAcute, MimeEncodedWordParseOptions.AllowSplitCharacters, LettersAroundEAcute },
+                { UnfinishedEAcute, MimeEncodedWordParseOptions.AllowSplitCharacters, UnfinishedEAcute },
                 { Utf16WordsWithByteOrderMarks, MimeEncodedWordParseOptions.AllowSplitCharacters, AB },
             };
 

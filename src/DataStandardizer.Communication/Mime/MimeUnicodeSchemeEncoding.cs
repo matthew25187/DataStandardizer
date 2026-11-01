@@ -154,7 +154,7 @@ namespace DataStandardizer.Communication.Mime
         /// <param name="count">The number of bytes.</param>
         /// <param name="markLength">The length of the byte order mark; or 0 if there is none.</param>
         /// <returns>The little-endian encoding if there is a little-endian byte order mark; otherwise the big-endian encoding.</returns>
-        private Encoding SelectEncoding(byte[] bytes, int index, int count, out int markLength)
+        internal Encoding SelectEncoding(byte[] bytes, int index, int count, out int markLength)
         {
             markLength = MarkLength;
             if (StartsWith(bytes, index, count, _littleEndianMark)) return WithFallbacks(LittleEndian);

@@ -543,19 +543,30 @@ namespace DataStandardizer.Communication.Mime
             }
         }
 
-        // Indicates whether text read with an encoding that replaces invalid octets came from valid octets. The built-in encodings replace
-        // them with U+FFFD, so text without one is taken to be exact, and text with one only if writing it gives the same octets back, as
-        // it does when the octets hold a U+FFFD of their own.
+        // Indicates whether text read with an encoding that may replace invalid octets, with U+FFFD, '?' or anything else, came from valid
+        // octets: whether writing the text with the encoding gives the same octets back. An encoding that can't write the text didn't read
+        // it from valid octets. The byte order mark that MimeUnicodeSchemeEncoding reads and doesn't write is left out of the comparison.
         internal static bool IsDecodedExactly(Encoding encoding, byte[] bytes, int byteCount, string text)
         {
-            if (text.IndexOf('�') < 0) return true;
+            var start = 0;
+            var scheme = encoding as MimeUnicodeSchemeEncoding;
+            if (scheme != null) encoding = scheme.SelectEncoding(bytes, 0, byteCount, out start);
 
-            var written = encoding.GetBytes(text);
-            if (written.Length != byteCount) return false;
-
-            for (var index = 0; index < byteCount; index++)
+            byte[] written;
+            try
             {
-                if (written[index] != bytes[index]) return false;
+                written = encoding.GetBytes(text);
+            }
+            catch (EncoderFallbackException)
+            {
+                return false;
+            }
+
+            if (written.Length != byteCount - start) return false;
+
+            for (var index = 0; index < written.Length; index++)
+            {
+                if (written[index] != bytes[start + index]) return false;
             }
 
             return true;
