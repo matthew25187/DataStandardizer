@@ -18,9 +18,11 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private string? _quoteSearchEmbeddedLineBreak;
         private ICsvFileMapper? _resolvedMapper;
+        private Type? _resolvedMapperLineType;
 #else
         [CanBeNull] private string _quoteSearchEmbeddedLineBreak;
         [CanBeNull] private ICsvFileMapper _resolvedMapper;
+        [CanBeNull] private Type _resolvedMapperLineType;
 #endif
 #if NET8_0_OR_GREATER
         private SearchValues<char>? _quoteSearchValues;
@@ -289,21 +291,23 @@ namespace DataStandardizer.File.CSV
         /// Gets the mapper for a record line.
         /// </summary>
         /// <param name="recordLine">The record line.</param>
-        /// <param name="isCached"><c>true</c> if the mapper is held in a mapper cache; <c>false</c> if it was created from <paramref name="recordLine"/> and is empty.</param>
-        private protected ICsvFileMapper GetMapper(TRecordLine recordLine, out bool isCached)
+        /// <param name="isRegistered"><c>true</c> if the mapper is registered, so applies to a line of any type; <c>false</c> if it only applies to lines of the runtime type of <paramref name="recordLine"/>.</param>
+        private protected ICsvFileMapper GetMapper(TRecordLine recordLine, out bool isRegistered)
         {
             // Reuse the mapper this instance last resolved, so the per-line path does not take the cache lock, unless a
-            // mapper has since been registered, unregistered or cleared.
+            // mapper has since been registered, unregistered or cleared, or it is the declarative mapper of another line type.
             var mapperCacheVersion = MapperCacheVersion;
             var mapper = _resolvedMapper;
-            if (mapper != null && _resolvedMapperVersion == mapperCacheVersion)
+            var mapperLineType = _resolvedMapperLineType;
+            if (mapper != null && _resolvedMapperVersion == mapperCacheVersion && (mapperLineType is null || mapperLineType == recordLine.GetType()))
             {
-                isCached = true;
+                isRegistered = mapperLineType is null;
                 return mapper;
             }
 
-            mapper = GetOrAddMapper(typeof(TRecordLine), recordLine, out isCached);
+            mapper = GetOrAddMapper(typeof(TRecordLine), recordLine, out var isCached, out isRegistered);
             _resolvedMapper = isCached ? mapper : null;
+            _resolvedMapperLineType = isRegistered ? null : recordLine.GetType();
             _resolvedMapperVersion = mapperCacheVersion;
 
             return mapper;

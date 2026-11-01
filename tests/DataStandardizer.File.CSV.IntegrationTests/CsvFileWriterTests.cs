@@ -8,6 +8,8 @@ public class CsvFileWriterTests
 {
     private const int WriterCount = 32;
     private const string FieldName = "0";
+    private const string FirstAttributeValue = "1st";
+    private const string SecondAttributeValue = "2nd";
 
     [Fact]
     public void WriteLine_FilePathWithEncodingOption_WritesUsingEncoding()
@@ -92,6 +94,52 @@ public class CsvFileWriterTests
         testResult.Should().HaveCount(WriterCount).And.OnlyContain(line => line == expectedLine);
     }
 
+    [Fact]
+    public void WriteLine_AfterOtherWriterWroteAttributeMappedSubtype_WritesLineWithItsOwnFields()
+    {
+        // arrange
+        // No other test writes SharedBaseLine, so only this test's writers use its mapper cache entries.
+        using (var otherWriter = new CsvFileWriter<SharedBaseLine>(new StringWriter()))
+        {
+            otherWriter.WriteLine(new AttributeMappedSharedLine { First = FirstAttributeValue, Second = SecondAttributeValue });
+        }
+
+        ICsvFileLine testLine = new SharedBaseLine();
+        testLine.Add("A", "a");
+        testLine.Add("B", "b");
+
+        var buffer = new StringBuilder();
+        using var stringWriter = new StringWriter(buffer);
+        using var csvWriter = new CsvFileWriter<SharedBaseLine>(stringWriter);
+
+        // act
+        csvWriter.WriteLine(testLine);
+
+        // assert
+        buffer.ToString().Should().Be("a,b\r\n");
+    }
+
+    [Fact]
+    public void WriteLine_BaseLineAfterAttributeMappedSubtype_WritesBaseLineWithItsOwnFields()
+    {
+        // arrange
+        // No other test writes ReusedBaseLine, so only this test's writer uses its mapper cache entries.
+        ICsvFileLine testLine = new ReusedBaseLine();
+        testLine.Add(nameof(AttributeMappedReusedLine.First), "a");
+        testLine.Add(nameof(AttributeMappedReusedLine.Second), "b");
+
+        var buffer = new StringBuilder();
+        using var stringWriter = new StringWriter(buffer);
+        using var csvWriter = new CsvFileWriter<ReusedBaseLine>(stringWriter);
+        csvWriter.WriteLine(new AttributeMappedReusedLine { First = FirstAttributeValue, Second = SecondAttributeValue });
+
+        // act
+        csvWriter.WriteLine(testLine);
+
+        // assert
+        buffer.ToString().Should().Be("2nd,1st\r\na,b\r\n");
+    }
+
     private static string WriteLine(ConcurrentLine testLine)
     {
         var buffer = new StringBuilder();
@@ -134,6 +182,44 @@ public class CsvFileWriterTests
         }
 
         public string? Description
+        {
+            get => GetPropertyValue<string?>();
+            init => SetPropertyValue(value);
+        }
+    }
+
+    private class SharedBaseLine : CsvFileRecordLine;
+
+    private sealed class AttributeMappedSharedLine : SharedBaseLine
+    {
+        [CsvFieldMapping(1)]
+        public string? First
+        {
+            get => GetPropertyValue<string?>();
+            init => SetPropertyValue(value);
+        }
+
+        [CsvFieldMapping(0)]
+        public string? Second
+        {
+            get => GetPropertyValue<string?>();
+            init => SetPropertyValue(value);
+        }
+    }
+
+    private class ReusedBaseLine : CsvFileRecordLine;
+
+    private sealed class AttributeMappedReusedLine : ReusedBaseLine
+    {
+        [CsvFieldMapping(1)]
+        public string? First
+        {
+            get => GetPropertyValue<string?>();
+            init => SetPropertyValue(value);
+        }
+
+        [CsvFieldMapping(0)]
+        public string? Second
         {
             get => GetPropertyValue<string?>();
             init => SetPropertyValue(value);

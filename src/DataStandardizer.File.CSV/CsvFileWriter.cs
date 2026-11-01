@@ -319,14 +319,14 @@ namespace DataStandardizer.File.CSV
                 && fieldPlan.MapperCacheVersion == mapperCacheVersion
                 && ReferenceEquals(fieldPlan.HeaderLineFieldNames, _headerLineFieldNames)
                 && ReferenceEquals(fieldPlan.LineFieldNames, _fieldNames)
-                && (fieldPlan.UncachedMapperLineType is null || fieldPlan.UncachedMapperLineType == recordLine.GetType()))
+                && (fieldPlan.MapperLineType is null || fieldPlan.MapperLineType == recordLine.GetType()))
             {
                 return fieldPlan;
             }
 
-            // A mapper that is not cached was created from the record line's type, so the plan only holds for lines of that type.
-            var mapper = GetMapper(recordLine, out var isMapperCached);
-            fieldPlan = new FieldPlan(mapperCacheVersion, isMapperCached ? null : recordLine.GetType(), mapper, _headerLineFieldNames, _fieldNames);
+            // A mapper that is not registered was created from the record line's type, so the plan only holds for lines of that type.
+            var mapper = GetMapper(recordLine, out var isMapperRegistered);
+            fieldPlan = new FieldPlan(mapperCacheVersion, isMapperRegistered ? null : recordLine.GetType(), mapper, _headerLineFieldNames, _fieldNames);
             _fieldPlan = fieldPlan;
             return fieldPlan;
         }
@@ -530,14 +530,14 @@ namespace DataStandardizer.File.CSV
         private sealed class FieldPlan
         {
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-            internal FieldPlan(int mapperCacheVersion, Type? uncachedMapperLineType, ICsvFileMapper mapper, string[] headerLineFieldNames, string[] lineFieldNames)
+            internal FieldPlan(int mapperCacheVersion, Type? mapperLineType, ICsvFileMapper mapper, string[] headerLineFieldNames, string[] lineFieldNames)
 #else
-            internal FieldPlan(int mapperCacheVersion, [CanBeNull] Type uncachedMapperLineType, [NotNull] ICsvFileMapper mapper, [NotNull] string[] headerLineFieldNames,
+            internal FieldPlan(int mapperCacheVersion, [CanBeNull] Type mapperLineType, [NotNull] ICsvFileMapper mapper, [NotNull] string[] headerLineFieldNames,
                 [NotNull] string[] lineFieldNames)
 #endif
             {
                 MapperCacheVersion = mapperCacheVersion;
-                UncachedMapperLineType = uncachedMapperLineType;
+                MapperLineType = mapperLineType;
                 HeaderLineFieldNames = headerLineFieldNames;
                 LineFieldNames = lineFieldNames;
 
@@ -589,12 +589,12 @@ namespace DataStandardizer.File.CSV
             internal int MapperCacheVersion { get; }
 
             /// <summary>
-            /// Gets the record line type the mapper was created from when it is not cached, or <c>null</c> if it is cached.
+            /// Gets the record line type the mapper was created from when it is not registered, or <c>null</c> if it is registered and applies to a line of any type.
             /// </summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-            internal Type? UncachedMapperLineType { get; }
+            internal Type? MapperLineType { get; }
 #else
-            [CanBeNull] internal Type UncachedMapperLineType { get; }
+            [CanBeNull] internal Type MapperLineType { get; }
 #endif
         }
 
