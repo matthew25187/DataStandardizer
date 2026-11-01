@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Text;
 using DataStandardizer.Communication.Mime;
 using FluentAssertions;
@@ -82,6 +82,17 @@ namespace DataStandardizer.Communication.Tests.Mime
         private const string ResumeMediaType = "application/octet-stream;name*=UTF-8''r%C3%A9sum%C3%A9.pdf;title*=UTF-8'de'Lebenslauf";
         private const string ResumeFileName = "r\xE9sum\xE9.pdf";
 
+        // Values in UTF-8 extended values, with the RFC 2231 §4 encodings of them: a file name with a diaeresis, an emoji, which is
+        // a surrogate pair, and text with characters that attribute-char doesn't allow.
+        private const string NaiveMediaType = "text/plain;name*=UTF-8''na%C3%AFve.txt";
+        private const string EmojiMediaType = "text/plain;name*=UTF-8''%F0%9F%98%80";
+        private const string CafeMediaType = "text/plain;name*=UTF-8''caf%C3%A9%20%2A%27%25";
+        private const string NaiveParameter = "name*=UTF-8''na%C3%AFve.txt";
+        private const string NaiveFileName = "na\xEFve.txt";
+        private const string EAcuteAndEmoji = "\xE9\xD83D\xDE00";
+        private const string Emoji = "\xD83D\xDE00";
+        private const string CafeWithSpecials = "caf\xE9 *'%";
+
         public delegate bool TryParseCall(out MimeMediaType result);
 
         public static TheoryData<string> DeviationValues => CreateDeviationValues();
@@ -160,9 +171,9 @@ namespace DataStandardizer.Communication.Tests.Mime
         }
 
         [Theory]
-        [InlineData("text/plain;name*=UTF-8''na%C3%AFve.txt", "na\xEFve.txt", Utf8)]
+        [InlineData(NaiveMediaType, NaiveFileName, Utf8)]
         [InlineData("text/plain;name*=iso-8859-1''%A3%20rates", "\xA3 rates", "iso-8859-1")]
-        [InlineData("text/plain;name*=UTF-8''%F0%9F%98%80", "\xD83D\xDE00", Utf8)]
+        [InlineData(EmojiMediaType, Emoji, Utf8)]
         [InlineData("text/plain;name*=''abc", "abc", "")]
         [InlineData("text/plain;name*=UTF-8''", "", Utf8)]
         [InlineData("text/plain;name*0*=UTF-8''%E2%82;name*1*=%AC", Euro, Utf8)]
@@ -570,12 +581,12 @@ namespace DataStandardizer.Communication.Tests.Mime
         }
 
         [Theory]
-        [InlineData("na\xEFve.txt", "name*=UTF-8''na%C3%AFve.txt")]
+        [InlineData(NaiveFileName, NaiveParameter)]
         [InlineData("a\r\nb", "name*=UTF-8''a%0D%0Ab")]
         [InlineData("a\x7F", "name*=UTF-8''a%7F")]
         [InlineData("\x20AC 5", "name*=UTF-8''%E2%82%AC%205")]
-        [InlineData("\xD83D\xDE00", "name*=UTF-8''%F0%9F%98%80")]
-        [InlineData("caf\xE9 *'%", "name*=UTF-8''caf%C3%A9%20%2A%27%25")]
+        [InlineData(Emoji, "name*=UTF-8''%F0%9F%98%80")]
+        [InlineData(CafeWithSpecials, "name*=UTF-8''caf%C3%A9%20%2A%27%25")]
         public void ToString_ValueThatIsNotUsAscii_WritesExtendedValue(string value, string expected)
         {
             // arrange
@@ -589,10 +600,10 @@ namespace DataStandardizer.Communication.Tests.Mime
         }
 
         [Theory]
-        [InlineData("text/plain;name*=UTF-8''na%C3%AFve.txt", "na\xEFve.txt")]
+        [InlineData(NaiveMediaType, NaiveFileName)]
         [InlineData("text/plain;name*=UTF-8''a%0D%0Ab", "a\r\nb")]
-        [InlineData("text/plain;name*=UTF-8''%F0%9F%98%80", "\xD83D\xDE00")]
-        [InlineData("text/plain;name*=UTF-8''caf%C3%A9%20%2A%27%25", "caf\xE9 *'%")]
+        [InlineData(EmojiMediaType, Emoji)]
+        [InlineData(CafeMediaType, CafeWithSpecials)]
         public void Parse_WrittenExtendedValue_ReturnsParameter(string value, string parameterValue)
         {
             // arrange
@@ -990,7 +1001,7 @@ namespace DataStandardizer.Communication.Tests.Mime
         {
             // arrange
             const int maxSectionLength = 1;
-            var parameter = new MimeParameter(ParameterName, "\xE9\xD83D\xDE00", English);
+            var parameter = new MimeParameter(ParameterName, EAcuteAndEmoji, English);
 
             // act
             var result = parameter.FormatSections(maxSectionLength);
@@ -1014,7 +1025,7 @@ namespace DataStandardizer.Communication.Tests.Mime
         }
 
         [Theory]
-        [InlineData("text/plain;name*0*=UTF-8'en'%C3%A9;name*1*=%F0%9F%98%80", "\xE9\xD83D\xDE00")]
+        [InlineData("text/plain;name*0*=UTF-8'en'%C3%A9;name*1*=%F0%9F%98%80", EAcuteAndEmoji)]
         [InlineData("text/plain;name*0*=UTF-8'en'", "")]
         public void Parse_SectionsWithLanguage_ReturnsParameter(string value, string parameterValue)
         {
@@ -1093,7 +1104,7 @@ namespace DataStandardizer.Communication.Tests.Mime
                 ("text/plain;a*=\"UTF-8'en'a b;c\"", MimeMediaTypeParseOptions.AllowQuotedExtendedValues, "a b;c"),
                 ("text/plain;a*0*=\"UTF-8''a%20\";a*1*=b", MimeMediaTypeParseOptions.AllowQuotedExtendedValues, "a b"),
                 // ref. RFC 2231 §7: ext-octet := "%" 2(DIGIT / "A" / "B" / "C" / "D" / "E" / "F")
-                ("text/plain;a*=utf-8''na%c3%afve.txt", MimeMediaTypeParseOptions.AllowLowercaseHexDigits, "na\xEFve.txt"),
+                ("text/plain;a*=utf-8''na%c3%afve.txt", MimeMediaTypeParseOptions.AllowLowercaseHexDigits, NaiveFileName),
                 ("text/plain;a*=UTF-8''%C3%a9", MimeMediaTypeParseOptions.AllowLowercaseHexDigits, EAcute),
                 ("text/plain;a*0*=UTF-8''x;a*1*=%c3%A9", MimeMediaTypeParseOptions.AllowLowercaseHexDigits, "x\xE9"),
             };
