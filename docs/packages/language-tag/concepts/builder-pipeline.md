@@ -60,9 +60,7 @@ other *Data Standardizer* packages:
   `Iso639Part3Language`, `Iso639Part5LanguageFamily`, or `string`.
 - Script — `Iso15924Script` or `string`.
 - Region — `Iso3166Part1Alpha2Country` for a country, `UnM49Area` for an area
-  made up of more than one country (such as `UnM49Area._419`), or `string`. The
-  `UnM49AreaByAlpha2CountryCode` and `UnM49AreaByAlpha3CountryCode` overloads
-  are deprecated.
+  made up of more than one country (such as `UnM49Area._419`), or `string`.
 
 When you pass an enum, the builder checks that the value is defined (and, for
 `UnM49Area`, that the member is an area BCP 47 allows); when you pass a string,

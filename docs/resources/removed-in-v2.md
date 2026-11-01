@@ -101,7 +101,8 @@ string? name = country.GetEnglishName(Iso3166CountryName.Short);
 `DataStandardizer.LanguageTag` and `DataStandardizer.File.CSV` have changed since
 they took over from the removed packages, so check their pages for anything your
 code relies on, such as the
-[LanguageTag match timeouts](#languagetag-match-timeouts) below.
+[LanguageTag match timeouts](#languagetag-match-timeouts) and
+[builder region overloads](#languagetag-builder-region-overloads) below.
 
 ## LanguageTag match timeouts
 
@@ -137,6 +138,47 @@ var built = new Bcp47LanguageTagBuilder()
 var languageTag = Bcp47LanguageTag.Create("en-NZ");
 var built = new Bcp47LanguageTagBuilder()
     .UsingLanguageTag("en-NZ")
+    .Build();
+```
+
+## LanguageTag builder region overloads
+
+`Bcp47LanguageTagBuilder` no longer has a `UsingRegionSubtag` overload that takes
+`UnM49AreaByAlpha2CountryCode` or `UnM49AreaByAlpha3CountryCode`. Every defined
+member of those enums is a country code, which BCP 47 doesn't allow as a Region
+subtag, so the overloads were marked `[Obsolete]` in version 1.x. They only
+succeeded for an undefined value cast from the code of an area made up of more
+than one country. The enums themselves stay in `DataStandardizer.Geography`.
+
+| Removed | Use instead |
+| --- | --- |
+| `UsingRegionSubtag(UnM49AreaByAlpha2CountryCode)` | `UsingRegionSubtag(UnM49Area)` for an area made up of more than one country, or `UsingRegionSubtag(Iso3166Part1Alpha2Country)` for a country |
+| `UsingRegionSubtag(UnM49AreaByAlpha3CountryCode)` | `UsingRegionSubtag(UnM49Area)` for an area made up of more than one country, or `UsingRegionSubtag(Iso3166Part1Alpha2Country)` for a country |
+
+Replace a cast with the `UnM49Area` member for the same code, and a country member
+of either enum with the matching `Iso3166Part1Alpha2Country` member. A country
+member threw `ArgumentException` in the removed overloads, and it now builds a tag
+with the country as its Region subtag.
+
+```csharp
+// Before
+var latinAmerica = new Bcp47LanguageTagBuilder()
+    .UsingPrimaryLanguageSubtag("es")
+    .UsingRegionSubtag((UnM49AreaByAlpha2CountryCode)419)
+    .Build();
+var newZealand = new Bcp47LanguageTagBuilder()
+    .UsingPrimaryLanguageSubtag("en")
+    .UsingRegionSubtag(UnM49AreaByAlpha3CountryCode.NZL)
+    .Build();
+
+// After
+var latinAmerica = new Bcp47LanguageTagBuilder()
+    .UsingPrimaryLanguageSubtag("es")
+    .UsingRegionSubtag(UnM49Area._419)
+    .Build();
+var newZealand = new Bcp47LanguageTagBuilder()
+    .UsingPrimaryLanguageSubtag("en")
+    .UsingRegionSubtag(Iso3166Part1Alpha2Country.NZ)
     .Build();
 ```
 

@@ -27,7 +27,8 @@ the lowest target of `DataStandardizer.Communication`,
 to `netstandard1.1`. It changes the `ExtendedLanguageSubtags`, `VariantSubtags`
 and `ExtensionSubtags` properties of `Bcp47LanguageTag`, and the `Subtags`
 property of `Bcp47KeyedSubtag`, from arrays to `IReadOnlyList<T>`, and removes
-the `DataStandardizer.LanguageTag` members that took a match timeout.
+the `DataStandardizer.LanguageTag` members that took a match timeout, and the
+builder's `UsingRegionSubtag` overloads that took a UN M49 country code enum.
 
 `Bcp47LanguageTag.PrimaryLanguageSubtag` is now a `string?`. On a private use tag
 such as `x-private`, or a grandfathered tag such as `i-klingon`, it is `null`
