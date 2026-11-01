@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Globalization;
 using DataStandardizer.Communication.E164;
 using DataStandardizer.Geography;
 using FluentAssertions;
@@ -9,15 +8,27 @@ namespace DataStandardizer.Communication.Tests
 {
     public class TelephonyInfoTests
     {
+        // Numbers for a geographic area with country code 1, the North American Numbering Plan, and the patterns they are formatted with.
+        private const ulong NorthAmericanNumber = 12135550199L;
+        private const ulong ShortPatternNumber = 12135550150L;
+        private const ulong LongPatternNumber = 12135550190L;
+
+        private const string PrefixedCompactPattern = "+cccssssssssssss";
+        private const string SpacedPrefixCompactPattern = "+ cccssssssssssss";
+        private const string PrefixedCountryThenSubscriberPattern = "+ccc ssssssssssss";
+        private const string SpacedPrefixCountryThenSubscriberPattern = "+ ccc ssssssssssss";
+        private const string PrefixedCountryAreaThenSubscriberPattern = "+ccc sss sssssssss";
+        private const string SpacedPrefixCountryAreaThenSubscriberPattern = "+ ccc sss sssssssss";
+
+        // A culture whose region is Australia.
+        private const string AustralianEnglish = "en-AU";
+
         [Theory]
         [InlineData(""), InlineData("en")]
         public void CurrentTelephony_CurrentCultureWithoutRegion_ReturnsReadOnlyTelephonyWithoutCountry(string cultureName)
         {
             // arrange
-            var originalCulture = CultureInfo.CurrentCulture;
-            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(cultureName);
-
-            try
+            using (new CultureScope(cultureName))
             {
                 // act
                 var testResult = TelephonyInfo.CurrentTelephony;
@@ -26,20 +37,13 @@ namespace DataStandardizer.Communication.Tests
                 testResult.Iso3166Part1Alpha2Code.Should().BeNull();
                 testResult.IsReadOnly.Should().BeTrue();
             }
-            finally
-            {
-                CultureInfo.CurrentCulture = originalCulture;
-            }
         }
 
         [Fact]
         public void CurrentTelephony_CurrentCultureWithCountry_ReturnsReadOnlyTelephonyForCountry()
         {
             // arrange
-            var originalCulture = CultureInfo.CurrentCulture;
-            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-AU");
-
-            try
+            using (new CultureScope(AustralianEnglish))
             {
                 // act
                 var testResult = TelephonyInfo.CurrentTelephony;
@@ -47,10 +51,6 @@ namespace DataStandardizer.Communication.Tests
                 // assert
                 testResult.Iso3166Part1Alpha2Code.Should().Be(Iso3166Part1Alpha2Country.AU);
                 testResult.IsReadOnly.Should().BeTrue();
-            }
-            finally
-            {
-                CultureInfo.CurrentCulture = originalCulture;
             }
         }
 
@@ -81,30 +81,29 @@ namespace DataStandardizer.Communication.Tests
         }
 
         [Theory]
-        [InlineData(12135550123L, "g", "+12135550123"),
-         InlineData(12135550100L, "G", "+1 2135550100"),
-         InlineData(12135550199L, "+cccsssssssssss", "+12135550199"),
-         InlineData(12135550199L, "+ cccssssssssssss", "+ 12135550199"),
-         InlineData(12135550199L, "+ccc ssssssssssss", "+1 2135550199"),
-         InlineData(12135550199L, "+ ccc ssssssssssss", "+ 1 2135550199"),
-         InlineData(12135550199L, "+ccc sss sssssssss", "+1 213 5550199"),
-         InlineData(12135550199L, "+ ccc sss sssssssss", "+ 1 213 5550199")]
-        public void InvariantTelephony_PassedToFormatCapableMethod_ReturnsFormattedOutput(ulong testValue, string testFormat, string expectedResult)
+        [InlineData(12135550123L, "{0:g}", "+12135550123"),
+         InlineData(12135550100L, "{0:G}", "+1 2135550100"),
+         InlineData(NorthAmericanNumber, "{0:+cccsssssssssss}", "+12135550199"),
+         InlineData(NorthAmericanNumber, "{0:+ cccssssssssssss}", "+ 12135550199"),
+         InlineData(NorthAmericanNumber, "{0:+ccc ssssssssssss}", "+1 2135550199"),
+         InlineData(NorthAmericanNumber, "{0:+ ccc ssssssssssss}", "+ 1 2135550199"),
+         InlineData(NorthAmericanNumber, "{0:+ccc sss sssssssss}", "+1 213 5550199"),
+         InlineData(NorthAmericanNumber, "{0:+ ccc sss sssssssss}", "+ 1 213 5550199")]
+        public void InvariantTelephony_PassedToFormatCapableMethod_ReturnsFormattedOutput(ulong testValue, string compositeFormat, string expectedResult)
         {
             // arrange
-            var useFormat = string.Concat("{0:", testFormat, "}");
             var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(testValue);
 
             // act
-            var testResult = string.Format(TelephonyInfo.InvariantTelephony, useFormat, testSubject);
+            var testResult = string.Format(TelephonyInfo.InvariantTelephony, compositeFormat, testSubject);
 
             // assert
             testResult.Should().Be(expectedResult);
         }
 
         [Theory]
-        [InlineData(12135550150L, "+cccssssssssssss", "+12135550150"),
-         InlineData(12135550150L, "+ cccssssssssssss", "+ 12135550150")]
+        [InlineData(ShortPatternNumber, PrefixedCompactPattern, "+12135550150"),
+         InlineData(ShortPatternNumber, SpacedPrefixCompactPattern, "+ 12135550150")]
         public void InvariantTelephony_PassedToFormatCapableMethodWithShortInternationalFormat_ReturnsFormattedOutput(ulong testValue, string internationalFormat, string expectedResult)
         {
             // arrange
@@ -121,10 +120,10 @@ namespace DataStandardizer.Communication.Tests
         }
 
         [Theory]
-        [InlineData(12135550190L, "+ccc ssssssssss", "+1 2135550190"),
-         InlineData(12135550190L, "+ ccc ssssssssssss", "+ 1 2135550190"),
-         InlineData(12135550190L, "+ccc sss sssssssss", "+1 213 5550190"),
-         InlineData(12135550190L, "+ ccc sss sssssssss", "+ 1 213 5550190")]
+        [InlineData(LongPatternNumber, "+ccc ssssssssss", "+1 2135550190"),
+         InlineData(LongPatternNumber, SpacedPrefixCountryThenSubscriberPattern, "+ 1 2135550190"),
+         InlineData(LongPatternNumber, PrefixedCountryAreaThenSubscriberPattern, "+1 213 5550190"),
+         InlineData(LongPatternNumber, SpacedPrefixCountryAreaThenSubscriberPattern, "+ 1 213 5550190")]
         public void InvariantTelephony_PassedToFormatCapableMethodWithLongInternationalFormat_ReturnsFormattedOutput(ulong testValue, string internationalFormat, string expectedResult)
         {
             // arrange
@@ -195,7 +194,7 @@ namespace DataStandardizer.Communication.Tests
             // assert
             testAction.Should()
                 .Throw<InvalidOperationException>()
-                .WithMessage($"{nameof(TelephonyInfo)} is read only.");
+                .WithMessage("TelephonyInfo is read only.");
         }
     }
 }
