@@ -171,7 +171,7 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
                 corpus.Add("\n" + input);
                 corpus.Add(input + "\t");
                 corpus.Add(input + "\0");
-                corpus.Add(input.Replace('k', 'K'));
+                corpus.Add(input.Replace('k', '\x212A'));
                 corpus.Add(input.Replace('K', '\x212A'));
                 corpus.Add(input.Replace('s', '\x017F'));
                 corpus.Add(input.Replace('i', '\x0131'));

@@ -13,8 +13,6 @@ namespace DataStandardizer.LanguageTag.IntegrationTests
         /// </summary>
         private const long ObjectSizeIn64BitProcess = 24;
 
-        private static object _allocated;
-
         [Fact]
         public void MeasureAllocatedBytes_WithActionThatDoesNotAllocate_ReturnsZero()
         {
@@ -32,7 +30,8 @@ namespace DataStandardizer.LanguageTag.IntegrationTests
         public void MeasureAllocatedBytes_WithActionThatAllocatesOneObject_ReturnsTheSizeOfTheObject()
         {
             // arrange
-            Action action = () => _allocated = new object();
+            object allocated = null;
+            Action action = () => allocated = new object();
 
             // act
             var testResult = AllocationMeter.MeasureAllocatedBytes(action);

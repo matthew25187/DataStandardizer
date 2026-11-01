@@ -92,5 +92,21 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
             // assert
             testResult.Should().Contain(ParityCorpus.RfcAppendixAExamples);
         }
+
+        /// <summary>
+        /// An input from each part of the corpus: the empty string, which only the trimmed registry's empty alternation matches (#253); an
+        /// ISO 639-3 code; a subtag in another position; a combination of every kind of subtag; a tag with a line feed; and tags with the
+        /// Kelvin sign U+212A in place of k and K, which are not ASCII letters (RFC 5646 §2.1).
+        /// </summary>
+        [Theory]
+        [InlineData(""), InlineData("yue"), InlineData("en-Qaby"), InlineData("zh-cmn-YUE-Latn-US-rozaj"), InlineData("en-US\n"), InlineData("en-x-\x212A"), InlineData("\x212Aore")]
+        public void Inputs_OfCorpus_IncludeAnInputFromEachPart(string expectedInput)
+        {
+            // act
+            var testResult = ParityCorpus.Inputs;
+
+            // assert
+            testResult.Should().Contain(expectedInput);
+        }
     }
 }
