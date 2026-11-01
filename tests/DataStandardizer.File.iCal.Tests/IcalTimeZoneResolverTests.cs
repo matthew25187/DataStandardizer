@@ -160,6 +160,16 @@ namespace DataStandardizer.File.iCal.Tests
             EndTimeZone
         };
 
+        // London local times in 2026, with the UTC time that RFC 5545 §3.3.5 gives each: in the gap, read with GMT, the offset before it; in
+        // the overlap, the first occurrence, in BST; and in summer and in winter.
+        public static TheoryData<string, IcalDateTime> LondonTimes => new TheoryData<string, IcalDateTime>
+        {
+            { "20260329T013000", new IcalDateTime(new IcalDate(2026, 3, 29), new IcalTime(1, 30, 0, true)) },
+            { "20261025T013000", new IcalDateTime(new IcalDate(2026, 10, 25), new IcalTime(0, 30, 0, true)) },
+            { "20260701T120000", new IcalDateTime(new IcalDate(2026, 7, 1), new IcalTime(11, 0, 0, true)) },
+            { "20260115T120000", new IcalDateTime(new IcalDate(2026, 1, 15), new IcalTime(12, 0, 0, true)) },
+        };
+
         // Each time zone with its changes of offset in 2026.  The rows below that pass a year give its start and the start of the next.
         public static TheoryData<string, TimeZoneTransition[]> AccuracyZones => new TheoryData<string, TimeZoneTransition[]>()
         {
@@ -892,17 +902,13 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Theory]
-        [InlineData("20260329T013000", "20260329T013000Z")] // In the gap: read with GMT, the offset before it.
-        [InlineData("20261025T013000", "20261025T003000Z")] // In the overlap: the first occurrence, in BST.
-        [InlineData("20260701T120000", "20260701T110000Z")]
-        [InlineData("20260115T120000", "20260115T120000Z")]
-        public void ToUtc_LondonTimeWithTzDataVTimeZone_FollowsRfc5545(string local, string expectedUtc)
+        [MemberData(nameof(LondonTimes), DisableDiscoveryEnumeration = true)]
+        public void ToUtc_LondonTimeWithTzDataVTimeZone_FollowsRfc5545(string local, IcalDateTime expected)
         {
             // arrange
             var timeZone = IcalTimeZone.FromTzData(TzDataTimezone.Parse(London), Utc(2020), Utc(2030));
             var calendar = ModelTestData.ReadCalendar(WriteCalendar(timeZone));
             var value = IcalDateTime.Parse(local.AsSpan(), London, IcalValueFormat.Text);
-            var expected = IcalDateTime.Parse(expectedUtc.AsSpan(), IcalValueFormat.Text);
 
             // act
             var testResult = IcalTimeZoneResolver.Default.ToUtc(value, calendar);

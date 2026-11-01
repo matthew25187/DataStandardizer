@@ -69,7 +69,7 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange: RFC 7265 §3.6.9 gives a PERIOD as an array, which Appendix B.2 does not follow.
             var calendars = ReadCalendars(Example2Ical);
-            var expected = JsonNode.Parse(Example2Jcal.Replace("\"2006-01-02T15:00:00/PT2H\"", "[\"2006-01-02T15:00:00\", \"PT2H\"]"));
+            var expected = JsonNode.Parse(Example2JcalWithPeriodArray);
 
             // act
             var testResult = WriteJcal(calendars);
@@ -353,7 +353,7 @@ namespace DataStandardizer.File.iCal.Tests
         public void Dispose_AfterSecondCalendarCannotBeWritten_KeepsTheFirst()
         {
             // arrange
-            var expected = Model(ReadCalendars(Example1Ical));
+            var expected = JsonNode.Parse(Example1Jcal);
             var stream = new MemoryStream();
             var writer = new JcalWriter(stream);
             writer.WriteCalendar(ReadCalendar(Example1Ical));
@@ -362,8 +362,8 @@ namespace DataStandardizer.File.iCal.Tests
             // act
             writer.Dispose();
 
-            // assert
-            Model(ReadJcal(Encoding.UTF8.GetString(stream.ToArray()))).Should().Equal(expected);
+            // assert: the same JSON, ignoring formatting.
+            JsonNode.DeepEquals(JsonNode.Parse(stream.ToArray()), expected).Should().BeTrue();
         }
 
         [Fact]

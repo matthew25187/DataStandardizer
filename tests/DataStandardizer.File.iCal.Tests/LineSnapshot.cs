@@ -56,6 +56,35 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         public LineSnapshot WithoutLineNumbers() => new LineSnapshot(Name, Parameters, Value, 0, 0);
+
+        /// <summary>
+        /// Describes each line as <see cref="FixtureExpectations"/> does, with its numbers.
+        /// </summary>
+        public static List<string> DescribeNumbered(IEnumerable<LineSnapshot> lines) => lines.Select(line => line.DescribeNumbered()).ToList();
+
+        /// <summary>
+        /// Describes each line as <see cref="FixtureExpectations"/> does, with its numbers.
+        /// </summary>
+        public static List<string> DescribeNumbered(IEnumerable<IcalContentLine> lines) => DescribeNumbered(lines.Select(FromLine));
+
+        /// <summary>
+        /// Describes each line as <see cref="FixtureExpectations"/> does, without its numbers.
+        /// </summary>
+        public static List<string> Describe(IEnumerable<IcalContentLine> lines) => lines.Select(line => FromLine(line).ToString()).ToList();
+
+        /// <summary>
+        /// Describes the line as <see cref="FixtureExpectations"/> does, with its numbers.
+        /// </summary>
+        public string DescribeNumbered() => LineNumber + "/" + PhysicalLineNumber + " " + this;
+
+        /// <summary>
+        /// Describes the line as <see cref="FixtureExpectations"/> does, without its numbers: its name, each parameter as
+        /// <c>;NAME=value|value</c>, a colon and its value.
+        /// </summary>
+        public override string ToString()
+        {
+            return Name + string.Concat(Parameters.Select(parameter => ";" + parameter.Name + "=" + string.Join("|", parameter.Values))) + ":" + Value;
+        }
     }
 
     internal sealed class ParameterSnapshot

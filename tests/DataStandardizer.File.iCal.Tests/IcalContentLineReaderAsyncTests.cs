@@ -63,72 +63,54 @@ namespace DataStandardizer.File.iCal.Tests
 
         [Theory]
         [MemberData(nameof(IcalContentLineReaderTests.ConsistencyData), MemberType = typeof(IcalContentLineReaderTests))]
-        public async Task ReadLinesAsync_EveryFixture_MatchesSync(string fixtureName, int bufferSize)
+        public async Task ReadLinesAsync_EveryFixture_ReadsItsLines(string fixtureName, int bufferSize)
         {
             // arrange
-            var text = RfcFixtures.All[fixtureName];
-            using (var syncReader = CreateReader(text, bufferSize: bufferSize))
+            var expected = FixtureExpectations.NumberedLines[fixtureName];
+            var reader = CreateAsyncOnlyReader(RfcFixtures.All[fixtureName], bufferSize);
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
-                var asyncReader = CreateAsyncOnlyReader(text, bufferSize);
-                await AsyncDisposal.UsingAsync(asyncReader, async () =>
-                {
-                    var expected = ReadAll(syncReader).Select(LineSnapshot.FromLine).ToList();
+                // act
+                var testResult = LineSnapshot.DescribeNumbered(await ReadAllAsync(reader));
 
-                    // act
-                    var testResult = (await ReadAllAsync(asyncReader)).Select(LineSnapshot.FromLine).ToList();
-
-                    // assert
-                    testResult.Should().NotBeEmpty();
-                    testResult.Should().BeEquivalentTo(expected, options => options.WithStrictOrdering());
-                    asyncReader.LinesRead.Should().Be(syncReader.LinesRead);
-                    asyncReader.PhysicalLinesRead.Should().Be(syncReader.PhysicalLinesRead);
-                });
-            }
+                // assert
+                testResult.Should().Equal(expected);
+            });
         }
 
         [Theory]
         [MemberData(nameof(IcalContentLineReaderTests.ConsistencyData), MemberType = typeof(IcalContentLineReaderTests))]
-        public async Task ReadContentLineAsync_EveryFixture_ViewMatchesSync(string fixtureName, int bufferSize)
+        public async Task ReadContentLineAsync_EveryFixture_ViewsItsLines(string fixtureName, int bufferSize)
         {
             // arrange
-            var text = RfcFixtures.All[fixtureName];
-            using (var syncReader = CreateReader(text, bufferSize: bufferSize))
+            var expected = FixtureExpectations.NumberedLines[fixtureName];
+            var reader = CreateAsyncOnlyReader(RfcFixtures.All[fixtureName], bufferSize);
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
-                var asyncReader = CreateAsyncOnlyReader(text, bufferSize);
-                await AsyncDisposal.UsingAsync(asyncReader, async () =>
-                {
-                    var expected = IcalContentLineReaderTests.ReadAllViews(syncReader);
+                // act
+                var testResult = LineSnapshot.DescribeNumbered(await ReadAllViewsAsync(reader));
 
-                    // act
-                    var testResult = await ReadAllViewsAsync(asyncReader);
-
-                    // assert
-                    testResult.Should().NotBeEmpty();
-                    testResult.Should().BeEquivalentTo(expected, options => options.WithStrictOrdering());
-                });
-            }
+                // assert
+                testResult.Should().Equal(expected);
+            });
         }
 
         [Theory]
         [MemberData(nameof(IcalContentLineReaderTests.ConsistencyData), MemberType = typeof(IcalContentLineReaderTests))]
-        public async Task ReadLinesAsync_EveryFixtureFromStream_MatchesSync(string fixtureName, int bufferSize)
+        public async Task ReadLinesAsync_EveryFixtureFromStream_ReadsItsLines(string fixtureName, int bufferSize)
         {
             // arrange
+            var expected = FixtureExpectations.NumberedLines[fixtureName];
             var data = Encoding.UTF8.GetBytes(RfcFixtures.All[fixtureName]);
-            using (var syncReader = CreateStreamReader(data, streamBufferSize: SmallStreamBufferSize, bufferSize: bufferSize))
+            var reader = new IcalContentLineReader(new AsyncOnlyStream(data), new IcalOptions(), SmallStreamBufferSize, bufferSize);
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
-                var asyncReader = new IcalContentLineReader(new AsyncOnlyStream(data), new IcalOptions(), SmallStreamBufferSize, bufferSize);
-                await AsyncDisposal.UsingAsync(asyncReader, async () =>
-                {
-                    var expected = ReadAll(syncReader).Select(LineSnapshot.FromLine).ToList();
+                // act
+                var testResult = LineSnapshot.DescribeNumbered(await ReadAllAsync(reader));
 
-                    // act
-                    var testResult = (await ReadAllAsync(asyncReader)).Select(LineSnapshot.FromLine).ToList();
-
-                    // assert
-                    testResult.Should().BeEquivalentTo(expected, options => options.WithStrictOrdering());
-                });
-            }
+                // assert
+                testResult.Should().Equal(expected);
+            });
         }
 
         [Theory]

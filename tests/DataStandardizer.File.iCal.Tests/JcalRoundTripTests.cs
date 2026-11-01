@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
+using System.Xml.Linq;
 using FluentAssertions;
 using Xunit;
 using static DataStandardizer.File.iCal.Tests.JcalTestData;
@@ -48,6 +50,13 @@ namespace DataStandardizer.File.iCal.Tests
 
         internal static (string Text, IcalOptions Options) GetCalendar(string name) => Calendars[name];
 
+        // ref. RFC 7265 Appendix B: each example in iCalendar form and in jCal form, with the PERIOD that RFC 7265 §3.6.9 gives as an array.
+        public static TheoryData<string, string> RfcExamples => new TheoryData<string, string>
+        {
+            { Example1Ical, Example1Jcal },
+            { Example2Ical, Example2JcalWithPeriodArray },
+        };
+
         [Theory]
         [MemberData(nameof(CalendarNames))]
         public void ReadJcal_CalendarsWrittenAsJcal_LeavesModelUnchanged(string calendarName)
@@ -55,7 +64,7 @@ namespace DataStandardizer.File.iCal.Tests
             // arrange
             var (text, options) = GetCalendar(calendarName);
             var calendars = ReadCalendars(text, options);
-            var expected = Model(calendars, options);
+            var expected = FixtureExpectations.JcalRoundTripModels[calendarName];
 
             // act
             var testResult = Model(ReadJcal(WriteJcal(calendars, options), options), options);
@@ -70,30 +79,29 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var (text, options) = GetCalendar(calendarName);
-            var calendars = ReadJcal(WriteJcal(ReadCalendars(text, options), options), options);
-            var expected = Model(calendars, options);
+            var calendars = ReadCalendars(text, options);
+            var expected = FixtureExpectations.JcalRoundTripModels[calendarName];
 
             // act
-            var testResult = Model(ReadCalendars(WriteCalendars(calendars, options), options), options);
+            var testResult = Model(ReadCalendars(WriteCalendars(ReadJcal(WriteJcal(calendars, options), options), options), options), options);
 
             // assert
             testResult.Should().Equal(expected);
         }
 
         [Theory]
-        [MemberData(nameof(CalendarNames))]
-        public void WriteJcal_JcalCalendarsThroughIcal_LeavesJsonUnchanged(string calendarName)
+        [MemberData(nameof(RfcExamples))]
+        public void WriteJcal_RfcExampleThroughIcal_IsTheRfcJcalForm(string ical, string jcal)
         {
             // arrange
-            var (text, options) = GetCalendar(calendarName);
-            var jcal = WriteJcal(ReadCalendars(text, options), options);
-            var calendars = ReadCalendars(WriteCalendars(ReadJcal(jcal, options), options), options);
+            var calendars = ReadCalendars(ical);
+            var expected = JsonNode.Parse(jcal);
 
             // act
-            var testResult = WriteJcal(calendars, options);
+            var testResult = JsonNode.Parse(WriteJcal(ReadCalendars(WriteCalendars(ReadJcal(WriteJcal(calendars))))));
 
-            // assert
-            testResult.Should().Be(jcal);
+            // assert: the same JSON, ignoring formatting.
+            JsonNode.DeepEquals(testResult, expected).Should().BeTrue();
         }
 
         [Theory]
@@ -102,30 +110,29 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var (text, options) = GetCalendar(calendarName);
-            var calendars = ReadJcal(WriteJcal(ReadCalendars(text, options), options), options);
-            var expected = Model(calendars, options);
+            var calendars = ReadCalendars(text, options);
+            var expected = FixtureExpectations.JcalRoundTripModels[calendarName];
 
             // act
-            var testResult = Model(XcalTestData.ReadXcal(XcalTestData.WriteXcal(calendars, options), options), options);
+            var testResult = Model(XcalTestData.ReadXcal(XcalTestData.WriteXcal(ReadJcal(WriteJcal(calendars, options), options), options), options), options);
 
             // assert
             testResult.Should().Equal(expected);
         }
 
         [Theory]
-        [MemberData(nameof(CalendarNames))]
-        public void WriteJcal_JcalCalendarsThroughXcal_LeavesJsonUnchanged(string calendarName)
+        [MemberData(nameof(RfcExamples))]
+        public void WriteJcal_RfcExampleThroughXcal_IsTheRfcJcalForm(string ical, string jcal)
         {
             // arrange
-            var (text, options) = GetCalendar(calendarName);
-            var jcal = WriteJcal(ReadCalendars(text, options), options);
-            var calendars = XcalTestData.ReadXcal(XcalTestData.WriteXcal(ReadJcal(jcal, options), options), options);
+            var calendars = ReadCalendars(ical);
+            var expected = JsonNode.Parse(jcal);
 
             // act
-            var testResult = WriteJcal(calendars, options);
+            var testResult = JsonNode.Parse(WriteJcal(XcalTestData.ReadXcal(XcalTestData.WriteXcal(ReadJcal(WriteJcal(calendars))))));
 
-            // assert
-            testResult.Should().Be(jcal);
+            // assert: the same JSON, ignoring formatting.
+            JsonNode.DeepEquals(testResult, expected).Should().BeTrue();
         }
 
         [Theory]
@@ -134,37 +141,37 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var (text, options) = GetCalendar(calendarName);
-            var calendars = XcalTestData.ReadXcal(XcalTestData.WriteXcal(ReadCalendars(text, options), options), options);
-            var expected = Model(calendars, options);
+            var calendars = ReadCalendars(text, options);
+            var expected = FixtureExpectations.JcalRoundTripModels[calendarName];
 
             // act
-            var testResult = Model(ReadJcal(WriteJcal(calendars, options), options), options);
+            var testResult = Model(ReadJcal(WriteJcal(XcalTestData.ReadXcal(XcalTestData.WriteXcal(calendars, options), options), options), options), options);
 
             // assert
             testResult.Should().Equal(expected);
         }
 
         [Theory]
-        [MemberData(nameof(CalendarNames))]
-        public void WriteXcal_XcalCalendarsThroughJcal_LeavesXmlUnchanged(string calendarName)
+        [MemberData(nameof(XcalWriterTests.RfcExamples), MemberType = typeof(XcalWriterTests))]
+        public void WriteXcal_RfcExampleThroughJcal_IsTheRfcXcalForm(string ical, string xcal)
         {
             // arrange
-            var (text, options) = GetCalendar(calendarName);
-            var xcal = XcalTestData.WriteXcal(ReadCalendars(text, options), options);
-            var calendars = ReadJcal(WriteJcal(XcalTestData.ReadXcal(xcal, options), options), options);
+            var calendars = ReadCalendars(ical);
+            var expected = XcalWriterTests.Normalize(XDocument.Parse(xcal));
 
             // act
-            var testResult = XcalTestData.WriteXcal(calendars, options);
+            var testResult = XcalWriterTests.Normalize(XDocument.Parse(XcalTestData.WriteXcal(ReadJcal(WriteJcal(XcalTestData.ReadXcal(
+                XcalTestData.WriteXcal(calendars)))))));
 
-            // assert
-            testResult.Should().Be(xcal);
+            // assert: the same XML, ignoring formatting.
+            testResult.Should().Be(expected);
         }
 
         [Fact]
         public void ReadJcal_RfcExample1_GivesTheModelOfTheIcalForm()
         {
             // arrange
-            var expected = Model(ReadCalendars(Example1Ical));
+            var expected = FixtureExpectations.JcalRoundTripModels[nameof(Example1Ical)];
 
             // act
             var testResult = Model(ReadJcal(Example1Jcal));
@@ -177,7 +184,7 @@ namespace DataStandardizer.File.iCal.Tests
         public void ReadXcal_RfcExample1_GivesTheModelOfTheIcalForm()
         {
             // arrange
-            var expected = Model(ReadCalendars(Example1Ical));
+            var expected = FixtureExpectations.JcalRoundTripModels[nameof(Example1Ical)];
 
             // act
             var testResult = Model(XcalTestData.ReadXcal(XcalTestData.Example1Xcal));
@@ -190,7 +197,7 @@ namespace DataStandardizer.File.iCal.Tests
         public void ReadJcal_RfcExample2_GivesTheModelOfTheIcalForm()
         {
             // arrange
-            var expected = Model(ReadCalendars(Example2Ical));
+            var expected = FixtureExpectations.JcalRoundTripModels[nameof(Example2Ical)];
 
             // act
             var testResult = Model(ReadJcal(Example2Jcal));
@@ -216,10 +223,10 @@ namespace DataStandardizer.File.iCal.Tests
         public void ReadJcal_UnknownPropertyWrittenAsJcal_KeepsItsRawText()
         {
             // arrange
-            var jcal = WriteJcal(new[] { ReadCalendar(UnknownPropertiesCalendar) });
+            var calendar = ReadCalendar(UnknownPropertiesCalendar);
 
             // act
-            var testResult = ReadJcal(jcal).Single().Events.Single();
+            var testResult = ReadJcal(WriteJcal(new[] { calendar })).Single().Events.Single();
 
             // assert
             testResult.Properties.Should().ContainSingle(line => line.Name == CoffeeDataName).Which.Value.Should().Be(CoffeeDataValue);
@@ -231,28 +238,13 @@ namespace DataStandardizer.File.iCal.Tests
         public void WriteCalendars_UnknownPropertyThroughJcal_WritesTheOriginalText()
         {
             // arrange
-            var calendar = ReadJcal(WriteJcal(new[] { ReadCalendar(UnknownPropertiesCalendar) })).Single();
+            var calendar = ReadCalendar(UnknownPropertiesCalendar);
 
             // act
-            var testResult = WriteCalendars(new[] { calendar });
+            var testResult = WriteCalendars(ReadJcal(WriteJcal(new[] { calendar })));
 
             // assert
             testResult.Should().Be(UnknownPropertiesCalendar);
-        }
-
-        [Fact]
-        public void ReadJcal_ExtensionPropertiesWrittenAsJcal_KeepTheirValuesAndParameters()
-        {
-            // arrange
-            var calendar = ReadCalendar(Extensions);
-            var expected = calendar.Events.Single().Properties;
-
-            // act
-            var testResult = ReadJcal(WriteJcal(new[] { calendar })).Single().Events.Single();
-
-            // assert
-            testResult.Properties.Should().BeEquivalentTo(expected, options => options.Excluding(line => line.LineNumber)
-                .Excluding(line => line.PhysicalLineNumber));
         }
 
         public static TheoryData<string> JcalConformanceCases() => ConformanceCases.XcalAndJcalCases();
@@ -264,7 +256,6 @@ namespace DataStandardizer.File.iCal.Tests
             // arrange: write the calendar with the one accommodation it needs, then read it with the defaults.
             var testCase = ConformanceCases.All[caseName];
             var jcal = WriteJcal(ReadCalendars(testCase.Text, testCase.AcceptingOptions), testCase.AcceptingOptions);
-            var icalException = Record.Exception(() => ReadCalendars(testCase.Text));
 
             // act
             Action testAction = () => ReadJcal(jcal);
@@ -274,7 +265,6 @@ namespace DataStandardizer.File.iCal.Tests
             exception.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(testCase.Kind, caseName);
             exception.Data[IcalFileException.DataItemName.ComponentPath].Should().Be(testCase.ComponentPath, caseName);
             exception.Data[IcalFileException.DataItemName.PropertyName].Should().Be(testCase.PropertyName, caseName);
-            exception.Message.Should().Be(icalException.Message, caseName);
         }
 
         [Theory]

@@ -31,10 +31,11 @@ namespace DataStandardizer.File.iCal.Tests
         private static readonly string ExampleInEnvelope =
             "<envelope><other/>" + Example1Xcal.Substring(Example1Xcal.IndexOf("<icalendar", StringComparison.Ordinal)) + "<after/></envelope>";
 
-        public static TheoryData<string, string> RfcExamples => new TheoryData<string, string>()
+        // Each RFC example, with the content lines of its iCalendar form.
+        public static TheoryData<string, string[]> RfcExamples => new TheoryData<string, string[]>()
         {
-            { Example1Xcal, Example1Ical },
-            { Example2Xcal, Example2Ical }
+            { Example1Xcal, FixtureExpectations.XcalRoundTripModels[nameof(Example1Ical)] },
+            { Example2Xcal, FixtureExpectations.XcalRoundTripModels[nameof(Example2Ical)] }
         };
 
         // A document with a summary of "Caf\xE9", encoded in each encoding that its XML declaration names.
@@ -111,12 +112,9 @@ namespace DataStandardizer.File.iCal.Tests
         };
 
         [Theory]
-        [MemberData(nameof(RfcExamples))]
-        public void ReadCalendars_RfcExample_MatchesICalendarForm(string xcal, string ical)
+        [MemberData(nameof(RfcExamples), DisableDiscoveryEnumeration = true)]
+        public void ReadCalendars_RfcExample_MatchesICalendarForm(string xcal, string[] expected)
         {
-            // arrange
-            var expected = Model(ReadCalendars(ical));
-
             // act
             var testResult = Model(ReadXcal(xcal));
 

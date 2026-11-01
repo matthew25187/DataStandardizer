@@ -28,12 +28,25 @@ namespace DataStandardizer.File.iCal.Tests
         // ref. RFC 7265 §3.2: a document that is an array of the two example calendars.
         private static readonly string ArrayOfExamples = "[" + Example1Jcal + ",\n" + Example2Jcal + "]";
 
+        // The name in FixtureExpectations of the content lines of the two example calendars, one after the other.
+        private const string Example1ThenExample2Name = "Example1IcalThenExample2Ical";
+
+        // Example1Jcal in UTF-8, after the UTF-8 byte order mark.
+        private static readonly byte[] Example1JcalWithByteOrderMark = new byte[] { 0xEF, 0xBB, 0xBF }.Concat(Utf8(Example1Jcal)).ToArray();
+
+        // A description of more than 100,000 characters, with no character that TEXT escapes, the journal document that holds it, and how many
+        // octets each read gives, far fewer than the description has.
+        private static readonly string LongDescription = string.Concat(Enumerable.Repeat("0123456789 ", 10000)) + "\xE9\x4E2D\xD83D\xDE00";
+        private static readonly string LongDescriptionDocument = JournalDocument("[\"description\", {}, \"text\", \"" + LongDescription + "\"]");
+        private const int LongDescriptionReadLength = 5000;
+
         private static readonly IcalOptions AllowInvalidValues = new IcalOptions { AllowInvalidValues = true };
 
-        public static TheoryData<string, string> RfcExamples => new TheoryData<string, string>()
+        // Each RFC example, with the content lines of its iCalendar form.
+        public static TheoryData<string, string[]> RfcExamples => new TheoryData<string, string[]>()
         {
-            { Example1Jcal, Example1Ical },
-            { Example2Jcal, Example2Ical }
+            { Example1Jcal, FixtureExpectations.JcalRoundTripModels[nameof(Example1Ical)] },
+            { Example2Jcal, FixtureExpectations.JcalRoundTripModels[nameof(Example2Ical)] }
         };
 
         /// <summary>
@@ -108,12 +121,9 @@ namespace DataStandardizer.File.iCal.Tests
         };
 
         [Theory]
-        [MemberData(nameof(RfcExamples))]
-        public void ReadCalendars_RfcExample_MatchesICalendarForm(string jcal, string ical)
+        [MemberData(nameof(RfcExamples), DisableDiscoveryEnumeration = true)]
+        public void ReadCalendars_RfcExample_MatchesICalendarForm(string jcal, string[] expected)
         {
-            // arrange
-            var expected = Model(ReadCalendars(ical));
-
             // act
             var testResult = Model(ReadJcal(jcal));
 
@@ -316,7 +326,7 @@ namespace DataStandardizer.File.iCal.Tests
         public void ReadCalendars_ArrayOfCalendars_ReadsEach()
         {
             // arrange
-            var expected = Model(ReadCalendars(Example1Ical + Example2Ical));
+            var expected = FixtureExpectations.JcalRoundTripModels[Example1ThenExample2Name];
 
             // act
             var testResult = Model(ReadJcal(ArrayOfExamples));
@@ -332,7 +342,7 @@ namespace DataStandardizer.File.iCal.Tests
         public void ReadCalendars_SmallReads_SplitTokensAcrossBlocks(int maxReadLength)
         {
             // arrange
-            var expected = Model(ReadJcal(ArrayOfExamples));
+            var expected = FixtureExpectations.JcalRoundTripModels[Example1ThenExample2Name];
             using (var reader = new JcalReader(new TrickleStream(Utf8(ArrayOfExamples), maxReadLength)))
             {
                 // act
@@ -346,16 +356,14 @@ namespace DataStandardizer.File.iCal.Tests
         [Fact]
         public void ReadCalendar_TokenLargerThanBuffer_GrowsBuffer()
         {
-            // arrange: a description of more than 100,000 characters, with no character that TEXT escapes.
-            var description = string.Concat(Enumerable.Repeat("0123456789 ", 10000)) + "\xE9\x4E2D\xD83D\xDE00";
-            var json = JournalDocument("[\"description\", {}, \"text\", \"" + description + "\"]");
-            using (var reader = new JcalReader(new TrickleStream(Utf8(json), 5000)))
+            // arrange
+            using (var reader = new JcalReader(new TrickleStream(Utf8(LongDescriptionDocument), LongDescriptionReadLength)))
             {
                 // act
                 var testResult = reader.ReadCalendar();
 
                 // assert
-                testResult.Journals.Should().ContainSingle().Which.Descriptions.Should().ContainSingle().Which.Value.Should().Be(description);
+                testResult.Journals.Should().ContainSingle().Which.Descriptions.Should().ContainSingle().Which.Value.Should().Be(LongDescription);
             }
         }
 
@@ -363,9 +371,8 @@ namespace DataStandardizer.File.iCal.Tests
         public void ReadCalendar_ByteOrderMark_IsSkipped()
         {
             // arrange
-            var expected = Model(ReadCalendars(Example1Ical));
-            var bytes = new byte[] { 0xEF, 0xBB, 0xBF }.Concat(Utf8(Example1Jcal)).ToArray();
-            using (var reader = new JcalReader(new TrickleStream(bytes, 1)))
+            var expected = FixtureExpectations.JcalRoundTripModels[nameof(Example1Ical)];
+            using (var reader = new JcalReader(new TrickleStream(Example1JcalWithByteOrderMark, 1)))
             {
                 // act
                 var testResult = Model(new[] { reader.ReadCalendar() });

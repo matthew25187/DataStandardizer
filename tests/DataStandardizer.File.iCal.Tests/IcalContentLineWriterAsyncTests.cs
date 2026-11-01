@@ -25,6 +25,16 @@ namespace DataStandardizer.File.iCal.Tests
 
         private static readonly IcalContentLine LineA = new IcalContentLine("A", "1");
 
+        // A value of characters of one to four octets in UTF-8.
+        private const string MultiOctetDescription = "Caf\xE9 \xD83D\xDE00 \x4F1A\x8B70 Caf\xE9 \xD83D\xDE00 \x4F1A\x8B70 ";
+
+        // ref. RFC 5545 §3.1 and RFC 6868 §3: MultiOctetDescription as a DESCRIPTION, and an ATTENDEE whose CN has a comma, quotes, a line
+        // break and a caret, which are quoted and caret-encoded, and whose X-P has a colon in its second value, which is quoted; each folded with
+        // a tab and a line feed so that no physical line is longer than 7 octets, and without splitting a character.
+        private const string MultiOctetLinesFoldedAtSevenOctets =
+            "DESCRIP\n\tTION:C\n\taf\xE9 \n\t\xD83D\xDE00 \n\t\x4F1A\x8B70\n\t Caf\xE9\n\t \xD83D\xDE00 \n\t\x4F1A\x8B70\n\t \n" +
+            "ATTENDE\n\tE;CN=\"\n\tDoe, ^\n\t'Jane^\n\t'^n^^\"\n\t;X-P=a\n\t,\"b:c\"\n\t:mailt\n\to:x\n";
+
         public enum AsyncWriteMode
         {
             WriteLineAsync,
@@ -54,63 +64,65 @@ namespace DataStandardizer.File.iCal.Tests
 
         [Theory]
         [MemberData(nameof(ParityData))]
-        public async Task Write_EveryFixtureToStream_MatchesSync(string fixtureName, AsyncWriteMode mode, int streamBufferSize)
+        public async Task Write_EveryFixtureToStream_WritesItsLinesFoldedAt75Octets(string fixtureName, AsyncWriteMode mode, int streamBufferSize)
         {
             // arrange
-            var lines = ReadFixtureLines(fixtureName);
-            using (var expectedStream = new MemoryStream())
+            var lines = ReadAll(CreateReader(RfcFixtures.All[fixtureName]));
+            var expected = Encoding.UTF8.GetBytes(FixtureExpectations.WrittenLines[fixtureName]);
+            var stream = new AsyncOnlyWriteStream();
+            var writer = new IcalContentLineWriter(stream, new IcalOptions(), streamBufferSize);
+
+            // act
+            await AsyncDisposal.UsingAsync(writer, async () =>
             {
-                using (var syncWriter = new IcalContentLineWriter(expectedStream, new IcalOptions(), streamBufferSize))
-                {
-                    syncWriter.WriteLines(lines);
-                }
+                await WriteAsync(writer, lines, mode);
+            });
 
-                var stream = new AsyncOnlyWriteStream();
-                var asyncWriter = new IcalContentLineWriter(stream, new IcalOptions(), streamBufferSize);
+            // assert
+            stream.ToArray().Should().Equal(expected);
+            stream.IsDisposed.Should().BeFalse();
+        }
 
+        [Theory]
+        [MemberData(nameof(ParityData))]
+        public async Task Write_EveryFixtureToStream_CountsItsLines(string fixtureName, AsyncWriteMode mode, int streamBufferSize)
+        {
+            // arrange
+            var lines = ReadAll(CreateReader(RfcFixtures.All[fixtureName]));
+            var writer = new IcalContentLineWriter(new AsyncOnlyWriteStream(), new IcalOptions(), streamBufferSize);
+            await AsyncDisposal.UsingAsync(writer, async () =>
+            {
                 // act
-                await WriteAsync(asyncWriter, lines, mode);
-                var linesWritten = asyncWriter.LinesWritten;
-                await asyncWriter.DisposeAsync();
+                await WriteAsync(writer, lines, mode);
 
                 // assert
-                stream.ToArray().Should().Equal(expectedStream.ToArray());
-                linesWritten.Should().Be(lines.Count);
-                stream.IsDisposed.Should().BeFalse();
-            }
+                writer.LinesWritten.Should().Be(FixtureExpectations.LineCounts[fixtureName]);
+            });
         }
 
         [Theory]
         [InlineData(AsyncWriteMode.WriteLineAsync)]
         [InlineData(AsyncWriteMode.WriteLinesAsync)]
         [InlineData(AsyncWriteMode.WriteLinesAsyncFromAsyncEnumerable)]
-        public async Task Write_FoldedLinesToTextWriter_MatchesSync(AsyncWriteMode mode)
+        public async Task Write_FoldedLinesToTextWriter_FoldsAndEncodesThem(AsyncWriteMode mode)
         {
             // arrange
             var options = new IcalOptions { FoldLength = 7, FoldWhitespace = '\t', LineBreak = "\n" };
             var lines = new List<IcalContentLine>
             {
-                new IcalContentLine("DESCRIPTION", string.Concat(Enumerable.Repeat("Café 😀 会議 ", 20))),
+                new IcalContentLine("DESCRIPTION", MultiOctetDescription),
                 new IcalContentLine("ATTENDEE", new[] { new IcalContentLineParameter("CN", "Doe, \"Jane\"\n^"), new IcalContentLineParameter("X-P", "a", "b:c") }, "mailto:x")
             };
-            using (var expected = new StringWriter())
+            var text = new AsyncOnlyTextWriter();
+            var writer = new IcalContentLineWriter(text, options);
+            await AsyncDisposal.UsingAsync(writer, async () =>
             {
-                using (var syncWriter = new IcalContentLineWriter(expected, options))
-                {
-                    syncWriter.WriteLines(lines);
-                }
+                // act
+                await WriteAsync(writer, lines, mode);
 
-                var text = new AsyncOnlyTextWriter();
-                var asyncWriter = new IcalContentLineWriter(text, options);
-                await AsyncDisposal.UsingAsync(asyncWriter, async () =>
-                {
-                    // act
-                    await WriteAsync(asyncWriter, lines, mode);
-
-                    // assert
-                    text.ToString().Should().Be(expected.ToString());
-                });
-            }
+                // assert
+                text.ToString().Should().Be(MultiOctetLinesFoldedAtSevenOctets);
+            });
         }
 
         [Fact]
@@ -737,19 +749,6 @@ namespace DataStandardizer.File.iCal.Tests
             });
         }
 #endif
-
-        private static List<IcalContentLine> ReadFixtureLines(string fixtureName)
-        {
-            using (var reader = CreateReader(RfcFixtures.All[fixtureName]))
-            {
-                var lines = ReadAll(reader);
-
-                // Add lines long enough to fill the stream writer's buffer.
-                lines.Add(new IcalContentLine("DESCRIPTION", string.Concat(Enumerable.Repeat("Café 😀 ", 100))));
-                lines.Add(new IcalContentLine("X-LONG", new[] { new IcalContentLineParameter("X-P", new string('p', 300)) }, new string('v', 300)));
-                return lines;
-            }
-        }
 
         private static IAsyncEnumerable<IcalContentLine> ToAsyncEnumerable(IEnumerable<IcalContentLine> lines)
         {

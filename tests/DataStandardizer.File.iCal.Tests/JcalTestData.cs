@@ -157,6 +157,12 @@ namespace DataStandardizer.File.iCal.Tests
 ]";
 
         /// <summary>
+        /// <see cref="Example2Jcal"/> with its RDATE PERIOD as the array that RFC 7265 §3.6.9 requires, as a writer writes it.
+        /// </summary>
+        public static readonly string Example2JcalWithPeriodArray =
+            Example2Jcal.Replace("\"2006-01-02T15:00:00/PT2H\"", "[\"2006-01-02T15:00:00\", \"PT2H\"]");
+
+        /// <summary>
         /// Wraps properties and components in the component array of one calendar.
         /// </summary>
         public static string Document(string properties, string components = "")

@@ -17,6 +17,9 @@ namespace DataStandardizer.File.iCal.Tests
         private const string Rfc6868Geo = "40.446816;-80.00679";
         private const string LineA = "A:1";
 
+        // A line with an RFC 6868 caret-encoded parameter value, a quoted one, and an escaped comma in its value.
+        private const string AccessorsLine = "ATTENDEE;CN=a^'b;ROLE=\"X\",Y:mailto:a\\,b";
+
         // The number of bytes that a reader over a stream asks the stream for at a time: a read until the stream ends asks for this many, then
         // asks again for as many to find that it has ended.
         private const int StreamBufferSize = 16384;
@@ -1425,21 +1428,35 @@ namespace DataStandardizer.File.iCal.Tests
         };
 
         // Each accessor of a view that gives memory, with the accessor that gives the same text as a span, for the line in MemoryAccessorsLine.
-        public static TheoryData<Func<IcalContentLineView, string>, Func<IcalContentLineView, string>> MemoryAndSpanAccessors =>
-            new TheoryData<Func<IcalContentLineView, string>, Func<IcalContentLineView, string>>
+        // Each memory accessor and each span accessor of a view of AccessorsLine, with what it gives: the parameter values decoded by RFC 6868
+        // and the raw ones as written, both without their quotes, and the text value unescaped by RFC 5545 §3.3.11.
+        public static TheoryData<Func<IcalContentLineView, string>, string> ViewAccessors =>
+            new TheoryData<Func<IcalContentLineView, string>, string>
             {
-                { view => view.NameMemory.ToString(), view => view.Name.ToString() },
-                { view => view.RawLineMemory.ToString(), view => view.RawLine.ToString() },
-                { view => view.RawValueMemory.ToString(), view => view.RawValue.ToString() },
-                { view => view.GetTextValueMemory().ToString(), view => view.GetTextValue().ToString() },
-                { view => view.GetParameterNameMemory(0).ToString(), view => view.GetParameterName(0).ToString() },
-                { view => view.GetParameterNameMemory(1).ToString(), view => view.GetParameterName(1).ToString() },
-                { view => view.GetParameterValueMemory(0, 0).ToString(), view => view.GetParameterValue(0, 0).ToString() },
-                { view => view.GetRawParameterValueMemory(0, 0).ToString(), view => view.GetRawParameterValue(0, 0).ToString() },
-                { view => view.GetParameterValueMemory(1, 0).ToString(), view => view.GetParameterValue(1, 0).ToString() },
-                { view => view.GetRawParameterValueMemory(1, 0).ToString(), view => view.GetRawParameterValue(1, 0).ToString() },
-                { view => view.GetParameterValueMemory(1, 1).ToString(), view => view.GetParameterValue(1, 1).ToString() },
-                { view => view.GetRawParameterValueMemory(1, 1).ToString(), view => view.GetRawParameterValue(1, 1).ToString() },
+                { view => view.NameMemory.ToString(), "ATTENDEE" },
+                { view => view.Name.ToString(), "ATTENDEE" },
+                { view => view.RawLineMemory.ToString(), AccessorsLine },
+                { view => view.RawLine.ToString(), AccessorsLine },
+                { view => view.RawValueMemory.ToString(), "mailto:a\\,b" },
+                { view => view.RawValue.ToString(), "mailto:a\\,b" },
+                { view => view.GetTextValueMemory().ToString(), "mailto:a,b" },
+                { view => view.GetTextValue().ToString(), "mailto:a,b" },
+                { view => view.GetParameterNameMemory(0).ToString(), "CN" },
+                { view => view.GetParameterName(0).ToString(), "CN" },
+                { view => view.GetParameterNameMemory(1).ToString(), "ROLE" },
+                { view => view.GetParameterName(1).ToString(), "ROLE" },
+                { view => view.GetParameterValueMemory(0, 0).ToString(), "a\"b" },
+                { view => view.GetParameterValue(0, 0).ToString(), "a\"b" },
+                { view => view.GetRawParameterValueMemory(0, 0).ToString(), "a^'b" },
+                { view => view.GetRawParameterValue(0, 0).ToString(), "a^'b" },
+                { view => view.GetParameterValueMemory(1, 0).ToString(), "X" },
+                { view => view.GetParameterValue(1, 0).ToString(), "X" },
+                { view => view.GetRawParameterValueMemory(1, 0).ToString(), "X" },
+                { view => view.GetRawParameterValue(1, 0).ToString(), "X" },
+                { view => view.GetParameterValueMemory(1, 1).ToString(), "Y" },
+                { view => view.GetParameterValue(1, 1).ToString(), "Y" },
+                { view => view.GetRawParameterValueMemory(1, 1).ToString(), "Y" },
+                { view => view.GetRawParameterValue(1, 1).ToString(), "Y" },
             };
 
         public static TheoryData<string, int> ConsistencyData()
@@ -1606,17 +1623,16 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Theory]
-        [MemberData(nameof(MemoryAndSpanAccessors), DisableDiscoveryEnumeration = true)]
-        public void MemoryAccessor_View_MatchesSpanAccessor(Func<IcalContentLineView, string> memoryAccessor, Func<IcalContentLineView, string> spanAccessor)
+        [MemberData(nameof(ViewAccessors), DisableDiscoveryEnumeration = true)]
+        public void Accessor_View_GivesThePartOfTheLine(Func<IcalContentLineView, string> accessor, string expected)
         {
             // arrange
-            using (var reader = CreateReader(Crlf("ATTENDEE;CN=a^'b;ROLE=\"X\",Y:mailto:a\\,b")))
+            using (var reader = CreateReader(Crlf(AccessorsLine)))
             {
                 reader.ReadContentLine();
-                var expected = spanAccessor(reader.CurrentLine);
 
                 // act
-                var testResult = memoryAccessor(reader.CurrentLine);
+                var testResult = accessor(reader.CurrentLine);
 
                 // assert
                 testResult.Should().Be(expected);
@@ -1625,23 +1641,17 @@ namespace DataStandardizer.File.iCal.Tests
 
         [Theory]
         [MemberData(nameof(ConsistencyData))]
-        public void ReadContentLine_EveryFixture_AgreesWithReadLine(string fixtureName, int bufferSize)
+        public void ReadContentLine_EveryFixture_ViewsItsLines(string fixtureName, int bufferSize)
         {
             // arrange
-            var text = RfcFixtures.All[fixtureName];
-            using (var viewReader = CreateReader(text, bufferSize: bufferSize))
-            using (var lineReader = CreateReader(text, bufferSize: 16 * 1024))
+            var expected = FixtureExpectations.NumberedLines[fixtureName];
+            using (var reader = CreateReader(RfcFixtures.All[fixtureName], bufferSize: bufferSize))
             {
-                var expected = ReadAll(lineReader).Select(LineSnapshot.FromLine).ToList();
-
                 // act
-                var testResult = ReadAllViews(viewReader);
+                var testResult = LineSnapshot.DescribeNumbered(ReadAllViews(reader));
 
                 // assert
-                testResult.Should().NotBeEmpty();
-                testResult.Should().BeEquivalentTo(expected, options => options.WithStrictOrdering());
-                viewReader.LinesRead.Should().Be(lineReader.LinesRead);
-                viewReader.PhysicalLinesRead.Should().Be(lineReader.PhysicalLinesRead);
+                testResult.Should().Equal(expected);
             }
         }
 

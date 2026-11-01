@@ -426,7 +426,7 @@ namespace DataStandardizer.File.iCal.Tests
         /// <summary>
         /// Gets an element as XML without insignificant white space, so that documents formatted differently compare equal.
         /// </summary>
-        private static string Normalize(XNode node)
+        internal static string Normalize(XNode node)
         {
             var copy = node is XDocument document ? new XElement(document.Root) : new XElement((XElement)node);
             foreach (var text in copy.DescendantNodes().OfType<XText>().Where(text => text.Parent.HasElements).ToList())

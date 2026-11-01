@@ -609,20 +609,18 @@ namespace DataStandardizer.File.iCal.Tests
 
         [Theory]
         [MemberData(nameof(IcalContentLineReaderTests.ConsistencyData), MemberType = typeof(IcalContentLineReaderTests))]
-        public void WriteLines_EveryFixture_ReadsBackTheSameLines(string fixtureName, int bufferSize)
+        public void WriteLines_EveryFixture_ReadsBackItsLines(string fixtureName, int bufferSize)
         {
             // arrange
-            using (var reader = CreateReader(RfcFixtures.All[fixtureName], bufferSize: bufferSize))
-            {
-                var lines = ReadAll(reader);
-                var expected = lines.Select(LineSnapshot.FromLine).ToList();
+            var expected = FixtureExpectations.Lines[fixtureName];
+            var text = RfcFixtures.All[fixtureName];
 
-                // act
-                var testResult = ReadAll(CreateReader(WriteAll(lines.ToArray()), bufferSize: bufferSize)).Select(LineSnapshot.FromLine).ToList();
+            // act
+            var testResult = LineSnapshot.Describe(ReadAll(CreateReader(WriteAll(ReadAll(CreateReader(text, bufferSize: bufferSize)).ToArray()),
+                bufferSize: bufferSize)));
 
-                // assert
-                testResult.Should().BeEquivalentTo(expected, options => options.WithStrictOrdering().Excluding(snapshot => snapshot.PhysicalLineNumber));
-            }
+            // assert
+            testResult.Should().Equal(expected);
         }
 
         [Fact]
