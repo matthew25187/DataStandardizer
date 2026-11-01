@@ -6,6 +6,34 @@ namespace DataStandardizer.Language.Tests;
 [SuppressMessage("ReSharper", "InconsistentNaming")]
 public class Iso15924ExtensionsTests
 {
+    // Values from the ISO 15924 code list of the ISO 15924 Registration Authority (Unicode, Inc.):
+    // https://www.unicode.org/iso15924/iso15924-codes.html
+
+    // "Unicode Version" column: the Unicode version in which the script was added.
+    private const double AdlamUnicodeVersion = 9.0;
+    private const double ArabicUnicodeVersion = 1.1;
+
+    // "PVA" column: the Unicode property value alias.
+    private const string AhomPropertyValueAlias = "Ahom";
+    private const string ArabicPropertyValueAlias = "Arabic";
+    private const string CaucasianAlbanianPropertyValueAlias = "Caucasian_Albanian";
+
+    // "Date" column: the date the entry was last changed.
+    private static readonly DateOnly ChisoiDate = new(2023, 9, 12);
+    private static readonly DateOnly BopomofoDate = new(2004, 5, 1);
+
+    // "English Name" column.
+    private const string ChamEnglishName = "Cham";
+    private const string ChorasmianEnglishName = "Chorasmian";
+    private const string CanadianSyllabicsEnglishName = "Unified Canadian Aboriginal Syllabics";
+    private const string AhomEnglishName = "Ahom, Tai Ahom";
+
+    // "Nom français" column.
+    private const string AhomFrenchName = "âhom";
+    private const string BopomofoFrenchName = "bopomofo";
+    private const string BlissymbolsFrenchName = "symboles Bliss";
+    private const string NastaliqFrenchName = "arabe (variante nastalique)";
+
     #region Test: GetAge_OnScriptCode
 
     [Theory]
@@ -25,9 +53,9 @@ public class Iso15924ExtensionsTests
         {
             get
             {
-                yield return new object[] { Iso15924Script.Adlm, 9.0 };
+                yield return new object[] { Iso15924Script.Adlm, AdlamUnicodeVersion };
                 yield return new object?[] { Iso15924Script.Afak, null };
-                yield return new object[] { Iso15924Script.Arab, 1.1 };
+                yield return new object[] { Iso15924Script.Arab, ArabicUnicodeVersion };
             }
         }
     }
@@ -53,9 +81,9 @@ public class Iso15924ExtensionsTests
         {
             get
             {
-                yield return new object[] { Iso15924Script.Ahom, "Ahom" };
-                yield return new object[] { Iso15924Script.Arab, "Arabic" };
-                yield return new object[] { Iso15924Script.Aghb, "Caucasian_Albanian" };
+                yield return new object[] { Iso15924Script.Ahom, AhomPropertyValueAlias };
+                yield return new object[] { Iso15924Script.Arab, ArabicPropertyValueAlias };
+                yield return new object[] { Iso15924Script.Aghb, CaucasianAlbanianPropertyValueAlias };
                 yield return new object?[] { Iso15924Script.Berf, null };
             }
         }
@@ -82,8 +110,8 @@ public class Iso15924ExtensionsTests
         {
             get
             {
-                yield return new object[] { Iso15924Script.Chis, new DateOnly(2023, 09, 12) };
-                yield return new object[] { Iso15924Script.Bopo, new DateOnly(2004, 05, 01) };
+                yield return new object[] { Iso15924Script.Chis, ChisoiDate };
+                yield return new object[] { Iso15924Script.Bopo, BopomofoDate };
             }
         }
     }
@@ -109,10 +137,10 @@ public class Iso15924ExtensionsTests
         {
             get
             {
-                yield return new object[] { Iso15924Script.Cham, "Cham" };
-                yield return new object[] { Iso15924Script.Chrs, "Chorasmian" };
-                yield return new object[] { Iso15924Script.Cans, "Unified Canadian Aboriginal Syllabics" };
-                yield return new object[] { Iso15924Script.Ahom, "Ahom, Tai Ahom" };
+                yield return new object[] { Iso15924Script.Cham, ChamEnglishName };
+                yield return new object[] { Iso15924Script.Chrs, ChorasmianEnglishName };
+                yield return new object[] { Iso15924Script.Cans, CanadianSyllabicsEnglishName };
+                yield return new object[] { Iso15924Script.Ahom, AhomEnglishName };
             }
         }
     }
@@ -138,10 +166,10 @@ public class Iso15924ExtensionsTests
         {
             get
             {
-                yield return new object[] { Iso15924Script.Ahom, "âhom" };
-                yield return new object[] { Iso15924Script.Bopo, "bopomofo" };
-                yield return new object[] { Iso15924Script.Blis, "symboles Bliss" };
-                yield return new object[] { Iso15924Script.Aran, "arabe (variante nastalique)" };
+                yield return new object[] { Iso15924Script.Ahom, AhomFrenchName };
+                yield return new object[] { Iso15924Script.Bopo, BopomofoFrenchName };
+                yield return new object[] { Iso15924Script.Blis, BlissymbolsFrenchName };
+                yield return new object[] { Iso15924Script.Aran, NastaliqFrenchName };
             }
         }
     }
