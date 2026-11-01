@@ -30,7 +30,8 @@ namespace DataStandardizer.Communication.Tests.Mime
         private const string Rfc2231ExampleName = "title";
 
         private const MimeMediaTypeParseOptions AllRfc2231Options = MimeMediaTypeParseOptions.AllowNonstandardSections |
-            MimeMediaTypeParseOptions.AllowUnknownCharsets | MimeMediaTypeParseOptions.AllowNonstandardExtendedValues;
+            MimeMediaTypeParseOptions.AllowUnknownCharsets | MimeMediaTypeParseOptions.AllowNonstandardExtendedValues |
+            MimeMediaTypeParseOptions.AllowInvalidOctets;
         private const MimeMediaTypeParseOptions MissingSectionsAndUnknownCharsets =
             MimeMediaTypeParseOptions.AllowMissingSections | MimeMediaTypeParseOptions.AllowUnknownCharsets;
 
@@ -40,6 +41,12 @@ namespace DataStandardizer.Communication.Tests.Mime
         private const string Utf8 = "UTF-8";
         private const string EAcute = "\xE9";
         private const string Euro = "\x20AC";
+
+        // ref. The Unicode Standard §23.8: U+FFFD REPLACEMENT CHARACTER, which an invalid octet sequence is read as.
+        private const string ReplacementCharacter = "\xFFFD";
+
+        // The letter a, followed by U+FFFD for the first octet of a two-octet UTF-8 sequence with no second octet.
+        private const string ACharacterThenReplacementCharacter = "a\xFFFD";
 
         // An octet that is not valid UTF-8 (RFC 3629 §3: 0xFF never appears), in a character set that only a test resolver knows.
         private const string InvalidUtf8MediaType = "text/plain;a*=x-test''%FF";
@@ -220,6 +227,19 @@ namespace DataStandardizer.Communication.Tests.Mime
 
             // assert
             parsed.Should().BeFalse();
+        }
+
+        [Fact]
+        public void Parse_OctetsThatTheEncodingRejectsWithInvalidOctetsAllowed_ReadsReplacementCharacter()
+        {
+            // arrange
+            var resolver = new MimeCharsetResolver(new ThrowingUtf8CharsetResolver());
+
+            // act
+            var result = MimeMediaType.Parse(InvalidUtf8MediaType, MimeMediaTypeParseOptions.AllowInvalidOctets, resolver);
+
+            // assert
+            result.Parameters[0].Value.Should().Be(ReplacementCharacter);
         }
 
         [Fact]
@@ -1013,6 +1033,11 @@ namespace DataStandardizer.Communication.Tests.Mime
                 ("text/plain;a*=x-no-such-charset''%E9t%E9", MimeMediaTypeParseOptions.AllowUnknownCharsets, "\xE9t\xE9"),
                 ("text/plain;a*=x.y''abc", MimeMediaTypeParseOptions.AllowUnknownCharsets, "abc"),
                 ("text/plain;a*=''%E9", MimeMediaTypeParseOptions.AllowUnknownCharsets, EAcute),
+                // ref. RFC 2231 §4: the octets are text in the character set. RFC 3629 §3: 0xFF never appears in UTF-8, and 0xC3 starts a
+                // two-octet sequence. RFC 2781 §2.2: in UTF-16, a high surrogate, 0xD800, is followed by a low surrogate.
+                ("text/plain;a*=UTF-8''%FF", MimeMediaTypeParseOptions.AllowInvalidOctets, ReplacementCharacter),
+                ("text/plain;a*=UTF-8''a%C3", MimeMediaTypeParseOptions.AllowInvalidOctets, ACharacterThenReplacementCharacter),
+                ("text/plain;a*=UTF-16''%D8%00", MimeMediaTypeParseOptions.AllowInvalidOctets, ReplacementCharacter),
                 // ref. RFC 2231 §7: an extended value is not a quoted-string.
                 ("text/plain;a*=\"UTF-8''a%20b\"", MimeMediaTypeParseOptions.AllowQuotedExtendedValues, "a b"),
                 ("text/plain;a*=\"UTF-8'en'a b;c\"", MimeMediaTypeParseOptions.AllowQuotedExtendedValues, "a b;c"),

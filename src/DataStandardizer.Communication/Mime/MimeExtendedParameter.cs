@@ -12,6 +12,11 @@ namespace DataStandardizer.Communication.Mime
         // ref. RFC 2231 §3: the sections are numbered from 0.
         private const string FirstSection = "0";
 
+#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP
+        // ref. The Unicode Standard §23.8: U+FFFD REPLACEMENT CHARACTER, for a value that can't be represented.
+        private const string ReplacementString = "\uFFFD";
+#endif
+
         /// <summary>
         /// A <c>name=value</c> pair as written, before RFC 2231 sections are joined.
         /// </summary>
@@ -483,22 +488,37 @@ namespace DataStandardizer.Communication.Mime
             }
             else if (MimeCharset.TryParse(charsetName, out charset) && charsetResolver.TryGetEncoding(charset, out encoding))
             {
-                try
-                {
-                    value = encoding.GetString(bytes, 0, byteCount);
-                    return true;
-                }
-                catch (DecoderFallbackException)
-                {
-                    // The encoding rejects octets that are not valid in the character set, so the value is not valid.
-                    return false;
-                }
+                return TryGetString(encoding, bytes, byteCount, (options & MimeMediaTypeParseOptions.AllowInvalidOctets) != 0, out value);
             }
 
             if ((options & MimeMediaTypeParseOptions.AllowUnknownCharsets) == 0) return false;
 
             value = DecodeLatin1(bytes, byteCount);
             return true;
+        }
+
+        private static bool TryGetString(Encoding encoding, byte[] bytes, int byteCount, bool allowInvalidOctets, out string value)
+        {
+            value = string.Empty;
+
+            // ref. RFC 2231 §4: the octets are text in the character set, so octets that are not valid in it are not a valid value.
+#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP
+            var decoding = (Encoding)encoding.Clone();
+            decoding.DecoderFallback = allowInvalidOctets ? new DecoderReplacementFallback(ReplacementString) : DecoderFallback.ExceptionFallback;
+#else
+            // TODO: netstandard1.1 has no Encoding.Clone or DecoderFallback, so the octets are read as the encoding reads them, and invalid
+            // octets are only rejected by an encoding that throws. Decode strictly, as the other builds do, if netstandard1.1 is dropped.
+            var decoding = encoding;
+#endif
+            try
+            {
+                value = decoding.GetString(bytes, 0, byteCount);
+                return true;
+            }
+            catch (DecoderFallbackException)
+            {
+                return false;
+            }
         }
 
         private static string DecodeLatin1(byte[] bytes, int byteCount)

@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 
 namespace DataStandardizer.Communication.Mime
 {
@@ -86,6 +87,23 @@ namespace DataStandardizer.Communication.Mime
         /// RFC 2231 §7 doesn't allow.
         /// </summary>
         AllowLowercaseHexDigits = 1 << 7,
+
+        /// <summary>
+        /// Accept an extended parameter value whose octets are not valid in its character set, such as <c>title*=UTF-8''%FF</c>
+        /// (RFC 2231 §4; RFC 3629 §3 for UTF-8), as from a client that labels the value with the wrong character set. Each invalid
+        /// sequence is read as U+FFFD.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The octets of a value with no character set must still be US-ASCII, unless <see cref="AllowUnknownCharsets"/> is also given.
+        /// </para>
+        /// <para>
+        /// The netstandard1.1 build can't change how an encoding treats invalid octets, so there, the value is read as the encoding from the
+        /// <see cref="IMimeCharsetResolver"/> reads it, whether or not this option is given: the built-in encodings read invalid octets as
+        /// U+FFFD, and a value whose encoding throws <see cref="DecoderFallbackException"/> is not valid.
+        /// </para>
+        /// </remarks>
+        AllowInvalidOctets = 1 << 8,
 
         /// <summary>
         /// Accept a parameter whose sections break any of the RFC 2231 §3 numbering rules: <see cref="AllowMissingSections"/>,

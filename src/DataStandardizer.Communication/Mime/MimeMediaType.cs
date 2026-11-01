@@ -37,7 +37,7 @@ namespace DataStandardizer.Communication.Mime
         private const MimeMediaTypeParseOptions AllParseOptions =
             MimeMediaTypeParseOptions.AllowWhitespaceAroundDelimiters | MimeMediaTypeParseOptions.AllowRfc2045Tokens |
             MimeMediaTypeParseOptions.AllowNonstandardSections | MimeMediaTypeParseOptions.AllowUnknownCharsets |
-            MimeMediaTypeParseOptions.AllowNonstandardExtendedValues;
+            MimeMediaTypeParseOptions.AllowNonstandardExtendedValues | MimeMediaTypeParseOptions.AllowInvalidOctets;
 
         private static readonly ReadOnlyCollection<MimeParameter> NoParameters = new ReadOnlyCollection<MimeParameter>(new MimeParameter[0]);
 
