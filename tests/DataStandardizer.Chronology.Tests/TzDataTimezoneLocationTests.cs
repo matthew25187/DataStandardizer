@@ -8,86 +8,164 @@ namespace DataStandardizer.Chronology.Tests;
 
 public class TzDataTimezoneLocationTests
 {
-    private static readonly Lazy<IReadOnlyDictionary<string, FieldInfo>> TimezoneFields = new(() => GetTimezoneFields(typeof(TzDataTimezone)).ToDictionary(GetIdentifier, StringComparer.Ordinal));
+    private const string UnknownIdentifier = "Europe/Atlantis";
 
-    public static IEnumerable<object[]> TimezoneField_TestCases => TimezoneFields.Value.Keys.Select(identifier => new object[] { identifier });
+    // The precision to which a coordinate in degrees and minutes is compared, after conversion to decimal degrees.
+    private const double CoordinateTolerance = 1e-9;
 
-    private static string GetIdentifier(FieldInfo field)
+    // Europe/Zurich in zone1970.tab of TZ Database 2026e: the ISO 6709 coordinates +4723+00832 in decimal degrees,
+    // the country codes CH,DE,LI (ISO 3166-1 alpha-2 codes) and the comment.
+    private const double ZurichLatitude = 47 + 23 / 60D;
+    private const double ZurichLongitude = 8 + 32 / 60D;
+    private const string Switzerland = "CH";
+    private const string Germany = "DE";
+    private const string Liechtenstein = "LI";
+    private const string ZurichComment = "Büsingen";
+
+    private const string ObsoleteAttributeMessage = "Use the Latitude, Longitude, IsoCountryCodes and Comment members of TzDataTimezone instead.";
+
+    // A field and a cast instance of every timezone field, with the attribute of the field.
+    private static IEnumerable<(string Instance, TzDataTimezone Timezone, TzDataTimezoneAttribute Attribute)> GetFieldAndCastInstances()
     {
-        string? identifier = (TzDataTimezone)field.GetValue(null)!;
-        return identifier!;
+        foreach (var field in TimezoneFieldCatalog.Fields)
+        {
+            var identifier = TimezoneFieldCatalog.GetIdentifier(field);
+            var attribute = field.GetCustomAttribute<TzDataTimezoneAttribute>()!;
+            yield return ($"field {identifier}", (TzDataTimezone)field.GetValue(null)!, attribute);
+            yield return ($"cast instance {identifier}", (TzDataTimezone)identifier, attribute);
+        }
     }
 
-    private static IEnumerable<FieldInfo> GetTimezoneFields(Type hostType)
+    public static TheoryData<string, TzDataTimezone, double> AttributeLatitude_TestCases
     {
-        var fields = hostType.GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
-            .Where(field => field.FieldType == typeof(TzDataTimezone));
-        var nestedFields = hostType.GetNestedTypes(BindingFlags.Public)
-            .SelectMany(GetTimezoneFields);
+        get
+        {
+            var testCases = new TheoryData<string, TzDataTimezone, double>();
+            foreach (var (instance, timezone, attribute) in GetFieldAndCastInstances())
+                testCases.Add(instance, timezone, attribute.Latitude);
 
-        return fields.Concat(nestedFields);
+            return testCases;
+        }
+    }
+
+    public static TheoryData<string, TzDataTimezone, double> AttributeLongitude_TestCases
+    {
+        get
+        {
+            var testCases = new TheoryData<string, TzDataTimezone, double>();
+            foreach (var (instance, timezone, attribute) in GetFieldAndCastInstances())
+                testCases.Add(instance, timezone, attribute.Longitude);
+
+            return testCases;
+        }
+    }
+
+    public static TheoryData<string, TzDataTimezone, string[]> AttributeIsoCountryCodes_TestCases
+    {
+        get
+        {
+            var testCases = new TheoryData<string, TzDataTimezone, string[]>();
+            foreach (var (instance, timezone, attribute) in GetFieldAndCastInstances())
+                testCases.Add(instance, timezone, attribute.IsoCountryCodes);
+
+            return testCases;
+        }
+    }
+
+    public static TheoryData<string, TzDataTimezone, string?> AttributeComment_TestCases
+    {
+        get
+        {
+            var testCases = new TheoryData<string, TzDataTimezone, string?>();
+            foreach (var (instance, timezone, attribute) in GetFieldAndCastInstances())
+                testCases.Add(instance, timezone, attribute.Comment);
+
+            return testCases;
+        }
     }
 
     [Theory]
-    [MemberData(nameof(TimezoneField_TestCases))]
-    public void Members_TimezoneField_ReturnSameValuesAsAttribute(string testIdentifier)
+    [MemberData(nameof(AttributeLatitude_TestCases), DisableDiscoveryEnumeration = true)]
+    public void Latitude_TimezoneFieldOrCastInstance_ReturnsLatitudeOfAttribute(string testInstance, TzDataTimezone testTimezone, double expectedResult)
     {
-        // arrange
-        var testField = TimezoneFields.Value[testIdentifier];
-        var testTimezone = (TzDataTimezone)testField.GetValue(null)!;
-        var expectedResult = testField.GetCustomAttribute<TzDataTimezoneAttribute>()!;
-
         // act
-        var testLatitude = testTimezone.Latitude;
-        var testLongitude = testTimezone.Longitude;
-        var testIsoCountryCodes = testTimezone.IsoCountryCodes;
-        var testComment = testTimezone.Comment;
+        var testResult = testTimezone.Latitude;
 
         // assert
-        testLatitude.Should().Be(expectedResult.Latitude, "the latitude of {0} is that of its attribute", testIdentifier);
-        testLongitude.Should().Be(expectedResult.Longitude, "the longitude of {0} is that of its attribute", testIdentifier);
-        testIsoCountryCodes.Should().Equal(expectedResult.IsoCountryCodes, "the country codes of {0} are those of its attribute, in order", testIdentifier);
-        testComment.Should().Be(expectedResult.Comment, "the comment of {0} is that of its attribute", testIdentifier);
+        testResult.Should().Be(expectedResult, "the latitude of {0} is that of the attribute of its field", testInstance);
     }
 
     [Theory]
-    [MemberData(nameof(TimezoneField_TestCases))]
-    public void Members_CastInstance_ReturnSameValuesAsField(string testIdentifier)
+    [MemberData(nameof(AttributeLongitude_TestCases), DisableDiscoveryEnumeration = true)]
+    public void Longitude_TimezoneFieldOrCastInstance_ReturnsLongitudeOfAttribute(string testInstance, TzDataTimezone testTimezone, double expectedResult)
     {
-        // arrange
-        var testTimezone = (TzDataTimezone)testIdentifier;
-        var expectedResult = (TzDataTimezone)TimezoneFields.Value[testIdentifier].GetValue(null)!;
-
         // act
-        var testLatitude = testTimezone.Latitude;
-        var testLongitude = testTimezone.Longitude;
-        var testIsoCountryCodes = testTimezone.IsoCountryCodes;
-        var testComment = testTimezone.Comment;
+        var testResult = testTimezone.Longitude;
 
         // assert
-        testLatitude.Should().Be(expectedResult.Latitude, "a cast instance has the latitude of the field with the same identifier");
-        testLongitude.Should().Be(expectedResult.Longitude, "a cast instance has the longitude of the field with the same identifier");
-        testIsoCountryCodes.Should().Equal(expectedResult.IsoCountryCodes, "a cast instance has the country codes of the field with the same identifier");
-        testComment.Should().Be(expectedResult.Comment, "a cast instance has the comment of the field with the same identifier");
+        testResult.Should().Be(expectedResult, "the longitude of {0} is that of the attribute of its field", testInstance);
+    }
+
+    [Theory]
+    [MemberData(nameof(AttributeIsoCountryCodes_TestCases), DisableDiscoveryEnumeration = true)]
+    public void IsoCountryCodes_TimezoneFieldOrCastInstance_ReturnsCountryCodesOfAttributeInOrder(string testInstance, TzDataTimezone testTimezone, string[] expectedResult)
+    {
+        // act
+        var testResult = testTimezone.IsoCountryCodes;
+
+        // assert
+        testResult.Should().Equal(expectedResult, "the country codes of {0} are those of the attribute of its field, in order", testInstance);
+    }
+
+    [Theory]
+    [MemberData(nameof(AttributeComment_TestCases), DisableDiscoveryEnumeration = true)]
+    public void Comment_TimezoneFieldOrCastInstance_ReturnsCommentOfAttribute(string testInstance, TzDataTimezone testTimezone, string? expectedResult)
+    {
+        // act
+        var testResult = testTimezone.Comment;
+
+        // assert
+        testResult.Should().Be(expectedResult, "the comment of {0} is that of the attribute of its field", testInstance);
     }
 
     [Fact]
-    public void Members_EuropeZurich_ReturnExpectedValues()
+    public void Latitude_EuropeZurich_ReturnsLatitudeFromZone1970Tab()
     {
-        // arrange
-        var testTimezone = TzDataTimezone.Europe.Zurich;
-
         // act
-        var testLatitude = testTimezone.Latitude;
-        var testLongitude = testTimezone.Longitude;
-        var testIsoCountryCodes = testTimezone.IsoCountryCodes;
-        var testComment = testTimezone.Comment;
+        var testResult = TzDataTimezone.Europe.Zurich.Latitude;
 
         // assert
-        testLatitude.Should().BeApproximately(47 + 23 / 60D, 1e-9, "zone1970.tab gives the latitude of Zurich as +4723");
-        testLongitude.Should().BeApproximately(8 + 32 / 60D, 1e-9, "zone1970.tab gives the longitude of Zurich as +00832");
-        testIsoCountryCodes.Should().Equal(new[] { "CH", "DE", "LI" }, "zone1970.tab lists CH,DE,LI for Europe/Zurich");
-        testComment.Should().Be("Büsingen", "zone1970.tab gives Europe/Zurich the comment Büsingen");
+        testResult.Should().BeApproximately(ZurichLatitude, CoordinateTolerance, "zone1970.tab gives the latitude of Zurich as +4723");
+    }
+
+    [Fact]
+    public void Longitude_EuropeZurich_ReturnsLongitudeFromZone1970Tab()
+    {
+        // act
+        var testResult = TzDataTimezone.Europe.Zurich.Longitude;
+
+        // assert
+        testResult.Should().BeApproximately(ZurichLongitude, CoordinateTolerance, "zone1970.tab gives the longitude of Zurich as +00832");
+    }
+
+    [Fact]
+    public void IsoCountryCodes_EuropeZurich_ReturnsCountryCodesFromZone1970Tab()
+    {
+        // act
+        var testResult = TzDataTimezone.Europe.Zurich.IsoCountryCodes;
+
+        // assert
+        testResult.Should().Equal([Switzerland, Germany, Liechtenstein], "zone1970.tab lists CH,DE,LI for Europe/Zurich");
+    }
+
+    [Fact]
+    public void Comment_EuropeZurich_ReturnsCommentFromZone1970Tab()
+    {
+        // act
+        var testResult = TzDataTimezone.Europe.Zurich.Comment;
+
+        // assert
+        testResult.Should().Be(ZurichComment, "zone1970.tab gives Europe/Zurich the comment Büsingen");
     }
 
     [Fact]
@@ -101,7 +179,7 @@ public class TzDataTimezoneLocationTests
     }
 
     [Fact]
-    public void IsoCountryCodes_IsReadOnly()
+    public void IsoCountryCodes_AsiaDubai_IsNotWritableArray()
     {
         // act
         var testResult = TzDataTimezone.Asia.Dubai.IsoCountryCodes;
@@ -110,16 +188,13 @@ public class TzDataTimezoneLocationTests
         testResult.Should().NotBeAssignableTo<string[]>("the country codes are shared, and must not be modified");
     }
 
-    public static IEnumerable<object[]> Member_TestCases
+    public static TheoryData<string, Func<TzDataTimezone, object?>> Member_TestCases => new()
     {
-        get
-        {
-            yield return new object[] { nameof(TzDataTimezone.Latitude), new Func<TzDataTimezone, object?>(timezone => timezone.Latitude) };
-            yield return new object[] { nameof(TzDataTimezone.Longitude), new Func<TzDataTimezone, object?>(timezone => timezone.Longitude) };
-            yield return new object[] { nameof(TzDataTimezone.IsoCountryCodes), new Func<TzDataTimezone, object?>(timezone => timezone.IsoCountryCodes) };
-            yield return new object[] { nameof(TzDataTimezone.Comment), new Func<TzDataTimezone, object?>(timezone => timezone.Comment) };
-        }
-    }
+        { nameof(TzDataTimezone.Latitude), timezone => timezone.Latitude },
+        { nameof(TzDataTimezone.Longitude), timezone => timezone.Longitude },
+        { nameof(TzDataTimezone.IsoCountryCodes), timezone => timezone.IsoCountryCodes },
+        { nameof(TzDataTimezone.Comment), timezone => timezone.Comment },
+    };
 
     [Theory]
     [MemberData(nameof(Member_TestCases))]
@@ -129,7 +204,7 @@ public class TzDataTimezoneLocationTests
         var testTimezone = default(TzDataTimezone);
 
         // act
-        var testAction = () => testMember(testTimezone);
+        Action testAction = () => testMember(testTimezone);
 
         // assert
         testAction.Should().Throw<InvalidOperationException>("the default instance has no identifier, so {0} cannot be found", testMemberName);
@@ -140,50 +215,74 @@ public class TzDataTimezoneLocationTests
     public void Member_UnknownIdentifier_ThrowsInvalidOperationException(string testMemberName, Func<TzDataTimezone, object?> testMember)
     {
         // arrange
-        var testTimezone = (TzDataTimezone)"Europe/Atlantis";
+        var testTimezone = (TzDataTimezone)UnknownIdentifier;
 
         // act
-        var testAction = () => testMember(testTimezone);
+        Action testAction = () => testMember(testTimezone);
 
         // assert
         testAction.Should().Throw<InvalidOperationException>("no timezone field has the identifier, so {0} cannot be found", testMemberName);
     }
 
-    [Fact]
-    public void ObsoleteExtensions_DefaultInstance_ReturnDefaults()
+    public static TheoryData<TzDataTimezone> InvalidInstance_TestCases => new()
     {
-        // arrange
-        var testTimezone = default(TzDataTimezone);
+        default(TzDataTimezone),
+        (TzDataTimezone)UnknownIdentifier,
+    };
 
-        // act and assert
-        testTimezone.GetLatitude().Should().Be(0, "the obsolete accessor returns 0 for an unknown timezone");
-        testTimezone.GetLongitude().Should().Be(0, "the obsolete accessor returns 0 for an unknown timezone");
-        testTimezone.GetIsoCountryCodes().Should().BeEmpty("the obsolete accessor returns no country codes for an unknown timezone");
-        testTimezone.GetComment().Should().BeNull("the obsolete accessor returns null for an unknown timezone");
+    [Theory]
+    [MemberData(nameof(InvalidInstance_TestCases))]
+    public void GetLatitude_InvalidInstance_ReturnsZero(TzDataTimezone testTimezone)
+    {
+        // act
+        var testResult = testTimezone.GetLatitude();
+
+        // assert
+        testResult.Should().Be(0, "the obsolete accessor returns 0 for an unknown timezone");
+    }
+
+    [Theory]
+    [MemberData(nameof(InvalidInstance_TestCases))]
+    public void GetLongitude_InvalidInstance_ReturnsZero(TzDataTimezone testTimezone)
+    {
+        // act
+        var testResult = testTimezone.GetLongitude();
+
+        // assert
+        testResult.Should().Be(0, "the obsolete accessor returns 0 for an unknown timezone");
+    }
+
+    [Theory]
+    [MemberData(nameof(InvalidInstance_TestCases))]
+    public void GetIsoCountryCodes_InvalidInstance_ReturnsNoCountryCodes(TzDataTimezone testTimezone)
+    {
+        // act
+        var testResult = testTimezone.GetIsoCountryCodes();
+
+        // assert
+        testResult.Should().BeEmpty("the obsolete accessor returns no country codes for an unknown timezone");
+    }
+
+    [Theory]
+    [MemberData(nameof(InvalidInstance_TestCases))]
+    public void GetComment_InvalidInstance_ReturnsNull(TzDataTimezone testTimezone)
+    {
+        // act
+        var testResult = testTimezone.GetComment();
+
+        // assert
+        testResult.Should().BeNull("the obsolete accessor returns null for an unknown timezone");
     }
 
     [Fact]
-    public void ObsoleteExtensions_UnknownIdentifier_ReturnDefaults()
-    {
-        // arrange
-        var testTimezone = (TzDataTimezone)"Europe/Atlantis";
-
-        // act and assert
-        testTimezone.GetLatitude().Should().Be(0, "the obsolete accessor returns 0 for an unknown timezone");
-        testTimezone.GetLongitude().Should().Be(0, "the obsolete accessor returns 0 for an unknown timezone");
-        testTimezone.GetIsoCountryCodes().Should().BeEmpty("the obsolete accessor returns no country codes for an unknown timezone");
-        testTimezone.GetComment().Should().BeNull("the obsolete accessor returns null for an unknown timezone");
-    }
-
-    [Fact]
-    public void TzDataTimezoneAttribute_IsObsolete()
+    public void GetCustomAttribute_TzDataTimezoneAttribute_ReturnsObsoleteWarning()
     {
         // act
         var testResult = typeof(TzDataTimezoneAttribute).GetCustomAttribute<ObsoleteAttribute>();
 
         // assert
         testResult.Should().NotBeNull("the attribute is replaced by members of TzDataTimezone");
-        testResult!.Message.Should().Be("Use the Latitude, Longitude, IsoCountryCodes and Comment members of TzDataTimezone instead.");
+        testResult!.Message.Should().Be(ObsoleteAttributeMessage);
         testResult.IsError.Should().BeFalse("the attribute is deprecated, not yet removed");
     }
 
@@ -192,10 +291,10 @@ public class TzDataTimezoneLocationTests
     [InlineData(nameof(TzDataExtensions.GetIsoCountryCodes), "Use TzDataTimezone.IsoCountryCodes instead.")]
     [InlineData(nameof(TzDataExtensions.GetLatitude), "Use TzDataTimezone.Latitude instead.")]
     [InlineData(nameof(TzDataExtensions.GetLongitude), "Use TzDataTimezone.Longitude instead.")]
-    public void ObsoleteExtension_IsObsolete(string testMethodName, string expectedMessage)
+    public void GetCustomAttribute_ObsoleteExtension_ReturnsObsoleteWarning(string testMethodName, string expectedMessage)
     {
         // arrange
-        var testMethod = typeof(TzDataExtensions).GetMethod(testMethodName, new[] { typeof(TzDataTimezone) })!;
+        var testMethod = typeof(TzDataExtensions).GetMethod(testMethodName, [typeof(TzDataTimezone)])!;
 
         // act
         var testResult = testMethod.GetCustomAttribute<ObsoleteAttribute>();

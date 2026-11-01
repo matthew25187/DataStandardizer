@@ -1,29 +1,66 @@
 ﻿using System.Reflection;
 using FluentAssertions;
+using static DataStandardizer.Chronology.Tests.TzAbbreviations;
+using static DataStandardizer.Chronology.Tests.TzOffsets;
 
 namespace DataStandardizer.Chronology.Tests;
 
 public class TzDataModelTests
 {
-    private static readonly Type[] ModelTypes =
-    [
+    private const string FixedSaveParameterName = "fixedSave";
+    private const string RulesParameterName = "rules";
+    private const string ValidFromUtcParameterName = "validFromUtc";
+    private const string ValidUntilUtcParameterName = "validUntilUtc";
+
+    // A value that is not a member of TzDataZoneRuleKind.
+    private const TzDataZoneRuleKind UndefinedRuleKind = (TzDataZoneRuleKind)3;
+
+    // The start of the name of every System.ValueTuple type, generic or not.
+    private const string ValueTupleTypeNamePrefix = nameof(ValueTuple);
+
+    // The FORMAT column of a Zone line for the US Eastern zone (zic(8)).
+    private const string EasternFormat = "E%sT";
+
+    // An UNTIL column of the US Eastern zone in TZ Database 2026e: 1918 Mar lastSun 2:00s.
+    private const int UntilYear = 1918;
+    private const int UntilMonth = 3;
+
+    // The start of British Summer Time in 2024, and its end.
+    private static readonly DateTime BritishSummerTimeStart2024 = new(2024, 3, 31, 1, 0, 0, DateTimeKind.Utc);
+    private static readonly DateTime BritishSummerTimeEnd2024 = new(2024, 10, 27, 1, 0, 0, DateTimeKind.Utc);
+
+    private static TzDataRule CreateRule()
+    {
+        return new TzDataRule("Test", 2007, int.MaxValue, 3, TzDataDayKind.WeekdayOnOrAfter, 8, DayOfWeek.Sunday, TimeSpan.FromHours(2), TzDataTimeReference.Wall, UtcPlus0100, true, "D");
+    }
+
+    private static TzDataUntil CreateUntil()
+    {
+        return new TzDataUntil(UntilYear, UntilMonth, TzDataDayKind.LastWeekday, null, DayOfWeek.Sunday, UtcPlus0200, TzDataTimeReference.Standard);
+    }
+
+    private static TzDataOffsetInfo CreateGreenwichMeanTimeUntil2024SummerTime()
+    {
+        return new TzDataOffsetInfo(UtcZero, UtcZero, false, Gmt, null, BritishSummerTimeStart2024);
+    }
+
+    private static TzDataOffsetInfo CreateBritishSummerTimeFrom2024()
+    {
+        return new TzDataOffsetInfo(UtcZero, UtcPlus0100, true, Bst, BritishSummerTimeStart2024, null);
+    }
+
+    public static TheoryData<Type> ModelType_TestCases => new()
+    {
         typeof(TzDataZoneLine),
         typeof(TzDataRule),
         typeof(TzDataUntil),
         typeof(TzDataOffsetInfo),
-        typeof(TzDataTransition)
-    ];
-
-    private static TzDataRule CreateRule()
-    {
-        return new TzDataRule("Test", 2007, int.MaxValue, 3, TzDataDayKind.WeekdayOnOrAfter, 8, DayOfWeek.Sunday, TimeSpan.FromHours(2), TzDataTimeReference.Wall, TimeSpan.FromHours(1), true, "D");
-    }
-
-    public static IEnumerable<object[]> ModelType_TestCases => ModelTypes.Select(type => new object[] { type });
+        typeof(TzDataTransition),
+    };
 
     [Theory]
     [MemberData(nameof(ModelType_TestCases))]
-    public void ModelType_HasNoPublicConstructors(Type testType)
+    public void GetConstructors_ModelType_ReturnsNoPublicConstructors(Type testType)
     {
         // act
         var testResult = testType.GetConstructors(BindingFlags.Public | BindingFlags.Instance);
@@ -32,66 +69,91 @@ public class TzDataModelTests
         testResult.Should().BeEmpty("only generated data may create instances of {0}", testType);
     }
 
-    [Fact]
-    public void PublicApi_ContainsNoValueTuple()
+    /// <summary>
+    /// Gets a test case for every type in the signature of every public member of the assembly, and every type that such a type is built from.
+    /// </summary>
+    public static TheoryData<string, Type> PublicSignatureType_TestCases
     {
-        // arrange
-        var publicTypes = typeof(TzDataTimezone).Assembly.GetExportedTypes();
-        const BindingFlags publicMembers = BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly;
+        get
+        {
+            const BindingFlags publicMembers = BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly;
 
-        // act
-        var testResult = publicTypes
-            .SelectMany(type => type.GetMembers(publicMembers).SelectMany(GetSignatureTypes).Select(signatureType => (Member: $"{type.FullName}.{signatureType.Member}", signatureType.Type)))
-            .Where(signature => IsValueTuple(signature.Type))
-            .Select(signature => signature.Member)
-            .ToList();
+            var testCases = new TheoryData<string, Type>();
+            foreach (var type in typeof(TzDataTimezone).Assembly.GetExportedTypes())
+            {
+                foreach (var member in type.GetMembers(publicMembers))
+                {
+                    foreach (var signatureType in GetSignatureTypes(member))
+                    {
+                        foreach (var constituentType in GetConstituentTypes(signatureType))
+                            testCases.Add($"{type.FullName}.{member.Name}", constituentType);
+                    }
+                }
+            }
 
-        // assert
-        testResult.Should().BeEmpty("System.ValueTuple is a dependency only on netstandard1.0, and its version is pinned");
+            return testCases;
+        }
     }
 
-    private static IEnumerable<(string Member, Type Type)> GetSignatureTypes(MemberInfo member)
+    private static IEnumerable<Type> GetSignatureTypes(MemberInfo member)
     {
         switch (member)
         {
             case FieldInfo field:
-                yield return (field.Name, field.FieldType);
+                yield return field.FieldType;
                 break;
             case PropertyInfo property:
-                yield return (property.Name, property.PropertyType);
+                yield return property.PropertyType;
                 break;
             case MethodBase method:
                 if (method is MethodInfo methodInfo)
-                    yield return (method.Name, methodInfo.ReturnType);
+                    yield return methodInfo.ReturnType;
                 foreach (var parameter in method.GetParameters())
-                    yield return (method.Name, parameter.ParameterType);
+                    yield return parameter.ParameterType;
                 break;
         }
     }
 
-    private static bool IsValueTuple(Type type)
+    private static IEnumerable<Type> GetConstituentTypes(Type type)
     {
+        yield return type;
+
         if (type.HasElementType)
-            return IsValueTuple(type.GetElementType()!);
+        {
+            foreach (var elementType in GetConstituentTypes(type.GetElementType()!))
+                yield return elementType;
+        }
 
-        if (type.FullName?.StartsWith("System.ValueTuple", StringComparison.Ordinal) == true)
-            return true;
+        if (type.IsGenericType)
+        {
+            foreach (var argumentType in type.GetGenericArguments().SelectMany(GetConstituentTypes))
+                yield return argumentType;
+        }
+    }
 
-        return type.IsGenericType && type.GetGenericArguments().Any(IsValueTuple);
+    [Theory]
+    [MemberData(nameof(PublicSignatureType_TestCases), DisableDiscoveryEnumeration = true)]
+    public void FullName_PublicSignatureType_IsNotValueTuple(string testMember, Type testType)
+    {
+        // act
+        var testResult = testType.Name;
+
+        // assert
+        testResult.Should().NotStartWith(ValueTupleTypeNamePrefix, "System.ValueTuple is a dependency only on netstandard1.0, and its version is pinned, so {0} must not use it", testMember);
     }
 
     [Fact]
     public void ZoneLine_NoRules_HasEmptyRulesAndNoFixedSave()
     {
         // act
-        var testResult = new TzDataZoneLine(TimeSpan.FromHours(-5), TzDataZoneRuleKind.None, null, null, "EST", null);
+        var testResult = new TzDataZoneLine(UtcMinus0500, TzDataZoneRuleKind.None, null, null, Est, null);
 
         // assert
-        testResult.StandardOffset.Should().Be(TimeSpan.FromHours(-5));
+        testResult.StandardOffset.Should().Be(UtcMinus0500);
         testResult.RuleKind.Should().Be(TzDataZoneRuleKind.None);
         testResult.FixedSave.Should().BeNull();
         testResult.Rules.Should().BeEmpty();
-        testResult.Format.Should().Be("EST");
+        testResult.Format.Should().Be(Est);
         testResult.Until.Should().BeNull();
     }
 
@@ -99,13 +161,13 @@ public class TzDataModelTests
     public void ZoneLine_FixedSave_HasFixedSaveAndEmptyRules()
     {
         // arrange
-        var testUntil = new TzDataUntil(1945, 9, TzDataDayKind.DayOfMonth, 30, null, TimeSpan.FromHours(2), TzDataTimeReference.Wall);
+        var testUntil = new TzDataUntil(1945, 9, TzDataDayKind.DayOfMonth, 30, null, UtcPlus0200, TzDataTimeReference.Wall);
 
         // act
-        var testResult = new TzDataZoneLine(TimeSpan.FromHours(-5), TzDataZoneRuleKind.FixedSave, TimeSpan.FromHours(1), null, "EWT", testUntil);
+        var testResult = new TzDataZoneLine(UtcMinus0500, TzDataZoneRuleKind.FixedSave, UtcPlus0100, null, Ewt, testUntil);
 
         // assert
-        testResult.FixedSave.Should().Be(TimeSpan.FromHours(1));
+        testResult.FixedSave.Should().Be(UtcPlus0100);
         testResult.Rules.Should().BeEmpty();
         testResult.Until.Should().Be(testUntil);
     }
@@ -117,7 +179,7 @@ public class TzDataModelTests
         var testRules = new[] { CreateRule() };
 
         // act
-        var testResult = new TzDataZoneLine(TimeSpan.FromHours(-5), TzDataZoneRuleKind.RuleSet, null, testRules, "E%sT", null);
+        var testResult = new TzDataZoneLine(UtcMinus0500, TzDataZoneRuleKind.RuleSet, null, testRules, EasternFormat, null);
 
         // assert
         testResult.Rules.Should().Equal(testRules);
@@ -125,26 +187,23 @@ public class TzDataModelTests
         testResult.Rules.Should().BeAssignableTo<ICollection<TzDataRule>>().Which.IsReadOnly.Should().BeTrue();
     }
 
-    public static IEnumerable<object?[]> ZoneLine_InconsistentRules_TestCases
+    public static TheoryData<TzDataZoneRuleKind, TimeSpan?, TzDataRule[]?, string> ZoneLine_InconsistentRules_TestCases => new()
     {
-        get
-        {
-            yield return new object?[] { TzDataZoneRuleKind.None, TimeSpan.FromHours(1), null, "fixedSave" };
-            yield return new object?[] { TzDataZoneRuleKind.None, null, new[] { CreateRule() }, "rules" };
-            yield return new object?[] { TzDataZoneRuleKind.FixedSave, null, null, "fixedSave" };
-            yield return new object?[] { TzDataZoneRuleKind.FixedSave, TimeSpan.FromHours(1), new[] { CreateRule() }, "rules" };
-            yield return new object?[] { TzDataZoneRuleKind.RuleSet, TimeSpan.FromHours(1), new[] { CreateRule() }, "fixedSave" };
-            yield return new object?[] { TzDataZoneRuleKind.RuleSet, null, null, "rules" };
-            yield return new object?[] { (TzDataZoneRuleKind)3, null, null, "ruleKind" };
-        }
-    }
+        { TzDataZoneRuleKind.None, UtcPlus0100, null, FixedSaveParameterName },
+        { TzDataZoneRuleKind.None, null, [CreateRule()], RulesParameterName },
+        { TzDataZoneRuleKind.FixedSave, null, null, FixedSaveParameterName },
+        { TzDataZoneRuleKind.FixedSave, UtcPlus0100, [CreateRule()], RulesParameterName },
+        { TzDataZoneRuleKind.RuleSet, UtcPlus0100, [CreateRule()], FixedSaveParameterName },
+        { TzDataZoneRuleKind.RuleSet, null, null, RulesParameterName },
+        { UndefinedRuleKind, null, null, "ruleKind" },
+    };
 
     [Theory]
     [MemberData(nameof(ZoneLine_InconsistentRules_TestCases))]
     public void ZoneLine_InconsistentRules_ThrowsArgumentException(TzDataZoneRuleKind testRuleKind, TimeSpan? testFixedSave, TzDataRule[]? testRules, string expectedParamName)
     {
         // act
-        var testAction = () => new TzDataZoneLine(TimeSpan.Zero, testRuleKind, testFixedSave, testRules, "GMT", null);
+        Action testAction = () => new TzDataZoneLine(UtcZero, testRuleKind, testFixedSave, testRules, Gmt, null);
 
         // assert
         testAction.Should().Throw<ArgumentException>().Which.ParamName.Should().Be(expectedParamName);
@@ -156,36 +215,61 @@ public class TzDataModelTests
     public void ZoneLine_MissingFormat_ThrowsArgumentException(string? testFormat)
     {
         // act
-        var testAction = () => new TzDataZoneLine(TimeSpan.Zero, TzDataZoneRuleKind.None, null, null, testFormat!, null);
+        Action testAction = () => new TzDataZoneLine(UtcZero, TzDataZoneRuleKind.None, null, null, testFormat!, null);
 
         // assert
         testAction.Should().Throw<ArgumentException>().Which.ParamName.Should().Be("format");
     }
 
     [Fact]
-    public void Until_ValidArguments_SetsPropertiesAndComparesByValue()
+    public void Until_ValidArguments_SetsProperties()
     {
         // act
-        var testResult = new TzDataUntil(1918, 3, TzDataDayKind.LastWeekday, null, DayOfWeek.Sunday, TimeSpan.FromHours(2), TzDataTimeReference.Standard);
-        var testOther = new TzDataUntil(1918, 3, TzDataDayKind.LastWeekday, null, DayOfWeek.Sunday, TimeSpan.FromHours(2), TzDataTimeReference.Standard);
+        var testResult = new TzDataUntil(UntilYear, UntilMonth, TzDataDayKind.LastWeekday, null, DayOfWeek.Sunday, UtcPlus0200, TzDataTimeReference.Standard);
 
         // assert
-        testResult.Year.Should().Be(1918);
-        testResult.Month.Should().Be(3);
+        testResult.Year.Should().Be(UntilYear);
+        testResult.Month.Should().Be(UntilMonth);
         testResult.DayKind.Should().Be(TzDataDayKind.LastWeekday);
         testResult.Day.Should().BeNull();
         testResult.DayOfWeek.Should().Be(DayOfWeek.Sunday);
-        testResult.Time.Should().Be(TimeSpan.FromHours(2));
+        testResult.Time.Should().Be(UtcPlus0200);
         testResult.TimeReference.Should().Be(TzDataTimeReference.Standard);
-        (testResult == testOther).Should().BeTrue();
-        testResult.GetHashCode().Should().Be(testOther.GetHashCode());
+    }
+
+    [Fact]
+    public void Equality_UntilsWithSameValues_AreEqual()
+    {
+        // arrange
+        var testLeft = CreateUntil();
+        var testRight = CreateUntil();
+
+        // act
+        var testResult = testLeft == testRight;
+
+        // assert
+        testResult.Should().BeTrue();
+    }
+
+    [Fact]
+    public void GetHashCode_UntilsWithSameValues_ReturnsSameHashCode()
+    {
+        // arrange
+        var testLeft = CreateUntil();
+        var testRight = CreateUntil();
+
+        // act
+        var testResult = (Left: testLeft.GetHashCode(), Right: testRight.GetHashCode());
+
+        // assert
+        testResult.Left.Should().Be(testResult.Right);
     }
 
     [Fact]
     public void Until_InvalidMonth_ThrowsArgumentOutOfRangeException()
     {
         // act
-        var testAction = () => new TzDataUntil(1918, 13, TzDataDayKind.DayOfMonth, 1, null, TimeSpan.Zero, TzDataTimeReference.Wall);
+        Action testAction = () => new TzDataUntil(UntilYear, 13, TzDataDayKind.DayOfMonth, 1, null, TimeSpan.Zero, TzDataTimeReference.Wall);
 
         // assert
         testAction.Should().Throw<ArgumentOutOfRangeException>().Which.ParamName.Should().Be("month");
@@ -194,31 +278,27 @@ public class TzDataModelTests
     [Fact]
     public void OffsetInfo_ValidArguments_SetsPropertiesAndSumsUtcOffset()
     {
-        // arrange
-        var testFrom = new DateTime(2024, 3, 31, 1, 0, 0, DateTimeKind.Utc);
-        var testUntil = new DateTime(2024, 10, 27, 1, 0, 0, DateTimeKind.Utc);
-
         // act
-        var testResult = new TzDataOffsetInfo(TimeSpan.Zero, TimeSpan.FromHours(1), true, "BST", testFrom, testUntil);
+        var testResult = new TzDataOffsetInfo(UtcZero, UtcPlus0100, true, Bst, BritishSummerTimeStart2024, BritishSummerTimeEnd2024);
 
         // assert
-        testResult.UtcOffset.Should().Be(TimeSpan.FromHours(1));
-        testResult.StandardOffset.Should().Be(TimeSpan.Zero);
-        testResult.DaylightSavings.Should().Be(TimeSpan.FromHours(1));
+        testResult.UtcOffset.Should().Be(UtcPlus0100);
+        testResult.StandardOffset.Should().Be(UtcZero);
+        testResult.DaylightSavings.Should().Be(UtcPlus0100);
         testResult.IsDaylightSavingTime.Should().BeTrue();
-        testResult.Abbreviation.Should().Be("BST");
-        testResult.ValidFromUtc.Should().Be(testFrom);
-        testResult.ValidUntilUtc.Should().Be(testUntil);
+        testResult.Abbreviation.Should().Be(Bst);
+        testResult.ValidFromUtc.Should().Be(BritishSummerTimeStart2024);
+        testResult.ValidUntilUtc.Should().Be(BritishSummerTimeEnd2024);
     }
 
     [Fact]
     public void OffsetInfo_NegativeDaylightSavings_SubtractsFromStandardOffset()
     {
         // act
-        var testResult = new TzDataOffsetInfo(TimeSpan.FromHours(1), TimeSpan.FromHours(-1), true, "GMT", null, null);
+        var testResult = new TzDataOffsetInfo(UtcPlus0100, UtcMinus0100, true, Gmt, null, null);
 
         // assert
-        testResult.UtcOffset.Should().Be(TimeSpan.Zero);
+        testResult.UtcOffset.Should().Be(UtcZero);
     }
 
     [Fact]
@@ -232,14 +312,18 @@ public class TzDataModelTests
     }
 
     [Theory]
-    [InlineData(DateTimeKind.Local, DateTimeKind.Utc, "validFromUtc")]
-    [InlineData(DateTimeKind.Unspecified, DateTimeKind.Utc, "validFromUtc")]
-    [InlineData(DateTimeKind.Utc, DateTimeKind.Local, "validUntilUtc")]
-    [InlineData(DateTimeKind.Utc, DateTimeKind.Unspecified, "validUntilUtc")]
+    [InlineData(DateTimeKind.Local, DateTimeKind.Utc, ValidFromUtcParameterName)]
+    [InlineData(DateTimeKind.Unspecified, DateTimeKind.Utc, ValidFromUtcParameterName)]
+    [InlineData(DateTimeKind.Utc, DateTimeKind.Local, ValidUntilUtcParameterName)]
+    [InlineData(DateTimeKind.Utc, DateTimeKind.Unspecified, ValidUntilUtcParameterName)]
     public void OffsetInfo_NonUniversalPeriod_ThrowsArgumentException(DateTimeKind testFromKind, DateTimeKind testUntilKind, string expectedParamName)
     {
+        // arrange
+        var testFrom = new DateTime(2024, 1, 1, 0, 0, 0, testFromKind);
+        var testUntil = new DateTime(2025, 1, 1, 0, 0, 0, testUntilKind);
+
         // act
-        var testAction = () => new TzDataOffsetInfo(TimeSpan.Zero, TimeSpan.Zero, false, "GMT", new DateTime(2024, 1, 1, 0, 0, 0, testFromKind), new DateTime(2025, 1, 1, 0, 0, 0, testUntilKind));
+        Action testAction = () => new TzDataOffsetInfo(UtcZero, UtcZero, false, Gmt, testFrom, testUntil);
 
         // assert
         testAction.Should().Throw<ArgumentException>().Which.ParamName.Should().Be(expectedParamName);
@@ -252,38 +336,78 @@ public class TzDataModelTests
         var testInstant = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
         // act
-        var testAction = () => new TzDataOffsetInfo(TimeSpan.Zero, TimeSpan.Zero, false, "GMT", testInstant, testInstant);
+        Action testAction = () => new TzDataOffsetInfo(UtcZero, UtcZero, false, Gmt, testInstant, testInstant);
 
         // assert
-        testAction.Should().Throw<ArgumentOutOfRangeException>().Which.ParamName.Should().Be("validUntilUtc");
+        testAction.Should().Throw<ArgumentOutOfRangeException>().Which.ParamName.Should().Be(ValidUntilUtcParameterName);
     }
 
     [Fact]
-    public void Transition_ValidArguments_SetsPropertiesAndComparesByValue()
+    public void Transition_ValidArguments_SetsProperties()
     {
         // arrange
-        var testInstant = new DateTime(2024, 3, 31, 1, 0, 0, DateTimeKind.Utc);
-        var testBefore = new TzDataOffsetInfo(TimeSpan.Zero, TimeSpan.Zero, false, "GMT", null, testInstant);
-        var testAfter = new TzDataOffsetInfo(TimeSpan.Zero, TimeSpan.FromHours(1), true, "BST", testInstant, null);
+        var testBefore = CreateGreenwichMeanTimeUntil2024SummerTime();
+        var testAfter = CreateBritishSummerTimeFrom2024();
 
         // act
-        var testResult = new TzDataTransition(testInstant, testBefore, testAfter);
-        var testOther = new TzDataTransition(testInstant, testBefore, testAfter);
+        var testResult = new TzDataTransition(BritishSummerTimeStart2024, testBefore, testAfter);
 
         // assert
-        testResult.InstantUtc.Should().Be(testInstant);
+        testResult.InstantUtc.Should().Be(BritishSummerTimeStart2024);
         testResult.Before.Should().Be(testBefore);
         testResult.After.Should().Be(testAfter);
-        (testResult == testOther).Should().BeTrue();
-        (testResult != new TzDataTransition(testInstant, testAfter, testBefore)).Should().BeTrue();
-        testResult.GetHashCode().Should().Be(testOther.GetHashCode());
+    }
+
+    [Fact]
+    public void Equality_TransitionsWithSameValues_AreEqual()
+    {
+        // arrange
+        var testLeft = new TzDataTransition(BritishSummerTimeStart2024, CreateGreenwichMeanTimeUntil2024SummerTime(), CreateBritishSummerTimeFrom2024());
+        var testRight = new TzDataTransition(BritishSummerTimeStart2024, CreateGreenwichMeanTimeUntil2024SummerTime(), CreateBritishSummerTimeFrom2024());
+
+        // act
+        var testResult = testLeft == testRight;
+
+        // assert
+        testResult.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Inequality_TransitionsWithOffsetsSwapped_AreNotEqual()
+    {
+        // arrange
+        var testLeft = new TzDataTransition(BritishSummerTimeStart2024, CreateGreenwichMeanTimeUntil2024SummerTime(), CreateBritishSummerTimeFrom2024());
+        var testRight = new TzDataTransition(BritishSummerTimeStart2024, CreateBritishSummerTimeFrom2024(), CreateGreenwichMeanTimeUntil2024SummerTime());
+
+        // act
+        var testResult = testLeft != testRight;
+
+        // assert
+        testResult.Should().BeTrue();
+    }
+
+    [Fact]
+    public void GetHashCode_TransitionsWithSameValues_ReturnsSameHashCode()
+    {
+        // arrange
+        var testLeft = new TzDataTransition(BritishSummerTimeStart2024, CreateGreenwichMeanTimeUntil2024SummerTime(), CreateBritishSummerTimeFrom2024());
+        var testRight = new TzDataTransition(BritishSummerTimeStart2024, CreateGreenwichMeanTimeUntil2024SummerTime(), CreateBritishSummerTimeFrom2024());
+
+        // act
+        var testResult = (Left: testLeft.GetHashCode(), Right: testRight.GetHashCode());
+
+        // assert
+        testResult.Left.Should().Be(testResult.Right);
     }
 
     [Fact]
     public void Transition_NonUniversalInstant_ThrowsArgumentException()
     {
+        // arrange
+        var testInstant = DateTime.SpecifyKind(BritishSummerTimeStart2024, DateTimeKind.Local);
+
         // act
-        var testAction = () => new TzDataTransition(new DateTime(2024, 3, 31, 1, 0, 0, DateTimeKind.Local), default, default);
+        Action testAction = () => new TzDataTransition(testInstant, default, default);
 
         // assert
         testAction.Should().Throw<ArgumentException>().Which.ParamName.Should().Be("instantUtc");
