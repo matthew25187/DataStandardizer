@@ -261,7 +261,7 @@ namespace DataStandardizer.Money.Tests
         public void DivisionOperator_MoneyValueWithAmount_ReturnsMoneyValueResult()
         {
             // arrange
-            const decimal testAmount = 2709, testDivisionOperand = 63, expectedResult = 43;
+            const decimal testAmount = 2677, testDivisionOperand = 63, expectedResult = 42.492063492063492063492063492m; // 31 / 63 = 0.492063 recurring, rounded to the 29 significant digits a decimal holds
             var testValue = Money.Create(testAmount);
 
             // act
