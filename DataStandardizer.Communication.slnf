@@ -3,6 +3,7 @@
     "path": "DataStandardizer.sln",
     "projects": [
       "src\\DataStandardizer.Communication\\DataStandardizer.Communication.csproj",
+      "tests\\DataStandardizer.Communication.IntegrationTests\\DataStandardizer.Communication.IntegrationTests.csproj",
       "tests\\DataStandardizer.Communication.Tests\\DataStandardizer.Communication.Tests.csproj"
     ]
   }
