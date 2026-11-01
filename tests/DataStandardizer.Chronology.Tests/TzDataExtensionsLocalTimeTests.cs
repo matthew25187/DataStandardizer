@@ -1,5 +1,6 @@
-using System.Globalization;
 using FluentAssertions;
+using static DataStandardizer.Chronology.Tests.TzAbbreviations;
+using static DataStandardizer.Chronology.Tests.TzOffsets;
 
 namespace DataStandardizer.Chronology.Tests;
 
@@ -8,87 +9,189 @@ namespace DataStandardizer.Chronology.Tests;
 /// </remarks>
 public class TzDataExtensionsLocalTimeTests
 {
+    private const string LocalParameterName = "local";
+
+    // A value that is not a member of TzDataLocalTimeResolution.
+    private const TzDataLocalTimeResolution UndefinedResolution = (TzDataLocalTimeResolution)99;
+
     private static readonly TzDataTimezone UnknownTimezone = (TzDataTimezone)"Nowhere/Nothing";
 
-    private static DateTime ParseLocal(string value) => DateTime.ParseExact(value, "yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture);
+    // Times away from any transition, in the northern winter and summer of 2026.
+    private static readonly DateTime MidJanuary2026 = new(2026, 1, 15, 12, 0, 0);
+    private static readonly DateTime MidJuly2026 = new(2026, 7, 15, 12, 0, 0);
+    private static readonly DateTime July2026 = new(2026, 7, 1, 12, 0, 0);
 
-    private static DateTimeOffset ParseDateTimeOffset(string value) => DateTimeOffset.ParseExact(value, "yyyy-MM-ddTHH:mm:sszzz", CultureInfo.InvariantCulture);
+    // America/New_York: a time in the gap of March 8, 2026, and its instant under the RFC 5545 policy (RFC 5545, section 3.3.5).
+    private static readonly DateTime NewYorkGapTime = new(2026, 3, 8, 2, 30, 0);
+    private static readonly DateTimeOffset NewYorkGapTimeAfterGap = new(2026, 3, 8, 3, 30, 0, UtcMinus0400);
+    private static readonly DateTime NewYorkGapTimeAfterGapUtc = new(2026, 3, 8, 7, 30, 0, DateTimeKind.Utc);
 
-    private static TimeSpan ParseOffset(string value) => TimeSpan.Parse(value, CultureInfo.InvariantCulture);
+    // America/New_York: a time in the overlap of November 1, 2026, and its earlier instant.
+    private static readonly DateTime NewYorkOverlapTime = new(2026, 11, 1, 1, 30, 0);
+    private static readonly DateTimeOffset NewYorkOverlapTimeEarlier = new(2026, 11, 1, 1, 30, 0, UtcMinus0400);
+    private static readonly DateTime NewYorkOverlapTimeEarlierUtc = new(2026, 11, 1, 5, 30, 0, DateTimeKind.Utc);
 
-    public static IEnumerable<object[]> SingleOffset_TestCases
+    // Europe/London and Europe/Dublin: a time in the gap of March 29, 2026, the time the RFC 5545 policy moves it to, and a time in the overlap of October 25, 2026.
+    private static readonly DateTime EuropeGapTime = new(2026, 3, 29, 1, 30, 0);
+    private static readonly DateTime EuropeGapTimeAfterGap = new(2026, 3, 29, 2, 30, 0);
+    private static readonly DateTime EuropeOverlapTime = new(2026, 10, 25, 1, 30, 0);
+
+    // America/New_York: beyond the last year of explicit data, from the rules that apply indefinitely.
+    private static readonly DateTime NewYorkFarFutureSummer = new(2149, 7, 15, 12, 0, 0);
+
+    private static readonly (TzDataTimezone Timezone, DateTime Local, TimeSpan Offset, string Abbreviation)[] SingleOffsetCases =
+    [
+        (TzDataTimezone.America.New_York, MidJanuary2026, UtcMinus0500, Est),
+        (TzDataTimezone.America.New_York, MidJuly2026, UtcMinus0400, Edt),
+        // America/New_York: either side of the gap, and either side of the overlap.
+        (TzDataTimezone.America.New_York, new DateTime(2026, 3, 8, 1, 59, 59), UtcMinus0500, Est),
+        (TzDataTimezone.America.New_York, new DateTime(2026, 3, 8, 3, 0, 0), UtcMinus0400, Edt),
+        (TzDataTimezone.America.New_York, new DateTime(2026, 11, 1, 0, 59, 59), UtcMinus0400, Edt),
+        (TzDataTimezone.America.New_York, new DateTime(2026, 11, 1, 2, 0, 0), UtcMinus0500, Est),
+        // Europe/Dublin: negative daylight saving, so that summer time is standard time.
+        (TzDataTimezone.Europe.Dublin, MidJanuary2026, UtcZero, Gmt),
+        (TzDataTimezone.Europe.Dublin, MidJuly2026, UtcPlus0100, Ist),
+        // Australia/Lord_Howe: 30 minutes of daylight saving.
+        (TzDataTimezone.Australia.Lord_Howe, MidJanuary2026, UtcPlus1100, Plus11),
+        (TzDataTimezone.Australia.Lord_Howe, MidJuly2026, UtcPlus1030, Plus1030),
+        // Asia/Kolkata: no daylight saving.
+        (TzDataTimezone.Asia.Kolkata, MidJanuary2026, UtcPlus0530, Ist),
+        (TzDataTimezone.Asia.Kolkata, MidJuly2026, UtcPlus0530, Ist),
+        (TzDataTimezone.America.New_York, NewYorkFarFutureSummer, UtcMinus0400, Edt),
+    ];
+
+    // The time, and the time to which the RFC 5545 policy moves it, with the offset in effect after the gap.
+    private static readonly (TzDataTimezone Timezone, DateTime Local, DateTime ExpectedDateTime, TimeSpan ExpectedOffset)[] GapCases =
+    [
+        (TzDataTimezone.America.New_York, NewYorkGapTime, NewYorkGapTimeAfterGap.DateTime, UtcMinus0400),
+        (TzDataTimezone.America.New_York, new DateTime(2026, 3, 8, 2, 0, 0), new DateTime(2026, 3, 8, 3, 0, 0), UtcMinus0400),
+        (TzDataTimezone.America.New_York, new DateTime(2026, 3, 8, 2, 59, 59), new DateTime(2026, 3, 8, 3, 59, 59), UtcMinus0400),
+        (TzDataTimezone.Europe.London, EuropeGapTime, EuropeGapTimeAfterGap, UtcPlus0100),
+        (TzDataTimezone.Europe.Dublin, EuropeGapTime, EuropeGapTimeAfterGap, UtcPlus0100),
+        (TzDataTimezone.Australia.Lord_Howe, new DateTime(2026, 10, 4, 2, 15, 0), new DateTime(2026, 10, 4, 2, 45, 0), UtcPlus1100),
+        // Pacific/Apia: the move across the date line, which skipped December 30, 2011.
+        (TzDataTimezone.Pacific.Apia, new DateTime(2011, 12, 30, 12, 0, 0), new DateTime(2011, 12, 31, 12, 0, 0), UtcPlus1400),
+        (TzDataTimezone.America.New_York, new DateTime(2149, 3, 9, 2, 30, 0), new DateTime(2149, 3, 9, 3, 30, 0), UtcMinus0400),
+    ];
+
+    // The time, then the earlier and later offsets with their abbreviations and whether daylight saving time is in effect.
+    private static readonly (TzDataTimezone Timezone, DateTime Local, TimeSpan FirstOffset, string FirstAbbreviation, bool FirstIsDaylightSavingTime, TimeSpan SecondOffset, string SecondAbbreviation, bool SecondIsDaylightSavingTime)[] OverlapCases =
+    [
+        (TzDataTimezone.America.New_York, NewYorkOverlapTime, UtcMinus0400, Edt, true, UtcMinus0500, Est, false),
+        (TzDataTimezone.America.New_York, new DateTime(2026, 11, 1, 1, 0, 0), UtcMinus0400, Edt, true, UtcMinus0500, Est, false),
+        (TzDataTimezone.America.New_York, new DateTime(2026, 11, 1, 1, 59, 59), UtcMinus0400, Edt, true, UtcMinus0500, Est, false),
+        (TzDataTimezone.Europe.London, EuropeOverlapTime, UtcPlus0100, Bst, true, UtcZero, Gmt, false),
+        (TzDataTimezone.Europe.Dublin, EuropeOverlapTime, UtcPlus0100, Ist, false, UtcZero, Gmt, true),
+        (TzDataTimezone.Australia.Lord_Howe, new DateTime(2026, 4, 5, 1, 45, 0), UtcPlus1100, Plus11, true, UtcPlus1030, Plus1030, false),
+        (TzDataTimezone.America.New_York, new DateTime(2149, 11, 2, 1, 30, 0), UtcMinus0400, Edt, true, UtcMinus0500, Est, false),
+    ];
+
+    public static TheoryData<TzDataTimezone, DateTime, TimeSpan, string> SingleOffset_TestCases
     {
         get
         {
-            yield return new object[] { "America/New_York", "2026-01-15T12:00:00", "-05:00", "EST" };
-            yield return new object[] { "America/New_York", "2026-07-15T12:00:00", "-04:00", "EDT" };
-            // America/New_York: either side of the gap, and either side of the overlap.
-            yield return new object[] { "America/New_York", "2026-03-08T01:59:59", "-05:00", "EST" };
-            yield return new object[] { "America/New_York", "2026-03-08T03:00:00", "-04:00", "EDT" };
-            yield return new object[] { "America/New_York", "2026-11-01T00:59:59", "-04:00", "EDT" };
-            yield return new object[] { "America/New_York", "2026-11-01T02:00:00", "-05:00", "EST" };
-            // Europe/Dublin: negative daylight saving, so that summer time is standard time.
-            yield return new object[] { "Europe/Dublin", "2026-01-15T12:00:00", "00:00", "GMT" };
-            yield return new object[] { "Europe/Dublin", "2026-07-15T12:00:00", "01:00", "IST" };
-            // Australia/Lord_Howe: 30 minutes of daylight saving.
-            yield return new object[] { "Australia/Lord_Howe", "2026-01-15T12:00:00", "11:00", "+11" };
-            yield return new object[] { "Australia/Lord_Howe", "2026-07-15T12:00:00", "10:30", "+1030" };
-            // Asia/Kolkata: no daylight saving.
-            yield return new object[] { "Asia/Kolkata", "2026-01-15T12:00:00", "05:30", "IST" };
-            yield return new object[] { "Asia/Kolkata", "2026-07-15T12:00:00", "05:30", "IST" };
-            // America/New_York: beyond the last year of explicit data, from the rules that apply indefinitely.
-            yield return new object[] { "America/New_York", "2149-07-15T12:00:00", "-04:00", "EDT" };
+            var testCases = new TheoryData<TzDataTimezone, DateTime, TimeSpan, string>();
+            foreach (var testCase in SingleOffsetCases)
+                testCases.Add(testCase.Timezone, testCase.Local, testCase.Offset, testCase.Abbreviation);
+
+            return testCases;
+        }
+    }
+
+    public static TheoryData<TzDataTimezone, DateTime, TzDataLocalTimeResolution, TimeSpan> SingleOffsetWithResolution_TestCases
+    {
+        get
+        {
+            var testCases = new TheoryData<TzDataTimezone, DateTime, TzDataLocalTimeResolution, TimeSpan>();
+            foreach (var testCase in SingleOffsetCases)
+            {
+                testCases.Add(testCase.Timezone, testCase.Local, TzDataLocalTimeResolution.Strict, testCase.Offset);
+                testCases.Add(testCase.Timezone, testCase.Local, TzDataLocalTimeResolution.Rfc5545, testCase.Offset);
+            }
+
+            return testCases;
+        }
+    }
+
+    public static TheoryData<TzDataTimezone, DateTime> GapTime_TestCases
+    {
+        get
+        {
+            var testCases = new TheoryData<TzDataTimezone, DateTime>();
+            foreach (var testCase in GapCases)
+                testCases.Add(testCase.Timezone, testCase.Local);
+
+            return testCases;
+        }
+    }
+
+    public static TheoryData<TzDataTimezone, DateTime, DateTime, TimeSpan> Gap_TestCases
+    {
+        get
+        {
+            var testCases = new TheoryData<TzDataTimezone, DateTime, DateTime, TimeSpan>();
+            foreach (var testCase in GapCases)
+                testCases.Add(testCase.Timezone, testCase.Local, testCase.ExpectedDateTime, testCase.ExpectedOffset);
+
+            return testCases;
+        }
+    }
+
+    public static TheoryData<TzDataTimezone, DateTime, TimeSpan, string, bool, TimeSpan, string, bool> Overlap_TestCases
+    {
+        get
+        {
+            var testCases = new TheoryData<TzDataTimezone, DateTime, TimeSpan, string, bool, TimeSpan, string, bool>();
+            foreach (var testCase in OverlapCases)
+                testCases.Add(testCase.Timezone, testCase.Local, testCase.FirstOffset, testCase.FirstAbbreviation, testCase.FirstIsDaylightSavingTime, testCase.SecondOffset, testCase.SecondAbbreviation, testCase.SecondIsDaylightSavingTime);
+
+            return testCases;
+        }
+    }
+
+    public static TheoryData<TzDataTimezone, DateTime> OverlapTime_TestCases
+    {
+        get
+        {
+            var testCases = new TheoryData<TzDataTimezone, DateTime>();
+            foreach (var testCase in OverlapCases)
+                testCases.Add(testCase.Timezone, testCase.Local);
+
+            return testCases;
+        }
+    }
+
+    public static TheoryData<TzDataTimezone, DateTime, TimeSpan> OverlapEarlierOffset_TestCases
+    {
+        get
+        {
+            var testCases = new TheoryData<TzDataTimezone, DateTime, TimeSpan>();
+            foreach (var testCase in OverlapCases)
+                testCases.Add(testCase.Timezone, testCase.Local, testCase.FirstOffset);
+
+            return testCases;
         }
     }
 
     [Theory]
     [MemberData(nameof(SingleOffset_TestCases))]
-    public void GetOffsetInfosForLocal_NormalTime_ReturnsOneOffset(string testIdentifier, string testLocal, string expectedOffset, string expectedAbbreviation)
+    public void GetOffsetInfosForLocal_NormalTime_ReturnsOneOffset(TzDataTimezone testTimezone, DateTime testLocal, TimeSpan expectedOffset, string expectedAbbreviation)
     {
-        // arrange
-        var testTimezone = (TzDataTimezone)testIdentifier;
-        var testLocalTime = ParseLocal(testLocal);
-
         // act
-        var testResult = testTimezone.GetOffsetInfosForLocal(testLocalTime);
+        var testResult = testTimezone.GetOffsetInfosForLocal(testLocal);
 
         // assert
         var testOffsetInfo = testResult.Should().ContainSingle().Which;
-        testOffsetInfo.UtcOffset.Should().Be(ParseOffset(expectedOffset));
+        testOffsetInfo.UtcOffset.Should().Be(expectedOffset);
         testOffsetInfo.Abbreviation.Should().Be(expectedAbbreviation);
-        testOffsetInfo.Should().Be(testTimezone.GetOffsetInfo(DateTime.SpecifyKind(testLocalTime - testOffsetInfo.UtcOffset, DateTimeKind.Utc)));
     }
-
-    public static IEnumerable<object[]> SingleOffsetTime_TestCases => SingleOffset_TestCases.Select(testCase => new[] { testCase[0], testCase[1], testCase[2] });
-
-    public static IEnumerable<object[]> Gap_TestCases
-    {
-        get
-        {
-            // The time, and the time to which the RFC 5545 policy moves it, with the offset in effect after the gap.
-            yield return new object[] { "America/New_York", "2026-03-08T02:30:00", "2026-03-08T03:30:00-04:00" };
-            yield return new object[] { "America/New_York", "2026-03-08T02:00:00", "2026-03-08T03:00:00-04:00" };
-            yield return new object[] { "America/New_York", "2026-03-08T02:59:59", "2026-03-08T03:59:59-04:00" };
-            yield return new object[] { "Europe/London", "2026-03-29T01:30:00", "2026-03-29T02:30:00+01:00" };
-            yield return new object[] { "Europe/Dublin", "2026-03-29T01:30:00", "2026-03-29T02:30:00+01:00" };
-            yield return new object[] { "Australia/Lord_Howe", "2026-10-04T02:15:00", "2026-10-04T02:45:00+11:00" };
-            // Pacific/Apia: the move across the date line, which skipped December 30, 2011.
-            yield return new object[] { "Pacific/Apia", "2011-12-30T12:00:00", "2011-12-31T12:00:00+14:00" };
-            yield return new object[] { "America/New_York", "2149-03-09T02:30:00", "2149-03-09T03:30:00-04:00" };
-        }
-    }
-
-    public static IEnumerable<object[]> GapTime_TestCases => Gap_TestCases.Select(testCase => new[] { testCase[0], testCase[1] });
 
     [Theory]
     [MemberData(nameof(GapTime_TestCases))]
-    public void GetOffsetInfosForLocal_TimeInGap_ReturnsNoOffsets(string testIdentifier, string testLocal)
+    public void GetOffsetInfosForLocal_TimeInGap_ReturnsNoOffsets(TzDataTimezone testTimezone, DateTime testLocal)
     {
-        // arrange
-        var testTimezone = (TzDataTimezone)testIdentifier;
-
         // act
-        var testResult = testTimezone.GetOffsetInfosForLocal(ParseLocal(testLocal));
+        var testResult = testTimezone.GetOffsetInfosForLocal(testLocal);
 
         // assert
         testResult.Should().BeEmpty();
@@ -96,208 +199,281 @@ public class TzDataExtensionsLocalTimeTests
 
     [Theory]
     [MemberData(nameof(Gap_TestCases))]
-    public void ToDateTimeOffset_TimeInGapWithRfc5545_TakesOffsetBeforeGap(string testIdentifier, string testLocal, string expectedResult)
+    public void ToDateTimeOffset_TimeInGapWithRfc5545_TakesOffsetBeforeGap(TzDataTimezone testTimezone, DateTime testLocal, DateTime expectedDateTime, TimeSpan expectedOffset)
     {
-        // arrange
-        var testTimezone = (TzDataTimezone)testIdentifier;
-
         // act
-        var testResult = ParseLocal(testLocal).ToDateTimeOffset(testTimezone, TzDataLocalTimeResolution.Rfc5545);
+        var testResult = testLocal.ToDateTimeOffset(testTimezone, TzDataLocalTimeResolution.Rfc5545);
 
         // assert
-        var expected = ParseDateTimeOffset(expectedResult);
-        testResult.DateTime.Should().Be(expected.DateTime);
-        testResult.Offset.Should().Be(expected.Offset);
+        testResult.DateTime.Should().Be(expectedDateTime);
+        testResult.Offset.Should().Be(expectedOffset);
     }
 
     [Theory]
     [MemberData(nameof(GapTime_TestCases))]
-    public void ToDateTimeOffset_TimeInGapWithStrict_ThrowsArgumentException(string testIdentifier, string testLocal)
+    public void ToDateTimeOffset_TimeInGapWithStrict_ThrowsArgumentException(TzDataTimezone testTimezone, DateTime testLocal)
     {
-        // arrange
-        var testTimezone = (TzDataTimezone)testIdentifier;
-
         // act
-        var testResult = () => ParseLocal(testLocal).ToDateTimeOffset(testTimezone, TzDataLocalTimeResolution.Strict);
+        Action testAction = () => testLocal.ToDateTimeOffset(testTimezone, TzDataLocalTimeResolution.Strict);
 
         // assert
-        testResult.Should().Throw<ArgumentException>().Which.ParamName.Should().Be("local");
-    }
-
-    public static IEnumerable<object[]> Overlap_TestCases
-    {
-        get
-        {
-            // The time, then the earlier and later offsets with their abbreviations and whether daylight saving time is in effect.
-            yield return new object[] { "America/New_York", "2026-11-01T01:30:00", "-04:00", "EDT", true, "-05:00", "EST", false };
-            yield return new object[] { "America/New_York", "2026-11-01T01:00:00", "-04:00", "EDT", true, "-05:00", "EST", false };
-            yield return new object[] { "America/New_York", "2026-11-01T01:59:59", "-04:00", "EDT", true, "-05:00", "EST", false };
-            yield return new object[] { "Europe/London", "2026-10-25T01:30:00", "01:00", "BST", true, "00:00", "GMT", false };
-            yield return new object[] { "Europe/Dublin", "2026-10-25T01:30:00", "01:00", "IST", false, "00:00", "GMT", true };
-            yield return new object[] { "Australia/Lord_Howe", "2026-04-05T01:45:00", "11:00", "+11", true, "10:30", "+1030", false };
-            yield return new object[] { "America/New_York", "2149-11-02T01:30:00", "-04:00", "EDT", true, "-05:00", "EST", false };
-        }
+        testAction.Should().Throw<ArgumentException>().Which.ParamName.Should().Be(LocalParameterName);
     }
 
     [Theory]
     [MemberData(nameof(Overlap_TestCases))]
-    public void GetOffsetInfosForLocal_TimeInOverlap_ReturnsBothOffsetsInOrder(string testIdentifier, string testLocal, string expectedFirstOffset, string expectedFirstAbbreviation, bool expectedFirstIsDaylightSavingTime, string expectedSecondOffset, string expectedSecondAbbreviation, bool expectedSecondIsDaylightSavingTime)
+    public void GetOffsetInfosForLocal_TimeInOverlap_ReturnsBothOffsetsInOrder(TzDataTimezone testTimezone, DateTime testLocal, TimeSpan expectedFirstOffset, string expectedFirstAbbreviation, bool expectedFirstIsDaylightSavingTime, TimeSpan expectedSecondOffset, string expectedSecondAbbreviation, bool expectedSecondIsDaylightSavingTime)
     {
-        // arrange
-        var testTimezone = (TzDataTimezone)testIdentifier;
-
         // act
-        var testResult = testTimezone.GetOffsetInfosForLocal(ParseLocal(testLocal));
+        var testResult = testTimezone.GetOffsetInfosForLocal(testLocal);
 
         // assert
         testResult.Should().HaveCount(2);
-        testResult[0].UtcOffset.Should().Be(ParseOffset(expectedFirstOffset));
+        testResult[0].UtcOffset.Should().Be(expectedFirstOffset);
         testResult[0].Abbreviation.Should().Be(expectedFirstAbbreviation);
         testResult[0].IsDaylightSavingTime.Should().Be(expectedFirstIsDaylightSavingTime);
-        testResult[1].UtcOffset.Should().Be(ParseOffset(expectedSecondOffset));
+        testResult[1].UtcOffset.Should().Be(expectedSecondOffset);
         testResult[1].Abbreviation.Should().Be(expectedSecondAbbreviation);
         testResult[1].IsDaylightSavingTime.Should().Be(expectedSecondIsDaylightSavingTime);
         testResult[0].ValidUntilUtc.Should().Be(testResult[1].ValidFromUtc);
     }
 
-    public static IEnumerable<object[]> OverlapTime_TestCases => Overlap_TestCases.Select(testCase => new[] { testCase[0], testCase[1] });
-
-    public static IEnumerable<object[]> OverlapEarlierOffset_TestCases => Overlap_TestCases.Select(testCase => new[] { testCase[0], testCase[1], testCase[2] });
-
     [Theory]
     [MemberData(nameof(OverlapEarlierOffset_TestCases))]
-    public void ToDateTimeOffset_TimeInOverlapWithRfc5545_TakesEarlierInstant(string testIdentifier, string testLocal, string expectedFirstOffset)
+    public void ToDateTimeOffset_TimeInOverlapWithRfc5545_TakesEarlierInstant(TzDataTimezone testTimezone, DateTime testLocal, TimeSpan expectedFirstOffset)
     {
-        // arrange
-        var testTimezone = (TzDataTimezone)testIdentifier;
-        var testLocalTime = ParseLocal(testLocal);
-
         // act
-        var testResult = testLocalTime.ToDateTimeOffset(testTimezone, TzDataLocalTimeResolution.Rfc5545);
+        var testResult = testLocal.ToDateTimeOffset(testTimezone, TzDataLocalTimeResolution.Rfc5545);
 
         // assert
-        testResult.DateTime.Should().Be(testLocalTime);
-        testResult.Offset.Should().Be(ParseOffset(expectedFirstOffset));
+        testResult.DateTime.Should().Be(testLocal);
+        testResult.Offset.Should().Be(expectedFirstOffset);
     }
 
     [Theory]
     [MemberData(nameof(OverlapTime_TestCases))]
-    public void ToDateTimeOffset_TimeInOverlapWithStrict_ThrowsArgumentException(string testIdentifier, string testLocal)
+    public void ToDateTimeOffset_TimeInOverlapWithStrict_ThrowsArgumentException(TzDataTimezone testTimezone, DateTime testLocal)
     {
-        // arrange
-        var testTimezone = (TzDataTimezone)testIdentifier;
-
         // act
-        var testResult = () => ParseLocal(testLocal).ToDateTimeOffset(testTimezone, TzDataLocalTimeResolution.Strict);
+        Action testAction = () => testLocal.ToDateTimeOffset(testTimezone, TzDataLocalTimeResolution.Strict);
 
         // assert
-        testResult.Should().Throw<ArgumentException>().Which.ParamName.Should().Be("local");
+        testAction.Should().Throw<ArgumentException>().Which.ParamName.Should().Be(LocalParameterName);
     }
 
     [Fact]
-    public void ToDateTimeOffset_NewYorkExamples_GiveExpectedInstants()
+    public void ToDateTimeOffset_NewYorkTimeInGap_GivesInstantAfterGap()
     {
-        // arrange
-        var testTimezone = TzDataTimezone.America.New_York;
-
         // act
-        var testGap = ParseLocal("2026-03-08T02:30:00").ToDateTimeOffset(testTimezone, TzDataLocalTimeResolution.Rfc5545);
-        var testOverlap = ParseLocal("2026-11-01T01:30:00").ToDateTimeOffset(testTimezone, TzDataLocalTimeResolution.Rfc5545);
+        var testResult = NewYorkGapTime.ToDateTimeOffset(TzDataTimezone.America.New_York, TzDataLocalTimeResolution.Rfc5545);
 
         // assert
-        testGap.Should().Be(ParseDateTimeOffset("2026-03-08T03:30:00-04:00"));
-        testGap.UtcDateTime.Should().Be(new DateTime(2026, 3, 8, 7, 30, 0, DateTimeKind.Utc));
-        testOverlap.Should().Be(ParseDateTimeOffset("2026-11-01T01:30:00-04:00"));
-        testOverlap.UtcDateTime.Should().Be(new DateTime(2026, 11, 1, 5, 30, 0, DateTimeKind.Utc));
+        testResult.Should().Be(NewYorkGapTimeAfterGap);
+        testResult.Offset.Should().Be(UtcMinus0400);
+        testResult.UtcDateTime.Should().Be(NewYorkGapTimeAfterGapUtc);
+    }
+
+    [Fact]
+    public void ToDateTimeOffset_NewYorkTimeInOverlap_GivesEarlierInstant()
+    {
+        // act
+        var testResult = NewYorkOverlapTime.ToDateTimeOffset(TzDataTimezone.America.New_York, TzDataLocalTimeResolution.Rfc5545);
+
+        // assert
+        testResult.Should().Be(NewYorkOverlapTimeEarlier);
+        testResult.Offset.Should().Be(UtcMinus0400);
+        testResult.UtcDateTime.Should().Be(NewYorkOverlapTimeEarlierUtc);
     }
 
     [Theory]
-    [MemberData(nameof(SingleOffsetTime_TestCases))]
-    public void ToDateTimeOffset_NormalTime_KeepsTimeWithOffsetInEffect(string testIdentifier, string testLocal, string expectedOffset)
+    [MemberData(nameof(SingleOffsetWithResolution_TestCases))]
+    public void ToDateTimeOffset_NormalTime_KeepsTimeWithOffsetInEffect(TzDataTimezone testTimezone, DateTime testLocal, TzDataLocalTimeResolution testResolution, TimeSpan expectedOffset)
     {
-        // arrange
-        var testTimezone = (TzDataTimezone)testIdentifier;
-        var testLocalTime = ParseLocal(testLocal);
-
         // act
-        var testStrict = testLocalTime.ToDateTimeOffset(testTimezone, TzDataLocalTimeResolution.Strict);
-        var testRfc5545 = testLocalTime.ToDateTimeOffset(testTimezone, TzDataLocalTimeResolution.Rfc5545);
+        var testResult = testLocal.ToDateTimeOffset(testTimezone, testResolution);
 
         // assert
-        testStrict.DateTime.Should().Be(testLocalTime);
-        testStrict.Offset.Should().Be(ParseOffset(expectedOffset));
-        testRfc5545.Should().Be(testStrict);
-        testRfc5545.Offset.Should().Be(testStrict.Offset);
+        testResult.DateTime.Should().Be(testLocal);
+        testResult.Offset.Should().Be(expectedOffset);
     }
 
-    [Theory]
-    [InlineData("America/New_York")]
-    [InlineData("Europe/London")]
-    [InlineData("Europe/Dublin")]
-    [InlineData("Australia/Lord_Howe")]
-    [InlineData("Asia/Kolkata")]
-    public void GetOffsetInfosForLocal_EveryQuarterHourOfYear_ReturnsOffsetsThatGiveTimeBack(string testIdentifier)
-    {
-        // arrange
-        var testTimezone = (TzDataTimezone)testIdentifier;
-        var testStart = new DateTime(2026, 1, 1, 0, 0, 0);
+    #region Every quarter hour of 2026
 
-        for (var testLocal = testStart; testLocal < testStart.AddYears(1); testLocal = testLocal.AddMinutes(15))
+    // The offsets in force during 2026 in each timezone swept, with the instants at which they begin and cease to apply.
+    private static readonly TzDataOffsetInfo NewYorkStandardTimeOfWinter2025 = new(UtcMinus0500, UtcZero, false, Est, Utc(2025, 11, 2, 6, 0), Utc(2026, 3, 8, 7, 0));
+    private static readonly TzDataOffsetInfo NewYorkDaylightTime2026 = new(UtcMinus0500, UtcPlus0100, true, Edt, Utc(2026, 3, 8, 7, 0), Utc(2026, 11, 1, 6, 0));
+    private static readonly TzDataOffsetInfo NewYorkStandardTimeOfWinter2026 = new(UtcMinus0500, UtcZero, false, Est, Utc(2026, 11, 1, 6, 0), Utc(2027, 3, 14, 7, 0));
+    private static readonly TzDataOffsetInfo LondonStandardTimeOfWinter2025 = new(UtcZero, UtcZero, false, Gmt, Utc(2025, 10, 26, 1, 0), Utc(2026, 3, 29, 1, 0));
+    private static readonly TzDataOffsetInfo LondonSummerTime2026 = new(UtcZero, UtcPlus0100, true, Bst, Utc(2026, 3, 29, 1, 0), Utc(2026, 10, 25, 1, 0));
+    private static readonly TzDataOffsetInfo LondonStandardTimeOfWinter2026 = new(UtcZero, UtcZero, false, Gmt, Utc(2026, 10, 25, 1, 0), Utc(2027, 3, 28, 1, 0));
+    private static readonly TzDataOffsetInfo DublinWinterTime2025 = new(UtcPlus0100, UtcMinus0100, true, Gmt, Utc(2025, 10, 26, 1, 0), Utc(2026, 3, 29, 1, 0));
+    private static readonly TzDataOffsetInfo DublinStandardTime2026 = new(UtcPlus0100, UtcZero, false, Ist, Utc(2026, 3, 29, 1, 0), Utc(2026, 10, 25, 1, 0));
+    private static readonly TzDataOffsetInfo DublinWinterTime2026 = new(UtcPlus0100, UtcMinus0100, true, Gmt, Utc(2026, 10, 25, 1, 0), Utc(2027, 3, 28, 1, 0));
+    private static readonly TzDataOffsetInfo LordHoweDaylightTime2025 = new(UtcPlus1030, UtcPlus0030, true, Plus11, Utc(2025, 10, 4, 15, 30), Utc(2026, 4, 4, 15, 0));
+    private static readonly TzDataOffsetInfo LordHoweStandardTime2026 = new(UtcPlus1030, UtcZero, false, Plus1030, Utc(2026, 4, 4, 15, 0), Utc(2026, 10, 3, 15, 30));
+    private static readonly TzDataOffsetInfo LordHoweDaylightTime2026 = new(UtcPlus1030, UtcPlus0030, true, Plus11, Utc(2026, 10, 3, 15, 30), Utc(2027, 4, 3, 15, 0));
+    private static readonly TzDataOffsetInfo KolkataStandardTime = new(UtcPlus0530, UtcZero, false, Ist, Utc(1945, 10, 14, 17, 30), null);
+
+    // From each local time given until the next, the offsets that give that local time, earliest first.
+    private static readonly (TzDataTimezone Timezone, (DateTime LocalStart, TzDataOffsetInfo[] Offsets)[] Segments)[] LocalTimeSegments =
+    [
+        (TzDataTimezone.America.New_York,
+        [
+            (new DateTime(2026, 1, 1, 0, 0, 0), [NewYorkStandardTimeOfWinter2025]),
+            (new DateTime(2026, 3, 8, 2, 0, 0), []),
+            (new DateTime(2026, 3, 8, 3, 0, 0), [NewYorkDaylightTime2026]),
+            (new DateTime(2026, 11, 1, 1, 0, 0), [NewYorkDaylightTime2026, NewYorkStandardTimeOfWinter2026]),
+            (new DateTime(2026, 11, 1, 2, 0, 0), [NewYorkStandardTimeOfWinter2026]),
+        ]),
+        (TzDataTimezone.Europe.London,
+        [
+            (new DateTime(2026, 1, 1, 0, 0, 0), [LondonStandardTimeOfWinter2025]),
+            (new DateTime(2026, 3, 29, 1, 0, 0), []),
+            (new DateTime(2026, 3, 29, 2, 0, 0), [LondonSummerTime2026]),
+            (new DateTime(2026, 10, 25, 1, 0, 0), [LondonSummerTime2026, LondonStandardTimeOfWinter2026]),
+            (new DateTime(2026, 10, 25, 2, 0, 0), [LondonStandardTimeOfWinter2026]),
+        ]),
+        (TzDataTimezone.Europe.Dublin,
+        [
+            (new DateTime(2026, 1, 1, 0, 0, 0), [DublinWinterTime2025]),
+            (new DateTime(2026, 3, 29, 1, 0, 0), []),
+            (new DateTime(2026, 3, 29, 2, 0, 0), [DublinStandardTime2026]),
+            (new DateTime(2026, 10, 25, 1, 0, 0), [DublinStandardTime2026, DublinWinterTime2026]),
+            (new DateTime(2026, 10, 25, 2, 0, 0), [DublinWinterTime2026]),
+        ]),
+        (TzDataTimezone.Australia.Lord_Howe,
+        [
+            (new DateTime(2026, 1, 1, 0, 0, 0), [LordHoweDaylightTime2025]),
+            (new DateTime(2026, 4, 5, 1, 30, 0), [LordHoweDaylightTime2025, LordHoweStandardTime2026]),
+            (new DateTime(2026, 4, 5, 2, 0, 0), [LordHoweStandardTime2026]),
+            (new DateTime(2026, 10, 4, 2, 0, 0), []),
+            (new DateTime(2026, 10, 4, 2, 30, 0), [LordHoweDaylightTime2026]),
+        ]),
+        (TzDataTimezone.Asia.Kolkata,
+        [
+            (new DateTime(2026, 1, 1, 0, 0, 0), [KolkataStandardTime]),
+        ]),
+    ];
+
+    // The offsets in force during 2026 in each timezone swept, in chronological order.
+    private static readonly (TzDataTimezone Timezone, TzDataOffsetInfo[] Offsets)[] UniversalTimeSegments =
+    [
+        (TzDataTimezone.America.New_York, [NewYorkStandardTimeOfWinter2025, NewYorkDaylightTime2026, NewYorkStandardTimeOfWinter2026]),
+        (TzDataTimezone.Europe.London, [LondonStandardTimeOfWinter2025, LondonSummerTime2026, LondonStandardTimeOfWinter2026]),
+        (TzDataTimezone.Europe.Dublin, [DublinWinterTime2025, DublinStandardTime2026, DublinWinterTime2026]),
+        (TzDataTimezone.Australia.Lord_Howe, [LordHoweDaylightTime2025, LordHoweStandardTime2026, LordHoweDaylightTime2026]),
+        (TzDataTimezone.Asia.Kolkata, [KolkataStandardTime]),
+    ];
+
+    private const int SweepYear = 2026;
+
+    private static readonly TimeSpan SweepStep = TimeSpan.FromMinutes(15);
+
+    private static DateTime Utc(int year, int month, int day, int hour, int minute) => new(year, month, day, hour, minute, 0, DateTimeKind.Utc);
+
+    public static TheoryData<TzDataTimezone, DateTime, TzDataOffsetInfo[]> EveryLocalQuarterHour_TestCases
+    {
+        get
         {
-            // act
-            var testResult = testTimezone.GetOffsetInfosForLocal(testLocal);
-
-            // assert
-            testResult.Count.Should().BeLessThanOrEqualTo(2, "at most one transition falls near {0}", testLocal);
-            foreach (var testOffsetInfo in testResult)
+            var testCases = new TheoryData<TzDataTimezone, DateTime, TzDataOffsetInfo[]>();
+            foreach (var (timezone, segments) in LocalTimeSegments)
             {
-                var testUtc = DateTime.SpecifyKind(testLocal - testOffsetInfo.UtcOffset, DateTimeKind.Utc);
-                testTimezone.GetOffsetInfo(testUtc).Should().Be(testOffsetInfo, "the offset gives {0} back", testLocal);
+                var segment = 0;
+                for (var local = new DateTime(SweepYear, 1, 1, 0, 0, 0); local.Year == SweepYear; local += SweepStep)
+                {
+                    while (segment + 1 < segments.Length && segments[segment + 1].LocalStart <= local)
+                        segment++;
+
+                    testCases.Add(timezone, local, segments[segment].Offsets);
+                }
             }
 
-            if (testIdentifier == "Asia/Kolkata")
-                testResult.Should().ContainSingle("Asia/Kolkata has no daylight saving");
+            return testCases;
+        }
+    }
+
+    public static TheoryData<TzDataTimezone, DateTime, TzDataOffsetInfo> EveryUniversalQuarterHour_TestCases
+    {
+        get
+        {
+            var testCases = new TheoryData<TzDataTimezone, DateTime, TzDataOffsetInfo>();
+            foreach (var (timezone, offsets) in UniversalTimeSegments)
+            {
+                var segment = 0;
+                for (var utc = Utc(SweepYear, 1, 1, 0, 0); utc.Year == SweepYear; utc += SweepStep)
+                {
+                    while (offsets[segment].ValidUntilUtc <= utc)
+                        segment++;
+
+                    // The local time that the clock shows at the instant.
+                    testCases.Add(timezone, DateTime.SpecifyKind(utc + offsets[segment].UtcOffset, DateTimeKind.Unspecified), offsets[segment]);
+                }
+            }
+
+            return testCases;
         }
     }
 
     [Theory]
-    [InlineData("America/New_York")]
-    [InlineData("Europe/London")]
-    [InlineData("Europe/Dublin")]
-    [InlineData("Australia/Lord_Howe")]
-    [InlineData("Asia/Kolkata")]
-    public void GetOffsetInfosForLocal_EveryQuarterHourOfYear_FindsEveryInstant(string testIdentifier)
+    [MemberData(nameof(EveryLocalQuarterHour_TestCases), DisableDiscoveryEnumeration = true)]
+    public void GetOffsetInfosForLocal_EveryQuarterHourOfYear_ReturnsOffsetsThatGiveTime(TzDataTimezone testTimezone, DateTime testLocal, TzDataOffsetInfo[] expectedResult)
     {
-        // arrange
-        var testTimezone = (TzDataTimezone)testIdentifier;
-        var testStart = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        // act
+        var testResult = testTimezone.GetOffsetInfosForLocal(testLocal);
 
-        for (var testUtc = testStart; testUtc < testStart.AddYears(1); testUtc = testUtc.AddMinutes(15))
-        {
-            // act
-            var testOffsetInfo = testTimezone.GetOffsetInfo(testUtc);
-            var testLocal = DateTime.SpecifyKind(testUtc + testOffsetInfo.UtcOffset, DateTimeKind.Unspecified);
-            var testResult = testTimezone.GetOffsetInfosForLocal(testLocal);
-
-            // assert
-            testResult.Should().Contain(testOffsetInfo, "the local clock shows {0} at {1}", testLocal, testUtc);
-        }
+        // assert
+        testResult.Should().Equal(expectedResult);
     }
 
-    [Fact]
-    public void GetOffsetInfosForLocal_RangeLimits_ReturnOnlyRepresentableInstants()
+    [Theory]
+    [MemberData(nameof(EveryUniversalQuarterHour_TestCases), DisableDiscoveryEnumeration = true)]
+    public void GetOffsetInfosForLocal_EveryQuarterHourOfYear_FindsEveryInstant(TzDataTimezone testTimezone, DateTime testLocal, TzDataOffsetInfo expectedOffsetInfo)
     {
-        // arrange
-        var testMinimum = DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Unspecified);
-        var testMaximum = DateTime.SpecifyKind(DateTime.MaxValue, DateTimeKind.Unspecified);
+        // act
+        var testResult = testTimezone.GetOffsetInfosForLocal(testLocal);
 
-        // act & assert
-        // America/New_York is behind universal time, so the earliest local time has an instant and the latest has none.
-        TzDataTimezone.America.New_York.GetOffsetInfosForLocal(testMinimum).Should().ContainSingle();
-        TzDataTimezone.America.New_York.GetOffsetInfosForLocal(testMaximum).Should().BeEmpty();
-        // Asia/Kolkata is ahead of universal time, so the reverse.
-        TzDataTimezone.Asia.Kolkata.GetOffsetInfosForLocal(testMinimum).Should().BeEmpty();
-        TzDataTimezone.Asia.Kolkata.GetOffsetInfosForLocal(testMaximum).Should().ContainSingle();
+        // assert
+        testResult.Should().Contain(expectedOffsetInfo);
+    }
+
+    #endregion
+
+    public static TheoryData<TzDataTimezone, DateTime> RepresentableRangeLimit_TestCases => new()
+    {
+        // America/New_York is behind universal time, so the earliest local time has an instant.
+        { TzDataTimezone.America.New_York, DateTime.MinValue },
+        // Asia/Kolkata is ahead of universal time, so the latest local time has an instant.
+        { TzDataTimezone.Asia.Kolkata, DateTime.MaxValue },
+    };
+
+    public static TheoryData<TzDataTimezone, DateTime> UnrepresentableRangeLimit_TestCases => new()
+    {
+        // America/New_York is behind universal time, so the latest local time has no instant.
+        { TzDataTimezone.America.New_York, DateTime.MaxValue },
+        // Asia/Kolkata is ahead of universal time, so the earliest local time has no instant.
+        { TzDataTimezone.Asia.Kolkata, DateTime.MinValue },
+    };
+
+    [Theory]
+    [MemberData(nameof(RepresentableRangeLimit_TestCases))]
+    public void GetOffsetInfosForLocal_RepresentableRangeLimit_ReturnsOneOffset(TzDataTimezone testTimezone, DateTime testLocal)
+    {
+        // act
+        var testResult = testTimezone.GetOffsetInfosForLocal(testLocal);
+
+        // assert
+        testResult.Should().ContainSingle();
+    }
+
+    [Theory]
+    [MemberData(nameof(UnrepresentableRangeLimit_TestCases))]
+    public void GetOffsetInfosForLocal_UnrepresentableRangeLimit_ReturnsNoOffsets(TzDataTimezone testTimezone, DateTime testLocal)
+    {
+        // act
+        var testResult = testTimezone.GetOffsetInfosForLocal(testLocal);
+
+        // assert
+        testResult.Should().BeEmpty();
     }
 
     [Fact]
@@ -308,126 +484,154 @@ public class TzDataExtensionsLocalTimeTests
         var testLocal = new DateTime(1880, 1, 1, 12, 0, 0);
 
         // act
-        var testResult = () => testLocal.ToDateTimeOffset(TzDataTimezone.America.New_York, TzDataLocalTimeResolution.Strict);
+        Action testAction = () => testLocal.ToDateTimeOffset(TzDataTimezone.America.New_York, TzDataLocalTimeResolution.Strict);
 
         // assert
-        testResult.Should().Throw<ArgumentOutOfRangeException>().Which.ParamName.Should().Be("local");
+        testAction.Should().Throw<ArgumentOutOfRangeException>().Which.ParamName.Should().Be(LocalParameterName);
     }
 
     [Fact]
     public void ToDateTimeOffset_UndefinedResolution_ThrowsArgumentOutOfRangeException()
     {
-        // arrange
-        var testLocal = new DateTime(2026, 7, 1, 12, 0, 0);
-
         // act
-        var testResult = () => testLocal.ToDateTimeOffset(TzDataTimezone.Europe.London, (TzDataLocalTimeResolution)99);
+        Action testAction = () => July2026.ToDateTimeOffset(TzDataTimezone.Europe.London, UndefinedResolution);
 
         // assert
-        testResult.Should().Throw<ArgumentOutOfRangeException>().Which.ParamName.Should().Be("resolution");
+        testAction.Should().Throw<ArgumentOutOfRangeException>().Which.ParamName.Should().Be("resolution");
     }
 
-    public static IEnumerable<object[]> LocalTimeMethod_TestCases
+    private static readonly (string Method, Action<TzDataTimezone, DateTime> Action)[] LocalTimeMethods =
+    [
+        (nameof(TzDataExtensions.GetOffsetInfosForLocal), (timezone, local) => timezone.GetOffsetInfosForLocal(local)),
+        ($"{nameof(DateTimeExtensions.ToDateTimeOffset)}({nameof(TzDataLocalTimeResolution.Strict)})", (timezone, local) => local.ToDateTimeOffset(timezone, TzDataLocalTimeResolution.Strict)),
+        ($"{nameof(DateTimeExtensions.ToDateTimeOffset)}({nameof(TzDataLocalTimeResolution.Rfc5545)})", (timezone, local) => local.ToDateTimeOffset(timezone, TzDataLocalTimeResolution.Rfc5545)),
+    ];
+
+    public static TheoryData<string, Action<TzDataTimezone, DateTime>> LocalTimeMethod_TestCases
     {
         get
         {
-            yield return new object[] { nameof(TzDataExtensions.GetOffsetInfosForLocal), new Action<TzDataTimezone, DateTime>((timezone, local) => timezone.GetOffsetInfosForLocal(local)) };
-            yield return new object[] { $"{nameof(DateTimeExtensions.ToDateTimeOffset)}({nameof(TzDataLocalTimeResolution.Strict)})", new Action<TzDataTimezone, DateTime>((timezone, local) => local.ToDateTimeOffset(timezone, TzDataLocalTimeResolution.Strict)) };
-            yield return new object[] { $"{nameof(DateTimeExtensions.ToDateTimeOffset)}({nameof(TzDataLocalTimeResolution.Rfc5545)})", new Action<TzDataTimezone, DateTime>((timezone, local) => local.ToDateTimeOffset(timezone, TzDataLocalTimeResolution.Rfc5545)) };
+            var testCases = new TheoryData<string, Action<TzDataTimezone, DateTime>>();
+            foreach (var (method, action) in LocalTimeMethods)
+                testCases.Add(method, action);
+
+            return testCases;
+        }
+    }
+
+    public static TheoryData<string, Action<TzDataTimezone, DateTime>, DateTime> LocalTimeMethodWithUtcOrLocalKind_TestCases
+    {
+        get
+        {
+            var testCases = new TheoryData<string, Action<TzDataTimezone, DateTime>, DateTime>();
+            foreach (var (method, action) in LocalTimeMethods)
+            {
+                testCases.Add(method, action, DateTime.SpecifyKind(July2026, DateTimeKind.Utc));
+                testCases.Add(method, action, DateTime.SpecifyKind(July2026, DateTimeKind.Local));
+            }
+
+            return testCases;
         }
     }
 
     [Theory]
-    [MemberData(nameof(LocalTimeMethod_TestCases))]
-    public void LocalTimeMethod_UtcOrLocalKind_ThrowsArgumentException(string testMethod, Action<TzDataTimezone, DateTime> testAction)
+    [MemberData(nameof(LocalTimeMethodWithUtcOrLocalKind_TestCases))]
+    public void LocalTimeMethod_UtcOrLocalKind_ThrowsArgumentException(string testMethod, Action<TzDataTimezone, DateTime> testMethodAction, DateTime testLocal)
     {
-        // arrange
-        var testUtc = new DateTime(2026, 7, 1, 12, 0, 0, DateTimeKind.Utc);
-        var testLocal = new DateTime(2026, 7, 1, 12, 0, 0, DateTimeKind.Local);
-
         // act
-        var testUtcResult = () => testAction(TzDataTimezone.Europe.London, testUtc);
-        var testLocalResult = () => testAction(TzDataTimezone.Europe.London, testLocal);
+        Action testAction = () => testMethodAction(TzDataTimezone.Europe.London, testLocal);
 
         // assert
-        testUtcResult.Should().Throw<ArgumentException>("{0} accepts only times of kind Unspecified", testMethod).Which.ParamName.Should().Be("local");
-        testLocalResult.Should().Throw<ArgumentException>("{0} accepts only times of kind Unspecified", testMethod).Which.ParamName.Should().Be("local");
+        testAction.Should().Throw<ArgumentException>("{0} accepts only times of kind Unspecified", testMethod).Which.ParamName.Should().Be(LocalParameterName);
     }
 
     [Theory]
     [MemberData(nameof(LocalTimeMethod_TestCases))]
-    public void LocalTimeMethod_InvalidTimezone_ThrowsInvalidOperationException(string testMethod, Action<TzDataTimezone, DateTime> testAction)
+    public void LocalTimeMethod_DefaultTimezone_ThrowsInvalidOperationException(string testMethod, Action<TzDataTimezone, DateTime> testMethodAction)
     {
-        // arrange
-        var testLocal = new DateTime(2026, 7, 1, 12, 0, 0);
-
         // act
-        var testDefault = () => testAction(default, testLocal);
-        var testUnknown = () => testAction(UnknownTimezone, testLocal);
+        Action testAction = () => testMethodAction(default, July2026);
 
         // assert
-        testDefault.Should().Throw<InvalidOperationException>("{0} needs a timezone with an identifier", testMethod);
-        testUnknown.Should().Throw<InvalidOperationException>("{0} needs a known timezone", testMethod);
+        testAction.Should().Throw<InvalidOperationException>("{0} needs a timezone with an identifier", testMethod);
     }
 
-    public static IEnumerable<object[]> ToOffset_TestCases
+    [Theory]
+    [MemberData(nameof(LocalTimeMethod_TestCases))]
+    public void LocalTimeMethod_UnknownTimezone_ThrowsInvalidOperationException(string testMethod, Action<TzDataTimezone, DateTime> testMethodAction)
     {
-        get
-        {
-            yield return new object[] { "America/New_York", "2026-03-08T06:59:59+00:00" };
-            yield return new object[] { "America/New_York", "2026-03-08T07:00:00+00:00" };
-            yield return new object[] { "America/New_York", "2026-11-01T05:30:00+00:00" };
-            yield return new object[] { "America/New_York", "2026-11-01T06:30:00+00:00" };
-            yield return new object[] { "Europe/London", "2026-07-01T12:00:00+05:30" };
-            yield return new object[] { "Europe/Dublin", "2026-01-15T12:00:00-08:00" };
-            yield return new object[] { "Australia/Lord_Howe", "2026-10-03T15:45:00+00:00" };
-            yield return new object[] { "Asia/Kolkata", "2026-07-01T12:00:00+00:00" };
-            yield return new object[] { "Pacific/Apia", "2011-12-30T10:00:00+00:00" };
-            yield return new object[] { "America/New_York", "2149-07-15T12:00:00+00:00" };
-        }
+        // act
+        Action testAction = () => testMethodAction(UnknownTimezone, July2026);
+
+        // assert
+        testAction.Should().Throw<InvalidOperationException>("{0} needs a known timezone", testMethod);
     }
+
+    public static TheoryData<TzDataTimezone, DateTimeOffset, TimeSpan> ToOffset_TestCases => new()
+    {
+        // America/New_York: either side of the start of daylight saving time, and either side of its end.
+        { TzDataTimezone.America.New_York, new DateTimeOffset(2026, 3, 8, 6, 59, 59, UtcZero), UtcMinus0500 },
+        { TzDataTimezone.America.New_York, new DateTimeOffset(2026, 3, 8, 7, 0, 0, UtcZero), UtcMinus0400 },
+        { TzDataTimezone.America.New_York, new DateTimeOffset(2026, 11, 1, 5, 30, 0, UtcZero), UtcMinus0400 },
+        { TzDataTimezone.America.New_York, new DateTimeOffset(2026, 11, 1, 6, 30, 0, UtcZero), UtcMinus0500 },
+        { TzDataTimezone.Europe.London, new DateTimeOffset(2026, 7, 1, 12, 0, 0, UtcPlus0530), UtcPlus0100 },
+        { TzDataTimezone.Europe.Dublin, new DateTimeOffset(2026, 1, 15, 12, 0, 0, TimeSpan.FromHours(-8)), UtcZero },
+        { TzDataTimezone.Australia.Lord_Howe, new DateTimeOffset(2026, 10, 3, 15, 45, 0, UtcZero), UtcPlus1100 },
+        { TzDataTimezone.Asia.Kolkata, new DateTimeOffset(2026, 7, 1, 12, 0, 0, UtcZero), UtcPlus0530 },
+        // Pacific/Apia: the first instant after the move across the date line.
+        { TzDataTimezone.Pacific.Apia, new DateTimeOffset(2011, 12, 30, 10, 0, 0, UtcZero), UtcPlus1400 },
+        { TzDataTimezone.America.New_York, new DateTimeOffset(2149, 7, 15, 12, 0, 0, UtcZero), UtcMinus0400 },
+    };
 
     [Theory]
     [MemberData(nameof(ToOffset_TestCases))]
-    public void ToOffset_Instant_KeepsInstantWithOffsetOfTimezone(string testIdentifier, string testInstant)
+    public void ToOffset_Instant_KeepsInstantWithOffsetOfTimezone(TzDataTimezone testTimezone, DateTimeOffset testInstant, TimeSpan expectedOffset)
     {
-        // arrange
-        var testTimezone = (TzDataTimezone)testIdentifier;
-        var testValue = ParseDateTimeOffset(testInstant);
-
         // act
-        var testResult = testValue.ToOffset(testTimezone);
+        var testResult = testInstant.ToOffset(testTimezone);
 
         // assert
-        testResult.UtcDateTime.Should().Be(testValue.UtcDateTime);
-        testResult.Offset.Should().Be(testTimezone.GetUtcOffset(testValue));
+        testResult.UtcDateTime.Should().Be(testInstant.UtcDateTime);
+        testResult.Offset.Should().Be(expectedOffset);
     }
 
     [Fact]
-    public void ToOffset_InvalidTimezone_ThrowsInvalidOperationException()
+    public void ToOffset_DefaultTimezone_ThrowsInvalidOperationException()
     {
         // arrange
-        var testInstant = new DateTimeOffset(2026, 7, 1, 12, 0, 0, TimeSpan.Zero);
+        var testInstant = new DateTimeOffset(July2026, UtcZero);
 
         // act
-        var testDefault = () => testInstant.ToOffset(default(TzDataTimezone));
-        var testUnknown = () => testInstant.ToOffset(UnknownTimezone);
+        Action testAction = () => testInstant.ToOffset(default(TzDataTimezone));
 
         // assert
-        testDefault.Should().Throw<InvalidOperationException>();
-        testUnknown.Should().Throw<InvalidOperationException>();
+        testAction.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void ToOffset_UnknownTimezone_ThrowsInvalidOperationException()
+    {
+        // arrange
+        var testInstant = new DateTimeOffset(July2026, UtcZero);
+
+        // act
+        Action testAction = () => testInstant.ToOffset(UnknownTimezone);
+
+        // assert
+        testAction.Should().Throw<InvalidOperationException>();
     }
 
     [Fact]
     public void ToOffset_OffsetWithSeconds_ThrowsArgumentOutOfRangeException()
     {
         // arrange
-        var testInstant = new DateTimeOffset(1880, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        // America/New_York kept local mean time, -04:56:02, until 1883.
+        var testInstant = new DateTimeOffset(1880, 1, 1, 12, 0, 0, UtcZero);
 
         // act
-        var testResult = () => testInstant.ToOffset(TzDataTimezone.America.New_York);
+        Action testAction = () => testInstant.ToOffset(TzDataTimezone.America.New_York);
 
         // assert
-        testResult.Should().Throw<ArgumentOutOfRangeException>().Which.ParamName.Should().Be("instant");
+        testAction.Should().Throw<ArgumentOutOfRangeException>().Which.ParamName.Should().Be("instant");
     }
 }
