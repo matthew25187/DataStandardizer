@@ -695,35 +695,57 @@ namespace DataStandardizer.File.iCal.Tests
 
         #region Options
 
-        [Theory]
-        [InlineData(3)]
-        [InlineData(0)]
-        [InlineData(-1)]
-        public void Constructor_FoldLengthLessThanFour_Throws(int foldLength)
+        // Each option that is not valid, with the text its message has, and each constructor it is given to.
+        public static TheoryData<string, IcalOptions, string, Func<IcalOptions, IcalContentLineWriter>> InvalidOptions()
         {
-            AssertInvalidOptions(new IcalOptions { FoldLength = foldLength }, "fold length");
+            var options = new List<(string, IcalOptions, string)>
+            {
+                ("FoldLength = 3", new IcalOptions { FoldLength = 3 }, "fold length"),
+                ("FoldLength = 0", new IcalOptions { FoldLength = 0 }, "fold length"),
+                ("FoldLength = -1", new IcalOptions { FoldLength = -1 }, "fold length"),
+                ("FoldWhitespace = x", new IcalOptions { FoldWhitespace = 'x' }, "fold white space"),
+                ("FoldWhitespace = LF", new IcalOptions { FoldWhitespace = '\n' }, "fold white space"),
+                ("FoldWhitespace = CR", new IcalOptions { FoldWhitespace = '\r' }, "fold white space"),
+                ("FoldWhitespace = no-break space", new IcalOptions { FoldWhitespace = '\xA0' }, "fold white space"),
+                ("LineBreak = CR", new IcalOptions { LineBreak = "\r" }, "line break"),
+                ("LineBreak empty", new IcalOptions { LineBreak = "" }, "line break"),
+                ("LineBreak = LF CR", new IcalOptions { LineBreak = "\n\r" }, "line break"),
+                ("LineBreak = CRLF CRLF", new IcalOptions { LineBreak = "\r\n\r\n" }, "line break"),
+                ("LineBreak = space LF", new IcalOptions { LineBreak = " \n" }, "line break"),
+                ("LineBreak null", new IcalOptions { LineBreak = null }, "line break"),
+            };
+            var constructors = new Func<IcalOptions, IcalContentLineWriter>[]
+            {
+                invalidOptions => new IcalContentLineWriter(new StringWriter(), invalidOptions),
+                invalidOptions => new IcalContentLineWriter(new MemoryStream(), invalidOptions),
+            };
+            var data = new TheoryData<string, IcalOptions, string, Func<IcalOptions, IcalContentLineWriter>>();
+            foreach (var (name, invalid, message) in options)
+            {
+                foreach (var constructor in constructors)
+                {
+                    data.Add(name, invalid, message, constructor);
+                }
+            }
+
+            return data;
         }
 
         [Theory]
-        [InlineData('x')]
-        [InlineData('\n')]
-        [InlineData('\r')]
-        [InlineData(' ')]
-        public void Constructor_InvalidFoldWhitespace_Throws(char foldWhitespace)
+        [MemberData(nameof(InvalidOptions), DisableDiscoveryEnumeration = true)]
+        public void Constructor_InvalidOption_ThrowsArgumentException(string option, IcalOptions options, string expectedMessagePart,
+            Func<IcalOptions, IcalContentLineWriter> constructor)
         {
-            AssertInvalidOptions(new IcalOptions { FoldWhitespace = foldWhitespace }, "fold white space");
-        }
+            // arrange
+            _ = option;
 
-        [Theory]
-        [InlineData("\r")]
-        [InlineData("")]
-        [InlineData("\n\r")]
-        [InlineData("\r\n\r\n")]
-        [InlineData(" \n")]
-        [InlineData(null)]
-        public void Constructor_InvalidLineBreak_Throws(string lineBreak)
-        {
-            AssertInvalidOptions(new IcalOptions { LineBreak = lineBreak }, "line break");
+            // act
+            Action testAction = () => constructor(options);
+
+            // assert
+            var exception = testAction.Should().Throw<ArgumentException>().Which;
+            exception.ParamName.Should().Be("options");
+            exception.Message.Should().Contain(expectedMessagePart);
         }
 
         [Fact]
@@ -1184,22 +1206,6 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         #endregion
-
-        private static void AssertInvalidOptions(IcalOptions options, string expectedMessagePart)
-        {
-            var testActions = new Action[]
-            {
-                () => _ = new IcalContentLineWriter(new StringWriter(), options),
-                () => _ = new IcalContentLineWriter(new MemoryStream(), options)
-            };
-
-            foreach (var testAction in testActions)
-            {
-                var exception = testAction.Should().Throw<ArgumentException>().Which;
-                exception.ParamName.Should().Be("options");
-                exception.Message.Should().Contain(expectedMessagePart);
-            }
-        }
 
         /// <summary>
         /// Checks that a written line is folded greedily at the fold length, with no character split across physical lines, and unfolds to the
