@@ -315,7 +315,7 @@ namespace DataStandardizer.LanguageTag.Tests
 
                 // assert
                 testResult.Should().BeAssignableTo<OperationCanceledException>("the token was cancelled after the first read from the stream");
-                subtagRegistryStream.Position.Should().BeLessThan(subtagRegistryStream.Length, "reading stops once the token is cancelled, before the end of the stream");
+                subtagRegistryStream.Position.Should().Be(CancelOnFirstReadStream.MaximumReadLength, "reading stops after the first read, whose bytes hold the whole File-Date line, because the token is checked before each line");
             }
         }
 
@@ -336,9 +336,15 @@ namespace DataStandardizer.LanguageTag.Tests
 
         /// <summary>
         /// A stream that cancels a token the first time it is read, to cancel a load part way through.
+        /// Each read returns at most <see cref="MaximumReadLength"/> bytes, so how far the load gets doesn't depend on how many bytes the framework's <see cref="StreamReader"/> asks for.
         /// </summary>
         private sealed class CancelOnFirstReadStream : MemoryStream
         {
+            /// <summary>
+            /// The most bytes one read returns: more than the registry's first line, <c>File-Date: 2025-05-15</c> and its line feed, and fewer than any <see cref="StreamReader"/> buffer.
+            /// </summary>
+            public const int MaximumReadLength = 64;
+
             private readonly CancellationTokenSource _cancellationTokenSource;
 
             public CancelOnFirstReadStream(byte[] buffer, CancellationTokenSource cancellationTokenSource)
@@ -350,26 +356,26 @@ namespace DataStandardizer.LanguageTag.Tests
             public override int Read(byte[] buffer, int offset, int count)
             {
                 _cancellationTokenSource.Cancel();
-                return base.Read(buffer, offset, count);
+                return base.Read(buffer, offset, Math.Min(count, MaximumReadLength));
             }
 
             public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
             {
                 _cancellationTokenSource.Cancel();
-                return base.ReadAsync(buffer, offset, count, CancellationToken.None);
+                return base.ReadAsync(buffer, offset, Math.Min(count, MaximumReadLength), CancellationToken.None);
             }
 
 #if NET
             public override int Read(Span<byte> buffer)
             {
                 _cancellationTokenSource.Cancel();
-                return base.Read(buffer);
+                return base.Read(buffer.Slice(0, Math.Min(buffer.Length, MaximumReadLength)));
             }
 
             public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
             {
                 _cancellationTokenSource.Cancel();
-                return base.ReadAsync(buffer, CancellationToken.None);
+                return base.ReadAsync(buffer.Slice(0, Math.Min(buffer.Length, MaximumReadLength)), CancellationToken.None);
             }
 #endif
         }
