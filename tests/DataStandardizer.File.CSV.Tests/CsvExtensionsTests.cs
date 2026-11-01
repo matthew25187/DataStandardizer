@@ -14,12 +14,11 @@ public class CsvExtensionsTests
         var testLine = new TestMappedLine();
 
         // act
-        var mapper = testLine.CreateMapper();
-        var testResult = mapper.GetValueOrDefault(nameof(TestMappedLine.Id));
+        var testResult = testLine.CreateMapper();
 
         // assert
-        testResult.Should().NotBeNull();
-        testResult!.FieldIndex.Should().Be(0);
+        testResult.Should().ContainKey(nameof(TestMappedLine.Id))
+            .WhoseValue.FieldIndex.Should().Be(0);
     }
 
     [Fact]
@@ -29,12 +28,11 @@ public class CsvExtensionsTests
         var testLine = new TestMappedLine();
 
         // act
-        var mapper = testLine.CreateMapper();
-        var testResult = mapper.GetValueOrDefault(nameof(TestMappedLine.Name));
+        var testResult = testLine.CreateMapper();
 
         // assert
-        testResult.Should().NotBeNull();
-        testResult!.FieldName.Should().Be(nameof(TestMappedLine.Name));
+        testResult.Should().ContainKey(nameof(TestMappedLine.Name))
+            .WhoseValue.FieldName.Should().Be(nameof(TestMappedLine.Name));
     }
 
     [Fact]
@@ -44,12 +42,11 @@ public class CsvExtensionsTests
         var testLine = new TestMappedLine();
 
         // act
-        var mapper = testLine.CreateMapper();
-        var testResult = mapper.GetValueOrDefault(nameof(TestMappedLine.Id));
+        var testResult = testLine.CreateMapper();
 
         // assert
-        testResult.Should().NotBeNull();
-        testResult!.ConstantValue.Should().Be(TestMappingConstantValue);
+        testResult.Should().ContainKey(nameof(TestMappedLine.Id))
+            .WhoseValue.ConstantValue.Should().Be(TestMappingConstantValue);
     }
 
     [Fact]
@@ -59,12 +56,11 @@ public class CsvExtensionsTests
         var testLine = new TestMappedLine();
 
         // act
-        var mapper = testLine.CreateMapper();
-        var testResult = mapper.GetValueOrDefault(nameof(TestMappedLine.Name));
+        var testResult = testLine.CreateMapper();
 
         // assert
-        testResult.Should().NotBeNull();
-        testResult!.IsOptional.Should().BeTrue();
+        testResult.Should().ContainKey(nameof(TestMappedLine.Name))
+            .WhoseValue.IsOptional.Should().BeTrue();
     }
 
     [Fact]
@@ -74,12 +70,11 @@ public class CsvExtensionsTests
         var testLine = new TestMappedLine();
 
         // act
-        var mapper = testLine.CreateMapper();
-        var testResult = mapper.GetValueOrDefault(nameof(TestMappedLine.Id));
+        var testResult = testLine.CreateMapper();
 
         // assert
-        testResult.Should().NotBeNull();
-        testResult!.TypeConverterType.Should().Be(typeof(Int32Converter));
+        testResult.Should().ContainKey(nameof(TestMappedLine.Id))
+            .WhoseValue.TypeConverterType.Should().Be(typeof(Int32Converter));
     }
 
     [Fact]
@@ -87,7 +82,7 @@ public class CsvExtensionsTests
     {
         // arrange
         const int identifier = 100;
-        var testLine = new TestLine { Id = identifier ,Name = "One"};
+        var testLine = new TestLine { Id = identifier, Name = "One" };
 
         var mapper = new TestModelMapper();
 
@@ -102,11 +97,11 @@ public class CsvExtensionsTests
     public void CreateMapper_CalledRepeatedly_ReturnsIndependentMappersWithSameMappings()
     {
         // arrange
+        var firstMapper = new TestMappedLine().CreateMapper();
         var testLine = new TestMappedLine();
 
         // act
-        var firstMapper = testLine.CreateMapper();
-        var secondMapper = new TestMappedLine().CreateMapper();
+        var secondMapper = testLine.CreateMapper();
 
         // assert
         secondMapper.Should().NotBeSameAs(firstMapper);
@@ -120,7 +115,7 @@ public class CsvExtensionsTests
     {
         // arrange
         const string secondValue = "Hello, World!";
-        var testLine = new TestLine { Id = 1,Name = secondValue };
+        var testLine = new TestLine { Id = 1, Name = secondValue };
 
         var mapper = new TestModelMapper();
 
@@ -160,7 +155,7 @@ public class CsvExtensionsTests
         // assert
         testAction.Should()
             .Throw<CsvFileException>()
-            .WithMessage($"Property '{nameof(TestModel.Description)}' unable to be mapped.");
+            .WithMessage("Property 'Description' unable to be mapped.");
     }
 
     [Fact]
@@ -185,7 +180,7 @@ public class CsvExtensionsTests
     {
         // arrange
         const string name = "Testing";
-        var testModel = new TestModel { Id = 1,Name = name };
+        var testModel = new TestModel { Id = 1, Name = name };
 
         var mapper = new TestLineMapper();
 
@@ -260,7 +255,7 @@ public class CsvExtensionsTests
 
     private class TestModel
     {
-        public  int Id { get; set; }
+        public int Id { get; set; }
         public string? Name { get; set; }
         public string? Description { get; set; }
     }
