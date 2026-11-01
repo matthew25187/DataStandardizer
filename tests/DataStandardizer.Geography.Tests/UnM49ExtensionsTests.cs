@@ -6,12 +6,90 @@ namespace DataStandardizer.Geography.Tests;
 [SuppressMessage("ReSharper", "InconsistentNaming")]
 public class UnM49ExtensionsTests
 {
-    private static readonly ushort[] _hierarchicalM49Codes;
+    // ISO 639-1 two-letter codes of the six official UN languages, the languages UN M49 gives its names in.
+    private const string Iso639Part1Arabic = "ar";
+    private const string Iso639Part1Chinese = "zh";
+    private const string Iso639Part1English = "en";
+    private const string Iso639Part1French = "fr";
+    private const string Iso639Part1Russian = "ru";
+    private const string Iso639Part1Spanish = "es";
 
-    static UnM49ExtensionsTests()
-    {
-        _hierarchicalM49Codes = [001, 002, 015, 202, 011, 014, 017, 018, 019, 021, 419, 005, 013, 029, 142, 030, 034, 035, 143, 145, 150, 039, 151, 154, 155, 009, 053, 054, 057, 061];
-    }
+    // UN M49 area codes.
+    private const ushort WorldM49Code = 001;
+    private const ushort AfricaM49Code = 002;
+    private const ushort SouthAmericaM49Code = 005;
+    private const ushort LatinAmericaAndTheCaribbeanM49Code = 419;
+
+    // A number that UN M49 doesn't assign: its codes have three digits.
+    private const ushort UndefinedM49Code = 9999;
+
+    // ISO 3166-1 codes of New Zealand.
+    private const string NewZealandIso3166Part1Alpha2Code = "NZ";
+    private const string NewZealandIso3166Part1Alpha3Code = "NZL";
+
+    // UN M49 names of countries or areas.
+    private const string AntarcticaNameEnglish = "Antarctica";
+    private const string DominicanRepublicNameEnglish = "Dominican Republic";
+    private const string MontserratNameChinese = "蒙特塞拉特";
+    private const string NetherlandsNameSpanish = "Países Bajos (Reino de los)";
+    private const string NewCaledoniaNameArabic = "كاليدونيا الجديدة";
+    private const string PhilippinesNameRussian = "Филиппины";
+    private const string UkraineNameFrench = "Ukraine";
+    private const string ZambiaNameEnglish = "Zambia";
+
+    // UN M49 names of the world, regions, sub-regions and intermediate regions.
+    private const string WorldNameArabic = "العالم";
+    private const string WorldNameChinese = "世界";
+    private const string WorldNameEnglish = "World";
+    private const string WorldNameFrench = "Monde";
+    private const string WorldNameRussian = "Весь мир";
+    private const string WorldNameSpanish = "Mundo";
+    private const string AfricaNameArabic = "أفريقيا";
+    private const string AfricaNameChinese = "非洲";
+    private const string AfricaNameEnglish = "Africa";
+    private const string AfricaNameFrench = "Afrique";
+    private const string AfricaNameRussian = "Африка";
+    private const string AfricaNameSpanish = "África";
+    private const string AsiaNameEnglish = "Asia";
+    private const string SubSaharanAfricaNameRussian = "Африка к югу от Сахары";
+    private const string EasternAfricaNameFrench = "Afrique orientale";
+    private const string LatinAmericaAndTheCaribbeanNameArabic = "أمريكا اللاتينية ومنطقة البحر الكاريبي";
+    private const string LatinAmericaAndTheCaribbeanNameChinese = "拉丁美洲和加勒比";
+    private const string LatinAmericaAndTheCaribbeanNameEnglish = "Latin America and the Caribbean";
+    private const string LatinAmericaAndTheCaribbeanNameFrench = "Amérique latine et Caraïbes";
+    private const string LatinAmericaAndTheCaribbeanNameRussian = "Латинская Америка и Карибский бассейн";
+    private const string LatinAmericaAndTheCaribbeanNameSpanish = "América Latina y el Caribe";
+    private const string SouthAmericaNameArabic = "أمريكا الجنوبية";
+    private const string SouthAmericaNameChinese = "南美洲";
+    private const string SouthAmericaNameEnglish = "South America";
+    private const string SouthAmericaNameFrench = "Amérique du Sud";
+    private const string SouthAmericaNameRussian = "Южная Америка";
+    private const string SouthAmericaNameSpanish = "América del Sur";
+
+    /// <summary>
+    /// Every UN M49 code: the world, its regions, sub-regions and intermediate regions, then every country or area.
+    /// </summary>
+    private static ushort[] AllM49Codes() =>
+    [
+        // The world, regions, sub-regions and intermediate regions.
+        001, 002, 005, 009, 011, 013, 014, 015, 017, 018, 019, 021, 029, 030, 034, 035, 039, 053, 054, 057,
+        061, 142, 143, 145, 150, 151, 154, 155, 202, 419,
+
+        // Countries or areas.
+        004, 008, 010, 012, 016, 020, 024, 028, 031, 032, 036, 040, 044, 048, 050, 051, 052, 056, 060, 064,
+        068, 070, 072, 074, 076, 084, 086, 090, 092, 096, 100, 104, 108, 112, 116, 120, 124, 132, 136, 140,
+        144, 148, 152, 156, 162, 166, 170, 174, 175, 178, 180, 184, 188, 191, 192, 196, 203, 204, 208, 212,
+        214, 218, 222, 226, 231, 232, 233, 234, 238, 239, 242, 246, 248, 250, 254, 258, 260, 262, 266, 268,
+        270, 275, 276, 288, 292, 296, 300, 304, 308, 312, 316, 320, 324, 328, 332, 334, 336, 340, 344, 348,
+        352, 356, 360, 364, 368, 372, 376, 380, 384, 388, 392, 398, 400, 404, 408, 410, 414, 417, 418, 422,
+        426, 428, 430, 434, 438, 440, 442, 446, 450, 454, 458, 462, 466, 470, 474, 478, 480, 484, 492, 496,
+        498, 499, 500, 504, 508, 512, 516, 520, 524, 528, 531, 533, 534, 535, 540, 548, 554, 558, 562, 566,
+        570, 574, 578, 580, 581, 583, 584, 585, 586, 591, 598, 600, 604, 608, 612, 616, 620, 624, 626, 630,
+        634, 638, 642, 643, 646, 652, 654, 659, 660, 662, 663, 666, 670, 674, 678, 682, 686, 688, 690, 694,
+        702, 703, 704, 705, 706, 710, 716, 724, 728, 729, 732, 740, 744, 748, 752, 756, 760, 762, 764, 768,
+        772, 776, 780, 784, 788, 792, 795, 796, 798, 800, 804, 807, 818, 826, 831, 832, 833, 834, 840, 850,
+        854, 858, 860, 862, 876, 882, 887, 894,
+    ];
 
     #region Test: GetCountryOrAreaName_WithM49CodeByAlpha2Code
 
@@ -32,12 +110,12 @@ public class UnM49ExtensionsTests
         {
             get
             {
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.DO, "en", "Dominican Republic" };
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.MS, "zh", "蒙特塞拉特" };
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.PH, "ru", "Филиппины" };
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.UA, "fr", "Ukraine" };
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.NL, "es", "Países Bajos (Reino de los)" };
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.NC, "ar", "كاليدونيا الجديدة" };
+                yield return new object[] { UnM49AreaByAlpha2CountryCode.DO, Iso639Part1English, DominicanRepublicNameEnglish };
+                yield return new object[] { UnM49AreaByAlpha2CountryCode.MS, Iso639Part1Chinese, MontserratNameChinese };
+                yield return new object[] { UnM49AreaByAlpha2CountryCode.PH, Iso639Part1Russian, PhilippinesNameRussian };
+                yield return new object[] { UnM49AreaByAlpha2CountryCode.UA, Iso639Part1French, UkraineNameFrench };
+                yield return new object[] { UnM49AreaByAlpha2CountryCode.NL, Iso639Part1Spanish, NetherlandsNameSpanish };
+                yield return new object[] { UnM49AreaByAlpha2CountryCode.NC, Iso639Part1Arabic, NewCaledoniaNameArabic };
             }
         }
     }
@@ -63,12 +141,12 @@ public class UnM49ExtensionsTests
         {
             get
             {
-                yield return new object[] { UnM49AreaByAlpha3CountryCode.DOM, "en", "Dominican Republic" };
-                yield return new object[] { UnM49AreaByAlpha3CountryCode.MSR, "zh", "蒙特塞拉特" };
-                yield return new object[] { UnM49AreaByAlpha3CountryCode.PHL, "ru", "Филиппины" };
-                yield return new object[] { UnM49AreaByAlpha3CountryCode.UKR, "fr", "Ukraine" };
-                yield return new object[] { UnM49AreaByAlpha3CountryCode.NLD, "es", "Países Bajos (Reino de los)" };
-                yield return new object[] { UnM49AreaByAlpha3CountryCode.NCL, "ar", "كاليدونيا الجديدة" };
+                yield return new object[] { UnM49AreaByAlpha3CountryCode.DOM, Iso639Part1English, DominicanRepublicNameEnglish };
+                yield return new object[] { UnM49AreaByAlpha3CountryCode.MSR, Iso639Part1Chinese, MontserratNameChinese };
+                yield return new object[] { UnM49AreaByAlpha3CountryCode.PHL, Iso639Part1Russian, PhilippinesNameRussian };
+                yield return new object[] { UnM49AreaByAlpha3CountryCode.UKR, Iso639Part1French, UkraineNameFrench };
+                yield return new object[] { UnM49AreaByAlpha3CountryCode.NLD, Iso639Part1Spanish, NetherlandsNameSpanish };
+                yield return new object[] { UnM49AreaByAlpha3CountryCode.NCL, Iso639Part1Arabic, NewCaledoniaNameArabic };
             }
         }
     }
@@ -92,7 +170,7 @@ public class UnM49ExtensionsTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { UnM49AreaByAlpha2CountryCode.AT, 1 }; }
+            get { yield return new object[] { UnM49AreaByAlpha2CountryCode.AT, WorldM49Code }; }
         }
     }
 
@@ -115,7 +193,7 @@ public class UnM49ExtensionsTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { UnM49AreaByAlpha3CountryCode.AUT, 1 }; }
+            get { yield return new object[] { UnM49AreaByAlpha3CountryCode.AUT, WorldM49Code }; }
         }
     }
 
@@ -140,12 +218,12 @@ public class UnM49ExtensionsTests
         {
             get
             {
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.AT, "en", "World" };
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.AT, "zh", "世界" };
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.AT, "ru", "Весь мир" };
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.AT, "fr", "Monde" };
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.AT, "es", "Mundo" };
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.AT, "ar", "العالم" };
+                yield return new object[] { UnM49AreaByAlpha2CountryCode.AT, Iso639Part1English, WorldNameEnglish };
+                yield return new object[] { UnM49AreaByAlpha2CountryCode.AT, Iso639Part1Chinese, WorldNameChinese };
+                yield return new object[] { UnM49AreaByAlpha2CountryCode.AT, Iso639Part1Russian, WorldNameRussian };
+                yield return new object[] { UnM49AreaByAlpha2CountryCode.AT, Iso639Part1French, WorldNameFrench };
+                yield return new object[] { UnM49AreaByAlpha2CountryCode.AT, Iso639Part1Spanish, WorldNameSpanish };
+                yield return new object[] { UnM49AreaByAlpha2CountryCode.AT, Iso639Part1Arabic, WorldNameArabic };
             }
         }
     }
@@ -171,12 +249,12 @@ public class UnM49ExtensionsTests
         {
             get
             {
-                yield return new object[] { UnM49AreaByAlpha3CountryCode.AUT, "en", "World" };
-                yield return new object[] { UnM49AreaByAlpha3CountryCode.AUT, "zh", "世界" };
-                yield return new object[] { UnM49AreaByAlpha3CountryCode.AUT, "ru", "Весь мир" };
-                yield return new object[] { UnM49AreaByAlpha3CountryCode.AUT, "fr", "Monde" };
-                yield return new object[] { UnM49AreaByAlpha3CountryCode.AUT, "es", "Mundo" };
-                yield return new object[] { UnM49AreaByAlpha3CountryCode.AUT, "ar", "العالم" };
+                yield return new object[] { UnM49AreaByAlpha3CountryCode.AUT, Iso639Part1English, WorldNameEnglish };
+                yield return new object[] { UnM49AreaByAlpha3CountryCode.AUT, Iso639Part1Chinese, WorldNameChinese };
+                yield return new object[] { UnM49AreaByAlpha3CountryCode.AUT, Iso639Part1Russian, WorldNameRussian };
+                yield return new object[] { UnM49AreaByAlpha3CountryCode.AUT, Iso639Part1French, WorldNameFrench };
+                yield return new object[] { UnM49AreaByAlpha3CountryCode.AUT, Iso639Part1Spanish, WorldNameSpanish };
+                yield return new object[] { UnM49AreaByAlpha3CountryCode.AUT, Iso639Part1Arabic, WorldNameArabic };
             }
         }
     }
@@ -200,7 +278,7 @@ public class UnM49ExtensionsTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { UnM49AreaByAlpha2CountryCode.GY, 005 }; }
+            get { yield return new object[] { UnM49AreaByAlpha2CountryCode.GY, SouthAmericaM49Code }; }
         }
     }
 
@@ -223,7 +301,7 @@ public class UnM49ExtensionsTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { UnM49AreaByAlpha3CountryCode.GUY, 005 }; }
+            get { yield return new object[] { UnM49AreaByAlpha3CountryCode.GUY, SouthAmericaM49Code }; }
         }
     }
 
@@ -248,12 +326,12 @@ public class UnM49ExtensionsTests
         {
             get
             {
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.GY, "en", "South America" };
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.GY, "zh", "南美洲" };
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.GY, "ru", "Южная Америка" };
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.GY, "fr", "Amérique du Sud" };
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.GY, "es", "América del Sur" };
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.GY, "ar", "أمريكا الجنوبية" };
+                yield return new object[] { UnM49AreaByAlpha2CountryCode.GY, Iso639Part1English, SouthAmericaNameEnglish };
+                yield return new object[] { UnM49AreaByAlpha2CountryCode.GY, Iso639Part1Chinese, SouthAmericaNameChinese };
+                yield return new object[] { UnM49AreaByAlpha2CountryCode.GY, Iso639Part1Russian, SouthAmericaNameRussian };
+                yield return new object[] { UnM49AreaByAlpha2CountryCode.GY, Iso639Part1French, SouthAmericaNameFrench };
+                yield return new object[] { UnM49AreaByAlpha2CountryCode.GY, Iso639Part1Spanish, SouthAmericaNameSpanish };
+                yield return new object[] { UnM49AreaByAlpha2CountryCode.GY, Iso639Part1Arabic, SouthAmericaNameArabic };
             }
         }
     }
@@ -279,24 +357,25 @@ public class UnM49ExtensionsTests
         {
             get
             {
-                yield return new object[] { UnM49AreaByAlpha3CountryCode.GUY, "en", "South America" };
-                yield return new object[] { UnM49AreaByAlpha3CountryCode.GUY, "zh", "南美洲" };
-                yield return new object[] { UnM49AreaByAlpha3CountryCode.GUY, "ru", "Южная Америка" };
-                yield return new object[] { UnM49AreaByAlpha3CountryCode.GUY, "fr", "Amérique du Sud" };
-                yield return new object[] { UnM49AreaByAlpha3CountryCode.GUY, "es", "América del Sur" };
-                yield return new object[] { UnM49AreaByAlpha3CountryCode.GUY, "ar", "أمريكا الجنوبية" };
+                yield return new object[] { UnM49AreaByAlpha3CountryCode.GUY, Iso639Part1English, SouthAmericaNameEnglish };
+                yield return new object[] { UnM49AreaByAlpha3CountryCode.GUY, Iso639Part1Chinese, SouthAmericaNameChinese };
+                yield return new object[] { UnM49AreaByAlpha3CountryCode.GUY, Iso639Part1Russian, SouthAmericaNameRussian };
+                yield return new object[] { UnM49AreaByAlpha3CountryCode.GUY, Iso639Part1French, SouthAmericaNameFrench };
+                yield return new object[] { UnM49AreaByAlpha3CountryCode.GUY, Iso639Part1Spanish, SouthAmericaNameSpanish };
+                yield return new object[] { UnM49AreaByAlpha3CountryCode.GUY, Iso639Part1Arabic, SouthAmericaNameArabic };
             }
         }
     }
 
     #endregion
 
+    #region Test: GetM49Codes
+
     [Fact]
     public void GetM49Codes_WithM49CodesFromByAlpha2CodeEnum_ReturnsAllM49Codes()
     {
         // arrange
-        var m49Codes = Enum.GetValues<UnM49AreaByAlpha2CountryCode>().Cast<ushort>();
-        var expectedResult = _hierarchicalM49Codes.Union(m49Codes);
+        var expectedResult = AllM49Codes();
 
         // act
         var testResult = UnM49Extensions.GetM49Codes(typeof(UnM49AreaByAlpha2CountryCode));
@@ -309,8 +388,7 @@ public class UnM49ExtensionsTests
     public void GetM49Codes_WithM49CodesFromByAlpha3CodeEnum_ReturnsAllM49Codes()
     {
         // arrange
-        var m49Codes = Enum.GetValues<UnM49AreaByAlpha3CountryCode>().Cast<ushort>();
-        var expectedResult = _hierarchicalM49Codes.Union(m49Codes);
+        var expectedResult = AllM49Codes();
 
         // act
         var testResult = UnM49Extensions.GetM49Codes(typeof(UnM49AreaByAlpha3CountryCode));
@@ -318,6 +396,21 @@ public class UnM49ExtensionsTests
         // assert
         testResult.Should().BeEquivalentTo(expectedResult);
     }
+
+    [Fact]
+    public void GetM49Codes_WithM49CodesFromAreaEnum_ReturnsAllM49Codes()
+    {
+        // arrange
+        var expectedResult = AllM49Codes();
+
+        // act
+        var testResult = UnM49Extensions.GetM49Codes<UnM49Area>();
+
+        // assert
+        testResult.Should().BeEquivalentTo(expectedResult);
+    }
+
+    #endregion
 
     #region Test: GetRegionCode_WithM49CodeByAlpha2Code
 
@@ -336,7 +429,7 @@ public class UnM49ExtensionsTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { UnM49AreaByAlpha2CountryCode.CG, 2 }; }
+            get { yield return new object[] { UnM49AreaByAlpha2CountryCode.CG, AfricaM49Code }; }
         }
     }
 
@@ -359,7 +452,7 @@ public class UnM49ExtensionsTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { UnM49AreaByAlpha3CountryCode.COG, 2 }; }
+            get { yield return new object[] { UnM49AreaByAlpha3CountryCode.COG, AfricaM49Code }; }
         }
     }
 
@@ -384,12 +477,12 @@ public class UnM49ExtensionsTests
         {
             get
             {
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.CG, "en", "Africa" };
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.CG, "zh", "非洲" };
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.CG, "ru", "Африка" };
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.CG, "fr", "Afrique" };
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.CG, "es", "África" };
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.CG, "ar", "أفريقيا" };
+                yield return new object[] { UnM49AreaByAlpha2CountryCode.CG, Iso639Part1English, AfricaNameEnglish };
+                yield return new object[] { UnM49AreaByAlpha2CountryCode.CG, Iso639Part1Chinese, AfricaNameChinese };
+                yield return new object[] { UnM49AreaByAlpha2CountryCode.CG, Iso639Part1Russian, AfricaNameRussian };
+                yield return new object[] { UnM49AreaByAlpha2CountryCode.CG, Iso639Part1French, AfricaNameFrench };
+                yield return new object[] { UnM49AreaByAlpha2CountryCode.CG, Iso639Part1Spanish, AfricaNameSpanish };
+                yield return new object[] { UnM49AreaByAlpha2CountryCode.CG, Iso639Part1Arabic, AfricaNameArabic };
             }
         }
     }
@@ -415,12 +508,12 @@ public class UnM49ExtensionsTests
         {
             get
             {
-                yield return new object[] { UnM49AreaByAlpha3CountryCode.COG, "en", "Africa" };
-                yield return new object[] { UnM49AreaByAlpha3CountryCode.COG, "zh", "非洲" };
-                yield return new object[] { UnM49AreaByAlpha3CountryCode.COG, "ru", "Африка" };
-                yield return new object[] { UnM49AreaByAlpha3CountryCode.COG, "fr", "Afrique" };
-                yield return new object[] { UnM49AreaByAlpha3CountryCode.COG, "es", "África" };
-                yield return new object[] { UnM49AreaByAlpha3CountryCode.COG, "ar", "أفريقيا" };
+                yield return new object[] { UnM49AreaByAlpha3CountryCode.COG, Iso639Part1English, AfricaNameEnglish };
+                yield return new object[] { UnM49AreaByAlpha3CountryCode.COG, Iso639Part1Chinese, AfricaNameChinese };
+                yield return new object[] { UnM49AreaByAlpha3CountryCode.COG, Iso639Part1Russian, AfricaNameRussian };
+                yield return new object[] { UnM49AreaByAlpha3CountryCode.COG, Iso639Part1French, AfricaNameFrench };
+                yield return new object[] { UnM49AreaByAlpha3CountryCode.COG, Iso639Part1Spanish, AfricaNameSpanish };
+                yield return new object[] { UnM49AreaByAlpha3CountryCode.COG, Iso639Part1Arabic, AfricaNameArabic };
             }
         }
     }
@@ -444,7 +537,7 @@ public class UnM49ExtensionsTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { UnM49AreaByAlpha2CountryCode.PA, 419 }; }
+            get { yield return new object[] { UnM49AreaByAlpha2CountryCode.PA, LatinAmericaAndTheCaribbeanM49Code }; }
         }
     }
 
@@ -467,7 +560,7 @@ public class UnM49ExtensionsTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { UnM49AreaByAlpha3CountryCode.PAN, 419 }; }
+            get { yield return new object[] { UnM49AreaByAlpha3CountryCode.PAN, LatinAmericaAndTheCaribbeanM49Code }; }
         }
     }
 
@@ -492,12 +585,12 @@ public class UnM49ExtensionsTests
         {
             get
             {
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.PA, "en", "Latin America and the Caribbean" };
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.PA, "zh", "拉丁美洲和加勒比" };
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.PA, "ru", "Латинская Америка и Карибский бассейн" };
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.PA, "fr", "Amérique latine et Caraïbes" };
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.PA, "es", "América Latina y el Caribe" };
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.PA, "ar", "أمريكا اللاتينية ومنطقة البحر الكاريبي" };
+                yield return new object[] { UnM49AreaByAlpha2CountryCode.PA, Iso639Part1English, LatinAmericaAndTheCaribbeanNameEnglish };
+                yield return new object[] { UnM49AreaByAlpha2CountryCode.PA, Iso639Part1Chinese, LatinAmericaAndTheCaribbeanNameChinese };
+                yield return new object[] { UnM49AreaByAlpha2CountryCode.PA, Iso639Part1Russian, LatinAmericaAndTheCaribbeanNameRussian };
+                yield return new object[] { UnM49AreaByAlpha2CountryCode.PA, Iso639Part1French, LatinAmericaAndTheCaribbeanNameFrench };
+                yield return new object[] { UnM49AreaByAlpha2CountryCode.PA, Iso639Part1Spanish, LatinAmericaAndTheCaribbeanNameSpanish };
+                yield return new object[] { UnM49AreaByAlpha2CountryCode.PA, Iso639Part1Arabic, LatinAmericaAndTheCaribbeanNameArabic };
             }
         }
     }
@@ -523,12 +616,12 @@ public class UnM49ExtensionsTests
         {
             get
             {
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.PA, "en", "Latin America and the Caribbean" };
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.PA, "zh", "拉丁美洲和加勒比" };
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.PA, "ru", "Латинская Америка и Карибский бассейн" };
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.PA, "fr", "Amérique latine et Caraïbes" };
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.PA, "es", "América Latina y el Caribe" };
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.PA, "ar", "أمريكا اللاتينية ومنطقة البحر الكاريبي" };
+                yield return new object[] { UnM49AreaByAlpha3CountryCode.PAN, Iso639Part1English, LatinAmericaAndTheCaribbeanNameEnglish };
+                yield return new object[] { UnM49AreaByAlpha3CountryCode.PAN, Iso639Part1Chinese, LatinAmericaAndTheCaribbeanNameChinese };
+                yield return new object[] { UnM49AreaByAlpha3CountryCode.PAN, Iso639Part1Russian, LatinAmericaAndTheCaribbeanNameRussian };
+                yield return new object[] { UnM49AreaByAlpha3CountryCode.PAN, Iso639Part1French, LatinAmericaAndTheCaribbeanNameFrench };
+                yield return new object[] { UnM49AreaByAlpha3CountryCode.PAN, Iso639Part1Spanish, LatinAmericaAndTheCaribbeanNameSpanish };
+                yield return new object[] { UnM49AreaByAlpha3CountryCode.PAN, Iso639Part1Arabic, LatinAmericaAndTheCaribbeanNameArabic };
             }
         }
     }
@@ -578,8 +671,11 @@ public class UnM49ExtensionsTests
     [Fact]
     public void GetLevel_WithUndefinedM49AreaCode_ReturnsNull()
     {
+        // arrange
+        var testCode = (UnM49Area)UndefinedM49Code;
+
         // act
-        var testResult = ((UnM49Area)9999).GetLevel();
+        var testResult = testCode.GetLevel();
 
         // assert
         testResult.Should().BeNull();
@@ -629,8 +725,11 @@ public class UnM49ExtensionsTests
     [Fact]
     public void GetParent_WithUndefinedM49AreaCode_ReturnsNull()
     {
+        // arrange
+        var testCode = (UnM49Area)UndefinedM49Code;
+
         // act
-        var testResult = ((UnM49Area)9999).GetParent();
+        var testResult = testCode.GetParent();
 
         // assert
         testResult.Should().BeNull();
@@ -698,13 +797,13 @@ public class UnM49ExtensionsTests
             get
             {
                 // A country resolves to its own name, not to the name of any of its ancestors.
-                yield return new object[] { UnM49Area._894, "en", "Zambia" };
-                yield return new object[] { UnM49Area._010, "en", "Antarctica" };
+                yield return new object[] { UnM49Area._894, Iso639Part1English, ZambiaNameEnglish };
+                yield return new object[] { UnM49Area._010, Iso639Part1English, AntarcticaNameEnglish };
 
-                yield return new object[] { UnM49Area._001, "ar", "العالم" };
-                yield return new object[] { UnM49Area._002, "zh", "非洲" };
-                yield return new object[] { UnM49Area._202, "ru", "Африка к югу от Сахары" };
-                yield return new object[] { UnM49Area._014, "fr", "Afrique orientale" };
+                yield return new object[] { UnM49Area._001, Iso639Part1Arabic, WorldNameArabic };
+                yield return new object[] { UnM49Area._002, Iso639Part1Chinese, AfricaNameChinese };
+                yield return new object[] { UnM49Area._202, Iso639Part1Russian, SubSaharanAfricaNameRussian };
+                yield return new object[] { UnM49Area._014, Iso639Part1French, EasternAfricaNameFrench };
             }
         }
     }
@@ -730,8 +829,8 @@ public class UnM49ExtensionsTests
         {
             get
             {
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.ZM, "en", "Zambia" };
-                yield return new object[] { UnM49AreaByAlpha2CountryCode.NC, "ar", "كاليدونيا الجديدة" };
+                yield return new object[] { UnM49AreaByAlpha2CountryCode.ZM, Iso639Part1English, ZambiaNameEnglish };
+                yield return new object[] { UnM49AreaByAlpha2CountryCode.NC, Iso639Part1Arabic, NewCaledoniaNameArabic };
             }
         }
     }
@@ -757,8 +856,8 @@ public class UnM49ExtensionsTests
         {
             get
             {
-                yield return new object[] { UnM49AreaByAlpha3CountryCode.ZMB, "en", "Zambia" };
-                yield return new object[] { UnM49AreaByAlpha3CountryCode.UKR, "fr", "Ukraine" };
+                yield return new object[] { UnM49AreaByAlpha3CountryCode.ZMB, Iso639Part1English, ZambiaNameEnglish };
+                yield return new object[] { UnM49AreaByAlpha3CountryCode.UKR, Iso639Part1French, UkraineNameFrench };
             }
         }
     }
@@ -770,8 +869,11 @@ public class UnM49ExtensionsTests
     [Fact]
     public void GetName_WithUndefinedM49AreaCode_ReturnsNull()
     {
+        // arrange
+        var testCode = (UnM49Area)UndefinedM49Code;
+
         // act
-        var testResult = ((UnM49Area)9999).GetName("en");
+        var testResult = testCode.GetName(Iso639Part1English);
 
         // assert
         testResult.Should().BeNull();
@@ -779,31 +881,58 @@ public class UnM49ExtensionsTests
 
     #endregion
 
-    #region Test: GetAncestorName_WithM49AreaCode
+    #region Test: GetRegionName_WithM49AreaCode
 
     [Theory]
-    [MemberData(nameof(GetAncestorName_WithM49AreaCode_TestCaseGenerator.TestCases), MemberType = typeof(GetAncestorName_WithM49AreaCode_TestCaseGenerator))]
-    public void GetAncestorName_WithM49AreaCode_ReturnsCascadedName(UnM49Area testCode, string expectedRegionName, string expectedGlobalName)
+    [MemberData(nameof(GetRegionName_WithM49AreaCode_TestCaseGenerator.TestCases), MemberType = typeof(GetRegionName_WithM49AreaCode_TestCaseGenerator))]
+    public void GetRegionName_WithM49AreaCode_ReturnsCascadedRegionName(UnM49Area testCode, string expectedResult)
     {
         // act
-        var testRegionName = testCode.GetRegionName("en");
-        var testGlobalName = testCode.GetGlobalName("en");
+        var testResult = testCode.GetRegionName(Iso639Part1English);
 
         // assert
-        testRegionName.Should().Be(expectedRegionName);
-        testGlobalName.Should().Be(expectedGlobalName);
+        testResult.Should().Be(expectedResult);
     }
 
-    private class GetAncestorName_WithM49AreaCode_TestCaseGenerator
+    private class GetRegionName_WithM49AreaCode_TestCaseGenerator
     {
         public static IEnumerable<object[]> TestCases
         {
             get
             {
                 // Names of every level cascade down to the decorated code, mirroring the numeric codes.
-                yield return new object[] { UnM49Area._894, "Africa", "World" };
-                yield return new object[] { UnM49Area._004, "Asia", "World" };
-                yield return new object[] { UnM49Area._014, "Africa", "World" };
+                yield return new object[] { UnM49Area._894, AfricaNameEnglish };
+                yield return new object[] { UnM49Area._004, AsiaNameEnglish };
+                yield return new object[] { UnM49Area._014, AfricaNameEnglish };
+            }
+        }
+    }
+
+    #endregion
+
+    #region Test: GetGlobalName_WithM49AreaCode
+
+    [Theory]
+    [MemberData(nameof(GetGlobalName_WithM49AreaCode_TestCaseGenerator.TestCases), MemberType = typeof(GetGlobalName_WithM49AreaCode_TestCaseGenerator))]
+    public void GetGlobalName_WithM49AreaCode_ReturnsCascadedGlobalName(UnM49Area testCode, string expectedResult)
+    {
+        // act
+        var testResult = testCode.GetGlobalName(Iso639Part1English);
+
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    private class GetGlobalName_WithM49AreaCode_TestCaseGenerator
+    {
+        public static IEnumerable<object[]> TestCases
+        {
+            get
+            {
+                // Names of every level cascade down to the decorated code, mirroring the numeric codes.
+                yield return new object[] { UnM49Area._894, WorldNameEnglish };
+                yield return new object[] { UnM49Area._004, WorldNameEnglish };
+                yield return new object[] { UnM49Area._014, WorldNameEnglish };
             }
         }
     }
@@ -817,7 +946,7 @@ public class UnM49ExtensionsTests
     public void GetCountryOrAreaName_WithNonCountryM49AreaCode_ReturnsNull(UnM49Area testCode)
     {
         // act
-        var testResult = testCode.GetCountryOrAreaName("en");
+        var testResult = testCode.GetCountryOrAreaName(Iso639Part1English);
 
         // assert
         testResult.Should().BeNull();
@@ -857,7 +986,7 @@ public class UnM49ExtensionsTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { UnM49AreaByAlpha2CountryCode.NZ, "NZ" }; }
+            get { yield return new object[] { UnM49AreaByAlpha2CountryCode.NZ, NewZealandIso3166Part1Alpha2Code }; }
         }
     }
 
@@ -880,7 +1009,7 @@ public class UnM49ExtensionsTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { UnM49AreaByAlpha2CountryCode.NZ, "NZL" }; }
+            get { yield return new object[] { UnM49AreaByAlpha2CountryCode.NZ, NewZealandIso3166Part1Alpha3Code }; }
         }
     }
 
@@ -903,7 +1032,7 @@ public class UnM49ExtensionsTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { UnM49AreaByAlpha3CountryCode.NZL, "NZ" }; }
+            get { yield return new object[] { UnM49AreaByAlpha3CountryCode.NZL, NewZealandIso3166Part1Alpha2Code }; }
         }
     }
 
@@ -926,7 +1055,7 @@ public class UnM49ExtensionsTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { UnM49AreaByAlpha3CountryCode.NZL, "NZL" }; }
+            get { yield return new object[] { UnM49AreaByAlpha3CountryCode.NZL, NewZealandIso3166Part1Alpha3Code }; }
         }
     }
 
@@ -949,7 +1078,7 @@ public class UnM49ExtensionsTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { UnM49Area._554, "NZ" }; }
+            get { yield return new object[] { UnM49Area._554, NewZealandIso3166Part1Alpha2Code }; }
         }
     }
 
@@ -972,7 +1101,7 @@ public class UnM49ExtensionsTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { UnM49Area._554, "NZL" }; }
+            get { yield return new object[] { UnM49Area._554, NewZealandIso3166Part1Alpha3Code }; }
         }
     }
 
@@ -1043,8 +1172,11 @@ public class UnM49ExtensionsTests
     [Fact]
     public void GetIso3166Part1Alpha2Code_WithUndefinedM49AreaCode_ReturnsNull()
     {
+        // arrange
+        var testCode = (UnM49Area)UndefinedM49Code;
+
         // act
-        var testResult = ((UnM49Area)9999).GetIso3166Part1Alpha2Code();
+        var testResult = testCode.GetIso3166Part1Alpha2Code();
 
         // assert
         testResult.Should().BeNull();
@@ -1057,8 +1189,11 @@ public class UnM49ExtensionsTests
     [Fact]
     public void GetIso3166Part1Alpha3Code_WithUndefinedM49AreaCode_ReturnsNull()
     {
+        // arrange
+        var testCode = (UnM49Area)UndefinedM49Code;
+
         // act
-        var testResult = ((UnM49Area)9999).GetIso3166Part1Alpha3Code();
+        var testResult = testCode.GetIso3166Part1Alpha3Code();
 
         // assert
         testResult.Should().BeNull();
@@ -1068,19 +1203,33 @@ public class UnM49ExtensionsTests
 
     #region Test: GetIso3166Part1Alpha2Code_ForEveryMemberOfUnM49AreaByAlpha2CountryCode
 
-    [Fact]
-    public void GetIso3166Part1Alpha2Code_ForEveryMemberOfUnM49AreaByAlpha2CountryCode_MatchesTheMemberName()
+    [Theory]
+    [MemberData(nameof(GetIso3166Part1Alpha2Code_ForEveryMemberOfUnM49AreaByAlpha2CountryCode_TestCaseGenerator.TestCases), MemberType = typeof(GetIso3166Part1Alpha2Code_ForEveryMemberOfUnM49AreaByAlpha2CountryCode_TestCaseGenerator))]
+    public void GetIso3166Part1Alpha2Code_ForEveryMemberOfUnM49AreaByAlpha2CountryCode_MatchesTheMemberName(UnM49AreaByAlpha2CountryCode testCode, string expectedResult)
     {
-        // arrange
-        var testCodes = Enum.GetValues<UnM49AreaByAlpha2CountryCode>();
+        // act
+        var testResult = testCode.GetIso3166Part1Alpha2Code();
 
-        // act, assert
-        testCodes.Should().NotBeEmpty();
-        foreach (var testCode in testCodes)
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    private class GetIso3166Part1Alpha2Code_ForEveryMemberOfUnM49AreaByAlpha2CountryCode_TestCaseGenerator
+    {
+        public static TheoryData<UnM49AreaByAlpha2CountryCode, string> TestCases
         {
-            // Every member of this enum is named for its ISO 3166 Part 1 Alpha2 country code, so the
-            // metadata carried by the code attribute must agree with the member name.
-            testCode.GetIso3166Part1Alpha2Code().Should().Be(Enum.GetName(testCode));
+            get
+            {
+                // Every member of this enum is named for its ISO 3166 Part 1 Alpha2 country code, so the
+                // metadata carried by the code attribute must agree with the member name.
+                var testCases = new TheoryData<UnM49AreaByAlpha2CountryCode, string>();
+                foreach (var testCode in Enum.GetValues<UnM49AreaByAlpha2CountryCode>())
+                {
+                    testCases.Add(testCode, Enum.GetName(testCode)!);
+                }
+
+                return testCases;
+            }
         }
     }
 
@@ -1088,19 +1237,33 @@ public class UnM49ExtensionsTests
 
     #region Test: GetIso3166Part1Alpha3Code_ForEveryMemberOfUnM49AreaByAlpha3CountryCode
 
-    [Fact]
-    public void GetIso3166Part1Alpha3Code_ForEveryMemberOfUnM49AreaByAlpha3CountryCode_MatchesTheMemberName()
+    [Theory]
+    [MemberData(nameof(GetIso3166Part1Alpha3Code_ForEveryMemberOfUnM49AreaByAlpha3CountryCode_TestCaseGenerator.TestCases), MemberType = typeof(GetIso3166Part1Alpha3Code_ForEveryMemberOfUnM49AreaByAlpha3CountryCode_TestCaseGenerator))]
+    public void GetIso3166Part1Alpha3Code_ForEveryMemberOfUnM49AreaByAlpha3CountryCode_MatchesTheMemberName(UnM49AreaByAlpha3CountryCode testCode, string expectedResult)
     {
-        // arrange
-        var testCodes = Enum.GetValues<UnM49AreaByAlpha3CountryCode>();
+        // act
+        var testResult = testCode.GetIso3166Part1Alpha3Code();
 
-        // act, assert
-        testCodes.Should().NotBeEmpty();
-        foreach (var testCode in testCodes)
+        // assert
+        testResult.Should().Be(expectedResult);
+    }
+
+    private class GetIso3166Part1Alpha3Code_ForEveryMemberOfUnM49AreaByAlpha3CountryCode_TestCaseGenerator
+    {
+        public static TheoryData<UnM49AreaByAlpha3CountryCode, string> TestCases
         {
-            // Every member of this enum is named for its ISO 3166 Part 1 Alpha3 country code, so the
-            // metadata carried by the code attribute must agree with the member name.
-            testCode.GetIso3166Part1Alpha3Code().Should().Be(Enum.GetName(testCode));
+            get
+            {
+                // Every member of this enum is named for its ISO 3166 Part 1 Alpha3 country code, so the
+                // metadata carried by the code attribute must agree with the member name.
+                var testCases = new TheoryData<UnM49AreaByAlpha3CountryCode, string>();
+                foreach (var testCode in Enum.GetValues<UnM49AreaByAlpha3CountryCode>())
+                {
+                    testCases.Add(testCode, Enum.GetName(testCode)!);
+                }
+
+                return testCases;
+            }
         }
     }
 
@@ -1108,40 +1271,42 @@ public class UnM49ExtensionsTests
 
     #region Test: GetIso3166Part1Codes_ForCorrelatedAlpha2AndAlpha3Codes
 
-    [Fact]
-    public void GetIso3166Part1Codes_ForCorrelatedAlpha2AndAlpha3Codes_Agree()
-    {
-        // arrange
-        var testCodes = Enum.GetValues<UnM49AreaByAlpha2CountryCode>();
-
-        // act, assert
-        testCodes.Should().NotBeEmpty();
-        foreach (var testCode in testCodes)
-        {
-            // The same area reached through either enum, or through the numeric area enum, must
-            // report the same pair of ISO 3166 country codes.
-            var alpha3Code = (UnM49AreaByAlpha3CountryCode)testCode;
-            var areaCode = (UnM49Area)testCode;
-
-            alpha3Code.GetIso3166Part1Alpha2Code().Should().Be(testCode.GetIso3166Part1Alpha2Code());
-            alpha3Code.GetIso3166Part1Alpha3Code().Should().Be(testCode.GetIso3166Part1Alpha3Code());
-            areaCode.GetIso3166Part1Alpha2Code().Should().Be(testCode.GetIso3166Part1Alpha2Code());
-            areaCode.GetIso3166Part1Alpha3Code().Should().Be(testCode.GetIso3166Part1Alpha3Code());
-        }
-    }
-
-    #endregion
-
-    #region Test: GetM49Codes_WithM49CodesFromAreaEnum
-
-    [Fact]
-    public void GetM49Codes_WithM49CodesFromAreaEnum_ReturnsAllM49Codes()
+    [Theory]
+    [MemberData(nameof(GetIso3166Part1Codes_ForCorrelatedAlpha2AndAlpha3Codes_TestCaseGenerator.TestCases), MemberType = typeof(GetIso3166Part1Codes_ForCorrelatedAlpha2AndAlpha3Codes_TestCaseGenerator), DisableDiscoveryEnumeration = true)]
+    public void GetIso3166Part1Codes_ForCorrelatedAlpha2AndAlpha3Codes_Agree(string entryPoint, Func<string?> getCode, string expectedResult)
     {
         // act
-        var testResult = UnM49Extensions.GetM49Codes<UnM49Area>();
+        var testResult = getCode();
 
         // assert
-        testResult.Should().Contain(_hierarchicalM49Codes);
+        testResult.Should().Be(expectedResult, "{0} reports the ISO 3166 country code of the same area", entryPoint);
+    }
+
+    private class GetIso3166Part1Codes_ForCorrelatedAlpha2AndAlpha3Codes_TestCaseGenerator
+    {
+        public static TheoryData<string, Func<string?>, string> TestCases
+        {
+            get
+            {
+                // The same area reached through either enum, or through the numeric area enum, must report
+                // the same pair of ISO 3166 country codes: the names of its members of the two code enums.
+                var testCases = new TheoryData<string, Func<string?>, string>();
+                foreach (var alpha2Code in Enum.GetValues<UnM49AreaByAlpha2CountryCode>())
+                {
+                    var alpha3Code = (UnM49AreaByAlpha3CountryCode)alpha2Code;
+                    var areaCode = (UnM49Area)alpha2Code;
+                    var expectedAlpha2Code = Enum.GetName(alpha2Code)!;
+                    var expectedAlpha3Code = Enum.GetName(alpha3Code)!;
+
+                    testCases.Add($"{nameof(UnM49AreaByAlpha2CountryCode)}.{alpha2Code}.{nameof(UnM49Extensions.GetIso3166Part1Alpha3Code)}", () => alpha2Code.GetIso3166Part1Alpha3Code(), expectedAlpha3Code);
+                    testCases.Add($"{nameof(UnM49AreaByAlpha3CountryCode)}.{alpha3Code}.{nameof(UnM49Extensions.GetIso3166Part1Alpha2Code)}", () => alpha3Code.GetIso3166Part1Alpha2Code(), expectedAlpha2Code);
+                    testCases.Add($"{nameof(UnM49Area)}.{areaCode}.{nameof(UnM49Extensions.GetIso3166Part1Alpha2Code)}", () => areaCode.GetIso3166Part1Alpha2Code(), expectedAlpha2Code);
+                    testCases.Add($"{nameof(UnM49Area)}.{areaCode}.{nameof(UnM49Extensions.GetIso3166Part1Alpha3Code)}", () => areaCode.GetIso3166Part1Alpha3Code(), expectedAlpha3Code);
+                }
+
+                return testCases;
+            }
+        }
     }
 
     #endregion
