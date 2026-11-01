@@ -1,4 +1,4 @@
-namespace DataStandardizer.File.iCal.Tests
+﻿namespace DataStandardizer.File.iCal.Tests
 {
     /// <summary>
     /// Values taken from the examples of RFC 5545, each named for the section it comes from.

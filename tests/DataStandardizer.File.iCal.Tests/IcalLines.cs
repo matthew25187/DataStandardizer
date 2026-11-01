@@ -1,4 +1,4 @@
-namespace DataStandardizer.File.iCal.Tests
+﻿namespace DataStandardizer.File.iCal.Tests
 {
     /// <summary>
     /// Content lines that many tests use to build calendars.
