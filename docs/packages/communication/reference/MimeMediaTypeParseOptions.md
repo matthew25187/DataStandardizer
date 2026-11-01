@@ -27,7 +27,7 @@ public enum MimeMediaTypeParseOptions
 | --- | --- | --- |
 | `None` | 0 | Nothing beyond the standards. |
 | `AllowWhitespaceAroundDelimiters` | 1 | Spaces and tabs before and after each `;` and `=`, and at the end, as in `text/plain; charset = us-ascii`. Comments and folding are still not accepted. |
-| `AllowRfc2045Tokens` | 2 | Names that are RFC 2045 §5.1 tokens but not RFC 6838 §4.2 restricted names, such as names longer than 127 characters, or that start with a symbol, or that contain `*`, `%`, `'`, `` ` ``, `{`, `\|`, `}` or `~`. |
+| `AllowRfc2045Tokens` | 2 | Names that are RFC 2045 §5.1 tokens but not RFC 6838 §4.2 restricted names, such as names longer than 127 characters, or that start with a symbol, or that contain `*`, `%`, `'`, `` ` ``, `{`, `}`, `~` or a vertical bar. |
 | `AllowMissingSections` | 4 | Sections not numbered from 0 with no gaps (RFC 2231 §3). They're joined in numeric order. |
 | `AllowDuplicateSections` | 8 | Two sections of the same number (RFC 2231 §3). The first is used. |
 | `AllowLeadingZeroSectionNumbers` | 16 | A section number such as `title*01` (RFC 2231 §3), read as section 1. |
