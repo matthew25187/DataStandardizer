@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace DataStandardizer.Communication.IntegrationTests
 {
@@ -29,33 +29,50 @@ namespace DataStandardizer.Communication.IntegrationTests
             var callCount = inputs.Count * callsPerInput;
             var results = new TResult[callCount];
             var exceptions = new ConcurrentQueue<Exception>();
+            var stopwatch = Stopwatch.StartNew();
             var barrier = new Barrier(callCount);
-            var tasks = new Task[callCount];
+            var threads = new Thread[callCount];
             for (var index = 0; index < callCount; index++)
             {
                 var slot = index;
                 var input = inputs[index / callsPerInput];
-                tasks[index] = Task.Factory.StartNew(
-                    () =>
+
+                // Background threads, so that a call that never returns can't keep the test process alive.
+                threads[index] = new Thread(() =>
+                {
+                    try
                     {
-                        barrier.SignalAndWait();
-                        try
+                        // A thread that isn't released in time gives up rather than waiting at the barrier for ever, and makes no call.
+                        if (!barrier.SignalAndWait(timeout))
                         {
-                            results[slot] = call(input);
+                            exceptions.Enqueue(new TimeoutException("The calls weren't all started in time."));
+                            return;
                         }
-                        catch (Exception exception)
-                        {
-                            exceptions.Enqueue(exception);
-                        }
-                    },
-                    CancellationToken.None,
-                    TaskCreationOptions.LongRunning,
-                    TaskScheduler.Default);
+
+                        results[slot] = call(input);
+                    }
+                    catch (Exception exception)
+                    {
+                        exceptions.Enqueue(exception);
+                    }
+                })
+                {
+                    IsBackground = true,
+                };
+                threads[index].Start();
             }
 
-            // A call that never returns, such as one spinning on a corrupted cache, fails the run rather than hanging it.
-            var completed = Task.WaitAll(tasks, timeout);
+            // A call that never returns, such as one spinning on a corrupted cache, fails the run rather than hanging it. Every thread
+            // gets the rest of the same deadline, so the run takes no longer than the timeout however many threads there are.
+            var completed = true;
+            foreach (var thread in threads)
+            {
+                var remaining = timeout - stopwatch.Elapsed;
+                completed &= thread.Join(remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero);
+            }
 
+            // A thread still running after the deadline is a call that hasn't returned; it can't be stopped safely, so it is left on a
+            // background thread, and the run reports that it didn't complete, which fails the test.
             return new ConcurrentRunResult<TResult>(completed, results, exceptions.ToArray());
         }
     }
