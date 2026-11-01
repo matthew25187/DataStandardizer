@@ -29,6 +29,23 @@ namespace DataStandardizer.Communication.E164
 
         public ulong Number { get; }
 
+        /// <summary>
+        /// The number of parse expressions in the cache that every number structure type shares.
+        /// </summary>
+        /// <remarks>
+        /// A seam for the integration tests, which check that concurrent parsing caches each expression once.
+        /// </remarks>
+        internal static int ParseExpressionCount
+        {
+            get
+            {
+                lock (ParseExpressionsLock)
+                {
+                    return ParseExpressions.Count;
+                }
+            }
+        }
+
         public abstract ushort CountryCode { get; }
 
         protected static string ComposePatternForParse(ILookup<ushort, ushort> identificationCodeLookup, ItuE164InternationalNumberStyles numberStyles, int subscriberNumberMinimumDigitCount = 1)
@@ -105,6 +122,20 @@ namespace DataStandardizer.Communication.E164
                 }
 
                 return parseExpression;
+            }
+        }
+
+        /// <summary>
+        /// Empties the cache of parse expressions that every number structure type shares.
+        /// </summary>
+        /// <remarks>
+        /// A seam for the integration tests, which start each concurrency test from a cold cache.
+        /// </remarks>
+        internal static void ClearParseExpressions()
+        {
+            lock (ParseExpressionsLock)
+            {
+                ParseExpressions.Clear();
             }
         }
     }

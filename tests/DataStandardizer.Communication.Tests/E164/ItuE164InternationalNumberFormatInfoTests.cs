@@ -7,6 +7,9 @@ namespace DataStandardizer.Communication.Tests.E164
 {
     public class ItuE164InternationalNumberFormatInfoTests
     {
+        private const string ReadOnlyMessage = "ItuE164InternationalNumberFormatInfo is read only.";
+        private const string LongPattern = "++#-###-#######";
+
         [Fact]
         public void GetFormat_ForItuE164InternationalNumberFormatInfo_ReturnsInternationalNumberFormatInfo()
         {
@@ -26,13 +29,11 @@ namespace DataStandardizer.Communication.Tests.E164
             // arrange
             var testSubject = new ItuE164InternationalNumberFormatInfo { IsReadOnly = false };
 
-            const string testValue = "++#-###-#######";
-
             // act
-            testSubject.LongInternationalNumberPattern = testValue;
+            testSubject.LongInternationalNumberPattern = LongPattern;
 
             // assert
-            testSubject.LongInternationalNumberPattern.Should().Be(testValue);
+            testSubject.LongInternationalNumberPattern.Should().Be(LongPattern);
         }
 
         [Fact]
@@ -42,12 +43,12 @@ namespace DataStandardizer.Communication.Tests.E164
             var testSubject = new ItuE164InternationalNumberFormatInfo { IsReadOnly = true };
 
             // act
-            Action testAction = () => testSubject.LongInternationalNumberPattern = "++#-###-#######";
+            Action testAction = () => testSubject.LongInternationalNumberPattern = LongPattern;
 
             // assert
             testAction.Should()
                 .Throw<InvalidOperationException>()
-                .WithMessage($"{nameof(ItuE164InternationalNumberFormatInfo)} is read only.");
+                .WithMessage(ReadOnlyMessage);
         }
 
         [Fact]
@@ -55,7 +56,6 @@ namespace DataStandardizer.Communication.Tests.E164
         {
             // arrange
             var testSubject = new ItuE164InternationalNumberFormatInfo { IsReadOnly = false };
-
             const string testValue = "pcssssssssss";
 
             // act
@@ -66,7 +66,7 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Fact]
-        public void ShortInternationalNumberPattern_FormatInfoIsReadOnly_ThrowsInvalidOperationException()
+        public void ShortInternationalNumberPattern_FormatInfoIsReadOnly_ThrowsInvalidOperationExceptionOnSet()
         {
             // arrange
             var testSubject = new ItuE164InternationalNumberFormatInfo { IsReadOnly = true };
@@ -77,7 +77,7 @@ namespace DataStandardizer.Communication.Tests.E164
             // assert
             testAction.Should()
                 .Throw<InvalidOperationException>()
-                .WithMessage($"{nameof(ItuE164InternationalNumberFormatInfo)} is read only.");
+                .WithMessage(ReadOnlyMessage);
         }
     }
 }

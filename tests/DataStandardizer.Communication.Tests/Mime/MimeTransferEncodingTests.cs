@@ -8,55 +8,104 @@ namespace DataStandardizer.Communication.Tests.Mime
 {
     public class MimeTransferEncodingTests
     {
+        // ref. RFC 2045 §6.1: the mechanisms that RFC 2045 defines.
+        private const string SevenBit = "7bit";
+        private const string EightBit = "8bit";
+        private const string Binary = "binary";
+        private const string QuotedPrintable = "quoted-printable";
+        private const string Base64 = "base64";
+
+        // ref. RFC 2045 §6.1: x-token, an extension mechanism; and uuencode, an unregistered ietf-token (RFC 4289 §3).
+        private const string XUuencode = "x-uuencode";
+        private const string XUuencodeInMixedCase = "X-UUEncode";
+        private const string Uuencode = "uuencode";
+
+        // ref. RFC 2045 §6.1: mechanism names are not case-sensitive.
+        private const string Base64InUpperCase = "BASE64";
+        private const string Base64Capitalised = "Base64";
+
+        // Not a token, as it has a space in it.
+        private const string Base64WithSpace = "base 64";
+        private const string Base64AfterSpace = " base64";
+
+        // Names in the middle of other text, at the spans from MechanismStart of Base64.Length and XFoo.Length characters.
+        private const string Base64AmongOtherText = "xx base64 xx";
+        private const string XFooAmongOtherText = "xx x-foo xx";
+        private const string XFoo = "x-foo";
+        private const int MechanismStart = 3;
+
         public static IEnumerable<object[]> KnownMechanisms()
         {
             // ref. RFC 2045 §6.1, §6.2
-            yield return new object[] { "7bit", MimeTransferEncoding.SevenBit, true, MimeDataDomain.SevenBit };
-            yield return new object[] { "8bit", MimeTransferEncoding.EightBit, true, MimeDataDomain.EightBit };
-            yield return new object[] { "binary", MimeTransferEncoding.Binary, true, MimeDataDomain.Binary };
-            yield return new object[] { "quoted-printable", MimeTransferEncoding.QuotedPrintable, false, MimeDataDomain.SevenBit };
-            yield return new object[] { "base64", MimeTransferEncoding.Base64, false, MimeDataDomain.SevenBit };
+            yield return new object[] { SevenBit, MimeTransferEncoding.SevenBit, true, MimeDataDomain.SevenBit };
+            yield return new object[] { EightBit, MimeTransferEncoding.EightBit, true, MimeDataDomain.EightBit };
+            yield return new object[] { Binary, MimeTransferEncoding.Binary, true, MimeDataDomain.Binary };
+            yield return new object[] { QuotedPrintable, MimeTransferEncoding.QuotedPrintable, false, MimeDataDomain.SevenBit };
+            yield return new object[] { Base64, MimeTransferEncoding.Base64, false, MimeDataDomain.SevenBit };
         }
 
         [Theory]
         [MemberData(nameof(KnownMechanisms))]
         public void Parse_KnownMechanism_ReturnsKnownValue(string value, MimeTransferEncoding expected, bool isIdentity, MimeDataDomain domain)
         {
-            var result = MimeTransferEncoding.Parse(value);
+            // act
+            var testResult = MimeTransferEncoding.Parse(value);
 
-            result.Should().Be(expected);
-            result.Name.Should().Be(value);
-            result.IsKnown.Should().BeTrue();
-            result.IsIdentity.Should().Be(isIdentity);
-            result.Domain.Should().Be(domain);
+            // assert
+            testResult.Should().Be(expected);
+            testResult.Name.Should().Be(value);
+            testResult.IsKnown.Should().BeTrue();
+            testResult.IsIdentity.Should().Be(isIdentity);
+            testResult.Domain.Should().Be(domain);
+        }
+
+        public static TheoryData<string, string> KnownMechanismsInOtherCase => new TheoryData<string, string>
+        {
+            { "7BIT", SevenBit },
+            { "8Bit", EightBit },
+            { "BINARY", Binary },
+            { "Binary", Binary },
+            { "Quoted-Printable", QuotedPrintable },
+            { "QUOTED-PRINTABLE", QuotedPrintable },
+            { Base64InUpperCase, Base64 },
+            { Base64Capitalised, Base64 },
+        };
+
+        [Theory]
+        [MemberData(nameof(KnownMechanismsInOtherCase))]
+        public void Parse_KnownMechanismInOtherCase_ReturnsLowerCaseName(string value, string name)
+        {
+            // act
+            var testResult = MimeTransferEncoding.Parse(value);
+
+            // assert
+            testResult.IsKnown.Should().BeTrue();
+            testResult.Name.Should().Be(name);
+            testResult.ToString().Should().Be(name);
         }
 
         [Theory]
-        [InlineData("7BIT", "7bit")]
-        [InlineData("8Bit", "8bit")]
-        [InlineData("BINARY", "binary")]
-        [InlineData("Binary", "binary")]
-        [InlineData("Quoted-Printable", "quoted-printable")]
-        [InlineData("QUOTED-PRINTABLE", "quoted-printable")]
-        [InlineData("BASE64", "base64")]
-        [InlineData("Base64", "base64")]
-        public void Parse_KnownMechanismInOtherCase_ReturnsLowerCaseName(string value, string name)
+        [MemberData(nameof(KnownMechanismsInOtherCase))]
+        public void Equals_KnownMechanismInOtherCase_EqualsLowerCaseName(string value, string name)
         {
-            var result = MimeTransferEncoding.Parse(value);
+            // arrange
+            var lowerCase = MimeTransferEncoding.Parse(name);
+            var otherCase = MimeTransferEncoding.Parse(value);
 
-            result.IsKnown.Should().BeTrue();
-            result.Name.Should().Be(name);
-            result.ToString().Should().Be(name);
-            result.Should().Be(MimeTransferEncoding.Parse(name));
+            // act
+            var testResult = otherCase.Equals(lowerCase);
+
+            // assert
+            testResult.Should().BeTrue();
         }
 
         [Theory]
         // ref. RFC 2045 §6.1: x-token; RFC 4289 §3: a registered mechanism is an ietf-token
-        [InlineData("x-uuencode")]
+        [InlineData(XUuencode)]
         [InlineData("X-UUENCODE")]
         [InlineData("x-gzip64")]
         [InlineData("X-")]
-        [InlineData("uuencode")]
+        [InlineData(Uuencode)]
         [InlineData("b")]
         [InlineData("7bit-ish")]
         [InlineData("base-64")]
@@ -64,177 +113,429 @@ namespace DataStandardizer.Communication.Tests.Mime
         [InlineData("quoted-printable!")]
         public void Parse_ExtensionToken_IsKeptAsWrittenAndUnknown(string value)
         {
-            var result = MimeTransferEncoding.Parse(value);
+            // act
+            var testResult = MimeTransferEncoding.Parse(value);
 
-            result.Name.Should().Be(value);
-            result.ToString().Should().Be(value);
-            result.IsKnown.Should().BeFalse();
-            result.IsIdentity.Should().BeFalse();
-            result.Domain.Should().Be(MimeDataDomain.Unknown);
+            // assert
+            testResult.Name.Should().Be(value);
+            testResult.ToString().Should().Be(value);
+            testResult.IsKnown.Should().BeFalse();
+            testResult.IsIdentity.Should().BeFalse();
+            testResult.Domain.Should().Be(MimeDataDomain.Unknown);
         }
 
         [Fact]
-        public void Parse_Span_ReturnsTransferEncoding()
+        public void Parse_SpanOfKnownMechanism_ReturnsKnownValue()
         {
-            MimeTransferEncoding.Parse("xx base64 xx".AsSpan(3, 6)).Should().Be(MimeTransferEncoding.Base64);
-            MimeTransferEncoding.Parse("xx x-foo xx".AsSpan(3, 5)).Name.Should().Be("x-foo");
+            // arrange
+            var value = Base64AmongOtherText.AsSpan(MechanismStart, Base64.Length);
+
+            // act
+            var testResult = MimeTransferEncoding.Parse(value);
+
+            // assert
+            testResult.Should().Be(MimeTransferEncoding.Base64);
+        }
+
+        [Fact]
+        public void Parse_SpanOfExtensionToken_KeepsName()
+        {
+            // arrange
+            var value = XFooAmongOtherText.AsSpan(MechanismStart, XFoo.Length);
+
+            // act
+            var testResult = MimeTransferEncoding.Parse(value);
+
+            // assert
+            testResult.Name.Should().Be(XFoo);
+        }
+
+        public static TheoryData<string> InvalidMechanisms => new TheoryData<string>
+        {
+            "",
+            " ",
+            Base64AfterSpace,
+            "base64 ",
+            Base64WithSpace,
+            "base64;",
+            "base64 (comment)",
+            "\"base64\"",
+            "x/y",
+            "x=y",
+            "base64\t",
+            "b\x00E4se64",
+        };
+
+        [Theory]
+        [MemberData(nameof(InvalidMechanisms))]
+        public void TryParse_InvalidMechanism_ReturnsFalse(string value)
+        {
+            // act
+            var testResult = MimeTransferEncoding.TryParse(value, out var result);
+
+            // assert
+            testResult.Should().BeFalse();
+            result.Should().Be(default(MimeTransferEncoding));
         }
 
         [Theory]
-        [InlineData("")]
-        [InlineData(" ")]
-        [InlineData(" base64")]
-        [InlineData("base64 ")]
-        [InlineData("base 64")]
-        [InlineData("base64;")]
-        [InlineData("base64 (comment)")]
-        [InlineData("\"base64\"")]
-        [InlineData("x/y")]
-        [InlineData("x=y")]
-        [InlineData("base64\t")]
-        [InlineData("bäse64")]
-        public void TryParse_InvalidMechanism_ReturnsFalse(string value)
+        [MemberData(nameof(InvalidMechanisms))]
+        public void TryParse_InvalidMechanismAsSpan_ReturnsFalse(string value)
         {
-            MimeTransferEncoding result;
-            MimeTransferEncoding.TryParse(value, out result).Should().BeFalse();
-            MimeTransferEncoding.TryParse(value.AsSpan(), out result).Should().BeFalse();
+            // act
+            var testResult = MimeTransferEncoding.TryParse(value.AsSpan(), out var result);
+
+            // assert
+            testResult.Should().BeFalse();
             result.Should().Be(default(MimeTransferEncoding));
         }
 
         [Fact]
         public void TryParse_Null_ReturnsFalse()
         {
-            MimeTransferEncoding result;
-            MimeTransferEncoding.TryParse((string)null, out result).Should().BeFalse();
+            // act
+            var testResult = MimeTransferEncoding.TryParse((string)null, out _);
+
+            // assert
+            testResult.Should().BeFalse();
         }
 
         [Fact]
         public void Parse_Invalid_ThrowsFormatException()
         {
-            Action act = () => MimeTransferEncoding.Parse("base 64");
+            // act
+            Action testAction = () => MimeTransferEncoding.Parse(Base64WithSpace);
 
-            act.Should().Throw<FormatException>();
-            ((Action)(() => MimeTransferEncoding.Parse(ReadOnlySpan<char>.Empty))).Should().Throw<FormatException>();
+            // assert
+            testAction.Should().Throw<FormatException>();
+        }
+
+        [Fact]
+        public void Parse_EmptySpan_ThrowsFormatException()
+        {
+            // act
+            Action testAction = () => MimeTransferEncoding.Parse(ReadOnlySpan<char>.Empty);
+
+            // assert
+            testAction.Should().Throw<FormatException>();
         }
 
         [Fact]
         public void Parse_Null_ThrowsArgumentNullException()
         {
-            Action act = () => MimeTransferEncoding.Parse((string)null);
+            // act
+            Action testAction = () => MimeTransferEncoding.Parse((string)null);
 
-            act.Should().Throw<ArgumentNullException>();
+            // assert
+            testAction.Should().Throw<ArgumentNullException>();
         }
 
+        public static TheoryData<string, string> MechanismsDifferingInCase => new TheoryData<string, string>
+        {
+            { Base64, Base64InUpperCase },
+            { XUuencode, XUuencodeInMixedCase },
+            { Uuencode, "UUENCODE" },
+        };
+
+        public static TheoryData<string, string> DifferentMechanisms => new TheoryData<string, string>
+        {
+            { Base64, QuotedPrintable },
+            { SevenBit, EightBit },
+            { XUuencode, Uuencode },
+            { Base64, "x-base64" },
+        };
+
         [Theory]
-        [InlineData("base64", "BASE64")]
-        [InlineData("x-uuencode", "X-UUEncode")]
-        [InlineData("uuencode", "UUENCODE")]
+        [MemberData(nameof(MechanismsDifferingInCase))]
         public void Equals_DifferentCase_ReturnsTrue(string left, string right)
         {
+            // arrange
             var leftEncoding = MimeTransferEncoding.Parse(left);
             var rightEncoding = MimeTransferEncoding.Parse(right);
 
-            leftEncoding.Equals(rightEncoding).Should().BeTrue();
-            (leftEncoding == rightEncoding).Should().BeTrue();
-            (leftEncoding != rightEncoding).Should().BeFalse();
-            leftEncoding.GetHashCode().Should().Be(rightEncoding.GetHashCode());
+            // act
+            var testResult = leftEncoding.Equals(rightEncoding);
+
+            // assert
+            testResult.Should().BeTrue();
         }
 
         [Theory]
-        [InlineData("base64", "quoted-printable")]
-        [InlineData("7bit", "8bit")]
-        [InlineData("x-uuencode", "uuencode")]
-        [InlineData("base64", "x-base64")]
-        public void Equals_DifferentMechanisms_ReturnsFalse(string left, string right)
+        [MemberData(nameof(MechanismsDifferingInCase))]
+        public void EqualityOperator_DifferentCase_ReturnsTrue(string left, string right)
         {
+            // arrange
             var leftEncoding = MimeTransferEncoding.Parse(left);
             var rightEncoding = MimeTransferEncoding.Parse(right);
 
-            leftEncoding.Equals(rightEncoding).Should().BeFalse();
-            (leftEncoding == rightEncoding).Should().BeFalse();
-            (leftEncoding != rightEncoding).Should().BeTrue();
+            // act
+            var testResult = leftEncoding == rightEncoding;
+
+            // assert
+            testResult.Should().BeTrue();
+        }
+
+        [Theory]
+        [MemberData(nameof(MechanismsDifferingInCase))]
+        public void InequalityOperator_DifferentCase_ReturnsFalse(string left, string right)
+        {
+            // arrange
+            var leftEncoding = MimeTransferEncoding.Parse(left);
+            var rightEncoding = MimeTransferEncoding.Parse(right);
+
+            // act
+            var testResult = leftEncoding != rightEncoding;
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Theory]
+        [MemberData(nameof(MechanismsDifferingInCase))]
+        public void GetHashCode_DifferentCase_ReturnsSameHashCode(string left, string right)
+        {
+            // arrange
+            var leftEncoding = MimeTransferEncoding.Parse(left);
+            var rightHashCode = MimeTransferEncoding.Parse(right).GetHashCode();
+
+            // act
+            var testResult = leftEncoding.GetHashCode();
+
+            // assert
+            testResult.Should().Be(rightHashCode);
+        }
+
+        [Theory]
+        [MemberData(nameof(DifferentMechanisms))]
+        public void Equals_DifferentMechanisms_ReturnsFalse(string left, string right)
+        {
+            // arrange
+            var leftEncoding = MimeTransferEncoding.Parse(left);
+            var rightEncoding = MimeTransferEncoding.Parse(right);
+
+            // act
+            var testResult = leftEncoding.Equals(rightEncoding);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Theory]
+        [MemberData(nameof(DifferentMechanisms))]
+        public void EqualityOperator_DifferentMechanisms_ReturnsFalse(string left, string right)
+        {
+            // arrange
+            var leftEncoding = MimeTransferEncoding.Parse(left);
+            var rightEncoding = MimeTransferEncoding.Parse(right);
+
+            // act
+            var testResult = leftEncoding == rightEncoding;
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Theory]
+        [MemberData(nameof(DifferentMechanisms))]
+        public void InequalityOperator_DifferentMechanisms_ReturnsTrue(string left, string right)
+        {
+            // arrange
+            var leftEncoding = MimeTransferEncoding.Parse(left);
+            var rightEncoding = MimeTransferEncoding.Parse(right);
+
+            // act
+            var testResult = leftEncoding != rightEncoding;
+
+            // assert
+            testResult.Should().BeTrue();
         }
 
         [Fact]
         public void Equals_DefaultInstances_ReturnsTrue()
         {
-            default(MimeTransferEncoding).Equals(default(MimeTransferEncoding)).Should().BeTrue();
-            default(MimeTransferEncoding).Equals(MimeTransferEncoding.SevenBit).Should().BeFalse();
-            default(MimeTransferEncoding).GetHashCode().Should().Be(0);
+            // act
+            var testResult = default(MimeTransferEncoding).Equals(default(MimeTransferEncoding));
+
+            // assert
+            testResult.Should().BeTrue();
         }
 
         [Fact]
-        public void Equals_OtherObject_ReturnsFalse()
+        public void Equals_DefaultInstanceAndKnownMechanism_ReturnsFalse()
         {
-            MimeTransferEncoding.Base64.Equals("base64").Should().BeFalse();
-            MimeTransferEncoding.Base64.Equals(null).Should().BeFalse();
-            MimeTransferEncoding.Base64.Equals((object)MimeTransferEncoding.Parse("BASE64")).Should().BeTrue();
+            // act
+            var testResult = default(MimeTransferEncoding).Equals(MimeTransferEncoding.SevenBit);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void GetHashCode_DefaultInstance_ReturnsZero()
+        {
+            // act
+            var testResult = default(MimeTransferEncoding).GetHashCode();
+
+            // assert
+            testResult.Should().Be(0);
+        }
+
+        public static TheoryData<object> OtherObjects => new TheoryData<object> { Base64, null };
+
+        [Theory]
+        [MemberData(nameof(OtherObjects))]
+        public void EqualsObject_OtherObject_ReturnsFalse(object other)
+        {
+            // act
+            var testResult = MimeTransferEncoding.Base64.Equals(other);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void EqualsObject_SameMechanismInOtherCase_ReturnsTrue()
+        {
+            // arrange
+            object other = MimeTransferEncoding.Parse(Base64InUpperCase);
+
+            // act
+            var testResult = MimeTransferEncoding.Base64.Equals(other);
+
+            // assert
+            testResult.Should().BeTrue();
         }
 
         [Theory]
-        [InlineData("quoted-printable")]
-        [InlineData("x-uuencode")]
-        public void TryFormat_WritesName(string value)
+        [InlineData(QuotedPrintable)]
+        [InlineData(XUuencode)]
+        public void TryFormat_DestinationLongEnough_WritesName(string value)
         {
+            // arrange
             var encoding = MimeTransferEncoding.Parse(value);
-            var buffer = new char[value.Length];
+            var destination = new char[value.Length];
 
-            int charsWritten;
-            encoding.TryFormat(buffer, out charsWritten).Should().BeTrue();
+            // act
+            var testResult = encoding.TryFormat(destination, out var charsWritten);
 
-            new string(buffer, 0, charsWritten).Should().Be(value);
-            MimeTransferEncoding.Parse(encoding.ToString()).Should().Be(encoding);
+            // assert
+            testResult.Should().BeTrue();
+            charsWritten.Should().Be(value.Length);
+            new string(destination).Should().Be(value);
         }
 
-        [Fact]
-        public void TryFormat_DestinationTooShort_ReturnsFalse()
+        // Each length of destination too short for "quoted-printable", which is 16 characters.
+        public static IEnumerable<object[]> DestinationsTooShortForQuotedPrintable()
         {
-            var encoding = MimeTransferEncoding.QuotedPrintable;
-
-            for (var length = 0; length < encoding.Name.Length; length++)
+            for (var length = 0; length < QuotedPrintable.Length; length++)
             {
-                int charsWritten;
-                encoding.TryFormat(new char[length], out charsWritten).Should().BeFalse();
-                charsWritten.Should().Be(0);
+                yield return new object[] { length };
             }
+        }
+
+        [Theory]
+        [MemberData(nameof(DestinationsTooShortForQuotedPrintable))]
+        public void TryFormat_DestinationTooShort_ReturnsFalse(int length)
+        {
+            // arrange
+            var destination = new char[length];
+
+            // act
+            var testResult = MimeTransferEncoding.QuotedPrintable.TryFormat(destination, out var charsWritten);
+
+            // assert
+            testResult.Should().BeFalse();
+            charsWritten.Should().Be(0);
         }
 
         [Fact]
         public void TryFormat_DefaultInstance_WritesNothing()
         {
-            int charsWritten;
-            default(MimeTransferEncoding).TryFormat(new char[0], out charsWritten).Should().BeTrue();
+            // act
+            var testResult = default(MimeTransferEncoding).TryFormat(new char[0], out var charsWritten);
 
+            // assert
+            testResult.Should().BeTrue();
             charsWritten.Should().Be(0);
-            default(MimeTransferEncoding).ToString().Should().BeEmpty();
         }
 
         [Fact]
-        public void Properties_DefaultInstance_ThrowInvalidOperationException()
+        public void ToString_DefaultInstance_ReturnsEmpty()
         {
-            var encoding = default(MimeTransferEncoding);
+            // act
+            var testResult = default(MimeTransferEncoding).ToString();
 
-            ((Action)(() => _ = encoding.Name)).Should().Throw<InvalidOperationException>();
-            ((Action)(() => _ = encoding.IsKnown)).Should().Throw<InvalidOperationException>();
-            ((Action)(() => _ = encoding.IsIdentity)).Should().Throw<InvalidOperationException>();
-            ((Action)(() => _ = encoding.Domain)).Should().Throw<InvalidOperationException>();
+            // assert
+            testResult.Should().BeEmpty();
+        }
+
+        public static TheoryData<Action> PropertiesOfDefaultInstance => new TheoryData<Action>
+        {
+            () => _ = default(MimeTransferEncoding).Name,
+            () => _ = default(MimeTransferEncoding).IsKnown,
+            () => _ = default(MimeTransferEncoding).IsIdentity,
+            () => _ = default(MimeTransferEncoding).Domain,
+        };
+
+        [Theory]
+        [MemberData(nameof(PropertiesOfDefaultInstance))]
+        public void Properties_DefaultInstance_ThrowInvalidOperationException(Action property)
+        {
+            // act
+            var testAction = property;
+
+            // assert
+            testAction.Should().Throw<InvalidOperationException>();
         }
 
 #if NET7_0_OR_GREATER
         [Fact]
-        public void ISpanParsable_ParsesMechanism()
+        public void ISpanParsableParse_KnownMechanismInOtherCase_ReturnsKnownValue()
         {
-            ParseGeneric<MimeTransferEncoding>("Base64").Should().Be(MimeTransferEncoding.Base64);
-            TryParseGeneric<MimeTransferEncoding>(" base64").Should().BeFalse();
+            // act
+            var testResult = ParseGeneric<MimeTransferEncoding>(Base64Capitalised);
+
+            // assert
+            testResult.Should().Be(MimeTransferEncoding.Base64);
         }
 
         [Fact]
-        public void ISpanFormattable_FormatsMechanism()
+        public void IParsableTryParse_Invalid_ReturnsFalse()
         {
-            var encoding = MimeTransferEncoding.Parse("X-UUEncode");
+            // act
+            var testResult = TryParseGeneric<MimeTransferEncoding>(Base64AfterSpace);
 
-            $"{encoding}".Should().Be("X-UUEncode");
-            ((IFormattable)encoding).ToString(null, null).Should().Be("X-UUEncode");
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void ISpanFormattableTryFormat_ExtensionToken_KeepsNameAsWritten()
+        {
+            // arrange
+            ISpanFormattable encoding = MimeTransferEncoding.Parse(XUuencodeInMixedCase);
+            var destination = new char[XUuencodeInMixedCase.Length];
+
+            // act
+            var testResult = encoding.TryFormat(destination, out var charsWritten, default, null);
+
+            // assert
+            testResult.Should().BeTrue();
+            charsWritten.Should().Be(XUuencodeInMixedCase.Length);
+            new string(destination).Should().Be(XUuencodeInMixedCase);
+        }
+
+        [Fact]
+        public void IFormattableToString_ExtensionToken_KeepsNameAsWritten()
+        {
+            // arrange
+            IFormattable encoding = MimeTransferEncoding.Parse(XUuencodeInMixedCase);
+
+            // act
+            var testResult = encoding.ToString(null, null);
+
+            // assert
+            testResult.Should().Be(XUuencodeInMixedCase);
         }
 
         private static T ParseGeneric<T>(string value) where T : ISpanParsable<T>

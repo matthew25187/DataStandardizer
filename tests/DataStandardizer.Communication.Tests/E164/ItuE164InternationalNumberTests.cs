@@ -14,6 +14,74 @@ namespace DataStandardizer.Communication.Tests.E164
         private const string NumberForGroupsOfCountriesSkipMessage = "There is currently no available Group Identification Code.";
         private const string NumberForTrialsSkipMessage = "There is currently no available Trial Identification Code.";
 
+        // Numbers that more than one test uses: for geographic areas in Great Britain, country code 44; for a global service, 800; for a
+        // network, 883; and parts of numbers.
+        private const ulong GreatBritainNumber = 443071234567L;
+        private const ulong OtherGreatBritainNumber = 445071234567L;
+        private const ulong GlobalServiceNumber = 8004121234567L;
+        private const ulong NetworkNumber = 8831101234567L;
+        private const ulong GlobalSubscriberNumber = 8001234567L;
+        private const ulong SubscriberNumber = 1234567L;
+        private const ulong TwelveDigitSubscriberNumber = 123456789012L;
+
+        // One digit more than ITU-T E.164 §6.1 allows in an international number.
+        private const ulong SixteenDigitNumber = 1234567890123456L;
+
+        // The messages of the exceptions that the number types throw.
+        private const string UninitializedMessage = "ItuE164InternationalNumber is uninitialized.";
+        private const string NumberOf1To15DigitsMessage = "Number must be 1 to 15 digits.*";
+        private const string NoSubscriberNumberMessage = "This number does not support the Subscriber Number field.";
+        private const string SubscriberNumberOf1To11DigitsMessage = "Subscriber Number must be 1 to 11 digits.";
+        private const string UndefinedCountryCodeMessage = "'1000' is not a valid Country Code.*";
+
+        // A country code that ITU-T E.164 doesn't assign.
+        private const ushort UndefinedCountryCode = 1000;
+
+        // The group and trial identification codes that the skipped tests assume, as none is assigned yet.
+        private const byte GroupIdentificationCode = 3;
+        private const byte TrialIdentificationCode = 1;
+
+        // Numbers for a group of countries, country code 388, and for a trial, country code 991, with subscriber number 1234567.
+        private const ulong GroupOfCountriesNumber = 38831234567L;
+        private const string GroupOfCountriesNumberText = "388 3 1234567";
+        private const string PrefixedGroupOfCountriesNumberText = "+388 3 1234567";
+        private const ulong TrialNumber = 99111234567L;
+        private const string TrialNumberText = "991 1 1234567";
+        private const string PrefixedTrialNumberText = "+991 1 1234567";
+
+        // Text that isn't an international number: three digits, which is too few; 16, which is too many; and no digits at all.
+        private const string TooShortNumber = "991";
+        private const string TooLongNumber = "9911012345678901";
+        private const string NotANumber = "Not A Number";
+
+        public static TheoryData<string, ulong> GroupsOfCountriesWithLeadingWhiteSpace => new TheoryData<string, ulong>
+        {
+            { "38831565550100", 38831565550100L },
+            { " 38831565550101", 38831565550101L },
+            { "  38831565550102", 38831565550102L },
+        };
+
+        public static TheoryData<string, ulong> GroupsOfCountriesWithTrailingWhiteSpace => new TheoryData<string, ulong>
+        {
+            { "38832075550100", 38832075550100L },
+            { "38832075550101 ", 38832075550101L },
+            { "38832075550102  ", 38832075550102L },
+        };
+
+        public static TheoryData<string, ulong> TrialsWithLeadingWhiteSpace => new TheoryData<string, ulong>
+        {
+            { "99110865550100", 99110865550100L },
+            { " 99110865550101", 99110865550101L },
+            { "  99110865550102", 99110865550102L },
+        };
+
+        public static TheoryData<string, ulong> TrialsWithTrailingWhiteSpace => new TheoryData<string, ulong>
+        {
+            { "99110995550100", 99110995550100L },
+            { "99110995550101 ", 99110995550101L },
+            { "99110995550102  ", 99110995550102L },
+        };
+
         [Fact]
         public void Equals_PhoneNumbersAreEqualInValue_ReturnsTrue()
         {
@@ -55,7 +123,7 @@ namespace DataStandardizer.Communication.Tests.E164
             // assert
             testAction.Should()
                 .Throw<InvalidCastException>()
-                .WithMessage($"{nameof(ItuE164InternationalNumber)} is uninitialized.");
+                .WithMessage(UninitializedMessage);
         }
 
         [Fact]
@@ -75,7 +143,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void IsNumberForGeographicArea_NotInternationalNumberForGeographicAreas_ReturnsFalse()
         {
             // arrange
-            var testSubject = ItuE164InternationalNumber.CreateNumberForGlobalService(8004121234567L);
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGlobalService(GlobalServiceNumber);
 
             // act
             var testResult = testSubject.IsNumberForGeographicArea();
@@ -88,7 +156,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void IsNumberForGlobalService_InternationalNumberForGlobalServices_ReturnsTrue()
         {
             // arrange
-            var testSubject = ItuE164InternationalNumber.CreateNumberForGlobalService(8004121234567L);
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGlobalService(GlobalServiceNumber);
 
             // act
             var testResult = testSubject.IsNumberForGlobalService();
@@ -101,7 +169,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void IsNumberForGlobalService_NotInternationalNumberForGlobalServices_ReturnsFalse()
         {
             // arrange
-            var testSubject = ItuE164InternationalNumber.CreateNumberForGroupOfCountries(38831234567L);
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGroupOfCountries(GroupOfCountriesNumber);
 
             // act
             var testResult = testSubject.IsNumberForGlobalService();
@@ -114,7 +182,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void IsNumberForGroupOfCountries_InternationalNumberForGroupsOfCountries_ReturnsTrue()
         {
             // arrange
-            var testSubject = ItuE164InternationalNumber.CreateNumberForGroupOfCountries(38831234567L);
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGroupOfCountries(GroupOfCountriesNumber);
 
             // act
             var testResult = testSubject.IsNumberForGroupOfCountries();
@@ -127,7 +195,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void IsNumberForGroupOfCountries_NotInternationalNumberForGroupsOfCountries_ReturnsFalse()
         {
             // arrange
-            var testSubject = ItuE164InternationalNumber.CreateNumberForNetwork(8831101234567L);
+            var testSubject = ItuE164InternationalNumber.CreateNumberForNetwork(NetworkNumber);
 
             // act
             var testResult = testSubject.IsNumberForGroupOfCountries();
@@ -140,7 +208,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void IsNumberForNetwork_InternationalNumberForNetworks_ReturnsTrue()
         {
             // arrange
-            var testSubject = ItuE164InternationalNumber.CreateNumberForNetwork(8831101234567L);
+            var testSubject = ItuE164InternationalNumber.CreateNumberForNetwork(NetworkNumber);
 
             // act
             var testResult = testSubject.IsNumberForNetwork();
@@ -153,7 +221,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void IsNumberForNetwork_NotInternationalNumberForNetworks_ReturnsFalse()
         {
             // arrange
-            var testSubject = ItuE164InternationalNumber.CreateNumberForTrial(99111234567L);
+            var testSubject = ItuE164InternationalNumber.CreateNumberForTrial(TrialNumber);
 
             // act
             var testResult = testSubject.IsNumberForNetwork();
@@ -166,7 +234,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void IsNumberForTrial_InternationalNumberForTrials_ReturnsTrue()
         {
             // arrange
-            var testSubject = ItuE164InternationalNumber.CreateNumberForTrial(99111234567L);
+            var testSubject = ItuE164InternationalNumber.CreateNumberForTrial(TrialNumber);
 
             // act
             var testResult = testSubject.IsNumberForTrial();
@@ -214,14 +282,14 @@ namespace DataStandardizer.Communication.Tests.E164
             // assert
             testAction.Should()
                 .Throw<InvalidOperationException>()
-                .WithMessage($"{nameof(ItuE164InternationalNumber)} is uninitialized.");
+                .WithMessage(UninitializedMessage);
         }
 
         [Fact]
         public void CountryCode_InternationalNumber_ReturnsCountryCode()
         {
             // arrange
-            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(445071234567L);
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(OtherGreatBritainNumber);
 
             // act
             var testResult = ((IItuE164InternationalNumberForGeographicAreas)testSubject).CountryCode;
@@ -279,7 +347,7 @@ namespace DataStandardizer.Communication.Tests.E164
         {
             // arrange
             const ItuE164AssignedIdentificationCodesForNetworks identificationCode = ItuE164AssignedIdentificationCodesForNetworks.IC9;
-            var testSubject = ItuE164InternationalNumber.CreateNumberForNetwork(ItuE164AssignedCountryCodesForNetworks.GMSS, identificationCode, 1234567L);
+            var testSubject = ItuE164InternationalNumber.CreateNumberForNetwork(ItuE164AssignedCountryCodesForNetworks.GMSS, identificationCode, SubscriberNumber);
 
             // act
             var testResult = ((IItuE164InternationalNumberForNetworks)testSubject).IdentificationCode;
@@ -307,8 +375,8 @@ namespace DataStandardizer.Communication.Tests.E164
         public void GroupIdentificationCode_InternationalNumberForGroupsOfCountries_ReturnsGroupIdentificationCode()
         {
             // arrange
-            var groupIdentificationCode = (ItuE164AssignedGroupIdentificationCodesForGroupsOfCountries)3;
-            var testSubject = ItuE164InternationalNumber.CreateNumberForGroupOfCountries(ItuE164AssignedCountryCodesForGroupsOfCountries.SharedCode, groupIdentificationCode, 1234567L);
+            var groupIdentificationCode = (ItuE164AssignedGroupIdentificationCodesForGroupsOfCountries)GroupIdentificationCode;
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGroupOfCountries(ItuE164AssignedCountryCodesForGroupsOfCountries.SharedCode, groupIdentificationCode, SubscriberNumber);
 
             // act
             var testResult = ((IItuE164InternationalNumberForGroupsOfCountries)testSubject).GroupIdentificationCode;
@@ -321,7 +389,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void GroupIdentificationCode_NotInternationalNumberForGroupsOfCountries_ThrowsNotSupportedException()
         {
             // arrange
-            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(445071234567L);
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(OtherGreatBritainNumber);
 
             // act
             Action testAction = () => _ = ((IItuE164InternationalNumberForGroupsOfCountries)testSubject).GroupIdentificationCode;
@@ -336,7 +404,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void TrialIdentificationCode_InternationalNumberForTrials_ReturnsTrialIdentificationCode()
         {
             // arrange
-            var trialIdentificationCode = (ItuE164AssignedTrialIdentificationCodesForTrials)1;
+            var trialIdentificationCode = (ItuE164AssignedTrialIdentificationCodesForTrials)TrialIdentificationCode;
             var testSubject = ItuE164InternationalNumber.CreateNumberForTrial(ItuE164AssignedCountryCodesForTrials.SharedCode, trialIdentificationCode, null);
 
             // act
@@ -365,8 +433,8 @@ namespace DataStandardizer.Communication.Tests.E164
         public void SubscriberNumber_InternationalNumberForTrials_ReturnsSubscriberNumber()
         {
             // arrange
-            const ulong subscriberNumber = 1234567L;
-            var testSubject = ItuE164InternationalNumber.CreateNumberForTrial(ItuE164AssignedCountryCodesForTrials.SharedCode, (ItuE164AssignedTrialIdentificationCodesForTrials)1, subscriberNumber);
+            const ulong subscriberNumber = SubscriberNumber;
+            var testSubject = ItuE164InternationalNumber.CreateNumberForTrial(ItuE164AssignedCountryCodesForTrials.SharedCode, (ItuE164AssignedTrialIdentificationCodesForTrials)TrialIdentificationCode, subscriberNumber);
 
             // act
             var testResult = ((IItuE164InternationalNumberForTrials)testSubject).SubscriberNumber;
@@ -379,7 +447,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void SubscriberNumber_NotInternationalNumberForTrials_ThrowsNotSupportedException()
         {
             // arrange
-            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(443071234567L);
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGeographicArea(GreatBritainNumber);
 
             // act
             Action testAction = () => _ = ((IItuE164InternationalNumberForTrials)testSubject).SubscriberNumber;
@@ -387,15 +455,15 @@ namespace DataStandardizer.Communication.Tests.E164
             // assert
             testAction.Should()
                 .Throw<NotSupportedException>()
-                .WithMessage("This number does not support the Subscriber Number field.");
+                .WithMessage(NoSubscriberNumberMessage);
         }
 
         [Fact(Skip = NumberForGroupsOfCountriesSkipMessage)]
         public void SubscriberNumber_InternationalNumberForGroupsOfCountries_ReturnsSubscriberNumber()
         {
             // arrange
-            const ulong subscriberNumber = 1234567L;
-            var testSubject = ItuE164InternationalNumber.CreateNumberForGroupOfCountries(ItuE164AssignedCountryCodesForGroupsOfCountries.SharedCode, (ItuE164AssignedGroupIdentificationCodesForGroupsOfCountries)3, subscriberNumber);
+            const ulong subscriberNumber = SubscriberNumber;
+            var testSubject = ItuE164InternationalNumber.CreateNumberForGroupOfCountries(ItuE164AssignedCountryCodesForGroupsOfCountries.SharedCode, (ItuE164AssignedGroupIdentificationCodesForGroupsOfCountries)GroupIdentificationCode, subscriberNumber);
 
             // act
             var testResult = ((IItuE164InternationalNumberForGroupsOfCountries)testSubject).SubscriberNumber;
@@ -416,14 +484,14 @@ namespace DataStandardizer.Communication.Tests.E164
             // assert
             testAction.Should()
                 .Throw<NotSupportedException>()
-                .WithMessage("This number does not support the Subscriber Number field.");
+                .WithMessage(NoSubscriberNumberMessage);
         }
 
         [Fact]
         public void SubscriberNumber_InternationalNumberForNetworks_ReturnsSubscriberNumber()
         {
             // arrange
-            const ulong subscriberNumber = 1234567L;
+            const ulong subscriberNumber = SubscriberNumber;
             var testSubject = ItuE164InternationalNumber.CreateNumberForNetwork(ItuE164AssignedCountryCodesForNetworks.GMSS, ItuE164AssignedIdentificationCodesForNetworks.IC8, subscriberNumber);
 
             // act
@@ -445,14 +513,14 @@ namespace DataStandardizer.Communication.Tests.E164
             // assert
             testAction.Should()
                 .Throw<NotSupportedException>()
-                .WithMessage("This number does not support the Subscriber Number field.");
+                .WithMessage(NoSubscriberNumberMessage);
         }
 
         [Fact]
         public void GlobalSubscriberNumber_InternationalNumberForGlobalServices_ReturnsGlobalSubscriberNumber()
         {
             // arrange
-            const ulong globalSubscriberNumber = 8001234567L;
+            const ulong globalSubscriberNumber = GlobalSubscriberNumber;
             var testSubject = ItuE164InternationalNumber.CreateNumberForGlobalService(ItuE164AssignedCountryCodesForGlobalServices.SNAC, globalSubscriberNumber);
 
             // act
@@ -489,7 +557,7 @@ namespace DataStandardizer.Communication.Tests.E164
             // assert
             testAction.Should()
                 .Throw<ArgumentOutOfRangeException>()
-                .WithMessage("Number must be 1 to 15 digits.*");
+                .WithMessage(NumberOf1To15DigitsMessage);
         }
 
         [Fact]
@@ -509,7 +577,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void CreateNumberForGeographicArea_CountryCodeNotDefined_ThrowsArgumentException()
         {
             // arrange
-            var countryCode = (ItuE164AssignedCountryCodesForGeographicAreas)1000;
+            var countryCode = (ItuE164AssignedCountryCodesForGeographicAreas)UndefinedCountryCode;
             const ulong nationalSignificantNumber = 5081234567L;
 
             // act
@@ -518,7 +586,7 @@ namespace DataStandardizer.Communication.Tests.E164
             // assert
             testAction.Should()
                 .Throw<ArgumentException>()
-                .WithMessage($"'{countryCode}' is not a valid Country Code.*");
+                .WithMessage(UndefinedCountryCodeMessage);
         }
 
         [Fact]
@@ -544,7 +612,7 @@ namespace DataStandardizer.Communication.Tests.E164
             const ItuE164AssignedCountryCodesForGeographicAreas countryCode = ItuE164AssignedCountryCodesForGeographicAreas.GB;
             const ulong nationalSignificantNumber = 5091234567L;
 
-            var expectedResult = ulong.Parse($"{(ushort)countryCode}{nationalSignificantNumber}");
+            const ulong expectedResult = 445091234567L;
 
             // act
             var testResult = ItuE164InternationalNumber.CreateNumberForGeographicArea(countryCode, nationalSignificantNumber);
@@ -557,7 +625,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void CreateNumberForGlobalService_InternationalNumberTooLong_ThrowsArgumentOutOfRangeException()
         {
             // arrange
-            const ulong number = 1234567890123456L;
+            const ulong number = SixteenDigitNumber;
 
             // act
             Action testAction = () => _ = ItuE164InternationalNumber.CreateNumberForGlobalService(number);
@@ -565,14 +633,14 @@ namespace DataStandardizer.Communication.Tests.E164
             // assert
             testAction.Should()
                 .Throw<ArgumentOutOfRangeException>()
-                .WithMessage("Number must be 1 to 15 digits.*");
+                .WithMessage(NumberOf1To15DigitsMessage);
         }
 
         [Fact]
         public void CreateNumberForGlobalService_InternationalNumber_ReturnsInternationalNumber()
         {
             // arrange
-            const ulong number = 443071234567L;
+            const ulong number = GreatBritainNumber;
 
             // act
             var testResult = ItuE164InternationalNumber.CreateNumberForGlobalService(number);
@@ -585,7 +653,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void CreateNumberForGlobalService_CountryCodeNotDefined_ThrowsArgumentException()
         {
             // arrange
-            var countryCode = (ItuE164AssignedCountryCodesForGlobalServices)1000;
+            var countryCode = (ItuE164AssignedCountryCodesForGlobalServices)UndefinedCountryCode;
             const ulong globalSubscriberNumber = 3031234567L;
 
             // act
@@ -594,7 +662,7 @@ namespace DataStandardizer.Communication.Tests.E164
             // assert
             testAction.Should()
                 .Throw<ArgumentException>()
-                .WithMessage($"'{countryCode}' is not a valid Country Code.*");
+                .WithMessage(UndefinedCountryCodeMessage);
         }
 
         [Fact]
@@ -618,9 +686,9 @@ namespace DataStandardizer.Communication.Tests.E164
         {
             // arrange
             const ItuE164AssignedCountryCodesForGlobalServices countryCode = ItuE164AssignedCountryCodesForGlobalServices.IFS;
-            const ulong globalSubscriberNumber = 8001234567L;
+            const ulong globalSubscriberNumber = GlobalSubscriberNumber;
 
-            var expectedResult = ulong.Parse($"{(ushort)countryCode}{globalSubscriberNumber}");
+            const ulong expectedResult = 8008001234567L;
 
             // act
             var testResult = ItuE164InternationalNumber.CreateNumberForGlobalService(countryCode, globalSubscriberNumber);
@@ -633,7 +701,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void CreateNumberForNetwork_InternationalNumberTooLong_ThrowsArgumentOutOfRangeException()
         {
             // arrange
-            const ulong number = 1234567890123456L;
+            const ulong number = SixteenDigitNumber;
 
             // act
             Action testAction = () => _ = ItuE164InternationalNumber.CreateNumberForNetwork(number);
@@ -641,7 +709,7 @@ namespace DataStandardizer.Communication.Tests.E164
             // assert
             testAction.Should()
                 .Throw<ArgumentOutOfRangeException>()
-                .WithMessage("Number must be 1 to 15 digits.*");
+                .WithMessage(NumberOf1To15DigitsMessage);
         }
 
         [Fact]
@@ -661,9 +729,9 @@ namespace DataStandardizer.Communication.Tests.E164
         public void CreateNumberForNetwork_CountryCodeNotDefined_ThrowsArgumentException()
         {
             // arrange
-            var countryCode = (ItuE164AssignedCountryCodesForNetworks)1000;
+            var countryCode = (ItuE164AssignedCountryCodesForNetworks)UndefinedCountryCode;
             const ItuE164AssignedIdentificationCodesForNetworks identificationCode = ItuE164AssignedIdentificationCodesForNetworks.IC190;
-            const ulong subscriberNumber = 1234567L;
+            const ulong subscriberNumber = SubscriberNumber;
 
             // act
             Action testAction = () => _ = ItuE164InternationalNumber.CreateNumberForNetwork(countryCode, identificationCode, subscriberNumber);
@@ -671,7 +739,7 @@ namespace DataStandardizer.Communication.Tests.E164
             // assert
             testAction.Should()
                 .Throw<ArgumentException>()
-                .WithMessage($"'{(ushort)countryCode}' is not a valid Country Code.*");
+                .WithMessage(UndefinedCountryCodeMessage);
         }
 
         [Fact]
@@ -680,7 +748,7 @@ namespace DataStandardizer.Communication.Tests.E164
             // arrange
             const ItuE164AssignedCountryCodesForNetworks countryCode = ItuE164AssignedCountryCodesForNetworks.GMSS;
             var identificationCode = (ItuE164AssignedIdentificationCodesForNetworks)10_000;
-            const ulong subscriberNumber = 1234567L;
+            const ulong subscriberNumber = SubscriberNumber;
 
             // act
             Action testAction = () => _ = ItuE164InternationalNumber.CreateNumberForNetwork(countryCode, identificationCode, subscriberNumber);
@@ -688,7 +756,7 @@ namespace DataStandardizer.Communication.Tests.E164
             // assert
             testAction.Should()
                 .Throw<ArgumentException>()
-                .WithMessage($"'{(ushort)identificationCode}' is not a valid Identification Code.*");
+                .WithMessage("'10000' is not a valid Identification Code.*");
         }
 
         [Fact]
@@ -697,7 +765,7 @@ namespace DataStandardizer.Communication.Tests.E164
             // arrange
             const ItuE164AssignedCountryCodesForNetworks countryCode = ItuE164AssignedCountryCodesForNetworks.IN1;
             const ItuE164AssignedIdentificationCodesForNetworks identificationCode = ItuE164AssignedIdentificationCodesForNetworks.IC190;
-            const ulong subscriberNumber = 123456789012L;
+            const ulong subscriberNumber = TwelveDigitSubscriberNumber;
 
             // act
             Action testAction = () => _ = ItuE164InternationalNumber.CreateNumberForNetwork(countryCode, identificationCode, subscriberNumber);
@@ -714,9 +782,9 @@ namespace DataStandardizer.Communication.Tests.E164
             // arrange
             const ItuE164AssignedCountryCodesForNetworks countryCode = ItuE164AssignedCountryCodesForNetworks.GMSS;
             const ItuE164AssignedIdentificationCodesForNetworks identificationCode = ItuE164AssignedIdentificationCodesForNetworks.IC110;
-            const ulong subscriberNumber = 1234567L;
+            const ulong subscriberNumber = SubscriberNumber;
 
-            var expectedResult = ulong.Parse($"{(ushort)countryCode}{(ushort)identificationCode}{subscriberNumber}");
+            const ulong expectedResult = 8811101234567L;
 
             // act
             var testResult = ItuE164InternationalNumber.CreateNumberForNetwork(countryCode, identificationCode, subscriberNumber);
@@ -726,7 +794,7 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Theory]
-        [InlineData(12L), InlineData(123L), InlineData(1234L), InlineData(1234567890123456L)]
+        [InlineData(12L), InlineData(123L), InlineData(1234L), InlineData(SixteenDigitNumber)]
         public void CreateNumberForGroupOfCountries_InternationalNumberTooLong_ThrowsArgumentOutOfRangeException(ulong testNumber)
         {
             // act
@@ -742,7 +810,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void CreateNumberForGroupOfCountries_InternationalNumber_ReturnsInternationalNumber()
         {
             // arrange
-            const ulong number = 38831234567L;
+            const ulong number = GroupOfCountriesNumber;
 
             // act
             var testResult = ItuE164InternationalNumber.CreateNumberForGroupOfCountries(number);
@@ -755,9 +823,9 @@ namespace DataStandardizer.Communication.Tests.E164
         public void CreateNumberForGroupOfCountries_CountryCodeNotDefined_ThrowsArgumentException()
         {
             // arrange
-            var countryCode = (ItuE164AssignedCountryCodesForGroupsOfCountries)1000;
-            var groupIdentificationCode = (ItuE164AssignedGroupIdentificationCodesForGroupsOfCountries)3;
-            const ulong subscriberNumber = 1234567L;
+            var countryCode = (ItuE164AssignedCountryCodesForGroupsOfCountries)UndefinedCountryCode;
+            var groupIdentificationCode = (ItuE164AssignedGroupIdentificationCodesForGroupsOfCountries)GroupIdentificationCode;
+            const ulong subscriberNumber = SubscriberNumber;
 
             // act
             Action testAction = () => _ = ItuE164InternationalNumber.CreateNumberForGroupOfCountries(countryCode, groupIdentificationCode, subscriberNumber);
@@ -765,7 +833,7 @@ namespace DataStandardizer.Communication.Tests.E164
             // assert
             testAction.Should()
                 .Throw<ArgumentException>()
-                .WithMessage($"'{(ushort)countryCode}' is not a valid Country Code.*");
+                .WithMessage(UndefinedCountryCodeMessage);
         }
 
         [Fact]
@@ -774,7 +842,7 @@ namespace DataStandardizer.Communication.Tests.E164
             // arrange
             const ItuE164AssignedCountryCodesForGroupsOfCountries countryCode = ItuE164AssignedCountryCodesForGroupsOfCountries.SharedCode;
             var groupIdentificationCode = (ItuE164AssignedGroupIdentificationCodesForGroupsOfCountries)10;
-            const ulong subscriberNumber = 1234567L;
+            const ulong subscriberNumber = SubscriberNumber;
 
             // act
             Action testAction = () => _ = ItuE164InternationalNumber.CreateNumberForGroupOfCountries(countryCode, groupIdentificationCode, subscriberNumber);
@@ -782,7 +850,7 @@ namespace DataStandardizer.Communication.Tests.E164
             // assert
             testAction.Should()
                 .Throw<ArgumentException>()
-                .WithMessage($"'{(byte)groupIdentificationCode}' is not a valid Group Identification Code.*");
+                .WithMessage("'10' is not a valid Group Identification Code.*");
         }
 
         [Fact(Skip = NumberForGroupsOfCountriesSkipMessage)]
@@ -790,8 +858,8 @@ namespace DataStandardizer.Communication.Tests.E164
         {
             // arrange
             const ItuE164AssignedCountryCodesForGroupsOfCountries countryCode = ItuE164AssignedCountryCodesForGroupsOfCountries.SharedCode;
-            var groupIdentificationCode = (ItuE164AssignedGroupIdentificationCodesForGroupsOfCountries)3;
-            const ulong subscriberNumber = 123456789012L;
+            var groupIdentificationCode = (ItuE164AssignedGroupIdentificationCodesForGroupsOfCountries)GroupIdentificationCode;
+            const ulong subscriberNumber = TwelveDigitSubscriberNumber;
 
             // act
             Action testAction = () => _ = ItuE164InternationalNumber.CreateNumberForGroupOfCountries(countryCode, groupIdentificationCode, subscriberNumber);
@@ -799,7 +867,7 @@ namespace DataStandardizer.Communication.Tests.E164
             // assert
             testAction.Should()
                 .Throw<ArgumentOutOfRangeException>()
-                .WithMessage("Subscriber Number must be 1 to 11 digits.");
+                .WithMessage(SubscriberNumberOf1To11DigitsMessage);
         }
 
         [Fact(Skip = NumberForGroupsOfCountriesSkipMessage)]
@@ -807,10 +875,10 @@ namespace DataStandardizer.Communication.Tests.E164
         {
             // arrange
             const ItuE164AssignedCountryCodesForGroupsOfCountries countryCode = ItuE164AssignedCountryCodesForGroupsOfCountries.SharedCode;
-            var groupIdentificationCode = (ItuE164AssignedGroupIdentificationCodesForGroupsOfCountries)3;
-            const ulong subscriberNumber = 1234567L;
+            var groupIdentificationCode = (ItuE164AssignedGroupIdentificationCodesForGroupsOfCountries)GroupIdentificationCode;
+            const ulong subscriberNumber = SubscriberNumber;
 
-            var expectedResult = ulong.Parse($"{(ushort)countryCode}{(byte)groupIdentificationCode}{subscriberNumber}");
+            const ulong expectedResult = GroupOfCountriesNumber;
 
             // act
             var testResult = ItuE164InternationalNumber.CreateNumberForGroupOfCountries(countryCode, groupIdentificationCode, subscriberNumber);
@@ -820,7 +888,7 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Theory]
-        [InlineData(12L), InlineData(123L), InlineData(1234567890123456L)]
+        [InlineData(12L), InlineData(123L), InlineData(SixteenDigitNumber)]
         public void CreateNumberForTrial_InternationalNumberTooLong_ThrowsArgumentOutOfRangeException(ulong testNumber)
         {
             // act
@@ -836,7 +904,7 @@ namespace DataStandardizer.Communication.Tests.E164
         public void CreateNumberForTrial_InternationalNumber_ReturnsInternationalNumber()
         {
             // arrange
-            const ulong number = 99111234567L;
+            const ulong number = TrialNumber;
 
             // act
             var testResult = ItuE164InternationalNumber.CreateNumberForTrial(number);
@@ -849,8 +917,8 @@ namespace DataStandardizer.Communication.Tests.E164
         public void CreateNumberForTrial_CountryCodeNotDefined_ThrowsArgumentException()
         {
             // arrange
-            var countryCode = (ItuE164AssignedCountryCodesForTrials)1000;
-            var trialIdentificationCode = (ItuE164AssignedTrialIdentificationCodesForTrials)1;
+            var countryCode = (ItuE164AssignedCountryCodesForTrials)UndefinedCountryCode;
+            var trialIdentificationCode = (ItuE164AssignedTrialIdentificationCodesForTrials)TrialIdentificationCode;
 
             // act
             Action testAction = () => _ = ItuE164InternationalNumber.CreateNumberForTrial(countryCode, trialIdentificationCode, null);
@@ -858,7 +926,7 @@ namespace DataStandardizer.Communication.Tests.E164
             // assert
             testAction.Should()
                 .Throw<ArgumentException>()
-                .WithMessage($"'{(ushort)countryCode}' is not a valid Country Code.*");
+                .WithMessage(UndefinedCountryCodeMessage);
         }
 
         [Fact]
@@ -874,7 +942,7 @@ namespace DataStandardizer.Communication.Tests.E164
             // assert
             testAction.Should()
                 .Throw<ArgumentException>()
-                .WithMessage($"'{(byte)trialIdentificationCode}' is not a valid Trial Identification Code.*");
+                .WithMessage("'10' is not a valid Trial Identification Code.*");
         }
 
         [Fact(Skip = NumberForTrialsSkipMessage)]
@@ -882,8 +950,8 @@ namespace DataStandardizer.Communication.Tests.E164
         {
             // arrange
             const ItuE164AssignedCountryCodesForTrials countryCode = ItuE164AssignedCountryCodesForTrials.SharedCode;
-            var trialIdentificationCode = (ItuE164AssignedTrialIdentificationCodesForTrials)1;
-            const ulong subscriberNumber = 123456789012L;
+            var trialIdentificationCode = (ItuE164AssignedTrialIdentificationCodesForTrials)TrialIdentificationCode;
+            const ulong subscriberNumber = TwelveDigitSubscriberNumber;
 
             // act
             Action testAction = () => _ = ItuE164InternationalNumber.CreateNumberForTrial(countryCode, trialIdentificationCode, subscriberNumber);
@@ -891,7 +959,7 @@ namespace DataStandardizer.Communication.Tests.E164
             // assert
             testAction.Should()
                 .Throw<ArgumentOutOfRangeException>()
-                .WithMessage("Subscriber Number must be 1 to 11 digits.");
+                .WithMessage(SubscriberNumberOf1To11DigitsMessage);
         }
 
         [Fact(Skip = NumberForTrialsSkipMessage)]
@@ -899,10 +967,10 @@ namespace DataStandardizer.Communication.Tests.E164
         {
             // arrange
             const ItuE164AssignedCountryCodesForTrials countryCode = ItuE164AssignedCountryCodesForTrials.SharedCode;
-            var trialIdentificationCode = (ItuE164AssignedTrialIdentificationCodesForTrials)1;
-            const ulong subscriberNumber = 1234567L;
+            var trialIdentificationCode = (ItuE164AssignedTrialIdentificationCodesForTrials)TrialIdentificationCode;
+            const ulong subscriberNumber = SubscriberNumber;
 
-            var expectedResult = ulong.Parse($"{(ushort)countryCode}{(byte)trialIdentificationCode}{subscriberNumber}");
+            const ulong expectedResult = TrialNumber;
 
             // act
             var testResult = ItuE164InternationalNumber.CreateNumberForTrial(countryCode, trialIdentificationCode, subscriberNumber);
@@ -945,7 +1013,7 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Theory(Skip = NumberForGroupsOfCountriesSkipMessage)]
-        [InlineData("388 3 1234567", 38831234567L)]
+        [InlineData(GroupOfCountriesNumberText, GroupOfCountriesNumber)]
         public void Parse_InternationalNumberForGroupsOfCountriesNoPrefix_ReturnsInternationalNumber(string testNumber, ulong expectedResult)
         {
             // act
@@ -956,7 +1024,7 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Theory(Skip = NumberForGroupsOfCountriesSkipMessage)]
-        [InlineData("+388 3 1234567", 38831234567L)]
+        [InlineData(PrefixedGroupOfCountriesNumberText, GroupOfCountriesNumber)]
         public void Parse_InternationalNumberForGroupsOfCountriesWithPrefix_ReturnsInternationalNumber(string testNumber, ulong expectedResult)
         {
             // act
@@ -967,9 +1035,7 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Theory(Skip = NumberForGroupsOfCountriesSkipMessage)]
-        [InlineData("38831565550100", 38831565550100L),
-         InlineData(" 38831565550101", 38831565550101L),
-         InlineData("  38831565550102", 38831565550102L)]
+        [MemberData(nameof(GroupsOfCountriesWithLeadingWhiteSpace))]
         public void Parse_InternationalNumberForGroupsOfCountriesWithLeadingWhiteSpace_ReturnsInternationalNumber(string testNumber, ulong expectedResult)
         {
             // act
@@ -980,9 +1046,7 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Theory(Skip = NumberForGroupsOfCountriesSkipMessage)]
-        [InlineData("38832075550100", 38832075550100L),
-         InlineData("38832075550101 ", 38832075550101L),
-         InlineData("38832075550102  ", 38832075550102L)]
+        [MemberData(nameof(GroupsOfCountriesWithTrailingWhiteSpace))]
         public void Parse_InternationalNumberForGroupsOfCountriesWithTrailingWhiteSpace_ReturnsInternationalNumber(string testNumber, ulong expectedResult)
         {
             // act
@@ -993,7 +1057,7 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Theory(Skip = NumberForTrialsSkipMessage)]
-        [InlineData("991 1 1234567", 99111234567L)]
+        [InlineData(TrialNumberText, TrialNumber)]
         public void Parse_InternationalNumberForTrialsNoPrefix_ReturnsInternationalNumber(string testNumber, ulong expectedResult)
         {
             // act
@@ -1004,7 +1068,7 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Theory(Skip = NumberForTrialsSkipMessage)]
-        [InlineData("+991 1 1234567", 99111234567L)]
+        [InlineData(PrefixedTrialNumberText, TrialNumber)]
         public void Parse_InternationalNumberForTrialsWithPrefix_ReturnsInternationalNumber(string testNumber, ulong expectedResult)
         {
             // act
@@ -1015,9 +1079,7 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Theory(Skip = NumberForTrialsSkipMessage)]
-        [InlineData("99110865550100", 99110865550100L),
-         InlineData(" 99110865550101", 99110865550101L),
-         InlineData("  99110865550102", 99110865550102L)]
+        [MemberData(nameof(TrialsWithLeadingWhiteSpace))]
         public void Parse_InternationalNumberForTrialsWithLeadingWhiteSpace_ReturnsInternationalNumber(string testNumber, ulong expectedResult)
         {
             // act
@@ -1028,9 +1090,7 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Theory(Skip = NumberForTrialsSkipMessage)]
-        [InlineData("99110995550100", 99110995550100L),
-         InlineData("99110995550101 ", 99110995550101L),
-         InlineData("99110995550102  ", 99110995550102L)]
+        [MemberData(nameof(TrialsWithTrailingWhiteSpace))]
         public void Parse_InternationalNumberForTrialsWithTrailingWhiteSpace_ReturnsInternationalNumber(string testNumber, ulong expectedResult)
         {
             // act
@@ -1041,10 +1101,10 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Theory]
-        [InlineData("991"), // too short
-         InlineData("9911012345678901"), // too long
-         InlineData("Not A Number")]
-        public void Parse_InvalidInput_ThrowsFormatException(string testNumber)
+        [InlineData(TooShortNumber, "The input string '991' was not in a correct format."),
+         InlineData(TooLongNumber, "The input string '9911012345678901' was not in a correct format."),
+         InlineData(NotANumber, "The input string 'Not A Number' was not in a correct format.")]
+        public void Parse_InvalidInput_ThrowsFormatException(string testNumber, string expectedMessage)
         {
             // act
             Action testAction = () => _ = ItuE164InternationalNumber.Parse(testNumber, ItuE164InternationalNumberStyles.InternationalNumber);
@@ -1052,7 +1112,7 @@ namespace DataStandardizer.Communication.Tests.E164
             // assert
             testAction.Should()
                 .Throw<FormatException>()
-                .WithMessage($"The input string '{testNumber}' was not in a correct format.");
+                .WithMessage(expectedMessage);
         }
 
         [Theory]
@@ -1092,7 +1152,7 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Theory(Skip = NumberForGroupsOfCountriesSkipMessage)]
-        [InlineData("388 3 1234567", 38831234567L)]
+        [InlineData(GroupOfCountriesNumberText, GroupOfCountriesNumber)]
         public void TryParse_InternationalNumberForGroupsOfCountriesNoPrefix_ReturnsTrue(string testNumber, ulong expectedResult)
         {
             // arrange
@@ -1107,7 +1167,7 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Theory(Skip = NumberForGroupsOfCountriesSkipMessage)]
-        [InlineData("+388 3 1234567", 38831234567L)]
+        [InlineData(PrefixedGroupOfCountriesNumberText, GroupOfCountriesNumber)]
         public void TryParse_InternationalNumberForGroupsOfCountriesWithPrefix_ReturnsTrue(string testNumber, ulong expectedResult)
         {
             // arrange
@@ -1122,9 +1182,7 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Theory(Skip = NumberForGroupsOfCountriesSkipMessage)]
-        [InlineData("38831565550100", 38831565550100L),
-         InlineData(" 38831565550101", 38831565550101L),
-         InlineData("  38831565550102", 38831565550102L)]
+        [MemberData(nameof(GroupsOfCountriesWithLeadingWhiteSpace))]
         public void TryParse_InternationalNumberForGroupsOfCountriesWithLeadingWhiteSpace_ReturnsTrue(string testNumber, ulong expectedResult)
         {
             // act
@@ -1136,9 +1194,7 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Theory(Skip = NumberForGroupsOfCountriesSkipMessage)]
-        [InlineData("38832075550100", 38832075550100L),
-         InlineData("38832075550101 ", 38832075550101L),
-         InlineData("38832075550102  ", 38832075550102L)]
+        [MemberData(nameof(GroupsOfCountriesWithTrailingWhiteSpace))]
         public void TryParse_InternationalNumberForGroupsOfCountriesWithTrailingWhiteSpace_ReturnsTrue(string testNumber, ulong expectedResult)
         {
             // act
@@ -1150,7 +1206,7 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Theory(Skip = NumberForTrialsSkipMessage)]
-        [InlineData("991 1 1234567", 99111234567L)]
+        [InlineData(TrialNumberText, TrialNumber)]
         public void TryParse_InternationalNumberForTrialsNoPrefix_ReturnsTrue(string testNumber, ulong expectedResult)
         {
             // arrange
@@ -1165,7 +1221,7 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Theory(Skip = NumberForTrialsSkipMessage)]
-        [InlineData("+991 1 1234567", 99111234567L)]
+        [InlineData(PrefixedTrialNumberText, TrialNumber)]
         public void TryParse_InternationalNumberForTrialsWithPrefix_ReturnsTrue(string testNumber, ulong expectedResult)
         {
             // arrange
@@ -1180,9 +1236,7 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Theory(Skip = NumberForTrialsSkipMessage)]
-        [InlineData("99110865550100", 99110865550100L),
-         InlineData(" 99110865550101", 99110865550101L),
-         InlineData("  99110865550102", 99110865550102L)]
+        [MemberData(nameof(TrialsWithLeadingWhiteSpace))]
         public void TryParse_InternationalNumberForTrialsWithLeadingWhiteSpace_ReturnsTrue(string testNumber, ulong expectedResult)
         {
             // act
@@ -1194,9 +1248,7 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Theory(Skip = NumberForTrialsSkipMessage)]
-        [InlineData("99110995550100", 99110995550100L),
-         InlineData("99110995550101 ", 99110995550101L),
-         InlineData("99110995550102  ", 99110995550102L)]
+        [MemberData(nameof(TrialsWithTrailingWhiteSpace))]
         public void TryParse_InternationalNumberForTrialsWithTrailingWhiteSpace_ReturnsTrue(string testNumber, ulong expectedResult)
         {
             // act
@@ -1208,9 +1260,9 @@ namespace DataStandardizer.Communication.Tests.E164
         }
 
         [Theory]
-        [InlineData("991"), // too short
-         InlineData("9911012345678901"), // too long
-         InlineData("Not A Number")]
+        [InlineData(TooShortNumber),
+         InlineData(TooLongNumber),
+         InlineData(NotANumber)]
         public void TryParse_NotInternationalNumber_ReturnsFalse(string testNumber)
         {
             // act

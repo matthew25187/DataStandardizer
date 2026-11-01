@@ -1,58 +1,191 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using DataStandardizer.Communication.Mime;
 using FluentAssertions;
 using Xunit;
+using static DataStandardizer.Communication.Tests.Mime.MimeCharsetResolverTestData;
 
 namespace DataStandardizer.Communication.Tests.Mime
 {
     public class MimeCharsetResolverTests
     {
+        // ref. IANA Character Sets registry
+        private const string UsAsciiName = "US-ASCII";
+        private const string Iso88591Name = "ISO-8859-1";
+        private const string Utf8Name = "UTF-8";
+        private const string Utf7Name = "UTF-7";
+        private const string Windows1252Name = "windows-1252";
+        private const string ShiftJisName = "Shift_JIS";
+
+        private const string UnknownName = "x-no-such-charset";
+
+        // ref. The Unicode Standard §23.8: U+FFFD REPLACEMENT CHARACTER, which a decoder writes for bytes it can't read.
+        private const string ReplacementCharacter = "\xFFFD";
+
+        private const int OneByte = 1;
+        private const int ThreeBytes = 3;
+
         public static IEnumerable<object[]> BuiltInNames() => MimeCharsetResolverTestData.BuiltInNames();
+
+        public static IEnumerable<object[]> BuiltInNameList() => MimeCharsetResolverTestData.BuiltInNameList();
+
+        public static IEnumerable<object[]> BuiltInNamesInOtherCase() => MimeCharsetResolverTestData.BuiltInNamesInOtherCase();
 
         public static IEnumerable<object[]> ByteOrderMarks() => MimeCharsetResolverTestData.ByteOrderMarks();
 
+        // ref. RFC 1345 §5; ISO/IEC 8859-1: each octet of ISO-8859-1 is the character with the same code point, U+0000 to U+00FF.
+        public static TheoryData<byte, char> Latin1Octets()
+        {
+            var data = new TheoryData<byte, char>();
+            for (var value = 0; value <= byte.MaxValue; value++)
+            {
+                data.Add((byte)value, (char)value);
+            }
+
+            return data;
+        }
+
         [Theory]
         [MemberData(nameof(BuiltInNames))]
-        public void TryGetEncoding_BuiltInNameInAnyCase_DecodesAndEncodes(string name, string text, byte[] bytes)
+        public void GetString_BuiltInName_ReturnsText(string name, string text, byte[] bytes)
         {
+            // arrange
             var encoding = Resolve(name);
 
-            encoding.GetString(bytes).Should().Be(text);
-            encoding.GetBytes(text).Should().Equal(bytes);
-            encoding.GetPreamble().Should().BeEmpty();
-            Resolve(name.ToUpperInvariant()).Should().BeSameAs(encoding);
-            Resolve(name.ToLowerInvariant()).Should().BeSameAs(encoding);
+            // act
+            var testResult = encoding.GetString(bytes);
+
+            // assert
+            testResult.Should().Be(text);
+        }
+
+        [Theory]
+        [MemberData(nameof(BuiltInNames))]
+        public void GetBytes_BuiltInName_ReturnsBytes(string name, string text, byte[] bytes)
+        {
+            // arrange
+            var encoding = Resolve(name);
+
+            // act
+            var testResult = encoding.GetBytes(text);
+
+            // assert
+            testResult.Should().Equal(bytes);
+        }
+
+        [Theory]
+        [MemberData(nameof(BuiltInNameList))]
+        public void GetPreamble_BuiltInName_ReturnsEmpty(string name)
+        {
+            // arrange
+            var encoding = Resolve(name);
+
+            // act
+            var testResult = encoding.GetPreamble();
+
+            // assert
+            testResult.Should().BeEmpty();
+        }
+
+        [Theory]
+        [MemberData(nameof(BuiltInNamesInOtherCase))]
+        public void TryGetEncoding_BuiltInNameInOtherCase_ReturnsSameEncoding(string name, string nameInOtherCase)
+        {
+            // arrange
+            var encoding = Resolve(name);
+
+            // act
+            var testResult = Resolve(nameInOtherCase);
+
+            // assert
+            testResult.Should().BeSameAs(encoding);
         }
 
         [Theory]
         [MemberData(nameof(BuiltInNames))]
         public void GetDecoder_BuiltInNameOneByteAtATime_Decodes(string name, string text, byte[] bytes)
         {
-            DecodeInBlocks(Resolve(name), bytes, 1).Should().Be(text);
+            // arrange
+            var encoding = Resolve(name);
+
+            // act
+            var testResult = EncodingBlocks.Decode(encoding, bytes, OneByte);
+
+            // assert
+            testResult.Should().Be(text);
         }
 
         [Theory]
         [MemberData(nameof(BuiltInNames))]
         public void GetEncoder_BuiltInNameOneCharacterAtATime_Encodes(string name, string text, byte[] bytes)
         {
-            EncodeInBlocks(Resolve(name), text, 1).Should().Equal(bytes);
+            // arrange
+            var encoding = Resolve(name);
+
+            // act
+            var testResult = EncodingBlocks.EncodeOneCharacterAtATime(encoding, text);
+
+            // assert
+            testResult.Should().Equal(bytes);
         }
 
         [Theory]
         [MemberData(nameof(ByteOrderMarks))]
-        public void TryGetEncoding_UnmarkedSchemeWithByteOrderMark_UsesItsByteOrderAndRemovesIt(string name, byte[] mark, string text,
-            byte[] bytes)
+        public void GetString_UnmarkedSchemeWithByteOrderMark_UsesItsByteOrderAndRemovesIt(string name, byte[] markedBytes, string text)
         {
+            // arrange
             var encoding = Resolve(name);
-            var marked = mark.Concat(bytes).ToArray();
 
-            encoding.GetString(marked).Should().Be(text);
-            encoding.GetCharCount(marked).Should().Be(text.Length);
-            DecodeInBlocks(encoding, marked, 1).Should().Be(text);
-            DecodeInBlocks(encoding, marked, 3).Should().Be(text);
+            // act
+            var testResult = encoding.GetString(markedBytes);
+
+            // assert
+            testResult.Should().Be(text);
+        }
+
+        [Theory]
+        [MemberData(nameof(ByteOrderMarks))]
+        public void GetCharCount_UnmarkedSchemeWithByteOrderMark_DoesNotCountTheMark(string name, byte[] markedBytes, string text)
+        {
+            // arrange
+            var encoding = Resolve(name);
+
+            // act
+            var testResult = encoding.GetCharCount(markedBytes);
+
+            // assert
+            testResult.Should().Be(text.Length);
+        }
+
+        [Theory]
+        [MemberData(nameof(ByteOrderMarks))]
+        public void GetDecoder_UnmarkedSchemeWithByteOrderMarkOneByteAtATime_UsesItsByteOrderAndRemovesIt(string name, byte[] markedBytes,
+            string text)
+        {
+            // arrange
+            var encoding = Resolve(name);
+
+            // act
+            var testResult = EncodingBlocks.Decode(encoding, markedBytes, OneByte);
+
+            // assert
+            testResult.Should().Be(text);
+        }
+
+        [Theory]
+        [MemberData(nameof(ByteOrderMarks))]
+        public void GetDecoder_UnmarkedSchemeWithByteOrderMarkThreeBytesAtATime_UsesItsByteOrderAndRemovesIt(string name, byte[] markedBytes,
+            string text)
+        {
+            // arrange
+            var encoding = Resolve(name);
+
+            // act
+            var testResult = EncodingBlocks.Decode(encoding, markedBytes, ThreeBytes);
+
+            // assert
+            testResult.Should().Be(text);
         }
 
         [Theory]
@@ -62,156 +195,302 @@ namespace DataStandardizer.Communication.Tests.Mime
         [InlineData("UTF-32LE", new byte[] { 0xFF, 0xFE, 0x00, 0x00, 0x41, 0x00, 0x00, 0x00 })]
         public void TryGetEncoding_MarkedScheme_KeepsLeadingZeroWidthNoBreakSpace(string name, byte[] bytes)
         {
+            // arrange
+            var encoding = Resolve(name);
+
+            // act
+            var testResult = encoding.GetString(bytes);
+
+            // assert
             // ref. RFC 2781 §3.2: in UTF-16BE and UTF-16LE, U+FEFF at the start is a ZERO WIDTH NO-BREAK SPACE, not a byte order mark
-            Resolve(name).GetString(bytes).Should().Be("\uFEFFA");
+            testResult.Should().Be("\xFEFFA");
+        }
+
+        // Bytes of an unmarked scheme that end before a byte order mark or a code unit could, with the text they decode to once the decoder
+        // is flushed.
+        public static TheoryData<string, byte[], string> BytesShorterThanByteOrderMark => new TheoryData<string, byte[], string>
+        {
+            { Utf16Name, new byte[] { 0x00 }, ReplacementCharacter },
+            { Utf16Name, new byte[] { 0xFF }, ReplacementCharacter },
+            { Utf16Name, new byte[] { 0xFE, 0xFF }, string.Empty },
+            { Utf32Name, new byte[] { 0x00, 0x00, 0x00 }, ReplacementCharacter },
+            { Utf32Name, new byte[] { 0x00, 0x00, 0xFE, 0xFF }, string.Empty },
+            { Utf32Name, new byte[] { 0x00, 0x00, 0xFE, 0xFF, 0x00 }, ReplacementCharacter },
+        };
+
+        [Theory]
+        [MemberData(nameof(BytesShorterThanByteOrderMark))]
+        public void GetString_UnmarkedSchemeShorterThanByteOrderMark_DecodesWhatItHas(string name, byte[] bytes, string expected)
+        {
+            // arrange
+            var encoding = Resolve(name);
+
+            // act
+            var testResult = encoding.GetString(bytes);
+
+            // assert
+            testResult.Should().Be(expected);
         }
 
         [Theory]
-        [InlineData("UTF-16", new byte[] { 0x00 }, "\uFFFD")]
-        [InlineData("UTF-16", new byte[] { 0xFF }, "\uFFFD")]
-        [InlineData("UTF-16", new byte[] { 0xFE, 0xFF }, "")]
-        [InlineData("UTF-32", new byte[] { 0x00, 0x00, 0x00 }, "\uFFFD")]
-        [InlineData("UTF-32", new byte[] { 0x00, 0x00, 0xFE, 0xFF }, "")]
-        [InlineData("UTF-32", new byte[] { 0x00, 0x00, 0xFE, 0xFF, 0x00 }, "\uFFFD")]
-        public void GetDecoder_UnmarkedSchemeShorterThanByteOrderMark_DecodesOnFlush(string name, byte[] bytes, string expected)
+        [MemberData(nameof(BytesShorterThanByteOrderMark))]
+        public void GetDecoder_UnmarkedSchemeShorterThanByteOrderMarkFlushed_DecodesWhatItHas(string name, byte[] bytes, string expected)
         {
-            DecodeInBlocks(Resolve(name), bytes, 1).Should().Be(expected);
-            Resolve(name).GetString(bytes).Should().Be(expected);
+            // arrange
+            var decoder = Resolve(name).GetDecoder();
+            var chars = new char[expected.Length];
+
+            // act
+            var testResult = decoder.GetChars(bytes, 0, bytes.Length, chars, 0, true);
+
+            // assert
+            testResult.Should().Be(expected.Length);
+            new string(chars).Should().Be(expected);
         }
+
+#if NETCOREAPP
+        // .NET's StreamReader flushes the decoder at the end of the stream; .NET Framework's doesn't.
+        [Theory]
+        [MemberData(nameof(BytesShorterThanByteOrderMark))]
+        public void GetDecoder_UnmarkedSchemeShorterThanByteOrderMarkOneByteAtATime_DecodesWhatItHas(string name, byte[] bytes,
+            string expected)
+        {
+            // arrange
+            var encoding = Resolve(name);
+
+            // act
+            var testResult = EncodingBlocks.Decode(encoding, bytes, OneByte);
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+#endif
+
+        // The bytes of UTF-16 "A" and "B", little-endian after a byte order mark, and big-endian without one.
+        private static readonly byte[] Utf16LittleEndianMarkedA = { 0xFF, 0xFE, 0x41, 0x00 };
+        private static readonly byte[] Utf16BigEndianB = { 0x00, 0x42 };
+        private const int UnmarkedCharacterCount = 1;
 
         [Fact]
         public void GetDecoder_UnmarkedScheme_DetectsByteOrderMarkAfterReset()
         {
-            var decoder = Resolve("UTF-16").GetDecoder();
-            var chars = new char[4];
-            decoder.GetChars(new byte[] { 0xFF, 0xFE, 0x41, 0x00 }, 0, 4, chars, 0, false).Should().Be(1);
-
+            // arrange
+            var decoder = Resolve(Utf16Name).GetDecoder();
+            decoder.GetChars(Utf16LittleEndianMarkedA, 0, Utf16LittleEndianMarkedA.Length, new char[UnmarkedCharacterCount], 0, false);
             decoder.Reset();
+            var chars = new char[UnmarkedCharacterCount];
 
-            decoder.GetChars(new byte[] { 0x00, 0x42 }, 0, 2, chars, 0, true).Should().Be(1);
-            chars[0].Should().Be('B');
+            // act
+            var testResult = decoder.GetChars(Utf16BigEndianB, 0, Utf16BigEndianB.Length, chars, 0, true);
+
+            // assert
+            testResult.Should().Be(UnmarkedCharacterCount);
+            chars.Should().Equal('B');
+        }
+
+        [Theory]
+        [MemberData(nameof(Latin1Octets))]
+        public void GetString_Latin1Octet_ReturnsCharacterWithSameCodePoint(byte octet, char character)
+        {
+            // arrange
+            var encoding = Resolve(Iso88591Name);
+
+            // act
+            var testResult = encoding.GetString(new[] { octet });
+
+            // assert
+            testResult.Should().Be(character.ToString());
+        }
+
+        [Theory]
+        [MemberData(nameof(Latin1Octets))]
+        public void GetBytes_Latin1Character_ReturnsOctetWithSameValue(byte octet, char character)
+        {
+            // arrange
+            var encoding = Resolve(Iso88591Name);
+
+            // act
+            var testResult = encoding.GetBytes(new[] { character });
+
+            // assert
+            testResult.Should().Equal(octet);
         }
 
         [Fact]
-        public void TryGetEncoding_Latin1_RoundTripsEveryByte()
+        public void GetBytes_Latin1CharactersOutsideRange_WritesQuestionMarks()
         {
-            var encoding = Resolve("ISO-8859-1");
-            var bytes = Enumerable.Range(0, 256).Select(value => (byte)value).ToArray();
-
-            var text = encoding.GetString(bytes);
-
-            text.Select(c => (int)c).Should().Equal(Enumerable.Range(0, 256));
-            encoding.GetBytes(text).Should().Equal(bytes);
-        }
-
-        [Fact]
-        public void TryGetEncoding_Latin1_WritesQuestionMarkForCharacterOutsideRange()
-        {
+            // arrange
             // On its own, Encoding.Latin1 writes a best fit, such as 'A' for U+0100.
-            Resolve("ISO-8859-1").GetBytes("\u0100\uD83D\uDE00").Should().Equal((byte)'?', (byte)'?', (byte)'?');
+            var encoding = Resolve(Iso88591Name);
+
+            // act
+            var testResult = encoding.GetBytes("\x0100\xD83D\xDE00");
+
+            // assert
+            testResult.Should().Equal((byte)'?', (byte)'?', (byte)'?');
         }
 
         [Fact]
-        public void TryGetEncoding_UsAscii_ReplacesCharactersOutsideRange()
+        public void GetString_UsAsciiBytesOutsideRange_ReturnsReplacementCharacters()
         {
+            // arrange
             // On its own, the runtime's US-ASCII reads 0x80 as '?' on .NET Framework, and as U+FFFD on .NET.
-            var encoding = Resolve("US-ASCII");
+            var encoding = Resolve(UsAsciiName);
 
-            encoding.GetString(new byte[] { 0x41, 0x80, 0xFF }).Should().Be("A\uFFFD\uFFFD");
-            encoding.GetBytes("A\u0080\u00E9\uD83D\uDE00").Should().Equal((byte)'A', (byte)'?', (byte)'?', (byte)'?', (byte)'?');
+            // act
+            var testResult = encoding.GetString(new byte[] { 0x41, 0x80, 0xFF });
+
+            // assert
+            testResult.Should().Be("A\xFFFD\xFFFD");
         }
 
         [Fact]
-        public void TryGetEncoding_Utf8_ReplacesInvalidBytes()
+        public void GetBytes_UsAsciiCharactersOutsideRange_WritesQuestionMarks()
         {
-            Resolve("UTF-8").GetString(new byte[] { 0x41, 0xFF }).Should().Be("A\uFFFD");
+            // arrange
+            var encoding = Resolve(UsAsciiName);
+
+            // act
+            var testResult = encoding.GetBytes("A\x0080\x00E9\xD83D\xDE00");
+
+            // assert
+            testResult.Should().Equal((byte)'A', (byte)'?', (byte)'?', (byte)'?', (byte)'?');
+        }
+
+        [Fact]
+        public void GetString_Utf8InvalidByte_ReturnsReplacementCharacter()
+        {
+            // arrange
+            var encoding = Resolve(Utf8Name);
+
+            // act
+            var testResult = encoding.GetString(new byte[] { 0x41, 0xFF });
+
+            // assert
+            testResult.Should().Be("A\xFFFD");
         }
 
         [Theory]
         [InlineData("utf-16")]
-        [InlineData("UTF-32")]
+        [InlineData(Utf32Name)]
         public void TryGetEncoding_UnmarkedScheme_IsBigEndianUnlikeRuntime(string name)
         {
+            // arrange
             // Encoding.GetEncoding("utf-16") and ("utf-32") are little-endian; RFC 2781 §4.3 says unmarked UTF-16 is big-endian.
-            Resolve(name).GetBytes("A").First().Should().Be(0x00);
+            var encoding = Resolve(name);
+
+            // act
+            var testResult = encoding.GetBytes("A");
+
+            // assert
+            testResult[0].Should().Be(0x00);
         }
 
-        [Fact]
-        public void TryGetEncoding_RuntimeEncoding_IsResolved()
-        {
-            // UTF-7 isn't built in; .NET Framework has it, and .NET 5 and later don't.
 #if NETFRAMEWORK
-            Resolve("UTF-7").GetString(new byte[] { 0x2B, 0x41, 0x4F, 0x45, 0x2D }).Should().Be("\u00E1");
-#else
-            MimeCharsetResolver.Default.TryGetEncoding(MimeCharset.Parse("UTF-7"), out var encoding).Should().BeFalse();
-            encoding.Should().BeNull();
-#endif
-        }
+        // ref. RFC 2152: "+AOE-" is U+00E1 in UTF-7.
+        private static readonly byte[] Utf7Bytes = { 0x2B, 0x41, 0x4F, 0x45, 0x2D };
+        private const string Utf7Text = "\x00E1";
 
         [Fact]
-        public void TryGetEncoding_CodePages_AreResolvedOnlyWhereTheRuntimeHasThem()
+        public void TryGetEncoding_RuntimeEncodingOnNetFramework_IsResolved()
         {
-            // The only test that registers an encoding provider, which can't be undone, so it checks both sides in order.
-#if !NETFRAMEWORK
-            MimeCharsetResolver.Default.TryGetEncoding(MimeCharset.Parse("windows-1252"), out var unregistered).Should().BeFalse();
-            unregistered.Should().BeNull();
-            MimeCharsetResolver.Default.TryGetEncoding(MimeCharset.Parse("Shift_JIS"), out unregistered).Should().BeFalse();
+            // arrange
+            // UTF-7 isn't built in; .NET Framework has it.
+            var encoding = Resolve(Utf7Name);
 
-            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-#endif
+            // act
+            var testResult = encoding.GetString(Utf7Bytes);
 
-            Resolve("windows-1252").GetString(new byte[] { 0x80, 0x93, 0x94 }).Should().Be("\u20AC\u201C\u201D");
-            Resolve("WINDOWS-1252").GetBytes("\u20AC").Should().Equal(0x80);
-            Resolve("Shift_JIS").GetString(new byte[] { 0x93, 0xFA, 0x96, 0x7B }).Should().Be("\u65E5\u672C");
-            Resolve("shift_jis").GetBytes("\u65E5\u672C").Should().Equal(0x93, 0xFA, 0x96, 0x7B);
+            // assert
+            testResult.Should().Be(Utf7Text);
         }
+#else
+        [Theory]
+        // UTF-7 isn't built in, and .NET 5 and later don't have it; nor do they have code pages until a provider is registered, which only
+        // the integration tests do.
+        [InlineData(Utf7Name)]
+        [InlineData(Windows1252Name)]
+        [InlineData(ShiftJisName)]
+        public void TryGetEncoding_EncodingTheRuntimeDoesNotHave_ReturnsFalse(string name)
+        {
+            // arrange
+            var charset = MimeCharset.Parse(name);
+
+            // act
+            var testResult = MimeCharsetResolver.Default.TryGetEncoding(charset, out var encoding);
+
+            // assert
+            testResult.Should().BeFalse();
+            encoding.Should().BeNull();
+        }
+#endif
 
         [Fact]
         public void TryGetEncoding_UnknownName_ReturnsFalse()
         {
-            MimeCharsetResolver.Default.TryGetEncoding(MimeCharset.Parse("x-no-such-charset"), out var encoding).Should().BeFalse();
+            // arrange
+            var charset = MimeCharset.Parse(UnknownName);
 
+            // act
+            var testResult = MimeCharsetResolver.Default.TryGetEncoding(charset, out var encoding);
+
+            // assert
+            testResult.Should().BeFalse();
             encoding.Should().BeNull();
         }
 
         [Fact]
         public void TryGetEncoding_UnknownNameWithFallback_UsesFallback()
         {
+            // arrange
             var fallback = new StubResolver(Encoding.UTF8);
             var resolver = new MimeCharsetResolver(fallback);
+            var charset = MimeCharset.Parse(UnknownName);
 
-            resolver.TryGetEncoding(MimeCharset.Parse("x-no-such-charset"), out var encoding).Should().BeTrue();
+            // act
+            var testResult = resolver.TryGetEncoding(charset, out var encoding);
 
+            // assert
+            testResult.Should().BeTrue();
             encoding.Should().BeSameAs(Encoding.UTF8);
-            fallback.Requested.Should().Equal(MimeCharset.Parse("x-no-such-charset"));
+            fallback.Requested.Should().Equal(charset);
         }
 
         [Fact]
         public void TryGetEncoding_UnknownNameWithFallbackThatDoesNotResolve_ReturnsFalse()
         {
+            // arrange
             var resolver = new MimeCharsetResolver(new StubResolver(null));
+            var charset = MimeCharset.Parse(UnknownName);
 
-            resolver.TryGetEncoding(MimeCharset.Parse("x-no-such-charset"), out var encoding).Should().BeFalse();
+            // act
+            var testResult = resolver.TryGetEncoding(charset, out var encoding);
 
+            // assert
+            testResult.Should().BeFalse();
             encoding.Should().BeNull();
         }
 
         [Theory]
-        [InlineData("UTF-8")]
-        [InlineData("latin1")]
-        [InlineData("utf-7")]
-        public void TryGetEncoding_KnownNameWithFallback_DoesNotUseFallback(string name)
-        {
-#if !NETFRAMEWORK
-            // UTF-7 is not a runtime encoding on .NET 5 and later.
-            if (name == "utf-7") return;
+        [InlineData(Utf8Name, "utf-8")]
+        [InlineData("latin1", "iso-8859-1")]
+#if NETFRAMEWORK
+        // UTF-7 is a runtime encoding only on .NET Framework.
+        [InlineData("utf-7", "utf-7")]
 #endif
+        public void TryGetEncoding_KnownNameWithFallback_DoesNotUseFallback(string name, string expectedWebName)
+        {
+            // arrange
             var fallback = new StubResolver(Encoding.UTF8);
             var resolver = new MimeCharsetResolver(fallback);
+            var charset = MimeCharset.Parse(name);
 
-            resolver.TryGetEncoding(MimeCharset.Parse(name), out var encoding).Should().BeTrue();
+            // act
+            var testResult = resolver.TryGetEncoding(charset, out var encoding);
 
-            encoding.WebName.Should().Be(Resolve(name).WebName);
+            // assert
+            testResult.Should().BeTrue();
+            encoding.WebName.Should().Be(expectedWebName);
             fallback.Requested.Should().BeEmpty();
         }
 
@@ -219,9 +498,9 @@ namespace DataStandardizer.Communication.Tests.Mime
         public static TheoryData<string, byte[]> InvalidSchemeBytes => new TheoryData<string, byte[]>
         {
             // ref. RFC 2781 §2.2: 0xD800 is a high surrogate, which must be followed by a low surrogate.
-            { "UTF-16", new byte[] { 0xD8, 0x00 } },
+            { Utf16Name, new byte[] { 0xD8, 0x00 } },
             // ref. The Unicode Standard §3.9, D76: 0x00110000 is above U+10FFFF, so it is not a Unicode scalar value.
-            { "UTF-32", new byte[] { 0x00, 0x11, 0x00, 0x00 } },
+            { Utf32Name, new byte[] { 0x00, 0x11, 0x00, 0x00 } },
         };
 
         [Theory]
@@ -247,9 +526,10 @@ namespace DataStandardizer.Communication.Tests.Mime
             var encoding = (Encoding)Resolve(name).Clone();
             encoding.DecoderFallback = DecoderFallback.ExceptionFallback;
             var decoder = encoding.GetDecoder();
+            var chars = new char[bytes.Length];
 
             // act
-            Action testAction = () => decoder.GetChars(bytes, 0, bytes.Length, new char[bytes.Length], 0, true);
+            Action testAction = () => decoder.GetChars(bytes, 0, bytes.Length, chars, 0, true);
 
             // assert
             testAction.Should().Throw<DecoderFallbackException>();
@@ -259,8 +539,8 @@ namespace DataStandardizer.Communication.Tests.Mime
         private const string UnpairedHighSurrogate = "\xD800";
 
         [Theory]
-        [InlineData("UTF-16")]
-        [InlineData("UTF-32")]
+        [InlineData(Utf16Name)]
+        [InlineData(Utf32Name)]
         public void GetBytes_UnmarkedSchemeWithExceptionFallback_ThrowsEncoderFallbackException(string name)
         {
             // arrange
@@ -294,8 +574,8 @@ namespace DataStandardizer.Communication.Tests.Mime
         }
 
         [Theory]
-        [InlineData("UTF-16")]
-        [InlineData("UTF-32")]
+        [InlineData(Utf16Name)]
+        [InlineData(Utf32Name)]
         public void GetMaxByteCount_UnmarkedSchemeWithLongReplacement_IsEnoughForGetBytes(string name)
         {
             // arrange
@@ -314,59 +594,27 @@ namespace DataStandardizer.Communication.Tests.Mime
         [Fact]
         public void TryGetEncoding_UninitializedCharset_ThrowsArgumentException()
         {
-            FluentActions.Invoking(() => MimeCharsetResolver.Default.TryGetEncoding(default(MimeCharset), out _))
-                .Should().Throw<ArgumentException>();
+            // act
+            Action testAction = () => MimeCharsetResolver.Default.TryGetEncoding(default(MimeCharset), out _);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>();
         }
 
         [Fact]
         public void Constructor_NullFallback_ThrowsArgumentNullException()
         {
-            FluentActions.Invoking(() => new MimeCharsetResolver(null)).Should().Throw<ArgumentNullException>();
+            // act
+            Action testAction = () => _ = new MimeCharsetResolver(null);
+
+            // assert
+            testAction.Should().Throw<ArgumentNullException>();
         }
 
         private static Encoding Resolve(string name)
         {
-            MimeCharsetResolver.Default.TryGetEncoding(MimeCharset.Parse(name), out var encoding).Should().BeTrue("{0} should resolve", name);
+            MimeCharsetResolver.Default.TryGetEncoding(MimeCharset.Parse(name), out var encoding);
             return encoding;
-        }
-
-        internal static string DecodeInBlocks(Encoding encoding, byte[] bytes, int blockSize)
-        {
-            var decoder = encoding.GetDecoder();
-            var text = new StringBuilder();
-            var index = 0;
-            do
-            {
-                var count = Math.Min(blockSize, bytes.Length - index);
-                var flush = index + count == bytes.Length;
-                var chars = new char[decoder.GetCharCount(bytes, index, count, flush)];
-                decoder.GetChars(bytes, index, count, chars, 0, flush).Should().Be(chars.Length);
-                text.Append(chars);
-                index += count;
-            }
-            while (index < bytes.Length);
-
-            return text.ToString();
-        }
-
-        internal static byte[] EncodeInBlocks(Encoding encoding, string text, int blockSize)
-        {
-            var encoder = encoding.GetEncoder();
-            var chars = text.ToCharArray();
-            var bytes = new List<byte>();
-            var index = 0;
-            do
-            {
-                var count = Math.Min(blockSize, chars.Length - index);
-                var flush = index + count == chars.Length;
-                var block = new byte[encoder.GetByteCount(chars, index, count, flush)];
-                encoder.GetBytes(chars, index, count, block, 0, flush).Should().Be(block.Length);
-                bytes.AddRange(block);
-                index += count;
-            }
-            while (index < chars.Length);
-
-            return bytes.ToArray();
         }
 
         private sealed class StubResolver : IMimeCharsetResolver

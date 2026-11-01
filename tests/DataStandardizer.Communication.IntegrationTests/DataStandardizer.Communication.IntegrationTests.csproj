@@ -1,0 +1,50 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net48;net8.0;net10.0</TargetFrameworks>
+
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="FluentAssertions" Version="[7.2.0]" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.0" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\DataStandardizer.Communication\DataStandardizer.Communication.csproj" />
+    <!-- Builds the netstandard1.1 target too, without referencing it, so that NetStandard11CharsetTests can load it and check its
+         built-in encodings, some of which are hand-coded for that target.  CopyNetStandard11Build copies it to the netstandard1.1
+         folder of the output. -->
+    <ProjectReference Include="..\..\src\DataStandardizer.Communication\DataStandardizer.Communication.csproj" SetTargetFramework="TargetFramework=netstandard1.1"
+                      ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" Private="false" OutputItemType="NetStandard11Build" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The character set test data and the test doubles that feed an encoding in blocks are shared with the unit tests. -->
+    <Compile Include="..\DataStandardizer.Communication.Tests\Mime\MimeCharsetResolverTestData.cs" Link="Mime\MimeCharsetResolverTestData.cs" />
+    <Compile Include="..\DataStandardizer.Communication.Tests\Mime\BlockStream.cs" Link="Mime\BlockStream.cs" />
+    <Compile Include="..\DataStandardizer.Communication.Tests\Mime\CharacterAtATimeWriter.cs" Link="Mime\CharacterAtATimeWriter.cs" />
+    <Compile Include="..\DataStandardizer.Communication.Tests\Mime\EncodingBlocks.cs" Link="Mime\EncodingBlocks.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Turns off xUnit's AppDomain isolation on .NET Framework, as the unit tests do. -->
+    <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <Target Name="CopyNetStandard11Build" AfterTargets="CopyFilesToOutputDirectory">
+    <Copy SourceFiles="@(NetStandard11Build)" DestinationFolder="$(OutDir)netstandard1.1" SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>
