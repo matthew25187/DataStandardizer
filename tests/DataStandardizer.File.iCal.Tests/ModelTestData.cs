@@ -58,8 +58,8 @@ namespace DataStandardizer.File.iCal.Tests
         /// </summary>
         public static string Calendar(params string[] lines)
         {
-            return IcalTestData.Crlf(IcalTestData.Lines(new[] { "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Test//Test//EN" }, lines,
-                new[] { "END:VCALENDAR" }));
+            return IcalTestData.Crlf(IcalTestData.Lines(new[] { IcalLines.BeginCalendar, IcalLines.Version20, IcalLines.TestProductId }, lines,
+                new[] { IcalLines.EndCalendar }));
         }
 
         /// <summary>
@@ -67,9 +67,9 @@ namespace DataStandardizer.File.iCal.Tests
         /// </summary>
         public static string EventCalendar(params string[] eventLines)
         {
-            string[] start = eventLines.Any(line => line.StartsWith("DTSTART", StringComparison.Ordinal)) ? new string[0] : new[] { "DTSTART:20260101T090000Z" };
-            return Calendar(IcalTestData.Lines(new[] { "BEGIN:VEVENT", "UID:event@example.com", "DTSTAMP:20260101T000000Z" }, start, eventLines,
-                new[] { "END:VEVENT" }));
+            string[] start = eventLines.Any(line => line.StartsWith("DTSTART", StringComparison.Ordinal)) ? new string[0] : new[] { IcalLines.NewYearStart };
+            return Calendar(IcalTestData.Lines(new[] { IcalLines.BeginEvent, IcalLines.EventUid, IcalLines.NewYearStamp }, start, eventLines,
+                new[] { IcalLines.EndEvent }));
         }
 
         /// <summary>
@@ -77,8 +77,8 @@ namespace DataStandardizer.File.iCal.Tests
         /// </summary>
         public static IcalAlarm ReadAlarm(params string[] alarmLines)
         {
-            var testEvent = ReadCalendar(EventCalendar(IcalTestData.Lines(new[] { "BEGIN:VALARM" }, alarmLines,
-                new[] { "END:VALARM" }))).Events.Should().ContainSingle().Subject;
+            var testEvent = ReadCalendar(EventCalendar(IcalTestData.Lines(new[] { IcalLines.BeginAlarm }, alarmLines,
+                new[] { IcalLines.EndAlarm }))).Events.Should().ContainSingle().Subject;
             return testEvent.Alarms.Should().ContainSingle().Subject;
         }
     }

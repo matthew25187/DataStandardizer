@@ -1,8 +1,6 @@
 ﻿using System;
-using System.IO;
+using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using FluentAssertions;
 using Xunit;
 using static DataStandardizer.File.iCal.Tests.JcalTestData;
@@ -21,6 +19,24 @@ namespace DataStandardizer.File.iCal.Tests
         /// </summary>
         internal static readonly string Extensions = XcalRoundTripTests.Extensions.Replace("X-INTEGER;VALUE=INTEGER:+7", "X-INTEGER;VALUE=INTEGER:-7");
 
+        // ref. RFC 7265 §5: an unknown property, whose value would be changed if it were taken as TEXT.
+        private const string CoffeeDataName = "X-COFFEE-DATA";
+        private const string CoffeeDataValue = "Stenophylla;Guinea\\,Africa";
+        private const string CoffeeDataJcal = "[\"x-coffee-data\",{},\"unknown\",\"Stenophylla;Guinea\\\\,Africa\"]";
+        private const string ComplaintDeadlineName = "X-COMPLAINT-DEADLINE";
+        private const string ComplaintDeadlineValue = "20110512T120000Z";
+
+        private static readonly string UnknownPropertiesCalendar =
+            EventCalendar(CoffeeDataName + ":" + CoffeeDataValue, ComplaintDeadlineName + ":" + ComplaintDeadlineValue);
+
+        private static readonly IReadOnlyDictionary<string, (string Text, IcalOptions Options)> Calendars =
+            new Dictionary<string, (string Text, IcalOptions Options)>(CalendarFixtures.All.ToDictionary(pair => pair.Key, pair => pair.Value))
+            {
+                [nameof(Example1Ical)] = (Example1Ical, null),
+                [nameof(Example2Ical)] = (Example2Ical, null),
+                [nameof(Extensions)] = (Extensions, null),
+            };
+
         public static TheoryData<string> CalendarNames()
         {
             var data = CalendarFixtures.AllNames();
@@ -30,161 +46,248 @@ namespace DataStandardizer.File.iCal.Tests
             return data;
         }
 
-        internal static (string Text, IcalOptions Options) GetCalendar(string name)
-        {
-            switch (name)
-            {
-                case nameof(Example1Ical):
-                    return (Example1Ical, null);
-                case nameof(Example2Ical):
-                    return (Example2Ical, null);
-                case nameof(Extensions):
-                    return (Extensions, null);
-                default:
-                    var (text, options) = CalendarFixtures.All[name];
-                    return (text, options);
-            }
-        }
+        internal static (string Text, IcalOptions Options) GetCalendar(string name) => Calendars[name];
 
         [Theory]
         [MemberData(nameof(CalendarNames))]
-        public void IcalToJcalToIcal_LeavesModelUnchanged(string calendarName)
+        public void ReadJcal_CalendarsWrittenAsJcal_LeavesModelUnchanged(string calendarName)
         {
             // arrange
             var (text, options) = GetCalendar(calendarName);
             var calendars = ReadCalendars(text, options);
+            var expected = Model(calendars, options);
 
             // act
             var testResult = ReadJcal(WriteJcal(calendars, options), options);
 
             // assert
-            Model(testResult, options).Should().Equal(Model(calendars, options));
+            Model(testResult, options).Should().Equal(expected);
         }
 
         [Theory]
         [MemberData(nameof(CalendarNames))]
-        public void JcalToIcalToJcal_LeavesModelAndJsonUnchanged(string calendarName)
+        public void ReadCalendars_JcalCalendarsWrittenAsIcal_LeavesModelUnchanged(string calendarName)
         {
             // arrange
             var (text, options) = GetCalendar(calendarName);
-            var jcal = WriteJcal(ReadCalendars(text, options), options);
-            var calendars = ReadJcal(jcal, options);
+            var calendars = ReadJcal(WriteJcal(ReadCalendars(text, options), options), options);
+            var expected = Model(calendars, options);
 
             // act
             var testResult = ReadCalendars(WriteCalendars(calendars, options), options);
 
             // assert
-            Model(testResult, options).Should().Equal(Model(calendars, options));
-            WriteJcal(testResult, options).Should().Be(jcal);
+            Model(testResult, options).Should().Equal(expected);
         }
 
         [Theory]
         [MemberData(nameof(CalendarNames))]
-        public void JcalToXcalToJcal_LeavesModelAndJsonUnchanged(string calendarName)
+        public void WriteJcal_JcalCalendarsThroughIcal_LeavesJsonUnchanged(string calendarName)
         {
             // arrange
             var (text, options) = GetCalendar(calendarName);
             var jcal = WriteJcal(ReadCalendars(text, options), options);
-            var calendars = ReadJcal(jcal, options);
+            var calendars = ReadCalendars(WriteCalendars(ReadJcal(jcal, options), options), options);
+
+            // act
+            var testResult = WriteJcal(calendars, options);
+
+            // assert
+            testResult.Should().Be(jcal);
+        }
+
+        [Theory]
+        [MemberData(nameof(CalendarNames))]
+        public void ReadXcal_JcalCalendarsWrittenAsXcal_LeavesModelUnchanged(string calendarName)
+        {
+            // arrange
+            var (text, options) = GetCalendar(calendarName);
+            var calendars = ReadJcal(WriteJcal(ReadCalendars(text, options), options), options);
+            var expected = Model(calendars, options);
 
             // act
             var testResult = XcalTestData.ReadXcal(XcalTestData.WriteXcal(calendars, options), options);
 
             // assert
-            Model(testResult, options).Should().Equal(Model(calendars, options));
-            WriteJcal(testResult, options).Should().Be(jcal);
+            Model(testResult, options).Should().Equal(expected);
         }
 
         [Theory]
         [MemberData(nameof(CalendarNames))]
-        public void XcalToJcalToXcal_LeavesModelAndXmlUnchanged(string calendarName)
+        public void WriteJcal_JcalCalendarsThroughXcal_LeavesJsonUnchanged(string calendarName)
         {
             // arrange
             var (text, options) = GetCalendar(calendarName);
-            var xcal = XcalTestData.WriteXcal(ReadCalendars(text, options), options);
-            var calendars = XcalTestData.ReadXcal(xcal, options);
+            var jcal = WriteJcal(ReadCalendars(text, options), options);
+            var calendars = XcalTestData.ReadXcal(XcalTestData.WriteXcal(ReadJcal(jcal, options), options), options);
+
+            // act
+            var testResult = WriteJcal(calendars, options);
+
+            // assert
+            testResult.Should().Be(jcal);
+        }
+
+        [Theory]
+        [MemberData(nameof(CalendarNames))]
+        public void ReadJcal_XcalCalendarsWrittenAsJcal_LeavesModelUnchanged(string calendarName)
+        {
+            // arrange
+            var (text, options) = GetCalendar(calendarName);
+            var calendars = XcalTestData.ReadXcal(XcalTestData.WriteXcal(ReadCalendars(text, options), options), options);
+            var expected = Model(calendars, options);
 
             // act
             var testResult = ReadJcal(WriteJcal(calendars, options), options);
 
             // assert
-            Model(testResult, options).Should().Equal(Model(calendars, options));
-            XcalTestData.WriteXcal(testResult, options).Should().Be(xcal);
+            Model(testResult, options).Should().Equal(expected);
         }
 
-        [Fact]
-        public void RfcExamples_ReadFromEachFormat_GiveTheSameModel()
+        [Theory]
+        [MemberData(nameof(CalendarNames))]
+        public void WriteXcal_XcalCalendarsThroughJcal_LeavesXmlUnchanged(string calendarName)
         {
-            // assert
-            Model(ReadJcal(Example1Jcal)).Should().Equal(Model(XcalTestData.ReadXcal(XcalTestData.Example1Xcal)))
-                .And.Equal(Model(ReadCalendars(Example1Ical)));
-            Model(ReadJcal(Example2Jcal)).Should().Equal(Model(ReadCalendars(Example2Ical)));
-        }
-
-        [Fact]
-        public void IcalToJcalToIcal_UnknownProperty_KeepsItsRawText()
-        {
-            // arrange: RFC 7265 §5; the value would be changed if it were taken as TEXT.
-            var calendar = ReadCalendar(EventCalendar("X-COFFEE-DATA:Stenophylla;Guinea\\,Africa", "X-COMPLAINT-DEADLINE:20110512T120000Z"));
+            // arrange
+            var (text, options) = GetCalendar(calendarName);
+            var xcal = XcalTestData.WriteXcal(ReadCalendars(text, options), options);
+            var calendars = ReadJcal(WriteJcal(XcalTestData.ReadXcal(xcal, options), options), options);
 
             // act
-            var jcal = WriteJcal(new[] { calendar });
+            var testResult = XcalTestData.WriteXcal(calendars, options);
+
+            // assert
+            testResult.Should().Be(xcal);
+        }
+
+        [Fact]
+        public void ReadJcal_RfcExample1_GivesTheModelOfTheIcalForm()
+        {
+            // arrange
+            var expected = Model(ReadCalendars(Example1Ical));
+
+            // act
+            var testResult = ReadJcal(Example1Jcal);
+
+            // assert
+            Model(testResult).Should().Equal(expected);
+        }
+
+        [Fact]
+        public void ReadXcal_RfcExample1_GivesTheModelOfTheIcalForm()
+        {
+            // arrange
+            var expected = Model(ReadCalendars(Example1Ical));
+
+            // act
+            var testResult = XcalTestData.ReadXcal(XcalTestData.Example1Xcal);
+
+            // assert
+            Model(testResult).Should().Equal(expected);
+        }
+
+        [Fact]
+        public void ReadJcal_RfcExample2_GivesTheModelOfTheIcalForm()
+        {
+            // arrange
+            var expected = Model(ReadCalendars(Example2Ical));
+
+            // act
+            var testResult = ReadJcal(Example2Jcal);
+
+            // assert
+            Model(testResult).Should().Equal(expected);
+        }
+
+        [Fact]
+        public void WriteJcal_UnknownProperty_WritesItAsUnknownWithItsRawText()
+        {
+            // arrange
+            var calendar = ReadCalendar(UnknownPropertiesCalendar);
+
+            // act
+            var testResult = WriteJcal(new[] { calendar });
+
+            // assert
+            testResult.Should().Contain(CoffeeDataJcal);
+        }
+
+        [Fact]
+        public void ReadJcal_UnknownPropertyWrittenAsJcal_KeepsItsRawText()
+        {
+            // arrange
+            var jcal = WriteJcal(new[] { ReadCalendar(UnknownPropertiesCalendar) });
+
+            // act
             var testResult = ReadJcal(jcal).Single().Events.Single();
 
             // assert
-            jcal.Should().Contain("[\"x-coffee-data\",{},\"unknown\",\"Stenophylla;Guinea\\\\,Africa\"]");
-            testResult.GetProperty("X-COFFEE-DATA").Value.Should().Be("Stenophylla;Guinea\\,Africa");
-            testResult.GetProperty("X-COFFEE-DATA").Parameters.Should().BeEmpty();
-            testResult.GetProperty("X-COMPLAINT-DEADLINE").Value.Should().Be("20110512T120000Z");
-            WriteCalendars(new[] { ReadJcal(jcal).Single() }).Should().Be(WriteCalendars(new[] { calendar }));
+            testResult.Properties.Should().ContainSingle(line => line.Name == CoffeeDataName).Which.Value.Should().Be(CoffeeDataValue);
+            testResult.Properties.Should().ContainSingle(line => line.Name == CoffeeDataName).Which.Parameters.Should().BeEmpty();
+            testResult.Properties.Should().ContainSingle(line => line.Name == ComplaintDeadlineName).Which.Value.Should().Be(ComplaintDeadlineValue);
         }
 
         [Fact]
-        public void IcalToJcalToIcal_ExtensionProperties_KeepTheirValues()
+        public void WriteCalendars_UnknownPropertyThroughJcal_WritesTheOriginalText()
+        {
+            // arrange
+            var calendar = ReadJcal(WriteJcal(new[] { ReadCalendar(UnknownPropertiesCalendar) })).Single();
+
+            // act
+            var testResult = WriteCalendars(new[] { calendar });
+
+            // assert
+            testResult.Should().Be(UnknownPropertiesCalendar);
+        }
+
+        [Fact]
+        public void ReadJcal_ExtensionPropertiesWrittenAsJcal_KeepTheirValuesAndParameters()
         {
             // arrange
             var calendar = ReadCalendar(Extensions);
+            var expected = calendar.Events.Single().Properties;
 
             // act
             var testResult = ReadJcal(WriteJcal(new[] { calendar })).Single().Events.Single();
 
             // assert
-            var expected = calendar.Events.Single();
-            foreach (var property in expected.Properties)
-            {
-                var converted = testResult.GetProperties(property.Name).Single(line => line.Value == property.Value);
-                converted.Parameters.Select(parameter => (parameter.Name, string.Join("|", parameter.Values)))
-                    .Should().BeEquivalentTo(property.Parameters.Select(parameter => (parameter.Name, string.Join("|", parameter.Values))), property.Name);
-            }
-
-            testResult.Properties.Should().HaveCount(expected.Properties.Count);
+            testResult.Properties.Should().BeEquivalentTo(expected, options => options.Excluding(line => line.LineNumber)
+                .Excluding(line => line.PhysicalLineNumber));
         }
 
-        /// <summary>
-        /// The conformance cases that jCal can hold; the same three as xCal cannot: the writer always writes VERSION, the type identifier of
-        /// REFRESH-INTERVAL gives it the VALUE parameter it lacked, and a binary value gives its property the ENCODING parameter it lacked.
-        /// </summary>
-        public static TheoryData<string> JcalConformanceCases() => XcalRoundTripTests.XcalConformanceCases();
+        public static TheoryData<string> JcalConformanceCases() => ConformanceCases.XcalAndJcalCases();
 
         [Theory]
         [MemberData(nameof(JcalConformanceCases))]
-        public void ReadJcal_NonConformantCalendar_RejectedAsIcalReaderRejectsIt(string caseName)
+        public void ReadJcal_NonConformantCalendarWithDefaults_ThrowsAsIcalReaderDoes(string caseName)
         {
             // arrange: write the calendar with the one accommodation it needs, then read it with the defaults.
             var testCase = ConformanceCases.All[caseName];
-            var options = ConformanceCases.OptionsAccepting(testCase.Kind);
-            var jcal = WriteJcal(ReadCalendars(testCase.Text, options), options);
-            var icalException = FluentActions.Invoking(() => ReadCalendars(testCase.Text)).Should().Throw<IcalFileException>().Which;
+            var jcal = WriteJcal(ReadCalendars(testCase.Text, testCase.AcceptingOptions), testCase.AcceptingOptions);
 
             // act
-            Action act = () => ReadJcal(jcal);
+            Action testAction = () => ReadJcal(jcal);
 
             // assert
-            var exception = act.Should().Throw<IcalFileException>(caseName).Which;
-            exception.Message.Should().Be(icalException.Message, caseName);
+            var exception = testAction.Should().Throw<IcalFileException>(caseName).Which;
             exception.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(testCase.Kind, caseName);
             exception.Data[IcalFileException.DataItemName.ComponentPath].Should().Be(testCase.ComponentPath, caseName);
-            ReadJcal(jcal, options).Should().ContainSingle(caseName);
+            exception.Data[IcalFileException.DataItemName.PropertyName].Should().Be(testCase.PropertyName, caseName);
+        }
+
+        [Theory]
+        [MemberData(nameof(JcalConformanceCases))]
+        public void ReadJcal_NonConformantCalendarWithItsOption_ReadsCalendar(string caseName)
+        {
+            // arrange
+            var testCase = ConformanceCases.All[caseName];
+            var jcal = WriteJcal(ReadCalendars(testCase.Text, testCase.AcceptingOptions), testCase.AcceptingOptions);
+
+            // act
+            var testResult = ReadJcal(jcal, testCase.AcceptingOptions);
+
+            // assert
+            testResult.Should().ContainSingle(caseName);
         }
     }
 }

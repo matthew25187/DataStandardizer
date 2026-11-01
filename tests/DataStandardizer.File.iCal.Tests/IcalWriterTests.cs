@@ -156,7 +156,7 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var testCase = ConformanceCases.All[caseName];
-            var calendar = ReadCalendar(testCase.Text, ConformanceCases.OptionsAccepting(testCase.Kind));
+            var calendar = ReadCalendar(testCase.Text, testCase.AcceptingOptions);
             var text = new StringWriter();
             using (var writer = new IcalWriter(text))
             {
@@ -185,7 +185,7 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var testCase = ConformanceCases.All[caseName];
-            var options = ConformanceCases.OptionsAccepting(testCase.Kind);
+            var options = testCase.AcceptingOptions;
             var calendar = ReadCalendar(testCase.Text, options);
 
             // act
@@ -335,7 +335,7 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var testCase = ConformanceCases.All["TwoSummaries"];
-            var calendar = ReadCalendar(testCase.Text, ConformanceCases.OptionsAccepting(testCase.Kind));
+            var calendar = ReadCalendar(testCase.Text, testCase.AcceptingOptions);
             var target = new AsyncOnlyTextWriter();
             var writer = new IcalWriter(target);
             try

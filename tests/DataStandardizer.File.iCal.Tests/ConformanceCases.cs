@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
 using Xunit;
+using static DataStandardizer.File.iCal.Tests.IcalLines;
 using static DataStandardizer.File.iCal.Tests.ModelTestData;
 
 namespace DataStandardizer.File.iCal.Tests
@@ -14,6 +11,27 @@ namespace DataStandardizer.File.iCal.Tests
     /// </summary>
     internal static class ConformanceCases
     {
+        public const string MissingVersionCase = "MissingVersion";
+        public const string MissingUidCase = "MissingUid";
+        public const string TwoSummariesCase = "TwoSummaries";
+        public const string RefreshIntervalWithoutValueCase = "RefreshIntervalWithoutValue";
+        public const string BinaryWithoutEncodingCase = "BinaryWithoutEncoding";
+
+        private const string DtStart = "DTSTART";
+        private const string Duration = "DURATION";
+        private const string RecurrenceRule = "RRULE";
+        private const string AlarmPath = "VCALENDAR/VEVENT[1]/VALARM[1]";
+        private const string TodoPath = "VCALENDAR/VTODO[1]";
+        private const string TimeZonePath = "VCALENDAR/VTIMEZONE[1]";
+        private const string JournalUid = "UID:j@example.com";
+        private const string OtherEventUid = "UID:e@example.com";
+        private const string DateStart = "DTSTART;VALUE=DATE:20260101";
+        private const string OneHour = "DURATION:PT1H";
+        private const string AlarmTrigger = "TRIGGER:-PT5M";
+        private const string TimeZoneId = "TZID:Zone";
+        private const string ZeroOffsetFrom = "TZOFFSETFROM:+0000";
+        private const string ZeroOffsetTo = "TZOFFSETTO:+0000";
+
         public sealed class Case
         {
             public Case(string text, IcalDiagnosticKind kind, string propertyName, string componentPath)
@@ -22,6 +40,20 @@ namespace DataStandardizer.File.iCal.Tests
                 Kind = kind;
                 PropertyName = propertyName;
                 ComponentPath = componentPath;
+                AcceptingOptions = new IcalOptions
+                {
+                    AllowMissingRequiredProperties = kind == IcalDiagnosticKind.MissingRequiredProperty,
+                    AllowCardinalityViolations = kind == IcalDiagnosticKind.CardinalityViolation,
+                    AllowUndefinedTimeZones = kind == IcalDiagnosticKind.UndefinedTimeZone,
+                    AllowInvalidValues = kind == IcalDiagnosticKind.InvalidValue
+                };
+                AcceptingAllButOptions = new IcalOptions
+                {
+                    AllowMissingRequiredProperties = kind != IcalDiagnosticKind.MissingRequiredProperty,
+                    AllowCardinalityViolations = kind != IcalDiagnosticKind.CardinalityViolation,
+                    AllowUndefinedTimeZones = kind != IcalDiagnosticKind.UndefinedTimeZone,
+                    AllowInvalidValues = kind != IcalDiagnosticKind.InvalidValue
+                };
             }
 
             public string Text { get; }
@@ -31,72 +63,77 @@ namespace DataStandardizer.File.iCal.Tests
             public string PropertyName { get; }
 
             public string ComponentPath { get; }
+
+            /// <summary>
+            /// Gets options that accept the kind of problem, and no other.
+            /// </summary>
+            public IcalOptions AcceptingOptions { get; }
+
+            /// <summary>
+            /// Gets options with every accommodation turned on except the one that accepts the kind of problem.
+            /// </summary>
+            public IcalOptions AcceptingAllButOptions { get; }
         }
 
         public static readonly IReadOnlyDictionary<string, Case> All = new Dictionary<string, Case>
         {
             // Missing required properties and components.
-            ["MissingUid"] = new Case(Calendar("BEGIN:VEVENT", "DTSTAMP:20260101T000000Z", "DTSTART:20260101T090000Z", "END:VEVENT"),
-                IcalDiagnosticKind.MissingRequiredProperty, "UID", "VCALENDAR/VEVENT[1]"),
-            ["MissingDtStamp"] = new Case(Calendar("BEGIN:VTODO", "UID:todo@example.com", "END:VTODO"),
-                IcalDiagnosticKind.MissingRequiredProperty, "DTSTAMP", "VCALENDAR/VTODO[1]"),
-            ["MissingProdId"] = new Case(IcalTestData.Crlf("BEGIN:VCALENDAR", "VERSION:2.0", "BEGIN:VJOURNAL", "UID:j@example.com", "DTSTAMP:20260101T000000Z",
-                "END:VJOURNAL", "END:VCALENDAR"), IcalDiagnosticKind.MissingRequiredProperty, "PRODID", "VCALENDAR"),
-            ["MissingVersion"] = new Case(IcalTestData.Crlf("BEGIN:VCALENDAR", "PRODID:-//Test//Test//EN", "BEGIN:VJOURNAL", "UID:j@example.com",
-                "DTSTAMP:20260101T000000Z", "END:VJOURNAL", "END:VCALENDAR"), IcalDiagnosticKind.MissingRequiredProperty, "VERSION", "VCALENDAR"),
-            ["MissingEventStart"] = new Case(Calendar("BEGIN:VEVENT", "UID:e@example.com", "DTSTAMP:20260101T000000Z", "END:VEVENT"),
-                IcalDiagnosticKind.MissingRequiredProperty, "DTSTART", "VCALENDAR/VEVENT[1]"),
-            ["NoCalendarComponent"] = new Case(Calendar(), IcalDiagnosticKind.MissingRequiredProperty, null, "VCALENDAR"),
-            ["NoObservance"] = new Case(Calendar("BEGIN:VTIMEZONE", "TZID:Zone", "END:VTIMEZONE"),
-                IcalDiagnosticKind.MissingRequiredProperty, null, "VCALENDAR/VTIMEZONE[1]"),
-            ["DurationWithoutRepeat"] = new Case(EventCalendar("BEGIN:VALARM", "ACTION:AUDIO", "TRIGGER:-PT5M", "DURATION:PT5M", "END:VALARM"),
-                IcalDiagnosticKind.MissingRequiredProperty, "REPEAT", "VCALENDAR/VEVENT[1]/VALARM[1]"),
-            ["DisplayWithoutDescription"] = new Case(EventCalendar("BEGIN:VALARM", "ACTION:DISPLAY", "TRIGGER:-PT5M", "END:VALARM"),
-                IcalDiagnosticKind.MissingRequiredProperty, "DESCRIPTION", "VCALENDAR/VEVENT[1]/VALARM[1]"),
+            [MissingUidCase] = new Case(Calendar(BeginEvent, NewYearStamp, NewYearStart, EndEvent),
+                IcalDiagnosticKind.MissingRequiredProperty, "UID", EventPath),
+            ["MissingDtStamp"] = new Case(Calendar(BeginTodo, "UID:todo@example.com", EndTodo),
+                IcalDiagnosticKind.MissingRequiredProperty, "DTSTAMP", TodoPath),
+            ["MissingProdId"] = new Case(IcalTestData.Crlf(BeginCalendar, Version20, BeginJournal, JournalUid, NewYearStamp,
+                EndJournal, EndCalendar), IcalDiagnosticKind.MissingRequiredProperty, "PRODID", CalendarPath),
+            [MissingVersionCase] = new Case(IcalTestData.Crlf(BeginCalendar, TestProductId, BeginJournal, JournalUid,
+                NewYearStamp, EndJournal, EndCalendar), IcalDiagnosticKind.MissingRequiredProperty, "VERSION", CalendarPath),
+            ["MissingEventStart"] = new Case(Calendar(BeginEvent, OtherEventUid, NewYearStamp, EndEvent),
+                IcalDiagnosticKind.MissingRequiredProperty, DtStart, EventPath),
+            ["NoCalendarComponent"] = new Case(Calendar(), IcalDiagnosticKind.MissingRequiredProperty, null, CalendarPath),
+            ["NoObservance"] = new Case(Calendar(BeginTimeZone, TimeZoneId, EndTimeZone),
+                IcalDiagnosticKind.MissingRequiredProperty, null, TimeZonePath),
+            ["DurationWithoutRepeat"] = new Case(EventCalendar(BeginAlarm, "ACTION:AUDIO", AlarmTrigger, "DURATION:PT5M", EndAlarm),
+                IcalDiagnosticKind.MissingRequiredProperty, "REPEAT", AlarmPath),
+            ["DisplayWithoutDescription"] = new Case(EventCalendar(BeginAlarm, "ACTION:DISPLAY", AlarmTrigger, EndAlarm),
+                IcalDiagnosticKind.MissingRequiredProperty, "DESCRIPTION", AlarmPath),
 
             // Cardinality.
-            ["TwoSummaries"] = new Case(EventCalendar("SUMMARY:One", "SUMMARY:Two"), IcalDiagnosticKind.CardinalityViolation, "SUMMARY",
-                "VCALENDAR/VEVENT[1]"),
-            ["TwoUids"] = new Case(EventCalendar("UID:other@example.com"), IcalDiagnosticKind.CardinalityViolation, "UID", "VCALENDAR/VEVENT[1]"),
-            ["DtEndAndDuration"] = new Case(EventCalendar("DTEND:20260101T100000Z", "DURATION:PT1H"), IcalDiagnosticKind.CardinalityViolation,
-                "DURATION", "VCALENDAR/VEVENT[1]"),
-            ["DueAndDuration"] = new Case(Calendar("BEGIN:VTODO", "UID:t@example.com", "DTSTAMP:20260101T000000Z", "DTSTART:20260101T090000Z",
-                "DUE:20260102T090000Z", "DURATION:PT1H", "END:VTODO"), IcalDiagnosticKind.CardinalityViolation, "DURATION", "VCALENDAR/VTODO[1]"),
-            ["TwoCalendarColors"] = new Case(Calendar("COLOR:red", "COLOR:blue", "BEGIN:VJOURNAL", "UID:j@example.com", "DTSTAMP:20260101T000000Z",
-                "END:VJOURNAL"), IcalDiagnosticKind.CardinalityViolation, "COLOR", "VCALENDAR"),
+            [TwoSummariesCase] = new Case(EventCalendar("SUMMARY:One", "SUMMARY:Two"), IcalDiagnosticKind.CardinalityViolation, "SUMMARY", EventPath),
+            ["TwoUids"] = new Case(EventCalendar("UID:other@example.com"), IcalDiagnosticKind.CardinalityViolation, "UID", EventPath),
+            ["DtEndAndDuration"] = new Case(EventCalendar("DTEND:20260101T100000Z", OneHour), IcalDiagnosticKind.CardinalityViolation,
+                Duration, EventPath),
+            ["DueAndDuration"] = new Case(Calendar(BeginTodo, "UID:t@example.com", NewYearStamp, NewYearStart,
+                "DUE:20260102T090000Z", OneHour, EndTodo), IcalDiagnosticKind.CardinalityViolation, Duration, TodoPath),
+            ["TwoCalendarColors"] = new Case(Calendar("COLOR:red", "COLOR:blue", BeginJournal, JournalUid, NewYearStamp,
+                EndJournal), IcalDiagnosticKind.CardinalityViolation, "COLOR", CalendarPath),
 
             // Time zones.
             ["UndefinedTimeZone"] = new Case(EventCalendar("DTSTART;TZID=America/New_York:20260101T090000"), IcalDiagnosticKind.UndefinedTimeZone,
-                "DTSTART", "VCALENDAR/VEVENT[1]"),
+                DtStart, EventPath),
 
             // Values.
-            ["InvalidDateTime"] = new Case(EventCalendar("DTSTART:20260230T090000Z"), IcalDiagnosticKind.InvalidValue, "DTSTART", "VCALENDAR/VEVENT[1]"),
-            ["DisallowedValueType"] = new Case(EventCalendar("DTSTART;VALUE=INTEGER:5"), IcalDiagnosticKind.InvalidValue, "DTSTART",
-                "VCALENDAR/VEVENT[1]"),
-            ["FloatingDtStamp"] = new Case(Calendar("BEGIN:VEVENT", "UID:e@example.com", "DTSTAMP:20260101T000000", "DTSTART:20260101T090000Z",
-                "END:VEVENT"), IcalDiagnosticKind.InvalidValue, "DTSTAMP", "VCALENDAR/VEVENT[1]"),
-            ["DateEndForDateTimeStart"] = new Case(EventCalendar("DTEND;VALUE=DATE:20260102"), IcalDiagnosticKind.InvalidValue, "DTEND",
-                "VCALENDAR/VEVENT[1]"),
-            ["DateTimeUntilForDateStart"] = new Case(EventCalendar("DTSTART;VALUE=DATE:20260101", "RRULE:FREQ=DAILY;UNTIL=20260110T000000Z"),
-                IcalDiagnosticKind.InvalidValue, "RRULE", "VCALENDAR/VEVENT[1]"),
-            ["ByHourForDateStart"] = new Case(EventCalendar("DTSTART;VALUE=DATE:20260101", "RRULE:FREQ=DAILY;BYHOUR=9"), IcalDiagnosticKind.InvalidValue,
-                "RRULE", "VCALENDAR/VEVENT[1]"),
-            ["FloatingUntilForUtcStart"] = new Case(EventCalendar("RRULE:FREQ=DAILY;UNTIL=20260110T000000"), IcalDiagnosticKind.InvalidValue, "RRULE",
-                "VCALENDAR/VEVENT[1]"),
-            ["RefreshIntervalWithoutValue"] = new Case(Calendar("REFRESH-INTERVAL:P1D", "BEGIN:VJOURNAL", "UID:j@example.com", "DTSTAMP:20260101T000000Z",
-                "END:VJOURNAL"), IcalDiagnosticKind.InvalidValue, "REFRESH-INTERVAL", "VCALENDAR"),
-            ["BinaryWithoutEncoding"] = new Case(EventCalendar("ATTACH;VALUE=BINARY:AAAA"), IcalDiagnosticKind.InvalidValue, "ATTACH",
-                "VCALENDAR/VEVENT[1]"),
-            ["PriorityOutOfRange"] = new Case(EventCalendar("PRIORITY:10"), IcalDiagnosticKind.InvalidValue, "PRIORITY", "VCALENDAR/VEVENT[1]"),
-            ["InvalidTextEscape"] = new Case(EventCalendar("SUMMARY:Back\\slash"), IcalDiagnosticKind.InvalidValue, "SUMMARY", "VCALENDAR/VEVENT[1]"),
-            ["InvalidGeo"] = new Case(EventCalendar("GEO:37.386013"), IcalDiagnosticKind.InvalidValue, "GEO", "VCALENDAR/VEVENT[1]"),
-            ["RelativeUrl"] = new Case(EventCalendar("URL:/calendar/event"), IcalDiagnosticKind.InvalidValue, "URL", "VCALENDAR/VEVENT[1]"),
-            ["UtcObservanceStart"] = new Case(Calendar("BEGIN:VTIMEZONE", "TZID:Zone", "BEGIN:STANDARD", "DTSTART:19700101T000000Z", "TZOFFSETFROM:+0000",
-                "TZOFFSETTO:+0000", "END:STANDARD", "END:VTIMEZONE"), IcalDiagnosticKind.InvalidValue, "DTSTART", "VCALENDAR/VTIMEZONE[1]/STANDARD[1]"),
-            ["EmptyTimeZoneId"] = new Case(Calendar("BEGIN:VTIMEZONE", "TZID:", "BEGIN:STANDARD", "DTSTART:19700101T000000", "TZOFFSETFROM:+0000",
-                "TZOFFSETTO:+0000", "END:STANDARD", "END:VTIMEZONE"), IcalDiagnosticKind.InvalidValue, "TZID", "VCALENDAR/VTIMEZONE[1]"),
-            ["TimeDurationForDateStart"] = new Case(EventCalendar("DTSTART;VALUE=DATE:20260101", "DURATION:PT1H"), IcalDiagnosticKind.InvalidValue,
-                "DURATION", "VCALENDAR/VEVENT[1]")
+            ["InvalidDateTime"] = new Case(EventCalendar("DTSTART:20260230T090000Z"), IcalDiagnosticKind.InvalidValue, DtStart, EventPath),
+            ["DisallowedValueType"] = new Case(EventCalendar("DTSTART;VALUE=INTEGER:5"), IcalDiagnosticKind.InvalidValue, DtStart, EventPath),
+            ["FloatingDtStamp"] = new Case(Calendar(BeginEvent, OtherEventUid, "DTSTAMP:20260101T000000", NewYearStart,
+                EndEvent), IcalDiagnosticKind.InvalidValue, "DTSTAMP", EventPath),
+            ["DateEndForDateTimeStart"] = new Case(EventCalendar("DTEND;VALUE=DATE:20260102"), IcalDiagnosticKind.InvalidValue, "DTEND", EventPath),
+            ["DateTimeUntilForDateStart"] = new Case(EventCalendar(DateStart, "RRULE:FREQ=DAILY;UNTIL=20260110T000000Z"),
+                IcalDiagnosticKind.InvalidValue, RecurrenceRule, EventPath),
+            ["ByHourForDateStart"] = new Case(EventCalendar(DateStart, "RRULE:FREQ=DAILY;BYHOUR=9"), IcalDiagnosticKind.InvalidValue,
+                RecurrenceRule, EventPath),
+            ["FloatingUntilForUtcStart"] = new Case(EventCalendar("RRULE:FREQ=DAILY;UNTIL=20260110T000000"), IcalDiagnosticKind.InvalidValue,
+                RecurrenceRule, EventPath),
+            [RefreshIntervalWithoutValueCase] = new Case(Calendar("REFRESH-INTERVAL:P1D", BeginJournal, JournalUid, NewYearStamp,
+                EndJournal), IcalDiagnosticKind.InvalidValue, "REFRESH-INTERVAL", CalendarPath),
+            [BinaryWithoutEncodingCase] = new Case(EventCalendar("ATTACH;VALUE=BINARY:AAAA"), IcalDiagnosticKind.InvalidValue, "ATTACH", EventPath),
+            ["PriorityOutOfRange"] = new Case(EventCalendar("PRIORITY:10"), IcalDiagnosticKind.InvalidValue, "PRIORITY", EventPath),
+            ["InvalidTextEscape"] = new Case(EventCalendar("SUMMARY:Back\\slash"), IcalDiagnosticKind.InvalidValue, "SUMMARY", EventPath),
+            ["InvalidGeo"] = new Case(EventCalendar("GEO:37.386013"), IcalDiagnosticKind.InvalidValue, "GEO", EventPath),
+            ["RelativeUrl"] = new Case(EventCalendar("URL:/calendar/event"), IcalDiagnosticKind.InvalidValue, "URL", EventPath),
+            ["UtcObservanceStart"] = new Case(Calendar(BeginTimeZone, TimeZoneId, BeginStandard, "DTSTART:19700101T000000Z", ZeroOffsetFrom,
+                ZeroOffsetTo, EndStandard, EndTimeZone), IcalDiagnosticKind.InvalidValue, DtStart, "VCALENDAR/VTIMEZONE[1]/STANDARD[1]"),
+            ["EmptyTimeZoneId"] = new Case(Calendar(BeginTimeZone, "TZID:", BeginStandard, "DTSTART:19700101T000000", ZeroOffsetFrom,
+                ZeroOffsetTo, EndStandard, EndTimeZone), IcalDiagnosticKind.InvalidValue, "TZID", TimeZonePath),
+            ["TimeDurationForDateStart"] = new Case(EventCalendar(DateStart, OneHour), IcalDiagnosticKind.InvalidValue, Duration, EventPath)
         };
 
         /// <summary>
@@ -114,37 +151,22 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         /// <summary>
-        /// Gets the options that accept a kind of problem.
+        /// The cases that xCal and jCal can hold.  Three cannot be written in either: the writer always writes VERSION, the value element or
+        /// type identifier of REFRESH-INTERVAL gives it the VALUE parameter it lacked, and a binary value gives its property the ENCODING
+        /// parameter it lacked.
         /// </summary>
-        public static IcalOptions OptionsAccepting(IcalDiagnosticKind kind)
+        public static TheoryData<string> XcalAndJcalCases()
         {
-            switch (kind)
+            var data = new TheoryData<string>();
+            foreach (var name in All.Keys)
             {
-                case IcalDiagnosticKind.MissingRequiredProperty:
-                    return new IcalOptions { AllowMissingRequiredProperties = true };
-                case IcalDiagnosticKind.CardinalityViolation:
-                    return new IcalOptions { AllowCardinalityViolations = true };
-                case IcalDiagnosticKind.UndefinedTimeZone:
-                    return new IcalOptions { AllowUndefinedTimeZones = true };
-                case IcalDiagnosticKind.InvalidValue:
-                    return new IcalOptions { AllowInvalidValues = true };
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(kind));
+                if (name != MissingVersionCase && name != RefreshIntervalWithoutValueCase && name != BinaryWithoutEncodingCase)
+                {
+                    data.Add(name);
+                }
             }
-        }
 
-        /// <summary>
-        /// Gets options with every accommodation turned on except the one that accepts a kind of problem.
-        /// </summary>
-        public static IcalOptions OptionsAcceptingAllBut(IcalDiagnosticKind kind)
-        {
-            return new IcalOptions
-            {
-                AllowMissingRequiredProperties = kind != IcalDiagnosticKind.MissingRequiredProperty,
-                AllowCardinalityViolations = kind != IcalDiagnosticKind.CardinalityViolation,
-                AllowUndefinedTimeZones = kind != IcalDiagnosticKind.UndefinedTimeZone,
-                AllowInvalidValues = kind != IcalDiagnosticKind.InvalidValue
-            };
+            return data;
         }
     }
 }

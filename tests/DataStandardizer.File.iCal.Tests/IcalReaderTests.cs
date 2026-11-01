@@ -582,7 +582,7 @@ namespace DataStandardizer.File.iCal.Tests
             var testCase = ConformanceCases.All[caseName];
 
             // act
-            var testResult = ReadCalendars(testCase.Text, ConformanceCases.OptionsAccepting(testCase.Kind));
+            var testResult = ReadCalendars(testCase.Text, testCase.AcceptingOptions);
 
             // assert
             var calendar = testResult.Should().ContainSingle().Subject;
@@ -601,7 +601,7 @@ namespace DataStandardizer.File.iCal.Tests
             var testCase = ConformanceCases.All[caseName];
 
             // act
-            Action act = () => ReadCalendars(testCase.Text, ConformanceCases.OptionsAcceptingAllBut(testCase.Kind));
+            Action act = () => ReadCalendars(testCase.Text, testCase.AcceptingAllButOptions);
 
             // assert
             act.Should().Throw<IcalFileException>().Which.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(testCase.Kind);
