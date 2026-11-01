@@ -38,5 +38,12 @@ See [Encode and decode with base64 and quoted-printable](../how-to/encode-and-de
 | `static bool TryDecode(ReadOnlySpan<char> source, MimeBase64Mode mode, MimeBase64DecoderOptions options, out byte[] result)` | `false` if the encoded data isn't valid. |
 | `static byte[] Decode(ReadOnlySpan<char> source, MimeBase64Mode mode, MimeBase64DecoderOptions options)` | Throws `FormatException` if the encoded data isn't valid. |
 
-Each throws `ArgumentOutOfRangeException` for a `mode` or `options` value that isn't
-defined, a negative length, or an encoding longer than `int.MaxValue`.
+These methods throw `ArgumentOutOfRangeException` in the following cases:
+
+| Method | Throws when |
+| --- | --- |
+| `GetEncodedLength` | `length` is negative, its encoding would be longer than `int.MaxValue`, or `mode` isn't defined. |
+| `GetMaxDecodedLength` | `length` is negative. |
+| `TryEncode` | `mode` isn't defined. |
+| `Encode` | `mode` isn't defined, or the encoding would be longer than `int.MaxValue`. |
+| `TryDecode`, `Decode` | `mode` or `options` isn't defined. |

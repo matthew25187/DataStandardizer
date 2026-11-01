@@ -40,14 +40,15 @@ parameter value. So pass only text in which they're allowed. In a comment, pass 
 of `ctext`, without the parentheses and quoted-pairs. In a phrase, pass the words, not
 any quoted-strings.
 
-The place also sets the characters that "Q"-encoded text may hold, which you choose with
-`MimeEncodedWordContext`:
+The place also sets the characters that "Q"-encoded text may hold as themselves, which you
+choose with `MimeEncodedWordContext`. In every context, `=` starts an escape, `_` stands for a
+space, and any other character has to be written as an escape.
 
-| Context | Place | Characters "Q"-encoded text may hold |
+| Context | Place | Characters that stand for themselves |
 | --- | --- | --- |
-| `Text` | Unstructured text, such as Subject (RFC 2047 §5(1)). | Any printable ASCII character other than `?`. |
-| `Comment` | A comment (RFC 2047 §5(2)). | As `Text`, but not `(`, `)` or `"`. |
-| `Phrase` | A phrase, such as the display name of an address (RFC 2047 §5(3)). | Only ASCII letters, digits, `!`, `*`, `+`, `-`, `/`, `=` and `_`. |
+| `Text` | Unstructured text, such as Subject (RFC 2047 §5(1)). | Any printable ASCII character other than `=`, `?` and `_`. |
+| `Comment` | A comment (RFC 2047 §5(2)). | As `Text`, but not `(`, `)` or `"`. A word that's written also encodes `\`. |
+| `Phrase` | A phrase, such as the display name of an address (RFC 2047 §5(3)). | Only ASCII letters, digits, `!`, `*`, `+`, `-` and `/`. |
 
 The overloads with no context use `Text`.
 

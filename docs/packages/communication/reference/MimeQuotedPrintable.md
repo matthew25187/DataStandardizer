@@ -41,6 +41,11 @@ To encode or decode data that arrives in parts, use
 | `static bool EndsWithSoftLineBreak(ReadOnlySpan<char> line, out int dataLength)` | Whether a line of body data ends with `=`, which may be followed by spaces and tabs that a transport added (RFC 2045 §6.7 rules 3 and 5). `dataLength` is the length of the line before the break, or the length of the line if it has none. |
 | `static bool EndsWithSoftLineBreak(ReadOnlySpan<byte> line, out int dataLength)` | As above, for a line in UTF-8 or ASCII. |
 
-The length and encode and decode methods throw `ArgumentOutOfRangeException` for a `mode`
-or `options` value that isn't defined, a negative length, or an encoding that could be
-longer than `int.MaxValue`.
+These methods throw `ArgumentOutOfRangeException` in the following cases:
+
+| Method | Throws when |
+| --- | --- |
+| `GetMaxEncodedLength` | `length` is negative, its encoding could be longer than `int.MaxValue`, or `mode` isn't defined. |
+| `GetMaxDecodedLength` | `length` is negative. |
+| `TryEncode`, `TryDecode`, `Decode` | `mode` or `options` isn't defined. |
+| `Encode` | `mode` or `options` isn't defined, or the encoding could be longer than `int.MaxValue`. |
