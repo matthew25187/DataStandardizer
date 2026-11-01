@@ -20,7 +20,7 @@ more formal standards for it. Every package guide follows the same shape:
 | Package | Standards |
 | --- | --- |
 | [Chronology](chronology/index.md) | TZ Database · Unix time · DOS date & time |
-| [Communication](communication/index.md) | ITU-T E.164 |
+| [Communication](communication/index.md) | ITU-T E.164 · MIME (RFC 2045 · RFC 2046 · RFC 2047 · RFC 2231 · RFC 2397 and others) |
 | [File.CSV](file-csv/index.md) | RFC 4180 |
 | [File.iCal](file-ical/index.md) | RFC 5545 · RFC 6868 · RFC 7986 · RFC 7265 · RFC 6321 |
 | [Geography](geography/index.md) | ISO 3166-1 · ISO 3166-2 · UN M49 |

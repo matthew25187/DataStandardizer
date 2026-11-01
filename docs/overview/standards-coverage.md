@@ -18,6 +18,17 @@ instructions, how-to guides, and an API reference.
 | **Unix time** | [Chronology](../packages/chronology/index.md) | A point in time as seconds since the Unix epoch (1 January 1970 UTC). |
 | **DOS date & time** | [Chronology](../packages/chronology/index.md) | A packed date/time as used by the MS-DOS file system (1980–2107). |
 | **ITU-T E.164** | [Communication](../packages/communication/index.md) | The international public telecommunication numbering plan (telephone numbers). |
+| **RFC 2045** | [Communication](../packages/communication/index.md) | MIME Part One: Content-Type values, Content-Transfer-Encoding tokens, and the quoted-printable and base64 encodings. |
+| **RFC 2046** | [Communication](../packages/communication/index.md) | MIME Part Two: top-level media types and the `charset` parameter. |
+| **RFC 2047** | [Communication](../packages/communication/index.md) | MIME Part Three: encoded words, which carry text that isn't US-ASCII in a message header. |
+| **RFC 2231** | [Communication](../packages/communication/index.md) | MIME parameter value and encoded word extensions: character sets, languages and continuations. |
+| **RFC 2397** | [Communication](../packages/communication/index.md) | The `data:` URL scheme. |
+| **RFC 2978** | [Communication](../packages/communication/index.md) | IANA charset registration procedures: the syntax of character set names. |
+| **RFC 4289** | [Communication](../packages/communication/index.md) | MIME Part Four: Content-Transfer-Encoding extension tokens. |
+| **RFC 4648** | [Communication](../packages/communication/index.md) | The strict base64 of §4, used by iCalendar BINARY values and "B" encoded words. |
+| **RFC 6657** | [Communication](../packages/communication/index.md) | The default `charset` of textual media types. |
+| **RFC 6838** | [Communication](../packages/communication/index.md) | Media type naming rules and registration trees. |
+| **RFC 6839** | [Communication](../packages/communication/index.md) | Structured syntax suffixes for media types, such as `+json` and `+xml`. |
 | **RFC 4180** | [File.CSV](../packages/file-csv/index.md) | Common format and MIME type for Comma-Separated Values (CSV) files. |
 | **RFC 5545** | [File.iCal](../packages/file-ical/index.md) | Internet Calendaring and Scheduling Core Object Specification (iCalendar): `.ics` files, their components and properties, and recurrence rules. |
 | **RFC 6868** | [File.iCal](../packages/file-ical/index.md) | Parameter value encoding in iCalendar and vCard (caret encoding of quotes and line breaks in parameter values). |
