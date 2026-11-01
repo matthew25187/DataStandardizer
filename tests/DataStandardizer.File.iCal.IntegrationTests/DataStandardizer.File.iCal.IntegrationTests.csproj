@@ -31,6 +31,7 @@
 
   <ItemGroup>
     <!-- The test data, and the helpers that read, write and sample it, are shared with the unit tests. -->
+    <Compile Include="..\DataStandardizer.File.iCal.Tests\AsyncDisposal.cs" Link="Shared\AsyncDisposal.cs" />
     <Compile Include="..\DataStandardizer.File.iCal.Tests\AsyncTestSources.cs" Link="Shared\AsyncTestSources.cs" />
     <Compile Include="..\DataStandardizer.File.iCal.Tests\IcalLines.cs" Link="Shared\IcalLines.cs" />
     <Compile Include="..\DataStandardizer.File.iCal.Tests\IcalTestData.cs" Link="Shared\IcalTestData.cs" />

@@ -251,7 +251,7 @@ namespace DataStandardizer.File.iCal.Tests
 
         [Theory]
         [MemberData(nameof(JcalConformanceCases))]
-        public void ReadJcal_NonConformantCalendarWithDefaults_ThrowsAsIcalReaderDoes(string caseName)
+        public void ReadJcal_NonConformantCalendarWithDefaults_ThrowsWithTheDiagnostic(string caseName)
         {
             // arrange: write the calendar with the one accommodation it needs, then read it with the defaults.
             var testCase = ConformanceCases.All[caseName];

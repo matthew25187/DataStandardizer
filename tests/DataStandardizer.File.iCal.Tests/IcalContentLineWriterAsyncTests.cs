@@ -25,6 +25,9 @@ namespace DataStandardizer.File.iCal.Tests
 
         private static readonly IcalContentLine LineA = new IcalContentLine("A", "1");
 
+        // The stream of a writer that owns its stream writer is flushed once, when the writer is disposed.
+        private const int OneFlush = 1;
+
         // A value of characters of one to four octets in UTF-8.
         private const string MultiOctetDescription = "Caf\xE9 \xD83D\xDE00 \x4F1A\x8B70 Caf\xE9 \xD83D\xDE00 \x4F1A\x8B70 ";
 
@@ -624,7 +627,7 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             stream.ToArray().Should().Equal(Encoding.ASCII.GetBytes(LineAWithCrlf));
-            stream.FlushCount.Should().BeGreaterThan(0);
+            stream.FlushCount.Should().Be(OneFlush);
             stream.IsDisposed.Should().BeFalse();
         }
 

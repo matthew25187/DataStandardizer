@@ -20,6 +20,9 @@ namespace DataStandardizer.File.iCal.Tests
         private const string WeekStartExampleStart = "19970805T090000";
 
         private const string NewYear = "20260101T090000";
+
+        // The start of the rules of OccurrencesFromLaterPeriods: 08:15 on Monday, January 6, 2020.
+        private const string FromStart = "20200106T081500";
         private const string NewYearTen = "20260101T100000";
         private const string NewYearMidnight = "20260101T000000";
         private const string StartWithSeconds = "20260105T093015";
@@ -508,28 +511,28 @@ namespace DataStandardizer.File.iCal.Tests
             testResult.Should().Equal("20260102T090000", "20260103T090000");
         }
 
-        [Theory]
-        [InlineData("FREQ=WEEKLY;INTERVAL=3;BYDAY=MO,FR")]
-        [InlineData("FREQ=MONTHLY;INTERVAL=3;BYDAY=-1FR,2TU")]
-        [InlineData("FREQ=YEARLY;INTERVAL=2;BYWEEKNO=1,26,-1;BYDAY=WE;WKST=SU")]
-        [InlineData("FREQ=DAILY;INTERVAL=11")]
-        [InlineData("FREQ=HOURLY;INTERVAL=7;BYMINUTE=0,45")]
-        [InlineData("FREQ=MINUTELY;INTERVAL=97;BYHOUR=8,9,10")]
-        [InlineData("FREQ=SECONDLY;INTERVAL=3601;BYDAY=MO")]
-        public void GetOccurrences_From_GivesTheSameOccurrencesAsFilteringFromTheStart(string rule)
+        // Rules of each frequency, with a period after many years of their occurrences from FromStart, and the occurrences in that period,
+        // worked out with python-dateutil's rrule, an implementation of RFC 5545 §3.3.10 independent of the library.
+        public static TheoryData<string, string, string, string[]> OccurrencesFromLaterPeriods => new TheoryData<string, string, string, string[]>
         {
-            // arrange
-            const string start = "20200106T081500";
-            const string from = "20251229T000000";
-            const string to = "20260301T000000";
-            var all = Expand(start, rule, to);
+            { "FREQ=WEEKLY;INTERVAL=3;BYDAY=MO,FR", "20251229T000000", "20260301T000000", new[] { "20251229T081500", "20260102T081500", "20260119T081500", "20260123T081500", "20260209T081500", "20260213T081500" } },
+            { "FREQ=MONTHLY;INTERVAL=3;BYDAY=-1FR,2TU", "20251229T000000", "20260301T000000", new[] { "20260113T081500", "20260130T081500" } },
+            { "FREQ=YEARLY;INTERVAL=2;BYWEEKNO=1,26,-1;BYDAY=WE;WKST=SU", "20251229T000000", "20260301T000000", new[] { "20260107T081500" } },
+            { "FREQ=DAILY;INTERVAL=11", "20251229T000000", "20260301T000000", new[] { "20260103T081500", "20260114T081500", "20260125T081500", "20260205T081500", "20260216T081500", "20260227T081500" } },
+            { "FREQ=HOURLY;INTERVAL=7;BYMINUTE=0,45", "20251229T000000", "20251230T000000", new[] { "20251229T010000", "20251229T014500", "20251229T080000", "20251229T084500", "20251229T150000", "20251229T154500", "20251229T220000", "20251229T224500" } },
+            { "FREQ=MINUTELY;INTERVAL=97;BYHOUR=8,9,10", "20251229T000000", "20251231T000000", new[] { "20251229T092600", "20251230T080400", "20251230T094100" } },
+            { "FREQ=SECONDLY;INTERVAL=3601;BYDAY=MO", "20251229T000000", "20251229T060000", new[] { "20251229T004814", "20251229T014815", "20251229T024816", "20251229T034817", "20251229T044818", "20251229T054819" } },
+        };
 
+        [Theory]
+        [MemberData(nameof(OccurrencesFromLaterPeriods), DisableDiscoveryEnumeration = true)]
+        public void GetOccurrences_FromLaterPeriod_GivesTheOccurrencesInThePeriod(string rule, string from, string to, string[] expected)
+        {
             // act
-            var testResult = Expand(start, rule, to, from);
+            var testResult = Expand(FromStart, rule, to, from);
 
             // assert
-            testResult.Should().NotBeEmpty();
-            testResult.Should().Equal(all.Where(occurrence => string.CompareOrdinal(occurrence, from) >= 0));
+            testResult.Should().Equal(expected);
         }
 
         [Theory]

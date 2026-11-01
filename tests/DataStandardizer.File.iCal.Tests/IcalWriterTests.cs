@@ -418,7 +418,7 @@ namespace DataStandardizer.File.iCal.Tests
 
         [Theory]
         [MemberData(nameof(CalendarFixtures.AllNames), MemberType = typeof(CalendarFixtures))]
-        public async Task WriteCalendarsAsync_EveryFixture_MatchesSync(string fixtureName)
+        public async Task WriteCalendarsAsync_EveryFixture_WritesItFoldedAt75Octets(string fixtureName)
         {
             // arrange
             var (text, options) = CalendarFixtures.All[fixtureName];
@@ -439,7 +439,7 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public async Task WriteCalendarsAsync_AsyncEnumerable_MatchesSync()
+        public async Task WriteCalendarsAsync_AsyncEnumerable_WritesEachFoldedAt75Octets()
         {
             // arrange
             var calendars = ReadCalendars(GoogleThenOutlookExport);
@@ -459,7 +459,7 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public async Task WriteCalendarAsync_OneCalendar_MatchesSync()
+        public async Task WriteCalendarAsync_OneCalendar_WritesItFoldedAt75Octets()
         {
             // arrange
             var calendar = ReadCalendar(CalendarFixtures.GoogleExport);
