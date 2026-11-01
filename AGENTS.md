@@ -45,6 +45,15 @@ Each package's NuGet release notes are generated from the commits that changed i
 - **`BREAKING CHANGE: <text>`** is still published under Breaking changes, whatever else the commit declares.
 - **Commits already on `develop`** can't be changed. Correct their notes in `build/release-notes-overrides.json`, keyed by the full commit id. An empty `notes` list leaves the commit out. Check the notes each package will get before a release, and add overrides where they would mislead.
 
+## Standards compliance
+
+By default, every package does exactly what the standard it implements says, with no exceptions. A parser rejects input that the standard doesn't allow, and a writer produces only output that the standard allows. This holds even when other software commonly accepts the input, and even when the standard's grammar could be read more loosely.
+
+- **Deviations are opt-in only.** A deviation needs a reasonable justification, such as common real-world behaviour. Offer it only through something the caller has to choose, such as an options flag, a method parameter, a property, or the Options pattern. Never make it the default, and never turn it on as a side effect of another option.
+- **Document each opt-in.** Its XML docs name the rule it relaxes, by RFC or specification section.
+- **Follow the edition the standard cites.** When a standard refers to an older one, for example RFC 2231 refers to RFC 1766 language tags, not BCP 47, implement the edition it cites. If it looks worth revisiting later, mark the place with a `// TODO:` comment.
+- **Test both behaviours.** A test shows the strict default rejecting the input, and another shows the opt-in accepting it.
+
 ## Copyright notices
 
 When you change a file that contains a copyright notice, update the notice so its year of publication is the current calendar year. In a range such as `2024-2026`, keep the first year (the year of first publication) and change the last year to the current one. A notice that is a single year becomes a range from that year to the current one. Leave the notice alone if its last year is already the current year, and don't touch files you aren't otherwise changing.

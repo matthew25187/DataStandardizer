@@ -50,17 +50,18 @@ namespace DataStandardizer.Communication.Tests.Mime
             act.Should().Throw<ArgumentException>();
         }
 
-        [Theory]
-        [InlineData("café")]
-        [InlineData("a\rb")]
-        [InlineData("a\nb")]
-        [InlineData("a\0b")]
-        [InlineData("a\u007Fb")]
-        public void Constructor_ValueThatCannotBeWritten_ThrowsArgumentException(string value)
-        {
-            Action act = () => new MimeParameter("name", value);
+        public static TheoryData<string> UnpairedSurrogates => new TheoryData<string> { "a\xD800", "\xDC00a", "\xDC00\xD800" };
 
-            act.Should().Throw<ArgumentException>();
+        // Not enumerated at discovery, as the test runner may not keep unpaired surrogates when it serializes the data.
+        [Theory]
+        [MemberData(nameof(UnpairedSurrogates), DisableDiscoveryEnumeration = true)]
+        public void Constructor_UnpairedSurrogate_ThrowsArgumentException(string value)
+        {
+            // act
+            Action testAction = () => new MimeParameter("name", value);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>();
         }
 
         [Fact]
@@ -96,17 +97,70 @@ namespace DataStandardizer.Communication.Tests.Mime
             if (expected) left.GetHashCode().Should().Be(right.GetHashCode());
         }
 
-        [Fact]
-        public void DefaultInstance_IsUninitialised()
+        // ref. RFC 5322 §2.1.1: lines should be no more than 78 characters.
+        private const int RecommendedLineLength = 78;
+
+        // Any destination will do, as an uninitialised parameter throws before it writes.
+        private const int AnyDestinationLength = 10;
+
+        public static TheoryData<Action> MembersOfDefaultInstance => new TheoryData<Action>
         {
+            () => _ = default(MimeParameter).Name,
+            () => _ = default(MimeParameter).Value,
+            () => _ = default(MimeParameter).Charset,
+            () => _ = default(MimeParameter).Language,
+            () => default(MimeParameter).FormatSections(RecommendedLineLength),
+            () => default(MimeParameter).TryFormat(new char[AnyDestinationLength], out _),
+        };
+
+        [Theory]
+        [MemberData(nameof(MembersOfDefaultInstance))]
+        public void Members_DefaultInstance_ThrowInvalidOperationException(Action member)
+        {
+            // act
+            var testAction = member;
+
+            // assert
+            testAction.Should().Throw<InvalidOperationException>();
+        }
+
+        [Fact]
+        public void ToString_DefaultInstance_ReturnsEmpty()
+        {
+            // arrange
             var parameter = default(MimeParameter);
 
-            ((Action)(() => _ = parameter.Name)).Should().Throw<InvalidOperationException>();
-            ((Action)(() => _ = parameter.Value)).Should().Throw<InvalidOperationException>();
-            ((Action)(() => parameter.TryFormat(new char[10], out _))).Should().Throw<InvalidOperationException>();
-            parameter.ToString().Should().BeEmpty();
-            parameter.Equals(default(MimeParameter)).Should().BeTrue();
-            parameter.GetHashCode().Should().Be(0);
+            // act
+            var result = parameter.ToString();
+
+            // assert
+            result.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void Equals_DefaultInstances_ReturnsTrue()
+        {
+            // arrange
+            var parameter = default(MimeParameter);
+
+            // act
+            var result = parameter.Equals(default(MimeParameter));
+
+            // assert
+            result.Should().BeTrue();
+        }
+
+        [Fact]
+        public void GetHashCode_DefaultInstance_ReturnsZero()
+        {
+            // arrange
+            var parameter = default(MimeParameter);
+
+            // act
+            var result = parameter.GetHashCode();
+
+            // assert
+            result.Should().Be(0);
         }
     }
 }
