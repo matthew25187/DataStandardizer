@@ -8,167 +8,109 @@ namespace DataStandardizer.Communication.Tests.Mime
 {
     public class MimeMediaTypeTests
     {
-        [Theory]
-        // ref. RFC 2045 §5.1, RFC 2046 §4.1.2, §5.1.1
-        [InlineData("text/plain;charset=us-ascii", "text", "plain", "charset", "us-ascii")]
-        [InlineData("text/plain;charset=\"us-ascii\"", "text", "plain", "charset", "us-ascii")]
-        [InlineData("multipart/mixed;boundary=gc0p4Jq0M2Yt08j34c0p", "multipart", "mixed", "boundary", "gc0p4Jq0M2Yt08j34c0p")]
-        [InlineData("multipart/mixed;boundary=\"simple boundary\"", "multipart", "mixed", "boundary", "simple boundary")]
-        [InlineData("message/external-body;access-type=local-file", "message", "external-body", "access-type", "local-file")]
-        [InlineData("text/plain;name=\"a \\\"quoted\\\" \\\\ name\"", "text", "plain", "name", "a \"quoted\" \\ name")]
-        [InlineData("text/plain;name=\"\\a\\b\"", "text", "plain", "name", "ab")]
-        [InlineData("text/plain;name=\"\"", "text", "plain", "name", "")]
-        [InlineData("text/plain;name=\"tab\there\"", "text", "plain", "name", "tab\there")]
-        [InlineData("text/plain;name=\"a;b=c\"", "text", "plain", "name", "a;b=c")]
-        public void Parse_OneParameter_ReturnsDecodedParts(string value, string type, string subtype, string name, string parameterValue)
-        {
-            var result = MimeMediaType.Parse(value);
+        // ref. RFC 2046 §4.1, §4.1.3: the text type and its plain subtype, and §4.1.2: its charset parameter.
+        private const string Text = "text";
+        private const string Plain = "plain";
+        private const string TextPlain = "text/plain";
+        private const string Charset = "charset";
+        private const string UsAscii = "us-ascii";
+        private const string Utf8 = "utf-8";
 
-            result.Type.Should().Be(type);
-            result.Subtype.Should().Be(subtype);
-            result.Parameters.Should().ContainSingle();
-            result.Parameters[0].Name.Should().Be(name);
-            result.Parameters[0].Value.Should().Be(parameterValue);
-            result.Parameters[0].Charset.Should().BeEmpty();
-            result.Parameters[0].Language.Should().BeEmpty();
-        }
+        // ref. RFC 2045 §5.1: the example media type, written without and with quotation marks around the parameter value.
+        private const string TextPlainUsAscii = "text/plain;charset=us-ascii";
+        private const string TextPlainQuotedUsAscii = "text/plain;charset=\"us-ascii\"";
+        private const string TextPlainSpaceUsAscii = "text/plain; charset=us-ascii";
 
-        [Fact]
-        public void Parse_SeveralParameters_KeepsTheirOrder()
-        {
-            var result = MimeMediaType.Parse("text/calendar;method=REQUEST;charset=UTF-8;component=VEVENT");
+        // ref. RFC 2046 §5.1.1: the multipart type, its mixed subtype and boundary parameter, and the example boundary, which isn't a token.
+        private const string Multipart = "multipart";
+        private const string Mixed = "mixed";
+        private const string Boundary = "boundary";
+        private const string MultipartSimpleBoundary = "multipart/mixed;boundary=\"simple boundary\"";
 
-            result.Parameters.Should().HaveCount(3);
-            result.Parameters[0].Name.Should().Be("method");
-            result.Parameters[1].Name.Should().Be("charset");
-            result.Parameters[2].Name.Should().Be("component");
-        }
+        // ref. RFC 2046 §4.5.1: the application type and its octet-stream subtype.
+        private const string Application = "application";
+        private const string ApplicationOctetStream = "application/octet-stream";
 
-        [Fact]
-        public void Parse_NoParameters_ReturnsEmptyParameters()
-        {
-            var result = MimeMediaType.Parse("application/octet-stream");
+        // ref. RFC 6839 §3.1: the structured syntax suffix of JSON.
+        private const string Json = "json";
 
-            result.Type.Should().Be("application");
-            result.Subtype.Should().Be("octet-stream");
-            result.Parameters.Should().BeEmpty();
-        }
+        // A parameter name, and media types with quoted parameter values that decode to "a "quoted" \ name", "ab" and an empty value.
+        private const string Name = "name";
+        private const string QuotedPairsValue = "text/plain;name=\"a \\\"quoted\\\" \\\\ name\"";
+        private const string QuotedLettersValue = "text/plain;name=\"\\a\\b\"";
+        private const string EmptyQuotedValue = "text/plain;name=\"\"";
 
-        [Fact]
-        public void Parse_MixedCase_KeepsCase()
-        {
-            var result = MimeMediaType.Parse("Text/HTML;Charset=UTF-8");
+        // Media types with short parameters, and a parameter value that isn't a token.
+        private const string A = "a";
+        private const string B = "b";
+        private const string TextPlainA1 = "text/plain;a=1";
+        private const string TextPlainA1B2 = "text/plain;a=1;b=2";
+        private const string TextPlainQuotedValue = "text/plain;a=\"b c\"";
+        private const string TextPlainCharsetAndFormat = "text/plain;charset=us-ascii;format=flowed";
 
-            result.Type.Should().Be("Text");
-            result.Subtype.Should().Be("HTML");
-            result.Parameters[0].Name.Should().Be("Charset");
-        }
+        // Media types with whitespace or a comment where RFC 2045 §5.1 allows none.
+        private const string SpaceBeforeType = " text/plain";
+        private const string SpaceBeforeSlash = "text /plain";
+        private const string SpaceAfterSlash = "text/ plain";
+        private const string Comment = "text/plain (comment)";
 
-        [Fact]
-        public void Parse_Span_ReturnsMediaType()
-        {
-            var result = MimeMediaType.Parse("xx text/plain;a=b xx".AsSpan(3, 14));
+        // ref. RFC 6838 §4.2: names are at most 127 characters.
+        private const string LetterName127 =
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        private const string LetterName128 = LetterName127 + "a";
+        private const int MaximumNameLength = 127;
+        private const string SubtypeOf127Characters = "application/" + LetterName127;
 
-            result.Should().Be(MimeMediaType.TextPlain.WithParameter("a", "b"));
-        }
-
-        [Theory]
-        [InlineData("")]
-        [InlineData("text")]
-        [InlineData("text/")]
-        [InlineData("/plain")]
-        [InlineData("text/plain;")]
-        [InlineData("text/plain;charset")]
-        [InlineData("text/plain;charset=")]
-        [InlineData("text/plain;=us-ascii")]
-        [InlineData("text/plain;charset=\"us-ascii")]
-        [InlineData("text/plain;charset=\"us-ascii\"x")]
-        [InlineData("text/plain;name=\"a\\")]
-        [InlineData("text/plain;name=\"café\"")]
-        [InlineData("text/plain;name=café")]
-        [InlineData("text/plain;name=\"a\rb\"")]
-        [InlineData("text/plain;name=a b")]
-        [InlineData("text/plain;name=a/b")]
-        [InlineData("text/plain/x")]
-        [InlineData("text/plain;charset=us-ascii;Charset=utf-8")]
-        [InlineData("text/plain (comment)")]
-        [InlineData("text/plain;charset=us-ascii (Plain text)")]
-        [InlineData(" text/plain")]
-        [InlineData("text /plain")]
-        [InlineData("text/ plain")]
-        [InlineData("text/plain ;charset=us-ascii")]
-        [InlineData("text/plain; charset=us-ascii")]
-        [InlineData("text/plain;charset =us-ascii")]
-        [InlineData("text/plain;charset= us-ascii")]
-        [InlineData("text/plain ")]
-        public void TryParse_Strict_RejectsInvalid(string value)
-        {
-            MimeMediaType result;
-            MimeMediaType.TryParse(value, out result).Should().BeFalse();
-            MimeMediaType.TryParse(value.AsSpan(), out result).Should().BeFalse();
-            result.Should().Be(default(MimeMediaType));
-        }
-
-        [Fact]
-        public void TryParse_Null_ReturnsFalse()
-        {
-            MimeMediaType result;
-            MimeMediaType.TryParse((string)null, out result).Should().BeFalse();
-        }
-
-        [Fact]
-        public void Parse_Invalid_ThrowsFormatException()
-        {
-            Action act = () => MimeMediaType.Parse("text");
-
-            act.Should().Throw<FormatException>();
-        }
-
-        [Fact]
-        public void Parse_Null_ThrowsArgumentNullException()
-        {
-            Action act = () => MimeMediaType.Parse((string)null);
-
-            act.Should().Throw<ArgumentNullException>();
-        }
+        // A name of a registered tree with a character that RFC 6838 §4.2 allows, but RFC 2045 §5.1 doesn't need.
+        private const string TildeSubtype = "x~y";
 
         // The lowest bit that no MimeMediaTypeParseOptions member uses.
-        // The lowest bit that no option uses.
         private const MimeMediaTypeParseOptions UndefinedOption = (MimeMediaTypeParseOptions)(1 << 9);
 
-        [Fact]
-        public void TryParse_UndefinedOptions_ThrowsArgumentOutOfRangeException()
+        private const MimeMediaTypeParseOptions WhitespaceAndRfc2045Tokens =
+            MimeMediaTypeParseOptions.AllowWhitespaceAroundDelimiters | MimeMediaTypeParseOptions.AllowRfc2045Tokens;
+
+        // "text/plain;a=b" in the middle of other text, at the span from SpanStart of SpanLength characters.
+        private const string MediaTypeAmongOtherText = "xx text/plain;a=b xx";
+        private const int SpanStart = 3;
+        private const int SpanLength = 14;
+
+        // A media type with a parameter value that isn't a token, and so is quoted.
+        private const string TextPlainQuotedName = "text/plain;name=\"a b\"";
+
+        #region Test case factories
+
+        public static TheoryData<string> InvalidMediaTypes => new TheoryData<string>
         {
-            // act
-            Action testAction = () => MimeMediaType.TryParse("text/plain", UndefinedOption, out _);
-
-            // assert
-            testAction.Should().Throw<ArgumentOutOfRangeException>();
-        }
-
-        [Theory]
-        [InlineData("text/plain; charset=us-ascii")]
-        [InlineData("text/plain ; charset = us-ascii ")]
-        [InlineData("text/plain\t;\tcharset\t=\t\"us-ascii\"")]
-        public void TryParse_AllowWhitespaceAroundDelimiters_AcceptsWhitespace(string value)
-        {
-            MimeMediaType result;
-            MimeMediaType.TryParse(value, MimeMediaTypeParseOptions.AllowWhitespaceAroundDelimiters, out result).Should().BeTrue();
-
-            result.Should().Be(MimeMediaType.TextPlain.WithParameter("charset", "us-ascii"));
-        }
-
-        [Theory]
-        [InlineData(" text/plain")]
-        [InlineData("text /plain")]
-        [InlineData("text/ plain")]
-        [InlineData("text/plain (comment)")]
-        [InlineData("text/plain;\r\n charset=us-ascii")]
-        public void TryParse_AllowWhitespaceAroundDelimiters_RejectsOtherWhitespaceAndComments(string value)
-        {
-            MimeMediaType result;
-            MimeMediaType.TryParse(value, MimeMediaTypeParseOptions.AllowWhitespaceAroundDelimiters, out result).Should().BeFalse();
-        }
+            "",
+            Text,
+            "text/",
+            "/plain",
+            "text/plain;",
+            "text/plain;charset",
+            "text/plain;charset=",
+            "text/plain;=us-ascii",
+            "text/plain;charset=\"us-ascii",
+            "text/plain;charset=\"us-ascii\"x",
+            "text/plain;name=\"a\\",
+            "text/plain;name=\"caf\x00E9\"",
+            "text/plain;name=caf\x00E9",
+            "text/plain;name=\"a\rb\"",
+            "text/plain;name=a b",
+            "text/plain;name=a/b",
+            "text/plain/x",
+            "text/plain;charset=us-ascii;Charset=utf-8",
+            Comment,
+            "text/plain;charset=us-ascii (Plain text)",
+            SpaceBeforeType,
+            SpaceBeforeSlash,
+            SpaceAfterSlash,
+            "text/plain ;charset=us-ascii",
+            TextPlainSpaceUsAscii,
+            "text/plain;charset =us-ascii",
+            "text/plain;charset= us-ascii",
+            "text/plain ",
+        };
 
         public static TheoryData<string> Rfc2045TokensThatAreNotRfc6838Names => new TheoryData<string>
         {
@@ -179,6 +121,265 @@ namespace DataStandardizer.Communication.Tests.Mime
             "x{y}/plain",
             "text/plain;na|me=x",
         };
+
+        // A type, a subtype and a parameter name, each of 128 characters, one more than RFC 6838 §4.2 allows.
+        public static TheoryData<string> NamesOver127Characters => new TheoryData<string>
+        {
+            LetterName128 + "/plain;a=b",
+            "text/" + LetterName128 + ";a=b",
+            "text/plain;" + LetterName128 + "=b",
+        };
+
+        public static TheoryData<string, string> EquivalentMediaTypes => new TheoryData<string, string>
+        {
+            { TextPlain, "TEXT/PLAIN" },
+            { TextPlainUsAscii, "Text/Plain;CHARSET=US-ASCII" },
+            { TextPlainUsAscii, TextPlainQuotedUsAscii },
+            { TextPlainA1B2, "text/plain;b=2;a=1" },
+            { "text/plain;a=1;B=2;c=3", "text/plain;c=3;A=1;b=2" },
+        };
+
+        public static TheoryData<string, string> DifferentMediaTypes => new TheoryData<string, string>
+        {
+            { TextPlain, "text/html" },
+            { TextPlain, "image/plain" },
+            { TextPlain, TextPlainA1 },
+            { "text/plain;name=File", "text/plain;name=file" },
+            { TextPlainA1, "text/plain;b=1" },
+            { TextPlainA1B2, "text/plain;a=1;c=2" },
+            { "multipart/mixed;boundary=AbC", "multipart/mixed;boundary=abc" },
+        };
+
+        public static TheoryData<string> CanonicalMediaTypes => new TheoryData<string>
+        {
+            TextPlain,
+            TextPlainUsAscii,
+            MultipartSimpleBoundary,
+            QuotedPairsValue,
+            EmptyQuotedValue,
+            "text/plain;name=\"a;b=c\";title=\"x@y.example\"",
+            "application/ld+json;profile=\"http://www.w3.org/ns/json-ld#compacted\"",
+        };
+
+        // Each length of destination too short for TextPlainQuotedName, which is 21 characters.
+        public static IEnumerable<object[]> DestinationsTooShortForQuotedName()
+        {
+            for (var length = 0; length < TextPlainQuotedName.Length; length++)
+            {
+                yield return new object[] { length };
+            }
+        }
+
+        public static TheoryData<Action> MembersOfDefaultInstance => new TheoryData<Action>
+        {
+            () => _ = default(MimeMediaType).Type,
+            () => _ = default(MimeMediaType).Subtype,
+            () => _ = default(MimeMediaType).Suffix,
+            () => _ = default(MimeMediaType).Tree,
+            () => _ = default(MimeMediaType).Parameters,
+            () => default(MimeMediaType).WithoutParameters(),
+            () => default(MimeMediaType).WithParameter(A, B),
+        };
+
+        public static TheoryData<Action> ConstructorsWithNullArgument => new TheoryData<Action>
+        {
+            () => _ = new MimeMediaType(null, Plain),
+            () => _ = new MimeMediaType(Text, null),
+            () => _ = new MimeMediaType(Text, Plain, null),
+        };
+
+        public static TheoryData<MimeMediaType, string> Constants => new TheoryData<MimeMediaType, string>
+        {
+            { MimeMediaType.TextPlain, TextPlain },
+            { MimeMediaType.TextCalendar, "text/calendar" },
+            { MimeMediaType.TextVcard, "text/vcard" },
+            { MimeMediaType.TextDirectory, "text/directory" },
+            { MimeMediaType.MessageRfc822, "message/rfc822" },
+            { MimeMediaType.MultipartMixed, "multipart/mixed" },
+            { MimeMediaType.MultipartAlternative, "multipart/alternative" },
+            { MimeMediaType.MultipartRelated, "multipart/related" },
+            { MimeMediaType.ApplicationOctetStream, ApplicationOctetStream },
+        };
+
+        public static TheoryData<object> OtherObjects => new TheoryData<object> { TextPlain, null };
+
+        #endregion
+
+        #region Parsing
+
+        [Theory]
+        // ref. RFC 2045 §5.1, RFC 2046 §4.1.2, §5.1.1
+        [InlineData(TextPlainUsAscii, Text, Plain, Charset, UsAscii)]
+        [InlineData(TextPlainQuotedUsAscii, Text, Plain, Charset, UsAscii)]
+        [InlineData("multipart/mixed;boundary=gc0p4Jq0M2Yt08j34c0p", Multipart, Mixed, Boundary, "gc0p4Jq0M2Yt08j34c0p")]
+        [InlineData(MultipartSimpleBoundary, Multipart, Mixed, Boundary, "simple boundary")]
+        [InlineData("message/external-body;access-type=local-file", "message", "external-body", "access-type", "local-file")]
+        [InlineData(QuotedPairsValue, Text, Plain, Name, "a \"quoted\" \\ name")]
+        [InlineData(QuotedLettersValue, Text, Plain, Name, "ab")]
+        [InlineData(EmptyQuotedValue, Text, Plain, Name, "")]
+        [InlineData("text/plain;name=\"tab\there\"", Text, Plain, Name, "tab\there")]
+        [InlineData("text/plain;name=\"a;b=c\"", Text, Plain, Name, "a;b=c")]
+        public void Parse_OneParameter_ReturnsDecodedParts(string value, string type, string subtype, string name, string parameterValue)
+        {
+            // act
+            var testResult = MimeMediaType.Parse(value);
+
+            // assert
+            testResult.Type.Should().Be(type);
+            testResult.Subtype.Should().Be(subtype);
+            testResult.Parameters.Should().ContainSingle();
+            testResult.Parameters[0].Name.Should().Be(name);
+            testResult.Parameters[0].Value.Should().Be(parameterValue);
+            testResult.Parameters[0].Charset.Should().BeEmpty();
+            testResult.Parameters[0].Language.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void Parse_SeveralParameters_KeepsTheirOrder()
+        {
+            // act
+            var testResult = MimeMediaType.Parse("text/calendar;method=REQUEST;charset=UTF-8;component=VEVENT");
+
+            // assert
+            testResult.Parameters.Should().HaveCount(3);
+            testResult.Parameters[0].Name.Should().Be("method");
+            testResult.Parameters[1].Name.Should().Be(Charset);
+            testResult.Parameters[2].Name.Should().Be("component");
+        }
+
+        [Fact]
+        public void Parse_NoParameters_ReturnsEmptyParameters()
+        {
+            // act
+            var testResult = MimeMediaType.Parse(ApplicationOctetStream);
+
+            // assert
+            testResult.Type.Should().Be(Application);
+            testResult.Subtype.Should().Be("octet-stream");
+            testResult.Parameters.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void Parse_MixedCase_KeepsCase()
+        {
+            // act
+            var testResult = MimeMediaType.Parse("Text/HTML;Charset=UTF-8");
+
+            // assert
+            testResult.Type.Should().Be("Text");
+            testResult.Subtype.Should().Be("HTML");
+            testResult.Parameters[0].Name.Should().Be("Charset");
+        }
+
+        [Fact]
+        public void Parse_Span_ReturnsMediaType()
+        {
+            // arrange
+            var value = MediaTypeAmongOtherText.AsSpan(SpanStart, SpanLength);
+            var expected = MimeMediaType.TextPlain.WithParameter(A, B);
+
+            // act
+            var testResult = MimeMediaType.Parse(value);
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Theory]
+        [MemberData(nameof(InvalidMediaTypes))]
+        public void TryParse_Strict_RejectsInvalid(string value)
+        {
+            // act
+            var testResult = MimeMediaType.TryParse(value, out var result);
+
+            // assert
+            testResult.Should().BeFalse();
+            result.Should().Be(default(MimeMediaType));
+        }
+
+        [Theory]
+        [MemberData(nameof(InvalidMediaTypes))]
+        public void TryParse_StrictSpan_RejectsInvalid(string value)
+        {
+            // act
+            var testResult = MimeMediaType.TryParse(value.AsSpan(), out var result);
+
+            // assert
+            testResult.Should().BeFalse();
+            result.Should().Be(default(MimeMediaType));
+        }
+
+        [Fact]
+        public void TryParse_Null_ReturnsFalse()
+        {
+            // act
+            var testResult = MimeMediaType.TryParse((string)null, out _);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void Parse_Invalid_ThrowsFormatException()
+        {
+            // act
+            Action testAction = () => MimeMediaType.Parse(Text);
+
+            // assert
+            testAction.Should().Throw<FormatException>();
+        }
+
+        [Fact]
+        public void Parse_Null_ThrowsArgumentNullException()
+        {
+            // act
+            Action testAction = () => MimeMediaType.Parse((string)null);
+
+            // assert
+            testAction.Should().Throw<ArgumentNullException>();
+        }
+
+        [Fact]
+        public void TryParse_UndefinedOptions_ThrowsArgumentOutOfRangeException()
+        {
+            // act
+            Action testAction = () => MimeMediaType.TryParse(TextPlain, UndefinedOption, out _);
+
+            // assert
+            testAction.Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        [Theory]
+        [InlineData(TextPlainSpaceUsAscii)]
+        [InlineData("text/plain ; charset = us-ascii ")]
+        [InlineData("text/plain\t;\tcharset\t=\t\"us-ascii\"")]
+        public void TryParse_AllowWhitespaceAroundDelimiters_AcceptsWhitespace(string value)
+        {
+            // arrange
+            var expected = MimeMediaType.TextPlain.WithParameter(Charset, UsAscii);
+
+            // act
+            var testResult = MimeMediaType.TryParse(value, MimeMediaTypeParseOptions.AllowWhitespaceAroundDelimiters, out var result);
+
+            // assert
+            testResult.Should().BeTrue();
+            result.Should().Be(expected);
+        }
+
+        [Theory]
+        [InlineData(SpaceBeforeType)]
+        [InlineData(SpaceBeforeSlash)]
+        [InlineData(SpaceAfterSlash)]
+        [InlineData(Comment)]
+        [InlineData("text/plain;\r\n charset=us-ascii")]
+        public void TryParse_AllowWhitespaceAroundDelimiters_RejectsOtherWhitespaceAndComments(string value)
+        {
+            // act
+            var testResult = MimeMediaType.TryParse(value, MimeMediaTypeParseOptions.AllowWhitespaceAroundDelimiters, out _);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
 
         [Theory]
         [MemberData(nameof(Rfc2045TokensThatAreNotRfc6838Names))]
@@ -205,55 +406,72 @@ namespace DataStandardizer.Communication.Tests.Mime
         [Fact]
         public void TryParse_NameOf127Characters_IsAccepted()
         {
-            var value = "application/" + new string('a', 127);
+            // act
+            var testResult = MimeMediaType.TryParse(SubtypeOf127Characters, out var result);
 
-            MimeMediaType result;
-            MimeMediaType.TryParse(value, out result).Should().BeTrue();
-            result.Subtype.Should().HaveLength(127);
+            // assert
+            testResult.Should().BeTrue();
+            result.Subtype.Should().HaveLength(MaximumNameLength);
         }
 
         [Theory]
-        [InlineData(true, false, false)]
-        [InlineData(false, true, false)]
-        [InlineData(false, false, true)]
-        public void TryParse_NameOver127Characters_IsOptIn(bool longType, bool longSubtype, bool longParameterName)
+        [MemberData(nameof(NamesOver127Characters))]
+        public void TryParse_NameOver127CharactersParsedStrictly_ReturnsFalse(string value)
         {
-            var longName = new string('a', 128);
-            var value = (longType ? longName : "text") + "/" + (longSubtype ? longName : "plain") + ";" + (longParameterName ? longName : "a") + "=b";
+            // act
+            var testResult = MimeMediaType.TryParse(value, out _);
 
-            MimeMediaType result;
-            MimeMediaType.TryParse(value, out result).Should().BeFalse();
-            MimeMediaType.TryParse(value, MimeMediaTypeParseOptions.AllowRfc2045Tokens, out result).Should().BeTrue();
+            // assert
+            testResult.Should().BeFalse();
         }
 
-        private const MimeMediaTypeParseOptions WhitespaceAndRfc2045Tokens =
-            MimeMediaTypeParseOptions.AllowWhitespaceAroundDelimiters | MimeMediaTypeParseOptions.AllowRfc2045Tokens;
+        [Theory]
+        [MemberData(nameof(NamesOver127Characters))]
+        public void TryParse_NameOver127CharactersWithRfc2045TokensAllowed_ReturnsTrue(string value)
+        {
+            // act
+            var testResult = MimeMediaType.TryParse(value, MimeMediaTypeParseOptions.AllowRfc2045Tokens, out _);
+
+            // assert
+            testResult.Should().BeTrue();
+        }
 
         [Fact]
         public void Parse_BothOptions_AcceptsBoth()
         {
             // act
-            var result = MimeMediaType.Parse("application/x~y; a~b=c", WhitespaceAndRfc2045Tokens);
+            var testResult = MimeMediaType.Parse("application/x~y; a~b=c", WhitespaceAndRfc2045Tokens);
 
             // assert
-            result.Subtype.Should().Be("x~y");
-            result.Parameters[0].Name.Should().Be("a~b");
+            testResult.Subtype.Should().Be(TildeSubtype);
+            testResult.Parameters[0].Name.Should().Be("a~b");
         }
 
+        #endregion
+
+        #region Suffix and tree
+
         [Theory]
-        [InlineData("application/ld+json", "json")]
-        [InlineData("application/vnd.api+json", "json")]
+        [InlineData("application/ld+json", Json)]
+        [InlineData("application/vnd.api+json", Json)]
         [InlineData("image/svg+xml", "xml")]
         [InlineData("application/a+b+cbor", "cbor")]
         [InlineData("application/json", "")]
         [InlineData("application/a+", "")]
-        public void Suffix_ReturnsTextAfterLastPlus(string value, string suffix)
+        public void Suffix_Subtype_ReturnsTextAfterLastPlus(string value, string suffix)
         {
-            MimeMediaType.Parse(value, MimeMediaTypeParseOptions.AllowRfc2045Tokens).Suffix.Should().Be(suffix);
+            // arrange
+            var mediaType = MimeMediaType.Parse(value, MimeMediaTypeParseOptions.AllowRfc2045Tokens);
+
+            // act
+            var testResult = mediaType.Suffix;
+
+            // assert
+            testResult.Should().Be(suffix);
         }
 
         [Theory]
-        [InlineData("text/plain", MimeRegistrationTree.Standards)]
+        [InlineData(TextPlain, MimeRegistrationTree.Standards)]
         [InlineData("application/vnd.ms-excel", MimeRegistrationTree.Vendor)]
         [InlineData("application/VND.ms-excel", MimeRegistrationTree.Vendor)]
         [InlineData("application/prs.example", MimeRegistrationTree.Personal)]
@@ -262,287 +480,425 @@ namespace DataStandardizer.Communication.Tests.Mime
         [InlineData("application/X-tar", MimeRegistrationTree.Unregistered)]
         [InlineData("application/vnd", MimeRegistrationTree.Standards)]
         [InlineData("application/xml", MimeRegistrationTree.Standards)]
-        public void Tree_ReturnsTreeOfSubtypePrefix(string value, MimeRegistrationTree tree)
+        public void Tree_Subtype_ReturnsTreeOfSubtypePrefix(string value, MimeRegistrationTree tree)
         {
-            MimeMediaType.Parse(value).Tree.Should().Be(tree);
+            // arrange
+            var mediaType = MimeMediaType.Parse(value);
+
+            // act
+            var testResult = mediaType.Tree;
+
+            // assert
+            testResult.Should().Be(tree);
         }
 
+        #endregion
+
+        #region Equality
+
         [Theory]
-        [InlineData("text/plain", "TEXT/PLAIN")]
-        [InlineData("text/plain;charset=us-ascii", "Text/Plain;CHARSET=US-ASCII")]
-        [InlineData("text/plain;charset=us-ascii", "text/plain;charset=\"us-ascii\"")]
-        [InlineData("text/plain;a=1;b=2", "text/plain;b=2;a=1")]
-        [InlineData("text/plain;a=1;B=2;c=3", "text/plain;c=3;A=1;b=2")]
+        [MemberData(nameof(EquivalentMediaTypes))]
         public void Equals_EquivalentMediaTypes_ReturnsTrue(string left, string right)
         {
+            // arrange
             var leftMediaType = MimeMediaType.Parse(left);
             var rightMediaType = MimeMediaType.Parse(right);
 
-            leftMediaType.Equals(rightMediaType).Should().BeTrue();
-            (leftMediaType == rightMediaType).Should().BeTrue();
-            (leftMediaType != rightMediaType).Should().BeFalse();
-            leftMediaType.Equals((object)rightMediaType).Should().BeTrue();
-            leftMediaType.GetHashCode().Should().Be(rightMediaType.GetHashCode());
+            // act
+            var testResult = leftMediaType.Equals(rightMediaType);
+
+            // assert
+            testResult.Should().BeTrue();
         }
 
         [Theory]
-        [InlineData("text/plain", "text/html")]
-        [InlineData("text/plain", "image/plain")]
-        [InlineData("text/plain", "text/plain;a=1")]
-        [InlineData("text/plain;name=File", "text/plain;name=file")]
-        [InlineData("text/plain;a=1", "text/plain;b=1")]
-        [InlineData("text/plain;a=1;b=2", "text/plain;a=1;c=2")]
-        [InlineData("multipart/mixed;boundary=AbC", "multipart/mixed;boundary=abc")]
-        public void Equals_DifferentMediaTypes_ReturnsFalse(string left, string right)
+        [MemberData(nameof(EquivalentMediaTypes))]
+        public void EqualsObject_EquivalentMediaTypes_ReturnsTrue(string left, string right)
         {
+            // arrange
+            var leftMediaType = MimeMediaType.Parse(left);
+            object rightMediaType = MimeMediaType.Parse(right);
+
+            // act
+            var testResult = leftMediaType.Equals(rightMediaType);
+
+            // assert
+            testResult.Should().BeTrue();
+        }
+
+        [Theory]
+        [MemberData(nameof(EquivalentMediaTypes))]
+        public void EqualityOperator_EquivalentMediaTypes_ReturnsTrue(string left, string right)
+        {
+            // arrange
             var leftMediaType = MimeMediaType.Parse(left);
             var rightMediaType = MimeMediaType.Parse(right);
 
-            leftMediaType.Equals(rightMediaType).Should().BeFalse();
-            (leftMediaType == rightMediaType).Should().BeFalse();
-            (leftMediaType != rightMediaType).Should().BeTrue();
+            // act
+            var testResult = leftMediaType == rightMediaType;
+
+            // assert
+            testResult.Should().BeTrue();
+        }
+
+        [Theory]
+        [MemberData(nameof(EquivalentMediaTypes))]
+        public void InequalityOperator_EquivalentMediaTypes_ReturnsFalse(string left, string right)
+        {
+            // arrange
+            var leftMediaType = MimeMediaType.Parse(left);
+            var rightMediaType = MimeMediaType.Parse(right);
+
+            // act
+            var testResult = leftMediaType != rightMediaType;
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Theory]
+        [MemberData(nameof(EquivalentMediaTypes))]
+        public void GetHashCode_EquivalentMediaTypes_ReturnsSameHashCode(string left, string right)
+        {
+            // arrange
+            var leftMediaType = MimeMediaType.Parse(left);
+            var rightHashCode = MimeMediaType.Parse(right).GetHashCode();
+
+            // act
+            var testResult = leftMediaType.GetHashCode();
+
+            // assert
+            testResult.Should().Be(rightHashCode);
+        }
+
+        [Theory]
+        [MemberData(nameof(DifferentMediaTypes))]
+        public void Equals_DifferentMediaTypes_ReturnsFalse(string left, string right)
+        {
+            // arrange
+            var leftMediaType = MimeMediaType.Parse(left);
+            var rightMediaType = MimeMediaType.Parse(right);
+
+            // act
+            var testResult = leftMediaType.Equals(rightMediaType);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Theory]
+        [MemberData(nameof(DifferentMediaTypes))]
+        public void EqualityOperator_DifferentMediaTypes_ReturnsFalse(string left, string right)
+        {
+            // arrange
+            var leftMediaType = MimeMediaType.Parse(left);
+            var rightMediaType = MimeMediaType.Parse(right);
+
+            // act
+            var testResult = leftMediaType == rightMediaType;
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Theory]
+        [MemberData(nameof(DifferentMediaTypes))]
+        public void InequalityOperator_DifferentMediaTypes_ReturnsTrue(string left, string right)
+        {
+            // arrange
+            var leftMediaType = MimeMediaType.Parse(left);
+            var rightMediaType = MimeMediaType.Parse(right);
+
+            // act
+            var testResult = leftMediaType != rightMediaType;
+
+            // assert
+            testResult.Should().BeTrue();
         }
 
         [Fact]
         public void Equals_DefaultInstances_ReturnsTrue()
         {
-            default(MimeMediaType).Equals(default(MimeMediaType)).Should().BeTrue();
-            default(MimeMediaType).Equals(MimeMediaType.TextPlain).Should().BeFalse();
-            default(MimeMediaType).GetHashCode().Should().Be(0);
+            // act
+            var testResult = default(MimeMediaType).Equals(default(MimeMediaType));
+
+            // assert
+            testResult.Should().BeTrue();
         }
 
         [Fact]
-        public void Equals_OtherObject_ReturnsFalse()
+        public void Equals_DefaultInstanceAndMediaType_ReturnsFalse()
         {
-            MimeMediaType.TextPlain.Equals("text/plain").Should().BeFalse();
-            MimeMediaType.TextPlain.Equals(null).Should().BeFalse();
+            // act
+            var testResult = default(MimeMediaType).Equals(MimeMediaType.TextPlain);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void GetHashCode_DefaultInstance_ReturnsZero()
+        {
+            // act
+            var testResult = default(MimeMediaType).GetHashCode();
+
+            // assert
+            testResult.Should().Be(0);
         }
 
         [Theory]
-        [InlineData("text/plain")]
-        [InlineData("text/plain;charset=us-ascii")]
-        [InlineData("multipart/mixed;boundary=\"simple boundary\"")]
-        [InlineData("text/plain;name=\"a \\\"quoted\\\" \\\\ name\"")]
-        [InlineData("text/plain;name=\"\"")]
-        [InlineData("text/plain;name=\"a;b=c\";title=\"x@y.example\"")]
-        [InlineData("application/ld+json;profile=\"http://www.w3.org/ns/json-ld#compacted\"")]
-        public void TryFormat_CanonicalForm_RoundTrips(string value)
+        [MemberData(nameof(OtherObjects))]
+        public void EqualsObject_OtherObject_ReturnsFalse(object other)
         {
+            // act
+            var testResult = MimeMediaType.TextPlain.Equals(other);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        #endregion
+
+        #region Formatting
+
+        [Theory]
+        [MemberData(nameof(CanonicalMediaTypes))]
+        public void TryFormat_CanonicalForm_WritesItAsParsed(string value)
+        {
+            // arrange
             var mediaType = MimeMediaType.Parse(value);
-            var buffer = new char[value.Length];
+            var destination = new char[value.Length];
 
-            int charsWritten;
-            mediaType.TryFormat(buffer, out charsWritten).Should().BeTrue();
+            // act
+            var testResult = mediaType.TryFormat(destination, out var charsWritten);
 
-            new string(buffer, 0, charsWritten).Should().Be(value);
-            mediaType.ToString().Should().Be(value);
-            MimeMediaType.Parse(mediaType.ToString()).Should().Be(mediaType);
+            // assert
+            testResult.Should().BeTrue();
+            charsWritten.Should().Be(value.Length);
+            new string(destination).Should().Be(value);
         }
 
         [Theory]
-        [InlineData("text/plain;charset=\"us-ascii\"", "text/plain;charset=us-ascii")]
-        [InlineData("text/plain;name=\"\\a\\b\"", "text/plain;name=ab")]
-        [InlineData("text/plain ; charset = \"us-ascii\" ", "text/plain;charset=us-ascii")]
-        public void ToString_QuotesOnlyValuesThatAreNotTokens(string value, string expected)
+        [MemberData(nameof(CanonicalMediaTypes))]
+        public void ToString_CanonicalForm_ReturnsItAsParsed(string value)
         {
-            MimeMediaType.Parse(value, MimeMediaTypeParseOptions.AllowWhitespaceAroundDelimiters).ToString().Should().Be(expected);
+            // arrange
+            var mediaType = MimeMediaType.Parse(value);
+
+            // act
+            var testResult = mediaType.ToString();
+
+            // assert
+            testResult.Should().Be(value);
         }
 
-        [Fact]
-        public void TryFormat_DestinationTooShort_ReturnsFalse()
+        [Theory]
+        [MemberData(nameof(CanonicalMediaTypes))]
+        public void Parse_CanonicalFormOfParsed_ReturnsEqualMediaType(string value)
         {
-            var mediaType = MimeMediaType.Parse("text/plain;name=\"a b\"");
+            // arrange
+            var mediaType = MimeMediaType.Parse(value);
             var formatted = mediaType.ToString();
 
-            for (var length = 0; length < formatted.Length; length++)
-            {
-                int charsWritten;
-                mediaType.TryFormat(new char[length], out charsWritten).Should().BeFalse();
-                charsWritten.Should().Be(0);
-            }
+            // act
+            var testResult = MimeMediaType.Parse(formatted);
+
+            // assert
+            testResult.Should().Be(mediaType);
+        }
+
+        [Theory]
+        [InlineData(TextPlainQuotedUsAscii, TextPlainUsAscii)]
+        [InlineData(QuotedLettersValue, "text/plain;name=ab")]
+        [InlineData("text/plain ; charset = \"us-ascii\" ", TextPlainUsAscii)]
+        public void ToString_ParsedWithQuotesOrWhitespace_QuotesOnlyValuesThatAreNotTokens(string value, string expected)
+        {
+            // arrange
+            var mediaType = MimeMediaType.Parse(value, MimeMediaTypeParseOptions.AllowWhitespaceAroundDelimiters);
+
+            // act
+            var testResult = mediaType.ToString();
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Theory]
+        [MemberData(nameof(DestinationsTooShortForQuotedName))]
+        public void TryFormat_DestinationTooShort_ReturnsFalse(int length)
+        {
+            // arrange
+            var mediaType = MimeMediaType.Parse(TextPlainQuotedName);
+            var destination = new char[length];
+
+            // act
+            var testResult = mediaType.TryFormat(destination, out var charsWritten);
+
+            // assert
+            testResult.Should().BeFalse();
+            charsWritten.Should().Be(0);
         }
 
         [Fact]
         public void TryFormat_DefaultInstance_WritesNothing()
         {
-            int charsWritten;
-            default(MimeMediaType).TryFormat(new char[0], out charsWritten).Should().BeTrue();
+            // act
+            var testResult = default(MimeMediaType).TryFormat(new char[0], out var charsWritten);
 
+            // assert
+            testResult.Should().BeTrue();
             charsWritten.Should().Be(0);
-            default(MimeMediaType).ToString().Should().BeEmpty();
         }
 
         [Fact]
-        public void Properties_DefaultInstance_ThrowInvalidOperationException()
+        public void ToString_DefaultInstance_ReturnsEmpty()
         {
-            var mediaType = default(MimeMediaType);
+            // act
+            var testResult = default(MimeMediaType).ToString();
 
-            ((Action)(() => _ = mediaType.Type)).Should().Throw<InvalidOperationException>();
-            ((Action)(() => _ = mediaType.Subtype)).Should().Throw<InvalidOperationException>();
-            ((Action)(() => _ = mediaType.Suffix)).Should().Throw<InvalidOperationException>();
-            ((Action)(() => _ = mediaType.Tree)).Should().Throw<InvalidOperationException>();
-            ((Action)(() => _ = mediaType.Parameters)).Should().Throw<InvalidOperationException>();
-            ((Action)(() => mediaType.WithoutParameters())).Should().Throw<InvalidOperationException>();
-            ((Action)(() => mediaType.WithParameter("a", "b"))).Should().Throw<InvalidOperationException>();
+            // assert
+            testResult.Should().BeEmpty();
+        }
+
+        #endregion
+
+        #region Construction
+
+        [Theory]
+        [MemberData(nameof(MembersOfDefaultInstance))]
+        public void Members_DefaultInstance_ThrowInvalidOperationException(Action member)
+        {
+            // act
+            var testAction = member;
+
+            // assert
+            testAction.Should().Throw<InvalidOperationException>();
         }
 
         [Fact]
-        public void Constructor_ValidNames_CreatesMediaType()
+        public void Constructor_ValidNamesAndParameter_CreatesMediaType()
         {
-            var mediaType = new MimeMediaType("text", "plain", new[] { new MimeParameter("charset", "us-ascii") });
+            // arrange
+            var parameters = new[] { new MimeParameter(Charset, UsAscii) };
+            var expected = MimeMediaType.Parse(TextPlainUsAscii);
 
-            mediaType.ToString().Should().Be("text/plain;charset=us-ascii");
-            new MimeMediaType("text", "plain").Should().Be(MimeMediaType.TextPlain);
+            // act
+            var testResult = new MimeMediaType(Text, Plain, parameters);
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Fact]
+        public void Constructor_ValidNames_CreatesMediaTypeWithoutParameters()
+        {
+            // act
+            var testResult = new MimeMediaType(Text, Plain);
+
+            // assert
+            testResult.Should().Be(MimeMediaType.TextPlain);
         }
 
         [Theory]
-        [InlineData("", "plain")]
-        [InlineData("text", "")]
-        [InlineData("te xt", "plain")]
-        [InlineData("text", "x~y")]
-        [InlineData("-text", "plain")]
-        [InlineData("text/plain", "plain")]
+        [InlineData("", Plain)]
+        [InlineData(Text, "")]
+        [InlineData("te xt", Plain)]
+        [InlineData(Text, TildeSubtype)]
+        [InlineData("-text", Plain)]
+        [InlineData(TextPlain, Plain)]
         public void Constructor_InvalidName_ThrowsArgumentException(string type, string subtype)
         {
-            Action act = () => new MimeMediaType(type, subtype);
+            // act
+            Action testAction = () => _ = new MimeMediaType(type, subtype);
 
-            act.Should().Throw<ArgumentException>();
+            // assert
+            testAction.Should().Throw<ArgumentException>();
         }
 
         [Fact]
         public void Constructor_NameOver127Characters_ThrowsArgumentException()
         {
-            Action act = () => new MimeMediaType("application", new string('a', 128));
+            // act
+            Action testAction = () => _ = new MimeMediaType(Application, LetterName128);
 
-            act.Should().Throw<ArgumentException>();
+            // assert
+            testAction.Should().Throw<ArgumentException>();
         }
 
-        [Fact]
-        public void Constructor_NullArgument_ThrowsArgumentNullException()
+        [Theory]
+        [MemberData(nameof(ConstructorsWithNullArgument))]
+        public void Constructor_NullArgument_ThrowsArgumentNullException(Action constructor)
         {
-            ((Action)(() => new MimeMediaType(null, "plain"))).Should().Throw<ArgumentNullException>();
-            ((Action)(() => new MimeMediaType("text", null))).Should().Throw<ArgumentNullException>();
-            ((Action)(() => new MimeMediaType("text", "plain", null))).Should().Throw<ArgumentNullException>();
+            // act
+            var testAction = constructor;
+
+            // assert
+            testAction.Should().Throw<ArgumentNullException>();
         }
 
         [Fact]
         public void Constructor_DuplicateParameterNames_ThrowsArgumentException()
         {
-            var parameters = new[] { new MimeParameter("charset", "us-ascii"), new MimeParameter("CHARSET", "utf-8") };
-            Action act = () => new MimeMediaType("text", "plain", parameters);
+            // arrange
+            var parameters = new[] { new MimeParameter(Charset, UsAscii), new MimeParameter("CHARSET", Utf8) };
 
-            act.Should().Throw<ArgumentException>();
+            // act
+            Action testAction = () => _ = new MimeMediaType(Text, Plain, parameters);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>();
         }
 
         [Fact]
         public void Constructor_UninitialisedParameter_ThrowsArgumentException()
         {
-            Action act = () => new MimeMediaType("text", "plain", new[] { default(MimeParameter) });
+            // arrange
+            var parameters = new[] { default(MimeParameter) };
 
-            act.Should().Throw<ArgumentException>();
+            // act
+            Action testAction = () => _ = new MimeMediaType(Text, Plain, parameters);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>();
         }
 
         [Fact]
         public void Constructor_ParametersChangedAfterwards_KeepsCopy()
         {
-            var parameters = new List<MimeParameter> { new MimeParameter("a", "1") };
-            var mediaType = new MimeMediaType("text", "plain", parameters);
+            // arrange
+            var parameters = new List<MimeParameter> { new MimeParameter(A, "1") };
+            var mediaType = new MimeMediaType(Text, Plain, parameters);
 
-            parameters.Add(new MimeParameter("b", "2"));
+            // act
+            parameters.Add(new MimeParameter(B, "2"));
 
+            // assert
             mediaType.Parameters.Should().ContainSingle();
         }
 
         [Fact]
-        public void Parameters_CannotBeCastToMutableList()
+        public void Parameters_Parsed_IsReadOnly()
         {
-            var parameters = MimeMediaType.Parse("text/plain;a=1").Parameters;
+            // arrange
+            var mediaType = MimeMediaType.Parse(TextPlainA1);
 
-            parameters.Should().NotBeAssignableTo<MimeParameter[]>();
-            ((ICollection<MimeParameter>)parameters).IsReadOnly.Should().BeTrue();
+            // act
+            var testResult = mediaType.Parameters;
+
+            // assert
+            testResult.Should().NotBeAssignableTo<MimeParameter[]>();
+            ((ICollection<MimeParameter>)testResult).IsReadOnly.Should().BeTrue();
         }
 
-        [Fact]
-        public void TryGetParameter_IgnoresCaseOfName()
+        [Theory]
+        [MemberData(nameof(Constants))]
+        public void ToString_Constant_ReturnsMediaType(MimeMediaType mediaType, string expected)
         {
-            var mediaType = MimeMediaType.Parse("text/plain;Charset=us-ascii");
+            // act
+            var testResult = mediaType.ToString();
 
-            MimeParameter parameter;
-            mediaType.TryGetParameter("CHARSET", out parameter).Should().BeTrue();
-            parameter.Value.Should().Be("us-ascii");
-            mediaType.TryGetParameter("format", out parameter).Should().BeFalse();
-            parameter.Should().Be(default(MimeParameter));
-        }
-
-        [Fact]
-        public void WithParameter_NewName_AppendsParameter()
-        {
-            var original = MimeMediaType.Parse("text/plain;a=1");
-
-            var result = original.WithParameter("b", "two words");
-
-            result.ToString().Should().Be("text/plain;a=1;b=\"two words\"");
-            original.ToString().Should().Be("text/plain;a=1");
-        }
-
-        [Fact]
-        public void WithParameter_ExistingName_ReplacesInPlace()
-        {
-            var original = MimeMediaType.Parse("text/plain;charset=us-ascii;format=flowed");
-
-            var result = original.WithParameter(new MimeParameter("CHARSET", "utf-8"));
-
-            result.ToString().Should().Be("text/plain;CHARSET=utf-8;format=flowed");
-            original.ToString().Should().Be("text/plain;charset=us-ascii;format=flowed");
-        }
-
-        [Fact]
-        public void WithParameter_UninitialisedParameter_ThrowsArgumentException()
-        {
-            Action act = () => MimeMediaType.TextPlain.WithParameter(default(MimeParameter));
-
-            act.Should().Throw<ArgumentException>();
-        }
-
-        [Fact]
-        public void WithParameter_InvalidName_ThrowsArgumentException()
-        {
-            Action act = () => MimeMediaType.TextPlain.WithParameter("a*", "b");
-
-            act.Should().Throw<ArgumentException>();
-        }
-
-        [Fact]
-        public void WithoutParameter_RemovesParameterIgnoringCase()
-        {
-            var original = MimeMediaType.Parse("text/plain;a=1;b=2;c=3");
-
-            original.WithoutParameter("B").ToString().Should().Be("text/plain;a=1;c=3");
-            original.WithoutParameter("d").Should().Be(original);
-            MimeMediaType.Parse("text/plain;a=1").WithoutParameter("a").Parameters.Should().BeEmpty();
-        }
-
-        [Fact]
-        public void WithoutParameters_ComparesTypeAndSubtypeOnly()
-        {
-            var mediaType = MimeMediaType.Parse("text/calendar;method=REQUEST;charset=UTF-8");
-
-            mediaType.Should().NotBe(MimeMediaType.TextCalendar);
-            mediaType.WithoutParameters().Should().Be(MimeMediaType.TextCalendar);
-        }
-
-        [Fact]
-        public void Constants_HaveExpectedValues()
-        {
-            MimeMediaType.TextPlain.ToString().Should().Be("text/plain");
-            MimeMediaType.TextCalendar.ToString().Should().Be("text/calendar");
-            MimeMediaType.TextVcard.ToString().Should().Be("text/vcard");
-            MimeMediaType.TextDirectory.ToString().Should().Be("text/directory");
-            MimeMediaType.MessageRfc822.ToString().Should().Be("message/rfc822");
-            MimeMediaType.MultipartMixed.ToString().Should().Be("multipart/mixed");
-            MimeMediaType.MultipartAlternative.ToString().Should().Be("multipart/alternative");
-            MimeMediaType.MultipartRelated.ToString().Should().Be("multipart/related");
-            MimeMediaType.ApplicationOctetStream.ToString().Should().Be("application/octet-stream");
+            // assert
+            testResult.Should().Be(expected);
         }
 
         [Theory]
@@ -556,26 +912,243 @@ namespace DataStandardizer.Communication.Tests.Mime
         [InlineData(MimeTopLevelTypes.Font)]
         [InlineData(MimeTopLevelTypes.Model)]
         [InlineData(MimeTopLevelTypes.Haptics)]
-        public void TopLevelTypes_AreValidTypeNames(string type)
+        public void Constructor_TopLevelType_IsValidTypeName(string type)
         {
-            new MimeMediaType(type, "example").Type.Should().Be(type);
+            // act
+            var testResult = new MimeMediaType(type, "example");
+
+            // assert
+            testResult.Type.Should().Be(type);
         }
+
+        #endregion
+
+        #region Parameters
+
+        [Fact]
+        public void TryGetParameter_NameInOtherCase_ReturnsParameter()
+        {
+            // arrange
+            var mediaType = MimeMediaType.Parse("text/plain;Charset=us-ascii");
+
+            // act
+            var testResult = mediaType.TryGetParameter("CHARSET", out var parameter);
+
+            // assert
+            testResult.Should().BeTrue();
+            parameter.Value.Should().Be(UsAscii);
+        }
+
+        [Fact]
+        public void TryGetParameter_MissingName_ReturnsFalse()
+        {
+            // arrange
+            var mediaType = MimeMediaType.Parse(TextPlainUsAscii);
+
+            // act
+            var testResult = mediaType.TryGetParameter("format", out var parameter);
+
+            // assert
+            testResult.Should().BeFalse();
+            parameter.Should().Be(default(MimeParameter));
+        }
+
+        [Fact]
+        public void WithParameter_NewName_AppendsParameter()
+        {
+            // arrange
+            var original = MimeMediaType.Parse(TextPlainA1);
+
+            // act
+            var testResult = original.WithParameter(B, "two words");
+
+            // assert
+            testResult.Parameters.Should().Equal(new MimeParameter(A, "1"), new MimeParameter(B, "two words"));
+        }
+
+        [Fact]
+        public void WithParameter_NewName_LeavesOriginalUnchanged()
+        {
+            // arrange
+            var original = MimeMediaType.Parse(TextPlainA1);
+
+            // act
+            original.WithParameter(B, "two words");
+
+            // assert
+            original.Parameters.Should().Equal(new MimeParameter(A, "1"));
+        }
+
+        [Fact]
+        public void WithParameter_ExistingName_ReplacesInPlace()
+        {
+            // arrange
+            var original = MimeMediaType.Parse(TextPlainCharsetAndFormat);
+
+            // act
+            var testResult = original.WithParameter(new MimeParameter("CHARSET", Utf8));
+
+            // assert
+            testResult.Parameters.Should().SatisfyRespectively(
+                first =>
+                {
+                    first.Name.Should().Be("CHARSET");
+                    first.Value.Should().Be(Utf8);
+                },
+                second => second.Name.Should().Be("format"));
+        }
+
+        [Fact]
+        public void WithParameter_ExistingName_LeavesOriginalUnchanged()
+        {
+            // arrange
+            var original = MimeMediaType.Parse(TextPlainCharsetAndFormat);
+
+            // act
+            original.WithParameter(new MimeParameter("CHARSET", Utf8));
+
+            // assert
+            original.Parameters[0].Value.Should().Be(UsAscii);
+        }
+
+        [Fact]
+        public void WithParameter_UninitialisedParameter_ThrowsArgumentException()
+        {
+            // act
+            Action testAction = () => MimeMediaType.TextPlain.WithParameter(default(MimeParameter));
+
+            // assert
+            testAction.Should().Throw<ArgumentException>();
+        }
+
+        [Fact]
+        public void WithParameter_InvalidName_ThrowsArgumentException()
+        {
+            // act
+            Action testAction = () => MimeMediaType.TextPlain.WithParameter("a*", B);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>();
+        }
+
+        [Fact]
+        public void WithoutParameter_NameInOtherCase_RemovesParameter()
+        {
+            // arrange
+            var original = MimeMediaType.Parse("text/plain;a=1;b=2;c=3");
+
+            // act
+            var testResult = original.WithoutParameter("B");
+
+            // assert
+            testResult.Parameters.Should().Equal(new MimeParameter(A, "1"), new MimeParameter("c", "3"));
+        }
+
+        [Fact]
+        public void WithoutParameter_MissingName_ReturnsEqualMediaType()
+        {
+            // arrange
+            var original = MimeMediaType.Parse(TextPlainA1B2);
+
+            // act
+            var testResult = original.WithoutParameter("d");
+
+            // assert
+            testResult.Should().Be(original);
+        }
+
+        [Fact]
+        public void WithoutParameter_OnlyParameter_LeavesNoParameters()
+        {
+            // arrange
+            var original = MimeMediaType.Parse(TextPlainA1);
+
+            // act
+            var testResult = original.WithoutParameter(A);
+
+            // assert
+            testResult.Parameters.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void Equals_MediaTypeWithParametersAndWithout_ReturnsFalse()
+        {
+            // arrange
+            var mediaType = MimeMediaType.Parse("text/calendar;method=REQUEST;charset=UTF-8");
+
+            // act
+            var testResult = mediaType.Equals(MimeMediaType.TextCalendar);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void WithoutParameters_MediaTypeWithParameters_EqualsTypeAndSubtype()
+        {
+            // arrange
+            var mediaType = MimeMediaType.Parse("text/calendar;method=REQUEST;charset=UTF-8");
+
+            // act
+            var testResult = mediaType.WithoutParameters();
+
+            // assert
+            testResult.Should().Be(MimeMediaType.TextCalendar);
+        }
+
+        #endregion
 
 #if NET7_0_OR_GREATER
         [Fact]
-        public void ISpanParsable_ParsesStrictly()
+        public void ISpanParsableParse_Strict_ReturnsMediaType()
         {
-            ParseGeneric<MimeMediaType>("text/plain;a=b").Should().Be(MimeMediaType.TextPlain.WithParameter("a", "b"));
-            TryParseGeneric<MimeMediaType>("text/plain; a=b").Should().BeFalse();
+            // arrange
+            var expected = MimeMediaType.TextPlain.WithParameter(A, B);
+
+            // act
+            var testResult = ParseGeneric<MimeMediaType>("text/plain;a=b");
+
+            // assert
+            testResult.Should().Be(expected);
         }
 
         [Fact]
-        public void ISpanFormattable_FormatsMediaType()
+        public void IParsableTryParse_WhitespaceAroundDelimiter_ReturnsFalse()
         {
-            var mediaType = MimeMediaType.Parse("text/plain;a=\"b c\"");
+            // act
+            var testResult = TryParseGeneric<MimeMediaType>("text/plain; a=b");
 
-            $"{mediaType}".Should().Be("text/plain;a=\"b c\"");
-            ((IFormattable)mediaType).ToString(null, null).Should().Be("text/plain;a=\"b c\"");
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void ISpanFormattableTryFormat_QuotedValue_WritesMediaType()
+        {
+            // arrange
+            ISpanFormattable mediaType = MimeMediaType.Parse(TextPlainQuotedValue);
+            var destination = new char[TextPlainQuotedValue.Length];
+
+            // act
+            var testResult = mediaType.TryFormat(destination, out var charsWritten, default, null);
+
+            // assert
+            testResult.Should().BeTrue();
+            charsWritten.Should().Be(TextPlainQuotedValue.Length);
+            new string(destination).Should().Be(TextPlainQuotedValue);
+        }
+
+        [Fact]
+        public void IFormattableToString_QuotedValue_ReturnsMediaType()
+        {
+            // arrange
+            IFormattable mediaType = MimeMediaType.Parse(TextPlainQuotedValue);
+
+            // act
+            var testResult = mediaType.ToString(null, null);
+
+            // assert
+            testResult.Should().Be(TextPlainQuotedValue);
         }
 
         private static T ParseGeneric<T>(string value) where T : ISpanParsable<T>
