@@ -404,13 +404,16 @@ namespace DataStandardizer.File.CSV.Tests
         {
             // arrange
             using var csvReader = new CsvFileReader<LateMappedLine>(new StringReader(TwoRecordsFile));
-            _ = csvReader.ReadLine();
-            csvReader.RegisterMapper<LateMappedLineMapper>();
 
             // act
+            // The line before the mapper is registered and the line after it.
+            var firstLine = csvReader.ReadLine() as LateMappedLine;
+            csvReader.RegisterMapper<LateMappedLineMapper>();
             var testResult = csvReader.ReadLine() as LateMappedLine;
 
             // assert
+            firstLine.Should().NotBeNull();
+            firstLine!.Id.Should().Be(0);
             testResult.Should().NotBeNull();
             testResult!.Id.Should().Be(2);
             testResult.Name.Should().Be(SecondName);
@@ -422,13 +425,16 @@ namespace DataStandardizer.File.CSV.Tests
             // arrange
             using var csvReader = new CsvFileReader<UnregisteredLine>(new StringReader(TwoRecordsFile));
             csvReader.RegisterMapper<UnregisteredLineMapper>();
-            _ = csvReader.ReadLine();
-            csvReader.UnregisterMapper<UnregisteredLineMapper>();
 
             // act
+            // The line before the mapper is unregistered and the line after it.
+            var firstLine = csvReader.ReadLine() as UnregisteredLine;
+            csvReader.UnregisterMapper<UnregisteredLineMapper>();
             var testResult = csvReader.ReadLine();
 
             // assert
+            firstLine.Should().NotBeNull();
+            firstLine!.Id.Should().Be(1);
             testResult.Should().NotBeNull();
             testResult![PositionalFieldName1].Should().Be(RecordValue2);
         }
