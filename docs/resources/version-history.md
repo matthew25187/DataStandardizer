@@ -29,6 +29,11 @@ and `ExtensionSubtags` properties of `Bcp47LanguageTag`, and the `Subtags`
 property of `Bcp47KeyedSubtag`, from arrays to `IReadOnlyList<T>`, and removes
 the `DataStandardizer.LanguageTag` members that took a match timeout.
 
+`Bcp47LanguageTag.PrimaryLanguageSubtag` is now a `string?`. On a private use tag
+such as `x-private`, or a grandfathered tag such as `i-klingon`, it is `null`
+instead of the empty string, so code that tests for an empty string should test
+for `null` instead.
+
 In `DataStandardizer.LanguageTag`, Subtag Registry records are now immutable,
 with their fields parsed once when the registry is loaded:
 

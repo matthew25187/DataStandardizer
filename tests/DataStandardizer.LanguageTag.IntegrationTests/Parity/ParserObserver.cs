@@ -85,7 +85,7 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
         private static SubtagTexts DescribeProperties(Bcp47LanguageTag languageTag)
         {
             return new SubtagTexts(
-                languageTag.PrimaryLanguageSubtag,
+                string.Concat(languageTag.PrimaryLanguageSubtag),
                 string.Join("-", languageTag.ExtendedLanguageSubtags),
                 string.Concat(languageTag.ScriptSubtag),
                 string.Concat(languageTag.RegionSubtag),

@@ -10,7 +10,7 @@ namespace DataStandardizer.LanguageTag.Tests
         /// <summary>
         /// The subtags of a tag that has none: a grandfathered tag, which is interpreted as a whole (RFC 5646 §2.2.8).
         /// </summary>
-        public static readonly LanguageTagSubtags None = new LanguageTagSubtags("", new string[0], null, null, new string[0], new Bcp47KeyedSubtag[0], null);
+        public static readonly LanguageTagSubtags None = new LanguageTagSubtags(null, new string[0], null, null, new string[0], new Bcp47KeyedSubtag[0], null);
 
         public LanguageTagSubtags(string primaryLanguage, IReadOnlyList<string> extendedLanguages, string script, string region, IReadOnlyList<string> variants,
             IReadOnlyList<Bcp47KeyedSubtag> extensions, Bcp47KeyedSubtag? privateUse)

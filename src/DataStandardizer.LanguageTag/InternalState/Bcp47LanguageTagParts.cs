@@ -39,9 +39,9 @@ namespace DataStandardizer.LanguageTag.InternalState
 #endif
 
 #if NETCOREAPP3_0_OR_GREATER
-        private Bcp47LanguageTagParts(string primaryLanguage, string[] extendedLanguages, string? script, string? region, string[] variants, Bcp47KeyedSubtag[] extensions, Bcp47KeyedSubtag? privateUse)
+        private Bcp47LanguageTagParts(string? primaryLanguage, string[] extendedLanguages, string? script, string? region, string[] variants, Bcp47KeyedSubtag[] extensions, Bcp47KeyedSubtag? privateUse)
 #else
-        private Bcp47LanguageTagParts([NotNull] string primaryLanguage, [NotNull] string[] extendedLanguages, [CanBeNull] string script, [CanBeNull] string region, [NotNull] string[] variants, [NotNull] Bcp47KeyedSubtag[] extensions, Bcp47KeyedSubtag? privateUse)
+        private Bcp47LanguageTagParts([CanBeNull] string primaryLanguage, [NotNull] string[] extendedLanguages, [CanBeNull] string script, [CanBeNull] string region, [NotNull] string[] variants, [NotNull] Bcp47KeyedSubtag[] extensions, Bcp47KeyedSubtag? privateUse)
 #endif
         {
             PrimaryLanguage = primaryLanguage;
@@ -54,12 +54,12 @@ namespace DataStandardizer.LanguageTag.InternalState
         }
 
         /// <summary>
-        /// The Primary Language subtag; the empty string for a grandfathered or private use language tag.
+        /// The Primary Language subtag; <c>null</c> for a grandfathered or private use language tag.
         /// </summary>
 #if NETCOREAPP3_0_OR_GREATER
-        internal string PrimaryLanguage { get; }
+        internal string? PrimaryLanguage { get; }
 #else
-        [NotNull] internal string PrimaryLanguage { get; }
+        [CanBeNull] internal string PrimaryLanguage { get; }
 #endif
 
         private readonly string[] _extendedLanguages;
@@ -140,7 +140,7 @@ namespace DataStandardizer.LanguageTag.InternalState
             }
 
             return new Bcp47LanguageTagParts(
-                ranges.PrimaryLanguage.IsEmpty ? string.Empty : Substring(languageTag, ranges.PrimaryLanguage),
+                ranges.PrimaryLanguage.IsEmpty ? null : Substring(languageTag, ranges.PrimaryLanguage),
                 ranges.ExtendedLanguages.IsEmpty ? NoSubtags : Bcp47LanguageTagParser.GetSubtags(languageTag, ranges.ExtendedLanguages),
                 ranges.Script.IsEmpty ? null : Substring(languageTag, ranges.Script),
                 ranges.Region.IsEmpty ? null : Substring(languageTag, ranges.Region),

@@ -36,7 +36,7 @@ and private-use positions.
 
 | Subtag | `Bcp47LanguageTag` member | Purpose |
 | --- | --- | --- |
-| **Primary language** | `PrimaryLanguageSubtag` | The core language (e.g. `en`, `mas`, `gsw`). Always present. Backed by ISO 639-1/-2/-3/-5 codes, or four to eight letters for a reserved or registered subtag. |
+| **Primary language** | `PrimaryLanguageSubtag` | The core language (e.g. `en`, `mas`, `gsw`). Present on every tag except a grandfathered or private use tag. Backed by ISO 639-1/-2/-3/-5 codes, or four to eight letters for a reserved or registered subtag. |
 | **Extended language** | `ExtendedLanguageSubtags` | Up to three optional subtags that further specify the language. Only after a two- or three-letter primary language subtag. |
 | **Script** | `ScriptSubtag` | The writing system (e.g. `Hans`, `Cyrl`). Backed by ISO 15924. |
 | **Region** | `RegionSubtag` | A country or area (e.g. `CA`, `419`). Backed by ISO 3166-1 alpha-2 or UN M49. |
@@ -44,10 +44,11 @@ and private-use positions.
 | **Extension** | `ExtensionSubtags` | Subtags introduced by a single-character *singleton* (e.g. `u-…`), each modelled as a `Bcp47KeyedSubtag`. |
 | **Private use** | `PrivateUseSubtag` | An `x-…` sequence reserved for private agreement, modelled as a `Bcp47KeyedSubtag`. |
 
-The primary language subtag is the only one guaranteed to exist; `ScriptSubtag`
-and `RegionSubtag` are nullable, while the extended-language, variant, and
-extension members return read-only lists (empty when the corresponding subtags
-are absent).
+`PrimaryLanguageSubtag`, `ScriptSubtag` and `RegionSubtag` are nullable, while the
+extended-language, variant, and extension members return read-only lists (empty
+when the corresponding subtags are absent). A grandfathered tag has no subtags,
+and a private use tag has only its private use subtag, so `PrimaryLanguageSubtag`
+is `null` on both; on any other tag it always has a value.
 
 ## Raw values and strongly-typed conversions
 
