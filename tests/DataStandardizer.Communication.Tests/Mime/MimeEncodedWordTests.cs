@@ -48,20 +48,33 @@ namespace DataStandardizer.Communication.Tests.Mime
         private const string SeventyLetters = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
         private const string SevenLettersWord = "=?UTF-8?Q?aaaaaaa?=";
 
-        // Thirty e-acutes, of 2 octets each in UTF-8. A "B" word holds 63 characters of encoded text, which is 47 octets, so it holds 22
-        // whole e-acutes in 44 octets, not 23 in 46.
+        // Thirty e-acutes, of 2 octets each in UTF-8. A "B" word holds 63 characters of encoded text, which is 47 octets, so it holds at
+        // most 22 whole e-acutes, not 23. 22 and 8 e-acutes (44 and 16 octets) take 60 and 24 characters, but 21 and 9 (42 and 18 octets)
+        // take only 56 and 24.
         private const string ThirtyEAcutes = "\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9";
-        private const string TwentyTwoEAcutes = "\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9";
-        private const string EightEAcutes = "\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9";
-        private const string TwentyTwoEAcutesWord = "=?UTF-8?B?w6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6k=?=";
-        private const string EightEAcutesWord = "=?UTF-8?B?w6nDqcOpw6nDqcOpw6nDqQ==?=";
+        private const string TwentyOneEAcutes = "\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9";
+        private const string NineEAcutes = "\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9\x00E9";
+        private const string TwentyOneEAcutesWord = "=?UTF-8?B?w6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOp?=";
+        private const string NineEAcutesWord = "=?UTF-8?B?w6nDqcOpw6nDqcOpw6nDqcOp?=";
 
-        // Twelve emoji, each a surrogate pair of 4 octets in UTF-8. A "B" word holds 11 of them in 44 octets.
+        // Twelve emoji, each a surrogate pair of 4 octets in UTF-8. A "B" word holds at most 11 of them, in 44 octets. 11 and 1 emoji take
+        // 60 and 8 characters, but 9 and 3 (36 and 12 octets) take only 48 and 16.
         private const string TwelveEmoji = "\xD83D\xDE00\xD83D\xDE00\xD83D\xDE00\xD83D\xDE00\xD83D\xDE00\xD83D\xDE00\xD83D\xDE00\xD83D\xDE00\xD83D\xDE00\xD83D\xDE00\xD83D\xDE00\xD83D\xDE00";
-        private const string ElevenEmoji = "\xD83D\xDE00\xD83D\xDE00\xD83D\xDE00\xD83D\xDE00\xD83D\xDE00\xD83D\xDE00\xD83D\xDE00\xD83D\xDE00\xD83D\xDE00\xD83D\xDE00\xD83D\xDE00";
+        private const string NineEmoji = "\xD83D\xDE00\xD83D\xDE00\xD83D\xDE00\xD83D\xDE00\xD83D\xDE00\xD83D\xDE00\xD83D\xDE00\xD83D\xDE00\xD83D\xDE00";
         private const string Emoji = "\xD83D\xDE00";
-        private const string ElevenEmojiWord = "=?UTF-8?B?8J+YgPCfmIDwn5iA8J+YgPCfmIDwn5iA8J+YgPCfmIDwn5iA8J+YgPCfmIA=?=";
+        private const string NineEmojiWord = "=?UTF-8?B?8J+YgPCfmIDwn5iA8J+YgPCfmIDwn5iA8J+YgPCfmIDwn5iA?=";
+        private const string ThreeEmoji = "\xD83D\xDE00\xD83D\xDE00\xD83D\xDE00";
+        private const string ThreeEmojiWord = "=?UTF-8?B?8J+YgPCfmIDwn5iA?=";
         private const string EmojiWord = "=?UTF-8?B?8J+YgA==?=";
+
+        // 38 letters and 5 e-acutes, 48 octets in UTF-8. "Q" writes them as 68 characters, which take two words of 74 and 18 characters.
+        // "B" fills a word of 63 characters of encoded text with 45 octets, so it splits them into 44 and 4 octets (60 and 8 characters,
+        // in words of 72 and 20), but a split into 42 and 6 octets needs only 56 and 8 characters, in words of 68 and 20, and is shortest.
+        private const string LettersAndFiveEAcutes = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\x00E9\x00E9\x00E9\x00E9\x00E9";
+        private const string LettersAndTwoEAcutes = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\x00E9\x00E9";
+        private const string ThreeEAcutes = "\x00E9\x00E9\x00E9";
+        private const string LettersAndTwoEAcutesWord = "=?UTF-8?B?YWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWHDqcOp?=";
+        private const string ThreeEAcutesWord = "=?UTF-8?B?w6nDqcOp?=";
 
         // A language of 62 characters, which leaves no room in a word of 75 characters for any encoded text.
         private const string TooLongLanguage = "abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh-abcdefgh";
@@ -75,6 +88,18 @@ namespace DataStandardizer.Communication.Tests.Mime
         // ref. RFC 3629 §3: an e-acute is C3 A9 in UTF-8, so each of these words holds half of one.
         private const string SplitEAcute = "=?UTF-8?B?ww==?= =?UTF-8?B?qQ==?=";
         private const string EAcute = "\x00E9";
+
+        // A split e-acute, and a word whose octet is not UTF-8 (RFC 3629 §3), which stays as it is, with the whitespace next to it.
+        private const string SplitEAcuteThenInvalidOctet = "=?UTF-8?B?ww==?= =?UTF-8?B?qQ==?= =?UTF-8?Q?=FF?=";
+        private const string EAcuteThenInvalidOctet = "\x00E9 =?UTF-8?Q?=FF?=";
+        private const string InvalidOctetThenSplitEAcute = "=?UTF-8?Q?=FF?= =?UTF-8?B?ww==?= =?UTF-8?B?qQ==?=";
+        private const string InvalidOctetThenEAcute = "=?UTF-8?Q?=FF?= \x00E9";
+
+        // ref. RFC 3629 §3: U+1F600 is F0 9F 98 80 in UTF-8, so each of these words holds a quarter of it.
+        private const string SplitEmoji = "=?UTF-8?Q?=F0?= =?UTF-8?Q?=9F?= =?UTF-8?Q?=98?= =?UTF-8?Q?=80?=";
+
+        // ref. RFC 2781 §4.3: each word is FE FF, a byte order mark, then a letter in UTF-16, so each word holds whole characters.
+        private const string Utf16WordsWithByteOrderMarks = "=?UTF-16?B?/v8AYQ==?= =?UTF-16?B?/v8AYg==?=";
 
         // ref. The Unicode Standard §23.8: U+FFFD REPLACEMENT CHARACTER, which an invalid octet sequence is read as.
         private const string ReplacementCharacter = "\xFFFD";
@@ -215,6 +240,11 @@ namespace DataStandardizer.Communication.Tests.Mime
                 { SplitEAcute, MimeEncodedWordParseOptions.AllowInvalidOctets, TwoReplacementCharacters },
                 { SplitEAcute, MimeEncodedWordParseOptions.AllowSplitCharacters, EAcute },
                 { "x =?UTF-8?B?ww==?=\t=?UTF-8?Q?=A9?= y", MimeEncodedWordParseOptions.AllowSplitCharacters, "x \x00E9 y" },
+                { SplitEAcute, MimeEncodedWordParseOptions.AllowSplitCharacters | MimeEncodedWordParseOptions.AllowInvalidOctets, EAcute },
+                { SplitEAcuteThenInvalidOctet, MimeEncodedWordParseOptions.AllowSplitCharacters, EAcuteThenInvalidOctet },
+                { InvalidOctetThenSplitEAcute, MimeEncodedWordParseOptions.AllowSplitCharacters, InvalidOctetThenEAcute },
+                { SplitEmoji, MimeEncodedWordParseOptions.AllowSplitCharacters, Emoji },
+                { Utf16WordsWithByteOrderMarks, MimeEncodedWordParseOptions.AllowSplitCharacters, AB },
             };
 
         public static TheoryData<string> DecodeDeviationValues => new TheoryData<string>
@@ -793,10 +823,24 @@ namespace DataStandardizer.Communication.Tests.Mime
 
             // assert
             result.Should().HaveCount(2);
-            result[0].ToString().Should().Be(TwentyTwoEAcutesWord);
-            result[0].Text.Should().Be(TwentyTwoEAcutes);
-            result[1].ToString().Should().Be(EightEAcutesWord);
-            result[1].Text.Should().Be(EightEAcutes);
+            result[0].ToString().Should().Be(TwentyOneEAcutesWord);
+            result[0].Text.Should().Be(TwentyOneEAcutes);
+            result[1].ToString().Should().Be(NineEAcutesWord);
+            result[1].Text.Should().Be(NineEAcutes);
+        }
+
+        [Fact]
+        public void EncodeText_FullBWordNeedsMorePadding_SplitsWhereShortest()
+        {
+            // act
+            var result = MimeEncodedWord.EncodeText(LettersAndFiveEAcutes, MimeEncodedWordContext.Text);
+
+            // assert
+            result.Should().HaveCount(2);
+            result[0].ToString().Should().Be(LettersAndTwoEAcutesWord);
+            result[0].Text.Should().Be(LettersAndTwoEAcutes);
+            result[1].ToString().Should().Be(ThreeEAcutesWord);
+            result[1].Text.Should().Be(ThreeEAcutes);
         }
 
         [Fact]
@@ -807,10 +851,10 @@ namespace DataStandardizer.Communication.Tests.Mime
 
             // assert
             result.Should().HaveCount(2);
-            result[0].ToString().Should().Be(ElevenEmojiWord);
-            result[0].Text.Should().Be(ElevenEmoji);
-            result[1].ToString().Should().Be(EmojiWord);
-            result[1].Text.Should().Be(Emoji);
+            result[0].ToString().Should().Be(NineEmojiWord);
+            result[0].Text.Should().Be(NineEmoji);
+            result[1].ToString().Should().Be(ThreeEmojiWord);
+            result[1].Text.Should().Be(ThreeEmoji);
         }
 
         [Fact]

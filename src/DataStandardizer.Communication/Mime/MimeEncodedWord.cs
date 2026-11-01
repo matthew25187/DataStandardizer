@@ -46,6 +46,9 @@ namespace DataStandardizer.Communication.Mime
         // ref. RFC 2047 §2: a charset, an encoding and encoded text of one character each.
         private const int MinLength = DelimiterLength + 2;
 
+        // The most words that MimeEncodedWordParseOptions.AllowSplitCharacters joins to read a character split between them.
+        private const int MaxJoinedWords = 4;
+
         private const string InvalidFormatMessage = "The value is not a valid encoded word.";
         private const string UninitializedMessage = nameof(MimeEncodedWord) + " is uninitialized.";
 
@@ -667,46 +670,68 @@ namespace DataStandardizer.Communication.Mime
             return new ReadOnlyCollection<MimeEncodedWord>(words);
         }
 
-        // Splits text into words of whole characters that each fit in MaxLength, or returns null if one character doesn't fit in a word.
+        // Splits text into words of whole characters that each fit in MaxLength, with the shortest total length, or returns null if one
+        // character doesn't fit in a word.
 #if NETCOREAPP3_0_OR_GREATER
         private static List<MimeEncodedWord>? TryEncodeWords(string text, MimeEncodedWordEncoding encoding, MimeEncodedWordContext context, string? language)
 #else
         private static List<MimeEncodedWord> TryEncodeWords(string text, MimeEncodedWordEncoding encoding, MimeEncodedWordContext context, string language)
 #endif
         {
-            var maxEncodedLength = MaxLength - DelimiterLength - GetCharsetLength(language);
+            var wordOverhead = DelimiterLength + GetCharsetLength(language);
+            var maxEncodedLength = MaxLength - wordOverhead;
             var mode = GetMode(context);
-            var words = new List<MimeEncodedWord>();
+
+            // The index of each character in the text, followed by the length of the text, and the octets and "Q" length of each one.
+            var starts = new List<int>();
+            var octetCounts = new List<int>();
+            var qLengths = new List<int>();
             var octets = new byte[4];
-            var start = 0;
-            var encodedLength = 0;
-            var octetCount = 0;
             for (var index = 0; index < text.Length;)
             {
                 int charCount;
                 var count = GetUtf8Octets(text, index, octets, out charCount);
-
-                // ref. RFC 2047 §5: each word encodes whole octets, and whole characters, so "B" text is in groups of 4 characters.
-                var nextLength = encoding == MimeEncodedWordEncoding.B
-                    ? (octetCount + count + 2) / 3 * 4
-                    : encodedLength + GetQEncodedLength(octets, count, mode);
-                if (nextLength > maxEncodedLength)
-                {
-                    if (index == start) return null;
-
-                    words.Add(Create(text, start, index - start, encoding, context, language));
-                    start = index;
-                    encodedLength = 0;
-                    octetCount = 0;
-                    continue;
-                }
-
-                encodedLength = nextLength;
-                octetCount += count;
+                starts.Add(index);
+                octetCounts.Add(count);
+                qLengths.Add(GetQEncodedLength(octets, count, mode));
                 index += charCount;
             }
 
-            words.Add(Create(text, start, text.Length - start, encoding, context, language));
+            starts.Add(text.Length);
+
+            // ref. RFC 2047 §5: each word encodes whole octets, and whole characters, so "B" text is in groups of 4 characters, and filling
+            // each word isn't always shortest. Working back from the end of the text, find for each character the shortest length of the
+            // words from it to the end, and the end of the longest first word that gives it.
+            var characterCount = octetCounts.Count;
+            var shortestLengths = new int[characterCount + 1];
+            var wordEnds = new int[characterCount];
+            for (var first = characterCount - 1; first >= 0; first--)
+            {
+                shortestLengths[first] = int.MaxValue;
+                var encodedLength = 0;
+                var octetCount = 0;
+                for (var end = first + 1; end <= characterCount; end++)
+                {
+                    octetCount += octetCounts[end - 1];
+                    encodedLength = encoding == MimeEncodedWordEncoding.B ? (octetCount + 2) / 3 * 4 : encodedLength + qLengths[end - 1];
+                    if (encodedLength > maxEncodedLength) break;
+
+                    var length = wordOverhead + encodedLength + shortestLengths[end];
+                    if (length > shortestLengths[first]) continue;
+
+                    shortestLengths[first] = length;
+                    wordEnds[first] = end;
+                }
+
+                if (shortestLengths[first] == int.MaxValue) return null;
+            }
+
+            var words = new List<MimeEncodedWord>();
+            for (var first = 0; first < characterCount; first = wordEnds[first])
+            {
+                words.Add(Create(text, starts[first], starts[wordEnds[first]] - starts[first], encoding, context, language));
+            }
+
             return words;
         }
 
@@ -1057,46 +1082,61 @@ namespace DataStandardizer.Communication.Mime
         private static void DecodeWords(List<Segment> segments, MimeEncodedWordParseOptions options, IMimeCharsetResolver charsetResolver)
         {
             var joinWords = (options & MimeEncodedWordParseOptions.AllowSplitCharacters) != 0;
+            var strictOptions = options & ~MimeEncodedWordParseOptions.AllowInvalidOctets;
             for (var index = 0; index < segments.Count; index++)
             {
                 var first = segments[index];
                 if (first.Kind != SegmentKind.Word) continue;
 
-                // Find the adjacent words, separated only by whitespace, that have the same character set and language.
-                var last = index;
+                string text;
                 if (joinWords)
                 {
-                    for (var next = index + 1; next < segments.Count; next++)
+                    // A word that holds whole characters is decoded by itself, so that the octets of a word in a character set with a
+                    // byte order mark, or with shift states, aren't read as part of the word before it.
+                    if (TryDecodeOctets(first.Word.Charset, first.Word.Octets, strictOptions, charsetResolver, out text))
                     {
-                        var segment = segments[next];
-                        if (segment.Kind == SegmentKind.Whitespace) continue;
-                        if (segment.Kind != SegmentKind.Word || !first.Word.HasSameCharsetAndLanguage(segment.Word)) break;
+                        first.Text = text;
+                        continue;
+                    }
 
-                        last = next;
+                    var last = TryDecodeSplitCharacters(segments, index, strictOptions, charsetResolver);
+                    if (last > index)
+                    {
+                        index = last;
+                        continue;
                     }
                 }
 
-                if (last == index || !TryDecodeJoined(segments, index, last, options, charsetResolver))
+                if (TryDecodeOctets(first.Word.Charset, first.Word.Octets, options, charsetResolver, out text))
                 {
-                    for (var wordIndex = index; wordIndex <= last; wordIndex++)
-                    {
-                        var segment = segments[wordIndex];
-                        if (segment.Kind != SegmentKind.Word) continue;
-
-                        string text;
-                        if (TryDecodeOctets(segment.Word.Charset, segment.Word.Octets, options, charsetResolver, out text))
-                        {
-                            segment.Text = text;
-                        }
-                        else
-                        {
-                            segment.Kind = SegmentKind.Literal;
-                        }
-                    }
+                    first.Text = text;
                 }
-
-                index = last;
+                else
+                {
+                    first.Kind = SegmentKind.Literal;
+                }
             }
+        }
+
+        // Joins the octets of a word with those of the next words, separated only by whitespace, that have the same character set and
+        // language, until they decode, and returns the index of the last word joined, or the index of the word if they don't decode.
+        private static int TryDecodeSplitCharacters(List<Segment> segments, int first, MimeEncodedWordParseOptions options,
+            IMimeCharsetResolver charsetResolver)
+        {
+            // The multi-octet character sets in use, such as UTF-8 (RFC 3629 §3), UTF-16, UTF-32 and GB18030, have at most 4 octets in a
+            // character, and each word holds at least one octet, so a character is split between at most 4 words.
+            var wordCount = 1;
+            for (var next = first + 1; next < segments.Count && wordCount < MaxJoinedWords; next++)
+            {
+                var segment = segments[next];
+                if (segment.Kind == SegmentKind.Whitespace) continue;
+                if (segment.Kind != SegmentKind.Word || !segments[first].Word.HasSameCharsetAndLanguage(segment.Word)) break;
+
+                wordCount++;
+                if (TryDecodeJoined(segments, first, next, options, charsetResolver)) return next;
+            }
+
+            return first;
         }
 
         // Decodes the joined octets of a run of words, and gives the text to the first word of the run.

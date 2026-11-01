@@ -102,8 +102,9 @@ namespace DataStandardizer.Communication.Mime
         /// </para>
         /// <para>
         /// The netstandard1.1 build can't change how an encoding treats invalid octets, so there, the value is read as the encoding from the
-        /// <see cref="IMimeCharsetResolver"/> reads it, whether or not this option is given: the built-in encodings read invalid octets as
-        /// U+FFFD, and a value whose encoding throws <see cref="DecoderFallbackException"/> is not valid.
+        /// <see cref="IMimeCharsetResolver"/> reads it. Without this option, a value whose encoding throws <see cref="DecoderFallbackException"/>
+        /// is not valid, nor is one read as text with U+FFFD, the character that the built-in encodings read invalid octets as, unless
+        /// writing the text with the encoding gives the same octets back.
         /// </para>
         /// </remarks>
         AllowInvalidOctets = 1 << 8,

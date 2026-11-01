@@ -524,19 +524,41 @@ namespace DataStandardizer.Communication.Mime
             var decoding = (Encoding)encoding.Clone();
             decoding.DecoderFallback = allowInvalidOctets ? new DecoderReplacementFallback(ReplacementString) : DecoderFallback.ExceptionFallback;
 #else
-            // TODO: netstandard1.1 has no Encoding.Clone or DecoderFallback, so the octets are read as the encoding reads them, and invalid
-            // octets are only rejected by an encoding that throws. Decode strictly, as the other builds do, if netstandard1.1 is dropped.
+            // TODO: netstandard1.1 has no Encoding.Clone or DecoderFallback, so the octets are read as the encoding reads them, and then
+            // checked with IsDecodedExactly. Decode strictly, as the other builds do, if netstandard1.1 is dropped.
             var decoding = encoding;
 #endif
             try
             {
-                value = decoding.GetString(bytes, 0, byteCount);
+                var text = decoding.GetString(bytes, 0, byteCount);
+#if !(NETSTANDARD2_0_OR_GREATER || NETCOREAPP)
+                if (!allowInvalidOctets && !IsDecodedExactly(encoding, bytes, byteCount, text)) return false;
+#endif
+                value = text;
                 return true;
             }
             catch (DecoderFallbackException)
             {
                 return false;
             }
+        }
+
+        // Indicates whether text read with an encoding that replaces invalid octets came from valid octets. The built-in encodings replace
+        // them with U+FFFD, so text without one is taken to be exact, and text with one only if writing it gives the same octets back, as
+        // it does when the octets hold a U+FFFD of their own.
+        internal static bool IsDecodedExactly(Encoding encoding, byte[] bytes, int byteCount, string text)
+        {
+            if (text.IndexOf('�') < 0) return true;
+
+            var written = encoding.GetBytes(text);
+            if (written.Length != byteCount) return false;
+
+            for (var index = 0; index < byteCount; index++)
+            {
+                if (written[index] != bytes[index]) return false;
+            }
+
+            return true;
         }
 
         internal static string DecodeLatin1(byte[] bytes, int byteCount)

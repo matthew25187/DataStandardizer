@@ -67,19 +67,26 @@ namespace DataStandardizer.Communication.Mime
         /// </summary>
         /// <remarks>
         /// The netstandard1.1 build can't change how an encoding treats invalid octets, so there, the text is read as the encoding from the
-        /// <see cref="IMimeCharsetResolver"/> reads it, whether or not this option is given: the built-in encodings read invalid octets as
-        /// U+FFFD, and a word whose encoding throws <see cref="DecoderFallbackException"/> is not valid.
+        /// <see cref="IMimeCharsetResolver"/> reads it. Without this option, a word whose encoding throws <see cref="DecoderFallbackException"/>
+        /// is not valid, nor is one read as text with U+FFFD, the character that the built-in encodings read invalid octets as, unless
+        /// writing the text with the encoding gives the same octets back.
         /// </remarks>
         AllowInvalidOctets = 1 << 4,
 
         /// <summary>
         /// In <see cref="MimeEncodedWord.DecodeText(ReadOnlySpan{char}, MimeEncodedWordContext, MimeEncodedWordParseOptions, IMimeCharsetResolver)"/>,
-        /// join the octets of adjacent encoded words that have the same character set and language before decoding them, so that a
-        /// character split between the words is read whole. RFC 2047 §5 says that each encoded word must hold a whole number of characters.
+        /// join the octets of an encoded word that doesn't hold whole characters with those of the next words, up to 4 words in all, that
+        /// have the same character set and language, so that a character split between the words is read whole. RFC 2047 §5 says that each
+        /// encoded word must hold a whole number of characters.
         /// </summary>
         /// <remarks>
+        /// <para>
+        /// A word that holds whole characters is decoded by itself, as are the words of a run whose joined octets are still not valid.
+        /// </para>
+        /// <para>
         /// This option has no effect on <see cref="MimeEncodedWord.TryParse(ReadOnlySpan{char}, out MimeEncodedWord)"/>, which reads one
         /// word.
+        /// </para>
         /// </remarks>
         AllowSplitCharacters = 1 << 5,
     }
