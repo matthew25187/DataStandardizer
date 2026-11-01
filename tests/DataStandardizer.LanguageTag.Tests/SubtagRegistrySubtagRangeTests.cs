@@ -8,9 +8,14 @@ namespace DataStandardizer.LanguageTag.Tests
 {
     public class SubtagRegistrySubtagRangeTests
     {
+        /// <summary>
+        /// The range of Script subtags reserved for private use (RFC 5646 §2.2.3¶3), as the IANA registry records it (§3.1.1).
+        /// </summary>
+        private const string PrivateUseScriptRange = "Qaaa..Qabx";
+
         [Theory]
         [InlineData("qaa..qtz", 520, "qaa", "qtz"),
-         InlineData("Qaaa..Qabx", 50, "Qaaa", "Qabx"),
+         InlineData(PrivateUseScriptRange, 50, "Qaaa", "Qabx"),
          InlineData("QM..QZ", 14, "QM", "QZ"),
          InlineData("XA..XZ", 26, "XA", "XZ")]
         public void Expand_WhenSubtagIsRange_ReturnsEverySubtagInRange(string testSubtag, int expectedCount, string expectedFirst, string expectedLast)
@@ -29,7 +34,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void Expand_WhenRangeSpansPositions_RunsEachPositionThroughTheLetters()
         {
             // act
-            var testResult = SubtagRegistrySubtagRange.Expand("Qaaa..Qabx").ToList();
+            var testResult = SubtagRegistrySubtagRange.Expand(PrivateUseScriptRange).ToList();
 
             // assert
             testResult.Should().Contain(new[] { "Qaaz", "Qaba" }).And.NotContain(new[] { "Qaby", "Qabz", "Qaca" });

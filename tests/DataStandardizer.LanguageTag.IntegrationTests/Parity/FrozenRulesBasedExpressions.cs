@@ -6,7 +6,7 @@ using DataStandardizer.Core;
 using DataStandardizer.Geography;
 using DataStandardizer.Language;
 
-namespace DataStandardizer.LanguageTag.Tests.Parity
+namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
 {
     /// <summary>
     /// The regular expressions that validated language tags by the default BCP 47 rules before the parser replaced them (#221).

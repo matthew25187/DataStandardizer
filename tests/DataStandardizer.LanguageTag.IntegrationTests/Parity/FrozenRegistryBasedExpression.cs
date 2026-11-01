@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace DataStandardizer.LanguageTag.Tests.Parity
+namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
 {
     /// <summary>
     /// The regular expression that validated language tags against a Subtag Registry before the parser replaced it (#223).

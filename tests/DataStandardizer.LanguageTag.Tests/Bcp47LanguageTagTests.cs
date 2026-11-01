@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -14,55 +14,458 @@ using Xunit;
 namespace DataStandardizer.LanguageTag.Tests
 {
     [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class Bcp47LanguageTagTests : IClassFixture<Bcp47LanguageTagFixture>
+    public class Bcp47LanguageTagTests
     {
         #region Declarations
+
+        /// <summary>
+        /// The empty string, which is not a subtag or a language tag of any kind (RFC 5646 §2.1).
+        /// </summary>
+        private const string EmptyString = "";
+
+        /// <summary>
+        /// English: the ISO 639-1 code as a Primary Language subtag (RFC 5646 §2.2.1).
+        /// </summary>
+        private const string EnglishLanguageTag = "en";
+
+        /// <summary>
+        /// Italian: the ISO 639-1 code as a Primary Language subtag (RFC 5646 §2.2.1).
+        /// </summary>
+        private const string ItalianLanguageTag = "it";
+
+        /// <summary>
+        /// Spanish as used in Latin America and the Caribbean, an example from RFC 5646 Appendix A.
+        /// </summary>
+        private const string LatinAmericanSpanish = "es-419";
+
+        /// <summary>
+        /// Serbian written in Cyrillic script (RFC 5646 §2.2.3).
+        /// </summary>
+        private const string SerbianCyrillic = "sr-Cyrl";
+
+        /// <summary>
+        /// Min Nan Chinese written in traditional Han characters, as spoken in Taiwan.
+        /// </summary>
+        private const string MinNanTraditionalTaiwan = "nan-Hant-TW";
+
+        /// <summary>
+        /// Cantonese written in traditional Han characters, as spoken in Hong Kong.
+        /// </summary>
+        private const string CantoneseTraditionalHongKong = "yue-Hant-HK";
+
+        /// <summary>
+        /// Romansh in its Sursilvan variety (RFC 5646 §2.2.5).
+        /// </summary>
+        private const string RomanshSursilvan = "rm-sursilv";
+
+        /// <summary>
+        /// Swiss German as used in the canton of Zurich, with a Unicode locale extension (RFC 5646 §2.2.6; RFC 6067).
+        /// </summary>
+        private const string SwissGermanZurich = "gsw-u-sd-chzh";
+
+        /// <summary>
+        /// A language tag followed by a line feed, which is not part of any subtag (RFC 5646 §2.1).
+        /// </summary>
+        private const string EnglishWithLineFeed = "en\n";
+
+        /// <summary>
+        /// A language tag followed by a line feed, which is not part of any subtag (RFC 5646 §2.1).
+        /// </summary>
+        private const string EnglishUnitedStatesWithLineFeed = "en-US\n";
+
+        /// <summary>
+        /// A private use tag followed by a line feed, which is not part of any subtag (RFC 5646 §2.1).
+        /// </summary>
+        private const string PrivateUseWithLineFeed = "x-private\n";
+
+        /// <summary>
+        /// The ISO 639-1 code ko with the Kelvin sign U+212A for k: a case equivalent of an ASCII letter that is not one (RFC 5646 §2.1).
+        /// </summary>
+        private const string KelvinSignO = "\x212Ao";
+
+        /// <summary>
+        /// The ISO 639-1 code sv with the long s U+017F for s: a case equivalent of an ASCII letter that is not one (RFC 5646 §2.1).
+        /// </summary>
+        private const string LongSV = "\x017Fv";
+
+        /// <summary>
+        /// A Private Use subtag that is only the Kelvin sign U+212A, which is not an ASCII letter (RFC 5646 §2.1).
+        /// </summary>
+        private const string EnglishPrivateUseKelvinSign = "en-x-\x212A";
+
+        /// <summary>
+        /// A Private Use subtag that is only the long s U+017F, which is not an ASCII letter (RFC 5646 §2.1).
+        /// </summary>
+        private const string EnglishPrivateUseLongS = "en-x-\x017F";
+
+        /// <summary>
+        /// The Region subtag KR with the Kelvin sign U+212A for K, which is not an ASCII letter (RFC 5646 §2.1).
+        /// </summary>
+        private const string EnglishKelvinSignRegion = "en-\x212AR";
+
+        /// <summary>
+        /// A Primary Language subtag of five letters, which is well-formed (RFC 5646 §2.2.1¶5) but is not a code of any part of ISO 639.
+        /// </summary>
+        private const string UnlistedPrimaryLanguageSubtag = "zzzzz";
+
+        /// <summary>
+        /// A string that is not a language tag: it is one subtag of more than eight letters (RFC 5646 §2.1).
+        /// </summary>
+        private const string NotALanguageTag = "NotAValidLanguageTag";
+
+        /// <summary>
+        /// A tag with an empty subtag between two others, which no production of RFC 5646 §2.1 allows.
+        /// </summary>
+        private const string EnglishWithEmptySubtag = "en--US";
+
+        /// <summary>
+        /// A tag with the first Script subtag reserved for private use (RFC 5646 §2.2.3¶3).
+        /// </summary>
+        private const string EnglishFirstPrivateUseScript = "en-Qaaa";
+
+        /// <summary>
+        /// A tag with the last Script subtag of the first run reserved for private use (RFC 5646 §2.2.3¶3).
+        /// </summary>
+        private const string EnglishPrivateUseScriptQaaz = "en-Qaaz";
+
+        /// <summary>
+        /// A tag with the first Script subtag of the second run reserved for private use (RFC 5646 §2.2.3¶3).
+        /// </summary>
+        private const string EnglishPrivateUseScriptQaba = "en-Qaba";
+
+        /// <summary>
+        /// A tag with the last Script subtag reserved for private use (RFC 5646 §2.2.3¶3).
+        /// </summary>
+        private const string EnglishLastPrivateUseScript = "en-Qabx";
+
+        /// <summary>
+        /// A tag with the first Region subtag of the QM..QZ range reserved for private use (RFC 5646 §2.2.4¶3).
+        /// </summary>
+        private const string EnglishFirstPrivateUseRegionQ = "en-QM";
+
+        /// <summary>
+        /// A private use sequence of one digit (RFC 5646 §2.1).
+        /// </summary>
+        private const string PrivateUseOneDigit = "x-1";
+
+        /// <summary>
+        /// A private use sequence of one letter (RFC 5646 §2.1).
+        /// </summary>
+        private const string PrivateUseOneLetter = "x-a";
+
+        /// <summary>
+        /// A private use sequence of nine digits, one more than RFC 5646 §2.1 allows.
+        /// </summary>
+        private const string PrivateUseNineDigits = "x-123456789";
+
+        /// <summary>
+        /// A private use sequence of nine letters, one more than RFC 5646 §2.1 allows.
+        /// </summary>
+        private const string PrivateUseNineLetters = "x-abcdefghi";
+
+        /// <summary>
+        /// One letter, which is a singleton and not a subtag of any other kind (RFC 5646 §2.1).
+        /// </summary>
+        private const string OneLetter = "a";
+
+        /// <summary>
+        /// One digit, which is a singleton and not a subtag of any other kind (RFC 5646 §2.1).
+        /// </summary>
+        private const string OneDigit = "1";
+
+        /// <summary>
+        /// Two letters.
+        /// </summary>
+        private const string TwoLetters = "ab";
+
+        /// <summary>
+        /// Three digits.
+        /// </summary>
+        private const string ThreeDigits = "123";
+
+        /// <summary>
+        /// Four letters, which is a reserved Primary Language subtag (RFC 5646 §2.2.1¶4).
+        /// </summary>
+        private const string FourLetters = "abcd";
+
+        /// <summary>
+        /// An Extended Language subtag (RFC 5646 §2.2.2).
+        /// </summary>
+        private const string FirstExtendedLanguageSubtag = "aaa";
+
+        /// <summary>
+        /// An Extended Language subtag (RFC 5646 §2.2.2).
+        /// </summary>
+        private const string SecondExtendedLanguageSubtag = "bbb";
+
+        /// <summary>
+        /// An Extended Language subtag (RFC 5646 §2.2.2).
+        /// </summary>
+        private const string ThirdExtendedLanguageSubtag = "ccc";
+
+        /// <summary>
+        /// Cantonese, as an Extended Language subtag of Chinese (RFC 5646 §2.2.2).
+        /// </summary>
+        private const string CantoneseExtendedLanguageSubtag = "yue";
+
+        /// <summary>
+        /// Mandarin, as an Extended Language subtag of Chinese (RFC 5646 §2.2.2).
+        /// </summary>
+        private const string MandarinExtendedLanguageSubtag = "cmn";
+
+        /// <summary>
+        /// The variant subtag for the Resian dialect of Slovenian (RFC 5646 §2.2.5, Appendix A).
+        /// </summary>
+        private const string RozajVariantSubtag = "rozaj";
+
+        /// <summary>
+        /// The variant subtag for the San Giorgio / Bila dialect of Resian (RFC 5646 §2.2.5, Appendix A).
+        /// </summary>
+        private const string BiskeVariantSubtag = "biske";
+
+        /// <summary>
+        /// The variant subtag for the standardized Resian orthography of 1994 (RFC 5646 §2.2.5).
+        /// </summary>
+        private const string NineteenNinetyFourVariantSubtag = "1994";
+
+        /// <summary>
+        /// The variant subtag for the traditional German orthography (RFC 5646 §2.2.5, Appendix A).
+        /// </summary>
+        private const string NineteenOhOneVariantSubtag = "1901";
+
+        /// <summary>
+        /// An extension with the singleton t (RFC 5646 §2.2.6).
+        /// </summary>
+        private const string TransformedExtension = "t-ca-hebrew";
+
+        /// <summary>
+        /// The tag zh-Hant-TW in upper case, which is the same tag (RFC 5646 §2.1.1).
+        /// </summary>
+        private const string TraditionalChineseTaiwanUpperCase = "ZH-HANT-TW";
+
+        /// <summary>
+        /// The tag x-fr-CH in other cases, which is the same tag (RFC 5646 §2.1.1).
+        /// </summary>
+        private const string PrivateUseFrenchSwitzerlandMixedCase = "X-FR-ch";
+
+        /// <summary>
+        /// Burmese as used in Burma, with a Region subtag that the IANA registry has deprecated but still holds (RFC 5646 §3.1.6).
+        /// </summary>
+        private const string BurmeseBurma = "my-BU";
+
+        /// <summary>
+        /// A tag that ends with an empty subtag, which no production of RFC 5646 §2.1 allows.
+        /// </summary>
+        private const string EnglishWithTrailingHyphen = "en-";
+
+        /// <summary>
+        /// A tag that ends with an empty subtag, which no production of RFC 5646 §2.1 allows.
+        /// </summary>
+        private const string EnglishUnitedStatesWithTrailingHyphen = "en-US-";
+
+        /// <summary>
+        /// A Private Use subtag (RFC 5646 §2.2.7), to follow another subtag.
+        /// </summary>
+        private const string PrivateUseSuffix = "-x-test";
+
+        /// <summary>
+        /// A Script and a Region subtag (RFC 5646 §2.2.3, §2.2.4), to follow a Primary Language subtag.
+        /// </summary>
+        private const string LatinUnitedStatesSuffix = "-Latn-US";
+
+        /// <summary>
+        /// Catalan in its Valencian variety (RFC 5646 §2.2.5).
+        /// </summary>
+        private const string CatalanValencian = "ca-valencia";
+
+        /// <summary>
+        /// A tag with two extensions, each with its own singleton (RFC 5646 §2.2.6).
+        /// </summary>
+        private const string EnglishWithTwoExtensions = "en-a-bbb-b-ccc";
+
+        /// <summary>
+        /// A tag with the Region subtag 830 (Channel Islands), which may be registered but is not (RFC 5646 §2.2.4¶4E-F).
+        /// </summary>
+        private const string EnglishChannelIslands = "en-830";
+
+        /// <summary>
+        /// A tag with the Region subtag 830 (Channel Islands) after a Script subtag (RFC 5646 §2.2.4¶4E-F).
+        /// </summary>
+        private const string FrenchLatinChannelIslands = "fr-Latn-830";
+
+        /// <summary>
+        /// A tag with the Region subtag 830 (Channel Islands) before a Private Use subtag (RFC 5646 §2.2.4¶4E-F).
+        /// </summary>
+        private const string EnglishChannelIslandsPrivateUse = "en-830-x-foo";
+
+        /// <summary>
+        /// The UN M49 code for the Channel Islands, which RFC 5646 §2.2.4¶4E allows to be registered as a Region subtag.
+        /// </summary>
+        private const string ChannelIslandsRegionSubtag = "830";
+
+        /// <summary>
+        /// A Unicode locale extension with the calendar key (RFC 5646 §2.2.6; RFC 6067).
+        /// </summary>
+        private const string HebrewCalendarExtension = "u-ca-hebrew";
+
+        /// <summary>
+        /// Hebrew as used in Israel, with the Hebrew calendar (RFC 5646 §2.2.6; RFC 6067).
+        /// </summary>
+        private const string HebrewIsraelHebrewCalendar = "he-IL-u-ca-hebrew";
+
+        /// <summary>
+        /// Cantonese, as an Extended Language subtag of Chinese, as used in Hong Kong, an example from RFC 5646 Appendix A.
+        /// </summary>
+        private const string CantoneseHongKong = "zh-yue-HK";
+
+        /// <summary>
+        /// Resian, San Giorgio / Bila dialect, in the orthography of 1994: three variant subtags (RFC 5646 §2.2.5, Appendix A).
+        /// </summary>
+        private const string ResianSanGiorgio1994 = "sl-rozaj-biske-1994";
+
+        /// <summary>
+        /// A tag that is only a Private Use subtag (RFC 5646 §2.2.7).
+        /// </summary>
+        private const string PrivateUseOnly = "x-private";
+
+        /// <summary>
+        /// A tag that is only a Private Use subtag (RFC 5646 §2.2.7), whose sequences look like a language and a region.
+        /// </summary>
+        private const string PrivateUseFrenchSwitzerland = "x-fr-CH";
+
+        /// <summary>
+        /// A tag that is only a Private Use subtag (RFC 5646 §2.2.7), in which x appears again as a sequence.
+        /// </summary>
+        private const string PrivateUseFrenchSwitzerlandWithSecondSequence = "x-fr-CH-x-valid-private-use-subtag";
+
+        /// <summary>
+        /// The irregular grandfathered tag for Klingon (RFC 5646 §2.1, §2.2.8).
+        /// </summary>
+        private const string KlingonGrandfathered = "i-klingon";
+
+        /// <summary>
+        /// The regular grandfathered tag for Lojban (RFC 5646 §2.1, §2.2.8).
+        /// </summary>
+        private const string LojbanGrandfathered = "art-lojban";
+
+        /// <summary>
+        /// Chinese written in traditional script as used in Taiwan (RFC 5646 §2.2.3, §2.2.4).
+        /// </summary>
+        private const string TraditionalChineseTaiwan = "zh-Hant-TW";
+
+        /// <summary>
+        /// English as used in the United States, an example from RFC 5646 Appendix A.
+        /// </summary>
+        private const string EnglishUnitedStates = "en-US";
+
+        /// <summary>
+        /// The tag en-US in lower case, which is the same tag (RFC 5646 §2.1.1).
+        /// </summary>
+        private const string EnglishUnitedStatesLowerCase = "en-us";
+
+        /// <summary>
+        /// The tag it in upper case, which is the same tag (RFC 5646 §2.1.1); under the tr-TR culture, I does not lower-case to i.
+        /// </summary>
+        private const string ItalianUpperCase = "IT";
+
+        /// <summary>
+        /// Italian as used in Switzerland.
+        /// </summary>
+        private const string ItalianSwitzerland = "it-CH";
+
+        /// <summary>
+        /// The tag it-CH in other cases, which is the same tag (RFC 5646 §2.1.1).
+        /// </summary>
+        private const string ItalianSwitzerlandMixedCase = "IT-ch";
+
+        /// <summary>
+        /// The name of the Turkish culture, whose case mapping of I and i differs from the invariant one.
+        /// </summary>
+        private const string TurkishCultureName = "tr-TR";
+
+        /// <summary>
+        /// A string that is not a language tag: one subtag of seven letters, which is not a subtag of any kind on its own (RFC 5646 §2.1).
+        /// </summary>
+        private const string InvalidLanguageTag = "invalid";
+
+        /// <summary>
+        /// The name of the parameter that takes a language tag.
+        /// </summary>
+        private const string LanguageTagParameterName = "languageTag";
+
+        /// <summary>
+        /// The message of the exception thrown for a string that is not a language tag.
+        /// </summary>
+        private const string InvalidFormatMessage = "The language tag is not in a valid format.";
 
         private static readonly char[] TestCharacters;
         private static readonly char[] TestDigits;
         private static readonly char[] TestLetters;
         private static readonly string[] _validLanguageTags;
 
-        private readonly Bcp47LanguageTagFixture _fixture;
-
         #endregion
 
         static Bcp47LanguageTagTests()
         {
-            const int digitCharacterBaseOffset = 48, letterCharacterBaseOffset = 97;
-            TestDigits = Enumerable.Range(digitCharacterBaseOffset, 10).Select(characterNumber => (char)characterNumber).ToArray();
-            TestLetters = Enumerable.Range(letterCharacterBaseOffset, 26).Select(characterNumber => (char)characterNumber).ToArray();
+            // The ASCII digits and lower-case letters, from which subtags are made (RFC 5646 §2.1).
+            TestDigits = "0123456789".ToCharArray();
+            TestLetters = "abcdefghijklmnopqrstuvwxyz".ToCharArray();
             TestCharacters = TestDigits.Concat(TestLetters).ToArray();
 
             _validLanguageTags = new[]
             {
-                "af", "am", "ar", "arn", "ary", "as", "az", "ba", "be", "bg", "bn", "bo", "br", "bs", "ca", "ckb", "co", "cs", "cy", "da", "de", "dsb", "dv", "el", "en", "es", "et", "eu", "fa", "fi", "fil", "fo", "fr", "fy", "ga", "gd", "gil", "gl",
-                "gsw", "gu", "ha", "he", "hi", "hr", "hsb", "hu", "hy", "id", "ig", "ii", "is", "it", "iu", "ja", "ka", "kk", "kl", "km", "kn", "ko", "kok", "ku", "ky", "lb", "lo", "lt", "lv", "mi", "mk", "ml", "mn", "moh", "mr", "ms", "mt", "my", "nb",
+                "af", "am", "ar", "arn", "ary", "as", "az", "ba", "be", "bg", "bn", "bo", "br", "bs", "ca", "ckb", "co", "cs", "cy", "da", "de", "dsb", "dv", "el", EnglishLanguageTag, "es", "et", "eu", "fa", "fi", "fil", "fo", "fr", "fy", "ga", "gd", "gil", "gl",
+                "gsw", "gu", "ha", "he", "hi", "hr", "hsb", "hu", "hy", "id", "ig", "ii", "is", ItalianLanguageTag, "iu", "ja", "ka", "kk", "kl", "km", "kn", "ko", "kok", "ku", "ky", "lb", "lo", "lt", "lv", "mi", "mk", "ml", "mn", "moh", "mr", "ms", "mt", "my", "nb",
                 "ne", "nl", "nn", "no", "oc", "or", "pap", "pa", "pl", "prs", "ps", "pt", "quc", "qu", "rm", "ro", "ru", "rw", "sa", "sah", "se", "si", "sk", "sl", "sma", "smj", "smn", "sms", "sq", "sr", "st", "sv", "sw", "syc", "ta", "te", "tg", "th",
-                "tk", "tn", "tr", "tt", "tzm", "ug", "uk", "ur", "uz", "vi", "wo", "xh", "yo", "zh", "zu", "es-419", "rm-sursilv", "sr-Cyrl", "nan-Hant-TW", "yue-Hant-HK", "gsw-u-sd-chzh"
+                "tk", "tn", "tr", "tt", "tzm", "ug", "uk", "ur", "uz", "vi", "wo", "xh", "yo", "zh", "zu", LatinAmericanSpanish, RomanshSursilvan, SerbianCyrillic, MinNanTraditionalTaiwan, CantoneseTraditionalHongKong, SwissGermanZurich
             };
         }
 
-        public Bcp47LanguageTagTests(Bcp47LanguageTagFixture fixture)
+        /// <summary>
+        /// Each way to create a language tag from a string: by the default rules, and against the IANA registry fixture.
+        /// </summary>
+        private static readonly Dictionary<string, Func<string, Bcp47LanguageTag>> LanguageTagFactories = new Dictionary<string, Func<string, Bcp47LanguageTag>>
         {
-            _fixture = fixture;
-        }
+            { "Create(string)", languageTag => Bcp47LanguageTag.Create(languageTag) },
+            { "Create(string, SubtagRegistry)", languageTag => Bcp47LanguageTag.Create(languageTag, IanaSubtagRegistryResource.Shared) }
+        };
 
         /// <summary>
-        /// Run an action with the current culture of the thread set to a given culture, then restore the culture.
+        /// Each language tag, created in each way that <see cref="LanguageTagFactories"/> has.
         /// </summary>
-        private static T RunUnderCulture<T>(string cultureName, Func<T> action)
+        private static TheoryData<string, Bcp47LanguageTag> CreateLanguageTagCases(IEnumerable<string> languageTags)
         {
-            var originalCulture = CultureInfo.CurrentCulture;
-            CultureInfo.CurrentCulture = new CultureInfo(cultureName);
-            try
+            var data = new TheoryData<string, Bcp47LanguageTag>();
+            foreach (var factory in LanguageTagFactories)
+            foreach (var languageTag in languageTags)
             {
-                return action();
+                data.Add(factory.Key + ": " + languageTag, factory.Value(languageTag));
             }
-            finally
+
+            return data;
+        }
+
+        private static TheoryData<string> FirstOfEach(IEnumerable<(string LanguageTag, string ControlLanguageTag)> pairs)
+        {
+            var data = new TheoryData<string>();
+            foreach (var pair in pairs)
             {
-                CultureInfo.CurrentCulture = originalCulture;
+                data.Add(pair.LanguageTag);
             }
+
+            return data;
+        }
+
+        private static TheoryData<string> ControlOfEach(params IEnumerable<(string LanguageTag, string ControlLanguageTag)>[] pairLists)
+        {
+            var data = new TheoryData<string>();
+            foreach (var pairs in pairLists)
+            foreach (var pair in pairs)
+            {
+                data.Add(pair.ControlLanguageTag);
+            }
+
+            return data;
         }
 
         /// <summary>
@@ -71,13 +474,13 @@ namespace DataStandardizer.LanguageTag.Tests
         /// </summary>
         public static TheoryData<string, Func<string, bool>, string> TrailingNewlineSubtags => new TheoryData<string, Func<string, bool>, string>()
         {
-            { nameof(Bcp47LanguageTag.CheckPrimaryLanguageSubtag), Bcp47LanguageTag.CheckPrimaryLanguageSubtag, "en\n" },
+            { nameof(Bcp47LanguageTag.CheckPrimaryLanguageSubtag), Bcp47LanguageTag.CheckPrimaryLanguageSubtag, EnglishWithLineFeed },
             { nameof(Bcp47LanguageTag.CheckExtendedLanguageSubtag), Bcp47LanguageTag.CheckExtendedLanguageSubtag, "yue\n" },
             { nameof(Bcp47LanguageTag.CheckScriptSubtag), Bcp47LanguageTag.CheckScriptSubtag, "Latn\n" },
             { nameof(Bcp47LanguageTag.CheckRegionSubtag), Bcp47LanguageTag.CheckRegionSubtag, "US\n" },
             { nameof(Bcp47LanguageTag.CheckVariantSubtag), Bcp47LanguageTag.CheckVariantSubtag, "sursilv\n" },
             { nameof(Bcp47LanguageTag.CheckExtensionSubtag), Bcp47LanguageTag.CheckExtensionSubtag, "u-sd-chzh\n" },
-            { nameof(Bcp47LanguageTag.CheckPrivateUseSubtag), Bcp47LanguageTag.CheckPrivateUseSubtag, "x-private\n" }
+            { nameof(Bcp47LanguageTag.CheckPrivateUseSubtag), Bcp47LanguageTag.CheckPrivateUseSubtag, PrivateUseWithLineFeed }
         };
 
         /// <summary>
@@ -87,14 +490,14 @@ namespace DataStandardizer.LanguageTag.Tests
         /// </summary>
         public static TheoryData<string, Func<string, bool>, string> NonAsciiCaseEquivalentSubtags => new TheoryData<string, Func<string, bool>, string>()
         {
-            { nameof(Bcp47LanguageTag.CheckPrimaryLanguageSubtag), Bcp47LanguageTag.CheckPrimaryLanguageSubtag, "\u212Ao" },
-            { nameof(Bcp47LanguageTag.CheckPrimaryLanguageSubtag), Bcp47LanguageTag.CheckPrimaryLanguageSubtag, "\u017Fv" },
-            { nameof(Bcp47LanguageTag.CheckExtendedLanguageSubtag), Bcp47LanguageTag.CheckExtendedLanguageSubtag, "\u017Fgn" },
-            { nameof(Bcp47LanguageTag.CheckScriptSubtag), Bcp47LanguageTag.CheckScriptSubtag, "\u212Ana" },
-            { nameof(Bcp47LanguageTag.CheckRegionSubtag), Bcp47LanguageTag.CheckRegionSubtag, "\u212AR" },
-            { nameof(Bcp47LanguageTag.CheckVariantSubtag), Bcp47LanguageTag.CheckVariantSubtag, "\u017Fursilv" },
-            { nameof(Bcp47LanguageTag.CheckExtensionSubtag), Bcp47LanguageTag.CheckExtensionSubtag, "u-\u017Fd-chzh" },
-            { nameof(Bcp47LanguageTag.CheckPrivateUseSubtag), Bcp47LanguageTag.CheckPrivateUseSubtag, "x-\u212A" }
+            { nameof(Bcp47LanguageTag.CheckPrimaryLanguageSubtag), Bcp47LanguageTag.CheckPrimaryLanguageSubtag, KelvinSignO },
+            { nameof(Bcp47LanguageTag.CheckPrimaryLanguageSubtag), Bcp47LanguageTag.CheckPrimaryLanguageSubtag, LongSV },
+            { nameof(Bcp47LanguageTag.CheckExtendedLanguageSubtag), Bcp47LanguageTag.CheckExtendedLanguageSubtag, "\x017Fgn" },
+            { nameof(Bcp47LanguageTag.CheckScriptSubtag), Bcp47LanguageTag.CheckScriptSubtag, "\x212Ana" },
+            { nameof(Bcp47LanguageTag.CheckRegionSubtag), Bcp47LanguageTag.CheckRegionSubtag, "\x212AR" },
+            { nameof(Bcp47LanguageTag.CheckVariantSubtag), Bcp47LanguageTag.CheckVariantSubtag, "\x017Fursilv" },
+            { nameof(Bcp47LanguageTag.CheckExtensionSubtag), Bcp47LanguageTag.CheckExtensionSubtag, "u-\x017Fd-chzh" },
+            { nameof(Bcp47LanguageTag.CheckPrivateUseSubtag), Bcp47LanguageTag.CheckPrivateUseSubtag, "x-\x212A" }
         };
 
         /// <summary>
@@ -117,26 +520,28 @@ namespace DataStandardizer.LanguageTag.Tests
         /// Language tags that repeat a variant subtag (RFC 5646 §2.2.5¶5) or an extension singleton (§2.2.6¶3), each paired with
         /// the same tag without the repetition. The comparison is case-insensitive (§2.1.1). Private use subtags may repeat.
         /// </summary>
-        public static TheoryData<string, string> DuplicateSubtagLanguageTags => new TheoryData<string, string>()
+        private static readonly (string LanguageTag, string ControlLanguageTag)[] DuplicateSubtagPairs =
         {
-            { "ca-valencia-valencia", "ca-valencia" },
-            { "ca-valencia-VALENCIA", "ca-valencia" },
-            { "en-1901-1901", "en-1901" },
-            { "sl-rozaj-biske-rozaj", "sl-rozaj-biske" },
-            { "en-a-bbb-a-ccc", "en-a-bbb-b-ccc" },
-            { "en-a-bbb-A-ccc", "en-a-bbb-b-ccc" },
-            { "en-a-bbb-b-ccc-a-ddd", "en-a-bbb-b-ccc-c-ddd" },
-            { "en-a-bbb-a-ccc-x-a-a", "en-a-bbb-x-a-a" },
+            ("ca-valencia-valencia", CatalanValencian),
+            ("ca-valencia-VALENCIA", CatalanValencian),
+            ("en-1901-1901", "en-1901"),
+            ("sl-rozaj-biske-rozaj", "sl-rozaj-biske"),
+            ("en-a-bbb-a-ccc", EnglishWithTwoExtensions),
+            ("en-a-bbb-A-ccc", EnglishWithTwoExtensions),
+            ("en-a-bbb-b-ccc-a-ddd", "en-a-bbb-b-ccc-c-ddd"),
+            ("en-a-bbb-a-ccc-x-a-a", "en-a-bbb-x-a-a"),
         };
+
+        public static TheoryData<string> DuplicateSubtagLanguageTags => FirstOfEach(DuplicateSubtagPairs);
 
         /// <summary>
         /// The 26 grandfathered language tags (RFC 5646 §2.1, §2.2.8): 17 irregular, then 9 regular, plus irregular and regular tags in other cases (§2.1.1).
         /// </summary>
         public static TheoryData<string> GrandfatheredLanguageTags => new TheoryData<string>()
         {
-            "en-GB-oed", "i-ami", "i-bnn", "i-default", "i-enochian", "i-hak", "i-klingon", "i-lux", "i-mingo", "i-navajo", "i-pwn", "i-tao", "i-tay", "i-tsu",
+            "en-GB-oed", "i-ami", "i-bnn", "i-default", "i-enochian", "i-hak", KlingonGrandfathered, "i-lux", "i-mingo", "i-navajo", "i-pwn", "i-tao", "i-tay", "i-tsu",
             "sgn-BE-FR", "sgn-BE-NL", "sgn-CH-DE",
-            "art-lojban", "cel-gaulish", "no-bok", "no-nyn", "zh-guoyu", "zh-hakka", "zh-min", "zh-min-nan", "zh-xiang",
+            LojbanGrandfathered, "cel-gaulish", "no-bok", "no-nyn", "zh-guoyu", "zh-hakka", "zh-min", "zh-min-nan", "zh-xiang",
             "EN-gb-OED", "I-KLINGON", "Art-Lojban",
         };
 
@@ -153,7 +558,7 @@ namespace DataStandardizer.LanguageTag.Tests
         /// </summary>
         public static TheoryData<string> ReservedPrimaryLanguageSubtags => new TheoryData<string>()
         {
-            "abcd", "ABCD", "Wxyz",
+            FourLetters, "ABCD", "Wxyz",
         };
 
         /// <summary>
@@ -167,13 +572,15 @@ namespace DataStandardizer.LanguageTag.Tests
         /// <summary>
         /// Language tags with Extended Language subtags after a Primary Language subtag of four to eight letters, each with a control tag that has them after a two- or three-letter one (RFC 5646 §2.1, §2.2.2).
         /// </summary>
-        public static TheoryData<string, string> MisplacedExtendedLanguageSubtagLanguageTags => new TheoryData<string, string>()
+        private static readonly (string LanguageTag, string ControlLanguageTag)[] MisplacedExtendedLanguageSubtagPairs =
         {
-            { "abcde-aaa", "zh-aaa" },
-            { "abcd-yue", "zh-yue" },
-            { "klingon-aaa-bbb", "tlh-aaa-bbb" },
-            { "abcdefgh-cmn-Hans-CN", "zh-cmn-Hans-CN" },
+            ("abcde-aaa", "zh-aaa"),
+            ("abcd-yue", "zh-yue"),
+            ("klingon-aaa-bbb", "tlh-aaa-bbb"),
+            ("abcdefgh-cmn-Hans-CN", "zh-cmn-Hans-CN"),
         };
+
+        public static TheoryData<string> MisplacedExtendedLanguageSubtagLanguageTags => FirstOfEach(MisplacedExtendedLanguageSubtagPairs);
 
         /// <summary>
         /// The UN M.49 code for the Channel Islands, which RFC 5646 §2.2.4¶4E allows to be registered as a Region subtag, but which is not registered.
@@ -183,12 +590,14 @@ namespace DataStandardizer.LanguageTag.Tests
         /// <summary>
         /// Language tags with the unregistered Region subtag <c>830</c> (RFC 5646 §2.2.4¶4E-F), each with a control tag that has a registered UN M.49 Region subtag in its place.
         /// </summary>
-        public static TheoryData<string, string> ChannelIslandsLanguageTags => new TheoryData<string, string>()
+        private static readonly (string LanguageTag, string ControlLanguageTag)[] ChannelIslandsPairs =
         {
-            { "en-830", "en-154" },
-            { "fr-Latn-830", "fr-Latn-154" },
-            { "en-830-x-foo", "en-154-x-foo" },
+            (EnglishChannelIslands, "en-154"),
+            (FrenchLatinChannelIslands, "fr-Latn-154"),
+            (EnglishChannelIslandsPrivateUse, "en-154-x-foo"),
         };
+
+        public static TheoryData<string> ChannelIslandsLanguageTags => FirstOfEach(ChannelIslandsPairs);
 
         /// <summary>
         /// Language tags whose subtags are registered only through the private use range records <c>qaa..qtz</c>, <c>Qaaa..Qabx</c>, <c>QM..QZ</c> and <c>XA..XZ</c> (RFC 5646 §3.1.1, §3.1.4),
@@ -196,17 +605,31 @@ namespace DataStandardizer.LanguageTag.Tests
         /// </summary>
         public static TheoryData<string> PrivateUseRangeLanguageTags => new TheoryData<string>()
         {
-            "qaa", "qtz", "qbm", "QTZ", "en-Qaaa", "en-Qaaz", "en-Qaba", "en-Qabx", "en-QM", "en-QS", "en-QZ", "en-XA", "en-XZ", "qaa-Qabx-XZ",
+            "qaa", "qtz", "qbm", "QTZ", EnglishFirstPrivateUseScript, EnglishPrivateUseScriptQaaz, EnglishPrivateUseScriptQaba, EnglishLastPrivateUseScript, EnglishFirstPrivateUseRegionQ, "en-QS", "en-QZ", "en-XA", "en-XZ", "qaa-Qabx-XZ",
         };
 
         /// <summary>
         /// Language tags with an unregistered Script or Region subtag just past the end of a private use range record, each with a control tag that has the end of the range in its place.
         /// </summary>
-        public static TheoryData<string, string> OutsidePrivateUseRangeLanguageTags => new TheoryData<string, string>()
+        private static readonly (string LanguageTag, string ControlLanguageTag)[] OutsidePrivateUseRangePairs =
         {
-            { "en-Qaby", "en-Qabx" },
-            { "en-QL", "en-QM" },
+            ("en-Qaby", EnglishLastPrivateUseScript),
+            ("en-QL", EnglishFirstPrivateUseRegionQ),
         };
+
+        public static TheoryData<string> OutsidePrivateUseRangeLanguageTags => FirstOfEach(OutsidePrivateUseRangePairs);
+
+        /// <summary>
+        /// The control tags of <see cref="DuplicateSubtagPairs"/>, <see cref="MisplacedExtendedLanguageSubtagPairs"/> and <see cref="ChannelIslandsPairs"/>:
+        /// tags that are well-formed by the default rules, and differ from a tag that isn't only in what makes that one not well-formed.
+        /// </summary>
+        public static TheoryData<string> ControlLanguageTags => ControlOfEach(DuplicateSubtagPairs, MisplacedExtendedLanguageSubtagPairs, ChannelIslandsPairs);
+
+        /// <summary>
+        /// The control tags of <see cref="DuplicateSubtagPairs"/>, <see cref="ChannelIslandsPairs"/> and <see cref="OutsidePrivateUseRangePairs"/>: tags that are
+        /// valid against the IANA registry fixture, and differ from a tag that isn't only in what makes that one not valid.
+        /// </summary>
+        public static TheoryData<string> RegistryControlLanguageTags => ControlOfEach(DuplicateSubtagPairs, ChannelIslandsPairs, OutsidePrivateUseRangePairs);
 
         /// <summary>
         /// Language tags with a Script subtag reserved for private use, <c>Qaaa</c> to <c>Qaaz</c> and then <c>Qaba</c> to <c>Qabx</c> (RFC 5646 §2.2.3¶3), at each end of
@@ -214,13 +637,13 @@ namespace DataStandardizer.LanguageTag.Tests
         /// </summary>
         public static TheoryData<string> PrivateUseScriptLanguageTags => new TheoryData<string>()
         {
-            "en-Qaaa", "en-Qaax", "en-Qaay", "en-Qaaz", "en-QAAZ", "en-qaay", "en-Qaba", "en-Qabx", "qaa-Qaaz-XZ",
+            EnglishFirstPrivateUseScript, "en-Qaax", "en-Qaay", EnglishPrivateUseScriptQaaz, "en-QAAZ", "en-qaay", EnglishPrivateUseScriptQaba, EnglishLastPrivateUseScript, "qaa-Qaaz-XZ",
         };
 
         #region Test: CheckExtendedLanguageSubtag_WithInvalidSubtag
 
         [Theory]
-        [InlineData("a"), InlineData("ab"), InlineData("abcd"), InlineData("123"), InlineData("a2c")]
+        [InlineData(OneLetter), InlineData(TwoLetters), InlineData(FourLetters), InlineData(ThreeDigits), InlineData("a2c")]
         public void CheckExtendedLanguageSubtag_WithInvalidSubtag_ReturnsFalse(string testSubtag)
         {
             // act
@@ -281,7 +704,7 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: CheckExtensionSubtag_WithInvalidSubtag
 
         [Theory]
-        [InlineData("ab"), InlineData("12"), InlineData("x-1"), InlineData("x-a"), InlineData("x-123456789"), InlineData("x-abcdefghi")]
+        [InlineData(TwoLetters), InlineData("12"), InlineData(PrivateUseOneDigit), InlineData(PrivateUseOneLetter), InlineData(PrivateUseNineDigits), InlineData(PrivateUseNineLetters)]
         public void CheckExtensionSubtag_WithInvalidSubtag_ReturnsFalse(string testSubtag)
         {
             // act
@@ -543,7 +966,7 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: CheckPrivateUseSubtag_WithInvalidSubtag
 
         [Theory]
-        [InlineData("x"), InlineData("x-"), InlineData("x-123456789"), InlineData("x-abcdefghi")]
+        [InlineData("x"), InlineData("x-"), InlineData(PrivateUseNineDigits), InlineData(PrivateUseNineLetters)]
         public void CheckPrivateUseSubtag_WithInvalidSubtag_ReturnsFalse(string testSubtag)
         {
             // act
@@ -592,7 +1015,7 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: CheckRegionSubtag_WithInvalidSubtag
 
         [Theory]
-        [InlineData("a"), InlineData("ccc"), InlineData("1"), InlineData("22"), InlineData("4444")]
+        [InlineData(OneLetter), InlineData(ThirdExtendedLanguageSubtag), InlineData(OneDigit), InlineData("22"), InlineData("4444")]
         public void CheckRegionSubtag_WithInvalidSubtag_ReturnsFalse(string testSubtag)
         {
             // act
@@ -726,7 +1149,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void CheckRegionSubtag_WithChannelIslandsSubtag_ReturnsFalse()
         {
             // act
-            var testResult = Bcp47LanguageTag.CheckRegionSubtag("830");
+            var testResult = Bcp47LanguageTag.CheckRegionSubtag(ChannelIslandsRegionSubtag);
 
             // assert
             testResult.Should().BeFalse("830 (Channel Islands) may be registered, but is not, and an unregistered UN M.49 area code must not be used (RFC 5646 §2.2.4¶4E-F)");
@@ -737,7 +1160,7 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: CheckScriptSubtag_WithInvalidSubtag
 
         [Theory]
-        [InlineData("1"), InlineData("a"), InlineData("a2cd"), InlineData("Qaby"), InlineData("Qabz"), InlineData("Qaca")]
+        [InlineData(OneDigit), InlineData(OneLetter), InlineData("a2cd"), InlineData("Qaby"), InlineData("Qabz"), InlineData("Qaca")]
         public void CheckScriptSubtag_WithInvalidSubtag_ReturnsFalse(string testSubtag)
         {
             // act
@@ -813,7 +1236,7 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: CheckVariantSubtag_WithInvalidSubtag
 
         [Theory]
-        [InlineData("a"), InlineData("1"), InlineData("1bc"), InlineData("abcd"), InlineData("123"), InlineData("123456789"), InlineData("abcdefghi")]
+        [InlineData(OneLetter), InlineData(OneDigit), InlineData("1bc"), InlineData(FourLetters), InlineData(ThreeDigits), InlineData("123456789"), InlineData("abcdefghi")]
         public void CheckVariantSubtag_WithInvalidSubtag_ReturnsFalse(string testSubtag)
         {
             // act
@@ -886,7 +1309,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void ExtendedLanguageSubtags_OnValidLanguageTagWithNoExtendedLanguageSubtags_ReturnsEmptyCollection()
         {
             // arrange
-            var testLanguageTag = Bcp47LanguageTag.Create("en");
+            var testLanguageTag = Bcp47LanguageTag.Create(EnglishLanguageTag);
 
             // act
             var testResult = testLanguageTag.ExtendedLanguageSubtags;
@@ -919,9 +1342,9 @@ namespace DataStandardizer.LanguageTag.Tests
         {
             public IEnumerator<object[]> GetEnumerator()
             {
-                yield return new object[] { "en-aaa", new[] { "aaa" } };
-                yield return new object[] { "en-aaa-bbb", new[] { "aaa", "bbb" } };
-                yield return new object[] { "en-aaa-bbb-ccc", new[] { "aaa", "bbb", "ccc" } };
+                yield return new object[] { "en-aaa", new[] { FirstExtendedLanguageSubtag } };
+                yield return new object[] { "en-aaa-bbb", new[] { FirstExtendedLanguageSubtag, SecondExtendedLanguageSubtag } };
+                yield return new object[] { "en-aaa-bbb-ccc", new[] { FirstExtendedLanguageSubtag, SecondExtendedLanguageSubtag, ThirdExtendedLanguageSubtag } };
             }
 
             IEnumerator IEnumerable.GetEnumerator()
@@ -938,15 +1361,14 @@ namespace DataStandardizer.LanguageTag.Tests
         public void ExtendedLanguageSubtags_OnRepeatedReads_ReturnsSameCollection()
         {
             // arrange
-            var testLanguageTag = Bcp47LanguageTag.Create("zh-yue-HK");
-            var testFirstResult = testLanguageTag.ExtendedLanguageSubtags;
+            var testLanguageTag = Bcp47LanguageTag.Create(CantoneseHongKong);
 
             // act
-            var testResult = testLanguageTag.ExtendedLanguageSubtags;
+            var testResult = (First: testLanguageTag.ExtendedLanguageSubtags, Second: testLanguageTag.ExtendedLanguageSubtags);
 
             // assert
-            testResult.Should().BeSameAs(testFirstResult, "the decomposition is made once and shared, not copied per read");
-            testResult.Should().Equal("yue");
+            testResult.Second.Should().BeSameAs(testResult.First, "the decomposition is made once and shared, not copied per read");
+            testResult.Second.Should().Equal(CantoneseExtendedLanguageSubtag);
         }
 
         #endregion
@@ -954,19 +1376,43 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: ExtendedLanguageSubtags_WhenCollectionIsChanged
 
         [Fact]
-        public void ExtendedLanguageSubtags_WhenCollectionIsChanged_ThrowsNotSupportedExceptionAndDoesNotChangeLanguageTag()
+        public void ExtendedLanguageSubtags_WhenCollectionIsChanged_ThrowsNotSupportedException()
         {
             // arrange
-            var testLanguageTag = Bcp47LanguageTag.Create("zh-yue-HK");
-            var testSubject = testLanguageTag.ExtendedLanguageSubtags;
+            var testSubject = Bcp47LanguageTag.Create(CantoneseHongKong).ExtendedLanguageSubtags;
 
             // act
-            Action testAction = () => ((IList<string>)testSubject)[0] = "cmn";
+            Action testAction = () => ((IList<string>)testSubject)[0] = MandarinExtendedLanguageSubtag;
 
             // assert
-            testSubject.Should().NotBeAssignableTo<string[]>("a cast must not reach the array behind the collection");
             testAction.Should().Throw<NotSupportedException>();
-            testLanguageTag.ExtendedLanguageSubtags.Should().Equal("yue");
+        }
+
+        [Fact]
+        public void ExtendedLanguageSubtags_OnValidLanguageTag_IsNotAnArray()
+        {
+            // arrange
+            var testLanguageTag = Bcp47LanguageTag.Create(CantoneseHongKong);
+
+            // act
+            var testResult = testLanguageTag.ExtendedLanguageSubtags;
+
+            // assert
+            testResult.Should().NotBeAssignableTo<string[]>("a cast must not reach the array behind the collection");
+        }
+
+        [Fact]
+        public void ExtendedLanguageSubtags_WhenChangeIsRejected_AreUnchanged()
+        {
+            // arrange
+            var testLanguageTag = Bcp47LanguageTag.Create(CantoneseHongKong);
+
+            // act
+            var testResult = (Exception: Record.Exception(() => ((IList<string>)testLanguageTag.ExtendedLanguageSubtags)[0] = MandarinExtendedLanguageSubtag), Subtags: testLanguageTag.ExtendedLanguageSubtags);
+
+            // assert
+            testResult.Exception.Should().BeOfType<NotSupportedException>();
+            testResult.Subtags.Should().Equal(CantoneseExtendedLanguageSubtag);
         }
 
         #endregion
@@ -994,7 +1440,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void ExtensionSubtags_OnValidLanguageTagWithNoExtensionSubtags_ReturnsEmptyCollection()
         {
             // arrange
-            var testLanguageTag = Bcp47LanguageTag.Create("en");
+            var testLanguageTag = Bcp47LanguageTag.Create(EnglishLanguageTag);
 
             // act
             var testResult = testLanguageTag.ExtensionSubtags;
@@ -1052,7 +1498,7 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: IsWellFormedLanguageTagString_WithInvalidLanguageTag
 
         [Theory]
-        [InlineData(""), InlineData("zz"), InlineData("NotALanguageTag")]
+        [InlineData(EmptyString), InlineData("zz"), InlineData("NotALanguageTag")]
         public void IsWellFormedLanguageTagString_WithInvalidLanguageTag_ReturnsFalse(string testLanguageTag)
         {
             // act
@@ -1067,7 +1513,7 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: IsWellFormedLanguageTagString_WithTrailingNewline
 
         [Theory]
-        [InlineData("en\n"), InlineData("en-US\n"), InlineData("x-private\n")]
+        [InlineData(EnglishWithLineFeed), InlineData(EnglishUnitedStatesWithLineFeed), InlineData(PrivateUseWithLineFeed)]
         public void IsWellFormedLanguageTagString_WithTrailingNewline_ReturnsFalse(string testLanguageTag)
         {
             // act
@@ -1082,7 +1528,7 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: IsWellFormedLanguageTagString_WithNonAsciiCaseEquivalent
 
         [Theory]
-        [InlineData("\u212Ao"), InlineData("\u017Fv"), InlineData("en-x-\u212A"), InlineData("en-x-\u017F"), InlineData("en-\u212AR")]
+        [InlineData(KelvinSignO), InlineData(LongSV), InlineData(EnglishPrivateUseKelvinSign), InlineData(EnglishPrivateUseLongS), InlineData(EnglishKelvinSignRegion)]
         public void IsWellFormedLanguageTagString_WithNonAsciiCaseEquivalent_ReturnsFalse(string testLanguageTag)
         {
             // act
@@ -1098,15 +1544,24 @@ namespace DataStandardizer.LanguageTag.Tests
 
         [Theory]
         [MemberData(nameof(DuplicateSubtagLanguageTags))]
-        public void IsWellFormedLanguageTagString_WithDuplicateSubtags_ReturnsFalse(string testLanguageTag, string controlLanguageTag)
+        public void IsWellFormedLanguageTagString_WithDuplicateSubtags_ReturnsFalse(string testLanguageTag)
         {
             // act
             var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag);
-            var controlResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(controlLanguageTag);
 
             // assert
-            controlResult.Should().BeTrue("the language tag '{0}' has no repeated subtags", controlLanguageTag);
             testResult.Should().BeFalse("the language tag '{0}' repeats a variant subtag or extension singleton (RFC 5646 §2.2.5, §2.2.6)", testLanguageTag);
+        }
+
+        [Theory]
+        [MemberData(nameof(ControlLanguageTags))]
+        public void IsWellFormedLanguageTagString_WithControlLanguageTag_ReturnsTrue(string testLanguageTag)
+        {
+            // act
+            var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag);
+
+            // assert
+            testResult.Should().BeTrue("the language tag '{0}' has no repeated subtags, Extended Language subtags only after a two- or three-letter Primary Language subtag, and only registered Region subtags", testLanguageTag);
         }
 
         #endregion
@@ -1115,14 +1570,12 @@ namespace DataStandardizer.LanguageTag.Tests
 
         [Theory]
         [MemberData(nameof(ChannelIslandsLanguageTags))]
-        public void IsWellFormedLanguageTagString_WithChannelIslandsRegionSubtag_ReturnsFalse(string testLanguageTag, string controlLanguageTag)
+        public void IsWellFormedLanguageTagString_WithChannelIslandsRegionSubtag_ReturnsFalse(string testLanguageTag)
         {
             // act
             var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag);
-            var controlResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(controlLanguageTag);
 
             // assert
-            controlResult.Should().BeTrue("the language tag '{0}' has a registered UN M.49 Region subtag", controlLanguageTag);
             testResult.Should().BeFalse("the Region subtag 830 of '{0}' is not registered (RFC 5646 §2.2.4¶4E-F)", testLanguageTag);
         }
 
@@ -1160,21 +1613,38 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #region Test: IsWellFormedLanguageTagString_WithReservedPrimaryLanguageSubtag
 
-        [Theory]
-        [MemberData(nameof(ReservedPrimaryLanguageSubtags))]
-        public void IsWellFormedLanguageTagString_WithReservedPrimaryLanguageSubtag_ReturnsTrue(string testSubtag)
+        /// <summary>
+        /// Each of <see cref="ReservedPrimaryLanguageSubtags"/> alone, followed by a Script and a Region subtag, and followed by a Private Use subtag.
+        /// </summary>
+        public static TheoryData<string> ReservedPrimaryLanguageSubtagLanguageTags => CreateLanguageTagsStartingWith(ReservedPrimaryLanguageSubtags, LatinUnitedStatesSuffix);
+
+        /// <summary>
+        /// Each of <see cref="NonAlphaPrimaryLanguageSubtags"/> alone, followed by a Region subtag, and followed by a Private Use subtag.
+        /// </summary>
+        public static TheoryData<string> NonAlphaPrimaryLanguageSubtagLanguageTags => CreateLanguageTagsStartingWith(NonAlphaPrimaryLanguageSubtags, "-US");
+
+        private static TheoryData<string> CreateLanguageTagsStartingWith(TheoryData<string> primaryLanguageSubtags, string otherSubtags)
         {
-            // arrange
-            var testLanguageTags = new[] { testSubtag, $"{testSubtag}-Latn-US", $"{testSubtag}-x-test" };
-
-            foreach (var testLanguageTag in testLanguageTags)
+            var data = new TheoryData<string>();
+            foreach (var primaryLanguageSubtag in primaryLanguageSubtags)
             {
-                // act
-                var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag);
-
-                // assert
-                testResult.Should().BeTrue("'{0}' has a reserved Primary Language subtag, which is well-formed (RFC 5646 §2.1, §2.2.1¶4)", testLanguageTag);
+                data.Add(primaryLanguageSubtag);
+                data.Add(primaryLanguageSubtag + otherSubtags);
+                data.Add(primaryLanguageSubtag + PrivateUseSuffix);
             }
+
+            return data;
+        }
+
+        [Theory]
+        [MemberData(nameof(ReservedPrimaryLanguageSubtagLanguageTags))]
+        public void IsWellFormedLanguageTagString_WithReservedPrimaryLanguageSubtag_ReturnsTrue(string testLanguageTag)
+        {
+            // act
+            var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag);
+
+            // assert
+            testResult.Should().BeTrue("'{0}' has a reserved Primary Language subtag, which is well-formed (RFC 5646 §2.1, §2.2.1¶4)", testLanguageTag);
         }
 
         #endregion
@@ -1197,20 +1667,14 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: IsWellFormedLanguageTagString_WithNonAlphaPrimaryLanguageSubtag
 
         [Theory]
-        [MemberData(nameof(NonAlphaPrimaryLanguageSubtags))]
-        public void IsWellFormedLanguageTagString_WithNonAlphaPrimaryLanguageSubtag_ReturnsFalse(string testSubtag)
+        [MemberData(nameof(NonAlphaPrimaryLanguageSubtagLanguageTags))]
+        public void IsWellFormedLanguageTagString_WithNonAlphaPrimaryLanguageSubtag_ReturnsFalse(string testLanguageTag)
         {
-            // arrange
-            var testLanguageTags = new[] { testSubtag, $"{testSubtag}-US", $"{testSubtag}-x-test" };
+            // act
+            var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag);
 
-            foreach (var testLanguageTag in testLanguageTags)
-            {
-                // act
-                var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag);
-
-                // assert
-                testResult.Should().BeFalse("the Primary Language subtag of '{0}' contains a digit (RFC 5646 §2.1, §2.2.1)", testLanguageTag);
-            }
+            // assert
+            testResult.Should().BeFalse("the Primary Language subtag of '{0}' contains a digit (RFC 5646 §2.1, §2.2.1)", testLanguageTag);
         }
 
         #endregion
@@ -1219,14 +1683,12 @@ namespace DataStandardizer.LanguageTag.Tests
 
         [Theory]
         [MemberData(nameof(MisplacedExtendedLanguageSubtagLanguageTags))]
-        public void IsWellFormedLanguageTagString_WithMisplacedExtendedLanguageSubtags_ReturnsFalse(string testLanguageTag, string controlLanguageTag)
+        public void IsWellFormedLanguageTagString_WithMisplacedExtendedLanguageSubtags_ReturnsFalse(string testLanguageTag)
         {
             // act
             var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag);
-            var controlResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(controlLanguageTag);
 
             // assert
-            controlResult.Should().BeTrue("the language tag '{0}' has Extended Language subtags after a two- or three-letter Primary Language subtag", controlLanguageTag);
             testResult.Should().BeFalse("the language tag '{0}' has Extended Language subtags after a Primary Language subtag of four to eight letters (RFC 5646 §2.1, §2.2.2)", testLanguageTag);
         }
 
@@ -1235,13 +1697,13 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: IsWellFormedLanguageTagString_WithValidLanguageTag
 
         [Theory]
-        [InlineData("en", "English"),
-         InlineData("es-419", "Latin American Spanish"),
-         InlineData("rm-sursilv", "Romansh Sursilvan"),
-         InlineData("sr-Cyrl", "Serbian written in Cyrillic script"),
-         InlineData("nan-Hant-TW", "Min Nan Chinese using traditional Han characters, as spoken in Taiwan"),
-         InlineData("yue-Hant-HK", "Cantonese using traditional Han characters, as spoken in Hong Kong"),
-         InlineData("gsw-u-sd-chzh", "Zürich German")]
+        [InlineData(EnglishLanguageTag, "English"),
+         InlineData(LatinAmericanSpanish, "Latin American Spanish"),
+         InlineData(RomanshSursilvan, "Romansh Sursilvan"),
+         InlineData(SerbianCyrillic, "Serbian written in Cyrillic script"),
+         InlineData(MinNanTraditionalTaiwan, "Min Nan Chinese using traditional Han characters, as spoken in Taiwan"),
+         InlineData(CantoneseTraditionalHongKong, "Cantonese using traditional Han characters, as spoken in Hong Kong"),
+         InlineData(SwissGermanZurich, "Zürich German")]
         public void IsWellFormedLanguageTagString_WithValidLanguageTag_ReturnsTrue(string testLanguageTag, string testLanguageTagDescription)
         {
             // act
@@ -1259,15 +1721,14 @@ namespace DataStandardizer.LanguageTag.Tests
         public void ExtensionSubtags_OnRepeatedReads_ReturnsSameCollection()
         {
             // arrange
-            var testLanguageTag = Bcp47LanguageTag.Create("he-IL-u-ca-hebrew");
-            var testFirstResult = testLanguageTag.ExtensionSubtags;
+            var testLanguageTag = Bcp47LanguageTag.Create(HebrewIsraelHebrewCalendar);
 
             // act
-            var testResult = testLanguageTag.ExtensionSubtags;
+            var testResult = (First: testLanguageTag.ExtensionSubtags, Second: testLanguageTag.ExtensionSubtags);
 
             // assert
-            testResult.Should().BeSameAs(testFirstResult, "the decomposition is made once and shared, not copied per read");
-            testResult.Should().Equal((Bcp47KeyedSubtag)"u-ca-hebrew");
+            testResult.Second.Should().BeSameAs(testResult.First, "the decomposition is made once and shared, not copied per read");
+            testResult.Second.Should().Equal((Bcp47KeyedSubtag)HebrewCalendarExtension);
         }
 
         #endregion
@@ -1275,19 +1736,43 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: ExtensionSubtags_WhenCollectionIsChanged
 
         [Fact]
-        public void ExtensionSubtags_WhenCollectionIsChanged_ThrowsNotSupportedExceptionAndDoesNotChangeLanguageTag()
+        public void ExtensionSubtags_WhenCollectionIsChanged_ThrowsNotSupportedException()
         {
             // arrange
-            var testLanguageTag = Bcp47LanguageTag.Create("he-IL-u-ca-hebrew");
-            var testSubject = testLanguageTag.ExtensionSubtags;
+            var testSubject = Bcp47LanguageTag.Create(HebrewIsraelHebrewCalendar).ExtensionSubtags;
 
             // act
-            Action testAction = () => ((IList<Bcp47KeyedSubtag>)testSubject)[0] = (Bcp47KeyedSubtag)"t-ca-hebrew";
+            Action testAction = () => ((IList<Bcp47KeyedSubtag>)testSubject)[0] = (Bcp47KeyedSubtag)TransformedExtension;
 
             // assert
-            testSubject.Should().NotBeAssignableTo<Bcp47KeyedSubtag[]>("a cast must not reach the array behind the collection");
             testAction.Should().Throw<NotSupportedException>();
-            testLanguageTag.ExtensionSubtags.Should().Equal((Bcp47KeyedSubtag)"u-ca-hebrew");
+        }
+
+        [Fact]
+        public void ExtensionSubtags_OnValidLanguageTag_IsNotAnArray()
+        {
+            // arrange
+            var testLanguageTag = Bcp47LanguageTag.Create(HebrewIsraelHebrewCalendar);
+
+            // act
+            var testResult = testLanguageTag.ExtensionSubtags;
+
+            // assert
+            testResult.Should().NotBeAssignableTo<Bcp47KeyedSubtag[]>("a cast must not reach the array behind the collection");
+        }
+
+        [Fact]
+        public void ExtensionSubtags_WhenChangeIsRejected_AreUnchanged()
+        {
+            // arrange
+            var testLanguageTag = Bcp47LanguageTag.Create(HebrewIsraelHebrewCalendar);
+
+            // act
+            var testResult = (Exception: Record.Exception(() => ((IList<Bcp47KeyedSubtag>)testLanguageTag.ExtensionSubtags)[0] = (Bcp47KeyedSubtag)TransformedExtension), Subtags: testLanguageTag.ExtensionSubtags);
+
+            // assert
+            testResult.Exception.Should().BeOfType<NotSupportedException>();
+            testResult.Subtags.Should().Equal((Bcp47KeyedSubtag)HebrewCalendarExtension);
         }
 
         #endregion
@@ -1487,7 +1972,7 @@ namespace DataStandardizer.LanguageTag.Tests
                     for (var thirdCharacterIndex = (byte)'a'; thirdCharacterIndex <= (byte)'z'; thirdCharacterIndex++)
                     {
                         var primaryLanguageSubtag = $"q{(char)secondCharacterIndex}{(char)thirdCharacterIndex}";
-                        yield return new object[] { primaryLanguageSubtag + "-x-test", primaryLanguageSubtag };
+                        yield return new object[] { primaryLanguageSubtag + PrivateUseSuffix, primaryLanguageSubtag };
                     }
                 }
             }
@@ -1516,43 +2001,60 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #region Test: PrimaryLanguageSubtag_WhenReservedSubtag
 
+        public static TheoryData<string, LanguageTagSubtags> ReservedPrimaryLanguageSubtagsWithScriptAndRegion
+        {
+            get
+            {
+                var data = new TheoryData<string, LanguageTagSubtags>();
+                foreach (var primaryLanguageSubtag in ReservedPrimaryLanguageSubtags)
+                {
+                    data.Add(primaryLanguageSubtag + LatinUnitedStatesSuffix, new LanguageTagSubtags(primaryLanguageSubtag, new string[0], "Latn", "US", new string[0], new Bcp47KeyedSubtag[0], null));
+                }
+
+                return data;
+            }
+        }
+
         [Theory]
-        [MemberData(nameof(ReservedPrimaryLanguageSubtags))]
-        public void PrimaryLanguageSubtag_WhenReservedSubtag_ReturnsPrimaryLanguageSubtag(string expectedResult)
+        [MemberData(nameof(ReservedPrimaryLanguageSubtagsWithScriptAndRegion), DisableDiscoveryEnumeration = true)]
+        public void Subtags_WhenPrimaryLanguageSubtagIsReserved_ReturnsEverySubtag(string testLanguageTag, LanguageTagSubtags expectedResult)
         {
             // arrange
-            var testLanguageTag = $"{expectedResult}-Latn-US";
             var testSubject = Bcp47LanguageTag.Create(testLanguageTag);
 
             // act
-            var testResult = testSubject.PrimaryLanguageSubtag;
+            var testResult = LanguageTagSubtags.Of(testSubject);
 
             // assert
-            testResult.Should().Be(expectedResult, "'{0}' is the Primary Language subtag of the language tag {1}", expectedResult, testLanguageTag);
-            testSubject.ScriptSubtag.Should().Be("Latn");
-            testSubject.RegionSubtag.Should().Be("US");
+            testResult.Should().BeEquivalentTo(expectedResult, "a reserved Primary Language subtag is decomposed like any other (RFC 5646 §2.2.1¶4)");
         }
 
         #endregion
 
         #region Test: PrimaryLanguageSubtag_OnPrivateUseLanguageTag
 
+        public static TheoryData<string, Bcp47LanguageTag> PrivateUseLanguageTagCases => CreateLanguageTagCases(new[] { PrivateUseOnly, "X-PRIVATE", PrivateUseFrenchSwitzerland });
+
         [Theory]
-        [InlineData("x-private"), InlineData("X-PRIVATE"), InlineData("x-fr-CH")]
-        public void PrimaryLanguageSubtag_OnPrivateUseLanguageTag_ReturnsEmptyString(string testLanguageTag)
+        [MemberData(nameof(PrivateUseLanguageTagCases), DisableDiscoveryEnumeration = true)]
+        public void PrimaryLanguageSubtag_OnPrivateUseLanguageTag_ReturnsEmptyString(string testCase, Bcp47LanguageTag testSubject)
         {
-            // arrange
-            var testSubjects = new[] { Bcp47LanguageTag.Create(testLanguageTag), Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry) };
+            // act
+            var testResult = testSubject.PrimaryLanguageSubtag;
 
-            foreach (var testSubject in testSubjects)
-            {
-                // act
-                var testResult = testSubject.PrimaryLanguageSubtag;
+            // assert
+            testResult.Should().BeEmpty("a private use language tag ({0}) has no Primary Language subtag (RFC 5646 §2.2.7)", testCase);
+        }
 
-                // assert
-                testResult.Should().BeEmpty("a private use language tag has no Primary Language subtag (RFC 5646 §2.2.7)");
-                testSubject.PrivateUseSubtag.Should().NotBeNull();
-            }
+        [Theory]
+        [MemberData(nameof(PrivateUseLanguageTagCases), DisableDiscoveryEnumeration = true)]
+        public void PrivateUseSubtag_OnPrivateUseLanguageTag_ReturnsSubtag(string testCase, Bcp47LanguageTag testSubject)
+        {
+            // act
+            var testResult = testSubject.PrivateUseSubtag;
+
+            // assert
+            testResult.Should().NotBeNull("a private use language tag ({0}) is its Private Use subtag (RFC 5646 §2.2.7)", testCase);
         }
 
         #endregion
@@ -1580,7 +2082,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void PrivateUseSubtag_OnValidLanguageTagWithNoPrivateUseSubtags_ReturnsNull()
         {
             // arrange
-            const string languageTag = "en";
+            const string languageTag = EnglishLanguageTag;
             var testLanguageTag = Bcp47LanguageTag.Create(languageTag);
 
             // act
@@ -1595,7 +2097,7 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: PrivateUseSubtag_OnValidLanguageTagWithPrivateUseSubtag
 
         [Theory]
-        [InlineData("en-x-a", "x-a"),
+        [InlineData("en-x-a", PrivateUseOneLetter),
          InlineData("en-x-bb", "x-bb"),
          InlineData("en-x-ccc", "x-ccc"),
          InlineData("en-x-dddd", "x-dddd"),
@@ -1603,7 +2105,7 @@ namespace DataStandardizer.LanguageTag.Tests
          InlineData("en-x-ffffff", "x-ffffff"),
          InlineData("en-x-ggggggg", "x-ggggggg"),
          InlineData("en-x-hhhhhhhh", "x-hhhhhhhh"),
-         InlineData("en-x-1", "x-1"),
+         InlineData("en-x-1", PrivateUseOneDigit),
          InlineData("en-x-88888888", "x-88888888")]
         public void PrivateUseSubtag_OnValidLanguageTagWithPrivateUseSubtag_ReturnsPrivateUseSubtag(string testLanguageTag, string expectedResult)
         {
@@ -1644,7 +2146,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void RegionSubtag_OnValidLanguageTagWithNoRegionSubtag_ReturnsNull()
         {
             // arrange
-            var testLanguageTag = Bcp47LanguageTag.Create("en");
+            var testLanguageTag = Bcp47LanguageTag.Create(EnglishLanguageTag);
 
             // act
             var testResult = testLanguageTag.RegionSubtag;
@@ -1797,7 +2299,7 @@ namespace DataStandardizer.LanguageTag.Tests
             Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag);
 
             // assert
-            testAction.Should().Throw<LanguageTagFormatException>("{0} is not a valid Region subtag", testCode).WithMessage("The language tag is not in a valid format.");
+            testAction.Should().Throw<LanguageTagFormatException>("{0} is not a valid Region subtag", testCode).WithMessage(InvalidFormatMessage);
         }
 
         private class RegionSubtag_WhenNationalUnM49Code_TestCaseFactory : IEnumerable<object[]>
@@ -1845,7 +2347,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void ScriptSubtag_OnValidLanguageTagWithNoScriptSubtag_ReturnsNull()
         {
             // arrange
-            var testLanguageTag = Bcp47LanguageTag.Create("en");
+            var testLanguageTag = Bcp47LanguageTag.Create(EnglishLanguageTag);
 
             // act
             var testResult = testLanguageTag.ScriptSubtag;
@@ -1951,7 +2453,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void VariantSubtags_OnValidLanguageTagWithNoVariantSubtags_ReturnsEmptyCollection()
         {
             // arrange
-            var testLanguageTag = Bcp47LanguageTag.Create("en");
+            var testLanguageTag = Bcp47LanguageTag.Create(EnglishLanguageTag);
 
             // act
             var testResult = testLanguageTag.VariantSubtags;
@@ -1969,14 +2471,13 @@ namespace DataStandardizer.LanguageTag.Tests
         public void VariantSubtags_OnValidLanguageTagWithVariantSubtags_ReturnsVariantSubtags()
         {
             // arrange
-            const string variantSubtag = "sursilv";
-            var testLanguageTag = Bcp47LanguageTag.Create($"rm-{variantSubtag}");
+            var testLanguageTag = Bcp47LanguageTag.Create(RomanshSursilvan);
 
             // act
             var testResult = testLanguageTag.VariantSubtags;
 
             // assert
-            testResult.Should().BeEquivalentTo(variantSubtag);
+            testResult.Should().Equal("sursilv");
         }
 
         #endregion
@@ -1987,15 +2488,14 @@ namespace DataStandardizer.LanguageTag.Tests
         public void VariantSubtags_OnRepeatedReads_ReturnsSameCollection()
         {
             // arrange
-            var testLanguageTag = Bcp47LanguageTag.Create("sl-rozaj-biske-1994");
-            var testFirstResult = testLanguageTag.VariantSubtags;
+            var testLanguageTag = Bcp47LanguageTag.Create(ResianSanGiorgio1994);
 
             // act
-            var testResult = testLanguageTag.VariantSubtags;
+            var testResult = (First: testLanguageTag.VariantSubtags, Second: testLanguageTag.VariantSubtags);
 
             // assert
-            testResult.Should().BeSameAs(testFirstResult, "the decomposition is made once and shared, not copied per read");
-            testResult.Should().Equal("rozaj", "biske", "1994");
+            testResult.Second.Should().BeSameAs(testResult.First, "the decomposition is made once and shared, not copied per read");
+            testResult.Second.Should().Equal(RozajVariantSubtag, BiskeVariantSubtag, NineteenNinetyFourVariantSubtag);
         }
 
         #endregion
@@ -2003,43 +2503,66 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: VariantSubtags_WhenCollectionIsChanged
 
         [Fact]
-        public void VariantSubtags_WhenCollectionIsChanged_ThrowsNotSupportedExceptionAndDoesNotChangeLanguageTag()
+        public void VariantSubtags_WhenCollectionIsChanged_ThrowsNotSupportedException()
         {
             // arrange
-            var testLanguageTag = Bcp47LanguageTag.Create("sl-rozaj-biske-1994");
-            var testSubject = testLanguageTag.VariantSubtags;
+            var testSubject = Bcp47LanguageTag.Create(ResianSanGiorgio1994).VariantSubtags;
 
             // act
-            Action testAction = () => ((IList<string>)testSubject)[0] = "1901";
+            Action testAction = () => ((IList<string>)testSubject)[0] = NineteenOhOneVariantSubtag;
 
             // assert
-            testSubject.Should().NotBeAssignableTo<string[]>("a cast must not reach the array behind the collection");
             testAction.Should().Throw<NotSupportedException>();
-            testLanguageTag.VariantSubtags.Should().Equal("rozaj", "biske", "1994");
+        }
+
+        [Fact]
+        public void VariantSubtags_OnValidLanguageTag_IsNotAnArray()
+        {
+            // arrange
+            var testLanguageTag = Bcp47LanguageTag.Create(ResianSanGiorgio1994);
+
+            // act
+            var testResult = testLanguageTag.VariantSubtags;
+
+            // assert
+            testResult.Should().NotBeAssignableTo<string[]>("a cast must not reach the array behind the collection");
+        }
+
+        [Fact]
+        public void VariantSubtags_WhenChangeIsRejected_AreUnchanged()
+        {
+            // arrange
+            var testLanguageTag = Bcp47LanguageTag.Create(ResianSanGiorgio1994);
+
+            // act
+            var testResult = (Exception: Record.Exception(() => ((IList<string>)testLanguageTag.VariantSubtags)[0] = NineteenOhOneVariantSubtag), Subtags: testLanguageTag.VariantSubtags);
+
+            // assert
+            testResult.Exception.Should().BeOfType<NotSupportedException>();
+            testResult.Subtags.Should().Equal(RozajVariantSubtag, BiskeVariantSubtag, NineteenNinetyFourVariantSubtag);
         }
 
         #endregion
 
         #region Test: SubtagProperties_OnGrandfatheredLanguageTag
 
-        [Theory]
-        [MemberData(nameof(GrandfatheredLanguageTags))]
-        public void SubtagProperties_OnGrandfatheredLanguageTag_ReturnNoSubtags(string testLanguageTag)
+        public static TheoryData<string, Bcp47LanguageTag> GrandfatheredLanguageTagCases
         {
-            // arrange
-            var testLanguageTags = new[] { Bcp47LanguageTag.Create(testLanguageTag), Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry) };
-
-            foreach (var languageTag in testLanguageTags)
+            get
             {
-                // assert
-                languageTag.PrimaryLanguageSubtag.Should().BeEmpty("a grandfathered language tag is interpreted as a whole (RFC 5646 §2.2.8)");
-                languageTag.ExtendedLanguageSubtags.Should().BeEmpty();
-                languageTag.ScriptSubtag.Should().BeNull();
-                languageTag.RegionSubtag.Should().BeNull();
-                languageTag.VariantSubtags.Should().BeEmpty();
-                languageTag.ExtensionSubtags.Should().BeEmpty();
-                languageTag.PrivateUseSubtag.Should().BeNull();
+                return CreateLanguageTagCases(GrandfatheredLanguageTags);
             }
+        }
+
+        [Theory]
+        [MemberData(nameof(GrandfatheredLanguageTagCases), DisableDiscoveryEnumeration = true)]
+        public void SubtagProperties_OnGrandfatheredLanguageTag_ReturnNoSubtags(string testCase, Bcp47LanguageTag testSubject)
+        {
+            // act
+            var testResult = LanguageTagSubtags.Of(testSubject);
+
+            // assert
+            testResult.Should().BeEquivalentTo(LanguageTagSubtags.None, "a grandfathered language tag ({0}) is interpreted as a whole (RFC 5646 §2.2.8)", testCase);
         }
 
         #endregion
@@ -2050,7 +2573,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void ToIso15924_WithLanguageTagHavingNoScriptSubtag_ReturnsNull()
         {
             // arrange
-            var testLanguageTag = Bcp47LanguageTag.Create("en");
+            var testLanguageTag = Bcp47LanguageTag.Create(EnglishLanguageTag);
 
             // act
             var testResult = testLanguageTag.ToIso15924();
@@ -2067,7 +2590,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void ToIso15924_WithLanguageTagHavingScriptSubtag_ReturnsIso15924Code()
         {
             // arrange
-            var testLanguageTag = Bcp47LanguageTag.Create("sr-Cyrl");
+            var testLanguageTag = Bcp47LanguageTag.Create(SerbianCyrillic);
 
             // act
             var testResult = testLanguageTag.ToIso15924();
@@ -2084,7 +2607,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void ToIso3166Part1Alpha2_WithLanguageTagHavingNoRegionSubtag_ReturnsNull()
         {
             // arrange
-            var testLanguageTag = Bcp47LanguageTag.Create("en");
+            var testLanguageTag = Bcp47LanguageTag.Create(EnglishLanguageTag);
 
             // act
             var testResult = testLanguageTag.ToIso3166Part1Alpha2();
@@ -2101,7 +2624,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void ToIso3166Part1Alpha2_WithLanguageTagHavingRegionSubtag_ReturnsIso3166Part1Code()
         {
             // arrange
-            var testLanguageTag = Bcp47LanguageTag.Create("yue-Hant-HK");
+            var testLanguageTag = Bcp47LanguageTag.Create(CantoneseTraditionalHongKong);
 
             // act
             var testResult = testLanguageTag.ToIso3166Part1Alpha2();
@@ -2115,7 +2638,7 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: ToIso3166Part1Alpha2_WithLanguageTagHavingUnM49RegionSubtag
 
         [Theory]
-        [InlineData("es-419")]
+        [InlineData(LatinAmericanSpanish)]
         [InlineData("en-001")]
         public void ToIso3166Part1Alpha2_WithLanguageTagHavingUnM49RegionSubtag_ReturnsNull(string languageTag)
         {
@@ -2134,8 +2657,8 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: ToIso3166Part1Alpha2_WithLanguageTagHavingAlphaRegionSubtag
 
         [Theory]
-        [InlineData("en-US")]
-        [InlineData("en-us")]
+        [InlineData(EnglishUnitedStates)]
+        [InlineData(EnglishUnitedStatesLowerCase)]
         public void ToIso3166Part1Alpha2_WithLanguageTagHavingAlphaRegionSubtag_ReturnsIso3166Part1Code(string languageTag)
         {
             // arrange
@@ -2156,7 +2679,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void ToIso639Part1_WithLanguageTagHavingPrimaryLanguageSubtagNotIso639Part1Code_ReturnsNull()
         {
             // arrange
-            var testLanguageTag = Bcp47LanguageTag.Create("zzzzz");
+            var testLanguageTag = Bcp47LanguageTag.Create(UnlistedPrimaryLanguageSubtag);
 
             // act
             var testResult = testLanguageTag.ToIso639Part1();
@@ -2173,7 +2696,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void ToIso639Part1_WithLanguageTagHavingPrimaryLanguageSubtagIsIso639Part1Code_ReturnsIso639Part1Code()
         {
             // arrange
-            var testLanguageTag = Bcp47LanguageTag.Create("es-419");
+            var testLanguageTag = Bcp47LanguageTag.Create(LatinAmericanSpanish);
 
             // act
             var testResult = testLanguageTag.ToIso639Part1();
@@ -2190,7 +2713,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void ToIso639Part2T_WithLanguageTagHavingPrimaryLanguageSubtagNotIso639Part2TCode_ReturnsNull()
         {
             // arrange
-            var testLanguageTag = Bcp47LanguageTag.Create("zzzzz");
+            var testLanguageTag = Bcp47LanguageTag.Create(UnlistedPrimaryLanguageSubtag);
 
             // act
             var testResult = testLanguageTag.ToIso639Part2T();
@@ -2224,7 +2747,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void ToIso639Part3_WithLanguageTagHavingPrimaryLanguageSubtagNotIso639Part3Code_ReturnsNull()
         {
             // arrange
-            var testLanguageTag = Bcp47LanguageTag.Create("zzzzz");
+            var testLanguageTag = Bcp47LanguageTag.Create(UnlistedPrimaryLanguageSubtag);
 
             // act
             var testResult = testLanguageTag.ToIso639Part3();
@@ -2241,7 +2764,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void ToIso639Part3_WithLanguageTagHavingPrimaryLanguageSubtagIsIso639Part3Code_ReturnsIso639Part3Code()
         {
             // arrange
-            var testLanguageTag = Bcp47LanguageTag.Create("nan-Hant-TW");
+            var testLanguageTag = Bcp47LanguageTag.Create(MinNanTraditionalTaiwan);
 
             // act
             var testResult = testLanguageTag.ToIso639Part3();
@@ -2258,7 +2781,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void ToIso639Part5_WithLanguageTagHavingPrimaryLanguageSubtagNotIso639Part5Code_ReturnsNull()
         {
             // arrange
-            var testLanguageTag = Bcp47LanguageTag.Create("zzzzz");
+            var testLanguageTag = Bcp47LanguageTag.Create(UnlistedPrimaryLanguageSubtag);
 
             // act
             var testResult = testLanguageTag.ToIso639Part5();
@@ -2288,21 +2811,44 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #region Test: ToIso639_WithLanguageTagHavingNoPrimaryLanguageSubtag
 
-        [Theory]
-        [InlineData("x-private"), InlineData("i-klingon"), InlineData("art-lojban")]
-        public void ToIso639_WithLanguageTagHavingNoPrimaryLanguageSubtag_ReturnsNull(string testLanguageTag)
+        /// <summary>
+        /// Each conversion to an ISO 639 code.
+        /// </summary>
+        private static readonly Dictionary<string, Func<Bcp47LanguageTag, object>> Iso639Conversions = new Dictionary<string, Func<Bcp47LanguageTag, object>>
         {
-            // arrange
-            var testSubjects = new[] { Bcp47LanguageTag.Create(testLanguageTag), Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry) };
+            { nameof(Bcp47LanguageTag.ToIso639Part1), languageTag => languageTag.ToIso639Part1() },
+            { nameof(Bcp47LanguageTag.ToIso639Part2T), languageTag => languageTag.ToIso639Part2T() },
+            { nameof(Bcp47LanguageTag.ToIso639Part3), languageTag => languageTag.ToIso639Part3() },
+            { nameof(Bcp47LanguageTag.ToIso639Part5), languageTag => languageTag.ToIso639Part5() }
+        };
 
-            foreach (var testSubject in testSubjects)
+        /// <summary>
+        /// Each conversion to an ISO 639 code, with each language tag that has no Primary Language subtag, created in each way.
+        /// </summary>
+        public static TheoryData<string, Func<Bcp47LanguageTag, object>, Bcp47LanguageTag> NoPrimaryLanguageSubtagConversions
+        {
+            get
             {
-                // assert
-                testSubject.ToIso639Part1().Should().BeNull();
-                testSubject.ToIso639Part2T().Should().BeNull();
-                testSubject.ToIso639Part3().Should().BeNull();
-                testSubject.ToIso639Part5().Should().BeNull();
+                var data = new TheoryData<string, Func<Bcp47LanguageTag, object>, Bcp47LanguageTag>();
+                foreach (var conversion in Iso639Conversions)
+                foreach (var row in CreateLanguageTagCases(new[] { PrivateUseOnly, KlingonGrandfathered, LojbanGrandfathered }))
+                {
+                    data.Add(conversion.Key + " of " + row[0], conversion.Value, (Bcp47LanguageTag)row[1]);
+                }
+
+                return data;
             }
+        }
+
+        [Theory]
+        [MemberData(nameof(NoPrimaryLanguageSubtagConversions), DisableDiscoveryEnumeration = true)]
+        public void ToIso639_WithLanguageTagHavingNoPrimaryLanguageSubtag_ReturnsNull(string testCase, Func<Bcp47LanguageTag, object> convert, Bcp47LanguageTag testSubject)
+        {
+            // act
+            var testResult = convert(testSubject);
+
+            // assert
+            testResult.Should().BeNull("{0} has no Primary Language subtag to convert", testCase);
         }
 
         #endregion
@@ -2313,7 +2859,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void ToUnM49_WithLanguageTagHavingNoRegionSubtag_ReturnsNull()
         {
             // arrange
-            var testLanguageTag = Bcp47LanguageTag.Create("en");
+            var testLanguageTag = Bcp47LanguageTag.Create(EnglishLanguageTag);
 
             // act
             var testResult = testLanguageTag.ToUnM49();
@@ -2330,7 +2876,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void ToUnM49_WithLanguageTagHavingRegionSubtag_ReturnsUnM49Code()
         {
             // arrange
-            var testLanguageTag = Bcp47LanguageTag.Create("es-419");
+            var testLanguageTag = Bcp47LanguageTag.Create(LatinAmericanSpanish);
 
             // act
             var testResult = testLanguageTag.ToUnM49();
@@ -2350,7 +2896,7 @@ namespace DataStandardizer.LanguageTag.Tests
             Action testAction = () => _ = (Bcp47LanguageTag)(string)null;
 
             // assert
-            testAction.Should().Throw<InvalidCastException>("a null string is not a language tag").WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagNull);
+            testAction.Should().Throw<InvalidCastException>("a null string is not a language tag").WithMessage("The language tag must not be null.");
         }
 
         #endregion
@@ -2358,14 +2904,14 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: ExplicitConversion_WhenLanguageTagIsInvalid
 
         [Theory]
-        [InlineData(""), InlineData("NotAValidLanguageTag"), InlineData("en--US"), InlineData("en-US-US")]
+        [InlineData(EmptyString), InlineData(NotALanguageTag), InlineData(EnglishWithEmptySubtag), InlineData("en-US-US")]
         public void ExplicitConversion_WhenLanguageTagIsInvalid_ThrowsInvalidCastException(string testLanguageTag)
         {
             // act
             Action testAction = () => _ = (Bcp47LanguageTag)testLanguageTag;
 
             // assert
-            testAction.Should().Throw<InvalidCastException>("'{0}' is not a well-formed language tag", testLanguageTag).WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
+            testAction.Should().Throw<InvalidCastException>("'{0}' is not a well-formed language tag", testLanguageTag).WithMessage(InvalidFormatMessage);
         }
 
         #endregion
@@ -2373,15 +2919,14 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: ExplicitConversion_WhenLanguageTagIsValid
 
         [Theory]
-        [InlineData("en"), InlineData("zh-Hant-TW"), InlineData("i-klingon"), InlineData("x-private")]
-        public void ExplicitConversion_WhenLanguageTagIsValid_ReturnsSameTagAsCreate(string testLanguageTag)
+        [InlineData(EnglishLanguageTag), InlineData(TraditionalChineseTaiwan), InlineData(KlingonGrandfathered), InlineData(PrivateUseOnly)]
+        public void ExplicitConversion_WhenLanguageTagIsValid_KeepsTheString(string testLanguageTag)
         {
             // act
-            var testResult = (Bcp47LanguageTag)testLanguageTag;
+            string testResult = (Bcp47LanguageTag)testLanguageTag;
 
             // assert
-            testResult.Should().Be(Bcp47LanguageTag.Create(testLanguageTag), "the conversion applies the same rules as Create");
-            ((string)testResult).Should().Be(testLanguageTag, "the conversion keeps the original string");
+            testResult.Should().Be(testLanguageTag, "the conversion keeps the original string");
         }
 
         #endregion
@@ -2395,7 +2940,7 @@ namespace DataStandardizer.LanguageTag.Tests
             Action testAction = () => Bcp47LanguageTag.Create(null);
 
             // assert
-            testAction.Should().Throw<ArgumentNullException>("the language tag must not be null").WithParameterName("languageTag");
+            testAction.Should().Throw<ArgumentNullException>("the language tag must not be null").WithParameterName(LanguageTagParameterName);
         }
 
         #endregion
@@ -2403,14 +2948,14 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: Create_WithLanguageTagWhenLanguageTagIsInvalid
 
         [Theory]
-        [InlineData(""), InlineData("NotAValidLanguageTag")]
+        [InlineData(EmptyString), InlineData(NotALanguageTag)]
         public void Create_WithLanguageTagWhenLanguageTagIsInvalid_ThrowsLanguageTagFormatException(string testLanguageTag)
         {
             // act
             Action testAction = () => Bcp47LanguageTag.Create(testLanguageTag);
 
             // assert
-            testAction.Should().Throw<LanguageTagFormatException>("the language tag was not in a recognised format").WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
+            testAction.Should().Throw<LanguageTagFormatException>("the language tag was not in a recognised format").WithMessage(InvalidFormatMessage);
         }
 
         #endregion
@@ -2418,14 +2963,14 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: Create_WithLanguageTagWhenLanguageTagHasTrailingNewline
 
         [Theory]
-        [InlineData("en\n"), InlineData("en-US\n")]
+        [InlineData(EnglishWithLineFeed), InlineData(EnglishUnitedStatesWithLineFeed)]
         public void Create_WithLanguageTagWhenLanguageTagHasTrailingNewline_ThrowsLanguageTagFormatException(string testLanguageTag)
         {
             // act
             Action testAction = () => Bcp47LanguageTag.Create(testLanguageTag);
 
             // assert
-            testAction.Should().Throw<LanguageTagFormatException>("a language tag followed by a line feed is not well-formed").WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
+            testAction.Should().Throw<LanguageTagFormatException>("a language tag followed by a line feed is not well-formed").WithMessage(InvalidFormatMessage);
         }
 
         #endregion
@@ -2433,11 +2978,11 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: Create_WithLanguageTagAndSubtagRegistryWhenLanguageTagHasTrailingNewline
 
         [Theory]
-        [InlineData("en\n"), InlineData("en-US\n")]
+        [InlineData(EnglishWithLineFeed), InlineData(EnglishUnitedStatesWithLineFeed)]
         public void Create_WithLanguageTagAndSubtagRegistryWhenLanguageTagHasTrailingNewline_ThrowsLanguageTagFormatException(string testLanguageTag)
         {
             // act
-            Action testAction = () => Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry);
+            Action testAction = () => Bcp47LanguageTag.Create(testLanguageTag, IanaSubtagRegistryResource.Shared);
 
             // assert
             testAction.Should().Throw<LanguageTagFormatException>("a language tag followed by a line feed is not well-formed");
@@ -2448,14 +2993,18 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: Create_WithLanguageTagUnderTurkishCulture
 
         [Theory]
-        [InlineData("IT"), InlineData("it-CH"), InlineData("IT-ch"), InlineData("it")]
+        [InlineData(ItalianUpperCase), InlineData(ItalianSwitzerland), InlineData(ItalianSwitzerlandMixedCase), InlineData(ItalianLanguageTag)]
         public void Create_WithLanguageTagUnderTurkishCulture_ReturnsLanguageTag(string testLanguageTag)
         {
-            // act
-            var testResult = RunUnderCulture("tr-TR", () => Bcp47LanguageTag.Create(testLanguageTag));
+            // arrange
+            using (new CultureScope(TurkishCultureName))
+            {
+                // act
+                string testResult = Bcp47LanguageTag.Create(testLanguageTag);
 
-            // assert
-            ((string)testResult).Should().Be(testLanguageTag, "case-insensitive matching of a language tag doesn't depend on the current culture (RFC 5646 §2.1.1)");
+                // assert
+                testResult.Should().Be(testLanguageTag, "case-insensitive matching of a language tag doesn't depend on the current culture (RFC 5646 §2.1.1)");
+            }
         }
 
         #endregion
@@ -2463,14 +3012,19 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: Create_WithLanguageTagAndSubtagRegistryUnderTurkishCulture
 
         [Theory]
-        [InlineData("IT"), InlineData("it-CH"), InlineData("IT-ch"), InlineData("it")]
+        [InlineData(ItalianUpperCase), InlineData(ItalianSwitzerland), InlineData(ItalianSwitzerlandMixedCase), InlineData(ItalianLanguageTag)]
         public void Create_WithLanguageTagAndSubtagRegistryUnderTurkishCulture_ReturnsLanguageTag(string testLanguageTag)
         {
-            // act
-            var testResult = RunUnderCulture("tr-TR", () => Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry));
+            // arrange
+            var subtagRegistry = IanaSubtagRegistryResource.Shared;
+            using (new CultureScope(TurkishCultureName))
+            {
+                // act
+                string testResult = Bcp47LanguageTag.Create(testLanguageTag, subtagRegistry);
 
-            // assert
-            ((string)testResult).Should().Be(testLanguageTag, "case-insensitive matching of a language tag doesn't depend on the current culture (RFC 5646 §2.1.1)");
+                // assert
+                testResult.Should().Be(testLanguageTag, "case-insensitive matching of a language tag doesn't depend on the current culture (RFC 5646 §2.1.1)");
+            }
         }
 
         #endregion
@@ -2478,14 +3032,14 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: Create_WithLanguageTagWhenLanguageTagHasNonAsciiCaseEquivalent
 
         [Theory]
-        [InlineData("\u212Ao"), InlineData("\u017Fv"), InlineData("en-x-\u212A"), InlineData("en-x-\u017F"), InlineData("en-\u212AR")]
+        [InlineData(KelvinSignO), InlineData(LongSV), InlineData(EnglishPrivateUseKelvinSign), InlineData(EnglishPrivateUseLongS), InlineData(EnglishKelvinSignRegion)]
         public void Create_WithLanguageTagWhenLanguageTagHasNonAsciiCaseEquivalent_ThrowsLanguageTagFormatException(string testLanguageTag)
         {
             // act
             Action testAction = () => Bcp47LanguageTag.Create(testLanguageTag);
 
             // assert
-            testAction.Should().Throw<LanguageTagFormatException>("a language tag has only ASCII letters and digits (RFC 5646 §2.1), so the Kelvin sign and long s aren't letters of one").WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
+            testAction.Should().Throw<LanguageTagFormatException>("a language tag has only ASCII letters and digits (RFC 5646 §2.1), so the Kelvin sign and long s aren't letters of one").WithMessage(InvalidFormatMessage);
         }
 
         #endregion
@@ -2493,11 +3047,11 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: Create_WithLanguageTagAndSubtagRegistryWhenLanguageTagHasNonAsciiCaseEquivalent
 
         [Theory]
-        [InlineData("\u212Ao"), InlineData("en-x-\u212A"), InlineData("en-x-\u017F")]
+        [InlineData(KelvinSignO), InlineData(EnglishPrivateUseKelvinSign), InlineData(EnglishPrivateUseLongS)]
         public void Create_WithLanguageTagAndSubtagRegistryWhenLanguageTagHasNonAsciiCaseEquivalent_ThrowsLanguageTagFormatException(string testLanguageTag)
         {
             // act
-            Action testAction = () => Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry);
+            Action testAction = () => Bcp47LanguageTag.Create(testLanguageTag, IanaSubtagRegistryResource.Shared);
 
             // assert
             testAction.Should().Throw<LanguageTagFormatException>("a language tag has only ASCII letters and digits (RFC 5646 §2.1)");
@@ -2515,7 +3069,7 @@ namespace DataStandardizer.LanguageTag.Tests
             Action testAction = () => Bcp47LanguageTag.Create(testLanguageTag);
 
             // assert
-            testAction.Should().Throw<LanguageTagFormatException>("the Primary Language subtag of '{0}' contains a digit (RFC 5646 §2.1, §2.2.1)", testLanguageTag).WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
+            testAction.Should().Throw<LanguageTagFormatException>("the Primary Language subtag of '{0}' contains a digit (RFC 5646 §2.1, §2.2.1)", testLanguageTag).WithMessage(InvalidFormatMessage);
         }
 
         #endregion
@@ -2527,8 +3081,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void Create_WithLanguageTagWhenPrimaryLanguageSubtagIsReserved_ReturnsBcp47LanguageTag(string testLanguageTag)
         {
             // act
-            var languageTag = Bcp47LanguageTag.Create(testLanguageTag);
-            var testResult = (string)languageTag;
+            string testResult = Bcp47LanguageTag.Create(testLanguageTag);
 
             // assert
             testResult.Should().Be(testLanguageTag, "'{0}' is a reserved Primary Language subtag, which is well-formed (RFC 5646 §2.1, §2.2.1¶4)", testLanguageTag);
@@ -2543,8 +3096,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void Create_WithLanguageTagWhenScriptSubtagIsPrivateUse_ReturnsBcp47LanguageTag(string testLanguageTag)
         {
             // act
-            var languageTag = Bcp47LanguageTag.Create(testLanguageTag);
-            var testResult = (string)languageTag;
+            string testResult = Bcp47LanguageTag.Create(testLanguageTag);
 
             // assert
             testResult.Should().Be(testLanguageTag, "'{0}' has a Script subtag reserved for private use, which is well-formed (RFC 5646 §2.2.3¶3)", testLanguageTag);
@@ -2556,15 +3108,24 @@ namespace DataStandardizer.LanguageTag.Tests
 
         [Theory]
         [MemberData(nameof(MisplacedExtendedLanguageSubtagLanguageTags))]
-        public void Create_WithLanguageTagWhenExtendedLanguageSubtagsAreMisplaced_ThrowsLanguageTagFormatException(string testLanguageTag, string controlLanguageTag)
+        public void Create_WithLanguageTagWhenExtendedLanguageSubtagsAreMisplaced_ThrowsLanguageTagFormatException(string testLanguageTag)
         {
             // act
             Action testAction = () => Bcp47LanguageTag.Create(testLanguageTag);
-            Action controlAction = () => Bcp47LanguageTag.Create(controlLanguageTag);
 
             // assert
-            controlAction.Should().NotThrow("the language tag '{0}' has Extended Language subtags after a two- or three-letter Primary Language subtag", controlLanguageTag);
-            testAction.Should().Throw<LanguageTagFormatException>("the language tag '{0}' has Extended Language subtags after a Primary Language subtag of four to eight letters (RFC 5646 §2.1, §2.2.2)", testLanguageTag).WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
+            testAction.Should().Throw<LanguageTagFormatException>("the language tag '{0}' has Extended Language subtags after a Primary Language subtag of four to eight letters (RFC 5646 §2.1, §2.2.2)", testLanguageTag).WithMessage(InvalidFormatMessage);
+        }
+
+        [Theory]
+        [MemberData(nameof(ControlLanguageTags))]
+        public void Create_WithControlLanguageTag_ReturnsBcp47LanguageTag(string testLanguageTag)
+        {
+            // act
+            string testResult = Bcp47LanguageTag.Create(testLanguageTag);
+
+            // assert
+            testResult.Should().Be(testLanguageTag, "the language tag '{0}' is well-formed", testLanguageTag);
         }
 
         #endregion
@@ -2573,15 +3134,13 @@ namespace DataStandardizer.LanguageTag.Tests
 
         [Theory]
         [MemberData(nameof(DuplicateSubtagLanguageTags))]
-        public void Create_WithLanguageTagWhenLanguageTagHasDuplicateSubtags_ThrowsLanguageTagFormatException(string testLanguageTag, string controlLanguageTag)
+        public void Create_WithLanguageTagWhenLanguageTagHasDuplicateSubtags_ThrowsLanguageTagFormatException(string testLanguageTag)
         {
             // act
             Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag);
-            Action controlAction = () => _ = Bcp47LanguageTag.Create(controlLanguageTag);
 
             // assert
-            controlAction.Should().NotThrow("the language tag '{0}' has no repeated subtags", controlLanguageTag);
-            testAction.Should().Throw<LanguageTagFormatException>("a variant subtag or extension singleton is repeated (RFC 5646 §2.2.5, §2.2.6)").WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
+            testAction.Should().Throw<LanguageTagFormatException>("a variant subtag or extension singleton is repeated (RFC 5646 §2.2.5, §2.2.6)").WithMessage(InvalidFormatMessage);
         }
 
         #endregion
@@ -2590,15 +3149,13 @@ namespace DataStandardizer.LanguageTag.Tests
 
         [Theory]
         [MemberData(nameof(ChannelIslandsLanguageTags))]
-        public void Create_WithLanguageTagWhenRegionSubtagIsChannelIslands_ThrowsLanguageTagFormatException(string testLanguageTag, string controlLanguageTag)
+        public void Create_WithLanguageTagWhenRegionSubtagIsChannelIslands_ThrowsLanguageTagFormatException(string testLanguageTag)
         {
             // act
             Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag);
-            Action controlAction = () => _ = Bcp47LanguageTag.Create(controlLanguageTag);
 
             // assert
-            controlAction.Should().NotThrow("the language tag '{0}' has a registered UN M.49 Region subtag", controlLanguageTag);
-            testAction.Should().Throw<LanguageTagFormatException>("the Region subtag 830 of '{0}' is not registered (RFC 5646 §2.2.4¶4E-F)", testLanguageTag).WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
+            testAction.Should().Throw<LanguageTagFormatException>("the Region subtag 830 of '{0}' is not registered (RFC 5646 §2.2.4¶4E-F)", testLanguageTag).WithMessage(InvalidFormatMessage);
         }
 
         #endregion
@@ -2607,33 +3164,60 @@ namespace DataStandardizer.LanguageTag.Tests
 
         [Theory]
         [MemberData(nameof(ChannelIslandsLanguageTags))]
-        public void Create_WithLanguageTagAndSubtagRegistryWhenRegionSubtagIsChannelIslands_ThrowsLanguageTagFormatException(string testLanguageTag, string controlLanguageTag)
+        public void Create_WithLanguageTagAndSubtagRegistryWhenRegionSubtagIsChannelIslands_ThrowsLanguageTagFormatException(string testLanguageTag)
         {
+            // arrange
+            var subtagRegistry = IanaSubtagRegistryResource.Shared;
+
             // act
-            Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry);
-            Action controlAction = () => _ = Bcp47LanguageTag.Create(controlLanguageTag, _fixture.IanaSubtagRegistry);
+            Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag, subtagRegistry);
 
             // assert
-            controlAction.Should().NotThrow("the language tag '{0}' has a registered UN M.49 Region subtag", controlLanguageTag);
-            testAction.Should().Throw<LanguageTagFormatException>("the Subtag Registry has no record for the Region subtag 830 of '{0}'", testLanguageTag).WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
+            testAction.Should().Throw<LanguageTagFormatException>("the Subtag Registry has no record for the Region subtag 830 of '{0}'", testLanguageTag).WithMessage(InvalidFormatMessage);
+        }
+
+        [Theory]
+        [MemberData(nameof(RegistryControlLanguageTags))]
+        public void Create_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsControl_ReturnsBcp47LanguageTag(string testLanguageTag)
+        {
+            // arrange
+            var subtagRegistry = IanaSubtagRegistryResource.Shared;
+
+            // act
+            string testResult = Bcp47LanguageTag.Create(testLanguageTag, subtagRegistry);
+
+            // assert
+            testResult.Should().Be(testLanguageTag, "the Subtag Registry has a record for every subtag of '{0}', which repeats none", testLanguageTag);
         }
 
         #endregion
 
         #region Test: Create_WithLanguageTagAndSubtagRegistryWhenChannelIslandsIsRegistered
 
+        /// <summary>
+        /// A Subtag Registry that registers 830 (Channel Islands) as a Region subtag, which RFC 5646 §2.2.4¶4E allows, with the other subtags of
+        /// <see cref="ChannelIslandsLanguageTags"/>.
+        /// </summary>
+        private const string ChannelIslandsSubtagRegistryContent =
+            "File-Date: 2026-10-19\n" +
+            "%%\nType: language\nSubtag: en\nDescription: English\nAdded: 2005-10-16\n" +
+            "%%\nType: language\nSubtag: fr\nDescription: French\nAdded: 2005-10-16\n" +
+            "%%\nType: script\nSubtag: Latn\nDescription: Latin\nAdded: 2005-10-16\n" +
+            "%%\nType: region\nSubtag: 830\nDescription: Channel Islands\nAdded: 2026-10-19";
+
         [Theory]
-        [InlineData("en-830"), InlineData("fr-Latn-830"), InlineData("en-830-x-foo")]
+        [MemberData(nameof(ChannelIslandsLanguageTags))]
         public void Create_WithLanguageTagAndSubtagRegistryWhenChannelIslandsIsRegistered_ReturnsBcp47LanguageTag(string testLanguageTag)
         {
             // arrange
-            var subtagRegistry = SubtagRegistry.SubtagRegistry.CreateFromContent(string.Join("\n", _fixture.IanaSubtagRegistry.ToString().TrimEnd(), "%%", "Type: region", "Subtag: 830", "Description: Channel Islands", "Added: 2026-10-19"));
-
-            // act
+            var subtagRegistry = SubtagRegistry.SubtagRegistry.CreateFromContent(ChannelIslandsSubtagRegistryContent);
             var languageTag = Bcp47LanguageTag.Create(testLanguageTag, subtagRegistry);
 
+            // act
+            var testResult = languageTag.RegionSubtag;
+
             // assert
-            languageTag.RegionSubtag.Should().Be("830", "a Subtag Registry may register 830 (Channel Islands) as a Region subtag (RFC 5646 §2.2.4¶4E)");
+            testResult.Should().Be(ChannelIslandsRegionSubtag, "a Subtag Registry may register 830 (Channel Islands) as a Region subtag (RFC 5646 §2.2.4¶4E)");
         }
 
         #endregion
@@ -2645,8 +3229,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void Create_WithLanguageTagWhenLanguageTagIsGrandfathered_ReturnsBcp47LanguageTag(string testLanguageTag)
         {
             // act
-            var languageTag = Bcp47LanguageTag.Create(testLanguageTag);
-            var testResult = (string)languageTag;
+            string testResult = Bcp47LanguageTag.Create(testLanguageTag);
 
             // assert
             testResult.Should().Be(testLanguageTag, "'{0}' is a grandfathered language tag (RFC 5646 §2.1, §2.2.8)", testLanguageTag);
@@ -2656,33 +3239,29 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #region Test: Create_WithLanguageTagWhenLanguageTagIsValid
 
-        [Theory]
-        [MemberData(nameof(Create_WithLanguageTagWhenLanguageTagIsValid_TestCaseGenerator.TestCases), MemberType = typeof(Create_WithLanguageTagWhenLanguageTagIsValid_TestCaseGenerator))]
-        public void Create_WithLanguageTagWhenLanguageTagIsValid_ReturnsBcp47LanguageTag(string testLanguageTag, string expectedResult)
+        /// <summary>
+        /// Well-formed language tags, among them two that are only a Private Use subtag (RFC 5646 §2.2.7), one of which has a second private use sequence.
+        /// </summary>
+        public static TheoryData<string> ValidLanguageTags
         {
-            // act
-            var languageTag = Bcp47LanguageTag.Create(testLanguageTag);
-            var testResult = (string)languageTag;
-
-            // assert
-            testResult.Should().Be(expectedResult, "'{0}' is a correctly formatted language tag", testLanguageTag);
+            get
+            {
+                var data = new TheoryData<string>(_validLanguageTags);
+                data.Add(PrivateUseFrenchSwitzerland);
+                data.Add(PrivateUseFrenchSwitzerlandWithSecondSequence);
+                return data;
+            }
         }
 
-        private class Create_WithLanguageTagWhenLanguageTagIsValid_TestCaseGenerator
+        [Theory]
+        [MemberData(nameof(ValidLanguageTags))]
+        public void Create_WithLanguageTagWhenLanguageTagIsValid_ReturnsBcp47LanguageTag(string testLanguageTag)
         {
-            public static IEnumerable<object[]> TestCases
-            {
-                get
-                {
-                    foreach (var validLanguageTag in _validLanguageTags)
-                    {
-                        yield return new object[] { validLanguageTag, validLanguageTag };
-                    }
+            // act
+            string testResult = Bcp47LanguageTag.Create(testLanguageTag);
 
-                    yield return new object[] { "x-fr-CH", "x-fr-CH" }; // should be interpreted as a Private Use-only language tag
-                    yield return new object[] { "x-fr-CH-x-valid-private-use-subtag", "x-fr-CH-x-valid-private-use-subtag" };
-                }
-            }
+            // assert
+            testResult.Should().Be(testLanguageTag, "'{0}' is a correctly formatted language tag", testLanguageTag);
         }
 
         #endregion
@@ -2692,11 +3271,14 @@ namespace DataStandardizer.LanguageTag.Tests
         [Fact]
         public void Create_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsNull_ThrowsArgumentNullException()
         {
+            // arrange
+            var subtagRegistry = IanaSubtagRegistryResource.Shared;
+
             // act
-            Action testAction = () => _ = Bcp47LanguageTag.Create(null, _fixture.IanaSubtagRegistry);
+            Action testAction = () => _ = Bcp47LanguageTag.Create(null, subtagRegistry);
 
             // assert
-            testAction.Should().Throw<ArgumentNullException>("the language tag must not be null").WithParameterName("languageTag");
+            testAction.Should().Throw<ArgumentNullException>("the language tag must not be null").WithParameterName(LanguageTagParameterName);
         }
 
         #endregion
@@ -2707,7 +3289,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void Create_WithLanguageTagAndSubtagRegistryWhenSubtagRegistryIsNull_ThrowsArgumentNullException()
         {
             // act
-            Action testAction = () => _ = Bcp47LanguageTag.Create("en", null);
+            Action testAction = () => _ = Bcp47LanguageTag.Create(EnglishLanguageTag, null);
 
             // assert
             testAction.Should().Throw<ArgumentNullException>("the subtag registry must not be null").WithParameterName("subtagRegistry");
@@ -2718,14 +3300,17 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: Create_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsInvalid
 
         [Theory]
-        [InlineData(""), InlineData("invalid")]
+        [InlineData(EmptyString), InlineData(InvalidLanguageTag)]
         public void Create_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsInvalid_ThrowsLanguageTagFormatException(string testLanguageTag)
         {
+            // arrange
+            var subtagRegistry = IanaSubtagRegistryResource.Shared;
+
             // act
-            Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry);
+            Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag, subtagRegistry);
 
             // assert
-            testAction.Should().Throw<LanguageTagFormatException>("the language tag was not in a recognised format").WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
+            testAction.Should().Throw<LanguageTagFormatException>("the language tag was not in a recognised format").WithMessage(InvalidFormatMessage);
         }
 
         #endregion
@@ -2734,15 +3319,16 @@ namespace DataStandardizer.LanguageTag.Tests
 
         [Theory]
         [MemberData(nameof(DuplicateSubtagLanguageTags))]
-        public void Create_WithLanguageTagAndSubtagRegistryWhenLanguageTagHasDuplicateSubtags_ThrowsLanguageTagFormatException(string testLanguageTag, string controlLanguageTag)
+        public void Create_WithLanguageTagAndSubtagRegistryWhenLanguageTagHasDuplicateSubtags_ThrowsLanguageTagFormatException(string testLanguageTag)
         {
+            // arrange
+            var subtagRegistry = IanaSubtagRegistryResource.Shared;
+
             // act
-            Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry);
-            Action controlAction = () => _ = Bcp47LanguageTag.Create(controlLanguageTag, _fixture.IanaSubtagRegistry);
+            Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag, subtagRegistry);
 
             // assert
-            controlAction.Should().NotThrow("the language tag '{0}' has no repeated subtags", controlLanguageTag);
-            testAction.Should().Throw<LanguageTagFormatException>("a variant subtag or extension singleton is repeated (RFC 5646 §2.2.5, §2.2.6)").WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
+            testAction.Should().Throw<LanguageTagFormatException>("a variant subtag or extension singleton is repeated (RFC 5646 §2.2.5, §2.2.6)").WithMessage(InvalidFormatMessage);
         }
 
         #endregion
@@ -2753,9 +3339,11 @@ namespace DataStandardizer.LanguageTag.Tests
         [MemberData(nameof(PrivateUseRangeLanguageTags))]
         public void Create_WithLanguageTagAndSubtagRegistryWhenSubtagIsInPrivateUseRange_ReturnsBcp47LanguageTag(string testLanguageTag)
         {
+            // arrange
+            var subtagRegistry = IanaSubtagRegistryResource.Shared;
+
             // act
-            var languageTag = Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry);
-            var testResult = (string)languageTag;
+            string testResult = Bcp47LanguageTag.Create(testLanguageTag, subtagRegistry);
 
             // assert
             testResult.Should().Be(testLanguageTag, "the subtags of '{0}' are registered by private use range records (RFC 5646 §3.1.1)", testLanguageTag);
@@ -2767,15 +3355,16 @@ namespace DataStandardizer.LanguageTag.Tests
 
         [Theory]
         [MemberData(nameof(OutsidePrivateUseRangeLanguageTags))]
-        public void Create_WithLanguageTagAndSubtagRegistryWhenSubtagIsOutsidePrivateUseRange_ThrowsLanguageTagFormatException(string testLanguageTag, string controlLanguageTag)
+        public void Create_WithLanguageTagAndSubtagRegistryWhenSubtagIsOutsidePrivateUseRange_ThrowsLanguageTagFormatException(string testLanguageTag)
         {
+            // arrange
+            var subtagRegistry = IanaSubtagRegistryResource.Shared;
+
             // act
-            Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry);
-            Action controlAction = () => _ = Bcp47LanguageTag.Create(controlLanguageTag, _fixture.IanaSubtagRegistry);
+            Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag, subtagRegistry);
 
             // assert
-            controlAction.Should().NotThrow("the language tag '{0}' ends a private use range record", controlLanguageTag);
-            testAction.Should().Throw<LanguageTagFormatException>("the Subtag Registry has no record or range for a subtag of '{0}'", testLanguageTag).WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
+            testAction.Should().Throw<LanguageTagFormatException>("the Subtag Registry has no record or range for a subtag of '{0}'", testLanguageTag).WithMessage(InvalidFormatMessage);
         }
 
         #endregion
@@ -2786,9 +3375,11 @@ namespace DataStandardizer.LanguageTag.Tests
         [MemberData(nameof(GrandfatheredLanguageTags))]
         public void Create_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsGrandfathered_ReturnsBcp47LanguageTag(string testLanguageTag)
         {
+            // arrange
+            var subtagRegistry = IanaSubtagRegistryResource.Shared;
+
             // act
-            var languageTag = Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry);
-            var testResult = (string)languageTag;
+            string testResult = Bcp47LanguageTag.Create(testLanguageTag, subtagRegistry);
 
             // assert
             testResult.Should().Be(testLanguageTag, "'{0}' is a grandfathered language tag (RFC 5646 §2.1, §2.2.8)", testLanguageTag);
@@ -2799,32 +3390,17 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: Create_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsValid
 
         [Theory]
-        [MemberData(nameof(Create_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsValid_TestCaseGenerator.TestCases), MemberType = typeof(Create_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsValid_TestCaseGenerator))]
-        public void Create_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsValid_ReturnsBcp47LanguageTag(string testLanguageTag, string expectedResult)
+        [MemberData(nameof(ValidLanguageTags))]
+        public void Create_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsValid_ReturnsBcp47LanguageTag(string testLanguageTag)
         {
+            // arrange
+            var subtagRegistry = IanaSubtagRegistryResource.Shared;
+
             // act
-            var languageTag = Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry);
-            var testResult = (string)languageTag;
+            string testResult = Bcp47LanguageTag.Create(testLanguageTag, subtagRegistry);
 
             // assert
-            testResult.Should().Be(expectedResult, "the language tag '{0}' is correctly formatted", testLanguageTag);
-        }
-
-        private class Create_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsValid_TestCaseGenerator
-        {
-            public static IEnumerable<object[]> TestCases
-            {
-                get
-                {
-                    foreach (var validLanguageTag in _validLanguageTags)
-                    {
-                        yield return new object[] { validLanguageTag, validLanguageTag };
-                    }
-
-                    yield return new object[] { "x-fr-CH", "x-fr-CH" };
-                    yield return new object[] { "x-fr-CH-x-valid-private-use-subtag", "x-fr-CH-x-valid-private-use-subtag" };
-                }
-            }
+            testResult.Should().Be(testLanguageTag, "the language tag '{0}' is correctly formatted", testLanguageTag);
         }
 
         #endregion
@@ -2832,19 +3408,33 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: GetHashCode_WhenTagsDifferOnlyInCase
 
         [Theory]
-        [InlineData("en-US", "en-us"), InlineData("zh-Hant-TW", "ZH-HANT-TW"), InlineData("x-fr-CH", "X-FR-ch")]
+        [InlineData(EnglishUnitedStates, EnglishUnitedStatesLowerCase), InlineData(TraditionalChineseTaiwan, TraditionalChineseTaiwanUpperCase), InlineData(PrivateUseFrenchSwitzerland, PrivateUseFrenchSwitzerlandMixedCase)]
         public void GetHashCode_WhenTagsDifferOnlyInCase_ReturnsEqualHashCodes(string firstLanguageTag, string secondLanguageTag)
         {
             // arrange
-            var first = Bcp47LanguageTag.Create(firstLanguageTag);
+            var expectedResult = Bcp47LanguageTag.Create(firstLanguageTag).GetHashCode();
             var second = Bcp47LanguageTag.Create(secondLanguageTag);
 
             // act
             var testResult = second.GetHashCode();
 
             // assert
-            first.Should().Be(second, "language tags are compared case-insensitively");
-            testResult.Should().Be(first.GetHashCode(), "'{0}' and '{1}' are equal, so their hash codes must be equal", firstLanguageTag, secondLanguageTag);
+            testResult.Should().Be(expectedResult, "'{0}' and '{1}' are equal, so their hash codes must be equal", firstLanguageTag, secondLanguageTag);
+        }
+
+        [Theory]
+        [InlineData(EnglishUnitedStates, EnglishUnitedStatesLowerCase), InlineData(TraditionalChineseTaiwan, TraditionalChineseTaiwanUpperCase), InlineData(PrivateUseFrenchSwitzerland, PrivateUseFrenchSwitzerlandMixedCase)]
+        public void Equals_WhenTagsDifferOnlyInCase_ReturnsTrue(string firstLanguageTag, string secondLanguageTag)
+        {
+            // arrange
+            var first = Bcp47LanguageTag.Create(firstLanguageTag);
+            var second = Bcp47LanguageTag.Create(secondLanguageTag);
+
+            // act
+            var testResult = first.Equals(second);
+
+            // assert
+            testResult.Should().BeTrue("language tags are compared case-insensitively (RFC 5646 §2.1.1)");
         }
 
         #endregion
@@ -2855,16 +3445,29 @@ namespace DataStandardizer.LanguageTag.Tests
         public void GetHashCode_WhenTagsDifferOnlyInCaseInHashSet_DeduplicatesTags()
         {
             // arrange
-            var testSet = new HashSet<Bcp47LanguageTag>();
+            var testSet = new HashSet<Bcp47LanguageTag> { Bcp47LanguageTag.Create(EnglishUnitedStates) };
+            var testLanguageTag = Bcp47LanguageTag.Create(EnglishUnitedStatesLowerCase);
 
             // act
-            testSet.Add(Bcp47LanguageTag.Create("en-US"));
-            var testResult = testSet.Add(Bcp47LanguageTag.Create("en-us"));
+            var testResult = testSet.Add(testLanguageTag);
 
             // assert
             testResult.Should().BeFalse("'en-us' is equal to 'en-US', which the set already holds");
             testSet.Should().ContainSingle();
-            testSet.Contains(Bcp47LanguageTag.Create("EN-us")).Should().BeTrue("'EN-us' is equal to 'en-US'");
+        }
+
+        [Fact]
+        public void GetHashCode_WhenTagsDifferOnlyInCaseInHashSet_FindsTag()
+        {
+            // arrange
+            var testSet = new HashSet<Bcp47LanguageTag> { Bcp47LanguageTag.Create(EnglishUnitedStates) };
+            var testLanguageTag = Bcp47LanguageTag.Create("EN-us");
+
+            // act
+            var testResult = testSet.Contains(testLanguageTag);
+
+            // assert
+            testResult.Should().BeTrue("'EN-us' is equal to 'en-US'");
         }
 
         #endregion
@@ -2900,7 +3503,7 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: TryCreate_WithLanguageTagWhenLanguageTagIsInvalid
 
         [Theory]
-        [InlineData(""), InlineData("NotAValidLanguageTag")]
+        [InlineData(EmptyString), InlineData(NotALanguageTag)]
         public void TryCreate_WithLanguageTagWhenLanguageTagIsInvalid_ReturnsFalse(string testLanguageTag)
         {
             // act
@@ -2916,15 +3519,24 @@ namespace DataStandardizer.LanguageTag.Tests
 
         [Theory]
         [MemberData(nameof(DuplicateSubtagLanguageTags))]
-        public void TryCreate_WithLanguageTagWhenLanguageTagHasDuplicateSubtags_ReturnsFalse(string testLanguageTag, string controlLanguageTag)
+        public void TryCreate_WithLanguageTagWhenLanguageTagHasDuplicateSubtags_ReturnsFalse(string testLanguageTag)
         {
             // act
             var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, out _);
-            var controlResult = Bcp47LanguageTag.TryCreate(controlLanguageTag, out _);
 
             // assert
-            controlResult.Should().BeTrue("the language tag '{0}' has no repeated subtags", controlLanguageTag);
             testResult.Should().BeFalse("the language tag '{0}' repeats a variant subtag or extension singleton (RFC 5646 §2.2.5, §2.2.6)", testLanguageTag);
+        }
+
+        [Theory]
+        [MemberData(nameof(ControlLanguageTags))]
+        public void TryCreate_WithControlLanguageTag_ReturnsTrue(string testLanguageTag)
+        {
+            // act
+            var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, out _);
+
+            // assert
+            testResult.Should().BeTrue("the language tag '{0}' is well-formed", testLanguageTag);
         }
 
         #endregion
@@ -2936,11 +3548,10 @@ namespace DataStandardizer.LanguageTag.Tests
         public void TryCreate_WithLanguageTagWhenScriptSubtagIsPrivateUse_ReturnsTrue(string testLanguageTag)
         {
             // act
-            var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, out var languageTag);
+            var testResult = (Bcp47LanguageTag.TryCreate(testLanguageTag, out var languageTag), (string)languageTag);
 
             // assert
-            testResult.Should().BeTrue("'{0}' has a Script subtag reserved for private use, which is well-formed (RFC 5646 §2.2.3¶3)", testLanguageTag);
-            ((string)languageTag).Should().Be(testLanguageTag);
+            testResult.Should().Be((true, testLanguageTag), "'{0}' has a Script subtag reserved for private use, which is well-formed (RFC 5646 §2.2.3¶3)", testLanguageTag);
         }
 
         #endregion
@@ -2952,11 +3563,10 @@ namespace DataStandardizer.LanguageTag.Tests
         public void TryCreate_WithLanguageTagWhenLanguageTagIsGrandfathered_ReturnsTrue(string testLanguageTag)
         {
             // act
-            var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, out var languageTag);
+            var testResult = (Bcp47LanguageTag.TryCreate(testLanguageTag, out var languageTag), (string)languageTag);
 
             // assert
-            testResult.Should().BeTrue("'{0}' is a grandfathered language tag (RFC 5646 §2.1, §2.2.8)", testLanguageTag);
-            ((string)languageTag).Should().Be(testLanguageTag);
+            testResult.Should().Be((true, testLanguageTag), "'{0}' is a grandfathered language tag (RFC 5646 §2.1, §2.2.8)", testLanguageTag);
         }
 
         #endregion
@@ -2964,35 +3574,14 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: TryCreate_WithLanguageTagWhenLanguageTagIsValid
 
         [Theory]
-        [MemberData(nameof(TryCreate_WithLanguageTagWhenLanguageTagIsValid_TestCaseGenerator.TestCases), MemberType = typeof(TryCreate_WithLanguageTagWhenLanguageTagIsValid_TestCaseGenerator))]
-        public void TryCreate_WithLanguageTagWhenLanguageTagIsValid_ReturnsTrue(string testLanguageTag, string expectedResult)
+        [MemberData(nameof(ValidLanguageTags))]
+        public void TryCreate_WithLanguageTagWhenLanguageTagIsValid_ReturnsTrue(string testLanguageTag)
         {
-            // arrange
-            Bcp47LanguageTag languageTag;
-
             // act
-            var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, out languageTag);
+            var testResult = (Bcp47LanguageTag.TryCreate(testLanguageTag, out var languageTag), (string)languageTag);
 
             // assert
-            testResult.Should().BeTrue("language tag '{0}' is correctly formatted", (string)languageTag);
-            ((string)languageTag).Should().Be(expectedResult, "language tag '{0}' is correctly formatted", (string)languageTag);
-        }
-
-        private class TryCreate_WithLanguageTagWhenLanguageTagIsValid_TestCaseGenerator
-        {
-            public static IEnumerable<object[]> TestCases
-            {
-                get
-                {
-                    foreach (var validLanguageTag in _validLanguageTags)
-                    {
-                        yield return new object[] { validLanguageTag, validLanguageTag };
-                    }
-
-                    yield return new object[] { "x-fr-CH", "x-fr-CH" };
-                    yield return new object[] { "x-fr-CH-x-valid-private-use-subtag", "x-fr-CH-x-valid-private-use-subtag" };
-                }
-            }
+            testResult.Should().Be((true, testLanguageTag), "language tag '{0}' is correctly formatted", testLanguageTag);
         }
 
         #endregion
@@ -3002,8 +3591,11 @@ namespace DataStandardizer.LanguageTag.Tests
         [Fact]
         public void TryCreate_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsNull_ReturnsFalse()
         {
+            // arrange
+            var subtagRegistry = IanaSubtagRegistryResource.Shared;
+
             // act
-            var testResult = Bcp47LanguageTag.TryCreate((string)null, _fixture.IanaSubtagRegistry, out _);
+            var testResult = Bcp47LanguageTag.TryCreate((string)null, subtagRegistry, out _);
 
             // assert
             testResult.Should().BeFalse("the language tag must not be null");
@@ -3017,7 +3609,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void TryCreate_WithLanguageTagAndSubtagRegistryWhenSubtagRegistryIsNull_ReturnsFalse()
         {
             // act
-            var testResult = Bcp47LanguageTag.TryCreate("en", null, out _);
+            var testResult = Bcp47LanguageTag.TryCreate(EnglishLanguageTag, null, out _);
 
             // assert
             testResult.Should().BeFalse("the subtag registry must not be null");
@@ -3028,11 +3620,14 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: TryCreate_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsInvalid
 
         [Theory]
-        [InlineData(""), InlineData("invalid")]
+        [InlineData(EmptyString), InlineData(InvalidLanguageTag)]
         public void TryCreate_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsInvalid_ReturnsFalse(string testLanguageTag)
         {
+            // arrange
+            var subtagRegistry = IanaSubtagRegistryResource.Shared;
+
             // act
-            var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, _fixture.IanaSubtagRegistry, out _);
+            var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, subtagRegistry, out _);
 
             // assert
             testResult.Should().BeFalse("the language tag '{0}' is not correctly formatted", testLanguageTag);
@@ -3044,15 +3639,30 @@ namespace DataStandardizer.LanguageTag.Tests
 
         [Theory]
         [MemberData(nameof(DuplicateSubtagLanguageTags))]
-        public void TryCreate_WithLanguageTagAndSubtagRegistryWhenLanguageTagHasDuplicateSubtags_ReturnsFalse(string testLanguageTag, string controlLanguageTag)
+        public void TryCreate_WithLanguageTagAndSubtagRegistryWhenLanguageTagHasDuplicateSubtags_ReturnsFalse(string testLanguageTag)
         {
+            // arrange
+            var subtagRegistry = IanaSubtagRegistryResource.Shared;
+
             // act
-            var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, _fixture.IanaSubtagRegistry, out _);
-            var controlResult = Bcp47LanguageTag.TryCreate(controlLanguageTag, _fixture.IanaSubtagRegistry, out _);
+            var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, subtagRegistry, out _);
 
             // assert
-            controlResult.Should().BeTrue("the language tag '{0}' has no repeated subtags", controlLanguageTag);
             testResult.Should().BeFalse("the language tag '{0}' repeats a variant subtag or extension singleton (RFC 5646 §2.2.5, §2.2.6)", testLanguageTag);
+        }
+
+        [Theory]
+        [MemberData(nameof(RegistryControlLanguageTags))]
+        public void TryCreate_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsControl_ReturnsTrue(string testLanguageTag)
+        {
+            // arrange
+            var subtagRegistry = IanaSubtagRegistryResource.Shared;
+
+            // act
+            var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, subtagRegistry, out _);
+
+            // assert
+            testResult.Should().BeTrue("the Subtag Registry has a record for every subtag of '{0}', which repeats none", testLanguageTag);
         }
 
         #endregion
@@ -3063,12 +3673,14 @@ namespace DataStandardizer.LanguageTag.Tests
         [MemberData(nameof(PrivateUseRangeLanguageTags))]
         public void TryCreate_WithLanguageTagAndSubtagRegistryWhenSubtagIsInPrivateUseRange_ReturnsTrue(string testLanguageTag)
         {
+            // arrange
+            var subtagRegistry = IanaSubtagRegistryResource.Shared;
+
             // act
-            var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, _fixture.IanaSubtagRegistry, out var languageTag);
+            var testResult = (Bcp47LanguageTag.TryCreate(testLanguageTag, subtagRegistry, out var languageTag), (string)languageTag);
 
             // assert
-            testResult.Should().BeTrue("the subtags of '{0}' are registered by private use range records (RFC 5646 §3.1.1)", testLanguageTag);
-            ((string)languageTag).Should().Be(testLanguageTag);
+            testResult.Should().Be((true, testLanguageTag), "the subtags of '{0}' are registered by private use range records (RFC 5646 §3.1.1)", testLanguageTag);
         }
 
         #endregion
@@ -3077,14 +3689,15 @@ namespace DataStandardizer.LanguageTag.Tests
 
         [Theory]
         [MemberData(nameof(OutsidePrivateUseRangeLanguageTags))]
-        public void TryCreate_WithLanguageTagAndSubtagRegistryWhenSubtagIsOutsidePrivateUseRange_ReturnsFalse(string testLanguageTag, string controlLanguageTag)
+        public void TryCreate_WithLanguageTagAndSubtagRegistryWhenSubtagIsOutsidePrivateUseRange_ReturnsFalse(string testLanguageTag)
         {
+            // arrange
+            var subtagRegistry = IanaSubtagRegistryResource.Shared;
+
             // act
-            var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, _fixture.IanaSubtagRegistry, out _);
-            var controlResult = Bcp47LanguageTag.TryCreate(controlLanguageTag, _fixture.IanaSubtagRegistry, out _);
+            var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, subtagRegistry, out _);
 
             // assert
-            controlResult.Should().BeTrue("the language tag '{0}' ends a private use range record", controlLanguageTag);
             testResult.Should().BeFalse("the Subtag Registry has no record or range for a subtag of '{0}'", testLanguageTag);
         }
 
@@ -3096,12 +3709,14 @@ namespace DataStandardizer.LanguageTag.Tests
         [MemberData(nameof(GrandfatheredLanguageTags))]
         public void TryCreate_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsGrandfathered_ReturnsTrue(string testLanguageTag)
         {
+            // arrange
+            var subtagRegistry = IanaSubtagRegistryResource.Shared;
+
             // act
-            var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, _fixture.IanaSubtagRegistry, out var languageTag);
+            var testResult = (Bcp47LanguageTag.TryCreate(testLanguageTag, subtagRegistry, out var languageTag), (string)languageTag);
 
             // assert
-            testResult.Should().BeTrue("'{0}' is a grandfathered language tag (RFC 5646 §2.1, §2.2.8)", testLanguageTag);
-            ((string)languageTag).Should().Be(testLanguageTag);
+            testResult.Should().Be((true, testLanguageTag), "'{0}' is a grandfathered language tag (RFC 5646 §2.1, §2.2.8)", testLanguageTag);
         }
 
         #endregion
@@ -3109,35 +3724,17 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: TryCreate_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsValid
 
         [Theory]
-        [MemberData(nameof(TryCreate_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsValid_TestCaseGenerator.TestCases), MemberType = typeof(TryCreate_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsValid_TestCaseGenerator))]
-        public void TryCreate_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsValid_ReturnsTrue(string testLanguageTag, string expectedResult)
+        [MemberData(nameof(ValidLanguageTags))]
+        public void TryCreate_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsValid_ReturnsTrue(string testLanguageTag)
         {
             // arrange
-            Bcp47LanguageTag languageTag;
+            var subtagRegistry = IanaSubtagRegistryResource.Shared;
 
             // act
-            var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, _fixture.IanaSubtagRegistry, out languageTag);
+            var testResult = (Bcp47LanguageTag.TryCreate(testLanguageTag, subtagRegistry, out var languageTag), (string)languageTag);
 
             // assert
-            testResult.Should().BeTrue("the language tag '{0}' is correctly formatted", testLanguageTag);
-            ((string)languageTag).Should().Be(expectedResult, "the language tag '{0}' is correctly formatted", testLanguageTag);
-        }
-
-        private class TryCreate_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsValid_TestCaseGenerator
-        {
-            public static IEnumerable<object[]> TestCases
-            {
-                get
-                {
-                    foreach (var validLanguageTag in _validLanguageTags)
-                    {
-                        yield return new object[] { validLanguageTag, validLanguageTag };
-                    }
-
-                    yield return new object[] { "x-fr-CH", "x-fr-CH" };
-                    yield return new object[] { "x-fr-CH-x-valid-private-use-subtag", "x-fr-CH-x-valid-private-use-subtag" };
-                }
-            }
+            testResult.Should().Be((true, testLanguageTag), "the language tag '{0}' is correctly formatted", testLanguageTag);
         }
 
         #endregion
@@ -3145,75 +3742,31 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: CreateAndTryCreate_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsValidInRegistry
 
         [Theory]
-        [InlineData("i-klingon"), InlineData("my-BU")]
-        public void CreateAndTryCreate_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsValidInRegistry_AllOverloadsSucceed(string testLanguageTag)
-        {
-            // act
-            var createResult = Bcp47LanguageTag.Create(testLanguageTag, _fixture.IanaSubtagRegistry);
-            var tryCreateResult = Bcp47LanguageTag.TryCreate(testLanguageTag, _fixture.IanaSubtagRegistry, out var tryCreateLanguageTag);
-
-            // assert
-            ((string)createResult).Should().Be(testLanguageTag);
-            tryCreateResult.Should().BeTrue("the Subtag Registry has a record for every subtag of '{0}'", testLanguageTag);
-            ((string)tryCreateLanguageTag).Should().Be(testLanguageTag);
-        }
-
-        #endregion
-
-        #region Test: CreateAndTryCreate_WithLanguageTagAndSubtagRegistryFromSeveralThreads
-
-        [Fact]
-        public void CreateAndTryCreate_WithLanguageTagAndSubtagRegistryFromSeveralThreads_AllThreadsGetTheSameResults()
+        [InlineData(KlingonGrandfathered), InlineData(BurmeseBurma)]
+        public void Create_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsValidInRegistry_ReturnsBcp47LanguageTag(string testLanguageTag)
         {
             // arrange
-            const int threadCount = 8;
-            var testLanguageTags = _validLanguageTags
-                .Concat(new[] { "i-klingon", "zh-min-nan", "qaa-Qaaa-QM-x-southern", "sl-rozaj-biske-1994", "de-CH-1901-u-co-phonebk", "x-private" })
-                .Concat(new[] { "", "en-", "invalid", "en-US-US", "de-1901-1901", "en-a-bb-a-cc" })
-                .ToArray();
-            var subtagRegistry = Bcp47LanguageTagFixture.CreateIanaSubtagRegistry();
-            var results = new string[threadCount];
-            var exceptions = new Exception[threadCount];
+            var subtagRegistry = IanaSubtagRegistryResource.Shared;
 
             // act
-            using (var startBarrier = new Barrier(threadCount))
-            {
-                var threads = Enumerable.Range(0, threadCount).Select(threadIndex => new Thread(() =>
-                {
-                    try
-                    {
-                        // Release every thread at once, so that they all reach the registry while its index is still being built.
-                        startBarrier.SignalAndWait();
-                        results[threadIndex] = DescribeRegistryResults(subtagRegistry, testLanguageTags);
-                    }
-                    catch (Exception exception)
-                    {
-                        exceptions[threadIndex] = exception;
-                    }
-                })).ToArray();
-
-                foreach (var thread in threads) thread.Start();
-                foreach (var thread in threads) thread.Join();
-            }
+            string testResult = Bcp47LanguageTag.Create(testLanguageTag, subtagRegistry);
 
             // assert
-            exceptions.Should().AllSatisfy(exception => exception.Should().BeNull("creating language tags against a shared Subtag Registry is thread-safe"));
-
-            // Computed after the threads have run, so that they are the first to use the registry.
-            var expectedResult = DescribeRegistryResults(_fixture.IanaSubtagRegistry, testLanguageTags);
-            results.Should().AllBe(expectedResult, "every thread checks the same language tags against a copy of the same Subtag Registry");
+            testResult.Should().Be(testLanguageTag, "the Subtag Registry has a record for every subtag of '{0}'", testLanguageTag);
         }
 
-        private static string DescribeRegistryResults(SubtagRegistry.SubtagRegistry subtagRegistry, string[] languageTags)
+        [Theory]
+        [InlineData(KlingonGrandfathered), InlineData(BurmeseBurma)]
+        public void TryCreate_WithLanguageTagAndSubtagRegistryWhenLanguageTagIsValidInRegistry_ReturnsTrue(string testLanguageTag)
         {
-            return string.Join(Environment.NewLine, languageTags.Select(languageTag =>
-            {
-                if (!Bcp47LanguageTag.TryCreate(languageTag, subtagRegistry, out var result)) return languageTag + ": not valid";
+            // arrange
+            var subtagRegistry = IanaSubtagRegistryResource.Shared;
 
-                var created = Bcp47LanguageTag.Create(languageTag, subtagRegistry);
-                return string.Join(" | ", languageTag, (string)created, result.PrimaryLanguageSubtag, string.Join(",", result.ExtendedLanguageSubtags), result.ScriptSubtag, result.RegionSubtag,
-                    string.Join(",", result.VariantSubtags), string.Join(",", result.ExtensionSubtags.Select(subtag => (string)subtag)), result.PrivateUseSubtag.HasValue ? (string)result.PrivateUseSubtag.Value : null);
-            }));
+            // act
+            var testResult = (Bcp47LanguageTag.TryCreate(testLanguageTag, subtagRegistry, out var languageTag), (string)languageTag);
+
+            // assert
+            testResult.Should().Be((true, testLanguageTag), "the Subtag Registry has a record for every subtag of '{0}'", testLanguageTag);
         }
 
         #endregion
@@ -3223,31 +3776,52 @@ namespace DataStandardizer.LanguageTag.Tests
         /// <summary>
         /// A Subtag Registry with one language and one region record, and no grandfathered, script or variant records.
         /// </summary>
-        private static SubtagRegistry.SubtagRegistry CreateSparseSubtagRegistry()
+        private const string SparseSubtagRegistryContent =
+            "File-Date: 2026-10-21\n" +
+            "%%\nType: language\nSubtag: en\nDescription: English\nAdded: 2005-10-16\n" +
+            "%%\nType: region\nSubtag: US\nDescription: United States\nAdded: 2005-10-16";
+
+        [Theory]
+        [InlineData(EmptyString), InlineData(EnglishWithTrailingHyphen), InlineData(EnglishWithEmptySubtag), InlineData(EnglishUnitedStatesWithTrailingHyphen)]
+        public void Create_WithLanguageTagAndSparseSubtagRegistryWhenLanguageTagHasEmptySubtag_ThrowsLanguageTagFormatException(string testLanguageTag)
         {
-            return SubtagRegistry.SubtagRegistry.CreateFromContent(string.Join("\n",
-                "File-Date: 2026-10-21",
-                "%%", "Type: language", "Subtag: en", "Description: English", "Added: 2005-10-16",
-                "%%", "Type: region", "Subtag: US", "Description: United States", "Added: 2005-10-16"));
+            // arrange
+            var subtagRegistry = SubtagRegistry.SubtagRegistry.CreateFromContent(SparseSubtagRegistryContent);
+
+            // act
+            Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag, subtagRegistry);
+
+            // assert
+            testAction.Should().Throw<LanguageTagFormatException>("an empty subtag is not a subtag of any kind, even when the Subtag Registry has no records of that kind (RFC 5646 §2.1)")
+                .WithMessage(InvalidFormatMessage);
         }
 
         [Theory]
-        [InlineData("", "en"), InlineData("en-", "en"), InlineData("en--US", "en-US"), InlineData("en-US-", "en-US")]
-        public void CreateAndTryCreate_WithLanguageTagAndSparseSubtagRegistryWhenLanguageTagHasEmptySubtag_Fails(string testLanguageTag, string controlLanguageTag)
+        [InlineData(EmptyString), InlineData(EnglishWithTrailingHyphen), InlineData(EnglishWithEmptySubtag), InlineData(EnglishUnitedStatesWithTrailingHyphen)]
+        public void TryCreate_WithLanguageTagAndSparseSubtagRegistryWhenLanguageTagHasEmptySubtag_ReturnsFalse(string testLanguageTag)
         {
             // arrange
-            var subtagRegistry = CreateSparseSubtagRegistry();
+            var subtagRegistry = SubtagRegistry.SubtagRegistry.CreateFromContent(SparseSubtagRegistryContent);
 
             // act
-            Action controlAction = () => _ = Bcp47LanguageTag.Create(controlLanguageTag, subtagRegistry);
-            Action createAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag, subtagRegistry);
-            var tryCreateResult = Bcp47LanguageTag.TryCreate(testLanguageTag, subtagRegistry, out _);
+            var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, subtagRegistry, out _);
 
             // assert
-            controlAction.Should().NotThrow("the Subtag Registry has a record for every subtag of '{0}'", controlLanguageTag);
-            createAction.Should().Throw<LanguageTagFormatException>("an empty subtag is not a subtag of any kind, even when the Subtag Registry has no records of that kind (RFC 5646 §2.1)")
-                .WithMessage(Bcp47LanguageTag.ErrorMessage.LanguageTagInvalidFormat);
-            tryCreateResult.Should().BeFalse("'{0}' has an empty subtag", testLanguageTag);
+            testResult.Should().BeFalse("'{0}' has an empty subtag", testLanguageTag);
+        }
+
+        [Theory]
+        [InlineData(EnglishLanguageTag), InlineData(EnglishUnitedStates)]
+        public void Create_WithLanguageTagAndSparseSubtagRegistryWhenEverySubtagIsRegistered_ReturnsBcp47LanguageTag(string testLanguageTag)
+        {
+            // arrange
+            var subtagRegistry = SubtagRegistry.SubtagRegistry.CreateFromContent(SparseSubtagRegistryContent);
+
+            // act
+            string testResult = Bcp47LanguageTag.Create(testLanguageTag, subtagRegistry);
+
+            // assert
+            testResult.Should().Be(testLanguageTag, "the Subtag Registry has a record for every subtag of '{0}'", testLanguageTag);
         }
 
         #endregion
