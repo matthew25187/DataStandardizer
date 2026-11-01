@@ -26,7 +26,7 @@ applications and gradually-upgraded legacy codebases alike.
 | Package | Standards covered |
 | --- | --- |
 | [**Chronology**](packages/chronology/index.md) | TZ Database · Unix time · DOS date & time |
-| [**Communication**](packages/communication/index.md) | ITU-T E.164 (international telephone numbers) |
+| [**Communication**](packages/communication/index.md) | ITU-T E.164 (international telephone numbers) · MIME (RFC 2045, RFC 2046, RFC 2047 and related standards) |
 | [**File.CSV**](packages/file-csv/index.md) | RFC 4180 (CSV files) |
 | [**File.iCal**](packages/file-ical/index.md) | RFC 5545 · RFC 6868 · RFC 7986 · RFC 7265 · RFC 6321 (iCalendar, jCal and xCal) |
 | [**Geography**](packages/geography/index.md) | ISO 3166-1 · ISO 3166-2 · UN M49 |

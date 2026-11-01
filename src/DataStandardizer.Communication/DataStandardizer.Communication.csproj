@@ -10,14 +10,15 @@
     <Description>Data Standardizer provides implementations of various internationally recognised standards in data processing, covering topics ranging from languages to currencies and geographical entities. With strongly-typed enumerations for each standard (where applicable) or other targeted data types, you can represent these elements in your code such that errors with invalid values are minimised.
 
 Provides types supporting communication-related standards, including:
-- ITU-T E.164 telephony numbers</Description>
+- ITU-T E.164 telephony numbers
+- MIME: media types, transfer encodings, base64 and quoted-printable codecs, character sets, data: URIs, encoded words and RFC 2231 parameter values</Description>
     <Copyright>Copyright © 2024-2026, Matthew25187. All rights reserved.</Copyright>
     <PackageProjectUrl>https://github.com/matthew25187/DataStandardizer</PackageProjectUrl>
     <PackageIcon>054-doc_web.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/matthew25187/DataStandardizer.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageTags>data;standard;itu;e.164;telephone number;phone number</PackageTags>
+    <PackageTags>data;standard;itu;e.164;telephone number;phone number;mime;media-type;base64;quoted-printable</PackageTags>
     <PackageReleaseNotes>Initial release.</PackageReleaseNotes>
     <PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
