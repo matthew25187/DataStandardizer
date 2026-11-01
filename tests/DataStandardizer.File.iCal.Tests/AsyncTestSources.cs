@@ -8,10 +8,6 @@ using System.Threading.Tasks;
 namespace DataStandardizer.File.iCal.Tests
 {
     /// <summary>
-    /// A stream that can only be read asynchronously, at most <paramref name="maxReadLength"/> bytes at a time.  Its synchronous members throw, so
-    /// any synchronous I/O on the async path fails the test.
-    /// </summary>
-    /// <summary>
     /// The messages of the exceptions that the test streams, readers and writers throw when they are used synchronously.
     /// </summary>
     internal static class AsyncPathMessages
@@ -21,6 +17,10 @@ namespace DataStandardizer.File.iCal.Tests
         public const string SynchronousFlush = "Synchronous flush on the async path.";
     }
 
+    /// <summary>
+    /// A stream that can only be read asynchronously, at most <paramref name="maxReadLength"/> bytes at a time.  Its synchronous members throw, so
+    /// any synchronous I/O on the async path fails the test.
+    /// </summary>
     internal sealed class AsyncOnlyStream : Stream
     {
         private readonly byte[] _data;

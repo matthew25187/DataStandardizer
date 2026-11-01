@@ -55,6 +55,7 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var testCase = ConformanceCases.All[caseName];
+            var syncException = Record.Exception(() => ReadCalendars(testCase.Text));
             var reader = new IcalReader(new AsyncOnlyTextReader(testCase.Text, CharactersPerRead));
             try
             {
@@ -66,6 +67,8 @@ namespace DataStandardizer.File.iCal.Tests
                 exception.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(testCase.Kind);
                 exception.Data[IcalFileException.DataItemName.ComponentPath].Should().Be(testCase.ComponentPath);
                 exception.Data[IcalFileException.DataItemName.PropertyName].Should().Be(testCase.PropertyName);
+                exception.Message.Should().Be(syncException.Message);
+                exception.Data.Should().BeEquivalentTo(syncException.Data);
             }
             finally
             {

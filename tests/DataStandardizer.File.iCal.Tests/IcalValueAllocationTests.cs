@@ -62,7 +62,7 @@ namespace DataStandardizer.File.iCal.Tests
                 () => IcalDuration.TryParse(duration, IcalValueFormat.Text, out _),
                 () => IcalPeriod.TryParse(period, IcalValueFormat.Text, out _),
                 () => IcalValue.TryParseText(text, IcalValueFormat.Text, destination, out _),
-                () => IcalValue.EnumerateTextList(textList, IcalValueFormat.Text).MoveNext(),
+                () => ParseEachTextListItem(textList, destination),
                 () => IcalValue.TryParseInteger(integer, IcalValueFormat.Text, out _),
                 () => IcalValue.TryParseBoolean(boolean, IcalValueFormat.Text, out _),
             };
@@ -127,6 +127,17 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             testResult.Should().Be(0);
+        }
+
+        /// <summary>
+        /// Splits a TEXT list and parses each item it yields, as a caller of <see cref="IcalValue.EnumerateTextList"/> does.
+        /// </summary>
+        private static void ParseEachTextListItem(char[] textList, char[] destination)
+        {
+            foreach (var item in IcalValue.EnumerateTextList(textList, IcalValueFormat.Text))
+            {
+                IcalValue.TryParseText(item, IcalValueFormat.Text, destination, out _);
+            }
         }
 
         /// <summary>

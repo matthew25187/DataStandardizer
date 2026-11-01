@@ -178,6 +178,7 @@ namespace DataStandardizer.File.iCal.Tests
         public async Task ReadCalendarAsync_NotValid_ThrowsAsSync()
         {
             // arrange
+            var syncException = Record.Exception(() => ReadJcal(SecondValueDocument));
             var reader = new JcalReader(new AsyncOnlyStream(Utf8(SecondValueDocument), maxReadLength: OctetsPerRead));
             try
             {
@@ -188,6 +189,8 @@ namespace DataStandardizer.File.iCal.Tests
                 var exception = (await testAction.Should().ThrowAsync<IcalFileException>()).Which;
                 exception.Data[IcalFileException.DataItemName.JsonPath].Should().Be(SecondValueJsonPath);
                 exception.Data[IcalFileException.DataItemName.BytePosition].Should().Be(SecondValueBytePosition);
+                exception.Message.Should().Be(syncException.Message);
+                exception.Data.Should().BeEquivalentTo(syncException.Data);
             }
             finally
             {
