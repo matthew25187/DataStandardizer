@@ -183,6 +183,19 @@
           "text": "The new span overloads make a literal `null` or `default` argument to `TryCreate`, `IsWellFormedLanguageTagString` or a `Check*` method ambiguous on C# 7.3; cast it to `string`. On C# 10 and later, `IsWellFormedLanguageTagString` and the `Check*` methods can no longer be assigned to `var`; give the variable a delegate type such as `Func<string, bool>`. `Type.GetMethod(name)` throws `AmbiguousMatchException` for them; pass the parameter types. Compiled code is unaffected"
         }
       ]
+    },
+    "11c7e3783e507ee0dc0da8bac146e3b092dcb0d9": {
+      "subject": "Decode and encode RFC 2231 parameter continuations, character sets and languages in MimeMediaType (#464)",
+      "notes": [
+        {
+          "category": "added",
+          "text": "`MimeMediaType` decodes RFC 2231 parameter sections and extended values (character set and language), and rejects anything RFC 2231 doesn't allow unless the caller opts in with a `MimeMediaTypeParseOptions` member: `AllowMissingSections`, `AllowDuplicateSections` and `AllowLeadingZeroSectionNumbers` (together, `AllowNonstandardSections`), `AllowQuotedExtendedValues` and `AllowLowercaseHexDigits` (together, `AllowNonstandardExtendedValues`), `AllowUnknownCharsets` and `AllowInvalidOctets`"
+        },
+        {
+          "category": "added",
+          "text": "`MimeParameter` takes values that aren't US-ASCII and an optional RFC 1766 language, writes them as RFC 2231 extended values, and splits long parameters into sections with `FormatSections`"
+        }
+      ]
     }
   }
 }
