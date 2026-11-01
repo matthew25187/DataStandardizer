@@ -10,6 +10,9 @@ namespace DataStandardizer.File.iCal.Tests
 {
     public class Utf8FoldRealigningStreamTests
     {
+        // Content lines with folds before and inside multi-octet characters: the euro sign, a grinning face and e-acute.
+        private const string FoldedUtf8Text = "SUMMARY:a\r\n b \x20AC\r\n\t\xD83D\xDE00 \xE9\r\nX:\n y\r\n";
+
         public static TheoryData<int> BufferSizeData()
         {
             return new TheoryData<int>(1, 2, 3, 4, 5, 6, 7, 16 * 1024);
@@ -20,7 +23,7 @@ namespace DataStandardizer.File.iCal.Tests
         public void Read_AsciiAndWholeSequences_PassesThroughUnchanged(int bufferSize)
         {
             // arrange
-            var input = Encoding.UTF8.GetBytes("SUMMARY:a\r\n b €\r\n\t😀 é\r\nX:\n y\r\n");
+            var input = Encoding.UTF8.GetBytes(FoldedUtf8Text);
 
             // act
             var testResult = ReadThrough(input, bufferSize);
@@ -206,7 +209,7 @@ namespace DataStandardizer.File.iCal.Tests
             // arrange
             byte[][] inputs =
             {
-                Encoding.UTF8.GetBytes("SUMMARY:a\r\n b €\r\n\t😀 é\r\nX:\n y\r\n"),
+                Encoding.UTF8.GetBytes(FoldedUtf8Text),
                 new byte[] { 0x41, 0xE2, 0x0D, 0x0A, 0x20, 0x82, 0xAC, 0x42 },
                 new byte[] { 0xF0, 0x0D, 0x0A, 0x20, 0x9F, 0x0A, 0x09, 0x98, 0x0D, 0x0A, 0x09, 0x80, 0x41 },
                 new byte[] { 0xE2, 0x82, 0x0D },
@@ -225,26 +228,34 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public async Task ReadAsync_Disposed_Throws()
+        public async Task ReadAsync_AfterDispose_ThrowsObjectDisposed()
         {
             // arrange
             var stream = new Utf8FoldRealigningStream(new AsyncOnlyStream(new byte[] { 0x41 }), false, 16);
-#if NETCOREAPP3_0_OR_GREATER
-            await stream.DisposeAsync();
-#else
             stream.Dispose();
-#endif
 
             // act
-#if NETCOREAPP2_1_OR_GREATER
-            Func<Task<int>> testAction = async () => await stream.ReadAsync(new byte[1]);
-#else
-            Func<Task<int>> testAction = async () => await stream.ReadAsync(new byte[1], 0, 1);
-#endif
+            Func<Task<int>> testAction = () => stream.ReadAsync(new byte[1], 0, 1);
 
             // assert
             await testAction.Should().ThrowAsync<ObjectDisposedException>();
         }
+
+#if NETCOREAPP3_0_OR_GREATER
+        [Fact]
+        public async Task ReadAsync_MemoryAfterDisposeAsync_ThrowsObjectDisposed()
+        {
+            // arrange
+            var stream = new Utf8FoldRealigningStream(new AsyncOnlyStream(new byte[] { 0x41 }), false, 16);
+            await stream.DisposeAsync();
+
+            // act
+            Func<Task<int>> testAction = () => stream.ReadAsync(new byte[1]).AsTask();
+
+            // assert
+            await testAction.Should().ThrowAsync<ObjectDisposedException>();
+        }
+#endif
 
         /// <summary>
         /// Reads all of the input asynchronously through the stream, a few bytes at a time, from an inner stream that can only be read
