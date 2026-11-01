@@ -49,6 +49,11 @@ namespace DataStandardizer.File.iCal
         private int _outputEnd;
         private int _outputStart;
 
+        /// <summary>
+        /// Gets the stream that is read from, so that tests can check how a constructor built it.
+        /// </summary>
+        internal Stream InnerStream => _inner;
+
         private enum ProcessStatus
         {
             Processed,

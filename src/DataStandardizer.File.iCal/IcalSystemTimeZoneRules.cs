@@ -30,30 +30,34 @@ namespace DataStandardizer.File.iCal
         /// Finds the system time zone for a time zone identifier: the identifier itself, or, for one that starts with a solidus, the part after
         /// a vendor prefix such as <c>/mozilla.org/20050126_1/</c>.
         /// </summary>
+        /// <param name="timeZoneId">The time zone identifier.</param>
+        /// <param name="findTimeZone">Finds a time zone by its identifier, as <see cref="TimeZoneInfo.FindSystemTimeZoneById"/> does.</param>
+        /// <param name="timeZone">The time zone found.</param>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        internal static bool TryFindTimeZone(string timeZoneId, [NotNullWhen(true)] out TimeZoneInfo? timeZone)
+        internal static bool TryFindTimeZone(string timeZoneId, Func<string, TimeZoneInfo> findTimeZone, [NotNullWhen(true)] out TimeZoneInfo? timeZone)
 #else
-        internal static bool TryFindTimeZone(string timeZoneId, out TimeZoneInfo timeZone)
+        internal static bool TryFindTimeZone(string timeZoneId, Func<string, TimeZoneInfo> findTimeZone, out TimeZoneInfo timeZone)
 #endif
         {
             timeZone = null;
             if (timeZoneId.Length == 0) return false;
-            if (timeZoneId[0] != '/') return TryFindSystemTimeZone(timeZoneId, out timeZone);
+            if (timeZoneId[0] != '/') return TryFindSystemTimeZone(timeZoneId, findTimeZone, out timeZone);
 
             // ref. RFC 5545§3.8.3.1: a TZID that starts with a solidus is globally unique, which vendors give by prefixing a path to the TZ
             // Database name.  Each trailing part of the path is tried, longest first.
             for (var index = timeZoneId.IndexOf('/', 1); index >= 0 && index < timeZoneId.Length - 1; index = timeZoneId.IndexOf('/', index + 1))
             {
-                if (TryFindSystemTimeZone(timeZoneId.Substring(index + 1), out timeZone)) return true;
+                if (TryFindSystemTimeZone(timeZoneId.Substring(index + 1), findTimeZone, out timeZone)) return true;
             }
 
             return false;
         }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        private static bool TryFindSystemTimeZone(string timeZoneId, [NotNullWhen(true)] out TimeZoneInfo? timeZone)
+        private static bool TryFindSystemTimeZone(string timeZoneId, Func<string, TimeZoneInfo> findTimeZone,
+            [NotNullWhen(true)] out TimeZoneInfo? timeZone)
 #else
-        private static bool TryFindSystemTimeZone(string timeZoneId, out TimeZoneInfo timeZone)
+        private static bool TryFindSystemTimeZone(string timeZoneId, Func<string, TimeZoneInfo> findTimeZone, out TimeZoneInfo timeZone)
 #endif
         {
             timeZone = null;
@@ -64,7 +68,7 @@ namespace DataStandardizer.File.iCal
 
             try
             {
-                timeZone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+                timeZone = findTimeZone(timeZoneId);
                 return true;
             }
             catch (TimeZoneNotFoundException)
