@@ -40,7 +40,7 @@ public class CreateBenchmarks
         var length = 0;
         foreach (var tag in BenchmarkData.ValidTags)
         {
-            length += Bcp47LanguageTag.Create(tag).PrimaryLanguageSubtag.Length;
+            length += Bcp47LanguageTag.Create(tag).PrimaryLanguageSubtag?.Length ?? 0;
         }
 
         return length;
@@ -52,7 +52,7 @@ public class CreateBenchmarks
         var length = 0;
         foreach (var tag in BenchmarkData.ValidTags)
         {
-            length += Bcp47LanguageTag.Create(tag, _registry).PrimaryLanguageSubtag.Length;
+            length += Bcp47LanguageTag.Create(tag, _registry).PrimaryLanguageSubtag?.Length ?? 0;
         }
 
         return length;
@@ -96,7 +96,7 @@ public class CreateBenchmarks
         {
             if (Bcp47LanguageTag.TryCreate(tag.AsSpan(), out var result))
             {
-                length += result.PrimaryLanguageSubtag.Length;
+                length += result.PrimaryLanguageSubtag?.Length ?? 0;
             }
         }
 

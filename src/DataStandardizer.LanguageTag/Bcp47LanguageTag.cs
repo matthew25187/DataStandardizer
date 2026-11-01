@@ -220,7 +220,7 @@ namespace DataStandardizer.LanguageTag
         /// <summary>
         /// Convert the Primary Language subtag of the language tag to a <see cref="Iso639Part1Language"/> enum.
         /// </summary>
-        /// <returns>A <see cref="Iso639Part1Language"/> enum representing the Primary Language subtag, if compatible; <c>null</c> if the Primary Language subtag is not an ISO 639-1 code.</returns>
+        /// <returns>A <see cref="Iso639Part1Language"/> enum representing the Primary Language subtag, if compatible; <c>null</c> if the language tag has no Primary Language subtag, or it is not an ISO 639-1 code.</returns>
         public Iso639Part1Language? ToIso639Part1()
         {
             if (!StringEnum.TryParse<Iso639Part1Language>(PrimaryLanguageSubtag, true, out var result)) return null;
@@ -231,7 +231,7 @@ namespace DataStandardizer.LanguageTag
         /// <summary>
         /// Convert the Primary Language subtag of the language tag to a <see cref="Iso639Part2TLanguage"/> enum.
         /// </summary>
-        /// <returns>A <see cref="Iso639Part2TLanguage"/> enum representing the Primary Language subtag, if compatible; <c>null</c> if the Primary Language subtag is not an ISO 639-2/T code.</returns>
+        /// <returns>A <see cref="Iso639Part2TLanguage"/> enum representing the Primary Language subtag, if compatible; <c>null</c> if the language tag has no Primary Language subtag, or it is not an ISO 639-2/T code.</returns>
         public Iso639Part2TLanguage? ToIso639Part2T()
         {
             if (!StringEnum.TryParse<Iso639Part2TLanguage>(PrimaryLanguageSubtag, true, out var result)) return null;
@@ -242,7 +242,7 @@ namespace DataStandardizer.LanguageTag
         /// <summary>
         /// Convert the Primary Language subtag of the language tag to a <see cref="Iso639Part3Language"/> enum.
         /// </summary>
-        /// <returns>A <see cref="Iso639Part3Language"/> enum representing the Primary Language subtag, if compatible; <c>null</c> if the Primary Language subtag is not an ISO 639-3 code.</returns>
+        /// <returns>A <see cref="Iso639Part3Language"/> enum representing the Primary Language subtag, if compatible; <c>null</c> if the language tag has no Primary Language subtag, or it is not an ISO 639-3 code.</returns>
         public Iso639Part3Language? ToIso639Part3()
         {
             if (!StringEnum.TryParse<Iso639Part3Language>(PrimaryLanguageSubtag, true, out var result)) return null;
@@ -253,7 +253,7 @@ namespace DataStandardizer.LanguageTag
         /// <summary>
         /// Convert the Primary Language subtag of the language tag to a <see cref="Iso639Part5LanguageFamily"/> enum.
         /// </summary>
-        /// <returns>A <see cref="Iso639Part5LanguageFamily"/> enum representing the Primary Language subtag, if compatible; <c>null</c> if the Primary Language subtag is not an ISO 639-5 code.</returns>
+        /// <returns>A <see cref="Iso639Part5LanguageFamily"/> enum representing the Primary Language subtag, if compatible; <c>null</c> if the language tag has no Primary Language subtag, or it is not an ISO 639-5 code.</returns>
         public Iso639Part5LanguageFamily? ToIso639Part5()
         {
             if (!StringEnum.TryParse<Iso639Part5LanguageFamily>(PrimaryLanguageSubtag, true, out var result)) return null;
@@ -864,13 +864,13 @@ namespace DataStandardizer.LanguageTag
         /// Gets the Primary Language Subtag of the BCP 47 language tag.
         /// </summary>
         /// <remarks>
-        /// The empty string for a grandfathered language tag, which is interpreted as a whole and has no subtags (RFC 5646 §2.2.8), and for a private use language tag.
+        /// <c>null</c> for a grandfathered language tag, which is interpreted as a whole and has no subtags (RFC 5646 §2.2.8), and for a private use language tag (§2.2.7).
         /// </remarks>
         /// <exception cref="InvalidOperationException">The <see cref="Bcp47LanguageTag"/> is not initialised.</exception>
 #if NETCOREAPP3_0_OR_GREATER
-        public string PrimaryLanguageSubtag
+        public string? PrimaryLanguageSubtag
 #else
-        [NotNull]
+        [CanBeNull]
         public string PrimaryLanguageSubtag
 #endif
         {

@@ -58,8 +58,8 @@ namespace DataStandardizer.LanguageTag.IntegrationTests
             { "en", "en" },
             { "yue-Hant-HK", "yue" },
             { "sl-rozaj-biske-1994", "sl" },
-            { "i-klingon", "" },
-            { "x-private", "" }
+            { "i-klingon", null },
+            { "x-private", null }
         };
 
         [Theory]

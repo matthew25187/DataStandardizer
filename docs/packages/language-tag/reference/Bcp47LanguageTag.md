@@ -63,8 +63,8 @@ the `System.Memory` package.
 The 26 grandfathered tags listed in RFC 5646 §2.1, such as `i-klingon`,
 `en-GB-oed` and `zh-min-nan`, are accepted in both modes and compared
 case-insensitively. Each is interpreted as a whole (§2.2.8), so it has no
-subtags: `PrimaryLanguageSubtag` is the empty string, and the other subtag
-properties are `null` or empty. A tag that only starts with a grandfathered tag,
+subtags: `PrimaryLanguageSubtag` and the other subtag properties are `null` or
+empty. A tag that only starts with a grandfathered tag,
 such as `i-klingon-x-a`, is validated as an ordinary language tag.
 
 Without a subtag registry, the primary language subtag follows the RFC 5646
@@ -97,7 +97,7 @@ Each getter throws `InvalidOperationException` if the instance is uninitialised.
 | --- | --- | --- |
 | `ExtendedLanguageSubtags` | `IReadOnlyList<string> ExtendedLanguageSubtags { get; }` | Empty if absent. |
 | `ExtensionSubtags` | `IReadOnlyList<Bcp47KeyedSubtag> ExtensionSubtags { get; }` | Empty if absent. |
-| `PrimaryLanguageSubtag` | `string PrimaryLanguageSubtag { get; }` | Empty on a grandfathered or private use tag; otherwise always present. |
+| `PrimaryLanguageSubtag` | `string? PrimaryLanguageSubtag { get; }` | `null` on a grandfathered or private use tag; otherwise always present. |
 | `PrivateUseSubtag` | `Bcp47KeyedSubtag? PrivateUseSubtag { get; }` | `null` if absent. |
 | `RegionSubtag` | `string? RegionSubtag { get; }` | `null` if absent. |
 | `ScriptSubtag` | `string? ScriptSubtag { get; }` | `null` if absent. |
@@ -135,10 +135,10 @@ Each getter throws `InvalidOperationException` if the instance is uninitialised.
 | `Parse(ReadOnlySpan<char> s, IFormatProvider? provider)` | `Bcp47LanguageTag` | Static; implements `ISpanParsable<Bcp47LanguageTag>`. Throws `LanguageTagFormatException` if the tag is invalid. `provider` is ignored. `net8.0` and `net10.0` only. |
 | `ToIso15924()` | `Iso15924Script?` | From the script subtag; `null` if absent or unrecognised. |
 | `ToIso3166Part1Alpha2()` | `Iso3166Part1Alpha2Country?` | From the region subtag; `null` if absent or unrecognised. |
-| `ToIso639Part1()` | `Iso639Part1Language?` | From the primary language subtag; `null` if unrecognised. |
-| `ToIso639Part2T()` | `Iso639Part2TLanguage?` | From the primary language subtag; `null` if unrecognised. |
-| `ToIso639Part3()` | `Iso639Part3Language?` | From the primary language subtag; `null` if unrecognised. |
-| `ToIso639Part5()` | `Iso639Part5LanguageFamily?` | From the primary language subtag; `null` if unrecognised. |
+| `ToIso639Part1()` | `Iso639Part1Language?` | From the primary language subtag; `null` if absent or unrecognised. |
+| `ToIso639Part2T()` | `Iso639Part2TLanguage?` | From the primary language subtag; `null` if absent or unrecognised. |
+| `ToIso639Part3()` | `Iso639Part3Language?` | From the primary language subtag; `null` if absent or unrecognised. |
+| `ToIso639Part5()` | `Iso639Part5LanguageFamily?` | From the primary language subtag; `null` if absent or unrecognised. |
 | `ToString()` | `string` | Override. Returns the underlying tag string. |
 | `ToUnM49()` | `ushort?` | From the region subtag; `null` if absent or not a UN M49 code. |
 | `TryCreate(string? languageTag, out Bcp47LanguageTag result)` | `bool` | Static. Returns `false` instead of throwing. |

@@ -2037,13 +2037,13 @@ namespace DataStandardizer.LanguageTag.Tests
 
         [Theory]
         [MemberData(nameof(PrivateUseLanguageTagCases), DisableDiscoveryEnumeration = true)]
-        public void PrimaryLanguageSubtag_OnPrivateUseLanguageTag_ReturnsEmptyString(string testCase, Bcp47LanguageTag testSubject)
+        public void PrimaryLanguageSubtag_OnPrivateUseLanguageTag_ReturnsNull(string testCase, Bcp47LanguageTag testSubject)
         {
             // act
             var testResult = testSubject.PrimaryLanguageSubtag;
 
             // assert
-            testResult.Should().BeEmpty("a private use language tag ({0}) has no Primary Language subtag (RFC 5646 §2.2.7)", testCase);
+            testResult.Should().BeNull("a private use language tag ({0}) has no Primary Language subtag (RFC 5646 §2.2.7)", testCase);
         }
 
         [Theory]
