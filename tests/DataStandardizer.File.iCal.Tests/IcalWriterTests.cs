@@ -41,6 +41,13 @@ namespace DataStandardizer.File.iCal.Tests
         // The numbers of calendars and components of CalendarFixtures.GoogleExport and CalendarFixtures.OutlookExport.
         private const int GoogleAndOutlookComponentCount = 11;
 
+        // CalendarFixtures.GoogleExport followed by CalendarFixtures.OutlookExport, and its name in FixtureExpectations.
+        private const string GoogleThenOutlookExportName = "GoogleExportThenOutlookExport";
+        private static readonly string GoogleThenOutlookExport = CalendarFixtures.GoogleExport + CalendarFixtures.OutlookExport;
+
+        // CalendarFixtures.GoogleExport followed by RfcFixtures.Rfc5545Event.
+        private static readonly string GoogleExportThenRfc5545Event = CalendarFixtures.GoogleExport + RfcFixtures.Rfc5545Event;
+
         public static TheoryData<string, string> VersionRanges()
         {
             var data = new TheoryData<string, string>();
@@ -94,13 +101,13 @@ namespace DataStandardizer.File.iCal.Tests
             // arrange
             var (text, options) = CalendarFixtures.All[fixtureName];
             var calendars = ReadCalendars(text, options);
-            var expected = ContentLines(text);
+            var expected = FixtureExpectations.Models[fixtureName];
 
             // act
-            var testResult = ContentLines(WriteCalendars(calendars, options));
+            var testResult = XcalTestData.Model(calendars, options);
 
             // assert
-            testResult.Should().BeEquivalentTo(expected, assertion => assertion.WithStrictOrdering());
+            testResult.Should().Equal(expected);
         }
 
         [Theory]
@@ -110,19 +117,17 @@ namespace DataStandardizer.File.iCal.Tests
             // arrange
             var (text, options) = CalendarFixtures.All[fixtureName];
             var calendars = ReadCalendars(text, options);
-            var written = WriteCalendars(calendars, options);
 
             // act
-            var testResult = ReadCalendars(written, options);
+            var testResult = ReadCalendars(WriteCalendars(calendars, options), options);
 
             // assert
-            testResult.Should().HaveCount(calendars.Count);
+            testResult.Should().HaveCount(FixtureExpectations.Counts[fixtureName].Calendars);
         }
 
         [Theory]
-        [InlineData(nameof(CalendarFixtures.OutlookExport))]
-        [InlineData(nameof(CalendarFixtures.AppleExport))]
-        public void WriteCalendars_FixtureFoldedAtDefaultLength_RoundTripsExactly(string fixtureName)
+        [MemberData(nameof(CalendarFixtures.AllNames), MemberType = typeof(CalendarFixtures))]
+        public void WriteCalendars_EveryFixture_WritesItFoldedAt75Octets(string fixtureName)
         {
             // arrange
             var (text, options) = CalendarFixtures.All[fixtureName];
@@ -132,7 +137,7 @@ namespace DataStandardizer.File.iCal.Tests
             var testResult = WriteCalendars(calendars, options);
 
             // assert
-            testResult.Should().Be(text);
+            testResult.Should().Be(FixtureExpectations.WrittenTexts[fixtureName]);
         }
 
         [Fact]
@@ -293,10 +298,10 @@ namespace DataStandardizer.File.iCal.Tests
             // arrange
             var testCase = ConformanceCases.All[caseName];
             var options = testCase.AcceptingOptions;
-            var calendar = ReadCalendar(WriteCalendars(new[] { ReadCalendar(testCase.Text, options) }, options), options);
+            var calendar = ReadCalendar(testCase.Text, options);
 
             // act
-            var testResult = calendar.Validate();
+            var testResult = ReadCalendar(WriteCalendars(new[] { calendar }, options), options).Validate();
 
             // assert
             testResult.Should().ContainSingle();
@@ -308,10 +313,10 @@ namespace DataStandardizer.File.iCal.Tests
             // arrange
             var testCase = ConformanceCases.All[ConformanceCases.MissingVersionCase];
             var options = testCase.AcceptingOptions;
-            var calendar = ReadCalendar(WriteCalendars(new[] { ReadCalendar(testCase.Text, options) }, options), options);
+            var calendar = ReadCalendar(testCase.Text, options);
 
             // act
-            var testResult = calendar.Validate();
+            var testResult = ReadCalendar(WriteCalendars(new[] { calendar }, options), options).Validate();
 
             // assert
             testResult.Should().BeEmpty();
@@ -345,7 +350,7 @@ namespace DataStandardizer.File.iCal.Tests
         public void WriteCalendars_Progress_ReportedAfterEachCalendar()
         {
             // arrange
-            var calendars = ReadCalendars(CalendarFixtures.GoogleExport + RfcFixtures.Rfc5545Event);
+            var calendars = ReadCalendars(GoogleExportThenRfc5545Event);
             var progress = new RecordingProgress();
             using (var writer = new IcalWriter(new StringWriter()))
             {
@@ -379,7 +384,7 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var calendar = ReadCalendar(RfcFixtures.Rfc5545Event);
-            var expected = WriteCalendars(new[] { calendar });
+            var expected = FixtureExpectations.WrittenTexts[nameof(RfcFixtures.Rfc5545Event)];
             var text = new StringWriter();
             using (var writer = new IcalWriter(text))
             {
@@ -413,39 +418,35 @@ namespace DataStandardizer.File.iCal.Tests
 
         [Theory]
         [MemberData(nameof(CalendarFixtures.AllNames), MemberType = typeof(CalendarFixtures))]
-        public async Task WriteCalendarsAsync_EveryFixture_MatchesSync(string fixtureName)
+        public async Task WriteCalendarsAsync_EveryFixture_WritesItFoldedAt75Octets(string fixtureName)
         {
             // arrange
             var (text, options) = CalendarFixtures.All[fixtureName];
             var calendars = ReadCalendars(text, options);
-            var expected = WriteCalendars(calendars, options);
+            var expected = FixtureExpectations.WrittenTexts[fixtureName];
             var target = new AsyncOnlyTextWriter();
             var progress = new RecordingProgress();
             var writer = new IcalWriter(target, options);
-            try
+            await AsyncDisposal.UsingAsync(writer, async () =>
             {
                 // act
                 await writer.WriteCalendarsAsync(calendars, progress);
-            }
-            finally
-            {
-                await writer.DisposeAsync();
-            }
+            });
 
             // assert
             target.ToString().Should().Be(expected);
-            progress.Reports.Should().HaveCount(calendars.Count);
+            progress.Reports.Should().HaveCount(FixtureExpectations.Counts[fixtureName].Calendars);
         }
 
         [Fact]
-        public async Task WriteCalendarsAsync_AsyncEnumerable_MatchesSync()
+        public async Task WriteCalendarsAsync_AsyncEnumerable_WritesEachFoldedAt75Octets()
         {
             // arrange
-            var calendars = ReadCalendars(CalendarFixtures.GoogleExport + CalendarFixtures.OutlookExport);
-            var expected = WriteCalendars(calendars);
+            var calendars = ReadCalendars(GoogleThenOutlookExport);
+            var expected = FixtureExpectations.WrittenTexts[GoogleThenOutlookExportName];
             var target = new AsyncOnlyTextWriter();
             var writer = new IcalWriter(target);
-            try
+            await AsyncDisposal.UsingAsync(writer, async () =>
             {
                 // act
                 await writer.WriteCalendarsAsync(ToAsync(calendars));
@@ -454,22 +455,18 @@ namespace DataStandardizer.File.iCal.Tests
                 target.ToString().Should().Be(expected);
                 writer.CalendarsWritten.Should().Be(2);
                 writer.ComponentsWritten.Should().Be(GoogleAndOutlookComponentCount);
-            }
-            finally
-            {
-                await writer.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
-        public async Task WriteCalendarAsync_OneCalendar_MatchesSync()
+        public async Task WriteCalendarAsync_OneCalendar_WritesItFoldedAt75Octets()
         {
             // arrange
             var calendar = ReadCalendar(CalendarFixtures.GoogleExport);
-            var expected = WriteCalendars(new[] { calendar });
+            var expected = FixtureExpectations.WrittenTexts[nameof(CalendarFixtures.GoogleExport)];
             var target = new AsyncOnlyTextWriter();
             var writer = new IcalWriter(target);
-            try
+            await AsyncDisposal.UsingAsync(writer, async () =>
             {
                 // act
                 await writer.WriteCalendarAsync(calendar);
@@ -478,11 +475,7 @@ namespace DataStandardizer.File.iCal.Tests
                 target.ToString().Should().Be(expected);
                 writer.CalendarsWritten.Should().Be(1);
                 writer.ComponentsWritten.Should().Be(GoogleExportComponentCount);
-            }
-            finally
-            {
-                await writer.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
@@ -492,18 +485,14 @@ namespace DataStandardizer.File.iCal.Tests
             var testCase = ConformanceCases.All[ConformanceCases.TwoSummariesCase];
             var calendar = ReadCalendar(testCase.Text, testCase.AcceptingOptions);
             var writer = new IcalWriter(new AsyncOnlyTextWriter());
-            try
+            await AsyncDisposal.UsingAsync(writer, async () =>
             {
                 // act
                 Func<Task> testAction = () => writer.WriteCalendarAsync(calendar).AsTask();
 
                 // assert
                 await testAction.Should().ThrowAsync<IcalFileException>();
-            }
-            finally
-            {
-                await writer.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
@@ -513,10 +502,10 @@ namespace DataStandardizer.File.iCal.Tests
             var testCase = ConformanceCases.All[ConformanceCases.TwoSummariesCase];
             var nonConformant = ReadCalendar(testCase.Text, testCase.AcceptingOptions);
             var calendar = ReadCalendar(RfcFixtures.Rfc5545Event);
-            var expected = WriteCalendars(new[] { calendar });
+            var expected = FixtureExpectations.WrittenTexts[nameof(RfcFixtures.Rfc5545Event)];
             var target = new AsyncOnlyTextWriter();
             var writer = new IcalWriter(target);
-            try
+            await AsyncDisposal.UsingAsync(writer, async () =>
             {
                 await Record.ExceptionAsync(() => writer.WriteCalendarAsync(nonConformant).AsTask());
 
@@ -525,11 +514,7 @@ namespace DataStandardizer.File.iCal.Tests
 
                 // assert
                 target.ToString().Should().Be(expected);
-            }
-            finally
-            {
-                await writer.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
@@ -538,7 +523,7 @@ namespace DataStandardizer.File.iCal.Tests
             // arrange
             var calendar = ReadCalendar(RfcFixtures.Rfc5545Event);
             var writer = new IcalWriter(new AsyncOnlyTextWriter());
-            try
+            await AsyncDisposal.UsingAsync(writer, async () =>
             {
                 using (var source = new CancellationTokenSource())
                 {
@@ -551,11 +536,7 @@ namespace DataStandardizer.File.iCal.Tests
                     await testAction.Should().ThrowAsync<OperationCanceledException>();
                     writer.CalendarsWritten.Should().Be(0);
                 }
-            }
-            finally
-            {
-                await writer.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
@@ -564,7 +545,7 @@ namespace DataStandardizer.File.iCal.Tests
             // arrange
             var calendar = ReadCalendar(RfcFixtures.Rfc5545Event);
             var writer = new IcalWriter(new AsyncOnlyTextWriter());
-            try
+            await AsyncDisposal.UsingAsync(writer, async () =>
             {
                 using (var source = new CancellationTokenSource())
                 {
@@ -577,11 +558,7 @@ namespace DataStandardizer.File.iCal.Tests
                     // assert
                     testAction.Should().Throw<InvalidOperationException>().WithMessage(CanceledMessage);
                 }
-            }
-            finally
-            {
-                await writer.DisposeAsync();
-            }
+            });
         }
 
         // On .NET Framework, TextWriter.WriteAsync takes no cancellation token, so a write in progress cannot be canceled.
@@ -593,7 +570,7 @@ namespace DataStandardizer.File.iCal.Tests
             var calendar = ReadCalendar(RfcFixtures.Rfc5545Event);
             var target = new GatedTextWriter();
             var writer = new IcalWriter(target);
-            try
+            await AsyncDisposal.UsingAsync(writer, async () =>
             {
                 using (var source = new CancellationTokenSource())
                 {
@@ -607,11 +584,7 @@ namespace DataStandardizer.File.iCal.Tests
                     // assert
                     await testAction.Should().ThrowAsync<OperationCanceledException>();
                 }
-            }
-            finally
-            {
-                await writer.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
@@ -621,7 +594,7 @@ namespace DataStandardizer.File.iCal.Tests
             var calendar = ReadCalendar(RfcFixtures.Rfc5545Event);
             var target = new GatedTextWriter();
             var writer = new IcalWriter(target);
-            try
+            await AsyncDisposal.UsingAsync(writer, async () =>
             {
                 using (var source = new CancellationTokenSource())
                 {
@@ -636,11 +609,7 @@ namespace DataStandardizer.File.iCal.Tests
                     // assert
                     testAction.Should().Throw<InvalidOperationException>().WithMessage(CanceledMessage);
                 }
-            }
-            finally
-            {
-                await writer.DisposeAsync();
-            }
+            });
         }
 #endif
 
@@ -653,20 +622,19 @@ namespace DataStandardizer.File.iCal.Tests
             var writer = new IcalWriter(target);
             var pending = writer.WriteCalendarAsync(calendar);
             await target.WriteStarted;
-            try
+            await AsyncDisposal.FinallyAsync(() =>
             {
                 // act
                 Action testAction = () => writer.WriteCalendar(calendar);
 
                 // assert
                 testAction.Should().Throw<InvalidOperationException>().WithMessage(OperationInProgressMessage);
-            }
-            finally
+            }, async () =>
             {
                 target.OpenGate();
                 await pending;
                 await writer.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
@@ -674,10 +642,10 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var calendar = ReadCalendar(RfcFixtures.Rfc5545Event);
-            var expected = WriteCalendars(new[] { calendar });
+            var expected = FixtureExpectations.WrittenTexts[nameof(RfcFixtures.Rfc5545Event)];
             var target = new GatedTextWriter();
             var writer = new IcalWriter(target);
-            try
+            await AsyncDisposal.UsingAsync(writer, async () =>
             {
                 var pending = writer.WriteCalendarAsync(calendar);
                 await target.WriteStarted;
@@ -689,11 +657,7 @@ namespace DataStandardizer.File.iCal.Tests
 
                 // assert
                 target.ToString().Should().Be(expected);
-            }
-            finally
-            {
-                await writer.DisposeAsync();
-            }
+            });
         }
 
         #endregion
@@ -734,7 +698,7 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var calendar = ReadCalendar(RfcFixtures.Rfc5545Event);
-            var expected = WriteCalendars(new[] { calendar });
+            var expected = FixtureExpectations.WrittenTexts[nameof(RfcFixtures.Rfc5545Event)];
             var stream = new MemoryStream();
             var writer = new IcalWriter(stream);
             await writer.WriteCalendarAsync(calendar);

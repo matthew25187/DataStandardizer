@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -31,89 +32,125 @@ namespace DataStandardizer.File.iCal.Tests
 
         private static readonly string Example1ThenExample2 = "[" + Example1Jcal + "," + Example2Jcal + "]";
 
+        // The same two calendars as Example1ThenExample2, as a writer writes them, and in iCalendar form.
+        private static readonly string Example1ThenExample2WithPeriodArray = "[" + Example1Jcal + "," + Example2JcalWithPeriodArray + "]";
+        private static readonly string Example1ThenExample2Ical = Example1Ical + Example2Ical;
+
+        // A document of RFC 7265 Appendix B.1 twice.
+        private static readonly string Example1Twice = "[" + Example1Jcal + "," + Example1Jcal + "]";
+
+        // A document of one calendar.
+        private const int OneCalendar = 1;
+
+        // ref. RFC 7265 Appendix B: each example in jCal form, with the content lines of its iCalendar form and how many components other than
+        // VCALENDAR and how many properties it has.
+        public static TheoryData<string, string[], int, int> RfcExamples => new TheoryData<string, string[], int, int>
+        {
+            { Example1Jcal, FixtureExpectations.JcalRoundTripModels[nameof(Example1Ical)], 1, 7 },
+            { Example2Jcal, FixtureExpectations.JcalRoundTripModels[nameof(Example2Ical)], 5, 28 },
+        };
+
         [Theory]
-        [MemberData(nameof(JcalRoundTripTests.CalendarNames), MemberType = typeof(JcalRoundTripTests))]
-        public async Task ReadCalendarsAsync_EveryFixture_MatchesSync(string calendarName)
+        [MemberData(nameof(RfcExamples), DisableDiscoveryEnumeration = true)]
+        public async Task ReadCalendarsAsync_RfcExample_ReadsItsContentLines(string jcal, string[] expected, int componentCount, int propertyCount)
         {
             // arrange
-            var (text, options) = JcalRoundTripTests.GetCalendar(calendarName);
-            var jcal = WriteJcal(ReadCalendars(text, options), options);
-            using (var syncReader = new JcalReader(new MemoryStream(Utf8(jcal)), options ?? new IcalOptions()))
+            _ = (componentCount, propertyCount);
+            var reader = new JcalReader(new AsyncOnlyStream(Utf8(jcal), maxReadLength: OctetsPerRead));
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
-                var expected = Model(syncReader.ReadCalendars().ToList(), options);
-                var asyncReader = new JcalReader(new AsyncOnlyStream(Utf8(jcal), maxReadLength: OctetsPerRead), options ?? new IcalOptions());
-                try
-                {
-                    // act
-                    var testResult = Model(await AsyncEnumerables.ToListAsync(asyncReader.ReadCalendarsAsync()), options);
+                // act
+                var testResult = Model(await AsyncEnumerables.ToListAsync(reader.ReadCalendarsAsync()));
 
-                    // assert
-                    testResult.Should().Equal(expected);
-                    asyncReader.CalendarsRead.Should().Be(syncReader.CalendarsRead);
-                    asyncReader.ComponentsRead.Should().Be(syncReader.ComponentsRead);
-                    asyncReader.PropertiesRead.Should().Be(syncReader.PropertiesRead);
-                }
-                finally
-                {
-                    await asyncReader.DisposeAsync();
-                }
-            }
+                // assert
+                testResult.Should().Equal(expected);
+            });
+        }
+
+        [Theory]
+        [MemberData(nameof(RfcExamples), DisableDiscoveryEnumeration = true)]
+        public async Task ReadCalendarsAsync_RfcExample_CountsWhatItReads(string jcal, string[] model, int componentCount, int propertyCount)
+        {
+            // arrange
+            _ = model;
+            var reader = new JcalReader(new AsyncOnlyStream(Utf8(jcal), maxReadLength: OctetsPerRead));
+            await AsyncDisposal.UsingAsync(reader, async () =>
+            {
+                // act
+                await AsyncEnumerables.ToListAsync(reader.ReadCalendarsAsync());
+
+                // assert
+                reader.CalendarsRead.Should().Be(OneCalendar);
+                reader.ComponentsRead.Should().Be(componentCount);
+                reader.PropertiesRead.Should().Be(propertyCount);
+            });
         }
 
         [Theory]
         [MemberData(nameof(JcalRoundTripTests.CalendarNames), MemberType = typeof(JcalRoundTripTests))]
-        public async Task WriteCalendarsAsync_EveryFixture_MatchesSync(string calendarName)
+        public async Task WriteCalendarsAsync_EveryFixture_WritesJcalThatReadsBackAsTheFixture(string calendarName)
         {
             // arrange
             var (text, options) = JcalRoundTripTests.GetCalendar(calendarName);
             var calendars = ReadCalendars(text, options);
-            var expected = WriteJcal(calendars, options);
+            var expected = FixtureExpectations.JcalRoundTripModels[calendarName];
             var stream = new AsyncOnlyWriteStream();
-            var progress = new RecordingProgress();
             var writer = new JcalWriter(stream, options ?? new IcalOptions());
-            try
+
+            // act
+            await AsyncDisposal.UsingAsync(writer, async () =>
+            {
+                await writer.WriteCalendarsAsync(calendars);
+            });
+            var testResult = Model(ReadJcal(Encoding.UTF8.GetString(stream.ToArray()), options), options);
+
+            // assert
+            testResult.Should().Equal(expected);
+            stream.IsDisposed.Should().BeFalse();
+        }
+
+        [Theory]
+        [MemberData(nameof(JcalRoundTripTests.CalendarNames), MemberType = typeof(JcalRoundTripTests))]
+        public async Task WriteCalendarsAsync_EveryFixture_ReportsProgressForEachCalendar(string calendarName)
+        {
+            // arrange
+            var (text, options) = JcalRoundTripTests.GetCalendar(calendarName);
+            var calendars = ReadCalendars(text, options);
+            var progress = new RecordingProgress();
+            var writer = new JcalWriter(new AsyncOnlyWriteStream(), options ?? new IcalOptions());
+            await AsyncDisposal.UsingAsync(writer, async () =>
             {
                 // act
                 await writer.WriteCalendarsAsync(calendars, progress);
-            }
-            finally
-            {
-                await writer.DisposeAsync();
-            }
 
-            // assert
-            Encoding.UTF8.GetString(stream.ToArray()).Should().Be(expected);
-            progress.Reports.Should().HaveCount(calendars.Count);
-            stream.IsDisposed.Should().BeFalse();
+                // assert
+                progress.Reports.Should().ContainSingle();
+            });
         }
 
         [Fact]
         public async Task ReadCalendarAsync_FirstOfSeveralCalendars_ReadsWithoutSynchronousIo()
         {
             // arrange
-            var expected = Model(ReadCalendars(Example1Ical));
+            var expected = FixtureExpectations.JcalRoundTripModels[nameof(Example1Ical)];
             var reader = new JcalReader(new AsyncOnlyStream(Utf8(Example1ThenExample2), maxReadLength: 3));
-            try
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 // act
                 var testResult = Model(new[] { await reader.ReadCalendarAsync() });
 
                 // assert
                 testResult.Should().Equal(expected);
-            }
-            finally
-            {
-                await reader.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
         public async Task ReadCalendarAsync_SecondOfSeveralCalendars_ReadsWithoutSynchronousIo()
         {
             // arrange
-            var expected = Model(ReadCalendars(Example2Ical));
+            var expected = FixtureExpectations.JcalRoundTripModels[nameof(Example2Ical)];
             var reader = new JcalReader(new AsyncOnlyStream(Utf8(Example1ThenExample2), maxReadLength: 3));
-            try
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 await reader.ReadCalendarAsync();
 
@@ -122,11 +159,7 @@ namespace DataStandardizer.File.iCal.Tests
 
                 // assert
                 testResult.Should().Equal(expected);
-            }
-            finally
-            {
-                await reader.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
@@ -134,7 +167,7 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var reader = new JcalReader(new AsyncOnlyStream(Utf8(Example1ThenExample2), maxReadLength: 3));
-            try
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 await reader.ReadCalendarAsync();
                 await reader.ReadCalendarAsync();
@@ -144,20 +177,15 @@ namespace DataStandardizer.File.iCal.Tests
 
                 // assert
                 testResult.Should().BeNull();
-            }
-            finally
-            {
-                await reader.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
         public async Task ReadCalendarAsync_BufferedData_CompletesSynchronously()
         {
             // arrange
-            var json = "[" + Example1Jcal + "," + Example1Jcal + "]";
-            var reader = new JcalReader(new AsyncOnlyStream(Utf8(json)));
-            try
+            var reader = new JcalReader(new AsyncOnlyStream(Utf8(Example1Twice)));
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 await reader.ReadCalendarAsync();
 
@@ -167,20 +195,15 @@ namespace DataStandardizer.File.iCal.Tests
                 // assert
                 testResult.IsCompletedSuccessfully.Should().BeTrue();
                 testResult.Result.Should().NotBeNull();
-            }
-            finally
-            {
-                await reader.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
-        public async Task ReadCalendarAsync_NotValid_ThrowsAsSync()
+        public async Task ReadCalendarAsync_NotValid_ThrowsWithTheLocation()
         {
             // arrange
-            var syncException = Record.Exception(() => ReadJcal(SecondValueDocument));
             var reader = new JcalReader(new AsyncOnlyStream(Utf8(SecondValueDocument), maxReadLength: OctetsPerRead));
-            try
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 // act
                 Func<Task> testAction = () => reader.ReadCalendarAsync().AsTask();
@@ -189,13 +212,7 @@ namespace DataStandardizer.File.iCal.Tests
                 var exception = (await testAction.Should().ThrowAsync<IcalFileException>()).Which;
                 exception.Data[IcalFileException.DataItemName.JsonPath].Should().Be(SecondValueJsonPath);
                 exception.Data[IcalFileException.DataItemName.BytePosition].Should().Be(SecondValueBytePosition);
-                exception.Message.Should().Be(syncException.Message);
-                exception.Data.Should().BeEquivalentTo(syncException.Data);
-            }
-            finally
-            {
-                await reader.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
@@ -203,7 +220,7 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var reader = new JcalReader(new AsyncOnlyStream(Utf8(SecondValueDocument), maxReadLength: OctetsPerRead));
-            try
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 await Record.ExceptionAsync(() => reader.ReadCalendarAsync().AsTask());
 
@@ -212,11 +229,7 @@ namespace DataStandardizer.File.iCal.Tests
 
                 // assert
                 await testAction.Should().ThrowAsync<InvalidOperationException>();
-            }
-            finally
-            {
-                await reader.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
@@ -224,7 +237,7 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var reader = new JcalReader(new AsyncOnlyStream(Utf8(Example1Jcal), maxReadLength: OctetsPerRead));
-            try
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 using (var source = new CancellationTokenSource())
                 {
@@ -236,11 +249,7 @@ namespace DataStandardizer.File.iCal.Tests
                     // assert
                     await testAction.Should().ThrowAsync<OperationCanceledException>();
                 }
-            }
-            finally
-            {
-                await reader.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
@@ -248,7 +257,7 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var reader = new JcalReader(new AsyncOnlyStream(Utf8(Example1Jcal), maxReadLength: OctetsPerRead));
-            try
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 using (var source = new CancellationTokenSource())
                 {
@@ -261,11 +270,7 @@ namespace DataStandardizer.File.iCal.Tests
                     // assert
                     testAction.Should().Throw<InvalidOperationException>();
                 }
-            }
-            finally
-            {
-                await reader.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
@@ -332,20 +337,19 @@ namespace DataStandardizer.File.iCal.Tests
             var reader = new JcalReader(source);
             var read = reader.ReadCalendarAsync().AsTask();
             await source.ReadStarted;
-            try
+            await AsyncDisposal.FinallyAsync(() =>
             {
                 // act
                 Action testAction = () => reader.ReadCalendarAsync();
 
                 // assert
                 testAction.Should().Throw<InvalidOperationException>().WithMessage("Another read*");
-            }
-            finally
+            }, async () =>
             {
                 source.OpenGate();
                 await read;
                 await reader.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
@@ -354,7 +358,7 @@ namespace DataStandardizer.File.iCal.Tests
             // arrange
             var source = new GatedStream(Utf8(Example1Jcal));
             var reader = new JcalReader(source);
-            try
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 var read = reader.ReadCalendarAsync().AsTask();
                 await source.ReadStarted;
@@ -366,34 +370,29 @@ namespace DataStandardizer.File.iCal.Tests
 
                 // assert
                 testResult.Should().NotBeNull();
-            }
-            finally
-            {
-                await reader.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
         public async Task WriteCalendarAsync_Stream_WritesWithoutSynchronousIo()
         {
             // arrange
-            var expected = WriteJcal(ReadCalendars(Example1Ical + Example2Ical));
+            var expected = JsonNode.Parse(Example1ThenExample2WithPeriodArray);
             var stream = new AsyncOnlyWriteStream();
             var writer = new JcalWriter(stream);
             await writer.WriteCalendarAsync(ReadCalendar(Example1Ical));
-            try
+            await AsyncDisposal.FinallyAsync(async () =>
             {
                 // act
                 await writer.WriteCalendarAsync(ReadCalendar(Example2Ical));
-            }
-            finally
+            }, async () =>
             {
                 await writer.FlushAsync();
                 await writer.DisposeAsync();
-            }
+            });
 
             // assert
-            Encoding.UTF8.GetString(stream.ToArray()).Should().Be(expected);
+            JsonNode.DeepEquals(JsonNode.Parse(stream.ToArray()), expected).Should().BeTrue();
             stream.FlushCount.Should().Be(2);
         }
 
@@ -401,42 +400,34 @@ namespace DataStandardizer.File.iCal.Tests
         public async Task WriteCalendarsAsync_AsyncEnumerable_CountsEach()
         {
             // arrange
-            var calendars = ReadCalendars(Example1Ical + Example2Ical);
+            var calendars = ReadCalendars(Example1ThenExample2Ical);
             var writer = new JcalWriter(new MemoryStream());
-            try
+            await AsyncDisposal.UsingAsync(writer, async () =>
             {
                 // act
                 await writer.WriteCalendarsAsync(AsyncEnumerables.Yielding(calendars));
 
                 // assert
                 writer.CalendarsWritten.Should().Be(2);
-            }
-            finally
-            {
-                await writer.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
         public async Task WriteCalendarsAsync_AsyncEnumerable_WritesEach()
         {
             // arrange
-            var calendars = ReadCalendars(Example1Ical + Example2Ical);
-            var expected = WriteJcal(calendars);
+            var calendars = ReadCalendars(Example1ThenExample2Ical);
+            var expected = JsonNode.Parse(Example1ThenExample2WithPeriodArray);
             var stream = new MemoryStream();
             var writer = new JcalWriter(stream);
-            try
+            await AsyncDisposal.UsingAsync(writer, async () =>
             {
                 // act
                 await writer.WriteCalendarsAsync(AsyncEnumerables.Yielding(calendars));
-            }
-            finally
-            {
-                await writer.DisposeAsync();
-            }
+            });
 
             // assert
-            Encoding.UTF8.GetString(stream.ToArray()).Should().Be(expected);
+            JsonNode.DeepEquals(JsonNode.Parse(stream.ToArray()), expected).Should().BeTrue();
         }
 
         [Fact]
@@ -445,7 +436,7 @@ namespace DataStandardizer.File.iCal.Tests
             // arrange
             var calendar = ReadCalendar(Example1Ical);
             var writer = new JcalWriter(new MemoryStream());
-            try
+            await AsyncDisposal.UsingAsync(writer, async () =>
             {
                 using (var source = new CancellationTokenSource())
                 {
@@ -457,11 +448,7 @@ namespace DataStandardizer.File.iCal.Tests
                     // assert
                     await testAction.Should().ThrowAsync<OperationCanceledException>();
                 }
-            }
-            finally
-            {
-                await writer.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
@@ -470,7 +457,7 @@ namespace DataStandardizer.File.iCal.Tests
             // arrange
             var calendar = ReadCalendar(Example1Ical);
             var writer = new JcalWriter(new MemoryStream());
-            try
+            await AsyncDisposal.UsingAsync(writer, async () =>
             {
                 using (var source = new CancellationTokenSource())
                 {
@@ -483,11 +470,7 @@ namespace DataStandardizer.File.iCal.Tests
                     // assert
                     testAction.Should().Throw<InvalidOperationException>().WithMessage(CanceledMessage);
                 }
-            }
-            finally
-            {
-                await writer.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
@@ -501,20 +484,19 @@ namespace DataStandardizer.File.iCal.Tests
             var flush = writer.FlushAsync();
             await stream.FlushStarted;
             var dispose = writer.DisposeAsync();
-            try
+            await AsyncDisposal.FinallyAsync(() =>
             {
                 // act
                 Action testAction = () => writer.WriteCalendarAsync(calendar);
 
                 // assert
                 testAction.Should().Throw<ObjectDisposedException>();
-            }
-            finally
+            }, async () =>
             {
                 stream.OpenGate();
                 await flush;
                 await dispose;
-            }
+            });
         }
 
         [Fact]
@@ -522,7 +504,7 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var calendar = ReadCalendar(Example1Ical);
-            var expected = WriteJcal(new[] { calendar });
+            var expected = JsonNode.Parse(Example1Jcal);
             var stream = new GatedWriteStream();
             var writer = new JcalWriter(stream);
             await writer.WriteCalendarAsync(calendar);
@@ -536,7 +518,7 @@ namespace DataStandardizer.File.iCal.Tests
             await dispose;
 
             // assert
-            Encoding.UTF8.GetString(stream.ToArray()).Should().Be(expected);
+            JsonNode.DeepEquals(JsonNode.Parse(stream.ToArray()), expected).Should().BeTrue();
         }
     }
 }

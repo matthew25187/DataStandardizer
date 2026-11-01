@@ -7,6 +7,9 @@ namespace DataStandardizer.File.iCal.Tests
 {
     public class IcalRecurrenceRuleTests
     {
+        // ref. RFC 5545 §3.3.10: Rfc5545Examples.RecurrenceRule with its parts in the order the writer gives them.
+        private const string CanonicalRfcRecurrenceRule = "FREQ=YEARLY;INTERVAL=2;BYMINUTE=30;BYHOUR=8,9;BYDAY=SU;BYMONTH=1";
+
         // ref. RFC 5545 §3.8.5.3: daily for 10 occurrences.
         private const string DailyForTenOccurrences = "FREQ=DAILY;COUNT=10";
 
@@ -190,16 +193,17 @@ namespace DataStandardizer.File.iCal.Tests
 
         [Theory]
         [MemberData(nameof(NonCanonicalRfcRules))]
-        public void Parse_CanonicalOrderOfRfcExample_EqualsTheRfcExample(string value, string canonical)
+        public void Equals_RfcExampleAndItsCanonicalOrder_IsTrue(string value, string canonical)
         {
             // arrange
-            var expected = IcalRecurrenceRule.Parse(value.AsSpan(), IcalValueFormat.Text);
+            var rule = IcalRecurrenceRule.Parse(value.AsSpan(), IcalValueFormat.Text);
+            var canonicalRule = IcalRecurrenceRule.Parse(canonical.AsSpan(), IcalValueFormat.Text);
 
             // act
-            var testResult = IcalRecurrenceRule.Parse(canonical.AsSpan(), IcalValueFormat.Text);
+            var testResult = canonicalRule.Equals(rule);
 
             // assert
-            testResult.Should().Be(expected);
+            testResult.Should().BeTrue();
         }
 
         [Theory]
@@ -646,21 +650,19 @@ namespace DataStandardizer.File.iCal.Tests
         #region Building
 
         [Fact]
-        public void With_PartsOfTheRfcExample_EqualsTheParsedRfcExample()
+        public void With_PartsOfTheRfcExample_WritesTheRfcExampleInCanonicalOrder()
         {
-            // arrange
-            var expected = IcalRecurrenceRule.Parse(Rfc5545Examples.RecurrenceRule.AsSpan(), IcalValueFormat.Text);
-
             // act
             var testResult = new IcalRecurrenceRule(IcalRecurrenceFrequency.Yearly)
                 .WithInterval(2)
                 .WithByMonth(1)
                 .WithByDay(new IcalRecurrenceDay(DayOfWeek.Sunday))
                 .WithByHour(8, 9)
-                .WithByMinute(30);
+                .WithByMinute(30)
+                .ToString(IcalValueFormat.Text);
 
             // assert
-            testResult.Should().Be(expected);
+            testResult.Should().Be(CanonicalRfcRecurrenceRule);
         }
 
         [Fact]

@@ -90,6 +90,16 @@ namespace DataStandardizer.File.iCal
         private readonly IcalContentLineScanner _scanner;
 
         /// <summary>
+        /// Gets the text reader that the lines are read from, so that tests can check how a constructor built it.
+        /// </summary>
+        internal TextReader UnderlyingReader => _reader;
+
+        /// <summary>
+        /// Gets the scanner, so that tests can check when its buffer is returned.
+        /// </summary>
+        internal IcalContentLineScanner Scanner => _scanner;
+
+        /// <summary>
         /// Creates a reader for iCalendar data in a stream, read as UTF-8 unless the stream starts with a byte order mark.
         /// </summary>
         /// <param name="icalStream">The stream.  It is left open when the reader is disposed.</param>

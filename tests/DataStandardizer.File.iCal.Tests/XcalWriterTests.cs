@@ -387,53 +387,6 @@ namespace DataStandardizer.File.iCal.Tests
             testAction.Should().Throw<ArgumentException>().Which.Should().BeOfType(expectedType);
         }
 
-        [Fact]
-        public void WriteCalendar_File_WritesAndClosesFile()
-        {
-            // arrange
-            var expected = Model(ReadCalendars(Example1Ical));
-            var path = Path.GetTempFileName();
-            try
-            {
-                // act
-                using (var writer = new XcalWriter(path))
-                {
-                    writer.WriteCalendar(ReadCalendar(Example1Ical));
-                }
-
-                // assert
-                Model(ReadXcal(System.IO.File.ReadAllText(path))).Should().Equal(expected);
-                System.IO.File.Delete(path);
-                System.IO.File.Exists(path).Should().BeFalse();
-            }
-            finally
-            {
-                System.IO.File.Delete(path);
-            }
-        }
-
-        [Fact]
-        public void Dispose_FileNotWritten_ClosesFile()
-        {
-            // arrange
-            var path = Path.GetTempFileName();
-            try
-            {
-                var writer = new XcalWriter(path);
-
-                // act
-                writer.Dispose();
-
-                // assert
-                System.IO.File.Delete(path);
-                System.IO.File.Exists(path).Should().BeFalse();
-            }
-            finally
-            {
-                System.IO.File.Delete(path);
-            }
-        }
-
         private static IcalCalendar CreateCalendarWithProperty(string name, string value)
         {
             var calendar = ReadCalendar(EventCalendar("X-OK:1"));
@@ -473,7 +426,7 @@ namespace DataStandardizer.File.iCal.Tests
         /// <summary>
         /// Gets an element as XML without insignificant white space, so that documents formatted differently compare equal.
         /// </summary>
-        private static string Normalize(XNode node)
+        internal static string Normalize(XNode node)
         {
             var copy = node is XDocument document ? new XElement(document.Root) : new XElement((XElement)node);
             foreach (var text in copy.DescendantNodes().OfType<XText>().Where(text => text.Parent.HasElements).ToList())

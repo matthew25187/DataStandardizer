@@ -288,14 +288,8 @@ namespace DataStandardizer.File.iCal.Tests
         [Fact]
         public void EnumerateTextList_JsonForm_IsOneItem()
         {
-            // arrange
-            var testResult = new List<string>();
-
             // act
-            foreach (var item in IcalValue.EnumerateTextList("a,b".AsSpan(), IcalValueFormat.Json))
-            {
-                testResult.Add(item.ToString());
-            }
+            var testResult = IcalTestData.TextListItems("a,b", IcalValueFormat.Json);
 
             // assert
             testResult.Should().Equal("a,b");

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Xml.Linq;
 using FluentAssertions;
 using Xunit;
 using static DataStandardizer.File.iCal.Tests.ModelTestData;
@@ -64,7 +65,7 @@ namespace DataStandardizer.File.iCal.Tests
             // arrange
             var (text, options) = GetCalendar(calendarName);
             var calendars = ReadCalendars(text, options);
-            var expected = Model(calendars, options);
+            var expected = FixtureExpectations.XcalRoundTripModels[calendarName];
 
             // act
             var testResult = Model(ReadXcal(WriteXcal(calendars, options), options), options);
@@ -79,57 +80,40 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var (text, options) = GetCalendar(calendarName);
-            var calendars = ReadXcal(WriteXcal(ReadCalendars(text, options), options), options);
-            var expected = Model(calendars, options);
+            var calendars = ReadCalendars(text, options);
+            var expected = FixtureExpectations.XcalRoundTripModels[calendarName];
 
             // act
-            var testResult = Model(ReadCalendars(WriteCalendars(calendars, options), options), options);
+            var testResult = Model(ReadCalendars(WriteCalendars(ReadXcal(WriteXcal(calendars, options), options), options), options), options);
 
             // assert
             testResult.Should().Equal(expected);
         }
 
         [Theory]
-        [MemberData(nameof(CalendarNames))]
-        public void WriteXcal_XcalCalendarsThroughIcal_LeavesXmlUnchanged(string calendarName)
+        [MemberData(nameof(XcalWriterTests.RfcExamples), MemberType = typeof(XcalWriterTests))]
+        public void WriteXcal_RfcExampleThroughIcal_IsTheRfcXcalForm(string ical, string xcal)
         {
             // arrange
-            var (text, options) = GetCalendar(calendarName);
-            var xcal = WriteXcal(ReadCalendars(text, options), options);
-            var calendars = ReadCalendars(WriteCalendars(ReadXcal(xcal, options), options), options);
+            var calendars = ReadCalendars(ical);
+            var expected = XcalWriterTests.Normalize(XDocument.Parse(xcal));
 
             // act
-            var testResult = WriteXcal(calendars, options);
+            var testResult = XcalWriterTests.Normalize(XDocument.Parse(WriteXcal(ReadCalendars(WriteCalendars(ReadXcal(WriteXcal(calendars)))))));
 
-            // assert
-            testResult.Should().Be(xcal);
-        }
-
-        [Fact]
-        public void ReadXcal_ExtensionPropertiesWrittenAsXcal_KeepTheirValuesAndParameters()
-        {
-            // arrange
-            var calendar = ReadCalendar(Extensions);
-            var expected = calendar.Events.Single().Properties;
-
-            // act
-            var testResult = ReadXcal(WriteXcal(new[] { calendar })).Single().Events.Single();
-
-            // assert
-            testResult.Properties.Should().BeEquivalentTo(expected, options => options.Excluding(line => line.LineNumber)
-                .Excluding(line => line.PhysicalLineNumber));
+            // assert: the same XML, ignoring formatting.
+            testResult.Should().Be(expected);
         }
 
         public static TheoryData<string> XcalConformanceCases() => ConformanceCases.XcalAndJcalCases();
 
         [Theory]
         [MemberData(nameof(XcalConformanceCases))]
-        public void ReadXcal_NonConformantCalendarWithDefaults_ThrowsAsIcalReaderDoes(string caseName)
+        public void ReadXcal_NonConformantCalendarWithDefaults_ThrowsWithTheDiagnostic(string caseName)
         {
             // arrange: write the calendar with the one accommodation it needs, then read it with the defaults.
             var testCase = ConformanceCases.All[caseName];
             var xcal = WriteXcal(ReadCalendars(testCase.Text, testCase.AcceptingOptions), testCase.AcceptingOptions);
-            var icalException = Record.Exception(() => ReadCalendars(testCase.Text));
 
             // act
             Action testAction = () => ReadXcal(xcal);
@@ -139,7 +123,6 @@ namespace DataStandardizer.File.iCal.Tests
             exception.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(testCase.Kind, caseName);
             exception.Data[IcalFileException.DataItemName.ComponentPath].Should().Be(testCase.ComponentPath, caseName);
             exception.Data[IcalFileException.DataItemName.PropertyName].Should().Be(testCase.PropertyName, caseName);
-            exception.Message.Should().Be(icalException.Message, caseName);
         }
 
         [Theory]

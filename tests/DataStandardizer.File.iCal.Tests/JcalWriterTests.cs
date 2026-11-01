@@ -18,6 +18,7 @@ namespace DataStandardizer.File.iCal.Tests
 
         // A summary with characters inside and outside the Basic Multilingual Plane, and quotation marks.
         private const string NonAsciiSummary = "Caf\xE9 \x4E2D \xD83D\xDE00 \"quoted\"";
+        private const string NonAsciiSummaryLine = "SUMMARY:" + NonAsciiSummary;
 
         // NonAsciiSummary as System.Text.Json writes it: characters outside ASCII as they are, except those outside the Basic Multilingual Plane.
         private const string NonAsciiSummaryJson = "[\"summary\",{},\"text\",\"Caf\xE9 \x4E2D \\uD83D\\uDE00 \\\"quoted\\\"\"]";
@@ -69,7 +70,7 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange: RFC 7265 §3.6.9 gives a PERIOD as an array, which Appendix B.2 does not follow.
             var calendars = ReadCalendars(Example2Ical);
-            var expected = JsonNode.Parse(Example2Jcal.Replace("\"2006-01-02T15:00:00/PT2H\"", "[\"2006-01-02T15:00:00\", \"PT2H\"]"));
+            var expected = JsonNode.Parse(Example2JcalWithPeriodArray);
 
             // act
             var testResult = WriteJcal(calendars);
@@ -83,7 +84,7 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var stream = new MemoryStream();
-            var calendar = ReadCalendar(EventCalendar("SUMMARY:" + NonAsciiSummary));
+            var calendar = ReadCalendar(EventCalendar(NonAsciiSummaryLine));
 
             // act
             using (var writer = new JcalWriter(stream))
@@ -105,10 +106,10 @@ namespace DataStandardizer.File.iCal.Tests
         public void ReadJcal_WrittenNonAsciiSummary_IsTheSummary()
         {
             // arrange
-            var json = WriteJcal(new[] { ReadCalendar(EventCalendar("SUMMARY:" + NonAsciiSummary)) });
+            var calendar = ReadCalendar(EventCalendar(NonAsciiSummaryLine));
 
             // act
-            var testResult = ReadJcal(json);
+            var testResult = ReadJcal(WriteJcal(new[] { calendar }));
 
             // assert
             testResult.Should().ContainSingle().Which.Events.Should().ContainSingle().Which.Summary.Should().Be(NonAsciiSummary);
@@ -353,7 +354,7 @@ namespace DataStandardizer.File.iCal.Tests
         public void Dispose_AfterSecondCalendarCannotBeWritten_KeepsTheFirst()
         {
             // arrange
-            var expected = Model(ReadCalendars(Example1Ical));
+            var expected = JsonNode.Parse(Example1Jcal);
             var stream = new MemoryStream();
             var writer = new JcalWriter(stream);
             writer.WriteCalendar(ReadCalendar(Example1Ical));
@@ -362,8 +363,8 @@ namespace DataStandardizer.File.iCal.Tests
             // act
             writer.Dispose();
 
-            // assert
-            Model(ReadJcal(Encoding.UTF8.GetString(stream.ToArray()))).Should().Equal(expected);
+            // assert: the same JSON, ignoring formatting.
+            JsonNode.DeepEquals(JsonNode.Parse(stream.ToArray()), expected).Should().BeTrue();
         }
 
         [Fact]
@@ -495,35 +496,6 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             testAction.Should().NotThrow();
-        }
-
-        [Fact]
-        public void WriteCalendar_File_WritesAndClosesFile()
-        {
-            // arrange
-            var expected = Model(ReadCalendars(Example1Ical));
-            var path = Path.GetTempFileName();
-            try
-            {
-                // act
-                using (var writer = new JcalWriter(path))
-                {
-                    writer.WriteCalendar(ReadCalendar(Example1Ical));
-                }
-
-                // assert
-                using (var reader = new JcalReader(path))
-                {
-                    Model(reader.ReadCalendars().ToList()).Should().Equal(expected);
-                }
-
-                System.IO.File.Delete(path);
-                System.IO.File.Exists(path).Should().BeFalse();
-            }
-            finally
-            {
-                System.IO.File.Delete(path);
-            }
         }
 
         private static IcalCalendar CreateCalendarWithBadPropertyName()

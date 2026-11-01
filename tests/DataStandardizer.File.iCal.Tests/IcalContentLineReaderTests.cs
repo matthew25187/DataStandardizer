@@ -17,6 +17,16 @@ namespace DataStandardizer.File.iCal.Tests
         private const string Rfc6868Geo = "40.446816;-80.00679";
         private const string LineA = "A:1";
 
+        // A line with an RFC 6868 caret-encoded parameter value, a quoted one, and an escaped comma in its value.
+        private const string AccessorsLine = "ATTENDEE;CN=a^'b;ROLE=\"X\",Y:mailto:a\\,b";
+
+        // The number of bytes that a reader over a stream asks the stream for at a time: a read until the stream ends asks for this many, then
+        // asks again for as many to find that it has ended.
+        private const int StreamBufferSize = 16384;
+
+        // LineA and its line break in ASCII, which is also UTF-8 and ISO-8859-1.
+        private static readonly byte[] LineAInAscii = { 0x41, 0x3A, 0x31, 0x0D, 0x0A };
+
         // ref. RFC 6868 §4: a parameter value with caret-encoded quotation marks, and the value it stands for.
         private const string Rfc6868EncodedName = "George Herman ^'Babe^' Ruth";
         private const string Rfc6868DecodedName = "George Herman \"Babe\" Ruth";
@@ -24,6 +34,11 @@ namespace DataStandardizer.File.iCal.Tests
 
         // Text with a letter, a symbol inside the Basic Multilingual Plane and an emoji outside it: "Caf\xE9", a hot beverage and a grinning face.
         private const string NonAsciiText = "Caf\xE9 \x2615 \xD83D\xDE00";
+        private const string NonAsciiSummaryLine = "SUMMARY:" + NonAsciiText;
+
+        // A DESCRIPTION of a million characters.
+        private static readonly string MillionXs = new string('x', 1_000_000);
+        private static readonly string MillionXsDescription = "DESCRIPTION:" + MillionXs;
 
         // A content line read after U+FEFF ZERO WIDTH NO-BREAK SPACE, which is the byte order mark as a character.
         private const string ByteOrderMarkThenBegin = "\xFEFFBEGIN:VCALENDAR\r\n";
@@ -127,7 +142,7 @@ namespace DataStandardizer.File.iCal.Tests
         public void ReadLine_NonAsciiValue_ReturnsValue()
         {
             // arrange
-            using (var reader = CreateReader(Crlf("SUMMARY:" + NonAsciiText)))
+            using (var reader = CreateReader(Crlf(NonAsciiSummaryLine)))
             {
                 // act
                 var testResult = reader.ReadLine();
@@ -447,20 +462,20 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Theory]
-        [InlineData("^n", "\n")]
-        [InlineData("^'", "\"")]
-        [InlineData("^^", "^")]
-        [InlineData("a^nb^'c^^d", "a\nb\"c^d")]
-        [InlineData("^x", "^x")]
-        [InlineData("^N", "^N")]
-        [InlineData("a^", "a^")]
-        [InlineData("^^n", "^n")]
-        [InlineData("^^^n", "^\n")]
-        [InlineData("no carets", "no carets")]
-        public void ReadLine_CaretEncodedParameterValue_IsDecoded(string rawValue, string expectedValue)
+        [InlineData("X-TEST;X-P=\"^n\";X-Q=^n:v", "\n")]
+        [InlineData("X-TEST;X-P=\"^'\";X-Q=^':v", "\"")]
+        [InlineData("X-TEST;X-P=\"^^\";X-Q=^^:v", "^")]
+        [InlineData("X-TEST;X-P=\"a^nb^'c^^d\";X-Q=a^nb^'c^^d:v", "a\nb\"c^d")]
+        [InlineData("X-TEST;X-P=\"^x\";X-Q=^x:v", "^x")]
+        [InlineData("X-TEST;X-P=\"^N\";X-Q=^N:v", "^N")]
+        [InlineData("X-TEST;X-P=\"a^\";X-Q=a^:v", "a^")]
+        [InlineData("X-TEST;X-P=\"^^n\";X-Q=^^n:v", "^n")]
+        [InlineData("X-TEST;X-P=\"^^^n\";X-Q=^^^n:v", "^\n")]
+        [InlineData("X-TEST;X-P=\"no carets\";X-Q=no carets:v", "no carets")]
+        public void ReadLine_CaretEncodedParameterValue_IsDecoded(string line, string expectedValue)
         {
             // arrange
-            using (var reader = CreateReader(Crlf($"X-TEST;X-P=\"{rawValue}\";X-Q={rawValue}:v")))
+            using (var reader = CreateReader(Crlf(line)))
             {
                 // act
                 var testResult = reader.ReadLine();
@@ -926,29 +941,6 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public void ReadLine_FoldInsideUtf8SequenceFromFile_RestoresCharacter()
-        {
-            // arrange
-            var testFilePath = Path.GetTempFileName();
-            try
-            {
-                System.IO.File.WriteAllBytes(testFilePath, Concat(Encoding.UTF8.GetBytes("SUMMARY:"), new byte[] { 0xE2, 0x82 }, Encoding.ASCII.GetBytes("\r\n "), new byte[] { 0xAC }));
-                using (var reader = new IcalContentLineReader(testFilePath))
-                {
-                    // act
-                    var testResult = reader.ReadLine();
-
-                    // assert
-                    testResult.Value.Should().Be("\x20AC");
-                }
-            }
-            finally
-            {
-                System.IO.File.Delete(testFilePath);
-            }
-        }
-
-        [Fact]
         public void ReadLine_Utf16StreamWithByteOrderMark_IsDecoded()
         {
             // arrange
@@ -1216,14 +1208,13 @@ namespace DataStandardizer.File.iCal.Tests
         public void ReadLine_NoMaxLineLength_ReadsVeryLongLine()
         {
             // arrange: a value of a million characters, read through a small buffer.
-            var value = new string('x', 1_000_000);
-            using (var reader = CreateReader(Crlf("DESCRIPTION:" + value), bufferSize: 64))
+            using (var reader = CreateReader(Crlf(MillionXsDescription), bufferSize: 64))
             {
                 // act
                 var testResult = reader.ReadLine();
 
                 // assert
-                testResult.Value.Should().Be(value);
+                testResult.Value.Should().Be(MillionXs);
             }
         }
 
@@ -1441,21 +1432,35 @@ namespace DataStandardizer.File.iCal.Tests
         };
 
         // Each accessor of a view that gives memory, with the accessor that gives the same text as a span, for the line in MemoryAccessorsLine.
-        public static TheoryData<Func<IcalContentLineView, string>, Func<IcalContentLineView, string>> MemoryAndSpanAccessors =>
-            new TheoryData<Func<IcalContentLineView, string>, Func<IcalContentLineView, string>>
+        // Each memory accessor and each span accessor of a view of AccessorsLine, with what it gives: the parameter values decoded by RFC 6868
+        // and the raw ones as written, both without their quotes, and the text value unescaped by RFC 5545 §3.3.11.
+        public static TheoryData<Func<IcalContentLineView, string>, string> ViewAccessors =>
+            new TheoryData<Func<IcalContentLineView, string>, string>
             {
-                { view => view.NameMemory.ToString(), view => view.Name.ToString() },
-                { view => view.RawLineMemory.ToString(), view => view.RawLine.ToString() },
-                { view => view.RawValueMemory.ToString(), view => view.RawValue.ToString() },
-                { view => view.GetTextValueMemory().ToString(), view => view.GetTextValue().ToString() },
-                { view => view.GetParameterNameMemory(0).ToString(), view => view.GetParameterName(0).ToString() },
-                { view => view.GetParameterNameMemory(1).ToString(), view => view.GetParameterName(1).ToString() },
-                { view => view.GetParameterValueMemory(0, 0).ToString(), view => view.GetParameterValue(0, 0).ToString() },
-                { view => view.GetRawParameterValueMemory(0, 0).ToString(), view => view.GetRawParameterValue(0, 0).ToString() },
-                { view => view.GetParameterValueMemory(1, 0).ToString(), view => view.GetParameterValue(1, 0).ToString() },
-                { view => view.GetRawParameterValueMemory(1, 0).ToString(), view => view.GetRawParameterValue(1, 0).ToString() },
-                { view => view.GetParameterValueMemory(1, 1).ToString(), view => view.GetParameterValue(1, 1).ToString() },
-                { view => view.GetRawParameterValueMemory(1, 1).ToString(), view => view.GetRawParameterValue(1, 1).ToString() },
+                { view => view.NameMemory.ToString(), "ATTENDEE" },
+                { view => view.Name.ToString(), "ATTENDEE" },
+                { view => view.RawLineMemory.ToString(), AccessorsLine },
+                { view => view.RawLine.ToString(), AccessorsLine },
+                { view => view.RawValueMemory.ToString(), "mailto:a\\,b" },
+                { view => view.RawValue.ToString(), "mailto:a\\,b" },
+                { view => view.GetTextValueMemory().ToString(), "mailto:a,b" },
+                { view => view.GetTextValue().ToString(), "mailto:a,b" },
+                { view => view.GetParameterNameMemory(0).ToString(), "CN" },
+                { view => view.GetParameterName(0).ToString(), "CN" },
+                { view => view.GetParameterNameMemory(1).ToString(), "ROLE" },
+                { view => view.GetParameterName(1).ToString(), "ROLE" },
+                { view => view.GetParameterValueMemory(0, 0).ToString(), "a\"b" },
+                { view => view.GetParameterValue(0, 0).ToString(), "a\"b" },
+                { view => view.GetRawParameterValueMemory(0, 0).ToString(), "a^'b" },
+                { view => view.GetRawParameterValue(0, 0).ToString(), "a^'b" },
+                { view => view.GetParameterValueMemory(1, 0).ToString(), "X" },
+                { view => view.GetParameterValue(1, 0).ToString(), "X" },
+                { view => view.GetRawParameterValueMemory(1, 0).ToString(), "X" },
+                { view => view.GetRawParameterValue(1, 0).ToString(), "X" },
+                { view => view.GetParameterValueMemory(1, 1).ToString(), "Y" },
+                { view => view.GetParameterValue(1, 1).ToString(), "Y" },
+                { view => view.GetRawParameterValueMemory(1, 1).ToString(), "Y" },
+                { view => view.GetRawParameterValue(1, 1).ToString(), "Y" },
             };
 
         public static TheoryData<string, int> ConsistencyData()
@@ -1622,17 +1627,16 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Theory]
-        [MemberData(nameof(MemoryAndSpanAccessors), DisableDiscoveryEnumeration = true)]
-        public void MemoryAccessor_View_MatchesSpanAccessor(Func<IcalContentLineView, string> memoryAccessor, Func<IcalContentLineView, string> spanAccessor)
+        [MemberData(nameof(ViewAccessors), DisableDiscoveryEnumeration = true)]
+        public void Accessor_View_GivesThePartOfTheLine(Func<IcalContentLineView, string> accessor, string expected)
         {
             // arrange
-            using (var reader = CreateReader(Crlf("ATTENDEE;CN=a^'b;ROLE=\"X\",Y:mailto:a\\,b")))
+            using (var reader = CreateReader(Crlf(AccessorsLine)))
             {
                 reader.ReadContentLine();
-                var expected = spanAccessor(reader.CurrentLine);
 
                 // act
-                var testResult = memoryAccessor(reader.CurrentLine);
+                var testResult = accessor(reader.CurrentLine);
 
                 // assert
                 testResult.Should().Be(expected);
@@ -1641,23 +1645,17 @@ namespace DataStandardizer.File.iCal.Tests
 
         [Theory]
         [MemberData(nameof(ConsistencyData))]
-        public void ReadContentLine_EveryFixture_AgreesWithReadLine(string fixtureName, int bufferSize)
+        public void ReadContentLine_EveryFixture_ViewsItsLines(string fixtureName, int bufferSize)
         {
             // arrange
-            var text = RfcFixtures.All[fixtureName];
-            using (var viewReader = CreateReader(text, bufferSize: bufferSize))
-            using (var lineReader = CreateReader(text, bufferSize: 16 * 1024))
+            var expected = FixtureExpectations.NumberedLines[fixtureName];
+            using (var reader = CreateReader(RfcFixtures.All[fixtureName], bufferSize: bufferSize))
             {
-                var expected = ReadAll(lineReader).Select(LineSnapshot.FromLine).ToList();
-
                 // act
-                var testResult = ReadAllViews(viewReader);
+                var testResult = LineSnapshot.DescribeNumbered(ReadAllViews(reader));
 
                 // assert
-                testResult.Should().NotBeEmpty();
-                testResult.Should().BeEquivalentTo(expected, options => options.WithStrictOrdering());
-                viewReader.LinesRead.Should().Be(lineReader.LinesRead);
-                viewReader.PhysicalLinesRead.Should().Be(lineReader.PhysicalLinesRead);
+                testResult.Should().Equal(expected);
             }
         }
 
@@ -1806,30 +1804,6 @@ namespace DataStandardizer.File.iCal.Tests
             }
         }
 
-        [Fact]
-        public void Dispose_FilePath_ClosesFile()
-        {
-            // arrange
-            var testFilePath = Path.GetTempFileName();
-            try
-            {
-                System.IO.File.WriteAllText(testFilePath, Crlf(LineA));
-                var reader = new IcalContentLineReader(testFilePath);
-                reader.ReadLine();
-
-                // act
-                reader.Dispose();
-
-                // assert
-                Action openAction = () => new FileStream(testFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None).Dispose();
-                openAction.Should().NotThrow();
-            }
-            finally
-            {
-                System.IO.File.Delete(testFilePath);
-            }
-        }
-
         #endregion
 
         #region Constructors
@@ -1890,62 +1864,66 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public void Constructor_Stream_UsesStreamBufferSize()
+        public void Constructor_Stream_ReadsThroughAFoldRealigningStreamOverTheStream()
         {
             // arrange
-            using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(Crlf(LineA))))
+            using (var stream = new MemoryStream(LineAInAscii))
             using (var reader = new IcalContentLineReader(stream))
             {
                 // act
-                var testResult = ReaderInspector.GetUnderlyingReader(reader);
+                var testResult = reader.UnderlyingReader;
 
                 // assert
                 var streamReader = testResult.Should().BeOfType<StreamReader>().Subject;
-                ReaderInspector.GetBufferSize(streamReader).Should().Be(IcalContentLineReader.StreamBufferSize);
-                streamReader.BaseStream.Should().BeOfType<Utf8FoldRealigningStream>();
+                var foldRealigningStream = streamReader.BaseStream.Should().BeOfType<Utf8FoldRealigningStream>().Subject;
+                foldRealigningStream.InnerStream.Should().BeSameAs(stream);
             }
         }
 
         [Fact]
-        public void Constructor_FilePath_UsesStreamBufferSize()
+        public void ReadLine_Stream_ReadsTheStreamInBlocksOfTheStreamBufferSize()
         {
             // arrange
-            var testFilePath = Path.GetTempFileName();
-            try
+            var stream = new ReadRecordingStream(LineAInAscii);
+            using (var reader = new IcalContentLineReader(stream))
             {
-                using (var reader = new IcalContentLineReader(testFilePath))
-                {
-                    // act
-                    var testResult = ReaderInspector.GetUnderlyingReader(reader);
+                // act
+                reader.ReadLine();
 
-                    // assert
-                    var streamReader = testResult.Should().BeOfType<StreamReader>().Subject;
-                    ReaderInspector.GetBufferSize(streamReader).Should().Be(IcalContentLineReader.StreamBufferSize);
-                    var foldRealigningStream = streamReader.BaseStream.Should().BeOfType<Utf8FoldRealigningStream>().Subject;
-                    var fileStream = ReaderInspector.GetInnerStream(foldRealigningStream).Should().BeOfType<FileStream>().Subject;
-                    ReaderInspector.GetBufferSize(fileStream).Should().Be(IcalContentLineReader.StreamBufferSize);
-                }
-            }
-            finally
-            {
-                System.IO.File.Delete(testFilePath);
+                // assert
+                stream.RequestedCounts.Should().Equal(StreamBufferSize, StreamBufferSize);
             }
         }
 
         [Fact]
-        public void Constructor_StreamWithOtherEncoding_DoesNotRealignFolds()
+        public void Constructor_StreamWithOtherEncoding_ReadsTheStreamWithoutRealigningFolds()
         {
             // arrange
-            using (var stream = new MemoryStream(IcalTestData.Latin1.GetBytes(Crlf(LineA))))
+            using (var stream = new MemoryStream(LineAInAscii))
             using (var reader = new IcalContentLineReader(stream, new IcalOptions { Encoding = IcalTestData.Latin1 }))
             {
                 // act
-                var testResult = ReaderInspector.GetUnderlyingReader(reader);
+                var testResult = reader.UnderlyingReader;
 
                 // assert
                 var streamReader = testResult.Should().BeOfType<StreamReader>().Subject;
                 streamReader.BaseStream.Should().BeSameAs(stream);
                 streamReader.CurrentEncoding.Should().Be(IcalTestData.Latin1);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_StreamWithOtherEncoding_ReadsTheStreamInBlocksOfTheStreamBufferSize()
+        {
+            // arrange
+            var stream = new ReadRecordingStream(LineAInAscii);
+            using (var reader = new IcalContentLineReader(stream, new IcalOptions { Encoding = IcalTestData.Latin1 }))
+            {
+                // act
+                reader.ReadLine();
+
+                // assert
+                stream.RequestedCounts.Should().Equal(StreamBufferSize, StreamBufferSize);
             }
         }
 

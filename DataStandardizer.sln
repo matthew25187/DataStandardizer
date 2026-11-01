@@ -59,6 +59,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataStandardizer.LanguageTa
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataStandardizer.LanguageTag.IntegrationTests", "tests\DataStandardizer.LanguageTag.IntegrationTests\DataStandardizer.LanguageTag.IntegrationTests.csproj", "{BB4B43BD-5BBC-4A06-BFA5-1295233870C4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataStandardizer.File.iCal.IntegrationTests", "tests\DataStandardizer.File.iCal.IntegrationTests\DataStandardizer.File.iCal.IntegrationTests.csproj", "{6979CA78-EAA5-45F1-950B-9CAF773C9E87}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -165,6 +167,10 @@ Global
 		{BB4B43BD-5BBC-4A06-BFA5-1295233870C4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BB4B43BD-5BBC-4A06-BFA5-1295233870C4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BB4B43BD-5BBC-4A06-BFA5-1295233870C4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6979CA78-EAA5-45F1-950B-9CAF773C9E87}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6979CA78-EAA5-45F1-950B-9CAF773C9E87}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6979CA78-EAA5-45F1-950B-9CAF773C9E87}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6979CA78-EAA5-45F1-950B-9CAF773C9E87}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -195,6 +201,7 @@ Global
 		{8D279F9E-CA34-41D8-8646-5FBFE8799B4C} = {66320409-64EC-F7C5-3DEF-65E7510DAAD1}
 		{5D0EDE81-858B-4E23-BB4E-58A10967FFAB} = {66320409-64EC-F7C5-3DEF-65E7510DAAD1}
 		{BB4B43BD-5BBC-4A06-BFA5-1295233870C4} = {B9FDB3AD-0254-49E2-B2B8-20BC6B0AB93B}
+		{6979CA78-EAA5-45F1-950B-9CAF773C9E87} = {B9FDB3AD-0254-49E2-B2B8-20BC6B0AB93B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D102BDCC-44EF-4389-9803-1D0385E0F7B8}

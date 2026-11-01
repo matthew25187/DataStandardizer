@@ -97,7 +97,19 @@ namespace DataStandardizer.File.iCal
         /// transition has no <see cref="IcalTimeZoneTransition.Name"/>, as <see cref="TimeZoneInfo"/> gives no customary abbreviation.
         /// </para>
         /// </remarks>
-        public static IIcalTimeZoneResolver System { get; } = new SystemResolver();
+        public static IIcalTimeZoneResolver System { get; } = new SystemResolver(TimeZoneInfo.FindSystemTimeZoneById);
+
+        /// <summary>
+        /// Creates a resolver that works as <see cref="System"/> does, but finds each time zone with <paramref name="findTimeZone"/> rather than
+        /// <see cref="TimeZoneInfo.FindSystemTimeZoneById"/>, so that tests can supply time zones of their own in place of the operating
+        /// system's.
+        /// </summary>
+        /// <param name="findTimeZone">Finds a time zone by its identifier, and throws as <see cref="TimeZoneInfo.FindSystemTimeZoneById"/> does
+        /// when there is none.</param>
+        internal static IIcalTimeZoneResolver CreateSystemResolver(Func<string, TimeZoneInfo> findTimeZone)
+        {
+            return new SystemResolver(findTimeZone);
+        }
 #endif
 
         /// <summary>
@@ -278,6 +290,13 @@ namespace DataStandardizer.File.iCal
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
         private sealed class SystemResolver : IIcalTimeZoneResolver
         {
+            private readonly Func<string, TimeZoneInfo> _findTimeZone;
+
+            public SystemResolver(Func<string, TimeZoneInfo> findTimeZone)
+            {
+                _findTimeZone = findTimeZone;
+            }
+
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             public bool TryResolve(string timeZoneId, IcalCalendar? calendar, [NotNullWhen(true)] out IcalTimeZoneRules? rules)
 #else
@@ -293,7 +312,7 @@ namespace DataStandardizer.File.iCal
 #else
                 TimeZoneInfo timeZone;
 #endif
-                if (!IcalSystemTimeZoneRules.TryFindTimeZone(timeZoneId, out timeZone) || timeZone is null) return false;
+                if (!IcalSystemTimeZoneRules.TryFindTimeZone(timeZoneId, _findTimeZone, out timeZone) || timeZone is null) return false;
 
                 rules = new IcalSystemTimeZoneRules(timeZoneId, timeZone);
                 return true;

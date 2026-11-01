@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net48;net8.0;net10.0</TargetFrameworks>
+
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="FluentAssertions" Version="[7.2.0]" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.0" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\DataStandardizer.File.iCal\DataStandardizer.File.iCal.csproj" />
+    <!-- Builds the netstandard1.1 target too, without referencing it, so that JcalPlatformTests can check it has no jCal types.
+         CopyNetStandard11Build copies it to the netstandard1.1 folder of the output. -->
+    <ProjectReference Include="..\..\src\DataStandardizer.File.iCal\DataStandardizer.File.iCal.csproj" SetTargetFramework="TargetFramework=netstandard1.1"
+                      ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" Private="false" OutputItemType="NetStandard11Build" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The test data, and the helpers that read, write and sample it, are shared with the unit tests. -->
+    <Compile Include="..\DataStandardizer.File.iCal.Tests\AsyncDisposal.cs" Link="Shared\AsyncDisposal.cs" />
+    <Compile Include="..\DataStandardizer.File.iCal.Tests\AsyncTestSources.cs" Link="Shared\AsyncTestSources.cs" />
+    <Compile Include="..\DataStandardizer.File.iCal.Tests\IcalLines.cs" Link="Shared\IcalLines.cs" />
+    <Compile Include="..\DataStandardizer.File.iCal.Tests\IcalTestData.cs" Link="Shared\IcalTestData.cs" />
+    <Compile Include="..\DataStandardizer.File.iCal.Tests\JcalTestData.cs" Link="Shared\JcalTestData.cs" />
+    <Compile Include="..\DataStandardizer.File.iCal.Tests\LineSnapshot.cs" Link="Shared\LineSnapshot.cs" />
+    <Compile Include="..\DataStandardizer.File.iCal.Tests\ModelTestData.cs" Link="Shared\ModelTestData.cs" />
+    <Compile Include="..\DataStandardizer.File.iCal.Tests\Rfc5545Examples.cs" Link="Shared\Rfc5545Examples.cs" />
+    <Compile Include="..\DataStandardizer.File.iCal.Tests\RfcFixtures.cs" Link="Shared\RfcFixtures.cs" />
+    <Compile Include="..\DataStandardizer.File.iCal.Tests\TimeZoneRulesProbe.cs" Link="Shared\TimeZoneRulesProbe.cs" />
+    <Compile Include="..\DataStandardizer.File.iCal.Tests\TimeZoneTransitions.cs" Link="Shared\TimeZoneTransitions.cs" />
+    <Compile Include="..\DataStandardizer.File.iCal.Tests\XcalTestData.cs" Link="Shared\XcalTestData.cs" />
+  </ItemGroup>
+
+  <Target Name="CopyNetStandard11Build" AfterTargets="CopyFilesToOutputDirectory">
+    <Copy SourceFiles="@(NetStandard11Build)" DestinationFolder="$(OutDir)netstandard1.1" SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>
