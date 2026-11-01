@@ -255,14 +255,14 @@ public class TzDataModelTests
     public void GetHashCode_UntilsWithSameValues_ReturnsSameHashCode()
     {
         // arrange
-        var testLeft = CreateUntil();
-        var testRight = CreateUntil();
+        var testUntil = CreateUntil();
+        var expectedResult = CreateUntil().GetHashCode();
 
         // act
-        var testResult = (Left: testLeft.GetHashCode(), Right: testRight.GetHashCode());
+        var testResult = testUntil.GetHashCode();
 
         // assert
-        testResult.Left.Should().Be(testResult.Right);
+        testResult.Should().Be(expectedResult, "equal values have equal hash codes");
     }
 
     [Fact]
@@ -390,14 +390,14 @@ public class TzDataModelTests
     public void GetHashCode_TransitionsWithSameValues_ReturnsSameHashCode()
     {
         // arrange
-        var testLeft = new TzDataTransition(BritishSummerTimeStart2024, CreateGreenwichMeanTimeUntil2024SummerTime(), CreateBritishSummerTimeFrom2024());
-        var testRight = new TzDataTransition(BritishSummerTimeStart2024, CreateGreenwichMeanTimeUntil2024SummerTime(), CreateBritishSummerTimeFrom2024());
+        var testTransition = new TzDataTransition(BritishSummerTimeStart2024, CreateGreenwichMeanTimeUntil2024SummerTime(), CreateBritishSummerTimeFrom2024());
+        var expectedResult = new TzDataTransition(BritishSummerTimeStart2024, CreateGreenwichMeanTimeUntil2024SummerTime(), CreateBritishSummerTimeFrom2024()).GetHashCode();
 
         // act
-        var testResult = (Left: testLeft.GetHashCode(), Right: testRight.GetHashCode());
+        var testResult = testTransition.GetHashCode();
 
         // assert
-        testResult.Left.Should().Be(testResult.Right);
+        testResult.Should().Be(expectedResult, "equal values have equal hash codes");
     }
 
     [Fact]

@@ -4,7 +4,7 @@ namespace DataStandardizer.Chronology.IntegrationTests;
 /// The outcome of running calls on several threads at once.
 /// </summary>
 /// <typeparam name="TResult">The type of the result of each thread.</typeparam>
-/// <param name="Joined">Whether every thread finished within the timeout.</param>
+/// <param name="Joined">Whether every thread finished within the timeout, measured from when the threads started.</param>
 /// <param name="Results">The result of each thread, or the default value for a thread that threw or did not finish.</param>
 /// <param name="Exceptions">The exception that each thread threw, or <see langword="null"/> for a thread that did not throw.</param>
 internal sealed record ConcurrentRun<TResult>(bool Joined, IReadOnlyList<TResult?> Results, IReadOnlyList<Exception?> Exceptions);
@@ -87,9 +87,14 @@ internal static class ConcurrentRunner
         foreach (var thread in threads)
             thread.Start();
 
+        // One deadline for every thread, so that the run as a whole must finish within the timeout.
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         var joined = true;
         foreach (var thread in threads)
-            joined &= thread.Join(timeout);
+        {
+            var remaining = timeout - stopwatch.Elapsed;
+            joined &= thread.Join(remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero);
+        }
 
         // A thread that has not finished may still be using the barrier.
         if (joined)
