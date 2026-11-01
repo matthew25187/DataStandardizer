@@ -59,9 +59,11 @@ Console.WriteLine(charset); // US-ASCII
 ```csharp
 using System.Text;
 
+byte[] bytes = { 0x63, 0x61, 0x66, 0xE9 };
+
 if (MimeCharsetResolver.Default.TryGetEncoding(MimeCharset.Parse("latin1"), out var encoding))
 {
-    var text = encoding.GetString(bytes);
+    var text = encoding.GetString(bytes); // café
 }
 ```
 
