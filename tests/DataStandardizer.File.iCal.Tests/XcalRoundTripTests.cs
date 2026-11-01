@@ -129,6 +129,7 @@ namespace DataStandardizer.File.iCal.Tests
             // arrange: write the calendar with the one accommodation it needs, then read it with the defaults.
             var testCase = ConformanceCases.All[caseName];
             var xcal = WriteXcal(ReadCalendars(testCase.Text, testCase.AcceptingOptions), testCase.AcceptingOptions);
+            var icalException = Record.Exception(() => ReadCalendars(testCase.Text));
 
             // act
             Action testAction = () => ReadXcal(xcal);
@@ -138,6 +139,7 @@ namespace DataStandardizer.File.iCal.Tests
             exception.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(testCase.Kind, caseName);
             exception.Data[IcalFileException.DataItemName.ComponentPath].Should().Be(testCase.ComponentPath, caseName);
             exception.Data[IcalFileException.DataItemName.PropertyName].Should().Be(testCase.PropertyName, caseName);
+            exception.Message.Should().Be(icalException.Message, caseName);
         }
 
         [Theory]
