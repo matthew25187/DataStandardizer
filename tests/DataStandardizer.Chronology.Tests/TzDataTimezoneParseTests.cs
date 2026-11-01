@@ -1,42 +1,42 @@
-using System.Reflection;
 using FluentAssertions;
 
 namespace DataStandardizer.Chronology.Tests;
 
 public class TzDataTimezoneParseTests
 {
-    private static readonly Lazy<IReadOnlyDictionary<string, FieldInfo>> TimezoneFields = new(() => GetTimezoneFields(typeof(TzDataTimezone)).ToDictionary(GetIdentifier, StringComparer.Ordinal));
+    private const string UnknownIdentifier = "Europe/Atlantis";
+    private const string NotKnownBecause = "'{0}' is not the identifier of a known timezone";
 
-    public static IEnumerable<object[]> TimezoneField_TestCases => TimezoneFields.Value.Keys.Select(identifier => new object[] { identifier });
+    // Identifiers of zone1970.tab in TZ Database 2026e.
+    private const string ZurichIdentifier = "Europe/Zurich";
+    private const string BuenosAiresIdentifier = "America/Argentina/Buenos_Aires";
+    private const string AucklandIdentifier = "Pacific/Auckland";
 
-    public static IEnumerable<object[]> UnknownIdentifier_TestCases =>
-    [
-        [string.Empty],
-        [" "],
-        ["Europe/Atlantis"],
-        ["europe/zurich"],
-        ["EUROPE/ZURICH"],
-        [" Europe/Zurich"],
-        ["Europe/Zurich "],
-        ["Europe"],
-        ["Zurich"],
-    ];
+    // The precision to which a coordinate in degrees and minutes is compared, after conversion to decimal degrees.
+    private const double CoordinateTolerance = 1e-9;
 
-    private static string GetIdentifier(FieldInfo field)
+    // Europe/Zurich in zone1970.tab of TZ Database 2026e: the ISO 6709 coordinates +4723+00832 in decimal degrees,
+    // and the country codes CH,DE,LI (ISO 3166-1 alpha-2 codes).
+    private const double ZurichLatitude = 47 + 23 / 60D;
+    private const double ZurichLongitude = 8 + 32 / 60D;
+    private const string Switzerland = "CH";
+    private const string Germany = "DE";
+    private const string Liechtenstein = "LI";
+
+    public static TheoryData<string> TimezoneField_TestCases => TimezoneFieldCatalog.CreateIdentifierTestCases();
+
+    public static TheoryData<string> UnknownIdentifier_TestCases => new()
     {
-        string? identifier = (TzDataTimezone)field.GetValue(null)!;
-        return identifier!;
-    }
-
-    private static IEnumerable<FieldInfo> GetTimezoneFields(Type hostType)
-    {
-        var fields = hostType.GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
-            .Where(field => field.FieldType == typeof(TzDataTimezone));
-        var nestedFields = hostType.GetNestedTypes(BindingFlags.Public)
-            .SelectMany(GetTimezoneFields);
-
-        return fields.Concat(nestedFields);
-    }
+        string.Empty,
+        " ",
+        UnknownIdentifier,
+        "europe/zurich",
+        "EUROPE/ZURICH",
+        " Europe/Zurich",
+        "Europe/Zurich ",
+        "Europe",
+        "Zurich",
+    };
 
     private static T ParseAs<T>(string s) where T : IParsable<T>
     {
@@ -49,26 +49,40 @@ public class TzDataTimezoneParseTests
     }
 
     [Theory]
-    [MemberData(nameof(TimezoneField_TestCases))]
+    [MemberData(nameof(TimezoneField_TestCases), DisableDiscoveryEnumeration = true)]
     public void Parse_TimezoneIdentifier_ReturnsField(string testIdentifier)
     {
         // arrange
-        var expectedResult = (TzDataTimezone)TimezoneFields.Value[testIdentifier].GetValue(null)!;
+        var expectedResult = TimezoneFieldCatalog.Timezones[testIdentifier];
 
         // act
         var testResult = TzDataTimezone.Parse(testIdentifier);
 
         // assert
         testResult.Should().Be(expectedResult, "{0} parses to the field with that identifier", testIdentifier);
-        testResult.ZoneLines.Should().Equal(expectedResult.ZoneLines, "{0} parses to a timezone with the zone lines of its field", testIdentifier);
     }
 
     [Theory]
-    [MemberData(nameof(TimezoneField_TestCases))]
+    [MemberData(nameof(TimezoneField_TestCases), DisableDiscoveryEnumeration = true)]
+    public void ZoneLines_ParsedTimezoneIdentifier_AreThoseOfField(string testIdentifier)
+    {
+        // arrange
+        var testTimezone = TzDataTimezone.Parse(testIdentifier);
+        var expectedResult = TimezoneFieldCatalog.Timezones[testIdentifier].ZoneLines;
+
+        // act
+        var testResult = testTimezone.ZoneLines;
+
+        // assert
+        testResult.Should().Equal(expectedResult, (parsedZoneLine, fieldZoneLine) => ReferenceEquals(parsedZoneLine, fieldZoneLine), "{0} parses to a timezone with the zone lines of its field", testIdentifier);
+    }
+
+    [Theory]
+    [MemberData(nameof(TimezoneField_TestCases), DisableDiscoveryEnumeration = true)]
     public void TryParse_TimezoneIdentifier_ReturnsTrueAndField(string testIdentifier)
     {
         // arrange
-        var expectedResult = (TzDataTimezone)TimezoneFields.Value[testIdentifier].GetValue(null)!;
+        var expectedResult = TimezoneFieldCatalog.Timezones[testIdentifier];
 
         // act
         var testSuccess = TzDataTimezone.TryParse(testIdentifier, out var testResult);
@@ -76,24 +90,55 @@ public class TzDataTimezoneParseTests
         // assert
         testSuccess.Should().BeTrue("{0} is the identifier of a known timezone", testIdentifier);
         testResult.Should().Be(expectedResult, "{0} parses to the field with that identifier", testIdentifier);
-        testResult.ZoneLines.Should().Equal(expectedResult.ZoneLines, "{0} parses to a timezone with the zone lines of its field", testIdentifier);
     }
 
     [Fact]
-    public void Parse_EuropeZurich_ReturnsTimezoneWithMetadata()
+    public void Parse_EuropeZurich_ReturnsField()
     {
-        // arrange
-        var testIdentifier = "Europe/Zurich";
-
         // act
-        var testResult = TzDataTimezone.Parse(testIdentifier);
+        var testResult = TzDataTimezone.Parse(ZurichIdentifier);
 
         // assert
         testResult.Should().Be(TzDataTimezone.Europe.Zurich);
-        testResult.ZoneLines.Should().Equal(TzDataTimezone.Europe.Zurich.ZoneLines);
-        testResult.IsoCountryCodes.Should().Equal(TzDataTimezone.Europe.Zurich.IsoCountryCodes);
-        testResult.Latitude.Should().Be(TzDataTimezone.Europe.Zurich.Latitude);
-        testResult.Longitude.Should().Be(TzDataTimezone.Europe.Zurich.Longitude);
+    }
+
+    [Fact]
+    public void IsoCountryCodes_ParsedEuropeZurich_ReturnsCountryCodesFromZone1970Tab()
+    {
+        // arrange
+        var testTimezone = TzDataTimezone.Parse(ZurichIdentifier);
+
+        // act
+        var testResult = testTimezone.IsoCountryCodes;
+
+        // assert
+        testResult.Should().Equal(Switzerland, Germany, Liechtenstein);
+    }
+
+    [Fact]
+    public void Latitude_ParsedEuropeZurich_ReturnsLatitudeFromZone1970Tab()
+    {
+        // arrange
+        var testTimezone = TzDataTimezone.Parse(ZurichIdentifier);
+
+        // act
+        var testResult = testTimezone.Latitude;
+
+        // assert
+        testResult.Should().BeApproximately(ZurichLatitude, CoordinateTolerance);
+    }
+
+    [Fact]
+    public void Longitude_ParsedEuropeZurich_ReturnsLongitudeFromZone1970Tab()
+    {
+        // arrange
+        var testTimezone = TzDataTimezone.Parse(ZurichIdentifier);
+
+        // act
+        var testResult = testTimezone.Longitude;
+
+        // assert
+        testResult.Should().BeApproximately(ZurichLongitude, CoordinateTolerance);
     }
 
     [Theory]
@@ -101,10 +146,10 @@ public class TzDataTimezoneParseTests
     public void Parse_UnknownIdentifier_ThrowsFormatException(string testIdentifier)
     {
         // act
-        var testAction = () => TzDataTimezone.Parse(testIdentifier);
+        Action testAction = () => TzDataTimezone.Parse(testIdentifier);
 
         // assert
-        testAction.Should().Throw<FormatException>("'{0}' is not the identifier of a known timezone", testIdentifier);
+        testAction.Should().Throw<FormatException>(NotKnownBecause, testIdentifier);
     }
 
     [Theory]
@@ -115,7 +160,7 @@ public class TzDataTimezoneParseTests
         var testSuccess = TzDataTimezone.TryParse(testIdentifier, out var testResult);
 
         // assert
-        testSuccess.Should().BeFalse("'{0}' is not the identifier of a known timezone", testIdentifier);
+        testSuccess.Should().BeFalse(NotKnownBecause, testIdentifier);
         testResult.Should().Be(default(TzDataTimezone));
     }
 
@@ -123,7 +168,7 @@ public class TzDataTimezoneParseTests
     public void Parse_Null_ThrowsArgumentNullException()
     {
         // act
-        var testAction = () => TzDataTimezone.Parse(null!);
+        Action testAction = () => TzDataTimezone.Parse(null!);
 
         // assert
         testAction.Should().Throw<ArgumentNullException>().WithParameterName("s");
@@ -144,18 +189,17 @@ public class TzDataTimezoneParseTests
     public void ParseAs_TimezoneIdentifier_ReturnsField()
     {
         // act
-        var testResult = ParseAs<TzDataTimezone>("America/Argentina/Buenos_Aires");
+        var testResult = ParseAs<TzDataTimezone>(BuenosAiresIdentifier);
 
         // assert
         testResult.Should().Be(TzDataTimezone.America.Argentina.Buenos_Aires);
-        testResult.ZoneLines.Should().Equal(TzDataTimezone.America.Argentina.Buenos_Aires.ZoneLines);
     }
 
     [Fact]
     public void ParseAs_UnknownIdentifier_ThrowsFormatException()
     {
         // act
-        var testAction = () => ParseAs<TzDataTimezone>("Europe/Atlantis");
+        Action testAction = () => ParseAs<TzDataTimezone>(UnknownIdentifier);
 
         // assert
         testAction.Should().Throw<FormatException>();
@@ -165,7 +209,7 @@ public class TzDataTimezoneParseTests
     public void TryParseAs_TimezoneIdentifier_ReturnsTrueAndField()
     {
         // act
-        var testSuccess = TryParseAs<TzDataTimezone>("Pacific/Auckland", out var testResult);
+        var testSuccess = TryParseAs<TzDataTimezone>(AucklandIdentifier, out var testResult);
 
         // assert
         testSuccess.Should().BeTrue();

@@ -1,6 +1,69 @@
 #Requires -Version 7.4
 
-# Decides which packages a build covers.  Used by ResolveBuildPlan.ps1.
+# Decides which packages a build covers, and finds their test projects.  Used by ResolveBuildPlan.ps1 and
+# InvokePackageTests.ps1.
+
+# A package's test projects, tests/<Package><suffix>, by kind, in the order they run: unit tests, then integration tests.  A
+# package with tests enabled must have unit tests; its integration test project is optional.
+$script:TestProjectSuffixByKind = [ordered]@{
+    Unit        = '.Tests'
+    Integration = '.IntegrationTests'
+}
+
+function Get-TestProjectName {
+    <#
+    .SYNOPSIS
+    The names of a package's test projects of the given kinds, in the order they run.  A test project's name is also its
+    folder under tests/ and its assembly name: <Package>.Tests for unit tests, <Package>.IntegrationTests for integration
+    tests.  Without -Kind, every kind's.
+    #>
+    [OutputType([string[]])]
+    param (
+        [Parameter(Mandatory)]
+        [string]    $PackageName,
+
+        [Parameter()]
+        [ValidateSet('Unit', 'Integration')]
+        [string[]]  $Kind = @('Unit', 'Integration')
+    )
+
+    return [string[]]@($script:TestProjectSuffixByKind.Keys |
+        Where-Object { $Kind -contains $_ } |
+        ForEach-Object { "$PackageName$($script:TestProjectSuffixByKind[$_])" })
+}
+
+function Get-TestAssemblyPath {
+    <#
+    .SYNOPSIS
+    A test project's built assemblies, one per target framework (bin/<Configuration>/<framework>/<Project>.dll), sorted by
+    path.  Not the reference assemblies in <framework>/ref/; and not .NET Framework (net4*) unless -IncludeNetFramework, as it
+    runs only on Windows.
+    #>
+    [OutputType([string[]])]
+    param (
+        # The test project's folder, tests/<Project>.  Its name is the project's name.
+        [Parameter(Mandatory)]
+        [string]    $ProjectFolderPath,
+
+        [Parameter(Mandatory)]
+        [string]    $Configuration,
+
+        [Parameter()]
+        [bool]      $IncludeNetFramework = $IsWindows
+    )
+
+    $projectName = Split-Path -Path $ProjectFolderPath -Leaf
+    $binFolderPath = Join-Path $ProjectFolderPath 'bin' $Configuration
+    if (-not (Test-Path -LiteralPath $binFolderPath -PathType Container)) {
+        return [string[]]@()
+    }
+
+    return [string[]]@(Get-ChildItem -LiteralPath $binFolderPath -Directory |
+        Where-Object { $IncludeNetFramework -or $_.Name -notlike 'net4*' } |
+        ForEach-Object { Join-Path $_.FullName "$projectName.dll" } |
+        Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } |
+        Sort-Object)
+}
 
 function Test-PathInFolder {
     <#
@@ -155,13 +218,12 @@ function Get-ProjectPackageName {
         Sort-Object -Property { ($_.packageSourcePath -split '[/\\]').Count } -Descending |
         Select-Object -First 1 -ExpandProperty packageName
 
-    # A test project tests/<Package>.Tests maps to <Package>.
+    # A test project, tests/<Package>.Tests or tests/<Package>.IntegrationTests, maps to <Package>.
     if ([string]::IsNullOrEmpty($packageName)) {
         $projectFolders = $ProjectFolderPath -split '[/\\]'
-        if ($projectFolders.Count -eq 2 -and $projectFolders[0] -eq 'tests' -and $projectFolders[1].EndsWith('.Tests', [System.StringComparison]::OrdinalIgnoreCase)) {
-            $testedPackageName = $projectFolders[1].Substring(0, $projectFolders[1].Length - '.Tests'.Length)
+        if ($projectFolders.Count -eq 2 -and $projectFolders[0] -eq 'tests') {
             $packageName = $PackageInfo |
-                Where-Object -Property packageName -EQ -Value $testedPackageName |
+                Where-Object { (Get-TestProjectName -PackageName $_.packageName) -contains $projectFolders[1] } |
                 Select-Object -First 1 -ExpandProperty packageName
         }
     }
@@ -266,7 +328,7 @@ function Get-TestPackageName {
 function Get-ChangedTestPackageName {
     <#
     .SYNOPSIS
-    The packages whose tests, tests/<Package>.Tests, the commit being built changes.
+    The packages whose tests, tests/<Package>.Tests or tests/<Package>.IntegrationTests, the commit being built changes.
 
     .DESCRIPTION
     Their tests are built and run even when the package itself is unchanged, but a test change never makes a package changed,
@@ -297,8 +359,10 @@ function Get-ChangedTestPackageName {
 
     return [string[]]@($TestPackageName |
         Where-Object {
-            $testFolderPath = "tests/$_.Tests/"
-            $changedFiles | Where-Object { $_.StartsWith($testFolderPath, [System.StringComparison]::Ordinal) } | Select-Object -First 1
+            $testFolderPaths = @(Get-TestProjectName -PackageName $_ | ForEach-Object { "tests/$_/" })
+            $changedFiles |
+                Where-Object { $changedFile = $_; $testFolderPaths | Where-Object { $changedFile.StartsWith($_, [System.StringComparison]::Ordinal) } } |
+                Select-Object -First 1
         })
 }
 
@@ -417,4 +481,5 @@ function Get-TestMatrix {
 }
 
 Export-ModuleMember -Function Test-PathInFolder, Get-PackageBaselineTag, Get-ChangedPackageName, Get-DependentPackageName, `
-    Get-TestPackageName, Get-ChangedTestPackageName, Get-BuildPlan, Get-BuildMatrix, Get-TestMatrix
+    Get-TestPackageName, Get-ChangedTestPackageName, Get-BuildPlan, Get-BuildMatrix, Get-TestMatrix, Get-TestProjectName, `
+    Get-TestAssemblyPath, Get-ProjectPackageName

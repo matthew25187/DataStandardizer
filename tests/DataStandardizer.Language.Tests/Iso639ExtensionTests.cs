@@ -6,6 +6,67 @@ namespace DataStandardizer.Language.Tests;
 [SuppressMessage("ReSharper", "InconsistentNaming")]
 public class Iso639ExtensionTests
 {
+    // ISO 639-1, ISO 639-2 and ISO 639-5 codes, and the English and French names of each language
+    // and language family, from the code lists of the ISO 639-2 Registration Authority (Library of
+    // Congress): https://www.loc.gov/standards/iso639-2/php/code_list.php and
+    // https://www.loc.gov/standards/iso639-5/id.php
+    // ISO 639-3 names and macrolanguage mappings from the code tables of the ISO 639-3 Registration
+    // Authority (SIL International): https://iso639-3.sil.org/code_tables/download_tables
+
+    // ISO 639-2 eng (ISO 639-1 en): English name; also the ISO 639-3 reference name of eng.
+    private const string EnglishEnglishName = "English";
+
+    // ISO 639-2 cat (ISO 639-1 ca): English names.
+    private const string CatalanEnglishName = "Catalan";
+    private const string CatalanAlternativeEnglishName = "Valencian";
+
+    // ISO 639-5 gem: English name.
+    private const string GermanicLanguagesEnglishName = "Germanic languages";
+
+    // ISO 639-2 fre/fra (ISO 639-1 fr): French name.
+    private const string FrenchFrenchName = "français";
+
+    // ISO 639-5 ine: French name.
+    private const string IndoEuropeanLanguagesFrenchName = "indo-européennes, langues";
+
+    // ISO 639-2 gla (ISO 639-1 gd): French names.
+    private const string ScottishGaelicFrenchName = "gaélique";
+    private const string ScottishGaelicAlternativeFrenchName = "gaélique écossais";
+
+    // ISO 639-2 gsw: French names.
+    private const string SwissGermanFrenchName = "suisse alémanique";
+    private const string SwissGermanAlemannicFrenchName = "alémanique";
+    private const string SwissGermanAlsatianFrenchName = "alsacien";
+
+    // ISO 639-2 nno: French names.
+    private const string NorwegianNynorskFrenchName = "norvégien nynorsk";
+    private const string NorwegianNynorskInvertedFrenchName = "nynorsk, norvégien";
+
+    // ISO 639-5 cel: French names.
+    private const string CelticLanguagesFrenchName = "celtiques, langues";
+    private const string CelticLanguagesAlternativeFrenchName = "celtes, langues";
+
+    // ISO 639-3 rcf: inverted name.
+    private const string ReunionCreoleFrenchInvertedName = "Creole French, Réunion";
+
+    // ISO 639-3 macrolanguage mappings: ind (Indonesian) is an individual language of msa (Malay).
+    private const string IndonesianMacrolanguageCode = "msa";
+
+    // ISO 639-2 arm/hye: ISO 639-1 code of Armenian.
+    private const string ArmenianPart1Code = "hy";
+
+    // ISO 639-3 mri: ISO 639-1 code of Māori.
+    private const string MaoriPart1Code = "mi";
+
+    // ISO 639-1 mi (ISO 639-3 mri): ISO 639-2/B code of Māori.
+    private const string MaoriPart2BCode = "mao";
+
+    // ISO 639-1 mi (ISO 639-3 mri): ISO 639-2/T code of Māori.
+    private const string MaoriPart2TCode = "mri";
+
+    // ISO 639-3 hun: print name.
+    private const string HungarianPrintName = "Hungarian";
+
     #region Test: GetEnglishName_OnIso639Part1LanguageCode
 
     [Theory]
@@ -23,7 +84,7 @@ public class Iso639ExtensionTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { Iso639Part1Language.en, "English" }; }
+            get { yield return new object[] { Iso639Part1Language.en, EnglishEnglishName }; }
         }
     }
 
@@ -46,7 +107,7 @@ public class Iso639ExtensionTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { Iso639Part2BLanguage.eng, "English" }; }
+            get { yield return new object[] { Iso639Part2BLanguage.eng, EnglishEnglishName }; }
         }
     }
 
@@ -69,7 +130,7 @@ public class Iso639ExtensionTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { Iso639Part2TLanguage.eng, "English" }; }
+            get { yield return new object[] { Iso639Part2TLanguage.eng, EnglishEnglishName }; }
         }
     }
 
@@ -92,7 +153,7 @@ public class Iso639ExtensionTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { Iso639Part3Language.eng, "English" }; }
+            get { yield return new object[] { Iso639Part3Language.eng, EnglishEnglishName }; }
         }
     }
 
@@ -115,7 +176,7 @@ public class Iso639ExtensionTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { Iso639Part5LanguageFamily.gem, "Germanic languages" }; }
+            get { yield return new object[] { Iso639Part5LanguageFamily.gem, GermanicLanguagesEnglishName }; }
         }
     }
 
@@ -138,7 +199,7 @@ public class Iso639ExtensionTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { Iso639Part1Language.ca, new[] { "Catalan", "Valencian" } }; }
+            get { yield return new object[] { Iso639Part1Language.ca, new[] { CatalanEnglishName, CatalanAlternativeEnglishName } }; }
         }
     }
 
@@ -161,7 +222,7 @@ public class Iso639ExtensionTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { Iso639Part2BLanguage.cat, new[] { "Catalan", "Valencian" } }; }
+            get { yield return new object[] { Iso639Part2BLanguage.cat, new[] { CatalanEnglishName, CatalanAlternativeEnglishName } }; }
         }
     }
 
@@ -184,7 +245,7 @@ public class Iso639ExtensionTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { Iso639Part2TLanguage.cat, new[] { "Catalan", "Valencian" } }; }
+            get { yield return new object[] { Iso639Part2TLanguage.cat, new[] { CatalanEnglishName, CatalanAlternativeEnglishName } }; }
         }
     }
 
@@ -207,7 +268,7 @@ public class Iso639ExtensionTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { Iso639Part5LanguageFamily.gem, new[] { "Germanic languages" } }; }
+            get { yield return new object[] { Iso639Part5LanguageFamily.gem, new[] { GermanicLanguagesEnglishName } }; }
         }
     }
 
@@ -230,7 +291,7 @@ public class Iso639ExtensionTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { Iso639Part1Language.fr, "français" }; }
+            get { yield return new object[] { Iso639Part1Language.fr, FrenchFrenchName }; }
         }
     }
 
@@ -253,7 +314,7 @@ public class Iso639ExtensionTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { Iso639Part2BLanguage.fre, "français" }; }
+            get { yield return new object[] { Iso639Part2BLanguage.fre, FrenchFrenchName }; }
         }
     }
 
@@ -276,7 +337,7 @@ public class Iso639ExtensionTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { Iso639Part2TLanguage.fra, "français" }; }
+            get { yield return new object[] { Iso639Part2TLanguage.fra, FrenchFrenchName }; }
         }
     }
 
@@ -299,7 +360,7 @@ public class Iso639ExtensionTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { Iso639Part5LanguageFamily.ine, "indo-européennes, langues" }; }
+            get { yield return new object[] { Iso639Part5LanguageFamily.ine, IndoEuropeanLanguagesFrenchName }; }
         }
     }
 
@@ -322,7 +383,7 @@ public class Iso639ExtensionTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { Iso639Part1Language.gd, new[] { "gaélique", "gaélique écossais" } }; }
+            get { yield return new object[] { Iso639Part1Language.gd, new[] { ScottishGaelicFrenchName, ScottishGaelicAlternativeFrenchName } }; }
         }
     }
 
@@ -345,7 +406,7 @@ public class Iso639ExtensionTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { Iso639Part2BLanguage.gsw, new[] { "suisse alémanique", "alémanique", "alsacien" } }; }
+            get { yield return new object[] { Iso639Part2BLanguage.gsw, new[] { SwissGermanFrenchName, SwissGermanAlemannicFrenchName, SwissGermanAlsatianFrenchName } }; }
         }
     }
 
@@ -368,7 +429,7 @@ public class Iso639ExtensionTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { Iso639Part2TLanguage.nno, new[] { "norvégien nynorsk", "nynorsk, norvégien" } }; }
+            get { yield return new object[] { Iso639Part2TLanguage.nno, new[] { NorwegianNynorskFrenchName, NorwegianNynorskInvertedFrenchName } }; }
         }
     }
 
@@ -391,7 +452,7 @@ public class Iso639ExtensionTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { Iso639Part5LanguageFamily.cel, new[] { "celtiques, langues", "celtes, langues" } }; }
+            get { yield return new object[] { Iso639Part5LanguageFamily.cel, new[] { CelticLanguagesFrenchName, CelticLanguagesAlternativeFrenchName } }; }
         }
     }
 
@@ -414,7 +475,7 @@ public class Iso639ExtensionTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { Iso639Part3Language.rcf, "Creole French, Réunion" }; }
+            get { yield return new object[] { Iso639Part3Language.rcf, ReunionCreoleFrenchInvertedName }; }
         }
     }
 
@@ -467,7 +528,7 @@ public class Iso639ExtensionTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { Iso639Part3Language.ind, "msa" }; }
+            get { yield return new object[] { Iso639Part3Language.ind, IndonesianMacrolanguageCode }; }
         }
     }
 
@@ -490,7 +551,7 @@ public class Iso639ExtensionTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { Iso639Part2BLanguage.arm, "hy" }; }
+            get { yield return new object[] { Iso639Part2BLanguage.arm, ArmenianPart1Code }; }
         }
     }
 
@@ -513,7 +574,7 @@ public class Iso639ExtensionTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { Iso639Part2TLanguage.hye, "hy" }; }
+            get { yield return new object[] { Iso639Part2TLanguage.hye, ArmenianPart1Code }; }
         }
     }
 
@@ -536,7 +597,7 @@ public class Iso639ExtensionTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { Iso639Part3Language.mri, "mi" }; }
+            get { yield return new object[] { Iso639Part3Language.mri, MaoriPart1Code }; }
         }
     }
 
@@ -559,7 +620,7 @@ public class Iso639ExtensionTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { Iso639Part1Language.mi, "mao" }; }
+            get { yield return new object[] { Iso639Part1Language.mi, MaoriPart2BCode }; }
         }
     }
 
@@ -569,7 +630,7 @@ public class Iso639ExtensionTests
 
     [Theory]
     [MemberData(nameof(GetPart2BCode_OnIso639Part3LanguageCode_TestCaseGenerator.TestCases), MemberType = typeof(GetPart2BCode_OnIso639Part3LanguageCode_TestCaseGenerator))]
-    public void GetPart2BCode_OnIso639Part3LanguageCode_ReturnsPart3LanguageCode(Iso639Part3Language testCode, string? expectedResult)
+    public void GetPart2BCode_OnIso639Part3LanguageCode_ReturnsPart2BLanguageCode(Iso639Part3Language testCode, string? expectedResult)
     {
         // act
         var testResult = testCode.GetPart2BCode();
@@ -582,7 +643,7 @@ public class Iso639ExtensionTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { Iso639Part3Language.mri, "mao" }; }
+            get { yield return new object[] { Iso639Part3Language.mri, MaoriPart2BCode }; }
         }
     }
 
@@ -605,7 +666,7 @@ public class Iso639ExtensionTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { Iso639Part1Language.mi, "mri" }; }
+            get { yield return new object[] { Iso639Part1Language.mi, MaoriPart2TCode }; }
         }
     }
 
@@ -628,7 +689,7 @@ public class Iso639ExtensionTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { Iso639Part3Language.mri, "mri" }; }
+            get { yield return new object[] { Iso639Part3Language.mri, MaoriPart2TCode }; }
         }
     }
 
@@ -651,7 +712,7 @@ public class Iso639ExtensionTests
     {
         public static IEnumerable<object[]> TestCases
         {
-            get { yield return new object[] { Iso639Part3Language.hun, "Hungarian" }; }
+            get { yield return new object[] { Iso639Part3Language.hun, HungarianPrintName }; }
         }
     }
 

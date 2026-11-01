@@ -285,6 +285,7 @@ jobs:
           path: |
             src/${{ matrix.package }}/bin/${{ matrix.configuration }}/
             tests/${{ matrix.package }}.Tests/bin/${{ matrix.configuration }}/
+            tests/${{ matrix.package }}.IntegrationTests/bin/${{ matrix.configuration }}/
           if-no-files-found: error
           retention-days: 1
 
@@ -311,28 +312,18 @@ jobs:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: build-${{ matrix.package }}-${{ matrix.configuration }}
-      - name: Run tests
+      # Each test project runs once per target framework it builds for; see InvokePackageTests.ps1.  The integration tests,
+      # tests/<package>.IntegrationTests, run after the unit tests, and only for a package that has them.
+      - name: Run unit tests
         run: |
-          $package = '${{ matrix.package }}'
-          # One assembly per target framework, bin/<configuration>/<framework>/<package>.Tests.dll.  Not the reference
-          # assemblies in <framework>/ref/; and not .NET Framework on Linux, where it doesn't run.
-          $assemblies = @(Get-ChildItem -Path "tests/$package.Tests/bin/${{ matrix.configuration }}/*/$package.Tests.dll" -File |
-            Where-Object { $IsWindows -or $_.Directory.Name -notlike 'net4*' } |
-            Sort-Object FullName)
-          if ($assemblies.Count -eq 0) {
-            Write-Error "No test assemblies found for $package."
-          }
-          $failed = 0
-          foreach ($assembly in $assemblies) {
-            $framework = $assembly.Directory.Name
-            Write-Host "::group::$package tests on $framework"
-            dotnet test $assembly.FullName --logger "trx;LogFileName=$package.$framework.trx" --results-directory TestResults
-            if ($LASTEXITCODE) { $failed++ }
-            Write-Host '::endgroup::'
-          }
-          if ($failed) {
-            Write-Error "Tests failed on $failed target framework$(($failed -eq 1) ? '' : 's')."
-          }
+          $InformationPreference = 'Continue'
+          ./build/scripts/InvokePackageTests.ps1 -PackageName '${{ matrix.package }}' -Configuration ${{ matrix.configuration }} `
+            -Kind Unit -ResultsFolder TestResults -TraceLevel ${{ inputs.trace-level }}
+      - name: Run integration tests
+        run: |
+          $InformationPreference = 'Continue'
+          ./build/scripts/InvokePackageTests.ps1 -PackageName '${{ matrix.package }}' -Configuration ${{ matrix.configuration }} `
+            -Kind Integration -ResultsFolder TestResults -TraceLevel ${{ inputs.trace-level }}
       - name: Confirm every test assembly ran tests
         run: ./build/scripts/ConfirmTestAssembliesRan.ps1 -ResultsFolder TestResults
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
