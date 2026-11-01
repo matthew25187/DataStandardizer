@@ -83,17 +83,29 @@ namespace DataStandardizer.File.CSV
             }
         }
 
-        internal static ICsvFileMapper GetOrAddMapper(Type recordLineType, CsvFileRecordLine recordLine, out bool isCached)
+        /// <summary>
+        /// Gets the mapper registered for a record-line type, or else the declarative mapper of a record line's own type, building and caching it if necessary.
+        /// </summary>
+        /// <param name="recordLineType">The record-line type of the reader or writer, which a registered mapper is keyed by.</param>
+        /// <param name="recordLine">The record line, whose runtime type a declarative mapper is built from and keyed by.</param>
+        /// <param name="isCached"><c>true</c> if the mapper is held in a mapper cache; <c>false</c> if it was created from <paramref name="recordLine"/> and is empty.</param>
+        /// <param name="isRegistered"><c>true</c> if the mapper is registered for <paramref name="recordLineType"/>, so applies to a line of any type; <c>false</c> if it only applies to lines of the runtime type of <paramref name="recordLine"/>.</param>
+        internal static ICsvFileMapper GetOrAddMapper(Type recordLineType, CsvFileRecordLine recordLine, out bool isCached, out bool isRegistered)
         {
             lock (MapperCacheLock)
             {
                 if (ImperativeMapperCache.TryGetValue(recordLineType, out var imperativeMapper))
                 {
                     isCached = true;
+                    isRegistered = true;
                     return imperativeMapper;
                 }
 
-                if (DeclarativeMapperCache.TryGetValue(recordLineType, out var declarativeMapper))
+                // A declarative mapper is built from the line's own attributes, so key it by the line's runtime type rather than the
+                // reader's or writer's record-line type, which may be a base of it.
+                isRegistered = false;
+                var lineType = recordLine.GetType();
+                if (DeclarativeMapperCache.TryGetValue(lineType, out var declarativeMapper))
                 {
                     isCached = true;
                     return declarativeMapper;
@@ -103,7 +115,7 @@ namespace DataStandardizer.File.CSV
                 isCached = mapper.Count > 0;
                 if (isCached)
                 {
-                    DeclarativeMapperCache.Add(recordLineType, mapper);
+                    DeclarativeMapperCache.Add(lineType, mapper);
                 }
 
                 return mapper;
