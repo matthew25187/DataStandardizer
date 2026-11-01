@@ -180,6 +180,16 @@ namespace DataStandardizer.Communication.Tests.Mime
         }
 
         [Fact]
+        public void Parse_SectionsPastNine_JoinsInNumericOrder()
+        {
+            // act
+            var result = MimeMediaType.Parse("text/plain;a*10=k;a*0=a;a*1=b;a*2=c;a*3=d;a*4=e;a*5=f;a*6=g;a*7=h;a*8=i;a*9=j");
+
+            // assert
+            result.Parameters[0].Value.Should().Be("abcdefghijk");
+        }
+
+        [Fact]
         public void Parse_SectionNamesInMixedCase_AreOneParameter()
         {
             // act
@@ -229,7 +239,6 @@ namespace DataStandardizer.Communication.Tests.Mime
         [InlineData("text/plain;name*0*=abc")]
         [InlineData("text/plain;*=x")]
         [InlineData("text/plain;*0=x")]
-        [InlineData("text/plain;name*1234567890=x")]
         // A parameter that is given twice, or both as name* and in sections.
         [InlineData("text/plain;name*=''a;name*=''b")]
         [InlineData("text/plain;name*=''a;name*0=b")]
@@ -905,6 +914,22 @@ namespace DataStandardizer.Communication.Tests.Mime
             result.Parameters[0].Should().Be(expected);
         }
 
+        // The shortest section length that FormatSections accepts.
+        private const int MinimumSectionLength = 1;
+
+        [Fact]
+        public void FormatSections_EmptyValueThatDoesNotFit_ReturnsOneSection()
+        {
+            // arrange
+            var parameter = new MimeParameter(ParameterName, string.Empty);
+
+            // act
+            var result = parameter.FormatSections(MinimumSectionLength);
+
+            // assert
+            result.Should().Equal("name*0=\"\"");
+        }
+
         [Theory]
         [InlineData(0)]
         [InlineData(-1)]
@@ -933,6 +958,9 @@ namespace DataStandardizer.Communication.Tests.Mime
                 ("text/plain;a*0=x;a*2=z", MimeMediaTypeParseOptions.AllowMissingSections, "xz"),
                 ("text/plain;a*1=y", MimeMediaTypeParseOptions.AllowMissingSections, "y"),
                 ("text/plain;a*1*=%41", MimeMediaTypeParseOptions.AllowMissingSections, "A"),
+                // ref. RFC 2231 §3: section := "0" / [1-9] *DIGIT, with no limit on the number of digits.
+                ("text/plain;a*1234567890=x", MimeMediaTypeParseOptions.AllowMissingSections, "x"),
+                ("text/plain;a*0=x;a*100000000000000000000=z;a*99999999999999999999=y", MimeMediaTypeParseOptions.AllowMissingSections, "xyz"),
                 ("text/plain;a*0=x;a*0=y", MimeMediaTypeParseOptions.AllowDuplicateSections, "x"),
                 ("text/plain;a*1=z;a*0=x;a*1=y", MimeMediaTypeParseOptions.AllowDuplicateSections, "xz"),
                 ("text/plain;a*00=x;a*01=y", MimeMediaTypeParseOptions.AllowLeadingZeroSectionNumbers, "xy"),

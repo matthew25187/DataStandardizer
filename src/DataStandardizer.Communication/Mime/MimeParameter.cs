@@ -233,7 +233,8 @@ namespace DataStandardizer.Communication.Mime
         /// </para>
         /// <para>
         /// A character, and the octets of its encoding, are never split between sections. A section is longer than
-        /// <paramref name="maxSectionLength"/> only when its name and a single character of the value don't fit in it.
+        /// <paramref name="maxSectionLength"/> only when its name and a single character of the value don't fit in it. An empty value
+        /// that doesn't fit is written as one section, <c>name*0=""</c>.
         /// </para>
         /// </remarks>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSectionLength"/> is less than 1.</exception>
@@ -366,7 +367,7 @@ namespace DataStandardizer.Communication.Mime
         {
             // ref. RFC 2231 §3: name*0=value, name*1=value, ..., each value a token or a quoted-string.
             var index = 0;
-            for (var section = 0; index < _value.Length; section++)
+            for (var section = 0; section == 0 || index < _value.Length; section++)
             {
                 var sectionName = GetSectionName(section, false);
 

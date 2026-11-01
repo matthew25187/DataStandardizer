@@ -9,8 +9,8 @@ namespace DataStandardizer.Communication.Mime
     /// </summary>
     internal static class MimeExtendedParameter
     {
-        // Enough for any section number that fits in an int, with room to spare.
-        private const int MaxSectionDigits = 9;
+        // ref. RFC 2231 §3: the sections are numbered from 0.
+        private const string FirstSection = "0";
 
         /// <summary>
         /// A <c>name=value</c> pair as written, before RFC 2231 sections are joined.
@@ -20,8 +20,15 @@ namespace DataStandardizer.Communication.Mime
             /// <summary>The name without any RFC 2231 section number or <c>*</c>.</summary>
             internal string Name;
 
-            /// <summary>The section number; or -1 for a parameter that is not split, such as <c>name</c> or <c>name*</c>.</summary>
-            internal int Section;
+            /// <summary>
+            /// The digits of the section number, with no leading zeros; or <c>null</c> for a parameter that is not split, such as
+            /// <c>name</c> or <c>name*</c>.
+            /// </summary>
+#if NETCOREAPP3_0_OR_GREATER
+            internal string? Section;
+#else
+            internal string Section;
+#endif
 
             /// <summary>Whether the name ends with <c>*</c>, so the value is percent-encoded.</summary>
             internal bool IsExtended;
@@ -45,17 +52,16 @@ namespace DataStandardizer.Communication.Mime
         /// <param name="name">The parameter name as written.</param>
         /// <param name="baseNameLength">The length of the base name at the start of <paramref name="name"/>.</param>
         /// <param name="parameter">The parameter, whose section number and flags are set.</param>
-        /// <returns><c>false</c> if the section number is too large.</returns>
         /// <remarks>
         /// A name that has a <c>*</c> but is not one of the RFC 2231 forms, such as <c>a*b</c>, is returned whole as a plain name.
         /// </remarks>
-        internal static bool TrySplitName(ReadOnlySpan<char> name, out int baseNameLength, ref RawParameter parameter)
+        internal static void SplitName(ReadOnlySpan<char> name, out int baseNameLength, ref RawParameter parameter)
         {
             baseNameLength = name.Length;
-            parameter.Section = -1;
+            parameter.Section = null;
 
             var star = name.IndexOf('*');
-            if (star < 0) return true;
+            if (star < 0) return;
 
             var rest = name.Slice(star + 1);
             if (rest.IsEmpty)
@@ -65,38 +71,29 @@ namespace DataStandardizer.Communication.Mime
                 baseNameLength = star;
                 parameter.IsExtended = true;
                 parameter.IsRfc2231 = true;
-                return true;
+                return;
             }
 
             var isExtended = rest[rest.Length - 1] == '*';
             var digits = isExtended ? rest.Slice(0, rest.Length - 1) : rest;
-            if (digits.IsEmpty) return true;
+            if (digits.IsEmpty) return;
 
             foreach (var c in digits)
             {
-                if (c < '0' || c > '9') return true;
+                if (c < '0' || c > '9') return;
             }
 
-            // ref. RFC 2231 §3: section := "0" / [1-9] *DIGIT
+            // ref. RFC 2231 §3: section := "0" / [1-9] *DIGIT, which has no upper limit, so the number is kept as its digits.
             parameter.HasLeadingZero = digits.Length > 1 && digits[0] == '0';
             while (digits.Length > 1 && digits[0] == '0')
             {
                 digits = digits.Slice(1);
             }
 
-            if (digits.Length > MaxSectionDigits) return false;
-
-            var section = 0;
-            foreach (var c in digits)
-            {
-                section = section * 10 + (c - '0');
-            }
-
             baseNameLength = star;
-            parameter.Section = section;
+            parameter.Section = digits.ToString();
             parameter.IsExtended = isExtended;
             parameter.IsRfc2231 = true;
-            return true;
         }
 
         /// <summary>
@@ -113,21 +110,16 @@ namespace DataStandardizer.Communication.Mime
             parameter = default(MimeParameter);
 
             List<RawParameter> sections;
-            if (forms[0].Section < 0)
+            if (forms[0].Section is null)
             {
                 // A name* parameter can't also be split into sections, and it can't be repeated (ref. RFC 6838 §4.3).
                 if (forms.Count > 1) return false;
 
                 sections = forms;
             }
-            else
+            else if (!TryOrderSections(forms, options, out sections))
             {
-                foreach (var form in forms)
-                {
-                    if (form.Section < 0) return false;
-                }
-
-                if (!TryOrderSections(forms, options, out sections)) return false;
+                return false;
             }
 
             var name = sections[0].Name;
@@ -183,7 +175,7 @@ namespace DataStandardizer.Communication.Mime
                 }
 
                 var start = 0;
-                if (index == 0 && section.Section <= 0 && !TryReadCharsetAndLanguage(text, ref start, out charsetName, out language)) return false;
+                if (index == 0 && (section.Section is null || section.Section == FirstSection) && !TryReadCharsetAndLanguage(text, ref start, out charsetName, out language)) return false;
                 if (!TryDecodeOctets(text, start, section.IsQuoted, allowLowercase, bytes, ref byteCount)) return false;
             }
 
@@ -331,6 +323,30 @@ namespace DataStandardizer.Communication.Mime
             return char.IsHighSurrogate(value[index]) && index + 1 < value.Length && char.IsLowSurrogate(value[index + 1]);
         }
 
+        // Compares two section numbers written as digits with no leading zeros: the one with fewer digits is the smaller.
+        private static int CompareSections(string left, string right)
+        {
+            return left.Length != right.Length ? left.Length.CompareTo(right.Length) : string.CompareOrdinal(left, right);
+        }
+
+        // Gets the section number after one written as digits, such as 10 after 9.
+        private static string GetNextSection(string section)
+        {
+            var digits = section.ToCharArray();
+            for (var index = digits.Length - 1; index >= 0; index--)
+            {
+                if (digits[index] != '9')
+                {
+                    digits[index]++;
+                    return new string(digits);
+                }
+
+                digits[index] = '0';
+            }
+
+            return "1" + new string(digits);
+        }
+
         private static bool TryOrderSections(List<RawParameter> forms, MimeMediaTypeParseOptions options, out List<RawParameter> sections)
         {
             sections = forms;
@@ -342,23 +358,37 @@ namespace DataStandardizer.Communication.Mime
                 }
             }
 
-            // Sort by section number, and then by position, so that of two sections with the same number, the first written comes first.
-            var keys = new long[forms.Count];
+            var numbers = new string[forms.Count];
+            var order = new List<int>(forms.Count);
             for (var index = 0; index < forms.Count; index++)
             {
-                keys[index] = ((long)forms[index].Section << 32) | (uint)index;
+                // A name* parameter can't also be split into sections.
+                var number = forms[index].Section;
+                if (number is null) return false;
+
+                numbers[index] = number;
+                order.Add(index);
             }
 
-            Array.Sort(keys);
+            // Sort by section number, and then by position, so that of two sections with the same number, the first written comes first.
+            order.Sort((left, right) =>
+            {
+                var comparison = CompareSections(numbers[left], numbers[right]);
+                return comparison != 0 ? comparison : left.CompareTo(right);
+            });
 
             sections = new List<RawParameter>(forms.Count);
             var allowDuplicates = (options & MimeMediaTypeParseOptions.AllowDuplicateSections) != 0;
             var allowMissing = (options & MimeMediaTypeParseOptions.AllowMissingSections) != 0;
-            var expected = 0;
-            foreach (var key in keys)
+#if NETCOREAPP3_0_OR_GREATER
+            string? previous = null;
+#else
+            string previous = null;
+#endif
+            foreach (var index in order)
             {
-                var form = forms[(int)(key & 0xFFFFFFFF)];
-                if (form.Section < expected)
+                var number = numbers[index];
+                if (previous != null && number == previous)
                 {
                     // ref. RFC 2231 §3: each section number appears once.
                     if (!allowDuplicates) return false;
@@ -367,10 +397,10 @@ namespace DataStandardizer.Communication.Mime
                 }
 
                 // ref. RFC 2231 §3: the sections are numbered from 0, with no gaps.
-                if (form.Section > expected && !allowMissing) return false;
+                if (!allowMissing && number != (previous is null ? FirstSection : GetNextSection(previous))) return false;
 
-                sections.Add(form);
-                expected = form.Section + 1;
+                sections.Add(forms[index]);
+                previous = number;
             }
 
             return true;
