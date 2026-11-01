@@ -564,51 +564,6 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #endregion
 
-#pragma warning disable CS0618 // The UN M49 country-code overloads are tested until they are removed.
-        #region Test: UsingRegionSubtag_WhenRegionSubtagIsNotDefinedMemberOfUnM49ByAlpha2Code
-
-        [Fact]
-        public void UsingRegionSubtag_WhenRegionSubtagIsNotDefinedMemberOfUnM49ByAlpha2Code_ThrowsArgumentException()
-        {
-            // arrange
-            var testValue = (UnM49AreaByAlpha2CountryCode)0;
-            var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
-
-            // act
-            Action testAction = () => builder.UsingRegionSubtag(testValue);
-
-            // assert
-            testAction.Should()
-                .Throw<ArgumentException>("the code must be a member of {0}", nameof(UnM49AreaByAlpha2CountryCode))
-                .WithMessage(UnM49CodeZeroUndefinedMessage)
-                .WithParameterName(RegionSubtagParameterName);
-        }
-
-        #endregion
-
-        #region Test: UsingRegionSubtag_WhenRegionSubtagIsNotDefinedMemberOfUnM49ByAlpha3Code
-
-        [Fact]
-        public void UsingRegionSubtag_WhenRegionSubtagIsNotDefinedMemberOfUnM49ByAlpha3Code_ThrowsArgumentException()
-        {
-            // arrange
-            var testValue = (UnM49AreaByAlpha3CountryCode)0;
-            var builder = new Bcp47LanguageTagBuilder().UsingPrimaryLanguageSubtag(DefaultPrimaryLanguageSubtag);
-
-            // act
-            Action testAction = () => builder.UsingRegionSubtag(testValue);
-
-            // assert
-            testAction.Should()
-                .Throw<ArgumentException>("the code must be a member of {0}", nameof(UnM49AreaByAlpha3CountryCode))
-                .WithMessage(UnM49CodeZeroUndefinedMessage)
-                .WithParameterName(RegionSubtagParameterName);
-        }
-
-        #endregion
-
-#pragma warning restore CS0618
-
         #region Test: UsingRegionSubtag_WhenRegionSubtagIsNotDefinedMemberOfUnM49Area
 
         [Fact]

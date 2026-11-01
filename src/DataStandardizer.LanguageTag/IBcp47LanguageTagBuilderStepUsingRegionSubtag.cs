@@ -1,5 +1,4 @@
-﻿using System;
-using DataStandardizer.Geography;
+﻿using DataStandardizer.Geography;
 #if NETSTANDARD
 using JetBrains.Annotations; 
 #endif
@@ -23,30 +22,6 @@ namespace DataStandardizer.LanguageTag
         IBcp47LanguageTagBuilderStepUsingRegionSubtagNext UsingRegionSubtag(Iso3166Part1Alpha2Country regionSubtag);
 #endif
 
-        /// <summary>
-        /// Build a language tag using a Region subtag from UN M49.
-        /// </summary>
-        /// <param name="regionSubtag">UN M49 code to use for the Region subtag.</param>
-        /// <returns>Language tag builder.</returns>
-        [Obsolete("Every defined member of " + nameof(UnM49AreaByAlpha2CountryCode) + " is a country code, which BCP 47 does not allow as a Region subtag.  Use the " + nameof(UnM49Area) + " overload for a UN M49 area, or the " + nameof(Iso3166Part1Alpha2Country) + " overload for a country.")]
-#if NETCOREAPP3_0_OR_GREATER
-        IBcp47LanguageTagBuilderStepUsingRegionSubtagNext UsingRegionSubtag(UnM49AreaByAlpha2CountryCode regionSubtag);
-#else
-        [NotNull]
-        IBcp47LanguageTagBuilderStepUsingRegionSubtagNext UsingRegionSubtag(UnM49AreaByAlpha2CountryCode regionSubtag);
-#endif
-        /// <summary>
-        /// Build a language tag using a Region subtag from UN M49.
-        /// </summary>
-        /// <param name="regionSubtag">UN M49 code to use for the Region subtag.</param>
-        /// <returns>Language tag builder.</returns>
-        [Obsolete("Every defined member of " + nameof(UnM49AreaByAlpha3CountryCode) + " is a country code, which BCP 47 does not allow as a Region subtag.  Use the " + nameof(UnM49Area) + " overload for a UN M49 area, or the " + nameof(Iso3166Part1Alpha2Country) + " overload for a country.")]
-#if NETCOREAPP3_0_OR_GREATER
-        IBcp47LanguageTagBuilderStepUsingRegionSubtagNext UsingRegionSubtag(UnM49AreaByAlpha3CountryCode regionSubtag);
-#else
-        [NotNull]
-        IBcp47LanguageTagBuilderStepUsingRegionSubtagNext UsingRegionSubtag(UnM49AreaByAlpha3CountryCode regionSubtag);
-#endif
         /// <summary>
         /// Build a language tag using a Region subtag from a UN M49 area.
         /// </summary>

@@ -269,28 +269,6 @@ namespace DataStandardizer.LanguageTag
         }
 
         /// <inheritdoc />
-        /// <exception cref="ArgumentException">The subtag code is undefined.</exception>
-        IBcp47LanguageTagBuilderStepUsingRegionSubtagNext IBcp47LanguageTagBuilderStepUsingRegionSubtag.UsingRegionSubtag(UnM49AreaByAlpha2CountryCode regionSubtag)
-        {
-            if (!Bcp47UnM49Codes.ContainsSupranational((ushort)regionSubtag)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "UN M49", ((ushort)regionSubtag).ToString("000")), nameof(regionSubtag));
-
-            _regionSubtag = regionSubtag;
-
-            return this;
-        }
-
-        /// <inheritdoc />
-        /// <exception cref="ArgumentException">The subtag code is undefined.</exception>
-        IBcp47LanguageTagBuilderStepUsingRegionSubtagNext IBcp47LanguageTagBuilderStepUsingRegionSubtag.UsingRegionSubtag(UnM49AreaByAlpha3CountryCode regionSubtag)
-        {
-            if (!Bcp47UnM49Codes.ContainsSupranational((ushort)regionSubtag)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "UN M49", ((ushort)regionSubtag).ToString("000")), nameof(regionSubtag));
-
-            _regionSubtag = regionSubtag;
-
-            return this;
-        }
-
-        /// <inheritdoc />
         /// <exception cref="ArgumentException">The subtag code is undefined, or is not a valid Region subtag.</exception>
         IBcp47LanguageTagBuilderStepUsingRegionSubtagNext IBcp47LanguageTagBuilderStepUsingRegionSubtag.UsingRegionSubtag(UnM49Area regionSubtag)
         {
@@ -617,15 +595,7 @@ namespace DataStandardizer.LanguageTag
                 return regionSubtagFromRegistry;
             }
 
-            if (regionSubtag is UnM49AreaByAlpha2CountryCode regionSubtagFromUnM49ByAlpha2Code)
-            {
-                numericRegionSubtag = (ushort)regionSubtagFromUnM49ByAlpha2Code;
-            }
-            else if (regionSubtag is UnM49AreaByAlpha3CountryCode regionSubtagFromUnM49ByAlpha3Code)
-            {
-                numericRegionSubtag = (ushort)regionSubtagFromUnM49ByAlpha3Code;
-            }
-            else if (regionSubtag is UnM49Area regionSubtagFromUnM49Area)
+            if (regionSubtag is UnM49Area regionSubtagFromUnM49Area)
             {
                 numericRegionSubtag = (ushort)regionSubtagFromUnM49Area;
             }
