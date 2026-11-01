@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -19,6 +18,18 @@ namespace DataStandardizer.File.iCal.Tests
     /// </summary>
     public class XcalAsyncTests
     {
+        // The number of characters that AsyncOnlyTextReader gives each read, so that reads end at many different points.
+        private const int CharactersPerRead = 7;
+
+        private const string AsyncMessage = "*Async*";
+        private const string CanceledMessage = "*canceled*";
+
+        // A document whose SUMMARY has a second value, with the line and position of that value.
+        private const long SecondValueLineNumber = 1;
+        private const long SecondValueLinePosition = 332;
+
+        private static readonly string SecondValueDocument = JournalDocument("<summary><text>a</text><text>b</text></summary>");
+
         [Theory]
         [MemberData(nameof(XcalRoundTripTests.CalendarNames), MemberType = typeof(XcalRoundTripTests))]
         public async Task ReadCalendarsAsync_EveryFixture_MatchesSync(string calendarName)
@@ -28,15 +39,15 @@ namespace DataStandardizer.File.iCal.Tests
             var xcal = WriteXcal(ReadCalendars(text, options), options);
             using (var syncReader = new XcalReader(new StringReader(xcal), options ?? new IcalOptions()))
             {
-                var expected = syncReader.ReadCalendars().ToList();
-                var asyncReader = new XcalReader(new AsyncOnlyTextReader(xcal, 7), options ?? new IcalOptions());
+                var expected = Model(syncReader.ReadCalendars().ToList(), options);
+                var asyncReader = new XcalReader(new AsyncOnlyTextReader(xcal, CharactersPerRead), options ?? new IcalOptions());
                 try
                 {
                     // act
-                    var testResult = await AsyncEnumerables.ToListAsync(asyncReader.ReadCalendarsAsync());
+                    var testResult = Model(await AsyncEnumerables.ToListAsync(asyncReader.ReadCalendarsAsync()), options);
 
                     // assert
-                    Model(testResult, options).Should().Equal(Model(expected, options));
+                    testResult.Should().Equal(expected);
                     asyncReader.CalendarsRead.Should().Be(syncReader.CalendarsRead);
                     asyncReader.ComponentsRead.Should().Be(syncReader.ComponentsRead);
                     asyncReader.PropertiesRead.Should().Be(syncReader.PropertiesRead);
@@ -52,17 +63,16 @@ namespace DataStandardizer.File.iCal.Tests
         [MemberData(nameof(XcalRoundTripTests.CalendarNames), MemberType = typeof(XcalRoundTripTests))]
         public async Task WriteCalendarsAsync_EveryFixture_MatchesSync(string calendarName)
         {
-            // arrange
+            // arrange: the synchronous calendars are written to a StringWriter, which declares UTF-16.
             var (text, options) = XcalRoundTripTests.GetCalendar(calendarName);
             var calendars = ReadCalendars(text, options);
-            var expected = WriteXcal(calendars, options);
+            var expected = WriteXcal(calendars, options).Replace("utf-16", "utf-8");
             var stream = new AsyncOnlyWriteStream();
             var progress = new RecordingProgress();
-
-            // act
             var writer = new XcalWriter(stream, options ?? new IcalOptions());
             try
             {
+                // act
                 await writer.WriteCalendarsAsync(calendars, progress);
             }
             finally
@@ -71,7 +81,7 @@ namespace DataStandardizer.File.iCal.Tests
             }
 
             // assert
-            Encoding.UTF8.GetString(stream.ToArray()).Should().Be(expected.Replace("utf-16", "utf-8"));
+            Encoding.UTF8.GetString(stream.ToArray()).Should().Be(expected);
             progress.Reports.Should().HaveCount(calendars.Count);
         }
 
@@ -79,16 +89,36 @@ namespace DataStandardizer.File.iCal.Tests
         public async Task ReadCalendarAsync_Stream_ReadsWithoutSynchronousIo()
         {
             // arrange
+            var expected = Model(ReadCalendars(Example2Ical));
             var reader = new XcalReader(new AsyncOnlyStream(Utf8(Example2Xcal)));
             try
             {
                 // act
-                var calendar = await reader.ReadCalendarAsync();
-                var end = await reader.ReadCalendarAsync();
+                var testResult = Model(new[] { await reader.ReadCalendarAsync() });
 
                 // assert
-                Model(new[] { calendar }).Should().Equal(Model(ReadCalendars(Example2Ical)));
-                end.Should().BeNull();
+                testResult.Should().Equal(expected);
+            }
+            finally
+            {
+                await reader.DisposeAsync();
+            }
+        }
+
+        [Fact]
+        public async Task ReadCalendarAsync_AfterTheLastCalendarFromStream_ReturnsNull()
+        {
+            // arrange
+            var reader = new XcalReader(new AsyncOnlyStream(Utf8(Example2Xcal)));
+            try
+            {
+                await reader.ReadCalendarAsync();
+
+                // act
+                var testResult = await reader.ReadCalendarAsync();
+
+                // assert
+                testResult.Should().BeNull();
             }
             finally
             {
@@ -104,11 +134,11 @@ namespace DataStandardizer.File.iCal.Tests
             try
             {
                 // act
-                var task = reader.ReadCalendarAsync();
+                var testResult = reader.ReadCalendarAsync();
 
                 // assert
-                task.IsCompletedSuccessfully.Should().BeTrue();
-                (await task).Should().NotBeNull();
+                testResult.IsCompletedSuccessfully.Should().BeTrue();
+                testResult.Result.Should().NotBeNull();
             }
             finally
             {
@@ -120,19 +150,19 @@ namespace DataStandardizer.File.iCal.Tests
         public async Task ReadCalendarAsync_NotValid_ThrowsAsSync()
         {
             // arrange
-            var xml = JournalDocument("<summary><text>a</text><text>b</text></summary>");
-            var syncException = FluentActions.Invoking(() => ReadXcal(xml)).Should().Throw<IcalFileException>().Which;
-            var reader = new XcalReader(new AsyncOnlyTextReader(xml, 7));
+            var syncException = Record.Exception(() => ReadXcal(SecondValueDocument));
+            var reader = new XcalReader(new AsyncOnlyTextReader(SecondValueDocument, CharactersPerRead));
             try
             {
                 // act
-                Func<Task> act = () => reader.ReadCalendarAsync().AsTask();
+                Func<Task> testAction = () => reader.ReadCalendarAsync().AsTask();
 
                 // assert
-                var exception = (await act.Should().ThrowAsync<IcalFileException>()).Which;
+                var exception = (await testAction.Should().ThrowAsync<IcalFileException>()).Which;
+                exception.Data[IcalFileException.DataItemName.LineNumber].Should().Be(SecondValueLineNumber);
+                exception.Data[IcalFileException.DataItemName.LinePosition].Should().Be(SecondValueLinePosition);
                 exception.Message.Should().Be(syncException.Message);
                 exception.Data.Should().BeEquivalentTo(syncException.Data);
-                await reader.Invoking(value => value.ReadCalendarAsync().AsTask()).Should().ThrowAsync<InvalidOperationException>();
             }
             finally
             {
@@ -141,10 +171,31 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public async Task ReadCalendarAsync_Canceled_FaultsReader()
+        public async Task ReadCalendarAsync_AfterNotValid_ThrowsInvalidOperation()
         {
             // arrange
-            var reader = new XcalReader(new AsyncOnlyTextReader(Example1Xcal, 7));
+            var reader = new XcalReader(new AsyncOnlyTextReader(SecondValueDocument, CharactersPerRead));
+            try
+            {
+                await Record.ExceptionAsync(() => reader.ReadCalendarAsync().AsTask());
+
+                // act
+                Func<Task> testAction = () => reader.ReadCalendarAsync().AsTask();
+
+                // assert
+                await testAction.Should().ThrowAsync<InvalidOperationException>();
+            }
+            finally
+            {
+                await reader.DisposeAsync();
+            }
+        }
+
+        [Fact]
+        public async Task ReadCalendarAsync_Canceled_ThrowsOperationCanceled()
+        {
+            // arrange
+            var reader = new XcalReader(new AsyncOnlyTextReader(Example1Xcal, CharactersPerRead));
             try
             {
                 using (var source = new CancellationTokenSource())
@@ -152,11 +203,35 @@ namespace DataStandardizer.File.iCal.Tests
                     await TestTasks.CancelAsync(source);
 
                     // act
-                    Func<Task> act = () => reader.ReadCalendarAsync(source.Token).AsTask();
+                    Func<Task> testAction = () => reader.ReadCalendarAsync(source.Token).AsTask();
 
                     // assert
-                    await act.Should().ThrowAsync<OperationCanceledException>();
-                    reader.Invoking(value => value.ReadCalendar()).Should().Throw<InvalidOperationException>();
+                    await testAction.Should().ThrowAsync<OperationCanceledException>();
+                }
+            }
+            finally
+            {
+                await reader.DisposeAsync();
+            }
+        }
+
+        [Fact]
+        public async Task ReadCalendar_AfterCancellation_ThrowsInvalidOperation()
+        {
+            // arrange
+            var reader = new XcalReader(new AsyncOnlyTextReader(Example1Xcal, CharactersPerRead));
+            try
+            {
+                using (var source = new CancellationTokenSource())
+                {
+                    await TestTasks.CancelAsync(source);
+                    await Record.ExceptionAsync(() => reader.ReadCalendarAsync(source.Token).AsTask());
+
+                    // act
+                    Action testAction = () => reader.ReadCalendar();
+
+                    // assert
+                    testAction.Should().Throw<InvalidOperationException>();
                 }
             }
             finally
@@ -175,11 +250,34 @@ namespace DataStandardizer.File.iCal.Tests
                 try
                 {
                     // act
-                    Action act = () => reader.ReadCalendarAsync();
+                    Action testAction = () => reader.ReadCalendarAsync();
 
                     // assert
-                    act.Should().Throw<InvalidOperationException>().WithMessage("*Async*");
-                    reader.ReadCalendar().Should().NotBeNull();
+                    testAction.Should().Throw<InvalidOperationException>().WithMessage(AsyncMessage);
+                }
+                finally
+                {
+                    await reader.DisposeAsync();
+                }
+            }
+        }
+
+        [Fact]
+        public async Task ReadCalendar_SyncOnlyXmlReaderAfterAsyncReadRejected_ReadsTheCalendar()
+        {
+            // arrange
+            using (var xmlReader = XmlReader.Create(new StringReader(Example1Xcal)))
+            {
+                var reader = new XcalReader(xmlReader);
+                try
+                {
+                    Record.Exception(() => reader.ReadCalendarAsync());
+
+                    // act
+                    var testResult = reader.ReadCalendar();
+
+                    // assert
+                    testResult.Should().NotBeNull();
                 }
                 finally
                 {
@@ -192,16 +290,17 @@ namespace DataStandardizer.File.iCal.Tests
         public async Task ReadCalendarAsync_AsyncXmlReader_Reads()
         {
             // arrange
-            using (var xmlReader = CreateAsyncXmlReader(new AsyncOnlyTextReader(Example1Xcal, 7)))
+            var expected = Model(ReadCalendars(Example1Ical));
+            using (var xmlReader = CreateAsyncXmlReader(new AsyncOnlyTextReader(Example1Xcal, CharactersPerRead)))
             {
                 var reader = new XcalReader(xmlReader);
                 try
                 {
                     // act
-                    var testResult = await reader.ReadCalendarAsync();
+                    var testResult = Model(new[] { await reader.ReadCalendarAsync() });
 
                     // assert
-                    Model(new[] { testResult }).Should().Equal(Model(ReadCalendars(Example1Ical)));
+                    testResult.Should().Equal(expected);
                 }
                 finally
                 {
@@ -211,24 +310,59 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public async Task ReadCalendarAsync_WhileReadInProgress_ThrowsAndDisposeWaits()
+        public async Task ReadCalendarAsync_AfterDisposeWhileReadInProgress_ThrowsObjectDisposed()
         {
             // arrange
             var source = new GatedTextReader(Example1Xcal);
             var reader = new XcalReader(source);
             var read = reader.ReadCalendarAsync().AsTask();
             await source.ReadStarted;
+            reader.Dispose();
+            source.OpenGate();
+            await Record.ExceptionAsync(() => read);
 
             // act
-            Action secondRead = () => reader.ReadCalendarAsync();
-            Action syncRead = () => reader.ReadCalendar();
+            Action testAction = () => reader.ReadCalendarAsync();
+
+            // assert
+            testAction.Should().Throw<ObjectDisposedException>();
+        }
+
+        [Fact]
+        public async Task ReadCalendar_AfterDisposeWhileReadInProgress_ThrowsObjectDisposed()
+        {
+            // arrange
+            var source = new GatedTextReader(Example1Xcal);
+            var reader = new XcalReader(source);
+            var read = reader.ReadCalendarAsync().AsTask();
+            await source.ReadStarted;
+            reader.Dispose();
+            source.OpenGate();
+            await Record.ExceptionAsync(() => read);
+
+            // act
+            Action testAction = () => reader.ReadCalendar();
+
+            // assert
+            testAction.Should().Throw<ObjectDisposedException>();
+        }
+
+        [Fact]
+        public async Task ReadCalendarAsync_DisposedWhileInProgress_ThrowsObjectDisposed()
+        {
+            // arrange
+            var source = new GatedTextReader(Example1Xcal);
+            var reader = new XcalReader(source);
+            var read = reader.ReadCalendarAsync().AsTask();
+            await source.ReadStarted;
             reader.Dispose();
             source.OpenGate();
 
+            // act
+            Func<Task> testAction = () => read;
+
             // assert
-            secondRead.Should().Throw<ObjectDisposedException>();
-            syncRead.Should().Throw<ObjectDisposedException>();
-            await FluentActions.Awaiting(() => read).Should().ThrowAsync<ObjectDisposedException>();
+            await testAction.Should().ThrowAsync<ObjectDisposedException>();
         }
 
         [Fact]
@@ -237,18 +371,42 @@ namespace DataStandardizer.File.iCal.Tests
             // arrange
             var source = new GatedTextReader(Example1Xcal);
             var reader = new XcalReader(source);
+            var read = reader.ReadCalendarAsync().AsTask();
+            await source.ReadStarted;
+            try
+            {
+                // act
+                Action testAction = () => reader.ReadCalendarAsync();
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>().WithMessage("Another read*");
+            }
+            finally
+            {
+                source.OpenGate();
+                await read;
+                await reader.DisposeAsync();
+            }
+        }
+
+        [Fact]
+        public async Task ReadCalendarAsync_SecondReadRejectedWhileInProgress_ReadsTheCalendar()
+        {
+            // arrange
+            var source = new GatedTextReader(Example1Xcal);
+            var reader = new XcalReader(source);
             try
             {
                 var read = reader.ReadCalendarAsync().AsTask();
                 await source.ReadStarted;
+                Record.Exception(() => reader.ReadCalendarAsync());
+                source.OpenGate();
 
                 // act
-                Action secondRead = () => reader.ReadCalendarAsync();
+                var testResult = await read;
 
                 // assert
-                secondRead.Should().Throw<InvalidOperationException>().WithMessage("Another read*");
-                source.OpenGate();
-                (await read).Should().NotBeNull();
+                testResult.Should().NotBeNull();
             }
             finally
             {
@@ -259,24 +417,45 @@ namespace DataStandardizer.File.iCal.Tests
         [Fact]
         public async Task WriteCalendarAsync_TextWriter_WritesWithoutSynchronousIo()
         {
-            // arrange
+            // arrange: the synchronous calendar is written to a StringWriter, which declares UTF-16.
+            var calendar = ReadCalendar(Example1Ical);
+            var expected = WriteXcal(new[] { calendar }).Replace("utf-16", "utf-8");
             var target = new AsyncOnlyTextWriter();
-
-            // act
             var writer = new XcalWriter(target);
             try
             {
-                await writer.WriteCalendarAsync(ReadCalendar(Example1Ical));
+                // act
+                await writer.WriteCalendarAsync(calendar);
+            }
+            finally
+            {
                 await writer.FlushAsync();
+                await writer.DisposeAsync();
+            }
+
+            // assert
+            target.ToString().Should().Be(expected);
+            target.IsDisposed.Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task WriteCalendarsAsync_AsyncEnumerable_CountsEach()
+        {
+            // arrange
+            var calendars = ReadCalendars(Example1Ical + Example2Ical);
+            var writer = new XcalWriter(new StringWriter());
+            try
+            {
+                // act
+                await writer.WriteCalendarsAsync(AsyncEnumerables.Yielding(calendars));
+
+                // assert
+                writer.CalendarsWritten.Should().Be(2);
             }
             finally
             {
                 await writer.DisposeAsync();
             }
-
-            // assert
-            Model(ReadXcal(target.ToString())).Should().Equal(Model(ReadCalendars(Example1Ical)));
-            target.IsDisposed.Should().BeFalse();
         }
 
         [Fact]
@@ -284,19 +463,13 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var calendars = ReadCalendars(Example1Ical + Example2Ical);
+            var expected = WriteXcal(calendars);
             var text = new StringWriter();
-
-            IAsyncEnumerable<IcalCalendar> Calendars()
-            {
-                return AsyncEnumerables.Yielding(calendars);
-            }
-
-            // act
             var writer = new XcalWriter(text);
             try
             {
-                await writer.WriteCalendarsAsync(Calendars());
-                writer.CalendarsWritten.Should().Be(2);
+                // act
+                await writer.WriteCalendarsAsync(AsyncEnumerables.Yielding(calendars));
             }
             finally
             {
@@ -304,27 +477,52 @@ namespace DataStandardizer.File.iCal.Tests
             }
 
             // assert
-            text.ToString().Should().Be(WriteXcal(calendars));
+            text.ToString().Should().Be(expected);
         }
 
         [Fact]
-        public async Task WriteCalendarAsync_Canceled_FaultsWriter()
+        public async Task WriteCalendarAsync_Canceled_ThrowsOperationCanceled()
         {
             // arrange
+            var calendar = ReadCalendar(Example1Ical);
             var writer = new XcalWriter(new StringWriter());
             try
             {
                 using (var source = new CancellationTokenSource())
                 {
                     await TestTasks.CancelAsync(source);
-                    var calendar = ReadCalendar(Example1Ical);
 
                     // act
-                    Func<Task> act = () => writer.WriteCalendarAsync(calendar, source.Token).AsTask();
+                    Func<Task> testAction = () => writer.WriteCalendarAsync(calendar, source.Token).AsTask();
 
                     // assert
-                    await act.Should().ThrowAsync<OperationCanceledException>();
-                    writer.Invoking(value => value.WriteCalendar(calendar)).Should().Throw<InvalidOperationException>().WithMessage("*canceled*");
+                    await testAction.Should().ThrowAsync<OperationCanceledException>();
+                }
+            }
+            finally
+            {
+                await writer.DisposeAsync();
+            }
+        }
+
+        [Fact]
+        public async Task WriteCalendar_AfterCancellation_ThrowsInvalidOperation()
+        {
+            // arrange
+            var calendar = ReadCalendar(Example1Ical);
+            var writer = new XcalWriter(new StringWriter());
+            try
+            {
+                using (var source = new CancellationTokenSource())
+                {
+                    await TestTasks.CancelAsync(source);
+                    await Record.ExceptionAsync(() => writer.WriteCalendarAsync(calendar, source.Token).AsTask());
+
+                    // act
+                    Action testAction = () => writer.WriteCalendar(calendar);
+
+                    // assert
+                    testAction.Should().Throw<InvalidOperationException>().WithMessage(CanceledMessage);
                 }
             }
             finally
@@ -337,23 +535,68 @@ namespace DataStandardizer.File.iCal.Tests
         public async Task WriteCalendarAsync_SyncOnlyXmlWriter_ThrowsInvalidOperation()
         {
             // arrange
-            var text = new StringWriter();
-            var xmlWriter = XmlWriter.Create(text);
-            var writer = new XcalWriter(xmlWriter);
+            var calendar = ReadCalendar(Example1Ical);
+            var writer = new XcalWriter(XmlWriter.Create(new StringWriter()));
             try
             {
-                var calendar = ReadCalendar(Example1Ical);
-
                 // act
-                Action act = () => writer.WriteCalendarAsync(calendar);
+                Action testAction = () => writer.WriteCalendarAsync(calendar);
 
                 // assert
-                act.Should().Throw<InvalidOperationException>().WithMessage("*Async*");
-                writer.WriteCalendar(calendar);
+                testAction.Should().Throw<InvalidOperationException>().WithMessage(AsyncMessage);
             }
             finally
             {
                 await writer.DisposeAsync();
+            }
+        }
+
+        [Fact]
+        public async Task WriteCalendar_SyncOnlyXmlWriterAfterAsyncWriteRejected_DoesNotThrow()
+        {
+            // arrange
+            var calendar = ReadCalendar(Example1Ical);
+            var writer = new XcalWriter(XmlWriter.Create(new StringWriter()));
+            try
+            {
+                Record.Exception(() => writer.WriteCalendarAsync(calendar));
+
+                // act
+                Action testAction = () => writer.WriteCalendar(calendar);
+
+                // assert
+                testAction.Should().NotThrow();
+            }
+            finally
+            {
+                await writer.DisposeAsync();
+            }
+        }
+
+        [Fact]
+        public async Task WriteCalendarAsync_AfterDisposeStartedWhileFlushInProgress_ThrowsObjectDisposed()
+        {
+            // arrange
+            var calendar = ReadCalendar(Example1Ical);
+            var target = new GatedTextWriter();
+            var writer = new XcalWriter(target);
+            await writer.WriteCalendarAsync(calendar);
+            var flush = writer.FlushAsync();
+            await target.WriteStarted;
+            var dispose = writer.DisposeAsync();
+            try
+            {
+                // act
+                Action testAction = () => writer.WriteCalendarAsync(calendar);
+
+                // assert
+                testAction.Should().Throw<ObjectDisposedException>();
+            }
+            finally
+            {
+                target.OpenGate();
+                await flush;
+                await dispose;
             }
         }
 
@@ -366,16 +609,14 @@ namespace DataStandardizer.File.iCal.Tests
             await writer.WriteCalendarAsync(ReadCalendar(Example1Ical));
             var flush = writer.FlushAsync();
             await target.WriteStarted;
-
-            // act
             var dispose = writer.DisposeAsync();
-            Action write = () => writer.WriteCalendarAsync(ReadCalendar(Example1Ical));
             target.OpenGate();
             await flush;
+
+            // act
             await dispose;
 
             // assert
-            write.Should().Throw<ObjectDisposedException>();
             var document = System.Xml.Linq.XDocument.Parse(target.ToString());
             document.Root.Name.LocalName.Should().Be("icalendar");
             document.Root.Elements().Should().ContainSingle();

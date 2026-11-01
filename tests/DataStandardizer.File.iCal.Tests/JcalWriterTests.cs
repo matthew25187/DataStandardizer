@@ -4,9 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json.Nodes;
-using System.Threading.Tasks;
 using FluentAssertions;
 using Xunit;
+using static DataStandardizer.File.iCal.Tests.IcalLines;
 using static DataStandardizer.File.iCal.Tests.JcalTestData;
 using static DataStandardizer.File.iCal.Tests.ModelTestData;
 
@@ -14,27 +14,68 @@ namespace DataStandardizer.File.iCal.Tests
 {
     public class JcalWriterTests
     {
+        private const string ComponentName = "vcalendar";
+
+        // A summary with characters inside and outside the Basic Multilingual Plane, and quotation marks.
+        private const string NonAsciiSummary = "Caf\xE9 \x4E2D \xD83D\xDE00 \"quoted\"";
+
+        // NonAsciiSummary as System.Text.Json writes it: characters outside ASCII as they are, except those outside the Basic Multilingual Plane.
+        private const string NonAsciiSummaryJson = "[\"summary\",{},\"text\",\"Caf\xE9 \x4E2D \\uD83D\\uDE00 \\\"quoted\\\"\"]";
+
+        // The numbers of content lines written after each calendar of Example2Ical and Example1Ical, as IcalWriter reports them.
+        private const long Example2LineCount = 40;
+        private const long Example2AndExample1LineCount = 51;
+
+        private static readonly IcalOptions MissingRequiredProperties = new IcalOptions { AllowMissingRequiredProperties = true };
+
+        public static TheoryData<Func<JcalWriter, object>> DisposedWriterMembers()
+        {
+            var calendar = new IcalCalendar();
+            return new TheoryData<Func<JcalWriter, object>>
+            {
+                writer => { writer.WriteCalendar(calendar); return null; },
+                writer => { writer.WriteCalendars(new[] { calendar }); return null; },
+                writer => { writer.Flush(); return null; },
+                writer => writer.CalendarsWritten,
+                writer => writer.ComponentsWritten,
+                writer => writer.PropertiesWritten,
+            };
+        }
+
+        public static TheoryData<Action, Type> InvalidConstructorArguments => new TheoryData<Action, Type>
+        {
+            { () => new JcalWriter((Stream)null), typeof(ArgumentNullException) },
+            { () => new JcalWriter(new MemoryStream(), null), typeof(ArgumentNullException) },
+            { () => new JcalWriter(new MemoryStream(new byte[0], false)), typeof(ArgumentException) },
+            { () => new JcalWriter((string)null), typeof(ArgumentNullException) },
+        };
+
         [Fact]
         public void WriteCalendars_RfcExample1_MatchesJcalForm()
         {
+            // arrange
+            var calendars = ReadCalendars(Example1Ical);
+            var expected = JsonNode.Parse(Example1Jcal);
+
             // act
-            var testResult = WriteJcal(ReadCalendars(Example1Ical));
+            var testResult = WriteJcal(calendars);
 
             // assert: the same JSON, ignoring formatting.
-            JsonNode.DeepEquals(JsonNode.Parse(testResult), JsonNode.Parse(Example1Jcal)).Should().BeTrue(testResult);
+            JsonNode.DeepEquals(JsonNode.Parse(testResult), expected).Should().BeTrue(testResult);
         }
 
         [Fact]
         public void WriteCalendars_RfcExample2_MatchesJcalFormWithPeriodArray()
         {
             // arrange: RFC 7265 §3.6.9 gives a PERIOD as an array, which Appendix B.2 does not follow.
-            var expected = Example2Jcal.Replace("\"2006-01-02T15:00:00/PT2H\"", "[\"2006-01-02T15:00:00\", \"PT2H\"]");
+            var calendars = ReadCalendars(Example2Ical);
+            var expected = JsonNode.Parse(Example2Jcal.Replace("\"2006-01-02T15:00:00/PT2H\"", "[\"2006-01-02T15:00:00\", \"PT2H\"]"));
 
             // act
-            var testResult = WriteJcal(ReadCalendars(Example2Ical));
+            var testResult = WriteJcal(calendars);
 
             // assert
-            JsonNode.DeepEquals(JsonNode.Parse(testResult), JsonNode.Parse(expected)).Should().BeTrue(testResult);
+            JsonNode.DeepEquals(JsonNode.Parse(testResult), expected).Should().BeTrue(testResult);
         }
 
         [Fact]
@@ -42,7 +83,7 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var stream = new MemoryStream();
-            var calendar = ReadCalendar(EventCalendar("SUMMARY:Café 中 \U0001F600 \"quoted\""));
+            var calendar = ReadCalendar(EventCalendar("SUMMARY:" + NonAsciiSummary));
 
             // act
             using (var writer = new JcalWriter(stream))
@@ -56,31 +97,48 @@ namespace DataStandardizer.File.iCal.Tests
             var json = Encoding.UTF8.GetString(bytes);
             json.Should().StartWith("[\"vcalendar\",[[\"version\",{},\"text\",\"2.0\"],");
             json.Should().NotContain("\n");
-            // Characters outside ASCII are written as they are, but System.Text.Json always escapes those outside the Basic Multilingual Plane.
-            json.Should().Contain("[\"summary\",{},\"text\",\"Café 中 \\uD83D\\uDE00 \\\"quoted\\\"\"]");
-            ReadJcal(json).Single().Events.Single().Summary.Should().Be("Café 中 \U0001F600 \"quoted\"");
+            json.Should().Contain(NonAsciiSummaryJson);
             stream.CanWrite.Should().BeTrue();
+        }
+
+        [Fact]
+        public void ReadJcal_WrittenNonAsciiSummary_IsTheSummary()
+        {
+            // arrange
+            var json = WriteJcal(new[] { ReadCalendar(EventCalendar("SUMMARY:" + NonAsciiSummary)) });
+
+            // act
+            var testResult = ReadJcal(json);
+
+            // assert
+            testResult.Should().ContainSingle().Which.Events.Should().ContainSingle().Which.Summary.Should().Be(NonAsciiSummary);
         }
 
         [Fact]
         public void WriteCalendars_OneCalendar_IsTheComponentArray()
         {
+            // arrange
+            var calendars = ReadCalendars(Example1Ical);
+
             // act
-            var testResult = JsonNode.Parse(WriteJcal(ReadCalendars(Example1Ical))).AsArray();
+            var testResult = JsonNode.Parse(WriteJcal(calendars)).AsArray();
 
             // assert
-            testResult[0].GetValue<string>().Should().Be("vcalendar");
+            testResult[0].GetValue<string>().Should().Be(ComponentName);
         }
 
         [Fact]
         public void WriteCalendars_SeveralCalendars_IsAnArrayOfComponentArrays()
         {
+            // arrange
+            var calendars = ReadCalendars(Example1Ical + Example2Ical + Example1Ical);
+
             // act
-            var testResult = JsonNode.Parse(WriteJcal(ReadCalendars(Example1Ical + Example2Ical + Example1Ical))).AsArray();
+            var testResult = JsonNode.Parse(WriteJcal(calendars)).AsArray();
 
             // assert
             testResult.Should().HaveCount(3);
-            testResult.Select(calendar => calendar[0].GetValue<string>()).Should().AllBe("vcalendar");
+            testResult.Select(calendar => calendar[0].GetValue<string>()).Should().AllBe(ComponentName);
         }
 
         [Fact]
@@ -88,16 +146,17 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var stream = new MemoryStream();
+            var writer = new JcalWriter(stream);
 
             // act
-            new JcalWriter(stream).Dispose();
+            writer.Dispose();
 
             // assert
             stream.ToArray().Should().BeEmpty();
         }
 
         [Fact]
-        public void Flush_FirstCalendar_IsHeldUntilTheNextOrDispose()
+        public void Flush_FirstCalendar_IsHeldUntilTheNext()
         {
             // arrange
             var stream = new MemoryStream();
@@ -106,15 +165,43 @@ namespace DataStandardizer.File.iCal.Tests
 
             // act
             writer.Flush();
-            var afterFirst = stream.Length;
+
+            // assert
+            stream.Length.Should().Be(0);
+        }
+
+        [Fact]
+        public void Flush_SecondCalendar_WritesTheFirst()
+        {
+            // arrange
+            var stream = new MemoryStream();
+            var writer = new JcalWriter(stream);
             writer.WriteCalendar(ReadCalendar(Example1Ical));
             writer.Flush();
-            var afterSecond = stream.Length;
+            writer.WriteCalendar(ReadCalendar(Example1Ical));
+
+            // act
+            writer.Flush();
+
+            // assert
+            stream.Length.Should().BePositive();
+        }
+
+        [Fact]
+        public void Dispose_AfterTwoCalendars_WritesAnArrayOfBoth()
+        {
+            // arrange
+            var stream = new MemoryStream();
+            var writer = new JcalWriter(stream);
+            writer.WriteCalendar(ReadCalendar(Example1Ical));
+            writer.Flush();
+            writer.WriteCalendar(ReadCalendar(Example1Ical));
+            writer.Flush();
+
+            // act
             writer.Dispose();
 
             // assert
-            afterFirst.Should().Be(0);
-            afterSecond.Should().BeGreaterThan(0);
             JsonNode.Parse(stream.ToArray()).AsArray().Should().HaveCount(2);
         }
 
@@ -141,26 +228,26 @@ namespace DataStandardizer.File.iCal.Tests
                 "ATTENDEE;DELEGATED-TO=\"mailto:a@example.com\",\"mailto:b@example.com\";RSVP=TRUE:mailto:c@example.com"));
 
             // act
-            var properties = EventProperties(WriteJcal(new[] { calendar }));
+            var testResult = EventProperties(WriteJcal(new[] { calendar }));
 
             // assert
-            properties["x-boolean"].Should().Be("[\"x-boolean\",{},\"boolean\",false]");
-            properties["x-integer"].Should().Be("[\"x-integer\",{},\"integer\",7]");
-            properties["x-float"].Should().Be("[\"x-float\",{},\"float\",-1.250]");
-            properties["x-float-plus"].Should().Be("[\"x-float-plus\",{},\"float\",1.5]");
-            properties["x-dates"].Should().Be("[\"x-dates\",{},\"date\",\"2026-01-01\",\"2026-01-02\"]");
-            properties["x-time"].Should().Be("[\"x-time\",{},\"time\",\"09:00:00Z\"]");
-            properties["x-utc-offset"].Should().Be("[\"x-utc-offset\",{},\"utc-offset\",\"-01:30:15\"]");
-            properties["x-period"].Should().Be("[\"x-period\",{},\"period\",[\"2026-01-01T09:00:00Z\",\"2026-01-01T10:00:00Z\"]]");
-            properties["x-recur"].Should().Be(
+            testResult["x-boolean"].Should().Be("[\"x-boolean\",{},\"boolean\",false]");
+            testResult["x-integer"].Should().Be("[\"x-integer\",{},\"integer\",7]");
+            testResult["x-float"].Should().Be("[\"x-float\",{},\"float\",-1.250]");
+            testResult["x-float-plus"].Should().Be("[\"x-float-plus\",{},\"float\",1.5]");
+            testResult["x-dates"].Should().Be("[\"x-dates\",{},\"date\",\"2026-01-01\",\"2026-01-02\"]");
+            testResult["x-time"].Should().Be("[\"x-time\",{},\"time\",\"09:00:00Z\"]");
+            testResult["x-utc-offset"].Should().Be("[\"x-utc-offset\",{},\"utc-offset\",\"-01:30:15\"]");
+            testResult["x-period"].Should().Be("[\"x-period\",{},\"period\",[\"2026-01-01T09:00:00Z\",\"2026-01-01T10:00:00Z\"]]");
+            testResult["x-recur"].Should().Be(
                 "[\"x-recur\",{},\"recur\",{\"freq\":\"MONTHLY\",\"bymonthday\":[1,-1],\"count\":3}]");
-            properties["x-recur-until"].Should().Be("[\"x-recur-until\",{},\"recur\",{\"freq\":\"WEEKLY\",\"until\":\"2026-12-31\",\"byday\":\"MO\"}]");
-            properties["x-text"].Should().Be("[\"x-text\",{},\"text\",\"one, two\",\"three\\nfour\"]");
-            properties["x-raw"].Should().Be("[\"x-raw\",{},\"unknown\",\"a\\\\,b;c\"]");
-            properties["x-other"].Should().Be("[\"x-other\",{},\"x-name\",\"anything\"]");
-            properties["geo"].Should().Be("[\"geo\",{},\"float\",[37.386013,-122.082932]]");
-            properties["request-status"].Should().Be("[\"request-status\",{},\"text\",[\"3.7\",\"Invalid calendar user\",\"ATTENDEE:;mailto:jsmith@example.com\"]]");
-            properties["attendee"].Should().Be(
+            testResult["x-recur-until"].Should().Be("[\"x-recur-until\",{},\"recur\",{\"freq\":\"WEEKLY\",\"until\":\"2026-12-31\",\"byday\":\"MO\"}]");
+            testResult["x-text"].Should().Be("[\"x-text\",{},\"text\",\"one, two\",\"three\\nfour\"]");
+            testResult["x-raw"].Should().Be("[\"x-raw\",{},\"unknown\",\"a\\\\,b;c\"]");
+            testResult["x-other"].Should().Be("[\"x-other\",{},\"x-name\",\"anything\"]");
+            testResult["geo"].Should().Be("[\"geo\",{},\"float\",[37.386013,-122.082932]]");
+            testResult["request-status"].Should().Be("[\"request-status\",{},\"text\",[\"3.7\",\"Invalid calendar user\",\"ATTENDEE:;mailto:jsmith@example.com\"]]");
+            testResult["attendee"].Should().Be(
                 "[\"attendee\",{\"delegated-to\":[\"mailto:a@example.com\",\"mailto:b@example.com\"],\"rsvp\":\"TRUE\"},\"cal-address\",\"mailto:c@example.com\"]");
         }
 
@@ -172,41 +259,33 @@ namespace DataStandardizer.File.iCal.Tests
             var calendar = ReadCalendar(EventCalendar("DTEND;VALUE=DATE:2026-01-02", "X-COUNT;VALUE=INTEGER:many"), options);
 
             // act
-            var properties = EventProperties(WriteJcal(new[] { calendar }, options));
+            var testResult = EventProperties(WriteJcal(new[] { calendar }, options));
 
             // assert
-            properties["dtend"].Should().Be("[\"dtend\",{\"value\":\"DATE\"},\"unknown\",\"2026-01-02\"]");
-            properties["x-count"].Should().Be("[\"x-count\",{\"value\":\"INTEGER\"},\"unknown\",\"many\"]");
+            testResult["dtend"].Should().Be("[\"dtend\",{\"value\":\"DATE\"},\"unknown\",\"2026-01-02\"]");
+            testResult["x-count"].Should().Be("[\"x-count\",{\"value\":\"INTEGER\"},\"unknown\",\"many\"]");
         }
 
         [Fact]
         public void WriteCalendar_Version_IsAlways20AndFirstIfMissing()
         {
             // arrange
-            var options = new IcalOptions { AllowMissingRequiredProperties = true };
-            var calendar = ReadCalendar(IcalTestData.Crlf("BEGIN:VCALENDAR", "PRODID:-//Test//Test//EN", "BEGIN:VJOURNAL", "UID:j@example.com",
-                "DTSTAMP:20260101T000000Z", "END:VJOURNAL", "END:VCALENDAR"), options);
+            var calendar = ReadCalendar(ConformanceCases.All[ConformanceCases.MissingVersionCase].Text, MissingRequiredProperties);
 
             // act
-            var document = JsonNode.Parse(WriteJcal(new[] { calendar }, options)).AsArray();
+            var testResult = JsonNode.Parse(WriteJcal(new[] { calendar }, MissingRequiredProperties)).AsArray();
 
             // assert
-            var properties = document[1].AsArray();
+            var properties = testResult[1].AsArray();
             properties.Select(property => property[0].GetValue<string>()).Should().Equal("version", "prodid");
             properties[0][3].GetValue<string>().Should().Be("2.0");
         }
 
         [Fact]
-        public void WriteCalendars_Progress_MatchesIcalWriter()
+        public void WriteCalendars_Progress_IsReportedAsIcalWriterReportsIt()
         {
             // arrange
             var calendars = ReadCalendars(Example2Ical + Example1Ical);
-            var icalProgress = new RecordingProgress();
-            using (var icalWriter = new IcalWriter(new StringWriter()))
-            {
-                icalWriter.WriteCalendars(calendars, icalProgress);
-            }
-
             var testResult = new RecordingProgress();
             using (var writer = new JcalWriter(new MemoryStream()))
             {
@@ -214,7 +293,7 @@ namespace DataStandardizer.File.iCal.Tests
                 writer.WriteCalendars(calendars, testResult);
 
                 // assert
-                testResult.Reports.Should().Equal(icalProgress.Reports);
+                testResult.Reports.Should().Equal(new IcalWriteProgress(Example2LineCount, 5, 1), new IcalWriteProgress(Example2AndExample1LineCount, 6, 2));
                 writer.CalendarsWritten.Should().Be(2);
                 writer.ComponentsWritten.Should().Be(6);
                 writer.PropertiesWritten.Should().Be(35);
@@ -222,41 +301,69 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public void WriteCalendar_NonConformant_ThrowsAndWritesNothing()
+        public void WriteCalendar_NonConformant_Throws()
         {
             // arrange
-            var calendar = ReadCalendar(ConformanceCases.All["MissingUid"].Text, new IcalOptions { AllowMissingRequiredProperties = true });
-            var stream = new MemoryStream();
-            var writer = new JcalWriter(stream);
+            var calendar = ReadCalendar(ConformanceCases.All[ConformanceCases.MissingUidCase].Text, MissingRequiredProperties);
+            var writer = new JcalWriter(new MemoryStream());
 
             // act
-            Action act = () => writer.WriteCalendar(calendar);
+            Action testAction = () => writer.WriteCalendar(calendar);
 
             // assert
-            var exception = act.Should().Throw<IcalFileException>().Which;
-            exception.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.MissingRequiredProperty);
+            testAction.Should().Throw<IcalFileException>().Which.Data[IcalFileException.DataItemName.DiagnosticKind].Should()
+                .Be(IcalDiagnosticKind.MissingRequiredProperty);
+        }
+
+        [Fact]
+        public void Dispose_AfterNonConformantCalendar_HasWrittenNothing()
+        {
+            // arrange
+            var calendar = ReadCalendar(ConformanceCases.All[ConformanceCases.MissingUidCase].Text, MissingRequiredProperties);
+            var stream = new MemoryStream();
+            var writer = new JcalWriter(stream);
+            Record.Exception(() => writer.WriteCalendar(calendar));
+
+            // act
             writer.Dispose();
+
+            // assert
             stream.ToArray().Should().BeEmpty();
         }
 
         [Fact]
-        public void WriteCalendar_SecondCalendarCannotBeWritten_KeepsTheFirst()
+        public void WriteCalendar_SecondCalendarCannotBeWritten_Throws()
         {
             // arrange
-            var bad = ReadCalendar(EventCalendar("X-OK:1"));
-            bad.Events.Single().Properties.Add(new IcalContentLine("X BAD", "value"));
-            var stream = new MemoryStream();
-
-            // act
-            using (var writer = new JcalWriter(stream))
+            var bad = CreateCalendarWithBadPropertyName();
+            using (var writer = new JcalWriter(new MemoryStream()))
             {
                 writer.WriteCalendar(ReadCalendar(Example1Ical));
-                writer.Invoking(value => value.WriteCalendar(bad)).Should().Throw<IcalFileException>().WithMessage("*X BAD*");
+
+                // act
+                Action testAction = () => writer.WriteCalendar(bad);
+
+                // assert
+                testAction.Should().Throw<IcalFileException>().WithMessage("*X BAD*");
                 writer.CalendarsWritten.Should().Be(1);
             }
+        }
+
+        [Fact]
+        public void Dispose_AfterSecondCalendarCannotBeWritten_KeepsTheFirst()
+        {
+            // arrange
+            var expected = Model(ReadCalendars(Example1Ical));
+            var stream = new MemoryStream();
+            var writer = new JcalWriter(stream);
+            writer.WriteCalendar(ReadCalendar(Example1Ical));
+            Record.Exception(() => writer.WriteCalendar(CreateCalendarWithBadPropertyName()));
+
+            // act
+            writer.Dispose();
 
             // assert
-            Model(ReadJcal(Encoding.UTF8.GetString(stream.ToArray()))).Should().Equal(Model(ReadCalendars(Example1Ical)));
+            Model(ReadJcal(Encoding.UTF8.GetString(stream.ToArray()))).Should().Equal(expected);
         }
 
         [Fact]
@@ -266,10 +373,10 @@ namespace DataStandardizer.File.iCal.Tests
             var calendar = ReadCalendar(EventCalendar("SUMMARY;LANGUAGE=en;language=fr:Hello"));
 
             // act
-            Action act = () => WriteJcal(new[] { calendar });
+            Action testAction = () => WriteJcal(new[] { calendar });
 
             // assert
-            act.Should().Throw<IcalFileException>().WithMessage("*LANGUAGE parameter appears more than once*")
+            testAction.Should().Throw<IcalFileException>().WithMessage("*LANGUAGE parameter appears more than once*")
                 .Which.Data[IcalFileException.DataItemName.PropertyName].Should().Be("SUMMARY");
         }
 
@@ -278,31 +385,42 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var calendar = ReadCalendar(EventCalendar("X-OK:1"));
-            calendar.Events.Single().Properties.Add(new IcalContentLine("X-RAW", "a\uD800b"));
+            calendar.Events.Single().Properties.Add(new IcalContentLine("X-RAW", "a\xD800b"));
 
             // act
-            Action act = () => WriteJcal(new[] { calendar });
+            Action testAction = () => WriteJcal(new[] { calendar });
 
             // assert
-            act.Should().Throw<IcalFileException>().WithMessage("*X-RAW*");
+            testAction.Should().Throw<IcalFileException>().WithMessage("*X-RAW*");
         }
 
-        [Fact]
-        public void Dispose_ThenUse_ThrowsObjectDisposed()
+        [Theory]
+        [MemberData(nameof(DisposedWriterMembers), DisableDiscoveryEnumeration = true)]
+        public void Member_AfterDispose_ThrowsObjectDisposed(Func<JcalWriter, object> member)
         {
             // arrange
             var writer = new JcalWriter(new MemoryStream());
             writer.Dispose();
-            writer.Dispose();
-            var calendar = ReadCalendar(Example1Ical);
+
+            // act
+            Action testAction = () => member(writer);
 
             // assert
-            writer.Invoking(value => value.WriteCalendar(calendar)).Should().Throw<ObjectDisposedException>();
-            writer.Invoking(value => value.WriteCalendars(new[] { calendar })).Should().Throw<ObjectDisposedException>();
-            writer.Invoking(value => value.Flush()).Should().Throw<ObjectDisposedException>();
-            writer.Invoking(value => value.CalendarsWritten).Should().Throw<ObjectDisposedException>();
-            writer.Invoking(value => value.ComponentsWritten).Should().Throw<ObjectDisposedException>();
-            writer.Invoking(value => value.PropertiesWritten).Should().Throw<ObjectDisposedException>();
+            testAction.Should().Throw<ObjectDisposedException>();
+        }
+
+        [Fact]
+        public void Dispose_Twice_DoesNotThrow()
+        {
+            // arrange
+            var writer = new JcalWriter(new MemoryStream());
+            writer.Dispose();
+
+            // act
+            Action testAction = () => writer.Dispose();
+
+            // assert
+            testAction.Should().NotThrow();
         }
 
         [Fact]
@@ -319,10 +437,10 @@ namespace DataStandardizer.File.iCal.Tests
                 }
 
                 // act
-                Action act = () => writer.WriteCalendars(Calendars());
+                Action testAction = () => writer.WriteCalendars(Calendars());
 
                 // assert
-                act.Should().Throw<InvalidOperationException>().WithMessage("Another operation*");
+                testAction.Should().Throw<InvalidOperationException>().WithMessage("Another operation*");
             }
         }
 
@@ -330,34 +448,60 @@ namespace DataStandardizer.File.iCal.Tests
         public void WriteCalendars_ContainsNull_ThrowsArgumentException()
         {
             // arrange
+            var calendar = ReadCalendar(Example1Ical);
             using (var writer = new JcalWriter(new MemoryStream()))
             {
                 // act
-                Action act = () => writer.WriteCalendars(new[] { ReadCalendar(Example1Ical), null });
+                Action testAction = () => writer.WriteCalendars(new[] { calendar, null });
 
                 // assert
-                act.Should().Throw<ArgumentException>();
+                testAction.Should().Throw<ArgumentException>();
                 writer.CalendarsWritten.Should().Be(1);
             }
         }
 
-        [Fact]
-        public void Constructors_InvalidArguments_Throw()
+        [Theory]
+        [MemberData(nameof(InvalidConstructorArguments), DisableDiscoveryEnumeration = true)]
+        public void Constructor_InvalidArgument_Throws(Action call, Type expectedType)
         {
+            // act
+            var testAction = call;
+
             // assert
-            FluentActions.Invoking(() => new JcalWriter((Stream)null)).Should().Throw<ArgumentNullException>().WithParameterName("jcalStream");
-            FluentActions.Invoking(() => new JcalWriter(new MemoryStream(), null)).Should().Throw<ArgumentNullException>();
-            FluentActions.Invoking(() => new JcalWriter(new MemoryStream(new byte[0], false))).Should().Throw<ArgumentException>();
-            FluentActions.Invoking(() => new JcalWriter((string)null)).Should().Throw<ArgumentNullException>().WithParameterName("jcalFilePath");
-            FluentActions.Invoking(() => new JcalWriter(new MemoryStream(), new IcalOptions { Encoding = Encoding.Unicode }))
-                .Should().Throw<ArgumentException>().WithMessage("*UTF-8*");
-            new JcalWriter(new MemoryStream(), new IcalOptions { Encoding = Encoding.UTF8 }).Dispose();
+            testAction.Should().Throw<ArgumentException>().Which.Should().BeOfType(expectedType);
+        }
+
+        [Fact]
+        public void Constructor_EncodingOtherThanUtf8_ThrowsArgumentException()
+        {
+            // arrange
+            var options = new IcalOptions { Encoding = Encoding.Unicode };
+
+            // act
+            Action testAction = () => new JcalWriter(new MemoryStream(), options);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithMessage("*UTF-8*");
+        }
+
+        [Fact]
+        public void Constructor_Utf8Encoding_DoesNotThrow()
+        {
+            // arrange
+            var options = new IcalOptions { Encoding = Encoding.UTF8 };
+
+            // act
+            Action testAction = () => new JcalWriter(new MemoryStream(), options).Dispose();
+
+            // assert
+            testAction.Should().NotThrow();
         }
 
         [Fact]
         public void WriteCalendar_File_WritesAndClosesFile()
         {
             // arrange
+            var expected = Model(ReadCalendars(Example1Ical));
             var path = Path.GetTempFileName();
             try
             {
@@ -370,7 +514,7 @@ namespace DataStandardizer.File.iCal.Tests
                 // assert
                 using (var reader = new JcalReader(path))
                 {
-                    Model(reader.ReadCalendars().ToList()).Should().Equal(Model(ReadCalendars(Example1Ical)));
+                    Model(reader.ReadCalendars().ToList()).Should().Equal(expected);
                 }
 
                 System.IO.File.Delete(path);
@@ -380,6 +524,13 @@ namespace DataStandardizer.File.iCal.Tests
             {
                 System.IO.File.Delete(path);
             }
+        }
+
+        private static IcalCalendar CreateCalendarWithBadPropertyName()
+        {
+            var calendar = ReadCalendar(EventCalendar("X-OK:1"));
+            calendar.Events.Single().Properties.Add(new IcalContentLine("X BAD", "value"));
+            return calendar;
         }
 
         /// <summary>

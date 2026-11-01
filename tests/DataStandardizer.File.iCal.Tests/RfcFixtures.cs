@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
+using static DataStandardizer.File.iCal.Tests.IcalLines;
 using static DataStandardizer.File.iCal.Tests.IcalTestData;
 
 namespace DataStandardizer.File.iCal.Tests
@@ -17,10 +18,10 @@ namespace DataStandardizer.File.iCal.Tests
         /// RFC 5545 §4, first example: a VEVENT with a folded, escaped DESCRIPTION.
         /// </summary>
         public static readonly string Rfc5545Event = Crlf(
-            "BEGIN:VCALENDAR",
+            BeginCalendar,
             "PRODID:-//xyz Corp//NONSGML PDA Calendar Version 1.0//EN",
-            "VERSION:2.0",
-            "BEGIN:VEVENT",
+            Version20,
+            BeginEvent,
             "DTSTAMP:19960704T120000Z",
             "UID:uid1@example.com",
             "ORGANIZER:mailto:jsmith@example.com",
@@ -32,32 +33,32 @@ namespace DataStandardizer.File.iCal.Tests
             "DESCRIPTION:Networld+Interop Conference",
             "  and Exhibit\\nAtlanta World Congress Center\\n",
             " Atlanta\\, Georgia",
-            "END:VEVENT",
-            "END:VCALENDAR");
+            EndEvent,
+            EndCalendar);
 
         /// <summary>
         /// RFC 5545 §4, second example: a VTIMEZONE and a VEVENT using it, with parameters and a fold after the colon.
         /// </summary>
         public static readonly string Rfc5545TimeZone = Crlf(
-            "BEGIN:VCALENDAR",
+            BeginCalendar,
             "PRODID:-//RDU Software//NONSGML HandCal//EN",
-            "VERSION:2.0",
-            "BEGIN:VTIMEZONE",
+            Version20,
+            BeginTimeZone,
             "TZID:America/New_York",
-            "BEGIN:STANDARD",
+            BeginStandard,
             "DTSTART:19981025T020000",
             "TZOFFSETFROM:-0400",
             "TZOFFSETTO:-0500",
             "TZNAME:EST",
-            "END:STANDARD",
-            "BEGIN:DAYLIGHT",
+            EndStandard,
+            BeginDaylight,
             "DTSTART:19990404T020000",
             "TZOFFSETFROM:-0500",
             "TZOFFSETTO:-0400",
             "TZNAME:EDT",
-            "END:DAYLIGHT",
-            "END:VTIMEZONE",
-            "BEGIN:VEVENT",
+            EndDaylight,
+            EndTimeZone,
+            BeginEvent,
             "DTSTAMP:19980309T231000Z",
             "UID:guid-1.example.com",
             "ORGANIZER;ROLE=CHAIR:mailto:mrbig@example.com",
@@ -71,17 +72,17 @@ namespace DataStandardizer.File.iCal.Tests
             "DTSTART;TZID=America/New_York:19980312T083000",
             "DTEND;TZID=America/New_York:19980312T093000",
             "LOCATION:1CP Conference Room 4350",
-            "END:VEVENT",
-            "END:VCALENDAR");
+            EndEvent,
+            EndCalendar);
 
         /// <summary>
         /// RFC 5545 §4, third example: a VTODO with a VALARM whose ATTACH value is folded.
         /// </summary>
         public static readonly string Rfc5545Todo = Crlf(
-            "BEGIN:VCALENDAR",
-            "VERSION:2.0",
+            BeginCalendar,
+            Version20,
             "PRODID:-//ABC Corporation//NONSGML My Product//EN",
-            "BEGIN:VTODO",
+            BeginTodo,
             "DTSTAMP:19980130T134500Z",
             "SEQUENCE:2",
             "UID:uid4@example.com",
@@ -90,25 +91,25 @@ namespace DataStandardizer.File.iCal.Tests
             "DUE:19980415T000000",
             "STATUS:NEEDS-ACTION",
             "SUMMARY:Submit Income Taxes",
-            "BEGIN:VALARM",
+            BeginAlarm,
             "ACTION:AUDIO",
             "TRIGGER:19980403T120000Z",
             "ATTACH;FMTTYPE=audio/basic:http://example.com/pub/audio-",
             " files/ssbanner.aud",
             "REPEAT:4",
             "DURATION:PT1H",
-            "END:VALARM",
-            "END:VTODO",
-            "END:VCALENDAR");
+            EndAlarm,
+            EndTodo,
+            EndCalendar);
 
         /// <summary>
         /// RFC 5545 §4, fifth example: a VFREEBUSY.
         /// </summary>
         public static readonly string Rfc5545FreeBusy = Crlf(
-            "BEGIN:VCALENDAR",
-            "VERSION:2.0",
+            BeginCalendar,
+            Version20,
             "PRODID:-//RDU Software//NONSGML HandCal//EN",
-            "BEGIN:VFREEBUSY",
+            BeginFreeBusy,
             "ORGANIZER:mailto:jsmith@example.com",
             "DTSTART:19980313T141711Z",
             "DTEND:19980410T141711Z",
@@ -116,8 +117,8 @@ namespace DataStandardizer.File.iCal.Tests
             "FREEBUSY:19980316T153000Z/19980316T163000Z",
             "FREEBUSY:19980318T030000Z/19980318T040000Z",
             "URL:http://www.example.com/calendar/busytime/jsmith.ifb",
-            "END:VFREEBUSY",
-            "END:VCALENDAR");
+            EndFreeBusy,
+            EndCalendar);
 
         /// <summary>
         /// Content lines from the parameter and property examples of RFC 5545 §3.2 and §3.8.

@@ -11,115 +11,157 @@ namespace DataStandardizer.File.iCal.Tests
 {
     public class IcalRecurrenceExpansionTests
     {
-        private const string NewYork = "America/New_York";
+        private const string NewYork = Rfc5545Examples.NewYorkTimeZoneId;
+
+        // ref. RFC 5545 §3.8.5.3: the DTSTART of most of the examples, in New York time.
+        private const string September2Start = "19970902T090000";
+
+        // ref. RFC 5545 §3.8.5.3: the start of the example where the days generated make a difference because of WKST.
+        private const string WeekStartExampleStart = "19970805T090000";
+
+        private const string NewYear = "20260101T090000";
+        private const string NewYearTen = "20260101T100000";
+        private const string NewYearMidnight = "20260101T000000";
+        private const string StartWithSeconds = "20260105T093015";
+        private const string DailyTwice = "FREQ=DAILY;COUNT=2";
+        private const string DailyUntilJanuary3InUtc = "FREQ=DAILY;UNTIL=20260103T140000Z";
+        private const string NeverOnFebruary30 = "FREQ=YEARLY;COUNT=1;BYMONTH=2;BYMONTHDAY=30";
+
+        // ref. RFC 5545 §3.8.5.3: the occurrences of the examples that are given in two forms.
+        private static readonly string[] EveryDayInJanuaryForThreeYears = Join(Range("19980101", "19980131"), Range("19990101", "19990131"),
+            Range("20000101", "20000131"));
+
+        private static readonly string[] TuesdaysAndThursdaysForFiveWeeks = Dates("19970902", "19970904", "19970909", "19970911", "19970916",
+            "19970918", "19970923", "19970925", "19970930", "19971002");
+
+        private static readonly string[] EveryTwentyMinutesForTwoDays = Join(Times("19970902", "090000", "164000", 20),
+            Times("19970903", "090000", "164000", 20));
 
         /// <summary>
-        /// The examples of RFC 5545 §3.8.5.3: the start, the rule, the end of the window for a rule that repeats forever, and the occurrences
-        /// listed.  A window ends just after the last occurrence the RFC lists.
+        /// The examples of RFC 5545 §3.8.5.3 that end, by COUNT or UNTIL: the start, the rule, and the occurrences listed.
         /// </summary>
-        public static TheoryData<string, string, string, string[]> RfcExamples => new TheoryData<string, string, string, string[]>()
+        public static TheoryData<string, string, string[]> RfcExamplesWithEnd => new TheoryData<string, string, string[]>()
         {
             // Daily for 10 occurrences.
-            { "19970902T090000", "FREQ=DAILY;COUNT=10", null, Range("19970902", "19970911") },
+            { September2Start, "FREQ=DAILY;COUNT=10", Range("19970902", "19970911") },
             // Daily until December 24, 1997.
-            { "19970902T090000", "FREQ=DAILY;UNTIL=19971224T000000Z", null, Range("19970902", "19971223") },
-            // Every other day - forever.
-            { "19970902T090000", "FREQ=DAILY;INTERVAL=2", "19971204T000000", Range("19970902", "19971203", 2) },
+            { September2Start, "FREQ=DAILY;UNTIL=19971224T000000Z", Range("19970902", "19971223") },
             // Every 10 days, 5 occurrences.
-            { "19970902T090000", "FREQ=DAILY;INTERVAL=10;COUNT=5", null, Dates("19970902", "19970912", "19970922", "19971002", "19971012") },
+            { September2Start, "FREQ=DAILY;INTERVAL=10;COUNT=5", Dates("19970902", "19970912", "19970922", "19971002", "19971012") },
             // Every day in January, for 3 years, in two forms.
             {
-                "19980101T090000", "FREQ=YEARLY;UNTIL=20000131T140000Z;BYMONTH=1;BYDAY=SU,MO,TU,WE,TH,FR,SA", null,
-                Join(Range("19980101", "19980131"), Range("19990101", "19990131"), Range("20000101", "20000131"))
+                "19980101T090000", "FREQ=YEARLY;UNTIL=20000131T140000Z;BYMONTH=1;BYDAY=SU,MO,TU,WE,TH,FR,SA",
+                EveryDayInJanuaryForThreeYears
             },
             {
-                "19980101T090000", "FREQ=DAILY;UNTIL=20000131T140000Z;BYMONTH=1", null,
-                Join(Range("19980101", "19980131"), Range("19990101", "19990131"), Range("20000101", "20000131"))
+                "19980101T090000", "FREQ=DAILY;UNTIL=20000131T140000Z;BYMONTH=1",
+                EveryDayInJanuaryForThreeYears
             },
             // Weekly for 10 occurrences.
-            { "19970902T090000", "FREQ=WEEKLY;COUNT=10", null, Range("19970902", "19971104", 7) },
+            { September2Start, "FREQ=WEEKLY;COUNT=10", Range("19970902", "19971104", 7) },
             // Weekly until December 24, 1997.
-            { "19970902T090000", "FREQ=WEEKLY;UNTIL=19971224T000000Z", null, Range("19970902", "19971223", 7) },
-            // Every other week - forever.
-            { "19970902T090000", "FREQ=WEEKLY;INTERVAL=2;WKST=SU", "19980218T000000", Range("19970902", "19980217", 14) },
+            { September2Start, "FREQ=WEEKLY;UNTIL=19971224T000000Z", Range("19970902", "19971223", 7) },
             // Weekly on Tuesday and Thursday for five weeks, in two forms.
             {
-                "19970902T090000", "FREQ=WEEKLY;UNTIL=19971007T000000Z;WKST=SU;BYDAY=TU,TH", null,
-                Dates("19970902", "19970904", "19970909", "19970911", "19970916", "19970918", "19970923", "19970925", "19970930", "19971002")
+                September2Start, "FREQ=WEEKLY;UNTIL=19971007T000000Z;WKST=SU;BYDAY=TU,TH",
+                TuesdaysAndThursdaysForFiveWeeks
             },
             {
-                "19970902T090000", "FREQ=WEEKLY;COUNT=10;WKST=SU;BYDAY=TU,TH", null,
-                Dates("19970902", "19970904", "19970909", "19970911", "19970916", "19970918", "19970923", "19970925", "19970930", "19971002")
+                September2Start, "FREQ=WEEKLY;COUNT=10;WKST=SU;BYDAY=TU,TH",
+                TuesdaysAndThursdaysForFiveWeeks
             },
             // Every other week on Monday, Wednesday, and Friday until December 24, 1997, starting on Monday, September 1, 1997.
             {
-                "19970901T090000", "FREQ=WEEKLY;INTERVAL=2;UNTIL=19971224T000000Z;WKST=SU;BYDAY=MO,WE,FR", null,
+                "19970901T090000", "FREQ=WEEKLY;INTERVAL=2;UNTIL=19971224T000000Z;WKST=SU;BYDAY=MO,WE,FR",
                 Dates("19970901", "19970903", "19970905", "19970915", "19970917", "19970919", "19970929", "19971001", "19971003", "19971013",
                     "19971015", "19971017", "19971027", "19971029", "19971031", "19971110", "19971112", "19971114", "19971124", "19971126",
                     "19971128", "19971208", "19971210", "19971212", "19971222")
             },
             // Every other week on Tuesday and Thursday, for 8 occurrences.
             {
-                "19970902T090000", "FREQ=WEEKLY;INTERVAL=2;COUNT=8;WKST=SU;BYDAY=TU,TH", null,
+                September2Start, "FREQ=WEEKLY;INTERVAL=2;COUNT=8;WKST=SU;BYDAY=TU,TH",
                 Dates("19970902", "19970904", "19970916", "19970918", "19970930", "19971002", "19971014", "19971016")
             },
             // Monthly on the first Friday for 10 occurrences.
             {
-                "19970905T090000", "FREQ=MONTHLY;COUNT=10;BYDAY=1FR", null,
+                "19970905T090000", "FREQ=MONTHLY;COUNT=10;BYDAY=1FR",
                 Dates("19970905", "19971003", "19971107", "19971205", "19980102", "19980206", "19980306", "19980403", "19980501", "19980605")
             },
             // Monthly on the first Friday until December 24, 1997.
-            { "19970905T090000", "FREQ=MONTHLY;UNTIL=19971224T000000Z;BYDAY=1FR", null, Dates("19970905", "19971003", "19971107", "19971205") },
+            { "19970905T090000", "FREQ=MONTHLY;UNTIL=19971224T000000Z;BYDAY=1FR", Dates("19970905", "19971003", "19971107", "19971205") },
             // Every other month on the first and last Sunday of the month for 10 occurrences.
             {
-                "19970907T090000", "FREQ=MONTHLY;INTERVAL=2;COUNT=10;BYDAY=1SU,-1SU", null,
+                "19970907T090000", "FREQ=MONTHLY;INTERVAL=2;COUNT=10;BYDAY=1SU,-1SU",
                 Dates("19970907", "19970928", "19971102", "19971130", "19980104", "19980125", "19980301", "19980329", "19980503", "19980531")
             },
             // Monthly on the second-to-last Monday of the month for 6 months.
             {
-                "19970922T090000", "FREQ=MONTHLY;COUNT=6;BYDAY=-2MO", null,
+                "19970922T090000", "FREQ=MONTHLY;COUNT=6;BYDAY=-2MO",
                 Dates("19970922", "19971020", "19971117", "19971222", "19980119", "19980216")
             },
+            // Monthly on the 2nd and 15th of the month for 10 occurrences.
+            {
+                September2Start, "FREQ=MONTHLY;COUNT=10;BYMONTHDAY=2,15",
+                Dates("19970902", "19970915", "19971002", "19971015", "19971102", "19971115", "19971202", "19971215", "19980102", "19980115")
+            },
+            // Monthly on the first and last day of the month for 10 occurrences.
+            {
+                "19970930T090000", "FREQ=MONTHLY;COUNT=10;BYMONTHDAY=1,-1",
+                Dates("19970930", "19971001", "19971031", "19971101", "19971130", "19971201", "19971231", "19980101", "19980131", "19980201")
+            },
+            // Every 18 months on the 10th thru 15th of the month for 10 occurrences.
+            {
+                "19970910T090000", "FREQ=MONTHLY;INTERVAL=18;COUNT=10;BYMONTHDAY=10,11,12,13,14,15",
+                Join(Range("19970910", "19970915"), Range("19990310", "19990313"))
+            },
+            // Yearly in June and July for 10 occurrences.
+            {
+                "19970610T090000", "FREQ=YEARLY;COUNT=10;BYMONTH=6,7",
+                Dates("19970610", "19970710", "19980610", "19980710", "19990610", "19990710", "20000610", "20000710", "20010610", "20010710")
+            },
+            // Every other year on January, February, and March for 10 occurrences.
+            {
+                "19970310T090000", "FREQ=YEARLY;INTERVAL=2;COUNT=10;BYMONTH=1,2,3",
+                Dates("19970310", "19990110", "19990210", "19990310", "20010110", "20010210", "20010310", "20030110", "20030210", "20030310")
+            },
+            // Every third year on the 1st, 100th, and 200th day for 10 occurrences.
+            {
+                "19970101T090000", "FREQ=YEARLY;INTERVAL=3;COUNT=10;BYYEARDAY=1,100,200",
+                Dates("19970101", "19970410", "19970719", "20000101", "20000409", "20000718", "20030101", "20030410", "20030719", "20060101")
+            },
+            // The third instance into the month of one of Tuesday, Wednesday, or Thursday, for the next 3 months.
+            { "19970904T090000", "FREQ=MONTHLY;COUNT=3;BYDAY=TU,WE,TH;BYSETPOS=3", Dates("19970904", "19971007", "19971106") },
+            // Every 15 minutes for 6 occurrences.
+            { September2Start, "FREQ=MINUTELY;INTERVAL=15;COUNT=6", Times("19970902", "090000", "101500", 15) },
+            // Every hour and a half for 4 occurrences.
+            { September2Start, "FREQ=MINUTELY;INTERVAL=90;COUNT=4", Times("19970902", "090000", "133000", 90) },
+            // An example where the days generated makes a difference because of WKST, and the same with only WKST changed.
+            { WeekStartExampleStart, "FREQ=WEEKLY;INTERVAL=2;COUNT=4;BYDAY=TU,SU;WKST=MO", Dates("19970805", "19970810", "19970819", "19970824") },
+            { WeekStartExampleStart, "FREQ=WEEKLY;INTERVAL=2;COUNT=4;BYDAY=TU,SU;WKST=SU", Dates("19970805", "19970817", "19970819", "19970831") },
+            // An example where an invalid date (i.e., February 30) is ignored.
+            { "20070115T090000", "FREQ=MONTHLY;BYMONTHDAY=15,30;COUNT=5", Dates("20070115", "20070130", "20070215", "20070315", "20070330") },
+        };
+
+        /// <summary>
+        /// The examples of RFC 5545 §3.8.5.3 that repeat forever: the start, the rule, the end of the window, and the occurrences listed.  A
+        /// window ends just after the last occurrence the RFC lists.
+        /// </summary>
+        public static TheoryData<string, string, string, string[]> RfcExamplesForever => new TheoryData<string, string, string, string[]>()
+        {
+            // Every other day - forever.
+            { September2Start, "FREQ=DAILY;INTERVAL=2", "19971204T000000", Range("19970902", "19971203", 2) },
+            // Every other week - forever.
+            { September2Start, "FREQ=WEEKLY;INTERVAL=2;WKST=SU", "19980218T000000", Range("19970902", "19980217", 14) },
             // Monthly on the third-to-the-last day of the month, forever.
             {
                 "19970928T090000", "FREQ=MONTHLY;BYMONTHDAY=-3", "19980227T000000",
                 Dates("19970928", "19971029", "19971128", "19971229", "19980129", "19980226")
             },
-            // Monthly on the 2nd and 15th of the month for 10 occurrences.
-            {
-                "19970902T090000", "FREQ=MONTHLY;COUNT=10;BYMONTHDAY=2,15", null,
-                Dates("19970902", "19970915", "19971002", "19971015", "19971102", "19971115", "19971202", "19971215", "19980102", "19980115")
-            },
-            // Monthly on the first and last day of the month for 10 occurrences.
-            {
-                "19970930T090000", "FREQ=MONTHLY;COUNT=10;BYMONTHDAY=1,-1", null,
-                Dates("19970930", "19971001", "19971031", "19971101", "19971130", "19971201", "19971231", "19980101", "19980131", "19980201")
-            },
-            // Every 18 months on the 10th thru 15th of the month for 10 occurrences.
-            {
-                "19970910T090000", "FREQ=MONTHLY;INTERVAL=18;COUNT=10;BYMONTHDAY=10,11,12,13,14,15", null,
-                Join(Range("19970910", "19970915"), Range("19990310", "19990313"))
-            },
             // Every Tuesday, every other month.
             {
-                "19970902T090000", "FREQ=MONTHLY;INTERVAL=2;BYDAY=TU", "19980401T000000",
+                September2Start, "FREQ=MONTHLY;INTERVAL=2;BYDAY=TU", "19980401T000000",
                 Join(Range("19970902", "19970930", 7), Range("19971104", "19971125", 7), Range("19980106", "19980127", 7),
                     Range("19980303", "19980331", 7))
-            },
-            // Yearly in June and July for 10 occurrences.
-            {
-                "19970610T090000", "FREQ=YEARLY;COUNT=10;BYMONTH=6,7", null,
-                Dates("19970610", "19970710", "19980610", "19980710", "19990610", "19990710", "20000610", "20000710", "20010610", "20010710")
-            },
-            // Every other year on January, February, and March for 10 occurrences.
-            {
-                "19970310T090000", "FREQ=YEARLY;INTERVAL=2;COUNT=10;BYMONTH=1,2,3", null,
-                Dates("19970310", "19990110", "19990210", "19990310", "20010110", "20010210", "20010310", "20030110", "20030210", "20030310")
-            },
-            // Every third year on the 1st, 100th, and 200th day for 10 occurrences.
-            {
-                "19970101T090000", "FREQ=YEARLY;INTERVAL=3;COUNT=10;BYYEARDAY=1,100,200", null,
-                Dates("19970101", "19970410", "19970719", "20000101", "20000409", "20000718", "20030101", "20030410", "20030719", "20060101")
             },
             // Every 20th Monday of the year, forever.
             { "19970519T090000", "FREQ=YEARLY;BYDAY=20MO", "20000101T000000", Dates("19970519", "19980518", "19990517") },
@@ -137,7 +179,7 @@ namespace DataStandardizer.File.iCal.Tests
             },
             // Every Friday the 13th, forever.  DTSTART does not match the rule, so it is not generated, and the RFC excludes it with EXDATE.
             {
-                "19970902T090000", "FREQ=MONTHLY;BYDAY=FR;BYMONTHDAY=13", "20001014T000000",
+                September2Start, "FREQ=MONTHLY;BYDAY=FR;BYMONTHDAY=13", "20001014T000000",
                 Dates("19980213", "19980313", "19981113", "19990813", "20001013")
             },
             // The first Saturday that follows the first Sunday of the month, forever.
@@ -150,43 +192,87 @@ namespace DataStandardizer.File.iCal.Tests
                 "19961105T090000", "FREQ=YEARLY;INTERVAL=4;BYMONTH=11;BYDAY=TU;BYMONTHDAY=2,3,4,5,6,7,8", "20041103T000000",
                 Dates("19961105", "20001107", "20041102")
             },
-            // The third instance into the month of one of Tuesday, Wednesday, or Thursday, for the next 3 months.
-            { "19970904T090000", "FREQ=MONTHLY;COUNT=3;BYDAY=TU,WE,TH;BYSETPOS=3", null, Dates("19970904", "19971007", "19971106") },
             // The second-to-last weekday of the month.
             {
                 "19970929T090000", "FREQ=MONTHLY;BYDAY=MO,TU,WE,TH,FR;BYSETPOS=-2", "19980331T000000",
                 Dates("19970929", "19971030", "19971127", "19971230", "19980129", "19980226", "19980330")
             },
-            // Every 15 minutes for 6 occurrences.
-            { "19970902T090000", "FREQ=MINUTELY;INTERVAL=15;COUNT=6", null, Times("19970902", "090000", "101500", 15) },
-            // Every hour and a half for 4 occurrences.
-            { "19970902T090000", "FREQ=MINUTELY;INTERVAL=90;COUNT=4", null, Times("19970902", "090000", "133000", 90) },
             // Every 20 minutes from 9:00 AM to 4:40 PM every day, in two forms.
             {
-                "19970902T090000", "FREQ=DAILY;BYHOUR=9,10,11,12,13,14,15,16;BYMINUTE=0,20,40", "19970904T000000",
-                Join(Times("19970902", "090000", "164000", 20), Times("19970903", "090000", "164000", 20))
+                September2Start, "FREQ=DAILY;BYHOUR=9,10,11,12,13,14,15,16;BYMINUTE=0,20,40", "19970904T000000",
+                EveryTwentyMinutesForTwoDays
             },
             {
-                "19970902T090000", "FREQ=MINUTELY;INTERVAL=20;BYHOUR=9,10,11,12,13,14,15,16", "19970904T000000",
-                Join(Times("19970902", "090000", "164000", 20), Times("19970903", "090000", "164000", 20))
+                September2Start, "FREQ=MINUTELY;INTERVAL=20;BYHOUR=9,10,11,12,13,14,15,16", "19970904T000000",
+                EveryTwentyMinutesForTwoDays
             },
-            // An example where the days generated makes a difference because of WKST, and the same with only WKST changed.
-            { "19970805T090000", "FREQ=WEEKLY;INTERVAL=2;COUNT=4;BYDAY=TU,SU;WKST=MO", null, Dates("19970805", "19970810", "19970819", "19970824") },
-            { "19970805T090000", "FREQ=WEEKLY;INTERVAL=2;COUNT=4;BYDAY=TU,SU;WKST=SU", null, Dates("19970805", "19970817", "19970819", "19970831") },
-            // An example where an invalid date (i.e., February 30) is ignored.
-            { "20070115T090000", "FREQ=MONTHLY;BYMONTHDAY=15,30;COUNT=5", null, Dates("20070115", "20070130", "20070215", "20070315", "20070330") }
         };
+
+        // ref. RFC 5545 §3.6.5: the start of daylight saving time in New York from 1987 to 1997, and of standard time from 1967 to 2006, at
+        // 02:00 local time, as the observances of the RFC's VTIMEZONE examples give them.
+        public static TheoryData<string, string, int, string[]> RfcTimeZoneObservances => new TheoryData<string, string, int, string[]>
+        {
+            {
+                "19870405T020000", "FREQ=YEARLY;BYMONTH=4;BYDAY=1SU;UNTIL=19980404T070000Z", -5,
+                new[]
+                {
+                    "19870405T020000", "19880403T020000", "19890402T020000", "19900401T020000", "19910407T020000", "19920405T020000",
+                    "19930404T020000", "19940403T020000", "19950402T020000", "19960407T020000", "19970406T020000"
+                }
+            },
+            {
+                "19671029T020000", "FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU;UNTIL=20061029T060000Z", -4,
+                new[]
+                {
+                    "19671029T020000", "19681027T020000", "19691026T020000", "19701025T020000", "19711031T020000", "19721029T020000",
+                    "19731028T020000", "19741027T020000", "19751026T020000", "19761031T020000", "19771030T020000", "19781029T020000",
+                    "19791028T020000", "19801026T020000", "19811025T020000", "19821031T020000", "19831030T020000", "19841028T020000",
+                    "19851027T020000", "19861026T020000", "19871025T020000", "19881030T020000", "19891029T020000", "19901028T020000",
+                    "19911027T020000", "19921025T020000", "19931031T020000", "19941030T020000", "19951029T020000", "19961027T020000",
+                    "19971026T020000", "19981025T020000", "19991031T020000", "20001029T020000", "20011028T020000", "20021027T020000",
+                    "20031026T020000", "20041031T020000", "20051030T020000", "20061029T020000"
+                }
+            },
+        };
+
+        public static TheoryData<Action, string> NullArgumentCalls()
+        {
+            var rule = IcalRecurrenceRule.Parse(DailyTwice.AsSpan(), IcalValueFormat.Text);
+            var start = At(NewYear);
+            return new TheoryData<Action, string>
+            {
+                { () => rule.GetOccurrences(start, null, null, null), "options" },
+                { () => rule.GetOccurrences(new IcalDate(2026, 1, 1), null, null, null), "options" },
+                { () => rule.GetOccurrences(start, null, null, null, new IcalOptions()), "toUtc" },
+            };
+        }
 
         #region RFC examples
 
         [Theory]
-        [MemberData(nameof(RfcExamples))]
-        public void GetOccurrences_RfcExample_GivesTheListedOccurrences(string start, string rule, string to, string[] expected)
+        [MemberData(nameof(RfcExamplesWithEnd))]
+        public void GetOccurrences_RfcExampleWithEnd_GivesTheListedOccurrences(string start, string rule, string[] expected)
         {
             // arrange
             var recurrenceRule = IcalRecurrenceRule.Parse(rule.AsSpan(), IcalValueFormat.Text);
             var startValue = IcalDateTime.Parse(start.AsSpan(), NewYork, IcalValueFormat.Text);
-            var toValue = to is null ? (IcalDateTime?)null : IcalDateTime.Parse(to.AsSpan(), IcalValueFormat.Text);
+
+            // act
+            var testResult = recurrenceRule.GetOccurrences(startValue, null, null, NewYorkToUtc, new IcalOptions()).ToList();
+
+            // assert
+            testResult.Select(occurrence => occurrence.ToString()).Should().Equal(expected);
+            testResult.Should().OnlyContain(occurrence => occurrence.Kind == IcalDateTimeKind.Zoned && occurrence.TimeZoneId == NewYork);
+        }
+
+        [Theory]
+        [MemberData(nameof(RfcExamplesForever))]
+        public void GetOccurrences_RfcExampleForever_GivesTheListedOccurrencesInTheWindow(string start, string rule, string to, string[] expected)
+        {
+            // arrange
+            var recurrenceRule = IcalRecurrenceRule.Parse(rule.AsSpan(), IcalValueFormat.Text);
+            var startValue = IcalDateTime.Parse(start.AsSpan(), NewYork, IcalValueFormat.Text);
+            var toValue = At(to);
 
             // act
             var testResult = recurrenceRule.GetOccurrences(startValue, null, toValue, NewYorkToUtc, new IcalOptions()).ToList();
@@ -203,33 +289,27 @@ namespace DataStandardizer.File.iCal.Tests
             // The RFC lists 09:00, 12:00 and 15:00 for "every 3 hours from 9:00 AM to 5:00 PM on a specific day", but its UNTIL of 17:00 UTC is
             // 13:00 EDT, so a strict reading of UNTIL stops after 12:00 (16:00 UTC); 15:00 EDT is 19:00 UTC.
             var rule = IcalRecurrenceRule.Parse("FREQ=HOURLY;INTERVAL=3;UNTIL=19970902T170000Z".AsSpan(), IcalValueFormat.Text);
-            var start = IcalDateTime.Parse("19970902T090000".AsSpan(), NewYork, IcalValueFormat.Text);
+            var start = IcalDateTime.Parse(September2Start.AsSpan(), NewYork, IcalValueFormat.Text);
 
             // act
-            var testResult = rule.GetOccurrences(start, null, null, NewYorkToUtc, new IcalOptions());
+            var testResult = rule.GetOccurrences(start, null, null, NewYorkToUtc, new IcalOptions()).ToList();
 
             // assert
-            testResult.Select(occurrence => occurrence.ToString()).Should().Equal("19970902T090000", "19970902T120000");
+            testResult.Select(occurrence => occurrence.ToString()).Should().Equal(September2Start, "19970902T120000");
         }
 
         [Theory]
-        [InlineData("19870405T020000", "FREQ=YEARLY;BYMONTH=4;BYDAY=1SU;UNTIL=19980404T070000Z", -5, 4, 1, 1987, 1997)]
-        [InlineData("19671029T020000", "FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU;UNTIL=20061029T060000Z", -4, 10, -1, 1967, 2006)]
-        public void GetOccurrences_RfcTimeZoneObservance_EndsAtUntilInUtc(string start, string rule, int offsetFromHours, int month,
-            int sundayOrdinal, int firstYear, int lastYear)
+        [MemberData(nameof(RfcTimeZoneObservances))]
+        public void GetOccurrences_RfcTimeZoneObservance_EndsAtUntilInUtc(string start, string rule, int offsetFromHours, string[] expected)
         {
             // arrange
-            // ref. RFC 5545§3.6.5: an observance's DTSTART is in local time and its UNTIL in UTC, so local time is converted with TZOFFSETFROM.
+            // ref. RFC 5545 §3.6.5: an observance's DTSTART is in local time and its UNTIL in UTC, so local time is converted with TZOFFSETFROM.
             var recurrenceRule = IcalRecurrenceRule.Parse(rule.AsSpan(), IcalValueFormat.Text);
             var startValue = IcalDateTime.Parse(start.AsSpan(), IcalValueFormat.Text);
-            var expected = Enumerable.Range(firstYear, lastYear - firstYear + 1)
-                .Select(year => FindSunday(year, month, sundayOrdinal).ToString("yyyyMMdd", CultureInfo.InvariantCulture) + "T020000")
-                .ToArray();
+            var toUtc = new FixedOffsetConversion(offsetFromHours);
 
             // act
-            var testResult = recurrenceRule.GetOccurrences(startValue, null, null,
-                local => IcalDateTime.FromDateTime(DateTime.SpecifyKind(local.ToDateTime().AddHours(-offsetFromHours), DateTimeKind.Utc)),
-                new IcalOptions());
+            var testResult = recurrenceRule.GetOccurrences(startValue, null, null, toUtc.ToUtc, new IcalOptions()).ToList();
 
             // assert
             testResult.Select(occurrence => occurrence.ToString()).Should().Equal(expected);
@@ -240,35 +320,35 @@ namespace DataStandardizer.File.iCal.Tests
         #region Rule parts
 
         [Fact]
-        public void GetOccurrences_WeekStart_ChangesTheResult()
+        public void GetOccurrences_WeekStartChangedToSunday_GivesTheRfcSundayResult()
         {
-            // arrange
-            var start = IcalDateTime.Parse("19970805T090000".AsSpan(), IcalValueFormat.Text);
-            var monday = IcalRecurrenceRule.Parse("FREQ=WEEKLY;INTERVAL=2;COUNT=4;BYDAY=TU,SU;WKST=MO".AsSpan(), IcalValueFormat.Text);
-            var sunday = monday.WithWeekStart(DayOfWeek.Sunday);
+            // arrange: ref. RFC 5545 §3.8.5.3, the example where the days generated make a difference because of WKST.
+            var start = At(WeekStartExampleStart);
+            var rule = IcalRecurrenceRule.Parse("FREQ=WEEKLY;INTERVAL=2;COUNT=4;BYDAY=TU,SU;WKST=MO".AsSpan(), IcalValueFormat.Text)
+                .WithWeekStart(DayOfWeek.Sunday);
 
             // act
-            var testResult = sunday.GetOccurrences(start, null, null);
+            var testResult = rule.GetOccurrences(start, null, null).ToList();
 
             // assert
-            testResult.Should().NotEqual(monday.GetOccurrences(start, null, null));
+            testResult.Select(occurrence => occurrence.ToString()).Should().Equal(WeekStartExampleStart, "19970817T090000", "19970819T090000", "19970831T090000");
         }
 
         [Theory]
-        [InlineData("20260101T100000", "FREQ=MONTHLY;COUNT=4;BYDAY=-1FR", "20260130T100000,20260227T100000,20260327T100000,20260424T100000")]
-        [InlineData("20240131T100000", "FREQ=MONTHLY;COUNT=4;BYMONTHDAY=-1", "20240131T100000,20240229T100000,20240331T100000,20240430T100000")]
-        [InlineData("20231231T100000", "FREQ=YEARLY;COUNT=3;BYYEARDAY=-1", "20231231T100000,20241231T100000,20251231T100000")]
-        [InlineData("20240101T100000", "FREQ=YEARLY;COUNT=3;BYYEARDAY=-366", "20240101T100000,20280101T100000,20320101T100000")]
-        [InlineData("20260101T100000", "FREQ=YEARLY;COUNT=3;BYDAY=-1MO", "20261228T100000,20271227T100000,20281225T100000")]
-        [InlineData("20260101T100000", "FREQ=YEARLY;COUNT=2;BYWEEKNO=-1;BYDAY=TH", "20261231T100000,20271230T100000")]
-        [InlineData("20260101T100000", "FREQ=YEARLY;COUNT=2;BYMONTH=2;BYDAY=-2SU", "20260215T100000,20270221T100000")]
-        public void GetOccurrences_NegativeValues_CountFromTheEnd(string start, string rule, string expected)
+        [InlineData(NewYearTen, "FREQ=MONTHLY;COUNT=4;BYDAY=-1FR", new[] { "20260130T100000", "20260227T100000", "20260327T100000", "20260424T100000" })]
+        [InlineData("20240131T100000", "FREQ=MONTHLY;COUNT=4;BYMONTHDAY=-1", new[] { "20240131T100000", "20240229T100000", "20240331T100000", "20240430T100000" })]
+        [InlineData("20231231T100000", "FREQ=YEARLY;COUNT=3;BYYEARDAY=-1", new[] { "20231231T100000", "20241231T100000", "20251231T100000" })]
+        [InlineData("20240101T100000", "FREQ=YEARLY;COUNT=3;BYYEARDAY=-366", new[] { "20240101T100000", "20280101T100000", "20320101T100000" })]
+        [InlineData(NewYearTen, "FREQ=YEARLY;COUNT=3;BYDAY=-1MO", new[] { "20261228T100000", "20271227T100000", "20281225T100000" })]
+        [InlineData(NewYearTen, "FREQ=YEARLY;COUNT=2;BYWEEKNO=-1;BYDAY=TH", new[] { "20261231T100000", "20271230T100000" })]
+        [InlineData(NewYearTen, "FREQ=YEARLY;COUNT=2;BYMONTH=2;BYDAY=-2SU", new[] { "20260215T100000", "20270221T100000" })]
+        public void GetOccurrences_NegativeValues_CountFromTheEnd(string start, string rule, string[] expected)
         {
             // act
-            var testResult = Expand(start, rule, null);
+            var testResult = Expand(start, rule);
 
             // assert
-            testResult.Should().Equal(expected.Split(','));
+            testResult.Should().Equal(expected);
         }
 
         [Fact]
@@ -279,7 +359,7 @@ namespace DataStandardizer.File.iCal.Tests
             const string rule = "FREQ=YEARLY;COUNT=3;BYWEEKNO=1;BYDAY=MO";
 
             // act
-            var testResult = Expand("19961230T090000", rule, null);
+            var testResult = Expand("19961230T090000", rule);
 
             // assert
             testResult.Should().Equal("19961230T090000", "19971229T090000", "19990104T090000");
@@ -289,7 +369,7 @@ namespace DataStandardizer.File.iCal.Tests
         public void GetOccurrences_ByDayWithAndWithoutOrdinals_GivesEitherKind()
         {
             // act
-            var testResult = Expand("20260101T100000", "FREQ=MONTHLY;COUNT=4;BYDAY=1MO,FR", null);
+            var testResult = Expand(NewYearTen, "FREQ=MONTHLY;COUNT=4;BYDAY=1MO,FR");
 
             // assert
             testResult.Should().Equal("20260102T100000", "20260105T100000", "20260109T100000", "20260116T100000");
@@ -303,7 +383,7 @@ namespace DataStandardizer.File.iCal.Tests
             const string rule = "FREQ=YEARLY;COUNT=1;BYWEEKNO=53;BYDAY=SA";
 
             // act
-            var testResult = Expand("20100105T090000", rule, null);
+            var testResult = Expand("20100105T090000", rule);
 
             // assert
             testResult.Should().Equal("20160102T090000");
@@ -318,91 +398,87 @@ namespace DataStandardizer.File.iCal.Tests
             const string rule = "FREQ=WEEKLY;COUNT=1;BYDAY=MO,TH;BYSETPOS=1";
 
             // act
-            var testResult = Expand("20300627T040000", rule, null);
+            var testResult = Expand("20300627T040000", rule);
 
             // assert
             testResult.Should().Equal("20300701T040000");
         }
 
         [Theory]
-        [InlineData("FREQ=MONTHLY;COUNT=3;BYDAY=MO,TU,WE,TH,FR;BYSETPOS=1,-1","20260101T090000,20260130T090000,20260202T090000")]
-        [InlineData("FREQ=MONTHLY;COUNT=3;BYDAY=MO,TU,WE,TH,FR;BYSETPOS=-1,1,1,-23", "20260101T090000,20260130T090000,20260202T090000")]
-        [InlineData("FREQ=DAILY;COUNT=4;BYHOUR=9,12,15;BYSETPOS=2,3", "20260101T120000,20260101T150000,20260102T120000,20260102T150000")]
-        [InlineData("FREQ=WEEKLY;COUNT=2;BYDAY=MO,WE;BYHOUR=9,17;BYSETPOS=-1", "20260107T170000,20260114T170000")]
-        [InlineData("FREQ=MONTHLY;COUNT=1;BYMONTHDAY=1;BYSETPOS=2,-2", "")]
-        public void GetOccurrences_BySetPos_PicksFromEachPeriod(string rule, string expected)
+        [InlineData("FREQ=MONTHLY;COUNT=3;BYDAY=MO,TU,WE,TH,FR;BYSETPOS=1,-1", new[] { NewYear, "20260130T090000", "20260202T090000" })]
+        [InlineData("FREQ=MONTHLY;COUNT=3;BYDAY=MO,TU,WE,TH,FR;BYSETPOS=-1,1,1,-23", new[] { NewYear, "20260130T090000", "20260202T090000" })]
+        [InlineData("FREQ=DAILY;COUNT=4;BYHOUR=9,12,15;BYSETPOS=2,3", new[] { "20260101T120000", "20260101T150000", "20260102T120000", "20260102T150000" })]
+        [InlineData("FREQ=WEEKLY;COUNT=2;BYDAY=MO,WE;BYHOUR=9,17;BYSETPOS=-1", new[] { "20260107T170000", "20260114T170000" })]
+        [InlineData("FREQ=MONTHLY;COUNT=1;BYMONTHDAY=1;BYSETPOS=2,-2", new string[0])]
+        public void GetOccurrences_BySetPos_PicksFromEachPeriod(string rule, string[] expected)
         {
             // act
-            var testResult = Expand("20260101T090000", rule, "20270101T000000");
+            var testResult = Expand(NewYear, rule, "20270101T000000");
 
             // assert
-            testResult.Should().Equal(expected.Length == 0 ? Array.Empty<string>() : expected.Split(','));
+            testResult.Should().Equal(expected);
         }
 
         [Fact]
         public void GetOccurrences_TwentyNinthOfFebruary_OccursInLeapYearsOnly()
         {
-            // arrange
-            var expected = Enumerable.Range(2000, 105)
-                .Where(year => DateTime.IsLeapYear(year))
-                .Select(year => year.ToString(CultureInfo.InvariantCulture) + "0229T090000")
-                .ToArray();
-
             // act
             var testResult = Expand("20000229T090000", "FREQ=YEARLY;BYMONTHDAY=29;BYMONTH=2", "21050101T000000");
 
+            // assert: 2100 is not a leap year.
+            testResult.Should().Equal("20000229T090000", "20040229T090000", "20080229T090000", "20120229T090000", "20160229T090000",
+                "20200229T090000", "20240229T090000", "20280229T090000", "20320229T090000", "20360229T090000", "20400229T090000", "20440229T090000",
+                "20480229T090000", "20520229T090000", "20560229T090000", "20600229T090000", "20640229T090000", "20680229T090000", "20720229T090000",
+                "20760229T090000", "20800229T090000", "20840229T090000", "20880229T090000", "20920229T090000", "20960229T090000", "21040229T090000");
+        }
+
+        [Theory]
+        [InlineData("20000229T090000", "FREQ=YEARLY;COUNT=3", new[] { "20000229T090000", "20040229T090000", "20080229T090000" })]
+        [InlineData("20260131T090000", "FREQ=MONTHLY;COUNT=4", new[] { "20260131T090000", "20260331T090000", "20260531T090000", "20260731T090000" })]
+        [InlineData("20260130T090000", "FREQ=MONTHLY;COUNT=3;BYMONTHDAY=30", new[] { "20260130T090000", "20260330T090000", "20260430T090000" })]
+        [InlineData(NewYear, "FREQ=YEARLY;COUNT=2;BYYEARDAY=366", new[] { "20281231T090000", "20321231T090000" })]
+        public void GetOccurrences_InvalidDate_IsSkippedNotClamped(string start, string rule, string[] expected)
+        {
+            // act
+            var testResult = Expand(start, rule);
+
             // assert
             testResult.Should().Equal(expected);
-            testResult.Should().NotContain("21000229T090000");
         }
 
         [Theory]
-        [InlineData("20000229T090000", "FREQ=YEARLY;COUNT=3", "20000229T090000,20040229T090000,20080229T090000")]
-        [InlineData("20260131T090000", "FREQ=MONTHLY;COUNT=4", "20260131T090000,20260331T090000,20260531T090000,20260731T090000")]
-        [InlineData("20260130T090000", "FREQ=MONTHLY;COUNT=3;BYMONTHDAY=30", "20260130T090000,20260330T090000,20260430T090000")]
-        [InlineData("20260101T090000", "FREQ=YEARLY;COUNT=2;BYYEARDAY=366", "20281231T090000,20321231T090000")]
-        public void GetOccurrences_InvalidDate_IsSkippedNotClamped(string start, string rule, string expected)
+        [InlineData("FREQ=WEEKLY;COUNT=2", new[] { StartWithSeconds, "20260112T093015" })]
+        [InlineData("FREQ=YEARLY;COUNT=2;BYMONTH=3", new[] { "20260305T093015", "20270305T093015" })]
+        [InlineData("FREQ=DAILY;COUNT=2;BYMINUTE=0", new[] { "20260106T090015", "20260107T090015" })]
+        [InlineData("FREQ=HOURLY;COUNT=2;BYSECOND=0", new[] { "20260105T103000", "20260105T113000" })]
+        public void GetOccurrences_PartsNotGiven_AreTakenFromTheStart(string rule, string[] expected)
         {
             // act
-            var testResult = Expand(start, rule, null);
+            var testResult = Expand(StartWithSeconds, rule);
 
             // assert
-            testResult.Should().Equal(expected.Split(','));
+            testResult.Should().Equal(expected);
         }
 
         [Theory]
-        [InlineData("20260105T093015", "FREQ=WEEKLY;COUNT=2", "20260105T093015,20260112T093015")]
-        [InlineData("20260105T093015", "FREQ=YEARLY;COUNT=2;BYMONTH=3", "20260305T093015,20270305T093015")]
-        [InlineData("20260105T093015", "FREQ=DAILY;COUNT=2;BYMINUTE=0", "20260106T090015,20260107T090015")]
-        [InlineData("20260105T093015", "FREQ=HOURLY;COUNT=2;BYSECOND=0", "20260105T103000,20260105T113000")]
-        public void GetOccurrences_PartsNotGiven_AreTakenFromTheStart(string start, string rule, string expected)
+        [InlineData("FREQ=SECONDLY;COUNT=4;BYMINUTE=0;BYSECOND=0,30", new[] { "20260101T100000", "20260101T100030", "20260101T110000", "20260101T110030" })]
+        [InlineData("FREQ=MINUTELY;COUNT=3;BYHOUR=0;BYMINUTE=59", new[] { "20260102T005900", "20260103T005900", "20260104T005900" })]
+        [InlineData("FREQ=HOURLY;INTERVAL=5;COUNT=3;BYDAY=SU", new[] { "20260104T023000", "20260104T073000", "20260104T123000" })]
+        [InlineData("FREQ=HOURLY;COUNT=2;BYYEARDAY=-1", new[] { "20261231T003000", "20261231T013000" })]
+        public void GetOccurrences_BelowDaily_LimitsAndSkipsAhead(string rule, string[] expected)
         {
             // act
-            var testResult = Expand(start, rule, null);
+            var testResult = Expand("20260101T093000", rule);
 
             // assert
-            testResult.Should().Equal(expected.Split(','));
-        }
-
-        [Theory]
-        [InlineData("FREQ=SECONDLY;COUNT=4;BYMINUTE=0;BYSECOND=0,30", "20260101T100000,20260101T100030,20260101T110000,20260101T110030")]
-        [InlineData("FREQ=MINUTELY;COUNT=3;BYHOUR=0;BYMINUTE=59", "20260102T005900,20260103T005900,20260104T005900")]
-        [InlineData("FREQ=HOURLY;INTERVAL=5;COUNT=3;BYDAY=SU", "20260104T023000,20260104T073000,20260104T123000")]
-        [InlineData("FREQ=HOURLY;COUNT=2;BYYEARDAY=-1", "20261231T003000,20261231T013000")]
-        public void GetOccurrences_BelowDaily_LimitsAndSkipsAhead(string rule, string expected)
-        {
-            // act
-            var testResult = Expand("20260101T093000", rule, null);
-
-            // assert
-            testResult.Should().Equal(expected.Split(','));
+            testResult.Should().Equal(expected);
         }
 
         [Fact]
         public void GetOccurrences_LeapSecond_IsNeverGenerated()
         {
             // act
-            var testResult = Expand("20261231T235800", "FREQ=MINUTELY;COUNT=2;BYSECOND=59,60", null);
+            var testResult = Expand("20261231T235800", "FREQ=MINUTELY;COUNT=2;BYSECOND=59,60");
 
             // assert
             testResult.Should().Equal("20261231T235859", "20261231T235959");
@@ -416,7 +492,7 @@ namespace DataStandardizer.File.iCal.Tests
         public void GetOccurrences_FromWithCount_CountsFromTheStart()
         {
             // act
-            var testResult = Expand("20260101T090000", "FREQ=DAILY;COUNT=5", null, "20260103T090000");
+            var testResult = ExpandFrom(NewYear, "FREQ=DAILY;COUNT=5", "20260103T090000");
 
             // assert
             testResult.Should().Equal("20260103T090000", "20260104T090000", "20260105T090000");
@@ -426,7 +502,7 @@ namespace DataStandardizer.File.iCal.Tests
         public void GetOccurrences_Window_IncludesFromAndExcludesTo()
         {
             // act
-            var testResult = Expand("20260101T090000", "FREQ=DAILY", "20260104T090000", "20260102T090000");
+            var testResult = Expand(NewYear, "FREQ=DAILY", "20260104T090000", "20260102T090000");
 
             // assert
             testResult.Should().Equal("20260102T090000", "20260103T090000");
@@ -458,13 +534,13 @@ namespace DataStandardizer.File.iCal.Tests
 
         [Theory]
         [InlineData("20260101T090000Z", "FREQ=DAILY;UNTIL=20260103T090000Z", IcalDateTimeKind.Utc)]
-        [InlineData("20260101T090000", "FREQ=DAILY;UNTIL=20260103T090000", IcalDateTimeKind.Floating)]
-        [InlineData("20260101T090000", "FREQ=DAILY;UNTIL=20260103", IcalDateTimeKind.Floating)]
+        [InlineData(NewYear, "FREQ=DAILY;UNTIL=20260103T090000", IcalDateTimeKind.Floating)]
+        [InlineData(NewYear, "FREQ=DAILY;UNTIL=20260103", IcalDateTimeKind.Floating)]
         public void GetOccurrences_Until_IsInclusive(string start, string rule, IcalDateTimeKind kind)
         {
             // arrange
             var recurrenceRule = IcalRecurrenceRule.Parse(rule.AsSpan(), IcalValueFormat.Text);
-            var startValue = IcalDateTime.Parse(start.AsSpan(), IcalValueFormat.Text);
+            var startValue = At(start);
 
             // act
             var testResult = recurrenceRule.GetOccurrences(startValue, null, null).ToList();
@@ -478,34 +554,31 @@ namespace DataStandardizer.File.iCal.Tests
         public void GetOccurrences_ZonedStartWithUntilInUtc_ConvertsEachOccurrence()
         {
             // arrange
-            var rule = IcalRecurrenceRule.Parse("FREQ=DAILY;UNTIL=20260103T140000Z".AsSpan(), IcalValueFormat.Text);
-            var start = IcalDateTime.Parse("20260101T090000".AsSpan(), NewYork, IcalValueFormat.Text);
-            var converted = new List<IcalDateTime>();
+            var rule = IcalRecurrenceRule.Parse(DailyUntilJanuary3InUtc.AsSpan(), IcalValueFormat.Text);
+            var start = IcalDateTime.Parse(NewYear.AsSpan(), NewYork, IcalValueFormat.Text);
+            var conversion = new RecordingNewYorkConversion();
 
             // act
-            var testResult = rule.GetOccurrences(start, null, null, local =>
-            {
-                converted.Add(local);
-                return NewYorkToUtc(local);
-            }, new IcalOptions()).ToList();
+            var testResult = rule.GetOccurrences(start, null, null, conversion.ToUtc, new IcalOptions()).ToList();
 
             // assert
-            testResult.Select(occurrence => occurrence.ToString()).Should().Equal("20260101T090000", "20260102T090000", "20260103T090000");
-            converted.Should().OnlyContain(local => local.TimeZoneId == NewYork);
+            testResult.Select(occurrence => occurrence.ToString()).Should().Equal(NewYear, "20260102T090000", "20260103T090000");
+            conversion.Converted.Should().OnlyContain(local => local.TimeZoneId == NewYork);
         }
 
         [Fact]
-        public void GetOccurrences_OpenEndedRule_IsLazy()
+        public void GetOccurrences_OpenEndedRule_GivesTheFirstOccurrencesWithoutReadingThemAll()
         {
             // arrange
             var rule = new IcalRecurrenceRule(IcalRecurrenceFrequency.Secondly);
-            var start = IcalDateTime.Parse("20260101T000000".AsSpan(), IcalValueFormat.Text);
+            var start = At(NewYearMidnight);
+            var to = At("99991231T235959");
 
             // act
-            var testResult = rule.GetOccurrences(start, null, IcalDateTime.Parse("99991231T235959".AsSpan(), IcalValueFormat.Text)).Take(3);
+            var testResult = rule.GetOccurrences(start, null, to).Take(3).ToList();
 
             // assert
-            testResult.Select(occurrence => occurrence.ToString()).Should().Equal("20260101T000000", "20260101T000001", "20260101T000002");
+            testResult.Select(occurrence => occurrence.ToString()).Should().Equal(NewYearMidnight, "20260101T000001", "20260101T000002");
         }
 
         [Fact]
@@ -514,9 +587,8 @@ namespace DataStandardizer.File.iCal.Tests
             // act
             var testResult = Expand("99981231T090000", "FREQ=WEEKLY;BYDAY=FR;WKST=SU", "99991231T235959");
 
-            // assert
-            testResult.Should().HaveCount(53);
-            testResult[testResult.Count - 1].Should().Be("99991231T090000");
+            // assert: the Fridays of 9998 and 9999, the last of which is 31 December 9999.
+            testResult.Should().HaveCount(53).And.EndWith("99991231T090000");
         }
 
         #endregion
@@ -528,14 +600,14 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var rule = IcalRecurrenceRule.Parse("FREQ=SECONDLY;BYMONTH=2;BYMONTHDAY=30".AsSpan(), IcalValueFormat.Text);
-            var start = IcalDateTime.Parse("20260101T000000".AsSpan(), IcalValueFormat.Text);
-            var occurrences = rule.GetOccurrences(start, null, IcalDateTime.Parse("99991231T000000".AsSpan(), IcalValueFormat.Text));
+            var start = At(NewYearMidnight);
+            var occurrences = rule.GetOccurrences(start, null, At("99991231T000000"));
 
             // act
-            Action testResult = () => occurrences.ToList();
+            Action testAction = () => occurrences.ToList();
 
             // assert
-            testResult.Should().Throw<InvalidOperationException>().WithMessage("*100000 consecutive periods*");
+            testAction.Should().Throw<InvalidOperationException>().WithMessage("*100000 consecutive periods*");
         }
 
         [Fact]
@@ -543,11 +615,11 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             // Fewer than 8,000 years are left, so the default limit is not reached.
-            var rule = IcalRecurrenceRule.Parse("FREQ=YEARLY;COUNT=1;BYMONTH=2;BYMONTHDAY=30".AsSpan(), IcalValueFormat.Text);
-            var start = IcalDateTime.Parse("20260101T000000".AsSpan(), IcalValueFormat.Text);
+            var rule = IcalRecurrenceRule.Parse(NeverOnFebruary30.AsSpan(), IcalValueFormat.Text);
+            var start = At(NewYearMidnight);
 
             // act
-            var testResult = rule.GetOccurrences(start, null, null);
+            var testResult = rule.GetOccurrences(start, null, null).ToList();
 
             // assert
             testResult.Should().BeEmpty();
@@ -557,15 +629,15 @@ namespace DataStandardizer.File.iCal.Tests
         public void GetOccurrences_LowIterationLimit_Throws()
         {
             // arrange
-            var rule = IcalRecurrenceRule.Parse("FREQ=YEARLY;COUNT=1;BYMONTH=2;BYMONTHDAY=30".AsSpan(), IcalValueFormat.Text);
-            var start = IcalDateTime.Parse("20260101T000000".AsSpan(), IcalValueFormat.Text);
+            var rule = IcalRecurrenceRule.Parse(NeverOnFebruary30.AsSpan(), IcalValueFormat.Text);
+            var start = At(NewYearMidnight);
             var occurrences = rule.GetOccurrences(start, null, null, new IcalOptions { MaxRecurrenceIterations = 100 });
 
             // act
-            Action testResult = () => occurrences.ToList();
+            Action testAction = () => occurrences.ToList();
 
             // assert
-            testResult.Should().Throw<InvalidOperationException>().WithMessage("*100 consecutive periods*");
+            testAction.Should().Throw<InvalidOperationException>().WithMessage("*100 consecutive periods*");
         }
 
         [Fact]
@@ -574,10 +646,10 @@ namespace DataStandardizer.File.iCal.Tests
             // arrange
             // 29 February 2096 is followed by 29 February 2104, the longest gap a matching rule can have.
             var rule = IcalRecurrenceRule.Parse("FREQ=MINUTELY;COUNT=2;BYMONTH=2;BYMONTHDAY=29;BYHOUR=12;BYMINUTE=0".AsSpan(), IcalValueFormat.Text);
-            var start = IcalDateTime.Parse("20960101T000000".AsSpan(), IcalValueFormat.Text);
+            var start = At("20960101T000000");
 
             // act
-            var testResult = rule.GetOccurrences(start, null, null);
+            var testResult = rule.GetOccurrences(start, null, null).ToList();
 
             // assert
             testResult.Select(occurrence => occurrence.ToString()).Should().Equal("20960229T120000", "21040229T120000");
@@ -594,7 +666,7 @@ namespace DataStandardizer.File.iCal.Tests
             var rule = IcalRecurrenceRule.Parse("FREQ=WEEKLY;UNTIL=20260120;BYDAY=TU".AsSpan(), IcalValueFormat.Text);
 
             // act
-            var testResult = rule.GetOccurrences(new IcalDate(2026, 1, 6), null, null);
+            var testResult = rule.GetOccurrences(new IcalDate(2026, 1, 6), null, null).ToList();
 
             // assert
             testResult.Select(occurrence => occurrence.ToString()).Should().Equal("20260106", "20260113", "20260120");
@@ -607,7 +679,7 @@ namespace DataStandardizer.File.iCal.Tests
             var rule = IcalRecurrenceRule.Parse("FREQ=YEARLY;BYMONTH=12;BYMONTHDAY=25".AsSpan(), IcalValueFormat.Text);
 
             // act
-            var testResult = rule.GetOccurrences(new IcalDate(2000, 12, 25), new IcalDate(2024, 12, 25), new IcalDate(2026, 12, 25));
+            var testResult = rule.GetOccurrences(new IcalDate(2000, 12, 25), new IcalDate(2024, 12, 25), new IcalDate(2026, 12, 25)).ToList();
 
             // assert
             testResult.Select(occurrence => occurrence.ToString()).Should().Equal("20241225", "20251225");
@@ -624,10 +696,10 @@ namespace DataStandardizer.File.iCal.Tests
             var recurrenceRule = IcalRecurrenceRule.Parse(rule.AsSpan(), IcalValueFormat.Text);
 
             // act
-            Action testResult = () => recurrenceRule.GetOccurrences(new IcalDate(2026, 1, 1), null, null);
+            Action testAction = () => recurrenceRule.GetOccurrences(new IcalDate(2026, 1, 1), null, null);
 
             // assert
-            testResult.Should().Throw<ArgumentException>().WithParameterName("start");
+            testAction.Should().Throw<ArgumentException>().WithParameterName("start");
         }
 
         #endregion
@@ -639,75 +711,80 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var rule = new IcalRecurrenceRule(IcalRecurrenceFrequency.Daily);
-            var start = IcalDateTime.Parse("20260101T090000".AsSpan(), IcalValueFormat.Text);
+            var start = At(NewYear);
 
             // act
-            Action testResult = () => rule.GetOccurrences(start, start, null);
+            Action testAction = () => rule.GetOccurrences(start, start, null);
 
             // assert
-            testResult.Should().Throw<ArgumentException>().WithParameterName("to");
+            testAction.Should().Throw<ArgumentException>().WithParameterName("to");
         }
 
         [Fact]
         public void GetOccurrences_ZonedStartWithUntilInUtcAndNoConversion_Throws()
         {
             // arrange
-            var rule = IcalRecurrenceRule.Parse("FREQ=DAILY;UNTIL=20260103T140000Z".AsSpan(), IcalValueFormat.Text);
-            var start = IcalDateTime.Parse("20260101T090000".AsSpan(), NewYork, IcalValueFormat.Text);
+            var rule = IcalRecurrenceRule.Parse(DailyUntilJanuary3InUtc.AsSpan(), IcalValueFormat.Text);
+            var start = IcalDateTime.Parse(NewYear.AsSpan(), NewYork, IcalValueFormat.Text);
 
             // act
-            Action testResult = () => rule.GetOccurrences(start, null, null);
+            Action testAction = () => rule.GetOccurrences(start, null, null);
 
             // assert
-            testResult.Should().Throw<ArgumentException>().WithParameterName("start");
+            testAction.Should().Throw<ArgumentException>().WithParameterName("start");
         }
 
         [Fact]
-        public void GetOccurrences_InvalidRule_Throws()
+        public void GetOccurrences_RuleBreakingAConstraint_ThrowsInvalidOperation()
         {
             // arrange
             var rule = new IcalRecurrenceRule(IcalRecurrenceFrequency.Daily).WithBySetPos(1);
-            var start = IcalDateTime.Parse("20260101T090000".AsSpan(), IcalValueFormat.Text);
+            var start = At(NewYear);
 
             // act
-            Action testResult = () => rule.GetOccurrences(start, null, start);
-            Action defaultResult = () => default(IcalRecurrenceRule).GetOccurrences(start, null, start);
+            Action testAction = () => rule.GetOccurrences(start, null, start);
 
             // assert
-            testResult.Should().Throw<InvalidOperationException>();
-            defaultResult.Should().Throw<InvalidOperationException>();
+            testAction.Should().Throw<InvalidOperationException>();
         }
 
         [Fact]
-        public void GetOccurrences_NullArguments_Throw()
+        public void GetOccurrences_DefaultRule_ThrowsInvalidOperation()
         {
             // arrange
-            var rule = IcalRecurrenceRule.Parse("FREQ=DAILY;COUNT=2".AsSpan(), IcalValueFormat.Text);
-            var start = IcalDateTime.Parse("20260101T090000".AsSpan(), IcalValueFormat.Text);
+            var rule = default(IcalRecurrenceRule);
+            var start = At(NewYear);
 
             // act
-            Action nullOptions = () => rule.GetOccurrences(start, null, null, null);
-            Action nullDateOptions = () => rule.GetOccurrences(new IcalDate(2026, 1, 1), null, null, null);
-            Action nullConversion = () => rule.GetOccurrences(start, null, null, null, new IcalOptions());
+            Action testAction = () => rule.GetOccurrences(start, null, start);
 
             // assert
-            nullOptions.Should().Throw<ArgumentNullException>().WithParameterName("options");
-            nullDateOptions.Should().Throw<ArgumentNullException>().WithParameterName("options");
-            nullConversion.Should().Throw<ArgumentNullException>().WithParameterName("toUtc");
+            testAction.Should().Throw<InvalidOperationException>();
+        }
+
+        [Theory]
+        [MemberData(nameof(NullArgumentCalls), DisableDiscoveryEnumeration = true)]
+        public void GetOccurrences_NullArgument_ThrowsArgumentNull(Action call, string parameterName)
+        {
+            // act
+            var testAction = call;
+
+            // assert
+            testAction.Should().Throw<ArgumentNullException>().WithParameterName(parameterName);
         }
 
         [Fact]
         public void GetOccurrences_IterationLimitBelowOne_Throws()
         {
             // arrange
-            var rule = IcalRecurrenceRule.Parse("FREQ=DAILY;COUNT=2".AsSpan(), IcalValueFormat.Text);
-            var start = IcalDateTime.Parse("20260101T090000".AsSpan(), IcalValueFormat.Text);
+            var rule = IcalRecurrenceRule.Parse(DailyTwice.AsSpan(), IcalValueFormat.Text);
+            var start = At(NewYear);
 
             // act
-            Action testResult = () => rule.GetOccurrences(start, null, null, new IcalOptions { MaxRecurrenceIterations = 0 });
+            Action testAction = () => rule.GetOccurrences(start, null, null, new IcalOptions { MaxRecurrenceIterations = 0 });
 
             // assert
-            testResult.Should().Throw<ArgumentException>().WithParameterName("options");
+            testAction.Should().Throw<ArgumentException>().WithParameterName("options");
         }
 
         #endregion
@@ -718,13 +795,13 @@ namespace DataStandardizer.File.iCal.Tests
         public void GetOccurrences_EachOccurrence_DoesNotAllocate()
         {
             // arrange
-            var start = IcalDateTime.Parse("20260101T090000".AsSpan(), NewYork, IcalValueFormat.Text);
+            var start = IcalDateTime.Parse(NewYear.AsSpan(), NewYork, IcalValueFormat.Text);
             var few = IcalRecurrenceRule.Parse("FREQ=MONTHLY;COUNT=10;BYDAY=MO,TU,WE,TH,FR;BYHOUR=9,17;BYSETPOS=1,-1".AsSpan(), IcalValueFormat.Text);
             var many = few.WithCount(1000);
             Enumerate(few, start);
+            var fewBytes = MeasureAllocations(() => Enumerate(few, start));
 
             // act
-            var fewBytes = MeasureAllocations(() => Enumerate(few, start));
             var testResult = MeasureAllocations(() => Enumerate(many, start));
 
             // assert
@@ -747,13 +824,65 @@ namespace DataStandardizer.File.iCal.Tests
 
         #endregion
 
-        private static List<string> Expand(string start, string rule, string to, string from = null)
+        private static IcalDateTime At(string text)
+        {
+            return IcalDateTime.Parse(text.AsSpan(), IcalValueFormat.Text);
+        }
+
+        private static List<string> Expand(string start, string rule)
         {
             var recurrenceRule = IcalRecurrenceRule.Parse(rule.AsSpan(), IcalValueFormat.Text);
-            var startValue = IcalDateTime.Parse(start.AsSpan(), IcalValueFormat.Text);
-            var fromValue = from is null ? (IcalDateTime?)null : IcalDateTime.Parse(from.AsSpan(), IcalValueFormat.Text);
-            var toValue = to is null ? (IcalDateTime?)null : IcalDateTime.Parse(to.AsSpan(), IcalValueFormat.Text);
-            return recurrenceRule.GetOccurrences(startValue, fromValue, toValue).Select(occurrence => occurrence.ToString()).ToList();
+            return recurrenceRule.GetOccurrences(At(start), null, null).Select(occurrence => occurrence.ToString()).ToList();
+        }
+
+        private static List<string> Expand(string start, string rule, string to)
+        {
+            var recurrenceRule = IcalRecurrenceRule.Parse(rule.AsSpan(), IcalValueFormat.Text);
+            return recurrenceRule.GetOccurrences(At(start), null, At(to)).Select(occurrence => occurrence.ToString()).ToList();
+        }
+
+        private static List<string> Expand(string start, string rule, string to, string from)
+        {
+            var recurrenceRule = IcalRecurrenceRule.Parse(rule.AsSpan(), IcalValueFormat.Text);
+            return recurrenceRule.GetOccurrences(At(start), At(from), At(to)).Select(occurrence => occurrence.ToString()).ToList();
+        }
+
+        private static List<string> ExpandFrom(string start, string rule, string from)
+        {
+            var recurrenceRule = IcalRecurrenceRule.Parse(rule.AsSpan(), IcalValueFormat.Text);
+            return recurrenceRule.GetOccurrences(At(start), At(from), null).Select(occurrence => occurrence.ToString()).ToList();
+        }
+
+        /// <summary>
+        /// Converts a local time to UTC with a fixed offset, as a VTIMEZONE observance does with its TZOFFSETFROM.
+        /// </summary>
+        private sealed class FixedOffsetConversion
+        {
+            private readonly int _offsetHours;
+
+            public FixedOffsetConversion(int offsetHours)
+            {
+                _offsetHours = offsetHours;
+            }
+
+            public IcalDateTime ToUtc(IcalDateTime local)
+            {
+                return IcalDateTime.FromDateTime(System.DateTime.SpecifyKind(local.ToDateTime().AddHours(-_offsetHours), DateTimeKind.Utc));
+            }
+        }
+
+        /// <summary>
+        /// Converts New York times to UTC, and records each time it converts.
+        /// </summary>
+        private sealed class RecordingNewYorkConversion
+        {
+            public List<IcalDateTime> Converted { get; } = new List<IcalDateTime>();
+
+            public IcalDateTime ToUtc(IcalDateTime local)
+            {
+                Converted.Add(local);
+                return NewYorkToUtc(local);
+            }
         }
 
         /// <summary>

@@ -40,7 +40,7 @@ namespace DataStandardizer.File.iCal.Tests
 
         public override void Flush()
         {
-            throw new InvalidOperationException("Synchronous flush on the async path.");
+            throw new InvalidOperationException(AsyncPathMessages.SynchronousFlush);
         }
 
         public override async Task FlushAsync(CancellationToken cancellationToken)
@@ -66,13 +66,13 @@ namespace DataStandardizer.File.iCal.Tests
 
         public override void Write(byte[] buffer, int offset, int count)
         {
-            throw new InvalidOperationException("Synchronous write on the async path.");
+            throw new InvalidOperationException(AsyncPathMessages.SynchronousWrite);
         }
 
 #if NETCOREAPP2_1_OR_GREATER
         public override void Write(ReadOnlySpan<byte> buffer)
         {
-            throw new InvalidOperationException("Synchronous write on the async path.");
+            throw new InvalidOperationException(AsyncPathMessages.SynchronousWrite);
         }
 #endif
 
@@ -117,7 +117,7 @@ namespace DataStandardizer.File.iCal.Tests
 
         public override void Flush()
         {
-            throw new InvalidOperationException("Synchronous flush on the async path.");
+            throw new InvalidOperationException(AsyncPathMessages.SynchronousFlush);
         }
 
         public override async Task FlushAsync()
@@ -135,18 +135,18 @@ namespace DataStandardizer.File.iCal.Tests
 
         public override void Write(char value)
         {
-            throw new InvalidOperationException("Synchronous write on the async path.");
+            throw new InvalidOperationException(AsyncPathMessages.SynchronousWrite);
         }
 
         public override void Write(char[] buffer, int index, int count)
         {
-            throw new InvalidOperationException("Synchronous write on the async path.");
+            throw new InvalidOperationException(AsyncPathMessages.SynchronousWrite);
         }
 
 #if NETCOREAPP2_1_OR_GREATER
         public override void Write(ReadOnlySpan<char> buffer)
         {
-            throw new InvalidOperationException("Synchronous write on the async path.");
+            throw new InvalidOperationException(AsyncPathMessages.SynchronousWrite);
         }
 #endif
 
@@ -212,7 +212,7 @@ namespace DataStandardizer.File.iCal.Tests
 
         public override void Write(char value)
         {
-            throw new InvalidOperationException("Synchronous write on the async path.");
+            throw new InvalidOperationException(AsyncPathMessages.SynchronousWrite);
         }
 
         public override Task WriteAsync(char[] buffer, int index, int count)
@@ -256,7 +256,7 @@ namespace DataStandardizer.File.iCal.Tests
 
         public override void Write(char value)
         {
-            throw new InvalidOperationException("Synchronous write on the async path.");
+            throw new InvalidOperationException(AsyncPathMessages.SynchronousWrite);
         }
 
         public override Task WriteAsync(char[] buffer, int index, int count)

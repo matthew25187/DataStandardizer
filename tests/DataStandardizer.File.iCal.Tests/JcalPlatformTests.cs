@@ -22,23 +22,38 @@ namespace DataStandardizer.File.iCal.Tests
         // System.Reflection.Metadata is in the box only on .NET, and the check does not depend on the runtime the tests run on.
 #if NETCOREAPP
         [Fact]
-        public void NetStandard11Build_HasNoJcalTypes()
+        public void ReadTypeNames_NetStandard11Build_HasXcalButNoJcalTypes()
         {
             // arrange
-            var typeNames = ReadTypeNames(FindNetStandard11Build());
+            var path = FindNetStandard11Build();
+
+            // act
+            var testResult = ReadTypeNames(path);
 
             // assert
-            typeNames.Should().Contain(["XcalReader", "XcalWriter", "IcalValueFormat"]);
-            typeNames.Should().NotContain(name => name.StartsWith("Jcal", StringComparison.Ordinal));
+            testResult.Should().Contain(["XcalReader", "XcalWriter", "IcalValueFormat"]);
+            testResult.Should().NotContain(name => name.StartsWith("Jcal", StringComparison.Ordinal));
         }
 #endif
 
         [Fact]
-        public void CurrentBuild_HasJcalTypes()
+        public void Assembly_JcalReaderInCurrentBuild_IsTheXcalAssembly()
         {
+            // act
+            var testResult = typeof(JcalReader).Assembly;
+
             // assert
-            typeof(JcalReader).Assembly.Should().BeSameAs(typeof(XcalReader).Assembly);
-            typeof(JcalWriter).IsPublic.Should().BeTrue();
+            testResult.Should().BeSameAs(typeof(XcalReader).Assembly);
+        }
+
+        [Fact]
+        public void IsPublic_JcalWriterInCurrentBuild_IsTrue()
+        {
+            // act
+            var testResult = typeof(JcalWriter).IsPublic;
+
+            // assert
+            testResult.Should().BeTrue();
         }
 
 #if NETCOREAPP

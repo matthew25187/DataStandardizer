@@ -8,6 +8,16 @@ using System.Threading.Tasks;
 namespace DataStandardizer.File.iCal.Tests
 {
     /// <summary>
+    /// The messages of the exceptions that the test streams, readers and writers throw when they are used synchronously.
+    /// </summary>
+    internal static class AsyncPathMessages
+    {
+        public const string SynchronousRead = "Synchronous read on the async path.";
+        public const string SynchronousWrite = "Synchronous write on the async path.";
+        public const string SynchronousFlush = "Synchronous flush on the async path.";
+    }
+
+    /// <summary>
     /// A stream that can only be read asynchronously, at most <paramref name="maxReadLength"/> bytes at a time.  Its synchronous members throw, so
     /// any synchronous I/O on the async path fails the test.
     /// </summary>
@@ -45,13 +55,13 @@ namespace DataStandardizer.File.iCal.Tests
 
         public override int Read(byte[] buffer, int offset, int count)
         {
-            throw new InvalidOperationException("Synchronous read on the async path.");
+            throw new InvalidOperationException(AsyncPathMessages.SynchronousRead);
         }
 
 #if NETCOREAPP2_1_OR_GREATER
         public override int Read(Span<byte> buffer)
         {
-            throw new InvalidOperationException("Synchronous read on the async path.");
+            throw new InvalidOperationException(AsyncPathMessages.SynchronousRead);
         }
 #endif
 
@@ -112,23 +122,23 @@ namespace DataStandardizer.File.iCal.Tests
 
         public override int Peek()
         {
-            throw new InvalidOperationException("Synchronous read on the async path.");
+            throw new InvalidOperationException(AsyncPathMessages.SynchronousRead);
         }
 
         public override int Read()
         {
-            throw new InvalidOperationException("Synchronous read on the async path.");
+            throw new InvalidOperationException(AsyncPathMessages.SynchronousRead);
         }
 
         public override int Read(char[] buffer, int index, int count)
         {
-            throw new InvalidOperationException("Synchronous read on the async path.");
+            throw new InvalidOperationException(AsyncPathMessages.SynchronousRead);
         }
 
 #if NETCOREAPP2_1_OR_GREATER
         public override int Read(Span<char> buffer)
         {
-            throw new InvalidOperationException("Synchronous read on the async path.");
+            throw new InvalidOperationException(AsyncPathMessages.SynchronousRead);
         }
 #endif
 
@@ -196,7 +206,7 @@ namespace DataStandardizer.File.iCal.Tests
 
         public override int Read(char[] buffer, int index, int count)
         {
-            throw new InvalidOperationException("Synchronous read on the async path.");
+            throw new InvalidOperationException(AsyncPathMessages.SynchronousRead);
         }
 
         public override Task<int> ReadAsync(char[] buffer, int index, int count)

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Xml;
 using FluentAssertions;
 using Xunit;
@@ -14,41 +13,136 @@ namespace DataStandardizer.File.iCal.Tests
 {
     public class XcalReaderTests
     {
+        // ref. RFC 6321 §3.1: the namespace of xCal, and the root element that holds the calendars.
+        private const string IcalendarNamespace = "urn:ietf:params:xml:ns:icalendar-2.0";
+        private const string IcalendarStart = "<icalendar xmlns=\"urn:ietf:params:xml:ns:icalendar-2.0\">";
+        private const string IcalendarEnd = "</icalendar>";
+        private const string VcalendarStart = "<vcalendar>";
+
+        private const string CafeSummary = "<summary><text>Caf\xE9</text></summary>";
+        private const string Cafe = "Caf\xE9";
+        private const string ValueParameter = "VALUE";
+        private const string ExampleNotValidDateTime = "2026-02-30T00:00:00";
+
+        // The calendar element of RfcExample1Xcal, twice in one document.
+        private static readonly string TwoCalendars = IcalendarStart + Example1Calendar() + Example1Calendar() + IcalendarEnd;
+
+        // The document of RfcExample1Xcal, in a larger document, with an element before and after it.
+        private static readonly string ExampleInEnvelope =
+            "<envelope><other/>" + Example1Xcal.Substring(Example1Xcal.IndexOf("<icalendar", StringComparison.Ordinal)) + "<after/></envelope>";
+
         public static TheoryData<string, string> RfcExamples => new TheoryData<string, string>()
         {
             { Example1Xcal, Example1Ical },
             { Example2Xcal, Example2Ical }
         };
 
+        // A document with a summary of "Caf\xE9", encoded in each encoding that its XML declaration names.
+        public static TheoryData<string, byte[]> DeclaredEncodings()
+        {
+            var data = new TheoryData<string, byte[]>();
+            foreach (var encodingName in new[] { "utf-16", "iso-8859-1" })
+            {
+                var encoding = Encoding.GetEncoding(encodingName);
+                var xml = "<?xml version=\"1.0\" encoding=\"" + encodingName + "\"?>" + JournalDocument(CafeSummary);
+                data.Add(encodingName, encoding.GetPreamble().Concat(encoding.GetBytes(xml)).ToArray());
+            }
+
+            return data;
+        }
+
+        /// <summary>
+        /// Documents that are not valid xCal, with the line and position the error is reported at.  A caret marks that place in each document: the
+        /// name of an element, or the start of text.
+        /// </summary>
+        public static TheoryData<string, string, long, long> StructureErrors()
+        {
+            var cases = new[]
+            {
+                ("Wrong root", "<^vcalendar xmlns=\"urn:ietf:params:xml:ns:icalendar-2.0\"/>"),
+                ("Root in no namespace", "<^icalendar/>"),
+                ("Unexpected element", IcalendarStart + "\n  <^vevent/></icalendar>"),
+                ("Text in container", IcalendarStart + "<vcalendar>^text</vcalendar></icalendar>"),
+                ("Two properties elements", Document("<properties/><^properties/>")),
+                ("No value", JournalDocument("<^summary/>")),
+                ("Not a value element", JournalDocument("<summary><^words>Hi</words></summary>")),
+                ("Mixed value types", JournalDocument("<rdate><date>2026-01-01</date><^date-time>2026-01-02T00:00:00</date-time></rdate>")),
+                ("Too many values", JournalDocument("<summary><text>a</text><^text>b</text></summary>")),
+                ("Element in value", JournalDocument("<summary><text><^b>Hi</b></text></summary>")),
+                ("Text in property", JournalDocument("<^summary>Hi</summary>")),
+                ("Period without end", JournalDocument("<rdate><^period><start>2026-01-01T00:00:00Z</start></period></rdate>")),
+                ("Empty recur", JournalDocument("<rrule><^recur/></rrule>")),
+                ("Geo without longitude", JournalDocument("<geo><^latitude>1.5</latitude></geo>")),
+                ("Parameter without value", JournalDocument("<summary><parameters><^language/></parameters><text>Hi</text></summary>")),
+                ("Name not valid in iCalendar", JournalDocument("<^x_prop><unknown>a</unknown></x_prop>")),
+                ("Not well-formed", IcalendarStart + "\n<vcalendar></^icalendar>"),
+            };
+            var data = new TheoryData<string, string, long, long>();
+            foreach (var (name, markedXml) in cases)
+            {
+                var marker = markedXml.IndexOf('^');
+                var lineStart = markedXml.LastIndexOf('\n', marker) + 1;
+                var lineNumber = markedXml.Take(marker).Count(character => character == '\n') + 1;
+                data.Add(name, markedXml.Remove(marker, 1), lineNumber, marker - lineStart + 1);
+            }
+
+            return data;
+        }
+
+        public static TheoryData<Action, Type> InvalidConstructorArguments => new TheoryData<Action, Type>
+        {
+            { () => new XcalReader((Stream)null), typeof(ArgumentNullException) },
+            { () => new XcalReader(new MemoryStream(), null), typeof(ArgumentNullException) },
+            { () => new XcalReader(new WriteOnlyStream()), typeof(ArgumentException) },
+            { () => new XcalReader((string)null), typeof(ArgumentNullException) },
+            { () => new XcalReader((TextReader)null), typeof(ArgumentNullException) },
+            { () => new XcalReader(new StringReader(""), new IcalOptions { Encoding = Encoding.UTF8 }), typeof(ArgumentException) },
+            { () => new XcalReader((XmlReader)null), typeof(ArgumentNullException) },
+            { () => new XcalReader(XmlReader.Create(new StringReader("")), new IcalOptions { Encoding = Encoding.UTF8 }), typeof(ArgumentException) },
+        };
+
+        public static TheoryData<Func<XcalReader, object>> DisposedReaderMembers => new TheoryData<Func<XcalReader, object>>
+        {
+            reader => reader.ReadCalendar(),
+            reader => reader.ReadCalendars(),
+            reader => reader.CalendarsRead,
+            reader => reader.ComponentsRead,
+            reader => reader.PropertiesRead,
+        };
+
         [Theory]
         [MemberData(nameof(RfcExamples))]
         public void ReadCalendars_RfcExample_MatchesICalendarForm(string xcal, string ical)
         {
+            // arrange
+            var expected = Model(ReadCalendars(ical));
+
             // act
-            var testResult = ReadXcal(xcal);
+            var testResult = Model(ReadXcal(xcal));
 
             // assert
-            Model(testResult).Should().Equal(Model(ReadCalendars(ical)));
+            testResult.Should().Equal(expected);
         }
 
         [Fact]
         public void ReadCalendars_RfcExample2_BuildsTypedModel()
         {
             // act
-            var calendar = ReadXcal(Example2Xcal).Single();
+            var testResult = ReadXcal(Example2Xcal).Single();
 
             // assert
-            calendar.ProductId.Should().Be("-//Example Inc.//Example Client//EN");
-            var timeZone = calendar.TimeZones.Single();
+            testResult.ProductId.Should().Be("-//Example Inc.//Example Client//EN");
+            var timeZone = testResult.TimeZones.Should().ContainSingle().Subject;
             timeZone.TimeZoneId.Should().Be("US/Eastern");
             timeZone.Observances.Should().HaveCount(2);
-            var master = calendar.Events.First();
+            var master = testResult.Events.First();
             master.DtStart.Should().Be(new IcalDateOrDateTime(new IcalDateTime(new IcalDate(2006, 1, 2), new IcalTime(12, 0, 0), "US/Eastern")));
-            master.RecurrenceRules.Single().Count.Should().Be(5);
+            master.RecurrenceRules.Should().ContainSingle().Which.Count.Should().Be(5);
             master.Description.Should().Be(
                 "We are having a meeting all this week at 12 pm for one hour, with an additional meeting on the first day 2 hours long.\n" +
                 "Please bring your own lunch for the 12 pm meetings.");
-            master.GetProperty("RDATE").Parameters.Select(parameter => parameter.Name).Should().Equal("TZID", "VALUE");
+            master.Properties.Should().ContainSingle(property => property.Name == "RDATE").Which.Parameters.Select(parameter => parameter.Name)
+                .Should().Equal("TZID", ValueParameter);
         }
 
         [Fact]
@@ -68,36 +162,35 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Theory]
-        [InlineData("<binary>SGVs\n bG8=</binary>", "X;VALUE=BINARY;ENCODING=BASE64:SGVsbG8=")]
-        [InlineData("<boolean>true</boolean>", "X;VALUE=BOOLEAN:TRUE")]
-        [InlineData("<boolean>0</boolean>", "X;VALUE=BOOLEAN:FALSE")]
-        [InlineData("<cal-address>mailto:a@example.com</cal-address>", "X;VALUE=CAL-ADDRESS:mailto:a@example.com")]
-        [InlineData("<date>2011-05-17</date>", "X;VALUE=DATE:20110517")]
-        [InlineData("<date-time>2011-05-17T12:00:00Z</date-time>", "X;VALUE=DATE-TIME:20110517T120000Z")]
-        [InlineData("<duration>-P1DT2H</duration>", "X;VALUE=DURATION:-P1DT2H")]
-        [InlineData("<float>1.50</float>", "X;VALUE=FLOAT:1.50")]
-        [InlineData("<float> 1.5E2 </float>", "X;VALUE=FLOAT:150")]
-        [InlineData("<integer>-100</integer>", "X;VALUE=INTEGER:-100")]
+        [InlineData("<binary>SGVs\n bG8=</binary>", "X-PROPERTY;VALUE=BINARY;ENCODING=BASE64:SGVsbG8=")]
+        [InlineData("<boolean>true</boolean>", "X-PROPERTY;VALUE=BOOLEAN:TRUE")]
+        [InlineData("<boolean>0</boolean>", "X-PROPERTY;VALUE=BOOLEAN:FALSE")]
+        [InlineData("<cal-address>mailto:a@example.com</cal-address>", "X-PROPERTY;VALUE=CAL-ADDRESS:mailto:a@example.com")]
+        [InlineData("<date>2011-05-17</date>", "X-PROPERTY;VALUE=DATE:20110517")]
+        [InlineData("<date-time>2011-05-17T12:00:00Z</date-time>", "X-PROPERTY;VALUE=DATE-TIME:20110517T120000Z")]
+        [InlineData("<duration>-P1DT2H</duration>", "X-PROPERTY;VALUE=DURATION:-P1DT2H")]
+        [InlineData("<float>1.50</float>", "X-PROPERTY;VALUE=FLOAT:1.50")]
+        [InlineData("<float> 1.5E2 </float>", "X-PROPERTY;VALUE=FLOAT:150")]
+        [InlineData("<integer>-100</integer>", "X-PROPERTY;VALUE=INTEGER:-100")]
         [InlineData("<period><start>2011-05-17T12:00:00Z</start><end>2011-05-17T13:00:00Z</end></period>",
-            "X;VALUE=PERIOD:20110517T120000Z/20110517T130000Z")]
+            "X-PROPERTY;VALUE=PERIOD:20110517T120000Z/20110517T130000Z")]
         [InlineData("<recur><freq>WEEKLY</freq><until>2011-05-17</until><byday>MO</byday><byday>-1FR</byday><wkst>SU</wkst></recur>",
-            "X;VALUE=RECUR:FREQ=WEEKLY;UNTIL=20110517;BYDAY=MO,-1FR;WKST=SU")]
-        [InlineData("<text>a,b;c\\d\ne</text>", "X;VALUE=TEXT:a\\,b\\;c\\\\d\\ne")]
-        [InlineData("<time>12:00:00Z</time>", "X;VALUE=TIME:120000Z")]
-        [InlineData("<uri>http://example.com/</uri>", "X;VALUE=URI:http://example.com/")]
-        [InlineData("<utc-offset>+01:30:45</utc-offset>", "X;VALUE=UTC-OFFSET:+013045")]
-        [InlineData("<unknown>20110512T120000Z</unknown>", "X:20110512T120000Z")]
+            "X-PROPERTY;VALUE=RECUR:FREQ=WEEKLY;UNTIL=20110517;BYDAY=MO,-1FR;WKST=SU")]
+        [InlineData("<text>a,b;c\\d\ne</text>", "X-PROPERTY;VALUE=TEXT:a\\,b\\;c\\\\d\\ne")]
+        [InlineData("<time>12:00:00Z</time>", "X-PROPERTY;VALUE=TIME:120000Z")]
+        [InlineData("<uri>http://example.com/</uri>", "X-PROPERTY;VALUE=URI:http://example.com/")]
+        [InlineData("<utc-offset>+01:30:45</utc-offset>", "X-PROPERTY;VALUE=UTC-OFFSET:+013045")]
+        [InlineData("<unknown>20110512T120000Z</unknown>", "X-PROPERTY:20110512T120000Z")]
         public void ReadCalendar_ValueElement_ConvertsToTextForm(string value, string expected)
         {
             // arrange
             var xml = JournalDocument("<x-property>" + value + "</x-property>");
 
             // act
-            var testResult = JournalProperty(ReadXcal(xml).Single());
+            var testResult = FormatLine(JournalProperty(ReadXcal(xml).Single()));
 
             // assert
-            $"X{FormatParameters(testResult)}:{testResult.Value}".Should().Be(expected);
-            testResult.Name.Should().Be("X-PROPERTY");
+            testResult.Should().Be(expected);
         }
 
         [Fact]
@@ -107,10 +200,10 @@ namespace DataStandardizer.File.iCal.Tests
             var xml = JournalDocument("<attach><parameters><fmttype><text>image/png</text></fmttype></parameters><binary>SGVsbG8=</binary></attach>");
 
             // act
-            var testResult = JournalProperty(ReadXcal(xml).Single());
+            var testResult = FormatLine(JournalProperty(ReadXcal(xml).Single()));
 
             // assert
-            $"X{FormatParameters(testResult)}:{testResult.Value}".Should().Be("X;FMTTYPE=image/png;VALUE=BINARY;ENCODING=BASE64:SGVsbG8=");
+            testResult.Should().Be("ATTACH;FMTTYPE=image/png;VALUE=BINARY;ENCODING=BASE64:SGVsbG8=");
         }
 
         [Fact]
@@ -125,8 +218,8 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             testResult.Name.Should().Be("DTSTART");
-            testResult.Parameters.Single().Name.Should().Be("X-PARAM");
-            testResult.Parameters.Single().Values.Should().Equal("PT30M");
+            testResult.Parameters.Should().ContainSingle().Which.Name.Should().Be("X-PARAM");
+            testResult.Parameters.Should().ContainSingle().Which.Values.Should().Equal("PT30M");
             testResult.Value.Should().Be("20110512T130000Z");
         }
 
@@ -143,8 +236,11 @@ namespace DataStandardizer.File.iCal.Tests
             var testResult = JournalProperty(ReadXcal(xml).Single());
 
             // assert
-            testResult.Parameters.Select(parameter => (parameter.Name, string.Join("|", parameter.Values)))
-                .Should().Equal(("RSVP", "TRUE"), ("MEMBER", "mailto:a@example.com|mailto:b@example.com"), ("CN", "Jane \"JD\" Doe"));
+            testResult.Parameters.Select(parameter => parameter.Name).Should().Equal("RSVP", "MEMBER", "CN");
+            testResult.Parameters.Select(parameter => parameter.Values).Should().BeEquivalentTo(new[]
+            {
+                new[] { "TRUE" }, new[] { "mailto:a@example.com", "mailto:b@example.com" }, new[] { "Jane \"JD\" Doe" }
+            }, options => options.WithStrictOrdering());
             testResult.Value.Should().Be("mailto:jane@example.com");
         }
 
@@ -157,14 +253,14 @@ namespace DataStandardizer.File.iCal.Tests
                 "<exdate><date>2026-01-02</date><date>2026-01-03</date></exdate>");
 
             // act
-            var journal = ReadXcal(xml).Single().Journals.Single();
+            var testResult = ReadXcal(xml).Single().Journals.Single();
 
             // assert
-            journal.GetProperty("CATEGORIES").Value.Should().Be("A\\,B,C");
-            journal.Categories.Should().Equal("A,B", "C");
-            var exceptionDates = journal.GetProperty("EXDATE");
+            testResult.Properties.Should().ContainSingle(property => property.Name == "CATEGORIES").Which.Value.Should().Be("A\\,B,C");
+            testResult.Categories.Should().Equal("A,B", "C");
+            var exceptionDates = testResult.Properties.Should().ContainSingle(property => property.Name == "EXDATE").Subject;
             exceptionDates.Value.Should().Be("20260102,20260103");
-            exceptionDates.GetParameter("VALUE").Values.Should().Equal("DATE");
+            exceptionDates.Parameters.Should().ContainSingle(parameter => parameter.Name == ValueParameter).Which.Values.Should().Equal("DATE");
         }
 
         [Fact]
@@ -177,11 +273,11 @@ namespace DataStandardizer.File.iCal.Tests
                 "<request-status><code>2.0</code><description>Success</description></request-status>");
 
             // act
-            var journal = ReadXcal(xml).Single().Journals.Single();
+            var testResult = ReadXcal(xml).Single().Journals.Single();
 
             // assert
-            journal.GetProperty("GEO").Value.Should().Be("37.386013;-122.082932");
-            journal.GetProperties("REQUEST-STATUS").Select(property => property.Value)
+            testResult.Properties.Should().ContainSingle(property => property.Name == "GEO").Which.Value.Should().Be("37.386013;-122.082932");
+            testResult.Properties.Where(property => property.Name == "REQUEST-STATUS").Select(property => property.Value)
                 .Should().Equal("3.1;Invalid property value;DTSTART:96-Apr-01", "2.0;Success");
         }
 
@@ -196,11 +292,12 @@ namespace DataStandardizer.File.iCal.Tests
                 "<dtstamp><date-time>2026-01-01T00:00:00Z</date-time></dtstamp></properties></vjournal></components>");
 
             // act
-            var calendar = ReadXcal(xml).Single();
+            var testResult = ReadXcal(xml).Single();
 
             // assert
-            calendar.GetProperty("SOURCE").GetParameter("VALUE").Values.Should().Equal("URI");
-            calendar.Source.Should().Be(new Uri("http://example.com/calendar.ics"));
+            testResult.Properties.Should().ContainSingle(property => property.Name == "SOURCE").Which.Parameters.Should()
+                .ContainSingle(parameter => parameter.Name == ValueParameter).Which.Values.Should().Equal("URI");
+            testResult.Source.Should().Be(new Uri("http://example.com/calendar.ics"));
         }
 
         [Fact]
@@ -212,11 +309,11 @@ namespace DataStandardizer.File.iCal.Tests
                 "<summary><ext:note xmlns:ext=\"http://example.com/ext\">ignored</ext:note><text>Hello</text></summary>");
 
             // act
-            var journal = ReadXcal(xml).Single().Journals.Single();
+            var testResult = ReadXcal(xml).Single().Journals.Single();
 
             // assert
-            journal.Properties.Select(property => property.Name).Should().Equal("UID", "DTSTAMP", "SUMMARY");
-            journal.Summary.Should().Be("Hello");
+            testResult.Properties.Select(property => property.Name).Should().Equal("UID", "DTSTAMP", "SUMMARY");
+            testResult.Summary.Should().Be("Hello");
         }
 
         [Fact]
@@ -226,10 +323,10 @@ namespace DataStandardizer.File.iCal.Tests
             var xml = JournalDocument("<!-- a comment --><summary>\n  <text><![CDATA[a < b]]> &amp; c</text>\n</summary>");
 
             // act
-            var journal = ReadXcal(xml).Single().Journals.Single();
+            var testResult = ReadXcal(xml).Single().Journals.Single();
 
             // assert
-            journal.Summary.Should().Be("a < b & c");
+            testResult.Summary.Should().Be("a < b & c");
         }
 
         [Fact]
@@ -246,67 +343,124 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public void ReadCalendars_SeveralCalendars_ReadsEach()
+        public void ReadCalendar_FirstOfSeveralCalendars_ReadsIt()
         {
             // arrange
-            var calendar = Example1Xcal.Substring(Example1Xcal.IndexOf("<vcalendar>", StringComparison.Ordinal));
-            calendar = calendar.Substring(0, calendar.IndexOf("</icalendar>", StringComparison.Ordinal));
-            var xml = "<icalendar xmlns=\"urn:ietf:params:xml:ns:icalendar-2.0\">" + calendar + calendar + "</icalendar>";
-            using (var reader = new XcalReader(new StringReader(xml)))
+            using (var reader = new XcalReader(new StringReader(TwoCalendars)))
             {
                 // act
-                var first = reader.ReadCalendar();
-                var second = reader.ReadCalendar();
-                var end = reader.ReadCalendar();
-                var afterEnd = reader.ReadCalendar();
+                var testResult = reader.ReadCalendar();
 
                 // assert
-                first.Should().NotBeNull();
-                second.Should().NotBeNull();
-                end.Should().BeNull();
-                afterEnd.Should().BeNull();
+                testResult.Should().NotBeNull();
             }
         }
 
         [Fact]
-        public void ReadCalendar_XmlReaderInLargerDocument_StopsAtEndOfRoot()
+        public void ReadCalendar_SecondOfSeveralCalendars_ReadsIt()
         {
             // arrange
-            var xml = "<envelope><other/>" + Example1Xcal.Substring(Example1Xcal.IndexOf("<icalendar", StringComparison.Ordinal)) + "<after/></envelope>";
-            using (var xmlReader = XmlReader.Create(new StringReader(xml)))
+            using (var reader = new XcalReader(new StringReader(TwoCalendars)))
             {
-                xmlReader.ReadToFollowing("icalendar", "urn:ietf:params:xml:ns:icalendar-2.0");
+                reader.ReadCalendar();
+
+                // act
+                var testResult = reader.ReadCalendar();
+
+                // assert
+                testResult.Should().NotBeNull();
+            }
+        }
+
+        [Fact]
+        public void ReadCalendar_AfterTheLastCalendar_ReturnsNull()
+        {
+            // arrange
+            using (var reader = new XcalReader(new StringReader(TwoCalendars)))
+            {
+                reader.ReadCalendar();
+                reader.ReadCalendar();
+
+                // act
+                var testResult = reader.ReadCalendar();
+
+                // assert
+                testResult.Should().BeNull();
+            }
+        }
+
+        [Fact]
+        public void ReadCalendar_AgainAfterTheLastCalendar_ReturnsNull()
+        {
+            // arrange
+            using (var reader = new XcalReader(new StringReader(TwoCalendars)))
+            {
+                reader.ReadCalendar();
+                reader.ReadCalendar();
+                reader.ReadCalendar();
+
+                // act
+                var testResult = reader.ReadCalendar();
+
+                // assert
+                testResult.Should().BeNull();
+            }
+        }
+
+        [Fact]
+        public void ReadCalendars_XmlReaderInLargerDocument_StopsAtEndOfRoot()
+        {
+            // arrange
+            using (var xmlReader = XmlReader.Create(new StringReader(ExampleInEnvelope)))
+            {
+                xmlReader.ReadToFollowing("icalendar", IcalendarNamespace);
                 using (var reader = new XcalReader(xmlReader))
                 {
                     // act
-                    var calendars = reader.ReadCalendars().ToList();
+                    var testResult = reader.ReadCalendars().ToList();
 
                     // assert
-                    calendars.Should().ContainSingle();
+                    testResult.Should().ContainSingle();
                     xmlReader.NodeType.Should().Be(XmlNodeType.EndElement);
                     xmlReader.LocalName.Should().Be("icalendar");
-                    xmlReader.Read().Should().BeTrue();
+                }
+            }
+        }
+
+        [Fact]
+        public void Read_XmlReaderAfterCalendarsInLargerDocument_ReadsTheNextElement()
+        {
+            // arrange
+            using (var xmlReader = XmlReader.Create(new StringReader(ExampleInEnvelope)))
+            {
+                xmlReader.ReadToFollowing("icalendar", IcalendarNamespace);
+                using (var reader = new XcalReader(xmlReader))
+                {
+                    reader.ReadCalendars().ToList();
+
+                    // act
+                    var testResult = xmlReader.Read();
+
+                    // assert
+                    testResult.Should().BeTrue();
                     xmlReader.LocalName.Should().Be("after");
                 }
             }
         }
 
         [Theory]
-        [InlineData("utf-16")]
-        [InlineData("iso-8859-1")]
-        public void ReadCalendar_StreamInDeclaredEncoding_IsDecoded(string encodingName)
+        [MemberData(nameof(DeclaredEncodings))]
+        public void ReadCalendar_StreamInDeclaredEncoding_IsDecoded(string encodingName, byte[] data)
         {
             // arrange
-            var encoding = Encoding.GetEncoding(encodingName);
-            var xml = JournalDocument("<summary><text>Café</text></summary>")
-                .Insert(0, $"<?xml version=\"1.0\" encoding=\"{encodingName}\"?>");
-            using (var reader = new XcalReader(new MemoryStream(encoding.GetPreamble().Concat(encoding.GetBytes(xml)).ToArray())))
+            _ = encodingName;
+            using (var reader = new XcalReader(new MemoryStream(data)))
             {
                 // act
                 var testResult = reader.ReadCalendar();
 
                 // assert
-                testResult.Journals.Single().Summary.Should().Be("Café");
+                testResult.Journals.Should().ContainSingle().Which.Summary.Should().Be(Cafe);
             }
         }
 
@@ -314,14 +468,14 @@ namespace DataStandardizer.File.iCal.Tests
         public void ReadCalendar_EncodingOption_OverridesDeclaration()
         {
             // arrange
-            var xml = JournalDocument("<summary><text>Café</text></summary>").Insert(0, "<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+            var xml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>" + JournalDocument(CafeSummary);
             using (var reader = new XcalReader(new MemoryStream(IcalTestData.Latin1.GetBytes(xml)), new IcalOptions { Encoding = IcalTestData.Latin1 }))
             {
                 // act
                 var testResult = reader.ReadCalendar();
 
                 // assert
-                testResult.Journals.Single().Summary.Should().Be("Café");
+                testResult.Journals.Should().ContainSingle().Which.Summary.Should().Be(Cafe);
             }
         }
 
@@ -333,9 +487,9 @@ namespace DataStandardizer.File.iCal.Tests
             try
             {
                 System.IO.File.WriteAllText(path, Example1Xcal);
+                List<IcalCalendar> testResult;
 
                 // act
-                List<IcalCalendar> testResult;
                 using (var reader = new XcalReader(path))
                 {
                     testResult = reader.ReadCalendars().ToList();
@@ -377,52 +531,39 @@ namespace DataStandardizer.File.iCal.Tests
             }
         }
 
-        /// <summary>
-        /// Documents that are not valid xCal.  A caret marks the place the error is reported at: the name of an element, or the start of text.
-        /// </summary>
-        public static TheoryData<string, string> StructureErrors => new TheoryData<string, string>()
-        {
-            { "Wrong root", "<^vcalendar xmlns=\"urn:ietf:params:xml:ns:icalendar-2.0\"/>" },
-            { "Root in no namespace", "<^icalendar/>" },
-            { "Unexpected element", "ROOT\n  <^vevent/></icalendar>" },
-            { "Text in container", "ROOT<vcalendar>^text</vcalendar></icalendar>" },
-            { "Two properties elements", Document("<properties/><^properties/>") },
-            { "No value", JournalDocument("<^summary/>") },
-            { "Not a value element", JournalDocument("<summary><^words>Hi</words></summary>") },
-            { "Mixed value types", JournalDocument("<rdate><date>2026-01-01</date><^date-time>2026-01-02T00:00:00</date-time></rdate>") },
-            { "Too many values", JournalDocument("<summary><text>a</text><^text>b</text></summary>") },
-            { "Element in value", JournalDocument("<summary><text><^b>Hi</b></text></summary>") },
-            { "Text in property", JournalDocument("<^summary>Hi</summary>") },
-            { "Period without end", JournalDocument("<rdate><^period><start>2026-01-01T00:00:00Z</start></period></rdate>") },
-            { "Empty recur", JournalDocument("<rrule><^recur/></rrule>") },
-            { "Geo without longitude", JournalDocument("<geo><^latitude>1.5</latitude></geo>") },
-            { "Parameter without value", JournalDocument("<summary><parameters><^language/></parameters><text>Hi</text></summary>") },
-            { "Name not valid in iCalendar", JournalDocument("<^x_prop><unknown>a</unknown></x_prop>") },
-            { "Not well-formed", "ROOT\n<vcalendar></^icalendar>" }
-        };
-
         [Theory]
         [MemberData(nameof(StructureErrors))]
-        public void ReadCalendar_NotValidXcal_ThrowsWithLocation(string caseName, string markedXml)
+        public void ReadCalendar_NotValidXcal_ThrowsWithLocation(string caseName, string xml, long lineNumber, long linePosition)
         {
             // arrange
-            markedXml = markedXml.Replace("ROOT", "<icalendar xmlns=\"urn:ietf:params:xml:ns:icalendar-2.0\">");
-            var marker = markedXml.IndexOf('^');
-            var lineStart = markedXml.LastIndexOf('\n', marker) + 1;
-            var lineNumber = markedXml.Take(marker).Count(character => character == '\n') + 1;
-            var linePosition = marker - lineStart + 1;
-            var xml = markedXml.Remove(marker, 1);
             using (var reader = new XcalReader(new StringReader(xml)))
             {
                 // act
-                Action act = () => reader.ReadCalendar();
+                Action testAction = () => reader.ReadCalendar();
 
                 // assert
-                var exception = act.Should().Throw<IcalFileException>(caseName).Which;
-                exception.Data[IcalFileException.DataItemName.LineNumber].Should().Be((long)lineNumber, caseName);
-                exception.Data[IcalFileException.DataItemName.LinePosition].Should().Be((long)linePosition, caseName);
+                var exception = testAction.Should().Throw<IcalFileException>(caseName).Which;
+                exception.Data[IcalFileException.DataItemName.LineNumber].Should().Be(lineNumber, caseName);
+                exception.Data[IcalFileException.DataItemName.LinePosition].Should().Be(linePosition, caseName);
                 exception.Data.Contains(IcalFileException.DataItemName.PhysicalLineNumber).Should().BeFalse(caseName);
-                reader.Invoking(value => value.ReadCalendar()).Should().Throw<InvalidOperationException>(caseName);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(StructureErrors))]
+        public void ReadCalendar_AfterNotValidXcal_ThrowsInvalidOperation(string caseName, string xml, long lineNumber, long linePosition)
+        {
+            // arrange
+            _ = (lineNumber, linePosition);
+            using (var reader = new XcalReader(new StringReader(xml)))
+            {
+                Record.Exception(() => reader.ReadCalendar());
+
+                // act
+                Action testAction = () => reader.ReadCalendar();
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>(caseName);
             }
         }
 
@@ -430,13 +571,13 @@ namespace DataStandardizer.File.iCal.Tests
         public void ReadCalendar_NotWellFormed_WrapsXmlException()
         {
             // arrange
-            using (var reader = new XcalReader(new StringReader("<icalendar xmlns=\"urn:ietf:params:xml:ns:icalendar-2.0\"><vcalendar>")))
+            using (var reader = new XcalReader(new StringReader(IcalendarStart + VcalendarStart)))
             {
                 // act
-                Action act = () => reader.ReadCalendar();
+                Action testAction = () => reader.ReadCalendar();
 
                 // assert
-                act.Should().Throw<IcalFileException>().WithInnerException<XmlException>();
+                testAction.Should().Throw<IcalFileException>().WithInnerException<XmlException>();
             }
         }
 
@@ -448,10 +589,10 @@ namespace DataStandardizer.File.iCal.Tests
             using (var reader = new XcalReader(new StringReader(xml)))
             {
                 // act
-                Action act = () => reader.ReadCalendar();
+                Action testAction = () => reader.ReadCalendar();
 
                 // assert
-                act.Should().Throw<IcalFileException>().WithInnerException<XmlException>();
+                testAction.Should().Throw<IcalFileException>().WithInnerException<XmlException>();
             }
         }
 
@@ -462,10 +603,10 @@ namespace DataStandardizer.File.iCal.Tests
             using (var reader = new XcalReader(new StringReader("<icalendar xmlns=\"urn:ietf:params:xml:ns:icalendar-2.0\"/>")))
             {
                 // act
-                Action act = () => reader.ReadCalendar();
+                Action testAction = () => reader.ReadCalendar();
 
                 // assert
-                act.Should().Throw<IcalFileException>().WithMessage("*no VCALENDAR*");
+                testAction.Should().Throw<IcalFileException>().WithMessage("*no VCALENDAR*");
             }
         }
 
@@ -477,10 +618,10 @@ namespace DataStandardizer.File.iCal.Tests
             using (var reader = new XcalReader(new StringReader(xml)))
             {
                 // act
-                Action act = () => reader.ReadCalendar();
+                Action testAction = () => reader.ReadCalendar();
 
                 // assert
-                var exception = act.Should().Throw<IcalFileException>().Which;
+                var exception = testAction.Should().Throw<IcalFileException>().Which;
                 exception.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.UnsupportedVersion);
                 exception.Data[IcalFileException.DataItemName.LineNumber].Should().Be(2L);
                 exception.Data[IcalFileException.DataItemName.LinePosition].Should().Be(2L);
@@ -489,109 +630,173 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public void ReadCalendar_NonConformantCalendar_ThrowsAndContinues()
+        public void ReadCalendar_NonConformantCalendar_Throws()
         {
-            // arrange: the first calendar's VJOURNAL has no UID.
-            var bad = "<vcalendar><properties><prodid><text>-//Test//Test//EN</text></prodid><version><text>2.0</text></version></properties>" +
-                      "<components><vjournal><properties>\n<dtstamp><date-time>2026-01-01T00:00:00Z</date-time></dtstamp></properties></vjournal>" +
-                      "</components></vcalendar>";
-            var good = Example1Xcal.Substring(Example1Xcal.IndexOf("<vcalendar>", StringComparison.Ordinal));
-            using (var reader = new XcalReader(new StringReader("<icalendar xmlns=\"urn:ietf:params:xml:ns:icalendar-2.0\">" + bad + good)))
+            // arrange
+            using (var reader = CreateReaderOfNonConformantThenExample1())
             {
                 // act
-                Action act = () => reader.ReadCalendar();
+                Action testAction = () => reader.ReadCalendar();
 
                 // assert
-                var exception = act.Should().Throw<IcalFileException>().Which;
+                var exception = testAction.Should().Throw<IcalFileException>().Which;
                 exception.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.MissingRequiredProperty);
                 exception.Data[IcalFileException.DataItemName.ComponentPath].Should().Be("VCALENDAR/VJOURNAL[1]");
                 exception.Data[IcalFileException.DataItemName.LineNumber].Should().Be(1L);
-                reader.ReadCalendar().Events.Should().ContainSingle();
             }
         }
 
         [Fact]
-        public void ReadCalendar_InvalidValue_RejectedUnlessAllowed()
+        public void ReadCalendar_AfterNonConformantCalendar_ReadsTheNextCalendar()
+        {
+            // arrange
+            using (var reader = CreateReaderOfNonConformantThenExample1())
+            {
+                Record.Exception(() => reader.ReadCalendar());
+
+                // act
+                var testResult = reader.ReadCalendar();
+
+                // assert
+                testResult.Events.Should().ContainSingle();
+            }
+        }
+
+        [Fact]
+        public void ReadCalendar_InvalidValueByDefault_Throws()
         {
             // arrange
             var xml = JournalDocument("\n<dtstart><date-time>2026-02-30T00:00:00</date-time></dtstart>");
 
             // act
-            Action act = () => ReadXcal(xml);
-            var allowed = ReadXcal(xml, new IcalOptions { AllowInvalidValues = true });
+            Action testAction = () => ReadXcal(xml);
 
             // assert
-            var exception = act.Should().Throw<IcalFileException>().Which;
+            var exception = testAction.Should().Throw<IcalFileException>().Which;
             exception.Data[IcalFileException.DataItemName.DiagnosticKind].Should().Be(IcalDiagnosticKind.InvalidValue);
             exception.Data[IcalFileException.DataItemName.PropertyName].Should().Be("DTSTART");
             exception.Data[IcalFileException.DataItemName.LineNumber].Should().Be(2L);
-            JournalProperty(allowed.Single()).Value.Should().Be("2026-02-30T00:00:00");
+        }
+
+        [Fact]
+        public void ReadCalendar_InvalidValueAllowed_KeepsTheValue()
+        {
+            // arrange
+            var xml = JournalDocument("\n<dtstart><date-time>2026-02-30T00:00:00</date-time></dtstart>");
+
+            // act
+            var testResult = ReadXcal(xml, new IcalOptions { AllowInvalidValues = true });
+
+            // assert
+            JournalProperty(testResult.Single()).Value.Should().Be(ExampleNotValidDateTime);
         }
 
         [Fact]
         public void ReadCalendar_TextIcalendarCannotHold_Throws()
         {
             // arrange
-            var xml = JournalDocument("<summary><text>a\u007Fb</text></summary>");
+            var xml = JournalDocument("<summary><text>a\x007Fb</text></summary>");
 
             // act
-            Action act = () => ReadXcal(xml);
+            Action testAction = () => ReadXcal(xml);
 
             // assert
-            act.Should().Throw<IcalFileException>().WithMessage("*cannot hold*");
+            testAction.Should().Throw<IcalFileException>().WithMessage("*cannot hold*");
         }
 
-        [Fact]
-        public void Constructors_InvalidArguments_Throw()
+        [Theory]
+        [MemberData(nameof(InvalidConstructorArguments), DisableDiscoveryEnumeration = true)]
+        public void Constructor_InvalidArgument_Throws(Action call, Type expectedType)
         {
+            // act
+            var testAction = call;
+
             // assert
-            FluentActions.Invoking(() => new XcalReader((Stream)null)).Should().Throw<ArgumentNullException>();
-            FluentActions.Invoking(() => new XcalReader(new MemoryStream(), null)).Should().Throw<ArgumentNullException>();
-            FluentActions.Invoking(() => new XcalReader(new WriteOnlyStream())).Should().Throw<ArgumentException>();
-            FluentActions.Invoking(() => new XcalReader((string)null)).Should().Throw<ArgumentNullException>();
-            FluentActions.Invoking(() => new XcalReader((TextReader)null)).Should().Throw<ArgumentNullException>();
-            FluentActions.Invoking(() => new XcalReader(new StringReader(""), new IcalOptions { Encoding = Encoding.UTF8 }))
-                .Should().Throw<ArgumentException>();
-            FluentActions.Invoking(() => new XcalReader((XmlReader)null)).Should().Throw<ArgumentNullException>();
-            FluentActions.Invoking(() => new XcalReader(XmlReader.Create(new StringReader("")), new IcalOptions { Encoding = Encoding.UTF8 }))
-                .Should().Throw<ArgumentException>();
+            testAction.Should().Throw<ArgumentException>().Which.Should().BeOfType(expectedType);
         }
 
-        [Fact]
-        public void Dispose_ThenUse_ThrowsObjectDisposed()
+        [Theory]
+        [MemberData(nameof(DisposedReaderMembers), DisableDiscoveryEnumeration = true)]
+        public void Member_AfterDispose_ThrowsObjectDisposed(Func<XcalReader, object> member)
         {
             // arrange
             var reader = new XcalReader(new StringReader(Example1Xcal));
             reader.Dispose();
-            reader.Dispose();
+
+            // act
+            Action testAction = () => member(reader);
 
             // assert
-            reader.Invoking(value => value.ReadCalendar()).Should().Throw<ObjectDisposedException>();
-            reader.Invoking(value => value.ReadCalendars()).Should().Throw<ObjectDisposedException>();
-            reader.Invoking(value => value.CalendarsRead).Should().Throw<ObjectDisposedException>();
-            reader.Invoking(value => value.ComponentsRead).Should().Throw<ObjectDisposedException>();
-            reader.Invoking(value => value.PropertiesRead).Should().Throw<ObjectDisposedException>();
+            testAction.Should().Throw<ObjectDisposedException>();
         }
 
         [Fact]
-        public void Dispose_CallerStreamAndXmlReader_AreLeftOpen()
+        public void Dispose_Twice_DoesNotThrow()
+        {
+            // arrange
+            var reader = new XcalReader(new StringReader(Example1Xcal));
+            reader.Dispose();
+
+            // act
+            Action testAction = () => reader.Dispose();
+
+            // assert
+            testAction.Should().NotThrow();
+        }
+
+        [Fact]
+        public void Dispose_CallerStream_IsLeftOpen()
         {
             // arrange
             var stream = new MemoryStream(Utf8(Example1Xcal));
-            var xmlReader = XmlReader.Create(new StringReader(Example1Xcal));
+            var reader = new XcalReader(stream);
 
             // act
-            new XcalReader(stream).Dispose();
-            new XcalReader(xmlReader).Dispose();
+            reader.Dispose();
 
             // assert
             stream.CanRead.Should().BeTrue();
+        }
+
+        [Fact]
+        public void Dispose_CallerXmlReader_IsLeftOpen()
+        {
+            // arrange
+            var xmlReader = XmlReader.Create(new StringReader(Example1Xcal));
+            var reader = new XcalReader(xmlReader);
+
+            // act
+            reader.Dispose();
+
+            // assert
             xmlReader.ReadState.Should().NotBe(ReadState.Closed);
         }
 
-        private static string FormatParameters(IcalContentLine line)
+        /// <summary>
+        /// Gets the calendar element of RfcExample1Xcal.
+        /// </summary>
+        private static string Example1Calendar()
         {
-            return string.Concat(line.Parameters.Select(parameter => ";" + parameter.Name + "=" + string.Join(",", parameter.Values)));
+            var calendar = Example1Xcal.Substring(Example1Xcal.IndexOf(VcalendarStart, StringComparison.Ordinal));
+            return calendar.Substring(0, calendar.IndexOf(IcalendarEnd, StringComparison.Ordinal));
+        }
+
+        /// <summary>
+        /// Builds a reader of a document of a calendar whose VJOURNAL has no UID, then the first example calendar.
+        /// </summary>
+        private static XcalReader CreateReaderOfNonConformantThenExample1()
+        {
+            var bad = "<vcalendar><properties><prodid><text>-//Test//Test//EN</text></prodid><version><text>2.0</text></version></properties>" +
+                      "<components><vjournal><properties>\n<dtstamp><date-time>2026-01-01T00:00:00Z</date-time></dtstamp></properties></vjournal>" +
+                      "</components></vcalendar>";
+            var good = Example1Xcal.Substring(Example1Xcal.IndexOf(VcalendarStart, StringComparison.Ordinal));
+            return new XcalReader(new StringReader(IcalendarStart + bad + good));
+        }
+
+        private static string FormatLine(IcalContentLine line)
+        {
+            return line.Name + string.Concat(line.Parameters.Select(parameter => ";" + parameter.Name + "=" + string.Join(",", parameter.Values))) + ":" +
+                line.Value;
         }
 
         private sealed class WriteOnlyStream : MemoryStream

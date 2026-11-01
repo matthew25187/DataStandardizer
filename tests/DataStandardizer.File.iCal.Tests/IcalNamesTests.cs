@@ -1,8 +1,6 @@
 ﻿using System;
-using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Threading.Tasks;
 using FluentAssertions;
 using Xunit;
 using static DataStandardizer.File.iCal.Tests.IcalTestData;
@@ -14,13 +12,72 @@ namespace DataStandardizer.File.iCal.Tests
     /// </summary>
     public class IcalNamesTests
     {
+        private const string BeginCalendar = "BEGIN:VCALENDAR";
+        private const string Version20 = "VERSION:2.0";
+        private const string ProductId = "PRODID:x";
+        private const string EndCalendar = "END:VCALENDAR";
+
+        // The number of names that each class declares.
+        private const int PropertyNameCount = 52;
+        private const int ParameterNameCount = 24;
+        private const int ComponentNameCount = 9;
+
         public static TheoryData<string> PropertyNames() => new TheoryData<string>(Constants(typeof(IcalPropertyNames)));
 
-        public static TheoryData<string> ComponentNames() => new TheoryData<string>(Constants(typeof(IcalComponentNames)));
+        public static TheoryData<Type> NameClasses() => new TheoryData<Type>
+        {
+            typeof(IcalPropertyNames),
+            typeof(IcalParameterNames),
+            typeof(IcalComponentNames),
+        };
+
+        public static TheoryData<Type, int> NameClassCounts() => new TheoryData<Type, int>
+        {
+            { typeof(IcalPropertyNames), PropertyNameCount },
+            { typeof(IcalParameterNames), ParameterNameCount },
+            { typeof(IcalComponentNames), ComponentNameCount },
+        };
+
+        /// <summary>
+        /// Gets each component that is a child of the calendar, with a calendar that holds it.
+        /// </summary>
+        public static TheoryData<string, string> CalendarChildComponents()
+        {
+            var data = new TheoryData<string, string>();
+            foreach (var name in Constants(typeof(IcalComponentNames)))
+            {
+                if (name != IcalComponentNames.Calendar && name != IcalComponentNames.Standard && name != IcalComponentNames.Daylight
+                    && name != IcalComponentNames.Alarm)
+                {
+                    data.Add(name, Crlf(BeginCalendar, Version20, ProductId, "BEGIN:" + name, "END:" + name, EndCalendar));
+                }
+            }
+
+            return data;
+        }
+
+        /// <summary>
+        /// Gets each component that is a child of another component, with a calendar that holds it.
+        /// </summary>
+        public static TheoryData<string, string> NestedComponents() => new TheoryData<string, string>
+        {
+            {
+                IcalComponentNames.Standard,
+                Crlf(BeginCalendar, Version20, ProductId, "BEGIN:VTIMEZONE", "BEGIN:STANDARD", "END:STANDARD", "END:VTIMEZONE", EndCalendar)
+            },
+            {
+                IcalComponentNames.Daylight,
+                Crlf(BeginCalendar, Version20, ProductId, "BEGIN:VTIMEZONE", "BEGIN:DAYLIGHT", "END:DAYLIGHT", "END:VTIMEZONE", EndCalendar)
+            },
+            {
+                IcalComponentNames.Alarm,
+                Crlf(BeginCalendar, Version20, ProductId, "BEGIN:VEVENT", "BEGIN:VALARM", "END:VALARM", "END:VEVENT", EndCalendar)
+            },
+        };
 
         [Theory]
         [MemberData(nameof(PropertyNames))]
-        public void PropertyName_IsKnownToRegistry(string name)
+        public void IsKnownProperty_DeclaredPropertyName_IsTrue(string name)
         {
             // act
             var testResult = IcalValueTypeRegistry.IsKnownProperty(name.AsSpan());
@@ -29,49 +86,82 @@ namespace DataStandardizer.File.iCal.Tests
             testResult.Should().BeTrue();
         }
 
-        [Fact]
-        public void Names_AreDistinctUpperCaseTokens()
+        [Theory]
+        [MemberData(nameof(NameClassCounts))]
+        public void Constants_NameClass_HasExpectedNumberOfNames(Type type, int expectedCount)
         {
-            // arrange
-            Type[] types = new[] { typeof(IcalPropertyNames), typeof(IcalParameterNames), typeof(IcalComponentNames) };
-
             // act
-            var testResult = types.Select(type => Constants(type)).ToList();
+            var testResult = Constants(type);
 
             // assert
-            testResult.Select(names => names.Length).Should().Equal(52, 24, 9);
-            foreach (var names in testResult)
-            {
-                names.Should().OnlyHaveUniqueItems();
-                names.Should().OnlyContain(name => name.Length > 0 && name.All(character => (character >= 'A' && character <= 'Z') || character == '-'));
-            }
+            testResult.Should().HaveCount(expectedCount);
         }
 
         [Theory]
-        [MemberData(nameof(ComponentNames))]
-        public void ComponentName_ReadsAsItsTypedComponent(string name)
+        [MemberData(nameof(NameClasses))]
+        public void Constants_NameClass_AreDistinct(Type type)
+        {
+            // act
+            var testResult = Constants(type);
+
+            // assert
+            testResult.Should().OnlyHaveUniqueItems();
+        }
+
+        [Theory]
+        [MemberData(nameof(NameClasses))]
+        public void Constants_NameClass_AreUpperCaseTokens(Type type)
+        {
+            // act
+            var testResult = Constants(type);
+
+            // assert
+            testResult.Should().OnlyContain(name => name.Length > 0 && name.All(character => (character >= 'A' && character <= 'Z') || character == '-'));
+        }
+
+        [Fact]
+        public void ReadCalendar_CalendarComponent_IsTypedComponent()
         {
             // arrange
-            var parent = name == IcalComponentNames.Standard || name == IcalComponentNames.Daylight ? IcalComponentNames.TimeZone
-                : name == IcalComponentNames.Alarm ? IcalComponentNames.Event
-                : IcalComponentNames.Calendar;
-            var text = name == IcalComponentNames.Calendar
-                ? Crlf("BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:x", "BEGIN:X-ANY", "END:X-ANY", "END:VCALENDAR")
-                : parent == IcalComponentNames.Calendar
-                    ? Crlf("BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:x", $"BEGIN:{name}", $"END:{name}", "END:VCALENDAR")
-                    : Crlf("BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:x", $"BEGIN:{parent}", $"BEGIN:{name}", $"END:{name}", $"END:{parent}",
-                        "END:VCALENDAR");
+            var text = Crlf(BeginCalendar, Version20, ProductId, "BEGIN:X-ANY", "END:X-ANY", EndCalendar);
             var options = new IcalOptions { AllowMissingRequiredProperties = true };
 
             // act
-            var calendar = ModelTestData.ReadCalendar(text, options);
-            var testResult = name == IcalComponentNames.Calendar
-                ? calendar
-                : parent == IcalComponentNames.Calendar ? calendar.Components[0] : calendar.Components[0].Components[0];
+            var testResult = ModelTestData.ReadCalendar(text, options);
 
             // assert
-            testResult.Name.Should().Be(name);
+            testResult.Name.Should().Be(IcalComponentNames.Calendar);
             testResult.GetType().Should().NotBe(typeof(IcalComponent));
+        }
+
+        [Theory]
+        [MemberData(nameof(CalendarChildComponents))]
+        public void ReadCalendar_CalendarChildComponent_IsTypedComponent(string name, string text)
+        {
+            // arrange
+            var options = new IcalOptions { AllowMissingRequiredProperties = true };
+
+            // act
+            var testResult = ModelTestData.ReadCalendar(text, options);
+
+            // assert
+            testResult.Components[0].Name.Should().Be(name);
+            testResult.Components[0].GetType().Should().NotBe(typeof(IcalComponent));
+        }
+
+        [Theory]
+        [MemberData(nameof(NestedComponents))]
+        public void ReadCalendar_NestedComponent_IsTypedComponent(string name, string text)
+        {
+            // arrange
+            var options = new IcalOptions { AllowMissingRequiredProperties = true };
+
+            // act
+            var testResult = ModelTestData.ReadCalendar(text, options);
+
+            // assert
+            testResult.Components[0].Components[0].Name.Should().Be(name);
+            testResult.Components[0].Components[0].GetType().Should().NotBe(typeof(IcalComponent));
         }
 
         private static string[] Constants(Type type)

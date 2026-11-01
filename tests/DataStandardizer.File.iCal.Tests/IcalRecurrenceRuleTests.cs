@@ -1,8 +1,5 @@
 ﻿using System;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+using System.Collections.Generic;
 using FluentAssertions;
 using Xunit;
 
@@ -10,67 +7,164 @@ namespace DataStandardizer.File.iCal.Tests
 {
     public class IcalRecurrenceRuleTests
     {
+        // ref. RFC 5545 §3.8.5.3: daily for 10 occurrences.
+        private const string DailyForTenOccurrences = "FREQ=DAILY;COUNT=10";
+
+        // The length of DailyForTenOccurrences, less one.
+        private const int ShorterThanDailyForTenOccurrences = 18;
+
+        // ref. RFC 5545 §3.8.5.3: daily until December 24, 1997.
+        private const string DailyUntilDecember24 = "FREQ=DAILY;UNTIL=19971224T000000Z";
+
+        // ref. RFC 5545 §3.8.5.3: monthly on the first and last day of the month for 10 occurrences.
+        private const string MonthlyOnFirstAndLastDay = "FREQ=MONTHLY;COUNT=10;BYMONTHDAY=1,-1";
+
+        // ref. RFC 5545 §3.8.5.3: Monday of week number 20.
+        private const string MondayOfWeek20 = "FREQ=YEARLY;BYWEEKNO=20;BYDAY=MO";
+
+        // ref. RFC 5545 §3.6.5: the last Sunday in October, when daylight saving time ends in the examples.
+        private const string LastSundayOfOctober = "FREQ=YEARLY;BYDAY=-1SU;BYMONTH=10";
+
+        private const string Daily = "FREQ=DAILY";
+        private const string DailyWithIntervalOfOne = "FREQ=DAILY;INTERVAL=1";
+        private const string DailyUntilDate = "FREQ=DAILY;UNTIL=19971224";
+
+        // The number of days in a leap year, which is the largest BYYEARDAY value (RFC 5545 §3.3.10).
+        private const int DaysInLeapYear = 366;
+
         /// <summary>
-        /// The rules of RFC 5545 §3.3.10 and the examples of §3.8.5.3, and the VTIMEZONE examples of §3.6.5.
+        /// The rules of RFC 5545 §3.3.10 and the examples of §3.8.5.3, and the VTIMEZONE examples of §3.6.5, that are already written in
+        /// canonical order.
         /// </summary>
-        public static TheoryData<string> RfcRules => new TheoryData<string>()
+        public static TheoryData<string> CanonicalRfcRules => new TheoryData<string>()
         {
-            "FREQ=YEARLY;INTERVAL=2;BYMONTH=1;BYDAY=SU;BYHOUR=8,9;BYMINUTE=30",
             "FREQ=DAILY;COUNT=10;INTERVAL=2",
-            "FREQ=DAILY;COUNT=10",
-            "FREQ=DAILY;UNTIL=19971224T000000Z",
+            DailyForTenOccurrences,
+            DailyUntilDecember24,
             "FREQ=DAILY;INTERVAL=2",
-            "FREQ=DAILY;INTERVAL=10;COUNT=5",
-            "FREQ=YEARLY;UNTIL=20000131T140000Z;BYMONTH=1;BYDAY=SU,MO,TU,WE,TH,FR,SA",
             "FREQ=DAILY;UNTIL=20000131T140000Z;BYMONTH=1",
             "FREQ=WEEKLY;COUNT=10",
             "FREQ=WEEKLY;UNTIL=19971224T000000Z",
             "FREQ=WEEKLY;INTERVAL=2;WKST=SU",
-            "FREQ=WEEKLY;UNTIL=19971007T000000Z;WKST=SU;BYDAY=TU,TH",
-            "FREQ=WEEKLY;COUNT=10;WKST=SU;BYDAY=TU,TH",
-            "FREQ=WEEKLY;INTERVAL=2;UNTIL=19971224T000000Z;WKST=SU;BYDAY=MO,WE,FR",
-            "FREQ=WEEKLY;INTERVAL=2;COUNT=8;WKST=SU;BYDAY=TU,TH",
             "FREQ=MONTHLY;COUNT=10;BYDAY=1FR",
             "FREQ=MONTHLY;UNTIL=19971224T000000Z;BYDAY=1FR",
-            "FREQ=MONTHLY;INTERVAL=2;COUNT=10;BYDAY=1SU,-1SU",
             "FREQ=MONTHLY;COUNT=6;BYDAY=-2MO",
             "FREQ=MONTHLY;BYMONTHDAY=-3",
             "FREQ=MONTHLY;COUNT=10;BYMONTHDAY=2,15",
-            "FREQ=MONTHLY;COUNT=10;BYMONTHDAY=1,-1",
-            "FREQ=MONTHLY;INTERVAL=18;COUNT=10;BYMONTHDAY=10,11,12,13,14,15",
+            MonthlyOnFirstAndLastDay,
             "FREQ=MONTHLY;INTERVAL=2;BYDAY=TU",
             "FREQ=YEARLY;COUNT=10;BYMONTH=6,7",
-            "FREQ=YEARLY;INTERVAL=2;COUNT=10;BYMONTH=1,2,3",
-            "FREQ=YEARLY;INTERVAL=3;COUNT=10;BYYEARDAY=1,100,200",
             "FREQ=YEARLY;BYDAY=20MO",
-            "FREQ=YEARLY;BYWEEKNO=20;BYDAY=MO",
-            "FREQ=YEARLY;BYMONTH=3;BYDAY=TH",
             "FREQ=YEARLY;BYDAY=TH;BYMONTH=6,7,8",
             "FREQ=MONTHLY;BYDAY=FR;BYMONTHDAY=13",
             "FREQ=MONTHLY;BYDAY=SA;BYMONTHDAY=7,8,9,10,11,12,13",
-            "FREQ=YEARLY;INTERVAL=4;BYMONTH=11;BYDAY=TU;BYMONTHDAY=2,3,4,5,6,7,8",
             "FREQ=MONTHLY;COUNT=3;BYDAY=TU,WE,TH;BYSETPOS=3",
             "FREQ=MONTHLY;BYDAY=MO,TU,WE,TH,FR;BYSETPOS=-2",
-            "FREQ=HOURLY;INTERVAL=3;UNTIL=19970902T170000Z",
-            "FREQ=MINUTELY;INTERVAL=15;COUNT=6",
-            "FREQ=MINUTELY;INTERVAL=90;COUNT=4",
-            "FREQ=DAILY;BYHOUR=9,10,11,12,13,14,15,16;BYMINUTE=0,20,40",
             "FREQ=MINUTELY;INTERVAL=20;BYHOUR=9,10,11,12,13,14,15,16",
-            "FREQ=WEEKLY;INTERVAL=2;COUNT=4;BYDAY=TU,SU;WKST=MO",
-            "FREQ=WEEKLY;INTERVAL=2;COUNT=4;BYDAY=TU,SU;WKST=SU",
-            "FREQ=MONTHLY;BYMONTHDAY=15,30;COUNT=5",
-            "FREQ=YEARLY;BYDAY=-1SU;BYMONTH=10",
-            "FREQ=YEARLY;BYDAY=1SU;BYMONTH=4;UNTIL=19980404T070000Z",
-            "FREQ=YEARLY;BYDAY=-1SU;BYMONTH=4;UNTIL=19980404T070000Z",
-            "FREQ=YEARLY;BYMONTH=4;BYDAY=1SU;UNTIL=19730429T070000Z",
-            "FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU;UNTIL=20061029T060000Z"
+            LastSundayOfOctober,        };
+
+        /// <summary>
+        /// The other rules of RFC 5545 §3.3.10, §3.8.5.3 and §3.6.5, with each written in canonical order.
+        /// </summary>
+        public static TheoryData<string, string> NonCanonicalRfcRules => new TheoryData<string, string>()
+        {
+            { Rfc5545Examples.RecurrenceRule, "FREQ=YEARLY;INTERVAL=2;BYMINUTE=30;BYHOUR=8,9;BYDAY=SU;BYMONTH=1" },
+            { "FREQ=DAILY;INTERVAL=10;COUNT=5", "FREQ=DAILY;COUNT=5;INTERVAL=10" },
+            { Rfc5545Examples.EveryDayInJanuaryRule, "FREQ=YEARLY;UNTIL=20000131T140000Z;BYDAY=SU,MO,TU,WE,TH,FR,SA;BYMONTH=1" },
+            { "FREQ=WEEKLY;UNTIL=19971007T000000Z;WKST=SU;BYDAY=TU,TH", "FREQ=WEEKLY;UNTIL=19971007T000000Z;BYDAY=TU,TH;WKST=SU" },
+            { "FREQ=WEEKLY;COUNT=10;WKST=SU;BYDAY=TU,TH", "FREQ=WEEKLY;COUNT=10;BYDAY=TU,TH;WKST=SU" },
+            { "FREQ=WEEKLY;INTERVAL=2;UNTIL=19971224T000000Z;WKST=SU;BYDAY=MO,WE,FR", "FREQ=WEEKLY;UNTIL=19971224T000000Z;INTERVAL=2;BYDAY=MO,WE,FR;WKST=SU" },
+            { "FREQ=WEEKLY;INTERVAL=2;COUNT=8;WKST=SU;BYDAY=TU,TH", "FREQ=WEEKLY;COUNT=8;INTERVAL=2;BYDAY=TU,TH;WKST=SU" },
+            { Rfc5545Examples.MonthlyFirstAndLastSundayRule, "FREQ=MONTHLY;COUNT=10;INTERVAL=2;BYDAY=1SU,-1SU" },
+            { "FREQ=MONTHLY;INTERVAL=18;COUNT=10;BYMONTHDAY=10,11,12,13,14,15", "FREQ=MONTHLY;COUNT=10;INTERVAL=18;BYMONTHDAY=10,11,12,13,14,15" },
+            { "FREQ=YEARLY;INTERVAL=2;COUNT=10;BYMONTH=1,2,3", "FREQ=YEARLY;COUNT=10;INTERVAL=2;BYMONTH=1,2,3" },
+            { "FREQ=YEARLY;INTERVAL=3;COUNT=10;BYYEARDAY=1,100,200", "FREQ=YEARLY;COUNT=10;INTERVAL=3;BYYEARDAY=1,100,200" },
+            { MondayOfWeek20, "FREQ=YEARLY;BYDAY=MO;BYWEEKNO=20" },
+            { "FREQ=YEARLY;BYMONTH=3;BYDAY=TH", "FREQ=YEARLY;BYDAY=TH;BYMONTH=3" },
+            { "FREQ=YEARLY;INTERVAL=4;BYMONTH=11;BYDAY=TU;BYMONTHDAY=2,3,4,5,6,7,8", "FREQ=YEARLY;INTERVAL=4;BYDAY=TU;BYMONTHDAY=2,3,4,5,6,7,8;BYMONTH=11" },
+            { "FREQ=HOURLY;INTERVAL=3;UNTIL=19970902T170000Z", "FREQ=HOURLY;UNTIL=19970902T170000Z;INTERVAL=3" },
+            { "FREQ=MINUTELY;INTERVAL=15;COUNT=6", "FREQ=MINUTELY;COUNT=6;INTERVAL=15" },
+            { "FREQ=MINUTELY;INTERVAL=90;COUNT=4", "FREQ=MINUTELY;COUNT=4;INTERVAL=90" },
+            { "FREQ=DAILY;BYHOUR=9,10,11,12,13,14,15,16;BYMINUTE=0,20,40", "FREQ=DAILY;BYMINUTE=0,20,40;BYHOUR=9,10,11,12,13,14,15,16" },
+            { "FREQ=WEEKLY;INTERVAL=2;COUNT=4;BYDAY=TU,SU;WKST=MO", "FREQ=WEEKLY;COUNT=4;INTERVAL=2;BYDAY=SU,TU;WKST=MO" },
+            { "FREQ=WEEKLY;INTERVAL=2;COUNT=4;BYDAY=TU,SU;WKST=SU", "FREQ=WEEKLY;COUNT=4;INTERVAL=2;BYDAY=SU,TU;WKST=SU" },
+            { "FREQ=MONTHLY;BYMONTHDAY=15,30;COUNT=5", "FREQ=MONTHLY;COUNT=5;BYMONTHDAY=15,30" },
+            { "FREQ=YEARLY;BYDAY=1SU;BYMONTH=4;UNTIL=19980404T070000Z", "FREQ=YEARLY;UNTIL=19980404T070000Z;BYDAY=1SU;BYMONTH=4" },
+            { "FREQ=YEARLY;BYDAY=-1SU;BYMONTH=4;UNTIL=19980404T070000Z", "FREQ=YEARLY;UNTIL=19980404T070000Z;BYDAY=-1SU;BYMONTH=4" },
+            { "FREQ=YEARLY;BYMONTH=4;BYDAY=1SU;UNTIL=19730429T070000Z", "FREQ=YEARLY;UNTIL=19730429T070000Z;BYDAY=1SU;BYMONTH=4" },
+            { "FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU;UNTIL=20061029T060000Z", "FREQ=YEARLY;UNTIL=20061029T060000Z;BYDAY=-1SU;BYMONTH=10" },
+        };
+
+        public static TheoryData<string> RfcRules()
+        {
+            var data = new TheoryData<string>();
+            foreach (var row in (IEnumerable<object[]>)CanonicalRfcRules)
+            {
+                data.Add((string)row[0]);
+            }
+
+            foreach (var row in (IEnumerable<object[]>)NonCanonicalRfcRules)
+            {
+                data.Add((string)row[0]);
+            }
+
+            return data;
+        }
+
+        /// <summary>
+        /// Gets a rule with every BYYEARDAY value, 1 to 366 and -1 to -366, and how it is written.
+        /// </summary>
+        public static TheoryData<int[], string> EveryYearDay()
+        {
+            var yearDays = new List<int>();
+            for (var day = 1; day <= DaysInLeapYear; day++)
+            {
+                yearDays.Add(day);
+            }
+
+            for (var day = 1; day <= DaysInLeapYear; day++)
+            {
+                yearDays.Add(-day);
+            }
+
+            return new TheoryData<int[], string> { { yearDays.ToArray(), "FREQ=YEARLY;BYYEARDAY=" + string.Join(",", yearDays) } };
+        }
+
+        public static TheoryData<Action> OutOfRangeCalls()
+        {
+            var rule = new IcalRecurrenceRule(IcalRecurrenceFrequency.Yearly);
+            return new TheoryData<Action>
+            {
+                () => rule.WithBySecond(61),
+                () => rule.WithByMonthDay(0),
+                () => rule.WithByYearDay(-367),
+                () => rule.WithByWeekNo(54),
+                () => rule.WithByMonth(13),
+                () => rule.WithBySetPos(0),
+                () => rule.WithCount(0),
+                () => rule.WithInterval(0),
+                () => rule.WithFrequency(0),
+                () => new IcalRecurrenceDay(DayOfWeek.Monday, 54),
+            };
+        }
+
+        public static TheoryData<Func<IcalRecurrenceRule, int[]>, int[]> RfcExampleByLists => new TheoryData<Func<IcalRecurrenceRule, int[]>, int[]>
+        {
+            { rule => rule.GetByMonth(), new[] { 1 } },
+            { rule => rule.GetByHour(), new[] { 8, 9 } },
+            { rule => rule.GetByMinute(), new[] { 30 } },
+            { rule => rule.GetBySecond(), new int[0] },
+            { rule => rule.GetByMonthDay(), new int[0] },
+            { rule => rule.GetByYearDay(), new int[0] },
+            { rule => rule.GetByWeekNo(), new int[0] },
+            { rule => rule.GetBySetPos(), new int[0] },
         };
 
         #region Parsing and formatting
 
         [Theory]
         [MemberData(nameof(RfcRules))]
-        public void TryParse_RfcExample_ParsesAndRoundTrips(string value)
+        public void TryParse_RfcExample_GivesValidRule(string value)
         {
             // act
             var testResult = IcalRecurrenceRule.TryParse(value.AsSpan(), IcalValueFormat.Text, out var rule);
@@ -78,24 +172,50 @@ namespace DataStandardizer.File.iCal.Tests
             // assert
             testResult.Should().BeTrue();
             rule.IsValid.Should().BeTrue();
-            var formatted = rule.ToString(IcalValueFormat.Text);
-            formatted.Should().StartWith("FREQ=");
-            IcalRecurrenceRule.Parse(formatted.AsSpan(), IcalValueFormat.Text).Should().Be(rule);
-            SortParts(formatted).Should().Be(SortParts(value));
         }
 
         [Theory]
-        [InlineData("FREQ=DAILY;COUNT=10")]
+        [MemberData(nameof(NonCanonicalRfcRules))]
+        public void ToString_RfcExampleNotInCanonicalOrder_WritesCanonicalOrder(string value, string expected)
+        {
+            // arrange
+            var rule = IcalRecurrenceRule.Parse(value.AsSpan(), IcalValueFormat.Text);
+
+            // act
+            var testResult = rule.ToString(IcalValueFormat.Text);
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Theory]
+        [MemberData(nameof(NonCanonicalRfcRules))]
+        public void Parse_CanonicalOrderOfRfcExample_EqualsTheRfcExample(string value, string canonical)
+        {
+            // arrange
+            var expected = IcalRecurrenceRule.Parse(value.AsSpan(), IcalValueFormat.Text);
+
+            // act
+            var testResult = IcalRecurrenceRule.Parse(canonical.AsSpan(), IcalValueFormat.Text);
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Theory]
+        [MemberData(nameof(CanonicalRfcRules))]
         [InlineData("FREQ=MONTHLY;COUNT=10;INTERVAL=2;BYDAY=1SU,-1SU")]
-        [InlineData("FREQ=MONTHLY;COUNT=10;BYMONTHDAY=1,-1")]
         [InlineData("FREQ=YEARLY;UNTIL=20000131T140000Z;BYDAY=SU,MO,TU,WE,TH,FR,SA;BYMONTH=1")]
         [InlineData("FREQ=WEEKLY;UNTIL=19971007;BYDAY=TU,TH;WKST=SU")]
         [InlineData("FREQ=YEARLY;BYSECOND=0,60;BYMINUTE=0,59;BYHOUR=0,23;BYDAY=MO,1TU,53TU,-1TU,-53TU;BYMONTHDAY=1,31,-1,-31;BYYEARDAY=1,366,-1,-366;BYMONTH=1,12;BYSETPOS=1,366,-1,-366;WKST=MO")]
         [InlineData("FREQ=YEARLY;BYWEEKNO=1,53,-1,-53")]
         public void ToString_CanonicalRule_IsWrittenAsItIs(string value)
         {
+            // arrange
+            var rule = IcalRecurrenceRule.Parse(value.AsSpan(), IcalValueFormat.Text);
+
             // act
-            var testResult = IcalRecurrenceRule.Parse(value.AsSpan(), IcalValueFormat.Text).ToString(IcalValueFormat.Text);
+            var testResult = rule.ToString(IcalValueFormat.Text);
 
             // assert
             testResult.Should().Be(value);
@@ -104,38 +224,47 @@ namespace DataStandardizer.File.iCal.Tests
         [Fact]
         public void ToString_PartsInAnyOrder_WritesFrequencyFirst()
         {
+            // arrange
+            var rule = IcalRecurrenceRule.Parse("BYMONTH=10;BYDAY=-1SU;FREQ=YEARLY".AsSpan(), IcalValueFormat.Text);
+
             // act
-            var testResult = IcalRecurrenceRule.Parse("BYMONTH=10;BYDAY=-1SU;FREQ=YEARLY".AsSpan(), IcalValueFormat.Text).ToString();
+            var testResult = rule.ToString();
 
             // assert
-            testResult.Should().Be("FREQ=YEARLY;BYDAY=-1SU;BYMONTH=10");
+            testResult.Should().Be(LastSundayOfOctober);
         }
 
         [Fact]
         public void ToString_ListValues_AreSortedAndDeduplicated()
         {
+            // arrange
+            var rule = IcalRecurrenceRule.Parse("FREQ=MONTHLY;BYMONTHDAY=-2,15,-1,2,15;BYDAY=FR,MO,-1MO,1MO".AsSpan(), IcalValueFormat.Text);
+
             // act
-            var testResult = IcalRecurrenceRule.Parse("FREQ=MONTHLY;BYMONTHDAY=-2,15,-1,2,15;BYDAY=FR,MO,-1MO,1MO".AsSpan(), IcalValueFormat.Text).ToString();
+            var testResult = rule.ToString();
 
             // assert
             testResult.Should().Be("FREQ=MONTHLY;BYDAY=MO,1MO,-1MO,FR;BYMONTHDAY=2,15,-1,-2");
         }
 
         [Fact]
-        public void TryParse_LowerCaseAndPlusSigns_AreAccepted()
+        public void ToString_ParsedWithLowerCaseAndPlusSigns_WritesCanonicalForm()
         {
+            // arrange
+            var rule = IcalRecurrenceRule.Parse("freq=monthly;byday=+1mo;bymonthday=+5;until=19971224t000000z;wkst=su".AsSpan(), IcalValueFormat.Text);
+
             // act
-            var testResult = IcalRecurrenceRule.Parse("freq=monthly;byday=+1mo;bymonthday=+5;until=19971224t000000z;wkst=su".AsSpan(), IcalValueFormat.Text);
+            var testResult = rule.ToString();
 
             // assert
-            testResult.ToString().Should().Be("FREQ=MONTHLY;UNTIL=19971224T000000Z;BYDAY=1MO;BYMONTHDAY=5;WKST=SU");
+            testResult.Should().Be("FREQ=MONTHLY;UNTIL=19971224T000000Z;BYDAY=1MO;BYMONTHDAY=5;WKST=SU");
         }
 
         [Fact]
-        public void Parse_RfcExample_ExposesItsParts()
+        public void Parse_RfcExample_ExposesItsFrequencyIntervalAndEnd()
         {
             // act
-            var testResult = IcalRecurrenceRule.Parse("FREQ=YEARLY;INTERVAL=2;BYMONTH=1;BYDAY=SU;BYHOUR=8,9;BYMINUTE=30".AsSpan(), IcalValueFormat.Text);
+            var testResult = IcalRecurrenceRule.Parse(Rfc5545Examples.RecurrenceRule.AsSpan(), IcalValueFormat.Text);
 
             // assert
             testResult.Frequency.Should().Be(IcalRecurrenceFrequency.Yearly);
@@ -144,39 +273,96 @@ namespace DataStandardizer.File.iCal.Tests
             testResult.UntilDate.Should().BeNull();
             testResult.UntilDateTime.Should().BeNull();
             testResult.WeekStart.Should().BeNull();
-            testResult.GetByMonth().Should().Equal(1);
-            testResult.GetByDay().Should().Equal(new IcalRecurrenceDay(DayOfWeek.Sunday));
-            testResult.GetByHour().Should().Equal(8, 9);
-            testResult.GetByMinute().Should().Equal(30);
-            testResult.GetBySecond().Should().BeEmpty();
-            testResult.GetByMonthDay().Should().BeEmpty();
-            testResult.GetByYearDay().Should().BeEmpty();
-            testResult.GetByWeekNo().Should().BeEmpty();
-            testResult.GetBySetPos().Should().BeEmpty();
+        }
+
+        [Theory]
+        [MemberData(nameof(RfcExampleByLists), DisableDiscoveryEnumeration = true)]
+        public void GetByList_RfcExample_GivesItsValues(Func<IcalRecurrenceRule, int[]> getByList, int[] expected)
+        {
+            // arrange
+            var rule = IcalRecurrenceRule.Parse(Rfc5545Examples.RecurrenceRule.AsSpan(), IcalValueFormat.Text);
+
+            // act
+            var testResult = getByList(rule);
+
+            // assert
+            testResult.Should().Equal(expected);
         }
 
         [Fact]
-        public void Parse_SignedValues_AreReturnedPositiveThenNegative()
+        public void GetByDay_RfcExample_GivesSunday()
         {
+            // arrange
+            var rule = IcalRecurrenceRule.Parse(Rfc5545Examples.RecurrenceRule.AsSpan(), IcalValueFormat.Text);
+
             // act
-            var testResult = IcalRecurrenceRule.Parse("FREQ=YEARLY;BYDAY=-1SU,2MO;BYYEARDAY=-1,100,1;BYSETPOS=-366,366".AsSpan(), IcalValueFormat.Text);
+            var testResult = rule.GetByDay();
 
             // assert
-            testResult.GetByDay().Should().Equal(new IcalRecurrenceDay(DayOfWeek.Sunday, -1), new IcalRecurrenceDay(DayOfWeek.Monday, 2));
-            testResult.GetByYearDay().Should().Equal(1, 100, -1);
-            testResult.GetBySetPos().Should().Equal(366, -366);
+            testResult.Should().Equal(new IcalRecurrenceDay(DayOfWeek.Sunday));
+        }
+
+        [Fact]
+        public void GetByDay_SignedValues_ArePositiveThenNegative()
+        {
+            // arrange
+            var rule = IcalRecurrenceRule.Parse("FREQ=YEARLY;BYDAY=-1SU,2MO".AsSpan(), IcalValueFormat.Text);
+
+            // act
+            var testResult = rule.GetByDay();
+
+            // assert
+            testResult.Should().Equal(new IcalRecurrenceDay(DayOfWeek.Sunday, -1), new IcalRecurrenceDay(DayOfWeek.Monday, 2));
+        }
+
+        [Fact]
+        public void GetByYearDay_SignedValues_ArePositiveThenNegative()
+        {
+            // arrange
+            var rule = IcalRecurrenceRule.Parse("FREQ=YEARLY;BYYEARDAY=-1,100,1".AsSpan(), IcalValueFormat.Text);
+
+            // act
+            var testResult = rule.GetByYearDay();
+
+            // assert
+            testResult.Should().Equal(1, 100, -1);
+        }
+
+        [Fact]
+        public void GetBySetPos_SignedValues_ArePositiveThenNegative()
+        {
+            // arrange
+            var rule = IcalRecurrenceRule.Parse("FREQ=YEARLY;BYDAY=MO;BYSETPOS=-366,366".AsSpan(), IcalValueFormat.Text);
+
+            // act
+            var testResult = rule.GetBySetPos();
+
+            // assert
+            testResult.Should().Equal(366, -366);
         }
 
         [Fact]
         public void Parse_UntilDate_IsADate()
         {
             // act
-            var testResult = IcalRecurrenceRule.Parse("FREQ=DAILY;UNTIL=19971224".AsSpan(), IcalValueFormat.Text);
+            var testResult = IcalRecurrenceRule.Parse(DailyUntilDate.AsSpan(), IcalValueFormat.Text);
 
             // assert
             testResult.UntilDate.Should().Be(new IcalDate(1997, 12, 24));
             testResult.UntilDateTime.Should().BeNull();
-            testResult.ToString().Should().Be("FREQ=DAILY;UNTIL=19971224");
+        }
+
+        [Fact]
+        public void ToString_UntilDate_WritesADate()
+        {
+            // arrange
+            var rule = new IcalRecurrenceRule(IcalRecurrenceFrequency.Daily).WithUntil(new IcalDate(1997, 12, 24));
+
+            // act
+            var testResult = rule.ToString();
+
+            // assert
+            testResult.Should().Be(DailyUntilDate);
         }
 
         [Fact]
@@ -193,20 +379,45 @@ namespace DataStandardizer.File.iCal.Tests
         public void Parse_IntervalOfOne_IsKept()
         {
             // act
-            var testResult = IcalRecurrenceRule.Parse("FREQ=DAILY;INTERVAL=1".AsSpan(), IcalValueFormat.Text);
+            var testResult = IcalRecurrenceRule.Parse(DailyWithIntervalOfOne.AsSpan(), IcalValueFormat.Text);
 
             // assert
             testResult.Interval.Should().Be(1);
-            testResult.ToString().Should().Be("FREQ=DAILY;INTERVAL=1");
-            testResult.Should().NotBe(new IcalRecurrenceRule(IcalRecurrenceFrequency.Daily));
+        }
+
+        [Fact]
+        public void ToString_IntervalOfOne_IsWritten()
+        {
+            // arrange
+            var rule = new IcalRecurrenceRule(IcalRecurrenceFrequency.Daily).WithInterval(1);
+
+            // act
+            var testResult = rule.ToString();
+
+            // assert
+            testResult.Should().Be(DailyWithIntervalOfOne);
+        }
+
+        [Fact]
+        public void Equals_IntervalOfOneAndNoInterval_IsFalse()
+        {
+            // arrange
+            var rule = IcalRecurrenceRule.Parse(DailyWithIntervalOfOne.AsSpan(), IcalValueFormat.Text);
+            var other = new IcalRecurrenceRule(IcalRecurrenceFrequency.Daily);
+
+            // act
+            var testResult = rule.Equals(other);
+
+            // assert
+            testResult.Should().BeFalse();
         }
 
         [Fact]
         public void TryFormat_DestinationTooShort_ReturnsFalse()
         {
             // arrange
-            var rule = IcalRecurrenceRule.Parse("FREQ=DAILY;COUNT=10".AsSpan(), IcalValueFormat.Text);
-            var destination = new char[18];
+            var rule = IcalRecurrenceRule.Parse(DailyForTenOccurrences.AsSpan(), IcalValueFormat.Text);
+            var destination = new char[ShorterThanDailyForTenOccurrences];
 
             // act
             var testResult = rule.TryFormat(destination, out var charsWritten, IcalValueFormat.Text);
@@ -216,18 +427,18 @@ namespace DataStandardizer.File.iCal.Tests
             charsWritten.Should().Be(0);
         }
 
-        [Fact]
-        public void ToString_LongRule_GrowsItsBuffer()
+        [Theory]
+        [MemberData(nameof(EveryYearDay))]
+        public void ToString_LongRule_GrowsItsBuffer(int[] yearDays, string expected)
         {
             // arrange
-            var yearDays = Enumerable.Range(1, 366).Concat(Enumerable.Range(1, 366).Select(day => -day)).ToArray();
             var rule = new IcalRecurrenceRule(IcalRecurrenceFrequency.Yearly).WithByYearDay(yearDays);
 
             // act
             var testResult = rule.ToString(IcalValueFormat.Text);
 
             // assert
-            IcalRecurrenceRule.Parse(testResult.AsSpan(), IcalValueFormat.Text).GetByYearDay().Should().Equal(yearDays);
+            testResult.Should().Be(expected);
         }
 
         #endregion
@@ -328,7 +539,7 @@ namespace DataStandardizer.File.iCal.Tests
         [InlineData("FREQ=MONTHLY;BYDAY=1MO", true)]
         [InlineData("FREQ=YEARLY;BYDAY=1MO", true)]
         [InlineData("FREQ=YEARLY;BYWEEKNO=20;BYDAY=1MO", false)]
-        [InlineData("FREQ=YEARLY;BYWEEKNO=20;BYDAY=MO", true)]
+        [InlineData(MondayOfWeek20, true)]
         [InlineData("FREQ=WEEKLY;BYMONTHDAY=1", false)]
         [InlineData("FREQ=DAILY;BYMONTHDAY=1", true)]
         [InlineData("FREQ=DAILY;BYYEARDAY=1", false)]
@@ -353,30 +564,81 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public void IsValid_BuiltRuleBreakingConstraint_IsFalseAndFormatThrows()
+        public void IsValid_BuiltRuleBreakingConstraint_IsFalse()
         {
             // arrange
             var rule = new IcalRecurrenceRule(IcalRecurrenceFrequency.Weekly).WithByDay(new IcalRecurrenceDay(DayOfWeek.Monday, 1));
 
             // act
-            Action act = () => rule.ToString(IcalValueFormat.Text);
+            var testResult = rule.IsValid;
 
             // assert
-            rule.IsValid.Should().BeFalse();
-            act.Should().Throw<InvalidOperationException>().WithMessage("*BYDAY*MONTHLY or YEARLY*");
-            rule.ToString().Should().Be("FREQ=WEEKLY;BYDAY=1MO");
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void ToStringWithFormat_BuiltRuleBreakingConstraint_ThrowsInvalidOperation()
+        {
+            // arrange
+            var rule = new IcalRecurrenceRule(IcalRecurrenceFrequency.Weekly).WithByDay(new IcalRecurrenceDay(DayOfWeek.Monday, 1));
+
+            // act
+            Action testAction = () => rule.ToString(IcalValueFormat.Text);
+
+            // assert
+            testAction.Should().Throw<InvalidOperationException>().WithMessage("*BYDAY*MONTHLY or YEARLY*");
+        }
+
+        [Fact]
+        public void ToString_BuiltRuleBreakingConstraint_WritesTheRule()
+        {
+            // arrange
+            var rule = new IcalRecurrenceRule(IcalRecurrenceFrequency.Weekly).WithByDay(new IcalRecurrenceDay(DayOfWeek.Monday, 1));
+
+            // act
+            var testResult = rule.ToString();
+
+            // assert
+            testResult.Should().Be("FREQ=WEEKLY;BYDAY=1MO");
         }
 
         [Fact]
         public void IsValid_Default_IsFalse()
         {
-            // act
+            // arrange
             var rule = default(IcalRecurrenceRule);
 
+            // act
+            var testResult = rule.IsValid;
+
             // assert
-            rule.IsValid.Should().BeFalse();
-            rule.Invoking(value => value.TryFormat(new char[64], out _, IcalValueFormat.Text)).Should().Throw<InvalidOperationException>();
-            rule.ToString().Should().BeEmpty();
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void TryFormat_Default_ThrowsInvalidOperation()
+        {
+            // arrange
+            var rule = default(IcalRecurrenceRule);
+
+            // act
+            Action testAction = () => rule.TryFormat(new char[64], out _, IcalValueFormat.Text);
+
+            // assert
+            testAction.Should().Throw<InvalidOperationException>();
+        }
+
+        [Fact]
+        public void ToString_Default_IsEmpty()
+        {
+            // arrange
+            var rule = default(IcalRecurrenceRule);
+
+            // act
+            var testResult = rule.ToString();
+
+            // assert
+            testResult.Should().BeEmpty();
         }
 
         #endregion
@@ -384,8 +646,11 @@ namespace DataStandardizer.File.iCal.Tests
         #region Building
 
         [Fact]
-        public void With_BuildsTheRfcExample()
+        public void With_PartsOfTheRfcExample_EqualsTheParsedRfcExample()
         {
+            // arrange
+            var expected = IcalRecurrenceRule.Parse(Rfc5545Examples.RecurrenceRule.AsSpan(), IcalValueFormat.Text);
+
             // act
             var testResult = new IcalRecurrenceRule(IcalRecurrenceFrequency.Yearly)
                 .WithInterval(2)
@@ -395,86 +660,117 @@ namespace DataStandardizer.File.iCal.Tests
                 .WithByMinute(30);
 
             // assert
-            testResult.Should().Be(IcalRecurrenceRule.Parse("FREQ=YEARLY;INTERVAL=2;BYMONTH=1;BYDAY=SU;BYHOUR=8,9;BYMINUTE=30".AsSpan(), IcalValueFormat.Text));
+            testResult.Should().Be(expected);
         }
 
         [Fact]
-        public void WithCount_ReplacesUntil_AndWithUntilReplacesCount()
+        public void WithCount_RuleWithUntil_ReplacesUntil()
         {
             // arrange
-            var rule = new IcalRecurrenceRule(IcalRecurrenceFrequency.Daily);
-            var until = IcalDateTime.Parse("19971224T000000Z".AsSpan(), IcalValueFormat.Text);
+            var until = new IcalDateTime(new IcalDate(1997, 12, 24), new IcalTime(0, 0, 0, true));
+            var rule = new IcalRecurrenceRule(IcalRecurrenceFrequency.Daily).WithUntil(until);
 
             // act
-            var withCount = rule.WithUntil(until).WithCount(10);
-            var withUntil = withCount.WithUntil(until);
-            var withoutEnd = withUntil.WithoutEnd();
+            var testResult = rule.WithCount(10);
 
             // assert
-            withCount.ToString(IcalValueFormat.Text).Should().Be("FREQ=DAILY;COUNT=10");
-            withUntil.ToString(IcalValueFormat.Text).Should().Be("FREQ=DAILY;UNTIL=19971224T000000Z");
-            withoutEnd.ToString(IcalValueFormat.Text).Should().Be("FREQ=DAILY");
+            testResult.Count.Should().Be(10);
+            testResult.UntilDateTime.Should().BeNull();
         }
 
         [Fact]
-        public void WithByList_NullOrEmpty_RemovesThePart()
+        public void WithUntil_RuleWithCount_ReplacesCount()
         {
             // arrange
-            var rule = new IcalRecurrenceRule(IcalRecurrenceFrequency.Daily).WithByHour(9).WithByDay(new IcalRecurrenceDay(DayOfWeek.Monday));
+            var until = new IcalDateTime(new IcalDate(1997, 12, 24), new IcalTime(0, 0, 0, true));
+            var rule = new IcalRecurrenceRule(IcalRecurrenceFrequency.Daily).WithCount(10);
 
             // act
-            var testResult = rule.WithByHour().WithByDay(null);
+            var testResult = rule.WithUntil(until);
 
             // assert
-            testResult.ToString(IcalValueFormat.Text).Should().Be("FREQ=DAILY");
+            testResult.Count.Should().BeNull();
+            testResult.UntilDateTime.Should().Be(until);
+        }
+
+        [Fact]
+        public void WithoutEnd_RuleWithUntil_RemovesUntil()
+        {
+            // arrange
+            var until = new IcalDateTime(new IcalDate(1997, 12, 24), new IcalTime(0, 0, 0, true));
+            var rule = new IcalRecurrenceRule(IcalRecurrenceFrequency.Daily).WithUntil(until);
+
+            // act
+            var testResult = rule.WithoutEnd();
+
+            // assert
+            testResult.Should().Be(new IcalRecurrenceRule(IcalRecurrenceFrequency.Daily));
+        }
+
+        [Fact]
+        public void WithByHour_NoValues_RemovesThePart()
+        {
+            // arrange
+            var rule = new IcalRecurrenceRule(IcalRecurrenceFrequency.Daily).WithByHour(9);
+
+            // act
+            var testResult = rule.WithByHour();
+
+            // assert
+            testResult.Should().Be(new IcalRecurrenceRule(IcalRecurrenceFrequency.Daily));
+        }
+
+        [Fact]
+        public void WithByDay_Null_RemovesThePart()
+        {
+            // arrange
+            var rule = new IcalRecurrenceRule(IcalRecurrenceFrequency.Daily).WithByDay(new IcalRecurrenceDay(DayOfWeek.Monday));
+
+            // act
+            var testResult = rule.WithByDay(null);
+
+            // assert
+            testResult.Should().Be(new IcalRecurrenceRule(IcalRecurrenceFrequency.Daily));
         }
 
         [Fact]
         public void WithWeekStart_Null_RemovesWkst()
         {
+            // arrange
+            var rule = new IcalRecurrenceRule(IcalRecurrenceFrequency.Weekly).WithWeekStart(DayOfWeek.Sunday);
+
             // act
-            var testResult = new IcalRecurrenceRule(IcalRecurrenceFrequency.Weekly).WithWeekStart(DayOfWeek.Sunday).WithWeekStart(null);
+            var testResult = rule.WithWeekStart(null);
 
             // assert
             testResult.WeekStart.Should().BeNull();
         }
 
+        [Theory]
+        [MemberData(nameof(OutOfRangeCalls), DisableDiscoveryEnumeration = true)]
+        public void With_OutOfRangeValue_ThrowsArgumentOutOfRange(Action call)
+        {
+            // act
+            var testAction = call;
+
+            // assert
+            testAction.Should().Throw<ArgumentOutOfRangeException>();
+        }
+
         [Fact]
-        public void With_OutOfRangeValue_Throws()
+        public void WithUntil_ZonedDateTime_ThrowsArgumentException()
         {
             // arrange
             var rule = new IcalRecurrenceRule(IcalRecurrenceFrequency.Yearly);
+            var until = new IcalDateTime(new IcalDate(2026, 1, 1), new IcalTime(9, 0, 0), "Europe/London");
+
+            // act
+            Action testAction = () => rule.WithUntil(until);
 
             // assert
-            rule.Invoking(value => value.WithBySecond(61)).Should().Throw<ArgumentOutOfRangeException>();
-            rule.Invoking(value => value.WithByMonthDay(0)).Should().Throw<ArgumentOutOfRangeException>();
-            rule.Invoking(value => value.WithByYearDay(-367)).Should().Throw<ArgumentOutOfRangeException>();
-            rule.Invoking(value => value.WithByWeekNo(54)).Should().Throw<ArgumentOutOfRangeException>();
-            rule.Invoking(value => value.WithByMonth(13)).Should().Throw<ArgumentOutOfRangeException>();
-            rule.Invoking(value => value.WithBySetPos(0)).Should().Throw<ArgumentOutOfRangeException>();
-            rule.Invoking(value => value.WithCount(0)).Should().Throw<ArgumentOutOfRangeException>();
-            rule.Invoking(value => value.WithInterval(0)).Should().Throw<ArgumentOutOfRangeException>();
-            rule.Invoking(value => value.WithFrequency(0)).Should().Throw<ArgumentOutOfRangeException>();
-            rule.Invoking(value => value.WithUntil(IcalDateTime.FromDateTime(DateTime.Now, "Europe/London"))).Should().Throw<ArgumentException>();
-            FluentActions.Invoking(() => new IcalRecurrenceDay(DayOfWeek.Monday, 54)).Should().Throw<ArgumentOutOfRangeException>();
+            testAction.Should().Throw<ArgumentException>();
         }
 
         #endregion
-
-        /// <summary>
-        /// Sorts the rule parts, and the values of each, so rules can be compared whatever order they were written in.
-        /// </summary>
-        private static string SortParts(string rule)
-        {
-            var parts = rule.ToUpperInvariant().Split(';').Select(part =>
-            {
-                var nameAndValue = part.Split('=');
-                var value = nameAndValue[1];
-                if (nameAndValue[0] == "INTERVAL" && value == "1") return string.Empty;
-
-                return nameAndValue[0] + "=" + string.Join(",", value.Split(',').OrderBy(item => item, StringComparer.Ordinal));
-            });
-            return string.Join(";", parts.Where(part => part.Length > 0).OrderBy(part => part, StringComparer.Ordinal));
-        }
     }
 }
