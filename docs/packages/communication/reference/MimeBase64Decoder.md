@@ -25,7 +25,8 @@ The decoder works like `System.Buffers.Text.Base64.DecodeFromUtf8`, but keeps it
 between calls. It holds an incomplete quantum until the next call, so it consumes all of a
 block that isn't final, and the result is the same however the data is split.
 
-Padding ends the data: after it, a character of the alphabet or another `=` is invalid. In
+The padding of the last quantum, `=` or `==`, ends the data: after it, a character of the
+alphabet or another `=` is invalid. In
 `Mime` mode, characters outside the alphabet are ignored, before and after the padding,
 unless `RejectNonAlphabetCharacters` is set. The pad bits of the last quantum aren't
 checked (RFC 4648 §3.5).
