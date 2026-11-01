@@ -151,6 +151,40 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         /// <summary>
+        /// The cases whose problem is reported for a property.
+        /// </summary>
+        public static TheoryData<string> AccommodatedWithPropertyName()
+        {
+            var data = new TheoryData<string>();
+            foreach (var pair in All)
+            {
+                if (pair.Value.PropertyName != null)
+                {
+                    data.Add(pair.Key);
+                }
+            }
+
+            return data;
+        }
+
+        /// <summary>
+        /// The cases whose problem is reported for a component, not a property.
+        /// </summary>
+        public static TheoryData<string> AccommodatedWithoutPropertyName()
+        {
+            var data = new TheoryData<string>();
+            foreach (var pair in All)
+            {
+                if (pair.Value.PropertyName == null)
+                {
+                    data.Add(pair.Key);
+                }
+            }
+
+            return data;
+        }
+
+        /// <summary>
         /// The cases that xCal and jCal can hold.  Three cannot be written in either: the writer always writes VERSION, the value element or
         /// type identifier of REFRESH-INTERVAL gives it the VALUE parameter it lacked, and a binary value gives its property the ENCODING
         /// parameter it lacked.
