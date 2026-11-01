@@ -70,7 +70,7 @@ namespace DataStandardizer.File.iCal.Tests
             using (var syncReader = CreateReader(text, bufferSize: bufferSize))
             {
                 var asyncReader = CreateAsyncOnlyReader(text, bufferSize);
-                try
+                await AsyncDisposal.UsingAsync(asyncReader, async () =>
                 {
                     var expected = ReadAll(syncReader).Select(LineSnapshot.FromLine).ToList();
 
@@ -82,11 +82,7 @@ namespace DataStandardizer.File.iCal.Tests
                     testResult.Should().BeEquivalentTo(expected, options => options.WithStrictOrdering());
                     asyncReader.LinesRead.Should().Be(syncReader.LinesRead);
                     asyncReader.PhysicalLinesRead.Should().Be(syncReader.PhysicalLinesRead);
-                }
-                finally
-                {
-                    await asyncReader.DisposeAsync();
-                }
+                });
             }
         }
 
@@ -99,7 +95,7 @@ namespace DataStandardizer.File.iCal.Tests
             using (var syncReader = CreateReader(text, bufferSize: bufferSize))
             {
                 var asyncReader = CreateAsyncOnlyReader(text, bufferSize);
-                try
+                await AsyncDisposal.UsingAsync(asyncReader, async () =>
                 {
                     var expected = IcalContentLineReaderTests.ReadAllViews(syncReader);
 
@@ -109,11 +105,7 @@ namespace DataStandardizer.File.iCal.Tests
                     // assert
                     testResult.Should().NotBeEmpty();
                     testResult.Should().BeEquivalentTo(expected, options => options.WithStrictOrdering());
-                }
-                finally
-                {
-                    await asyncReader.DisposeAsync();
-                }
+                });
             }
         }
 
@@ -126,7 +118,7 @@ namespace DataStandardizer.File.iCal.Tests
             using (var syncReader = CreateStreamReader(data, streamBufferSize: SmallStreamBufferSize, bufferSize: bufferSize))
             {
                 var asyncReader = new IcalContentLineReader(new AsyncOnlyStream(data), new IcalOptions(), SmallStreamBufferSize, bufferSize);
-                try
+                await AsyncDisposal.UsingAsync(asyncReader, async () =>
                 {
                     var expected = ReadAll(syncReader).Select(LineSnapshot.FromLine).ToList();
 
@@ -135,11 +127,7 @@ namespace DataStandardizer.File.iCal.Tests
 
                     // assert
                     testResult.Should().BeEquivalentTo(expected, options => options.WithStrictOrdering());
-                }
-                finally
-                {
-                    await asyncReader.DisposeAsync();
-                }
+                });
             }
         }
 
@@ -150,7 +138,7 @@ namespace DataStandardizer.File.iCal.Tests
             // arrange
             var reader = new IcalContentLineReader(new AsyncOnlyStream(IcalContentLineReaderTests.FoldsInsideUtf8Sequences), new IcalOptions(),
                 streamBufferSize, bufferSize);
-            try
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 // act
                 var testResult = await ReadAllAsync(reader);
@@ -161,11 +149,7 @@ namespace DataStandardizer.File.iCal.Tests
                 testResult[1].Value.Should().Be("\xE9");
                 testResult[1].PhysicalLineNumber.Should().Be(5);
                 reader.PhysicalLinesRead.Should().Be(5);
-            }
-            finally
-            {
-                await reader.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
@@ -173,7 +157,7 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var reader = CreateAsyncOnlyReader(Crlf(LineA, "BAD", LineC));
-            try
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 await reader.ReadLineAsync();
 
@@ -182,11 +166,7 @@ namespace DataStandardizer.File.iCal.Tests
 
                 // assert
                 await testAction.Should().ThrowAsync<IcalFileException>();
-            }
-            finally
-            {
-                await reader.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
@@ -194,7 +174,7 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var reader = CreateAsyncOnlyReader(Crlf(LineA, "BAD", LineC));
-            try
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 await reader.ReadLineAsync();
                 await Record.ExceptionAsync(() => reader.ReadLineAsync().AsTask());
@@ -204,11 +184,7 @@ namespace DataStandardizer.File.iCal.Tests
 
                 // assert
                 testResult.Name.Should().Be("C");
-            }
-            finally
-            {
-                await reader.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
@@ -216,7 +192,7 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var reader = CreateAsyncOnlyReader(Crlf(LineA, "BAD", LineC));
-            try
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 await reader.ReadLineAsync();
                 await Record.ExceptionAsync(() => reader.ReadLineAsync().AsTask());
@@ -227,11 +203,7 @@ namespace DataStandardizer.File.iCal.Tests
 
                 // assert
                 testResult.Should().BeNull();
-            }
-            finally
-            {
-                await reader.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
@@ -239,7 +211,7 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var reader = CreateAsyncOnlyReader("SUMMARY:a\nX-B:d\r\n");
-            try
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 await Record.ExceptionAsync(() => reader.ReadLineAsync().AsTask());
 
@@ -248,11 +220,7 @@ namespace DataStandardizer.File.iCal.Tests
 
                 // assert
                 testAction.Should().Throw<InvalidOperationException>();
-            }
-            finally
-            {
-                await reader.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
@@ -260,7 +228,7 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var reader = CreateAsyncOnlyReader("SUMMARY:a\nX-B:d\r\n");
-            try
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 await Record.ExceptionAsync(() => reader.ReadLineAsync().AsTask());
 
@@ -269,11 +237,7 @@ namespace DataStandardizer.File.iCal.Tests
 
                 // assert
                 testAction.Should().Throw<InvalidOperationException>();
-            }
-            finally
-            {
-                await reader.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
@@ -282,7 +246,7 @@ namespace DataStandardizer.File.iCal.Tests
             // arrange
             var source = new GatedTextReader(Crlf(LineA, LineB, LineC));
             var reader = new IcalContentLineReader(source);
-            try
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 source.OpenGate();
                 await reader.ReadContentLineAsync();
@@ -296,11 +260,7 @@ namespace DataStandardizer.File.iCal.Tests
                 testResult.Result.Should().BeTrue();
                 reader.CurrentLine.Name.ToString().Should().Be("B");
                 source.ReadsCompleted.Should().Be(1);
-            }
-            finally
-            {
-                await reader.DisposeAsync();
-            }
+            });
         }
 
         #endregion
@@ -316,20 +276,19 @@ namespace DataStandardizer.File.iCal.Tests
             var reader = new IcalContentLineReader(source);
             var firstRead = reader.ReadLineAsync();
             await source.ReadStarted;
-            try
+            await AsyncDisposal.FinallyAsync(() =>
             {
                 // act
                 Action testAction = () => member(reader);
 
                 // assert
                 testAction.Should().Throw<InvalidOperationException>().WithMessage("*in progress*");
-            }
-            finally
+            }, async () =>
             {
                 source.OpenGate();
                 await firstRead;
                 await reader.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
@@ -338,7 +297,7 @@ namespace DataStandardizer.File.iCal.Tests
             // arrange
             var source = new GatedTextReader(Crlf(LineA, LineB, LineC));
             var reader = new IcalContentLineReader(source);
-            try
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 var firstRead = reader.ReadLineAsync();
                 await source.ReadStarted;
@@ -350,11 +309,7 @@ namespace DataStandardizer.File.iCal.Tests
 
                 // assert
                 testResult.Name.Should().Be("A");
-            }
-            finally
-            {
-                await reader.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
@@ -363,7 +318,7 @@ namespace DataStandardizer.File.iCal.Tests
             // arrange
             var source = new GatedTextReader(Crlf(LineA, LineB, LineC));
             var reader = new IcalContentLineReader(source);
-            try
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 source.OpenGate();
 
@@ -372,11 +327,7 @@ namespace DataStandardizer.File.iCal.Tests
 
                 // assert
                 testResult.Select(line => line?.Name).Should().Equal("A", "B", "C", null);
-            }
-            finally
-            {
-                await reader.DisposeAsync();
-            }
+            });
         }
 
         #endregion
@@ -388,7 +339,7 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var reader = CreateAsyncOnlyReader(Crlf(LineA, LineB));
-            try
+            await AsyncDisposal.UsingAsync(reader, () =>
             {
                 using (var cancellationTokenSource = new CancellationTokenSource())
                 {
@@ -400,11 +351,7 @@ namespace DataStandardizer.File.iCal.Tests
                     // assert
                     testResult.IsCanceled.Should().BeTrue();
                 }
-            }
-            finally
-            {
-                await reader.DisposeAsync();
-            }
+            });
         }
 
         [Theory]
@@ -413,7 +360,7 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var reader = CreateAsyncOnlyReader(Crlf(LineA, LineB));
-            try
+            await AsyncDisposal.UsingAsync(reader, () =>
             {
                 using (var cancellationTokenSource = new CancellationTokenSource())
                 {
@@ -426,11 +373,7 @@ namespace DataStandardizer.File.iCal.Tests
                     // assert
                     testAction.Should().Throw<InvalidOperationException>().WithMessage(CanceledMessage);
                 }
-            }
-            finally
-            {
-                await reader.DisposeAsync();
-            }
+            });
         }
 
         // On .NET Framework, TextReader.ReadAsync takes no cancellation token, so a read in progress cannot be canceled.
@@ -441,7 +384,7 @@ namespace DataStandardizer.File.iCal.Tests
             // arrange
             var source = new GatedTextReader(Crlf(LineA, LineB));
             var reader = new IcalContentLineReader(source);
-            try
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 using (var cancellationTokenSource = new CancellationTokenSource())
                 {
@@ -455,11 +398,7 @@ namespace DataStandardizer.File.iCal.Tests
                     // assert
                     await testAction.Should().ThrowAsync<OperationCanceledException>();
                 }
-            }
-            finally
-            {
-                await reader.DisposeAsync();
-            }
+            });
         }
 
         [Theory]
@@ -469,7 +408,7 @@ namespace DataStandardizer.File.iCal.Tests
             // arrange
             var source = new GatedTextReader(Crlf(LineA, LineB));
             var reader = new IcalContentLineReader(source);
-            try
+            await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 using (var cancellationTokenSource = new CancellationTokenSource())
                 {
@@ -484,11 +423,7 @@ namespace DataStandardizer.File.iCal.Tests
                     // assert
                     testAction.Should().Throw<InvalidOperationException>().WithMessage(CanceledMessage);
                 }
-            }
-            finally
-            {
-                await reader.DisposeAsync();
-            }
+            });
         }
 #endif
 
@@ -502,19 +437,18 @@ namespace DataStandardizer.File.iCal.Tests
                 var enumerator = reader.ReadLinesAsync().GetAsyncEnumerator(cancellationTokenSource.Token);
                 await enumerator.MoveNextAsync();
                 cancellationTokenSource.Cancel();
-                try
+                await AsyncDisposal.FinallyAsync(async () =>
                 {
                     // act
                     Func<Task> testAction = () => enumerator.MoveNextAsync().AsTask();
 
                     // assert
                     await testAction.Should().ThrowAsync<OperationCanceledException>();
-                }
-                finally
+                }, async () =>
                 {
                     await enumerator.DisposeAsync();
                     await reader.DisposeAsync();
-                }
+                });
             }
         }
 
@@ -530,19 +464,18 @@ namespace DataStandardizer.File.iCal.Tests
                 await enumerator.MoveNextAsync();
                 cancellationTokenSource.Cancel();
                 await Record.ExceptionAsync(() => enumerator.MoveNextAsync().AsTask());
-                try
+                await AsyncDisposal.FinallyAsync(() =>
                 {
                     // act
                     Action testAction = () => member(reader);
 
                     // assert
                     testAction.Should().Throw<InvalidOperationException>().WithMessage(CanceledMessage);
-                }
-                finally
+                }, async () =>
                 {
                     await enumerator.DisposeAsync();
                     await reader.DisposeAsync();
-                }
+                });
             }
         }
 
@@ -560,7 +493,7 @@ namespace DataStandardizer.File.iCal.Tests
             var reader = new IcalContentLineReader(source);
             var readTask = reader.ReadLineAsync();
             await source.ReadStarted;
-            var scanner = ReaderInspector.GetScanner(reader);
+            var scanner = reader.Scanner;
 
             // act
             await dispose(reader);
@@ -601,7 +534,7 @@ namespace DataStandardizer.File.iCal.Tests
             var reader = new IcalContentLineReader(source);
             var readTask = reader.ReadLineAsync();
             await source.ReadStarted;
-            var scanner = ReaderInspector.GetScanner(reader);
+            var scanner = reader.Scanner;
             await dispose(reader);
             source.OpenGate();
 
@@ -649,7 +582,7 @@ namespace DataStandardizer.File.iCal.Tests
             {
                 var reader = new IcalContentLineReader(stream);
                 await reader.ReadLineAsync();
-                var scanner = ReaderInspector.GetScanner(reader);
+                var scanner = reader.Scanner;
 
                 // act
                 await reader.DisposeAsync();
@@ -700,7 +633,7 @@ namespace DataStandardizer.File.iCal.Tests
             // arrange
             var reader = CreateAsyncOnlyReader(Crlf(LineA, LineB));
             var enumerator = reader.ReadLinesAsync().GetAsyncEnumerator();
-            try
+            await AsyncDisposal.UsingAsync(enumerator, async () =>
             {
                 await enumerator.MoveNextAsync();
                 await reader.DisposeAsync();
@@ -710,11 +643,7 @@ namespace DataStandardizer.File.iCal.Tests
 
                 // assert
                 await testAction.Should().ThrowAsync<ObjectDisposedException>();
-            }
-            finally
-            {
-                await enumerator.DisposeAsync();
-            }
+            });
         }
 
         #endregion

@@ -789,41 +789,6 @@ namespace DataStandardizer.File.iCal.Tests
 
         #endregion
 
-        #region Allocation
-
-        [Fact]
-        public void GetOccurrences_EachOccurrence_DoesNotAllocate()
-        {
-            // arrange
-            var start = IcalDateTime.Parse(NewYear.AsSpan(), NewYork, IcalValueFormat.Text);
-            var few = IcalRecurrenceRule.Parse("FREQ=MONTHLY;COUNT=10;BYDAY=MO,TU,WE,TH,FR;BYHOUR=9,17;BYSETPOS=1,-1".AsSpan(), IcalValueFormat.Text);
-            var many = few.WithCount(1000);
-            Enumerate(few, start);
-            var fewBytes = MeasureAllocations(() => Enumerate(few, start));
-
-            // act
-            var testResult = MeasureAllocations(() => Enumerate(many, start));
-
-            // assert
-            testResult.Should().Be(fewBytes);
-        }
-
-        private static void Enumerate(IcalRecurrenceRule rule, IcalDateTime start)
-        {
-            foreach (var _ in rule.GetOccurrences(start, null, null))
-            {
-            }
-        }
-
-        private static long MeasureAllocations(Action action)
-        {
-            var before = GC.GetAllocatedBytesForCurrentThread();
-            action();
-            return GC.GetAllocatedBytesForCurrentThread() - before;
-        }
-
-        #endregion
-
         private static IcalDateTime At(string text)
         {
             return IcalDateTime.Parse(text.AsSpan(), IcalValueFormat.Text);

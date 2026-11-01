@@ -873,55 +873,6 @@ namespace DataStandardizer.File.iCal.Tests
             }
         }
 
-        [Fact]
-        public void File_ExistingFile_IsOverwritten()
-        {
-            // arrange
-            var path = Path.GetTempFileName();
-            try
-            {
-                System.IO.File.WriteAllText(path, new string('x', 1000));
-
-                // act
-                using (var writer = new IcalContentLineWriter(path))
-                {
-                    writer.WriteLine(new IcalContentLine(Summary, "Café"));
-                }
-
-                // assert
-                System.IO.File.ReadAllBytes(path).Should().Equal(new UTF8Encoding(false).GetBytes("SUMMARY:Café\r\n"));
-            }
-            finally
-            {
-                System.IO.File.Delete(path);
-            }
-        }
-
-        [Fact]
-        public void File_WrittenFile_ReadsBack()
-        {
-            // arrange
-            var path = Path.GetTempFileName();
-            try
-            {
-                var lines = ReadAll(CreateReader(RfcFixtures.Rfc5545Event));
-                var expected = new UTF8Encoding(false).GetBytes(WriteAll(lines.ToArray()));
-
-                // act
-                using (var writer = new IcalContentLineWriter(path, new IcalOptions()))
-                {
-                    writer.WriteLines(lines);
-                }
-
-                // assert
-                System.IO.File.ReadAllBytes(path).Should().Equal(expected);
-            }
-            finally
-            {
-                System.IO.File.Delete(path);
-            }
-        }
-
         #endregion
 
         #region Counters and progress

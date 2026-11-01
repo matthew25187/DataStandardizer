@@ -102,18 +102,14 @@ namespace DataStandardizer.File.iCal.Tests
 
                 var text = new AsyncOnlyTextWriter();
                 var asyncWriter = new IcalContentLineWriter(text, options);
-                try
+                await AsyncDisposal.UsingAsync(asyncWriter, async () =>
                 {
                     // act
                     await WriteAsync(asyncWriter, lines, mode);
 
                     // assert
                     text.ToString().Should().Be(expected.ToString());
-                }
-                finally
-                {
-                    await asyncWriter.DisposeAsync();
-                }
+                });
             }
         }
 
@@ -124,7 +120,7 @@ namespace DataStandardizer.File.iCal.Tests
             using (var text = new StringWriter())
             {
                 var writer = new IcalContentLineWriter(text);
-                try
+                await AsyncDisposal.UsingAsync(writer, async () =>
                 {
                     // act
                     writer.WriteLine(new IcalContentLine("A", "1"));
@@ -137,11 +133,7 @@ namespace DataStandardizer.File.iCal.Tests
                     // assert
                     text.ToString().Should().Be(Crlf("A:1", "B:2", "C:3", "D:4"));
                     writer.LinesWritten.Should().Be(4);
-                }
-                finally
-                {
-                    await writer.DisposeAsync();
-                }
+                });
             }
         }
 
@@ -172,7 +164,7 @@ namespace DataStandardizer.File.iCal.Tests
             // arrange
             var text = new AsyncOnlyTextWriter();
             var writer = new IcalContentLineWriter(text);
-            try
+            await AsyncDisposal.UsingAsync(writer, async () =>
             {
                 // act
                 var task = writer.WriteLineAsync(new IcalContentLine("X_Y", "1"));
@@ -181,11 +173,7 @@ namespace DataStandardizer.File.iCal.Tests
                 // assert
                 await testAction.Should().ThrowAsync<IcalFileException>();
                 text.ToString().Should().BeEmpty();
-            }
-            finally
-            {
-                await writer.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
@@ -194,7 +182,7 @@ namespace DataStandardizer.File.iCal.Tests
             // arrange
             var text = new AsyncOnlyTextWriter();
             var writer = new IcalContentLineWriter(text);
-            try
+            await AsyncDisposal.UsingAsync(writer, async () =>
             {
                 await Record.ExceptionAsync(() => writer.WriteLineAsync(new IcalContentLine("X_Y", "1")).AsTask());
 
@@ -203,11 +191,7 @@ namespace DataStandardizer.File.iCal.Tests
 
                 // assert
                 text.ToString().Should().Be(LineAWithCrlf);
-            }
-            finally
-            {
-                await writer.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
@@ -216,7 +200,7 @@ namespace DataStandardizer.File.iCal.Tests
             // arrange
             var text = new AsyncOnlyTextWriter();
             var writer = new IcalContentLineWriter(text);
-            try
+            await AsyncDisposal.UsingAsync(writer, async () =>
             {
                 var lines = new[] { new IcalContentLine("A", "1"), new IcalContentLine("B", "\n") };
 
@@ -227,11 +211,7 @@ namespace DataStandardizer.File.iCal.Tests
                 // assert
                 (await testAction.Should().ThrowAsync<IcalFileException>()).Which.Data[IcalFileException.DataItemName.LineNumber].Should().Be(2L);
                 text.ToString().Should().Be(LineAWithCrlf);
-            }
-            finally
-            {
-                await writer.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
@@ -239,7 +219,7 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var writer = new IcalContentLineWriter(new AsyncOnlyTextWriter());
-            try
+            await AsyncDisposal.UsingAsync(writer, async () =>
             {
                 // act
                 Func<Task> testAction = async () => await writer.WriteLinesAsync(ToAsyncEnumerable(new[] { new IcalContentLine("A", "1"), null }));
@@ -247,11 +227,7 @@ namespace DataStandardizer.File.iCal.Tests
                 // assert
                 (await testAction.Should().ThrowAsync<ArgumentException>()).Which.ParamName.Should().Be("lines");
                 writer.LinesWritten.Should().Be(1);
-            }
-            finally
-            {
-                await writer.DisposeAsync();
-            }
+            });
         }
 
         public static TheoryData<Func<IcalContentLineWriter, object>> NullArgumentCalls => new TheoryData<Func<IcalContentLineWriter, object>>
@@ -267,18 +243,14 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var writer = new IcalContentLineWriter(new AsyncOnlyTextWriter());
-            try
+            await AsyncDisposal.UsingAsync(writer, () =>
             {
                 // act
                 Action testAction = () => call(writer);
 
                 // assert
                 testAction.Should().Throw<ArgumentNullException>();
-            }
-            finally
-            {
-                await writer.DisposeAsync();
-            }
+            });
         }
 
         #endregion
@@ -290,7 +262,7 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var writer = new IcalContentLineWriter(new SynchronouslyThrowingTextWriter(() => new IOException(DiskFullMessage)));
-            try
+            await AsyncDisposal.UsingAsync(writer, async () =>
             {
                 // act
                 var task = writer.WriteLineAsync(new IcalContentLine("A", "1"));
@@ -299,11 +271,7 @@ namespace DataStandardizer.File.iCal.Tests
                 // assert
                 await testAction.Should().ThrowAsync<IOException>().WithMessage(DiskFullMessage);
                 writer.LinesWritten.Should().Be(0);
-            }
-            finally
-            {
-                await writer.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
@@ -312,7 +280,7 @@ namespace DataStandardizer.File.iCal.Tests
             // arrange: the text writer throws an IOException, then, to show that the writer called it again, another exception.
             var exceptions = new Queue<Exception>(new Exception[] { new IOException(DiskFullMessage), new InvalidOperationException(UnexpectedMessage) });
             var writer = new IcalContentLineWriter(new SynchronouslyThrowingTextWriter(exceptions.Dequeue));
-            try
+            await AsyncDisposal.UsingAsync(writer, async () =>
             {
                 await Record.ExceptionAsync(() => writer.WriteLineAsync(new IcalContentLine("A", "1")).AsTask());
 
@@ -321,11 +289,7 @@ namespace DataStandardizer.File.iCal.Tests
 
                 // assert
                 await testAction.Should().ThrowAsync<InvalidOperationException>().WithMessage(UnexpectedMessage);
-            }
-            finally
-            {
-                await writer.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
@@ -334,7 +298,7 @@ namespace DataStandardizer.File.iCal.Tests
             // arrange
             var streamWriter = new StreamWriter(new MemoryStream());
             var writer = new IcalContentLineWriter(streamWriter);
-            try
+            await AsyncDisposal.UsingAsync(writer, async () =>
             {
                 streamWriter.Dispose();
 
@@ -344,11 +308,7 @@ namespace DataStandardizer.File.iCal.Tests
 
                 // assert
                 await testAction.Should().ThrowAsync<ObjectDisposedException>();
-            }
-            finally
-            {
-                await writer.DisposeAsync();
-            }
+            });
         }
 
         #endregion
@@ -360,7 +320,7 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var writer = new IcalContentLineWriter(new AsyncOnlyTextWriter());
-            try
+            await AsyncDisposal.UsingAsync(writer, async () =>
             {
                 var progress = new RecordingProgress();
                 await writer.WriteLineAsync(new IcalContentLine("A", "0"));
@@ -371,11 +331,7 @@ namespace DataStandardizer.File.iCal.Tests
 
                 // assert
                 progress.Reports.Should().Equal(new IcalWriteProgress(2), new IcalWriteProgress(3), new IcalWriteProgress(4));
-            }
-            finally
-            {
-                await writer.DisposeAsync();
-            }
+            });
         }
 
         #endregion
@@ -538,7 +494,7 @@ namespace DataStandardizer.File.iCal.Tests
         {
             // arrange
             var writer = new IcalContentLineWriter(new AsyncOnlyTextWriter());
-            try
+            await AsyncDisposal.UsingAsync(writer, async () =>
             {
                 using (var cancellationTokenSource = new CancellationTokenSource())
                 {
@@ -551,11 +507,7 @@ namespace DataStandardizer.File.iCal.Tests
                     // assert
                     observedTokens.Should().Equal(cancellationTokenSource.Token);
                 }
-            }
-            finally
-            {
-                await writer.DisposeAsync();
-            }
+            });
         }
 
         #endregion
@@ -591,20 +543,19 @@ namespace DataStandardizer.File.iCal.Tests
             var writer = new IcalContentLineWriter(text);
             var pending = writer.WriteLineAsync(LineA).AsTask();
             await text.WriteStarted;
-            try
+            await AsyncDisposal.FinallyAsync(() =>
             {
                 // act
                 Action testAction = () => member(writer);
 
                 // assert
                 testAction.Should().Throw<InvalidOperationException>().WithMessage("*in progress*");
-            }
-            finally
+            }, async () =>
             {
                 text.OpenGate();
                 await pending;
                 await writer.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
@@ -613,7 +564,7 @@ namespace DataStandardizer.File.iCal.Tests
             // arrange
             var text = new GatedTextWriter();
             var writer = new IcalContentLineWriter(text);
-            try
+            await AsyncDisposal.UsingAsync(writer, async () =>
             {
                 var pending = writer.WriteLineAsync(LineA).AsTask();
                 await text.WriteStarted;
@@ -626,11 +577,7 @@ namespace DataStandardizer.File.iCal.Tests
 
                 // assert
                 text.ToString().Should().Be("A:1\r\nB:2\r\n");
-            }
-            finally
-            {
-                await writer.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
@@ -691,18 +638,14 @@ namespace DataStandardizer.File.iCal.Tests
             // arrange
             var text = new AsyncOnlyTextWriter();
             var writer = new IcalContentLineWriter(text);
-            try
+            await AsyncDisposal.UsingAsync(writer, async () =>
             {
                 // act
                 await writer.FlushAsync();
 
                 // assert
                 text.FlushCount.Should().Be(1);
-            }
-            finally
-            {
-                await writer.DisposeAsync();
-            }
+            });
         }
 
         [Fact]
@@ -711,7 +654,7 @@ namespace DataStandardizer.File.iCal.Tests
             // arrange
             var stream = new AsyncOnlyWriteStream();
             var writer = new IcalContentLineWriter(stream);
-            try
+            await AsyncDisposal.UsingAsync(writer, async () =>
             {
                 await writer.WriteLineAsync(LineA);
 
@@ -720,11 +663,7 @@ namespace DataStandardizer.File.iCal.Tests
 
                 // assert
                 stream.ToArray().Should().Equal(Encoding.ASCII.GetBytes(LineAWithCrlf));
-            }
-            finally
-            {
-                await writer.DisposeAsync();
-            }
+            });
         }
 
         [Theory]

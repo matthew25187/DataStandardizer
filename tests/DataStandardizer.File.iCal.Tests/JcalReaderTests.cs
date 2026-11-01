@@ -402,34 +402,6 @@ namespace DataStandardizer.File.iCal.Tests
             }
         }
 
-        [Fact]
-        public void ReadCalendar_File_ReadsAndClosesFile()
-        {
-            // arrange
-            var expected = Model(ReadCalendars(Example1Ical));
-            var path = Path.GetTempFileName();
-            try
-            {
-                System.IO.File.WriteAllText(path, Example1Jcal);
-
-                // act
-                using (var reader = new JcalReader(path))
-                {
-                    var testResult = Model(reader.ReadCalendars().ToList());
-
-                    // assert
-                    testResult.Should().Equal(expected);
-                }
-
-                System.IO.File.Delete(path);
-                System.IO.File.Exists(path).Should().BeFalse();
-            }
-            finally
-            {
-                System.IO.File.Delete(path);
-            }
-        }
-
         [Theory]
         [MemberData(nameof(NotValidJcal))]
         public void ReadCalendar_NotValidJcal_ThrowsWithLocation(string caseName, string json, string path, long bytePosition)

@@ -242,17 +242,13 @@ namespace DataStandardizer.File.iCal.Tests
         {
             var items = new List<T>();
             var enumerator = source.GetAsyncEnumerator();
-            try
+            await AsyncDisposal.UsingAsync(enumerator, async () =>
             {
                 while (await enumerator.MoveNextAsync())
                 {
                     items.Add(enumerator.Current);
                 }
-            }
-            finally
-            {
-                await enumerator.DisposeAsync();
-            }
+            });
 
             return items;
         }

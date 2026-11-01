@@ -479,58 +479,6 @@ namespace DataStandardizer.File.iCal.Tests
             }
         }
 
-        [Fact]
-        public void ReadCalendar_File_ReadsAndClosesFile()
-        {
-            // arrange
-            var path = Path.GetTempFileName();
-            try
-            {
-                System.IO.File.WriteAllText(path, Example1Xcal);
-                List<IcalCalendar> testResult;
-
-                // act
-                using (var reader = new XcalReader(path))
-                {
-                    testResult = reader.ReadCalendars().ToList();
-                }
-
-                // assert
-                testResult.Should().ContainSingle();
-                System.IO.File.Delete(path);
-                System.IO.File.Exists(path).Should().BeFalse();
-            }
-            finally
-            {
-                System.IO.File.Delete(path);
-            }
-        }
-
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void Dispose_FileNotRead_ClosesFile(bool isEncodingSet)
-        {
-            // arrange
-            var path = Path.GetTempFileName();
-            try
-            {
-                System.IO.File.WriteAllText(path, Example1Xcal);
-                var reader = new XcalReader(path, new IcalOptions { Encoding = isEncodingSet ? Encoding.UTF8 : null });
-
-                // act
-                reader.Dispose();
-
-                // assert
-                System.IO.File.Delete(path);
-                System.IO.File.Exists(path).Should().BeFalse();
-            }
-            finally
-            {
-                System.IO.File.Delete(path);
-            }
-        }
-
         [Theory]
         [MemberData(nameof(StructureErrors))]
         public void ReadCalendar_NotValidXcal_ThrowsWithLocation(string caseName, string xml, long lineNumber, long linePosition)

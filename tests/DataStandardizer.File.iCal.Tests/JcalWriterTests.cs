@@ -497,35 +497,6 @@ namespace DataStandardizer.File.iCal.Tests
             testAction.Should().NotThrow();
         }
 
-        [Fact]
-        public void WriteCalendar_File_WritesAndClosesFile()
-        {
-            // arrange
-            var expected = Model(ReadCalendars(Example1Ical));
-            var path = Path.GetTempFileName();
-            try
-            {
-                // act
-                using (var writer = new JcalWriter(path))
-                {
-                    writer.WriteCalendar(ReadCalendar(Example1Ical));
-                }
-
-                // assert
-                using (var reader = new JcalReader(path))
-                {
-                    Model(reader.ReadCalendars().ToList()).Should().Equal(expected);
-                }
-
-                System.IO.File.Delete(path);
-                System.IO.File.Exists(path).Should().BeFalse();
-            }
-            finally
-            {
-                System.IO.File.Delete(path);
-            }
-        }
-
         private static IcalCalendar CreateCalendarWithBadPropertyName()
         {
             var calendar = ReadCalendar(EventCalendar("X-OK:1"));

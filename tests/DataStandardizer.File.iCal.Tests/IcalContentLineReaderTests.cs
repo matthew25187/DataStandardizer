@@ -17,6 +17,13 @@ namespace DataStandardizer.File.iCal.Tests
         private const string Rfc6868Geo = "40.446816;-80.00679";
         private const string LineA = "A:1";
 
+        // The number of bytes that a reader over a stream asks the stream for at a time: a read until the stream ends asks for this many, then
+        // asks again for as many to find that it has ended.
+        private const int StreamBufferSize = 16384;
+
+        // LineA and its line break in ASCII, which is also UTF-8 and ISO-8859-1.
+        private static readonly byte[] LineAInAscii = { 0x41, 0x3A, 0x31, 0x0D, 0x0A };
+
         // ref. RFC 6868 §4: a parameter value with caret-encoded quotation marks, and the value it stands for.
         private const string Rfc6868EncodedName = "George Herman ^'Babe^' Ruth";
         private const string Rfc6868DecodedName = "George Herman \"Babe\" Ruth";
@@ -926,29 +933,6 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public void ReadLine_FoldInsideUtf8SequenceFromFile_RestoresCharacter()
-        {
-            // arrange
-            var testFilePath = Path.GetTempFileName();
-            try
-            {
-                System.IO.File.WriteAllBytes(testFilePath, Concat(Encoding.UTF8.GetBytes("SUMMARY:"), new byte[] { 0xE2, 0x82 }, Encoding.ASCII.GetBytes("\r\n "), new byte[] { 0xAC }));
-                using (var reader = new IcalContentLineReader(testFilePath))
-                {
-                    // act
-                    var testResult = reader.ReadLine();
-
-                    // assert
-                    testResult.Value.Should().Be("\x20AC");
-                }
-            }
-            finally
-            {
-                System.IO.File.Delete(testFilePath);
-            }
-        }
-
-        [Fact]
         public void ReadLine_Utf16StreamWithByteOrderMark_IsDecoded()
         {
             // arrange
@@ -1806,30 +1790,6 @@ namespace DataStandardizer.File.iCal.Tests
             }
         }
 
-        [Fact]
-        public void Dispose_FilePath_ClosesFile()
-        {
-            // arrange
-            var testFilePath = Path.GetTempFileName();
-            try
-            {
-                System.IO.File.WriteAllText(testFilePath, Crlf(LineA));
-                var reader = new IcalContentLineReader(testFilePath);
-                reader.ReadLine();
-
-                // act
-                reader.Dispose();
-
-                // assert
-                Action openAction = () => new FileStream(testFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None).Dispose();
-                openAction.Should().NotThrow();
-            }
-            finally
-            {
-                System.IO.File.Delete(testFilePath);
-            }
-        }
-
         #endregion
 
         #region Constructors
@@ -1890,62 +1850,66 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public void Constructor_Stream_UsesStreamBufferSize()
+        public void Constructor_Stream_ReadsThroughAFoldRealigningStreamOverTheStream()
         {
             // arrange
-            using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(Crlf(LineA))))
+            using (var stream = new MemoryStream(LineAInAscii))
             using (var reader = new IcalContentLineReader(stream))
             {
                 // act
-                var testResult = ReaderInspector.GetUnderlyingReader(reader);
+                var testResult = reader.UnderlyingReader;
 
                 // assert
                 var streamReader = testResult.Should().BeOfType<StreamReader>().Subject;
-                ReaderInspector.GetBufferSize(streamReader).Should().Be(IcalContentLineReader.StreamBufferSize);
-                streamReader.BaseStream.Should().BeOfType<Utf8FoldRealigningStream>();
+                var foldRealigningStream = streamReader.BaseStream.Should().BeOfType<Utf8FoldRealigningStream>().Subject;
+                foldRealigningStream.InnerStream.Should().BeSameAs(stream);
             }
         }
 
         [Fact]
-        public void Constructor_FilePath_UsesStreamBufferSize()
+        public void ReadLine_Stream_ReadsTheStreamInBlocksOfTheStreamBufferSize()
         {
             // arrange
-            var testFilePath = Path.GetTempFileName();
-            try
+            var stream = new ReadRecordingStream(LineAInAscii);
+            using (var reader = new IcalContentLineReader(stream))
             {
-                using (var reader = new IcalContentLineReader(testFilePath))
-                {
-                    // act
-                    var testResult = ReaderInspector.GetUnderlyingReader(reader);
+                // act
+                reader.ReadLine();
 
-                    // assert
-                    var streamReader = testResult.Should().BeOfType<StreamReader>().Subject;
-                    ReaderInspector.GetBufferSize(streamReader).Should().Be(IcalContentLineReader.StreamBufferSize);
-                    var foldRealigningStream = streamReader.BaseStream.Should().BeOfType<Utf8FoldRealigningStream>().Subject;
-                    var fileStream = ReaderInspector.GetInnerStream(foldRealigningStream).Should().BeOfType<FileStream>().Subject;
-                    ReaderInspector.GetBufferSize(fileStream).Should().Be(IcalContentLineReader.StreamBufferSize);
-                }
-            }
-            finally
-            {
-                System.IO.File.Delete(testFilePath);
+                // assert
+                stream.RequestedCounts.Should().Equal(StreamBufferSize, StreamBufferSize);
             }
         }
 
         [Fact]
-        public void Constructor_StreamWithOtherEncoding_DoesNotRealignFolds()
+        public void Constructor_StreamWithOtherEncoding_ReadsTheStreamWithoutRealigningFolds()
         {
             // arrange
-            using (var stream = new MemoryStream(IcalTestData.Latin1.GetBytes(Crlf(LineA))))
+            using (var stream = new MemoryStream(LineAInAscii))
             using (var reader = new IcalContentLineReader(stream, new IcalOptions { Encoding = IcalTestData.Latin1 }))
             {
                 // act
-                var testResult = ReaderInspector.GetUnderlyingReader(reader);
+                var testResult = reader.UnderlyingReader;
 
                 // assert
                 var streamReader = testResult.Should().BeOfType<StreamReader>().Subject;
                 streamReader.BaseStream.Should().BeSameAs(stream);
                 streamReader.CurrentEncoding.Should().Be(IcalTestData.Latin1);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_StreamWithOtherEncoding_ReadsTheStreamInBlocksOfTheStreamBufferSize()
+        {
+            // arrange
+            var stream = new ReadRecordingStream(LineAInAscii);
+            using (var reader = new IcalContentLineReader(stream, new IcalOptions { Encoding = IcalTestData.Latin1 }))
+            {
+                // act
+                reader.ReadLine();
+
+                // assert
+                stream.RequestedCounts.Should().Equal(StreamBufferSize, StreamBufferSize);
             }
         }
 

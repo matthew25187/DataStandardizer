@@ -1,16 +1,19 @@
-﻿using System;
+using System;
+using DataStandardizer.File.iCal.Tests;
 using FluentAssertions;
 using Xunit;
 
-namespace DataStandardizer.File.iCal.Tests
+namespace DataStandardizer.File.iCal.IntegrationTests
 {
     /// <summary>
-    /// Checks that parsing a value from a span allocates nothing on the heap.
+    /// Checks that parsing a value from a span, and formatting one into a span, allocate nothing on the heap.
     /// </summary>
+    /// <remarks>
+    /// These measure what the runtime allocates, which depends on the JIT and the target framework rather than only on the package, so they
+    /// are integration tests.
+    /// </remarks>
     public class IcalValueAllocationTests
     {
-        private const int Iterations = 1000;
-
         // A rule with every BY part, to parse as many parts as possible.
         private const string EveryPartRule = "FREQ=YEARLY;BYYEARDAY=1,100,-200;BYWEEKNO=20,-1;BYMONTHDAY=1,-1;BYSETPOS=-1;BYSECOND=0,60;WKST=SU";
 
@@ -90,7 +93,7 @@ namespace DataStandardizer.File.iCal.Tests
         public void TryParse_DateTimeFromSpan_DoesNotAllocate(Action parseCall)
         {
             // act
-            var testResult = MeasureAllocations(parseCall);
+            var testResult = AllocationMeter.MeasureAllocatedBytes(parseCall);
 
             // assert
             testResult.Should().Be(0);
@@ -101,7 +104,7 @@ namespace DataStandardizer.File.iCal.Tests
         public void TryParse_RecurrenceRuleFromSpan_DoesNotAllocate(Action parseCall)
         {
             // act
-            var testResult = MeasureAllocations(parseCall);
+            var testResult = AllocationMeter.MeasureAllocatedBytes(parseCall);
 
             // assert
             testResult.Should().Be(0);
@@ -112,7 +115,7 @@ namespace DataStandardizer.File.iCal.Tests
         public void TryParse_OtherValueFromSpan_DoesNotAllocate(Action parseCall)
         {
             // act
-            var testResult = MeasureAllocations(parseCall);
+            var testResult = AllocationMeter.MeasureAllocatedBytes(parseCall);
 
             // assert
             testResult.Should().Be(0);
@@ -123,7 +126,7 @@ namespace DataStandardizer.File.iCal.Tests
         public void TryFormat_IntoSpan_DoesNotAllocate(Action formatCall)
         {
             // act
-            var testResult = MeasureAllocations(formatCall);
+            var testResult = AllocationMeter.MeasureAllocatedBytes(formatCall);
 
             // assert
             testResult.Should().Be(0);
@@ -138,22 +141,6 @@ namespace DataStandardizer.File.iCal.Tests
             {
                 IcalValue.TryParseText(item, IcalValueFormat.Text, destination, out _);
             }
-        }
-
-        /// <summary>
-        /// Runs an action once to warm it up, then measures the bytes it allocates over many runs.
-        /// </summary>
-        private static long MeasureAllocations(Action action)
-        {
-            action();
-
-            var before = GC.GetAllocatedBytesForCurrentThread();
-            for (var iteration = 0; iteration < Iterations; iteration++)
-            {
-                action();
-            }
-
-            return GC.GetAllocatedBytesForCurrentThread() - before;
         }
     }
 }
