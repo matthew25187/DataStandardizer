@@ -719,14 +719,13 @@ namespace DataStandardizer.LanguageTag.Tests
         {
             // arrange
             var record = GetSubtagRecord(SubtagRegistryRecordType.Language, EnglishLanguageSubtag);
-            var firstResult = record.Description;
 
             // act
-            var testResult = record.Description;
+            var testResult = (First: record.Description, Second: record.Description);
 
             // assert
-            testResult.Should().BeSameAs(firstResult, "the read-only view is created once");
-            testResult.Should().Equal(new[] { "English" });
+            testResult.Second.Should().BeSameAs(testResult.First, "the read-only view is created once");
+            testResult.Second.Should().Equal(new[] { "English" });
         }
 
         [Theory]

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -1362,14 +1362,13 @@ namespace DataStandardizer.LanguageTag.Tests
         {
             // arrange
             var testLanguageTag = Bcp47LanguageTag.Create(CantoneseHongKong);
-            var testFirstResult = testLanguageTag.ExtendedLanguageSubtags;
 
             // act
-            var testResult = testLanguageTag.ExtendedLanguageSubtags;
+            var testResult = (First: testLanguageTag.ExtendedLanguageSubtags, Second: testLanguageTag.ExtendedLanguageSubtags);
 
             // assert
-            testResult.Should().BeSameAs(testFirstResult, "the decomposition is made once and shared, not copied per read");
-            testResult.Should().Equal(CantoneseExtendedLanguageSubtag);
+            testResult.Second.Should().BeSameAs(testResult.First, "the decomposition is made once and shared, not copied per read");
+            testResult.Second.Should().Equal(CantoneseExtendedLanguageSubtag);
         }
 
         #endregion
@@ -1403,18 +1402,17 @@ namespace DataStandardizer.LanguageTag.Tests
         }
 
         [Fact]
-        public void ExtendedLanguageSubtags_AfterRejectedChange_AreUnchanged()
+        public void ExtendedLanguageSubtags_WhenChangeIsRejected_AreUnchanged()
         {
             // arrange
             var testLanguageTag = Bcp47LanguageTag.Create(CantoneseHongKong);
-            var testSubject = testLanguageTag.ExtendedLanguageSubtags;
-            Record.Exception(() => ((IList<string>)testSubject)[0] = MandarinExtendedLanguageSubtag);
 
             // act
-            var testResult = testLanguageTag.ExtendedLanguageSubtags;
+            var testResult = (Exception: Record.Exception(() => ((IList<string>)testLanguageTag.ExtendedLanguageSubtags)[0] = MandarinExtendedLanguageSubtag), Subtags: testLanguageTag.ExtendedLanguageSubtags);
 
             // assert
-            testResult.Should().Equal(CantoneseExtendedLanguageSubtag);
+            testResult.Exception.Should().BeOfType<NotSupportedException>();
+            testResult.Subtags.Should().Equal(CantoneseExtendedLanguageSubtag);
         }
 
         #endregion
@@ -1724,14 +1722,13 @@ namespace DataStandardizer.LanguageTag.Tests
         {
             // arrange
             var testLanguageTag = Bcp47LanguageTag.Create(HebrewIsraelHebrewCalendar);
-            var testFirstResult = testLanguageTag.ExtensionSubtags;
 
             // act
-            var testResult = testLanguageTag.ExtensionSubtags;
+            var testResult = (First: testLanguageTag.ExtensionSubtags, Second: testLanguageTag.ExtensionSubtags);
 
             // assert
-            testResult.Should().BeSameAs(testFirstResult, "the decomposition is made once and shared, not copied per read");
-            testResult.Should().Equal((Bcp47KeyedSubtag)HebrewCalendarExtension);
+            testResult.Second.Should().BeSameAs(testResult.First, "the decomposition is made once and shared, not copied per read");
+            testResult.Second.Should().Equal((Bcp47KeyedSubtag)HebrewCalendarExtension);
         }
 
         #endregion
@@ -1765,18 +1762,17 @@ namespace DataStandardizer.LanguageTag.Tests
         }
 
         [Fact]
-        public void ExtensionSubtags_AfterRejectedChange_AreUnchanged()
+        public void ExtensionSubtags_WhenChangeIsRejected_AreUnchanged()
         {
             // arrange
             var testLanguageTag = Bcp47LanguageTag.Create(HebrewIsraelHebrewCalendar);
-            var testSubject = testLanguageTag.ExtensionSubtags;
-            Record.Exception(() => ((IList<Bcp47KeyedSubtag>)testSubject)[0] = (Bcp47KeyedSubtag)TransformedExtension);
 
             // act
-            var testResult = testLanguageTag.ExtensionSubtags;
+            var testResult = (Exception: Record.Exception(() => ((IList<Bcp47KeyedSubtag>)testLanguageTag.ExtensionSubtags)[0] = (Bcp47KeyedSubtag)TransformedExtension), Subtags: testLanguageTag.ExtensionSubtags);
 
             // assert
-            testResult.Should().Equal((Bcp47KeyedSubtag)HebrewCalendarExtension);
+            testResult.Exception.Should().BeOfType<NotSupportedException>();
+            testResult.Subtags.Should().Equal((Bcp47KeyedSubtag)HebrewCalendarExtension);
         }
 
         #endregion
@@ -2493,14 +2489,13 @@ namespace DataStandardizer.LanguageTag.Tests
         {
             // arrange
             var testLanguageTag = Bcp47LanguageTag.Create(ResianSanGiorgio1994);
-            var testFirstResult = testLanguageTag.VariantSubtags;
 
             // act
-            var testResult = testLanguageTag.VariantSubtags;
+            var testResult = (First: testLanguageTag.VariantSubtags, Second: testLanguageTag.VariantSubtags);
 
             // assert
-            testResult.Should().BeSameAs(testFirstResult, "the decomposition is made once and shared, not copied per read");
-            testResult.Should().Equal(RozajVariantSubtag, BiskeVariantSubtag, NineteenNinetyFourVariantSubtag);
+            testResult.Second.Should().BeSameAs(testResult.First, "the decomposition is made once and shared, not copied per read");
+            testResult.Second.Should().Equal(RozajVariantSubtag, BiskeVariantSubtag, NineteenNinetyFourVariantSubtag);
         }
 
         #endregion
@@ -2534,18 +2529,17 @@ namespace DataStandardizer.LanguageTag.Tests
         }
 
         [Fact]
-        public void VariantSubtags_AfterRejectedChange_AreUnchanged()
+        public void VariantSubtags_WhenChangeIsRejected_AreUnchanged()
         {
             // arrange
             var testLanguageTag = Bcp47LanguageTag.Create(ResianSanGiorgio1994);
-            var testSubject = testLanguageTag.VariantSubtags;
-            Record.Exception(() => ((IList<string>)testSubject)[0] = NineteenOhOneVariantSubtag);
 
             // act
-            var testResult = testLanguageTag.VariantSubtags;
+            var testResult = (Exception: Record.Exception(() => ((IList<string>)testLanguageTag.VariantSubtags)[0] = NineteenOhOneVariantSubtag), Subtags: testLanguageTag.VariantSubtags);
 
             // assert
-            testResult.Should().Equal(RozajVariantSubtag, BiskeVariantSubtag, NineteenNinetyFourVariantSubtag);
+            testResult.Exception.Should().BeOfType<NotSupportedException>();
+            testResult.Subtags.Should().Equal(RozajVariantSubtag, BiskeVariantSubtag, NineteenNinetyFourVariantSubtag);
         }
 
         #endregion
