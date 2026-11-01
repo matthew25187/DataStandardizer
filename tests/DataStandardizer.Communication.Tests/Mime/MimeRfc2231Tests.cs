@@ -62,6 +62,11 @@ namespace DataStandardizer.Communication.Tests.Mime
         // A data URI of one octet, 0x01, whose media type has a parameter whose value is the euro sign.
         private const string EuroDataUri = "data:text/plain;name*=UTF-8''%25E2%2582%25AC;base64,AQ==";
 
+        // A name that is an RFC 2045 token but not an RFC 6838 name, as it has a "*", and a parameter of it split into two sections.
+        private const string NameWithAsterisk = "c*d";
+        private const string NameWithAsteriskMediaType = "text/plain;c*d=abcdef";
+        private const int NameWithAsteriskSectionLength = 9;
+
         private const string TitleParameterName = "title";
         private const string FileNameParameterName = "filename";
         private const string UpperCaseParameterName = "NAME";
@@ -302,6 +307,9 @@ namespace DataStandardizer.Communication.Tests.Mime
         [InlineData("text/plain;name*0*=abc")]
         [InlineData("text/plain;*=x")]
         [InlineData("text/plain;*0=x")]
+        // ref. RFC 2978 §2.3: a character set name is a mime-charset, which has no "." or space.
+        [InlineData("text/plain;name*=x.y''abc")]
+        [InlineData("text/plain;name*=\"UTF 8''abc\"")]
         // A parameter that is given twice, or both as name* and in sections.
         [InlineData("text/plain;name*=''a;name*=''b")]
         [InlineData("text/plain;name*=''a;name*0=b")]
@@ -422,6 +430,49 @@ namespace DataStandardizer.Communication.Tests.Mime
             result.Parameters[0].Value.Should().Be("A");
             result.Parameters[1].Name.Should().Be("c*d");
             result.Parameters[1].Value.Should().Be("e");
+        }
+
+        [Theory]
+        [InlineData("text/plain;c*d*0=abc;c*d*1=def", "abcdef")]
+        [InlineData("text/plain;c*d*=UTF-8''abc%20def", "abc def")]
+        [InlineData("text/plain;c*d*0*=UTF-8''abc;c*d*1=def", "abcdef")]
+        public void Parse_Rfc2231FormOfNameWithAsterisk_KeepsAsteriskInName(string value, string expected)
+        {
+            // act
+            var result = MimeMediaType.Parse(value, MimeMediaTypeParseOptions.AllowRfc2045Tokens);
+
+            // assert
+            result.Parameters.Should().ContainSingle();
+            result.Parameters[0].Name.Should().Be(NameWithAsterisk);
+            result.Parameters[0].Value.Should().Be(expected);
+        }
+
+        [Fact]
+        public void FormatSections_NameWithAsterisk_WritesSectionsOfThatName()
+        {
+            // arrange
+            var parameter = MimeMediaType.Parse(NameWithAsteriskMediaType, MimeMediaTypeParseOptions.AllowRfc2045Tokens).Parameters[0];
+
+            // act
+            var result = parameter.FormatSections(NameWithAsteriskSectionLength);
+
+            // assert
+            result.Should().Equal("c*d*0=abc", "c*d*1=def");
+        }
+
+        [Theory]
+        // A base name that itself ends as an RFC 2231 form, which a plain c*1=... or a*=... would be read as.
+        [InlineData("text/plain;a**=x")]
+        [InlineData("text/plain;a**0=x")]
+        [InlineData("text/plain;a*1*2=x")]
+        [InlineData("text/plain;a*1*2*=''x")]
+        public void TryParse_BaseNameEndingAsRfc2231Form_ReturnsFalse(string value)
+        {
+            // act
+            var parsed = MimeMediaType.TryParse(value, MimeMediaTypeParseOptions.AllowRfc2045Tokens, out _);
+
+            // assert
+            parsed.Should().BeFalse();
         }
 
         [Fact]
@@ -1031,7 +1082,6 @@ namespace DataStandardizer.Communication.Tests.Mime
                 ("text/plain;a*0000000000001=y;a*0=x", MimeMediaTypeParseOptions.AllowLeadingZeroSectionNumbers, "xy"),
                 // ref. RFC 2231 §4: the character set must be known, and with none, the value is US-ASCII.
                 ("text/plain;a*=x-no-such-charset''%E9t%E9", MimeMediaTypeParseOptions.AllowUnknownCharsets, "\xE9t\xE9"),
-                ("text/plain;a*=x.y''abc", MimeMediaTypeParseOptions.AllowUnknownCharsets, "abc"),
                 ("text/plain;a*=''%E9", MimeMediaTypeParseOptions.AllowUnknownCharsets, EAcute),
                 // ref. RFC 2231 §4: the octets are text in the character set. RFC 3629 §3: 0xFF never appears in UTF-8, and 0xC3 starts a
                 // two-octet sequence. RFC 2781 §2.2: in UTF-16, a high surrogate, 0xD800, is followed by a low surrogate.

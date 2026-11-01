@@ -40,7 +40,9 @@ namespace DataStandardizer.Communication.Mime
         /// </summary>
         /// <remarks>
         /// A parameter name in an RFC 2231 form, such as <c>title*</c>, <c>title*1</c> or <c>title*1*</c>, is always read as that form, and
-        /// only the part before the <c>*</c> must be a valid name.
+        /// only the part before the form must be a valid name. The form is read from the end of the name, so <c>c*d*0</c> is section 0 of
+        /// <c>c*d</c>. A name whose part before the form itself ends as a form does, such as <c>a**</c> or <c>a*1*2</c>, is not valid, as
+        /// it can't be written back unambiguously.
         /// </remarks>
         AllowRfc2045Tokens = 1 << 1,
 
@@ -68,7 +70,8 @@ namespace DataStandardizer.Communication.Mime
 
         /// <summary>
         /// Accept an extended parameter value whose character set the <see cref="IMimeCharsetResolver"/> doesn't resolve, or whose octets
-        /// are not US-ASCII when it gives no character set (RFC 2231 §4).
+        /// are not US-ASCII when it gives no character set (RFC 2231 §4). The name of the character set must still be a valid
+        /// <c>mime-charset</c> (RFC 2978 §2.3).
         /// </summary>
         /// <remarks>
         /// Each octet of the value is read as the character with the same number, as ISO-8859-1 does, so that the caller can recover the

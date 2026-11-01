@@ -274,6 +274,43 @@ namespace DataStandardizer.Communication.Tests.Mime
             testAction.Should().Throw<EncoderFallbackException>();
         }
 
+        // A replacement longer than the one character that the default fallbacks write.
+        private const string LongReplacement = "[invalid]";
+
+        [Theory]
+        [MemberData(nameof(InvalidSchemeBytes))]
+        public void GetMaxCharCount_UnmarkedSchemeWithLongReplacement_IsEnoughForGetChars(string name, byte[] bytes)
+        {
+            // arrange
+            var encoding = (Encoding)Resolve(name).Clone();
+            encoding.DecoderFallback = new DecoderReplacementFallback(LongReplacement);
+            var chars = new char[encoding.GetMaxCharCount(bytes.Length)];
+
+            // act
+            Action testAction = () => encoding.GetChars(bytes, 0, bytes.Length, chars, 0);
+
+            // assert
+            testAction.Should().NotThrow();
+        }
+
+        [Theory]
+        [InlineData("UTF-16")]
+        [InlineData("UTF-32")]
+        public void GetMaxByteCount_UnmarkedSchemeWithLongReplacement_IsEnoughForGetBytes(string name)
+        {
+            // arrange
+            var encoding = (Encoding)Resolve(name).Clone();
+            encoding.EncoderFallback = new EncoderReplacementFallback(LongReplacement);
+            var chars = UnpairedHighSurrogate.ToCharArray();
+            var bytes = new byte[encoding.GetMaxByteCount(chars.Length)];
+
+            // act
+            Action testAction = () => encoding.GetBytes(chars, 0, chars.Length, bytes, 0);
+
+            // assert
+            testAction.Should().NotThrow();
+        }
+
         [Fact]
         public void TryGetEncoding_UninitializedCharset_ThrowsArgumentException()
         {

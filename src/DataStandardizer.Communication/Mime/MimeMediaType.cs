@@ -680,7 +680,7 @@ namespace DataStandardizer.Communication.Mime
                 var name = ReadToken(value, ref position);
                 var rawParameter = default(MimeExtendedParameter.RawParameter);
                 int baseNameLength;
-                MimeExtendedParameter.SplitName(name, out baseNameLength, ref rawParameter);
+                if (!MimeExtendedParameter.TrySplitName(name, out baseNameLength, ref rawParameter)) return false;
 
                 var baseName = name.Slice(0, baseNameLength);
                 if (!MimeGrammar.IsName(baseName, allowRfc2045Tokens)) return false;

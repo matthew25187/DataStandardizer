@@ -114,12 +114,12 @@ namespace DataStandardizer.Communication.Mime
 
         public override int GetMaxByteCount(int charCount)
         {
-            return BigEndian.GetMaxByteCount(charCount);
+            return WithFallbacks(BigEndian).GetMaxByteCount(charCount);
         }
 
         public override int GetMaxCharCount(int byteCount)
         {
-            return BigEndian.GetMaxCharCount(byteCount);
+            return WithFallbacks(BigEndian).GetMaxCharCount(byteCount);
         }
 
         public override Encoder GetEncoder()

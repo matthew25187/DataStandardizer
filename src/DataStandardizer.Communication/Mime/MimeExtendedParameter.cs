@@ -57,48 +57,61 @@ namespace DataStandardizer.Communication.Mime
         /// <param name="name">The parameter name as written.</param>
         /// <param name="baseNameLength">The length of the base name at the start of <paramref name="name"/>.</param>
         /// <param name="parameter">The parameter, whose section number and flags are set.</param>
+        /// <returns><c>false</c> if the base name itself ends as an RFC 2231 form does, so that it can't be written back unambiguously.</returns>
         /// <remarks>
-        /// A name that has a <c>*</c> but is not one of the RFC 2231 forms, such as <c>a*b</c>, is returned whole as a plain name.
+        /// The form is read from the end of the name, so that a base name with a <c>*</c>, which only an RFC 2045 token can have, keeps it:
+        /// <c>c*d*0</c> is section 0 of <c>c*d</c>. A name that has a <c>*</c> but doesn't end as an RFC 2231 form, such as <c>a*b</c>, is
+        /// returned whole as a plain name.
         /// </remarks>
-        internal static void SplitName(ReadOnlySpan<char> name, out int baseNameLength, ref RawParameter parameter)
+        internal static bool TrySplitName(ReadOnlySpan<char> name, out int baseNameLength, ref RawParameter parameter)
         {
             baseNameLength = name.Length;
             parameter.Section = null;
 
-            var star = name.IndexOf('*');
-            if (star < 0) return;
+            // ref. RFC 2231 §7: extended-parameter := (attribute "*" "=" ...) / (attribute "*" section "*" "=" ...), and
+            // regular-parameter := attribute [section] "=" ..., where section := "*" ("0" / [1-9] *DIGIT)
+            int end;
+            int digitsStart;
+            var isExtended = name.Length > 0 && name[name.Length - 1] == '*';
+            if (!TryFindSuffix(name, isExtended, out end, out digitsStart)) return true;
 
-            var rest = name.Slice(star + 1);
-            if (rest.IsEmpty)
+            if (digitsStart < end)
             {
-                // ref. RFC 2231 §4: an asterisk at the end of a parameter name acts as an indicator that character set and language
-                // information may appear at the beginning of the parameter value.
-                baseNameLength = star;
-                parameter.IsExtended = true;
-                parameter.IsRfc2231 = true;
-                return;
+                var digits = name.Slice(digitsStart, end - digitsStart);
+                parameter.HasLeadingZero = digits.Length > 1 && digits[0] == '0';
+                while (digits.Length > 1 && digits[0] == '0')
+                {
+                    digits = digits.Slice(1);
+                }
+
+                // The number has no upper limit, so it is kept as its digits.
+                parameter.Section = digits.ToString();
+                end = digitsStart - 1;
             }
 
-            var isExtended = rest[rest.Length - 1] == '*';
-            var digits = isExtended ? rest.Slice(0, rest.Length - 1) : rest;
-            if (digits.IsEmpty) return;
-
-            foreach (var c in digits)
-            {
-                if (c < '0' || c > '9') return;
-            }
-
-            // ref. RFC 2231 §3: section := "0" / [1-9] *DIGIT, which has no upper limit, so the number is kept as its digits.
-            parameter.HasLeadingZero = digits.Length > 1 && digits[0] == '0';
-            while (digits.Length > 1 && digits[0] == '0')
-            {
-                digits = digits.Slice(1);
-            }
-
-            baseNameLength = star;
-            parameter.Section = digits.ToString();
+            baseNameLength = end;
             parameter.IsExtended = isExtended;
             parameter.IsRfc2231 = true;
+
+            // A base name such as a* or a*1 would be read as an RFC 2231 form when it is written as a plain name.
+            var baseName = name.Slice(0, end);
+            return !TryFindSuffix(baseName, baseName.Length > 0 && baseName[baseName.Length - 1] == '*', out _, out _);
+        }
+
+        // Finds the RFC 2231 form at the end of a name: a final "*" if extended, and the digits of a section number after a "*" before it.
+        private static bool TryFindSuffix(ReadOnlySpan<char> name, bool isExtended, out int end, out int digitsStart)
+        {
+            end = isExtended ? name.Length - 1 : name.Length;
+            digitsStart = end;
+            while (digitsStart > 0 && name[digitsStart - 1] >= '0' && name[digitsStart - 1] <= '9')
+            {
+                digitsStart--;
+            }
+
+            if (digitsStart < end && digitsStart > 0 && name[digitsStart - 1] == '*') return true;
+
+            digitsStart = end;
+            return isExtended;
         }
 
         /// <summary>
@@ -426,7 +439,12 @@ namespace DataStandardizer.Communication.Mime
             var languageSpan = text.AsSpan(firstQuote + 1, secondQuote - firstQuote - 1);
             if (!languageSpan.IsEmpty && !IsLanguage(languageSpan)) return false;
 
+            // ref. RFC 2231 §7: charset := <registered character set name>, which in MIME is a mime-charset (RFC 2978 §2.3), even when the
+            // resolver doesn't know it.
             charsetName = text.Substring(0, firstQuote);
+            MimeCharset charset;
+            if (charsetName.Length > 0 && !MimeCharset.TryParse(charsetName, out charset)) return false;
+
             language = languageSpan.ToString();
             position = secondQuote + 1;
             return true;
