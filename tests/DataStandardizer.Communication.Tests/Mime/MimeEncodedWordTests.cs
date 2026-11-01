@@ -107,6 +107,15 @@ namespace DataStandardizer.Communication.Tests.Mime
         // ref. RFC 3629 §3: C3 starts an e-acute that no word finishes, so the word stays as it is.
         private const string UnfinishedEAcute = "=?UTF-8?Q?a=C3?= b";
 
+        // ref. RFC 3629 §3: the second word finishes the e-acute that the first starts, but starts one that no word finishes, so both
+        // words stay as they are.
+        private const string EAcuteThenUnfinishedEAcute = "=?UTF-8?Q?=C3?= =?UTF-8?Q?=A9=C3?=";
+
+        // ref. RFC 2781 §4.3: a little-endian byte order mark (FF FE) and "a" (61 00) split between the words, so the second word is read in
+        // the byte order that the first gives.
+        private const string LittleEndianLetterSplitAfterMark = "=?UTF-16?Q?=FF=FEa?= =?UTF-16?Q?=00?=";
+        private const string LetterA = "a";
+
         // ref. RFC 3629 §3: U+1F600 is F0 9F 98 80 in UTF-8, so each of these words holds a quarter of it.
         private const string SplitEmoji = "=?UTF-8?Q?=F0?= =?UTF-8?Q?=9F?= =?UTF-8?Q?=98?= =?UTF-8?Q?=80?=";
 
@@ -259,6 +268,8 @@ namespace DataStandardizer.Communication.Tests.Mime
                 { EAcutesSplitInEveryWord, MimeEncodedWordParseOptions.AllowSplitCharacters, FourEAcutes },
                 { LettersAroundSplitEAcute, MimeEncodedWordParseOptions.AllowSplitCharacters, LettersAroundEAcute },
                 { UnfinishedEAcute, MimeEncodedWordParseOptions.AllowSplitCharacters, UnfinishedEAcute },
+                { EAcuteThenUnfinishedEAcute, MimeEncodedWordParseOptions.AllowSplitCharacters, EAcuteThenUnfinishedEAcute },
+                { LittleEndianLetterSplitAfterMark, MimeEncodedWordParseOptions.AllowSplitCharacters, LetterA },
                 { Utf16WordsWithByteOrderMarks, MimeEncodedWordParseOptions.AllowSplitCharacters, AB },
             };
 

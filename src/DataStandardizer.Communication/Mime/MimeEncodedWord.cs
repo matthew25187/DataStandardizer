@@ -1094,18 +1094,22 @@ namespace DataStandardizer.Communication.Mime
             }
         }
 
-        // Decodes the text of each encoded word, carrying the octets of a character that a word ends partway through into the next word,
-        // separated from it only by whitespace, that has the same character set and language.
+        // Decodes the text of each encoded word. A word that ends partway through a character starts a chain of words, separated only by
+        // whitespace and with the same character set and language, each of which carries the octets of the unfinished character into the
+        // next. Once a word finishes the last character, the octets of the whole chain are decoded together, so that the state of the
+        // decoder, such as the byte order given by a byte order mark, carries across the words.
         private static void DecodeSplitCharacters(List<Segment> segments, MimeEncodedWordParseOptions options, IMimeCharsetResolver charsetResolver)
         {
             var strictOptions = options & ~MimeEncodedWordParseOptions.AllowInvalidOctets;
+            var chainOctets = new List<byte>();
             var carried = new List<byte>(MaxCarriedOctets);
 
-            // The word that the carried octets start in, or -1 if none are carried, and the last word decoded.
-            var carryStart = -1;
+            // The first word of the chain, or -1 if there is none, and the last word in it.
+            var chainStart = -1;
             var previous = -1;
             var index = 0;
-            while (index < segments.Count || carryStart >= 0)
+            string text;
+            while (index < segments.Count || chainStart >= 0)
             {
 #if NETCOREAPP3_0_OR_GREATER
                 Segment? segment = index < segments.Count ? segments[index] : null;
@@ -1118,56 +1122,68 @@ namespace DataStandardizer.Communication.Mime
                     continue;
                 }
 
-                int decodedLength;
-                if (carryStart < 0)
+                if (chainStart < 0)
                 {
                     if (segment != null && segment.Kind == SegmentKind.Word)
                     {
-                        if (TryDecodeWithCarried(segment, carried, strictOptions, charsetResolver, out decodedLength))
-                        {
-                            if (carried.Count > 0) carryStart = index;
-                            previous = index;
-                        }
-                        else
+                        if (!TryCarry(segment, carried, strictOptions, charsetResolver, out text))
                         {
                             DecodeWord(segment, options, charsetResolver);
                         }
+                        else if (carried.Count == 0)
+                        {
+                            segment.Text = text;
+                        }
+                        else
+                        {
+                            chainStart = previous = index;
+                            chainOctets.AddRange(segment.Word.Octets);
+                        }
                     }
 
                     index++;
                     continue;
                 }
 
-                var carriedCount = carried.Count;
                 if (segment != null && segment.Kind == SegmentKind.Word && segment.Word.HasSameCharsetAndLanguage(segments[previous].Word) &&
-                    TryDecodeWithCarried(segment, carried, strictOptions, charsetResolver, out decodedLength))
+                    TryCarry(segment, carried, strictOptions, charsetResolver, out text))
                 {
-                    // The character is finished, or the octets still carried start in this word.
-                    if (carried.Count == 0)
+                    chainOctets.AddRange(segment.Word.Octets);
+                    previous = index;
+                    if (carried.Count > 0)
                     {
-                        carryStart = -1;
-                    }
-                    else if (decodedLength >= carriedCount)
-                    {
-                        carryStart = index;
+                        index++;
+                        continue;
                     }
 
-                    previous = index;
-                    index++;
-                    continue;
+                    if (TryDecodeOctets(segment.Word.Charset, chainOctets.ToArray(), strictOptions, charsetResolver, out text))
+                    {
+                        segments[chainStart].Text = text;
+                        for (var word = chainStart + 1; word <= index; word++)
+                        {
+                            segments[word].Text = string.Empty;
+                        }
+
+                        chainStart = -1;
+                        chainOctets.Clear();
+                        index++;
+                        continue;
+                    }
                 }
 
-                // The character isn't finished: the word that it starts in is decoded by itself, and decoding starts again after it.
-                DecodeWord(segments[carryStart], options, charsetResolver);
-                index = carryStart + 1;
-                carryStart = -1;
+                // The chain doesn't finish its last character, or its octets aren't valid together: the word that starts it is decoded by
+                // itself, and decoding starts again after it.
+                DecodeWord(segments[chainStart], options, charsetResolver);
+                index = chainStart + 1;
+                chainStart = -1;
+                chainOctets.Clear();
                 carried.Clear();
             }
         }
 
-        // Decodes the carried octets and those of a word, but for up to MaxCarriedOctets at the end that are carried into the next word.
-        private static bool TryDecodeWithCarried(Segment segment, List<byte> carried, MimeEncodedWordParseOptions options,
-            IMimeCharsetResolver charsetResolver, out int decodedLength)
+        // Decodes the carried octets and those of a word, but for up to MaxCarriedOctets at the end, which become the carried octets.
+        private static bool TryCarry(Segment segment, List<byte> carried, MimeEncodedWordParseOptions options, IMimeCharsetResolver charsetResolver,
+            out string text)
         {
             var octets = new byte[carried.Count + segment.Word.Octets.Length];
             carried.CopyTo(octets);
@@ -1175,16 +1191,12 @@ namespace DataStandardizer.Communication.Mime
 
             for (var carryLength = 0; carryLength <= MaxCarriedOctets && carryLength <= octets.Length; carryLength++)
             {
-                decodedLength = octets.Length - carryLength;
-                var decoded = new byte[decodedLength];
-                Array.Copy(octets, decoded, decodedLength);
-
-                string text;
+                var decoded = new byte[octets.Length - carryLength];
+                Array.Copy(octets, decoded, decoded.Length);
                 if (!TryDecodeOctets(segment.Word.Charset, decoded, options, charsetResolver, out text)) continue;
 
-                segment.Text = text;
                 carried.Clear();
-                for (var position = decodedLength; position < octets.Length; position++)
+                for (var position = decoded.Length; position < octets.Length; position++)
                 {
                     carried.Add(octets[position]);
                 }
@@ -1192,7 +1204,7 @@ namespace DataStandardizer.Communication.Mime
                 return true;
             }
 
-            decodedLength = 0;
+            text = string.Empty;
             return false;
         }
 

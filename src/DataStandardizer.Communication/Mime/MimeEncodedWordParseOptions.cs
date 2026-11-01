@@ -82,8 +82,10 @@ namespace DataStandardizer.Communication.Mime
         /// <remarks>
         /// <para>
         /// A word that holds whole characters is decoded by itself. The unfinished part of a character is at most 3 octets, as a character
-        /// is at most 4 octets in the multi-octet character sets in use, such as UTF-8 (RFC 3629 §3). A word whose last character isn't
-        /// finished that way is decoded by itself, as it is without this option.
+        /// is at most 4 octets in the multi-octet character sets in use, such as UTF-8 (RFC 3629 §3). The octets of the words that a
+        /// character is split between are decoded together, so the byte order given by a byte order mark carries into the next word. If a
+        /// run of such words doesn't finish its last character, or its octets aren't valid together, its first word is decoded by itself,
+        /// as it is without this option, and the words after it are read again.
         /// </para>
         /// <para>
         /// This option has no effect on <see cref="MimeEncodedWord.TryParse(ReadOnlySpan{char}, out MimeEncodedWord)"/>, which reads one
