@@ -1,4 +1,4 @@
-﻿#if NETSTANDARD
+#if NETSTANDARD
 using JetBrains.Annotations;
 #endif
 using System;
@@ -412,7 +412,7 @@ namespace DataStandardizer.LanguageTag
         #region Public Static Methods
 
         /// <summary>
-        /// Determine if a string has the shape of a Extended Language subtag: three letters (<c>extlang</c>, RFC 5646 §2.1).
+        /// Determine if a string has the shape of an Extended Language subtag: three letters (<c>extlang</c>, RFC 5646 §2.1).
         /// </summary>
         /// <param name="extendedLanguageSubtag">Subtag to check.</param>
         /// <returns><c>true</c> if the subtag has that shape; <c>false</c> if not.</returns>
@@ -432,7 +432,7 @@ namespace DataStandardizer.LanguageTag
         }
 
         /// <summary>
-        /// Determine if a span of characters has the shape of a Extended Language subtag: three letters (<c>extlang</c>, RFC 5646 §2.1).
+        /// Determine if a span of characters has the shape of an Extended Language subtag: three letters (<c>extlang</c>, RFC 5646 §2.1).
         /// </summary>
         /// <param name="extendedLanguageSubtag">Subtag to check.</param>
         /// <returns><c>true</c> if the subtag has that shape; <c>false</c> if not.</returns>
@@ -445,7 +445,7 @@ namespace DataStandardizer.LanguageTag
         }
 
         /// <summary>
-        /// Determine if a string has the shape of a Extension subtag: one extension: a singleton other than <c>x</c> followed by one or more subtags of two to eight letters or digits (<c>extension</c>, RFC 5646 §2.1).
+        /// Determine if a string has the shape of an Extension subtag: one extension: a singleton other than <c>x</c> followed by one or more subtags of two to eight letters or digits (<c>extension</c>, RFC 5646 §2.1).
         /// </summary>
         /// <param name="extensionSubtag">Subtag to check.</param>
         /// <returns><c>true</c> if the subtag has that shape; <c>false</c> if not.</returns>
@@ -466,7 +466,7 @@ namespace DataStandardizer.LanguageTag
         }
 
         /// <summary>
-        /// Determine if a span of characters has the shape of a Extension subtag: one extension: a singleton other than <c>x</c> followed by one or more subtags of two to eight letters or digits (<c>extension</c>, RFC 5646 §2.1).
+        /// Determine if a span of characters has the shape of an Extension subtag: one extension: a singleton other than <c>x</c> followed by one or more subtags of two to eight letters or digits (<c>extension</c>, RFC 5646 §2.1).
         /// </summary>
         /// <param name="extensionSubtag">Subtag to check.</param>
         /// <returns><c>true</c> if the subtag has that shape; <c>false</c> if not.</returns>
