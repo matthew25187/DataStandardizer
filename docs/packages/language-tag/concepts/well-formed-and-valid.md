@@ -62,8 +62,9 @@ var conformance = languageTag.Conformance;           // LanguageTagConformance.V
 ```
 
 The `Prefix` and `Deprecated` fields of the registry's records aren't checked, because
-§2.2.9 doesn't list them. A deprecated subtag is still valid, and an extended language
-subtag is valid after any primary language.
+§2.2.9 doesn't list them. A deprecated subtag is still valid, and a registered extended
+language subtag is valid after any two- or three-letter primary language, whatever its
+`Prefix` says.
 
 ### Duplicates
 
