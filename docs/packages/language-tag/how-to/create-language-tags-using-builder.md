@@ -53,6 +53,19 @@ var languageTag = new Bcp47LanguageTagBuilder()
     .Build();
 ```
 
+If you can't load a registry, you can check the tag against the ISO code lists instead
+with `WithConformance`. With neither step, `Build()` checks only that the tag is
+well-formed. See
+[Well-formed, valid and the ISO code lists](../concepts/well-formed-and-valid.md).
+
+```csharp
+var languageTag = new Bcp47LanguageTagBuilder()
+    .WithConformance(LanguageTagConformance.IsoCodeLists)
+    .UsingPrimaryLanguageSubtag("gsw")
+    .UsingExtensionSubtags("u-sd-chzh")
+    .Build();
+```
+
 The order in which the steps are called is guided by the builder's step
 interfaces, so that the subtags are added in their correct BCP 47 order. See
 [The language-tag builder pipeline](../concepts/builder-pipeline.md) for the

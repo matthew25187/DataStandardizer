@@ -34,6 +34,7 @@ records are in the nested `DataStandardizer.LanguageTag.Registry` namespace.
 
 | Type | Description |
 | --- | --- |
+| [LanguageTagConformance](LanguageTagConformance.md) | What was checked when a language tag was created: well-formed, valid or the ISO code lists. |
 | [SubtagRegistryRecordType](SubtagRegistryRecordType.md) | The `Type` of a registry record. |
 
 ## Interfaces
@@ -52,4 +53,5 @@ records are in the nested `DataStandardizer.LanguageTag.Registry` namespace.
 
 - [Anatomy of a language tag](../concepts/language-tag-anatomy.md)
 - [The language-tag builder pipeline](../concepts/builder-pipeline.md)
+- [Well-formed, valid and the ISO code lists](../concepts/well-formed-and-valid.md)
 - [Use language tags](../how-to/use-language-tags.md)
