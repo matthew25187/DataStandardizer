@@ -14,6 +14,7 @@ Includes:
   </PropertyGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.1'">
+    <PackageReference Include="System.Net.Http" />
     <PackageReference Include="System.ValueTuple" />
   </ItemGroup>
 

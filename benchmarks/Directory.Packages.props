@@ -3,7 +3,7 @@
 
   <ItemGroup>
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
-    <PackageVersion Include="CsvHelper" Version="33.1.0" />
-    <PackageVersion Include="Ical.Net" Version="5.2.3" />
+    <PackageVersion Include="CsvHelper" Version="34.0.0" />
+    <PackageVersion Include="Ical.Net" Version="5.2.4" />
   </ItemGroup>
 </Project>

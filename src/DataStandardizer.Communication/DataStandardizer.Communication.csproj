@@ -12,6 +12,7 @@ Provides types supporting communication-related standards, including:
   </PropertyGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.1'">
+    <PackageReference Include="System.Net.Http" />
     <PackageReference Include="System.Text.RegularExpressions" />
     <PackageReference Include="System.ValueTuple" />
     <PackageReference Include="System.Memory" />

@@ -1,9 +1,12 @@
-﻿namespace DataStandardizer.File.CSV.Benchmarks;
+﻿using CsvHelper;
+
+namespace DataStandardizer.File.CSV.Benchmarks;
 
 /// <summary>
 /// Plain model used for the CsvHelper comparison scenarios.
 /// </summary>
-public sealed class Person
+[CsvRecord]
+public sealed partial class Person
 {
     public int Id { get; set; }
 
