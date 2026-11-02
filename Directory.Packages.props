@@ -5,7 +5,7 @@
 
   <!--
     Versions of the packages the published libraries use.  A change to this file marks every package as changed (build/packages.json).
-    Test and benchmark versions are in the Directory.Packages.props of their own folders, so that updating one doesn't.
+    Test and benchmark versions are in the Directory.Packages.props of their own folders, so that updating one doesn't mark any package as changed.
   -->
   <ItemGroup>
     <PackageVersion Include="JetBrains.Annotations" Version="2025.2.2" />

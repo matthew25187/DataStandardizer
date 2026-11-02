@@ -1,11 +1,16 @@
 {
-  "$comment": "The packages built by CI, in build order, and the shared build files whose change marks every package as changed. Read by the scripts in build/ and the GitHub workflows. variableSuffix names each package's version variables: DATASTANDARDIZER_<variableSuffix>__<STABLE|CURRENT|NEXT>_<part>. A package builds on its buildRunner and tests on each of its testRunners (defaultBuildRunner and defaultTestRunners when it has none).",
+  "$comment": "The packages built by CI, in build order, the shared build files whose change marks every package as changed, and the shared test files whose change runs the tests of every package without marking any as changed. Read by the scripts in build/ and the GitHub workflows. variableSuffix names each package's version variables: DATASTANDARDIZER_<variableSuffix>__<STABLE|CURRENT|NEXT>_<part>. A package builds on its buildRunner and tests on each of its testRunners (defaultBuildRunner and defaultTestRunners when it has none).",
   "sharedBuildFiles": [
     "Directory.Build.props",
     "Directory.Build.targets",
     "Directory.Packages.props",
     "src/Directory.Build.props",
     "src/Directory.Build.targets"
+  ],
+  "sharedTestFiles": [
+    "tests/Directory.Build.props",
+    "tests/Directory.Build.targets",
+    "tests/Directory.Packages.props"
   ],
   "defaultTestRunners": [
     "ubuntu-24.04",
