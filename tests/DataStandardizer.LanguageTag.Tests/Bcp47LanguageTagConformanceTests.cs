@@ -830,7 +830,7 @@ namespace DataStandardizer.LanguageTag.Tests
 
         [Theory]
         [MemberData(nameof(ConformanceTableChecks), DisableDiscoveryEnumeration = true)]
-        public void Check_ForTagInDocumentedTable_GivesTheDocumentedResult(string column, string testLanguageTag, Func<string, bool> check, bool expectedResult)
+        public void IsWellFormedOrIsValid_ForTagInDocumentedTable_GivesTheDocumentedResult(string column, string testLanguageTag, Func<string, bool> check, bool expectedResult)
         {
             // act
             var testResult = check(testLanguageTag);
