@@ -56,7 +56,7 @@ namespace DataStandardizer.LanguageTag.InternalState
         internal override bool IsExtendedLanguage(ReadOnlySpan<char> subtag)
         {
             // ref. RFC 5646 §2.2.2
-            return subtag.Length == 3 && Bcp47LanguageTagParser.IsAsciiLetters(subtag);
+            return Bcp47SyntaxSubtagClassifier.Instance.IsExtendedLanguage(subtag);
         }
 
         internal override bool IsScript(ReadOnlySpan<char> subtag)
@@ -71,10 +71,8 @@ namespace DataStandardizer.LanguageTag.InternalState
 
         internal override bool IsVariant(ReadOnlySpan<char> subtag)
         {
-            // Five to eight characters starting with a letter, or four to eight starting with a digit (ref. RFC 5646 §2.2.5).
-            if (subtag.Length < 4 || subtag.Length > 8 || !Bcp47LanguageTagParser.IsAsciiLettersOrDigits(subtag)) return false;
-
-            return subtag.Length > 4 || Bcp47LanguageTagParser.IsAsciiDigit(subtag[0]);
+            // ref. RFC 5646 §2.2.5
+            return Bcp47SyntaxSubtagClassifier.Instance.IsVariant(subtag);
         }
 
         private static IEnumerable<string> ComposeShortPrimaryLanguageSubtags()

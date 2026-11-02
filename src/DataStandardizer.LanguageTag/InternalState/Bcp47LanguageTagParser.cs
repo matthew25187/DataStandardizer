@@ -20,9 +20,9 @@ namespace DataStandardizer.LanguageTag.InternalState
         /// Parse a language tag.
         /// </summary>
         /// <param name="languageTag">Language tag to parse.</param>
-        /// <param name="classifier">Decides which subtags are valid at each position.</param>
+        /// <param name="classifier">Decides which subtags are accepted at each position.</param>
         /// <param name="ranges">When this method returns other than <see cref="Bcp47ParseStatus.Invalid"/>, where each kind of subtag lies in <paramref name="languageTag"/>; otherwise, empty ranges.</param>
-        /// <returns>Whether the language tag is well-formed.</returns>
+        /// <returns>Whether the classifier accepted the language tag, and whether it repeats a subtag that must not repeat.</returns>
 #if NETCOREAPP3_0_OR_GREATER
         internal static Bcp47ParseStatus Parse(ReadOnlySpan<char> languageTag, Bcp47SubtagClassifier classifier, out Bcp47LanguageTagRanges ranges)
 #else
@@ -32,7 +32,7 @@ namespace DataStandardizer.LanguageTag.InternalState
             ranges = default;
 
             // Grandfathered tags come first, so that the regular ones are taken as a whole rather than as subtags (ref. RFC 5646 §2.2.8).
-            if (classifier.IsGrandfathered(languageTag)) return Bcp47ParseStatus.WellFormed;
+            if (classifier.IsGrandfathered(languageTag)) return Bcp47ParseStatus.Accepted;
 
             var start = 0;
             var length = GetSubtagLength(languageTag, start);
@@ -43,7 +43,7 @@ namespace DataStandardizer.LanguageTag.InternalState
                 if (!IsPrivateUse(languageTag)) return Bcp47ParseStatus.Invalid;
 
                 ranges.PrivateUse = new Bcp47SubtagRange(0, languageTag.Length);
-                return Bcp47ParseStatus.WellFormed;
+                return Bcp47ParseStatus.Accepted;
             }
 
             if (!classifier.IsPrimaryLanguage(subtag, out var allowsExtendedLanguage)) return Bcp47ParseStatus.Invalid;
@@ -132,7 +132,7 @@ namespace DataStandardizer.LanguageTag.InternalState
             if (hasSubtag) return Bcp47ParseStatus.Invalid;
 
             ranges = result;
-            return hasRepeatedSubtag ? Bcp47ParseStatus.RepeatedSubtag : Bcp47ParseStatus.WellFormed;
+            return hasRepeatedSubtag ? Bcp47ParseStatus.RepeatedSubtag : Bcp47ParseStatus.Accepted;
         }
 
         /// <summary>

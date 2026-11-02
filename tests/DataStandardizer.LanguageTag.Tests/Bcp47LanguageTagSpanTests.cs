@@ -69,7 +69,7 @@ namespace DataStandardizer.LanguageTag.Tests
         private const string PrivateUseOnly = "x-private";
 
         /// <summary>
-        /// A variant subtag repeated, which makes a tag not well-formed (RFC 5646 §2.2.5¶5).
+        /// A variant subtag repeated, which a well-formed tag may do and a valid one may not (RFC 5646 §2.2.5¶5, §2.2.9).
         /// </summary>
         private const string RepeatedVariant = "de-1901-1901";
 
@@ -93,11 +93,18 @@ namespace DataStandardizer.LanguageTag.Tests
         };
 
         /// <summary>
-        /// Strings that are not well-formed language tags, including two that only repeat a subtag.
+        /// Strings that are not well-formed language tags.
         /// </summary>
         private static readonly string[] InvalidLanguageTagStrings =
         {
-            "", "e", "en-", "-en", "en--US", "abcdefghi", RepeatedRegion, "zh-Hant-Hans", "de-CH-123456789", "en-US-a", "en-x-", "x-abcdefghi",
+            "", "e", "en-", "-en", "en--US", "abcdefghi", RepeatedRegion, "zh-Hant-Hans", "de-CH-123456789", "en-US-a", "en-x-", "x-abcdefghi"
+        };
+
+        /// <summary>
+        /// Strings that are well-formed language tags but repeat a variant subtag or an extension singleton (RFC 5646 §2.2.9).
+        /// </summary>
+        private static readonly string[] RepeatedSubtagStrings =
+        {
             RepeatedVariant, "en-a-bbb-a-ccc"
         };
 
@@ -216,6 +223,8 @@ namespace DataStandardizer.LanguageTag.Tests
 
         public static TheoryData<string> InvalidLanguageTags => new TheoryData<string>(InvalidLanguageTagStrings);
 
+        public static TheoryData<SpanInput> RepeatedSubtagSpans => CreateSpanInputs(RepeatedSubtagStrings);
+
         /// <summary>
         /// Each valid language tag, from the middle of a longer string, with the tag itself.
         /// </summary>
@@ -273,14 +282,14 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #endregion
 
-        #region Test: IsWellFormedLanguageTagString(ReadOnlySpan<char>)
+        #region Test: IsWellFormed(ReadOnlySpan<char>)
 
         [Theory]
         [MemberData(nameof(ValidLanguageTagSpans), DisableDiscoveryEnumeration = true)]
-        public void IsWellFormedLanguageTagString_WithValidSpan_ReturnsTrue(SpanInput testLanguageTag)
+        public void IsWellFormed_WithValidSpan_ReturnsTrue(SpanInput testLanguageTag)
         {
             // act
-            var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag.AsSpan());
+            var testResult = Bcp47LanguageTag.IsWellFormed(testLanguageTag.AsSpan());
 
             // assert
             testResult.Should().BeTrue("only the characters in the span are read");
@@ -288,10 +297,10 @@ namespace DataStandardizer.LanguageTag.Tests
 
         [Theory]
         [MemberData(nameof(InvalidLanguageTagSpans), DisableDiscoveryEnumeration = true)]
-        public void IsWellFormedLanguageTagString_WithInvalidSpan_ReturnsFalse(SpanInput testLanguageTag)
+        public void IsWellFormed_WithInvalidSpan_ReturnsFalse(SpanInput testLanguageTag)
         {
             // act
-            var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag.AsSpan());
+            var testResult = Bcp47LanguageTag.IsWellFormed(testLanguageTag.AsSpan());
 
             // assert
             testResult.Should().BeFalse();
@@ -299,13 +308,24 @@ namespace DataStandardizer.LanguageTag.Tests
 
         [Theory]
         [MemberData(nameof(InvalidLanguageTags))]
-        public void IsWellFormedLanguageTagString_WithInvalidString_ReturnsFalse(string testLanguageTag)
+        public void IsWellFormed_WithInvalidString_ReturnsFalse(string testLanguageTag)
         {
             // act
-            var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag);
+            var testResult = Bcp47LanguageTag.IsWellFormed(testLanguageTag);
 
             // assert
             testResult.Should().BeFalse("the string overload must agree with the span overload");
+        }
+
+        [Theory]
+        [MemberData(nameof(RepeatedSubtagSpans), DisableDiscoveryEnumeration = true)]
+        public void IsWellFormed_WithRepeatedSubtagSpan_ReturnsTrue(SpanInput testLanguageTag)
+        {
+            // act
+            var testResult = Bcp47LanguageTag.IsWellFormed(testLanguageTag.AsSpan());
+
+            // assert
+            testResult.Should().BeTrue("RFC 5646 §2.2.9 lists repeated variant subtags and extension singletons under validity alone");
         }
 
         #endregion
@@ -362,6 +382,28 @@ namespace DataStandardizer.LanguageTag.Tests
 
             // assert
             testResult.Should().Be((false, default(Bcp47LanguageTag)));
+        }
+
+        [Theory]
+        [MemberData(nameof(RepeatedSubtagSpans), DisableDiscoveryEnumeration = true)]
+        public void TryCreate_WithRepeatedSubtagSpan_ReturnsTrue(SpanInput testLanguageTag)
+        {
+            // act
+            var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag.AsSpan(), out _);
+
+            // assert
+            testResult.Should().BeTrue("RFC 5646 §2.2.9 lists repeated variant subtags and extension singletons under validity alone");
+        }
+
+        [Theory]
+        [MemberData(nameof(RepeatedSubtagSpans), DisableDiscoveryEnumeration = true)]
+        public void TryCreate_WithIsoCodeListsAndRepeatedSubtagSpan_ReturnsFalseAndDefault(SpanInput testLanguageTag)
+        {
+            // act
+            var testResult = (Bcp47LanguageTag.TryCreate(testLanguageTag.AsSpan(), LanguageTagConformance.IsoCodeLists, out var languageTag), languageTag);
+
+            // assert
+            testResult.Should().Be((false, default(Bcp47LanguageTag)), "the ISO code lists approximate validity, so a variant subtag or extension singleton must not repeat");
         }
 
         public static TheoryData<SpanInput, string> PaddedRegisteredLanguageTags => new TheoryData<SpanInput, string>

@@ -39,9 +39,9 @@ namespace DataStandardizer.LanguageTag.InternalState
 #endif
 
 #if NETCOREAPP3_0_OR_GREATER
-        private Bcp47LanguageTagParts(string? primaryLanguage, string[] extendedLanguages, string? script, string? region, string[] variants, Bcp47KeyedSubtag[] extensions, Bcp47KeyedSubtag? privateUse)
+        private Bcp47LanguageTagParts(string? primaryLanguage, string[] extendedLanguages, string? script, string? region, string[] variants, Bcp47KeyedSubtag[] extensions, Bcp47KeyedSubtag? privateUse, LanguageTagConformance conformance)
 #else
-        private Bcp47LanguageTagParts([CanBeNull] string primaryLanguage, [NotNull] string[] extendedLanguages, [CanBeNull] string script, [CanBeNull] string region, [NotNull] string[] variants, [NotNull] Bcp47KeyedSubtag[] extensions, Bcp47KeyedSubtag? privateUse)
+        private Bcp47LanguageTagParts([CanBeNull] string primaryLanguage, [NotNull] string[] extendedLanguages, [CanBeNull] string script, [CanBeNull] string region, [NotNull] string[] variants, [NotNull] Bcp47KeyedSubtag[] extensions, Bcp47KeyedSubtag? privateUse, LanguageTagConformance conformance)
 #endif
         {
             PrimaryLanguage = primaryLanguage;
@@ -51,6 +51,7 @@ namespace DataStandardizer.LanguageTag.InternalState
             _variants = variants;
             _extensions = extensions;
             PrivateUse = privateUse;
+            Conformance = conformance;
         }
 
         /// <summary>
@@ -119,13 +120,18 @@ namespace DataStandardizer.LanguageTag.InternalState
         internal Bcp47KeyedSubtag? PrivateUse { get; }
 
         /// <summary>
+        /// What was checked when the language tag was created.
+        /// </summary>
+        internal LanguageTagConformance Conformance { get; }
+
+        /// <summary>
         /// Decompose a language tag from where the parser found each kind of subtag.
         /// </summary>
 #if NETCOREAPP3_0_OR_GREATER
-        internal static Bcp47LanguageTagParts FromRanges(string languageTag, Bcp47LanguageTagRanges ranges)
+        internal static Bcp47LanguageTagParts FromRanges(string languageTag, Bcp47LanguageTagRanges ranges, LanguageTagConformance conformance)
 #else
         [NotNull]
-        internal static Bcp47LanguageTagParts FromRanges([NotNull] string languageTag, Bcp47LanguageTagRanges ranges)
+        internal static Bcp47LanguageTagParts FromRanges([NotNull] string languageTag, Bcp47LanguageTagRanges ranges, LanguageTagConformance conformance)
 #endif
         {
             var extensions = NoKeyedSubtags;
@@ -146,7 +152,8 @@ namespace DataStandardizer.LanguageTag.InternalState
                 ranges.Region.IsEmpty ? null : Substring(languageTag, ranges.Region),
                 ranges.Variants.IsEmpty ? NoSubtags : Bcp47LanguageTagParser.GetSubtags(languageTag, ranges.Variants),
                 extensions,
-                ranges.PrivateUse.IsEmpty ? (Bcp47KeyedSubtag?)null : new Bcp47KeyedSubtag(Substring(languageTag, ranges.PrivateUse)));
+                ranges.PrivateUse.IsEmpty ? (Bcp47KeyedSubtag?)null : new Bcp47KeyedSubtag(Substring(languageTag, ranges.PrivateUse)),
+                conformance);
         }
 
         private static string Substring(string languageTag, Bcp47SubtagRange range)

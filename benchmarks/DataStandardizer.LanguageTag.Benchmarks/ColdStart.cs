@@ -18,9 +18,14 @@ internal static class ColdStart
         Console.WriteLine($"OS: {RuntimeInformation.OSDescription}");
 
         var stopwatch = Stopwatch.StartNew();
-        var rulesTag = Bcp47LanguageTag.Create("en");
+        var wellFormedTag = Bcp47LanguageTag.Create("en");
         stopwatch.Stop();
         Report("First Create(\"en\")", stopwatch.Elapsed);
+
+        stopwatch.Restart();
+        _ = Bcp47LanguageTag.Create("en", LanguageTagConformance.IsoCodeLists);
+        stopwatch.Stop();
+        Report("First Create(\"en\", IsoCodeLists)", stopwatch.Elapsed);
 
         // Loading the registry is reported for context, but it is measured properly by RegistryBenchmarks.
         stopwatch.Restart();
@@ -50,9 +55,9 @@ internal static class ColdStart
         stopwatch.Stop();
         Report("First Create(\"en\", registry 2)", stopwatch.Elapsed);
 
-        if (rulesTag != registryTag)
+        if (wellFormedTag != registryTag)
         {
-            throw new InvalidOperationException("The rules-only and registry tags differ.");
+            throw new InvalidOperationException("The well-formed and registry tags differ.");
         }
     }
 

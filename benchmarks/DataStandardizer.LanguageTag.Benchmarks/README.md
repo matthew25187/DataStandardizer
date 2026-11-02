@@ -46,13 +46,14 @@ The inputs are fixed, so every run uses identical data. They are in `BenchmarkDa
 
 | Class | Benchmark | What it measures |
 |-------|-----------|------------------|
-| `CreateBenchmarks` | `Create_Rules` | `Bcp47LanguageTag.Create(tag)` over the 12 valid tags (baseline). |
+| `CreateBenchmarks` | `Create_WellFormed` | `Bcp47LanguageTag.Create(tag)` over the 12 valid tags (baseline). |
+| | `Create_IsoCodeLists` | `Bcp47LanguageTag.Create(tag, LanguageTagConformance.IsoCodeLists)` over the same tags. |
 | | `Create_Registry` | `Bcp47LanguageTag.Create(tag, registry)` over the same tags, with the registry loaded in `[GlobalSetup]`. |
 | | `TryCreate_Invalid` | `Bcp47LanguageTag.TryCreate(tag, out _)` over the 12 invalid strings. |
-| | `IsWellFormed` | `Bcp47LanguageTag.IsWellFormedLanguageTagString(tag)` over the 12 valid tags. |
+| | `IsWellFormed` | `Bcp47LanguageTag.IsWellFormed(tag)` over the 12 valid tags. |
 | | `TryCreate_Span` | `Bcp47LanguageTag.TryCreate(tag.AsSpan(), out _)` over the 12 valid tags. |
 | | `TryCreate_Span_Invalid` | `Bcp47LanguageTag.TryCreate(tag.AsSpan(), out _)` over the 12 invalid strings. Should allocate nothing. |
-| | `IsWellFormed_Span` | `Bcp47LanguageTag.IsWellFormedLanguageTagString(tag.AsSpan())` over the 12 valid tags. Should allocate nothing. |
+| | `IsWellFormed_Span` | `Bcp47LanguageTag.IsWellFormed(tag.AsSpan())` over the 12 valid tags. Should allocate nothing. |
 | `CheckBenchmarks` | `Check_PrimaryLanguage` | `CheckPrimaryLanguageSubtag("zh")`. |
 | | `Check_ExtendedLanguage` | `CheckExtendedLanguageSubtag("yue")`. |
 | | `Check_Script` | `CheckScriptSubtag("Hant")`. |
@@ -82,11 +83,12 @@ dotnet run -c Release -f net10.0 -- --coldstart
 
 This runs no benchmarks. It times, with `Stopwatch`, in a fresh process:
 
-1. The first `Bcp47LanguageTag.Create("en")`.
-2. Loading the registry fixture, for context only (`RegistryBenchmarks` measures it properly).
-3. The first `Bcp47LanguageTag.Create("en", registry)`, which builds the registry's index, and how much of that was JIT compilation (`JitInfo.GetCompilationTime`, on every thread).
-4. The second `Bcp47LanguageTag.Create("en", registry)`, to show how much of the first was one-off.
-5. The first `Bcp47LanguageTag.Create("en", registry)` against a second copy of the registry, after a forced garbage collection. The code is already compiled, so this is the cost of building an index alone, and the difference from step 3 is the one-off cost of the first registry in a process.
+1. The first `Bcp47LanguageTag.Create("en")`, which checks the grammar only and builds no code lists.
+2. The first `Bcp47LanguageTag.Create("en", LanguageTagConformance.IsoCodeLists)`, which builds the code lists.
+3. Loading the registry fixture, for context only (`RegistryBenchmarks` measures it properly).
+4. The first `Bcp47LanguageTag.Create("en", registry)`, which builds the registry's index, and how much of that was JIT compilation (`JitInfo.GetCompilationTime`, on every thread).
+5. The second `Bcp47LanguageTag.Create("en", registry)`, to show how much of the first was one-off.
+6. The first `Bcp47LanguageTag.Create("en", registry)` against a second copy of the registry, after a forced garbage collection. The code is already compiled, so this is the cost of building an index alone, and the difference from step 4 is the one-off cost of the first registry in a process.
 
 Each figure is a single sample, including JIT compilation, and varies from run to run. Build once, then run the process several times and report every run, for example in PowerShell:
 

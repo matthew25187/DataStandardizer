@@ -101,8 +101,9 @@ string? name = country.GetEnglishName(Iso3166CountryName.Short);
 `DataStandardizer.LanguageTag` and `DataStandardizer.File.CSV` have changed since
 they took over from the removed packages, so check their pages for anything your
 code relies on, such as the
-[LanguageTag match timeouts](#languagetag-match-timeouts) and
-[builder region overloads](#languagetag-builder-region-overloads) below.
+[LanguageTag match timeouts](#languagetag-match-timeouts),
+[builder region overloads](#languagetag-builder-region-overloads) and
+[what creating a language tag checks](#what-creating-a-language-tag-checks) below.
 
 ## LanguageTag match timeouts
 
@@ -181,6 +182,51 @@ var newZealand = new Bcp47LanguageTagBuilder()
     .UsingRegionSubtag(Iso3166Part1Alpha2Country.NZ)
     .Build();
 ```
+
+## What creating a language tag checks
+
+Version 1.x checked a language tag created without a subtag registry against a
+hybrid of the grammar and the ISO code lists, which is neither of the two classes
+that RFC 5646 §2.2.9 defines. In version 2.0, creating a tag without a registry
+checks that it's **well-formed**: it matches the ABNF of RFC 5646 §2.1, and nothing
+else is checked. Creating one with a registry still checks that it's **valid**.
+
+`Bcp47LanguageTag.Create(string)`, `TryCreate`, `Parse`, `TryParse` and the explicit
+conversion from `string` now accept tags that they rejected in version 1.x:
+
+| Tag | Why version 1.x rejected it |
+| --- | --- |
+| `zz` | Not an ISO 639 code |
+| `en-Abcd` | Not an ISO 15924 code |
+| `en-830`, `en-434` | Not a UN M.49 area that RFC 5646 allows as a region |
+| `de-1901-1901`, `en-a-bb-a-cc` | Repeats a variant subtag or an extension singleton, which RFC 5646 §2.2.9 lists under validity, not well-formedness |
+
+`IsWellFormedLanguageTagString` is removed, and the name won't come back, so a
+caller moving to version 2.0 gets a compile error rather than a method that means
+something new. Choose its replacement by what you need:
+
+| Removed | Use instead | Checks |
+| --- | --- | --- |
+| `IsWellFormedLanguageTagString(string)` | `IsWellFormed(string)` | The ABNF only |
+| `IsWellFormedLanguageTagString(ReadOnlySpan<char>)` | `IsWellFormed(ReadOnlySpan<char>)` | The ABNF only |
+| Either | `IsValid(string, SubtagRegistry)` or `IsValid(ReadOnlySpan<char>, SubtagRegistry)` | Validity against a registry (RFC 5646 §2.2.9) |
+
+If you relied on the ISO code lists and can't load a registry, opt in to them with
+`LanguageTagConformance.IsoCodeLists`. That checks what version 1.x checked:
+
+```csharp
+// Before
+var languageTag = Bcp47LanguageTag.Create("en-NZ");
+var isListed = Bcp47LanguageTag.IsWellFormedLanguageTagString("en-NZ");
+
+// After: the same checks as version 1.x
+var languageTag = Bcp47LanguageTag.Create("en-NZ", LanguageTagConformance.IsoCodeLists);
+var isListed = Bcp47LanguageTag.TryCreate("en-NZ", LanguageTagConformance.IsoCodeLists, out _);
+```
+
+The new `Conformance` property of a `Bcp47LanguageTag` says which of these was
+checked when it was created. The message of `LanguageTagFormatException` now names
+the class that failed, so code that compares the message text needs updating.
 
 ## The netstandard1.0 target
 

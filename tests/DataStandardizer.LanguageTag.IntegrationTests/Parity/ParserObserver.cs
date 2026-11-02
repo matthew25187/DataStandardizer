@@ -27,9 +27,20 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
         internal static LanguageTagValidity ObserveValidity(string input)
         {
             return new LanguageTagValidity(
-                Bcp47LanguageTag.IsWellFormedLanguageTagString(input),
-                Bcp47LanguageTag.TryCreate(input, out _),
+                Bcp47LanguageTag.TryCreate(input, LanguageTagConformance.IsoCodeLists, out _),
+                Bcp47LanguageTag.TryCreate(input.AsSpan(), LanguageTagConformance.IsoCodeLists, out _),
                 Bcp47LanguageTagParser.Parse(input.AsSpan(), Bcp47RulesBasedSubtagClassifier.Instance, out _));
+        }
+
+        /// <summary>
+        /// Whether an input is well-formed, by every entry point of the well-formed path.
+        /// </summary>
+        internal static LanguageTagValidity ObserveWellFormedness(string input)
+        {
+            return new LanguageTagValidity(
+                Bcp47LanguageTag.IsWellFormed(input),
+                Bcp47LanguageTag.TryCreate(input, out _),
+                Bcp47LanguageTagParser.Parse(input.AsSpan(), Bcp47SyntaxSubtagClassifier.Instance, out _));
         }
 
         /// <summary>
@@ -48,6 +59,12 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
             return DescribeRanges(input, ranges);
         }
 
+        internal static SubtagTexts ObserveWellFormedDecomposition(string input)
+        {
+            Bcp47LanguageTagParser.Parse(input.AsSpan(), Bcp47SyntaxSubtagClassifier.Instance, out var ranges);
+            return DescribeRanges(input, ranges);
+        }
+
         internal static SubtagTexts ObserveDecomposition(string input, SubtagRegistry.SubtagRegistry subtagRegistry)
         {
             Bcp47LanguageTagParser.Parse(input.AsSpan(), subtagRegistry.Classifier, out var ranges);
@@ -55,6 +72,11 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
         }
 
         internal static SubtagTexts ObserveProperties(string input)
+        {
+            return DescribeProperties(Bcp47LanguageTag.Create(input, LanguageTagConformance.IsoCodeLists));
+        }
+
+        internal static SubtagTexts ObserveWellFormedProperties(string input)
         {
             return DescribeProperties(Bcp47LanguageTag.Create(input));
         }

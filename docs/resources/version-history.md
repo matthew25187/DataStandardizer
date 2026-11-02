@@ -35,6 +35,12 @@ such as `x-private`, or a grandfathered tag such as `i-klingon`, it is `null`
 instead of the empty string, so code that tests for an empty string should test
 for `null` instead.
 
+Creating a `Bcp47LanguageTag` without a subtag registry now checks that the tag is
+well-formed and nothing else, so it accepts tags such as `zz` and `de-1901-1901`
+that version 1.x rejected. `IsWellFormedLanguageTagString` is replaced by
+`IsWellFormed` and `IsValid`, and the ISO code lists are an explicit opt-in. See
+[what creating a language tag checks](removed-in-v2.md#what-creating-a-language-tag-checks).
+
 In `DataStandardizer.LanguageTag`, Subtag Registry records are now immutable,
 with their fields parsed once when the registry is loaded:
 
