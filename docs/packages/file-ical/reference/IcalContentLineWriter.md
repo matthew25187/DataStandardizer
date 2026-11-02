@@ -123,18 +123,18 @@ an operation is canceled, the writer cannot continue.
 | `WriteLineAsync(IcalContentLine line, CancellationToken cancellationToken = default)` | `ValueTask` | As `WriteLine`. Completes synchronously when the underlying text writer takes the line without waiting, as a `StreamWriter` does while the line fits its buffer. |
 | `WriteLinesAsync(IEnumerable<IcalContentLine> lines, IProgress<IcalWriteProgress>? progress = null, CancellationToken cancellationToken = default)` | `Task` | As `WriteLines`. |
 | `WriteLinesAsync(IAsyncEnumerable<IcalContentLine> lines, IProgress<IcalWriteProgress>? progress = null, CancellationToken cancellationToken = default)` | `Task` | As `WriteLines`, for an asynchronous sequence. `cancellationToken` is passed to its enumerator. |
-| `FlushAsync(CancellationToken cancellationToken = default)` | `Task` | As `Flush`. The token is passed to the text writer on .NET 8 and later; on .NET Standard it is checked before the flush. |
+| `FlushAsync(CancellationToken cancellationToken = default)` | `Task` | As `Flush`. The token is passed to the text writer on `net10.0`; on .NET Standard it is checked before the flush. |
 | `DisposeAsync()` | `ValueTask` | As `Dispose`, flushing asynchronously. Completes once the writer has been flushed and released. |
 
 ## Applies to
 
-Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0`.
+Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 The `string` file-path constructors, the asynchronous methods, and `IAsyncDisposable`
 are available on `netstandard2.0`, `netstandard2.1`, and the .NET targets only; on
 `netstandard1.1` construct the writer from a `Stream` or `TextWriter` and write
 synchronously. The `IAsyncEnumerable<IcalContentLine>` overload of `WriteLinesAsync`
 uses Microsoft.Bcl.AsyncInterfaces on `netstandard2.0`. The nullable reference
-annotations apply to the `netstandard2.1`, `net8.0`, and `net10.0` builds.
+annotations apply to the `netstandard2.1` and `net10.0` builds.
 
 ## See also
 

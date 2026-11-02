@@ -14,25 +14,35 @@ gradually or must remain on older frameworks indefinitely.
 
 | Package | Target frameworks |
 | --- | --- |
-| **DataStandardizer.Chronology** | `netstandard1.0`, `netstandard2.0`, `net8.0`, `net10.0` |
-| **DataStandardizer.Communication** | `netstandard1.1`, `netstandard2.0`, `net8.0`, `net10.0` |
-| **DataStandardizer.File.CSV** | `netstandard1.3`, `netstandard2.0`, `netstandard2.1`, `net8.0`, `net10.0` |
-| **DataStandardizer.File.iCal** | `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, `net8.0`, `net10.0` |
-| **DataStandardizer.Geography** | `netstandard1.0`, `netstandard2.0`, `net8.0`, `net10.0` |
-| **DataStandardizer.Language** | `netstandard1.0`, `netstandard2.0`, `net8.0`, `net10.0` |
-| **DataStandardizer.LanguageTag** | `netstandard1.1`, `netstandard2.0`, `net8.0`, `net10.0` |
-| **DataStandardizer.Money** | `netstandard1.1`, `netstandard2.0`, `net8.0`, `net10.0` |
-| **DataStandardizer.Core** | `netstandard1.0`, `netstandard2.0`, `net8.0`, `net10.0` |
+| **DataStandardizer.Chronology** | `netstandard1.0`, `netstandard2.0`, `net10.0` |
+| **DataStandardizer.Communication** | `netstandard1.1`, `netstandard2.0`, `net10.0` |
+| **DataStandardizer.File.CSV** | `netstandard1.3`, `netstandard2.0`, `netstandard2.1`, `net10.0` |
+| **DataStandardizer.File.iCal** | `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, `net10.0` |
+| **DataStandardizer.Geography** | `netstandard1.0`, `netstandard2.0`, `net10.0` |
+| **DataStandardizer.Language** | `netstandard1.0`, `netstandard2.0`, `net10.0` |
+| **DataStandardizer.LanguageTag** | `netstandard1.1`, `netstandard2.0`, `net10.0` |
+| **DataStandardizer.Money** | `netstandard1.1`, `netstandard2.0`, `net10.0` |
+| **DataStandardizer.Core** | `netstandard1.0`, `netstandard2.0`, `net10.0` |
 
 ## The general stance
 
-Modern .NET (`net8.0` and `net10.0`) is the primary target, giving access to the
+Modern .NET (`net10.0`) is the primary target, giving access to the
 latest runtime features — including nullable reference types, which are enabled
-on those builds and on the `netstandard2.1` builds of **DataStandardizer.File.CSV**
+on that build and on the `netstandard2.1` builds of **DataStandardizer.File.CSV**
 and **DataStandardizer.File.iCal**.
 Alongside these, `netstandard2.0` covers the broad middle ground of the .NET
 ecosystem, and `netstandard1.0` or `netstandard1.1` extends reach to the oldest
 supported frameworks.
+
+## Applications on .NET 8 and .NET 9
+
+From v2.0 onwards, the packages have no `net8.0` build, because .NET 8 reaches the end
+of support on 10 November 2026. An application on .NET 8 or .NET 9 can still use
+them: NuGet gives it the `netstandard2.1` build of **DataStandardizer.File.CSV** and
+**DataStandardizer.File.iCal**, and the `netstandard2.0` build of the other packages.
+It doesn't get the APIs that only the `net10.0` build has, such as the `DateOnly`
+and `TimeOnly` support in **DataStandardizer.Chronology**. To use those, move the
+application to .NET 10.
 
 ## Where the targets differ
 
@@ -54,7 +64,7 @@ which gives .NET Standard 2.1 platforms (Mono and Unity, for example) the in-box
 span types and span-based BCL overloads with no extra package dependencies. The
 `netstandard1.3` and `netstandard2.0` builds of **DataStandardizer.File.CSV** get
 those span types from the `System.Memory` package instead, which NuGet installs
-automatically; the `netstandard2.1`, `net8.0` and `net10.0` builds have no extra
+automatically; the `netstandard2.1` and `net10.0` builds have no extra
 dependency. Likewise, the `netstandard1.1` and `netstandard2.0` builds of
 **DataStandardizer.File.iCal** get the span types from `System.Memory`, and the
 `netstandard2.0` build gets `IAsyncEnumerable<T>` and `IAsyncDisposable` from
@@ -73,8 +83,7 @@ similarly, `Iso3166Part2Subdivision` in **DataStandardizer.Geography** implement
 `IConvertible` on .NET Standard 1.3+ and modern .NET only.
 
 Also on **DataStandardizer.Money**, `Money` implements `ISpanFormattable`,
-`IParsable<Money>` and `ISpanParsable<Money>` on .NET 7.0 and later, which is the
-earliest version defining all three. The `CurrencyFormatInfo.CurrentInfo` and `MoneyInfo.CurrentMoney`
+`IParsable<Money>` and `ISpanParsable<Money>` on `net10.0`. The `CurrencyFormatInfo.CurrentInfo` and `MoneyInfo.CurrentMoney`
 properties require .NET Standard 2.0 or later, because the current culture is
 unavailable on the `netstandard1.1` build; the invariant equivalents are available
 on every target.
@@ -82,7 +91,7 @@ on every target.
 In **DataStandardizer.LanguageTag**, the `ReadOnlySpan<char>` overloads of
 `Bcp47LanguageTag` exist on every target, and the
 `ISpanFormattable`, `IParsable<T>` and `ISpanParsable<T>` implementations on
-`net8.0` and `net10.0` only.
+`net10.0` only.
 
 The `netstandard1.1` build of **DataStandardizer.File.iCal** is the most limited:
 
@@ -100,7 +109,7 @@ The `netstandard1.1` build of **DataStandardizer.File.iCal** is the most limited
 
 For jCal, the `netstandard2.0` and `netstandard2.1` builds get
 System.Text.Json from its NuGet package, which NuGet installs automatically; on
-`net8.0` and `net10.0` it is part of the framework. The jCal lexical form of
+`net10.0` it is part of the framework. The jCal lexical form of
 single values, `IcalValueFormat.Json`, needs no JSON library, so the value types
 support it on every target, `netstandard1.1` included.
 

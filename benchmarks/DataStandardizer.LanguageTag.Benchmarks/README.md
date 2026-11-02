@@ -6,20 +6,18 @@ This project is not packed and is not part of the CI test run.
 
 ## Running
 
-Benchmarks must be run in Release, from this folder. The project targets `net8.0` and `net10.0`, because the package's builds for those targets can differ, so `dotnet run` needs a framework. Run from the `net10.0` build and ask BenchmarkDotNet for both runtimes, so each benchmark is measured on each:
+Benchmarks must be run in Release, from this folder. The project targets `net10.0`:
 
 ```
-dotnet run -c Release -f net10.0 -- --filter * --runtimes net8.0 net10.0
+dotnet run -c Release -- --filter *
 ```
-
-Leave out `--runtimes` to measure only the runtime of the framework given with `-f`.
 
 Run a subset by filtering on class or method name, for example:
 
 ```
-dotnet run -c Release -f net10.0 -- --filter *CreateBenchmarks* --runtimes net8.0 net10.0
-dotnet run -c Release -f net10.0 -- --filter *Create_Registry* --runtimes net8.0 net10.0
-dotnet run -c Release -f net10.0 -- --filter *.CheckBenchmarks.* *.PropertyBenchmarks.* --runtimes net8.0 net10.0
+dotnet run -c Release -- --filter *CreateBenchmarks*
+dotnet run -c Release -- --filter *Create_Registry*
+dotnet run -c Release -- --filter *.CheckBenchmarks.* *.PropertyBenchmarks.*
 ```
 
 Filters match the full name, including the namespace, so `*LanguageTag*` selects every benchmark. `*Create*` also selects `TryCreate_Invalid`, the `TryCreate_Span` benchmarks and `Registry_CreateFromStream`.
@@ -27,7 +25,7 @@ Filters match the full name, including the namespace, so `*LanguageTag*` selects
 To check that every benchmark runs without waiting for a full measurement, use the dry job:
 
 ```
-dotnet run -c Release -f net10.0 -- --filter * --job Dry --runtimes net8.0 net10.0
+dotnet run -c Release -- --filter * --job Dry
 ```
 
 Results are written to `BenchmarkDotNet.Artifacts/results/` (ignored by git). BenchmarkDotNet exits with code 0 even when a benchmark fails, so check the "Benchmarks with issues" list at the end of the output, and look for `NA` in the tables.
@@ -77,8 +75,7 @@ Every class uses `[MemoryDiagnoser]`. Allocation is the main thing to watch.
 BenchmarkDotNet warms up before it measures, so it never sees the one-off cost of the first call in a process, such as building the code lists behind validation or the index of a Subtag Registry. To measure that, run the project with `--coldstart`:
 
 ```
-dotnet run -c Release -f net8.0 -- --coldstart
-dotnet run -c Release -f net10.0 -- --coldstart
+dotnet run -c Release -- --coldstart
 ```
 
 This runs no benchmarks. It times, with `Stopwatch`, in a fresh process:
@@ -94,7 +91,7 @@ Each figure is a single sample, including JIT compilation, and varies from run t
 
 ```
 dotnet build -c Release
-1..5 | ForEach-Object { dotnet run -c Release -f net10.0 --no-build -- --coldstart }
+1..5 | ForEach-Object { dotnet run -c Release --no-build -- --coldstart }
 ```
 
 ## Reporting results

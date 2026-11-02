@@ -33,7 +33,7 @@ absent.
 | --- | --- | --- | --- |
 | `GetAge()` | `Iso15924Script` | `double?` | Unicode version in which the script was encoded, or `null`. |
 | `GetAlias()` | `Iso15924Script` | `string?` | Script alias, or `null` when absent. |
-| `GetDate()` | `Iso15924Script` | `DateOnly?` *(net6.0+)* / `DateTime?` | The script code's date. Returns `DateOnly?` on the `net8.0`/`net10.0` targets and `DateTime?` on the .NET Standard targets. |
+| `GetDate()` | `Iso15924Script` | `DateOnly?` *(`net10.0` only)* / `DateTime?` | The script code's date. Returns `DateOnly?` on the `net10.0` target and `DateTime?` on the .NET Standard targets. |
 | `GetEnglishName()` | `Iso15924Script` | `string?` | English name, or `null` when absent. |
 | `GetFrenchName()` | `Iso15924Script` | `string?` | French name, or `null` when absent. |
 
@@ -42,8 +42,8 @@ plain `string` annotated with JetBrains `[CanBeNull]`.
 
 ## Applies to
 
-Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`. `GetDate()`
-returns `DateOnly?` on the `net8.0` and `net10.0` builds and `DateTime?` on the
+Targets `netstandard1.0`, `netstandard2.0`, and `net10.0`. `GetDate()`
+returns `DateOnly?` on the `net10.0` build and `DateTime?` on the
 `netstandard1.0` and `netstandard2.0` builds.
 
 ## See also

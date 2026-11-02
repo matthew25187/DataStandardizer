@@ -26,7 +26,7 @@ dotnet add package DataStandardizer.Money
 ## Platform support
 
 Targets .NET Standard 1.1 and 2.0 for use in legacy applications, as well as
-in-support modern .NET runtimes (net8.0 and net10.0).
+in-support modern .NET runtimes (`net10.0`).
 
 ## How-to guides
 

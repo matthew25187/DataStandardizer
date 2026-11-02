@@ -20,7 +20,7 @@ A character set name (RFC 2978 §2.3), as in the `charset` parameter of a media 
 public readonly struct MimeCharset : IEquatable<MimeCharset>, ISpanFormattable, ISpanParsable<MimeCharset>
 ```
 
-`ISpanFormattable` and `ISpanParsable<T>` are on the `net8.0` and `net10.0` builds only.
+`ISpanFormattable` and `ISpanParsable<T>` are on the `net10.0` build only.
 
 ## Remarks
 

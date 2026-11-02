@@ -60,7 +60,7 @@ Inherited from `CodeAttributeBase`: `EnglishName`, `EnglishNames`, `FrenchName`,
 
 ## Applies to
 
-Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`. On the
+Targets `netstandard1.0`, `netstandard2.0`, and `net10.0`. On the
 `netstandard1.0` and `netstandard2.0` targets the reference-type properties are
 annotated with JetBrains `[CanBeNull]` rather than C# nullable reference types.
 

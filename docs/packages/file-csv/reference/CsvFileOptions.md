@@ -29,7 +29,7 @@ public sealed class CsvFileOptions : ICsvFileOptions
 
 ## Remarks
 
-On .NET 5 and later the type is a `record` whose properties are `init`-only, so
+On `net10.0` the type is a `record` whose properties are `init`-only, so
 configure it with an object initializer or a `with` expression. On .NET Standard the
 type is a plain `class` whose properties are settable. Construct it with the implicit
 parameterless constructor and set the properties you need; the rest keep their
@@ -59,11 +59,10 @@ RFC 4180 defaults.
 
 ## Applies to
 
-Targets `netstandard1.3`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0`.
-`CsvFileOptions` is a `record` with `init`-only properties on the `net8.0` and
-`net10.0` builds, and a plain `class` with settable properties on the
+Targets `netstandard1.3`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
+`CsvFileOptions` is a `record` with `init`-only properties on the `net10.0` build, and a plain `class` with settable properties on the
 `netstandard1.3`, `netstandard2.0`, and `netstandard2.1` builds. The nullable
-reference annotations apply to the `netstandard2.1`, `net8.0`, and `net10.0`
+reference annotations apply to the `netstandard2.1` and `net10.0`
 builds.
 
 ## See also

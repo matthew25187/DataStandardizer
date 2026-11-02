@@ -144,7 +144,7 @@ The parse methods of `MimeMediaType` and `MimeEncodedWord` take a resolver too, 
 decoding text in other character sets.
 
 > **Applies to:** the `[NotNullWhen(true)]` attribute and `Encoding?` are the form of the
-> interface in the `net8.0` and `net10.0` builds. In the .NET Standard builds, the
+> interface in the `net10.0` build. In the .NET Standard builds, the
 > method is `bool TryGetEncoding(MimeCharset charset, out Encoding encoding)`.
 
 ## See also

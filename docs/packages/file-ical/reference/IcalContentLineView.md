@@ -118,7 +118,7 @@ Every method throws `ObjectDisposedException` if the reader has been disposed, o
 
 ## Applies to
 
-Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0`.
+Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 
 ## See also
 

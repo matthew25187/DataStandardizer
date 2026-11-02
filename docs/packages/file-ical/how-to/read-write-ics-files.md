@@ -127,8 +127,8 @@ var options = new IcalOptions { LineBreak = "\n", FoldLength = 60 };
 using var writer = new IcalWriter("calendar.ics", options);
 ```
 
-On .NET 5 and later, `IcalOptions` is a record with `init` properties, so you can
-also use `with` to copy one. On older targets it is a class with `set` properties.
+On `net10.0`, `IcalOptions` is a record with `init` properties, so you can
+also use `with` to copy one. On the .NET Standard targets it is a class with `set` properties.
 
 ### Flush and dispose
 

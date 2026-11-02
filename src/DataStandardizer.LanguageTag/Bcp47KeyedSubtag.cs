@@ -167,18 +167,6 @@ namespace DataStandardizer.LanguageTag
                 }
 
                 return subtags;
-#elif NET8_0_OR_GREATER
-                var span = _subtag.AsSpan();
-                var segmentCount = span.Count('-') + 1;
-                var ranges = segmentCount <= 32 ? stackalloc Range[segmentCount] : new Range[segmentCount];
-                span.Split(ranges, '-');
-                var subtags = new string[segmentCount - 1];
-                for (var i = 1; i < segmentCount; i++)
-                {
-                    subtags[i - 1] = _subtag[ranges[i]];
-                }
-
-                return subtags;
 #else
                 var separatorCount = 0;
                 foreach (var c in _subtag)

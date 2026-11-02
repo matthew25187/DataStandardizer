@@ -277,8 +277,8 @@ var options = new IcalOptions
 };
 ```
 
-On .NET 5 and later, `IcalOptions` is a record, so you can derive one set of
-options from another with `with`. On older targets, set the properties.
+On `net10.0`, `IcalOptions` is a record, so you can derive one set of
+options from another with `with`. On the .NET Standard targets, set the properties.
 
 ## Check a model with Validate
 

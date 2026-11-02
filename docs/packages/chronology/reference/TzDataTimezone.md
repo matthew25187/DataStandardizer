@@ -20,7 +20,7 @@ identifiers — for example `TzDataTimezone.Europe.Berlin` and
 public readonly struct TzDataTimezone : IComparable, IEquatable<TzDataTimezone>, IParsable<TzDataTimezone>
 ```
 
-`IParsable<TzDataTimezone>` is implemented on `net8.0` and later only.
+`IParsable<TzDataTimezone>` is implemented on `net10.0` only.
 
 ## Remarks
 
@@ -157,9 +157,9 @@ The time zone instances are grouped by region:
 | Method | Returns | Notes |
 | --- | --- | --- |
 | `Parse(string s)` | `TzDataTimezone` | Returns the predefined instance with identifier `s`, or the canonical instance for a deprecated name. Throws `ArgumentNullException` if `s` is `null`, and `FormatException` if it is not a known identifier. |
-| `Parse(string s, IFormatProvider? provider)` | `TzDataTimezone` | `IParsable<TzDataTimezone>` implementation; `net8.0` and later only. `provider` is ignored. |
+| `Parse(string s, IFormatProvider? provider)` | `TzDataTimezone` | `IParsable<TzDataTimezone>` implementation; `net10.0` only. `provider` is ignored. |
 | `TryParse(string? s, out TzDataTimezone result)` | `bool` | Returns `false`, with `result` set to `default`, if `s` is `null` or not a known identifier. |
-| `TryParse(string? s, IFormatProvider? provider, out TzDataTimezone result)` | `bool` | `IParsable<TzDataTimezone>` implementation; `net8.0` and later only. `provider` is ignored. |
+| `TryParse(string? s, IFormatProvider? provider, out TzDataTimezone result)` | `bool` | `IParsable<TzDataTimezone>` implementation; `net10.0` only. `provider` is ignored. |
 
 ### Implicit implementation
 
@@ -182,7 +182,7 @@ The time zone instances are grouped by region:
 
 ## Applies to
 
-Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`.
+Targets `netstandard1.0`, `netstandard2.0`, and `net10.0`.
 
 ## See also
 

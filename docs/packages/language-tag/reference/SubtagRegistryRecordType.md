@@ -39,7 +39,7 @@ for the field, such as `extlang`, is still in the record's `Fields`.
 
 ## Applies to
 
-Targets `netstandard1.1`, `netstandard2.0`, `net8.0`, and `net10.0`.
+Targets `netstandard1.1`, `netstandard2.0`, and `net10.0`.
 
 ## See also
 

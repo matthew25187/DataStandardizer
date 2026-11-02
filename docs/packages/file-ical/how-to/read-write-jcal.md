@@ -14,7 +14,7 @@ object model (`IcalCalendar`, `IcalEvent` and so on) that `IcalReader` and
 xCal. So a calendar read from any of the three formats can be written in the others.
 
 jCal uses System.Text.Json, so `JcalReader` and `JcalWriter` are available on .NET
-Standard 2.0 and later only, **not on .NET Standard 1.1**. On .NET 8 and .NET 10,
+Standard 2.0 and later only, **not on .NET Standard 1.1**. On .NET 10,
 System.Text.Json is part of the framework. On .NET Standard 2.0 and 2.1, the package
 depends on the System.Text.Json NuGet package, which NuGet installs for you.
 

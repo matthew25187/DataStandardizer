@@ -15,7 +15,7 @@ A monetary value that combines a `decimal` amount with an optional ISO 4217
 currency and optional rounding. Instances are created through the static `Create`
 factory methods.
 
-**.NET 7.0 and later:**
+**`net10.0`:**
 
 ```csharp
 public readonly struct Money : IComparable, IComparable<Money>, IEquatable<Money>, IFormattable, IConvertible,
@@ -80,7 +80,7 @@ currencies.
 | `TryParse(string? s, MoneyStyles styles, IFormatProvider? provider, out Money result)` | `bool` | Permits only the specified elements. |
 | `TryParseExact(string? s, string[]? formats, IFormatProvider? provider, MoneyStyles styles, out Money result)` | `bool` | Requires `s` to be in one of the given formats. |
 
-On .NET 7.0 and later, `TryFormat`, `Parse(ReadOnlySpan<char>, IFormatProvider?)`
+On `net10.0`, `TryFormat`, `Parse(ReadOnlySpan<char>, IFormatProvider?)`
 and `TryParse(ReadOnlySpan<char>, IFormatProvider?, out Money)` are also
 available, satisfying `ISpanFormattable` and `ISpanParsable<Money>`.
 
@@ -142,8 +142,8 @@ underlying `decimal` and is callable only through an `IConvertible` reference.
 
 ## Applies to
 
-Targets `netstandard1.1`, `netstandard2.0`, `net8.0`, and `net10.0`. `IConvertible`
-is available on the `netstandard2.0`, `net8.0`, and `net10.0` builds, but **not**
+Targets `netstandard1.1`, `netstandard2.0`, and `net10.0`. `IConvertible`
+is available on the `netstandard2.0` and `net10.0` builds, but **not**
 on `netstandard1.1`.
 
 ## See also

@@ -74,8 +74,8 @@ built in code, has 0 for both.
 
 ## Applies to
 
-Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0`.
-The nullable reference annotations apply to the `netstandard2.1`, `net8.0`, and
+Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
+The nullable reference annotations apply to the `netstandard2.1` and
 `net10.0` builds.
 
 ## See also

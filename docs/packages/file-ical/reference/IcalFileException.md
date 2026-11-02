@@ -92,7 +92,7 @@ the keys of the items in `Data`.
 
 ## Applies to
 
-Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0`.
+Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 `JcalReader` and `JcalWriter`, and so the `BytePosition` and `JsonPath` items, are
 available on `netstandard2.0`, `netstandard2.1`, and the .NET targets only; the
 constants themselves are on every target.

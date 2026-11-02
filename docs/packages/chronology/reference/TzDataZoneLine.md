@@ -58,7 +58,7 @@ Zone America/New_York   -4:56:02  -      LMT     1883 Nov 18 17:00u
 
 ## Applies to
 
-Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`.
+Targets `netstandard1.0`, `netstandard2.0`, and `net10.0`.
 
 ## See also
 

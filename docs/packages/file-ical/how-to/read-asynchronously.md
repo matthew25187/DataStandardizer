@@ -11,7 +11,7 @@ nav_order: 2
 ones, and so do the content-line reader and writer they are built on. Use them to
 read a feed from the network, or a large file, without blocking a thread.
 
-> **Applies to:** .NET Standard 2.0 and later, and .NET 8 and .NET 10. There are no
+> **Applies to:** .NET Standard 2.0 and later, and .NET 10. There are no
 > asynchronous members on .NET Standard 1.1.
 
 ## Read calendars

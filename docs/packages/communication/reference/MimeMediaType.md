@@ -20,7 +20,7 @@ such as `text/plain;charset=us-ascii`.
 public readonly struct MimeMediaType : IEquatable<MimeMediaType>, ISpanFormattable, ISpanParsable<MimeMediaType>
 ```
 
-`ISpanFormattable` and `ISpanParsable<T>` are on the `net8.0` and `net10.0` builds only.
+`ISpanFormattable` and `ISpanParsable<T>` are on the `net10.0` build only.
 
 ## Remarks
 

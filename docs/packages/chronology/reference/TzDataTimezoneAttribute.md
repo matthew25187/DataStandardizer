@@ -30,8 +30,7 @@ public class TzDataTimezoneAttribute : Attribute
 The attribute is still applied to the static fields of `TzDataTimezone`, so
 code that reads it by reflection keeps working until it is removed. Reading the
 metadata through the properties of `TzDataTimezone` needs no reflection, and
-also works for an instance created by explicit cast from a string. On `net8.0`
-and `net10.0` the `Comment` property is nullable (`string?`); on the .NET
+also works for an instance created by explicit cast from a string. On `net10.0` the `Comment` property is nullable (`string?`); on the .NET
 Standard targets it is annotated `[CanBeNull]`.
 
 ## Constructors
@@ -51,9 +50,8 @@ Standard targets it is annotated `[CanBeNull]`.
 
 ## Applies to
 
-Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`. The
-`Comment` property is nullable-annotated (`string?`) only on `net8.0` and
-`net10.0`.
+Targets `netstandard1.0`, `netstandard2.0`, and `net10.0`. The
+`Comment` property is nullable-annotated (`string?`) only on `net10.0`.
 
 ## See also
 

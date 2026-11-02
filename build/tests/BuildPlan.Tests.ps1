@@ -250,7 +250,7 @@ Describe 'BuildPlan' {
         BeforeEach {
             $script:ProjectFolder = Join-Path (New-TestFolder) 'tests' 'DataStandardizer.Core.IntegrationTests'
             foreach ($relativePath in 'bin/Release/net10.0/DataStandardizer.Core.IntegrationTests.dll', 'bin/Release/net48/DataStandardizer.Core.IntegrationTests.dll',
-                'bin/Release/net8.0/DataStandardizer.Core.IntegrationTests.dll', 'bin/Release/net8.0/ref/DataStandardizer.Core.IntegrationTests.dll',
+                'bin/Release/net9.0/DataStandardizer.Core.IntegrationTests.dll', 'bin/Release/net9.0/ref/DataStandardizer.Core.IntegrationTests.dll',
                 'bin/Release/netstandard2.0/Other.dll', 'bin/Debug/net10.0/DataStandardizer.Core.IntegrationTests.dll') {
                 $path = Join-Path $script:ProjectFolder $relativePath
                 [void](New-Item -ItemType Directory -Path (Split-Path $path -Parent) -Force)
@@ -261,12 +261,12 @@ Describe 'BuildPlan' {
 
         It 'lists one assembly per target framework of the configuration, with .NET Framework when asked' {
             Get-TestAssemblyPath -ProjectFolderPath $script:ProjectFolder -Configuration 'Release' -IncludeNetFramework $true |
-                Should -Be @((& $script:Assembly 'net10.0'), (& $script:Assembly 'net48'), (& $script:Assembly 'net8.0'))
+                Should -Be @((& $script:Assembly 'net10.0'), (& $script:Assembly 'net48'), (& $script:Assembly 'net9.0'))
         }
 
         It 'leaves out .NET Framework when not asked' {
             Get-TestAssemblyPath -ProjectFolderPath $script:ProjectFolder -Configuration 'Release' -IncludeNetFramework $false |
-                Should -Be @((& $script:Assembly 'net10.0'), (& $script:Assembly 'net8.0'))
+                Should -Be @((& $script:Assembly 'net10.0'), (& $script:Assembly 'net9.0'))
         }
 
         It 'lists nothing for a project that was not built' {
@@ -284,7 +284,7 @@ Describe 'BuildPlan' {
 
             # A repository with the given test projects; the built ones have an assembly for each of the given frameworks.
             function New-TestProjectRoot {
-                param ([string[]]$Project, [string[]]$BuiltProject = @(), [string[]]$Framework = @('net10.0', 'net8.0'))
+                param ([string[]]$Project, [string[]]$BuiltProject = @(), [string[]]$Framework = @('net10.0', 'net9.0'))
                 $root = New-TestFolder
                 foreach ($name in $Project) {
                     $folder = Join-Path $root 'tests' $name
@@ -321,7 +321,7 @@ Describe 'BuildPlan' {
             $assembly = { param($Framework) Join-Path $root 'tests' 'DataStandardizer.Core.Tests' 'bin' 'Release' $Framework 'DataStandardizer.Core.Tests.dll' }
             $global:DotnetCalls | Should -Be @(
                 "test $(& $assembly 'net10.0') --logger trx;LogFileName=DataStandardizer.Core.Tests.net10.0.trx --results-directory TestResults"
-                "test $(& $assembly 'net8.0') --logger trx;LogFileName=DataStandardizer.Core.Tests.net8.0.trx --results-directory TestResults")
+                "test $(& $assembly 'net9.0') --logger trx;LogFileName=DataStandardizer.Core.Tests.net9.0.trx --results-directory TestResults")
         }
 
         It 'runs the integration tests on each target framework when the package has them' {
@@ -330,7 +330,7 @@ Describe 'BuildPlan' {
             $assembly = { param($Framework) Join-Path $root 'tests' 'DataStandardizer.Core.IntegrationTests' 'bin' 'Release' $Framework 'DataStandardizer.Core.IntegrationTests.dll' }
             $global:DotnetCalls | Should -Be @(
                 "test $(& $assembly 'net10.0') --logger trx;LogFileName=DataStandardizer.Core.IntegrationTests.net10.0.trx --results-directory TestResults"
-                "test $(& $assembly 'net8.0') --logger trx;LogFileName=DataStandardizer.Core.IntegrationTests.net8.0.trx --results-directory TestResults")
+                "test $(& $assembly 'net9.0') --logger trx;LogFileName=DataStandardizer.Core.IntegrationTests.net9.0.trx --results-directory TestResults")
         }
 
         It 'passes without running anything when the package has no integration tests' {

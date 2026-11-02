@@ -30,7 +30,7 @@ public sealed class IcalOptions
 
 ## Remarks
 
-On .NET 5 and later the type is a `record` whose properties are `init`-only, so
+On `net10.0` the type is a `record` whose properties are `init`-only, so
 configure it with an object initializer or a `with` expression. On .NET Standard the
 type is a plain `class` whose properties are settable. Construct it with the implicit
 parameterless constructor and set the properties you need; the rest keep their
@@ -87,11 +87,10 @@ On .NET Standard each property is `get; set;` instead of `get; init;`.
 
 ## Applies to
 
-Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0`.
-`IcalOptions` is a `record` with `init`-only properties on the `net8.0` and `net10.0`
-builds, and a plain `class` with settable properties on the `netstandard1.1`,
+Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
+`IcalOptions` is a `record` with `init`-only properties on the `net10.0` build, and a plain `class` with settable properties on the `netstandard1.1`,
 `netstandard2.0`, and `netstandard2.1` builds. The nullable annotation on `Encoding`
-applies to the `netstandard2.1`, `net8.0`, and `net10.0` builds.
+applies to the `netstandard2.1` and `net10.0` builds.
 
 ## See also
 

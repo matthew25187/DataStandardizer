@@ -20,7 +20,7 @@ A `data:` URI (RFC 2397), which holds a media type and its data inline, such as
 public readonly struct MimeDataUri : IEquatable<MimeDataUri>, ISpanFormattable, ISpanParsable<MimeDataUri>
 ```
 
-`ISpanFormattable` and `ISpanParsable<T>` are on the `net8.0` and `net10.0` builds only.
+`ISpanFormattable` and `ISpanParsable<T>` are on the `net10.0` build only.
 
 ## Remarks
 

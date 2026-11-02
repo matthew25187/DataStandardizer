@@ -20,7 +20,7 @@ public static class DateOnlyExtensions
 
 ## Remarks
 
-This class and its members require .NET 6 or later (they depend on `DateOnly`)
+This class and its members require the `net10.0` build (they depend on `DateOnly`)
 and are not available on the .NET Standard targets. The whole class is gated
 behind `#if NET6_0_OR_GREATER`.
 
@@ -30,13 +30,13 @@ behind `#if NET6_0_OR_GREATER`.
 
 | Method | Extends | Returns | Notes |
 | --- | --- | --- | --- |
-| `ToDosDateTime()` | `DateOnly` | `DosDateTime` | *(net6.0+)* |
-| `ToUnixTime()` | `DateOnly` | `UnixTime` | *(net6.0+)* Time of day taken as midnight. |
+| `ToDosDateTime()` | `DateOnly` | `DosDateTime` | *(`net10.0` only)* |
+| `ToUnixTime()` | `DateOnly` | `UnixTime` | *(`net10.0` only)* Time of day taken as midnight. |
 
 ## Applies to
 
-Available only on `net8.0` and `net10.0`. **Not** available on `netstandard1.0`
-or `netstandard2.0` (requires `DateOnly`, net6.0+).
+Available only on `net10.0`. **Not** available on `netstandard1.0`
+or `netstandard2.0` (requires `DateOnly`).
 
 ## See also
 

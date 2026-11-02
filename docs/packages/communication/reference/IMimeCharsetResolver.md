@@ -25,4 +25,4 @@ public interface IMimeCharsetResolver
 
 | Method | Notes |
 | --- | --- |
-| `bool TryGetEncoding(MimeCharset charset, out Encoding encoding)` | `false` if the character set isn't resolved. On the `net8.0` and `net10.0` builds, the parameter is `[NotNullWhen(true)] out Encoding? encoding`. |
+| `bool TryGetEncoding(MimeCharset charset, out Encoding encoding)` | `false` if the character set isn't resolved. On the `net10.0` build, the parameter is `[NotNullWhen(true)] out Encoding? encoding`. |

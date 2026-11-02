@@ -35,17 +35,17 @@ languages, ISO 15924 scripts, ISO 3166-1 / UN M49 regions). See
 ## Platform support
 
 Targets .NET Standard 1.1 and 2.0 for use in legacy applications, as well as
-in-support modern .NET runtimes (`net8.0`, `net10.0`).
+in-support modern .NET runtimes (`net10.0`).
 
 The `netstandard1.1` and `netstandard2.0` builds depend on the `System.Memory`
 package, which provides the span types they use. NuGet installs it
-automatically. The `net8.0` and `net10.0` builds have the span types built in,
-so they have no extra dependency.
+automatically. The `net10.0` build has the span types built in,
+so it has no extra dependency.
 
 > **Applies to:** the `ReadOnlySpan<char>` overloads of `TryCreate`,
 > `IsWellFormed`, `IsValid` and the `Check…Subtag` methods, and
 > `Bcp47LanguageTag.AsSpan()`, exist on every target. `Bcp47LanguageTag` implements `ISpanFormattable`, `IParsable<T>` and
-> `ISpanParsable<T>` on `net8.0` and `net10.0` only. The builder's
+> `ISpanParsable<T>` on `net10.0` only. The builder's
 > `params ReadOnlySpan<string>` overloads exist on `net10.0` only. Loading a
 > subtag registry from a file path (`SubtagRegistry.CreateFromFile` and
 > `CreateFromFileAsync`) needs `netstandard2.0` or later; on `netstandard1.1`,

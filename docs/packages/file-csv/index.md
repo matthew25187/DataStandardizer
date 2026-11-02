@@ -33,7 +33,7 @@ platforms such as Mono and Unity, as well as in-support modern .NET runtimes.
 > `CsvFileWriter<T>` require .NET Standard 2.0 or later, or a .NET Core / modern
 > .NET target; on .NET Standard 1.3 construct the reader/writer from a `Stream` or a
 > `TextReader` / `TextWriter`. The `with`-expression syntax shown in some
-> examples requires .NET 5 or later (`CsvFileOptions` is a `record` there and a
+> examples requires the `net10.0` build (`CsvFileOptions` is a `record` there and a
 > plain `class` on the `netstandard1.3`, `netstandard2.0`, and `netstandard2.1`
 > targets).
 
