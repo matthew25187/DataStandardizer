@@ -418,13 +418,13 @@ namespace DataStandardizer.LanguageTag
         public bool IsGrandfathered([CanBeNull] string languageTag)
 #endif
         {
-            return languageTag != null && _classifier.Value.IsGrandfathered(languageTag.AsSpan());
+            return languageTag != null && _classifier.Value.HasGrandfatheredRecord(languageTag.AsSpan());
         }
 
         /// <inheritdoc cref="IsGrandfathered(string)"/>
         public bool IsGrandfathered(ReadOnlySpan<char> languageTag)
         {
-            return _classifier.Value.IsGrandfathered(languageTag);
+            return _classifier.Value.HasGrandfatheredRecord(languageTag);
         }
 
         public override string ToString()

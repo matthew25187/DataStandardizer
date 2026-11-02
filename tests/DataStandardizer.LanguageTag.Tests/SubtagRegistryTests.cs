@@ -976,6 +976,19 @@ namespace DataStandardizer.LanguageTag.Tests
             testResult.Should().Be(expectedResult, "zh-Hant is a redundant tag and en a language subtag, not grandfathered tags");
         }
 
+        [Fact]
+        public void IsGrandfathered_ForRecordOfTagThatTheAbnfDoesNotList_ReturnsTrue()
+        {
+            // arrange
+            var registry = SubtagRegistry.CreateFromContent("Type: grandfathered\nTag: a-bb\nDescription: T");
+
+            // act
+            var testResult = registry.IsGrandfathered("a-bb");
+
+            // assert
+            testResult.Should().BeTrue("this method reports the registry's records, whether or not validation can use them");
+        }
+
         #endregion
 
         #region Test: ToString and reading content

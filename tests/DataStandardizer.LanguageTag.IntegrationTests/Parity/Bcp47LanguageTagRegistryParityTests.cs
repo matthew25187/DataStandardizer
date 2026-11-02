@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using FluentAssertions;
 using Xunit;
 
@@ -92,6 +93,62 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
 
             // assert
             testResult.Should().BeEmpty("the subtag properties of a language tag are the subtags the regular expression matched in it");
+        }
+
+        [Fact]
+        public void IsValid_WithIanaSubtagRegistryOverCorpusOutsideTheAbnf_ReturnsFalse()
+        {
+            // arrange
+            var cases = WellFormedParityCases.Shared.NotWellFormed;
+            var subtagRegistry = RegistryBasedParityCases.Iana.Registry;
+
+            // act
+            var testResult = DifferentialRunner.FindMismatches(cases, input => Bcp47LanguageTag.IsValid(input, subtagRegistry));
+
+            // assert
+            testResult.Should().BeEmpty("a tag that isn't well-formed can't be valid (RFC 5646 §2.2.9)");
+        }
+
+        [Fact]
+        public void IsValid_WithTrimmedSubtagRegistryOverCorpusOutsideTheAbnf_ReturnsFalse()
+        {
+            // arrange
+            var cases = WellFormedParityCases.Shared.NotWellFormed;
+            var subtagRegistry = RegistryBasedParityCases.Trimmed.Registry;
+
+            // act
+            var testResult = DifferentialRunner.FindMismatches(cases, input => Bcp47LanguageTag.IsValid(input, subtagRegistry));
+
+            // assert
+            testResult.Should().BeEmpty("a tag that isn't well-formed can't be valid (RFC 5646 §2.2.9)");
+        }
+
+        [Fact]
+        public void IsValid_WithRegistryOfRecordsOutsideTheAbnfOverCorpusOutsideTheAbnf_ReturnsFalse()
+        {
+            // arrange
+            var cases = WellFormedParityCases.Shared.NotWellFormed;
+            var subtagRegistry = RegistryBasedParityCases.CreateSubtagRegistryWithRecordsOutsideTheAbnf();
+
+            // act
+            var testResult = DifferentialRunner.FindMismatches(cases, input => Bcp47LanguageTag.IsValid(input, subtagRegistry));
+
+            // assert
+            testResult.Should().BeEmpty("a record can't make a tag valid that isn't well-formed (RFC 5646 §2.2.9)");
+        }
+
+        /// <summary>
+        /// Inputs the corpus must have for the comparison to reach each kind of record in <see cref="RegistryBasedParityCases.CreateSubtagRegistryWithRecordsOutsideTheAbnf"/>.
+        /// </summary>
+        [Theory]
+        [InlineData("a"), InlineData("abcdefghi"), InlineData("12345"), InlineData("abcde-yue"), InlineData("abcdefgh-yue"), InlineData("en-a1"), InlineData("en-1"), InlineData("en-ab1"), InlineData("en-abcdefghi"), InlineData("a-bb")]
+        public void Inputs_OfCorpus_IncludeTagOfRecordOutsideTheAbnf(string expectedInput)
+        {
+            // act
+            var testResult = WellFormedParityCases.Shared.NotWellFormed;
+
+            // assert
+            testResult.Select(notWellFormed => notWellFormed.Input).Should().Contain(expectedInput);
         }
 
         [Fact]
