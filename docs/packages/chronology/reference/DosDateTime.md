@@ -52,12 +52,12 @@ two-second resolution, as in the DOS format.
 The following extensions apply to `DosDateTime`:
 
 - [`ToDateTime<T>()`](SystemTimeExtensions.md) &mdash; returns `DateTime`.
-- [`ToDateOnly<T>()`](SystemTimeExtensions.md) &mdash; returns `DateOnly` *(net6.0+)*.
-- [`ToTimeOnly<T>()`](SystemTimeExtensions.md) &mdash; returns `TimeOnly` *(net6.0+)*.
+- [`ToDateOnly<T>()`](SystemTimeExtensions.md) &mdash; returns `DateOnly` *(`net10.0` only)*.
+- [`ToTimeOnly<T>()`](SystemTimeExtensions.md) &mdash; returns `TimeOnly` *(`net10.0` only)*.
 
 ## Applies to
 
-Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`.
+Targets `netstandard1.0`, `netstandard2.0`, and `net10.0`.
 
 ## See also
 

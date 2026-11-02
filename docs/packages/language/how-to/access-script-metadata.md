@@ -37,7 +37,7 @@ an extension method on a script code:
 var scriptDate = Iso15924Script.Egyp.GetDate();
 ```
 
-> **Applies to:** on .NET 6 and later `GetDate()` returns a `DateOnly?`; on the
+> **Applies to:** on `net10.0` `GetDate()` returns a `DateOnly?`; on the
 > .NET Standard targets it returns a `DateTime?`.
 
 ## English name

@@ -29,7 +29,7 @@ public sealed class CsvFieldContext<TModel> where TModel : class
 
 ## Remarks
 
-On .NET 5 and later the type is a `record`; on .NET Standard it is a plain `class`.
+On `net10.0` the type is a `record`; on .NET Standard it is a plain `class`.
 You do not construct it — its constructor and property setters are `internal`. The
 library supplies a populated instance to your [CsvFieldBadValue](CsvFieldBadValue.md),
 [CsvFieldCount](CsvFieldCount.md), [CsvFieldValidate](CsvFieldValidate.md),
@@ -50,11 +50,11 @@ publicly read-only.
 
 ## Applies to
 
-Targets `netstandard1.3`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0`.
-`CsvFieldContext<TModel>` is a `record` on the `net8.0` and `net10.0` builds and a
+Targets `netstandard1.3`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
+`CsvFieldContext<TModel>` is a `record` on the `net10.0` build and a
 plain `class` on the `netstandard1.3`, `netstandard2.0`, and `netstandard2.1`
 builds. The nullable reference annotations apply to the
-`netstandard2.1`, `net8.0`, and `net10.0` builds.
+`netstandard2.1` and `net10.0` builds.
 
 ## See also
 

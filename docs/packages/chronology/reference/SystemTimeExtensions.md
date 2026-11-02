@@ -24,7 +24,7 @@ public static class SystemTimeExtensions
 `ToDateTime`, `ToDateOnly`, and `ToTimeOnly` are generic over any value type
 implementing [ISystemTime](ISystemTime.md) (such as [UnixTime](UnixTime.md) and
 [DosDateTime](DosDateTime.md)), deriving the result from the value's Julian Day
-Number. `ToDateOnly` and `ToTimeOnly` require .NET 6 or later. `AsUnixTime` and
+Number. `ToDateOnly` and `ToTimeOnly` require the `net10.0` build. `AsUnixTime` and
 `AsDosDateTime` return a non-null value only when the
 `SystemTimeWithGregorianCalendar` wraps that underlying type.
 
@@ -36,15 +36,14 @@ Number. `ToDateOnly` and `ToTimeOnly` require .NET 6 or later. `AsUnixTime` and
 | --- | --- | --- | --- |
 | `AsDosDateTime()` | `SystemTimeWithGregorianCalendar` | `DosDateTime?` | Non-null only if the wrapped value was a `DosDateTime`. |
 | `AsUnixTime()` | `SystemTimeWithGregorianCalendar` | `UnixTime?` | Non-null only if the wrapped value was a `UnixTime`. |
-| `ToDateOnly<T>()` | `T` (`struct, ISystemTime`) | `DateOnly` | *(net6.0+)* |
+| `ToDateOnly<T>()` | `T` (`struct, ISystemTime`) | `DateOnly` | *(`net10.0` only)* |
 | `ToDateTime<T>()` | `T` (`struct, ISystemTime`) | `DateTime` | Derived from the Julian Day Number. |
-| `ToTimeOnly<T>()` | `T` (`struct, ISystemTime`) | `TimeOnly` | *(net6.0+)* |
+| `ToTimeOnly<T>()` | `T` (`struct, ISystemTime`) | `TimeOnly` | *(`net10.0` only)* |
 
 ## Applies to
 
-Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`. The
-`ToDateOnly` and `ToTimeOnly` methods are available only on `net8.0` and
-`net10.0` (they require `DateOnly` / `TimeOnly`, net6.0+).
+Targets `netstandard1.0`, `netstandard2.0`, and `net10.0`. The
+`ToDateOnly` and `ToTimeOnly` methods are available only on `net10.0` (they require `DateOnly` / `TimeOnly`).
 
 ## See also
 

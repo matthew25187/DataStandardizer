@@ -140,11 +140,11 @@ Cancellation is checked before each block is read.
 
 ## Applies to
 
-Targets `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0` only. jCal needs
-System.Text.Json, so `JcalReader` isn't available on `netstandard1.1`. On .NET 8 and
+Targets `netstandard2.0`, `netstandard2.1`, and `net10.0` only. jCal needs
+System.Text.Json, so `JcalReader` isn't available on `netstandard1.1`. On
 .NET 10, System.Text.Json is part of the framework; on .NET Standard 2.0 and 2.1, the
 package depends on the System.Text.Json NuGet package. The nullable reference
-annotations apply to the `netstandard2.1`, `net8.0`, and `net10.0` builds.
+annotations apply to the `netstandard2.1` and `net10.0` builds.
 
 ## See also
 

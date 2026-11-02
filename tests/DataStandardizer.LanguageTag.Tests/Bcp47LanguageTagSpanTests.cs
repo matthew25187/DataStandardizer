@@ -12,7 +12,7 @@ namespace DataStandardizer.LanguageTag.Tests
     /// </summary>
     /// <remarks>
     /// The <c>net48</c> run tests the package's <c>netstandard2.0</c> build, which has the span members but not the .NET 6 and .NET 7
-    /// interfaces; the <c>net8.0</c> and <c>net10.0</c> runs test everything.
+    /// interfaces; the <c>net10.0</c> run tests everything.
     /// </remarks>
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     public class Bcp47LanguageTagSpanTests

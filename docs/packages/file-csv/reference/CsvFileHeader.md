@@ -24,12 +24,12 @@ public delegate IReadOnlyList<string> CsvFileHeader(CsvFileHeaderLine? headerLin
 
 Assigned to [CsvFileOptions.HeaderHandler](CsvFileOptions.md). `headerLine` is the
 header read from the file, if any; return the field names to use, in order. The
-nullable annotation on `headerLine` applies to the `netstandard2.1`, `net8.0`, and
+nullable annotation on `headerLine` applies to the `netstandard2.1` and
 `net10.0` builds.
 
 ## Applies to
 
-Targets `netstandard1.3`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0`.
+Targets `netstandard1.3`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 
 ## See also
 

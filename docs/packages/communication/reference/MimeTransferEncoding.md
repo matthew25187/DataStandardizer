@@ -20,7 +20,7 @@ A transfer encoding mechanism, as in a Content-Transfer-Encoding header field
 public readonly struct MimeTransferEncoding : IEquatable<MimeTransferEncoding>, ISpanFormattable, ISpanParsable<MimeTransferEncoding>
 ```
 
-`ISpanFormattable` and `ISpanParsable<T>` are on the `net8.0` and `net10.0` builds only.
+`ISpanFormattable` and `ISpanParsable<T>` are on the `net10.0` build only.
 
 ## Remarks
 

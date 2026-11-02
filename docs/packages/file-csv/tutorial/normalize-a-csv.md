@@ -14,8 +14,8 @@ common first step in any data pipeline: get untidy input into a predictable
 shape before anything downstream touches it.
 
 > **Applies to:** this walkthrough uses a `with` expression to copy options,
-> which requires .NET 5 or later (`CsvFileOptions` is a `record` there). On
-> earlier targets, build the second options object explicitly instead.
+> which requires the `net10.0` build (`CsvFileOptions` is a `record` there). On
+> the .NET Standard targets, build the second options object explicitly instead.
 
 ## What you'll build
 

@@ -112,9 +112,9 @@ All names are compared case-insensitively.
 
 ## Applies to
 
-Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0`.
+Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 The nullable reference annotations, such as the `IcalContentLine?` return of
-`GetProperty`, apply to the `netstandard2.1`, `net8.0`, and `net10.0` builds.
+`GetProperty`, apply to the `netstandard2.1` and `net10.0` builds.
 
 ## See also
 

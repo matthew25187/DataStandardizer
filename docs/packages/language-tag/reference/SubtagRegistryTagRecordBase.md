@@ -53,7 +53,7 @@ text is still in `Fields`.
 
 ## Applies to
 
-Targets `netstandard1.1`, `netstandard2.0`, `net8.0`, and `net10.0`. On the
+Targets `netstandard1.1`, `netstandard2.0`, and `net10.0`. On the
 .NET Standard targets nullability is expressed through JetBrains
 `[CanBeNull]` attributes; the public surface is otherwise the same.
 

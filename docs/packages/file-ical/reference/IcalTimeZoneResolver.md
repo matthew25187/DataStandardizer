@@ -177,10 +177,10 @@ later only.
 
 ## Applies to
 
-Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0`.
+Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 The `System` property is available on `netstandard2.0`, `netstandard2.1`, and the
 .NET targets only; on `netstandard1.1` use `Calendar` and `TzData`. The nullable
-reference annotations apply to the `netstandard2.1`, `net8.0`, and `net10.0` builds.
+reference annotations apply to the `netstandard2.1` and `net10.0` builds.
 
 ## See also
 

@@ -97,9 +97,9 @@ stream's current position and leave the stream open; the caller disposes it.
 | `CreateFromContent(string subtagRegistryContent)` | `SubtagRegistry` | Static. Loads the registry from an in-memory string. |
 | `CreateFromContentAsync(string subtagRegistryContent)` | `Task<SubtagRegistry>` | Static. Asynchronous form. |
 | `CreateFromContentAsync(string subtagRegistryContent, CancellationToken cancellationToken)` | `Task<SubtagRegistry>` | Static. Asynchronous form that can be cancelled. Throws `OperationCanceledException` if `cancellationToken` is cancelled. |
-| `CreateFromFile(string subtagRegistryFilePath)` | `SubtagRegistry` | Static. Loads the registry from a file path. `netstandard2.0`, `net8.0` and `net10.0` only. |
-| `CreateFromFileAsync(string subtagRegistryFilePath)` | `Task<SubtagRegistry>` | Static. Asynchronous form. `netstandard2.0`, `net8.0` and `net10.0` only. |
-| `CreateFromFileAsync(string subtagRegistryFilePath, CancellationToken cancellationToken)` | `Task<SubtagRegistry>` | Static. Asynchronous form that can be cancelled. Throws `OperationCanceledException` if `cancellationToken` is cancelled. `netstandard2.0`, `net8.0` and `net10.0` only. |
+| `CreateFromFile(string subtagRegistryFilePath)` | `SubtagRegistry` | Static. Loads the registry from a file path. `netstandard2.0` and `net10.0` only. |
+| `CreateFromFileAsync(string subtagRegistryFilePath)` | `Task<SubtagRegistry>` | Static. Asynchronous form. `netstandard2.0` and `net10.0` only. |
+| `CreateFromFileAsync(string subtagRegistryFilePath, CancellationToken cancellationToken)` | `Task<SubtagRegistry>` | Static. Asynchronous form that can be cancelled. Throws `OperationCanceledException` if `cancellationToken` is cancelled. `netstandard2.0` and `net10.0` only. |
 | `CreateFromStream(Stream stream)` | `SubtagRegistry` | Static. Loads the registry from a stream. |
 | `CreateFromStreamAsync(Stream stream)` | `Task<SubtagRegistry>` | Static. Asynchronous form. |
 | `CreateFromStreamAsync(Stream stream, CancellationToken cancellationToken)` | `Task<SubtagRegistry>` | Static. Asynchronous form that can be cancelled. Throws `OperationCanceledException` if `cancellationToken` is cancelled. |
@@ -111,9 +111,9 @@ stream's current position and leave the stream open; the caller disposes it.
 
 ## Applies to
 
-Targets `netstandard1.1`, `netstandard2.0`, `net8.0`, and `net10.0`. The
+Targets `netstandard1.1`, `netstandard2.0`, and `net10.0`. The
 `CreateFromFile` and `CreateFromFileAsync` methods, including the
-`CancellationToken` overload, exist on `netstandard2.0`, `net8.0` and `net10.0`
+`CancellationToken` overload, exist on `netstandard2.0` and `net10.0`
 only; on `netstandard1.1`, load the registry from a `Stream` or a string.
 The public surface is otherwise the same.
 

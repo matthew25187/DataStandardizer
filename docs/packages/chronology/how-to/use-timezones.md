@@ -50,7 +50,7 @@ var berlin = TzDataTimezone.Parse("Europe/Berlin");
 Identifiers are case-sensitive, as they are in the TZ Database, so
 `"europe/berlin"` is not recognised.
 
-On .NET 8 and later, `TzDataTimezone` implements `IParsable<TzDataTimezone>`, so
+On the `net10.0` build, `TzDataTimezone` implements `IParsable<TzDataTimezone>`, so
 it can be used wherever a parsable type is expected.
 
 Prefer `Parse` and `TryParse` to the explicit cast from `string`. The cast

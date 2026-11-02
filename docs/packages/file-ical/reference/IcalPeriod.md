@@ -66,7 +66,7 @@ are no `string` overloads. A `string` converts to `ReadOnlySpan<char>` implicitl
 `AsSpan()` on the string. The type does not implement `IParsable<T>` or
 `ISpanParsable<T>`, because parsing needs an `IcalValueFormat`.
 
-**Formatting.** On the `net8.0` and `net10.0` builds the type implements
+**Formatting.** On the `net10.0` build the type implements
 `ISpanFormattable`. An empty format string gives the `Text` form; `T`, `J` and `X`
 choose a form, in either case.
 
@@ -132,10 +132,9 @@ result string.
 
 ## Applies to
 
-Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0`.
-`ISpanFormattable` and its explicit members are implemented on the `net8.0` and
-`net10.0` builds only. The nullable reference annotations, such as `string?` on the
-`timeZoneId` parameters, apply to the `netstandard2.1`, `net8.0`, and `net10.0`
+Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
+`ISpanFormattable` and its explicit members are implemented on the `net10.0` build only. The nullable reference annotations, such as `string?` on the
+`timeZoneId` parameters, apply to the `netstandard2.1` and `net10.0`
 builds. `JcalReader` and `JcalWriter` are not available on `netstandard1.1`, but the
 `Json` form of this type is.
 

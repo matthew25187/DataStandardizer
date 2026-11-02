@@ -107,10 +107,9 @@ are no `string` overloads. A `string` converts to `ReadOnlySpan<char>` implicitl
 
 **Formatting.** `ToString()` doesn't check the rule, so it also shows a rule that is
 not valid. `ToString(IcalValueFormat)` and `TryFormat` throw
-`InvalidOperationException` for a rule that is not valid. On the `net8.0` and
-`net10.0` builds the type implements `ISpanFormattable`, and an interpolated string
-such as `$"{rule}"` formats through `ISpanFormattable.TryFormat`. So, on those
-builds, interpolating a rule that is not valid throws `InvalidOperationException`,
+`InvalidOperationException` for a rule that is not valid. On the `net10.0` build the type implements `ISpanFormattable`, and an interpolated string
+such as `$"{rule}"` formats through `ISpanFormattable.TryFormat`. So, on that
+build, interpolating a rule that is not valid throws `InvalidOperationException`,
 where `rule.ToString()` does not.
 
 **Allocation.** The rule parts are held inline, so `TryParse` from a span and
@@ -271,10 +270,9 @@ periods than `MaxRecurrenceIterations` give no occurrence.
 
 ## Applies to
 
-Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0`.
-`ISpanFormattable` and its explicit members are implemented on the `net8.0` and
-`net10.0` builds only. The nullable reference annotations apply to the
-`netstandard2.1`, `net8.0`, and `net10.0` builds.
+Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
+`ISpanFormattable` and its explicit members are implemented on the `net10.0` build only. The nullable reference annotations apply to the
+`netstandard2.1` and `net10.0` builds.
 
 ## See also
 

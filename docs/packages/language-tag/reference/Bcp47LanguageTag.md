@@ -24,7 +24,7 @@ public readonly struct Bcp47LanguageTag : IEquatable<Bcp47LanguageTag>,
 ```
 
 The struct implements `ISpanFormattable`, `IParsable<Bcp47LanguageTag>` and
-`ISpanParsable<Bcp47LanguageTag>` on `net8.0` and `net10.0` only. On the .NET
+`ISpanParsable<Bcp47LanguageTag>` on `net10.0` only. On the .NET
 Standard targets it implements `IEquatable<Bcp47LanguageTag>` alone.
 
 ## Remarks
@@ -156,8 +156,8 @@ Each getter throws `InvalidOperationException` if the instance is uninitialised.
 | `IsValid(ReadOnlySpan<char> languageTag, SubtagRegistry subtagRegistry)` | `bool` | Static. As for the `string` overload. |
 | `IsWellFormed(string languageTag)` | `bool` | Static. Whether the string matches the ABNF of RFC 5646 §2.1. `true` for the grandfathered tags, and for a tag that repeats a variant subtag or extension singleton (§2.2.9). Throws `ArgumentNullException` if `null`. |
 | `IsWellFormed(ReadOnlySpan<char> languageTag)` | `bool` | Static. As for the `string` overload. |
-| `Parse(string s, IFormatProvider? provider)` | `Bcp47LanguageTag` | Static; implements `IParsable<Bcp47LanguageTag>`. As for `Create(string)`; `provider` is ignored. `net8.0` and `net10.0` only. |
-| `Parse(ReadOnlySpan<char> s, IFormatProvider? provider)` | `Bcp47LanguageTag` | Static; implements `ISpanParsable<Bcp47LanguageTag>`. Throws `LanguageTagFormatException` if the tag isn't well-formed. `provider` is ignored. `net8.0` and `net10.0` only. |
+| `Parse(string s, IFormatProvider? provider)` | `Bcp47LanguageTag` | Static; implements `IParsable<Bcp47LanguageTag>`. As for `Create(string)`; `provider` is ignored. `net10.0` only. |
+| `Parse(ReadOnlySpan<char> s, IFormatProvider? provider)` | `Bcp47LanguageTag` | Static; implements `ISpanParsable<Bcp47LanguageTag>`. Throws `LanguageTagFormatException` if the tag isn't well-formed. `provider` is ignored. `net10.0` only. |
 | `ToIso15924()` | `Iso15924Script?` | From the script subtag; `null` if absent or unrecognised. |
 | `ToIso3166Part1Alpha2()` | `Iso3166Part1Alpha2Country?` | From the region subtag; `null` if absent or unrecognised. |
 | `ToIso639Part1()` | `Iso639Part1Language?` | From the primary language subtag; `null` if absent or unrecognised. |
@@ -172,15 +172,15 @@ Each getter throws `InvalidOperationException` if the instance is uninitialised.
 | `TryCreate(ReadOnlySpan<char> languageTag, out Bcp47LanguageTag result)` | `bool` | Static. Checks the span in place and copies it to a string only if it is well-formed, so rejecting input allocates nothing. |
 | `TryCreate(ReadOnlySpan<char> languageTag, LanguageTagConformance conformance, out Bcp47LanguageTag result)` | `bool` | Static. As above, checking `WellFormed` or `IsoCodeLists`. Throws `ArgumentException` for `Valid`. |
 | `TryCreate(ReadOnlySpan<char> languageTag, SubtagRegistry subtagRegistry, out Bcp47LanguageTag result)` | `bool` | Static. As above, checking validity against a loaded subtag registry. Returns `false` if `subtagRegistry` is `null`. |
-| `TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)` | `bool` | Implements `ISpanFormattable`. Copies the tag string, as `ToString()` returns it, into `destination`; `false`, with `charsWritten` 0, if it is too short. `format` and `provider` are ignored. `net8.0` and `net10.0` only. |
-| `TryParse(string? s, IFormatProvider? provider, out Bcp47LanguageTag result)` | `bool` | Static; implements `IParsable<Bcp47LanguageTag>`. As for `TryCreate(string?, out Bcp47LanguageTag)`; `provider` is ignored. `net8.0` and `net10.0` only. |
-| `TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out Bcp47LanguageTag result)` | `bool` | Static; implements `ISpanParsable<Bcp47LanguageTag>`. As for `TryCreate(ReadOnlySpan<char>, out Bcp47LanguageTag)`; `provider` is ignored. `net8.0` and `net10.0` only. |
+| `TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)` | `bool` | Implements `ISpanFormattable`. Copies the tag string, as `ToString()` returns it, into `destination`; `false`, with `charsWritten` 0, if it is too short. `format` and `provider` are ignored. `net10.0` only. |
+| `TryParse(string? s, IFormatProvider? provider, out Bcp47LanguageTag result)` | `bool` | Static; implements `IParsable<Bcp47LanguageTag>`. As for `TryCreate(string?, out Bcp47LanguageTag)`; `provider` is ignored. `net10.0` only. |
+| `TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out Bcp47LanguageTag result)` | `bool` | Static; implements `ISpanParsable<Bcp47LanguageTag>`. As for `TryCreate(ReadOnlySpan<char>, out Bcp47LanguageTag)`; `provider` is ignored. `net10.0` only. |
 
 ### Explicit implementation
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `IFormattable.ToString(string? format, IFormatProvider? formatProvider)` | `string` | Returns the same as `ToString()`; `format` and `formatProvider` are ignored. `net8.0` and `net10.0` only. |
+| `IFormattable.ToString(string? format, IFormatProvider? formatProvider)` | `string` | Returns the same as `ToString()`; `format` and `formatProvider` are ignored. `net10.0` only. |
 
 ## Operators
 
@@ -192,16 +192,16 @@ Each getter throws `InvalidOperationException` if the instance is uninitialised.
 
 ## Applies to
 
-Targets `netstandard1.1`, `netstandard2.0`, `net8.0`, and `net10.0`. On the
+Targets `netstandard1.1`, `netstandard2.0`, and `net10.0`. On the
 .NET Standard targets nullability is expressed through JetBrains
 `[NotNull]` / `[CanBeNull]` attributes. The public surface otherwise differs by
 target as follows:
 
-| Members | `netstandard1.1` | `netstandard2.0` | `net8.0` | `net10.0` |
-| --- | --- | --- | --- | --- |
-| `AsSpan()` and the `ReadOnlySpan<char>` overloads of `Check…Subtag`, `IsWellFormed`, `IsValid` and `TryCreate` | Yes | Yes | Yes | Yes |
-| `ISpanFormattable` (`TryFormat`, `IFormattable.ToString`) | No | No | Yes | Yes |
-| `IParsable<Bcp47LanguageTag>` and `ISpanParsable<Bcp47LanguageTag>` (`Parse`, `TryParse`) | No | No | Yes | Yes |
+| Members | `netstandard1.1` | `netstandard2.0` | `net10.0` |
+| --- | --- | --- | --- |
+| `AsSpan()` and the `ReadOnlySpan<char>` overloads of `Check…Subtag`, `IsWellFormed`, `IsValid` and `TryCreate` | Yes | Yes | Yes |
+| `ISpanFormattable` (`TryFormat`, `IFormattable.ToString`) | No | No | Yes |
+| `IParsable<Bcp47LanguageTag>` and `ISpanParsable<Bcp47LanguageTag>` (`Parse`, `TryParse`) | No | No | Yes |
 
 On `net10.0`, the ISO code lists and registry checks look subtags up in hash sets; the
 other targets search sorted arrays. Neither lookup allocates, and the results are the

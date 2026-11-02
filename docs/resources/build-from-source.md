@@ -57,8 +57,7 @@ dotnet test DataStandardizer.sln
 
 The `DataStandardizer.LanguageTag`, `DataStandardizer.Communication` and
 `DataStandardizer.File.iCal` tests also target .NET Framework 4.8, so that each
-package's `netstandard2.0` build is tested as well as its `net8.0` and `net10.0`
-builds. Running them on .NET Framework needs Windows. On other operating systems,
+package's `netstandard2.0` build is tested as well as its `net10.0` build. Running them on .NET Framework needs Windows. On other operating systems,
 choose a framework with `-f`:
 
 ```shell

@@ -255,7 +255,7 @@ The subdivision members are grouped by ISO 3166-1 alpha-2 country code:
 
 ## Applies to
 
-Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`.
+Targets `netstandard1.0`, `netstandard2.0`, and `net10.0`.
 
 ## See also
 

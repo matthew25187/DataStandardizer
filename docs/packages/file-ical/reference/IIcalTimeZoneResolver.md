@@ -46,9 +46,9 @@ is not valid; a chain does not catch it. To supply your own rules, derive from
 
 ## Applies to
 
-Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0`.
+Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 The nullable reference annotations and the `[NotNullWhen(true)]` attribute apply to
-the `netstandard2.1`, `net8.0`, and `net10.0` builds.
+the `netstandard2.1` and `net10.0` builds.
 
 ## See also
 

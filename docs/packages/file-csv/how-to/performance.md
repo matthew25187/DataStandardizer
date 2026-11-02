@@ -101,7 +101,7 @@ field bag as an `object`, so a value-type property, such as an `int` or a
 
 > **Applies to:** on the `net10.0` build, the field bag is the generic
 > `OrderedDictionary<string, object?>`, which stores each field inline. On the
-> `netstandard1.3`, `netstandard2.0`, `netstandard2.1` and `net8.0` builds, it is
+> `netstandard1.3`, `netstandard2.0` and `netstandard2.1` builds, it is
 > the non-generic `OrderedDictionary`, which also allocates an entry object for
 > each field. The fields and their order are the same on every target.
 

@@ -64,7 +64,7 @@ the `Comment`, `IsoCountryCodes`, `Latitude` and `Longitude` properties of
 
 Each deprecated accessor locates the time zone's declaring field, reads its
 `TzDataTimezoneAttribute`, and returns the requested metadata, or a default
-(`null`, `0` or an empty array) for an unknown time zone. On `net8.0`/`net10.0`
+(`null`, `0` or an empty array) for an unknown time zone. On `net10.0`
 `GetComment` returns `string?`; on the .NET Standard targets it returns `string`
 annotated `[CanBeNull]`.
 
@@ -110,7 +110,7 @@ the zone line in effect at the instant:
 
 ## Applies to
 
-Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`.
+Targets `netstandard1.0`, `netstandard2.0`, and `net10.0`.
 
 ## See also
 

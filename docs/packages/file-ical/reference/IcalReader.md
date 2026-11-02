@@ -128,12 +128,11 @@ are thrown by the call. Errors in the data (`IcalFileException`) and cancellatio
 
 ## Applies to
 
-Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0`.
+Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 The `string` file-path constructors, the asynchronous methods, and `IAsyncDisposable`
 are available on `netstandard2.0`, `netstandard2.1`, and the .NET targets only; on
 `netstandard1.1` construct the reader from a `Stream` or `TextReader` and read
-synchronously. The nullable reference annotations apply to the `netstandard2.1`,
-`net8.0`, and `net10.0` builds.
+synchronously. The nullable reference annotations apply to the `netstandard2.1` and `net10.0` builds.
 
 ## See also
 

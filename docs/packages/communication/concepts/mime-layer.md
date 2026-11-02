@@ -71,7 +71,7 @@ so it has no parse methods and doesn't implement the interfaces.
 - **Default values.** A `default` value isn't initialised. Its properties throw
   `InvalidOperationException`, `ToString` returns an empty string, and `TryFormat`
   writes nothing, except on `MimeParameter`, where it throws.
-- **Interfaces.** The `net8.0` and `net10.0` builds of the value types also implement
+- **Interfaces.** The `net10.0` build of the value types also implements
   `ISpanFormattable` and `ISpanParsable<T>`. Their `IFormatProvider` and format arguments
   are ignored.
 

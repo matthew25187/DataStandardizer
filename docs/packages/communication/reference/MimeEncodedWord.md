@@ -21,7 +21,7 @@ its encoding, and its decoded text.
 public readonly struct MimeEncodedWord : IEquatable<MimeEncodedWord>, ISpanFormattable, ISpanParsable<MimeEncodedWord>
 ```
 
-`ISpanFormattable` and `ISpanParsable<T>` are on the `net8.0` and `net10.0` builds only.
+`ISpanFormattable` and `ISpanParsable<T>` are on the `net10.0` build only.
 
 ## Remarks
 

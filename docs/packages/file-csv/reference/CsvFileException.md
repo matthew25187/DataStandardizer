@@ -42,10 +42,10 @@ attached to the exception's `Data` dictionary.
 
 ## Applies to
 
-Targets `netstandard1.3`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net10.0`.
-`FilePath` is `init`-settable on the `net8.0` and `net10.0` builds; on the .NET
+Targets `netstandard1.3`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
+`FilePath` is `init`-settable on the `net10.0` build; on the .NET
 Standard builds it is publicly get-only. Its nullable annotation applies to the
-`netstandard2.1`, `net8.0`, and `net10.0` builds.
+`netstandard2.1` and `net10.0` builds.
 
 ## See also
 
