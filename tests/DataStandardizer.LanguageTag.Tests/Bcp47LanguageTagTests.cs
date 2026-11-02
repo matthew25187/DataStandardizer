@@ -394,9 +394,19 @@ namespace DataStandardizer.LanguageTag.Tests
         private const string LanguageTagParameterName = "languageTag";
 
         /// <summary>
-        /// The message of the exception thrown for a string that is not a language tag.
+        /// The message of the exception thrown for a string that is not a well-formed language tag.
         /// </summary>
-        private const string InvalidFormatMessage = "The language tag is not in a valid format.";
+        private const string NotWellFormedMessage = "The language tag is not well-formed.";
+
+        /// <summary>
+        /// The message of the exception thrown for a string that is not a language tag valid against the Subtag Registry.
+        /// </summary>
+        private const string NotValidMessage = "The language tag is not valid against the subtag registry.";
+
+        /// <summary>
+        /// The message of the exception thrown for a string that the ISO code lists opt-in rejects.
+        /// </summary>
+        private const string NotInIsoCodeListsMessage = "The language tag is not well-formed, or is not in the ISO code lists.";
 
         private static readonly char[] TestCharacters;
         private static readonly char[] TestDigits;
@@ -513,7 +523,7 @@ namespace DataStandardizer.LanguageTag.Tests
             { nameof(Bcp47LanguageTag.CheckVariantSubtag), Bcp47LanguageTag.CheckVariantSubtag, "variantSubtag" },
             { nameof(Bcp47LanguageTag.CheckExtensionSubtag), Bcp47LanguageTag.CheckExtensionSubtag, "extensionSubtag" },
             { nameof(Bcp47LanguageTag.CheckPrivateUseSubtag), Bcp47LanguageTag.CheckPrivateUseSubtag, "privateUseSubtag" },
-            { nameof(Bcp47LanguageTag.IsWellFormedLanguageTagString), Bcp47LanguageTag.IsWellFormedLanguageTagString, "languageTagString" }
+            { nameof(Bcp47LanguageTag.IsWellFormed), Bcp47LanguageTag.IsWellFormed, "languageTag" }
         };
 
         /// <summary>
@@ -1495,14 +1505,14 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #endregion
 
-        #region Test: IsWellFormedLanguageTagString_WithInvalidLanguageTag
+        #region Test: IsWellFormed_WithInvalidLanguageTag
 
         [Theory]
-        [InlineData(EmptyString), InlineData("zz"), InlineData("NotALanguageTag")]
-        public void IsWellFormedLanguageTagString_WithInvalidLanguageTag_ReturnsFalse(string testLanguageTag)
+        [InlineData(EmptyString), InlineData("NotALanguageTag")]
+        public void IsWellFormed_WithInvalidLanguageTag_ReturnsFalse(string testLanguageTag)
         {
             // act
-            var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag);
+            var testResult = Bcp47LanguageTag.IsWellFormed(testLanguageTag);
 
             // assert
             testResult.Should().BeFalse("the language tag {0} is not in a valid format", testLanguageTag);
@@ -1510,14 +1520,14 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #endregion
 
-        #region Test: IsWellFormedLanguageTagString_WithTrailingNewline
+        #region Test: IsWellFormed_WithTrailingNewline
 
         [Theory]
         [InlineData(EnglishWithLineFeed), InlineData(EnglishUnitedStatesWithLineFeed), InlineData(PrivateUseWithLineFeed)]
-        public void IsWellFormedLanguageTagString_WithTrailingNewline_ReturnsFalse(string testLanguageTag)
+        public void IsWellFormed_WithTrailingNewline_ReturnsFalse(string testLanguageTag)
         {
             // act
-            var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag);
+            var testResult = Bcp47LanguageTag.IsWellFormed(testLanguageTag);
 
             // assert
             testResult.Should().BeFalse("a language tag followed by a line feed is not well-formed");
@@ -1525,14 +1535,14 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #endregion
 
-        #region Test: IsWellFormedLanguageTagString_WithNonAsciiCaseEquivalent
+        #region Test: IsWellFormed_WithNonAsciiCaseEquivalent
 
         [Theory]
         [InlineData(KelvinSignO), InlineData(LongSV), InlineData(EnglishPrivateUseKelvinSign), InlineData(EnglishPrivateUseLongS), InlineData(EnglishKelvinSignRegion)]
-        public void IsWellFormedLanguageTagString_WithNonAsciiCaseEquivalent_ReturnsFalse(string testLanguageTag)
+        public void IsWellFormed_WithNonAsciiCaseEquivalent_ReturnsFalse(string testLanguageTag)
         {
             // act
-            var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag);
+            var testResult = Bcp47LanguageTag.IsWellFormed(testLanguageTag);
 
             // assert
             testResult.Should().BeFalse("a language tag has only ASCII letters and digits (RFC 5646 §2.1)");
@@ -1540,55 +1550,55 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #endregion
 
-        #region Test: IsWellFormedLanguageTagString_WithDuplicateSubtags
+        #region Test: IsWellFormed_WithDuplicateSubtags
 
         [Theory]
         [MemberData(nameof(DuplicateSubtagLanguageTags))]
-        public void IsWellFormedLanguageTagString_WithDuplicateSubtags_ReturnsFalse(string testLanguageTag)
+        public void IsWellFormed_WithDuplicateSubtags_ReturnsTrue(string testLanguageTag)
         {
             // act
-            var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag);
+            var testResult = Bcp47LanguageTag.IsWellFormed(testLanguageTag);
 
             // assert
-            testResult.Should().BeFalse("the language tag '{0}' repeats a variant subtag or extension singleton (RFC 5646 §2.2.5, §2.2.6)", testLanguageTag);
+            testResult.Should().BeTrue("the language tag '{0}' matches the ABNF, and RFC 5646 §2.2.9 lists repeated variant subtags and extension singletons under validity alone", testLanguageTag);
         }
 
         [Theory]
         [MemberData(nameof(ControlLanguageTags))]
-        public void IsWellFormedLanguageTagString_WithControlLanguageTag_ReturnsTrue(string testLanguageTag)
+        public void IsWellFormed_WithControlLanguageTag_ReturnsTrue(string testLanguageTag)
         {
             // act
-            var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag);
+            var testResult = Bcp47LanguageTag.IsWellFormed(testLanguageTag);
 
             // assert
-            testResult.Should().BeTrue("the language tag '{0}' has no repeated subtags, Extended Language subtags only after a two- or three-letter Primary Language subtag, and only registered Region subtags", testLanguageTag);
+            testResult.Should().BeTrue("the language tag '{0}' has Extended Language subtags only after a two- or three-letter Primary Language subtag", testLanguageTag);
         }
 
         #endregion
 
-        #region Test: IsWellFormedLanguageTagString_WithChannelIslandsRegionSubtag
+        #region Test: IsWellFormed_WithChannelIslandsRegionSubtag
 
         [Theory]
         [MemberData(nameof(ChannelIslandsLanguageTags))]
-        public void IsWellFormedLanguageTagString_WithChannelIslandsRegionSubtag_ReturnsFalse(string testLanguageTag)
+        public void IsWellFormed_WithChannelIslandsRegionSubtag_ReturnsTrue(string testLanguageTag)
         {
             // act
-            var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag);
+            var testResult = Bcp47LanguageTag.IsWellFormed(testLanguageTag);
 
             // assert
-            testResult.Should().BeFalse("the Region subtag 830 of '{0}' is not registered (RFC 5646 §2.2.4¶4E-F)", testLanguageTag);
+            testResult.Should().BeTrue("the Region subtag 830 of '{0}' has the shape region = 3DIGIT (RFC 5646 §2.1), whether or not it is registered", testLanguageTag);
         }
 
         #endregion
 
-        #region Test: IsWellFormedLanguageTagString_WithGrandfatheredLanguageTag
+        #region Test: IsWellFormed_WithGrandfatheredLanguageTag
 
         [Theory]
         [MemberData(nameof(GrandfatheredLanguageTags))]
-        public void IsWellFormedLanguageTagString_WithGrandfatheredLanguageTag_ReturnsTrue(string testLanguageTag)
+        public void IsWellFormed_WithGrandfatheredLanguageTag_ReturnsTrue(string testLanguageTag)
         {
             // act
-            var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag);
+            var testResult = Bcp47LanguageTag.IsWellFormed(testLanguageTag);
 
             // assert
             testResult.Should().BeTrue("'{0}' is a grandfathered language tag, which is well-formed (RFC 5646 §2.1, §2.2.9)", testLanguageTag);
@@ -1596,14 +1606,14 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #endregion
 
-        #region Test: IsWellFormedLanguageTagString_WithGrandfatheredPrefix
+        #region Test: IsWellFormed_WithGrandfatheredPrefix
 
         [Theory]
         [MemberData(nameof(GrandfatheredPrefixLanguageTags))]
-        public void IsWellFormedLanguageTagString_WithGrandfatheredPrefix_ReturnsFalse(string testLanguageTag)
+        public void IsWellFormed_WithGrandfatheredPrefix_ReturnsFalse(string testLanguageTag)
         {
             // act
-            var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag);
+            var testResult = Bcp47LanguageTag.IsWellFormed(testLanguageTag);
 
             // assert
             testResult.Should().BeFalse("'{0}' only starts with a grandfathered language tag, and is not otherwise well-formed", testLanguageTag);
@@ -1611,7 +1621,7 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #endregion
 
-        #region Test: IsWellFormedLanguageTagString_WithReservedPrimaryLanguageSubtag
+        #region Test: IsWellFormed_WithReservedPrimaryLanguageSubtag
 
         /// <summary>
         /// Each of <see cref="ReservedPrimaryLanguageSubtags"/> alone, followed by a Script and a Region subtag, and followed by a Private Use subtag.
@@ -1638,10 +1648,10 @@ namespace DataStandardizer.LanguageTag.Tests
 
         [Theory]
         [MemberData(nameof(ReservedPrimaryLanguageSubtagLanguageTags))]
-        public void IsWellFormedLanguageTagString_WithReservedPrimaryLanguageSubtag_ReturnsTrue(string testLanguageTag)
+        public void IsWellFormed_WithReservedPrimaryLanguageSubtag_ReturnsTrue(string testLanguageTag)
         {
             // act
-            var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag);
+            var testResult = Bcp47LanguageTag.IsWellFormed(testLanguageTag);
 
             // assert
             testResult.Should().BeTrue("'{0}' has a reserved Primary Language subtag, which is well-formed (RFC 5646 §2.1, §2.2.1¶4)", testLanguageTag);
@@ -1649,14 +1659,14 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #endregion
 
-        #region Test: IsWellFormedLanguageTagString_WithPrivateUseScriptSubtag
+        #region Test: IsWellFormed_WithPrivateUseScriptSubtag
 
         [Theory]
         [MemberData(nameof(PrivateUseScriptLanguageTags))]
-        public void IsWellFormedLanguageTagString_WithPrivateUseScriptSubtag_ReturnsTrue(string testLanguageTag)
+        public void IsWellFormed_WithPrivateUseScriptSubtag_ReturnsTrue(string testLanguageTag)
         {
             // act
-            var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag);
+            var testResult = Bcp47LanguageTag.IsWellFormed(testLanguageTag);
 
             // assert
             testResult.Should().BeTrue("'{0}' has a Script subtag reserved for private use, which is well-formed (RFC 5646 §2.2.3¶3)", testLanguageTag);
@@ -1664,14 +1674,14 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #endregion
 
-        #region Test: IsWellFormedLanguageTagString_WithNonAlphaPrimaryLanguageSubtag
+        #region Test: IsWellFormed_WithNonAlphaPrimaryLanguageSubtag
 
         [Theory]
         [MemberData(nameof(NonAlphaPrimaryLanguageSubtagLanguageTags))]
-        public void IsWellFormedLanguageTagString_WithNonAlphaPrimaryLanguageSubtag_ReturnsFalse(string testLanguageTag)
+        public void IsWellFormed_WithNonAlphaPrimaryLanguageSubtag_ReturnsFalse(string testLanguageTag)
         {
             // act
-            var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag);
+            var testResult = Bcp47LanguageTag.IsWellFormed(testLanguageTag);
 
             // assert
             testResult.Should().BeFalse("the Primary Language subtag of '{0}' contains a digit (RFC 5646 §2.1, §2.2.1)", testLanguageTag);
@@ -1679,14 +1689,14 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #endregion
 
-        #region Test: IsWellFormedLanguageTagString_WithMisplacedExtendedLanguageSubtags
+        #region Test: IsWellFormed_WithMisplacedExtendedLanguageSubtags
 
         [Theory]
         [MemberData(nameof(MisplacedExtendedLanguageSubtagLanguageTags))]
-        public void IsWellFormedLanguageTagString_WithMisplacedExtendedLanguageSubtags_ReturnsFalse(string testLanguageTag)
+        public void IsWellFormed_WithMisplacedExtendedLanguageSubtags_ReturnsFalse(string testLanguageTag)
         {
             // act
-            var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag);
+            var testResult = Bcp47LanguageTag.IsWellFormed(testLanguageTag);
 
             // assert
             testResult.Should().BeFalse("the language tag '{0}' has Extended Language subtags after a Primary Language subtag of four to eight letters (RFC 5646 §2.1, §2.2.2)", testLanguageTag);
@@ -1694,7 +1704,7 @@ namespace DataStandardizer.LanguageTag.Tests
 
         #endregion
 
-        #region Test: IsWellFormedLanguageTagString_WithValidLanguageTag
+        #region Test: IsWellFormed_WithValidLanguageTag
 
         [Theory]
         [InlineData(EnglishLanguageTag, "English"),
@@ -1704,10 +1714,10 @@ namespace DataStandardizer.LanguageTag.Tests
          InlineData(MinNanTraditionalTaiwan, "Min Nan Chinese using traditional Han characters, as spoken in Taiwan"),
          InlineData(CantoneseTraditionalHongKong, "Cantonese using traditional Han characters, as spoken in Hong Kong"),
          InlineData(SwissGermanZurich, "Zürich German")]
-        public void IsWellFormedLanguageTagString_WithValidLanguageTag_ReturnsTrue(string testLanguageTag, string testLanguageTagDescription)
+        public void IsWellFormed_WithValidLanguageTag_ReturnsTrue(string testLanguageTag, string testLanguageTagDescription)
         {
             // act
-            var testResult = Bcp47LanguageTag.IsWellFormedLanguageTagString(testLanguageTag);
+            var testResult = Bcp47LanguageTag.IsWellFormed(testLanguageTag);
 
             // assert
             testResult.Should().BeTrue("{0} is the language tag for {1}", testLanguageTag, testLanguageTagDescription);
@@ -2296,10 +2306,10 @@ namespace DataStandardizer.LanguageTag.Tests
         public void RegionSubtag_WhenNationalUnM49Code_ThrowsLanguageTagFormatException(string testLanguageTag, string testCode)
         {
             // act
-            Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag);
+            Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag, LanguageTagConformance.IsoCodeLists);
 
             // assert
-            testAction.Should().Throw<LanguageTagFormatException>("{0} is not a valid Region subtag", testCode).WithMessage(InvalidFormatMessage);
+            testAction.Should().Throw<LanguageTagFormatException>("{0} is not a valid Region subtag", testCode).WithMessage(NotInIsoCodeListsMessage);
         }
 
         private class RegionSubtag_WhenNationalUnM49Code_TestCaseFactory : IEnumerable<object[]>
@@ -2911,7 +2921,7 @@ namespace DataStandardizer.LanguageTag.Tests
             Action testAction = () => _ = (Bcp47LanguageTag)testLanguageTag;
 
             // assert
-            testAction.Should().Throw<InvalidCastException>("'{0}' is not a well-formed language tag", testLanguageTag).WithMessage(InvalidFormatMessage);
+            testAction.Should().Throw<InvalidCastException>("'{0}' is not a well-formed language tag", testLanguageTag).WithMessage(NotWellFormedMessage);
         }
 
         #endregion
@@ -2955,7 +2965,7 @@ namespace DataStandardizer.LanguageTag.Tests
             Action testAction = () => Bcp47LanguageTag.Create(testLanguageTag);
 
             // assert
-            testAction.Should().Throw<LanguageTagFormatException>("the language tag was not in a recognised format").WithMessage(InvalidFormatMessage);
+            testAction.Should().Throw<LanguageTagFormatException>("the language tag was not in a recognised format").WithMessage(NotWellFormedMessage);
         }
 
         #endregion
@@ -2970,7 +2980,7 @@ namespace DataStandardizer.LanguageTag.Tests
             Action testAction = () => Bcp47LanguageTag.Create(testLanguageTag);
 
             // assert
-            testAction.Should().Throw<LanguageTagFormatException>("a language tag followed by a line feed is not well-formed").WithMessage(InvalidFormatMessage);
+            testAction.Should().Throw<LanguageTagFormatException>("a language tag followed by a line feed is not well-formed").WithMessage(NotWellFormedMessage);
         }
 
         #endregion
@@ -3039,7 +3049,7 @@ namespace DataStandardizer.LanguageTag.Tests
             Action testAction = () => Bcp47LanguageTag.Create(testLanguageTag);
 
             // assert
-            testAction.Should().Throw<LanguageTagFormatException>("a language tag has only ASCII letters and digits (RFC 5646 §2.1), so the Kelvin sign and long s aren't letters of one").WithMessage(InvalidFormatMessage);
+            testAction.Should().Throw<LanguageTagFormatException>("a language tag has only ASCII letters and digits (RFC 5646 §2.1), so the Kelvin sign and long s aren't letters of one").WithMessage(NotWellFormedMessage);
         }
 
         #endregion
@@ -3069,7 +3079,7 @@ namespace DataStandardizer.LanguageTag.Tests
             Action testAction = () => Bcp47LanguageTag.Create(testLanguageTag);
 
             // assert
-            testAction.Should().Throw<LanguageTagFormatException>("the Primary Language subtag of '{0}' contains a digit (RFC 5646 §2.1, §2.2.1)", testLanguageTag).WithMessage(InvalidFormatMessage);
+            testAction.Should().Throw<LanguageTagFormatException>("the Primary Language subtag of '{0}' contains a digit (RFC 5646 §2.1, §2.2.1)", testLanguageTag).WithMessage(NotWellFormedMessage);
         }
 
         #endregion
@@ -3114,7 +3124,7 @@ namespace DataStandardizer.LanguageTag.Tests
             Action testAction = () => Bcp47LanguageTag.Create(testLanguageTag);
 
             // assert
-            testAction.Should().Throw<LanguageTagFormatException>("the language tag '{0}' has Extended Language subtags after a Primary Language subtag of four to eight letters (RFC 5646 §2.1, §2.2.2)", testLanguageTag).WithMessage(InvalidFormatMessage);
+            testAction.Should().Throw<LanguageTagFormatException>("the language tag '{0}' has Extended Language subtags after a Primary Language subtag of four to eight letters (RFC 5646 §2.1, §2.2.2)", testLanguageTag).WithMessage(NotWellFormedMessage);
         }
 
         [Theory]
@@ -3134,13 +3144,24 @@ namespace DataStandardizer.LanguageTag.Tests
 
         [Theory]
         [MemberData(nameof(DuplicateSubtagLanguageTags))]
-        public void Create_WithLanguageTagWhenLanguageTagHasDuplicateSubtags_ThrowsLanguageTagFormatException(string testLanguageTag)
+        public void Create_WithLanguageTagWhenLanguageTagHasDuplicateSubtags_ReturnsBcp47LanguageTag(string testLanguageTag)
         {
             // act
-            Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag);
+            string testResult = Bcp47LanguageTag.Create(testLanguageTag);
 
             // assert
-            testAction.Should().Throw<LanguageTagFormatException>("a variant subtag or extension singleton is repeated (RFC 5646 §2.2.5, §2.2.6)").WithMessage(InvalidFormatMessage);
+            testResult.Should().Be(testLanguageTag, "RFC 5646 §2.2.9 lists repeated variant subtags and extension singletons under validity alone");
+        }
+
+        [Theory]
+        [MemberData(nameof(DuplicateSubtagLanguageTags))]
+        public void Create_WithIsoCodeListsWhenLanguageTagHasDuplicateSubtags_ThrowsLanguageTagFormatException(string testLanguageTag)
+        {
+            // act
+            Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag, LanguageTagConformance.IsoCodeLists);
+
+            // assert
+            testAction.Should().Throw<LanguageTagFormatException>("the ISO code lists approximate validity, so a variant subtag or extension singleton must not repeat (RFC 5646 §2.2.9)").WithMessage(NotInIsoCodeListsMessage);
         }
 
         #endregion
@@ -3149,13 +3170,24 @@ namespace DataStandardizer.LanguageTag.Tests
 
         [Theory]
         [MemberData(nameof(ChannelIslandsLanguageTags))]
-        public void Create_WithLanguageTagWhenRegionSubtagIsChannelIslands_ThrowsLanguageTagFormatException(string testLanguageTag)
+        public void Create_WithLanguageTagWhenRegionSubtagIsChannelIslands_ReturnsBcp47LanguageTag(string testLanguageTag)
         {
             // act
-            Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag);
+            string testResult = Bcp47LanguageTag.Create(testLanguageTag);
 
             // assert
-            testAction.Should().Throw<LanguageTagFormatException>("the Region subtag 830 of '{0}' is not registered (RFC 5646 §2.2.4¶4E-F)", testLanguageTag).WithMessage(InvalidFormatMessage);
+            testResult.Should().Be(testLanguageTag, "the Region subtag 830 has the shape region = 3DIGIT (RFC 5646 §2.1), whether or not it is registered");
+        }
+
+        [Theory]
+        [MemberData(nameof(ChannelIslandsLanguageTags))]
+        public void Create_WithIsoCodeListsWhenRegionSubtagIsChannelIslands_ThrowsLanguageTagFormatException(string testLanguageTag)
+        {
+            // act
+            Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag, LanguageTagConformance.IsoCodeLists);
+
+            // assert
+            testAction.Should().Throw<LanguageTagFormatException>("the Region subtag 830 of '{0}' may be registered but is not (RFC 5646 §2.2.4¶4E-F)", testLanguageTag).WithMessage(NotInIsoCodeListsMessage);
         }
 
         #endregion
@@ -3173,7 +3205,7 @@ namespace DataStandardizer.LanguageTag.Tests
             Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag, subtagRegistry);
 
             // assert
-            testAction.Should().Throw<LanguageTagFormatException>("the Subtag Registry has no record for the Region subtag 830 of '{0}'", testLanguageTag).WithMessage(InvalidFormatMessage);
+            testAction.Should().Throw<LanguageTagFormatException>("the Subtag Registry has no record for the Region subtag 830 of '{0}'", testLanguageTag).WithMessage(NotValidMessage);
         }
 
         [Theory]
@@ -3310,7 +3342,7 @@ namespace DataStandardizer.LanguageTag.Tests
             Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag, subtagRegistry);
 
             // assert
-            testAction.Should().Throw<LanguageTagFormatException>("the language tag was not in a recognised format").WithMessage(InvalidFormatMessage);
+            testAction.Should().Throw<LanguageTagFormatException>("the language tag was not in a recognised format").WithMessage(NotValidMessage);
         }
 
         #endregion
@@ -3328,7 +3360,7 @@ namespace DataStandardizer.LanguageTag.Tests
             Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag, subtagRegistry);
 
             // assert
-            testAction.Should().Throw<LanguageTagFormatException>("a variant subtag or extension singleton is repeated (RFC 5646 §2.2.5, §2.2.6)").WithMessage(InvalidFormatMessage);
+            testAction.Should().Throw<LanguageTagFormatException>("a variant subtag or extension singleton is repeated (RFC 5646 §2.2.5, §2.2.6)").WithMessage(NotValidMessage);
         }
 
         #endregion
@@ -3364,7 +3396,7 @@ namespace DataStandardizer.LanguageTag.Tests
             Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag, subtagRegistry);
 
             // assert
-            testAction.Should().Throw<LanguageTagFormatException>("the Subtag Registry has no record or range for a subtag of '{0}'", testLanguageTag).WithMessage(InvalidFormatMessage);
+            testAction.Should().Throw<LanguageTagFormatException>("the Subtag Registry has no record or range for a subtag of '{0}'", testLanguageTag).WithMessage(NotValidMessage);
         }
 
         #endregion
@@ -3519,10 +3551,21 @@ namespace DataStandardizer.LanguageTag.Tests
 
         [Theory]
         [MemberData(nameof(DuplicateSubtagLanguageTags))]
-        public void TryCreate_WithLanguageTagWhenLanguageTagHasDuplicateSubtags_ReturnsFalse(string testLanguageTag)
+        public void TryCreate_WithLanguageTagWhenLanguageTagHasDuplicateSubtags_ReturnsTrue(string testLanguageTag)
         {
             // act
             var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, out _);
+
+            // assert
+            testResult.Should().BeTrue("RFC 5646 §2.2.9 lists repeated variant subtags and extension singletons under validity alone");
+        }
+
+        [Theory]
+        [MemberData(nameof(DuplicateSubtagLanguageTags))]
+        public void TryCreate_WithIsoCodeListsWhenLanguageTagHasDuplicateSubtags_ReturnsFalse(string testLanguageTag)
+        {
+            // act
+            var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, LanguageTagConformance.IsoCodeLists, out _);
 
             // assert
             testResult.Should().BeFalse("the language tag '{0}' repeats a variant subtag or extension singleton (RFC 5646 §2.2.5, §2.2.6)", testLanguageTag);
@@ -3793,7 +3836,7 @@ namespace DataStandardizer.LanguageTag.Tests
 
             // assert
             testAction.Should().Throw<LanguageTagFormatException>("an empty subtag is not a subtag of any kind, even when the Subtag Registry has no records of that kind (RFC 5646 §2.1)")
-                .WithMessage(InvalidFormatMessage);
+                .WithMessage(NotValidMessage);
         }
 
         [Theory]

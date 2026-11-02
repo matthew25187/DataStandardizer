@@ -96,7 +96,7 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
 
             var match = isAscii ? FrozenRulesBasedExpressions.LanguageTag.Match(input) : Match.Empty;
             var isWellFormed = FrozenRulesBasedExpressions.IsWellFormed(match);
-            var status = !match.Success ? Bcp47ParseStatus.Invalid : isWellFormed ? Bcp47ParseStatus.WellFormed : Bcp47ParseStatus.RepeatedSubtag;
+            var status = !match.Success ? Bcp47ParseStatus.Invalid : isWellFormed ? Bcp47ParseStatus.Accepted : Bcp47ParseStatus.RepeatedSubtag;
 
             return (input,
                 new SubtagCheckResults(checks[0], checks[1], checks[2], checks[3], checks[4], checks[5], checks[6]),

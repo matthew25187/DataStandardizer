@@ -136,7 +136,7 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
             var match = Frozen.Match(input);
             var matchesSubtags = match.Success && !HasEmptySubtag(input, match);
             var isValid = matchesSubtags && FrozenRulesBasedExpressions.IsWellFormed(match);
-            var status = !matchesSubtags ? Bcp47ParseStatus.Invalid : isValid ? Bcp47ParseStatus.WellFormed : Bcp47ParseStatus.RepeatedSubtag;
+            var status = !matchesSubtags ? Bcp47ParseStatus.Invalid : isValid ? Bcp47ParseStatus.Accepted : Bcp47ParseStatus.RepeatedSubtag;
 
             return (input, matchesSubtags, new LanguageTagValidity(isValid, isValid, status), FrozenSubtags.Of(match));
         }

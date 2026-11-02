@@ -29,12 +29,19 @@ namespace DataStandardizer.LanguageTag.IntegrationTests
         };
 
         /// <summary>
-        /// Strings that are not well-formed language tags (RFC 5646 §2.1), including two that only repeat a subtag (§2.2.5¶5, §2.2.6¶3).
+        /// Strings that are not well-formed language tags (RFC 5646 §2.1).
         /// </summary>
         private static readonly string[] InvalidLanguageTags =
         {
-            "", "e", "en-", "-en", "en--US", "abcdefghi", "en-US-US", "zh-Hant-Hans", "de-CH-123456789", "en-US-a", "en-x-", "x-abcdefghi",
-            "de-1901-1901", "en-a-bbb-a-ccc"
+            "", "e", "en-", "-en", "en--US", "abcdefghi", "en-US-US", "zh-Hant-Hans", "de-CH-123456789", "en-US-a", "en-x-", "x-abcdefghi"
+        };
+
+        /// <summary>
+        /// Strings that are well-formed but repeat a subtag (RFC 5646 §2.2.5¶5, §2.2.6¶3), or use a subtag in no list, so the ISO code lists opt-in rejects them.
+        /// </summary>
+        private static readonly string[] NotInIsoCodeLists =
+        {
+            "de-1901-1901", "en-a-bbb-a-ccc", "zz", "en-Abcd", "en-830"
         };
 
         /// <summary>
@@ -69,7 +76,12 @@ namespace DataStandardizer.LanguageTag.IntegrationTests
                 var data = new TheoryData<string, Action>();
                 foreach (var languageTag in ValidLanguageTags)
                 {
-                    data.Add("IsWellFormedLanguageTagString(\"" + languageTag + "\")", () => Bcp47LanguageTag.IsWellFormedLanguageTagString(languageTag.AsSpan()));
+                    data.Add("IsWellFormed(\"" + languageTag + "\")", () => Bcp47LanguageTag.IsWellFormed(languageTag.AsSpan()));
+                }
+
+                foreach (var languageTag in NotInIsoCodeLists)
+                {
+                    data.Add("TryCreate(\"" + languageTag + "\", IsoCodeLists)", () => Bcp47LanguageTag.TryCreate(languageTag.AsSpan(), LanguageTagConformance.IsoCodeLists, out _));
                 }
 
                 foreach (var languageTag in InvalidLanguageTags)

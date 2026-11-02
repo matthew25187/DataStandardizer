@@ -29,7 +29,10 @@ namespace DataStandardizer.LanguageTag
         // constant declarations
         internal static class ErrorMessage
         {
-            internal const string LanguageTagInvalidFormat = "The language tag is not in a valid format.";
+            internal const string ConformanceValidNeedsRegistry = "Validity needs a subtag registry. Use the overload that takes a SubtagRegistry.";
+            internal const string LanguageTagNotInIsoCodeLists = "The language tag is not well-formed, or is not in the ISO code lists.";
+            internal const string LanguageTagNotValid = "The language tag is not valid against the subtag registry.";
+            internal const string LanguageTagNotWellFormed = "The language tag is not well-formed.";
             internal const string LanguageTagNull = "The language tag must not be null.";
             internal const string UninitializedInstance = "The " + nameof(Bcp47LanguageTag) + " instance is not initialised.";
         }
@@ -68,7 +71,7 @@ namespace DataStandardizer.LanguageTag
         /// <returns>Language tag object.</returns>
         /// <exception cref="InvalidCastException">The language tag is <c>null</c> or was not recognised.</exception>
         /// <remarks>
-        /// Validation will be performed using the default BCP 47 rules.
+        /// The language tag is checked for well-formedness only (RFC 5646 §2.2.9).
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static explicit operator Bcp47LanguageTag(string languageTag)
@@ -83,7 +86,7 @@ namespace DataStandardizer.LanguageTag
 
             if (!TryCreate(languageTag, out var result))
             {
-                throw new InvalidCastException(ErrorMessage.LanguageTagInvalidFormat);
+                throw new InvalidCastException(ErrorMessage.LanguageTagNotWellFormed);
             }
 
             return result;
@@ -118,7 +121,12 @@ namespace DataStandardizer.LanguageTag
         /// </summary>
         /// <param name="languageTag">Language tag on which the object will be based.</param>
         /// <returns>Language tag object.</returns>
-        /// <exception cref="LanguageTagFormatException">The original language tag was not recognised.</exception>
+        /// <exception cref="ArgumentNullException">The language tag is <c>null</c>.</exception>
+        /// <exception cref="LanguageTagFormatException">The language tag is not well-formed.</exception>
+        /// <remarks>
+        /// The language tag is checked for well-formedness only (RFC 5646 §2.2.9): it matches the ABNF of RFC 5646 §2.1, and nothing else is checked.
+        /// To also check its subtags, use <see cref="Create(string, SubtagRegistry.SubtagRegistry)"/>.
+        /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static Bcp47LanguageTag Create(string languageTag)
 #else
@@ -130,22 +138,28 @@ namespace DataStandardizer.LanguageTag
                 throw new ArgumentNullException(nameof(languageTag));
             }
 
-            var parts = ParseByRules(languageTag);
+            var parts = ParseToParts(languageTag, Bcp47SyntaxSubtagClassifier.Instance, LanguageTagConformance.WellFormed);
             if (parts is null)
             {
-                throw new LanguageTagFormatException(ErrorMessage.LanguageTagInvalidFormat, languageTag);
+                throw new LanguageTagFormatException(ErrorMessage.LanguageTagNotWellFormed, languageTag);
             }
 
             return new Bcp47LanguageTag(languageTag, parts);
         }
 
         /// <summary>
-        /// Create a language tag object based on the Subtag Registry.
+        /// Create a language tag object that is valid against the Subtag Registry.
         /// </summary>
         /// <param name="languageTag">Language tag on which the object will be based.</param>
         /// <param name="subtagRegistry">A copy of the IANA Subtag Registry.</param>
         /// <returns>Language tag object.</returns>
-        /// <exception cref="LanguageTagFormatException">The original language tag was not recognised.</exception>
+        /// <exception cref="ArgumentNullException">The language tag or the Subtag Registry is <c>null</c>.</exception>
+        /// <exception cref="LanguageTagFormatException">The language tag is not valid against the Subtag Registry.</exception>
+        /// <remarks>
+        /// The language tag must satisfy RFC 5646 §2.2.9: it is well-formed, either it is a grandfathered tag in the registry or all of its primary language,
+        /// extended language, script, region and variant subtags appear in the registry, and it repeats no variant subtag or extension singleton.
+        /// The <c>Prefix</c> and <c>Deprecated</c> fields of the registry's records are not checked, because §2.2.9 does not list them.
+        /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static Bcp47LanguageTag Create(string languageTag, SubtagRegistry.SubtagRegistry subtagRegistry)
 #else
@@ -162,10 +176,41 @@ namespace DataStandardizer.LanguageTag
                 throw new ArgumentNullException(nameof(subtagRegistry));
             }
 
-            var parts = ParseByRegistry(languageTag, subtagRegistry);
+            var parts = ParseToParts(languageTag, subtagRegistry.Classifier, LanguageTagConformance.Valid);
             if (parts is null)
             {
-                throw new LanguageTagFormatException(ErrorMessage.LanguageTagInvalidFormat, languageTag);
+                throw new LanguageTagFormatException(ErrorMessage.LanguageTagNotValid, languageTag);
+            }
+
+            return new Bcp47LanguageTag(languageTag, parts);
+        }
+
+        /// <summary>
+        /// Create a language tag object, with a choice of what is checked.
+        /// </summary>
+        /// <param name="languageTag">Language tag on which the object will be based.</param>
+        /// <param name="conformance">What to check: <see cref="LanguageTagConformance.WellFormed"/> or <see cref="LanguageTagConformance.IsoCodeLists"/>.</param>
+        /// <returns>Language tag object.</returns>
+        /// <exception cref="ArgumentNullException">The language tag is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="conformance"/> is <see cref="LanguageTagConformance.Valid"/>, which needs a Subtag Registry; use <see cref="Create(string, SubtagRegistry.SubtagRegistry)"/>.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="conformance"/> is not a defined value.</exception>
+        /// <exception cref="LanguageTagFormatException">The language tag does not satisfy <paramref name="conformance"/>.</exception>
+#if NETCOREAPP3_0_OR_GREATER
+        public static Bcp47LanguageTag Create(string languageTag, LanguageTagConformance conformance)
+#else
+        public static Bcp47LanguageTag Create([NotNull] string languageTag, LanguageTagConformance conformance)
+#endif
+        {
+            if (languageTag is null)
+            {
+                throw new ArgumentNullException(nameof(languageTag));
+            }
+
+            var classifier = GetClassifier(conformance);
+            var parts = ParseToParts(languageTag, classifier, conformance);
+            if (parts is null)
+            {
+                throw new LanguageTagFormatException(conformance == LanguageTagConformance.WellFormed ? ErrorMessage.LanguageTagNotWellFormed : ErrorMessage.LanguageTagNotInIsoCodeLists, languageTag);
             }
 
             return new Bcp47LanguageTag(languageTag, parts);
@@ -183,6 +228,27 @@ namespace DataStandardizer.LanguageTag
         public bool Equals(Bcp47LanguageTag other)
         {
             return string.Equals(_languageTag, other._languageTag, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Determine whether the language tag is valid against a Subtag Registry, whatever was checked when it was created.
+        /// </summary>
+        /// <param name="subtagRegistry">A copy of the IANA Subtag Registry.</param>
+        /// <returns><c>true</c> if the language tag is valid (RFC 5646 §2.2.9); <c>false</c> if not.</returns>
+        /// <exception cref="ArgumentNullException">The Subtag Registry is <c>null</c>.</exception>
+        /// <exception cref="InvalidOperationException">The <see cref="Bcp47LanguageTag"/> is not initialised.</exception>
+        /// <remarks>
+        /// The result does not change <see cref="Conformance"/>. To carry <see cref="LanguageTagConformance.Valid"/>, create the language tag with <see cref="Create(string, SubtagRegistry.SubtagRegistry)"/>.
+        /// </remarks>
+#if NETCOREAPP3_0_OR_GREATER
+        public bool IsValid(SubtagRegistry.SubtagRegistry subtagRegistry)
+#else
+        public bool IsValid([NotNull] SubtagRegistry.SubtagRegistry subtagRegistry)
+#endif
+        {
+            if (_languageTag is null) throw new InvalidOperationException(ErrorMessage.UninitializedInstance);
+
+            return IsValid(_languageTag.AsSpan(), subtagRegistry);
         }
 
         public override int GetHashCode()
@@ -563,38 +629,73 @@ namespace DataStandardizer.LanguageTag
         }
 
         /// <summary>
-        /// Determine if a string contains a valid BCP 47 language tag.
+        /// Determine whether a string is a well-formed language tag: it matches the ABNF of RFC 5646 §2.1, and nothing else is checked (§2.2.9).
         /// </summary>
-        /// <param name="languageTagString">Language tag to test.</param>
-        /// <returns><c>true</c> if the language tag is valid; <c>false</c> if not.</returns>
+        /// <param name="languageTag">Language tag to check.</param>
+        /// <returns><c>true</c> if the language tag is well-formed; <c>false</c> if not.</returns>
         /// <exception cref="ArgumentNullException">The language tag is <c>null</c>.</exception>
         /// <remarks>
-        /// Validation will be performed using the default BCP 47 rules. A language tag that repeats a variant subtag or an extension singleton,
-        /// compared case-insensitively, is not well-formed (RFC 5646 §2.2.5, §2.2.6). The 26 grandfathered language tags are well-formed (§2.1, §2.2.9).
+        /// A well-formed language tag may use subtags that nothing has assigned, and may repeat a variant subtag or an extension singleton. The 26 grandfathered language tags are well-formed (§2.1).
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
-        public static bool IsWellFormedLanguageTagString(string languageTagString)
+        public static bool IsWellFormed(string languageTag)
 #else
-        public static bool IsWellFormedLanguageTagString([NotNull] string languageTagString)
+        public static bool IsWellFormed([NotNull] string languageTag)
 #endif
         {
-            if (languageTagString is null) throw new ArgumentNullException(nameof(languageTagString));
+            if (languageTag is null) throw new ArgumentNullException(nameof(languageTag));
 
-            return IsWellFormedByRules(languageTagString);
+            return IsWellFormed(languageTag.AsSpan());
         }
 
         /// <summary>
-        /// Determine if a span of characters contains a valid BCP 47 language tag.
+        /// Determine whether a span of characters is a well-formed language tag: it matches the ABNF of RFC 5646 §2.1, and nothing else is checked (§2.2.9).
         /// </summary>
-        /// <param name="languageTagString">Language tag to test.</param>
-        /// <returns><c>true</c> if the language tag is valid; <c>false</c> if not.</returns>
+        /// <param name="languageTag">Language tag to check.</param>
+        /// <returns><c>true</c> if the language tag is well-formed; <c>false</c> if not.</returns>
         /// <remarks>
-        /// Validation will be performed using the default BCP 47 rules. A language tag that repeats a variant subtag or an extension singleton,
-        /// compared case-insensitively, is not well-formed (RFC 5646 §2.2.5, §2.2.6). The 26 grandfathered language tags are well-formed (§2.1, §2.2.9).
+        /// A well-formed language tag may use subtags that nothing has assigned, and may repeat a variant subtag or an extension singleton. The 26 grandfathered language tags are well-formed (§2.1).
+        /// This method does not allocate.
         /// </remarks>
-        public static bool IsWellFormedLanguageTagString(ReadOnlySpan<char> languageTagString)
+        public static bool IsWellFormed(ReadOnlySpan<char> languageTag)
         {
-            return Bcp47LanguageTagParser.Parse(languageTagString, Bcp47RulesBasedSubtagClassifier.Instance, out _) == Bcp47ParseStatus.WellFormed;
+            return Bcp47LanguageTagParser.Parse(languageTag, Bcp47SyntaxSubtagClassifier.Instance, out _) != Bcp47ParseStatus.Invalid;
+        }
+
+        /// <summary>
+        /// Determine whether a string is a language tag that is valid against a Subtag Registry (RFC 5646 §2.2.9).
+        /// </summary>
+        /// <param name="languageTag">Language tag to check.</param>
+        /// <param name="subtagRegistry">A copy of the IANA Subtag Registry.</param>
+        /// <returns><c>true</c> if the language tag is valid; <c>false</c> if not.</returns>
+        /// <exception cref="ArgumentNullException">The language tag or the Subtag Registry is <c>null</c>.</exception>
+#if NETCOREAPP3_0_OR_GREATER
+        public static bool IsValid(string languageTag, SubtagRegistry.SubtagRegistry subtagRegistry)
+#else
+        public static bool IsValid([NotNull] string languageTag, [NotNull] SubtagRegistry.SubtagRegistry subtagRegistry)
+#endif
+        {
+            if (languageTag is null) throw new ArgumentNullException(nameof(languageTag));
+
+            return IsValid(languageTag.AsSpan(), subtagRegistry);
+        }
+
+        /// <summary>
+        /// Determine whether a span of characters is a language tag that is valid against a Subtag Registry (RFC 5646 §2.2.9).
+        /// </summary>
+        /// <param name="languageTag">Language tag to check.</param>
+        /// <param name="subtagRegistry">A copy of the IANA Subtag Registry.</param>
+        /// <returns><c>true</c> if the language tag is valid; <c>false</c> if not.</returns>
+        /// <exception cref="ArgumentNullException">The Subtag Registry is <c>null</c>.</exception>
+#if NETCOREAPP3_0_OR_GREATER
+        public static bool IsValid(ReadOnlySpan<char> languageTag, SubtagRegistry.SubtagRegistry subtagRegistry)
+#else
+        public static bool IsValid(ReadOnlySpan<char> languageTag, [NotNull] SubtagRegistry.SubtagRegistry subtagRegistry)
+#endif
+        {
+            if (subtagRegistry is null) throw new ArgumentNullException(nameof(subtagRegistry));
+
+            return Bcp47LanguageTagParser.Parse(languageTag, subtagRegistry.Classifier, out _) == Bcp47ParseStatus.Accepted;
         }
 
         /// <summary>
@@ -604,7 +705,7 @@ namespace DataStandardizer.LanguageTag
         /// <param name="result">When this method returns, contains the constructed <see cref="Bcp47LanguageTag"/>.</param>
         /// <returns><c>true</c> if the <see cref="Bcp47LanguageTag"/> was successfully created; otherwise, <c>false</c>.</returns>
         /// <remarks>
-        /// Validation will be performed using the default BCP 47 rules.
+        /// The language tag is checked for well-formedness only (RFC 5646 §2.2.9).
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryCreate(string? languageTag, out Bcp47LanguageTag result)
@@ -618,7 +719,7 @@ namespace DataStandardizer.LanguageTag
                 return false;
             }
 
-            var parts = ParseByRules(languageTag);
+            var parts = ParseToParts(languageTag, Bcp47SyntaxSubtagClassifier.Instance, LanguageTagConformance.WellFormed);
             if (parts is null)
             {
                 result = default;
@@ -630,7 +731,7 @@ namespace DataStandardizer.LanguageTag
         }
 
         /// <summary>
-        /// Create a <see cref="Bcp47LanguageTag"/> based on the Subtag Registry with the specified language tag.
+        /// Create a <see cref="Bcp47LanguageTag"/> that is valid against the Subtag Registry (RFC 5646 §2.2.9) with the specified language tag.
         /// </summary>
         /// <param name="languageTag">An IETF BCP 47 language tag.</param>
         /// <param name="subtagRegistry">A copy of the Subtag Registry.</param>
@@ -648,7 +749,40 @@ namespace DataStandardizer.LanguageTag
                 return false;
             }
 
-            var parts = ParseByRegistry(languageTag, subtagRegistry);
+            var parts = ParseToParts(languageTag, subtagRegistry.Classifier, LanguageTagConformance.Valid);
+            if (parts is null)
+            {
+                result = default;
+                return false;
+            }
+
+            result = new Bcp47LanguageTag(languageTag, parts);
+            return true;
+        }
+
+        /// <summary>
+        /// Create a <see cref="Bcp47LanguageTag"/> with the specified language tag, with a choice of what is checked.
+        /// </summary>
+        /// <param name="languageTag">An IETF BCP 47 language tag.</param>
+        /// <param name="conformance">What to check: <see cref="LanguageTagConformance.WellFormed"/> or <see cref="LanguageTagConformance.IsoCodeLists"/>.</param>
+        /// <param name="result">When this method returns, contains the constructed <see cref="Bcp47LanguageTag"/>.</param>
+        /// <returns><c>true</c> if the <see cref="Bcp47LanguageTag"/> was successfully created; otherwise, <c>false</c>.</returns>
+        /// <exception cref="ArgumentException"><paramref name="conformance"/> is <see cref="LanguageTagConformance.Valid"/>, which needs a Subtag Registry.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="conformance"/> is not a defined value.</exception>
+#if NETCOREAPP3_0_OR_GREATER
+        public static bool TryCreate(string? languageTag, LanguageTagConformance conformance, out Bcp47LanguageTag result)
+#else
+        public static bool TryCreate([CanBeNull] string languageTag, LanguageTagConformance conformance, out Bcp47LanguageTag result)
+#endif
+        {
+            var classifier = GetClassifier(conformance);
+            if (languageTag is null)
+            {
+                result = default;
+                return false;
+            }
+
+            var parts = ParseToParts(languageTag, classifier, conformance);
             if (parts is null)
             {
                 result = default;
@@ -666,15 +800,15 @@ namespace DataStandardizer.LanguageTag
         /// <param name="result">When this method returns, contains the constructed <see cref="Bcp47LanguageTag"/>.</param>
         /// <returns><c>true</c> if the <see cref="Bcp47LanguageTag"/> was successfully created; otherwise, <c>false</c>.</returns>
         /// <remarks>
-        /// Validation will be performed using the default BCP 47 rules. The language tag is copied to a string only if it is valid.
+        /// The language tag is checked for well-formedness only (RFC 5646 §2.2.9), and is copied to a string only if it is well-formed.
         /// </remarks>
         public static bool TryCreate(ReadOnlySpan<char> languageTag, out Bcp47LanguageTag result)
         {
-            return TryCreateFromSpan(languageTag, Bcp47RulesBasedSubtagClassifier.Instance, out result);
+            return TryCreateFromSpan(languageTag, Bcp47SyntaxSubtagClassifier.Instance, LanguageTagConformance.WellFormed, out result);
         }
 
         /// <summary>
-        /// Create a <see cref="Bcp47LanguageTag"/> based on the Subtag Registry from a span of characters that contains a language tag.
+        /// Create a <see cref="Bcp47LanguageTag"/> that is valid against the Subtag Registry (RFC 5646 §2.2.9) from a span of characters that contains a language tag.
         /// </summary>
         /// <param name="languageTag">An IETF BCP 47 language tag.</param>
         /// <param name="subtagRegistry">A copy of the Subtag Registry.</param>
@@ -695,7 +829,24 @@ namespace DataStandardizer.LanguageTag
                 return false;
             }
 
-            return TryCreateFromSpan(languageTag, subtagRegistry.Classifier, out result);
+            return TryCreateFromSpan(languageTag, subtagRegistry.Classifier, LanguageTagConformance.Valid, out result);
+        }
+
+        /// <summary>
+        /// Create a <see cref="Bcp47LanguageTag"/> from a span of characters that contains a language tag, with a choice of what is checked.
+        /// </summary>
+        /// <param name="languageTag">An IETF BCP 47 language tag.</param>
+        /// <param name="conformance">What to check: <see cref="LanguageTagConformance.WellFormed"/> or <see cref="LanguageTagConformance.IsoCodeLists"/>.</param>
+        /// <param name="result">When this method returns, contains the constructed <see cref="Bcp47LanguageTag"/>.</param>
+        /// <returns><c>true</c> if the <see cref="Bcp47LanguageTag"/> was successfully created; otherwise, <c>false</c>.</returns>
+        /// <exception cref="ArgumentException"><paramref name="conformance"/> is <see cref="LanguageTagConformance.Valid"/>, which needs a Subtag Registry.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="conformance"/> is not a defined value.</exception>
+        /// <remarks>
+        /// The language tag is copied to a string only if it satisfies <paramref name="conformance"/>.
+        /// </remarks>
+        public static bool TryCreate(ReadOnlySpan<char> languageTag, LanguageTagConformance conformance, out Bcp47LanguageTag result)
+        {
+            return TryCreateFromSpan(languageTag, GetClassifier(conformance), conformance, out result);
         }
 
 #if NET7_0_OR_GREATER
@@ -706,9 +857,9 @@ namespace DataStandardizer.LanguageTag
         /// <param name="provider">Ignored, as language tags do not depend on culture.</param>
         /// <returns>Language tag object.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="s"/> is <c>null</c>.</exception>
-        /// <exception cref="LanguageTagFormatException">The language tag was not recognised.</exception>
+        /// <exception cref="LanguageTagFormatException">The language tag is not well-formed.</exception>
         /// <remarks>
-        /// Validation will be performed using the default BCP 47 rules, as by <see cref="Create(string)"/>.
+        /// The language tag is checked for well-formedness only (RFC 5646 §2.2.9), as by <see cref="Create(string)"/>.
         /// </remarks>
         public static Bcp47LanguageTag Parse(string s, IFormatProvider? provider)
         {
@@ -723,13 +874,13 @@ namespace DataStandardizer.LanguageTag
         /// <param name="s">Language tag on which the object will be based.</param>
         /// <param name="provider">Ignored, as language tags do not depend on culture.</param>
         /// <returns>Language tag object.</returns>
-        /// <exception cref="LanguageTagFormatException">The language tag was not recognised.</exception>
+        /// <exception cref="LanguageTagFormatException">The language tag is not well-formed.</exception>
         /// <remarks>
-        /// Validation will be performed using the default BCP 47 rules.
+        /// The language tag is checked for well-formedness only (RFC 5646 §2.2.9).
         /// </remarks>
         public static Bcp47LanguageTag Parse(ReadOnlySpan<char> s, IFormatProvider? provider)
         {
-            if (!TryCreate(s, out var result)) throw new LanguageTagFormatException(ErrorMessage.LanguageTagInvalidFormat, s.ToString());
+            if (!TryCreate(s, out var result)) throw new LanguageTagFormatException(ErrorMessage.LanguageTagNotWellFormed, s.ToString());
 
             return result;
         }
@@ -742,7 +893,7 @@ namespace DataStandardizer.LanguageTag
         /// <param name="result">When this method returns, contains the constructed <see cref="Bcp47LanguageTag"/>.</param>
         /// <returns><c>true</c> if the <see cref="Bcp47LanguageTag"/> was successfully created; otherwise, <c>false</c>, including for <c>null</c>.</returns>
         /// <remarks>
-        /// Validation will be performed using the default BCP 47 rules, as by <see cref="TryCreate(string, out Bcp47LanguageTag)"/>.
+        /// The language tag is checked for well-formedness only (RFC 5646 §2.2.9), as by <see cref="TryCreate(string, out Bcp47LanguageTag)"/>.
         /// </remarks>
         public static bool TryParse([NotNullWhen(true)] string? s, IFormatProvider? provider, out Bcp47LanguageTag result)
         {
@@ -757,7 +908,7 @@ namespace DataStandardizer.LanguageTag
         /// <param name="result">When this method returns, contains the constructed <see cref="Bcp47LanguageTag"/>.</param>
         /// <returns><c>true</c> if the <see cref="Bcp47LanguageTag"/> was successfully created; otherwise, <c>false</c>.</returns>
         /// <remarks>
-        /// Validation will be performed using the default BCP 47 rules. The language tag is copied to a string only if it is valid.
+        /// The language tag is checked for well-formedness only (RFC 5646 §2.2.9), and is copied to a string only if it is well-formed.
         /// </remarks>
         public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out Bcp47LanguageTag result)
         {
@@ -815,6 +966,24 @@ namespace DataStandardizer.LanguageTag
         #endregion
 
         #region Public Properties
+
+        /// <summary>
+        /// Gets what was checked when the language tag was created.
+        /// </summary>
+        /// <remarks>
+        /// This is <see cref="LanguageTagConformance.WellFormed"/> unless the language tag was created with a Subtag Registry or a choice of conformance.
+        /// It never changes: <see cref="IsValid(SubtagRegistry.SubtagRegistry)"/> reports a result without changing it.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">The <see cref="Bcp47LanguageTag"/> is not initialised.</exception>
+        public LanguageTagConformance Conformance
+        {
+            get
+            {
+                if (_languageTag is null) throw new InvalidOperationException(ErrorMessage.UninitializedInstance);
+
+                return Parts.Conformance;
+            }
+        }
 
         /// <summary>
         /// Gets the Extended Language Subtags of the BCP 47 language tag.
@@ -961,59 +1130,62 @@ namespace DataStandardizer.LanguageTag
         #region Private Methods
 
         /// <summary>
-        /// Parse a language tag by the default BCP 47 rules.
+        /// Get the classifier for a conformance that needs no Subtag Registry.
         /// </summary>
-        /// <returns>The subtags; <c>null</c> if the language tag is not well-formed.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        private static Bcp47LanguageTagParts? ParseByRules(string languageTag)
+        private static Bcp47SubtagClassifier GetClassifier(LanguageTagConformance conformance)
+#else
+        [NotNull]
+        private static Bcp47SubtagClassifier GetClassifier(LanguageTagConformance conformance)
+#endif
+        {
+            switch (conformance)
+            {
+                case LanguageTagConformance.WellFormed:
+                    return Bcp47SyntaxSubtagClassifier.Instance;
+                case LanguageTagConformance.IsoCodeLists:
+                    return Bcp47RulesBasedSubtagClassifier.Instance;
+                case LanguageTagConformance.Valid:
+                    throw new ArgumentException(ErrorMessage.ConformanceValidNeedsRegistry, nameof(conformance));
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(conformance), conformance, null);
+            }
+        }
+
+        /// <summary>
+        /// Determine whether a parse outcome satisfies a conformance: only a well-formed language tag may repeat a variant subtag or an extension singleton (ref. RFC 5646 §2.2.9).
+        /// </summary>
+        private static bool Satisfies(Bcp47ParseStatus status, LanguageTagConformance conformance)
+        {
+            return status == Bcp47ParseStatus.Accepted || (status == Bcp47ParseStatus.RepeatedSubtag && conformance == LanguageTagConformance.WellFormed);
+        }
+
+        /// <summary>
+        /// Parse a language tag with a classifier.
+        /// </summary>
+        /// <returns>The subtags; <c>null</c> if the language tag does not satisfy the conformance.</returns>
+#if NETCOREAPP3_0_OR_GREATER
+        private static Bcp47LanguageTagParts? ParseToParts(string languageTag, Bcp47SubtagClassifier classifier, LanguageTagConformance conformance)
 #else
         [CanBeNull]
-        private static Bcp47LanguageTagParts ParseByRules([NotNull] string languageTag)
+        private static Bcp47LanguageTagParts ParseToParts([NotNull] string languageTag, [NotNull] Bcp47SubtagClassifier classifier, LanguageTagConformance conformance)
 #endif
         {
-            if (Bcp47LanguageTagParser.Parse(languageTag.AsSpan(), Bcp47RulesBasedSubtagClassifier.Instance, out var ranges) != Bcp47ParseStatus.WellFormed) return null;
+            if (!Satisfies(Bcp47LanguageTagParser.Parse(languageTag.AsSpan(), classifier, out var ranges), conformance)) return null;
 
-            return Bcp47LanguageTagParts.FromRanges(languageTag, ranges);
+            return Bcp47LanguageTagParts.FromRanges(languageTag, ranges, conformance);
         }
 
         /// <summary>
-        /// Determine whether a string is a well-formed language tag by the default BCP 47 rules.
+        /// Parse a span of characters with a classifier, and copy it to a string only if it satisfies the conformance.
         /// </summary>
 #if NETCOREAPP3_0_OR_GREATER
-        private static bool IsWellFormedByRules(string languageTag)
+        private static bool TryCreateFromSpan(ReadOnlySpan<char> languageTag, Bcp47SubtagClassifier classifier, LanguageTagConformance conformance, out Bcp47LanguageTag result)
 #else
-        private static bool IsWellFormedByRules([NotNull] string languageTag)
+        private static bool TryCreateFromSpan(ReadOnlySpan<char> languageTag, [NotNull] Bcp47SubtagClassifier classifier, LanguageTagConformance conformance, out Bcp47LanguageTag result)
 #endif
         {
-            return Bcp47LanguageTagParser.Parse(languageTag.AsSpan(), Bcp47RulesBasedSubtagClassifier.Instance, out _) == Bcp47ParseStatus.WellFormed;
-        }
-
-        /// <summary>
-        /// Parse a language tag against the records of a Subtag Registry.
-        /// </summary>
-        /// <returns>The subtags; <c>null</c> if the language tag is not well-formed.</returns>
-#if NETCOREAPP3_0_OR_GREATER
-        private static Bcp47LanguageTagParts? ParseByRegistry(string languageTag, SubtagRegistry.SubtagRegistry subtagRegistry)
-#else
-        [CanBeNull]
-        private static Bcp47LanguageTagParts ParseByRegistry([NotNull] string languageTag, [NotNull] SubtagRegistry.SubtagRegistry subtagRegistry)
-#endif
-        {
-            if (Bcp47LanguageTagParser.Parse(languageTag.AsSpan(), subtagRegistry.Classifier, out var ranges) != Bcp47ParseStatus.WellFormed) return null;
-
-            return Bcp47LanguageTagParts.FromRanges(languageTag, ranges);
-        }
-
-        /// <summary>
-        /// Parse a span of characters with a classifier, and copy it to a string only if it is a well-formed language tag.
-        /// </summary>
-#if NETCOREAPP3_0_OR_GREATER
-        private static bool TryCreateFromSpan(ReadOnlySpan<char> languageTag, Bcp47SubtagClassifier classifier, out Bcp47LanguageTag result)
-#else
-        private static bool TryCreateFromSpan(ReadOnlySpan<char> languageTag, [NotNull] Bcp47SubtagClassifier classifier, out Bcp47LanguageTag result)
-#endif
-        {
-            if (Bcp47LanguageTagParser.Parse(languageTag, classifier, out var ranges) != Bcp47ParseStatus.WellFormed)
+            if (!Satisfies(Bcp47LanguageTagParser.Parse(languageTag, classifier, out var ranges), conformance))
             {
                 result = default;
                 return false;
@@ -1021,7 +1193,7 @@ namespace DataStandardizer.LanguageTag
 
             // The ranges are positions in the span, so they apply equally to its copy.
             var languageTagString = languageTag.ToString();
-            result = new Bcp47LanguageTag(languageTagString, Bcp47LanguageTagParts.FromRanges(languageTagString, ranges));
+            result = new Bcp47LanguageTag(languageTagString, Bcp47LanguageTagParts.FromRanges(languageTagString, ranges, conformance));
             return true;
         }
 

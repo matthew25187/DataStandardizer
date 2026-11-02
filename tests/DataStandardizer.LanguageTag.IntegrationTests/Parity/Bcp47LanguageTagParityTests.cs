@@ -18,7 +18,7 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
     }
 
     /// <summary>
-    /// Differential test of the parser that validates language tags by the default BCP 47 rules against the regular expressions it replaced (#221).
+    /// Differential test of the ISO code lists path (<see cref="LanguageTagConformance.IsoCodeLists"/>) against the regular expressions the parser replaced (#221).
     /// </summary>
     /// <remarks>
     /// For every input in <see cref="ParityCorpus"/>, the parser must give the same result as <see cref="FrozenRulesBasedExpressions"/> for each
@@ -54,7 +54,7 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
             var testResult = DifferentialRunner.FindMismatches(cases, ParserObserver.ObserveValidity);
 
             // assert
-            testResult.Should().BeEmpty("IsWellFormedLanguageTagString, TryCreate and the parser must agree with the regular expressions they replaced");
+            testResult.Should().BeEmpty("TryCreate and the parser must agree with the regular expressions they replaced");
         }
 
         [Fact]

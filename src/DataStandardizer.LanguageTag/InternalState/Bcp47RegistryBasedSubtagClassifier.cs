@@ -47,7 +47,7 @@ namespace DataStandardizer.LanguageTag.InternalState
 
         internal override bool IsPrimaryLanguage(ReadOnlySpan<char> subtag, out bool allowsExtendedLanguage)
         {
-            // The registry's Prefix fields are not checked, so any registered Primary Language subtag may be followed by Extended Language subtags.
+            // RFC 5646 §2.2.9 does not list the registry's Prefix fields among the conditions of validity, so any registered Primary Language subtag may be followed by Extended Language subtags.
             allowsExtendedLanguage = _primaryLanguageSubtags.Contains(subtag);
             return allowsExtendedLanguage;
         }

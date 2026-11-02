@@ -25,7 +25,7 @@ namespace DataStandardizer.LanguageTag.Tests
             { nameof(Bcp47LanguageTag.CheckVariantSubtag), () => Bcp47LanguageTag.CheckVariantSubtag((string)null) },
             { nameof(Bcp47LanguageTag.CheckExtensionSubtag), () => Bcp47LanguageTag.CheckExtensionSubtag((string)null) },
             { nameof(Bcp47LanguageTag.CheckPrivateUseSubtag), () => Bcp47LanguageTag.CheckPrivateUseSubtag((string)null) },
-            { nameof(Bcp47LanguageTag.IsWellFormedLanguageTagString), () => Bcp47LanguageTag.IsWellFormedLanguageTagString((string)null) }
+            { nameof(Bcp47LanguageTag.IsWellFormed), () => Bcp47LanguageTag.IsWellFormed((string)null) }
         };
 
         [Theory]

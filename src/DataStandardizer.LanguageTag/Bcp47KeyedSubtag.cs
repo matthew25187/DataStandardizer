@@ -16,7 +16,7 @@ namespace DataStandardizer.LanguageTag
         private static class ErrorMessage
         {
             internal const string SubtagNull = "The subtag must not be null.";
-            internal const string UninitializedInstance = "The " + nameof(Bcp47KeyedSubtag) + " instance is not initialized.";
+            internal const string UninitializedInstance = "The " + nameof(Bcp47KeyedSubtag) + " instance is not initialised.";
         }
 #if NETCOREAPP3_0_OR_GREATER
         private readonly string? _subtag;
@@ -118,7 +118,7 @@ namespace DataStandardizer.LanguageTag
         /// <summary>
         /// Gets the single character that identifies the subtag.
         /// </summary>
-        /// <exception cref="InvalidOperationException">The <see cref="Bcp47KeyedSubtag"/> is not initialized.</exception>
+        /// <exception cref="InvalidOperationException">The <see cref="Bcp47KeyedSubtag"/> is not initialised.</exception>
         public char? Singleton
         {
             get
@@ -143,7 +143,7 @@ namespace DataStandardizer.LanguageTag
         /// <remarks>
         /// Each read splits the subtag afresh, so the list belongs to the caller.
         /// </remarks>
-        /// <exception cref="InvalidOperationException">The <see cref="Bcp47KeyedSubtag"/> is not initialized.</exception>
+        /// <exception cref="InvalidOperationException">The <see cref="Bcp47KeyedSubtag"/> is not initialised.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public IReadOnlyList<string> Subtags
 #else
