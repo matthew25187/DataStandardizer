@@ -65,5 +65,3 @@ The public types of **DataStandardizer.File.CSV**. All types are in the
 | [CsvFieldGenerate](CsvFieldGenerate.md) | Generates a value for a CSV field. |
 | [CsvFieldValidate](CsvFieldValidate.md) | Validates an incoming CSV field value. |
 | [CsvFileHeader](CsvFileHeader.md) | Supplies field names in lieu of a header line from the file. |
-</content>
-</invoke>
