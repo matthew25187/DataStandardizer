@@ -77,7 +77,7 @@ public class ReadBenchmarks
         using var reader = CsvReader.Create(stream, CsvHelperOptions);
 
         var count = 0;
-        while (reader.Read()) // the first Read also reads the header
+        while (reader.Read()) // the first Read skips the header and stops on the first data row
         {
             for (var i = 0; i < BenchmarkData.FieldNames.Length; i++)
             {
