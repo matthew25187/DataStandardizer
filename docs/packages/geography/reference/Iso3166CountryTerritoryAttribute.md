@@ -42,4 +42,3 @@ Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`.
 - [Iso3166Part1Alpha2Country](Iso3166Part1Alpha2Country.md)
 - [Iso3166Part1Alpha3Country](Iso3166Part1Alpha3Country.md)
 - [Geography API reference](index.md)
-</content>

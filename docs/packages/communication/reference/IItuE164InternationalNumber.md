@@ -46,4 +46,3 @@ Targets `netstandard1.1`, `netstandard2.0`, `net8.0`, and `net10.0`.
 - [IItuE164InternationalNumberForGroupsOfCountries](IItuE164InternationalNumberForGroupsOfCountries.md)
 - [IItuE164InternationalNumberForTrials](IItuE164InternationalNumberForTrials.md)
 - [Communication API reference](index.md)
-</content>

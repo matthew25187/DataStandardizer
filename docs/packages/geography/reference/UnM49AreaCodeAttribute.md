@@ -88,4 +88,3 @@ Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`.
 - [UnM49AreaByAlpha2CountryCode](UnM49AreaByAlpha2CountryCode.md)
 - [UnM49AreaByAlpha3CountryCode](UnM49AreaByAlpha3CountryCode.md)
 - [Geography API reference](index.md)
-</content>

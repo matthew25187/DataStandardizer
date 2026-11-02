@@ -92,4 +92,3 @@ Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`.
 - [UnM49AreaByAlpha3CountryCode](UnM49AreaByAlpha3CountryCode.md)
 - [UnM49AreaCodeAttribute](UnM49AreaCodeAttribute.md)
 - [Geography API reference](index.md)
-</content>

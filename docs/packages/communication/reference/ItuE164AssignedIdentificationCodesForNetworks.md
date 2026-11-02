@@ -94,4 +94,3 @@ Targets `netstandard1.1`, `netstandard2.0`, `net8.0`, and `net10.0`.
 - [IItuE164InternationalNumberForNetworks](IItuE164InternationalNumberForNetworks.md)
 - [ItuE164SharedCodeAttribute](ItuE164SharedCodeAttribute.md)
 - [Communication API reference](index.md)
-</content>

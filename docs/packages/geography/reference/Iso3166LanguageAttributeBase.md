@@ -43,4 +43,3 @@ Targets `netstandard1.0`, `netstandard2.0`, `net8.0`, and `net10.0`.
 - [Iso3166SubdivisionNameAttribute](Iso3166SubdivisionNameAttribute.md)
 - [Iso3166SubdivisionCategoryNameAttribute](Iso3166SubdivisionCategoryNameAttribute.md)
 - [Geography API reference](index.md)
-</content>

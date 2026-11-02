@@ -54,4 +54,3 @@ The nullable reference annotations apply to the
 - [Configure a reader or writer](../how-to/configure-csv.md)
 - [CsvFileOptions](CsvFileOptions.md)
 - [File.CSV API reference](index.md)
-</content>

@@ -52,4 +52,3 @@ Standard builds it is publicly get-only. Its nullable annotation applies to the
 - [Read CSV files](../how-to/read-csv-files.md)
 - [Write CSV files](../how-to/write-csv-files.md)
 - [File.CSV API reference](index.md)
-</content>
