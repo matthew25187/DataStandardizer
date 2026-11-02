@@ -21,7 +21,7 @@ subtag, then the remaining optional subtags in spec order, and finally `Build()`
 
 ```text
 new Bcp47LanguageTagBuilder()
-  ├─ WithLanguageSubtagRegistry(...)   (optional)
+  ├─ WithLanguageSubtagRegistry(...) or WithConformance(...)   (optional)
   │
   ├─ UsingLanguageTag("...")  ───────────────────────────► Build()
   │
@@ -46,7 +46,7 @@ There are two mutually exclusive entry points after the optional configuration
 steps:
 
 - **`UsingLanguageTag("yue-Hant-HK")`** — hand the builder a complete tag string.
-  This leads straight to `Build()`, and the string is validated when the tag is
+  This leads straight to `Build()`, and the string is checked when the tag is
   created.
 - **`UsingPrimaryLanguageSubtag(...)`** — start a piece-by-piece composition,
   beginning with the (mandatory) primary language and adding refinements in order.
@@ -64,18 +64,27 @@ other *Data Standardizer* packages:
 
 When you pass an enum, the builder checks that the value is defined (and, for
 `UnM49Area`, that the member is an area BCP 47 allows); when you pass a string,
-it checks the subtag against the BCP 47 rules (via the matching
-`Bcp47LanguageTag.Check…` method). An undefined enum value or a malformed string
-throws `ArgumentException` at the point of the call, so mistakes surface early
-rather than at `Build()`.
+it checks the shape of the subtag (via the matching `Bcp47LanguageTag.Check…`
+method). An undefined enum value or a string of the wrong shape throws
+`ArgumentException` at the point of the call. Whether a subtag of the right shape
+is acceptable is decided by `Build()`.
 
-## Optional configuration: the subtag registry
+The variant and extension steps also refuse a repeated variant subtag or extension
+singleton. A repeat is well-formed, but it could never be valid, so the builder
+won't compose one.
 
-**`WithLanguageSubtagRegistry(subtagRegistry)`** may be applied before
-composition begins. It constrains validation to a loaded copy of the *IANA
-Language Subtag Registry*. When supplied, the final `Build()` constructs the tag
-through the registry-based `Bcp47LanguageTag.Create(..., subtagRegistry)`
-overload.
+## Optional configuration: what Build() checks
+
+One of these may be applied before composition begins. If you call both on the same
+builder, the last one applies. See
+[Well-formed, valid and the ISO code lists](well-formed-and-valid.md).
+
+- **`WithLanguageSubtagRegistry(subtagRegistry)`** — `Build()` checks that the tag is
+  valid against a loaded copy of the *IANA Language Subtag Registry*.
+- **`WithConformance(conformance)`** — `Build()` checks `WellFormed` or
+  `IsoCodeLists`. `Valid` throws `ArgumentException`, because it needs a registry.
+
+With neither, `Build()` checks that the tag is well-formed.
 
 Version 2.0 removed the `WithTimeout` step, which had no effect: tags are checked
 by a parser, which can't time out. See [Removed in v2.0](../../../resources/removed-in-v2.md#languagetag-match-timeouts).
@@ -83,14 +92,15 @@ by a parser, which can't time out. See [Removed in v2.0](../../../resources/remo
 ## How Build() assembles the tag
 
 `Build()` concatenates the supplied subtags, in order, into a single
-hyphen-separated string and then constructs the `Bcp47LanguageTag` from it (using
-the registry if one was configured). A few rules are enforced at
+hyphen-separated string and then constructs the `Bcp47LanguageTag` from it, using
+the registry or conformance if one was configured. A few rules are enforced at
 this stage — for example, no more than three extended language subtags are
-permitted — and the resulting tag is validated as it is created, so an invalid
-combination surfaces as a `LanguageTagFormatException`.
+permitted — and the resulting tag is checked as it is created, so a tag that fails
+surfaces as a `LanguageTagFormatException`.
 
 ## Related
 
 - [Create language tags using the builder](../how-to/create-language-tags-using-builder.md)
 - [Anatomy of a language tag](language-tag-anatomy.md)
+- [Well-formed, valid and the ISO code lists](well-formed-and-valid.md)
 - [API reference](../reference/index.md)

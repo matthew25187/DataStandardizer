@@ -119,6 +119,16 @@ namespace DataStandardizer.LanguageTag.Tests
         private const string IndoEuropeanFamilyCode = "ine";
 
         /// <summary>
+        /// A variant subtag with the shape of RFC 5646 §2.1 that is not in the registry. The ISO code lists do not check variants.
+        /// </summary>
+        private const string UnregisteredVariant = "de-abcde";
+
+        /// <summary>
+        /// Serbo-Croatian in the registry, which is not an ISO 639-1 code, so only the registry accepts it.
+        /// </summary>
+        private const string SerboCroatianTwoLetterCode = "sh";
+
+        /// <summary>
         /// The ISO 15924 code for an uncoded script, which RFC 5646 §2.2.3 takes from that list, so the ISO code lists accept it.
         /// </summary>
         private const string UncodedScript = "en-Zzzz";
@@ -772,6 +782,48 @@ namespace DataStandardizer.LanguageTag.Tests
 
             // assert
             testResult.Should().Be(expectedResult, "{0} checks that class", creationPath);
+        }
+
+        #endregion
+
+        #region Test: the three side by side
+
+        /// <summary>
+        /// The table in <c>docs/packages/language-tag/concepts/well-formed-and-valid.md</c>: each tag, and whether it is well-formed, in the ISO code lists, and valid against the registry fixture.
+        /// </summary>
+        public static TheoryData<string, bool, bool, bool> ConformanceTable => new TheoryData<string, bool, bool, bool>
+        {
+            { EnglishUnitedStates, true, true, true },
+            { KlingonGrandfathered, true, true, true },
+            { PrivateUseOneLetter, true, true, true },
+            { UncodedScript, true, true, true },
+            { UnassignedPrimaryLanguage, true, false, false },
+            { UnassignedScript, true, false, false },
+            { ChannelIslandsRegion, true, false, false },
+            { EnglishThreeLetterCode, true, false, false },
+            { RepeatedVariant, true, false, false },
+            { RepeatedSingleton, true, false, false },
+            { UnregisteredVariant, true, true, false },
+            { SerboCroatianTwoLetterCode, true, false, true },
+            { EmptySubtag, false, false, false },
+            { SingletonWithOneCharacterSubtag, false, false, false }
+        };
+
+        [Theory]
+        [MemberData(nameof(ConformanceTable))]
+        public void IsWellFormedAndIsValid_ForTagInDocumentedTable_GiveTheDocumentedResults(string testLanguageTag, bool expectedWellFormed, bool expectedInIsoCodeLists, bool expectedValid)
+        {
+            // arrange
+            var subtagRegistry = IanaSubtagRegistryResource.Shared;
+
+            // act
+            var testResult = (
+                Bcp47LanguageTag.IsWellFormed(testLanguageTag),
+                Bcp47LanguageTag.IsValid(testLanguageTag, LanguageTagConformance.IsoCodeLists),
+                Bcp47LanguageTag.IsValid(testLanguageTag, subtagRegistry));
+
+            // assert
+            testResult.Should().Be((expectedWellFormed, expectedInIsoCodeLists, expectedValid));
         }
 
         #endregion

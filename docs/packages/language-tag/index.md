@@ -19,16 +19,18 @@ dotnet add package DataStandardizer.LanguageTag
 
 | Standard | What it provides |
 | --- | --- |
-| **RFC 5646** | *Tags for Identifying Languages* (part of IETF BCP 47): language tags built from subtags for primary language, extended language, script, region, variant, extension, and private use, together with the format of the *IANA Language Subtag Registry* (section 3.1). |
+| **RFC 5646** | *Tags for Identifying Languages* (part of IETF BCP 47): language tags built from subtags for primary language, extended language, script, region, variant, extension, and private use, together with the format of the *IANA Language Subtag Registry* (section 3.1). The package implements both conformance classes of section 2.2.9: well-formed and valid. |
 
 BCP 47 also includes RFC 4647, *Matching of Language Tags*, which defines
 filtering and lookup of language ranges against tags. This package does not
 implement RFC 4647 matching.
 
-Validation draws on the codes implemented by the other *Data Standardizer*
-packages (ISO 639 languages, ISO 15924 scripts, ISO 3166-1 / UN M49 regions),
-and can optionally be constrained to a loaded copy of the *IANA Language Subtag
-Registry*.
+Creating a language tag checks that it's well-formed: it matches the grammar, and
+nothing is looked up. To check that it's valid, pass a loaded copy of the *IANA
+Language Subtag Registry*. If you can't load a registry, you can opt in to checking
+against the codes implemented by the other *Data Standardizer* packages (ISO 639
+languages, ISO 15924 scripts, ISO 3166-1 / UN M49 regions). See
+[Well-formed, valid and the ISO code lists](concepts/well-formed-and-valid.md).
 
 ## Platform support
 
@@ -41,7 +43,7 @@ automatically. The `net8.0` and `net10.0` builds have the span types built in,
 so they have no extra dependency.
 
 > **Applies to:** the `ReadOnlySpan<char>` overloads of `TryCreate`,
-> `IsWellFormedLanguageTagString` and the `Check…Subtag` methods, and
+> `IsWellFormed`, `IsValid` and the `Check…Subtag` methods, and
 > `Bcp47LanguageTag.AsSpan()`, exist on every target. `Bcp47LanguageTag` implements `ISpanFormattable`, `IParsable<T>` and
 > `ISpanParsable<T>` on `net8.0` and `net10.0` only. The builder's
 > `params ReadOnlySpan<string>` overloads exist on `net10.0` only. Loading a
@@ -62,6 +64,7 @@ notes.
 
 - [Anatomy of a language tag](concepts/language-tag-anatomy.md)
 - [The language-tag builder pipeline](concepts/builder-pipeline.md)
+- [Well-formed, valid and the ISO code lists](concepts/well-formed-and-valid.md)
 
 ## Reference
 

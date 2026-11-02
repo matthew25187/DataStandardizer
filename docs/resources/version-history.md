@@ -38,7 +38,9 @@ for `null` instead.
 Creating a `Bcp47LanguageTag` without a subtag registry now checks that the tag is
 well-formed and nothing else, so it accepts tags such as `zz` and `de-1901-1901`
 that version 1.x rejected. `IsWellFormedLanguageTagString` is replaced by
-`IsWellFormed` and `IsValid`, and the ISO code lists are an explicit opt-in. See
+`IsWellFormed` and `IsValid`, and the ISO code lists are an explicit opt-in, which now
+rejects three-letter codes such as `eng`. `Check*Subtag` and the builder's string steps
+check only the shape of a subtag. See
 [what creating a language tag checks](removed-in-v2.md#what-creating-a-language-tag-checks).
 
 `SubtagRegistry` moves to the `DataStandardizer.LanguageTag` namespace, and the
