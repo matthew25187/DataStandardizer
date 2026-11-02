@@ -56,14 +56,14 @@ namespace DataStandardizer.LanguageTag
         private string? _privateUseSubtag;
         private object? _regionSubtag;
         private object? _scriptSubtag;
-        private SubtagRegistry.SubtagRegistry? _subtagRegistry;
+        private SubtagRegistry? _subtagRegistry;
 #else
         [CanBeNull] private string _languageTag;
         [CanBeNull] private object _primaryLanguageSubtag;
         [CanBeNull] private string _privateUseSubtag;
         [CanBeNull] private object _regionSubtag;
         [CanBeNull] private object _scriptSubtag;
-        [CanBeNull] private SubtagRegistry.SubtagRegistry _subtagRegistry;
+        [CanBeNull] private SubtagRegistry _subtagRegistry;
 #endif
 
         #endregion
@@ -76,7 +76,7 @@ namespace DataStandardizer.LanguageTag
 #endif
 
         /// <inheritdoc />
-        public IBcp47LanguageTagBuilderStepWithLanguageSubtagRegistryNext WithLanguageSubtagRegistry(SubtagRegistry.SubtagRegistry subtagRegistry)
+        public IBcp47LanguageTagBuilderStepWithLanguageSubtagRegistryNext WithLanguageSubtagRegistry(SubtagRegistry subtagRegistry)
         {
             _subtagRegistry = subtagRegistry ?? throw new ArgumentNullException(nameof(subtagRegistry));
 

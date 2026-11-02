@@ -125,7 +125,7 @@ namespace DataStandardizer.LanguageTag
         /// <exception cref="LanguageTagFormatException">The language tag is not well-formed.</exception>
         /// <remarks>
         /// The language tag is checked for well-formedness only (RFC 5646 §2.2.9): it matches the ABNF of RFC 5646 §2.1, and nothing else is checked.
-        /// To also check its subtags, use <see cref="Create(string, SubtagRegistry.SubtagRegistry)"/>.
+        /// To also check its subtags, use <see cref="Create(string, SubtagRegistry)"/>.
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static Bcp47LanguageTag Create(string languageTag)
@@ -161,9 +161,9 @@ namespace DataStandardizer.LanguageTag
         /// The <c>Prefix</c> and <c>Deprecated</c> fields of the registry's records are not checked, because §2.2.9 does not list them.
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
-        public static Bcp47LanguageTag Create(string languageTag, SubtagRegistry.SubtagRegistry subtagRegistry)
+        public static Bcp47LanguageTag Create(string languageTag, SubtagRegistry subtagRegistry)
 #else
-        public static Bcp47LanguageTag Create([NotNull] string languageTag, [NotNull] SubtagRegistry.SubtagRegistry subtagRegistry)
+        public static Bcp47LanguageTag Create([NotNull] string languageTag, [NotNull] SubtagRegistry subtagRegistry)
 #endif
         {
             if (languageTag is null)
@@ -192,7 +192,7 @@ namespace DataStandardizer.LanguageTag
         /// <param name="conformance">What to check: <see cref="LanguageTagConformance.WellFormed"/> or <see cref="LanguageTagConformance.IsoCodeLists"/>.</param>
         /// <returns>Language tag object.</returns>
         /// <exception cref="ArgumentNullException">The language tag is <c>null</c>.</exception>
-        /// <exception cref="ArgumentException"><paramref name="conformance"/> is <see cref="LanguageTagConformance.Valid"/>, which needs a Subtag Registry; use <see cref="Create(string, SubtagRegistry.SubtagRegistry)"/>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="conformance"/> is <see cref="LanguageTagConformance.Valid"/>, which needs a Subtag Registry; use <see cref="Create(string, SubtagRegistry)"/>.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="conformance"/> is not a defined value.</exception>
         /// <exception cref="LanguageTagFormatException">The language tag does not satisfy <paramref name="conformance"/>.</exception>
 #if NETCOREAPP3_0_OR_GREATER
@@ -238,12 +238,12 @@ namespace DataStandardizer.LanguageTag
         /// <exception cref="ArgumentNullException">The Subtag Registry is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">The <see cref="Bcp47LanguageTag"/> is not initialised.</exception>
         /// <remarks>
-        /// The result does not change <see cref="Conformance"/>. To carry <see cref="LanguageTagConformance.Valid"/>, create the language tag with <see cref="Create(string, SubtagRegistry.SubtagRegistry)"/>.
+        /// The result does not change <see cref="Conformance"/>. To carry <see cref="LanguageTagConformance.Valid"/>, create the language tag with <see cref="Create(string, SubtagRegistry)"/>.
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
-        public bool IsValid(SubtagRegistry.SubtagRegistry subtagRegistry)
+        public bool IsValid(SubtagRegistry subtagRegistry)
 #else
-        public bool IsValid([NotNull] SubtagRegistry.SubtagRegistry subtagRegistry)
+        public bool IsValid([NotNull] SubtagRegistry subtagRegistry)
 #endif
         {
             if (_languageTag is null) throw new InvalidOperationException(ErrorMessage.UninitializedInstance);
@@ -256,7 +256,7 @@ namespace DataStandardizer.LanguageTag
         /// </summary>
         /// <param name="conformance">What to check: <see cref="LanguageTagConformance.WellFormed"/> or <see cref="LanguageTagConformance.IsoCodeLists"/>.</param>
         /// <returns><c>true</c> if the language tag satisfies <paramref name="conformance"/>; <c>false</c> if not.</returns>
-        /// <exception cref="ArgumentException"><paramref name="conformance"/> is <see cref="LanguageTagConformance.Valid"/>, which needs a Subtag Registry; use <see cref="IsValid(SubtagRegistry.SubtagRegistry)"/>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="conformance"/> is <see cref="LanguageTagConformance.Valid"/>, which needs a Subtag Registry; use <see cref="IsValid(SubtagRegistry)"/>.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="conformance"/> is not a defined value.</exception>
         /// <exception cref="InvalidOperationException">The <see cref="Bcp47LanguageTag"/> is not initialised.</exception>
         /// <remarks>
@@ -688,9 +688,9 @@ namespace DataStandardizer.LanguageTag
         /// <returns><c>true</c> if the language tag is valid; <c>false</c> if not.</returns>
         /// <exception cref="ArgumentNullException">The language tag or the Subtag Registry is <c>null</c>.</exception>
 #if NETCOREAPP3_0_OR_GREATER
-        public static bool IsValid(string languageTag, SubtagRegistry.SubtagRegistry subtagRegistry)
+        public static bool IsValid(string languageTag, SubtagRegistry subtagRegistry)
 #else
-        public static bool IsValid([NotNull] string languageTag, [NotNull] SubtagRegistry.SubtagRegistry subtagRegistry)
+        public static bool IsValid([NotNull] string languageTag, [NotNull] SubtagRegistry subtagRegistry)
 #endif
         {
             if (languageTag is null) throw new ArgumentNullException(nameof(languageTag));
@@ -706,9 +706,9 @@ namespace DataStandardizer.LanguageTag
         /// <returns><c>true</c> if the language tag is valid; <c>false</c> if not.</returns>
         /// <exception cref="ArgumentNullException">The Subtag Registry is <c>null</c>.</exception>
 #if NETCOREAPP3_0_OR_GREATER
-        public static bool IsValid(ReadOnlySpan<char> languageTag, SubtagRegistry.SubtagRegistry subtagRegistry)
+        public static bool IsValid(ReadOnlySpan<char> languageTag, SubtagRegistry subtagRegistry)
 #else
-        public static bool IsValid(ReadOnlySpan<char> languageTag, [NotNull] SubtagRegistry.SubtagRegistry subtagRegistry)
+        public static bool IsValid(ReadOnlySpan<char> languageTag, [NotNull] SubtagRegistry subtagRegistry)
 #endif
         {
             if (subtagRegistry is null) throw new ArgumentNullException(nameof(subtagRegistry));
@@ -723,7 +723,7 @@ namespace DataStandardizer.LanguageTag
         /// <param name="conformance">What to check: <see cref="LanguageTagConformance.WellFormed"/> or <see cref="LanguageTagConformance.IsoCodeLists"/>.</param>
         /// <returns><c>true</c> if the language tag satisfies <paramref name="conformance"/>; <c>false</c> if not.</returns>
         /// <exception cref="ArgumentNullException">The language tag is <c>null</c>.</exception>
-        /// <exception cref="ArgumentException"><paramref name="conformance"/> is <see cref="LanguageTagConformance.Valid"/>, which needs a Subtag Registry; use <see cref="IsValid(string, SubtagRegistry.SubtagRegistry)"/>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="conformance"/> is <see cref="LanguageTagConformance.Valid"/>, which needs a Subtag Registry; use <see cref="IsValid(string, SubtagRegistry)"/>.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="conformance"/> is not a defined value.</exception>
         /// <remarks>
         /// <see cref="LanguageTagConformance.IsoCodeLists"/> is not RFC 5646 validity: see its documentation for what it leaves out.
@@ -745,7 +745,7 @@ namespace DataStandardizer.LanguageTag
         /// <param name="languageTag">Language tag to check.</param>
         /// <param name="conformance">What to check: <see cref="LanguageTagConformance.WellFormed"/> or <see cref="LanguageTagConformance.IsoCodeLists"/>.</param>
         /// <returns><c>true</c> if the language tag satisfies <paramref name="conformance"/>; <c>false</c> if not.</returns>
-        /// <exception cref="ArgumentException"><paramref name="conformance"/> is <see cref="LanguageTagConformance.Valid"/>, which needs a Subtag Registry; use <see cref="IsValid(ReadOnlySpan{char}, SubtagRegistry.SubtagRegistry)"/>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="conformance"/> is <see cref="LanguageTagConformance.Valid"/>, which needs a Subtag Registry; use <see cref="IsValid(ReadOnlySpan{char}, SubtagRegistry)"/>.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="conformance"/> is not a defined value.</exception>
         /// <remarks>
         /// <see cref="LanguageTagConformance.IsoCodeLists"/> is not RFC 5646 validity: see its documentation for what it leaves out. This method does not allocate once the code lists are built.
@@ -795,9 +795,9 @@ namespace DataStandardizer.LanguageTag
         /// <param name="result">When this method returns, contains the constructed <see cref="Bcp47LanguageTag"/>.</param>
         /// <returns><c>true</c> if the <see cref="Bcp47LanguageTag"/> was successfully created; otherwise, <c>false</c>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        public static bool TryCreate(string? languageTag, SubtagRegistry.SubtagRegistry subtagRegistry, out Bcp47LanguageTag result)
+        public static bool TryCreate(string? languageTag, SubtagRegistry subtagRegistry, out Bcp47LanguageTag result)
 #else
-        public static bool TryCreate([CanBeNull] string languageTag, [NotNull] SubtagRegistry.SubtagRegistry subtagRegistry, out Bcp47LanguageTag result)
+        public static bool TryCreate([CanBeNull] string languageTag, [NotNull] SubtagRegistry subtagRegistry, out Bcp47LanguageTag result)
 #endif
         {
             if (languageTag is null || subtagRegistry is null)
@@ -875,9 +875,9 @@ namespace DataStandardizer.LanguageTag
         /// The language tag is copied to a string only if it is valid.
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
-        public static bool TryCreate(ReadOnlySpan<char> languageTag, SubtagRegistry.SubtagRegistry subtagRegistry, out Bcp47LanguageTag result)
+        public static bool TryCreate(ReadOnlySpan<char> languageTag, SubtagRegistry subtagRegistry, out Bcp47LanguageTag result)
 #else
-        public static bool TryCreate(ReadOnlySpan<char> languageTag, [NotNull] SubtagRegistry.SubtagRegistry subtagRegistry, out Bcp47LanguageTag result)
+        public static bool TryCreate(ReadOnlySpan<char> languageTag, [NotNull] SubtagRegistry subtagRegistry, out Bcp47LanguageTag result)
 #endif
         {
             if (subtagRegistry is null)
@@ -1029,7 +1029,7 @@ namespace DataStandardizer.LanguageTag
         /// </summary>
         /// <remarks>
         /// This is <see cref="LanguageTagConformance.WellFormed"/> unless the language tag was created with a Subtag Registry or a choice of conformance.
-        /// It never changes: <see cref="IsValid(SubtagRegistry.SubtagRegistry)"/> reports a result without changing it.
+        /// It never changes: <see cref="IsValid(SubtagRegistry)"/> reports a result without changing it.
         /// </remarks>
         /// <exception cref="InvalidOperationException">The <see cref="Bcp47LanguageTag"/> is not initialised.</exception>
         public LanguageTagConformance Conformance

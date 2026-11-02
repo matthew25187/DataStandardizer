@@ -2,7 +2,7 @@ using System;
 #if NETCOREAPP3_0_OR_GREATER
 using System.Diagnostics.CodeAnalysis;
 #endif
-using DataStandardizer.LanguageTag.SubtagRegistry;
+using DataStandardizer.LanguageTag.Registry;
 #if NETSTANDARD
 using JetBrains.Annotations;
 #endif
@@ -10,7 +10,7 @@ using JetBrains.Annotations;
 namespace DataStandardizer.LanguageTag.InternalState
 {
     /// <summary>
-    /// Maps the subtags of a Subtag Registry to their records, for <see cref="SubtagRegistry.SubtagRegistry.TryGetSubtag(SubtagRegistryRecordType, string, out SubtagRegistrySubtagRecord)"/>.
+    /// Maps the subtags of a Subtag Registry to their records, for <see cref="SubtagRegistry.TryGetSubtag(SubtagRegistryRecordType, string, out SubtagRegistrySubtagRecord)"/>.
     /// </summary>
     /// <remarks>
     /// The maps are built once, from the registry's records of each type, and never change, so one instance may be used from several threads.
@@ -25,9 +25,9 @@ namespace DataStandardizer.LanguageTag.InternalState
         private readonly Bcp47SubtagMap<SubtagRegistrySubtagRecord> _variantSubtags;
 
 #if NETCOREAPP3_0_OR_GREATER
-        internal Bcp47RegistrySubtagIndex(SubtagRegistry.SubtagRegistry subtagRegistry)
+        internal Bcp47RegistrySubtagIndex(SubtagRegistry subtagRegistry)
 #else
-        internal Bcp47RegistrySubtagIndex([NotNull] SubtagRegistry.SubtagRegistry subtagRegistry)
+        internal Bcp47RegistrySubtagIndex([NotNull] SubtagRegistry subtagRegistry)
 #endif
         {
             var subtags = new Bcp47RegistrySubtagLists(subtagRegistry);

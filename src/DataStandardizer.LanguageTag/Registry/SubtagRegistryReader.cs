@@ -7,9 +7,9 @@ using System.Threading.Tasks;
 #if NETSTANDARD
 using JetBrains.Annotations;
 #endif
-using static DataStandardizer.LanguageTag.SubtagRegistry.SubtagRegistryConstants;
+using static DataStandardizer.LanguageTag.Registry.SubtagRegistryConstants;
 
-namespace DataStandardizer.LanguageTag.SubtagRegistry
+namespace DataStandardizer.LanguageTag.Registry
 {
     /// <summary>
     /// Reads the records of the Subtag Registry, in the record-jar format of RFC 5646 §3.1.1.

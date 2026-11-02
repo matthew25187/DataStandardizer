@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace DataStandardizer.LanguageTag.SubtagRegistry
+namespace DataStandardizer.LanguageTag.Registry
 {
     /// <summary>
     /// Expands the <c>Subtag</c> field of a registry record that denotes a range, such as <c>qaa..qtz</c>, into the subtags it stands for (RFC 5646 §3.1.1, §3.1.4).

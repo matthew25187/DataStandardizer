@@ -9,7 +9,7 @@ nav_exclude: true
 
 ## Definition
 
-Namespace: `DataStandardizer.LanguageTag.SubtagRegistry`
+Namespace: `DataStandardizer.LanguageTag.Registry`
 
 The registry's `File-Date` header record — carries the date the loaded copy of the
 IANA Subtag Registry was published.

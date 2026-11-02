@@ -1,4 +1,4 @@
-﻿namespace DataStandardizer.LanguageTag.SubtagRegistry
+﻿namespace DataStandardizer.LanguageTag.Registry
 {
     /// <summary>
     /// The value of the Type field of a Subtag Registry record (ref. RFC 5646 §3.1.3).

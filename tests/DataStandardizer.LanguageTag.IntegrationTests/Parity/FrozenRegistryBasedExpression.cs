@@ -27,7 +27,7 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
 
         private readonly Regex _languageTag;
 
-        internal FrozenRegistryBasedExpression(SubtagRegistry.SubtagRegistry subtagRegistry)
+        internal FrozenRegistryBasedExpression(SubtagRegistry subtagRegistry)
         {
             var primaryLanguageSubtagGroupPattern = $"(?<{FrozenRulesBasedExpressions.PrimaryLanguageGroupName}>{ComposeSubtagPattern(subtagRegistry, "language")})";
             var extendedLanguageSubtagGroupPattern = $"(?:(?:-(?<{FrozenRulesBasedExpressions.ExtendedLanguageGroupName}>{ComposeSubtagPattern(subtagRegistry, "extlang")})){{1,3}})";
@@ -61,12 +61,12 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
             return FrozenRulesBasedExpressions.IsAscii(input) ? _languageTag.Match(input) : System.Text.RegularExpressions.Match.Empty;
         }
 
-        private static string ComposeSubtagPattern(SubtagRegistry.SubtagRegistry subtagRegistry, string type)
+        private static string ComposeSubtagPattern(SubtagRegistry subtagRegistry, string type)
         {
             return string.Join("|", GetValues(subtagRegistry, type, FieldNameSubtag).SelectMany(Expand).Select(Regex.Escape));
         }
 
-        private static IEnumerable<string> GetValues(SubtagRegistry.SubtagRegistry subtagRegistry, string type, string fieldName)
+        private static IEnumerable<string> GetValues(SubtagRegistry subtagRegistry, string type, string fieldName)
         {
             return subtagRegistry
                 .Where(record => record.Fields.Any(field => field.Key == FieldNameType && field.Value == type))

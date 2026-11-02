@@ -41,6 +41,10 @@ that version 1.x rejected. `IsWellFormedLanguageTagString` is replaced by
 `IsWellFormed` and `IsValid`, and the ISO code lists are an explicit opt-in. See
 [what creating a language tag checks](removed-in-v2.md#what-creating-a-language-tag-checks).
 
+`SubtagRegistry` moves to the `DataStandardizer.LanguageTag` namespace, and the
+types of its records move to `DataStandardizer.LanguageTag.Registry`. See
+[where the registry types live](removed-in-v2.md#where-the-registry-types-live).
+
 In `DataStandardizer.LanguageTag`, Subtag Registry records are now immutable,
 with their fields parsed once when the registry is loaded:
 

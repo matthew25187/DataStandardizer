@@ -24,7 +24,7 @@ namespace DataStandardizer.LanguageTag.IntegrationTests
             {
                 // act
                 // ReSharper disable once MethodHasAsyncOverload
-                var testResult = SubtagRegistry.SubtagRegistry.CreateFromFile(registryFile.Path);
+                var testResult = SubtagRegistry.CreateFromFile(registryFile.Path);
 
                 // assert
                 testResult.Count.Should().Be(IanaRegistryRecordCount, "there are {0} records in the Subtag Registry", IanaRegistryRecordCount);
@@ -38,7 +38,7 @@ namespace DataStandardizer.LanguageTag.IntegrationTests
             using (var registryFile = new TemporaryFile(IanaSubtagRegistryResource.ReadResourceText()))
             {
                 // act
-                var testResult = await SubtagRegistry.SubtagRegistry.CreateFromFileAsync(registryFile.Path);
+                var testResult = await SubtagRegistry.CreateFromFileAsync(registryFile.Path);
 
                 // assert
                 testResult.Count.Should().Be(IanaRegistryRecordCount, "there are {0} records in the Subtag Registry", IanaRegistryRecordCount);
@@ -55,7 +55,7 @@ namespace DataStandardizer.LanguageTag.IntegrationTests
                 cancellationTokenSource.Cancel();
 
                 // act
-                Func<Task> testAction = () => SubtagRegistry.SubtagRegistry.CreateFromFileAsync(registryFile.Path, cancellationTokenSource.Token);
+                Func<Task> testAction = () => SubtagRegistry.CreateFromFileAsync(registryFile.Path, cancellationTokenSource.Token);
 
                 // assert
                 await testAction.Should().ThrowAsync<OperationCanceledException>("the token was cancelled");

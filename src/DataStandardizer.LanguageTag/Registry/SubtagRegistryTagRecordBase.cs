@@ -4,10 +4,10 @@ using System.Collections.ObjectModel;
 #if NETSTANDARD
 using JetBrains.Annotations;
 #endif
-using static DataStandardizer.LanguageTag.SubtagRegistry.SubtagRegistryConstants;
-using TypeName = DataStandardizer.LanguageTag.SubtagRegistry.SubtagRegistryConstants.Type;
+using static DataStandardizer.LanguageTag.Registry.SubtagRegistryConstants;
+using TypeName = DataStandardizer.LanguageTag.Registry.SubtagRegistryConstants.Type;
 
-namespace DataStandardizer.LanguageTag.SubtagRegistry
+namespace DataStandardizer.LanguageTag.Registry
 {
     /// <summary>
     /// The shared base of the tag and subtag records of the Subtag Registry, with the fields they have in common.

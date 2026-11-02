@@ -33,7 +33,7 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
         private static readonly Lazy<RegistryBasedParityCases> SharedTrimmedCases =
             new Lazy<RegistryBasedParityCases>(() => new RegistryBasedParityCases(CreateTrimmedSubtagRegistry()));
 
-        private RegistryBasedParityCases(SubtagRegistry.SubtagRegistry subtagRegistry)
+        private RegistryBasedParityCases(SubtagRegistry subtagRegistry)
         {
             Registry = subtagRegistry;
             Frozen = new FrozenRegistryBasedExpression(subtagRegistry);
@@ -65,7 +65,7 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
         /// </summary>
         internal static RegistryBasedParityCases Trimmed => SharedTrimmedCases.Value;
 
-        internal SubtagRegistry.SubtagRegistry Registry { get; }
+        internal SubtagRegistry Registry { get; }
 
         internal FrozenRegistryBasedExpression Frozen { get; }
 
@@ -88,7 +88,7 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
         /// A copy of the IANA registry fixture with a third of its language, extlang, script and region records, every range record, and no
         /// grandfathered or variant records.
         /// </summary>
-        internal static SubtagRegistry.SubtagRegistry CreateTrimmedSubtagRegistry()
+        internal static SubtagRegistry CreateTrimmedSubtagRegistry()
         {
             var records = Regex.Split(IanaSubtagRegistryResource.ReadResourceText().Replace("\r\n", "\n"), "\n%%\n");
             var keptRecords = records.Where((record, index) =>
@@ -102,7 +102,7 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
                 return index % 3 == 0 || (subtag != null && (subtag.Contains("..") || TrimmedRegistryKeptSubtags.Contains(subtag)));
             });
 
-            return SubtagRegistry.SubtagRegistry.CreateFromContent(string.Join("\n%%\n", keptRecords));
+            return SubtagRegistry.CreateFromContent(string.Join("\n%%\n", keptRecords));
         }
 
         /// <summary>

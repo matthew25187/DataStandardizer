@@ -62,7 +62,7 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
         /// Whether an input is valid against a Subtag Registry. There is no registry-based well-formed check, so <see cref="LanguageTagValidity.IsWellFormed"/>
         /// is what <c>TryCreate</c> returns.
         /// </summary>
-        internal static LanguageTagValidity ObserveValidity(string input, SubtagRegistry.SubtagRegistry subtagRegistry)
+        internal static LanguageTagValidity ObserveValidity(string input, SubtagRegistry subtagRegistry)
         {
             var tryCreate = Bcp47LanguageTag.TryCreate(input, subtagRegistry, out _);
             return new LanguageTagValidity(tryCreate, tryCreate, Bcp47LanguageTagParser.Parse(input.AsSpan(), subtagRegistry.Classifier, out _));
@@ -80,7 +80,7 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
             return DescribeRanges(input, ranges);
         }
 
-        internal static SubtagTexts ObserveDecomposition(string input, SubtagRegistry.SubtagRegistry subtagRegistry)
+        internal static SubtagTexts ObserveDecomposition(string input, SubtagRegistry subtagRegistry)
         {
             Bcp47LanguageTagParser.Parse(input.AsSpan(), subtagRegistry.Classifier, out var ranges);
             return DescribeRanges(input, ranges);
@@ -96,7 +96,7 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
             return DescribeProperties(Bcp47LanguageTag.Create(input));
         }
 
-        internal static SubtagTexts ObserveProperties(string input, SubtagRegistry.SubtagRegistry subtagRegistry)
+        internal static SubtagTexts ObserveProperties(string input, SubtagRegistry subtagRegistry)
         {
             return DescribeProperties(Bcp47LanguageTag.Create(input, subtagRegistry));
         }

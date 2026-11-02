@@ -9,7 +9,7 @@ nav_exclude: true
 
 ## Definition
 
-Namespace: `DataStandardizer.LanguageTag.SubtagRegistry`
+Namespace: `DataStandardizer.LanguageTag`
 
 A read-only collection of the records that comprise a loaded copy of the *IANA
 Language Subtag Registry*, used to constrain language-tag validation. The

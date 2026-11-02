@@ -267,7 +267,7 @@ namespace DataStandardizer.LanguageTag.Tests
             return result;
         }
 
-        private static Bcp47LanguageTag TryCreateFromString(string languageTag, SubtagRegistry.SubtagRegistry subtagRegistry)
+        private static Bcp47LanguageTag TryCreateFromString(string languageTag, SubtagRegistry subtagRegistry)
         {
             Bcp47LanguageTag.TryCreate(languageTag, subtagRegistry, out var result);
             return result;
@@ -285,7 +285,7 @@ namespace DataStandardizer.LanguageTag.Tests
             return result;
         }
 
-        private static Bcp47LanguageTag TryCreateFromSpan(string languageTag, SubtagRegistry.SubtagRegistry subtagRegistry)
+        private static Bcp47LanguageTag TryCreateFromSpan(string languageTag, SubtagRegistry subtagRegistry)
         {
             Bcp47LanguageTag.TryCreate(languageTag.AsSpan(), subtagRegistry, out var result);
             return result;
@@ -506,7 +506,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void IsValid_WithStringAndNullRegistry_ThrowsArgumentNullException()
         {
             // act
-            Action testAction = () => Bcp47LanguageTag.IsValid(EnglishUnitedStates, (SubtagRegistry.SubtagRegistry)null);
+            Action testAction = () => Bcp47LanguageTag.IsValid(EnglishUnitedStates, (SubtagRegistry)null);
 
             // assert
             testAction.Should().Throw<ArgumentNullException>().WithParameterName(SubtagRegistryParameterName);
@@ -516,7 +516,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void IsValid_WithSpanAndNullRegistry_ThrowsArgumentNullException()
         {
             // act
-            Action testAction = () => Bcp47LanguageTag.IsValid(EnglishUnitedStates.AsSpan(), (SubtagRegistry.SubtagRegistry)null);
+            Action testAction = () => Bcp47LanguageTag.IsValid(EnglishUnitedStates.AsSpan(), (SubtagRegistry)null);
 
             // assert
             testAction.Should().Throw<ArgumentNullException>().WithParameterName(SubtagRegistryParameterName);
@@ -529,7 +529,7 @@ namespace DataStandardizer.LanguageTag.Tests
             var languageTag = Bcp47LanguageTag.Create(EnglishUnitedStates);
 
             // act
-            Action testAction = () => languageTag.IsValid((SubtagRegistry.SubtagRegistry)null);
+            Action testAction = () => languageTag.IsValid((SubtagRegistry)null);
 
             // assert
             testAction.Should().Throw<ArgumentNullException>().WithParameterName(SubtagRegistryParameterName);

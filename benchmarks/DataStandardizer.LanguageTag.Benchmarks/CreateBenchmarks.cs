@@ -8,7 +8,7 @@ namespace DataStandardizer.LanguageTag.Benchmarks;
 [MemoryDiagnoser]
 public class CreateBenchmarks
 {
-    private SubtagRegistry.SubtagRegistry _registry = null!;
+    private SubtagRegistry _registry = null!;
 
     [GlobalSetup]
     public void GlobalSetup()

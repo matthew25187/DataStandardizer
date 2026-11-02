@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using DataStandardizer.LanguageTag.SubtagRegistry;
+using DataStandardizer.LanguageTag.Registry;
 using FluentAssertions;
 using Xunit;
 
@@ -66,17 +66,17 @@ namespace DataStandardizer.LanguageTag.Tests
         /// <summary>
         /// The two ways to load a registry from its content.
         /// </summary>
-        private static readonly Dictionary<string, Func<string, Task<SubtagRegistry.SubtagRegistry>>> ContentLoaders = new Dictionary<string, Func<string, Task<SubtagRegistry.SubtagRegistry>>>
+        private static readonly Dictionary<string, Func<string, Task<SubtagRegistry>>> ContentLoaders = new Dictionary<string, Func<string, Task<SubtagRegistry>>>
         {
-            { nameof(SubtagRegistry.SubtagRegistry.CreateFromContent), content => Task.FromResult(SubtagRegistry.SubtagRegistry.CreateFromContent(content)) },
-            { nameof(SubtagRegistry.SubtagRegistry.CreateFromContentAsync), SubtagRegistry.SubtagRegistry.CreateFromContentAsync }
+            { nameof(SubtagRegistry.CreateFromContent), content => Task.FromResult(SubtagRegistry.CreateFromContent(content)) },
+            { nameof(SubtagRegistry.CreateFromContentAsync), SubtagRegistry.CreateFromContentAsync }
         };
 
-        public static TheoryData<string, Func<string, Task<SubtagRegistry.SubtagRegistry>>> ContentLoaderCases
+        public static TheoryData<string, Func<string, Task<SubtagRegistry>>> ContentLoaderCases
         {
             get
             {
-                var data = new TheoryData<string, Func<string, Task<SubtagRegistry.SubtagRegistry>>>();
+                var data = new TheoryData<string, Func<string, Task<SubtagRegistry>>>();
                 foreach (var loader in ContentLoaders)
                 {
                     data.Add(loader.Key, loader.Value);
@@ -94,7 +94,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void CreateFromContent_WhenRegistryContentIsNull_ThrowsArgumentNullException()
         {
             // act
-            Action testAction = () => SubtagRegistry.SubtagRegistry.CreateFromContent(null);
+            Action testAction = () => SubtagRegistry.CreateFromContent(null);
 
             // assert
             testAction.Should()
@@ -110,7 +110,7 @@ namespace DataStandardizer.LanguageTag.Tests
 
             // act
             // ReSharper disable once MethodHasAsyncOverload
-            var testResult = SubtagRegistry.SubtagRegistry.CreateFromContent(subtagRegistryContent);
+            var testResult = SubtagRegistry.CreateFromContent(subtagRegistryContent);
 
             // assert
             testResult.Count.Should().Be(IanaRegistryRecordCount, "there are {0} records in the Subtag Registry", IanaRegistryRecordCount);
@@ -120,7 +120,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public async Task CreateFromContentAsync_WhenRegistryContentIsNull_ThrowsArgumentNullException()
         {
             // act
-            Func<Task> testAction = () => SubtagRegistry.SubtagRegistry.CreateFromContentAsync(null);
+            Func<Task> testAction = () => SubtagRegistry.CreateFromContentAsync(null);
 
             // assert
             (await testAction.Should().ThrowAsync<ArgumentNullException>("the Subtag Registry content must not be null"))
@@ -134,7 +134,7 @@ namespace DataStandardizer.LanguageTag.Tests
             var subtagRegistryContent = IanaSubtagRegistryResource.Content;
 
             // act
-            var testResult = await SubtagRegistry.SubtagRegistry.CreateFromContentAsync(subtagRegistryContent);
+            var testResult = await SubtagRegistry.CreateFromContentAsync(subtagRegistryContent);
 
             // assert
             testResult.Count.Should().Be(IanaRegistryRecordCount, "there are {0} records in the Subtag Registry", IanaRegistryRecordCount);
@@ -144,7 +144,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void CreateFromFile_WhenRegistryFilePathIsNull_ThrowsArgumentNullException()
         {
             // act
-            Action testAction = () => SubtagRegistry.SubtagRegistry.CreateFromFile(null);
+            Action testAction = () => SubtagRegistry.CreateFromFile(null);
 
             // assert
             testAction.Should()
@@ -156,7 +156,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public async Task CreateFromFileAsync_WhenRegistryFilePathIsNull_ThrowsArgumentNullException()
         {
             // act
-            Func<Task> testAction = () => SubtagRegistry.SubtagRegistry.CreateFromFileAsync(null);
+            Func<Task> testAction = () => SubtagRegistry.CreateFromFileAsync(null);
 
             // assert
             (await testAction.Should().ThrowAsync<ArgumentNullException>("the Subtag Registry file path must not be null"))
@@ -167,7 +167,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void CreateFromStream_WhenStreamIsNull_ThrowsArgumentNullException()
         {
             // act
-            Action testAction = () => _ = SubtagRegistry.SubtagRegistry.CreateFromStream(null);
+            Action testAction = () => _ = SubtagRegistry.CreateFromStream(null);
 
             // assert
             testAction.Should().Throw<ArgumentNullException>("the stream must not be null");
@@ -181,7 +181,7 @@ namespace DataStandardizer.LanguageTag.Tests
             {
                 // act
                 // ReSharper disable once MethodHasAsyncOverload
-                var testResult = SubtagRegistry.SubtagRegistry.CreateFromStream(subtagRegistryStream);
+                var testResult = SubtagRegistry.CreateFromStream(subtagRegistryStream);
 
                 // assert
                 testResult.Count.Should().Be(IanaRegistryRecordCount, "there are {0} records in the subtag registry", IanaRegistryRecordCount);
@@ -192,7 +192,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public async Task CreateFromStreamAsync_WhenStreamIsNull_ThrowsArgumentNullException()
         {
             // act
-            Func<Task> testAction = () => SubtagRegistry.SubtagRegistry.CreateFromStreamAsync(null);
+            Func<Task> testAction = () => SubtagRegistry.CreateFromStreamAsync(null);
 
             // assert
             await testAction.Should().ThrowAsync<ArgumentNullException>("the stream must not be null");
@@ -205,7 +205,7 @@ namespace DataStandardizer.LanguageTag.Tests
             using (var subtagRegistryStream = new MemoryStream(Encoding.UTF8.GetBytes(IanaSubtagRegistryResource.Content)))
             {
                 // act
-                var testResult = await SubtagRegistry.SubtagRegistry.CreateFromStreamAsync(subtagRegistryStream);
+                var testResult = await SubtagRegistry.CreateFromStreamAsync(subtagRegistryStream);
 
                 // assert
                 testResult.Count.Should().Be(IanaRegistryRecordCount, "there are {0} records in the subtag registry", IanaRegistryRecordCount);
@@ -220,7 +220,7 @@ namespace DataStandardizer.LanguageTag.Tests
             {
                 // act
                 // ReSharper disable once MethodHasAsyncOverload
-                var testResult = SubtagRegistry.SubtagRegistry.CreateFromStream(subtagRegistryStream);
+                var testResult = SubtagRegistry.CreateFromStream(subtagRegistryStream);
 
                 // assert
                 testResult.Count.Should().Be(IanaRegistryRecordCount, "only the content after the stream's current position is read");
@@ -235,7 +235,7 @@ namespace DataStandardizer.LanguageTag.Tests
             {
                 // act
                 // ReSharper disable once MethodHasAsyncOverload
-                SubtagRegistry.SubtagRegistry.CreateFromStream(subtagRegistryStream);
+                SubtagRegistry.CreateFromStream(subtagRegistryStream);
 
                 // assert
                 subtagRegistryStream.CanRead.Should().BeTrue("the caller owns the stream");
@@ -250,7 +250,7 @@ namespace DataStandardizer.LanguageTag.Tests
             using (var subtagRegistryStream = CreatePositionedRegistryStream(IanaSubtagRegistryResource.Content))
             {
                 // act
-                var testResult = await SubtagRegistry.SubtagRegistry.CreateFromStreamAsync(subtagRegistryStream);
+                var testResult = await SubtagRegistry.CreateFromStreamAsync(subtagRegistryStream);
 
                 // assert
                 testResult.Count.Should().Be(IanaRegistryRecordCount, "only the content after the stream's current position is read");
@@ -264,7 +264,7 @@ namespace DataStandardizer.LanguageTag.Tests
             using (var subtagRegistryStream = CreatePositionedRegistryStream(IanaSubtagRegistryResource.Content))
             {
                 // act
-                await SubtagRegistry.SubtagRegistry.CreateFromStreamAsync(subtagRegistryStream);
+                await SubtagRegistry.CreateFromStreamAsync(subtagRegistryStream);
 
                 // assert
                 subtagRegistryStream.CanRead.Should().BeTrue("the caller owns the stream");
@@ -281,7 +281,7 @@ namespace DataStandardizer.LanguageTag.Tests
                 cancellationTokenSource.Cancel();
 
                 // act
-                Func<Task> testAction = () => SubtagRegistry.SubtagRegistry.CreateFromContentAsync(IanaSubtagRegistryResource.Content, cancellationTokenSource.Token);
+                Func<Task> testAction = () => SubtagRegistry.CreateFromContentAsync(IanaSubtagRegistryResource.Content, cancellationTokenSource.Token);
 
                 // assert
                 await testAction.Should().ThrowAsync<OperationCanceledException>("the token was cancelled");
@@ -296,7 +296,7 @@ namespace DataStandardizer.LanguageTag.Tests
             using (var subtagRegistryStream = new CancelOnFirstReadStream(Encoding.UTF8.GetBytes(IanaSubtagRegistryResource.Content), cancellationTokenSource))
             {
                 // act
-                Func<Task> testAction = () => SubtagRegistry.SubtagRegistry.CreateFromStreamAsync(subtagRegistryStream, cancellationTokenSource.Token);
+                Func<Task> testAction = () => SubtagRegistry.CreateFromStreamAsync(subtagRegistryStream, cancellationTokenSource.Token);
 
                 // assert
                 await testAction.Should().ThrowAsync<OperationCanceledException>("the token was cancelled after the first read from the stream");
@@ -311,7 +311,7 @@ namespace DataStandardizer.LanguageTag.Tests
             using (var subtagRegistryStream = new CancelOnFirstReadStream(Encoding.UTF8.GetBytes(IanaSubtagRegistryResource.Content), cancellationTokenSource))
             {
                 // act
-                var testResult = await Record.ExceptionAsync(() => SubtagRegistry.SubtagRegistry.CreateFromStreamAsync(subtagRegistryStream, cancellationTokenSource.Token));
+                var testResult = await Record.ExceptionAsync(() => SubtagRegistry.CreateFromStreamAsync(subtagRegistryStream, cancellationTokenSource.Token));
 
                 // assert
                 testResult.Should().BeAssignableTo<OperationCanceledException>("the token was cancelled after the first read from the stream");
@@ -327,7 +327,7 @@ namespace DataStandardizer.LanguageTag.Tests
             using (var subtagRegistryStream = new MemoryStream(Encoding.UTF8.GetBytes(IanaSubtagRegistryResource.Content)))
             {
                 // act
-                var testResult = await SubtagRegistry.SubtagRegistry.CreateFromStreamAsync(subtagRegistryStream, cancellationTokenSource.Token);
+                var testResult = await SubtagRegistry.CreateFromStreamAsync(subtagRegistryStream, cancellationTokenSource.Token);
 
                 // assert
                 testResult.Count.Should().Be(IanaRegistryRecordCount, "there are {0} records in the subtag registry", IanaRegistryRecordCount);
@@ -711,7 +711,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void TagRecordLists_WhenCastToMutableList_CannotBeChanged(string listName, Action<SubtagRegistrySubtagRecord> change)
         {
             // arrange
-            var record = SubtagRegistry.SubtagRegistry.CreateFromContent("Type: language\nSubtag: en\nDescription: English\nAdded: 2005-10-16").Languages[0];
+            var record = SubtagRegistry.CreateFromContent("Type: language\nSubtag: en\nDescription: English\nAdded: 2005-10-16").Languages[0];
 
             // act
             Action testAction = () => change(record);
@@ -736,7 +736,7 @@ namespace DataStandardizer.LanguageTag.Tests
 
         [Theory]
         [MemberData(nameof(ContentLoaderCases), DisableDiscoveryEnumeration = true)]
-        public async Task CreateFromContent_WhenTypeIsUnknown_ReadsRecordWithUnknownType(string loaderName, Func<string, Task<SubtagRegistry.SubtagRegistry>> load)
+        public async Task CreateFromContent_WhenTypeIsUnknown_ReadsRecordWithUnknownType(string loaderName, Func<string, Task<SubtagRegistry>> load)
         {
             // arrange
             const string content = "Type: future\nSubtag: qaa\nDescription: Private use\nAdded: 2005-10-16";
@@ -759,7 +759,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void CreateFromContent_WhenDateIsMalformed_ReadsDateAsAbsentAndKeepsField(string date, string content)
         {
             // act
-            var testResult = SubtagRegistry.SubtagRegistry.CreateFromContent(content);
+            var testResult = SubtagRegistry.CreateFromContent(content);
 
             // assert
             var record = testResult.Languages.Should().ContainSingle().Subject;
@@ -771,8 +771,8 @@ namespace DataStandardizer.LanguageTag.Tests
         /// <summary>
         /// Each typed list of the IANA registry fixture, with the number of records of its type in the fixture and the subtag or tag of the first and last of them.
         /// </summary>
-        public static TheoryData<SubtagRegistryRecordType, Func<SubtagRegistry.SubtagRegistry, IReadOnlyList<SubtagRegistryTagRecordBase>>, int> TypedRecordLists =>
-            new TheoryData<SubtagRegistryRecordType, Func<SubtagRegistry.SubtagRegistry, IReadOnlyList<SubtagRegistryTagRecordBase>>, int>
+        public static TheoryData<SubtagRegistryRecordType, Func<SubtagRegistry, IReadOnlyList<SubtagRegistryTagRecordBase>>, int> TypedRecordLists =>
+            new TheoryData<SubtagRegistryRecordType, Func<SubtagRegistry, IReadOnlyList<SubtagRegistryTagRecordBase>>, int>
             {
                 { SubtagRegistryRecordType.Language, registry => registry.Languages, 8268 },
                 { SubtagRegistryRecordType.ExtendedLanguage, registry => registry.ExtendedLanguages, 256 },
@@ -785,7 +785,7 @@ namespace DataStandardizer.LanguageTag.Tests
 
         [Theory]
         [MemberData(nameof(TypedRecordLists), DisableDiscoveryEnumeration = true)]
-        public void TypedRecordLists_ForFixture_HoldEveryRecordOfTheirType(SubtagRegistryRecordType type, Func<SubtagRegistry.SubtagRegistry, IReadOnlyList<SubtagRegistryTagRecordBase>> list, int expectedCount)
+        public void TypedRecordLists_ForFixture_HoldEveryRecordOfTheirType(SubtagRegistryRecordType type, Func<SubtagRegistry, IReadOnlyList<SubtagRegistryTagRecordBase>> list, int expectedCount)
         {
             // arrange
             var registry = IanaSubtagRegistryResource.Shared;
@@ -798,8 +798,8 @@ namespace DataStandardizer.LanguageTag.Tests
             testResult.Should().OnlyContain(record => record.Type == type);
         }
 
-        public static TheoryData<Func<SubtagRegistry.SubtagRegistry, IReadOnlyList<SubtagRegistrySubtagRecord>>, string, string> SubtagRecordListEnds =>
-            new TheoryData<Func<SubtagRegistry.SubtagRegistry, IReadOnlyList<SubtagRegistrySubtagRecord>>, string, string>
+        public static TheoryData<Func<SubtagRegistry, IReadOnlyList<SubtagRegistrySubtagRecord>>, string, string> SubtagRecordListEnds =>
+            new TheoryData<Func<SubtagRegistry, IReadOnlyList<SubtagRegistrySubtagRecord>>, string, string>
             {
                 { registry => registry.Languages, MinimalRecordSubtag, "zzj" },
                 { registry => registry.ExtendedLanguages, "aao", "zsm" },
@@ -810,7 +810,7 @@ namespace DataStandardizer.LanguageTag.Tests
 
         [Theory]
         [MemberData(nameof(SubtagRecordListEnds), DisableDiscoveryEnumeration = true)]
-        public void TypedRecordLists_ForFixture_KeepRegistryOrder(Func<SubtagRegistry.SubtagRegistry, IReadOnlyList<SubtagRegistrySubtagRecord>> list, string expectedFirstSubtag, string expectedLastSubtag)
+        public void TypedRecordLists_ForFixture_KeepRegistryOrder(Func<SubtagRegistry, IReadOnlyList<SubtagRegistrySubtagRecord>> list, string expectedFirstSubtag, string expectedLastSubtag)
         {
             // arrange
             var registry = IanaSubtagRegistryResource.Shared;
@@ -912,7 +912,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void TryGetSubtag_WhenTwoRecordsHaveSubtagsThatDifferOnlyInCase_ReturnsTheFirst(string subtag)
         {
             // arrange
-            var registry = SubtagRegistry.SubtagRegistry.CreateFromContent(
+            var registry = SubtagRegistry.CreateFromContent(
                 "Type: language\nSubtag: ab\nDescription: Other\n%%\nType: language\nSubtag: AA\nDescription: First\n%%\nType: language\nSubtag: aa\nDescription: Second\n%%\nType: language\nSubtag: zz\nDescription: Other");
 
             // act
@@ -987,7 +987,7 @@ namespace DataStandardizer.LanguageTag.Tests
             var content = IanaSubtagRegistryResource.Content;
 
             // act
-            var testResult = SubtagRegistry.SubtagRegistry.CreateFromContent(content).ToString();
+            var testResult = SubtagRegistry.CreateFromContent(content).ToString();
 
             // assert
             testResult.Should().Be(content, "every record and field is read and written back as it was");
@@ -995,7 +995,7 @@ namespace DataStandardizer.LanguageTag.Tests
 
         [Theory]
         [MemberData(nameof(ContentLoaderCases), DisableDiscoveryEnumeration = true)]
-        public async Task CreateFromContent_WhenFieldIsFolded_JoinsLinesWithOneSpace(string loaderName, Func<string, Task<SubtagRegistry.SubtagRegistry>> load)
+        public async Task CreateFromContent_WhenFieldIsFolded_JoinsLinesWithOneSpace(string loaderName, Func<string, Task<SubtagRegistry>> load)
         {
             // arrange
             const string content = "Type: language\nSubtag: ia\nDescription: Interlingua (International Auxiliary Language\n  Association)\nComments: first\n\t  second \n   \n  third\nAdded: 2005-10-16";
@@ -1017,7 +1017,7 @@ namespace DataStandardizer.LanguageTag.Tests
             var content = IanaSubtagRegistryResource.Content;
 
             // act
-            var testResult = SubtagRegistry.SubtagRegistry.CreateFromContent(content);
+            var testResult = SubtagRegistry.CreateFromContent(content);
 
             // assert
             testResult.Should().OnlyContain(
@@ -1027,7 +1027,7 @@ namespace DataStandardizer.LanguageTag.Tests
 
         [Theory]
         [MemberData(nameof(ContentLoaderCases), DisableDiscoveryEnumeration = true)]
-        public async Task CreateFromContent_WhenFieldNameIsUnknown_ReadsItAsSeparateField(string loaderName, Func<string, Task<SubtagRegistry.SubtagRegistry>> load)
+        public async Task CreateFromContent_WhenFieldNameIsUnknown_ReadsItAsSeparateField(string loaderName, Func<string, Task<SubtagRegistry>> load)
         {
             // arrange
             const string content = "Type: language\nSubtag: qaa\nDescription: Private use\nFuture-Field: some value\nAdded: 2005-10-16";
@@ -1044,11 +1044,11 @@ namespace DataStandardizer.LanguageTag.Tests
         /// <summary>
         /// Registries with a record that is empty or has no File-Date, Subtag or Tag field, each with both ways to load a registry from its content.
         /// </summary>
-        public static TheoryData<string, Func<string, Task<SubtagRegistry.SubtagRegistry>>, string> SkippedRecordCases
+        public static TheoryData<string, Func<string, Task<SubtagRegistry>>, string> SkippedRecordCases
         {
             get
             {
-                var data = new TheoryData<string, Func<string, Task<SubtagRegistry.SubtagRegistry>>, string>();
+                var data = new TheoryData<string, Func<string, Task<SubtagRegistry>>, string>();
                 foreach (var loader in ContentLoaders)
                 foreach (var content in new[] { EmptyRecordContent, UnclassifiableRecordContent })
                 {
@@ -1061,7 +1061,7 @@ namespace DataStandardizer.LanguageTag.Tests
 
         [Theory]
         [MemberData(nameof(SkippedRecordCases), DisableDiscoveryEnumeration = true)]
-        public async Task CreateFromContent_WhenRecordIsEmptyOrUnclassifiable_SkipsItAndReadsTheRest(string loaderName, Func<string, Task<SubtagRegistry.SubtagRegistry>> load, string content)
+        public async Task CreateFromContent_WhenRecordIsEmptyOrUnclassifiable_SkipsItAndReadsTheRest(string loaderName, Func<string, Task<SubtagRegistry>> load, string content)
         {
             // act
             var testResult = await load(content);

@@ -1,4 +1,4 @@
-﻿namespace DataStandardizer.LanguageTag.SubtagRegistry
+﻿namespace DataStandardizer.LanguageTag.Registry
 {
     internal static class SubtagRegistryConstants
     {
