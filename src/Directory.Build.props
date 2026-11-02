@@ -37,7 +37,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
   </ItemGroup>
 
   <!--
@@ -45,6 +45,6 @@
     the package is a design-time dependency only and must not flow to consumers.
   -->
   <ItemGroup Condition="'$(TargetFramework)' != '' And !$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'netstandard2.1'))">
-    <PackageReference Include="JetBrains.Annotations" Version="2025.2.2" PrivateAssets="all" />
+    <PackageReference Include="JetBrains.Annotations" PrivateAssets="all" />
   </ItemGroup>
 </Project>
