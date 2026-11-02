@@ -9,7 +9,7 @@ nav_exclude: true
 
 ## Definition
 
-Namespace: `DataStandardizer.LanguageTag.SubtagRegistry`
+Namespace: `DataStandardizer.LanguageTag`
 
 A read-only collection of the records that comprise a loaded copy of the *IANA
 Language Subtag Registry*, used to constrain language-tag validation. The
@@ -56,6 +56,9 @@ the range's record for `qab`. Enumerating the registry still yields the one
 record, with the range as its `Subtag`.
 
 ```csharp
+using DataStandardizer.LanguageTag;
+using DataStandardizer.LanguageTag.Registry; // for SubtagRegistryRecordType
+
 var registry = SubtagRegistry.CreateFromFile("language-subtag-registry.txt");
 
 if (registry.TryGetSubtag(SubtagRegistryRecordType.Region, "BU", out var region))

@@ -3242,7 +3242,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void Create_WithLanguageTagAndSubtagRegistryWhenChannelIslandsIsRegistered_ReturnsBcp47LanguageTag(string testLanguageTag)
         {
             // arrange
-            var subtagRegistry = SubtagRegistry.SubtagRegistry.CreateFromContent(ChannelIslandsSubtagRegistryContent);
+            var subtagRegistry = SubtagRegistry.CreateFromContent(ChannelIslandsSubtagRegistryContent);
             var languageTag = Bcp47LanguageTag.Create(testLanguageTag, subtagRegistry);
 
             // act
@@ -3829,7 +3829,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void Create_WithLanguageTagAndSparseSubtagRegistryWhenLanguageTagHasEmptySubtag_ThrowsLanguageTagFormatException(string testLanguageTag)
         {
             // arrange
-            var subtagRegistry = SubtagRegistry.SubtagRegistry.CreateFromContent(SparseSubtagRegistryContent);
+            var subtagRegistry = SubtagRegistry.CreateFromContent(SparseSubtagRegistryContent);
 
             // act
             Action testAction = () => _ = Bcp47LanguageTag.Create(testLanguageTag, subtagRegistry);
@@ -3844,7 +3844,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void TryCreate_WithLanguageTagAndSparseSubtagRegistryWhenLanguageTagHasEmptySubtag_ReturnsFalse(string testLanguageTag)
         {
             // arrange
-            var subtagRegistry = SubtagRegistry.SubtagRegistry.CreateFromContent(SparseSubtagRegistryContent);
+            var subtagRegistry = SubtagRegistry.CreateFromContent(SparseSubtagRegistryContent);
 
             // act
             var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, subtagRegistry, out _);
@@ -3858,7 +3858,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void Create_WithLanguageTagAndSparseSubtagRegistryWhenEverySubtagIsRegistered_ReturnsBcp47LanguageTag(string testLanguageTag)
         {
             // arrange
-            var subtagRegistry = SubtagRegistry.SubtagRegistry.CreateFromContent(SparseSubtagRegistryContent);
+            var subtagRegistry = SubtagRegistry.CreateFromContent(SparseSubtagRegistryContent);
 
             // act
             string testResult = Bcp47LanguageTag.Create(testLanguageTag, subtagRegistry);

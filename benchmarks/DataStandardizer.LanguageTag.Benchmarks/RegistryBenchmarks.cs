@@ -1,5 +1,5 @@
 ﻿using BenchmarkDotNet.Attributes;
-using DataStandardizer.LanguageTag.SubtagRegistry;
+using DataStandardizer.LanguageTag.Registry;
 
 namespace DataStandardizer.LanguageTag.Benchmarks;
 
@@ -10,7 +10,7 @@ namespace DataStandardizer.LanguageTag.Benchmarks;
 public class RegistryBenchmarks
 {
     private byte[] _registryBytes = [];
-    private SubtagRegistry.SubtagRegistry _registry = null!;
+    private SubtagRegistry _registry = null!;
 
     [GlobalSetup]
     public void GlobalSetup()
@@ -23,7 +23,7 @@ public class RegistryBenchmarks
     public int Registry_CreateFromStream()
     {
         using var stream = new MemoryStream(_registryBytes, writable: false);
-        return SubtagRegistry.SubtagRegistry.CreateFromStream(stream).Count;
+        return SubtagRegistry.CreateFromStream(stream).Count;
     }
 
     [Benchmark]

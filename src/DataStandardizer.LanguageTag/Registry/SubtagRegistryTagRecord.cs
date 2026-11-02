@@ -2,9 +2,9 @@
 #if NETSTANDARD
 using JetBrains.Annotations;
 #endif
-using static DataStandardizer.LanguageTag.SubtagRegistry.SubtagRegistryConstants;
+using static DataStandardizer.LanguageTag.Registry.SubtagRegistryConstants;
 
-namespace DataStandardizer.LanguageTag.SubtagRegistry
+namespace DataStandardizer.LanguageTag.Registry
 {
     /// <summary>
     /// Tag record from the IANA Subtag Registry.

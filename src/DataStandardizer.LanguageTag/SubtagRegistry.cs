@@ -10,11 +10,12 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using DataStandardizer.LanguageTag.InternalState;
+using DataStandardizer.LanguageTag.Registry;
 #if NETSTANDARD
 using JetBrains.Annotations;
 #endif
 
-namespace DataStandardizer.LanguageTag.SubtagRegistry
+namespace DataStandardizer.LanguageTag
 {
     /// <summary>
     /// Collection of records that comprise the Subtag Registry.

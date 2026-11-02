@@ -15,10 +15,10 @@ namespace DataStandardizer.LanguageTag
         /// <param name="subtagRegistry">A copy of the Subtag Registry.</param>
         /// <returns>Language tag builder.</returns>
 #if NETCOREAPP3_0_OR_GREATER
-        IBcp47LanguageTagBuilderStepWithLanguageSubtagRegistryNext WithLanguageSubtagRegistry(SubtagRegistry.SubtagRegistry subtagRegistry);
+        IBcp47LanguageTagBuilderStepWithLanguageSubtagRegistryNext WithLanguageSubtagRegistry(SubtagRegistry subtagRegistry);
 #else
         [NotNull]
-        IBcp47LanguageTagBuilderStepWithLanguageSubtagRegistryNext WithLanguageSubtagRegistry([NotNull] SubtagRegistry.SubtagRegistry subtagRegistry);
+        IBcp47LanguageTagBuilderStepWithLanguageSubtagRegistryNext WithLanguageSubtagRegistry([NotNull] SubtagRegistry subtagRegistry);
 #endif
     }
 

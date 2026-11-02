@@ -76,8 +76,8 @@ replacements, such as `Iso3166Part1Alpha2Country`, `Bcp47LanguageTag`,
    `DataStandardizer.ISO639` and `DataStandardizer.ISO15924`, you need only one
    reference to `DataStandardizer.Language`.
 2. Change the `using` directives to the namespaces in the first table. For
-   `DataStandardizer.BCP47`, that includes `DataStandardizer.BCP47.SubtagRegistry`,
-   which becomes `DataStandardizer.LanguageTag.SubtagRegistry`. For
+   `DataStandardizer.BCP47`, that includes `DataStandardizer.BCP47.SubtagRegistry`:
+   see [where the registry types live](#where-the-registry-types-live). For
    `DataStandardizer.File`, the namespace `DataStandardizer.File.Csv` becomes
    `DataStandardizer.File.CSV`.
 3. Rename the obsolete types using the second table. If you build the project
@@ -102,8 +102,9 @@ string? name = country.GetEnglishName(Iso3166CountryName.Short);
 they took over from the removed packages, so check their pages for anything your
 code relies on, such as the
 [LanguageTag match timeouts](#languagetag-match-timeouts),
-[builder region overloads](#languagetag-builder-region-overloads) and
-[what creating a language tag checks](#what-creating-a-language-tag-checks) below.
+[builder region overloads](#languagetag-builder-region-overloads),
+[what creating a language tag checks](#what-creating-a-language-tag-checks) and
+[where the registry types live](#where-the-registry-types-live) below.
 
 ## LanguageTag match timeouts
 
@@ -264,6 +265,37 @@ var languageTag = new Bcp47LanguageTagBuilder()
 A subtag that isn't in a list now fails at `Build()` with
 `LanguageTagFormatException`, instead of at its own step with `ArgumentException`.
 The builder still refuses a repeated variant subtag or extension singleton.
+
+## Where the registry types live
+
+The class `SubtagRegistry` used to be in a namespace with the same name, so code
+that used it had to write `SubtagRegistry.SubtagRegistry` or add an alias. In
+version 2.0, the class is in `DataStandardizer.LanguageTag`, beside
+`Bcp47LanguageTag`, and the types that describe its records are in the new namespace
+`DataStandardizer.LanguageTag.Registry`:
+
+| Type | Version 1.x namespace | Version 2.0 namespace |
+| --- | --- | --- |
+| `SubtagRegistry` | `DataStandardizer.LanguageTag.SubtagRegistry` | `DataStandardizer.LanguageTag` |
+| `ISubtagRegistryRecord`, `SubtagRegistryFileDateRecord`, `SubtagRegistryRecordBase`, `SubtagRegistryRecordType`, `SubtagRegistrySubtagRecord`, `SubtagRegistryTagRecord`, `SubtagRegistryTagRecordBase` | `DataStandardizer.LanguageTag.SubtagRegistry` | `DataStandardizer.LanguageTag.Registry` |
+
+Change the `using` directive, and remove any alias or doubled name. If you only load
+a registry to create language tags, you need no second directive.
+
+```csharp
+// Before
+using DataStandardizer.LanguageTag;
+using Registry = DataStandardizer.LanguageTag.SubtagRegistry.SubtagRegistry;
+
+var registry = Registry.CreateFromFile(path);
+var languageTag = Bcp47LanguageTag.Create("en-NZ", registry);
+
+// After
+using DataStandardizer.LanguageTag;
+
+var registry = SubtagRegistry.CreateFromFile(path);
+var languageTag = Bcp47LanguageTag.Create("en-NZ", registry);
+```
 
 ## The netstandard1.0 target
 

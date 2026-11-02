@@ -469,7 +469,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void TryCreate_WithSpanAndNullRegistry_ReturnsFalse()
         {
             // act
-            var testResult = (Bcp47LanguageTag.TryCreate("en".AsSpan(), (SubtagRegistry.SubtagRegistry)null, out var languageTag), languageTag);
+            var testResult = (Bcp47LanguageTag.TryCreate("en".AsSpan(), (SubtagRegistry)null, out var languageTag), languageTag);
 
             // assert
             testResult.Should().Be((false, default(Bcp47LanguageTag)), "the string overload returns false for a null registry too");

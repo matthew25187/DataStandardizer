@@ -7,36 +7,36 @@ namespace DataStandardizer.LanguageTag.Tests
     /// The copy of the IANA Language Subtag Registry embedded in the test assembly.
     /// </summary>
     /// <remarks>
-    /// A missing resource fails the test that reads it: <see cref="SubtagRegistry.SubtagRegistry.CreateFromStream"/> and
+    /// A missing resource fails the test that reads it: <see cref="SubtagRegistry.CreateFromStream"/> and
     /// <see cref="StreamReader"/> both throw <see cref="ArgumentNullException"/> for the <c>null</c> stream it is opened as.
     /// </remarks>
     internal static class IanaSubtagRegistryResource
     {
         private const string ResourceName = "DataStandardizer.LanguageTag.Tests.Resources.IanaSubtagRegistry.txt";
 
-        private static readonly Lazy<SubtagRegistry.SubtagRegistry> SharedSubtagRegistry = new Lazy<SubtagRegistry.SubtagRegistry>(CreateSubtagRegistry);
+        private static readonly Lazy<SubtagRegistry> SharedSubtagRegistry = new Lazy<SubtagRegistry>(CreateSubtagRegistry);
 
         private static readonly Lazy<string> SharedContent = new Lazy<string>(ReadContent);
 
         /// <summary>
-        /// One copy of the registry that every test may read. A <see cref="SubtagRegistry.SubtagRegistry"/> can't be changed once it is
+        /// One copy of the registry that every test may read. A <see cref="SubtagRegistry"/> can't be changed once it is
         /// loaded, so no test can change this one.
         /// </summary>
-        internal static SubtagRegistry.SubtagRegistry Shared => SharedSubtagRegistry.Value;
+        internal static SubtagRegistry Shared => SharedSubtagRegistry.Value;
 
         /// <summary>
-        /// The text of the registry, as <see cref="SubtagRegistry.SubtagRegistry.ToString"/> of the shared copy writes it.
+        /// The text of the registry, as <see cref="SubtagRegistry.ToString"/> of the shared copy writes it.
         /// </summary>
         internal static string Content => SharedContent.Value;
 
         /// <summary>
         /// Load a new copy of the registry, for a test that must not share one with other tests.
         /// </summary>
-        internal static SubtagRegistry.SubtagRegistry CreateSubtagRegistry()
+        internal static SubtagRegistry CreateSubtagRegistry()
         {
             using (var resourceStream = typeof(IanaSubtagRegistryResource).Assembly.GetManifestResourceStream(ResourceName))
             {
-                return SubtagRegistry.SubtagRegistry.CreateFromStream(resourceStream);
+                return SubtagRegistry.CreateFromStream(resourceStream);
             }
         }
 

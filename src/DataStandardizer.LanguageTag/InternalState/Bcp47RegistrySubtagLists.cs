@@ -3,7 +3,7 @@ using System.Collections.Generic;
 #if NETCOREAPP3_0_OR_GREATER
 using System.Runtime.CompilerServices;
 #endif
-using DataStandardizer.LanguageTag.SubtagRegistry;
+using DataStandardizer.LanguageTag.Registry;
 #if NETSTANDARD
 using JetBrains.Annotations;
 #endif
@@ -30,9 +30,9 @@ namespace DataStandardizer.LanguageTag.InternalState
         internal readonly Bcp47RegistrySubtagList<SubtagRegistrySubtagRecord> VariantSubtags = new Bcp47RegistrySubtagList<SubtagRegistrySubtagRecord>();
 
 #if NETCOREAPP3_0_OR_GREATER
-        internal Bcp47RegistrySubtagLists(SubtagRegistry.SubtagRegistry subtagRegistry)
+        internal Bcp47RegistrySubtagLists(SubtagRegistry subtagRegistry)
 #else
-        internal Bcp47RegistrySubtagLists([NotNull] SubtagRegistry.SubtagRegistry subtagRegistry)
+        internal Bcp47RegistrySubtagLists([NotNull] SubtagRegistry subtagRegistry)
 #endif
         {
             AddTagRecords(GrandfatheredLanguageTags, subtagRegistry.GrandfatheredTags);

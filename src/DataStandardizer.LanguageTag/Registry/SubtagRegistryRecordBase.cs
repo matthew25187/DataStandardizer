@@ -6,7 +6,7 @@ using System.Text;
 using JetBrains.Annotations;
 #endif
 
-namespace DataStandardizer.LanguageTag.SubtagRegistry
+namespace DataStandardizer.LanguageTag.Registry
 {
     /// <summary>
     /// The shared base of the records of the Subtag Registry.

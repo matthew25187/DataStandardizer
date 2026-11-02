@@ -9,7 +9,7 @@ nav_exclude: true
 
 ## Definition
 
-Namespace: `DataStandardizer.LanguageTag.SubtagRegistry`
+Namespace: `DataStandardizer.LanguageTag.Registry`
 
 The shared base for every subtag-registry record. It holds the record's fields
 and renders them back to registry text.

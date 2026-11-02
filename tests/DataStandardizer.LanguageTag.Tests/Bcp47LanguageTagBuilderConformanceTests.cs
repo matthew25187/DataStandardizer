@@ -210,7 +210,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public void Build_WithRegistryAndSubtagsOnlyTheRegistryHas_ReportsValid()
         {
             // arrange
-            var subtagRegistry = SubtagRegistry.SubtagRegistry.CreateFromContent(RegistryOfUnlistedSubtags);
+            var subtagRegistry = SubtagRegistry.CreateFromContent(RegistryOfUnlistedSubtags);
             var builder = new Bcp47LanguageTagBuilder().WithLanguageSubtagRegistry(subtagRegistry).UsingPrimaryLanguageSubtag(UnlistedPrimaryLanguage).UsingScriptSubtag(UnlistedScript);
 
             // act

@@ -9,7 +9,7 @@ nav_exclude: true
 
 ## Definition
 
-Namespace: `DataStandardizer.LanguageTag.SubtagRegistry`
+Namespace: `DataStandardizer.LanguageTag.Registry`
 
 A *tag* entry from the IANA Subtag Registry. The constructor is internal; you
 get instances from a [SubtagRegistry](SubtagRegistry.md): by enumerating it, or

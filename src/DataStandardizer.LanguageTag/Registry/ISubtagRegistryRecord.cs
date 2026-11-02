@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace DataStandardizer.LanguageTag.SubtagRegistry
+namespace DataStandardizer.LanguageTag.Registry
 {
     /// <summary>
     /// A record of the Subtag Registry.

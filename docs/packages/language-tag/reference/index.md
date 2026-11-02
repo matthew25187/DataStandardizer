@@ -8,8 +8,8 @@ nav_order: 20
 # DataStandardizer.LanguageTag API reference
 
 The public types of **DataStandardizer.LanguageTag**. The core types are in the
-`DataStandardizer.LanguageTag` namespace; the registry types are in the nested
-`DataStandardizer.LanguageTag.SubtagRegistry` namespace.
+`DataStandardizer.LanguageTag` namespace, as is `SubtagRegistry`; the types of its
+records are in the nested `DataStandardizer.LanguageTag.Registry` namespace.
 
 ## Structures
 
@@ -53,5 +53,3 @@ The public types of **DataStandardizer.LanguageTag**. The core types are in the
 - [Anatomy of a language tag](../concepts/language-tag-anatomy.md)
 - [The language-tag builder pipeline](../concepts/builder-pipeline.md)
 - [Use language tags](../how-to/use-language-tags.md)
-</content>
-</invoke>

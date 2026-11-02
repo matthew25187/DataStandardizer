@@ -1,5 +1,5 @@
 ﻿using System;
-using DataStandardizer.LanguageTag.SubtagRegistry;
+using DataStandardizer.LanguageTag.Registry;
 #if NETSTANDARD
 using JetBrains.Annotations;
 #endif
@@ -25,9 +25,9 @@ namespace DataStandardizer.LanguageTag.InternalState
         private readonly Bcp47SubtagSet _variantSubtags;
 
 #if NETCOREAPP3_0_OR_GREATER
-        internal Bcp47RegistryBasedSubtagClassifier(SubtagRegistry.SubtagRegistry subtagRegistry)
+        internal Bcp47RegistryBasedSubtagClassifier(SubtagRegistry subtagRegistry)
 #else
-        internal Bcp47RegistryBasedSubtagClassifier([NotNull] SubtagRegistry.SubtagRegistry subtagRegistry)
+        internal Bcp47RegistryBasedSubtagClassifier([NotNull] SubtagRegistry subtagRegistry)
 #endif
         {
             var subtags = new Bcp47RegistrySubtagLists(subtagRegistry);
