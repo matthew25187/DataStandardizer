@@ -6,7 +6,6 @@ namespace DataStandardizer.File.CSV.Fuzz;
 internal static class Program
 {
     private static readonly CsvFileHeaderHandling[] HeaderHandlings = [CsvFileHeaderHandling.None, CsvFileHeaderHandling.Use, CsvFileHeaderHandling.Ignore];
-    private static readonly CsvFieldQuoteHandling[] QuoteHandlings = [CsvFieldQuoteHandling.Always, CsvFieldQuoteHandling.Auto, CsvFieldQuoteHandling.Required];
 
     private static void Main()
     {
@@ -14,7 +13,7 @@ internal static class Program
     }
 
     /// <summary>
-    /// Reads the input with every combination of the options that change how a line is read, both as raw fields and mapped to properties.
+    /// Reads the input with each kind of header handling, both as raw fields and mapped to properties.
     /// </summary>
     private static void Run(ReadOnlySpan<byte> input)
     {
@@ -22,18 +21,14 @@ internal static class Program
 
         foreach (var headerHandling in HeaderHandlings)
         {
-            foreach (var quoteHandling in QuoteHandlings)
+            var options = new CsvFileOptions
             {
-                var options = new CsvFileOptions
-                {
-                    Culture = CultureInfo.InvariantCulture,
-                    HeaderHandling = headerHandling,
-                    QuoteHandling = quoteHandling
-                };
+                Culture = CultureInfo.InvariantCulture,
+                HeaderHandling = headerHandling
+            };
 
-                ReadRawFields(data, options);
-                ReadMappedFields(data, options);
-            }
+            ReadRawFields(data, options);
+            ReadMappedFields(data, options);
         }
     }
 

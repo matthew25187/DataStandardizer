@@ -50,15 +50,24 @@ internal static class ReaderHarnesses
                 }
 
                 previousReadFailed = false;
-                ReadCurrentLine(reader.CurrentLine);
             }
             catch (IcalFileException)
             {
                 previousReadFailed = true;
+                continue;
             }
             catch (InvalidOperationException) when (previousReadFailed)
             {
                 return;
+            }
+
+            try
+            {
+                ReadCurrentLine(reader.CurrentLine);
+            }
+            catch (IcalFileException)
+            {
+                // IcalContentLineView.GetTextValue documents this for a value with a bad escape sequence.  It isn't a failed read, so the next read must work.
             }
         }
     }

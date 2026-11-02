@@ -4,7 +4,7 @@
 
 | Project | Harness | Entry point | Seeds |
 |---|---|---|---|
-| `DataStandardizer.File.CSV.Fuzz` | (only one) | `CsvFileReader`, with every combination of header and quote handling | `Corpus` |
+| `DataStandardizer.File.CSV.Fuzz` | (only one) | `CsvFileReader`, with each kind of header handling | `Corpus` |
 | `DataStandardizer.File.iCal.Fuzz` | `ical` | `IcalReader` | `Corpus/ical` |
 | | `content-line` | `IcalContentLineReader` | `Corpus/content-line` |
 | | `jcal` | `JcalReader` | `Corpus/jcal` |
@@ -13,7 +13,7 @@
 
 Each harness treats only the exceptions that the API documents as expected. Anything else, a hang or a crash, is a finding. The seeds come from the test data of the same package.
 
-These projects aren't packed, and `fuzz/` is outside `src/` and `tests/`, so a change here never versions or publishes a package. CI builds them with their package, through its `.slnf`, but never runs them.
+These projects aren't packed, and `fuzz/` is outside `src/` and `tests/`, so a change here never versions or publishes a package. CI builds them when it builds their package, through its `.slnf`, but never runs them. It doesn't build a package for a change that is only in `fuzz/`, so build the project locally before opening a PR for one.
 
 ## Findings
 
