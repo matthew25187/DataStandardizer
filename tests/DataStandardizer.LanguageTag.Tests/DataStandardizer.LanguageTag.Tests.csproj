@@ -12,4 +12,10 @@
     <ProjectReference Include="..\..\src\DataStandardizer.LanguageTag\DataStandardizer.LanguageTag.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Turns off xUnit's AppDomain isolation on .NET Framework, where marshalling each of the theories' tens of thousands
+         of cases across the AppDomain boundary takes the net48 run from under a minute to over ten minutes. -->
+    <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
