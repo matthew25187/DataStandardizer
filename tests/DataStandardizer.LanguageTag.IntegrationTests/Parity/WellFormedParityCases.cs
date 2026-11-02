@@ -24,6 +24,7 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
                 .Select(Expect)
                 .ToList();
 
+            SubtagChecks = ParityCorpus.Inputs.Select(input => new DifferentialCase<SubtagCheckResults>(input, Rfc5646AbnfExpression.CheckSubtag(input))).ToList();
             Validity = expectations.Select(expectation => new DifferentialCase<LanguageTagValidity>(expectation.Input, expectation.Validity)).ToList();
             Decomposition = expectations.Select(expectation => new DifferentialCase<SubtagTexts>(expectation.Input, expectation.Subtags)).ToList();
             Properties = expectations
@@ -33,6 +34,11 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
         }
 
         internal static WellFormedParityCases Shared => SharedCases.Value;
+
+        /// <summary>
+        /// Every input, with whether it matches each production of the grammar for one subtag.
+        /// </summary>
+        internal IReadOnlyList<DifferentialCase<SubtagCheckResults>> SubtagChecks { get; }
 
         /// <summary>
         /// Every input, with whether it matches the grammar and whether the match repeats a subtag.
