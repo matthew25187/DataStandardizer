@@ -94,9 +94,8 @@ subtag (§2.2.2), so `zh-yue` is accepted and `abcde-yue` is not.
 
 Under the ISO code lists, the primary language subtag is an ISO 639-1 code, an
 ISO 639-2/T or ISO 639-3 code of a language with no ISO 639-1 code, an ISO 639-5 code
-or in `qaa` to `qtz`, or has four to eight letters. So `eng` is rejected (§2.2.1). `hbs`
-is rejected too, because the registry defines `sh` for that language. The script subtag
-is an ISO 15924 code or one of the 50 codes reserved for private use (§2.2.3¶3): `Qaaa` to
+or in `qaa` to `qtz`, or has four to eight letters. So `eng` is rejected (§2.2.1). The
+script subtag is an ISO 15924 code or one of the 50 codes reserved for private use (§2.2.3¶3): `Qaaa` to
 `Qaaz`, then `Qaba` to `Qabx`. So `en-Qaaz` and `en-Qabx` are accepted, and `en-Qaby` is
 not. The region subtag is an ISO 3166-1 alpha-2 code, a private use code (§2.2.4¶3), or a
 UN M49 code for the world, a region, a sub-region or an intermediate region. The UN M49

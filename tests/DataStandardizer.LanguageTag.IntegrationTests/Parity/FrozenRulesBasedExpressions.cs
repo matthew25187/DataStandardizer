@@ -18,6 +18,7 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
     /// <c>Bcp47LanguageTag.IsWellFormed(Match)</c>. Do not change it to follow the package: it is the reference the parser is compared with.
     /// It has one correction since then (#504): the three-letter ISO 639-2 and ISO 639-3 codes of languages that have an ISO 639-1 code are left out, as RFC 5646 §2.2.1 requires.
     /// It finds them by reading each enum member's own <see cref="Iso639LanguageCodeAttribute.Part1Code"/>, not as the package does, so the comparison also checks that shortcut.
+    /// That attribute counts only when it names a member of <see cref="Iso639Part1Language"/>: <c>hbs</c> gives <c>sh</c>, which ISO 639-1 doesn't have, so <c>hbs</c> stays in.
     /// </remarks>
     internal static class FrozenRulesBasedExpressions
     {
@@ -87,9 +88,11 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
         /// </summary>
         private static class CodesWithPart1Equivalent<TEnum>
         {
+            private static readonly HashSet<string> Part1Names = new HashSet<string>(StringEnum.GetNames<Iso639Part1Language>(), StringComparer.Ordinal);
+
             internal static readonly HashSet<string> Names = new HashSet<string>(
                 typeof(TEnum).GetFields(BindingFlags.Public | BindingFlags.Static)
-                    .Where(field => field.GetCustomAttribute<Iso639LanguageCodeAttribute>()?.Part1Code != null)
+                    .Where(field => Part1Names.Contains(field.GetCustomAttribute<Iso639LanguageCodeAttribute>()?.Part1Code ?? string.Empty))
                     .Select(field => field.Name.TrimStart('@')),
                 StringComparer.Ordinal);
         }

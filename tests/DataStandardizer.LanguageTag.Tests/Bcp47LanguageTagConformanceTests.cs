@@ -79,7 +79,7 @@ namespace DataStandardizer.LanguageTag.Tests
         private const string FrenchThreeLetterCode = "fra";
 
         /// <summary>
-        /// The ISO 639-3 code for Serbo-Croatian. The registry defines <c>sh</c> for this language and not this code, so the ISO code lists opt-in rejects it.
+        /// The ISO 639-3 code for Serbo-Croatian. ISO 639-1 has no code for this language, so the ISO code lists opt-in accepts this one. The registry defines <c>sh</c> and not this code, so it is not valid.
         /// </summary>
         private const string SerboCroatianThreeLetterCode = "hbs";
 
@@ -181,7 +181,7 @@ namespace DataStandardizer.LanguageTag.Tests
         /// </summary>
         public static TheoryData<string> NotInIsoCodeListsLanguageTags => new TheoryData<string>
         {
-            UnassignedPrimaryLanguage, UnassignedScript, ChannelIslandsRegion, RepeatedVariant, RepeatedSingleton, EnglishThreeLetterCode, GermanThreeLetterCode, FrenchThreeLetterCode, SerboCroatianThreeLetterCode
+            UnassignedPrimaryLanguage, UnassignedScript, ChannelIslandsRegion, RepeatedVariant, RepeatedSingleton, EnglishThreeLetterCode, GermanThreeLetterCode, FrenchThreeLetterCode
         };
 
         /// <summary>
@@ -198,7 +198,7 @@ namespace DataStandardizer.LanguageTag.Tests
         public static TheoryData<string> InIsoCodeListsLanguageTags => new TheoryData<string>
         {
             EnglishUnitedStates, KlingonGrandfathered, PrivateUseOneLetter, AsturianThreeLetterCode, HawaiianThreeLetterCode, MultipleLanguagesCode, UndeterminedLanguageCode,
-            FirstLocalUseCode, CantoneseThreeLetterCode, IndoEuropeanFamilyCode, UncodedScript
+            FirstLocalUseCode, CantoneseThreeLetterCode, IndoEuropeanFamilyCode, SerboCroatianThreeLetterCode, UncodedScript
         };
 
         /// <summary>
@@ -804,6 +804,7 @@ namespace DataStandardizer.LanguageTag.Tests
             (RepeatedVariant, true, false, false),
             (RepeatedSingleton, true, false, false),
             (UnregisteredVariant, true, true, false),
+            (SerboCroatianThreeLetterCode, true, true, false),
             (SerboCroatianTwoLetterCode, true, false, true),
             (EmptySubtag, false, false, false),
             (SingletonWithOneCharacterSubtag, false, false, false)

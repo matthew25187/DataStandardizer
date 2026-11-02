@@ -16,12 +16,6 @@ namespace DataStandardizer.LanguageTag.InternalState
     /// </remarks>
     internal static class Iso639SubtagSets
     {
-        /// <summary>
-        /// Serbo-Croatian. The ISO 639-3 data links it to <c>sh</c>, which is not an ISO 639-1 code, so <see cref="Iso639Part1Language"/> rightly has no member to find it through.
-        /// The IANA registry has <c>sh</c> and not <c>hbs</c>, and this opt-in approximates validity against that registry, so <c>hbs</c> is left out.
-        /// </summary>
-        private const string SerboCroatianPart3Code = "hbs";
-
         private static readonly HashSet<string> Part2TCodesOfPart1Languages =
             new HashSet<string>(StringEnum.GetValues<Iso639Part1Language>().Select(language => language.GetPart2TCode()).OfType<string>());
 
@@ -38,7 +32,7 @@ namespace DataStandardizer.LanguageTag.InternalState
         /// <summary>
         /// Alpha-3 codes from ISO 639-3 of languages with no ISO 639-1 code (ref. RFC 5646 §2.2.1¶2B).
         /// </summary>
-        internal static IEnumerable<string> Part3WithoutPart1Equivalent => StringEnum.GetNames<Iso639Part3Language>().Where(code => !Part2TCodesOfPart1Languages.Contains(code) && code != SerboCroatianPart3Code);
+        internal static IEnumerable<string> Part3WithoutPart1Equivalent => StringEnum.GetNames<Iso639Part3Language>().Where(code => !Part2TCodesOfPart1Languages.Contains(code));
 
         /// <summary>
         /// Alpha-3 codes from ISO 639-5, which are language families and so have no ISO 639-1 code (ref. RFC 5646 §2.2.1¶2C).
