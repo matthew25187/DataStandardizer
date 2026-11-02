@@ -98,9 +98,9 @@ This approximates validity, and **it isn't RFC 5646 validity**. It has these gap
 - It doesn't check extended language subtags or their prefixes, so `en-abc` passes.
 - Its lists are only as current as the `DataStandardizer.Language` and
   `DataStandardizer.Geography` packages you have installed.
-- It rejects `sh`, which the registry has but ISO 639-1 doesn't. It also rejects `hbs`,
-  which ISO 639-3 has but the registry doesn't, because the registry defines `sh` for
-  that language.
+- It can disagree with the registry in either direction. For Serbo-Croatian, it rejects
+  `sh`, which the registry has but ISO 639-1 doesn't, and accepts `hbs`, which ISO 639-3
+  has but the registry doesn't.
 
 A three-letter code of a language that has an ISO 639-1 code, such as `eng`, is
 rejected, because RFC 5646 §2.2.1 says only the two-letter code is defined.
@@ -125,6 +125,7 @@ var isListed = Bcp47LanguageTag.IsValid("eng", LanguageTagConformance.IsoCodeLis
 | `de-1901-1901` | Yes | No | No |
 | `en-a-bb-a-cc` | Yes | No | No |
 | `de-abcde` | Yes | Yes | No |
+| `hbs` | Yes | Yes | No |
 | `sh` | Yes | No | Yes |
 | `en--US` | No | No | No |
 | `en-a-x-a-y` | No | No | No |
