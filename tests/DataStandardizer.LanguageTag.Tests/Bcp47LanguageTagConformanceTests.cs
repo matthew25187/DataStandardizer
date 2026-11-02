@@ -138,6 +138,28 @@ namespace DataStandardizer.LanguageTag.Tests
         /// </summary>
         private const LanguageTagConformance UndefinedConformance = (LanguageTagConformance)99;
 
+        /// <summary>
+        /// A registry with records that have the shape RFC 5646 §2.1 gives their type (<c>en</c>, <c>enochian</c>, <c>yue</c>), and records that don't, which can't make a tag valid.
+        /// </summary>
+        private const string RegistryWithRecordsOutsideTheAbnf =
+            "File-Date: 2026-11-02\n" +
+            "%%\nType: language\nSubtag: en\nDescription: T\nAdded: 2026-11-02\n" +
+            "%%\nType: language\nSubtag: enochian\nDescription: T\nAdded: 2026-11-02\n" +
+            "%%\nType: language\nSubtag: a\nDescription: T\nAdded: 2026-11-02\n" +
+            "%%\nType: language\nSubtag: ab1\nDescription: T\nAdded: 2026-11-02\n" +
+            "%%\nType: language\nSubtag: abcdefghi\nDescription: T\nAdded: 2026-11-02\n" +
+            "%%\nType: extlang\nSubtag: yue\nDescription: T\nAdded: 2026-11-02\nPrefix: zh\n" +
+            "%%\nType: extlang\nSubtag: yuee\nDescription: T\nAdded: 2026-11-02\nPrefix: zh\n" +
+            "%%\nType: script\nSubtag: Lat\nDescription: T\nAdded: 2026-11-02\n" +
+            "%%\nType: script\nSubtag: Latin\nDescription: T\nAdded: 2026-11-02\n" +
+            "%%\nType: region\nSubtag: U\nDescription: T\nAdded: 2026-11-02\n" +
+            "%%\nType: region\nSubtag: USA\nDescription: T\nAdded: 2026-11-02\n" +
+            "%%\nType: variant\nSubtag: abc\nDescription: T\nAdded: 2026-11-02\n" +
+            "%%\nType: variant\nSubtag: abcd\nDescription: T\nAdded: 2026-11-02\n" +
+            "%%\nType: variant\nSubtag: abcdefghi\nDescription: T\nAdded: 2026-11-02\n" +
+            "%%\nType: grandfathered\nTag: a-bb\nDescription: T\nAdded: 2026-11-02\n" +
+            "%%\nType: grandfathered\nTag: en-abcde\nDescription: T\nAdded: 2026-11-02\n";
+
         private const string NotWellFormedMessage = "The language tag is not well-formed.";
         private const string NotValidMessage = "The language tag is not valid against the subtag registry.";
         private const string NotInIsoCodeListsMessage = "The language tag is not well-formed, or is not in the ISO code lists.";
@@ -174,6 +196,24 @@ namespace DataStandardizer.LanguageTag.Tests
         public static TheoryData<string> ValidLanguageTags => new TheoryData<string>
         {
             EnglishUnitedStates, KlingonGrandfathered, PrivateUseOneLetter
+        };
+
+        /// <summary>
+        /// Tags that <see cref="RegistryWithRecordsOutsideTheAbnf"/> has records for only in a position whose shape they don't have (RFC 5646 §2.1), or as a grandfathered tag that §2.1 doesn't list.
+        /// The tags in the first row aren't well-formed. Those in the second are, as a different kind of subtag, for which the registry has no record.
+        /// </summary>
+        public static TheoryData<string> LanguageTagsWithRecordOutsideTheAbnf => new TheoryData<string>
+        {
+            "a", "ab1", "abcdefghi", "enochian-yue", "en-U", "en-abcdefghi", "a-bb",
+            "en-yuee", "en-Lat", "en-Latin", "en-USA", "en-abc", "en-abcd", "en-abcde"
+        };
+
+        /// <summary>
+        /// Tags whose records in <see cref="RegistryWithRecordsOutsideTheAbnf"/> have the shape of their position, including the five- to eight-letter language that §2.1 allows without an extlang.
+        /// </summary>
+        public static TheoryData<string> LanguageTagsWithRecordInTheAbnf => new TheoryData<string>
+        {
+            "en", "en-yue", "enochian"
         };
 
         /// <summary>
@@ -491,6 +531,76 @@ namespace DataStandardizer.LanguageTag.Tests
         {
             // arrange
             var subtagRegistry = IanaSubtagRegistryResource.Shared;
+
+            // act
+            Action testAction = () => Bcp47LanguageTag.Create(testLanguageTag, subtagRegistry);
+
+            // assert
+            testAction.Should().Throw<LanguageTagFormatException>().WithMessage(NotValidMessage);
+        }
+
+        [Theory]
+        [MemberData(nameof(LanguageTagsWithRecordInTheAbnf))]
+        public void IsValid_WithRegistryRecordInTheShapeOfItsPosition_ReturnsTrue(string testLanguageTag)
+        {
+            // arrange
+            var subtagRegistry = SubtagRegistry.CreateFromContent(RegistryWithRecordsOutsideTheAbnf);
+
+            // act
+            var testResult = Bcp47LanguageTag.IsValid(testLanguageTag, subtagRegistry);
+
+            // assert
+            testResult.Should().BeTrue("the tag is well-formed and each of its subtags is registered in its position (RFC 5646 §2.2.9)");
+        }
+
+        [Theory]
+        [MemberData(nameof(LanguageTagsWithRecordOutsideTheAbnf))]
+        public void IsValid_WithRegistryRecordOutsideTheShapeOfItsPosition_ReturnsFalse(string testLanguageTag)
+        {
+            // arrange
+            var subtagRegistry = SubtagRegistry.CreateFromContent(RegistryWithRecordsOutsideTheAbnf);
+
+            // act
+            var testResult = Bcp47LanguageTag.IsValid(testLanguageTag, subtagRegistry);
+
+            // assert
+            testResult.Should().BeFalse("a record admits a subtag only where the ABNF of RFC 5646 §2.1 allows its shape, and a valid tag is well-formed (§2.2.9)");
+        }
+
+        [Theory]
+        [MemberData(nameof(LanguageTagsWithRecordOutsideTheAbnf))]
+        public void IsValid_WithSpanAndRegistryRecordOutsideTheShapeOfItsPosition_ReturnsFalse(string testLanguageTag)
+        {
+            // arrange
+            var subtagRegistry = SubtagRegistry.CreateFromContent(RegistryWithRecordsOutsideTheAbnf);
+
+            // act
+            var testResult = Bcp47LanguageTag.IsValid(testLanguageTag.AsSpan(), subtagRegistry);
+
+            // assert
+            testResult.Should().BeFalse("a record admits a subtag only where the ABNF of RFC 5646 §2.1 allows its shape, and a valid tag is well-formed (§2.2.9)");
+        }
+
+        [Theory]
+        [MemberData(nameof(LanguageTagsWithRecordOutsideTheAbnf))]
+        public void TryCreate_WithRegistryRecordOutsideTheShapeOfItsPosition_ReturnsFalse(string testLanguageTag)
+        {
+            // arrange
+            var subtagRegistry = SubtagRegistry.CreateFromContent(RegistryWithRecordsOutsideTheAbnf);
+
+            // act
+            var testResult = Bcp47LanguageTag.TryCreate(testLanguageTag, subtagRegistry, out _);
+
+            // assert
+            testResult.Should().BeFalse("a record admits a subtag only where the ABNF of RFC 5646 §2.1 allows its shape, and a valid tag is well-formed (§2.2.9)");
+        }
+
+        [Theory]
+        [MemberData(nameof(LanguageTagsWithRecordOutsideTheAbnf))]
+        public void Create_WithRegistryRecordOutsideTheShapeOfItsPosition_ThrowsLanguageTagFormatException(string testLanguageTag)
+        {
+            // arrange
+            var subtagRegistry = SubtagRegistry.CreateFromContent(RegistryWithRecordsOutsideTheAbnf);
 
             // act
             Action testAction = () => Bcp47LanguageTag.Create(testLanguageTag, subtagRegistry);

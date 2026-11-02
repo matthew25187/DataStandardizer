@@ -20,6 +20,25 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
     {
         private static readonly string[] TrimmedRegistryKeptSubtags = { "en", "zh", "de", "sl", "sr", "yue", "cmn", "Latn", "Hant", "Cyrl", "US", "CH", "DE", "419" };
 
+        /// <summary>
+        /// Records of every type with a subtag or tag from <see cref="ParityCorpus"/> that isn't in the shape RFC 5646 §2.1 gives that type.
+        /// </summary>
+        private const string RecordsOutsideTheAbnf =
+            "File-Date: 2026-11-02\n" +
+            "%%\nType: language\nSubtag: en\nDescription: T\nAdded: 2026-11-02\n" +
+            "%%\nType: language\nSubtag: abcde\nDescription: T\nAdded: 2026-11-02\n" +
+            "%%\nType: language\nSubtag: abcdefgh\nDescription: T\nAdded: 2026-11-02\n" +
+            "%%\nType: language\nSubtag: abcdefghi\nDescription: T\nAdded: 2026-11-02\n" +
+            "%%\nType: language\nSubtag: a\nDescription: T\nAdded: 2026-11-02\n" +
+            "%%\nType: language\nSubtag: 12345\nDescription: T\nAdded: 2026-11-02\n" +
+            "%%\nType: extlang\nSubtag: yue\nDescription: T\nAdded: 2026-11-02\nPrefix: zh\n" +
+            "%%\nType: extlang\nSubtag: 123\nDescription: T\nAdded: 2026-11-02\nPrefix: zh\n" +
+            "%%\nType: script\nSubtag: a1\nDescription: T\nAdded: 2026-11-02\n" +
+            "%%\nType: region\nSubtag: 1\nDescription: T\nAdded: 2026-11-02\n" +
+            "%%\nType: variant\nSubtag: ab1\nDescription: T\nAdded: 2026-11-02\n" +
+            "%%\nType: variant\nSubtag: abcdefghi\nDescription: T\nAdded: 2026-11-02\n" +
+            "%%\nType: grandfathered\nTag: a-bb\nDescription: T\nAdded: 2026-11-02\n";
+
         private static readonly string[] SubtagGroupNames =
         {
             FrozenRulesBasedExpressions.PrimaryLanguageGroupName, FrozenRulesBasedExpressions.ExtendedLanguageGroupName, FrozenRulesBasedExpressions.ScriptGroupName,
@@ -103,6 +122,14 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
             });
 
             return SubtagRegistry.CreateFromContent(string.Join("\n%%\n", keptRecords));
+        }
+
+        /// <summary>
+        /// A registry with records that aren't in the shape of their type, which a registry from elsewhere than IANA could have (#527).
+        /// </summary>
+        internal static SubtagRegistry CreateSubtagRegistryWithRecordsOutsideTheAbnf()
+        {
+            return SubtagRegistry.CreateFromContent(RecordsOutsideTheAbnf);
         }
 
         /// <summary>

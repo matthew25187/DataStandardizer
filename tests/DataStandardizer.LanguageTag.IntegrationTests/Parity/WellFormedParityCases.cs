@@ -31,6 +31,10 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
                 .Where(expectation => expectation.Validity.IsWellFormed)
                 .Select(expectation => new DifferentialCase<SubtagTexts>(expectation.Input, expectation.Subtags))
                 .ToList();
+            NotWellFormed = expectations
+                .Where(expectation => !expectation.Validity.IsWellFormed)
+                .Select(expectation => new DifferentialCase<bool>(expectation.Input, false))
+                .ToList();
         }
 
         internal static WellFormedParityCases Shared => SharedCases.Value;
@@ -54,6 +58,11 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
         /// Every input that matches the grammar, with the subtags the grammar matched in it.
         /// </summary>
         internal IReadOnlyList<DifferentialCase<SubtagTexts>> Properties { get; }
+
+        /// <summary>
+        /// Every input that doesn't match the grammar, with <c>false</c>: a tag that isn't well-formed can't be valid against any registry (RFC 5646 §2.2.9).
+        /// </summary>
+        internal IReadOnlyList<DifferentialCase<bool>> NotWellFormed { get; }
 
         private static (string Input, LanguageTagValidity Validity, SubtagTexts Subtags) Expect(string input)
         {
