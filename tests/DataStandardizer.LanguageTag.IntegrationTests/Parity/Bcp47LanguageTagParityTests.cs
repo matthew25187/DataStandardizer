@@ -22,7 +22,7 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
     /// </summary>
     /// <remarks>
     /// For every input in <see cref="ParityCorpus"/>, the parser must give the same result as <see cref="FrozenRulesBasedExpressions"/> for each
-    /// <c>Check*</c> method and for the whole tag, and decompose it into the same subtags, including tags that repeat a subtag and so are not
+    /// position of a tag and for the whole tag, and decompose it into the same subtags, including tags that repeat a subtag and so are not
     /// well-formed. <see cref="RulesBasedParityCases"/> works out what the frozen expressions give, and <see cref="ParserObserver"/> what the
     /// parser gives. The corpus covers every code list, the IANA registry, combinations and random strings, so it is long, and these are
     /// integration tests.
@@ -32,16 +32,16 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
     public class Bcp47LanguageTagParityTests
     {
         [Fact]
-        public void CheckSubtag_OverCorpus_AgreesWithFrozenRegularExpressions()
+        public void IsoCodeListClassifier_OverCorpus_AgreesWithFrozenRegularExpressions()
         {
             // arrange
             var cases = RulesBasedParityCases.Shared.SubtagChecks;
 
             // act
-            var testResult = DifferentialRunner.FindMismatches(cases, ParserObserver.ObserveSubtagChecks);
+            var testResult = DifferentialRunner.FindMismatches(cases, ParserObserver.ObserveIsoCodeListClassifier);
 
             // assert
-            testResult.Should().BeEmpty("each Check* method must agree with the regular expression it replaced");
+            testResult.Should().BeEmpty("the classifier must agree at each position with the regular expression it replaced");
         }
 
         [Fact]

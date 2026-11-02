@@ -16,6 +16,19 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
     public class Bcp47LanguageTagWellFormedParityTests
     {
         [Fact]
+        public void CheckSubtag_OverCorpus_AgreesWithAbnfProductions()
+        {
+            // arrange
+            var cases = WellFormedParityCases.Shared.SubtagChecks;
+
+            // act
+            var testResult = DifferentialRunner.FindMismatches(cases, ParserObserver.ObserveSubtagChecks);
+
+            // assert
+            testResult.Should().BeEmpty("each Check* method checks the shape that the ABNF of RFC 5646 §2.1 gives that subtag");
+        }
+
+        [Fact]
         public void IsWellFormed_OverCorpus_AgreesWithAbnfExpression()
         {
             // arrange

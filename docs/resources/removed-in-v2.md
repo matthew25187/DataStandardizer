@@ -233,6 +233,38 @@ The new `Conformance` property of a `Bcp47LanguageTag` says which of these was
 checked when it was created. The message of `LanguageTagFormatException` now names
 the class that failed, so code that compares the message text needs updating.
 
+### Subtag checks and the builder
+
+The `Check*Subtag` methods of `Bcp47LanguageTag` now check only the shape of a
+subtag, and look nothing up. `CheckPrimaryLanguageSubtag("zz")` and
+`CheckRegionSubtag("830")` return `true`. If you used them to look a code up, use
+`ToIso639Part1()` and the other `ToIso*()` methods of a tag, or the enums in
+`DataStandardizer.Language` and `DataStandardizer.Geography`.
+
+The string steps of `Bcp47LanguageTagBuilder` use those checks, so they no longer
+throw for a subtag of the right shape that isn't in an ISO list. `Build()` checks
+validity against the registry if you gave one, and otherwise that the tag is
+well-formed. To keep the ISO code lists, add the new first step:
+
+```csharp
+// Before
+var languageTag = new Bcp47LanguageTagBuilder()
+    .UsingPrimaryLanguageSubtag("en")
+    .UsingRegionSubtag("NZ")
+    .Build();
+
+// After: the same list checks, now made by Build()
+var languageTag = new Bcp47LanguageTagBuilder()
+    .WithConformance(LanguageTagConformance.IsoCodeLists)
+    .UsingPrimaryLanguageSubtag("en")
+    .UsingRegionSubtag("NZ")
+    .Build();
+```
+
+A subtag that isn't in a list now fails at `Build()` with
+`LanguageTagFormatException`, instead of at its own step with `ArgumentException`.
+The builder still refuses a repeated variant subtag or extension singleton.
+
 ## The netstandard1.0 target
 
 Version 2.0 also drops the `netstandard1.0` target from three packages that stay:

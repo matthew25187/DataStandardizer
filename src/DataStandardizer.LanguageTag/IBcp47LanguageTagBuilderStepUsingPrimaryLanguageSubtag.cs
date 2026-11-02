@@ -59,8 +59,11 @@ namespace DataStandardizer.LanguageTag
 #endif
 
         /// <summary>
-        /// Build a language tag using a Primary Language subtag registered with the IANA Language Subtag Registry.
+        /// Build a language tag using a Primary Language subtag given as a string.
         /// </summary>
+        /// <remarks>
+        /// This step checks only that the subtag has two to eight letters. <see cref="IBcp47LanguageTagBuilderStepBuild.Build"/> applies the rest of what was chosen.
+        /// </remarks>
         /// <param name="primaryLanguageSubtag">Primary language subtag.</param>
         /// <returns>Language tag builder.</returns>
 #if NETCOREAPP3_0_OR_GREATER

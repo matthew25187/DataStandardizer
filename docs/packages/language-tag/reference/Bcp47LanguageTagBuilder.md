@@ -18,6 +18,8 @@ with `Build()`.
 
 ```csharp
 public class Bcp47LanguageTagBuilder :
+    IBcp47LanguageTagBuilderStepWithConformance,
+    IBcp47LanguageTagBuilderStepWithConformanceNext,
     IBcp47LanguageTagBuilderStepWithLanguageSubtagRegistryNext,
     IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext,
     IBcp47LanguageTagBuilderStepUsingExtendedLanguageSubtagsNext,
@@ -31,13 +33,13 @@ public class Bcp47LanguageTagBuilder :
 ## Remarks
 
 The builder's call sequence is, in order: an optional registry step
-(`WithLanguageSubtagRegistry`), then either a full-tag step (`UsingLanguageTag`, which leads straight to `Build()`) or
+(`WithLanguageSubtagRegistry`) or conformance step (`WithConformance`), then either a full-tag step (`UsingLanguageTag`, which leads straight to `Build()`) or
 the required primary-language step (`UsingPrimaryLanguageSubtag`) followed by the
 optional extended-language, script, region, variant, extension, and private-use
 steps, ending with `Build()`. See
 [The language-tag builder pipeline](../concepts/builder-pipeline.md) for the flow.
 
-The order is enforced by 18 step interfaces in the `DataStandardizer.LanguageTag`
+The order is enforced by 20 step interfaces in the `DataStandardizer.LanguageTag`
 namespace (`IBcp47LanguageTagBuilderStep…` and the companion `…Next` interfaces).
 Each `…Next` interface inherits exactly the stages that may follow its stage; you
 normally never name these interfaces yourself, but instead let IntelliSense
@@ -49,12 +51,20 @@ implementations** (see [Explicit implementation](#explicit-implementation)) reac
 only through the chain — they cannot be called on a `Bcp47LanguageTagBuilder`-typed
 variable directly.
 
-Undefined enum values, malformed string subtags and repeated variant subtags or
-extension singletons throw `ArgumentException` (or `ArgumentNullException` for
-`null`) at the point of the call; `Build()` may throw
-`LanguageTagFormatException` (the resulting tag is invalid) or
-`InvalidOperationException` (e.g. more than three extended language subtags, or an
-internal state error).
+The steps that take a string check only the shape of the subtag. `Build()` then
+applies what you chose: validity against the registry from
+`WithLanguageSubtagRegistry`, the conformance from `WithConformance`, or otherwise
+well-formedness. If you call both on the same builder, the last one applies. The
+steps that take a code are ISO by construction.
+
+Undefined enum values, string subtags of the wrong shape and repeated variant
+subtags or extension singletons throw `ArgumentException` (or
+`ArgumentNullException` for `null`) at the point of the call. A repeated variant or
+singleton is well-formed (RFC 5646 §2.2.9), but the builder refuses to compose a
+tag that could never be valid; use `Bcp47LanguageTag.Create` to accept one.
+`Build()` may throw `LanguageTagFormatException` (the tag doesn't satisfy what was
+chosen) or `InvalidOperationException` (for example, more than three extended
+language subtags, or an internal state error).
 
 ## Methods
 
@@ -71,8 +81,9 @@ they are callable directly on a `Bcp47LanguageTagBuilder` instance. Each returns
 | `UsingPrimaryLanguageSubtag(Iso639Part2TLanguage primaryLanguageSubtag)` | `IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext` | Throws `ArgumentException` if the code is undefined. |
 | `UsingPrimaryLanguageSubtag(Iso639Part3Language primaryLanguageSubtag)` | `IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext` | Throws `ArgumentException` if the code is undefined. |
 | `UsingPrimaryLanguageSubtag(Iso639Part5LanguageFamily primaryLanguageSubtag)` | `IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext` | Throws `ArgumentException` if the code is undefined. |
-| `UsingPrimaryLanguageSubtag(string primaryLanguageSubtag)` | `IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext` | Registry/string form. Throws `ArgumentNullException` / `ArgumentException` for an invalid subtag. |
-| `WithLanguageSubtagRegistry(SubtagRegistry subtagRegistry)` | `IBcp47LanguageTagBuilderStepWithLanguageSubtagRegistryNext` | Optional registry step. Throws `ArgumentNullException` if `null`. |
+| `UsingPrimaryLanguageSubtag(string primaryLanguageSubtag)` | `IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext` | Checks shape only: two to eight letters. Throws `ArgumentNullException` for `null`, and `ArgumentException` for the wrong shape. |
+| `WithConformance(LanguageTagConformance conformance)` | `IBcp47LanguageTagBuilderStepWithConformanceNext` | Optional. `Build()` checks `WellFormed` or `IsoCodeLists`. Throws `ArgumentException` for `Valid`, which needs `WithLanguageSubtagRegistry`, and `ArgumentOutOfRangeException` for an undefined value. |
+| `WithLanguageSubtagRegistry(SubtagRegistry subtagRegistry)` | `IBcp47LanguageTagBuilderStepWithLanguageSubtagRegistryNext` | Optional. `Build()` checks validity against the registry. Throws `ArgumentNullException` if `null`. |
 
 ### Explicit implementation
 
@@ -92,9 +103,9 @@ step chain (the relevant `IBcp47LanguageTagBuilderStep…` interface), not on a
 | `UsingPrivateUseSubtag(string)` | `IBcp47LanguageTagBuilderStepUsingPrivateUseSubtagNext` | Reached through `IBcp47LanguageTagBuilderStepUsingPrivateUseSubtag`. |
 | `UsingRegionSubtag(Iso3166Part1Alpha2Country)` | `IBcp47LanguageTagBuilderStepUsingRegionSubtagNext` | Reached through `IBcp47LanguageTagBuilderStepUsingRegionSubtag`. |
 | `UsingRegionSubtag(UnM49Area)` | `IBcp47LanguageTagBuilderStepUsingRegionSubtagNext` | Accepts a UN M49 area made up of more than one country, such as `UnM49Area._419`, and writes it as a three-digit subtag (`es-419`). Throws `ArgumentException` for a country or area member such as `UnM49Area._840`, which BCP 47 doesn't allow; use the `Iso3166Part1Alpha2Country` overload for a country. |
-| `UsingRegionSubtag(string)` | `IBcp47LanguageTagBuilderStepUsingRegionSubtagNext` | |
+| `UsingRegionSubtag(string)` | `IBcp47LanguageTagBuilderStepUsingRegionSubtagNext` | Checks shape only: two letters or three digits. |
 | `UsingScriptSubtag(Iso15924Script)` | `IBcp47LanguageTagBuilderStepUsingScriptSubtagNext` | Reached through `IBcp47LanguageTagBuilderStepUsingScriptSubtag`. |
-| `UsingScriptSubtag(string)` | `IBcp47LanguageTagBuilderStepUsingScriptSubtagNext` | |
+| `UsingScriptSubtag(string)` | `IBcp47LanguageTagBuilderStepUsingScriptSubtagNext` | Checks shape only: four letters. |
 | `UsingVariantSubtags(string, params string[])` | `IBcp47LanguageTagBuilderStepUsingVariantSubtagsNext` | Reached through `IBcp47LanguageTagBuilderStepUsingVariantSubtags`. Throws `ArgumentException` if a subtag is repeated (compared case-insensitively). A `null` or invalid subtag in the array throws with `ParamName` `variantSubtags`. |
 | `UsingVariantSubtags(string, params ReadOnlySpan<string>)` | `IBcp47LanguageTagBuilderStepUsingVariantSubtagsNext` | `net10.0` only. As for the array overload, but the builder reads the subtags from the span without copying them to an array first. The compiler picks this overload for a list of arguments. |
 

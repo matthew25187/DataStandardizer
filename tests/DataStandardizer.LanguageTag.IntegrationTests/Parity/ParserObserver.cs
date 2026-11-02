@@ -12,6 +12,21 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
     /// </remarks>
     internal static class ParserObserver
     {
+        /// <summary>
+        /// What the ISO code lists classifier accepts at each position. The extension and private use checks follow the same rules in every mode.
+        /// </summary>
+        internal static SubtagCheckResults ObserveIsoCodeListClassifier(string input)
+        {
+            return new SubtagCheckResults(
+                Bcp47IsoCodeListClassifier.Instance.IsPrimaryLanguage(input.AsSpan(), out _),
+                Bcp47IsoCodeListClassifier.Instance.IsExtendedLanguage(input.AsSpan()),
+                Bcp47IsoCodeListClassifier.Instance.IsScript(input.AsSpan()),
+                Bcp47IsoCodeListClassifier.Instance.IsRegion(input.AsSpan()),
+                Bcp47IsoCodeListClassifier.Instance.IsVariant(input.AsSpan()),
+                Bcp47LanguageTag.CheckExtensionSubtag(input),
+                Bcp47LanguageTag.CheckPrivateUseSubtag(input));
+        }
+
         internal static SubtagCheckResults ObserveSubtagChecks(string input)
         {
             return new SubtagCheckResults(

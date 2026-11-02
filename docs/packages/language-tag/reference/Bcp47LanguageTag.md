@@ -110,19 +110,19 @@ Each getter throws `InvalidOperationException` if the instance is uninitialised.
 | Method | Returns | Notes |
 | --- | --- | --- |
 | `AsSpan()` | `ReadOnlySpan<char>` | The tag string as a span, without copying it. An empty span if the instance is uninitialised. |
-| `CheckExtendedLanguageSubtag(string extendedLanguageSubtag)` | `bool` | Static. Validates using the default BCP 47 rules. Throws `ArgumentNullException` if `null`. |
+| `CheckExtendedLanguageSubtag(string extendedLanguageSubtag)` | `bool` | Static. `true` if the subtag has the shape of an extended language: three letters. Looks nothing up. Throws `ArgumentNullException` if `null`. |
 | `CheckExtendedLanguageSubtag(ReadOnlySpan<char> extendedLanguageSubtag)` | `bool` | Static. As for the `string` overload. |
-| `CheckExtensionSubtag(string extensionSubtag)` | `bool` | Static. Validates one extension (a singleton and its subtags) using the default BCP 47 rules. Throws `ArgumentNullException` if `null`. |
+| `CheckExtensionSubtag(string extensionSubtag)` | `bool` | Static. `true` if the string has the shape of one extension: a singleton other than `x`, then one or more subtags of two to eight letters or digits. Looks nothing up. Throws `ArgumentNullException` if `null`. |
 | `CheckExtensionSubtag(ReadOnlySpan<char> extensionSubtag)` | `bool` | Static. As for the `string` overload. |
-| `CheckPrimaryLanguageSubtag(string primaryLanguageSubtag)` | `bool` | Static. Validates using the default BCP 47 rules. `true` for an ISO 639 code or four to eight letters (RFC 5646 §2.2.1). Throws `ArgumentNullException` if `null`. |
+| `CheckPrimaryLanguageSubtag(string primaryLanguageSubtag)` | `bool` | Static. `true` if the subtag has the shape of a primary language: two to eight letters. Looks nothing up, so it is `true` for `zz` and `eng`. Throws `ArgumentNullException` if `null`. |
 | `CheckPrimaryLanguageSubtag(ReadOnlySpan<char> primaryLanguageSubtag)` | `bool` | Static. As for the `string` overload. |
-| `CheckPrivateUseSubtag(string privateUseSubtag)` | `bool` | Static. Validates using the default BCP 47 rules. Throws `ArgumentNullException` if `null`. |
+| `CheckPrivateUseSubtag(string privateUseSubtag)` | `bool` | Static. `true` if the string has the shape of a private use sequence: `x`, then one or more subtags of one to eight letters or digits. Throws `ArgumentNullException` if `null`. |
 | `CheckPrivateUseSubtag(ReadOnlySpan<char> privateUseSubtag)` | `bool` | Static. As for the `string` overload. |
-| `CheckRegionSubtag(string regionSubtag)` | `bool` | Static. Validates using the default BCP 47 rules. Throws `ArgumentNullException` if `null`. |
+| `CheckRegionSubtag(string regionSubtag)` | `bool` | Static. `true` if the subtag has the shape of a region: two letters or three digits. Looks nothing up, so it is `true` for `830`. Throws `ArgumentNullException` if `null`. |
 | `CheckRegionSubtag(ReadOnlySpan<char> regionSubtag)` | `bool` | Static. As for the `string` overload. |
-| `CheckScriptSubtag(string scriptSubtag)` | `bool` | Static. Validates using the default BCP 47 rules. Throws `ArgumentNullException` if `null`. |
+| `CheckScriptSubtag(string scriptSubtag)` | `bool` | Static. `true` if the subtag has the shape of a script: four letters. Looks nothing up. Throws `ArgumentNullException` if `null`. |
 | `CheckScriptSubtag(ReadOnlySpan<char> scriptSubtag)` | `bool` | Static. As for the `string` overload. |
-| `CheckVariantSubtag(string variantSubtag)` | `bool` | Static. Validates one variant subtag using the default BCP 47 rules. Throws `ArgumentNullException` if `null`. |
+| `CheckVariantSubtag(string variantSubtag)` | `bool` | Static. `true` if the subtag has the shape of one variant: five to eight letters or digits, or a digit followed by three letters or digits. Looks nothing up. Throws `ArgumentNullException` if `null`. |
 | `CheckVariantSubtag(ReadOnlySpan<char> variantSubtag)` | `bool` | Static. As for the `string` overload. |
 | `Create(string languageTag)` | `Bcp47LanguageTag` | Static. Throws `LanguageTagFormatException` if the tag is invalid, including when it repeats a variant subtag or extension singleton; `ArgumentNullException` if `null`. |
 | `Create(string languageTag, SubtagRegistry subtagRegistry)` | `Bcp47LanguageTag` | Static. Validates against a loaded subtag registry. |
