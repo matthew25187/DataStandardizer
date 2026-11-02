@@ -44,6 +44,8 @@ The registry can also answer questions about a subtag directly, such as whether
 it is deprecated and what replaces it:
 
 ```csharp
+using DataStandardizer.LanguageTag.Registry; // for SubtagRegistryRecordType
+
 if (subtagRegistry.TryGetSubtag(SubtagRegistryRecordType.Region, "BU", out var region)
     && region.Deprecated != null)
 {

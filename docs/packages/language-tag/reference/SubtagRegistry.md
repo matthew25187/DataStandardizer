@@ -56,6 +56,9 @@ the range's record for `qab`. Enumerating the registry still yields the one
 record, with the range as its `Subtag`.
 
 ```csharp
+using DataStandardizer.LanguageTag;
+using DataStandardizer.LanguageTag.Registry; // for SubtagRegistryRecordType
+
 var registry = SubtagRegistry.CreateFromFile("language-subtag-registry.txt");
 
 if (registry.TryGetSubtag(SubtagRegistryRecordType.Region, "BU", out var region))
