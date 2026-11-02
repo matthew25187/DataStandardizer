@@ -54,7 +54,7 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
             var testResult = DifferentialRunner.FindMismatches(cases, ParserObserver.ObserveValidity);
 
             // assert
-            testResult.Should().BeEmpty("TryCreate and the parser must agree with the regular expressions they replaced");
+            testResult.Should().BeEmpty("IsValid, TryCreate and the parser must agree with the regular expressions they replaced");
         }
 
         [Fact]

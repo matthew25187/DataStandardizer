@@ -251,6 +251,24 @@ namespace DataStandardizer.LanguageTag
             return IsValid(_languageTag.AsSpan(), subtagRegistry);
         }
 
+        /// <summary>
+        /// Determine whether the language tag satisfies a conformance that needs no Subtag Registry, whatever was checked when it was created.
+        /// </summary>
+        /// <param name="conformance">What to check: <see cref="LanguageTagConformance.WellFormed"/> or <see cref="LanguageTagConformance.IsoCodeLists"/>.</param>
+        /// <returns><c>true</c> if the language tag satisfies <paramref name="conformance"/>; <c>false</c> if not.</returns>
+        /// <exception cref="ArgumentException"><paramref name="conformance"/> is <see cref="LanguageTagConformance.Valid"/>, which needs a Subtag Registry; use <see cref="IsValid(SubtagRegistry.SubtagRegistry)"/>.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="conformance"/> is not a defined value.</exception>
+        /// <exception cref="InvalidOperationException">The <see cref="Bcp47LanguageTag"/> is not initialised.</exception>
+        /// <remarks>
+        /// <see cref="LanguageTagConformance.IsoCodeLists"/> is not RFC 5646 validity: see its documentation for what it leaves out. The result does not change <see cref="Conformance"/>.
+        /// </remarks>
+        public bool IsValid(LanguageTagConformance conformance)
+        {
+            if (_languageTag is null) throw new InvalidOperationException(ErrorMessage.UninitializedInstance);
+
+            return IsValid(_languageTag.AsSpan(), conformance);
+        }
+
         public override int GetHashCode()
         {
             // Must agree with Equals, which compares case-insensitively.
@@ -410,7 +428,7 @@ namespace DataStandardizer.LanguageTag
         {
             if (extendedLanguageSubtag is null) throw new ArgumentNullException(nameof(extendedLanguageSubtag));
 
-            return Bcp47RulesBasedSubtagClassifier.Instance.IsExtendedLanguage(extendedLanguageSubtag.AsSpan());
+            return Bcp47IsoCodeListClassifier.Instance.IsExtendedLanguage(extendedLanguageSubtag.AsSpan());
         }
 
         /// <summary>
@@ -423,7 +441,7 @@ namespace DataStandardizer.LanguageTag
         /// </remarks>
         public static bool CheckExtendedLanguageSubtag(ReadOnlySpan<char> extendedLanguageSubtag)
         {
-            return Bcp47RulesBasedSubtagClassifier.Instance.IsExtendedLanguage(extendedLanguageSubtag);
+            return Bcp47IsoCodeListClassifier.Instance.IsExtendedLanguage(extendedLanguageSubtag);
         }
 
         /// <summary>
@@ -478,7 +496,7 @@ namespace DataStandardizer.LanguageTag
         {
             if (primaryLanguageSubtag is null) throw new ArgumentNullException(nameof(primaryLanguageSubtag));
 
-            return Bcp47RulesBasedSubtagClassifier.Instance.IsPrimaryLanguage(primaryLanguageSubtag.AsSpan(), out _);
+            return Bcp47IsoCodeListClassifier.Instance.IsPrimaryLanguage(primaryLanguageSubtag.AsSpan(), out _);
         }
 
         /// <summary>
@@ -491,7 +509,7 @@ namespace DataStandardizer.LanguageTag
         /// </remarks>
         public static bool CheckPrimaryLanguageSubtag(ReadOnlySpan<char> primaryLanguageSubtag)
         {
-            return Bcp47RulesBasedSubtagClassifier.Instance.IsPrimaryLanguage(primaryLanguageSubtag, out _);
+            return Bcp47IsoCodeListClassifier.Instance.IsPrimaryLanguage(primaryLanguageSubtag, out _);
         }
 
         /// <summary>
@@ -544,7 +562,7 @@ namespace DataStandardizer.LanguageTag
         {
             if (regionSubtag is null) throw new ArgumentNullException(nameof(regionSubtag));
 
-            return Bcp47RulesBasedSubtagClassifier.Instance.IsRegion(regionSubtag.AsSpan());
+            return Bcp47IsoCodeListClassifier.Instance.IsRegion(regionSubtag.AsSpan());
         }
 
         /// <summary>
@@ -557,7 +575,7 @@ namespace DataStandardizer.LanguageTag
         /// </remarks>
         public static bool CheckRegionSubtag(ReadOnlySpan<char> regionSubtag)
         {
-            return Bcp47RulesBasedSubtagClassifier.Instance.IsRegion(regionSubtag);
+            return Bcp47IsoCodeListClassifier.Instance.IsRegion(regionSubtag);
         }
 
         /// <summary>
@@ -577,7 +595,7 @@ namespace DataStandardizer.LanguageTag
         {
             if (scriptSubtag is null) throw new ArgumentNullException(nameof(scriptSubtag));
 
-            return Bcp47RulesBasedSubtagClassifier.Instance.IsScript(scriptSubtag.AsSpan());
+            return Bcp47IsoCodeListClassifier.Instance.IsScript(scriptSubtag.AsSpan());
         }
 
         /// <summary>
@@ -590,7 +608,7 @@ namespace DataStandardizer.LanguageTag
         /// </remarks>
         public static bool CheckScriptSubtag(ReadOnlySpan<char> scriptSubtag)
         {
-            return Bcp47RulesBasedSubtagClassifier.Instance.IsScript(scriptSubtag);
+            return Bcp47IsoCodeListClassifier.Instance.IsScript(scriptSubtag);
         }
 
         /// <summary>
@@ -611,7 +629,7 @@ namespace DataStandardizer.LanguageTag
         {
             if (variantSubtag is null) throw new ArgumentNullException(nameof(variantSubtag));
 
-            return Bcp47RulesBasedSubtagClassifier.Instance.IsVariant(variantSubtag.AsSpan());
+            return Bcp47IsoCodeListClassifier.Instance.IsVariant(variantSubtag.AsSpan());
         }
 
         /// <summary>
@@ -625,7 +643,7 @@ namespace DataStandardizer.LanguageTag
         /// </remarks>
         public static bool CheckVariantSubtag(ReadOnlySpan<char> variantSubtag)
         {
-            return Bcp47RulesBasedSubtagClassifier.Instance.IsVariant(variantSubtag);
+            return Bcp47IsoCodeListClassifier.Instance.IsVariant(variantSubtag);
         }
 
         /// <summary>
@@ -696,6 +714,45 @@ namespace DataStandardizer.LanguageTag
             if (subtagRegistry is null) throw new ArgumentNullException(nameof(subtagRegistry));
 
             return Bcp47LanguageTagParser.Parse(languageTag, subtagRegistry.Classifier, out _) == Bcp47ParseStatus.Accepted;
+        }
+
+        /// <summary>
+        /// Determine whether a string is a language tag that satisfies a conformance that needs no Subtag Registry.
+        /// </summary>
+        /// <param name="languageTag">Language tag to check.</param>
+        /// <param name="conformance">What to check: <see cref="LanguageTagConformance.WellFormed"/> or <see cref="LanguageTagConformance.IsoCodeLists"/>.</param>
+        /// <returns><c>true</c> if the language tag satisfies <paramref name="conformance"/>; <c>false</c> if not.</returns>
+        /// <exception cref="ArgumentNullException">The language tag is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="conformance"/> is <see cref="LanguageTagConformance.Valid"/>, which needs a Subtag Registry; use <see cref="IsValid(string, SubtagRegistry.SubtagRegistry)"/>.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="conformance"/> is not a defined value.</exception>
+        /// <remarks>
+        /// <see cref="LanguageTagConformance.IsoCodeLists"/> is not RFC 5646 validity: see its documentation for what it leaves out.
+        /// </remarks>
+#if NETCOREAPP3_0_OR_GREATER
+        public static bool IsValid(string languageTag, LanguageTagConformance conformance)
+#else
+        public static bool IsValid([NotNull] string languageTag, LanguageTagConformance conformance)
+#endif
+        {
+            if (languageTag is null) throw new ArgumentNullException(nameof(languageTag));
+
+            return IsValid(languageTag.AsSpan(), conformance);
+        }
+
+        /// <summary>
+        /// Determine whether a span of characters is a language tag that satisfies a conformance that needs no Subtag Registry.
+        /// </summary>
+        /// <param name="languageTag">Language tag to check.</param>
+        /// <param name="conformance">What to check: <see cref="LanguageTagConformance.WellFormed"/> or <see cref="LanguageTagConformance.IsoCodeLists"/>.</param>
+        /// <returns><c>true</c> if the language tag satisfies <paramref name="conformance"/>; <c>false</c> if not.</returns>
+        /// <exception cref="ArgumentException"><paramref name="conformance"/> is <see cref="LanguageTagConformance.Valid"/>, which needs a Subtag Registry; use <see cref="IsValid(ReadOnlySpan{char}, SubtagRegistry.SubtagRegistry)"/>.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="conformance"/> is not a defined value.</exception>
+        /// <remarks>
+        /// <see cref="LanguageTagConformance.IsoCodeLists"/> is not RFC 5646 validity: see its documentation for what it leaves out. This method does not allocate once the code lists are built.
+        /// </remarks>
+        public static bool IsValid(ReadOnlySpan<char> languageTag, LanguageTagConformance conformance)
+        {
+            return Satisfies(Bcp47LanguageTagParser.Parse(languageTag, GetClassifier(conformance), out _), conformance);
         }
 
         /// <summary>
@@ -1144,7 +1201,7 @@ namespace DataStandardizer.LanguageTag
                 case LanguageTagConformance.WellFormed:
                     return Bcp47SyntaxSubtagClassifier.Instance;
                 case LanguageTagConformance.IsoCodeLists:
-                    return Bcp47RulesBasedSubtagClassifier.Instance;
+                    return Bcp47IsoCodeListClassifier.Instance;
                 case LanguageTagConformance.Valid:
                     throw new ArgumentException(ErrorMessage.ConformanceValidNeedsRegistry, nameof(conformance));
                 default:

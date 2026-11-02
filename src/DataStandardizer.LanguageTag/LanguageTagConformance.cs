@@ -26,6 +26,9 @@ namespace DataStandardizer.LanguageTag
         /// This is an approximation of <see cref="Valid"/> for a caller that cannot load a Subtag Registry, and it is not RFC 5646 validity.
         /// It does not check variant subtags, primary language subtags of four to eight letters, or the prefixes of extended language subtags,
         /// and its lists are only as current as those packages.
+        /// A primary language subtag is an ISO 639-1 code, an ISO 639-2/T or ISO 639-3 code of a language with no ISO 639-1 code, an ISO 639-5 code, or in <c>qaa</c> to <c>qtz</c>:
+        /// a three-letter code of a language that has an ISO 639-1 code, such as <c>eng</c>, is rejected (RFC 5646 §2.2.1).
+        /// A script subtag is an ISO 15924 code or in <c>Qaaa</c> to <c>Qabx</c>. A region subtag is an ISO 3166-1 code, a code that §2.2.4 reserves, or a UN M.49 area other than 830.
         /// </remarks>
         IsoCodeLists,
 

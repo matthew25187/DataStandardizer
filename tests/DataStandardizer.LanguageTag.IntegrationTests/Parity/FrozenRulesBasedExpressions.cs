@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using DataStandardizer.Core;
 using DataStandardizer.Geography;
@@ -15,6 +16,8 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
     /// Frozen copy of the patterns the <c>Bcp47RulesBased*ExpressionFactory</c> classes composed at commit 983790f, with the options and
     /// <c>^...\z</c> anchoring of <c>Bcp47ExpressionCache</c>, the ASCII check of <c>Bcp47TagExpression</c>, and the duplicate checks in
     /// <c>Bcp47LanguageTag.IsWellFormed(Match)</c>. Do not change it to follow the package: it is the reference the parser is compared with.
+    /// It has one correction since then (#504): the three-letter ISO 639-2 and ISO 639-3 codes of languages that have an ISO 639-1 code are left out, as RFC 5646 §2.2.1 requires.
+    /// It finds them by reading each enum member's own <see cref="Iso639LanguageCodeAttribute.Part1Code"/>, not as the package does, so the comparison also checks that shortcut.
     /// </remarks>
     internal static class FrozenRulesBasedExpressions
     {
@@ -80,6 +83,18 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
         internal static Regex LanguageTag { get; }
 
         /// <summary>
+        /// The members of an ISO 639 enum whose attribute names an ISO 639-1 code.
+        /// </summary>
+        private static class CodesWithPart1Equivalent<TEnum>
+        {
+            internal static readonly HashSet<string> Names = new HashSet<string>(
+                typeof(TEnum).GetFields(BindingFlags.Public | BindingFlags.Static)
+                    .Where(field => field.GetCustomAttribute<Iso639LanguageCodeAttribute>()?.Part1Code != null)
+                    .Select(field => field.Name.TrimStart('@')),
+                StringComparer.Ordinal);
+        }
+
+        /// <summary>
         /// Whether the input has only ASCII characters; any other input was rejected before matching.
         /// </summary>
         internal static bool IsAscii(string input)
@@ -127,8 +142,8 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
         private static string ComposeShortPrimaryLanguagePattern()
         {
             var iso639Part1Names = StringEnum.GetNames<Iso639Part1Language>();
-            var iso639Part2Names = StringEnum.GetNames<Iso639Part2TLanguage>();
-            var iso639Part3Names = StringEnum.GetNames<Iso639Part3Language>();
+            var iso639Part2Names = StringEnum.GetNames<Iso639Part2TLanguage>().Where(name => !IsCodeWithPart1Equivalent<Iso639Part2TLanguage>(name));
+            var iso639Part3Names = StringEnum.GetNames<Iso639Part3Language>().Where(name => !IsCodeWithPart1Equivalent<Iso639Part3Language>(name));
             var iso639Part5Names = StringEnum.GetNames<Iso639Part5LanguageFamily>();
             var iso639Part2ReservedNames = new List<string>();
             for (var secondCharacterIndex = (byte)'a'; secondCharacterIndex <= (byte)'t'; secondCharacterIndex++)
@@ -139,6 +154,11 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
 
             var iso639Names = iso639Part1Names.Union(iso639Part2Names).Union(iso639Part2ReservedNames).Union(iso639Part3Names).Union(iso639Part5Names);
             return string.Concat("(?:", string.Join("|", iso639Names.Select(Regex.Escape)), ")");
+        }
+
+        private static bool IsCodeWithPart1Equivalent<TEnum>(string name)
+        {
+            return CodesWithPart1Equivalent<TEnum>.Names.Contains(name);
         }
 
         private static string ComposeScriptPattern()

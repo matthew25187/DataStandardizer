@@ -27,9 +27,9 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
         internal static LanguageTagValidity ObserveValidity(string input)
         {
             return new LanguageTagValidity(
+                Bcp47LanguageTag.IsValid(input, LanguageTagConformance.IsoCodeLists),
                 Bcp47LanguageTag.TryCreate(input, LanguageTagConformance.IsoCodeLists, out _),
-                Bcp47LanguageTag.TryCreate(input.AsSpan(), LanguageTagConformance.IsoCodeLists, out _),
-                Bcp47LanguageTagParser.Parse(input.AsSpan(), Bcp47RulesBasedSubtagClassifier.Instance, out _));
+                Bcp47LanguageTagParser.Parse(input.AsSpan(), Bcp47IsoCodeListClassifier.Instance, out _));
         }
 
         /// <summary>
@@ -55,7 +55,7 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
 
         internal static SubtagTexts ObserveDecomposition(string input)
         {
-            Bcp47LanguageTagParser.Parse(input.AsSpan(), Bcp47RulesBasedSubtagClassifier.Instance, out var ranges);
+            Bcp47LanguageTagParser.Parse(input.AsSpan(), Bcp47IsoCodeListClassifier.Instance, out var ranges);
             return DescribeRanges(input, ranges);
         }
 

@@ -37,7 +37,7 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
     }
 
     /// <summary>
-    /// Whether an input is a language tag: as a check or a first entry point, as a <c>TryCreate</c>, and as the status of a parse.
+    /// Whether an input is a language tag: as a check, as a <c>TryCreate</c>, and as the status of a parse.
     /// </summary>
     internal readonly struct LanguageTagValidity
     {

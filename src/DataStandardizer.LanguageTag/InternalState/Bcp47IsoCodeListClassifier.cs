@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using DataStandardizer.Core;
 using DataStandardizer.Geography;
 using DataStandardizer.Language;
 using static DataStandardizer.LanguageTag.Bcp47Constants;
@@ -10,13 +9,16 @@ using static DataStandardizer.LanguageTag.Bcp47Constants;
 namespace DataStandardizer.LanguageTag.InternalState
 {
     /// <summary>
-    /// Classifies subtags by the default BCP 47 rules: the ISO code lists, the reserved ranges and the syntax of RFC 5646.
+    /// Classifies subtags for <see cref="LanguageTagConformance.IsoCodeLists"/>: the ISO code lists and the reserved ranges for the primary language, script and region, and the syntax of RFC 5646 for everything else.
     /// </summary>
-    internal sealed class Bcp47RulesBasedSubtagClassifier : Bcp47SubtagClassifier
+    /// <remarks>
+    /// This is an approximation of validity for a caller that cannot load a Subtag Registry, not RFC 5646 validity. It does not check variants, four- to eight-letter languages or extlang prefixes.
+    /// </remarks>
+    internal sealed class Bcp47IsoCodeListClassifier : Bcp47SubtagClassifier
     {
         private const ushort ChannelIslandsCode = 830;
 
-        internal static readonly Bcp47RulesBasedSubtagClassifier Instance = new Bcp47RulesBasedSubtagClassifier();
+        internal static readonly Bcp47IsoCodeListClassifier Instance = new Bcp47IsoCodeListClassifier();
 
         private static readonly Bcp47SubtagSet GrandfatheredLanguageTagSet = new Bcp47SubtagSet(GrandfatheredLanguageTags);
 
@@ -29,7 +31,7 @@ namespace DataStandardizer.LanguageTag.InternalState
 
         private static readonly Bcp47SubtagSet RegionSubtagSet = new Bcp47SubtagSet(ComposeRegionSubtags());
 
-        private Bcp47RulesBasedSubtagClassifier()
+        private Bcp47IsoCodeListClassifier()
         {
         }
 
@@ -77,27 +79,11 @@ namespace DataStandardizer.LanguageTag.InternalState
 
         private static IEnumerable<string> ComposeShortPrimaryLanguageSubtags()
         {
-            // Include alpha-2 codes from ISO 639-1:2002 (ref. RFC 5646 §2.2.1¶1)
-            var iso639Part1Names = StringEnum.GetNames<Iso639Part1Language>();
-
-            // Include alpha-3 codes from ISO 639-2:1998 (ref. RFC 5646 §2.2.1¶2A)
-            var iso639Part2Names = StringEnum.GetNames<Iso639Part2TLanguage>();
-
-            // Include alpha-3 codes from ISO 639-3:2007 (ref. RFC 5646 §2.2.1¶2B)
-            var iso639Part3Names = StringEnum.GetNames<Iso639Part3Language>();
-
-            // Include alpha-3 codes from ISO 639-5:2008 (ref. RFC 5646 §2.2.1¶2C)
-            var iso639Part5Names = StringEnum.GetNames<Iso639Part5LanguageFamily>();
-
-            // Include alpha-3 codes reserved for local use (ref. RFC 5646 §2.2.1¶3)
-            var iso639Part2ReservedNames = new List<string>();
-            for (var secondCharacter = 'a'; secondCharacter <= 't'; secondCharacter++)
-            for (var thirdCharacter = 'a'; thirdCharacter <= 'z'; thirdCharacter++)
-            {
-                iso639Part2ReservedNames.Add(string.Concat("q", secondCharacter.ToString(), thirdCharacter.ToString()));
-            }
-
-            return iso639Part1Names.Concat(iso639Part2Names).Concat(iso639Part2ReservedNames).Concat(iso639Part3Names).Concat(iso639Part5Names);
+            return Iso639SubtagSets.Part1
+                .Concat(Iso639SubtagSets.Part2TWithoutPart1Equivalent)
+                .Concat(Iso639SubtagSets.LocalUse)
+                .Concat(Iso639SubtagSets.Part3WithoutPart1Equivalent)
+                .Concat(Iso639SubtagSets.Part5);
         }
 
         private static IEnumerable<string> ComposeScriptSubtags()
