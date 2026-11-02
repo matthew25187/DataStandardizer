@@ -61,6 +61,14 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataStandardizer.LanguageTa
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataStandardizer.File.iCal.IntegrationTests", "tests\DataStandardizer.File.iCal.IntegrationTests\DataStandardizer.File.iCal.IntegrationTests.csproj", "{6979CA78-EAA5-45F1-950B-9CAF773C9E87}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "fuzz", "fuzz", "{D9859FA7-5858-4C35-94CD-2B40155173BB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataStandardizer.File.CSV.Fuzz", "fuzz\DataStandardizer.File.CSV.Fuzz\DataStandardizer.File.CSV.Fuzz.csproj", "{83DB4143-3BC1-4966-BC1B-B0BA41EA6FD5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataStandardizer.File.iCal.Fuzz", "fuzz\DataStandardizer.File.iCal.Fuzz\DataStandardizer.File.iCal.Fuzz.csproj", "{0A52C1DE-D8A9-4C10-A9C5-BA5444EC8CA1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataStandardizer.LanguageTag.Fuzz", "fuzz\DataStandardizer.LanguageTag.Fuzz\DataStandardizer.LanguageTag.Fuzz.csproj", "{BBFEBFC5-1779-4B7E-9083-408F2D1532D8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -171,6 +179,18 @@ Global
 		{6979CA78-EAA5-45F1-950B-9CAF773C9E87}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6979CA78-EAA5-45F1-950B-9CAF773C9E87}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6979CA78-EAA5-45F1-950B-9CAF773C9E87}.Release|Any CPU.Build.0 = Release|Any CPU
+		{83DB4143-3BC1-4966-BC1B-B0BA41EA6FD5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{83DB4143-3BC1-4966-BC1B-B0BA41EA6FD5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{83DB4143-3BC1-4966-BC1B-B0BA41EA6FD5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{83DB4143-3BC1-4966-BC1B-B0BA41EA6FD5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0A52C1DE-D8A9-4C10-A9C5-BA5444EC8CA1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0A52C1DE-D8A9-4C10-A9C5-BA5444EC8CA1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0A52C1DE-D8A9-4C10-A9C5-BA5444EC8CA1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0A52C1DE-D8A9-4C10-A9C5-BA5444EC8CA1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BBFEBFC5-1779-4B7E-9083-408F2D1532D8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BBFEBFC5-1779-4B7E-9083-408F2D1532D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BBFEBFC5-1779-4B7E-9083-408F2D1532D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BBFEBFC5-1779-4B7E-9083-408F2D1532D8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -202,6 +222,9 @@ Global
 		{5D0EDE81-858B-4E23-BB4E-58A10967FFAB} = {66320409-64EC-F7C5-3DEF-65E7510DAAD1}
 		{BB4B43BD-5BBC-4A06-BFA5-1295233870C4} = {B9FDB3AD-0254-49E2-B2B8-20BC6B0AB93B}
 		{6979CA78-EAA5-45F1-950B-9CAF773C9E87} = {B9FDB3AD-0254-49E2-B2B8-20BC6B0AB93B}
+		{83DB4143-3BC1-4966-BC1B-B0BA41EA6FD5} = {D9859FA7-5858-4C35-94CD-2B40155173BB}
+		{0A52C1DE-D8A9-4C10-A9C5-BA5444EC8CA1} = {D9859FA7-5858-4C35-94CD-2B40155173BB}
+		{BBFEBFC5-1779-4B7E-9083-408F2D1532D8} = {D9859FA7-5858-4C35-94CD-2B40155173BB}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D102BDCC-44EF-4389-9803-1D0385E0F7B8}

@@ -1,0 +1,7 @@
+# A crashing input is a vulnerability until it is fixed, so nothing a fuzzing run produces may be committed.  See README.md.
+work/
+crash-*
+timeout-*
+oom-*
+slow-unit-*
+leak-*

@@ -227,6 +227,14 @@ Describe 'BuildPlan' {
                 Should -Be 0
         }
 
+        It 'does not count a fuzz harness change as a package or test change' {
+            Push-Location (Initialize-Repository)
+            $commit = Add-TestCommit -File @{ 'fuzz/DataStandardizer.File.Fuzz/Program.cs' = 'harness' }
+            @(Get-ChangedPackageName -PackageInfo $script:Packages -Commit $commit -IsRelease $false).Count | Should -Be 0
+            @(Get-ChangedTestPackageName -TestPackageName $script:Packages.packageName -Commit $commit -SharedTestFile 'tests/Directory.Packages.props').Count |
+                Should -Be 0
+        }
+
         It 'does not count an integration test change as a package change' {
             Push-Location (Initialize-Repository)
             $commit = Add-TestCommit -File @{ 'tests/DataStandardizer.File.IntegrationTests/T.cs' = 'test' }

@@ -3,6 +3,7 @@
     "path": "DataStandardizer.sln",
     "projects": [
       "benchmarks\\DataStandardizer.LanguageTag.Benchmarks\\DataStandardizer.LanguageTag.Benchmarks.csproj",
+      "fuzz\\DataStandardizer.LanguageTag.Fuzz\\DataStandardizer.LanguageTag.Fuzz.csproj",
       "src\\DataStandardizer.Core\\DataStandardizer.Core.csproj",
       "src\\DataStandardizer.Geography\\DataStandardizer.Geography.csproj",
       "src\\DataStandardizer.LanguageTag\\DataStandardizer.LanguageTag.csproj",
