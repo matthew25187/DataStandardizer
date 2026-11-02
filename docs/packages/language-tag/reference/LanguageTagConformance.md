@@ -24,10 +24,10 @@ RFC 5646 §2.2.9 defines two classes of conformance, which are `WellFormed` and 
 caller that can't load a Subtag Registry. See
 [Well-formed, valid and the ISO code lists](../concepts/well-formed-and-valid.md).
 
-`Valid` needs a registry, so the overloads that take a `LanguageTagConformance` throw
-`ArgumentException` for it. Use the overloads that take a
-[SubtagRegistry](SubtagRegistry.md) instead. They throw `ArgumentOutOfRangeException`
-for a value the enum doesn't define.
+The overloads that take a `LanguageTagConformance` throw
+`ArgumentOutOfRangeException` for a value the enum doesn't define, and
+`ArgumentException` for `Valid`, because validity needs a registry. To check validity,
+use the overloads that take a [SubtagRegistry](SubtagRegistry.md) instead.
 
 ## Fields
 

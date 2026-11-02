@@ -791,39 +791,52 @@ namespace DataStandardizer.LanguageTag.Tests
         /// <summary>
         /// The table in <c>docs/packages/language-tag/concepts/well-formed-and-valid.md</c>: each tag, and whether it is well-formed, in the ISO code lists, and valid against the registry fixture.
         /// </summary>
-        public static TheoryData<string, bool, bool, bool> ConformanceTable => new TheoryData<string, bool, bool, bool>
+        private static readonly (string LanguageTag, bool WellFormed, bool InIsoCodeLists, bool Valid)[] ConformanceTable =
         {
-            { EnglishUnitedStates, true, true, true },
-            { KlingonGrandfathered, true, true, true },
-            { PrivateUseOneLetter, true, true, true },
-            { UncodedScript, true, true, true },
-            { UnassignedPrimaryLanguage, true, false, false },
-            { UnassignedScript, true, false, false },
-            { ChannelIslandsRegion, true, false, false },
-            { EnglishThreeLetterCode, true, false, false },
-            { RepeatedVariant, true, false, false },
-            { RepeatedSingleton, true, false, false },
-            { UnregisteredVariant, true, true, false },
-            { SerboCroatianTwoLetterCode, true, false, true },
-            { EmptySubtag, false, false, false },
-            { SingletonWithOneCharacterSubtag, false, false, false }
+            (EnglishUnitedStates, true, true, true),
+            (KlingonGrandfathered, true, true, true),
+            (PrivateUseOneLetter, true, true, true),
+            (UncodedScript, true, true, true),
+            (UnassignedPrimaryLanguage, true, false, false),
+            (UnassignedScript, true, false, false),
+            (ChannelIslandsRegion, true, false, false),
+            (EnglishThreeLetterCode, true, false, false),
+            (RepeatedVariant, true, false, false),
+            (RepeatedSingleton, true, false, false),
+            (UnregisteredVariant, true, true, false),
+            (SerboCroatianTwoLetterCode, true, false, true),
+            (EmptySubtag, false, false, false),
+            (SingletonWithOneCharacterSubtag, false, false, false)
         };
 
-        [Theory]
-        [MemberData(nameof(ConformanceTable))]
-        public void IsWellFormedAndIsValid_ForTagInDocumentedTable_GiveTheDocumentedResults(string testLanguageTag, bool expectedWellFormed, bool expectedInIsoCodeLists, bool expectedValid)
+        /// <summary>
+        /// Each row of <see cref="ConformanceTable"/>, once for each of its three columns, with the check for that column and the result the table gives.
+        /// </summary>
+        public static TheoryData<string, string, Func<string, bool>, bool> ConformanceTableChecks
         {
-            // arrange
-            var subtagRegistry = IanaSubtagRegistryResource.Shared;
+            get
+            {
+                var data = new TheoryData<string, string, Func<string, bool>, bool>();
+                foreach (var row in ConformanceTable)
+                {
+                    data.Add("well-formed", row.LanguageTag, languageTag => Bcp47LanguageTag.IsWellFormed(languageTag), row.WellFormed);
+                    data.Add("ISO code lists", row.LanguageTag, languageTag => Bcp47LanguageTag.IsValid(languageTag, LanguageTagConformance.IsoCodeLists), row.InIsoCodeLists);
+                    data.Add("valid", row.LanguageTag, languageTag => Bcp47LanguageTag.IsValid(languageTag, IanaSubtagRegistryResource.Shared), row.Valid);
+                }
 
+                return data;
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(ConformanceTableChecks), DisableDiscoveryEnumeration = true)]
+        public void Check_ForTagInDocumentedTable_GivesTheDocumentedResult(string column, string testLanguageTag, Func<string, bool> check, bool expectedResult)
+        {
             // act
-            var testResult = (
-                Bcp47LanguageTag.IsWellFormed(testLanguageTag),
-                Bcp47LanguageTag.IsValid(testLanguageTag, LanguageTagConformance.IsoCodeLists),
-                Bcp47LanguageTag.IsValid(testLanguageTag, subtagRegistry));
+            var testResult = check(testLanguageTag);
 
             // assert
-            testResult.Should().Be((expectedWellFormed, expectedInIsoCodeLists, expectedValid));
+            testResult.Should().Be(expectedResult, "the table gives this for {0} in its {1} column", testLanguageTag, column);
         }
 
         #endregion
