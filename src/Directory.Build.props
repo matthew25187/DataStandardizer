@@ -20,6 +20,10 @@
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
     <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
     <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
+    <!-- Source Link and the compiler flags are stored in the PDB.  Embedded in the DLL, they reach nuget.org inside the .nupkg that is promoted from GitHub Packages, which has no symbol package support. -->
+    <DebugType>embedded</DebugType>
+    <!-- Generated files, such as AssemblyInfo.cs, aren't in git, so Source Link can't fetch them.  Their source goes in the PDB instead. -->
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
 
   <!--
