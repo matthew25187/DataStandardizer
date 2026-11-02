@@ -120,8 +120,7 @@ namespace DataStandardizer.LanguageTag.Tests
         };
 
         /// <summary>
-        /// Subtags that each check accepts and rejects, by the rules of RFC 5646 §2.1 and §2.2: the ABNF of each kind of subtag, and the code
-        /// lists of ISO 639, ISO 15924, ISO 3166-1 and UN M49 that the subtags of each kind come from.
+        /// Subtags that each check accepts and rejects, by the ABNF of each kind of subtag in RFC 5646 §2.1. No check looks a subtag up, so <c>999</c> has the shape of a region.
         /// </summary>
         private static readonly (string CheckName, string Subtag, bool Expected)[] CheckCases =
         {
@@ -158,7 +157,8 @@ namespace DataStandardizer.LanguageTag.Tests
             (nameof(Bcp47LanguageTag.CheckRegionSubtag), "AA", true),
             (nameof(Bcp47LanguageTag.CheckRegionSubtag), "", false),
             (nameof(Bcp47LanguageTag.CheckRegionSubtag), "a", false),
-            (nameof(Bcp47LanguageTag.CheckRegionSubtag), "999", false),
+            (nameof(Bcp47LanguageTag.CheckRegionSubtag), "999", true),
+            (nameof(Bcp47LanguageTag.CheckRegionSubtag), "12", false),
             (nameof(Bcp47LanguageTag.CheckRegionSubtag), "Hant", false),
             (nameof(Bcp47LanguageTag.CheckVariantSubtag), "rozaj", true),
             (nameof(Bcp47LanguageTag.CheckVariantSubtag), "1994", true),

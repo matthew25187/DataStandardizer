@@ -53,12 +53,42 @@ namespace DataStandardizer.LanguageTag.IntegrationTests.Parity
 
         private static readonly Regex LanguageTag = Compose();
 
+        // One subtag of each production. A language has no extlang here, so 2*3ALPHA / 4ALPHA / 5*8ALPHA, and an extlang is its first 3ALPHA.
+        private static readonly Regex OneLanguage = Anchored("(?:" + Alpha + "{2,3}|" + Alpha + "{4}|" + Alpha + "{5,8})");
+        private static readonly Regex OneExtlang = Anchored(Alpha + "{3}");
+        private static readonly Regex OneScript = Anchored(Script);
+        private static readonly Regex OneRegion = Anchored(Region);
+        private static readonly Regex OneVariant = Anchored(Variant);
+        private static readonly Regex OneExtension = Anchored(Extension);
+        private static readonly Regex OnePrivateUse = Anchored(PrivateUse);
+
         /// <summary>
         /// Match an input against the grammar. The match has the groups named in <see cref="FrozenRulesBasedExpressions"/>.
         /// </summary>
         internal static Match Match(string input)
         {
             return FrozenRulesBasedExpressions.IsAscii(input) ? LanguageTag.Match(input) : System.Text.RegularExpressions.Match.Empty;
+        }
+
+        /// <summary>
+        /// Whether an input matches the production of each kind of subtag.
+        /// </summary>
+        internal static SubtagCheckResults CheckSubtag(string input)
+        {
+            var isAscii = FrozenRulesBasedExpressions.IsAscii(input);
+            return new SubtagCheckResults(
+                isAscii && OneLanguage.IsMatch(input),
+                isAscii && OneExtlang.IsMatch(input),
+                isAscii && OneScript.IsMatch(input),
+                isAscii && OneRegion.IsMatch(input),
+                isAscii && OneVariant.IsMatch(input),
+                isAscii && OneExtension.IsMatch(input),
+                isAscii && OnePrivateUse.IsMatch(input));
+        }
+
+        private static Regex Anchored(string pattern)
+        {
+            return new Regex("^" + pattern + "\\z", ExpressionOptions);
         }
 
         private static Regex Compose()

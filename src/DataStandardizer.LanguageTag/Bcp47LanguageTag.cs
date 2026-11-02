@@ -412,13 +412,13 @@ namespace DataStandardizer.LanguageTag
         #region Public Static Methods
 
         /// <summary>
-        /// Determine if a string contains a valid Extended Language subtag.
+        /// Determine if a string has the shape of an Extended Language subtag: three letters (<c>extlang</c>, RFC 5646 §2.1).
         /// </summary>
         /// <param name="extendedLanguageSubtag">Subtag to check.</param>
-        /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <returns><c>true</c> if the subtag has that shape; <c>false</c> if not.</returns>
         /// <exception cref="ArgumentNullException">The subtag is <c>null</c>.</exception>
         /// <remarks>
-        /// Validation will be performed using the default BCP 47 rules.
+        /// This checks the shape of the subtag only, and looks nothing up: the subtag may be one that nothing has assigned.
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool CheckExtendedLanguageSubtag(string extendedLanguageSubtag)
@@ -428,31 +428,31 @@ namespace DataStandardizer.LanguageTag
         {
             if (extendedLanguageSubtag is null) throw new ArgumentNullException(nameof(extendedLanguageSubtag));
 
-            return Bcp47IsoCodeListClassifier.Instance.IsExtendedLanguage(extendedLanguageSubtag.AsSpan());
+            return Bcp47SyntaxSubtagClassifier.Instance.IsExtendedLanguage(extendedLanguageSubtag.AsSpan());
         }
 
         /// <summary>
-        /// Determine if a span of characters contains a valid Extended Language subtag.
+        /// Determine if a span of characters has the shape of an Extended Language subtag: three letters (<c>extlang</c>, RFC 5646 §2.1).
         /// </summary>
         /// <param name="extendedLanguageSubtag">Subtag to check.</param>
-        /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <returns><c>true</c> if the subtag has that shape; <c>false</c> if not.</returns>
         /// <remarks>
-        /// Validation will be performed using the default BCP 47 rules.
+        /// This checks the shape of the subtag only, and looks nothing up: the subtag may be one that nothing has assigned.
         /// </remarks>
         public static bool CheckExtendedLanguageSubtag(ReadOnlySpan<char> extendedLanguageSubtag)
         {
-            return Bcp47IsoCodeListClassifier.Instance.IsExtendedLanguage(extendedLanguageSubtag);
+            return Bcp47SyntaxSubtagClassifier.Instance.IsExtendedLanguage(extendedLanguageSubtag);
         }
 
         /// <summary>
-        /// Determine if a string contains a valid Extension subtag.
+        /// Determine if a string has the shape of an Extension subtag: one extension: a singleton other than <c>x</c> followed by one or more subtags of two to eight letters or digits (<c>extension</c>, RFC 5646 §2.1).
         /// </summary>
         /// <param name="extensionSubtag">Subtag to check.</param>
-        /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <returns><c>true</c> if the subtag has that shape; <c>false</c> if not.</returns>
         /// <exception cref="ArgumentNullException">The subtag is <c>null</c>.</exception>
         /// <remarks>
-        /// Validation will be performed using the default BCP 47 rules. The string must contain exactly one extension: a singleton followed by its subtags.
-        /// Whether a singleton is repeated within a language tag is checked when the whole tag is validated.
+        /// This checks the shape of the subtag only, and looks nothing up: the subtag may be one that nothing has assigned.
+        /// Whether a singleton is repeated within a language tag is a matter of validity (RFC 5646 §2.2.9), which this does not check.
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool CheckExtensionSubtag(string extensionSubtag)
@@ -466,13 +466,13 @@ namespace DataStandardizer.LanguageTag
         }
 
         /// <summary>
-        /// Determine if a span of characters contains a valid Extension subtag.
+        /// Determine if a span of characters has the shape of an Extension subtag: one extension: a singleton other than <c>x</c> followed by one or more subtags of two to eight letters or digits (<c>extension</c>, RFC 5646 §2.1).
         /// </summary>
         /// <param name="extensionSubtag">Subtag to check.</param>
-        /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <returns><c>true</c> if the subtag has that shape; <c>false</c> if not.</returns>
         /// <remarks>
-        /// Validation will be performed using the default BCP 47 rules. The span must contain exactly one extension: a singleton followed by its subtags.
-        /// Whether a singleton is repeated within a language tag is checked when the whole tag is validated.
+        /// This checks the shape of the subtag only, and looks nothing up: the subtag may be one that nothing has assigned.
+        /// Whether a singleton is repeated within a language tag is a matter of validity (RFC 5646 §2.2.9), which this does not check.
         /// </remarks>
         public static bool CheckExtensionSubtag(ReadOnlySpan<char> extensionSubtag)
         {
@@ -480,13 +480,13 @@ namespace DataStandardizer.LanguageTag
         }
 
         /// <summary>
-        /// Determine if a string contains a valid Primary Language subtag.
+        /// Determine if a string has the shape of a Primary Language subtag: two to eight letters (<c>language</c>, RFC 5646 §2.1).
         /// </summary>
         /// <param name="primaryLanguageSubtag">Subtag to check.</param>
-        /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <returns><c>true</c> if the subtag has that shape; <c>false</c> if not.</returns>
         /// <exception cref="ArgumentNullException">The subtag is <c>null</c>.</exception>
         /// <remarks>
-        /// Validation will be performed using the default BCP 47 rules.
+        /// This checks the shape of the subtag only, and looks nothing up: the subtag may be one that nothing has assigned.
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool CheckPrimaryLanguageSubtag(string primaryLanguageSubtag)
@@ -496,30 +496,30 @@ namespace DataStandardizer.LanguageTag
         {
             if (primaryLanguageSubtag is null) throw new ArgumentNullException(nameof(primaryLanguageSubtag));
 
-            return Bcp47IsoCodeListClassifier.Instance.IsPrimaryLanguage(primaryLanguageSubtag.AsSpan(), out _);
+            return Bcp47SyntaxSubtagClassifier.Instance.IsPrimaryLanguage(primaryLanguageSubtag.AsSpan(), out _);
         }
 
         /// <summary>
-        /// Determine if a span of characters contains a valid Primary Language subtag.
+        /// Determine if a span of characters has the shape of a Primary Language subtag: two to eight letters (<c>language</c>, RFC 5646 §2.1).
         /// </summary>
         /// <param name="primaryLanguageSubtag">Subtag to check.</param>
-        /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <returns><c>true</c> if the subtag has that shape; <c>false</c> if not.</returns>
         /// <remarks>
-        /// Validation will be performed using the default BCP 47 rules.
+        /// This checks the shape of the subtag only, and looks nothing up: the subtag may be one that nothing has assigned.
         /// </remarks>
         public static bool CheckPrimaryLanguageSubtag(ReadOnlySpan<char> primaryLanguageSubtag)
         {
-            return Bcp47IsoCodeListClassifier.Instance.IsPrimaryLanguage(primaryLanguageSubtag, out _);
+            return Bcp47SyntaxSubtagClassifier.Instance.IsPrimaryLanguage(primaryLanguageSubtag, out _);
         }
 
         /// <summary>
-        /// Determine if a string contains a valid Private Use subtag.
+        /// Determine if a string has the shape of a Private Use subtag: <c>x</c> followed by one or more subtags of one to eight letters or digits (<c>privateuse</c>, RFC 5646 §2.1).
         /// </summary>
         /// <param name="privateUseSubtag">Subtag to check.</param>
-        /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <returns><c>true</c> if the subtag has that shape; <c>false</c> if not.</returns>
         /// <exception cref="ArgumentNullException">The subtag is <c>null</c>.</exception>
         /// <remarks>
-        /// Validation will be performed using the default BCP 47 rules.
+        /// This checks the shape of the subtag only, and looks nothing up: the subtag may be one that nothing has assigned.
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool CheckPrivateUseSubtag(string privateUseSubtag)
@@ -533,12 +533,12 @@ namespace DataStandardizer.LanguageTag
         }
 
         /// <summary>
-        /// Determine if a span of characters contains a valid Private Use subtag.
+        /// Determine if a span of characters has the shape of a Private Use subtag: <c>x</c> followed by one or more subtags of one to eight letters or digits (<c>privateuse</c>, RFC 5646 §2.1).
         /// </summary>
         /// <param name="privateUseSubtag">Subtag to check.</param>
-        /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <returns><c>true</c> if the subtag has that shape; <c>false</c> if not.</returns>
         /// <remarks>
-        /// Validation will be performed using the default BCP 47 rules.
+        /// This checks the shape of the subtag only, and looks nothing up: the subtag may be one that nothing has assigned.
         /// </remarks>
         public static bool CheckPrivateUseSubtag(ReadOnlySpan<char> privateUseSubtag)
         {
@@ -546,13 +546,13 @@ namespace DataStandardizer.LanguageTag
         }
 
         /// <summary>
-        /// Determine if a string contains a valid Region subtag.
+        /// Determine if a string has the shape of a Region subtag: two letters or three digits (<c>region</c>, RFC 5646 §2.1).
         /// </summary>
         /// <param name="regionSubtag">Subtag to check.</param>
-        /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <returns><c>true</c> if the subtag has that shape; <c>false</c> if not.</returns>
         /// <exception cref="ArgumentNullException">The subtag is <c>null</c>.</exception>
         /// <remarks>
-        /// Validation will be performed using the default BCP 47 rules.
+        /// This checks the shape of the subtag only, and looks nothing up: the subtag may be one that nothing has assigned.
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool CheckRegionSubtag(string regionSubtag)
@@ -562,30 +562,30 @@ namespace DataStandardizer.LanguageTag
         {
             if (regionSubtag is null) throw new ArgumentNullException(nameof(regionSubtag));
 
-            return Bcp47IsoCodeListClassifier.Instance.IsRegion(regionSubtag.AsSpan());
+            return Bcp47SyntaxSubtagClassifier.Instance.IsRegion(regionSubtag.AsSpan());
         }
 
         /// <summary>
-        /// Determine if a span of characters contains a valid Region subtag.
+        /// Determine if a span of characters has the shape of a Region subtag: two letters or three digits (<c>region</c>, RFC 5646 §2.1).
         /// </summary>
         /// <param name="regionSubtag">Subtag to check.</param>
-        /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <returns><c>true</c> if the subtag has that shape; <c>false</c> if not.</returns>
         /// <remarks>
-        /// Validation will be performed using the default BCP 47 rules.
+        /// This checks the shape of the subtag only, and looks nothing up: the subtag may be one that nothing has assigned.
         /// </remarks>
         public static bool CheckRegionSubtag(ReadOnlySpan<char> regionSubtag)
         {
-            return Bcp47IsoCodeListClassifier.Instance.IsRegion(regionSubtag);
+            return Bcp47SyntaxSubtagClassifier.Instance.IsRegion(regionSubtag);
         }
 
         /// <summary>
-        /// Determine if a string contains a valid Script subtag.
+        /// Determine if a string has the shape of a Script subtag: four letters (<c>script</c>, RFC 5646 §2.1).
         /// </summary>
         /// <param name="scriptSubtag">Subtag to check.</param>
-        /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <returns><c>true</c> if the subtag has that shape; <c>false</c> if not.</returns>
         /// <exception cref="ArgumentNullException">The subtag is <c>null</c>.</exception>
         /// <remarks>
-        /// Validation will be performed using the default BCP 47 rules.
+        /// This checks the shape of the subtag only, and looks nothing up: the subtag may be one that nothing has assigned.
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool CheckScriptSubtag(string scriptSubtag)
@@ -595,31 +595,31 @@ namespace DataStandardizer.LanguageTag
         {
             if (scriptSubtag is null) throw new ArgumentNullException(nameof(scriptSubtag));
 
-            return Bcp47IsoCodeListClassifier.Instance.IsScript(scriptSubtag.AsSpan());
+            return Bcp47SyntaxSubtagClassifier.Instance.IsScript(scriptSubtag.AsSpan());
         }
 
         /// <summary>
-        /// Determine if a span of characters contains a valid Script subtag.
+        /// Determine if a span of characters has the shape of a Script subtag: four letters (<c>script</c>, RFC 5646 §2.1).
         /// </summary>
         /// <param name="scriptSubtag">Subtag to check.</param>
-        /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <returns><c>true</c> if the subtag has that shape; <c>false</c> if not.</returns>
         /// <remarks>
-        /// Validation will be performed using the default BCP 47 rules.
+        /// This checks the shape of the subtag only, and looks nothing up: the subtag may be one that nothing has assigned.
         /// </remarks>
         public static bool CheckScriptSubtag(ReadOnlySpan<char> scriptSubtag)
         {
-            return Bcp47IsoCodeListClassifier.Instance.IsScript(scriptSubtag);
+            return Bcp47SyntaxSubtagClassifier.Instance.IsScript(scriptSubtag);
         }
 
         /// <summary>
-        /// Determine if a string contains a valid Variant subtag.
+        /// Determine if a string has the shape of a Variant subtag: five to eight letters or digits, or a digit followed by three letters or digits (<c>variant</c>, RFC 5646 §2.1).
         /// </summary>
         /// <param name="variantSubtag">Subtag to check.</param>
-        /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <returns><c>true</c> if the subtag has that shape; <c>false</c> if not.</returns>
         /// <exception cref="ArgumentNullException">The subtag is <c>null</c>.</exception>
         /// <remarks>
-        /// Validation will be performed using the default BCP 47 rules. The string must contain exactly one subtag.
-        /// Whether a variant is repeated within a language tag is checked when the whole tag is validated.
+        /// This checks the shape of the subtag only, and looks nothing up: the subtag may be one that nothing has assigned.
+        /// Whether a variant is repeated within a language tag is a matter of validity (RFC 5646 §2.2.9), which this does not check.
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool CheckVariantSubtag(string variantSubtag)
@@ -629,21 +629,21 @@ namespace DataStandardizer.LanguageTag
         {
             if (variantSubtag is null) throw new ArgumentNullException(nameof(variantSubtag));
 
-            return Bcp47IsoCodeListClassifier.Instance.IsVariant(variantSubtag.AsSpan());
+            return Bcp47SyntaxSubtagClassifier.Instance.IsVariant(variantSubtag.AsSpan());
         }
 
         /// <summary>
-        /// Determine if a span of characters contains a valid Variant subtag.
+        /// Determine if a span of characters has the shape of a Variant subtag: five to eight letters or digits, or a digit followed by three letters or digits (<c>variant</c>, RFC 5646 §2.1).
         /// </summary>
         /// <param name="variantSubtag">Subtag to check.</param>
-        /// <returns><c>true</c> if the subtag is valid; <c>false</c> if not.</returns>
+        /// <returns><c>true</c> if the subtag has that shape; <c>false</c> if not.</returns>
         /// <remarks>
-        /// Validation will be performed using the default BCP 47 rules. The span must contain exactly one subtag.
-        /// Whether a variant is repeated within a language tag is checked when the whole tag is validated.
+        /// This checks the shape of the subtag only, and looks nothing up: the subtag may be one that nothing has assigned.
+        /// Whether a variant is repeated within a language tag is a matter of validity (RFC 5646 §2.2.9), which this does not check.
         /// </remarks>
         public static bool CheckVariantSubtag(ReadOnlySpan<char> variantSubtag)
         {
-            return Bcp47IsoCodeListClassifier.Instance.IsVariant(variantSubtag);
+            return Bcp47SyntaxSubtagClassifier.Instance.IsVariant(variantSubtag);
         }
 
         /// <summary>
@@ -1190,10 +1190,10 @@ namespace DataStandardizer.LanguageTag
         /// Get the classifier for a conformance that needs no Subtag Registry.
         /// </summary>
 #if NETCOREAPP3_0_OR_GREATER
-        private static Bcp47SubtagClassifier GetClassifier(LanguageTagConformance conformance)
+        internal static Bcp47SubtagClassifier GetClassifier(LanguageTagConformance conformance)
 #else
         [NotNull]
-        private static Bcp47SubtagClassifier GetClassifier(LanguageTagConformance conformance)
+        internal static Bcp47SubtagClassifier GetClassifier(LanguageTagConformance conformance)
 #endif
         {
             switch (conformance)

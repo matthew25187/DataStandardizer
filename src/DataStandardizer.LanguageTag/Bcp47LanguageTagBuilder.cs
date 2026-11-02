@@ -13,7 +13,13 @@ namespace DataStandardizer.LanguageTag
     /// <summary>
     /// Builder for constructing an IETF BCP 47 language tag.
     /// </summary>
-    public class Bcp47LanguageTagBuilder : IBcp47LanguageTagBuilderStepWithLanguageSubtagRegistryNext, IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext,
+    /// <remarks>
+    /// The steps that take a string check only the shape of the subtag. <c>Build</c> applies what was chosen: validity against the Subtag Registry from
+    /// <see cref="WithLanguageSubtagRegistry"/>, the conformance from <see cref="WithConformance"/>, or otherwise well-formedness. The last of the two steps called applies.
+    /// The steps that take a code are ISO by construction. The Variant and Extension steps refuse a repeated variant subtag or extension singleton whichever is chosen:
+    /// RFC 5646 §2.2.9 allows one in a well-formed language tag, but a builder has no reason to compose a tag that could never be valid.
+    /// </remarks>
+    public class Bcp47LanguageTagBuilder : IBcp47LanguageTagBuilderStepWithConformance, IBcp47LanguageTagBuilderStepWithConformanceNext, IBcp47LanguageTagBuilderStepWithLanguageSubtagRegistryNext, IBcp47LanguageTagBuilderStepUsingPrimaryLanguageSubtagNext,
         IBcp47LanguageTagBuilderStepUsingExtendedLanguageSubtagsNext, IBcp47LanguageTagBuilderStepUsingScriptSubtagNext, IBcp47LanguageTagBuilderStepUsingRegionSubtagNext, IBcp47LanguageTagBuilderStepUsingVariantSubtagsNext,
         IBcp47LanguageTagBuilderStepUsingExtensionSubtagsNext, IBcp47LanguageTagBuilderStepUsingPrivateUseSubtagNext
     {
@@ -43,6 +49,7 @@ namespace DataStandardizer.LanguageTag
         private string[] _extensionSubtags = { };
         private string[] _variantSubtags = { };
 #endif
+        private LanguageTagConformance _conformance = LanguageTagConformance.WellFormed;
 #if NETCOREAPP3_0_OR_GREATER
         private string? _languageTag;
         private object? _primaryLanguageSubtag;
@@ -72,6 +79,20 @@ namespace DataStandardizer.LanguageTag
         public IBcp47LanguageTagBuilderStepWithLanguageSubtagRegistryNext WithLanguageSubtagRegistry(SubtagRegistry.SubtagRegistry subtagRegistry)
         {
             _subtagRegistry = subtagRegistry ?? throw new ArgumentNullException(nameof(subtagRegistry));
+
+            return this;
+        }
+
+        /// <inheritdoc />
+        /// <exception cref="ArgumentException"><paramref name="conformance"/> is <see cref="LanguageTagConformance.Valid"/>, which needs a Subtag Registry.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="conformance"/> is not a defined value.</exception>
+        public IBcp47LanguageTagBuilderStepWithConformanceNext WithConformance(LanguageTagConformance conformance)
+        {
+            // Reject a conformance that Build could not apply now, rather than when the tag is built.
+            Bcp47LanguageTag.GetClassifier(conformance);
+
+            _conformance = conformance;
+            _subtagRegistry = null;
 
             return this;
         }
@@ -278,7 +299,8 @@ namespace DataStandardizer.LanguageTag
 #else
             if (!Enum.IsDefined(typeof(UnM49Area), regionSubtag)) throw new ArgumentException(string.Format(ErrorMessage.SpecifiedCodeUndefinedTemplate, "UN M49", code), nameof(regionSubtag));
 #endif
-            if (!Bcp47LanguageTag.CheckRegionSubtag(code)) throw new ArgumentException(string.Format(ErrorMessage.SubtagInvalidTemplate, code, "Region subtag"), nameof(regionSubtag));
+            // A UN M.49 code of a country is not a Region subtag, whatever is chosen for Build (ref. RFC 5646 §2.2.4¶4).
+            if (!Bcp47IsoCodeListClassifier.Instance.IsRegion(code.AsSpan())) throw new ArgumentException(string.Format(ErrorMessage.SubtagInvalidTemplate, code, "Region subtag"), nameof(regionSubtag));
 
             _regionSubtag = regionSubtag;
 
@@ -371,30 +393,14 @@ namespace DataStandardizer.LanguageTag
 
         /// <inheritdoc />
         /// <exception cref="InvalidOperationException">
-        /// The Primary Language subtag is not an ISO 639-1 code, an ISO 639-2 code, an ISO 639-3 code, an ISO 639-5 code, or a registered subtag.
-        /// -or-
         /// More than three Extended Language subtags were specified.
-        /// -or-
-        /// The Script subtag is not an ISO 15924 code, nor a registered subtag.
-        /// -or-
-        /// The Region subtag is not an ISO 3166-1 Alpha-2 code, a UN M49 code, or a registered subtag.
-        /// -or-
-        /// A Variant subtag is not a registered subtag.
         /// </exception>
         /// <exception cref="LanguageTagFormatException">
-        /// The Primary Language subtag is not correctly formatted.
+        /// The language tag is not valid against the Subtag Registry, if one was given.
         /// -or-
-        /// An Extended Language subtag is not correctly formatted.
+        /// The language tag does not satisfy the conformance, if one was chosen.
         /// -or-
-        /// The Script subtag is not correctly formatted.
-        /// -or-
-        /// The Region subtag is not correctly formatted.
-        /// -or-
-        /// A Variant subtag is not correctly formatted.
-        /// -or-
-        /// An Extension subtag is not correctly formatted.
-        /// -or-
-        /// The Private Use subtag is not correctly formatted.
+        /// Otherwise, the language tag is not well-formed.
         /// </exception>
         Bcp47LanguageTag IBcp47LanguageTagBuilderStepBuild.Build()
         {
@@ -691,7 +697,7 @@ namespace DataStandardizer.LanguageTag
         private Bcp47LanguageTag CreateLanguageTag([NotNull] string languageTag)
 #endif
         {
-            return _subtagRegistry != null ? Bcp47LanguageTag.Create(languageTag, _subtagRegistry) : Bcp47LanguageTag.Create(languageTag);
+            return _subtagRegistry != null ? Bcp47LanguageTag.Create(languageTag, _subtagRegistry) : Bcp47LanguageTag.Create(languageTag, _conformance);
         }
 
         #endregion

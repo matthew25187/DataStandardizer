@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 using DataStandardizer.Core;
 using DataStandardizer.Geography;
@@ -456,16 +455,6 @@ namespace DataStandardizer.LanguageTag.Tests
             return data;
         }
 
-        /// <summary>
-        /// The codes of an ISO 639 enum for languages with no ISO 639-1 code. A three-letter code of a language with one is not defined (RFC 5646 §2.2.1). This reads each member's attribute directly: asking the extension method scans the enum's fields once per member.
-        /// </summary>
-        private static IEnumerable<string> NamesWithoutPart1Code(Type iso639Enum)
-        {
-            return iso639Enum.GetFields(BindingFlags.Public | BindingFlags.Static)
-                .Where(field => field.FieldType == iso639Enum && field.GetCustomAttribute<Iso639LanguageCodeAttribute>()?.Part1Code == null)
-                .Select(field => field.Name);
-        }
-
         private static TheoryData<string> FirstOfEach(IEnumerable<(string LanguageTag, string ControlLanguageTag)> pairs)
         {
             var data = new TheoryData<string>();
@@ -863,7 +852,7 @@ namespace DataStandardizer.LanguageTag.Tests
         {
             public IEnumerator<object[]> GetEnumerator()
             {
-                foreach (var testSubtag in NamesWithoutPart1Code(typeof(Iso639Part2TLanguage)))
+                foreach (var testSubtag in StringEnum.GetNames<Iso639Part2TLanguage>())
                 {
                     yield return new object[] { testSubtag };
                 }
@@ -894,7 +883,7 @@ namespace DataStandardizer.LanguageTag.Tests
         {
             public IEnumerator<object[]> GetEnumerator()
             {
-                foreach (var testSubtag in NamesWithoutPart1Code(typeof(Iso639Part3Language)))
+                foreach (var testSubtag in StringEnum.GetNames<Iso639Part3Language>())
                 {
                     yield return new object[] { testSubtag };
                 }
@@ -1167,13 +1156,13 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: CheckRegionSubtag_WithChannelIslandsSubtag
 
         [Fact]
-        public void CheckRegionSubtag_WithChannelIslandsSubtag_ReturnsFalse()
+        public void CheckRegionSubtag_WithChannelIslandsSubtag_ReturnsTrue()
         {
             // act
             var testResult = Bcp47LanguageTag.CheckRegionSubtag(ChannelIslandsRegionSubtag);
 
             // assert
-            testResult.Should().BeFalse("830 (Channel Islands) may be registered, but is not, and an unregistered UN M.49 area code must not be used (RFC 5646 §2.2.4¶4E-F)");
+            testResult.Should().BeTrue("830 has the shape region = 3DIGIT (RFC 5646 §2.1), and a Check method looks nothing up");
         }
 
         #endregion
@@ -1181,14 +1170,14 @@ namespace DataStandardizer.LanguageTag.Tests
         #region Test: CheckScriptSubtag_WithInvalidSubtag
 
         [Theory]
-        [InlineData(OneDigit), InlineData(OneLetter), InlineData("a2cd"), InlineData("Qaby"), InlineData("Qabz"), InlineData("Qaca")]
+        [InlineData(OneDigit), InlineData(OneLetter), InlineData("a2cd")]
         public void CheckScriptSubtag_WithInvalidSubtag_ReturnsFalse(string testSubtag)
         {
             // act
             var testResult = Bcp47LanguageTag.CheckScriptSubtag(testSubtag);
 
             // assert
-            testResult.Should().BeFalse("the subtag {0} is not a valid Script subtag", testSubtag);
+            testResult.Should().BeFalse("the subtag {0} does not have the shape script = 4ALPHA (RFC 5646 §2.1)", testSubtag);
         }
 
         #endregion
