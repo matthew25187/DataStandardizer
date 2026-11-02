@@ -41,7 +41,7 @@ namespace DataStandardizer.LanguageTag.IntegrationTests
         /// </summary>
         private static readonly string[] NotInIsoCodeLists =
         {
-            "de-1901-1901", "en-a-bbb-a-ccc", "zz", "en-Abcd", "en-830"
+            "de-1901-1901", "en-a-bbb-a-ccc", "zz", "en-Abcd", "en-830", "eng"
         };
 
         /// <summary>
@@ -82,6 +82,7 @@ namespace DataStandardizer.LanguageTag.IntegrationTests
                 foreach (var languageTag in NotInIsoCodeLists)
                 {
                     data.Add("TryCreate(\"" + languageTag + "\", IsoCodeLists)", () => Bcp47LanguageTag.TryCreate(languageTag.AsSpan(), LanguageTagConformance.IsoCodeLists, out _));
+                    data.Add("IsValid(\"" + languageTag + "\", IsoCodeLists)", () => Bcp47LanguageTag.IsValid(languageTag.AsSpan(), LanguageTagConformance.IsoCodeLists));
                 }
 
                 foreach (var languageTag in InvalidLanguageTags)

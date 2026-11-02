@@ -210,18 +210,23 @@ something new. Choose its replacement by what you need:
 | `IsWellFormedLanguageTagString(string)` | `IsWellFormed(string)` | The ABNF only |
 | `IsWellFormedLanguageTagString(ReadOnlySpan<char>)` | `IsWellFormed(ReadOnlySpan<char>)` | The ABNF only |
 | Either | `IsValid(string, SubtagRegistry)` or `IsValid(ReadOnlySpan<char>, SubtagRegistry)` | Validity against a registry (RFC 5646 §2.2.9) |
+| Either | `IsValid(string, LanguageTagConformance)` or `IsValid(ReadOnlySpan<char>, LanguageTagConformance)` with `IsoCodeLists` | The ISO code lists |
 
 If you relied on the ISO code lists and can't load a registry, opt in to them with
-`LanguageTagConformance.IsoCodeLists`. That checks what version 1.x checked:
+`LanguageTagConformance.IsoCodeLists`. That checks what version 1.x checked, with
+one correction: it rejects a three-letter code of a language that has an ISO 639-1
+code, such as `eng`, `deu` or `fra`, as RFC 5646 §2.2.1 requires. Use `en`, `de` or
+`fr` instead. It remains an approximation of validity: it doesn't check variants,
+languages of four to eight letters, or extended language prefixes.
 
 ```csharp
 // Before
 var languageTag = Bcp47LanguageTag.Create("en-NZ");
 var isListed = Bcp47LanguageTag.IsWellFormedLanguageTagString("en-NZ");
 
-// After: the same checks as version 1.x
+// After: the ISO code lists
 var languageTag = Bcp47LanguageTag.Create("en-NZ", LanguageTagConformance.IsoCodeLists);
-var isListed = Bcp47LanguageTag.TryCreate("en-NZ", LanguageTagConformance.IsoCodeLists, out _);
+var isListed = Bcp47LanguageTag.IsValid("en-NZ", LanguageTagConformance.IsoCodeLists);
 ```
 
 The new `Conformance` property of a `Bcp47LanguageTag` says which of these was

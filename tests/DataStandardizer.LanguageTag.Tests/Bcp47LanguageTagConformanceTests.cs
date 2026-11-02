@@ -64,6 +64,66 @@ namespace DataStandardizer.LanguageTag.Tests
         private const string EmptySubtag = "en--US";
 
         /// <summary>
+        /// The ISO 639-2 and ISO 639-3 code for English, which has the ISO 639-1 code <c>en</c>, so only <c>en</c> is defined (RFC 5646 §2.2.1).
+        /// </summary>
+        private const string EnglishThreeLetterCode = "eng";
+
+        /// <summary>
+        /// The ISO 639-2/T and ISO 639-3 code for German, which has the ISO 639-1 code <c>de</c> (RFC 5646 §2.2.1).
+        /// </summary>
+        private const string GermanThreeLetterCode = "deu";
+
+        /// <summary>
+        /// The ISO 639-2/T and ISO 639-3 code for French, which has the ISO 639-1 code <c>fr</c> (RFC 5646 §2.2.1).
+        /// </summary>
+        private const string FrenchThreeLetterCode = "fra";
+
+        /// <summary>
+        /// The ISO 639-3 code for Serbo-Croatian. The registry defines <c>sh</c> for this language and not this code, so the ISO code lists opt-in rejects it.
+        /// </summary>
+        private const string SerboCroatianThreeLetterCode = "hbs";
+
+        /// <summary>
+        /// The ISO 639-2 code for Asturian, which has no ISO 639-1 code (RFC 5646 §2.2.1¶2A).
+        /// </summary>
+        private const string AsturianThreeLetterCode = "ast";
+
+        /// <summary>
+        /// The ISO 639-2 code for Hawaiian, which has no ISO 639-1 code (RFC 5646 §2.2.1¶2A).
+        /// </summary>
+        private const string HawaiianThreeLetterCode = "haw";
+
+        /// <summary>
+        /// The ISO 639-2 code for multiple languages (RFC 5646 §4.1).
+        /// </summary>
+        private const string MultipleLanguagesCode = "mul";
+
+        /// <summary>
+        /// The ISO 639-2 code for undetermined languages (RFC 5646 §4.1).
+        /// </summary>
+        private const string UndeterminedLanguageCode = "und";
+
+        /// <summary>
+        /// The first code reserved for local use (RFC 5646 §2.2.1¶3).
+        /// </summary>
+        private const string FirstLocalUseCode = "qaa";
+
+        /// <summary>
+        /// The ISO 639-3 code for Cantonese, which has no ISO 639-1 code (RFC 5646 §2.2.1¶2B).
+        /// </summary>
+        private const string CantoneseThreeLetterCode = "yue";
+
+        /// <summary>
+        /// The ISO 639-5 code for the Indo-European languages (RFC 5646 §2.2.1¶2C).
+        /// </summary>
+        private const string IndoEuropeanFamilyCode = "ine";
+
+        /// <summary>
+        /// The ISO 15924 code for an uncoded script, which RFC 5646 §2.2.3 takes from that list, so the ISO code lists accept it.
+        /// </summary>
+        private const string UncodedScript = "en-Zzzz";
+
+        /// <summary>
         /// A value that <see cref="LanguageTagConformance"/> doesn't define.
         /// </summary>
         private const LanguageTagConformance UndefinedConformance = (LanguageTagConformance)99;
@@ -111,7 +171,15 @@ namespace DataStandardizer.LanguageTag.Tests
         /// </summary>
         public static TheoryData<string> NotInIsoCodeListsLanguageTags => new TheoryData<string>
         {
-            UnassignedPrimaryLanguage, UnassignedScript, ChannelIslandsRegion, RepeatedVariant, RepeatedSingleton
+            UnassignedPrimaryLanguage, UnassignedScript, ChannelIslandsRegion, RepeatedVariant, RepeatedSingleton, EnglishThreeLetterCode, GermanThreeLetterCode, FrenchThreeLetterCode, SerboCroatianThreeLetterCode
+        };
+
+        /// <summary>
+        /// Three-letter codes of languages for which the registry defines a two-letter subtag, which only the grammar accepts (RFC 5646 §2.2.1).
+        /// </summary>
+        public static TheoryData<string> ThreeLetterCodesWithTwoLetterSubtag => new TheoryData<string>
+        {
+            EnglishThreeLetterCode, GermanThreeLetterCode, FrenchThreeLetterCode, SerboCroatianThreeLetterCode
         };
 
         /// <summary>
@@ -119,7 +187,8 @@ namespace DataStandardizer.LanguageTag.Tests
         /// </summary>
         public static TheoryData<string> InIsoCodeListsLanguageTags => new TheoryData<string>
         {
-            EnglishUnitedStates, KlingonGrandfathered, PrivateUseOneLetter
+            EnglishUnitedStates, KlingonGrandfathered, PrivateUseOneLetter, AsturianThreeLetterCode, HawaiianThreeLetterCode, MultipleLanguagesCode, UndeterminedLanguageCode,
+            FirstLocalUseCode, CantoneseThreeLetterCode, IndoEuropeanFamilyCode, UncodedScript
         };
 
         /// <summary>
@@ -154,7 +223,10 @@ namespace DataStandardizer.LanguageTag.Tests
             { "Create(string)", () => Bcp47LanguageTag.Create(EnglishUnitedStates, conformance) },
             { "TryCreate(string)", () => Bcp47LanguageTag.TryCreate(EnglishUnitedStates, conformance, out _) },
             { "TryCreate(null string)", () => Bcp47LanguageTag.TryCreate((string)null, conformance, out _) },
-            { "TryCreate(span)", () => Bcp47LanguageTag.TryCreate(EnglishUnitedStates.AsSpan(), conformance, out _) }
+            { "TryCreate(span)", () => Bcp47LanguageTag.TryCreate(EnglishUnitedStates.AsSpan(), conformance, out _) },
+            { "IsValid(string)", () => Bcp47LanguageTag.IsValid(EnglishUnitedStates, conformance) },
+            { "IsValid(span)", () => Bcp47LanguageTag.IsValid(EnglishUnitedStates.AsSpan(), conformance) },
+            { "IsValid on an instance", () => Bcp47LanguageTag.Create(EnglishUnitedStates).IsValid(conformance) }
         };
 
         public static TheoryData<string, Action> CallsWithValidConformance => ConformanceCalls(LanguageTagConformance.Valid);
@@ -169,7 +241,9 @@ namespace DataStandardizer.LanguageTag.Tests
             { "default: Conformance", () => _ = default(Bcp47LanguageTag).Conformance },
             { "new: Conformance", () => _ = new Bcp47LanguageTag().Conformance },
             { "default: IsValid", () => default(Bcp47LanguageTag).IsValid(IanaSubtagRegistryResource.Shared) },
-            { "new: IsValid", () => new Bcp47LanguageTag().IsValid(IanaSubtagRegistryResource.Shared) }
+            { "new: IsValid", () => new Bcp47LanguageTag().IsValid(IanaSubtagRegistryResource.Shared) },
+            { "default: IsValid(conformance)", () => default(Bcp47LanguageTag).IsValid(LanguageTagConformance.IsoCodeLists) },
+            { "new: IsValid(conformance)", () => new Bcp47LanguageTag().IsValid(LanguageTagConformance.IsoCodeLists) }
         };
 
         /// <summary>
@@ -507,6 +581,137 @@ namespace DataStandardizer.LanguageTag.Tests
 
             // assert
             testResult.Should().BeFalse();
+        }
+
+        [Theory]
+        [MemberData(nameof(InIsoCodeListsLanguageTags))]
+        public void IsValid_WithIsoCodeListsAndListedLanguageTag_ReturnsTrue(string testLanguageTag)
+        {
+            // act
+            var testResult = Bcp47LanguageTag.IsValid(testLanguageTag, LanguageTagConformance.IsoCodeLists);
+
+            // assert
+            testResult.Should().BeTrue();
+        }
+
+        [Theory]
+        [MemberData(nameof(NotInIsoCodeListsLanguageTags))]
+        public void IsValid_WithIsoCodeListsAndUnlistedLanguageTag_ReturnsFalse(string testLanguageTag)
+        {
+            // act
+            var testResult = Bcp47LanguageTag.IsValid(testLanguageTag, LanguageTagConformance.IsoCodeLists);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Theory]
+        [MemberData(nameof(InIsoCodeListsLanguageTags))]
+        public void IsValid_WithIsoCodeListsAndListedSpan_ReturnsTrue(string testLanguageTag)
+        {
+            // act
+            var testResult = Bcp47LanguageTag.IsValid(testLanguageTag.AsSpan(), LanguageTagConformance.IsoCodeLists);
+
+            // assert
+            testResult.Should().BeTrue();
+        }
+
+        [Theory]
+        [MemberData(nameof(NotInIsoCodeListsLanguageTags))]
+        public void IsValid_WithIsoCodeListsAndUnlistedSpan_ReturnsFalse(string testLanguageTag)
+        {
+            // act
+            var testResult = Bcp47LanguageTag.IsValid(testLanguageTag.AsSpan(), LanguageTagConformance.IsoCodeLists);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Theory]
+        [MemberData(nameof(InIsoCodeListsLanguageTags))]
+        public void IsValid_OnInstanceWithIsoCodeListsAndListedLanguageTag_ReturnsTrue(string testLanguageTag)
+        {
+            // arrange
+            var languageTag = Bcp47LanguageTag.Create(testLanguageTag);
+
+            // act
+            var testResult = languageTag.IsValid(LanguageTagConformance.IsoCodeLists);
+
+            // assert
+            testResult.Should().BeTrue();
+        }
+
+        [Theory]
+        [MemberData(nameof(NotInIsoCodeListsLanguageTags))]
+        public void IsValid_OnInstanceWithIsoCodeListsAndUnlistedLanguageTag_ReturnsFalse(string testLanguageTag)
+        {
+            // arrange
+            var languageTag = Bcp47LanguageTag.Create(testLanguageTag);
+
+            // act
+            var testResult = languageTag.IsValid(LanguageTagConformance.IsoCodeLists);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void IsValid_WithConformanceAndNullLanguageTag_ThrowsArgumentNullException()
+        {
+            // act
+            Action testAction = () => Bcp47LanguageTag.IsValid((string)null, LanguageTagConformance.IsoCodeLists);
+
+            // assert
+            testAction.Should().Throw<ArgumentNullException>().WithParameterName(LanguageTagParameterName);
+        }
+
+        [Fact]
+        public void IsValid_WithWellFormedConformanceAndRepeatedVariant_ReturnsTrue()
+        {
+            // act
+            var testResult = Bcp47LanguageTag.IsValid(RepeatedVariant, LanguageTagConformance.WellFormed);
+
+            // assert
+            testResult.Should().BeTrue("a well-formed language tag may repeat a variant subtag (RFC 5646 §2.2.9)");
+        }
+
+        [Fact]
+        public void IsValid_OnInstance_WithIsoCodeListsLeavesConformanceUnchanged()
+        {
+            // arrange
+            var languageTag = Bcp47LanguageTag.Create(EnglishUnitedStates);
+
+            // act
+            var isValid = languageTag.IsValid(LanguageTagConformance.IsoCodeLists);
+            var testResult = (isValid, languageTag.Conformance);
+
+            // assert
+            testResult.Should().Be((true, LanguageTagConformance.WellFormed), "the struct is read-only");
+        }
+
+        [Theory]
+        [MemberData(nameof(ThreeLetterCodesWithTwoLetterSubtag))]
+        public void IsWellFormed_WithThreeLetterCodeOfLanguageWithTwoLetterSubtag_ReturnsTrue(string testLanguageTag)
+        {
+            // act
+            var testResult = Bcp47LanguageTag.IsWellFormed(testLanguageTag);
+
+            // assert
+            testResult.Should().BeTrue("the grammar has language = 2*3ALPHA, and only the ISO code lists look a code up (RFC 5646 §2.1)");
+        }
+
+        [Theory]
+        [MemberData(nameof(ThreeLetterCodesWithTwoLetterSubtag))]
+        public void IsValid_WithRegistryAndThreeLetterCodeOfLanguageWithTwoLetterSubtag_ReturnsFalse(string testLanguageTag)
+        {
+            // arrange
+            var subtagRegistry = IanaSubtagRegistryResource.Shared;
+
+            // act
+            var testResult = Bcp47LanguageTag.IsValid(testLanguageTag, subtagRegistry);
+
+            // assert
+            testResult.Should().BeFalse("only the two-letter subtag is defined in the registry (RFC 5646 §2.2.1)");
         }
 
         #endregion

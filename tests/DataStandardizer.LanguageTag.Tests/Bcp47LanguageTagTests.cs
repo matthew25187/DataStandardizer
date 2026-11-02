@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using DataStandardizer.Core;
 using DataStandardizer.Geography;
@@ -455,6 +456,16 @@ namespace DataStandardizer.LanguageTag.Tests
             return data;
         }
 
+        /// <summary>
+        /// The codes of an ISO 639 enum for languages with no ISO 639-1 code. A three-letter code of a language with one is not defined (RFC 5646 §2.2.1). This reads each member's attribute directly: asking the extension method scans the enum's fields once per member.
+        /// </summary>
+        private static IEnumerable<string> NamesWithoutPart1Code(Type iso639Enum)
+        {
+            return iso639Enum.GetFields(BindingFlags.Public | BindingFlags.Static)
+                .Where(field => field.FieldType == iso639Enum && field.GetCustomAttribute<Iso639LanguageCodeAttribute>()?.Part1Code == null)
+                .Select(field => field.Name);
+        }
+
         private static TheoryData<string> FirstOfEach(IEnumerable<(string LanguageTag, string ControlLanguageTag)> pairs)
         {
             var data = new TheoryData<string>();
@@ -852,7 +863,7 @@ namespace DataStandardizer.LanguageTag.Tests
         {
             public IEnumerator<object[]> GetEnumerator()
             {
-                foreach (var testSubtag in StringEnum.GetNames<Iso639Part2TLanguage>())
+                foreach (var testSubtag in NamesWithoutPart1Code(typeof(Iso639Part2TLanguage)))
                 {
                     yield return new object[] { testSubtag };
                 }
@@ -883,7 +894,7 @@ namespace DataStandardizer.LanguageTag.Tests
         {
             public IEnumerator<object[]> GetEnumerator()
             {
-                foreach (var testSubtag in StringEnum.GetNames<Iso639Part3Language>())
+                foreach (var testSubtag in NamesWithoutPart1Code(typeof(Iso639Part3Language)))
                 {
                     yield return new object[] { testSubtag };
                 }
