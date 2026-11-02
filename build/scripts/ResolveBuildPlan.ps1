@@ -56,7 +56,7 @@ else {
     $changed = @(Get-ChangedPackageName -PackageInfo $packageInfo -Commit $commit -IsRelease $isRelease -SharedBuildFile @($manifest.sharedBuildFiles))
 }
 
-$changedTests = @(Get-ChangedTestPackageName -TestPackageName (Get-TestPackageName -PackageInfo $packageInfo) -Commit $commit)
+$changedTests = @(Get-ChangedTestPackageName -TestPackageName (Get-TestPackageName -PackageInfo $packageInfo) -Commit $commit -SharedTestFile @($manifest.sharedTestFiles))
 $dependent = @(Get-DependentPackageName -PackageInfo $packageInfo -ChangedPackageName $changed -RepositoryRoot (Get-RepositoryRoot))
 
 $plan = Get-BuildPlan -PackageInfo $packageInfo -ChangedPackageName $changed -ChangedTestPackageName $changedTests `

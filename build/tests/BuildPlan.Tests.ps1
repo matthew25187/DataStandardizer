@@ -213,6 +213,20 @@ Describe 'BuildPlan' {
             Get-ChangedTestPackageName -TestPackageName $script:Packages.packageName -Commit $commit | Should -Be @('DataStandardizer.File')
         }
 
+        It 'lists every package when the commit changes a shared test file' {
+            Push-Location (Initialize-Repository)
+            $commit = Add-TestCommit -File @{ 'tests/Directory.Packages.props' = '<Project />' }
+            Get-ChangedTestPackageName -TestPackageName $script:Packages.packageName -Commit $commit -SharedTestFile 'tests/Directory.Packages.props' |
+                Should -Be $script:Packages.packageName
+        }
+
+        It 'does not treat a file of the same name elsewhere as a shared test file' {
+            Push-Location (Initialize-Repository)
+            $commit = Add-TestCommit -File @{ 'benchmarks/Directory.Packages.props' = '<Project />' }
+            @(Get-ChangedTestPackageName -TestPackageName $script:Packages.packageName -Commit $commit -SharedTestFile 'tests/Directory.Packages.props').Count |
+                Should -Be 0
+        }
+
         It 'does not count an integration test change as a package change' {
             Push-Location (Initialize-Repository)
             $commit = Add-TestCommit -File @{ 'tests/DataStandardizer.File.IntegrationTests/T.cs' = 'test' }

@@ -334,7 +334,8 @@ function Get-ChangedTestPackageName {
     Their tests are built and run even when the package itself is unchanged, but a test change never makes a package changed,
     so it has no effect on versions or publication.  The changes are those since the first parent: for a PR, the PR's
     changes, from its merge commit; for develop, which takes squash merges and builds every push, the commit's own.  The
-    package's version tag isn't used, as a test change never moves it.
+    package's version tag isn't used, as a test change never moves it.  A change to a shared test file changes the tests of
+    every package.
     #>
     [OutputType([string[]])]
     param (
@@ -343,7 +344,11 @@ function Get-ChangedTestPackageName {
         [string[]]  $TestPackageName = @(),
 
         [Parameter(Mandatory)]
-        [string]    $Commit
+        [string]    $Commit,
+
+        # Whole repository-relative paths whose change counts as a change to the tests of every package.
+        [Parameter()]
+        [string[]]  $SharedTestFile = @()
     )
 
     & git rev-parse --verify --quiet "$Commit^1" | Out-Null
@@ -355,6 +360,10 @@ function Get-ChangedTestPackageName {
     $changedFiles = @(& git diff --name-only "$Commit^1" $Commit)
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to get the files changed by $Commit."
+    }
+
+    if ($changedFiles | Where-Object { $SharedTestFile -contains $_ } | Select-Object -First 1) {
+        return [string[]]@($TestPackageName)
     }
 
     return [string[]]@($TestPackageName |
