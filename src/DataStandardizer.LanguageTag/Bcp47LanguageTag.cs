@@ -1,4 +1,4 @@
-#if NETSTANDARD
+﻿#if NETSTANDARD
 using JetBrains.Annotations;
 #endif
 using System;
