@@ -175,9 +175,9 @@ namespace DataStandardizer.LanguageTag.Tests
         };
 
         /// <summary>
-        /// Three-letter codes of languages that have an ISO 639-1 code, which only the grammar accepts (RFC 5646 §2.2.1).
+        /// Three-letter codes of languages for which the registry defines a two-letter subtag, which only the grammar accepts (RFC 5646 §2.2.1).
         /// </summary>
-        public static TheoryData<string> ThreeLetterCodesWithPart1Equivalent => new TheoryData<string>
+        public static TheoryData<string> ThreeLetterCodesWithTwoLetterSubtag => new TheoryData<string>
         {
             EnglishThreeLetterCode, GermanThreeLetterCode, FrenchThreeLetterCode, SerboCroatianThreeLetterCode
         };
@@ -690,8 +690,8 @@ namespace DataStandardizer.LanguageTag.Tests
         }
 
         [Theory]
-        [MemberData(nameof(ThreeLetterCodesWithPart1Equivalent))]
-        public void IsWellFormed_WithThreeLetterCodeOfLanguageWithPart1Code_ReturnsTrue(string testLanguageTag)
+        [MemberData(nameof(ThreeLetterCodesWithTwoLetterSubtag))]
+        public void IsWellFormed_WithThreeLetterCodeOfLanguageWithTwoLetterSubtag_ReturnsTrue(string testLanguageTag)
         {
             // act
             var testResult = Bcp47LanguageTag.IsWellFormed(testLanguageTag);
@@ -701,8 +701,8 @@ namespace DataStandardizer.LanguageTag.Tests
         }
 
         [Theory]
-        [MemberData(nameof(ThreeLetterCodesWithPart1Equivalent))]
-        public void IsValid_WithRegistryAndThreeLetterCodeOfLanguageWithPart1Code_ReturnsFalse(string testLanguageTag)
+        [MemberData(nameof(ThreeLetterCodesWithTwoLetterSubtag))]
+        public void IsValid_WithRegistryAndThreeLetterCodeOfLanguageWithTwoLetterSubtag_ReturnsFalse(string testLanguageTag)
         {
             // arrange
             var subtagRegistry = IanaSubtagRegistryResource.Shared;
@@ -711,7 +711,7 @@ namespace DataStandardizer.LanguageTag.Tests
             var testResult = Bcp47LanguageTag.IsValid(testLanguageTag, subtagRegistry);
 
             // assert
-            testResult.Should().BeFalse("only the ISO 639-1 code is defined in the registry (RFC 5646 §2.2.1)");
+            testResult.Should().BeFalse("only the two-letter subtag is defined in the registry (RFC 5646 §2.2.1)");
         }
 
         #endregion
