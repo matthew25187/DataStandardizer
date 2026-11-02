@@ -317,3 +317,14 @@ overloads of `Bcp47LanguageTag` on its lowest target as well.
 support. The change matters only to a library that itself targets
 `netstandard1.0` and references one of these packages. Retarget that library to
 `netstandard1.1` or later, or keep it on version 1.x of the package.
+
+## The JetBrains.Annotations dependency
+
+In version 1.x, the `netstandard1.x` and `netstandard2.0` builds of each package
+list `JetBrains.Annotations` as a NuGet dependency. In version 2.0 they don't. The
+packages use the attributes only at design time, and their assemblies have no
+reference to them.
+
+This matters only if your own code uses the JetBrains attributes and you got the
+package through DataStandardizer. Add a reference to `JetBrains.Annotations` to
+your project.
