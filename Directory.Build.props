@@ -1,0 +1,10 @@
+<Project>
+  <!-- Shared by every project in the repository.  These end up in each package's nuspec. -->
+  <PropertyGroup>
+    <Authors>matthew25187</Authors>
+    <Product>Data Standardizer</Product>
+    <PackageProjectUrl>https://github.com/matthew25187/DataStandardizer</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/matthew25187/DataStandardizer.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+</Project>
