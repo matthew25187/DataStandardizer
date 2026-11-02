@@ -36,4 +36,3 @@ Targets `netstandard1.1`, `netstandard2.0`, `net8.0`, and `net10.0`.
 - [ItuE164SubscriberNumber](ItuE164SubscriberNumber.md)
 - [ItuE164GlobalSubscriberNumber](ItuE164GlobalSubscriberNumber.md)
 - [Communication API reference](index.md)
-</content>

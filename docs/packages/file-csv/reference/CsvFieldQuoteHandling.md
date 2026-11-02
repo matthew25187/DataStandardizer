@@ -38,4 +38,3 @@ Targets `netstandard1.3`, `netstandard2.0`, `netstandard2.1`, `net8.0`, and `net
 - [Write CSV files](../how-to/write-csv-files.md)
 - [CsvFileOptions](CsvFileOptions.md)
 - [File.CSV API reference](index.md)
-</content>

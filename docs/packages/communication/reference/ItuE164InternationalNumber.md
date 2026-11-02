@@ -110,4 +110,3 @@ all targets.
 - [ItuE164InternationalNumberStyles](ItuE164InternationalNumberStyles.md)
 - [TelephonyInfo](TelephonyInfo.md)
 - [Communication API reference](index.md)
-</content>

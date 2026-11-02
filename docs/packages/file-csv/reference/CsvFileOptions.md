@@ -73,4 +73,3 @@ builds.
 - [CsvFileHeaderHandling](CsvFileHeaderHandling.md)
 - [CsvFieldQuoteHandling](CsvFieldQuoteHandling.md)
 - [File.CSV API reference](index.md)
-</content>

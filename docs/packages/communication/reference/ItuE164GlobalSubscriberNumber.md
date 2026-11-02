@@ -61,4 +61,3 @@ Targets `netstandard1.1`, `netstandard2.0`, `net8.0`, and `net10.0`.
 - [IItuE164Field](IItuE164Field.md)
 - [ItuE164InternationalNumber](ItuE164InternationalNumber.md)
 - [Communication API reference](index.md)
-</content>

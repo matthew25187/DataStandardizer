@@ -34,4 +34,3 @@ Targets `netstandard1.1`, `netstandard2.0`, `net8.0`, and `net10.0`.
 - [IItuE164InternationalNumberForGroupsOfCountries](IItuE164InternationalNumberForGroupsOfCountries.md)
 - [ItuE164AssignedGroupIdentificationCodesForGroupsOfCountries](ItuE164AssignedGroupIdentificationCodesForGroupsOfCountries.md)
 - [Communication API reference](index.md)
-</content>
