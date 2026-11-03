@@ -21,6 +21,11 @@ namespace DataStandardizer.File.InternetMessage
         public const int DefaultMaxHeaderFieldCount = 1000;
 
         /// <summary>
+        /// The default value of <see cref="MaxEntitySize"/>, which is 256 MiB.
+        /// </summary>
+        public const int DefaultMaxEntitySize = 256 * 1024 * 1024;
+
+        /// <summary>
         /// The default value of <see cref="MaxHeaderSectionLength"/>, which is 1 MiB.
         /// </summary>
         public const int DefaultMaxHeaderSectionLength = 1024 * 1024;
@@ -66,6 +71,24 @@ namespace DataStandardizer.File.InternetMessage
         /// such a body is encoded instead.  This setting doesn't relax a rule of the standard: it says what the destination can carry.
         /// </remarks>
         public bool AllowBinaryTransferEncoding
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
+        /// Gets a flag indicating if a header may have more than one of a field that RFC 5322 §3.6 allows at most once.
+        /// </summary>
+        /// <remarks>
+        /// The table in RFC 5322 §3.6 allows Date, From, Sender, Reply-To, To, Cc, Bcc, Message-ID, In-Reply-To, References and Subject at most once.  When <c>false</c> (the default),
+        /// an <see cref="ImfReader"/> or <see cref="ImfWriter"/> throws an <see cref="ImfFileException"/> for a second one.  When <c>true</c>, it records an
+        /// <see cref="ImfDiagnostic"/> instead, and the accessors of <see cref="ImfMessage"/> use the first.
+        /// </remarks>
+        public bool AllowCardinalityViolations
         {
             get;
 #if NET5_0_OR_GREATER
@@ -122,7 +145,9 @@ namespace DataStandardizer.File.InternetMessage
         /// decides: <see cref="ImfDateTime.DayOfWeek"/> is the day implied by the date, and that is the day that gets written.  The other rules of
         /// §3.3 are always enforced, because a value that breaks them, such as 30 February, is not a date.  The same goes for the dates of an
         /// <see cref="ImfContentDisposition"/>.  <see cref="ImfMimeFields.ParseContentLanguage(string, ImfOptions)"/> rejects a language tag that isn't well-formed
-        /// (RFC 3282 §2).  When <c>true</c>, it leaves that tag out of the list.
+        /// (RFC 3282 §2).  When <c>true</c>, it leaves that tag out of the list.  An <see cref="ImfReader"/> or <see cref="ImfWriter"/> throws an <see cref="ImfFileException"/> if the
+        /// body of a field that RFC 5322 §3.6 defines breaks its grammar, or a Sender or Resent-Sender group has more than one mailbox (RFC 6854 §2.1).  When <c>true</c>, it records an
+        /// <see cref="ImfDiagnostic"/> instead, the field stays as it is, and the accessor for it gives <c>null</c>, unless the value is only a day of the week that doesn't match.
         /// </remarks>
         public bool AllowInvalidValues
         {
@@ -227,6 +252,24 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
+        /// Gets a flag indicating if a header may lack a field that RFC 5322 requires.
+        /// </summary>
+        /// <remarks>
+        /// RFC 5322 §3.6 requires Date and From.  §3.6.2 and RFC 6854 §2.1 require Sender when From has more than one mailbox, and §3.6.6 applies the same rules to Resent-Date,
+        /// Resent-From and Resent-Sender in each block of resent fields.  When <c>false</c> (the default), an <see cref="ImfReader"/> or <see cref="ImfWriter"/> throws an
+        /// <see cref="ImfFileException"/> for a message without one.  When <c>true</c>, it records an <see cref="ImfDiagnostic"/> instead.
+        /// </remarks>
+        public bool AllowMissingRequiredFields
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
         /// Gets the resolver for character sets: <see cref="HeaderFallbackCharset"/>, those named in the extended parameters of a Content-Type or
         /// Content-Disposition field (RFC 2231 §4), and those of RFC 2047 encoded words.
         /// </summary>
@@ -299,6 +342,23 @@ namespace DataStandardizer.File.InternetMessage
             set;
 #endif
         }
+
+        /// <summary>
+        /// Gets the maximum size, in octets, of the body that an <see cref="ImfReader"/> holds in memory.
+        /// </summary>
+        /// <remarks>
+        /// RFC 5322 sets no limit.  This one guards against hostile input.  The default is <see cref="DefaultMaxEntitySize"/>, and the value must be at least 1.  One more octet
+        /// causes an <see cref="ImfFileException"/>.  The readers and writers that don't hold a whole body in memory don't use it.
+        /// </remarks>
+        public int MaxEntitySize
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        } = DefaultMaxEntitySize;
 
         /// <summary>
         /// Gets the maximum number of fields in a header section.
