@@ -624,7 +624,7 @@ namespace DataStandardizer.File.InternetMessage
         /// points above U+10FFFF.
         /// </summary>
         /// <returns>The index of the first byte of the invalid sequence, or -1 if all of the bytes are valid.</returns>
-        private static int IndexOfInvalidUtf8(ReadOnlySpan<byte> bytes)
+        internal static int IndexOfInvalidUtf8(ReadOnlySpan<byte> bytes)
         {
             var index = 0;
             while (index < bytes.Length)
