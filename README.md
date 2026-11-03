@@ -1,4 +1,6 @@
 # Introduction 
+[![OpenSSF Scorecard](https://img.shields.io/ossf-scorecard/github.com/matthew25187/DataStandardizer?label=OpenSSF%20Scorecard)](https://scorecard.dev/viewer/?uri=github.com/matthew25187/DataStandardizer)
+
 *Data Standardizer* provides implementations of various internationally recognised standards in data processing, covering topics ranging from languages to currencies and geographical entities.  With strongly-typed enumerations for each standard (where applicable) or other targeted data types, you can represent these elements in your code such that errors with invalid values are minimised.
 
 Supported target platforms include (modern) .Net and .Net Standard.  *Data Standardizer* can be used in modern application software, but is also available as an option for older codebases that are being upgraded more gradually or may remain on older frameworks indefinitely.
