@@ -7,8 +7,9 @@ version: 2
 
 updates:
   - package-ecosystem: nuget
-    # DataStandardizer.sln lists every project, and through them Dependabot reaches all three Directory.Packages.props
-    # files.  It doesn't search subfolders, so tests/ and benchmarks/ can't be listed: neither holds a solution or project.
+    # DataStandardizer.sln lists every project, and through them Dependabot reaches all four Directory.Packages.props
+    # files.  It doesn't search subfolders, so tests/, benchmarks/ and fuzz/ can't be listed: none holds a solution or
+    # project.
     directory: /
     schedule:
       interval: weekly
@@ -17,6 +18,10 @@ updates:
       # <PackageVersion Update=...>, and Dependabot only changes <PackageVersion Include=...>, which stays free to move.
       - dependency-name: System.ValueTuple
       - dependency-name: FluentAssertions
+      # Has to stay on the same version as the SharpFuzz.CommandLine tool, which Dependabot can't reach from here: it
+      # looks for .config/dotnet-tools.json only in this directory and its parents, not in fuzz/.  Bump both by hand,
+      # together.
+      - dependency-name: SharpFuzz
     groups:
       # The packages in tests/Directory.Packages.props and benchmarks/Directory.Packages.props, which never version a
       # package.  A package added to either file gets its own pull requests until it's listed here.
