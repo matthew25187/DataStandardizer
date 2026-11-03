@@ -34,7 +34,7 @@ Packages are versioned from GitHub repository variables, not from files in the r
 
 ## Release notes
 
-Each package's NuGet release notes are generated from the commits that changed its `src/<Package>` folder since its last release (`build/scripts/SetReleaseNotesArgument.ps1`). Each commit gives one line under one of these headings: Breaking changes, New, Fixed, Deprecated and removed, Changed. Write commits so those lines make sense to someone who uses the package.
+Each package's NuGet release notes are generated from the commits that changed its `src/<Package>` folder, or a file in `sharedBuildFiles` in `build/packages.json`, since its last release (`build/scripts/SetReleaseNotesArgument.ps1`). A commit that changes a shared build file reaches every package's notes, so its note has to be true of all of them. Each commit gives one line under one of these headings: Breaking changes, New, Fixed, Deprecated and removed, Changed. Write commits so those lines make sense to someone who uses the package.
 
 - **The squash subject is the note.** A squash merge takes the PR title as its subject, or the commit's subject when the PR has one commit. Write both to describe what changed for a user of the package, not how it was implemented. Write "`IcalAlarm.TriggerDuration` no longer drops TRIGGER parameters", not "Replace the alarm TRIGGER in place".
 - **Declare notes with `Release-note:` trailers in a commit message**, not in the PR description. The squash merge builds its body from the commit messages, so a trailer in the PR description never reaches git. Put the trailers on one commit only; a trailer repeated on several commits is published once per commit.
@@ -43,7 +43,7 @@ Each package's NuGet release notes are generated from the commits that changed i
   - `Release-note: none` leaves out a commit that touches a package folder without affecting users, such as a build, test or documentation-comment change.
   - Declare a note on every PR that touches `src/`. Without one, the heading is guessed from the subject's first word (`Fix`/`Correct`, `Add`/`Support`/`Expose`, `Deprecate`/`Remove`/`Drop`), and anything else lands under Changed.
 - **`BREAKING CHANGE: <text>`** is still published under Breaking changes, whatever else the commit declares.
-- **Commits already on `develop`** can't be changed. Correct their notes in `build/release-notes-overrides.json`, keyed by the full commit id. An empty `notes` list leaves the commit out. Check the notes each package will get before a release, and add overrides where they would mislead.
+- **Commits already on `develop`** can't be changed. Correct their notes in `build/release-notes-overrides.json`, keyed by the full commit id. An empty `notes` list leaves the commit out, and a `packages` list on a note limits it to those packages. Check the notes each package will get before a release, and add overrides where they would mislead.
 
 ## Standards compliance
 
@@ -96,7 +96,7 @@ Every .NET test follows Microsoft's [Unit testing best practices for .NET](https
 
 `.github/dependabot.yml` asks for weekly version updates of NuGet packages, GitHub Actions and the .NET SDK, as PRs into `develop`. Complete them with **Squash and merge**, like any other PR.
 
-- **Release notes.** Dependabot's "Bump …" commits have no `Release-note:` trailer. A bump to `/Directory.Packages.props` changes every library package. When squash-merging a Dependabot PR, add the trailer in the merge dialog's commit body: `Release-note: none` for a build-only package such as Source Link, or a note when users would notice the change. Until #539 is fixed, a commit that changes only that file reaches no package's release notes, so its trailer has no effect yet.
+- **Release notes.** Dependabot's "Bump …" commits have no `Release-note:` trailer. A bump to `/Directory.Packages.props` changes every library package. When squash-merging a Dependabot PR, add the trailer in the merge dialog's commit body: `Release-note: none` for a build-only package such as Source Link, or a note when users would notice the change. Without a trailer, the "Bump …" subject is published under Changed on every package.
 - **Packages it manages.** A package held at an exact pin goes under `ignore`. A new test or benchmark package goes in the `test-and-benchmark` group's `patterns`, or its updates arrive as separate PRs.
 - **Benchmarks.** An update that changes only `benchmarks/Directory.Packages.props` doesn't start a package build, so CI doesn't compile it. Build the benchmarks before merging one.
 

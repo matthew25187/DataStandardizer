@@ -1,5 +1,5 @@
 {
-  "$comment": "Release notes for commits merged before they could declare their own with 'Release-note:' trailers. Read by build/scripts/SetReleaseNotesArgument.ps1. Each key is a full commit id; 'subject' is the commit's subject, checked to catch a wrong id; 'notes' replaces every note the commit would otherwise produce, and an empty list leaves it out. Categories: added, new, fixed, changed, deprecated, removed, breaking, none.",
+  "$comment": "Release notes for commits merged before they could declare their own with 'Release-note:' trailers. Read by build/scripts/SetReleaseNotesArgument.ps1. Each key is a full commit id; 'subject' is the commit's subject, checked to catch a wrong id; 'notes' replaces every note the commit would otherwise produce, and an empty list leaves it out. A note may have 'packages', the package IDs it is published for; without it, the note is published for every package the commit reaches. Categories: added, new, fixed, changed, deprecated, removed, breaking, none.",
   "commits": {
     "5b46a0f120d00b8def7695bda204c547c6767085": {
       "subject": "Build AnyCPU only: remove the x86 and x64 build platforms (#127) (#203)",
@@ -194,6 +194,20 @@
         {
           "category": "added",
           "text": "`MimeParameter` takes values that aren't US-ASCII and an optional RFC 1766 language, writes them as RFC 2231 extended values, and splits long parameters into sections with `FormatSections`"
+        }
+      ]
+    },
+    "27ca927c882a4fab9377212605b2243b0d3c2440": {
+      "subject": "Update third-party NuGet packages to their latest stable versions (#537)",
+      "notes": [
+        {
+          "category": "fixed",
+          "text": "The `netstandard1.1` build depends on `System.Net.Http` 4.3.4 instead of 4.3.2, which has a known vulnerability",
+          "packages": [
+            "DataStandardizer.Communication",
+            "DataStandardizer.LanguageTag",
+            "DataStandardizer.Money"
+          ]
         }
       ]
     }
