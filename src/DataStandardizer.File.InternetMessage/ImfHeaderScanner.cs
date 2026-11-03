@@ -86,6 +86,9 @@ namespace DataStandardizer.File.InternetMessage
         private int _scanPosition;
         private byte[] _scratch = EmptyBytes;
         private ScanStatus _sectionEnd = ScanStatus.FieldRead;
+        private int _sectionEndLineBreakLength;
+        private int _sectionFieldCount;
+        private long _sectionStart;
         private int _unfoldedLength = -1;
         private int _valueStart;
 
@@ -112,6 +115,11 @@ namespace DataStandardizer.File.InternetMessage
         internal byte[] Buffer => _buffer;
 
         /// <summary>
+        /// Gets the index in <see cref="Buffer"/> of the end of the input read so far.
+        /// </summary>
+        internal int BufferEnd => _bufferEnd;
+
+        /// <summary>
         /// Gets the number of bytes consumed so far: the fields found, and the empty line that ends the section once it has been found.
         /// </summary>
         internal long BytePosition => _bytePosition;
@@ -135,6 +143,21 @@ namespace DataStandardizer.File.InternetMessage
         /// Gets a flag indicating that a line break or limit error was found, after which the field boundaries are unknown.
         /// </summary>
         internal bool IsFaulted { get; private set; }
+
+        /// <summary>
+        /// Gets a flag indicating that the driver has reported the end of the input.
+        /// </summary>
+        internal bool IsEndOfInput => _endOfInput;
+
+        /// <summary>
+        /// Gets the index in <see cref="Buffer"/> of the first byte not yet consumed.
+        /// </summary>
+        internal int Position => _position;
+
+        /// <summary>
+        /// Gets the length of the line break of the empty line that ended the section, or 0 if the input ended the section.
+        /// </summary>
+        internal int SectionEndLineBreakLength => _sectionEndLineBreakLength;
 
         /// <summary>
         /// Gets a flag indicating that the body of the current field is not valid UTF-8.
@@ -250,6 +273,7 @@ namespace DataStandardizer.File.InternetMessage
                     _bytePosition = _fieldBytePosition + (breakEnd - _fieldStart);
                     _position = breakEnd;
                     _fieldInProgress = false;
+                    _sectionEndLineBreakLength = breakEnd - contentEnd;
                     return EndSection(ScanStatus.EndOfHeader);
                 }
 
@@ -267,6 +291,54 @@ namespace DataStandardizer.File.InternetMessage
 
                 return CompleteField(contentEnd, breakEnd);
             }
+        }
+
+        /// <summary>
+        /// Starts a new section at the current position, whose fields and length are counted afresh.  Lets the entity reader read the header
+        /// section of each entity of a message from the one block.
+        /// </summary>
+        internal void BeginSection()
+        {
+            _sectionEnd = ScanStatus.FieldRead;
+            _sectionEndLineBreakLength = 0;
+            _sectionFieldCount = 0;
+            _sectionStart = _bytePosition;
+        }
+
+        /// <summary>
+        /// Consumes bytes that are not part of a header section, as the entity reader does with the body of an entity.
+        /// </summary>
+        /// <param name="end">The index in <see cref="Buffer"/> of the end of the bytes to consume.</param>
+        internal void ConsumeBody(int end)
+        {
+            var consumed = new ReadOnlySpan<byte>(_buffer, _position, end - _position);
+            int lineFeedIndex;
+            while ((lineFeedIndex = consumed.IndexOf(LineFeed)) >= 0)
+            {
+                _physicalLinesRead++;
+                consumed = consumed.Slice(lineFeedIndex + 1);
+            }
+
+            _bytePosition += end - _position;
+            _position = end;
+        }
+
+        /// <summary>
+        /// Builds an exception for a problem in the meaning of the current field, whose syntax has been found to be sound.
+        /// </summary>
+        /// <param name="message">The message.</param>
+        internal ImfFileException BuildCurrentFieldException(string message)
+        {
+            return BuildFieldException(message, 0);
+        }
+
+        /// <summary>
+        /// Builds an exception for a problem at the end of the bytes consumed so far.
+        /// </summary>
+        /// <param name="message">The message.</param>
+        internal ImfFileException BuildPositionException(string message)
+        {
+            return BuildException(message, _bytePosition, _physicalLinesRead + 1, null);
         }
 
         /// <summary>
@@ -427,10 +499,11 @@ namespace DataStandardizer.File.InternetMessage
                 throw Fault(ErrorMessage.LineTooLong, _lineStart + MaxLineLength);
             }
 
-            var sectionLength = _fieldBytePosition + (sectionEnd - _fieldStart);
+            var fieldOffset = _fieldBytePosition - _sectionStart;
+            var sectionLength = fieldOffset + (sectionEnd - _fieldStart);
             if (sectionLength > _maxSectionLength)
             {
-                throw Fault(string.Format(ErrorMessage.SectionTooLongTemplate, _maxSectionLength), _fieldStart + (int)(_maxSectionLength - _fieldBytePosition));
+                throw Fault(string.Format(ErrorMessage.SectionTooLongTemplate, _maxSectionLength), _fieldStart + (int)(_maxSectionLength - fieldOffset));
             }
         }
 
@@ -442,8 +515,9 @@ namespace DataStandardizer.File.InternetMessage
             _bytePosition = _fieldBytePosition + (fieldEnd - _fieldStart);
             _fieldInProgress = false;
             _fieldsRead++;
+            _sectionFieldCount++;
 
-            if (_fieldsRead > _maxFieldCount)
+            if (_sectionFieldCount > _maxFieldCount)
             {
                 IsFaulted = true;
                 throw BuildException(string.Format(ErrorMessage.TooManyFieldsTemplate, _maxFieldCount), _fieldBytePosition, _fieldLineNumber, null);

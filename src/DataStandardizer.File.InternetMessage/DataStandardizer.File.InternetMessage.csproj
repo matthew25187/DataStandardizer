@@ -5,9 +5,10 @@
     <Description>Data Standardizer provides implementations of various internationally recognised standards in data processing, covering topics ranging from languages to currencies and geographical entities. With strongly-typed enumerations for each standard (where applicable) or other targeted data types, you can represent these elements in your code such that errors with invalid values are minimised.
 
 Provides types supporting the reading and writing of Internet messages, including:
-- RFC 5322 and RFC 6532: a streaming reader of the header fields of a message, with UTF-8 in field bodies</Description>
+- RFC 5322 and RFC 6532: a streaming reader of the header fields of a message, with UTF-8 in field bodies
+- RFC 2045 and RFC 2046: a streaming reader of the MIME entities of a message, with multipart bodies, embedded messages and transfer decoding</Description>
     <Copyright>Copyright © 2026, Matthew25187. All rights reserved.</Copyright>
-    <PackageTags>data;standard;email;internet message;file;rfc 5322;rfc 6532</PackageTags>
+    <PackageTags>data;standard;email;internet message;file;rfc 5322;rfc 6532;mime;rfc 2045;rfc 2046</PackageTags>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
   </PropertyGroup>
 

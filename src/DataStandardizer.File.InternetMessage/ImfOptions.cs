@@ -6,7 +6,7 @@ namespace DataStandardizer.File.InternetMessage
     /// Options to configure the behaviour of an Internet message reader.
     /// </summary>
     /// <remarks>
-    /// The default settings for all options ensure behaviour consistent with RFC 5322 and RFC 6532.  Each accommodation for common non-compliant
+    /// The default settings for all options ensure behaviour consistent with RFC 5322, RFC 6532, RFC 2045 and RFC 2046.  Each accommodation for common non-compliant
     /// input is a separate option, off by default.
     /// </remarks>
 #if NET5_0_OR_GREATER
@@ -26,12 +26,24 @@ namespace DataStandardizer.File.InternetMessage
         public const int DefaultMaxHeaderSectionLength = 1024 * 1024;
 
         /// <summary>
+        /// The default value of <see cref="MaxNestingDepth"/>.
+        /// </summary>
+        public const int DefaultMaxNestingDepth = 100;
+
+        /// <summary>
+        /// The default value of <see cref="MaxPartCount"/>.
+        /// </summary>
+        public const int DefaultMaxPartCount = 10000;
+
+        /// <summary>
         /// Gets a flag indicating if a bare line feed is accepted as a line break: at the end of a field, in a fold, and as the empty line that
         /// ends the header section.
         /// </summary>
         /// <remarks>
         /// RFC 5322 §2.1 requires lines to end in CRLF, and §2.2 allows CR and LF in a field only as part of a fold.  When <c>false</c> (the
-        /// default), a bare line feed causes an <see cref="ImfFileException"/>.  A bare carriage return is never accepted.
+        /// default), a bare line feed causes an <see cref="ImfFileException"/>.  A bare carriage return is never accepted.  With an
+        /// <see cref="ImfEntityReader"/>, the same goes for the line breaks of a multipart delimiter (RFC 2046 §5.1.1) and of a quoted-printable body
+        /// being decoded (RFC 2045 §6.7); when <c>false</c>, a delimiter with a bare line feed is content.
         /// </remarks>
         public bool AcceptBareLineFeed
         {
@@ -82,10 +94,31 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Gets the resolver that <see cref="HeaderFallbackCharset"/> is resolved through.
+        /// Gets a flag indicating if a multipart entity with no close delimiter is accepted.
         /// </summary>
         /// <remarks>
-        /// The default is <see cref="MimeCharsetResolver.Default"/>.  It is used only when <see cref="AllowEightBitHeaders"/> is <c>true</c>.
+        /// RFC 2046 §5.1.1 ends every multipart body with a close delimiter.  When <c>false</c> (the default), an
+        /// <see cref="ImfEntityReader"/> throws an <see cref="ImfFileException"/> if the data ends, or a delimiter of an enclosing multipart
+        /// entity is found, first.  When <c>true</c>, the multipart entity ends there.  One with no delimiter at all then has no parts, and its
+        /// whole body is its preamble.
+        /// </remarks>
+        public bool AllowMissingBoundaryTerminator
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
+        /// Gets the resolver for character sets: <see cref="HeaderFallbackCharset"/>, and those named in the extended parameters of a Content-Type
+        /// field (RFC 2231 §4).
+        /// </summary>
+        /// <remarks>
+        /// The default is <see cref="MimeCharsetResolver.Default"/>.  An <see cref="ImfEntityReader"/> always needs it.  An
+        /// <see cref="ImfHeaderReader"/> needs it only when <see cref="AllowEightBitHeaders"/> is <c>true</c>.
         /// </remarks>
         public IMimeCharsetResolver CharsetResolver
         {
@@ -96,6 +129,24 @@ namespace DataStandardizer.File.InternetMessage
             set;
 #endif
         } = MimeCharsetResolver.Default;
+
+        /// <summary>
+        /// Gets a flag indicating if an <see cref="ImfEntityReader"/> decodes bodies as it reads them.
+        /// </summary>
+        /// <remarks>
+        /// When <c>false</c> (the default), body chunks are the raw bytes of the message.  When <c>true</c>, a body with a Content-Transfer-Encoding
+        /// of <c>quoted-printable</c> or <c>base64</c> is decoded (RFC 2045 §6.7 and §6.8), and one with an extension mechanism is left as it is,
+        /// with an <see cref="ImfDiagnostic"/>.  Data that is not valid in its encoding causes an <see cref="ImfFileException"/>.
+        /// </remarks>
+        public bool DecodeTransferEncoding
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
 
         /// <summary>
         /// Gets the character set that decodes a field body that is not valid UTF-8, when <see cref="AllowEightBitHeaders"/> is <c>true</c>.
@@ -149,5 +200,41 @@ namespace DataStandardizer.File.InternetMessage
             set;
 #endif
         } = DefaultMaxHeaderSectionLength;
+
+        /// <summary>
+        /// Gets the maximum depth of the entities of a message, in which the message itself is at depth 0.
+        /// </summary>
+        /// <remarks>
+        /// RFC 2046 sets no limit.  This one guards against hostile input.  Each part of a multipart entity, and each embedded message, is one level
+        /// deeper than the entity that holds it.  The default is <see cref="DefaultMaxNestingDepth"/>, and the value must be at least 1.  An entity
+        /// one level deeper causes an <see cref="ImfFileException"/>.
+        /// </remarks>
+        public int MaxNestingDepth
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        } = DefaultMaxNestingDepth;
+
+        /// <summary>
+        /// Gets the maximum number of entities in a message, not counting the message itself.
+        /// </summary>
+        /// <remarks>
+        /// RFC 2046 sets no limit.  This one guards against hostile input.  Every part of a multipart entity and every embedded message counts, at
+        /// any depth.  The default is <see cref="DefaultMaxPartCount"/>, and the value must be at least 1.  One more entity causes an
+        /// <see cref="ImfFileException"/>.
+        /// </remarks>
+        public int MaxPartCount
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        } = DefaultMaxPartCount;
     }
 }
