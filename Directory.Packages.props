@@ -8,7 +8,6 @@
     Test and benchmark versions are in the Directory.Packages.props of their own folders, so that updating one doesn't mark any package as changed.
   -->
   <ItemGroup>
-    <PackageVersion Include="JetBrains.Annotations" Version="2026.2.0" />
     <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.14" />
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.403" />
     <PackageVersion Include="System.Collections.Specialized" Version="4.3.0" />

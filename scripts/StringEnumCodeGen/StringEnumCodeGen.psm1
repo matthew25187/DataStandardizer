@@ -12,7 +12,7 @@ function Get-ValueFieldDeclaration {
     $fieldDeclaration.Attributes = ($fieldDeclaration.Attributes -band -bnot [System.CodeDom.MemberAttributes]::AccessMask) -bor [System.CodeDom.MemberAttributes]::Private
 
     if (-not $PSBoundParameters.ContainsKey('UseNullableReferenceTypes')) {
-        [void]$fieldDeclaration.CustomAttributes.Add([System.CodeDom.CodeAttributeDeclaration]::new('JetBrains.Annotations.CanBeNullAttribute'))
+        [void]$fieldDeclaration.CustomAttributes.Add([System.CodeDom.CodeAttributeDeclaration]::new('System.Diagnostics.CodeAnalysis.MaybeNullAttribute'))
     }
 
     return $fieldDeclaration

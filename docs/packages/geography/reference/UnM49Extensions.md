@@ -44,7 +44,8 @@ sub-regions, and intermediate regions return `null`.
 the two country-keyed enumerations cannot represent a region as a value.
 
 On .NET Standard targets the `string?` return and parameter types are `string`
-annotated with JetBrains `[CanBeNull]` / `[NotNull]`.
+annotated with `System.Diagnostics.CodeAnalysis` attributes such as `[MaybeNull]` and `[DisallowNull]`.
+A project gets null warnings from them only on C# 8 or later with nullable enabled.
 
 ## Methods
 

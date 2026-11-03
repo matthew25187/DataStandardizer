@@ -1,6 +1,4 @@
-﻿#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-using System.Diagnostics.CodeAnalysis;
-#endif
+﻿using System.Diagnostics.CodeAnalysis;
 
 namespace DataStandardizer.File.iCal
 {
@@ -30,7 +28,7 @@ namespace DataStandardizer.File.iCal
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         bool TryResolve(string timeZoneId, IcalCalendar? calendar, [NotNullWhen(true)] out IcalTimeZoneRules? rules);
 #else
-        bool TryResolve(string timeZoneId, IcalCalendar calendar, out IcalTimeZoneRules rules);
+        bool TryResolve(string timeZoneId, IcalCalendar calendar, [MaybeNullWhen(false)] out IcalTimeZoneRules rules);
 #endif
     }
 }

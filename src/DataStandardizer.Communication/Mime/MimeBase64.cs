@@ -1,8 +1,6 @@
 using System;
 using System.Buffers;
-#if NETCOREAPP3_0_OR_GREATER
 using System.Diagnostics.CodeAnalysis;
-#endif
 
 namespace DataStandardizer.Communication.Mime
 {
@@ -124,7 +122,7 @@ namespace DataStandardizer.Communication.Mime
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryDecode(ReadOnlySpan<char> source, MimeBase64Mode mode, MimeBase64DecoderOptions options, [NotNullWhen(true)] out byte[]? result)
 #else
-        public static bool TryDecode(ReadOnlySpan<char> source, MimeBase64Mode mode, MimeBase64DecoderOptions options, out byte[] result)
+        public static bool TryDecode(ReadOnlySpan<char> source, MimeBase64Mode mode, MimeBase64DecoderOptions options, [MaybeNullWhen(false)] out byte[] result)
 #endif
         {
             CheckMode(mode);

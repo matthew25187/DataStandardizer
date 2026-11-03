@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 #if NETSTANDARD
-using JetBrains.Annotations;
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.Chronology
@@ -18,7 +18,7 @@ namespace DataStandardizer.Chronology
     {
         internal TzDataRule(
 #if NETSTANDARD
-            [NotNull]
+            [DisallowNull]
 #endif
             string name,
             int fromYear,
@@ -32,7 +32,7 @@ namespace DataStandardizer.Chronology
             TimeSpan save,
             bool isDaylight,
 #if NETSTANDARD
-            [NotNull]
+            [DisallowNull]
 #endif
             string letter)
         {

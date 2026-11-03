@@ -3,12 +3,7 @@ using System.Collections.Generic;
 #if NET9_0_OR_GREATER
 using System.Collections.Frozen;
 #endif
-#if NETCOREAPP3_0_OR_GREATER
 using System.Diagnostics.CodeAnalysis;
-#endif
-#if NETSTANDARD
-using JetBrains.Annotations;
-#endif
 
 namespace DataStandardizer.LanguageTag.InternalState
 {
@@ -34,7 +29,7 @@ namespace DataStandardizer.LanguageTag.InternalState
 #if NETCOREAPP3_0_OR_GREATER
         internal Bcp47SubtagMap(List<string> keys, List<TValue> values)
 #else
-        internal Bcp47SubtagMap([NotNull] List<string> keys, [NotNull] List<TValue> values)
+        internal Bcp47SubtagMap([DisallowNull] List<string> keys, [DisallowNull] List<TValue> values)
 #endif
         {
 #if NET9_0_OR_GREATER
@@ -122,7 +117,7 @@ namespace DataStandardizer.LanguageTag.InternalState
 #if NETCOREAPP3_0_OR_GREATER
         internal bool TryGetValue(ReadOnlySpan<char> key, [MaybeNullWhen(false)] out TValue value)
 #else
-        internal bool TryGetValue(ReadOnlySpan<char> key, [CanBeNull] out TValue value)
+        internal bool TryGetValue(ReadOnlySpan<char> key, [MaybeNullWhen(false)] out TValue value)
 #endif
         {
             for (var index = 0; index < key.Length; index++)

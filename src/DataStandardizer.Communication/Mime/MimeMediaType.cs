@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-#if NETCOREAPP3_0_OR_GREATER
 using System.Diagnostics.CodeAnalysis;
-#endif
 
 namespace DataStandardizer.Communication.Mime
 {
@@ -320,7 +318,7 @@ namespace DataStandardizer.Communication.Mime
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryParse([NotNullWhen(true)] string? value, out MimeMediaType result)
 #else
-        public static bool TryParse(string value, out MimeMediaType result)
+        public static bool TryParse([NotNullWhen(true)] string value, out MimeMediaType result)
 #endif
         {
             return TryParse(value, MimeMediaTypeParseOptions.None, out result);
@@ -338,7 +336,7 @@ namespace DataStandardizer.Communication.Mime
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryParse([NotNullWhen(true)] string? value, MimeMediaTypeParseOptions options, out MimeMediaType result)
 #else
-        public static bool TryParse(string value, MimeMediaTypeParseOptions options, out MimeMediaType result)
+        public static bool TryParse([NotNullWhen(true)] string value, MimeMediaTypeParseOptions options, out MimeMediaType result)
 #endif
         {
             return TryParse(value, options, MimeCharsetResolver.Default, out result);
@@ -359,7 +357,7 @@ namespace DataStandardizer.Communication.Mime
         public static bool TryParse([NotNullWhen(true)] string? value, MimeMediaTypeParseOptions options, IMimeCharsetResolver charsetResolver,
             out MimeMediaType result)
 #else
-        public static bool TryParse(string value, MimeMediaTypeParseOptions options, IMimeCharsetResolver charsetResolver,
+        public static bool TryParse([NotNullWhen(true)] string value, MimeMediaTypeParseOptions options, IMimeCharsetResolver charsetResolver,
             out MimeMediaType result)
 #endif
         {

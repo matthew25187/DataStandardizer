@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Globalization;
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
 using System.Diagnostics.CodeAnalysis;
-#endif
 
 namespace DataStandardizer.File.iCal
 {
@@ -77,7 +75,7 @@ namespace DataStandardizer.File.iCal
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public static bool TryParseText(ReadOnlySpan<char> value, IcalValueFormat format, [NotNullWhen(true)] out string? result)
 #else
-        public static bool TryParseText(ReadOnlySpan<char> value, IcalValueFormat format, out string result)
+        public static bool TryParseText(ReadOnlySpan<char> value, IcalValueFormat format, [MaybeNullWhen(false)] out string result)
 #endif
         {
             var buffer = new char[value.Length];
@@ -486,7 +484,7 @@ namespace DataStandardizer.File.iCal
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public static bool TryParseBinary(ReadOnlySpan<char> value, IcalValueFormat format, [NotNullWhen(true)] out byte[]? result)
 #else
-        public static bool TryParseBinary(ReadOnlySpan<char> value, IcalValueFormat format, out byte[] result)
+        public static bool TryParseBinary(ReadOnlySpan<char> value, IcalValueFormat format, [MaybeNullWhen(false)] out byte[] result)
 #endif
         {
             IcalValueFormatting.CheckFormat(format);
@@ -614,7 +612,7 @@ namespace DataStandardizer.File.iCal
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public static bool TryParseUri(ReadOnlySpan<char> value, IcalValueFormat format, [NotNullWhen(true)] out Uri? result)
 #else
-        public static bool TryParseUri(ReadOnlySpan<char> value, IcalValueFormat format, out Uri result)
+        public static bool TryParseUri(ReadOnlySpan<char> value, IcalValueFormat format, [MaybeNullWhen(false)] out Uri result)
 #endif
         {
             IcalValueFormatting.CheckFormat(format);
@@ -665,7 +663,7 @@ namespace DataStandardizer.File.iCal
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public static bool TryParseCalAddress(ReadOnlySpan<char> value, IcalValueFormat format, [NotNullWhen(true)] out Uri? result)
 #else
-        public static bool TryParseCalAddress(ReadOnlySpan<char> value, IcalValueFormat format, out Uri result)
+        public static bool TryParseCalAddress(ReadOnlySpan<char> value, IcalValueFormat format, [MaybeNullWhen(false)] out Uri result)
 #endif
         {
             // ref. RFC 5545§3.3.3: cal-address = uri

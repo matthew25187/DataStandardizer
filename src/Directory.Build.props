@@ -44,11 +44,6 @@
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
   </ItemGroup>
 
-  <!--
-    The annotation attributes are [Conditional("JETBRAINS_ANNOTATIONS")] and that symbol is never defined, so they are compiled out:
-    the package is a design-time dependency only and must not flow to consumers.
-  -->
-  <ItemGroup Condition="'$(TargetFramework)' != '' And !$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'netstandard2.1'))">
-    <PackageReference Include="JetBrains.Annotations" PrivateAssets="all" />
-  </ItemGroup>
+  <!-- Every package needs the attributes, so the import is here and not in each csproj.  The .shproj imports the .projitems itself, and it reaches this file through Microsoft.Common.props. -->
+  <Import Project="$(MSBuildThisFileDirectory)DataStandardizer.CodeAnalysis.Shared\DataStandardizer.CodeAnalysis.Shared.projitems" Label="Shared" Condition="'$(MSBuildProjectExtension)' != '.shproj'" />
 </Project>

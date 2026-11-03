@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Globalization;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 using static DataStandardizer.Communication.E164.ItuE164Constants;
 
@@ -35,7 +35,7 @@ namespace DataStandardizer.Communication.E164
 #if NETCOREAPP3_0_OR_GREATER
         private readonly IItuE164InternationalNumber? _numberStructure;
 #else
-        [CanBeNull] private readonly IItuE164InternationalNumber _numberStructure;
+        [MaybeNull] private readonly IItuE164InternationalNumber _numberStructure;
 #endif
 
         private ItuE164InternationalNumber(IItuE164InternationalNumber numberStructure)

@@ -1,6 +1,6 @@
 ﻿using System;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.Geography
@@ -16,7 +16,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         internal Iso3166SubdivisionCategoryNameAttribute(string? iso639Part1Code, string iso639Part2TCode, ushort categoryIdentifier, string categoryName)
 #else
-        internal Iso3166SubdivisionCategoryNameAttribute([CanBeNull] string iso639Part1Code, [NotNull] string iso639Part2TCode, ushort categoryIdentifier, [NotNull] string categoryName)
+        internal Iso3166SubdivisionCategoryNameAttribute([AllowNull] string iso639Part1Code, [DisallowNull] string iso639Part2TCode, ushort categoryIdentifier, [DisallowNull] string categoryName)
 #endif
             : base(iso639Part1Code, iso639Part2TCode)
         {
@@ -27,7 +27,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         internal Iso3166SubdivisionCategoryNameAttribute(string? iso639Part1Code, string iso639Part2TCode, ushort categoryIdentifier, string categoryName, string categoryNamePlural)
 #else
-        internal Iso3166SubdivisionCategoryNameAttribute([CanBeNull] string iso639Part1Code, [NotNull] string iso639Part2TCode, ushort categoryIdentifier, [NotNull] string categoryName, [NotNull] string categoryNamePlural)
+        internal Iso3166SubdivisionCategoryNameAttribute([AllowNull] string iso639Part1Code, [DisallowNull] string iso639Part2TCode, ushort categoryIdentifier, [DisallowNull] string categoryName, [DisallowNull] string categoryNamePlural)
 #endif
             : this(iso639Part1Code, iso639Part2TCode, categoryIdentifier, categoryName)
         {
@@ -58,7 +58,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? CategoryNamePlural { get; set; }
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string CategoryNamePlural { get; set; }
 #endif
 

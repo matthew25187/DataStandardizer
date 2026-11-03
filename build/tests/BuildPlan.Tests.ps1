@@ -430,6 +430,22 @@ Describe 'BuildPlan' {
         }
     }
 
+    Context 'Repository shared build files' {
+        BeforeAll {
+            Import-Module (Join-Path $PSScriptRoot '../psmodules/CommonHelpers/CommonHelpers.psm1') -Force
+            $script:RepositoryRoot = Get-RepositoryRoot
+            $script:SharedBuildFiles = @((Get-Content -LiteralPath (Join-Path $script:RepositoryRoot 'build/packages.json') -Raw | ConvertFrom-Json).sharedBuildFiles)
+        }
+
+        It 'lists <_>, which every package compiles, by the exact path of a file that exists' -ForEach @(
+            'src/DataStandardizer.CodeAnalysis.Shared/DataStandardizer.CodeAnalysis.Shared.projitems',
+            'src/DataStandardizer.CodeAnalysis.Shared/NullableAttributes.cs'
+        ) {
+            $script:SharedBuildFiles | Should -Contain $_
+            Join-Path $script:RepositoryRoot $_ | Should -Exist
+        }
+    }
+
     Context 'Get-BuildPlan' {
         It 'builds changed, dependent and tests-only packages, and publishes only changed ones' {
             $plan = Get-BuildPlan -PackageInfo $script:Packages -ChangedPackageName 'DataStandardizer.File' -ChangedTestPackageName 'DataStandardizer.Core' `

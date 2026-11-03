@@ -4,7 +4,7 @@ using DataStandardizer.Geography;
 using DataStandardizer.Language;
 using DataStandardizer.LanguageTag;
 #if NETSTANDARD
-using JetBrains.Annotations;
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.Money
@@ -16,7 +16,7 @@ namespace DataStandardizer.Money
         private MoneyFormatter? _formatter;
 #else
         CurrencyFormatInfo _currencyFormat;
-        [CanBeNull] MoneyFormatter _formatter;
+        [MaybeNull] MoneyFormatter _formatter;
 #endif
         private bool _isReadOnly;
 

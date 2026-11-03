@@ -1,13 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-#if NETCOREAPP3_0_OR_GREATER
 using System.Diagnostics.CodeAnalysis;
-#endif
 using System.Reflection;
-#if NETSTANDARD
-using JetBrains.Annotations;
-#endif
 
 namespace DataStandardizer.Chronology
 {
@@ -108,7 +103,7 @@ namespace DataStandardizer.Chronology
 #if NETCOREAPP3_0_OR_GREATER
         public string? Comment
 #else
-        [CanBeNull]
+        [MaybeNull]
         public string Comment
 #endif
         {
@@ -173,7 +168,7 @@ namespace DataStandardizer.Chronology
 #if NETCOREAPP3_0_OR_GREATER
         public static TzDataTimezone Parse(string s)
 #else
-        public static TzDataTimezone Parse([NotNull] string s)
+        public static TzDataTimezone Parse([DisallowNull] string s)
 #endif
         {
             if (s is null)
@@ -203,7 +198,7 @@ namespace DataStandardizer.Chronology
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryParse([NotNullWhen(true)] string? s, out TzDataTimezone result)
 #else
-        public static bool TryParse([CanBeNull] string s, out TzDataTimezone result)
+        public static bool TryParse([AllowNull, NotNullWhen(true)] string s, out TzDataTimezone result)
 #endif
         {
             if (s != null && (DefaultRegistry.GetEntries().TryGetValue(s, out var entry) || DefaultRegistry.GetDeprecatedLinks().TryGetValue(s, out entry)))
@@ -262,7 +257,7 @@ namespace DataStandardizer.Chronology
         /// The timezone is the default value, or its identifier is not that of a timezone field.
         /// </exception>
 #if NETSTANDARD
-        [NotNull]
+        [return: NotNull]
 #endif
         internal TzDataZoneCalculator GetCalculator()
         {
@@ -278,7 +273,7 @@ namespace DataStandardizer.Chronology
 #if NETCOREAPP3_0_OR_GREATER
         internal bool TryGetRegistryEntry([System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out RegistryEntry? entry)
 #else
-        internal bool TryGetRegistryEntry(out RegistryEntry entry)
+        internal bool TryGetRegistryEntry([MaybeNullWhen(false)] out RegistryEntry entry)
 #endif
         {
             if (_value is null)
@@ -321,7 +316,7 @@ namespace DataStandardizer.Chronology
 #if NETCOREAPP3_0_OR_GREATER
         private bool GetLinkTarget([NotNullWhen(true)] out string? linkTarget)
 #else
-        private bool GetLinkTarget(out string linkTarget)
+        private bool GetLinkTarget([MaybeNullWhen(false)] out string linkTarget)
 #endif
         {
             if (_value is null)
@@ -344,7 +339,7 @@ namespace DataStandardizer.Chronology
         }
 
 #if NETSTANDARD
-        [NotNull]
+        [return: NotNull]
 #endif
         private Location GetLocation()
         {
@@ -372,7 +367,7 @@ namespace DataStandardizer.Chronology
 #if NETCOREAPP3_0_OR_GREATER
             internal Location(double latitude, double longitude, string[] isoCountryCodes, string? comment)
 #else
-            internal Location(double latitude, double longitude, string[] isoCountryCodes, [CanBeNull] string comment)
+            internal Location(double latitude, double longitude, string[] isoCountryCodes, [AllowNull] string comment)
 #endif
             {
                 Latitude = latitude;
@@ -390,7 +385,7 @@ namespace DataStandardizer.Chronology
 #if NETCOREAPP3_0_OR_GREATER
             internal string? Comment { get; }
 #else
-            [CanBeNull]
+            [MaybeNull]
             internal string Comment { get; }
 #endif
         }
@@ -403,7 +398,7 @@ namespace DataStandardizer.Chronology
 #if NETCOREAPP3_0_OR_GREATER
             internal RegistryEntry(FieldInfo field, TzDataTimezone timezone, TzDataZoneLine[] zoneLines, string? linkTarget, Location location)
 #else
-            internal RegistryEntry(FieldInfo field, TzDataTimezone timezone, TzDataZoneLine[] zoneLines, [CanBeNull] string linkTarget, Location location)
+            internal RegistryEntry(FieldInfo field, TzDataTimezone timezone, TzDataZoneLine[] zoneLines, [AllowNull] string linkTarget, Location location)
 #endif
             {
                 Field = field;
@@ -425,7 +420,7 @@ namespace DataStandardizer.Chronology
 #if NETCOREAPP3_0_OR_GREATER
             internal string? LinkTarget { get; }
 #else
-            [CanBeNull]
+            [MaybeNull]
             internal string LinkTarget { get; }
 #endif
 
@@ -443,7 +438,7 @@ namespace DataStandardizer.Chronology
 #if NETCOREAPP3_0_OR_GREATER
             private volatile Tables? _tables;
 #else
-            [CanBeNull]
+            [MaybeNull]
             private volatile Tables _tables;
 #endif
 

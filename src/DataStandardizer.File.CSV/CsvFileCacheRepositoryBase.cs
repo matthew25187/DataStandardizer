@@ -7,7 +7,7 @@ using System.ComponentModel;
 using System.Threading;
 #endif
 #if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP3_0_OR_GREATER
-using JetBrains.Annotations;
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.File.CSV
@@ -125,7 +125,7 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         protected TypeConverter? GetTypeConverter(string typeName)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         protected TypeConverter GetTypeConverter(string typeName)
 #endif
         {
@@ -141,7 +141,7 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         protected TypeConverter? GetTypeConverter(Type typeConverterType)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         protected TypeConverter GetTypeConverter(Type typeConverterType)
 #endif
         {

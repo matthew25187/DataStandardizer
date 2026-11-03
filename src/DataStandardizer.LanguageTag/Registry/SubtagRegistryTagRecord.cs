@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 #if NETSTANDARD
-using JetBrains.Annotations;
+using System.Diagnostics.CodeAnalysis;
 #endif
 using static DataStandardizer.LanguageTag.Registry.SubtagRegistryConstants;
 
@@ -14,7 +14,7 @@ namespace DataStandardizer.LanguageTag.Registry
 #if NETCOREAPP3_0_OR_GREATER
         internal SubtagRegistryTagRecord(KeyValuePair<string, string>[] fields)
 #else
-        internal SubtagRegistryTagRecord([NotNull] KeyValuePair<string, string>[] fields)
+        internal SubtagRegistryTagRecord([DisallowNull] KeyValuePair<string, string>[] fields)
 #endif
             : base(fields)
         {

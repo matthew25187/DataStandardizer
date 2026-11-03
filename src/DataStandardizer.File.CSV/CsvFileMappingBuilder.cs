@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq.Expressions;
 #if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP3_0_OR_GREATER
-using JetBrains.Annotations;
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.File.CSV
@@ -12,8 +12,8 @@ namespace DataStandardizer.File.CSV
         private readonly CsvFieldMapping? _fieldMapping;
         private readonly Action<string, CsvFieldMapping>? _mappingCreatedDelegate;
 #else
-        [CanBeNull] private readonly CsvFieldMapping _fieldMapping;
-        [CanBeNull] private readonly Action<string, CsvFieldMapping> _mappingCreatedDelegate;
+        [MaybeNull] private readonly CsvFieldMapping _fieldMapping;
+        [MaybeNull] private readonly Action<string, CsvFieldMapping> _mappingCreatedDelegate;
 #endif
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER

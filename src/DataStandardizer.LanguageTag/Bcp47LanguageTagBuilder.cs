@@ -5,7 +5,7 @@ using DataStandardizer.Geography;
 using DataStandardizer.Language;
 using DataStandardizer.LanguageTag.InternalState;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.LanguageTag
@@ -58,12 +58,12 @@ namespace DataStandardizer.LanguageTag
         private object? _scriptSubtag;
         private SubtagRegistry? _subtagRegistry;
 #else
-        [CanBeNull] private string _languageTag;
-        [CanBeNull] private object _primaryLanguageSubtag;
-        [CanBeNull] private string _privateUseSubtag;
-        [CanBeNull] private object _regionSubtag;
-        [CanBeNull] private object _scriptSubtag;
-        [CanBeNull] private SubtagRegistry _subtagRegistry;
+        [MaybeNull] private string _languageTag;
+        [MaybeNull] private object _primaryLanguageSubtag;
+        [MaybeNull] private string _privateUseSubtag;
+        [MaybeNull] private object _regionSubtag;
+        [MaybeNull] private object _scriptSubtag;
+        [MaybeNull] private SubtagRegistry _subtagRegistry;
 #endif
 
         #endregion
@@ -468,7 +468,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         private static void CheckVariantSubtagArgument(string? variantSubtag, string parameterName)
 #else
-        private static void CheckVariantSubtagArgument([CanBeNull] string variantSubtag, [NotNull] string parameterName)
+        private static void CheckVariantSubtagArgument([AllowNull] string variantSubtag, [DisallowNull] string parameterName)
 #endif
         {
             if (variantSubtag is null)
@@ -480,7 +480,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         private static void CheckExtensionSubtagArgument(string? extensionSubtag, string parameterName)
 #else
-        private static void CheckExtensionSubtagArgument([CanBeNull] string extensionSubtag, [NotNull] string parameterName)
+        private static void CheckExtensionSubtagArgument([AllowNull] string extensionSubtag, [DisallowNull] string parameterName)
 #endif
         {
             if (extensionSubtag is null)
@@ -494,8 +494,8 @@ namespace DataStandardizer.LanguageTag
 #elif NETCOREAPP3_0_OR_GREATER
         private static string[] CreateVariantSubtags(string variantSubtag, string[] variantSubtags)
 #else
-        [NotNull]
-        private static string[] CreateVariantSubtags([NotNull] string variantSubtag, [NotNull] string[] variantSubtags)
+        [return: NotNull]
+        private static string[] CreateVariantSubtags([DisallowNull] string variantSubtag, [DisallowNull] string[] variantSubtags)
 #endif
         {
             var useVariantSubtags = new string[variantSubtags.Length + 1];
@@ -518,8 +518,8 @@ namespace DataStandardizer.LanguageTag
 #elif NETCOREAPP3_0_OR_GREATER
         private static string[] CreateExtensionSubtags(string extensionSubtag, string[] extensionSubtags)
 #else
-        [NotNull]
-        private static string[] CreateExtensionSubtags([NotNull] string extensionSubtag, [NotNull] string[] extensionSubtags)
+        [return: NotNull]
+        private static string[] CreateExtensionSubtags([DisallowNull] string extensionSubtag, [DisallowNull] string[] extensionSubtags)
 #endif
         {
             var useExtensionSubtags = new string[extensionSubtags.Length + 1];
@@ -540,8 +540,8 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         private static string GetPrimaryLanguageSubtag(object primaryLanguageSubtag)
 #else
-        [NotNull]
-        private static string GetPrimaryLanguageSubtag([NotNull] object primaryLanguageSubtag)
+        [return: NotNull]
+        private static string GetPrimaryLanguageSubtag([DisallowNull] object primaryLanguageSubtag)
 #endif
         {
 #if NETCOREAPP3_0_OR_GREATER
@@ -582,8 +582,8 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         private static string? GetRegionSubtag(object regionSubtag, out int numericRegionSubtag)
 #else
-        [CanBeNull]
-        private static string GetRegionSubtag([NotNull] object regionSubtag, out int numericRegionSubtag)
+        [return: MaybeNull]
+        private static string GetRegionSubtag([DisallowNull] object regionSubtag, out int numericRegionSubtag)
 #endif
         {
             numericRegionSubtag = -1;
@@ -615,8 +615,8 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         private static string GetScriptSubtag(object scriptSubtag)
 #else
-        [NotNull]
-        private static string GetScriptSubtag([NotNull] object scriptSubtag)
+        [return: NotNull]
+        private static string GetScriptSubtag([DisallowNull] object scriptSubtag)
 #endif
         {
             if (scriptSubtag is Iso15924Script scriptSubtagFromIso15924)
@@ -694,7 +694,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         private Bcp47LanguageTag CreateLanguageTag(string languageTag)
 #else
-        private Bcp47LanguageTag CreateLanguageTag([NotNull] string languageTag)
+        private Bcp47LanguageTag CreateLanguageTag([DisallowNull] string languageTag)
 #endif
         {
             return _subtagRegistry != null ? Bcp47LanguageTag.Create(languageTag, _subtagRegistry) : Bcp47LanguageTag.Create(languageTag, _conformance);

@@ -12,9 +12,10 @@ The public types of **DataStandardizer.Geography**. All types are in the
 
 > **Applies to:** members shown returning a nullable reference type (e.g.
 > `string?`) are non-nullable reference types on the .NET Standard targets, which
-> use JetBrains `[CanBeNull]` / `[NotNull]` annotations instead of nullable
-> reference type syntax. Behaviour is the same — a missing value is returned as
-> `null`.
+> use `System.Diagnostics.CodeAnalysis` attributes such as `[MaybeNull]` and
+> `[DisallowNull]` instead of nullable reference type syntax. Behaviour is the same —
+> a missing value is returned as `null`. A project gets null warnings from the
+> attributes only on C# 8 or later with nullable enabled.
 
 ## Structures
 

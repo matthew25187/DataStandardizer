@@ -2,6 +2,7 @@
   "solution": {
     "path": "DataStandardizer.sln",
     "projects": [
+      "src\\DataStandardizer.CodeAnalysis.Shared\\DataStandardizer.CodeAnalysis.Shared.shproj",
       "benchmarks\\DataStandardizer.File.iCal.Benchmarks\\DataStandardizer.File.iCal.Benchmarks.csproj",
       "fuzz\\DataStandardizer.File.iCal.Fuzz\\DataStandardizer.File.iCal.Fuzz.csproj",
       "src\\DataStandardizer.Chronology\\DataStandardizer.Chronology.csproj",

@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 #if NETSTANDARD
-using JetBrains.Annotations;
+using System.Diagnostics.CodeAnalysis;
 #endif
 using static DataStandardizer.LanguageTag.Registry.SubtagRegistryConstants;
 
@@ -44,7 +44,7 @@ namespace DataStandardizer.LanguageTag.Registry
 #if NETCOREAPP3_0_OR_GREATER
         internal ISubtagRegistryRecord? ReadRecord()
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         internal ISubtagRegistryRecord ReadRecord()
 #endif
         {
@@ -91,7 +91,7 @@ namespace DataStandardizer.LanguageTag.Registry
 #if NETCOREAPP3_0_OR_GREATER
         private bool AddLine(string? line)
 #else
-        private bool AddLine([CanBeNull] string line)
+        private bool AddLine([AllowNull] string line)
 #endif
         {
             if (line is null || line == RecordSeparator)
@@ -152,7 +152,7 @@ namespace DataStandardizer.LanguageTag.Registry
 #if NETCOREAPP3_0_OR_GREATER
         private ISubtagRegistryRecord? CreateRecord()
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         private ISubtagRegistryRecord CreateRecord()
 #endif
         {

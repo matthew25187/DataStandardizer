@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.LanguageTag
@@ -21,7 +21,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         private readonly string? _subtag;
 #else
-        [CanBeNull] private readonly string _subtag;
+        [MaybeNull] private readonly string _subtag;
 #endif
 
         #endregion
@@ -31,7 +31,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         internal Bcp47KeyedSubtag(string subtag)
 #else
-        internal Bcp47KeyedSubtag([NotNull] string subtag)
+        internal Bcp47KeyedSubtag([DisallowNull] string subtag)
 #endif
         {
             _subtag = subtag ?? throw new ArgumentNullException(nameof(subtag));
@@ -49,7 +49,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         public static explicit operator Bcp47KeyedSubtag(string value)
 #else
-        public static explicit operator Bcp47KeyedSubtag([NotNull] string value)
+        public static explicit operator Bcp47KeyedSubtag([DisallowNull] string value)
 #endif
         {
             if (value is null)
@@ -63,7 +63,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         public static implicit operator string?(Bcp47KeyedSubtag value)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         public static implicit operator string(Bcp47KeyedSubtag value)
 #endif
         {

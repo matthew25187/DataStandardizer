@@ -1,6 +1,6 @@
 ﻿using System;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.Geography
@@ -10,7 +10,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         protected internal Iso3166LanguageAttributeBase(string? iso639Part1Code, string iso639Part2TCode)
 #else
-        protected internal Iso3166LanguageAttributeBase([CanBeNull] string iso639Part1Code, [NotNull] string iso639Part2TCode)
+        protected internal Iso3166LanguageAttributeBase([AllowNull] string iso639Part1Code, [DisallowNull] string iso639Part2TCode)
 #endif
         {
             Iso639Part1Code = iso639Part1Code;
@@ -23,7 +23,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? Iso639Part1Code { get; }
 #else
-        [CanBeNull]
+        [MaybeNull]
         public string Iso639Part1Code { get; }
 #endif
         /// <summary>

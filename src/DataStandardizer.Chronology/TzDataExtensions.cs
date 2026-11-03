@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Reflection;
 #if NETSTANDARD
-using JetBrains.Annotations;
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.Chronology
@@ -20,7 +20,7 @@ namespace DataStandardizer.Chronology
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetComment(this TzDataTimezone timezone)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         public static string GetComment(this TzDataTimezone timezone)
 #endif
         {
@@ -79,7 +79,7 @@ namespace DataStandardizer.Chronology
         /// <exception cref="ArgumentException"><paramref name="utc"/> is of kind <see cref="DateTimeKind.Local"/>.</exception>
         /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
 #if NETSTANDARD
-        [NotNull]
+        [return: NotNull]
 #endif
         public static TzDataZoneLine GetZoneLine(this TzDataTimezone timezone, DateTime utc)
         {
@@ -95,7 +95,7 @@ namespace DataStandardizer.Chronology
         /// <returns>The zone line in force at the instant.</returns>
         /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
 #if NETSTANDARD
-        [NotNull]
+        [return: NotNull]
 #endif
         public static TzDataZoneLine GetZoneLine(this TzDataTimezone timezone, DateTimeOffset instant)
         {
@@ -246,7 +246,7 @@ namespace DataStandardizer.Chronology
         /// <exception cref="ArgumentException"><paramref name="utc"/> is of kind <see cref="DateTimeKind.Local"/>.</exception>
         /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
 #if NETSTANDARD
-        [NotNull]
+        [return: NotNull]
 #endif
         public static string GetAbbreviation(this TzDataTimezone timezone, DateTime utc)
         {
@@ -264,7 +264,7 @@ namespace DataStandardizer.Chronology
         /// </remarks>
         /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
 #if NETSTANDARD
-        [NotNull]
+        [return: NotNull]
 #endif
         public static string GetAbbreviation(this TzDataTimezone timezone, DateTimeOffset instant)
         {
@@ -291,7 +291,7 @@ namespace DataStandardizer.Chronology
         /// <exception cref="ArgumentException"><paramref name="utc"/> is of kind <see cref="DateTimeKind.Local"/>.</exception>
         /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
 #if NETSTANDARD
-        [NotNull]
+        [return: NotNull]
 #endif
         public static string GetStandardAbbreviation(this TzDataTimezone timezone, DateTime utc)
         {
@@ -318,7 +318,7 @@ namespace DataStandardizer.Chronology
         /// </remarks>
         /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
 #if NETSTANDARD
-        [NotNull]
+        [return: NotNull]
 #endif
         public static string GetStandardAbbreviation(this TzDataTimezone timezone, DateTimeOffset instant)
         {
@@ -351,7 +351,7 @@ namespace DataStandardizer.Chronology
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetDaylightAbbreviation(this TzDataTimezone timezone, DateTime utc)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         public static string GetDaylightAbbreviation(this TzDataTimezone timezone, DateTime utc)
 #endif
         {
@@ -384,7 +384,7 @@ namespace DataStandardizer.Chronology
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetDaylightAbbreviation(this TzDataTimezone timezone, DateTimeOffset instant)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         public static string GetDaylightAbbreviation(this TzDataTimezone timezone, DateTimeOffset instant)
 #endif
         {
@@ -405,7 +405,7 @@ namespace DataStandardizer.Chronology
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="toUtc"/> precedes <paramref name="fromUtc"/>.</exception>
         /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
 #if NETSTANDARD
-        [NotNull]
+        [return: NotNull]
 #endif
         public static IEnumerable<TzDataTransition> GetTransitions(this TzDataTimezone timezone, DateTime fromUtc, DateTime toUtc)
         {
@@ -433,7 +433,7 @@ namespace DataStandardizer.Chronology
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="to"/> precedes <paramref name="from"/>.</exception>
         /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
 #if NETSTANDARD
-        [NotNull]
+        [return: NotNull]
 #endif
         public static IEnumerable<TzDataTransition> GetTransitions(this TzDataTimezone timezone, DateTimeOffset from, DateTimeOffset to)
         {
@@ -457,7 +457,7 @@ namespace DataStandardizer.Chronology
         /// <exception cref="ArgumentException"><paramref name="local"/> is of kind <see cref="DateTimeKind.Utc"/> or <see cref="DateTimeKind.Local"/>.</exception>
         /// <exception cref="InvalidOperationException">The timezone is the default value, or its identifier is not that of a known timezone.</exception>
 #if NETSTANDARD
-        [NotNull]
+        [return: NotNull]
 #endif
         public static IReadOnlyList<TzDataOffsetInfo> GetOffsetInfosForLocal(this TzDataTimezone timezone, DateTime local)
         {
@@ -499,7 +499,7 @@ namespace DataStandardizer.Chronology
 #if NETCOREAPP3_0_OR_GREATER
         private static TzDataTimezoneAttribute? GetTimezoneAttribute(TzDataTimezone timezone)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         private static TzDataTimezoneAttribute GetTimezoneAttribute(TzDataTimezone timezone)
 #endif
         {

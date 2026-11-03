@@ -2,13 +2,10 @@
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Specialized;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 #if NET9_0_OR_GREATER
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-#endif
-#if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP3_0_OR_GREATER
-using JetBrains.Annotations;
 #endif
 
 namespace DataStandardizer.File.CSV
@@ -92,14 +89,14 @@ namespace DataStandardizer.File.CSV
             _fieldBag[fieldName] = value;
         }
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         protected object GetFieldValue(string fieldName)
         {
             // The indexer returns null for a missing key, so no separate Contains lookup is needed.
             return _fieldBag[fieldName];
         }
 
-        protected void SetFieldValue(string fieldName, [CanBeNull] object value)
+        protected void SetFieldValue(string fieldName, [AllowNull] object value)
         {
             // The indexer adds the key when it is missing, so no separate Contains lookup is needed.
             _fieldBag[fieldName] = value;

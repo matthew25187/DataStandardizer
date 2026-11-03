@@ -1,6 +1,6 @@
 #################################################################################
 # Title: ISO 639 Part 3: Alpha-3 Source Code Generator                          #
-# Copyright: Copyright © 2025, Matthew25187. All rights reserved.               #
+# Copyright: Copyright © 2025-2026, Matthew25187. All rights reserved.          #
 #                                                                               #
 # Purpose: Generate source code for implementing the ISO 639: Part 3 standard.  #
 # Source: ISO 639 Code Tables, SIL Global.                                      #
@@ -172,7 +172,7 @@ function Out-SourceCode {
             $stringToStructConversionOperatorSnippet = "#if NETCOREAPP3_0_OR_GREATER
             public static explicit operator $(Get-Variable -Name SourceCodeNamespace -ValueOnly).$GenerateTypeName(string value)
 #else
-            public static explicit operator $(Get-Variable -Name SourceCodeNamespace -ValueOnly).$GenerateTypeName([JetBrains.Annotations.NotNullAttribute] string value)
+            public static explicit operator $(Get-Variable -Name SourceCodeNamespace -ValueOnly).$GenerateTypeName([System.Diagnostics.CodeAnalysis.DisallowNullAttribute] string value)
 #endif
             {
                 return new $(Get-Variable -Name SourceCodeNamespace -ValueOnly).$GenerateTypeName(value);
@@ -184,7 +184,7 @@ function Out-SourceCode {
             $structToStringConversionOperatorSnippet = "#if NETCOREAPP3_0_OR_GREATER
             public static implicit operator string?($(Get-Variable -Name SourceCodeNamespace -ValueOnly).$GenerateTypeName value)
 #else
-            [JetBrains.Annotations.CanBeNullAttribute]
+            [return: System.Diagnostics.CodeAnalysis.MaybeNullAttribute]
             public static implicit operator string($(Get-Variable -Name SourceCodeNamespace -ValueOnly).$GenerateTypeName value)
 #endif
             {

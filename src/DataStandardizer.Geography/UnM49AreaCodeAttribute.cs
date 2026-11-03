@@ -2,7 +2,7 @@
 using System.Linq;
 using DataStandardizer.Core;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.Geography
@@ -78,7 +78,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? EnglishGlobalName
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string EnglishGlobalName
 #endif
         {
@@ -92,7 +92,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? ChineseGlobalName
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string ChineseGlobalName
 #endif
         {
@@ -106,7 +106,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? RussianGlobalName
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string RussianGlobalName
 #endif
         {
@@ -120,7 +120,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? FrenchGlobalName
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string FrenchGlobalName
 #endif
         {
@@ -134,7 +134,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? SpanishGlobalName
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string SpanishGlobalName
 #endif
         {
@@ -148,7 +148,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? ArabicGlobalName
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string ArabicGlobalName
 #endif
         {
@@ -167,7 +167,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? EnglishRegionName
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string EnglishRegionName
 #endif
         {
@@ -181,7 +181,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? ChineseRegionName
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string ChineseRegionName
 #endif
         {
@@ -195,7 +195,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? RussianRegionName
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string RussianRegionName
 #endif
         {
@@ -209,7 +209,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? FrenchRegionName
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string FrenchRegionName
 #endif
         {
@@ -223,7 +223,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? SpanishRegionName
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string SpanishRegionName
 #endif
         {
@@ -237,7 +237,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? ArabicRegionName
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string ArabicRegionName
 #endif
         {
@@ -256,7 +256,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? EnglishSubRegionName
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string EnglishSubRegionName
 #endif
         {
@@ -270,7 +270,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? ChineseSubRegionName
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string ChineseSubRegionName
 #endif
         {
@@ -284,7 +284,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? RussianSubRegionName
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string RussianSubRegionName
 #endif
         {
@@ -298,7 +298,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? FrenchSubRegionName
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string FrenchSubRegionName
 #endif
         {
@@ -312,7 +312,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? SpanishSubRegionName
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string SpanishSubRegionName
 #endif
         {
@@ -326,7 +326,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? ArabicSubRegionName
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string ArabicSubRegionName
 #endif
         {
@@ -345,7 +345,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? EnglishIntermediateRegionName
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string EnglishIntermediateRegionName
 #endif
         {
@@ -359,7 +359,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? ChineseIntermediateRegionName
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string ChineseIntermediateRegionName
 #endif
         {
@@ -373,7 +373,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? RussianIntermediateRegionName
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string RussianIntermediateRegionName
 #endif
         {
@@ -387,7 +387,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? FrenchIntermediateRegionName
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string FrenchIntermediateRegionName
 #endif
         {
@@ -401,7 +401,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? SpanishIntermediateRegionName
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string SpanishIntermediateRegionName
 #endif
         {
@@ -415,7 +415,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? ArabicIntermediateRegionName
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string ArabicIntermediateRegionName
 #endif
         {
@@ -429,7 +429,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? EnglishCountryOrAreaName
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string EnglishCountryOrAreaName
 #endif
         {
@@ -443,7 +443,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? ChineseCountryOrAreaName
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string ChineseCountryOrAreaName
 #endif
         {
@@ -457,7 +457,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? RussianCountryOrAreaName
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string RussianCountryOrAreaName
 #endif
         {
@@ -471,7 +471,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? FrenchCountryOrAreaName
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string FrenchCountryOrAreaName
 #endif
         {
@@ -485,7 +485,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? SpanishCountryOrAreaName
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string SpanishCountryOrAreaName
 #endif
         {
@@ -499,7 +499,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? ArabicCountryOrAreaName
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string ArabicCountryOrAreaName
 #endif
         {
@@ -513,7 +513,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? Iso3166Part1Alpha2Code { get; set; }
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string Iso3166Part1Alpha2Code { get; set; }
 #endif
 
@@ -523,7 +523,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? Iso3166Part1Alpha3Code { get; set; }
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string Iso3166Part1Alpha3Code { get; set; }
 #endif
 

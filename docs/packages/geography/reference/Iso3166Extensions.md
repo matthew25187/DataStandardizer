@@ -27,7 +27,8 @@ is unavailable or the code is undefined. The ISO 3166-1 accessors
 extending both `Iso3166Part1Alpha2Country` and `Iso3166Part1Alpha3Country`.
 
 On .NET Standard targets the `string?` return and parameter types are `string`
-annotated with JetBrains `[CanBeNull]` / `[NotNull]`.
+annotated with `System.Diagnostics.CodeAnalysis` attributes such as `[MaybeNull]` and `[DisallowNull]`.
+A project gets null warnings from them only on C# 8 or later with nullable enabled.
 
 ## Methods
 

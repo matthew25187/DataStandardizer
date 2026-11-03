@@ -1,6 +1,6 @@
 ﻿using System;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.Geography
@@ -16,7 +16,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         internal Iso3166SubdivisionNameAttribute(string? iso639Part1Code, string iso639Part2TCode, ushort subdivisionCategoryIdentifier, string subdivisionName)
 #else
-        internal Iso3166SubdivisionNameAttribute([CanBeNull] string iso639Part1Code, [NotNull] string iso639Part2TCode, ushort subdivisionCategoryIdentifier, [NotNull] string subdivisionName)
+        internal Iso3166SubdivisionNameAttribute([AllowNull] string iso639Part1Code, [DisallowNull] string iso639Part2TCode, ushort subdivisionCategoryIdentifier, [DisallowNull] string subdivisionName)
 #endif
             : base(iso639Part1Code, iso639Part2TCode)
         {
@@ -34,7 +34,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? RomanizationSystem { get; set; }
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string RomanizationSystem { get; set; }
 #endif
         /// <summary>
@@ -57,7 +57,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? SubdivisionNameLocalVariant { get; set; }
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string SubdivisionNameLocalVariant { get; set; }
 #endif
 

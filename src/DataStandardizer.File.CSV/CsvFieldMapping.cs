@@ -1,6 +1,6 @@
 ﻿using System;
 #if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP3_0_OR_GREATER
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.File.CSV
@@ -23,7 +23,7 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public string? FieldName { get; internal set; }
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string FieldName { get; internal set; }
 #endif
 
@@ -51,7 +51,7 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public object? ConstantValue { get; internal set; }
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public object ConstantValue { get; internal set; }
 #endif
 
@@ -64,7 +64,7 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public Delegate? FromStringConverter { get; internal set; }
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public Delegate FromStringConverter { get; internal set; }
 #endif
         /// <summary>
@@ -81,7 +81,7 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public Delegate? ToStringConverter { get; internal set; }
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public Delegate ToStringConverter { get; internal set; }
 #endif
         /// <summary>
@@ -90,7 +90,7 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public Type? TypeConverterType { get; internal set; }
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public Type TypeConverterType { get; internal set; }
 #endif
         /// <summary>
@@ -99,7 +99,7 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public Delegate? Validator { get; internal set; }
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public Delegate Validator { get; internal set; }
 #endif
 
@@ -109,7 +109,7 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public Delegate? VariableValueGenerator { get; internal set; }
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public Delegate VariableValueGenerator { get; internal set; }
 #endif
     }

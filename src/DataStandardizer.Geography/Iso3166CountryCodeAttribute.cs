@@ -2,7 +2,7 @@
 using System.Linq;
 using DataStandardizer.Core;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.Geography
@@ -37,12 +37,12 @@ namespace DataStandardizer.Geography
 
         }
 #else
-        internal Iso3166CountryCodeAttribute([NotNull] string englishShortName, [NotNull] string englishShortNameUpper) : base(new[] { englishShortName, englishShortNameUpper })
+        internal Iso3166CountryCodeAttribute([DisallowNull] string englishShortName, [DisallowNull] string englishShortNameUpper) : base(new[] { englishShortName, englishShortNameUpper })
         {
 
         }
 
-        internal Iso3166CountryCodeAttribute([NotNull] string englishShortName, [NotNull] string englishShortNameUpper, [NotNull] string englishFullName) : base(new[] { englishShortName, englishShortNameUpper, englishFullName })
+        internal Iso3166CountryCodeAttribute([DisallowNull] string englishShortName, [DisallowNull] string englishShortNameUpper, [DisallowNull] string englishFullName) : base(new[] { englishShortName, englishShortNameUpper, englishFullName })
         {
 
         }
@@ -68,7 +68,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? EnglishFullName => EnglishNames.ElementAtOrDefault((int)EnglishNameIndex.FullName);
 #else
-        [CanBeNull]
+        [MaybeNull]
         public string EnglishFullName => EnglishNames.ElementAtOrDefault((int)EnglishNameIndex.FullName);
 #endif
         /// <summary>

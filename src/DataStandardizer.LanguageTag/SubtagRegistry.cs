@@ -2,18 +2,13 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-#if NETCOREAPP3_0_OR_GREATER
 using System.Diagnostics.CodeAnalysis;
-#endif
 using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using DataStandardizer.LanguageTag.InternalState;
 using DataStandardizer.LanguageTag.Registry;
-#if NETSTANDARD
-using JetBrains.Annotations;
-#endif
 
 namespace DataStandardizer.LanguageTag
 {
@@ -378,7 +373,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         public bool TryGetSubtag(SubtagRegistryRecordType type, string? subtag, [NotNullWhen(true)] out SubtagRegistrySubtagRecord? record)
 #else
-        public bool TryGetSubtag(SubtagRegistryRecordType type, [CanBeNull] string subtag, [CanBeNull] out SubtagRegistrySubtagRecord record)
+        public bool TryGetSubtag(SubtagRegistryRecordType type, [AllowNull] string subtag, [MaybeNullWhen(false)] out SubtagRegistrySubtagRecord record)
 #endif
         {
             if (subtag is null)
@@ -394,7 +389,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         public bool TryGetSubtag(SubtagRegistryRecordType type, ReadOnlySpan<char> subtag, [NotNullWhen(true)] out SubtagRegistrySubtagRecord? record)
 #else
-        public bool TryGetSubtag(SubtagRegistryRecordType type, ReadOnlySpan<char> subtag, [CanBeNull] out SubtagRegistrySubtagRecord record)
+        public bool TryGetSubtag(SubtagRegistryRecordType type, ReadOnlySpan<char> subtag, [MaybeNullWhen(false)] out SubtagRegistrySubtagRecord record)
 #endif
         {
             return _subtagIndex.Value.TryGetSubtag(type, subtag, out record);
@@ -415,7 +410,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         public bool IsGrandfathered(string? languageTag)
 #else
-        public bool IsGrandfathered([CanBeNull] string languageTag)
+        public bool IsGrandfathered([AllowNull] string languageTag)
 #endif
         {
             return languageTag != null && _classifier.Value.HasGrandfatheredRecord(languageTag.AsSpan());

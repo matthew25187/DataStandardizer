@@ -1,6 +1,6 @@
 ﻿using System;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.LanguageTag
@@ -15,7 +15,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         public LanguageTagFormatException(string message, string languageTag)
 #else
-        public LanguageTagFormatException([NotNull] string message, [NotNull] string languageTag)
+        public LanguageTagFormatException([DisallowNull] string message, [DisallowNull] string languageTag)
 #endif
             : base(message)
         {
@@ -25,7 +25,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         public LanguageTagFormatException(string message, string languageTag, Exception innerException)
 #else
-        public LanguageTagFormatException([NotNull] string message, [NotNull] string languageTag, Exception innerException)
+        public LanguageTagFormatException([DisallowNull] string message, [DisallowNull] string languageTag, Exception innerException)
 #endif
             : base(message, innerException)
         {

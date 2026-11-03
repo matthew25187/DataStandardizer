@@ -4,7 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 using static DataStandardizer.Communication.E164.ItuE164Constants;
 
@@ -36,7 +36,7 @@ namespace DataStandardizer.Communication.E164
 #if NETCOREAPP3_0_OR_GREATER
         internal static bool TryParse(string s, ItuE164InternationalNumberStyles numberStyles, out ItuE164InternationalNumberStructureForGlobalServices? result)
 #else
-        internal static bool TryParse(string s, ItuE164InternationalNumberStyles numberStyles, [CanBeNull] out ItuE164InternationalNumberStructureForGlobalServices result)
+        internal static bool TryParse(string s, ItuE164InternationalNumberStyles numberStyles, [MaybeNullWhen(false)] out ItuE164InternationalNumberStructureForGlobalServices result)
 #endif
         {
             var isParsed = false;

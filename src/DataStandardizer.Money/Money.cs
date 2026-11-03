@@ -381,7 +381,7 @@ namespace DataStandardizer.Money
             return obj is Money other && Equals(other);
         }
 #else
-        public override bool Equals(object obj)
+        public override bool Equals([NotNullWhen(true)] object obj)
         {
             return obj is Money other && Equals(other);
         }
