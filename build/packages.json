@@ -52,6 +52,12 @@
       "enableTests": true
     },
     {
+      "packageName": "DataStandardizer.File.InternetMessage",
+      "packageSourcePath": "src/DataStandardizer.File.InternetMessage",
+      "variableSuffix": "FILE_INTERNETMESSAGE",
+      "enableTests": true
+    },
+    {
       "packageName": "DataStandardizer.Geography",
       "packageSourcePath": "src/DataStandardizer.Geography",
       "variableSuffix": "GEOGRAPHY",

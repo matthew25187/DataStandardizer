@@ -1,0 +1,11 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net48;net10.0</TargetFrameworks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\DataStandardizer.File.InternetMessage\DataStandardizer.File.InternetMessage.csproj" />
+  </ItemGroup>
+
+</Project>

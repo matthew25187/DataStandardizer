@@ -71,8 +71,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataStandardizer.LanguageTa
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "DataStandardizer.CodeAnalysis.Shared", "src\DataStandardizer.CodeAnalysis.Shared\DataStandardizer.CodeAnalysis.Shared.shproj", "{F72F7EEE-59B3-4D67-BAC8-938342D98975}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataStandardizer.File.InternetMessage", "src\DataStandardizer.File.InternetMessage\DataStandardizer.File.InternetMessage.csproj", "{1FFF72B8-1FDA-49BD-A4FB-860C28CABD0D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataStandardizer.File.InternetMessage.Tests", "tests\DataStandardizer.File.InternetMessage.Tests\DataStandardizer.File.InternetMessage.Tests.csproj", "{69F32671-EE93-4642-A327-43C747FF7273}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		src\DataStandardizer.CodeAnalysis.Shared\DataStandardizer.CodeAnalysis.Shared.projitems*{1fff72b8-1fda-49bd-a4fb-860c28cabd0d}*SharedItemsImports = 5
 		src\DataStandardizer.CodeAnalysis.Shared\DataStandardizer.CodeAnalysis.Shared.projitems*{33a7d2e1-4058-41a1-8cfd-878710c195e2}*SharedItemsImports = 5
 		src\DataStandardizer.CodeAnalysis.Shared\DataStandardizer.CodeAnalysis.Shared.projitems*{35823b25-5a3e-482d-96c9-4e29371a9a42}*SharedItemsImports = 5
 		src\DataStandardizer.CodeAnalysis.Shared\DataStandardizer.CodeAnalysis.Shared.projitems*{3a4f50aa-f0c0-4be9-b756-20178c03ff32}*SharedItemsImports = 5
@@ -205,6 +210,14 @@ Global
 		{BBFEBFC5-1779-4B7E-9083-408F2D1532D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BBFEBFC5-1779-4B7E-9083-408F2D1532D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BBFEBFC5-1779-4B7E-9083-408F2D1532D8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1FFF72B8-1FDA-49BD-A4FB-860C28CABD0D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1FFF72B8-1FDA-49BD-A4FB-860C28CABD0D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1FFF72B8-1FDA-49BD-A4FB-860C28CABD0D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1FFF72B8-1FDA-49BD-A4FB-860C28CABD0D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{69F32671-EE93-4642-A327-43C747FF7273}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{69F32671-EE93-4642-A327-43C747FF7273}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{69F32671-EE93-4642-A327-43C747FF7273}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{69F32671-EE93-4642-A327-43C747FF7273}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -240,6 +253,8 @@ Global
 		{83DB4143-3BC1-4966-BC1B-B0BA41EA6FD5} = {D9859FA7-5858-4C35-94CD-2B40155173BB}
 		{0A52C1DE-D8A9-4C10-A9C5-BA5444EC8CA1} = {D9859FA7-5858-4C35-94CD-2B40155173BB}
 		{BBFEBFC5-1779-4B7E-9083-408F2D1532D8} = {D9859FA7-5858-4C35-94CD-2B40155173BB}
+		{1FFF72B8-1FDA-49BD-A4FB-860C28CABD0D} = {944A45A5-E3FA-4C1D-B5EC-76FAE6974F21}
+		{69F32671-EE93-4642-A327-43C747FF7273} = {B9FDB3AD-0254-49E2-B2B8-20BC6B0AB93B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D102BDCC-44EF-4389-9803-1D0385E0F7B8}
