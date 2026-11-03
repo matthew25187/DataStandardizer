@@ -297,6 +297,32 @@ namespace DataStandardizer.File.InternetMessage.Tests
             { SimpleDate, "1 Jan 2000 00:00:00 +0001", false },
         };
 
+        public static TheoryData<string, string, bool> InequalityCases => new TheoryData<string, string, bool>
+        {
+            { SimpleDate, SimpleDate, false },
+
+            // The same value in another form.
+            { "1 Jan 2000 00:00 UT", "1 Jan 00 00:00:00 +0000", false },
+            { "1 Jan 2000 00:00 Z", UnknownOffsetDate, false },
+            { "1 Jan 2000 00:00 EST", "(a) 1 Jan 2000 00:00 -0500", false },
+
+            // ref. RFC 5322 §3.3: "-0000" differs from "+0000".
+            { UnknownOffsetDate, UniversalTimeDate, true },
+
+            // The same moment, written otherwise.
+            { "1 Jan 2000 12:00 +0100", "1 Jan 2000 11:00 +0000", true },
+            { "Sat, 1 Jan 2000 00:00 +0000", SimpleDate, true },
+
+            // Each part.
+            { SimpleDate, "1 Jan 2001 00:00:00 +0000", true },
+            { SimpleDate, "1 Feb 2000 00:00:00 +0000", true },
+            { SimpleDate, "2 Jan 2000 00:00:00 +0000", true },
+            { SimpleDate, "1 Jan 2000 01:00:00 +0000", true },
+            { SimpleDate, "1 Jan 2000 00:01:00 +0000", true },
+            { SimpleDate, OneSecondLaterDate, true },
+            { SimpleDate, "1 Jan 2000 00:00:00 +0001", true },
+        };
+
         public static TheoryData<string, string, int> OrderingCases => new TheoryData<string, string, int>
         {
             // left, right, the sign of the result
@@ -907,7 +933,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Theory]
-        [MemberData(nameof(EqualityCases))]
+        [MemberData(nameof(InequalityCases))]
         public void InequalityOperator_DateTime_ComparesEveryPart(string left, string right, bool expected)
         {
             // arrange
@@ -918,7 +944,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var testResult = subject != other;
 
             // assert
-            testResult.Should().Be(!expected);
+            testResult.Should().Be(expected);
         }
 
         [Fact]
@@ -954,13 +980,13 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             var subject = ImfDateTime.Parse("1 Jan 2000 00:00 UT");
-            var other = ImfDateTime.Parse("1 Jan 00 00:00:00 +0000");
+            var expected = ImfDateTime.Parse("1 Jan 00 00:00:00 +0000").GetHashCode();
 
             // act
             var testResult = subject.GetHashCode();
 
             // assert
-            testResult.Should().Be(other.GetHashCode());
+            testResult.Should().Be(expected);
         }
 
         [Theory]
@@ -979,26 +1005,71 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Theory]
-        [InlineData(SimpleDate, SimpleDate, false, true, false, true)]
-        [InlineData(SimpleDate, OneSecondLaterDate, true, true, false, false)]
-        [InlineData(OneSecondLaterDate, SimpleDate, false, false, true, true)]
-        public void RelationalOperators_DateTime_FollowCompareTo(string left, string right, bool expectedLess, bool expectedLessOrEqual, bool expectedGreater, bool expectedGreaterOrEqual)
+        [InlineData(SimpleDate, SimpleDate, false)]
+        [InlineData(SimpleDate, OneSecondLaterDate, true)]
+        [InlineData(OneSecondLaterDate, SimpleDate, false)]
+        public void LessThanOperator_DateTime_FollowsTheOrdering(string left, string right, bool expected)
         {
             // arrange
             var subject = ImfDateTime.Parse(left);
             var other = ImfDateTime.Parse(right);
 
             // act
-            var testLess = subject < other;
-            var testLessOrEqual = subject <= other;
-            var testGreater = subject > other;
-            var testGreaterOrEqual = subject >= other;
+            var testResult = subject < other;
 
             // assert
-            testLess.Should().Be(expectedLess);
-            testLessOrEqual.Should().Be(expectedLessOrEqual);
-            testGreater.Should().Be(expectedGreater);
-            testGreaterOrEqual.Should().Be(expectedGreaterOrEqual);
+            testResult.Should().Be(expected);
+        }
+
+        [Theory]
+        [InlineData(SimpleDate, SimpleDate, true)]
+        [InlineData(SimpleDate, OneSecondLaterDate, true)]
+        [InlineData(OneSecondLaterDate, SimpleDate, false)]
+        public void LessThanOrEqualOperator_DateTime_FollowsTheOrdering(string left, string right, bool expected)
+        {
+            // arrange
+            var subject = ImfDateTime.Parse(left);
+            var other = ImfDateTime.Parse(right);
+
+            // act
+            var testResult = subject <= other;
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Theory]
+        [InlineData(SimpleDate, SimpleDate, false)]
+        [InlineData(SimpleDate, OneSecondLaterDate, false)]
+        [InlineData(OneSecondLaterDate, SimpleDate, true)]
+        public void GreaterThanOperator_DateTime_FollowsTheOrdering(string left, string right, bool expected)
+        {
+            // arrange
+            var subject = ImfDateTime.Parse(left);
+            var other = ImfDateTime.Parse(right);
+
+            // act
+            var testResult = subject > other;
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Theory]
+        [InlineData(SimpleDate, SimpleDate, true)]
+        [InlineData(SimpleDate, OneSecondLaterDate, false)]
+        [InlineData(OneSecondLaterDate, SimpleDate, true)]
+        public void GreaterThanOrEqualOperator_DateTime_FollowsTheOrdering(string left, string right, bool expected)
+        {
+            // arrange
+            var subject = ImfDateTime.Parse(left);
+            var other = ImfDateTime.Parse(right);
+
+            // act
+            var testResult = subject >= other;
+
+            // assert
+            testResult.Should().Be(expected);
         }
 
         [Theory]

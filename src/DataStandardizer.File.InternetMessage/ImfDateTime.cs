@@ -177,8 +177,12 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Gets the offset from Universal Time.  It is zero if <see cref="IsOffsetUnknown"/> is <c>true</c>, because the date and time are then in Universal Time.
+        /// Gets the offset from Universal Time.
         /// </summary>
+        /// <remarks>
+        /// If <see cref="IsOffsetUnknown"/> is <c>true</c>, this is zero, because <c>-0000</c> gives the date and time in Universal Time (RFC 5322 §3.3).  It is then not
+        /// the offset of the place the date-time came from, which is unknown, so check <see cref="IsOffsetUnknown"/> before using it as one.
+        /// </remarks>
         /// <exception cref="InvalidOperationException">This value was made with <c>default</c>.</exception>
         public TimeSpan Offset
         {
