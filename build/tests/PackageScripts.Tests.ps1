@@ -205,6 +205,117 @@ Describe 'Package scripts' {
     }
 
     Context 'SetReleaseNotesArgument.ps1' {
+        BeforeAll {
+            # A repository holding a package tag, for the commits a test adds after it.
+            function New-TaggedTestRepository {
+                Push-Location (New-TestRepository)
+                Add-TestCommit -File @{ 'src/DataStandardizer.Core/Core.cs' = 'core' } -Message 'Initial commit' | Out-Null
+                Add-TestTag -Name 'v1.0.0.1-DataStandardizer.Core'
+                Add-TestTag -Name 'v1.0.0.1-DataStandardizer.Geography'
+            }
+
+            # Runs the script on the current commit and returns the notes it wrote as a step output.
+            function Get-TestReleaseNote {
+                param ([string]$PackageName = 'DataStandardizer.Core', [hashtable]$Option = @{})
+                $env:GITHUB_SHA = Invoke-Git rev-parse HEAD
+                $env:GITHUB_REF = 'refs/heads/develop'
+                $env:GITHUB_OUTPUT = Join-Path (New-TestFolder) 'output'
+                & (Join-Path $script:ScriptsFolder 'SetReleaseNotesArgument.ps1') -PackageName $PackageName @Option *>$null
+                $line = Get-Content $env:GITHUB_OUTPUT | Where-Object { $_ -like 'releaseNotesArg=*' }
+                return [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String(($line -split '=', 2)[1]))
+            }
+
+            # Writes a release note overrides file and returns its path.
+            function New-TestOverrideFile {
+                param ([string]$Commit, [string]$Subject, [object[]]$Note)
+                $path = Join-Path (New-TestFolder) 'overrides.json'
+                $commits = @{ $Commit = @{ subject = $Subject; notes = $Note } }
+                [System.IO.File]::WriteAllText($path, (ConvertTo-Json -InputObject @{ commits = $commits } -Depth 6))
+                return $path
+            }
+        }
+
+        It 'publishes the trailer of a commit that changes only <File>' -ForEach @(
+            @{ File = 'Directory.Build.props' }
+            @{ File = 'Directory.Build.targets' }
+            @{ File = 'Directory.Packages.props' }
+            @{ File = 'src/Directory.Build.props' }
+            @{ File = 'src/Directory.Build.targets' }
+        ) {
+            New-TaggedTestRepository
+            Add-TestCommit -File @{ $File = '<Project />' } -Message "Embed the symbols`n`nRelease-note: fixed: Debuggers can step into the source" | Out-Null
+
+            Get-TestReleaseNote | Should -Be "Fixed:`n- Debuggers can step into the source."
+        }
+
+        It 'publishes a commit that changes only a shared build file for every package' {
+            New-TaggedTestRepository
+            Add-TestCommit -File @{ 'src/Directory.Build.props' = '<Project />' } -Message "Embed the symbols`n`nRelease-note: fixed" | Out-Null
+
+            Get-TestReleaseNote -PackageName 'DataStandardizer.Geography' | Should -Be "Fixed:`n- Embed the symbols."
+        }
+
+        It 'infers the note of a commit that changes only a shared build file and declares nothing' {
+            New-TaggedTestRepository
+            Add-TestCommit -File @{ 'Directory.Packages.props' = '<Project />' } -Message 'Bump System.Memory from 4.6.2 to 4.6.3' | Out-Null
+
+            Get-TestReleaseNote | Should -Be "Changed:`n- Bump System.Memory from 4.6.2 to 4.6.3."
+        }
+
+        It 'leaves out a commit that changes only <File>' -ForEach @(
+            @{ File = 'src/DataStandardizer.Geography/Geography.cs' }
+            @{ File = 'tests/Directory.Build.props' }
+            @{ File = 'global.json' }
+            @{ File = 'README.md' }
+        ) {
+            New-TaggedTestRepository
+            Add-TestCommit -File @{ $File = 'changed' } -Message "Change something else`n`nRelease-note: fixed" | Out-Null
+
+            Get-TestReleaseNote | Should -Be 'No changes affect the use of this package.'
+        }
+
+        It 'publishes one note for a commit that changes both the package and a shared build file' {
+            New-TaggedTestRepository
+            Add-TestCommit -File @{ 'src/DataStandardizer.Core/Core.cs' = 'core 2'; 'src/Directory.Build.props' = '<Project />' } -Message "Change both`n`nRelease-note: fixed" | Out-Null
+
+            Get-TestReleaseNote | Should -Be "Fixed:`n- Change both."
+        }
+
+        It 'publishes an override of a commit that changes only a shared build file' {
+            New-TaggedTestRepository
+            $commit = Add-TestCommit -File @{ 'Directory.Packages.props' = '<Project />' } -Message 'Update the packages'
+            $overridePath = New-TestOverrideFile -Commit $commit -Subject 'Update the packages' -Note @(@{ category = 'fixed'; text = 'The stated change' })
+
+            Get-TestReleaseNote -Option @{ OverridePath = $overridePath } | Should -Be "Fixed:`n- The stated change."
+        }
+
+        It 'publishes an override note limited to a package only for that package, for <PackageName>' -ForEach @(
+            @{ PackageName = 'DataStandardizer.Core'; Expected = "Fixed:`n- Only for Core.`n- For every package." }
+            @{ PackageName = 'DataStandardizer.Geography'; Expected = "Fixed:`n- For every package." }
+        ) {
+            New-TaggedTestRepository
+            $commit = Add-TestCommit -File @{ 'Directory.Packages.props' = '<Project />' } -Message 'Update the packages'
+            $overridePath = New-TestOverrideFile -Commit $commit -Subject 'Update the packages' -Note @(
+                @{ category = 'fixed'; text = 'Only for Core'; packages = @('DataStandardizer.Core') }
+                @{ category = 'fixed'; text = 'For every package' }
+            )
+
+            Get-TestReleaseNote -PackageName $PackageName -Option @{ OverridePath = $overridePath } | Should -Be $Expected
+        }
+
+        It 'refuses an override note limited to an unknown package' {
+            New-TaggedTestRepository
+            $commit = Add-TestCommit -File @{ 'Directory.Packages.props' = '<Project />' } -Message 'Update the packages'
+            $overridePath = New-TestOverrideFile -Commit $commit -Subject 'Update the packages' -Note @(@{ category = 'fixed'; text = 'A note'; packages = @('DataStandardizer.Nothing') })
+            $env:GITHUB_SHA = $commit
+            $env:GITHUB_REF = 'refs/heads/develop'
+
+            {
+                $ErrorActionPreference = 'Stop'
+                & (Join-Path $script:ScriptsFolder 'SetReleaseNotesArgument.ps1') -PackageName 'DataStandardizer.Core' -OverridePath $overridePath *>$null
+            } | Should -Throw '*DataStandardizer.Nothing*'
+        }
+
         It 'writes the encoded notes as a GitHub step output' {
             Push-Location (New-TestRepository)
             Add-TestCommit -File @{ 'src/DataStandardizer.Core/Core.cs' = 'core' } -Message 'Initial commit' | Out-Null

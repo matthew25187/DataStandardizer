@@ -18,6 +18,10 @@ param (
     [ValidateSet('Subject', 'Body', 'Both')]
     [string]    $NoteSource = 'Subject',
 
+    # The file holding the release notes of commits which can no longer declare their own.
+    [Parameter()]
+    [string]    $OverridePath = (Join-Path $PSScriptRoot '../release-notes-overrides.json'),
+
     [Parameter()]
     [int]   $TraceLevel = 0
 )
@@ -30,13 +34,16 @@ if (0 -lt $TraceLevel) {
 }
 
 # Resolve the package's source folder so release notes can be scoped to commits that
-# actually touched this package (rather than every change across the repository).
+# actually touched this package (rather than every change across the repository). A change to a
+# shared build file marks every package as changed, so those commits count for every package too.
+$packageManifest = Get-PackageManifest
 $packageInfo = Get-PackageInfo | Where-Object -Property packageName -EQ -Value $PackageName
 if ($null -eq $packageInfo) {
     Write-Error "No package information found for $PackageName."
     exit
 }
 $packageSourcePath = $packageInfo.packageSourcePath
+[string[]]$commitPaths = @($packageSourcePath) + @($packageManifest.sharedBuildFiles)
 
 # Find the most recent tag for the package that is an ancestor of the build commit.
 # `--merged` (not `--no-contains`) restricts the candidates to tags reachable from the
@@ -61,7 +68,7 @@ else {
 
 $revisionRange = "$previousCommitObject..$buildCommit"
 
-Write-Information "Using commit messages between $previousCommitObject and $buildCommit scoped to $packageSourcePath."
+Write-Information "Using commit messages between $previousCommitObject and $buildCommit scoped to $($commitPaths -join ', ')."
 
 # Patterns to scrub from commit messages before they become release notes.
 [string[]]$sanitiseTags = @('[skip ci]', '[ci skip]', 'skip-checks: true', 'skip-checks:true', '[skip azurepipelines]', '[azurepipelines skip]', '[skip azpipelines]', '[azpipelines skip]', '[skip azp]', '[azp skip]', '***NO_CI***', '[no ci]', '[skip actions]', '[actions skip]')
@@ -73,7 +80,7 @@ $sanitisePattern = [string]::Join('|', [System.Linq.Enumerable]::Select[string, 
 function Get-CommitRecord {
     param (
         [string]    $RevisionRange,
-        [string]    $PackageSourcePath
+        [string[]]  $Path
     )
 
     $recordSeparator = [char]0x1e
@@ -84,7 +91,7 @@ function Get-CommitRecord {
     $savedOutputEncoding = [Console]::OutputEncoding
     try {
         [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
-        $output = & git -c i18n.logOutputEncoding=UTF-8 rev-list $RevisionRange --no-merges --reverse --no-commit-header --format=$commitFormat -- $PackageSourcePath
+        $output = & git -c i18n.logOutputEncoding=UTF-8 rev-list $RevisionRange --no-merges --reverse --no-commit-header --format=$commitFormat -- $Path
     }
     finally {
         [Console]::OutputEncoding = $savedOutputEncoding
@@ -698,10 +705,14 @@ function Get-ReleaseNoteTrailer {
 
 # Read the release notes declared for commits which were merged before they could declare them
 # themselves. A commit's message cannot be changed once it is on develop, so its notes are stated in
-# this file instead, keyed by the full commit id; an empty list of notes leaves the commit out.
+# this file instead, keyed by the full commit id; an empty list of notes leaves the commit out. A
+# note with a list of packages is published only for those: a commit which changed a shared build
+# file reaches every package, but what it says may be true of only some of them.
 function Get-ReleaseNoteOverride {
     param (
-        [string]    $Path
+        [string]    $Path,
+        [string]    $PackageName,
+        [string[]]  $KnownPackageName
     )
 
     $overrides = @{}
@@ -723,6 +734,17 @@ function Get-ReleaseNoteOverride {
                 Write-Error "Release note override for $commitId has the unrecognised category '$declared'."
                 exit 1
             }
+
+            foreach ($limitedTo in $entry['packages']) {
+                if ($KnownPackageName -cnotcontains $limitedTo) {
+                    Write-Error "Release note override for $commitId names the unknown package '$limitedTo'."
+                    exit 1
+                }
+            }
+            if ($entry.ContainsKey('packages') -and $entry['packages'] -cnotcontains $PackageName) {
+                continue
+            }
+
             $notes.Add((New-DeclaredNote -Category $script:declaredCategories[$declared] -Text $entry['text']))
         }
 
@@ -797,9 +819,9 @@ foreach ($category in $script:categoryHeadings.Keys) {
     $noteTextsByCategory[$category] = [System.Collections.Generic.List[string]]::new()
 }
 
-$overrides = Get-ReleaseNoteOverride -Path (Join-Path $PSScriptRoot '../release-notes-overrides.json')
+$overrides = Get-ReleaseNoteOverride -Path $OverridePath -PackageName $PackageName -KnownPackageName @($packageManifest.packages.packageName)
 
-foreach ($commit in (Get-CommitRecord -RevisionRange $revisionRange -PackageSourcePath $packageSourcePath)) {
+foreach ($commit in (Get-CommitRecord -RevisionRange $revisionRange -Path $commitPaths)) {
     # An override states every note of the commit, breaking changes included, because it exists to
     # correct what the commit message says.
     $override = $overrides[$commit.CommitId]
