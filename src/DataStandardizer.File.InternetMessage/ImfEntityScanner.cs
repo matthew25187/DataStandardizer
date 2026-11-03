@@ -79,6 +79,7 @@ namespace DataStandardizer.File.InternetMessage
             internal const string TooManyPartsTemplate = "The message has more than the maximum of {0} parts.";
             internal const string TransferEncodingDuplicate = "The header section has more than one Content-Transfer-Encoding field (RFC 2045 §3).";
             internal const string TransferEncodingInvalid = "The Content-Transfer-Encoding field is not valid (RFC 2045 §6.1).";
+            internal const string MissingMimeVersion = "The header of the message has a MIME field and no MIME-Version field (RFC 2045 §4).";
             internal const string UnknownTransferEncodingTemplate = "The transfer encoding '{0}' is not known, so the body has not been decoded.";
         }
 
@@ -91,6 +92,8 @@ namespace DataStandardizer.File.InternetMessage
             internal MimeMediaType ContentType;
             internal int Depth;
             internal bool HasContentType;
+            internal bool HasMimeField;
+            internal bool HasMimeVersion;
             internal bool HasTransferEncoding;
             internal bool IsBoundaryActive;
             internal bool IsHeaderEnded;
@@ -120,6 +123,11 @@ namespace DataStandardizer.File.InternetMessage
 
         private const string ContentTypeFieldName = "content-type";
         private const string TransferEncodingFieldName = "content-transfer-encoding";
+        private const string MimeVersionFieldName = "mime-version";
+        private const string ContentIdFieldName = "content-id";
+        private const string ContentDescriptionFieldName = "content-description";
+        private const string ContentDispositionFieldName = "content-disposition";
+        private const string ContentLanguageFieldName = "content-language";
         private const string BoundaryParameterName = "boundary";
         private const string DigestSubtype = "digest";
         private const string ExternalBodySubtype = "external-body";
@@ -136,6 +144,7 @@ namespace DataStandardizer.File.InternetMessage
         private readonly bool _allowMissingBoundaryTerminator;
         private readonly MimeBase64Decoder _base64Decoder = new MimeBase64Decoder(MimeBase64Mode.Mime);
         private readonly IMimeCharsetResolver _charsetResolver;
+        private readonly MimeMediaTypeParseOptions _contentTypeOptions;
         private readonly bool _decodeTransferEncoding;
         private readonly List<ImfDiagnostic> _diagnostics = new List<ImfDiagnostic>();
         private readonly List<Frame> _frames = new List<Frame>();
@@ -184,6 +193,7 @@ namespace DataStandardizer.File.InternetMessage
             _acceptBareLineFeed = options.AcceptBareLineFeed;
             _allowMissingBoundaryTerminator = options.AllowMissingBoundaryTerminator;
             _charsetResolver = options.CharsetResolver;
+            _contentTypeOptions = ImfMimeFields.GetParseOptions(options) | MimeMediaTypeParseOptions.AllowWhitespaceAroundDelimiters;
             _decodeTransferEncoding = options.DecodeTransferEncoding;
             _lineFeedIsLineBreak = lineFeedIsLineBreak;
             _maxNestingDepth = options.MaxNestingDepth;
@@ -437,8 +447,18 @@ namespace DataStandardizer.File.InternetMessage
         private void ReadMimeField(Frame frame)
         {
             var name = _scanner.Name.Span;
-            if (EqualsIgnoreCase(name, ContentTypeFieldName))
+            if (EqualsIgnoreCase(name, MimeVersionFieldName))
             {
+                frame.HasMimeVersion = true;
+            }
+            else if (EqualsIgnoreCase(name, ContentIdFieldName) || EqualsIgnoreCase(name, ContentDescriptionFieldName)
+                || EqualsIgnoreCase(name, ContentDispositionFieldName) || EqualsIgnoreCase(name, ContentLanguageFieldName))
+            {
+                frame.HasMimeField = true;
+            }
+            else if (EqualsIgnoreCase(name, ContentTypeFieldName))
+            {
+                frame.HasMimeField = true;
                 if (frame.HasContentType) throw _scanner.BuildCurrentFieldException(ErrorMessage.ContentTypeDuplicate);
 
                 frame.ContentType = ParseContentType(_scanner.GetValue());
@@ -446,6 +466,7 @@ namespace DataStandardizer.File.InternetMessage
             }
             else if (EqualsIgnoreCase(name, TransferEncodingFieldName))
             {
+                frame.HasMimeField = true;
                 if (frame.HasTransferEncoding) throw _scanner.BuildCurrentFieldException(ErrorMessage.TransferEncodingDuplicate);
 
                 frame.TransferEncoding = ParseTransferEncoding(_scanner.GetValue());
@@ -465,7 +486,7 @@ namespace DataStandardizer.File.InternetMessage
             string text;
             MimeMediaType mediaType;
             if (!ImfFieldComments.TryRemove(value, out text)
-                || !MimeMediaType.TryParse(text, MimeMediaTypeParseOptions.AllowWhitespaceAroundDelimiters | MimeMediaTypeParseOptions.AllowRfc2045Tokens, _charsetResolver, out mediaType))
+                || !MimeMediaType.TryParse(text, _contentTypeOptions, _charsetResolver, out mediaType))
             {
                 throw _scanner.BuildCurrentFieldException(ErrorMessage.ContentTypeInvalid);
             }
@@ -490,6 +511,12 @@ namespace DataStandardizer.File.InternetMessage
         /// </summary>
         private void EndHeader(Frame frame)
         {
+            // ref. RFC 2045 §4: the field is required at the top level of a message, and in an embedded message that claims to follow MIME.
+            if (frame.IsMessage && frame.HasMimeField && !frame.HasMimeVersion)
+            {
+                _diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.MissingMimeVersion, ErrorMessage.MissingMimeVersion, _scanner.BytePosition, BuildPath()));
+            }
+
             if (!frame.HasContentType)
             {
                 // ref. RFC 2046 §5.1.5: the default in a digest is a message.

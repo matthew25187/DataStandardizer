@@ -19,8 +19,8 @@ namespace DataStandardizer.File.InternetMessage
     /// <para>
     /// <b>Structure.</b>  Each entity's header section is read as an <see cref="ImfHeaderReader"/> reads one, under the same options, and the limits on a
     /// section apply to each section.  An entity with no Content-Type field is <c>text/plain; charset=us-ascii</c> (RFC 2045 §5.2), or
-    /// <c>message/rfc822</c> if it is a part of a <c>multipart/digest</c> entity (RFC 2046 §5.1.5).  MIME-Version is not required, as it is for the code
-    /// that checks a message to say what a missing one means.  A field that is not valid, or a second Content-Type or Content-Transfer-Encoding field, is
+    /// <c>message/rfc822</c> if it is a part of a <c>multipart/digest</c> entity (RFC 2046 §5.1.5).  A message with a MIME field and no MIME-Version field, which RFC 2045 §4
+    /// requires, is still read, with an <see cref="ImfDiagnostic"/>.  A field that is not valid, or a second Content-Type or Content-Transfer-Encoding field, is
     /// an error.
     /// </para>
     /// <para>

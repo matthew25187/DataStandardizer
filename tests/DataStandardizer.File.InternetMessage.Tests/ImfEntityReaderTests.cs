@@ -819,7 +819,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ReadEvent_UnknownTransferEncodingWithDecodingOn_LeavesTheBodyWithADiagnostic()
         {
             // arrange
-            const string message = "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nContent-Transfer-Encoding: x-other\r\n\r\nQUI=\r\n--b--";
+            const string message = "MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nContent-Transfer-Encoding: x-other\r\n\r\nQUI=\r\n--b--";
             using (var reader = EntityEvents.CreateReader(message, new ImfOptions { DecodeTransferEncoding = true }))
             {
                 // act
@@ -830,7 +830,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
                 reader.Diagnostics.Should().ContainSingle();
                 reader.Diagnostics[0].Kind.Should().Be(ImfDiagnosticKind.UnknownTransferEncoding);
                 reader.Diagnostics[0].EntityPath.Should().Be("1");
-                reader.Diagnostics[0].BytePosition.Should().Be(88);
+                reader.Diagnostics[0].BytePosition.Should().Be(107);
                 reader.Diagnostics[0].Message.Should().Contain("x-other");
             }
         }
@@ -839,7 +839,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ReadEvent_UnknownTransferEncodingWithDecodingOff_HasNoDiagnostic()
         {
             // arrange
-            using (var reader = EntityEvents.CreateReader("Content-Transfer-Encoding: x-other\r\n\r\nQUI="))
+            using (var reader = EntityEvents.CreateReader("MIME-Version: 1.0\r\nContent-Transfer-Encoding: x-other\r\n\r\nQUI="))
             {
                 // act
                 EntityEvents.ReadToEnd(reader);
