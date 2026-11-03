@@ -100,7 +100,8 @@ namespace DataStandardizer.File.InternetMessage
             }
 
             AppendDecodedAtoms(atoms, options, text);
-            phrase = new ImfPhrase(text.ToString(), hasEncodedWordAtom ? BuildEncodedWordForm(start) : string.Empty);
+            var phraseText = text.ToString();
+            phrase = new ImfPhrase(phraseText, hasEncodedWordAtom ? BuildEncodedWordForm(start, phraseText) : string.Empty);
             return true;
         }
 
@@ -160,15 +161,31 @@ namespace DataStandardizer.File.InternetMessage
 
         // Quoting an encoded word would make it plain text, and writing plain text as an atom could make it an encoded word.  So each encoded word is
         // written as it is, and the plain text between them is written as a phrase of its own, which quotes anything of that form.
-        private static string BuildEncodedWordForm(ImfTokenizer tokenizer)
+        //
+        // A period right next to an encoded word is the exception.  Only the obsolete form can write one with no white space, which is never written, and a quoted
+        // period after a space would read back as different text.  So the whole text is written as encoded words, which hold the period.
+        private static string BuildEncodedWordForm(ImfTokenizer tokenizer, string text)
         {
             var output = new StringBuilder();
             var plainText = new StringBuilder();
             var hasPlainText = false;
             var wasWord = false;
+            var wasEncodedWord = false;
+            var wasPeriod = false;
             while (tokenizer.TryRead(out var token) && (token.IsWord || token.Kind == ImfTokenKind.Period))
             {
-                if (IsEncodedWordAtom(tokenizer, token))
+                var isEncodedWord = IsEncodedWordAtom(tokenizer, token);
+                var isPeriod = token.Kind == ImfTokenKind.Period;
+                if (!token.IsPrecededByCfws && ((isEncodedWord && wasPeriod) || (isPeriod && wasEncodedWord)))
+                {
+                    var encodedWords = new StringBuilder();
+                    ImfHeaderText.AppendEncodedWords(RemoveControlCharacters(text), MimeEncodedWordContext.Phrase, encodedWords);
+                    return encodedWords.ToString();
+                }
+
+                wasEncodedWord = isEncodedWord;
+                wasPeriod = isPeriod;
+                if (isEncodedWord)
                 {
                     AppendPlainText(plainText, ref hasPlainText, output);
                     if (output.Length > 0) output.Append(' ');

@@ -254,7 +254,8 @@ namespace DataStandardizer.File.InternetMessage
         /// Formats the list in the modern form, such as <c>first, "second one"</c>.
         /// </summary>
         /// <remarks>
-        /// An encoded word stays as it was read, and any other text is written as it is, which may be UTF-8.  Use <see cref="ToString(ImfHeaderEncoding)"/> to choose.
+        /// An encoded word stays as it was read, and any other text is written as it is, which may be UTF-8.  A word right next to a period is the exception: the
+        /// phrase is written as new encoded words, as only the obsolete form could keep it.  Use <see cref="ToString(ImfHeaderEncoding)"/> to choose.
         /// </remarks>
         /// <returns>The list.</returns>
         public override string ToString()

@@ -218,7 +218,8 @@ namespace DataStandardizer.File.InternetMessage
         /// Formats the group in the modern form, such as <c>Friends: Ed &lt;c@a.test&gt;, joe@where.test;</c> or <c>Undisclosed recipients:;</c>.
         /// </summary>
         /// <remarks>
-        /// An encoded word stays as it was read, and any other text is written as it is, which may be UTF-8.  Use <see cref="ImfAddress.ToString(ImfHeaderEncoding)"/>
+        /// An encoded word stays as it was read, and any other text is written as it is, which may be UTF-8.  A word right next to a period is the exception: the
+        /// phrase is written as new encoded words, as only the obsolete form could keep it.  Use <see cref="ImfAddress.ToString(ImfHeaderEncoding)"/>
         /// to choose.
         /// </remarks>
         /// <returns>The group.</returns>

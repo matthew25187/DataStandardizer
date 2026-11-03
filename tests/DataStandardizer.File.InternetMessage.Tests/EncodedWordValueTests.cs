@@ -201,9 +201,30 @@ namespace DataStandardizer.File.InternetMessage.Tests
             // ref. RFC 2047 §5: a local part or domain is never encoded, so one that is not US-ASCII is left for a writer to refuse.
             new[] { "a <" + EAcute + "@d>", "a <" + EAcute + "@d>", "a <" + EAcute + "@d>", "a <" + EAcute + "@d>" },
 
+            // ref. RFC 5322 §4.1: a period right next to an encoded word is obsolete syntax, which is not written, so the words are made again and hold it.
+            new[] { EncodedA + ". <c@d>", "=?UTF-8?Q?a=2E?= <c@d>", "\"a.\" <c@d>", "\"a.\" <c@d>" },
+            new[] { EncodedA + ". b <c@d>", "=?UTF-8?Q?a=2E_b?= <c@d>", "\"a. b\" <c@d>", "\"a. b\" <c@d>" },
+            new[] { "c." + EncodedA + " <c@d>", "=?UTF-8?B?Yy5h?= <c@d>", "\"c.a\" <c@d>", "\"c.a\" <c@d>" },
+
+            // With white space, the period stays in plain text of its own.
+            new[] { "c. " + EncodedA + " <c@d>", "\"c.\" " + EncodedA + " <c@d>", "\"c. a\" <c@d>", "\"c. a\" <c@d>" },
+            new[] { EncodedA + " .c <c@d>", EncodedA + " \".c\" <c@d>", "\"a .c\" <c@d>", "\"a .c\" <c@d>" },
+
             // A control character that a word decoded to has no form that can be written, and a line break never gets out.
             new[] { "=?UTF-8?Q?a=0D=0Ab?= <c@d>", "=?UTF-8?Q?a=0D=0Ab?= <c@d>", "\"ab\" <c@d>", "\"ab\" <c@d>" },
             new[] { "=?UTF-8?Q?=C3=A9=0Ab?= <c@d>", "=?UTF-8?Q?=C3=A9=0Ab?= <c@d>", "=?UTF-8?B?w6li?= <c@d>", "\"" + EAcute + "b\" <c@d>" },
+        };
+
+        // Each is a mailbox with a period by an encoded word, and its display name, which has to survive being written and read again.
+        public static TheoryData<string, string> PeriodsByEncodedWords => new TheoryData<string, string>
+        {
+            { EncodedA + ". <c@d>", "a." },
+            { EncodedA + ". b <c@d>", "a. b" },
+            { EncodedA + "." + EncodedB + " <c@d>", "a.b" },
+            { "c." + EncodedA + " <c@d>", "c.a" },
+            { "c. " + EncodedA + " <c@d>", "c. a" },
+            { EncodedA + " .c <c@d>", "a .c" },
+            { EAcute + "." + EncodedA + " <c@d>", EAcute + ".a" },
         };
 
         public static TheoryData<string, string> MailboxesAsHeld => FormatColumn(1);
@@ -457,6 +478,20 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // act
             var testResult = subject.ToString(ImfHeaderEncoding.Utf8);
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Theory]
+        [MemberData(nameof(PeriodsByEncodedWords))]
+        public void ToString_PeriodByEncodedWord_ReadsBackWithTheSameDisplayName(string value, string expected)
+        {
+            // arrange
+            var written = ImfMailbox.Parse(value).ToString();
+
+            // act
+            var testResult = ImfMailbox.Parse(written).DisplayName;
 
             // assert
             testResult.Should().Be(expected);
