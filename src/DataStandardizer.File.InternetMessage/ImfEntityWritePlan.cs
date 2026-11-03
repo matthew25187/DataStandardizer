@@ -695,7 +695,7 @@ namespace DataStandardizer.File.InternetMessage
                 var contentType = node.Boundary is null || !node.Boundary.IsGenerated
                     ? node.Source.ContentType
                     : node.Source.ContentType.WithParameter(BoundaryParameterName, node.Boundary.Value);
-                AddGeneratedField(ContentTypeFieldName, contentType.ToString(), builder);
+                AddGeneratedField(ContentTypeFieldName, ImfMimeFields.FormatContentType(contentType), builder);
             }
 
             // ref. RFC 2045 §6.1: "Content-Transfer-Encoding: 7BIT" is assumed if the field is not present.

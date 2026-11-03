@@ -218,7 +218,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var testResult = MessageWrites.Write(source);
 
             // assert
-            testResult.Should().Be("MIME-Version: 1.0\r\nContent-Type: text/plain;charset=utf-8\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\ncaf=C3=A9 abcdef\r\nb");
+            testResult.Should().Be("MIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\ncaf=C3=A9 abcdef\r\nb");
         }
 
         [Fact]
@@ -575,7 +575,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // assert
             testResult.Should().Be(
-                "MIME-Version: 1.0\r\nContent-Type: multipart/mixed;boundary=given\r\nContent-Transfer-Encoding: 8bit\r\n\r\n" +
+                "MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=given\r\nContent-Transfer-Encoding: 8bit\r\n\r\n" +
                 "--given\r\nA: \x00C3\x00A9\r\nContent-Type: text/plain\r\n\r\nx\r\n--given--");
         }
 
@@ -597,7 +597,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // assert
             testResult.Should().Be(
-                "MIME-Version: 1.0\r\nContent-Type: multipart/mixed;boundary=\"=_1\"\r\n\r\n" +
+                "MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=\"=_1\"\r\n\r\n" +
                 "before\r\n" +
                 "--=_1\r\nContent-Type: text/plain\r\n\r\none\r\n" +
                 "--=_1\r\nContent-Type: text/plain\r\n\r\ntwo\r\n\r\n" +
@@ -614,7 +614,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var testResult = MessageWrites.Write(source);
 
             // assert
-            testResult.Should().Be("MIME-Version: 1.0\r\nContent-Type: multipart/mixed;boundary=given\r\n\r\n--given\r\n\r\n--given--");
+            testResult.Should().Be("MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=given\r\n\r\n--given\r\n\r\n--given--");
         }
 
         [Fact]
@@ -628,7 +628,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var testResult = MessageWrites.Write(source);
 
             // assert
-            testResult.Should().Be("MIME-Version: 1.0\r\nContent-Type: multipart/mixed;boundary=given\r\n\r\n--given\r\n\r\n--given--\r\n");
+            testResult.Should().Be("MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=given\r\n\r\n--given\r\n\r\n--given--\r\n");
         }
 
         [Fact]
@@ -643,8 +643,8 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // assert
             testResult.Should().Be(
-                "MIME-Version: 1.0\r\nContent-Type: multipart/mixed;boundary=\"=_1\"\r\n\r\n" +
-                "--=_1\r\nContent-Type: multipart/alternative;boundary=\"=_2\"\r\n\r\n" +
+                "MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=\"=_1\"\r\n\r\n" +
+                "--=_1\r\nContent-Type: multipart/alternative; boundary=\"=_2\"\r\n\r\n" +
                 "--=_2\r\nContent-Type: text/plain\r\n\r\nx\r\n--=_2--\r\n--=_1--");
         }
 
@@ -693,7 +693,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var testResult = MessageWrites.Write(source, options);
 
             // assert
-            testResult.Should().StartWith("MIME-Version: 1.0\r\nContent-Type: multipart/mixed;boundary=given\r\nContent-Transfer-Encoding: binary\r\n\r\n");
+            testResult.Should().StartWith("MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=given\r\nContent-Transfer-Encoding: binary\r\n\r\n");
         }
 
         [Fact]
@@ -822,7 +822,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // assert
             testResult.Should().Be(
-                "MIME-Version: 1.0\r\nContent-Type: multipart/mixed;boundary=\"=_2\"\r\n\r\n" +
+                "MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=\"=_2\"\r\n\r\n" +
                 "--=_2\r\nContent-Type: text/plain\r\n\r\na\r\n--=_1\r\nb\r\n--=_2--");
         }
 
@@ -948,7 +948,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // assert
             testResult.Should().Be(
-                "MIME-Version: 1.0\r\nContent-Type: multipart/mixed;boundary=\"=_1\"\r\n\r\n" +
+                "MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=\"=_1\"\r\n\r\n" +
                 "--=_1\r\nContent-Type: text/plain\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\n--=3D_1\r\n--=_1--");
         }
 
@@ -1139,7 +1139,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var testResult = MessageWrites.Write(source);
 
             // assert
-            testResult.Should().StartWith("MIME-Version: 1.0\r\nContent-Type: multipart/mixed;boundary=\"=_2\"\r\n");
+            testResult.Should().StartWith("MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=\"=_2\"\r\n");
         }
 
         [Fact]
@@ -1340,7 +1340,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // assert
             testResult.Should().Be(
-                "MIME-Version: 1.0\nContent-Type: multipart/mixed;boundary=\"=_1\"\n\n" +
+                "MIME-Version: 1.0\nContent-Type: multipart/mixed; boundary=\"=_1\"\n\n" +
                 "--=_1\nA: 1\nContent-Type: text/plain\n\na\nb\n--=_1--");
         }
 

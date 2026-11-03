@@ -120,7 +120,9 @@ namespace DataStandardizer.File.InternetMessage
         /// RFC 5322 §3.3 requires the day of the week, if there is one, to be the day implied by the date.  When <c>false</c> (the default),
         /// <see cref="ImfDateTime.Parse(string, ImfOptions)"/> throws a <see cref="System.FormatException"/> for one that isn't.  When <c>true</c>, the date
         /// decides: <see cref="ImfDateTime.DayOfWeek"/> is the day implied by the date, and that is the day that gets written.  The other rules of
-        /// §3.3 are always enforced, because a value that breaks them, such as 30 February, is not a date.
+        /// §3.3 are always enforced, because a value that breaks them, such as 30 February, is not a date.  The same goes for the dates of an
+        /// <see cref="ImfContentDisposition"/>.  <see cref="ImfMimeFields.ParseContentLanguage(string, ImfOptions)"/> rejects a language tag that isn't well-formed
+        /// (RFC 3282 §2).  When <c>true</c>, it leaves that tag out of the list.
         /// </remarks>
         public bool AllowInvalidValues
         {
@@ -174,6 +176,37 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
+        /// Gets a flag indicating if the parameters of a Content-Type or Content-Disposition field are accepted when they don't follow the rules.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// When <c>false</c> (the default), a parameter that breaks a rule below makes the field invalid.  When <c>true</c>, each of the accommodations of
+        /// <see cref="MimeMediaTypeParseOptions"/> for RFC 2231 applies: sections that break the numbering of §3 (<see cref="MimeMediaTypeParseOptions.AllowNonstandardSections"/>),
+        /// an extended value that breaks the grammar of §7 (<see cref="MimeMediaTypeParseOptions.AllowNonstandardExtendedValues"/>), a character set that
+        /// <see cref="CharsetResolver"/> can't resolve, or no character set for octets above 127, which §4 doesn't allow (<see cref="MimeMediaTypeParseOptions.AllowUnknownCharsets"/>),
+        /// and octets that aren't valid in the character set (<see cref="MimeMediaTypeParseOptions.AllowInvalidOctets"/>).
+        /// </para>
+        /// <para>
+        /// The other accommodations are for <see cref="ImfMimeFields.ParseContentType(string, ImfOptions)"/> and <see cref="ImfContentDisposition.Parse(string, ImfOptions)"/>.
+        /// RFC 2047 §5 doesn't allow an encoded word in a parameter.  When <c>true</c>, one is accepted, and it is decoded in the <c>filename</c> of a Content-Disposition field and
+        /// the <c>name</c> of a Content-Type field, and stays as written in any other parameter.  A semicolon may end a Content-Type field, which RFC 2045 §5.1 doesn't allow.  A date or
+        /// size in a Content-Disposition field that breaks RFC 2183 §2 stays as a parameter, and its property is <c>null</c>.
+        /// </para>
+        /// <para>
+        /// An <see cref="ImfEntityReader"/> uses only the accommodations for RFC 2231.  It doesn't look at other parameters than those it needs to find the parts of a message.
+        /// </para>
+        /// </remarks>
+        public bool AllowMalformedParameters
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
         /// Gets a flag indicating if a multipart entity with no close delimiter is accepted.
         /// </summary>
         /// <remarks>
@@ -193,8 +226,8 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Gets the resolver for character sets: <see cref="HeaderFallbackCharset"/>, those named in the extended parameters of a Content-Type
-        /// field (RFC 2231 §4), and those of RFC 2047 encoded words.
+        /// Gets the resolver for character sets: <see cref="HeaderFallbackCharset"/>, those named in the extended parameters of a Content-Type or
+        /// Content-Disposition field (RFC 2231 §4), and those of RFC 2047 encoded words.
         /// </summary>
         /// <remarks>
         /// The default is <see cref="MimeCharsetResolver.Default"/>.  An <see cref="ImfEntityReader"/> always needs it.  An

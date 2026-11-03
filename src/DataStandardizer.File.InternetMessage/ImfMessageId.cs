@@ -23,6 +23,11 @@ namespace DataStandardizer.File.InternetMessage
     public sealed class ImfMessageId : IEquatable<ImfMessageId>
     {
         private const string InvalidFormatMessage = "The message identifier is not in a valid format.";
+        private const string InvalidCidUriMessage = "The cid: URI is not in a valid format.";
+        private const string CidScheme = "cid:";
+        private const string UriSafeCharacters = "$-_.+!*'(),";
+        private const string UriReservedCharacters = ";/?:@&=";
+        private const string UpperCaseHexDigits = "0123456789ABCDEF";
 
         /// <summary>
         /// Initializes a new message identifier.
@@ -170,6 +175,98 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
+        /// Converts a <c>cid:</c> URI (RFC 2392 §2) to the identifier in the Content-ID field of the entity that it refers to.
+        /// </summary>
+        /// <param name="value">The URI, such as <c>cid:foo4%25foo1@bar.net</c>.</param>
+        /// <returns>The identifier, such as <c>&lt;foo4%foo1@bar.net&gt;</c>.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="value"/> is <c>null</c>.</exception>
+        /// <exception cref="FormatException">The value is not valid, as <see cref="TryParseCidUri"/> describes.</exception>
+        public static ImfMessageId ParseCidUri(string value)
+        {
+            if (value is null) throw new ArgumentNullException(nameof(value));
+            if (!TryParseCidUri(value, out var result)) throw new FormatException(InvalidCidUriMessage);
+
+            return result;
+        }
+
+        /// <summary>
+        /// Converts a <c>cid:</c> URI (RFC 2392 §2) to the identifier in the Content-ID field of the entity that it refers to.
+        /// </summary>
+        /// <remarks>
+        /// As RFC 2392 §2 says, this removes the scheme, converts each <c>%</c> escape to its US-ASCII character, and puts the rest in angle brackets.  The example there shows
+        /// the escape as still in the Content-ID field, which disagrees with what it says, so this does what it says.  An escape of an octet above 127 isn't valid, nor is a
+        /// character that RFC 1738 §2.2 says must be escaped, such as <c>~</c> or <c>#</c>.  The scheme is compared case-insensitively.
+        /// </remarks>
+        /// <param name="value">The URI, such as <c>cid:foo4%25foo1@bar.net</c>.</param>
+        /// <param name="result">The identifier, such as <c>&lt;foo4%foo1@bar.net&gt;</c>, if the value is valid.</param>
+        /// <returns><c>true</c> if the value is valid; otherwise <c>false</c>, including for <c>null</c>.</returns>
+        public static bool TryParseCidUri([AllowNull, NotNullWhen(true)] string value, [MaybeNullWhen(false)] out ImfMessageId result)
+        {
+            result = null;
+            if (value is null || !value.StartsWith(CidScheme, StringComparison.OrdinalIgnoreCase)) return false;
+
+            var bytes = new byte[value.Length - CidScheme.Length + 2];
+            var length = 0;
+            bytes[length++] = (byte)'<';
+            for (var index = CidScheme.Length; index < value.Length; index++)
+            {
+                var c = value[index];
+                if (c == '%')
+                {
+                    if (index + 2 >= value.Length) return false;
+
+                    var high = GetHexValue(value[index + 1]);
+                    var low = GetHexValue(value[index + 2]);
+                    if (high < 0 || low < 0 || high > 7) return false;
+
+                    bytes[length++] = (byte)(high * 16 + low);
+                    index += 2;
+                }
+                else if (IsUriCharacter(c) || UriReservedCharacters.IndexOf(c) >= 0)
+                {
+                    bytes[length++] = (byte)c;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            bytes[length++] = (byte)'>';
+            return TryParse(new ReadOnlySpan<byte>(bytes, 0, length), out result);
+        }
+
+        /// <summary>
+        /// Converts the identifier in a Content-ID field to the <c>cid:</c> URI that refers to the entity (RFC 2392 §2), such as <c>cid:foo4%25foo1@bar.net</c>.
+        /// </summary>
+        /// <remarks>
+        /// Any character that a URL can't hold, or that has a special meaning in one, is written as a <c>%</c> escape (RFC 1738 §2.2).
+        /// </remarks>
+        /// <returns>The URI.</returns>
+        /// <exception cref="InvalidOperationException">The identifier isn't US-ASCII, as only RFC 6532 allows, so it has no <c>cid:</c> URI.</exception>
+        public string ToCidUri()
+        {
+            var text = ToString();
+            var output = new StringBuilder(CidScheme, text.Length + CidScheme.Length);
+            for (var index = 1; index < text.Length - 1; index++)
+            {
+                var c = text[index];
+                if (c >= 0x80) throw new InvalidOperationException("RFC 2392 §2 has no form for an identifier that isn't US-ASCII.");
+
+                if (c == '@' || IsUriCharacter(c))
+                {
+                    output.Append(c);
+                }
+                else
+                {
+                    output.Append('%').Append(UpperCaseHexDigits[c >> 4]).Append(UpperCaseHexDigits[c & 0xF]);
+                }
+            }
+
+            return output.ToString();
+        }
+
+        /// <summary>
         /// Indicates whether this message identifier equals another: both parts are the same, compared case-sensitively.
         /// </summary>
         public bool Equals([AllowNull] ImfMessageId other)
@@ -222,6 +319,21 @@ namespace DataStandardizer.File.InternetMessage
             ImfGrammar.AppendAddrSpec(IdLeft, IdRight, output);
             output.Append('>');
             return output.ToString();
+        }
+
+        // ref. RFC 1738 §2.2: alphanumerics and the special characters "$-_.+!*'()," may be used unencoded.
+        private static bool IsUriCharacter(char c)
+        {
+            return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || UriSafeCharacters.IndexOf(c) >= 0;
+        }
+
+        private static int GetHexValue(char c)
+        {
+            if (c >= '0' && c <= '9') return c - '0';
+            if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+            if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+
+            return -1;
         }
     }
 }

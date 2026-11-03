@@ -26,7 +26,7 @@ namespace DataStandardizer.File.InternetMessage
     /// </remarks>
     public static class ImfHeaderText
     {
-        private const MimeEncodedWordParseOptions MalformedWordOptions = MimeEncodedWordParseOptions.AllowLongWords
+        internal const MimeEncodedWordParseOptions MalformedWordOptions = MimeEncodedWordParseOptions.AllowLongWords
             | MimeEncodedWordParseOptions.AllowEmbeddedWords
             | MimeEncodedWordParseOptions.AllowUnknownCharsets
             | MimeEncodedWordParseOptions.AllowLowercaseHexDigits

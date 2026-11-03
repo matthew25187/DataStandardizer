@@ -32,6 +32,14 @@ namespace DataStandardizer.File.InternetMessage
         // ref. RFC 5322 §3.3: date-time = [ day-of-week "," ] date time [CFWS]; date = day month year; time = time-of-day zone
         internal static bool TryParse(ReadOnlySpan<byte> value, bool allowInvalidValues, out ImfDateTime result)
         {
+            return TryParse(value, allowInvalidValues, false, out result);
+        }
+
+        /// <summary>
+        /// Parses a date-time, which may be required to have a numeric zone, as in a Content-Disposition field (RFC 2183 §2).
+        /// </summary>
+        internal static bool TryParse(ReadOnlySpan<byte> value, bool allowInvalidValues, bool requireNumericZone, out ImfDateTime result)
+        {
             result = default;
             if (!ImfTokenizer.IsWellFormed(value)) return false;
 
@@ -41,7 +49,7 @@ namespace DataStandardizer.File.InternetMessage
             if (!TryReadName(value, ref position, MonthNames, out var monthIndex)) return false;
             if (!TryReadYearAndHour(value, ref position, out var year, out var hour)) return false;
             if (!TryReadMinuteAndSecond(value, ref position, out var minute, out var second)) return false;
-            if (!TryReadZone(value, ref position, out var offsetMinutes, out var isOffsetUnknown)) return false;
+            if (!TryReadZone(value, ref position, requireNumericZone, out var offsetMinutes, out var isOffsetUnknown)) return false;
             if (!ImfTokenizer.TrySkipCfws(value, ref position) || position != value.Length) return false;
 
             // ref. RFC 5322 §3.3: "A date-time specification MUST be semantically valid."  The year is any numeric year 1900 or later.
@@ -153,14 +161,14 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         // ref. RFC 5322 §3.3: zone = (FWS ( "+" / "-" ) 4DIGIT) / obs-zone
-        private static bool TryReadZone(ReadOnlySpan<byte> value, ref int position, out int offsetMinutes, out bool isOffsetUnknown)
+        private static bool TryReadZone(ReadOnlySpan<byte> value, ref int position, bool requireNumericZone, out int offsetMinutes, out bool isOffsetUnknown)
         {
             offsetMinutes = 0;
             isOffsetUnknown = false;
             if (position == value.Length) return false;
 
             var current = value[position];
-            if (current != (byte)'+' && current != (byte)'-') return TryReadObsoleteZone(value, ref position, out offsetMinutes, out isOffsetUnknown);
+            if (current != (byte)'+' && current != (byte)'-') return !requireNumericZone && TryReadObsoleteZone(value, ref position, out offsetMinutes, out isOffsetUnknown);
 
             // A comment before the zone may end the [CFWS] of the part before it, but the FWS of this rule still has to come last.
             var previous = value[position - 1];
