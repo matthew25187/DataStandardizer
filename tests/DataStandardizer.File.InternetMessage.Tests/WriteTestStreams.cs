@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -222,11 +223,17 @@ namespace DataStandardizer.File.InternetMessage.Tests
         /// </summary>
         public long LargestStep { get; private set; }
 
+        /// <summary>
+        /// Gets every report made, in order.
+        /// </summary>
+        public List<ImfWriteProgress> Reports { get; } = new List<ImfWriteProgress>();
+
         public void Report(ImfWriteProgress value)
         {
             LargestStep = Math.Max(LargestStep, value.BytesWritten - Last.BytesWritten);
             ReportCount++;
             Last = value;
+            Reports.Add(value);
         }
     }
 

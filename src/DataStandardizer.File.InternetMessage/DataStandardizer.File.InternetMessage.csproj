@@ -11,7 +11,8 @@ Provides types supporting the reading and writing of Internet messages, includin
 - RFC 5322, RFC 6532 and RFC 6854: typed addresses, mailboxes, groups, message identifiers and keyword phrases, parsed from the modern and obsolete syntax and written in the modern form where the modern syntax can express them
 - RFC 5322: typed date-times, parsed from the modern and obsolete syntax and written in the modern form, which keep an unknown UTC offset (-0000), a leap second and whether a day of the week was given
 - RFC 2047: encoded words in display names, keyword phrases, comments and unstructured fields, decoded when read and written where text is not US-ASCII
-- RFC 2045, RFC 2183, RFC 2231, RFC 2392 and RFC 3282: the MIME-Version, Content-Type, Content-Transfer-Encoding, Content-ID, Content-Description, Content-Disposition and Content-Language header fields, with cid: URIs</Description>
+- RFC 2045, RFC 2183, RFC 2231, RFC 2392 and RFC 3282: the MIME-Version, Content-Type, Content-Transfer-Encoding, Content-ID, Content-Description, Content-Disposition and Content-Language header fields, with cid: URIs
+- RFC 5322 and RFC 6854: a message object model with typed accessors for the origination, destination, identification, informational, resent and trace fields, a reader and writer that keep unchanged fields byte for byte, and the conformance checks of RFC 5322 §3.6</Description>
     <Copyright>Copyright © 2026, Matthew25187. All rights reserved.</Copyright>
     <PackageTags>data;standard;email;internet message;file;rfc 5322;rfc 6532;rfc 6854;mime;rfc 2045;rfc 2046;rfc 2047;rfc 2183;rfc 2231;rfc 2392;rfc 3282</PackageTags>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>

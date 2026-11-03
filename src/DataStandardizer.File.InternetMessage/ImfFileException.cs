@@ -22,14 +22,21 @@ namespace DataStandardizer.File.InternetMessage
             public const string BytePosition = "BytePosition";
 
             /// <summary>
+            /// The kind of problem, as an <see cref="ImfDiagnosticKind"/>.  Present only for a problem that an option can turn into an <see cref="ImfDiagnostic"/>, found by an
+            /// <see cref="ImfReader"/> or <see cref="ImfWriter"/>.
+            /// </summary>
+            public const string DiagnosticKind = "DiagnosticKind";
+
+            /// <summary>
             /// The path of the entity in which the problem was found, as a <see cref="string"/>, in the form that
             /// <see cref="ImfEntityEvent.EntityPath"/> describes.  Present only for a problem found by an <see cref="ImfEntityReader"/> or
-            /// <see cref="ImfEntityWriter"/>.
+            /// <see cref="ImfEntityWriter"/>, or by the conformance checks of an <see cref="ImfReader"/> or <see cref="ImfWriter"/>.
             /// </summary>
             public const string EntityPath = "EntityPath";
 
             /// <summary>
-            /// The name of the header field, as a <see cref="string"/>.  Present only once the name has been read.
+            /// The name of the header field, as a <see cref="string"/>, which for a required field that is missing is the name it should have.  Otherwise present only once
+            /// the name has been read.
             /// </summary>
             public const string FieldName = "FieldName";
 

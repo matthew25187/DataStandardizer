@@ -19,6 +19,7 @@
     <Compile Include="..\DataStandardizer.File.InternetMessage.Tests\FieldSnapshot.cs" Link="Shared\FieldSnapshot.cs" />
     <Compile Include="..\DataStandardizer.File.InternetMessage.Tests\HeaderSections.cs" Link="Shared\HeaderSections.cs" />
     <Compile Include="..\DataStandardizer.File.InternetMessage.Tests\Octets.cs" Link="Shared\Octets.cs" />
+    <Compile Include="..\DataStandardizer.File.InternetMessage.Tests\Rfc5322Messages.cs" Link="Shared\Rfc5322Messages.cs" />
   </ItemGroup>
 
   <Target Name="CopyNetStandard11Build" AfterTargets="CopyFilesToOutputDirectory">

@@ -4,8 +4,8 @@ using System.Globalization;
 namespace DataStandardizer.File.InternetMessage
 {
     /// <summary>
-    /// The progress of a writer.  <see cref="ImfHeaderWriter"/> reports it after each field of a bulk write, and <see cref="ImfEntityWriter"/> after each
-    /// block of output.
+    /// The progress of a writer.  <see cref="ImfHeaderWriter"/> reports it after each field of a bulk write, <see cref="ImfEntityWriter"/> after each
+    /// block of output, and <see cref="ImfWriter"/> after each field and each block of a body.
     /// </summary>
     /// <remarks>
     /// Counts are cumulative for the writer, not for the call that reports them.

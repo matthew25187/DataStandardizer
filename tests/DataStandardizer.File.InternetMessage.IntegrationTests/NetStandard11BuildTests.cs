@@ -37,6 +37,9 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
 
         private const string HeaderWriterTypeName = "ImfHeaderWriter";
         private const string EntityWriterTypeName = "ImfEntityWriter";
+        private const string MessageWriterTypeName = "ImfWriter";
+        private const string MessageReaderTypeName = nameof(ImfReader);
+        private const string MessageSyncReadMethodName = nameof(ImfReader.ReadMessage);
 
         [Fact]
         public void Methods_ReaderInNetStandard11Build_HaveTheSynchronousRead()
@@ -81,6 +84,7 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
         [Theory]
         [InlineData(HeaderWriterTypeName)]
         [InlineData(EntityWriterTypeName)]
+        [InlineData(MessageWriterTypeName)]
         public void Methods_WriterInNetStandard11Build_HaveNoAsynchronousMembers(string typeName)
         {
             // act
@@ -93,6 +97,7 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
         [Theory]
         [InlineData(HeaderWriterTypeName)]
         [InlineData(EntityWriterTypeName)]
+        [InlineData(MessageWriterTypeName)]
         public void Constructors_WriterInNetStandard11Build_TakeAStreamAndNotAFilePath(string typeName)
         {
             // act
@@ -105,6 +110,7 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
         [Theory]
         [InlineData(HeaderWriterTypeName)]
         [InlineData(EntityWriterTypeName)]
+        [InlineData(MessageWriterTypeName)]
         public void Methods_WriterInNetStandard11Build_HaveNoFilePathConstructors(string typeName)
         {
             // act
@@ -149,6 +155,46 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
         {
             // act
             var testResult = ReadConstructorParameterNames(EntityReaderTypeName);
+
+            // assert
+            testResult.Should().Contain(StreamParameterName).And.NotContain(FilePathParameterName);
+        }
+
+        [Fact]
+        public void Methods_MessageReaderInNetStandard11Build_HaveTheSynchronousRead()
+        {
+            // act
+            var testResult = ReadMethodNames(MessageReaderTypeName);
+
+            // assert
+            testResult.Should().Contain(MessageSyncReadMethodName);
+        }
+
+        [Fact]
+        public void Methods_MessageReaderInNetStandard11Build_HaveNoAsynchronousMembers()
+        {
+            // act
+            var testResult = ReadMethodNames(MessageReaderTypeName);
+
+            // assert
+            testResult.Should().NotContain(name => name.EndsWith(AsyncSuffix, StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void Methods_MessageReaderInNetStandard11Build_HaveNoFilePathConstructors()
+        {
+            // act
+            var testResult = ReadMethodNames(MessageReaderTypeName);
+
+            // assert
+            testResult.Count(name => name == ".ctor").Should().Be(ConstructorCount);
+        }
+
+        [Fact]
+        public void Constructors_MessageReaderInNetStandard11Build_TakeAStreamAndNotAFilePath()
+        {
+            // act
+            var testResult = ReadConstructorParameterNames(MessageReaderTypeName);
 
             // assert
             testResult.Should().Contain(StreamParameterName).And.NotContain(FilePathParameterName);

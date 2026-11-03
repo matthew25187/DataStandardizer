@@ -154,6 +154,126 @@ namespace DataStandardizer.File.InternetMessage
             return true;
         }
 
+        // ref. RFC 5322 §3.6.3: bcc = "Bcc:" [address-list / CFWS] CRLF
+        // ref. RFC 5322 §4.5.3: obs-bcc = "Bcc" *WSP ":" (address-list / (*([CFWS] ",") [CFWS])) CRLF
+        internal static bool IsEmptyAddressList(ReadOnlySpan<byte> value, ImfOptions options)
+        {
+            if (!ImfHeaderText.TryGetUtf8(value, options, out var utf8)) return false;
+
+            var tokenizer = new ImfTokenizer(utf8);
+            while (tokenizer.TryRead(out var token))
+            {
+                if (token.Kind == ImfTokenKind.End) return true;
+                if (token.Kind != ImfTokenKind.Comma) return false;
+            }
+
+            return false;
+        }
+
+        // ref. RFC 5322 §3.6.7: path = angle-addr / ([CFWS] "<" [CFWS] ">" [CFWS])
+        // The result is null for the empty path.
+        internal static bool TryParsePath(ReadOnlySpan<byte> value, ImfOptions options, [MaybeNull] out ImfMailbox result)
+        {
+            result = null;
+            if (!ImfHeaderText.TryGetUtf8(value, options, out var utf8)) return false;
+
+            var tokenizer = new ImfTokenizer(utf8);
+            var scan = tokenizer;
+            if (scan.TryRead(out var open) && open.Kind == ImfTokenKind.LessThan && scan.TryRead(out var close) && close.Kind == ImfTokenKind.GreaterThan)
+            {
+                return IsAtEnd(ref scan);
+            }
+
+            if (!TryReadAngleAddr(ref tokenizer, out var localPart, out var domain) || !IsAtEnd(ref tokenizer)) return false;
+
+            result = new ImfMailbox(new ImfPhrase(string.Empty), localPart, domain);
+            return true;
+        }
+
+        // ref. RFC 5322 §3.6.7: received = "Received:" *received-token ";" date-time CRLF
+        // ref. RFC 5322 §4.5.7: obs-received = "Received" *WSP ":" *received-token CRLF
+        // The date is left unparsed, for the caller to parse under its options.
+        internal static bool TryParseReceived(ReadOnlySpan<byte> value, ImfOptions options, [MaybeNullWhen(false)] out string[] tokens, out bool hasDate, out ReadOnlySpan<byte> date)
+        {
+            tokens = null;
+            hasDate = false;
+            date = default;
+            if (!ImfHeaderText.TryGetUtf8(value, options, out var utf8)) return false;
+
+            var tokenizer = new ImfTokenizer(utf8);
+            var list = new List<string>();
+            while (true)
+            {
+                if (!tokenizer.TryPeek(out var token)) return false;
+
+                if (token.Kind == ImfTokenKind.End) break;
+
+                if (token.Kind == ImfTokenKind.Semicolon)
+                {
+                    hasDate = true;
+                    date = utf8.Slice(token.Start + token.Length);
+                    break;
+                }
+
+                if (!TryReadReceivedToken(ref tokenizer, out var text)) return false;
+
+                list.Add(text);
+            }
+
+            tokens = list.ToArray();
+            return true;
+        }
+
+        // ref. RFC 5322 §3.6.7: received-token = word / angle-addr / addr-spec / domain
+        private static bool TryReadReceivedToken(ref ImfTokenizer tokenizer, [MaybeNullWhen(false)] out string text)
+        {
+            text = null;
+            if (!tokenizer.TryPeek(out var token)) return false;
+
+            if (token.Kind == ImfTokenKind.DomainLiteral)
+            {
+                tokenizer.TryRead(out token);
+                text = tokenizer.GetText(token);
+                return true;
+            }
+
+            var output = new StringBuilder();
+            if (token.Kind == ImfTokenKind.LessThan)
+            {
+                if (!TryReadAngleAddr(ref tokenizer, out var angleLocalPart, out var angleDomain)) return false;
+
+                output.Append('<');
+                ImfGrammar.AppendAddrSpec(angleLocalPart, angleDomain, output);
+                output.Append('>');
+                text = output.ToString();
+                return true;
+            }
+
+            // A word and a dot-atom start alike, and only what follows them tells a domain from the local part of an addr-spec.
+            var scan = tokenizer;
+            if (!TryReadLocalPart(ref tokenizer, out var words) || !tokenizer.TryPeek(out var next)) return false;
+
+            if (next.Kind != ImfTokenKind.At)
+            {
+                // Without an "@", only a local part can hold a quoted-string next to a period, so this must be one word, or a domain.
+                if (token.Kind == ImfTokenKind.QuotedString
+                    ? !scan.TryRead(out _) || !scan.TryPeek(out next) || next.Kind == ImfTokenKind.Period
+                    : !TryReadDomain(ref scan, out _))
+                {
+                    return false;
+                }
+
+                text = words;
+                return true;
+            }
+
+            tokenizer.TryRead(out token);
+            if (!TryReadDomain(ref tokenizer, out var domain)) return false;
+
+            text = output.Append(words).Append('@').Append(domain).ToString();
+            return true;
+        }
+
         // ref. RFC 5322 §3.4: address = mailbox / group; mailbox = name-addr / addr-spec; name-addr = [display-name] angle-addr
         private static bool TryReadAddress(ref ImfTokenizer tokenizer, ImfOptions options, bool allowGroup, [MaybeNullWhen(false)] out ImfAddress address)
         {

@@ -58,8 +58,8 @@ namespace DataStandardizer.File.InternetMessage
     /// </para>
     /// <para>
     /// Only one operation may be in progress at a time.  Synchronous and asynchronous calls may follow one another, but a call made while another is in
-    /// progress throws <see cref="InvalidOperationException"/>.  After a write fails or is canceled once output has started, a message is incomplete, so the
-    /// writer cannot continue.
+    /// progress throws <see cref="InvalidOperationException"/>.  After a write fails once output has started, a message is incomplete, so the writer cannot continue, and the
+    /// same goes after any write is canceled, whether or not output had started.
     /// </para>
     /// <para>
     /// A file-path constructor opens the file with <c>FileOptions.Asynchronous</c>, so the asynchronous methods do no synchronous I/O.  To write a file

@@ -486,6 +486,14 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
+        /// Copies the current field, which <see cref="ParseField"/> has checked, for a message to keep.
+        /// </summary>
+        internal ImfHeaderField ToField()
+        {
+            return new ImfHeaderField(GetName(), RawBytes.ToArray(), Value.ToArray(), _needsFallbackCharset ? GetValue() : string.Empty, _fieldBytePosition, _fieldLineNumber);
+        }
+
+        /// <summary>
         /// Returns the pooled blocks.  The scanner must not be used afterwards.
         /// </summary>
         internal void ReturnBuffers()
