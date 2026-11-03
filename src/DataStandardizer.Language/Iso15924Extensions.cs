@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Reflection;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.Language
@@ -16,7 +16,7 @@ namespace DataStandardizer.Language
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetEnglishName(this Iso15924Script scriptCode)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         public static string GetEnglishName(this Iso15924Script scriptCode)
 #endif
         {
@@ -42,7 +42,7 @@ namespace DataStandardizer.Language
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetFrenchName(this Iso15924Script scriptCode)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         public static string GetFrenchName(this Iso15924Script scriptCode)
 #endif
         {
@@ -68,7 +68,7 @@ namespace DataStandardizer.Language
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetAlias(this Iso15924Script scriptCode)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         public static string GetAlias(this Iso15924Script scriptCode)
 #endif
         {

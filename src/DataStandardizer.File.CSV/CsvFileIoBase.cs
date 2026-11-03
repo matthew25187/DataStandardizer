@@ -8,7 +8,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Text;
 #if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP3_0_OR_GREATER
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.File.CSV
@@ -20,16 +20,16 @@ namespace DataStandardizer.File.CSV
         private ICsvFileMapper? _resolvedMapper;
         private Type? _resolvedMapperLineType;
 #else
-        [CanBeNull] private string _quoteSearchEmbeddedLineBreak;
-        [CanBeNull] private ICsvFileMapper _resolvedMapper;
-        [CanBeNull] private Type _resolvedMapperLineType;
+        [MaybeNull] private string _quoteSearchEmbeddedLineBreak;
+        [MaybeNull] private ICsvFileMapper _resolvedMapper;
+        [MaybeNull] private Type _resolvedMapperLineType;
 #endif
 #if NET8_0_OR_GREATER
         private SearchValues<char>? _quoteSearchValues;
 #elif NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private char[]? _quoteSearchCharacters;
 #else
-        [CanBeNull] private char[] _quoteSearchCharacters;
+        [MaybeNull] private char[] _quoteSearchCharacters;
 #endif
         private char _quoteSearchDelimiter;
         private int _resolvedMapperVersion;
@@ -169,7 +169,7 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private static char[] GetQuoteSearchCharacters(char fieldDelimiter, string? embeddedLineBreak)
 #else
-        private static char[] GetQuoteSearchCharacters(char fieldDelimiter, [CanBeNull] string embeddedLineBreak)
+        private static char[] GetQuoteSearchCharacters(char fieldDelimiter, [AllowNull] string embeddedLineBreak)
 #endif
         {
             var lineBreakCharacters = embeddedLineBreak ?? "\r\n";
@@ -186,9 +186,9 @@ namespace DataStandardizer.File.CSV
         [return: System.Diagnostics.CodeAnalysis.MaybeNull]
         protected T DeserializeCsvLineFieldValue<T>(CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, object? fieldValue)
 #else
-        [CanBeNull]
-        protected T DeserializeCsvLineFieldValue<T>([CanBeNull] CsvFileHeaderLine headerLine, [NotNull] TRecordLine recordLine, [NotNull] CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
-            [CanBeNull] object fieldValue)
+        [return: MaybeNull]
+        protected T DeserializeCsvLineFieldValue<T>([AllowNull] CsvFileHeaderLine headerLine, [DisallowNull] TRecordLine recordLine, [DisallowNull] CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
+            [AllowNull] object fieldValue)
 #endif
         {
             if (fieldValue is null)
@@ -254,8 +254,8 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         protected object? GetCsvLineMappedFieldValue(TRecordLine recordLine, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping) 
         #else
-        [CanBeNull]
-        protected object GetCsvLineMappedFieldValue([NotNull] TRecordLine recordLine, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping)
+        [return: MaybeNull]
+        protected object GetCsvLineMappedFieldValue([DisallowNull] TRecordLine recordLine, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping)
 #endif
         {
             ICsvFileLine csvLine = recordLine;
@@ -346,9 +346,9 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         protected string? SerializeCsvLineFieldValue(CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, object? fieldValue) 
         #else
-        [CanBeNull]
-        protected string SerializeCsvLineFieldValue([CanBeNull] CsvFileHeaderLine headerLine, [NotNull] TRecordLine recordLine, [NotNull] CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
-            [CanBeNull] object fieldValue)
+        [return: MaybeNull]
+        protected string SerializeCsvLineFieldValue([AllowNull] CsvFileHeaderLine headerLine, [DisallowNull] TRecordLine recordLine, [DisallowNull] CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
+            [AllowNull] object fieldValue)
 #endif
         {
             if (fieldValue is null)
@@ -378,9 +378,9 @@ namespace DataStandardizer.File.CSV
         private protected string? ConvertFieldValueToString(CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
             CsvFieldConvertToString<TRecordLine>? converter, TypeConverter? typeConverter, object fieldValue)
 #else
-        [CanBeNull]
-        private protected string ConvertFieldValueToString([CanBeNull] CsvFileHeaderLine headerLine, [NotNull] TRecordLine recordLine, [NotNull] CsvFileOptions options,
-            KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, [CanBeNull] CsvFieldConvertToString<TRecordLine> converter, [CanBeNull] TypeConverter typeConverter, [NotNull] object fieldValue)
+        [return: MaybeNull]
+        private protected string ConvertFieldValueToString([AllowNull] CsvFileHeaderLine headerLine, [DisallowNull] TRecordLine recordLine, [DisallowNull] CsvFileOptions options,
+            KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, [AllowNull] CsvFieldConvertToString<TRecordLine> converter, [AllowNull] TypeConverter typeConverter, [DisallowNull] object fieldValue)
 #endif
         {
             if (converter != null)
@@ -411,8 +411,8 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private protected static string? FormatFieldValue(object fieldValue, ICsvFileOptions options)
 #else
-        [CanBeNull]
-        private protected static string FormatFieldValue([NotNull] object fieldValue, [NotNull] ICsvFileOptions options)
+        [return: MaybeNull]
+        private protected static string FormatFieldValue([DisallowNull] object fieldValue, [DisallowNull] ICsvFileOptions options)
 #endif
         {
             return options.Culture != null && fieldValue is IFormattable formattableFieldValue
@@ -456,12 +456,12 @@ namespace DataStandardizer.File.CSV
 
             internal abstract object? Generate(Delegate generator);
 #else
-            [CanBeNull]
-            internal abstract object Deserialize([NotNull] CsvFileIoBase<TRecordLine> io, [CanBeNull] CsvFileHeaderLine headerLine, [NotNull] TRecordLine recordLine, [NotNull] CsvFileOptions options,
-                KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, [CanBeNull] object fieldValue);
+            [return: MaybeNull]
+            internal abstract object Deserialize([DisallowNull] CsvFileIoBase<TRecordLine> io, [AllowNull] CsvFileHeaderLine headerLine, [DisallowNull] TRecordLine recordLine, [DisallowNull] CsvFileOptions options,
+                KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, [AllowNull] object fieldValue);
 
-            [CanBeNull]
-            internal abstract object Generate([NotNull] Delegate generator);
+            [return: MaybeNull]
+            internal abstract object Generate([DisallowNull] Delegate generator);
 #endif
         }
 

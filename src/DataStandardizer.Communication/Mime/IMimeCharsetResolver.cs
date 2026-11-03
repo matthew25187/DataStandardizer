@@ -1,7 +1,5 @@
 using System.Text;
-#if NETCOREAPP3_0_OR_GREATER
 using System.Diagnostics.CodeAnalysis;
-#endif
 
 namespace DataStandardizer.Communication.Mime
 {
@@ -23,7 +21,7 @@ namespace DataStandardizer.Communication.Mime
 #if NETCOREAPP3_0_OR_GREATER
         bool TryGetEncoding(MimeCharset charset, [NotNullWhen(true)] out Encoding? encoding);
 #else
-        bool TryGetEncoding(MimeCharset charset, out Encoding encoding);
+        bool TryGetEncoding(MimeCharset charset, [MaybeNullWhen(false)] out Encoding encoding);
 #endif
     }
 }

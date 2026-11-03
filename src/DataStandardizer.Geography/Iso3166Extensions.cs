@@ -3,7 +3,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.Geography
@@ -32,7 +32,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetEnglishName(this Iso3166Part1Alpha2Country countryCode, Iso3166CountryName nameType)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         public static string GetEnglishName(this Iso3166Part1Alpha2Country countryCode, Iso3166CountryName nameType)
 #endif
         {
@@ -54,8 +54,8 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetNativeName(this Iso3166Part1Alpha2Country countryCode, string iso639LanguageCode, Iso3166CountryName nameType)
 #else
-        [CanBeNull]
-        public static string GetNativeName(this Iso3166Part1Alpha2Country countryCode, [NotNull] string iso639LanguageCode, Iso3166CountryName nameType)
+        [return: MaybeNull]
+        public static string GetNativeName(this Iso3166Part1Alpha2Country countryCode, [DisallowNull] string iso639LanguageCode, Iso3166CountryName nameType)
 #endif
         {
             if (!Enum.IsDefined(countryCode.GetType(), countryCode))
@@ -100,7 +100,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetEnglishName(this Iso3166Part1Alpha3Country countryCode, Iso3166CountryName nameType)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         public static string GetEnglishName(this Iso3166Part1Alpha3Country countryCode, Iso3166CountryName nameType)
 #endif
         {
@@ -122,8 +122,8 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetNativeName(this Iso3166Part1Alpha3Country countryCode, string iso639LanguageCode, Iso3166CountryName nameType)
 #else
-        [CanBeNull]
-        public static string GetNativeName(this Iso3166Part1Alpha3Country countryCode, [NotNull] string iso639LanguageCode, Iso3166CountryName nameType)
+        [return: MaybeNull]
+        public static string GetNativeName(this Iso3166Part1Alpha3Country countryCode, [DisallowNull] string iso639LanguageCode, Iso3166CountryName nameType)
 #endif
         {
             if (!Enum.IsDefined(countryCode.GetType(), countryCode))
@@ -181,8 +181,8 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetSubdivisionCategoryName(this Iso3166Part2Subdivision subdivisionCode, string iso639LanguageCode)
 #else
-        [CanBeNull]
-        public static string GetSubdivisionCategoryName(this Iso3166Part2Subdivision subdivisionCode, [NotNull] string iso639LanguageCode)
+        [return: MaybeNull]
+        public static string GetSubdivisionCategoryName(this Iso3166Part2Subdivision subdivisionCode, [DisallowNull] string iso639LanguageCode)
 #endif
         {
             var countrySubdivisionCodeInformation = GetCountrySubdivisionCodeField(subdivisionCode);
@@ -208,8 +208,8 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetSubdivisionCategoryNamePlural(this Iso3166Part2Subdivision subdivisionCode, string iso639LanguageCode)
 #else
-        [CanBeNull]
-        public static string GetSubdivisionCategoryNamePlural(this Iso3166Part2Subdivision subdivisionCode, [NotNull] string iso639LanguageCode)
+        [return: MaybeNull]
+        public static string GetSubdivisionCategoryNamePlural(this Iso3166Part2Subdivision subdivisionCode, [DisallowNull] string iso639LanguageCode)
 #endif
         {
             var countrySubdivisionCodeInformation = GetCountrySubdivisionCodeField(subdivisionCode);
@@ -234,7 +234,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetSubdivisionCode(this Iso3166Part2Subdivision subdivisionCode)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         public static string GetSubdivisionCode(this Iso3166Part2Subdivision subdivisionCode)
 #endif
         {
@@ -269,8 +269,8 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetSubdivisionNativeName(this Iso3166Part2Subdivision subdivisionCode, string iso639LanguageCode, string? romanizationSystem = null)
 #else
-        [CanBeNull]
-        public static string GetSubdivisionNativeName(this Iso3166Part2Subdivision subdivisionCode, [NotNull] string iso639LanguageCode, string romanizationSystem = null)
+        [return: MaybeNull]
+        public static string GetSubdivisionNativeName(this Iso3166Part2Subdivision subdivisionCode, [DisallowNull] string iso639LanguageCode, string romanizationSystem = null)
 #endif
         {
             var countrySubdivisionCodeInformation = GetCountrySubdivisionCodeField(subdivisionCode);
@@ -296,8 +296,8 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetSubdivisionNativeNameLocalVariant(this Iso3166Part2Subdivision subdivisionCode, string iso639LanguageCode, string? romanizationSystem = null)
 #else
-        [CanBeNull]
-        public static string GetSubdivisionNativeNameLocalVariant(this Iso3166Part2Subdivision subdivisionCode, [NotNull] string iso639LanguageCode, string romanizationSystem = null)
+        [return: MaybeNull]
+        public static string GetSubdivisionNativeNameLocalVariant(this Iso3166Part2Subdivision subdivisionCode, [DisallowNull] string iso639LanguageCode, string romanizationSystem = null)
 #endif
         {
             var countrySubdivisionCodeInformation = GetCountrySubdivisionCodeField(subdivisionCode);
@@ -345,7 +345,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         private static string? GetEnglishCountryName<T>(T countryCode, Iso3166CountryName nameType)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         private static string GetEnglishCountryName<T>(T countryCode, Iso3166CountryName nameType)
 #endif
             where T : struct, Enum
@@ -381,8 +381,8 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         private static string? GetNativeCountryName<T>(T countryCode, string iso639LanguageCode, Iso3166CountryName nameType)
 #else
-        [CanBeNull]
-        private static string GetNativeCountryName<T>(T countryCode, [NotNull] string iso639LanguageCode, Iso3166CountryName nameType)
+        [return: MaybeNull]
+        private static string GetNativeCountryName<T>(T countryCode, [DisallowNull] string iso639LanguageCode, Iso3166CountryName nameType)
 #endif
             where T : struct, Enum
         {

@@ -43,8 +43,9 @@ Inherited from `CodeAttributeBase`: `EnglishName`, `EnglishNames`, `FrenchName`,
 Targets `netstandard1.0`, `netstandard2.0`, and `net10.0`. The `Date`
 property is `DateOnly?` on the `net10.0` build and `DateTime?` on the
 `netstandard1.0` and `netstandard2.0` builds. On the .NET Standard targets the
-`Alias` property is annotated with JetBrains `[CanBeNull]` rather than a C# nullable
-reference type.
+`Alias` property is annotated with `[MaybeNull, AllowNull]` from
+`System.Diagnostics.CodeAnalysis` rather than a C# nullable reference type.
+A project gets null warnings from them only on C# 8 or later with nullable enabled.
 
 ## See also
 

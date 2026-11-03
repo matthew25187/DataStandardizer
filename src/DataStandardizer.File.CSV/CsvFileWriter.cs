@@ -5,7 +5,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Text;
 #if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP3_0_OR_GREATER
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.File.CSV
@@ -38,8 +38,8 @@ namespace DataStandardizer.File.CSV
         private FieldPlan? _fieldPlan;
         private CsvFileHeaderLine? _headerLine;
 #else
-        [CanBeNull] private FieldPlan _fieldPlan;
-        [CanBeNull] private CsvFileHeaderLine _headerLine;
+        [MaybeNull] private FieldPlan _fieldPlan;
+        [MaybeNull] private CsvFileHeaderLine _headerLine;
 #endif
 #if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP2_1_OR_GREATER
         private char[] _fieldValueCharacters = Array.Empty<char>();
@@ -334,8 +334,8 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private string? SerializeFieldValue(TRecordLine recordLine, FieldWritePlan field)
 #else
-        [CanBeNull]
-        private string SerializeFieldValue([NotNull] TRecordLine recordLine, [NotNull] FieldWritePlan field)
+        [return: MaybeNull]
+        private string SerializeFieldValue([DisallowNull] TRecordLine recordLine, [DisallowNull] FieldWritePlan field)
 #endif
         {
             ICsvFileLine csvLine = recordLine;
@@ -387,8 +387,8 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private TypeConverter? ResolveTypeConverter(FieldWritePlan field)
 #else
-        [CanBeNull]
-        private TypeConverter ResolveTypeConverter([NotNull] FieldWritePlan field)
+        [return: MaybeNull]
+        private TypeConverter ResolveTypeConverter([DisallowNull] FieldWritePlan field)
 #endif
         {
             var typeConverterType = field.Mapping.Value.TypeConverterType;
@@ -532,8 +532,8 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             internal FieldPlan(int mapperCacheVersion, Type? mapperLineType, ICsvFileMapper mapper, string[] headerLineFieldNames, string[] lineFieldNames)
 #else
-            internal FieldPlan(int mapperCacheVersion, [CanBeNull] Type mapperLineType, [NotNull] ICsvFileMapper mapper, [NotNull] string[] headerLineFieldNames,
-                [NotNull] string[] lineFieldNames)
+            internal FieldPlan(int mapperCacheVersion, [AllowNull] Type mapperLineType, [DisallowNull] ICsvFileMapper mapper, [DisallowNull] string[] headerLineFieldNames,
+                [DisallowNull] string[] lineFieldNames)
 #endif
             {
                 MapperCacheVersion = mapperCacheVersion;
@@ -594,7 +594,7 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             internal Type? MapperLineType { get; }
 #else
-            [CanBeNull] internal Type MapperLineType { get; }
+            [MaybeNull] internal Type MapperLineType { get; }
 #endif
         }
 
@@ -624,7 +624,7 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             internal FieldValueAccessor? Accessor { get; }
 #else
-            [CanBeNull] internal FieldValueAccessor Accessor { get; }
+            [MaybeNull] internal FieldValueAccessor Accessor { get; }
 #endif
 
             /// <summary>
@@ -633,7 +633,7 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             internal CsvFieldConvertToString<TRecordLine>? Converter { get; }
 #else
-            [CanBeNull] internal CsvFieldConvertToString<TRecordLine> Converter { get; }
+            [MaybeNull] internal CsvFieldConvertToString<TRecordLine> Converter { get; }
 #endif
 
             /// <summary>
@@ -656,7 +656,7 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             internal TypeConverter? TypeConverter { get; set; }
 #else
-            [CanBeNull] internal TypeConverter TypeConverter { get; set; }
+            [MaybeNull, AllowNull] internal TypeConverter TypeConverter { get; set; }
 #endif
         }
     }

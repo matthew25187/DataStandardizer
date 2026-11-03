@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 #if NETSTANDARD
-using JetBrains.Annotations;
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.LanguageTag.InternalState
@@ -33,15 +33,15 @@ namespace DataStandardizer.LanguageTag.InternalState
         private ReadOnlyCollection<string>? _variantsView;
         private ReadOnlyCollection<Bcp47KeyedSubtag>? _extensionsView;
 #else
-        [CanBeNull] private ReadOnlyCollection<string> _extendedLanguagesView;
-        [CanBeNull] private ReadOnlyCollection<string> _variantsView;
-        [CanBeNull] private ReadOnlyCollection<Bcp47KeyedSubtag> _extensionsView;
+        [MaybeNull] private ReadOnlyCollection<string> _extendedLanguagesView;
+        [MaybeNull] private ReadOnlyCollection<string> _variantsView;
+        [MaybeNull] private ReadOnlyCollection<Bcp47KeyedSubtag> _extensionsView;
 #endif
 
 #if NETCOREAPP3_0_OR_GREATER
         private Bcp47LanguageTagParts(string? primaryLanguage, string[] extendedLanguages, string? script, string? region, string[] variants, Bcp47KeyedSubtag[] extensions, Bcp47KeyedSubtag? privateUse, LanguageTagConformance conformance)
 #else
-        private Bcp47LanguageTagParts([CanBeNull] string primaryLanguage, [NotNull] string[] extendedLanguages, [CanBeNull] string script, [CanBeNull] string region, [NotNull] string[] variants, [NotNull] Bcp47KeyedSubtag[] extensions, Bcp47KeyedSubtag? privateUse, LanguageTagConformance conformance)
+        private Bcp47LanguageTagParts([AllowNull] string primaryLanguage, [DisallowNull] string[] extendedLanguages, [AllowNull] string script, [AllowNull] string region, [DisallowNull] string[] variants, [DisallowNull] Bcp47KeyedSubtag[] extensions, Bcp47KeyedSubtag? privateUse, LanguageTagConformance conformance)
 #endif
         {
             PrimaryLanguage = primaryLanguage;
@@ -60,7 +60,7 @@ namespace DataStandardizer.LanguageTag.InternalState
 #if NETCOREAPP3_0_OR_GREATER
         internal string? PrimaryLanguage { get; }
 #else
-        [CanBeNull] internal string PrimaryLanguage { get; }
+        [MaybeNull] internal string PrimaryLanguage { get; }
 #endif
 
         private readonly string[] _extendedLanguages;
@@ -80,13 +80,13 @@ namespace DataStandardizer.LanguageTag.InternalState
 #if NETCOREAPP3_0_OR_GREATER
         internal string? Script { get; }
 #else
-        [CanBeNull] internal string Script { get; }
+        [MaybeNull] internal string Script { get; }
 #endif
 
 #if NETCOREAPP3_0_OR_GREATER
         internal string? Region { get; }
 #else
-        [CanBeNull] internal string Region { get; }
+        [MaybeNull] internal string Region { get; }
 #endif
 
         private readonly string[] _variants;
@@ -130,8 +130,8 @@ namespace DataStandardizer.LanguageTag.InternalState
 #if NETCOREAPP3_0_OR_GREATER
         internal static Bcp47LanguageTagParts FromRanges(string languageTag, Bcp47LanguageTagRanges ranges, LanguageTagConformance conformance)
 #else
-        [NotNull]
-        internal static Bcp47LanguageTagParts FromRanges([NotNull] string languageTag, Bcp47LanguageTagRanges ranges, LanguageTagConformance conformance)
+        [return: NotNull]
+        internal static Bcp47LanguageTagParts FromRanges([DisallowNull] string languageTag, Bcp47LanguageTagRanges ranges, LanguageTagConformance conformance)
 #endif
         {
             var extensions = NoKeyedSubtags;

@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 #if NETSTANDARD
-using JetBrains.Annotations;
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.Money
@@ -85,7 +85,7 @@ namespace DataStandardizer.Money
 #if NETCOREAPP3_0_OR_GREATER
         internal static string? GetSymbol(Iso4217CurrencyCurrent currencyCode, CurrencySymbolKind symbolKind)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         internal static string GetSymbol(Iso4217CurrencyCurrent currencyCode, CurrencySymbolKind symbolKind)
 #endif
         {
@@ -107,7 +107,7 @@ namespace DataStandardizer.Money
 #if NETCOREAPP3_0_OR_GREATER
         internal static string? GetSymbol(Iso4217CurrencyHistoric currencyCode, CurrencySymbolKind symbolKind)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         internal static string GetSymbol(Iso4217CurrencyHistoric currencyCode, CurrencySymbolKind symbolKind)
 #endif
         {

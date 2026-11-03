@@ -2,9 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Text;
-#if NETCOREAPP3_0_OR_GREATER
 using System.Diagnostics.CodeAnalysis;
-#endif
 
 namespace DataStandardizer.Communication.Mime
 {
@@ -370,7 +368,7 @@ namespace DataStandardizer.Communication.Mime
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryParse([NotNullWhen(true)] string? value, out MimeEncodedWord result)
 #else
-        public static bool TryParse(string value, out MimeEncodedWord result)
+        public static bool TryParse([NotNullWhen(true)] string value, out MimeEncodedWord result)
 #endif
         {
             if (value is null)
@@ -398,7 +396,7 @@ namespace DataStandardizer.Communication.Mime
         public static bool TryParse([NotNullWhen(true)] string? value, MimeEncodedWordContext context, MimeEncodedWordParseOptions options,
             IMimeCharsetResolver charsetResolver, out MimeEncodedWord result)
 #else
-        public static bool TryParse(string value, MimeEncodedWordContext context, MimeEncodedWordParseOptions options,
+        public static bool TryParse([NotNullWhen(true)] string value, MimeEncodedWordContext context, MimeEncodedWordParseOptions options,
             IMimeCharsetResolver charsetResolver, out MimeEncodedWord result)
 #endif
         {

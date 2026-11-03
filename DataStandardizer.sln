@@ -69,7 +69,21 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataStandardizer.File.iCal.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataStandardizer.LanguageTag.Fuzz", "fuzz\DataStandardizer.LanguageTag.Fuzz\DataStandardizer.LanguageTag.Fuzz.csproj", "{BBFEBFC5-1779-4B7E-9083-408F2D1532D8}"
 EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "DataStandardizer.CodeAnalysis.Shared", "src\DataStandardizer.CodeAnalysis.Shared\DataStandardizer.CodeAnalysis.Shared.shproj", "{F72F7EEE-59B3-4D67-BAC8-938342D98975}"
+EndProject
 Global
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		src\DataStandardizer.CodeAnalysis.Shared\DataStandardizer.CodeAnalysis.Shared.projitems*{33a7d2e1-4058-41a1-8cfd-878710c195e2}*SharedItemsImports = 5
+		src\DataStandardizer.CodeAnalysis.Shared\DataStandardizer.CodeAnalysis.Shared.projitems*{35823b25-5a3e-482d-96c9-4e29371a9a42}*SharedItemsImports = 5
+		src\DataStandardizer.CodeAnalysis.Shared\DataStandardizer.CodeAnalysis.Shared.projitems*{3a4f50aa-f0c0-4be9-b756-20178c03ff32}*SharedItemsImports = 5
+		src\DataStandardizer.CodeAnalysis.Shared\DataStandardizer.CodeAnalysis.Shared.projitems*{6342befc-582e-45ff-8423-6478a52aa053}*SharedItemsImports = 5
+		src\DataStandardizer.CodeAnalysis.Shared\DataStandardizer.CodeAnalysis.Shared.projitems*{677e329d-c91e-4edc-9842-f419eefdc7c9}*SharedItemsImports = 5
+		src\DataStandardizer.CodeAnalysis.Shared\DataStandardizer.CodeAnalysis.Shared.projitems*{85d73f2e-bc03-420f-b8ff-c51a97e06fb3}*SharedItemsImports = 5
+		src\DataStandardizer.CodeAnalysis.Shared\DataStandardizer.CodeAnalysis.Shared.projitems*{89ce1280-f797-4f8b-a3fb-f9305504128c}*SharedItemsImports = 5
+		src\DataStandardizer.CodeAnalysis.Shared\DataStandardizer.CodeAnalysis.Shared.projitems*{9a0af6f6-8f48-475c-bc4f-a64001a515fb}*SharedItemsImports = 5
+		src\DataStandardizer.CodeAnalysis.Shared\DataStandardizer.CodeAnalysis.Shared.projitems*{cb73f662-10b8-4894-b92d-32fd8549f368}*SharedItemsImports = 5
+		src\DataStandardizer.CodeAnalysis.Shared\DataStandardizer.CodeAnalysis.Shared.projitems*{f72f7eee-59b3-4d67-bac8-938342d98975}*SharedItemsImports = 13
+	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
@@ -196,6 +210,7 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{F72F7EEE-59B3-4D67-BAC8-938342D98975} = {944A45A5-E3FA-4C1D-B5EC-76FAE6974F21}
 		{33A7D2E1-4058-41A1-8CFD-878710C195E2} = {944A45A5-E3FA-4C1D-B5EC-76FAE6974F21}
 		{BEF6A15F-E1A6-40D8-9911-C2FB93B65DB0} = {B9FDB3AD-0254-49E2-B2B8-20BC6B0AB93B}
 		{89CE1280-F797-4F8B-A3FB-F9305504128C} = {944A45A5-E3FA-4C1D-B5EC-76FAE6974F21}

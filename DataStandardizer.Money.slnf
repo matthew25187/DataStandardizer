@@ -2,6 +2,7 @@
   "solution": {
     "path": "DataStandardizer.sln",
     "projects": [
+      "src\\DataStandardizer.CodeAnalysis.Shared\\DataStandardizer.CodeAnalysis.Shared.shproj",
       "src\\DataStandardizer.Core\\DataStandardizer.Core.csproj",
       "src\\DataStandardizer.Geography\\DataStandardizer.Geography.csproj",
       "src\\DataStandardizer.LanguageTag\\DataStandardizer.LanguageTag.csproj",

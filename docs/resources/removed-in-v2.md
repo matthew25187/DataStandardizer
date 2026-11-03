@@ -321,9 +321,9 @@ support. The change matters only to a library that itself targets
 ## The JetBrains.Annotations dependency
 
 In version 1.x, the `netstandard1.x` and `netstandard2.0` builds of each package
-list `JetBrains.Annotations` as a NuGet dependency. In version 2.0 they don't. The
-packages use the attributes only at design time, and their assemblies have no
-reference to them.
+list `JetBrains.Annotations` as a NuGet dependency. In version 2.0 they don't, and
+their assemblies have no reference to it. Those builds carry the nullable attributes
+from `System.Diagnostics.CodeAnalysis` instead, as internal types in each assembly.
 
 This matters only if your own code uses the JetBrains attributes and you got the
 package through DataStandardizer. Add a reference to `JetBrains.Annotations` to

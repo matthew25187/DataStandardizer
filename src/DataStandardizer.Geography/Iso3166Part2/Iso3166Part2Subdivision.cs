@@ -33,7 +33,7 @@ namespace DataStandardizer.Geography
         
 #else
         
-        [JetBrains.Annotations.CanBeNullAttribute()]
+        [System.Diagnostics.CodeAnalysis.MaybeNullAttribute()]
         private readonly string _value;
         
 #endif
@@ -54,7 +54,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
             public static explicit operator DataStandardizer.Geography.Iso3166Part2Subdivision(string value)
     #else
-            public static explicit operator DataStandardizer.Geography.Iso3166Part2Subdivision([JetBrains.Annotations.NotNullAttribute] string value)
+            public static explicit operator DataStandardizer.Geography.Iso3166Part2Subdivision([System.Diagnostics.CodeAnalysis.DisallowNullAttribute] string value)
     #endif
             {
                 return new DataStandardizer.Geography.Iso3166Part2Subdivision(value);
@@ -63,7 +63,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
             public static implicit operator string?(DataStandardizer.Geography.Iso3166Part2Subdivision value)
     #else
-            [JetBrains.Annotations.CanBeNullAttribute]
+            [return: System.Diagnostics.CodeAnalysis.MaybeNullAttribute]
             public static implicit operator string(DataStandardizer.Geography.Iso3166Part2Subdivision value)
     #endif
             {

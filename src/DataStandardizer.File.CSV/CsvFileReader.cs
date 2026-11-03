@@ -5,9 +5,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Text;
-#if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP3_0_OR_GREATER
-using JetBrains.Annotations;
-#endif
 
 namespace DataStandardizer.File.CSV
 {
@@ -55,11 +52,11 @@ namespace DataStandardizer.File.CSV
         private List<KeyValuePair<string, int>>? _invalidFieldValues;
         private readonly TextReader _reader = null!;
 #else
-        [CanBeNull] private CsvContext _context;
-        [CanBeNull] private FieldPlan _fieldPlan;
-        [CanBeNull] private IReadOnlyList<string> _headerFieldNames;
-        [CanBeNull] private CsvFileHeaderLine _headerLine;
-        [CanBeNull] private List<KeyValuePair<string, int>> _invalidFieldValues;
+        [MaybeNull] private CsvContext _context;
+        [MaybeNull] private FieldPlan _fieldPlan;
+        [MaybeNull] private IReadOnlyList<string> _headerFieldNames;
+        [MaybeNull] private CsvFileHeaderLine _headerLine;
+        [MaybeNull] private List<KeyValuePair<string, int>> _invalidFieldValues;
         [NotNull] private readonly TextReader _reader;
 #endif
 #if NET8_0_OR_GREATER
@@ -218,7 +215,7 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public ICsvFileLine? ReadLine()
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         public ICsvFileLine ReadLine()
 #endif
         {
@@ -875,7 +872,7 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             internal FieldPlan(int mapperCacheVersion, ICsvFileMapper mapper, IReadOnlyList<string>? headerFieldNames)
 #else
-            internal FieldPlan(int mapperCacheVersion, [NotNull] ICsvFileMapper mapper, [CanBeNull] IReadOnlyList<string> headerFieldNames)
+            internal FieldPlan(int mapperCacheVersion, [DisallowNull] ICsvFileMapper mapper, [AllowNull] IReadOnlyList<string> headerFieldNames)
 #endif
             {
                 MapperCacheVersion = mapperCacheVersion;
@@ -888,7 +885,7 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             internal IReadOnlyList<string>? HeaderFieldNames { get; }
 #else
-            [CanBeNull] internal IReadOnlyList<string> HeaderFieldNames { get; }
+            [MaybeNull] internal IReadOnlyList<string> HeaderFieldNames { get; }
 #endif
 
             internal ICsvFileMapper Mapper { get; }

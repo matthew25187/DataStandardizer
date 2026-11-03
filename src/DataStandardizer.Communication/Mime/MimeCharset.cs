@@ -1,7 +1,5 @@
 using System;
-#if NETCOREAPP3_0_OR_GREATER
 using System.Diagnostics.CodeAnalysis;
-#endif
 
 namespace DataStandardizer.Communication.Mime
 {
@@ -161,7 +159,7 @@ namespace DataStandardizer.Communication.Mime
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryParse([NotNullWhen(true)] string? value, out MimeCharset result)
 #else
-        public static bool TryParse(string value, out MimeCharset result)
+        public static bool TryParse([NotNullWhen(true)] string value, out MimeCharset result)
 #endif
         {
             if (value is null)

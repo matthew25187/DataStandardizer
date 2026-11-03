@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 #if NETSTANDARD
-using JetBrains.Annotations;
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.Chronology
@@ -25,10 +25,10 @@ namespace DataStandardizer.Chronology
 #if NETCOREAPP3_0_OR_GREATER
             TzDataRule[]? rules,
 #else
-            [CanBeNull] TzDataRule[] rules,
+            [AllowNull] TzDataRule[] rules,
 #endif
 #if NETSTANDARD
-            [NotNull]
+            [DisallowNull]
 #endif
             string format,
             TzDataUntil? until)

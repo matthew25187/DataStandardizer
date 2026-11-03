@@ -2,7 +2,7 @@
 using System.Globalization;
 using System.Text;
 #if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP3_0_OR_GREATER
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.File.CSV
@@ -15,7 +15,7 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         Delegate? BadValueHandler { get; }
 #else
-        [CanBeNull]
+        [MaybeNull]
         Delegate BadValueHandler { get; }
 #endif
         /// <summary>
@@ -24,7 +24,7 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         CultureInfo? Culture { get; }
 #else
-        [CanBeNull]
+        [MaybeNull]
         CultureInfo Culture { get; }
 #endif
         /// <summary>
@@ -33,7 +33,7 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         string? EmbeddedLineBreak { get; }
 #else
-        [CanBeNull]
+        [MaybeNull]
         string EmbeddedLineBreak { get; }
 #endif
 
@@ -43,7 +43,7 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         Encoding? Encoding { get; }
 #else
-        [CanBeNull]
+        [MaybeNull]
         Encoding Encoding { get; }
 #endif
         /// <summary>
@@ -73,7 +73,7 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         Delegate? InconsistentFieldCountHandler { get; }
 #else
-        [CanBeNull]
+        [MaybeNull]
         Delegate InconsistentFieldCountHandler { get; }
 #endif
         /// <summary>

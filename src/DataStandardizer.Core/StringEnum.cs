@@ -4,7 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.Core
@@ -45,8 +45,8 @@ namespace DataStandardizer.Core
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetName(Type enumType, object value)
 #else
-        [CanBeNull]
-        public static string GetName([NotNull] Type enumType, [NotNull] object value)
+        [return: MaybeNull]
+        public static string GetName([DisallowNull] Type enumType, [DisallowNull] object value)
 #endif
         {
             if (enumType is null)
@@ -74,7 +74,7 @@ namespace DataStandardizer.Core
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetName<TEnum>(TEnum value) where TEnum : struct, IStringEnum
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         public static string GetName<TEnum>(TEnum value) where TEnum : struct, IStringEnum
 #endif
         {
@@ -95,8 +95,8 @@ namespace DataStandardizer.Core
 #if NETCOREAPP3_0_OR_GREATER
         public static string[] GetNames(Type enumType)
 #else
-        [NotNull]
-        public static string[] GetNames([NotNull] Type enumType)
+        [return: NotNull]
+        public static string[] GetNames([DisallowNull] Type enumType)
 #endif
         {
             if (enumType is null)
@@ -119,7 +119,7 @@ namespace DataStandardizer.Core
 #if NETCOREAPP3_0_OR_GREATER
         public static string[] GetNames<TEnum>() where TEnum : struct, IStringEnum
 #else
-        [NotNull]
+        [return: NotNull]
         public static string[] GetNames<TEnum>() where TEnum : struct, IStringEnum
 #endif
         {
@@ -140,8 +140,8 @@ namespace DataStandardizer.Core
 #if NETCOREAPP3_0_OR_GREATER
         public static object[] GetValues(Type enumType)
 #else
-        [NotNull]
-        public static object[] GetValues([NotNull] Type enumType)
+        [return: NotNull]
+        public static object[] GetValues([DisallowNull] Type enumType)
 #endif
         {
             if (enumType is null)
@@ -164,7 +164,7 @@ namespace DataStandardizer.Core
 #if NETCOREAPP3_0_OR_GREATER
         public static TEnum[] GetValues<TEnum>() where TEnum : struct, IStringEnum
 #else
-        [NotNull]
+        [return: NotNull]
         public static TEnum[] GetValues<TEnum>() where TEnum : struct, IStringEnum
 #endif
         {
@@ -186,7 +186,7 @@ namespace DataStandardizer.Core
 #if NETCOREAPP3_0_OR_GREATER
         public static bool IsDefined(Type enumType, string value)
 #else
-        public static bool IsDefined([NotNull] Type enumType, [NotNull] string value)
+        public static bool IsDefined([DisallowNull] Type enumType, [DisallowNull] string value)
 #endif
         {
             if (enumType is null)
@@ -213,7 +213,7 @@ namespace DataStandardizer.Core
 #if NETCOREAPP3_0_OR_GREATER
         public static bool IsDefined<TEnum>(string value) where TEnum : struct, IStringEnum
 #else
-        public static bool IsDefined<TEnum>([NotNull] string value) where TEnum : struct, IStringEnum
+        public static bool IsDefined<TEnum>([DisallowNull] string value) where TEnum : struct, IStringEnum
 #endif
         {
             lock (SyncRoot)
@@ -241,8 +241,8 @@ namespace DataStandardizer.Core
 #if NETCOREAPP3_0_OR_GREATER
         public static object Parse(Type enumType, string value)
 #else
-        [NotNull]
-        public static object Parse([NotNull] Type enumType, [NotNull] string value)
+        [return: NotNull]
+        public static object Parse([DisallowNull] Type enumType, [DisallowNull] string value)
 #endif
         {
             if (enumType is null)
@@ -291,8 +291,8 @@ namespace DataStandardizer.Core
 #if NETCOREAPP3_0_OR_GREATER
         public static object Parse(Type enumType, string value, bool ignoreCase)
 #else
-        [NotNull]
-        public static object Parse([NotNull] Type enumType, [NotNull] string value, bool ignoreCase)
+        [return: NotNull]
+        public static object Parse([DisallowNull] Type enumType, [DisallowNull] string value, bool ignoreCase)
 #endif
         {
             if (enumType is null)
@@ -350,7 +350,7 @@ namespace DataStandardizer.Core
 #if NETCOREAPP3_0_OR_GREATER
         public static TEnum Parse<TEnum>(string value) where TEnum : struct, IStringEnum
 #else
-        public static TEnum Parse<TEnum>([NotNull] string value) where TEnum : struct, IStringEnum
+        public static TEnum Parse<TEnum>([DisallowNull] string value) where TEnum : struct, IStringEnum
 #endif
         {
             if (value is null)
@@ -393,7 +393,7 @@ namespace DataStandardizer.Core
 #if NETCOREAPP3_0_OR_GREATER
         public static TEnum Parse<TEnum>(string value, bool ignoreCase) where TEnum : struct, IStringEnum
 #else
-        public static TEnum Parse<TEnum>([NotNull] string value, bool ignoreCase) where TEnum : struct, IStringEnum
+        public static TEnum Parse<TEnum>([DisallowNull] string value, bool ignoreCase) where TEnum : struct, IStringEnum
 #endif
         {
             if (value is null)
@@ -445,8 +445,8 @@ namespace DataStandardizer.Core
 #if NETCOREAPP3_0_OR_GREATER
         public static object ToObject(Type enumType, string value)
 #else
-        [NotNull]
-        public static object ToObject([NotNull] Type enumType, [NotNull] string value)
+        [return: NotNull]
+        public static object ToObject([DisallowNull] Type enumType, [DisallowNull] string value)
 #endif
         {
             if (enumType is null)
@@ -493,7 +493,7 @@ namespace DataStandardizer.Core
 #if NETCOREAPP3_0_OR_GREATER
         public static TEnum ToObject<TEnum>(string value) where TEnum : struct, IStringEnum
 #else
-        public static TEnum ToObject<TEnum>([NotNull] string value) where TEnum : struct, IStringEnum
+        public static TEnum ToObject<TEnum>([DisallowNull] string value) where TEnum : struct, IStringEnum
 #endif
         {
             if (value is null)
@@ -512,7 +512,7 @@ namespace DataStandardizer.Core
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryParse(Type enumType, string? value, out object? result)
 #else
-        public static bool TryParse([NotNull] Type enumType, [CanBeNull] string value, [CanBeNull] out object result)
+        public static bool TryParse([DisallowNull] Type enumType, [AllowNull] string value, [MaybeNullWhen(false)] out object result)
 #endif
         {
             if (!IsStringEnumType(enumType))
@@ -554,7 +554,7 @@ namespace DataStandardizer.Core
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryParse(Type enumType, string? value, bool ignoreCase, out object? result)
 #else
-        public static bool TryParse([NotNull] Type enumType, [CanBeNull] string value, bool ignoreCase, [CanBeNull] out object result)
+        public static bool TryParse([DisallowNull] Type enumType, [AllowNull] string value, bool ignoreCase, [MaybeNullWhen(false)] out object result)
 #endif
         {
             if (!IsStringEnumType(enumType))
@@ -597,7 +597,7 @@ namespace DataStandardizer.Core
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryParse<TEnum>(string? value, out TEnum result) where TEnum : struct, IStringEnum
 #else
-        public static bool TryParse<TEnum>([CanBeNull] string value, out TEnum result) where TEnum : struct, IStringEnum
+        public static bool TryParse<TEnum>([AllowNull] string value, out TEnum result) where TEnum : struct, IStringEnum
 #endif
         {
             lock (SyncRoot)
@@ -637,7 +637,7 @@ namespace DataStandardizer.Core
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryParse<TEnum>(string? value, bool ignoreCase, out TEnum result) where TEnum : struct, IStringEnum
 #else
-        public static bool TryParse<TEnum>([CanBeNull] string value, bool ignoreCase, out TEnum result) where TEnum : struct, IStringEnum
+        public static bool TryParse<TEnum>([AllowNull] string value, bool ignoreCase, out TEnum result) where TEnum : struct, IStringEnum
 #endif
         {
             var comparisonType = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
@@ -675,8 +675,8 @@ namespace DataStandardizer.Core
 #if NETCOREAPP3_0_OR_GREATER
         private static string? Cast(object? value)
 #else
-        [CanBeNull]
-        private static string Cast([CanBeNull] object value)
+        [return: MaybeNull]
+        private static string Cast([AllowNull] object value)
 #endif
         {
             if (value is null) return null;
@@ -690,8 +690,8 @@ namespace DataStandardizer.Core
 #if NETCOREAPP3_0_OR_GREATER
         private static T? Cast<T>(string? value)
 #else
-        [CanBeNull]
-        private static T Cast<T>([CanBeNull] string value)
+        [return: MaybeNull]
+        private static T Cast<T>([AllowNull] string value)
 #endif
         {
             if (value is null) return default(T);

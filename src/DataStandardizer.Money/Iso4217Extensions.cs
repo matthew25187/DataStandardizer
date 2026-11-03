@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 #if NETSTANDARD
-using JetBrains.Annotations;
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.Money
@@ -80,7 +80,7 @@ namespace DataStandardizer.Money
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetCurrencyName(this Iso4217CurrencyCurrent currencyCode)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         public static string GetCurrencyName(this Iso4217CurrencyCurrent currencyCode)
 #endif
         {
@@ -95,7 +95,7 @@ namespace DataStandardizer.Money
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetCurrencyName(this Iso4217CurrencyHistoric currencyCode)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         public static string GetCurrencyName(this Iso4217CurrencyHistoric currencyCode)
 #endif
         {
@@ -115,7 +115,7 @@ namespace DataStandardizer.Money
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetCurrencySymbol(this Iso4217CurrencyCurrent currencyCode)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         public static string GetCurrencySymbol(this Iso4217CurrencyCurrent currencyCode)
 #endif
         {
@@ -136,7 +136,7 @@ namespace DataStandardizer.Money
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetCurrencySymbol(this Iso4217CurrencyCurrent currencyCode, CurrencySymbolKind symbolKind)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         public static string GetCurrencySymbol(this Iso4217CurrencyCurrent currencyCode, CurrencySymbolKind symbolKind)
 #endif
         {
@@ -156,7 +156,7 @@ namespace DataStandardizer.Money
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetCurrencySymbol(this Iso4217CurrencyHistoric currencyCode)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         public static string GetCurrencySymbol(this Iso4217CurrencyHistoric currencyCode)
 #endif
         {
@@ -177,7 +177,7 @@ namespace DataStandardizer.Money
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetCurrencySymbol(this Iso4217CurrencyHistoric currencyCode, CurrencySymbolKind symbolKind)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         public static string GetCurrencySymbol(this Iso4217CurrencyHistoric currencyCode, CurrencySymbolKind symbolKind)
 #endif
         {

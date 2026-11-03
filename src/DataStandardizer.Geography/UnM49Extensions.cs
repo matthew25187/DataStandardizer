@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Reflection;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.Geography
@@ -19,7 +19,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static ushort[] GetM49Codes(Type enumType)
 #else
-        public static ushort[] GetM49Codes([NotNull] Type enumType)
+        public static ushort[] GetM49Codes([DisallowNull] Type enumType)
 #endif
         {
             if (enumType is null)
@@ -100,8 +100,8 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetGlobalName(this UnM49AreaByAlpha2CountryCode m49Code, string languageCode)
 #else
-        [CanBeNull]
-        public static string GetGlobalName(this UnM49AreaByAlpha2CountryCode m49Code, [NotNull] string languageCode)
+        [return: MaybeNull]
+        public static string GetGlobalName(this UnM49AreaByAlpha2CountryCode m49Code, [DisallowNull] string languageCode)
 #endif
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
@@ -121,8 +121,8 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetGlobalName(this UnM49AreaByAlpha3CountryCode m49Code, string languageCode)
 #else
-        [CanBeNull]
-        public static string GetGlobalName(this UnM49AreaByAlpha3CountryCode m49Code, [NotNull] string languageCode)
+        [return: MaybeNull]
+        public static string GetGlobalName(this UnM49AreaByAlpha3CountryCode m49Code, [DisallowNull] string languageCode)
 #endif
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
@@ -142,8 +142,8 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetGlobalName(this UnM49Area m49Code, string languageCode)
 #else
-        [CanBeNull]
-        public static string GetGlobalName(this UnM49Area m49Code, [NotNull] string languageCode)
+        [return: MaybeNull]
+        public static string GetGlobalName(this UnM49Area m49Code, [DisallowNull] string languageCode)
 #endif
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
@@ -208,8 +208,8 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetRegionName(this UnM49AreaByAlpha2CountryCode m49Code, string languageCode)
 #else
-        [CanBeNull]
-        public static string GetRegionName(this UnM49AreaByAlpha2CountryCode m49Code, [NotNull] string languageCode)
+        [return: MaybeNull]
+        public static string GetRegionName(this UnM49AreaByAlpha2CountryCode m49Code, [DisallowNull] string languageCode)
 #endif
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
@@ -229,8 +229,8 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetRegionName(this UnM49AreaByAlpha3CountryCode m49Code, string languageCode)
 #else
-        [CanBeNull]
-        public static string GetRegionName(this UnM49AreaByAlpha3CountryCode m49Code, [NotNull] string languageCode)
+        [return: MaybeNull]
+        public static string GetRegionName(this UnM49AreaByAlpha3CountryCode m49Code, [DisallowNull] string languageCode)
 #endif
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
@@ -250,8 +250,8 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetRegionName(this UnM49Area m49Code, string languageCode)
 #else
-        [CanBeNull]
-        public static string GetRegionName(this UnM49Area m49Code, [NotNull] string languageCode)
+        [return: MaybeNull]
+        public static string GetRegionName(this UnM49Area m49Code, [DisallowNull] string languageCode)
 #endif
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
@@ -316,8 +316,8 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetSubRegionName(this UnM49AreaByAlpha2CountryCode m49Code, string languageCode)
 #else
-        [CanBeNull]
-        public static string GetSubRegionName(this UnM49AreaByAlpha2CountryCode m49Code, [NotNull] string languageCode)
+        [return: MaybeNull]
+        public static string GetSubRegionName(this UnM49AreaByAlpha2CountryCode m49Code, [DisallowNull] string languageCode)
 #endif
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
@@ -337,8 +337,8 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetSubRegionName(this UnM49AreaByAlpha3CountryCode m49Code, string languageCode)
 #else
-        [CanBeNull]
-        public static string GetSubRegionName(this UnM49AreaByAlpha3CountryCode m49Code, [NotNull] string languageCode)
+        [return: MaybeNull]
+        public static string GetSubRegionName(this UnM49AreaByAlpha3CountryCode m49Code, [DisallowNull] string languageCode)
 #endif
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
@@ -358,8 +358,8 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetSubRegionName(this UnM49Area m49Code, string languageCode)
 #else
-        [CanBeNull]
-        public static string GetSubRegionName(this UnM49Area m49Code, [NotNull] string languageCode)
+        [return: MaybeNull]
+        public static string GetSubRegionName(this UnM49Area m49Code, [DisallowNull] string languageCode)
 #endif
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
@@ -424,8 +424,8 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetIntermediateRegionName(this UnM49AreaByAlpha2CountryCode m49Code, string languageCode)
 #else
-        [CanBeNull]
-        public static string GetIntermediateRegionName(this UnM49AreaByAlpha2CountryCode m49Code, [NotNull] string languageCode)
+        [return: MaybeNull]
+        public static string GetIntermediateRegionName(this UnM49AreaByAlpha2CountryCode m49Code, [DisallowNull] string languageCode)
 #endif
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
@@ -445,8 +445,8 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetIntermediateRegionName(this UnM49AreaByAlpha3CountryCode m49Code, string languageCode)
 #else
-        [CanBeNull]
-        public static string GetIntermediateRegionName(this UnM49AreaByAlpha3CountryCode m49Code, [NotNull] string languageCode)
+        [return: MaybeNull]
+        public static string GetIntermediateRegionName(this UnM49AreaByAlpha3CountryCode m49Code, [DisallowNull] string languageCode)
 #endif
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
@@ -466,8 +466,8 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetIntermediateRegionName(this UnM49Area m49Code, string languageCode)
 #else
-        [CanBeNull]
-        public static string GetIntermediateRegionName(this UnM49Area m49Code, [NotNull] string languageCode)
+        [return: MaybeNull]
+        public static string GetIntermediateRegionName(this UnM49Area m49Code, [DisallowNull] string languageCode)
 #endif
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
@@ -487,8 +487,8 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetCountryOrAreaName(this UnM49AreaByAlpha2CountryCode m49Code, string languageCode)
 #else
-        [CanBeNull]
-        public static string GetCountryOrAreaName(this UnM49AreaByAlpha2CountryCode m49Code, [NotNull] string languageCode)
+        [return: MaybeNull]
+        public static string GetCountryOrAreaName(this UnM49AreaByAlpha2CountryCode m49Code, [DisallowNull] string languageCode)
 #endif
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
@@ -508,8 +508,8 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetCountryOrAreaName(this UnM49AreaByAlpha3CountryCode m49Code, string languageCode)
 #else
-        [CanBeNull]
-        public static string GetCountryOrAreaName(this UnM49AreaByAlpha3CountryCode m49Code, [NotNull] string languageCode)
+        [return: MaybeNull]
+        public static string GetCountryOrAreaName(this UnM49AreaByAlpha3CountryCode m49Code, [DisallowNull] string languageCode)
 #endif
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
@@ -530,8 +530,8 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetCountryOrAreaName(this UnM49Area m49Code, string languageCode)
 #else
-        [CanBeNull]
-        public static string GetCountryOrAreaName(this UnM49Area m49Code, [NotNull] string languageCode)
+        [return: MaybeNull]
+        public static string GetCountryOrAreaName(this UnM49Area m49Code, [DisallowNull] string languageCode)
 #endif
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
@@ -552,8 +552,8 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetName(this UnM49AreaByAlpha2CountryCode m49Code, string languageCode)
 #else
-        [CanBeNull]
-        public static string GetName(this UnM49AreaByAlpha2CountryCode m49Code, [NotNull] string languageCode)
+        [return: MaybeNull]
+        public static string GetName(this UnM49AreaByAlpha2CountryCode m49Code, [DisallowNull] string languageCode)
 #endif
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
@@ -574,8 +574,8 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetName(this UnM49AreaByAlpha3CountryCode m49Code, string languageCode)
 #else
-        [CanBeNull]
-        public static string GetName(this UnM49AreaByAlpha3CountryCode m49Code, [NotNull] string languageCode)
+        [return: MaybeNull]
+        public static string GetName(this UnM49AreaByAlpha3CountryCode m49Code, [DisallowNull] string languageCode)
 #endif
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
@@ -600,8 +600,8 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetName(this UnM49Area m49Code, string languageCode)
 #else
-        [CanBeNull]
-        public static string GetName(this UnM49Area m49Code, [NotNull] string languageCode)
+        [return: MaybeNull]
+        public static string GetName(this UnM49Area m49Code, [DisallowNull] string languageCode)
 #endif
         {
             if (!Enum.IsDefined(m49Code.GetType(), m49Code))
@@ -693,7 +693,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetIso3166Part1Alpha2Code(this UnM49AreaByAlpha2CountryCode m49Code)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         public static string GetIso3166Part1Alpha2Code(this UnM49AreaByAlpha2CountryCode m49Code)
 #endif
         {
@@ -717,7 +717,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetIso3166Part1Alpha2Code(this UnM49AreaByAlpha3CountryCode m49Code)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         public static string GetIso3166Part1Alpha2Code(this UnM49AreaByAlpha3CountryCode m49Code)
 #endif
         {
@@ -741,7 +741,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetIso3166Part1Alpha2Code(this UnM49Area m49Code)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         public static string GetIso3166Part1Alpha2Code(this UnM49Area m49Code)
 #endif
         {
@@ -765,7 +765,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetIso3166Part1Alpha3Code(this UnM49AreaByAlpha2CountryCode m49Code)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         public static string GetIso3166Part1Alpha3Code(this UnM49AreaByAlpha2CountryCode m49Code)
 #endif
         {
@@ -789,7 +789,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetIso3166Part1Alpha3Code(this UnM49AreaByAlpha3CountryCode m49Code)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         public static string GetIso3166Part1Alpha3Code(this UnM49AreaByAlpha3CountryCode m49Code)
 #endif
         {
@@ -813,7 +813,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetIso3166Part1Alpha3Code(this UnM49Area m49Code)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         public static string GetIso3166Part1Alpha3Code(this UnM49Area m49Code)
 #endif
         {
@@ -830,7 +830,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         private static UnM49AreaCodeAttribute? DoGetCodeAttribute<T>(T m49Code)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         private static UnM49AreaCodeAttribute DoGetCodeAttribute<T>(T m49Code)
 #endif
             where T : struct, Enum
@@ -842,8 +842,8 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         private static string? DoGetCountryOrAreaName<T>(T m49Code, string languageCode)
 #else
-        [CanBeNull]
-        private static string DoGetCountryOrAreaName<T>(T m49Code, [NotNull] string languageCode)
+        [return: MaybeNull]
+        private static string DoGetCountryOrAreaName<T>(T m49Code, [DisallowNull] string languageCode)
 #endif
             where T : struct, Enum
         {
@@ -884,8 +884,8 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         private static string? DoGetGlobalName<T>(T m49Code,string languageCode)
 #else
-        [CanBeNull]
-        private static string DoGetGlobalName<T>(T m49Code, [NotNull] string languageCode)
+        [return: MaybeNull]
+        private static string DoGetGlobalName<T>(T m49Code, [DisallowNull] string languageCode)
 #endif
             where T : struct, Enum
         {
@@ -926,8 +926,8 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         private static string? DoGetIntermediateRegionName<T>(T m49Code, string languageCode)
 #else
-        [CanBeNull]
-        private static string DoGetIntermediateRegionName<T>(T m49Code, [NotNull] string languageCode)
+        [return: MaybeNull]
+        private static string DoGetIntermediateRegionName<T>(T m49Code, [DisallowNull] string languageCode)
 #endif
             where T : struct, Enum
         {
@@ -961,7 +961,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         private static string? DoGetIso3166Part1Alpha2Code<T>(T m49Code)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         private static string DoGetIso3166Part1Alpha2Code<T>(T m49Code)
 #endif
             where T : struct, Enum
@@ -973,7 +973,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         private static string? DoGetIso3166Part1Alpha3Code<T>(T m49Code)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         private static string DoGetIso3166Part1Alpha3Code<T>(T m49Code)
 #endif
             where T : struct, Enum
@@ -1019,8 +1019,8 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         private static string? DoGetName<T>(T m49Code, string languageCode)
 #else
-        [CanBeNull]
-        private static string DoGetName<T>(T m49Code, [NotNull] string languageCode)
+        [return: MaybeNull]
+        private static string DoGetName<T>(T m49Code, [DisallowNull] string languageCode)
 #endif
             where T : struct, Enum
         {
@@ -1064,8 +1064,8 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         private static string? DoGetRegionName<T>(T m49Code, string languageCode)
 #else
-        [CanBeNull]
-        private static string DoGetRegionName<T>(T m49Code, [NotNull] string languageCode)
+        [return: MaybeNull]
+        private static string DoGetRegionName<T>(T m49Code, [DisallowNull] string languageCode)
 #endif
             where T : struct, Enum
         {
@@ -1106,8 +1106,8 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         private static string? DoGetSubRegionName<T>(T m49Code, string languageCode)
 #else
-        [CanBeNull]
-        private static string DoGetSubRegionName<T>(T m49Code, [NotNull] string languageCode)
+        [return: MaybeNull]
+        private static string DoGetSubRegionName<T>(T m49Code, [DisallowNull] string languageCode)
 #endif
             where T : struct, Enum
         {

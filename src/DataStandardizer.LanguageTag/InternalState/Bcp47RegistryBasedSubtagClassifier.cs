@@ -1,7 +1,7 @@
 ﻿using System;
 using DataStandardizer.LanguageTag.Registry;
 #if NETSTANDARD
-using JetBrains.Annotations;
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.LanguageTag.InternalState
@@ -28,7 +28,7 @@ namespace DataStandardizer.LanguageTag.InternalState
 #if NETCOREAPP3_0_OR_GREATER
         internal Bcp47RegistryBasedSubtagClassifier(SubtagRegistry subtagRegistry)
 #else
-        internal Bcp47RegistryBasedSubtagClassifier([NotNull] SubtagRegistry subtagRegistry)
+        internal Bcp47RegistryBasedSubtagClassifier([DisallowNull] SubtagRegistry subtagRegistry)
 #endif
         {
             var subtags = new Bcp47RegistrySubtagLists(subtagRegistry);

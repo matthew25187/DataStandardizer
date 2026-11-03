@@ -1,6 +1,6 @@
 #########################################################################
 # Title: ISO 3166 Part 2 Source Code Generator                          #
-# Copyright: Copyright © 2025, Matthew25187. All rights reserved.       #
+# Copyright: Copyright © 2025-2026, Matthew25187. All rights reserved.  #
 #                                                                       #
 # Purpose: Generate source code for implementing the ISO 3166 standard. #
 # Source: Country Codes Collection, ISO.                                #
@@ -223,7 +223,7 @@ function Out-SourceCode {
             $stringToStructConversionOperatorSnippet = "#if NETCOREAPP3_0_OR_GREATER
             public static explicit operator DataStandardizer.Geography.$TypeName(string value)
     #else
-            public static explicit operator DataStandardizer.Geography.$TypeName([JetBrains.Annotations.NotNullAttribute] string value)
+            public static explicit operator DataStandardizer.Geography.$TypeName([System.Diagnostics.CodeAnalysis.DisallowNullAttribute] string value)
     #endif
             {
                 return new DataStandardizer.Geography.$TypeName(value);
@@ -235,7 +235,7 @@ function Out-SourceCode {
             $structToStringConversionOperatorSnippet = "#if NETCOREAPP3_0_OR_GREATER
             public static implicit operator string?(DataStandardizer.Geography.$TypeName value)
     #else
-            [JetBrains.Annotations.CanBeNullAttribute]
+            [return: System.Diagnostics.CodeAnalysis.MaybeNullAttribute]
             public static implicit operator string(DataStandardizer.Geography.$TypeName value)
     #endif
             {

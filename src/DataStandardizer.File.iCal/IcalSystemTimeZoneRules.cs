@@ -1,9 +1,7 @@
 ﻿#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
 using System;
 using System.Collections.Generic;
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
 using System.Diagnostics.CodeAnalysis;
-#endif
 
 namespace DataStandardizer.File.iCal
 {
@@ -36,7 +34,7 @@ namespace DataStandardizer.File.iCal
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         internal static bool TryFindTimeZone(string timeZoneId, Func<string, TimeZoneInfo> findTimeZone, [NotNullWhen(true)] out TimeZoneInfo? timeZone)
 #else
-        internal static bool TryFindTimeZone(string timeZoneId, Func<string, TimeZoneInfo> findTimeZone, out TimeZoneInfo timeZone)
+        internal static bool TryFindTimeZone(string timeZoneId, Func<string, TimeZoneInfo> findTimeZone, [MaybeNullWhen(false)] out TimeZoneInfo timeZone)
 #endif
         {
             timeZone = null;
@@ -57,7 +55,7 @@ namespace DataStandardizer.File.iCal
         private static bool TryFindSystemTimeZone(string timeZoneId, Func<string, TimeZoneInfo> findTimeZone,
             [NotNullWhen(true)] out TimeZoneInfo? timeZone)
 #else
-        private static bool TryFindSystemTimeZone(string timeZoneId, Func<string, TimeZoneInfo> findTimeZone, out TimeZoneInfo timeZone)
+        private static bool TryFindSystemTimeZone(string timeZoneId, Func<string, TimeZoneInfo> findTimeZone, [MaybeNullWhen(false)] out TimeZoneInfo timeZone)
 #endif
         {
             timeZone = null;

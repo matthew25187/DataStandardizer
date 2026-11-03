@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 #if NETSTANDARD
-using JetBrains.Annotations;
+using System.Diagnostics.CodeAnalysis;
 #endif
 using static DataStandardizer.LanguageTag.Registry.SubtagRegistryConstants;
 using TypeName = DataStandardizer.LanguageTag.Registry.SubtagRegistryConstants.Type;
@@ -28,15 +28,15 @@ namespace DataStandardizer.LanguageTag.Registry
         private ReadOnlyCollection<string>? _prefixView;
         private ReadOnlyCollection<string>? _commentsView;
 #else
-        [CanBeNull] private ReadOnlyCollection<string> _descriptionView;
-        [CanBeNull] private ReadOnlyCollection<string> _prefixView;
-        [CanBeNull] private ReadOnlyCollection<string> _commentsView;
+        [MaybeNull] private ReadOnlyCollection<string> _descriptionView;
+        [MaybeNull] private ReadOnlyCollection<string> _prefixView;
+        [MaybeNull] private ReadOnlyCollection<string> _commentsView;
 #endif
 
 #if NETCOREAPP3_0_OR_GREATER
         internal SubtagRegistryTagRecordBase(KeyValuePair<string, string>[] fields)
 #else
-        internal SubtagRegistryTagRecordBase([NotNull] KeyValuePair<string, string>[] fields)
+        internal SubtagRegistryTagRecordBase([DisallowNull] KeyValuePair<string, string>[] fields)
 #endif
             : base(fields)
         {
@@ -118,7 +118,7 @@ namespace DataStandardizer.LanguageTag.Registry
 #if NETCOREAPP3_0_OR_GREATER
         public string? PreferredValue { get; }
 #else
-        [CanBeNull] public string PreferredValue { get; }
+        [MaybeNull] public string PreferredValue { get; }
 #endif
 
         /// <summary>
@@ -132,7 +132,7 @@ namespace DataStandardizer.LanguageTag.Registry
 #if NETCOREAPP3_0_OR_GREATER
         public string? SuppressScript { get; }
 #else
-        [CanBeNull] public string SuppressScript { get; }
+        [MaybeNull] public string SuppressScript { get; }
 #endif
 
         /// <summary>
@@ -141,7 +141,7 @@ namespace DataStandardizer.LanguageTag.Registry
 #if NETCOREAPP3_0_OR_GREATER
         public string? Macrolanguage { get; }
 #else
-        [CanBeNull] public string Macrolanguage { get; }
+        [MaybeNull] public string Macrolanguage { get; }
 #endif
 
         /// <summary>
@@ -150,7 +150,7 @@ namespace DataStandardizer.LanguageTag.Registry
 #if NETCOREAPP3_0_OR_GREATER
         public string? Scope { get; }
 #else
-        [CanBeNull] public string Scope { get; }
+        [MaybeNull] public string Scope { get; }
 #endif
 
         /// <summary>

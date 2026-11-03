@@ -1,6 +1,6 @@
 ﻿using System;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.Geography
@@ -16,7 +16,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         internal Iso3166CountryTerritoryAttribute(string? iso639Part1Code, string iso639Part2TCode, ushort territoryIdentifier, string territoryName)
 #else
-        internal Iso3166CountryTerritoryAttribute([CanBeNull] string iso639Part1Code, [NotNull] string iso639Part2TCode, ushort territoryIdentifier, [NotNull] string territoryName)
+        internal Iso3166CountryTerritoryAttribute([AllowNull] string iso639Part1Code, [DisallowNull] string iso639Part2TCode, ushort territoryIdentifier, [DisallowNull] string territoryName)
 #endif
             : base(iso639Part1Code, iso639Part2TCode)
         {

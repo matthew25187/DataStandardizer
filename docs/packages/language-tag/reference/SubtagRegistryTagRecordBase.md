@@ -54,8 +54,8 @@ text is still in `Fields`.
 ## Applies to
 
 Targets `netstandard1.1`, `netstandard2.0`, and `net10.0`. On the
-.NET Standard targets nullability is expressed through JetBrains
-`[CanBeNull]` attributes; the public surface is otherwise the same.
+.NET Standard targets nullability is expressed through `[MaybeNull]` attributes from
+`System.Diagnostics.CodeAnalysis`. A project gets null warnings from them only on C# 8 or later with nullable enabled. The public surface is otherwise the same.
 
 ## See also
 

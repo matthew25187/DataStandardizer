@@ -62,7 +62,8 @@ empty array, for the `*Names` methods) when it is unavailable.
 | `GetScope()` | `Iso639Part3Language` | `Iso639LanguageScope?` | Scope, or `null` when absent. |
 
 On the `netstandard1.0` and `netstandard2.0` targets the `string?` return types are
-plain `string` annotated with JetBrains `[CanBeNull]`.
+plain `string` annotated with `[return: MaybeNull]` from `System.Diagnostics.CodeAnalysis`.
+A project gets null warnings from them only on C# 8 or later with nullable enabled.
 
 ## Applies to
 

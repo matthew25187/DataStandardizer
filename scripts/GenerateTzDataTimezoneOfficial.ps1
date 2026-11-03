@@ -1,6 +1,6 @@
 #############################################################################
 # Title: Tz Database Enum Source Code Generator                             #
-# Copyright: Copyright © 2025, Matthew25187. All rights reserved.           #
+# Copyright: Copyright © 2025-2026, Matthew25187. All rights reserved.      #
 #                                                                           #
 # Purpose: Generate source code for a TZ Database enum type.                #
 # Source: Time Zone Database, IANA.                                         #
@@ -250,7 +250,7 @@ function Get-ZoneLinesFieldDeclaration {
     $fieldDeclaration.Attributes = ($fieldDeclaration.Attributes -band -bnot [System.CodeDom.MemberAttributes]::AccessMask) -bor [System.CodeDom.MemberAttributes]::Private
 
     if (-not $PSBoundParameters.ContainsKey('UseNullableReferenceTypes')) {
-        [void]$fieldDeclaration.CustomAttributes.Add([System.CodeDom.CodeAttributeDeclaration]::new('JetBrains.Annotations.CanBeNullAttribute'))
+        [void]$fieldDeclaration.CustomAttributes.Add([System.CodeDom.CodeAttributeDeclaration]::new('System.Diagnostics.CodeAnalysis.MaybeNullAttribute'))
     }
 
     return $fieldDeclaration
@@ -268,7 +268,7 @@ function Get-LocationFieldDeclaration {
     $fieldDeclaration.Attributes = ($fieldDeclaration.Attributes -band -bnot [System.CodeDom.MemberAttributes]::AccessMask) -bor [System.CodeDom.MemberAttributes]::Private
 
     if (-not $PSBoundParameters.ContainsKey('UseNullableReferenceTypes')) {
-        [void]$fieldDeclaration.CustomAttributes.Add([System.CodeDom.CodeAttributeDeclaration]::new('JetBrains.Annotations.CanBeNullAttribute'))
+        [void]$fieldDeclaration.CustomAttributes.Add([System.CodeDom.CodeAttributeDeclaration]::new('System.Diagnostics.CodeAnalysis.MaybeNullAttribute'))
     }
 
     return $fieldDeclaration
@@ -286,7 +286,7 @@ function Get-LinkTargetFieldDeclaration {
     $fieldDeclaration.Attributes = ($fieldDeclaration.Attributes -band -bnot [System.CodeDom.MemberAttributes]::AccessMask) -bor [System.CodeDom.MemberAttributes]::Private
 
     if (-not $PSBoundParameters.ContainsKey('UseNullableReferenceTypes')) {
-        [void]$fieldDeclaration.CustomAttributes.Add([System.CodeDom.CodeAttributeDeclaration]::new('JetBrains.Annotations.CanBeNullAttribute'))
+        [void]$fieldDeclaration.CustomAttributes.Add([System.CodeDom.CodeAttributeDeclaration]::new('System.Diagnostics.CodeAnalysis.MaybeNullAttribute'))
     }
 
     return $fieldDeclaration
@@ -323,7 +323,7 @@ function Get-DataConstructorDeclaration {
     }
     else {
         $commentParameter = [System.CodeDom.CodeParameterDeclarationExpression]::new([string], 'comment')
-        [void]$commentParameter.CustomAttributes.Add([System.CodeDom.CodeAttributeDeclaration]::new('JetBrains.Annotations.CanBeNullAttribute'))
+        [void]$commentParameter.CustomAttributes.Add([System.CodeDom.CodeAttributeDeclaration]::new('System.Diagnostics.CodeAnalysis.AllowNullAttribute'))
         [void]$constructor.Parameters.Add($commentParameter)
     }
 
@@ -803,7 +803,7 @@ function Out-SourceCode {
         $stringToStructConversionOperatorSnippet = "#if NETCOREAPP3_0_OR_GREATER
             public static explicit operator DataStandardizer.Chronology.$TypeName(string value)
     #else
-            public static explicit operator DataStandardizer.Chronology.$TypeName([JetBrains.Annotations.NotNullAttribute] string value)
+            public static explicit operator DataStandardizer.Chronology.$TypeName([System.Diagnostics.CodeAnalysis.DisallowNullAttribute] string value)
     #endif
             {
                 return new DataStandardizer.Chronology.$TypeName(value);
@@ -815,7 +815,7 @@ function Out-SourceCode {
         $structToStringConversionOperatorSnippet = "#if NETCOREAPP3_0_OR_GREATER
             public static implicit operator string?(DataStandardizer.Chronology.$TypeName value)
     #else
-            [JetBrains.Annotations.CanBeNullAttribute]
+            [return: System.Diagnostics.CodeAnalysis.MaybeNullAttribute]
             public static implicit operator string(DataStandardizer.Chronology.$TypeName value)
     #endif
             {

@@ -1,7 +1,7 @@
 ﻿using System;
 using DataStandardizer.Core;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.Money
@@ -25,12 +25,12 @@ namespace DataStandardizer.Money
             MinorUnits = minorUnits;
         }
 #else
-        public Iso4217CurrencyCodeAttribute([NotNull] string currencyName) : base(new[] { currencyName })
+        public Iso4217CurrencyCodeAttribute([DisallowNull] string currencyName) : base(new[] { currencyName })
         {
 
         }
 
-        public Iso4217CurrencyCodeAttribute([NotNull] string currencyName, byte minorUnits) : this(currencyName)
+        public Iso4217CurrencyCodeAttribute([DisallowNull] string currencyName, byte minorUnits) : this(currencyName)
         {
             MinorUnits = minorUnits;
         }

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 #if NETSTANDARD
-using JetBrains.Annotations;
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.Chronology
@@ -38,7 +38,7 @@ namespace DataStandardizer.Chronology
 #if NETCOREAPP3_0_OR_GREATER
         private readonly TzDataRule[]? _tailRules;
 #else
-        [CanBeNull]
+        [MaybeNull]
         private readonly TzDataRule[] _tailRules;
 #endif
         private readonly int _tailFirstYear;
@@ -47,7 +47,7 @@ namespace DataStandardizer.Chronology
 
         internal TzDataZoneCalculator(
 #if NETSTANDARD
-            [NotNull]
+            [DisallowNull]
 #endif
             TzDataZoneLine[] zoneLines)
         {
@@ -92,7 +92,7 @@ namespace DataStandardizer.Chronology
         /// </summary>
         /// <param name="utc">The instant, in universal time.</param>
 #if NETSTANDARD
-        [NotNull]
+        [return: NotNull]
 #endif
         internal TzDataZoneLine GetZoneLine(DateTime utc)
         {
@@ -139,7 +139,7 @@ namespace DataStandardizer.Chronology
         /// effect in the year or, failing that, the latest to take effect before it. Before any has taken effect, the first is used.
         /// </remarks>
 #if NETSTANDARD
-        [NotNull]
+        [return: NotNull]
 #endif
         internal string GetStandardAbbreviation(DateTime utc)
         {
@@ -172,7 +172,7 @@ namespace DataStandardizer.Chronology
 #if NETCOREAPP3_0_OR_GREATER
         internal string? GetDaylightAbbreviation(DateTime utc)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         internal string GetDaylightAbbreviation(DateTime utc)
 #endif
         {
@@ -292,7 +292,7 @@ namespace DataStandardizer.Chronology
 #if NETCOREAPP3_0_OR_GREATER
             Change? next)
 #else
-            [CanBeNull] Change next)
+            [AllowNull] Change next)
 #endif
         {
             var candidateTicks = localTicks - current.State.UtcOffsetTicks;
@@ -311,17 +311,17 @@ namespace DataStandardizer.Chronology
         /// <param name="isDaylightSavingTime">Whether daylight saving time is in effect.</param>
         /// <param name="utcOffset">The total offset from universal time in effect.</param>
 #if NETSTANDARD
-        [NotNull]
+        [return: NotNull]
 #endif
         internal static string FormatAbbreviation(
 #if NETSTANDARD
-            [NotNull]
+            [DisallowNull]
 #endif
             string format,
 #if NETCOREAPP3_0_OR_GREATER
             string? letter,
 #else
-            [CanBeNull] string letter,
+            [AllowNull] string letter,
 #endif
             bool isDaylightSavingTime,
             TimeSpan utcOffset)
@@ -379,7 +379,7 @@ namespace DataStandardizer.Chronology
 #if NETCOREAPP3_0_OR_GREATER
         private static TzDataRule? FindLatestRule(IReadOnlyList<TzDataRule> rules, int fromYear, int toYear, bool? isDaylight, long untilTicks)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         private static TzDataRule FindLatestRule(IReadOnlyList<TzDataRule> rules, int fromYear, int toYear, bool? isDaylight, long untilTicks)
 #endif
         {
@@ -418,7 +418,7 @@ namespace DataStandardizer.Chronology
 #if NETCOREAPP3_0_OR_GREATER
         private static TzDataRule? FindEarliestRule(IReadOnlyList<TzDataRule> rules, bool isDaylight)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         private static TzDataRule FindEarliestRule(IReadOnlyList<TzDataRule> rules, bool isDaylight)
 #endif
         {
@@ -468,7 +468,7 @@ namespace DataStandardizer.Chronology
 #if NETCOREAPP3_0_OR_GREATER
         private static TzDataRule[]? GetTailRules(TzDataZoneLine lastZoneLine)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         private static TzDataRule[] GetTailRules(TzDataZoneLine lastZoneLine)
 #endif
         {
@@ -887,7 +887,7 @@ namespace DataStandardizer.Chronology
 #if NETCOREAPP3_0_OR_GREATER
             string? letter,
 #else
-            [CanBeNull] string letter,
+            [AllowNull] string letter,
 #endif
             long standardOffset,
             long save,
@@ -902,7 +902,7 @@ namespace DataStandardizer.Chronology
 #if NETCOREAPP3_0_OR_GREATER
             Change? next)
 #else
-            [CanBeNull] Change next)
+            [AllowNull] Change next)
 #endif
         {
             var validFromUtc = current.Instant >= TicksMinimum ? ToUtc(current.Instant) : (DateTime?)null;
@@ -1001,15 +1001,15 @@ namespace DataStandardizer.Chronology
             private readonly Dictionary<string, TzDataZoneCalculator> _calculators = new Dictionary<string, TzDataZoneCalculator>(StringComparer.Ordinal);
 
 #if NETSTANDARD
-            [NotNull]
+            [return: NotNull]
 #endif
             internal TzDataZoneCalculator GetCalculator(
 #if NETSTANDARD
-                [NotNull]
+                [DisallowNull]
 #endif
                 string identifier,
 #if NETSTANDARD
-                [NotNull]
+                [DisallowNull]
 #endif
                 TzDataZoneLine[] zoneLines)
             {

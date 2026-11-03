@@ -1,7 +1,4 @@
-﻿#if NETSTANDARD
-using JetBrains.Annotations;
-#endif
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -42,8 +39,8 @@ namespace DataStandardizer.LanguageTag
         private readonly string? _languageTag;
         private readonly Bcp47LanguageTagParts? _parts; // null only when _languageTag is
 #else
-        [CanBeNull] private readonly string _languageTag;
-        [CanBeNull] private readonly Bcp47LanguageTagParts _parts; // null only when _languageTag is
+        [MaybeNull] private readonly string _languageTag;
+        [MaybeNull] private readonly Bcp47LanguageTagParts _parts; // null only when _languageTag is
 #endif
 
         #endregion
@@ -53,7 +50,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         private Bcp47LanguageTag(string languageTag, Bcp47LanguageTagParts parts)
 #else
-        private Bcp47LanguageTag([NotNull] string languageTag, [NotNull] Bcp47LanguageTagParts parts)
+        private Bcp47LanguageTag([DisallowNull] string languageTag, [DisallowNull] Bcp47LanguageTagParts parts)
 #endif
         {
             _languageTag = languageTag;
@@ -76,7 +73,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         public static explicit operator Bcp47LanguageTag(string languageTag)
 #else
-        public static explicit operator Bcp47LanguageTag([NotNull] string languageTag)
+        public static explicit operator Bcp47LanguageTag([DisallowNull] string languageTag)
 #endif
         {
             if (languageTag is null)
@@ -95,7 +92,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         public static implicit operator string?(Bcp47LanguageTag languageTag)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         public static implicit operator string(Bcp47LanguageTag languageTag)
 #endif
         {
@@ -130,7 +127,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         public static Bcp47LanguageTag Create(string languageTag)
 #else
-        public static Bcp47LanguageTag Create([NotNull] string languageTag)
+        public static Bcp47LanguageTag Create([DisallowNull] string languageTag)
 #endif
         {
             if (languageTag is null)
@@ -163,7 +160,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         public static Bcp47LanguageTag Create(string languageTag, SubtagRegistry subtagRegistry)
 #else
-        public static Bcp47LanguageTag Create([NotNull] string languageTag, [NotNull] SubtagRegistry subtagRegistry)
+        public static Bcp47LanguageTag Create([DisallowNull] string languageTag, [DisallowNull] SubtagRegistry subtagRegistry)
 #endif
         {
             if (languageTag is null)
@@ -198,7 +195,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         public static Bcp47LanguageTag Create(string languageTag, LanguageTagConformance conformance)
 #else
-        public static Bcp47LanguageTag Create([NotNull] string languageTag, LanguageTagConformance conformance)
+        public static Bcp47LanguageTag Create([DisallowNull] string languageTag, LanguageTagConformance conformance)
 #endif
         {
             if (languageTag is null)
@@ -243,7 +240,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         public bool IsValid(SubtagRegistry subtagRegistry)
 #else
-        public bool IsValid([NotNull] SubtagRegistry subtagRegistry)
+        public bool IsValid([DisallowNull] SubtagRegistry subtagRegistry)
 #endif
         {
             if (_languageTag is null) throw new InvalidOperationException(ErrorMessage.UninitializedInstance);
@@ -423,7 +420,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         public static bool CheckExtendedLanguageSubtag(string extendedLanguageSubtag)
 #else
-        public static bool CheckExtendedLanguageSubtag([NotNull] string extendedLanguageSubtag)
+        public static bool CheckExtendedLanguageSubtag([DisallowNull] string extendedLanguageSubtag)
 #endif
         {
             if (extendedLanguageSubtag is null) throw new ArgumentNullException(nameof(extendedLanguageSubtag));
@@ -457,7 +454,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         public static bool CheckExtensionSubtag(string extensionSubtag)
 #else
-        public static bool CheckExtensionSubtag([NotNull] string extensionSubtag)
+        public static bool CheckExtensionSubtag([DisallowNull] string extensionSubtag)
 #endif
         {
             if (extensionSubtag is null) throw new ArgumentNullException(nameof(extensionSubtag));
@@ -491,7 +488,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         public static bool CheckPrimaryLanguageSubtag(string primaryLanguageSubtag)
 #else
-        public static bool CheckPrimaryLanguageSubtag([NotNull] string primaryLanguageSubtag)
+        public static bool CheckPrimaryLanguageSubtag([DisallowNull] string primaryLanguageSubtag)
 #endif
         {
             if (primaryLanguageSubtag is null) throw new ArgumentNullException(nameof(primaryLanguageSubtag));
@@ -524,7 +521,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         public static bool CheckPrivateUseSubtag(string privateUseSubtag)
 #else
-        public static bool CheckPrivateUseSubtag([NotNull] string privateUseSubtag)
+        public static bool CheckPrivateUseSubtag([DisallowNull] string privateUseSubtag)
 #endif
         {
             if (privateUseSubtag is null) throw new ArgumentNullException(nameof(privateUseSubtag));
@@ -557,7 +554,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         public static bool CheckRegionSubtag(string regionSubtag)
 #else
-        public static bool CheckRegionSubtag([NotNull] string regionSubtag)
+        public static bool CheckRegionSubtag([DisallowNull] string regionSubtag)
 #endif
         {
             if (regionSubtag is null) throw new ArgumentNullException(nameof(regionSubtag));
@@ -590,7 +587,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         public static bool CheckScriptSubtag(string scriptSubtag)
 #else
-        public static bool CheckScriptSubtag([NotNull] string scriptSubtag)
+        public static bool CheckScriptSubtag([DisallowNull] string scriptSubtag)
 #endif
         {
             if (scriptSubtag is null) throw new ArgumentNullException(nameof(scriptSubtag));
@@ -624,7 +621,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         public static bool CheckVariantSubtag(string variantSubtag)
 #else
-        public static bool CheckVariantSubtag([NotNull] string variantSubtag)
+        public static bool CheckVariantSubtag([DisallowNull] string variantSubtag)
 #endif
         {
             if (variantSubtag is null) throw new ArgumentNullException(nameof(variantSubtag));
@@ -658,7 +655,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         public static bool IsWellFormed(string languageTag)
 #else
-        public static bool IsWellFormed([NotNull] string languageTag)
+        public static bool IsWellFormed([DisallowNull] string languageTag)
 #endif
         {
             if (languageTag is null) throw new ArgumentNullException(nameof(languageTag));
@@ -690,7 +687,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         public static bool IsValid(string languageTag, SubtagRegistry subtagRegistry)
 #else
-        public static bool IsValid([NotNull] string languageTag, [NotNull] SubtagRegistry subtagRegistry)
+        public static bool IsValid([DisallowNull] string languageTag, [DisallowNull] SubtagRegistry subtagRegistry)
 #endif
         {
             if (languageTag is null) throw new ArgumentNullException(nameof(languageTag));
@@ -708,7 +705,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         public static bool IsValid(ReadOnlySpan<char> languageTag, SubtagRegistry subtagRegistry)
 #else
-        public static bool IsValid(ReadOnlySpan<char> languageTag, [NotNull] SubtagRegistry subtagRegistry)
+        public static bool IsValid(ReadOnlySpan<char> languageTag, [DisallowNull] SubtagRegistry subtagRegistry)
 #endif
         {
             if (subtagRegistry is null) throw new ArgumentNullException(nameof(subtagRegistry));
@@ -731,7 +728,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         public static bool IsValid(string languageTag, LanguageTagConformance conformance)
 #else
-        public static bool IsValid([NotNull] string languageTag, LanguageTagConformance conformance)
+        public static bool IsValid([DisallowNull] string languageTag, LanguageTagConformance conformance)
 #endif
         {
             if (languageTag is null) throw new ArgumentNullException(nameof(languageTag));
@@ -767,7 +764,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryCreate(string? languageTag, out Bcp47LanguageTag result)
 #else
-        public static bool TryCreate([CanBeNull] string languageTag, out Bcp47LanguageTag result)
+        public static bool TryCreate([AllowNull] string languageTag, out Bcp47LanguageTag result)
 #endif
         {
             if (languageTag is null)
@@ -797,7 +794,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryCreate(string? languageTag, SubtagRegistry subtagRegistry, out Bcp47LanguageTag result)
 #else
-        public static bool TryCreate([CanBeNull] string languageTag, [NotNull] SubtagRegistry subtagRegistry, out Bcp47LanguageTag result)
+        public static bool TryCreate([AllowNull] string languageTag, [DisallowNull] SubtagRegistry subtagRegistry, out Bcp47LanguageTag result)
 #endif
         {
             if (languageTag is null || subtagRegistry is null)
@@ -829,7 +826,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryCreate(string? languageTag, LanguageTagConformance conformance, out Bcp47LanguageTag result)
 #else
-        public static bool TryCreate([CanBeNull] string languageTag, LanguageTagConformance conformance, out Bcp47LanguageTag result)
+        public static bool TryCreate([AllowNull] string languageTag, LanguageTagConformance conformance, out Bcp47LanguageTag result)
 #endif
         {
             var classifier = GetClassifier(conformance);
@@ -877,7 +874,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryCreate(ReadOnlySpan<char> languageTag, SubtagRegistry subtagRegistry, out Bcp47LanguageTag result)
 #else
-        public static bool TryCreate(ReadOnlySpan<char> languageTag, [NotNull] SubtagRegistry subtagRegistry, out Bcp47LanguageTag result)
+        public static bool TryCreate(ReadOnlySpan<char> languageTag, [DisallowNull] SubtagRegistry subtagRegistry, out Bcp47LanguageTag result)
 #endif
         {
             if (subtagRegistry is null)
@@ -984,7 +981,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         internal static int IndexOfRepeatedVariantSubtag(string[] variantSubtags)
 #else
-        internal static int IndexOfRepeatedVariantSubtag([NotNull] string[] variantSubtags)
+        internal static int IndexOfRepeatedVariantSubtag([DisallowNull] string[] variantSubtags)
 #endif
         {
             for (var index = 1; index < variantSubtags.Length; index++)
@@ -1006,7 +1003,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         internal static int IndexOfRepeatedExtensionSingleton(string[] extensionSubtags)
 #else
-        internal static int IndexOfRepeatedExtensionSingleton([NotNull] string[] extensionSubtags)
+        internal static int IndexOfRepeatedExtensionSingleton([DisallowNull] string[] extensionSubtags)
 #endif
         {
             for (var index = 1; index < extensionSubtags.Length; index++)
@@ -1096,7 +1093,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         public string? PrimaryLanguageSubtag
 #else
-        [CanBeNull]
+        [MaybeNull]
         public string PrimaryLanguageSubtag
 #endif
         {
@@ -1129,7 +1126,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         public string? RegionSubtag
 #else
-        [CanBeNull]
+        [MaybeNull]
         public string RegionSubtag
 #endif
         {
@@ -1148,7 +1145,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         public string? ScriptSubtag
 #else
-        [CanBeNull]
+        [MaybeNull]
         public string ScriptSubtag
 #endif
         {
@@ -1192,7 +1189,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         internal static Bcp47SubtagClassifier GetClassifier(LanguageTagConformance conformance)
 #else
-        [NotNull]
+        [return: NotNull]
         internal static Bcp47SubtagClassifier GetClassifier(LanguageTagConformance conformance)
 #endif
         {
@@ -1224,8 +1221,8 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         private static Bcp47LanguageTagParts? ParseToParts(string languageTag, Bcp47SubtagClassifier classifier, LanguageTagConformance conformance)
 #else
-        [CanBeNull]
-        private static Bcp47LanguageTagParts ParseToParts([NotNull] string languageTag, [NotNull] Bcp47SubtagClassifier classifier, LanguageTagConformance conformance)
+        [return: MaybeNull]
+        private static Bcp47LanguageTagParts ParseToParts([DisallowNull] string languageTag, [DisallowNull] Bcp47SubtagClassifier classifier, LanguageTagConformance conformance)
 #endif
         {
             if (!Satisfies(Bcp47LanguageTagParser.Parse(languageTag.AsSpan(), classifier, out var ranges), conformance)) return null;
@@ -1239,7 +1236,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         private static bool TryCreateFromSpan(ReadOnlySpan<char> languageTag, Bcp47SubtagClassifier classifier, LanguageTagConformance conformance, out Bcp47LanguageTag result)
 #else
-        private static bool TryCreateFromSpan(ReadOnlySpan<char> languageTag, [NotNull] Bcp47SubtagClassifier classifier, LanguageTagConformance conformance, out Bcp47LanguageTag result)
+        private static bool TryCreateFromSpan(ReadOnlySpan<char> languageTag, [DisallowNull] Bcp47SubtagClassifier classifier, LanguageTagConformance conformance, out Bcp47LanguageTag result)
 #endif
         {
             if (!Satisfies(Bcp47LanguageTagParser.Parse(languageTag, classifier, out var ranges), conformance))

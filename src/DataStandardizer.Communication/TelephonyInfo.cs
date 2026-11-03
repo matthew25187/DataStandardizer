@@ -5,7 +5,7 @@ using DataStandardizer.Communication.E164;
 using DataStandardizer.Geography;
 using DataStandardizer.LanguageTag;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.Communication
@@ -25,7 +25,7 @@ namespace DataStandardizer.Communication
 #if NETCOREAPP3_0_OR_GREATER
         private ItuE164InternationalNumberFormatter? _formatter; 
 #else
-        [CanBeNull] private ItuE164InternationalNumberFormatter _formatter; 
+        [MaybeNull] private ItuE164InternationalNumberFormatter _formatter; 
 #endif
         private bool _isReadOnly;
 #if NETCOREAPP3_0_OR_GREATER

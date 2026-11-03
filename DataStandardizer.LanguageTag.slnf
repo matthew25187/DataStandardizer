@@ -2,6 +2,7 @@
   "solution": {
     "path": "DataStandardizer.sln",
     "projects": [
+      "src\\DataStandardizer.CodeAnalysis.Shared\\DataStandardizer.CodeAnalysis.Shared.shproj",
       "benchmarks\\DataStandardizer.LanguageTag.Benchmarks\\DataStandardizer.LanguageTag.Benchmarks.csproj",
       "fuzz\\DataStandardizer.LanguageTag.Fuzz\\DataStandardizer.LanguageTag.Fuzz.csproj",
       "src\\DataStandardizer.Core\\DataStandardizer.Core.csproj",

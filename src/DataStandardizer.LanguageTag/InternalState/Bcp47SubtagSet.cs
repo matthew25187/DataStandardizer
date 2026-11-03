@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Collections.Frozen;
 #endif
 #if NETSTANDARD
-using JetBrains.Annotations;
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.LanguageTag.InternalState
@@ -27,7 +27,7 @@ namespace DataStandardizer.LanguageTag.InternalState
 #if NETCOREAPP3_0_OR_GREATER
         internal Bcp47SubtagSet(IEnumerable<string> items)
 #else
-        internal Bcp47SubtagSet([NotNull] IEnumerable<string> items)
+        internal Bcp47SubtagSet([DisallowNull] IEnumerable<string> items)
 #endif
         {
 #if NET9_0_OR_GREATER

@@ -1,5 +1,5 @@
 #if NETSTANDARD
-using JetBrains.Annotations;
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.LanguageTag
@@ -20,7 +20,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         IBcp47LanguageTagBuilderStepWithConformanceNext WithConformance(LanguageTagConformance conformance);
 #else
-        [NotNull]
+        [return: NotNull]
         IBcp47LanguageTagBuilderStepWithConformanceNext WithConformance(LanguageTagConformance conformance);
 #endif
     }

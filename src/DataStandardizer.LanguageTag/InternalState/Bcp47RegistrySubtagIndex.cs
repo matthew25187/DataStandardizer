@@ -1,11 +1,6 @@
 using System;
-#if NETCOREAPP3_0_OR_GREATER
 using System.Diagnostics.CodeAnalysis;
-#endif
 using DataStandardizer.LanguageTag.Registry;
-#if NETSTANDARD
-using JetBrains.Annotations;
-#endif
 
 namespace DataStandardizer.LanguageTag.InternalState
 {
@@ -27,7 +22,7 @@ namespace DataStandardizer.LanguageTag.InternalState
 #if NETCOREAPP3_0_OR_GREATER
         internal Bcp47RegistrySubtagIndex(SubtagRegistry subtagRegistry)
 #else
-        internal Bcp47RegistrySubtagIndex([NotNull] SubtagRegistry subtagRegistry)
+        internal Bcp47RegistrySubtagIndex([DisallowNull] SubtagRegistry subtagRegistry)
 #endif
         {
             var subtags = new Bcp47RegistrySubtagLists(subtagRegistry);
@@ -46,7 +41,7 @@ namespace DataStandardizer.LanguageTag.InternalState
 #if NETCOREAPP3_0_OR_GREATER
         internal bool TryGetSubtag(SubtagRegistryRecordType type, ReadOnlySpan<char> subtag, [NotNullWhen(true)] out SubtagRegistrySubtagRecord? record)
 #else
-        internal bool TryGetSubtag(SubtagRegistryRecordType type, ReadOnlySpan<char> subtag, [CanBeNull] out SubtagRegistrySubtagRecord record)
+        internal bool TryGetSubtag(SubtagRegistryRecordType type, ReadOnlySpan<char> subtag, [MaybeNullWhen(false)] out SubtagRegistrySubtagRecord record)
 #endif
         {
             var subtags = GetSubtagMap(type);
@@ -62,7 +57,7 @@ namespace DataStandardizer.LanguageTag.InternalState
 #if NETCOREAPP3_0_OR_GREATER
         private Bcp47SubtagMap<SubtagRegistrySubtagRecord>? GetSubtagMap(SubtagRegistryRecordType type)
 #else
-        [CanBeNull]
+        [return: MaybeNull]
         private Bcp47SubtagMap<SubtagRegistrySubtagRecord> GetSubtagMap(SubtagRegistryRecordType type)
 #endif
         {

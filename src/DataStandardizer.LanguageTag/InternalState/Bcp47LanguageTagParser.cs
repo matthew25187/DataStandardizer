@@ -1,6 +1,6 @@
 ﻿using System;
 #if NETSTANDARD
-using JetBrains.Annotations;
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.LanguageTag.InternalState
@@ -26,7 +26,7 @@ namespace DataStandardizer.LanguageTag.InternalState
 #if NETCOREAPP3_0_OR_GREATER
         internal static Bcp47ParseStatus Parse(ReadOnlySpan<char> languageTag, Bcp47SubtagClassifier classifier, out Bcp47LanguageTagRanges ranges)
 #else
-        internal static Bcp47ParseStatus Parse(ReadOnlySpan<char> languageTag, [NotNull] Bcp47SubtagClassifier classifier, out Bcp47LanguageTagRanges ranges)
+        internal static Bcp47ParseStatus Parse(ReadOnlySpan<char> languageTag, [DisallowNull] Bcp47SubtagClassifier classifier, out Bcp47LanguageTagRanges ranges)
 #endif
         {
             ranges = default;
@@ -179,8 +179,8 @@ namespace DataStandardizer.LanguageTag.InternalState
 #if NETCOREAPP3_0_OR_GREATER
         internal static string[] GetSubtags(string languageTag, Bcp47SubtagRange range)
 #else
-        [NotNull]
-        internal static string[] GetSubtags([NotNull] string languageTag, Bcp47SubtagRange range)
+        [return: NotNull]
+        internal static string[] GetSubtags([DisallowNull] string languageTag, Bcp47SubtagRange range)
 #endif
         {
             var subtags = new string[CountSeparators(languageTag, range) + 1];
@@ -202,8 +202,8 @@ namespace DataStandardizer.LanguageTag.InternalState
 #if NETCOREAPP3_0_OR_GREATER
         internal static string[] GetExtensions(string languageTag, Bcp47SubtagRange range)
 #else
-        [NotNull]
-        internal static string[] GetExtensions([NotNull] string languageTag, Bcp47SubtagRange range)
+        [return: NotNull]
+        internal static string[] GetExtensions([DisallowNull] string languageTag, Bcp47SubtagRange range)
 #endif
         {
             // Extension subtags have two to eight characters, so each one-character subtag starts an extension.

@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 #endif
 using DataStandardizer.LanguageTag.Registry;
 #if NETSTANDARD
-using JetBrains.Annotations;
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.LanguageTag.InternalState
@@ -32,7 +32,7 @@ namespace DataStandardizer.LanguageTag.InternalState
 #if NETCOREAPP3_0_OR_GREATER
         internal Bcp47RegistrySubtagLists(SubtagRegistry subtagRegistry)
 #else
-        internal Bcp47RegistrySubtagLists([NotNull] SubtagRegistry subtagRegistry)
+        internal Bcp47RegistrySubtagLists([DisallowNull] SubtagRegistry subtagRegistry)
 #endif
         {
             AddTagRecords(GrandfatheredLanguageTags, subtagRegistry.GrandfatheredTags);
@@ -50,7 +50,7 @@ namespace DataStandardizer.LanguageTag.InternalState
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         private static void AddTagRecords(Bcp47RegistrySubtagList<SubtagRegistryTagRecord> tags, IReadOnlyList<SubtagRegistryTagRecord> records)
 #else
-        private static void AddTagRecords([NotNull] Bcp47RegistrySubtagList<SubtagRegistryTagRecord> tags, [NotNull] IReadOnlyList<SubtagRegistryTagRecord> records)
+        private static void AddTagRecords([DisallowNull] Bcp47RegistrySubtagList<SubtagRegistryTagRecord> tags, [DisallowNull] IReadOnlyList<SubtagRegistryTagRecord> records)
 #endif
         {
             for (var index = 0; index < records.Count; index++)
@@ -67,7 +67,7 @@ namespace DataStandardizer.LanguageTag.InternalState
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         private static void AddSubtagRecords(Bcp47RegistrySubtagList<SubtagRegistrySubtagRecord> subtags, IReadOnlyList<SubtagRegistrySubtagRecord> records)
 #else
-        private static void AddSubtagRecords([NotNull] Bcp47RegistrySubtagList<SubtagRegistrySubtagRecord> subtags, [NotNull] IReadOnlyList<SubtagRegistrySubtagRecord> records)
+        private static void AddSubtagRecords([DisallowNull] Bcp47RegistrySubtagList<SubtagRegistrySubtagRecord> subtags, [DisallowNull] IReadOnlyList<SubtagRegistrySubtagRecord> records)
 #endif
         {
             for (var index = 0; index < records.Count; index++)
@@ -105,7 +105,7 @@ namespace DataStandardizer.LanguageTag.InternalState
 #if NETCOREAPP3_0_OR_GREATER
         internal void Add(string key, TRecord record)
 #else
-        internal void Add([NotNull] string key, [NotNull] TRecord record)
+        internal void Add([DisallowNull] string key, [DisallowNull] TRecord record)
 #endif
         {
             if (key.Length == 0) return;

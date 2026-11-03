@@ -1,6 +1,6 @@
 ﻿using DataStandardizer.Geography;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.LanguageTag
@@ -18,7 +18,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         IBcp47LanguageTagBuilderStepUsingRegionSubtagNext UsingRegionSubtag(Iso3166Part1Alpha2Country regionSubtag);
 #else
-        [NotNull]
+        [return: NotNull]
         IBcp47LanguageTagBuilderStepUsingRegionSubtagNext UsingRegionSubtag(Iso3166Part1Alpha2Country regionSubtag);
 #endif
 
@@ -34,7 +34,7 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         IBcp47LanguageTagBuilderStepUsingRegionSubtagNext UsingRegionSubtag(UnM49Area regionSubtag);
 #else
-        [NotNull]
+        [return: NotNull]
         IBcp47LanguageTagBuilderStepUsingRegionSubtagNext UsingRegionSubtag(UnM49Area regionSubtag);
 #endif
         /// <summary>
@@ -45,8 +45,8 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         IBcp47LanguageTagBuilderStepUsingRegionSubtagNext UsingRegionSubtag(string regionSubtag);
 #else
-        [NotNull]
-        IBcp47LanguageTagBuilderStepUsingRegionSubtagNext UsingRegionSubtag([NotNull] string regionSubtag);
+        [return: NotNull]
+        IBcp47LanguageTagBuilderStepUsingRegionSubtagNext UsingRegionSubtag([DisallowNull] string regionSubtag);
 #endif
     }
 

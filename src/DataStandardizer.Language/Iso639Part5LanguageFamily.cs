@@ -29,7 +29,7 @@ namespace DataStandardizer.Language
         
 #else
         
-        [JetBrains.Annotations.CanBeNullAttribute()]
+        [System.Diagnostics.CodeAnalysis.MaybeNullAttribute()]
         private readonly string _value;
         
 #endif
@@ -50,7 +50,7 @@ namespace DataStandardizer.Language
 #if NETCOREAPP3_0_OR_GREATER
         public static explicit operator DataStandardizer.Language.Iso639Part5LanguageFamily(string value)
 #else
-        public static explicit operator DataStandardizer.Language.Iso639Part5LanguageFamily([JetBrains.Annotations.NotNullAttribute] string value)
+        public static explicit operator DataStandardizer.Language.Iso639Part5LanguageFamily([System.Diagnostics.CodeAnalysis.DisallowNullAttribute] string value)
 #endif
         {
             return new DataStandardizer.Language.Iso639Part5LanguageFamily(value);
@@ -59,7 +59,7 @@ namespace DataStandardizer.Language
 #if NETCOREAPP3_0_OR_GREATER
         public static implicit operator string?(DataStandardizer.Language.Iso639Part5LanguageFamily value)
 #else
-        [JetBrains.Annotations.CanBeNullAttribute]
+        [return: System.Diagnostics.CodeAnalysis.MaybeNullAttribute]
         public static implicit operator string(DataStandardizer.Language.Iso639Part5LanguageFamily value)
 #endif
         {

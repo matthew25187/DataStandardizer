@@ -1,6 +1,6 @@
 ﻿using System;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.Geography
@@ -16,7 +16,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         internal Iso3166CountryNameAttribute(string? iso639Part1Code, string iso639Part2TCode, string shortName, string shortNameUpper)
 #else
-        internal Iso3166CountryNameAttribute([CanBeNull] string iso639Part1Code, [NotNull] string iso639Part2TCode, [NotNull] string shortName, [NotNull] string shortNameUpper)
+        internal Iso3166CountryNameAttribute([AllowNull] string iso639Part1Code, [DisallowNull] string iso639Part2TCode, [DisallowNull] string shortName, [DisallowNull] string shortNameUpper)
 #endif
             : base(iso639Part1Code, iso639Part2TCode)
         {
@@ -27,7 +27,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         internal Iso3166CountryNameAttribute(string? iso639Part1Code, string iso639Part2TCode, string shortName, string shortNameUpper, string fullName)
 #else
-        internal Iso3166CountryNameAttribute([CanBeNull] string iso639Part1Code, [NotNull] string iso639Part2TCode, [NotNull] string shortName, [NotNull] string shortNameUpper, [NotNull] string fullName)
+        internal Iso3166CountryNameAttribute([AllowNull] string iso639Part1Code, [DisallowNull] string iso639Part2TCode, [DisallowNull] string shortName, [DisallowNull] string shortNameUpper, [DisallowNull] string fullName)
 #endif
             : this(iso639Part1Code, iso639Part2TCode, shortName, shortNameUpper)
         {
@@ -44,7 +44,7 @@ namespace DataStandardizer.Geography
 #if NETCOREAPP3_0_OR_GREATER
         public string? FullName { get; }
 #else
-        [CanBeNull]
+        [MaybeNull]
         public string FullName { get; }
 #endif
 

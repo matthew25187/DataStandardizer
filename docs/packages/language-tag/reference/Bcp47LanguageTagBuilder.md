@@ -112,8 +112,7 @@ step chain (the relevant `IBcp47LanguageTagBuilderStep…` interface), not on a
 ## Applies to
 
 Targets `netstandard1.1`, `netstandard2.0`, and `net10.0`. On the
-.NET Standard targets nullability is expressed through JetBrains
-`[NotNull]` / `[CanBeNull]` attributes. The `params ReadOnlySpan<string>`
+.NET Standard targets nullability is expressed through `System.Diagnostics.CodeAnalysis` attributes such as `[MaybeNull]` and `[DisallowNull]`. A project gets null warnings from them only on C# 8 or later with nullable enabled. The `params ReadOnlySpan<string>`
 overloads of `UsingVariantSubtags` and `UsingExtensionSubtags` exist only on
 `net10.0`; their interfaces give them a default implementation that copies the
 span to an array and calls the array overload. The public surface is otherwise

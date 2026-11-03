@@ -2,7 +2,7 @@
 using System;
 #endif
 #if NETSTANDARD
-using JetBrains.Annotations;
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.LanguageTag
@@ -21,8 +21,8 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         IBcp47LanguageTagBuilderStepUsingVariantSubtagsNext UsingVariantSubtags(string variantSubtag, params string[] variantSubtags);
 #else
-        [NotNull]
-        IBcp47LanguageTagBuilderStepUsingVariantSubtagsNext UsingVariantSubtags([NotNull] string variantSubtag, [NotNull] params string[] variantSubtags);
+        [return: NotNull]
+        IBcp47LanguageTagBuilderStepUsingVariantSubtagsNext UsingVariantSubtags([DisallowNull] string variantSubtag, [DisallowNull] params string[] variantSubtags);
 #endif
 #if NET9_0_OR_GREATER
 

@@ -4,6 +4,8 @@
     "Directory.Build.props",
     "Directory.Build.targets",
     "Directory.Packages.props",
+    "src/DataStandardizer.CodeAnalysis.Shared/DataStandardizer.CodeAnalysis.Shared.projitems",
+    "src/DataStandardizer.CodeAnalysis.Shared/NullableAttributes.cs",
     "src/Directory.Build.props",
     "src/Directory.Build.targets"
   ],

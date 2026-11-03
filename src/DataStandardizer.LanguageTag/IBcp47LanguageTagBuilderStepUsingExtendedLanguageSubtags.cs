@@ -1,5 +1,5 @@
 ﻿#if NETSTANDARD
-using JetBrains.Annotations;
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.LanguageTag
@@ -17,8 +17,8 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         IBcp47LanguageTagBuilderStepUsingExtendedLanguageSubtagsNext UsingExtendedLanguageSubtags(string firstExtendedLanguageSubtag);
 #else
-        [NotNull]
-        IBcp47LanguageTagBuilderStepUsingExtendedLanguageSubtagsNext UsingExtendedLanguageSubtags([NotNull] string firstExtendedLanguageSubtag);
+        [return: NotNull]
+        IBcp47LanguageTagBuilderStepUsingExtendedLanguageSubtagsNext UsingExtendedLanguageSubtags([DisallowNull] string firstExtendedLanguageSubtag);
 #endif
         /// <summary>
         /// Build a language tag using Extended Language subtags registered with the IANA Language Subtag Registry.
@@ -29,8 +29,8 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         IBcp47LanguageTagBuilderStepUsingExtendedLanguageSubtagsNext UsingExtendedLanguageSubtags(string firstExtendedLanguageSubtag, string secondExtendedLanguageSubtag);
 #else
-        [NotNull]
-        IBcp47LanguageTagBuilderStepUsingExtendedLanguageSubtagsNext UsingExtendedLanguageSubtags([NotNull] string firstExtendedLanguageSubtag, [NotNull] string secondExtendedLanguageSubtag);
+        [return: NotNull]
+        IBcp47LanguageTagBuilderStepUsingExtendedLanguageSubtagsNext UsingExtendedLanguageSubtags([DisallowNull] string firstExtendedLanguageSubtag, [DisallowNull] string secondExtendedLanguageSubtag);
 #endif
         /// <summary>
         /// Build a language tag using Extended Language subtags registered with the IANA Language Subtag Registry.
@@ -42,8 +42,8 @@ namespace DataStandardizer.LanguageTag
 #if NETCOREAPP3_0_OR_GREATER
         IBcp47LanguageTagBuilderStepUsingExtendedLanguageSubtagsNext UsingExtendedLanguageSubtags(string firstExtendedLanguageSubtag, string secondExtendedLanguageSubtag, string thirdExtendedLanguageSubtag);
 #else
-        [NotNull]
-        IBcp47LanguageTagBuilderStepUsingExtendedLanguageSubtagsNext UsingExtendedLanguageSubtags([NotNull] string firstExtendedLanguageSubtag, [NotNull] string secondExtendedLanguageSubtag, [NotNull] string thirdExtendedLanguageSubtag);
+        [return: NotNull]
+        IBcp47LanguageTagBuilderStepUsingExtendedLanguageSubtagsNext UsingExtendedLanguageSubtags([DisallowNull] string firstExtendedLanguageSubtag, [DisallowNull] string secondExtendedLanguageSubtag, [DisallowNull] string thirdExtendedLanguageSubtag);
 #endif
     }
 

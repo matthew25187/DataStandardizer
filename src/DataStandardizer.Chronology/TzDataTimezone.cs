@@ -42,16 +42,16 @@ namespace DataStandardizer.Chronology
         
 #else
         
-        [JetBrains.Annotations.CanBeNullAttribute()]
+        [System.Diagnostics.CodeAnalysis.MaybeNullAttribute()]
         private readonly string _value;
         
-        [JetBrains.Annotations.CanBeNullAttribute()]
+        [System.Diagnostics.CodeAnalysis.MaybeNullAttribute()]
         private readonly DataStandardizer.Chronology.TzDataZoneLine[] _zoneLines;
         
-        [JetBrains.Annotations.CanBeNullAttribute()]
+        [System.Diagnostics.CodeAnalysis.MaybeNullAttribute()]
         private readonly string _linkTarget;
         
-        [JetBrains.Annotations.CanBeNullAttribute()]
+        [System.Diagnostics.CodeAnalysis.MaybeNullAttribute()]
         private readonly DataStandardizer.Chronology.TzDataTimezone.Location _location;
         
 #endif
@@ -118,7 +118,7 @@ namespace DataStandardizer.Chronology
         
 #else
         
-        private TzDataTimezone(string value, DataStandardizer.Chronology.TzDataZoneLine[] zoneLines, double latitude, double longitude, string[] isoCountryCodes, [JetBrains.Annotations.CanBeNullAttribute()] string comment)
+        private TzDataTimezone(string value, DataStandardizer.Chronology.TzDataZoneLine[] zoneLines, double latitude, double longitude, string[] isoCountryCodes, [System.Diagnostics.CodeAnalysis.AllowNullAttribute()] string comment)
         {
             if ((value == null))
             {
@@ -138,7 +138,7 @@ namespace DataStandardizer.Chronology
             this._location = new DataStandardizer.Chronology.TzDataTimezone.Location(latitude, longitude, isoCountryCodes, comment);
         }
         
-        private TzDataTimezone(string value, string linkTarget, DataStandardizer.Chronology.TzDataZoneLine[] zoneLines, double latitude, double longitude, string[] isoCountryCodes, [JetBrains.Annotations.CanBeNullAttribute()] string comment)
+        private TzDataTimezone(string value, string linkTarget, DataStandardizer.Chronology.TzDataZoneLine[] zoneLines, double latitude, double longitude, string[] isoCountryCodes, [System.Diagnostics.CodeAnalysis.AllowNullAttribute()] string comment)
         {
             if ((value == null))
             {
@@ -169,7 +169,7 @@ namespace DataStandardizer.Chronology
 #if NETCOREAPP3_0_OR_GREATER
             public static explicit operator DataStandardizer.Chronology.TzDataTimezone(string value)
     #else
-            public static explicit operator DataStandardizer.Chronology.TzDataTimezone([JetBrains.Annotations.NotNullAttribute] string value)
+            public static explicit operator DataStandardizer.Chronology.TzDataTimezone([System.Diagnostics.CodeAnalysis.DisallowNullAttribute] string value)
     #endif
             {
                 return new DataStandardizer.Chronology.TzDataTimezone(value);
@@ -178,7 +178,7 @@ namespace DataStandardizer.Chronology
 #if NETCOREAPP3_0_OR_GREATER
             public static implicit operator string?(DataStandardizer.Chronology.TzDataTimezone value)
     #else
-            [JetBrains.Annotations.CanBeNullAttribute]
+            [return: System.Diagnostics.CodeAnalysis.MaybeNullAttribute]
             public static implicit operator string(DataStandardizer.Chronology.TzDataTimezone value)
     #endif
             {

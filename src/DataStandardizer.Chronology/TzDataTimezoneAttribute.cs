@@ -1,6 +1,6 @@
 ﻿using System;
 #if NETSTANDARD
-using JetBrains.Annotations; 
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.Chronology
@@ -29,7 +29,7 @@ namespace DataStandardizer.Chronology
 #if NETCOREAPP3_0_OR_GREATER
         public string? Comment { get; set; }
 #else
-        [CanBeNull]
+        [MaybeNull, AllowNull]
         public string Comment { get; set; }
 #endif
         /// <summary>

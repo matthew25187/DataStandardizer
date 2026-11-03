@@ -32,8 +32,8 @@ Standard targets it implements `IEquatable<Bcp47LanguageTag>` alone.
 Each subtag property getter throws `InvalidOperationException` when the instance
 is uninitialised (default-constructed). On the `netstandard1.1` and
 `netstandard2.0` targets the nullability of the operators, parameters, and return
-values is expressed through JetBrains `[NotNull]` / `[CanBeNull]` attributes
-rather than C# nullable reference types.
+values is expressed through `System.Diagnostics.CodeAnalysis` attributes such as `[MaybeNull]` and `[DisallowNull]`
+rather than C# nullable reference types. A project gets null warnings from them only on C# 8 or later with nullable enabled.
 
 `Conformance` and the instance `IsValid` overloads throw
 `InvalidOperationException` when the instance is uninitialised too.
@@ -193,8 +193,7 @@ Each getter throws `InvalidOperationException` if the instance is uninitialised.
 ## Applies to
 
 Targets `netstandard1.1`, `netstandard2.0`, and `net10.0`. On the
-.NET Standard targets nullability is expressed through JetBrains
-`[NotNull]` / `[CanBeNull]` attributes. The public surface otherwise differs by
+.NET Standard targets nullability is expressed through `System.Diagnostics.CodeAnalysis` attributes such as `[MaybeNull]` and `[DisallowNull]`. A project gets null warnings from them only on C# 8 or later with nullable enabled. The public surface otherwise differs by
 target as follows:
 
 | Members | `netstandard1.1` | `netstandard2.0` | `net10.0` |

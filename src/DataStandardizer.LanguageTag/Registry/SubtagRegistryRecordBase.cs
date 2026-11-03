@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Text;
 #if NETSTANDARD
-using JetBrains.Annotations;
+using System.Diagnostics.CodeAnalysis;
 #endif
 
 namespace DataStandardizer.LanguageTag.Registry
@@ -25,13 +25,13 @@ namespace DataStandardizer.LanguageTag.Registry
 #if NETCOREAPP3_0_OR_GREATER
         private ReadOnlyCollection<KeyValuePair<string, string>>? _fieldsView;
 #else
-        [CanBeNull] private ReadOnlyCollection<KeyValuePair<string, string>> _fieldsView;
+        [MaybeNull] private ReadOnlyCollection<KeyValuePair<string, string>> _fieldsView;
 #endif
 
 #if NETCOREAPP3_0_OR_GREATER
         internal SubtagRegistryRecordBase(KeyValuePair<string, string>[] fields)
 #else
-        internal SubtagRegistryRecordBase([NotNull] KeyValuePair<string, string>[] fields)
+        internal SubtagRegistryRecordBase([DisallowNull] KeyValuePair<string, string>[] fields)
 #endif
         {
             _fields = fields;
@@ -61,7 +61,7 @@ namespace DataStandardizer.LanguageTag.Registry
 #if NETCOREAPP3_0_OR_GREATER
         internal static DateTime? ParseDate(string value)
 #else
-        internal static DateTime? ParseDate([NotNull] string value)
+        internal static DateTime? ParseDate([DisallowNull] string value)
 #endif
         {
             if (value.Length != 10 || value[4] != '-' || value[7] != '-') return null;
@@ -77,7 +77,7 @@ namespace DataStandardizer.LanguageTag.Registry
 #if NETCOREAPP3_0_OR_GREATER
         internal static IReadOnlyList<string> GetValuesView(string[] values, ref ReadOnlyCollection<string>? view)
 #else
-        internal static IReadOnlyList<string> GetValuesView([NotNull] string[] values, [CanBeNull] ref ReadOnlyCollection<string> view)
+        internal static IReadOnlyList<string> GetValuesView([DisallowNull] string[] values, [MaybeNull, AllowNull] ref ReadOnlyCollection<string> view)
 #endif
         {
             return values.Length == 0 ? NoValuesView : view ?? (view = new ReadOnlyCollection<string>(values));
@@ -89,8 +89,8 @@ namespace DataStandardizer.LanguageTag.Registry
 #if NETCOREAPP3_0_OR_GREATER
         internal static string? GetFirstValue(KeyValuePair<string, string>[] fields, string fieldName)
 #else
-        [CanBeNull]
-        internal static string GetFirstValue([NotNull] KeyValuePair<string, string>[] fields, [NotNull] string fieldName)
+        [return: MaybeNull]
+        internal static string GetFirstValue([DisallowNull] KeyValuePair<string, string>[] fields, [DisallowNull] string fieldName)
 #endif
         {
             foreach (var field in fields)
@@ -107,7 +107,7 @@ namespace DataStandardizer.LanguageTag.Registry
 #if NETCOREAPP3_0_OR_GREATER
         internal static string[] GetValues(KeyValuePair<string, string>[] fields, string fieldName, int count)
 #else
-        internal static string[] GetValues([NotNull] KeyValuePair<string, string>[] fields, [NotNull] string fieldName, int count)
+        internal static string[] GetValues([DisallowNull] KeyValuePair<string, string>[] fields, [DisallowNull] string fieldName, int count)
 #endif
         {
             if (count == 0) return NoValues;
