@@ -11,8 +11,8 @@ namespace DataStandardizer.File.InternetMessage
         Unstructured = 0,
 
         /// <summary>
-        /// A structured field, such as To or Content-Type, which may be folded only between its tokens (RFC 5322 §2.2.2): at a space or tab outside a
-        /// quoted string, a comment and a domain literal.
+        /// A structured field, such as To or Content-Type, which may be folded only between its tokens (RFC 5322 §2.2.2), or between the words of a comment
+        /// (RFC 5322 §3.2.2): at a space or tab outside a quoted string and a domain literal, and not in a quoted-pair.
         /// </summary>
         Structured = 1,
     }

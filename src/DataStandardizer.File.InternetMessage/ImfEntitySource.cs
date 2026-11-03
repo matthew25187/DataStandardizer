@@ -286,6 +286,32 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
+        /// Adds text to the header of the entity as an unstructured field, such as Subject, to be written as <see cref="ImfHeaderWriter.WriteTextField"/> writes it,
+        /// with the <see cref="ImfOptions.HeaderEncoding"/> of the writer.
+        /// </summary>
+        /// <remarks>
+        /// The rules that <see cref="AddField(string, string, ImfHeaderFieldKind)"/> gives for the fields a writer adds itself apply here too.  The field is checked when the
+        /// entity is written.
+        /// </remarks>
+        /// <param name="name">The field name.</param>
+        /// <param name="text">The text.  One space is written before it if it doesn't start with a space or tab, and isn't empty.</param>
+        /// <returns>This object.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="name"/> or <paramref name="text"/> is <c>null</c>.</exception>
+        /// <exception cref="ImfFileException"><paramref name="name"/> or <paramref name="text"/> is not valid Unicode.</exception>
+        /// <exception cref="InvalidOperationException">The entity is written from its raw bytes.</exception>
+        public ImfEntitySource AddTextField(string name, string text)
+        {
+            if (name is null)
+                throw new ArgumentNullException(nameof(name));
+            if (text is null)
+                throw new ArgumentNullException(nameof(text));
+
+            CheckHasFields();
+            _fields.Add(new FieldEntry(ImfHeaderFormatter.GetBytes(name), ImfHeaderFormatter.GetBytes(text), ImfHeaderFieldKind.Unstructured, true));
+            return this;
+        }
+
+        /// <summary>
         /// Adds a field to the header of the entity, copying what a reader has just read, to be written byte for byte.
         /// </summary>
         /// <remarks>
@@ -352,12 +378,13 @@ namespace DataStandardizer.File.InternetMessage
         /// </summary>
         internal readonly struct FieldEntry
         {
-            internal FieldEntry(byte[] name, byte[] value, ImfHeaderFieldKind kind)
+            internal FieldEntry(byte[] name, byte[] value, ImfHeaderFieldKind kind, bool isText = false)
             {
                 Name = name;
                 Value = value;
                 Kind = kind;
                 IsRaw = false;
+                IsText = isText;
                 NeedsCheck = false;
             }
 
@@ -367,6 +394,7 @@ namespace DataStandardizer.File.InternetMessage
                 Value = rawBytes;
                 Kind = ImfHeaderFieldKind.Unstructured;
                 IsRaw = true;
+                IsText = false;
                 NeedsCheck = needsCheck;
             }
 
@@ -377,6 +405,11 @@ namespace DataStandardizer.File.InternetMessage
             internal ImfHeaderFieldKind Kind { get; }
 
             internal bool IsRaw { get; }
+
+            /// <summary>
+            /// Gets a flag indicating that <see cref="Value"/> is the UTF-8 of some text, to encode, and not a field body.
+            /// </summary>
+            internal bool IsText { get; }
 
             internal bool NeedsCheck { get; }
         }

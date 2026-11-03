@@ -353,6 +353,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
             { "c <a@b>", "a@b", false },
             { "c <a@b>", "d <a@b>", false },
 
+            // ref. RFC 2047 §5(3): a display name is compared as text, whichever form it was written in.
+            { EncodedWord + " <a@b>", "a <a@b>", true },
+            { "=?iso-8859-1?Q?=E9?= <a@b>", "=?utf-8?Q?=C3=A9?= <a@b>", true },
+
             // ref. RFC 2047 §5(3): an encoded word is not the same as a quoted-string that looks like one.
             { EncodedWord + " <a@b>", "\"" + EncodedWord + "\" <a@b>", false },
             { EncodedWord + " \"" + OtherEncodedWord + "\" <a@b>", "\"" + EncodedWord + "\" " + OtherEncodedWord + " <a@b>", false },

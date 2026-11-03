@@ -17,8 +17,9 @@ namespace DataStandardizer.File.InternetMessage
     /// multi-byte character is above 127, so each one passes as <c>UTF8-non-ascii</c> (RFC 6532 §3.2).
     /// </para>
     /// <para>
-    /// Encoded words (RFC 2047) can appear in only two places here: in a comment, which <see cref="TryReadWithComments"/> returns as a token, and
-    /// in an atom that is a word of a phrase, which <see cref="ImfPhrase"/> reports.  They are never in a quoted-string (RFC 2047 §5(3)).
+    /// Encoded words (RFC 2047) can appear in only two places here: in a comment, which <see cref="TryReadWithComments"/> returns as a token, for
+    /// <see cref="ImfHeaderText"/> to decode, and in an atom that is a word of a phrase, which <see cref="ImfPhrase"/> decodes.  They are never in a
+    /// quoted-string (RFC 2047 §5(3)).
     /// </para>
     /// </remarks>
     internal ref struct ImfTokenizer
@@ -87,7 +88,7 @@ namespace DataStandardizer.File.InternetMessage
                 if (!TryReadWithComments(out token)) return false;
                 if (token.Kind != ImfTokenKind.Comment)
                 {
-                    token = new ImfToken(token.Kind, token.Start, token.Length, isPrecededByCfws || token.IsPrecededByCfws);
+                    token = new ImfToken(token.Kind, token.Start, token.Length, isPrecededByCfws || token.IsPrecededByCfws, isPrecededByCfws);
                     return true;
                 }
 

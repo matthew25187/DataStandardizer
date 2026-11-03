@@ -14,6 +14,59 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string Text = "A\r\n\xE9";
         private const int BufferLength = 6;
 
+        [Theory]
+        [InlineData("", 0)]
+        [InlineData("abc", 3)]
+        [InlineData("a\r\nbcd\r\nef\r\n", 3)]
+        public void LongestLineLength_Output_GivesTheLongestWithoutItsLineBreak(string output, int expected)
+        {
+            // act
+            var testResult = EncodedWordFields.LongestLineLength(output);
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Fact]
+        public void ReadDecodedValue_Section_GivesTheFirstFieldDecoded()
+        {
+            // act
+            var testResult = EncodedWordFields.ReadDecodedValue("A: =?utf-8?Q?a?=\r\nB: c\r\n\r\n", new ImfOptions());
+
+            // assert
+            testResult.Should().Be("a");
+        }
+
+        [Fact]
+        public void ReadDecodedValue_NoFields_GivesAnEmptyString()
+        {
+            // act
+            var testResult = EncodedWordFields.ReadDecodedValue("\r\n", new ImfOptions());
+
+            // assert
+            testResult.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void ReadValue_Section_GivesTheFirstFieldUnfoldedAndNotDecoded()
+        {
+            // act
+            var testResult = EncodedWordFields.ReadValue("A: =?utf-8?Q?a?=\r\n b\r\n");
+
+            // assert
+            testResult.Should().Be(" =?utf-8?Q?a?= b");
+        }
+
+        [Fact]
+        public void ReadValue_NoFields_GivesAnEmptyString()
+        {
+            // act
+            var testResult = EncodedWordFields.ReadValue("\r\n");
+
+            // assert
+            testResult.Should().BeEmpty();
+        }
+
         [Fact]
         public void Of_TextOfOneByteCharacters_GivesThoseBytes()
         {

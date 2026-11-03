@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.Text;
+using DataStandardizer.Communication.Mime;
 
 namespace DataStandardizer.File.InternetMessage
 {
@@ -60,6 +61,8 @@ namespace DataStandardizer.File.InternetMessage
         private readonly bool _allowEightBitHeaders;
         private readonly bool _allowLongLines;
         private readonly int _bufferSize;
+        private readonly IMimeCharsetResolver _charsetResolver;
+        private readonly MimeEncodedWordParseOptions _encodedWordOptions;
         private readonly Encoding _fallbackEncoding;
         private readonly bool _lineFeedIsLineBreak;
         private readonly int _maxFieldCount;
@@ -100,6 +103,8 @@ namespace DataStandardizer.File.InternetMessage
         internal ImfHeaderScanner(int bufferSize, ImfOptions options, Encoding fallbackEncoding, bool lineFeedIsLineBreak)
         {
             _bufferSize = bufferSize;
+            _charsetResolver = options.CharsetResolver;
+            _encodedWordOptions = ImfHeaderText.GetWordOptions(options);
             _acceptBareLineFeed = options.AcceptBareLineFeed;
             _allowEightBitHeaders = options.AllowEightBitHeaders;
             _allowLongLines = options.AllowLongLines;
@@ -466,6 +471,18 @@ namespace DataStandardizer.File.InternetMessage
 
             EnsureUnfolded();
             return encoding.GetString(_scratch, 0, _unfoldedLength);
+        }
+
+        /// <summary>
+        /// Decodes the unfolded body of the current field as an unstructured field.  Encoded words are read after any fallback encoding has been applied.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">The options have no character set resolver.</exception>
+        internal string GetDecodedValue()
+        {
+            if (_charsetResolver is null)
+                throw new InvalidOperationException("A character set resolver is required to decode encoded words.");
+
+            return ImfHeaderText.DecodeUnstructuredCore(GetValue(), _encodedWordOptions, _charsetResolver);
         }
 
         /// <summary>

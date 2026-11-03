@@ -167,8 +167,8 @@ namespace DataStandardizer.File.InternetMessage.Tests
             { "a.", "a.|False|End" },
 
             // ref. RFC 2047 §5(3): an encoded word may replace a word of a phrase, but not be in a quoted-string.
-            { EncodedWord, EncodedWord + "|True|End" },
-            { "b " + EncodedWord + " c", "b " + EncodedWord + " c|True|End" },
+            { EncodedWord, "a|True|End" },
+            { "b " + EncodedWord + " c", "b a c|True|End" },
             { "\"" + EncodedWord + "\"", EncodedWord + "|False|End" },
             { "=?a", "=?a|False|End" },
             { "a?=", "a?=|False|End" },

@@ -39,6 +39,18 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
+        /// Gets the body of an unstructured field that holds some text, which is encoded as the encoding allows.
+        /// </summary>
+        /// <exception cref="ImfFileException">The text can't be written.</exception>
+        internal static byte[] GetTextBody(ReadOnlySpan<byte> name, string text, ImfHeaderEncoding encoding)
+        {
+            if (!ImfGrammar.IsWritableText(text))
+                throw Error("Header field text must not hold a line break, other control character, or surrogate code unit that is not part of a pair.", name);
+
+            return GetBytes(ImfHeaderText.FormatUnstructuredCore(text, encoding));
+        }
+
+        /// <summary>
         /// Checks a field name, and formats a field into a buffer: the name, the colon, the body folded as its kind allows, and the final line break.
         /// </summary>
         /// <param name="name">The field name.</param>
@@ -171,7 +183,7 @@ namespace DataStandardizer.File.InternetMessage
             if (!hasNonAscii) return whitespaceCount;
 
             if (encoding != ImfHeaderEncoding.Utf8)
-                throw Error("A header field body is not US-ASCII.  It can be written only with a HeaderEncoding of Utf8 (RFC 6532), or as encoded words (RFC 2047).", name);
+                throw Error("A header field body is not US-ASCII.  It can be written only with a HeaderEncoding of Utf8 (RFC 6532), or as encoded words (RFC 2047), which WriteTextField and AddTextField do for text.", name);
 
             CheckUtf8(name, value);
             return whitespaceCount;
@@ -221,9 +233,10 @@ namespace DataStandardizer.File.InternetMessage
             var lineStart = 0;
             var usedOctets = written;
             var hasText = true;
+            var tokens = default(StructuredTokenState);
             while (true)
             {
-                var tokens = default(StructuredTokenState);
+                var tokensAtBreak = tokens;
                 var octets = usedOctets;
                 var characters = usedOctets;
                 var breakAt = -1;
@@ -231,15 +244,21 @@ namespace DataStandardizer.File.InternetMessage
                 while (index < body.Length)
                 {
                     var octet = body[index];
-                    if (IsWhitespace(octet) && hasText && index < lastWordEnd && !tokens.IsInsideToken)
+                    if (IsWhitespace(octet) && hasText && index < lastWordEnd && tokens.CanFold)
                     {
                         if (characters <= TargetLineLength)
                         {
                             breakAt = index;
+                            tokensAtBreak = tokens;
                         }
                         else
                         {
-                            if (breakAt < 0) breakAt = index;
+                            if (breakAt < 0)
+                            {
+                                breakAt = index;
+                                tokensAtBreak = tokens;
+                            }
+
                             break;
                         }
                     }
@@ -271,6 +290,7 @@ namespace DataStandardizer.File.InternetMessage
                 written += lineBreak.Length;
 
                 lineStart = breakAt;
+                tokens = tokensAtBreak;
                 usedOctets = 0;
                 hasText = false;
             }
@@ -306,7 +326,8 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Tracks whether a position in a structured field body is inside a quoted string, comment or domain literal (RFC 5322 §3.2.2, §3.2.4 and §3.4.1).
+        /// Tracks whether a position in a structured field body is inside a quoted string, comment or domain literal (RFC 5322 §3.2.2, §3.2.4 and §3.4.1), and so whether
+        /// a space or tab there can start a fold.
         /// </summary>
         private struct StructuredTokenState
         {
@@ -322,7 +343,11 @@ namespace DataStandardizer.File.InternetMessage
             private bool _isInDomainLiteral;
             private bool _isInQuotedString;
 
-            internal bool IsInsideToken => _isInQuotedString || _isInDomainLiteral || _commentDepth > 0;
+            // ref. RFC 5322 §3.2.2: comment = "(" *([FWS] ccontent) [FWS] ")", so a comment may fold between its words, as encoded words in one need to (RFC 2047 §5(2)).
+            // A space or tab in a quoted-pair is not FWS.
+            internal bool CanFold => !_isEscaped && !_isInQuotedString && !_isInDomainLiteral;
+
+            private bool IsInsideToken => _isInQuotedString || _isInDomainLiteral || _commentDepth > 0;
 
             internal void Advance(byte octet)
             {

@@ -15,7 +15,9 @@ namespace DataStandardizer.File.InternetMessage
     /// that form allows no phrases at all, so a parsed list can be empty.  The modern form needs at least one, so an empty list formats as an empty string.
     /// </para>
     /// <para>
-    /// RFC 2047 encoded words are kept as written, and a quoted-string of that form stays plain text.
+    /// Each element holds the text of any RFC 2047 encoded words in the phrase (RFC 2047 §5(3)), and a quoted-string of that form stays plain text.  A word that can't
+    /// be decoded stays as written (RFC 2047 §6.2), as <see cref="ImfOptions.AllowMalformedEncodedWords"/> describes.  Decoded text can hold anything that the words
+    /// encode, including control characters and line breaks, so check it before using it where those matter.
     /// </para>
     /// </remarks>
     public sealed class ImfPhraseList : IReadOnlyList<string>, IEquatable<ImfPhraseList>
@@ -92,11 +94,7 @@ namespace DataStandardizer.File.InternetMessage
         /// <returns><c>true</c> if the value is a valid list of phrases; otherwise <c>false</c>.</returns>
         public static bool TryParse(ReadOnlySpan<byte> value, [MaybeNullWhen(false)] out ImfPhraseList result)
         {
-            result = null;
-            if (!ImfAddressParser.TryParsePhraseList(value, out var phrases)) return false;
-
-            result = new ImfPhraseList(phrases);
-            return true;
+            return TryParseCore(value, ImfHeaderText.DefaultOptions, out result);
         }
 
         /// <summary>
@@ -109,6 +107,78 @@ namespace DataStandardizer.File.InternetMessage
         {
             result = null;
             return ImfGrammar.TryGetBytes(value, out var bytes) && TryParse(bytes, out result);
+        }
+
+        /// <summary>
+        /// Parses a phrase list.
+        /// </summary>
+        /// <param name="value">The phrase list, which may be folded, such as <c>first, "second one"</c>.  Bytes that aren't valid UTF-8 are decoded with
+        /// <see cref="ImfOptions.HeaderFallbackCharset"/> before any encoded word is read, if <see cref="ImfOptions.AllowEightBitHeaders"/> is <c>true</c>.</param>
+        /// <param name="options">The options, of which this uses <see cref="ImfOptions.AllowEightBitHeaders"/>, <see cref="ImfOptions.AllowMalformedEncodedWords"/>, <see cref="ImfOptions.CharsetResolver"/> and <see cref="ImfOptions.HeaderFallbackCharset"/>.</param>
+        /// <returns>The phrase list.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="options"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="options"/> has no <see cref="ImfOptions.CharsetResolver"/>, or a
+        /// <see cref="ImfOptions.HeaderFallbackCharset"/> that is needed and can't be resolved.</exception>
+        /// <exception cref="FormatException">The value is not a valid phrase list.</exception>
+        public static ImfPhraseList Parse(ReadOnlySpan<byte> value, ImfOptions options)
+        {
+            if (!TryParse(value, options, out var result)) throw new FormatException(InvalidFormatMessage);
+
+            return result;
+        }
+
+        /// <summary>
+        /// Parses a phrase list.
+        /// </summary>
+        /// <param name="value">The phrase list, which may be folded, such as <c>first, "second one"</c>.</param>
+        /// <param name="options">The options, of which this uses <see cref="ImfOptions.AllowMalformedEncodedWords"/> and <see cref="ImfOptions.CharsetResolver"/>.</param>
+        /// <returns>The phrase list.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="value"/> or <paramref name="options"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="options"/> has no <see cref="ImfOptions.CharsetResolver"/>, or a
+        /// <see cref="ImfOptions.HeaderFallbackCharset"/> that is needed and can't be resolved.</exception>
+        /// <exception cref="FormatException">The value is not a valid phrase list.</exception>
+        public static ImfPhraseList Parse(string value, ImfOptions options)
+        {
+            if (value is null) throw new ArgumentNullException(nameof(value));
+            if (!TryParse(value, options, out var result)) throw new FormatException(InvalidFormatMessage);
+
+            return result;
+        }
+
+        /// <summary>
+        /// Parses a phrase list.
+        /// </summary>
+        /// <param name="value">The phrase list, which may be folded, such as <c>first, "second one"</c>.  Bytes that aren't valid UTF-8 are decoded with
+        /// <see cref="ImfOptions.HeaderFallbackCharset"/> before any encoded word is read, if <see cref="ImfOptions.AllowEightBitHeaders"/> is <c>true</c>.</param>
+        /// <param name="options">The options, of which this uses <see cref="ImfOptions.AllowEightBitHeaders"/>, <see cref="ImfOptions.AllowMalformedEncodedWords"/>, <see cref="ImfOptions.CharsetResolver"/> and <see cref="ImfOptions.HeaderFallbackCharset"/>.</param>
+        /// <param name="result">The phrase list, if the value is valid.</param>
+        /// <returns><c>true</c> if the value is a valid phrase list; otherwise <c>false</c>.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="options"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="options"/> has no <see cref="ImfOptions.CharsetResolver"/>, or a
+        /// <see cref="ImfOptions.HeaderFallbackCharset"/> that is needed and can't be resolved.</exception>
+        public static bool TryParse(ReadOnlySpan<byte> value, ImfOptions options, [MaybeNullWhen(false)] out ImfPhraseList result)
+        {
+            ImfHeaderText.CheckOptions(options);
+
+            return TryParseCore(value, options, out result);
+        }
+
+        /// <summary>
+        /// Parses a phrase list.
+        /// </summary>
+        /// <param name="value">The phrase list, which may be folded, such as <c>first, "second one"</c>.</param>
+        /// <param name="options">The options, of which this uses <see cref="ImfOptions.AllowMalformedEncodedWords"/> and <see cref="ImfOptions.CharsetResolver"/>.</param>
+        /// <param name="result">The phrase list, if the value is valid.</param>
+        /// <returns><c>true</c> if the value is a valid phrase list; otherwise <c>false</c>, including for <c>null</c>.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="options"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="options"/> has no <see cref="ImfOptions.CharsetResolver"/>, or a
+        /// <see cref="ImfOptions.HeaderFallbackCharset"/> that is needed and can't be resolved.</exception>
+        public static bool TryParse([AllowNull, NotNullWhen(true)] string value, ImfOptions options, [MaybeNullWhen(false)] out ImfPhraseList result)
+        {
+            ImfHeaderText.CheckOptions(options);
+
+            result = null;
+            return ImfGrammar.TryGetBytes(value, out var bytes) && TryParse(bytes, options, out result);
         }
 
         /// <inheritdoc />
@@ -127,7 +197,8 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Indicates whether this list equals another: it has the same phrases in the same order, compared case-sensitively.
+        /// Indicates whether this list equals another: it has the same phrases in the same order, compared case-sensitively as text, so <c>=?UTF-8?Q?a?=</c> and
+        /// <c>a</c> are equal.
         /// </summary>
         public bool Equals([AllowNull] ImfPhraseList other)
         {
@@ -182,15 +253,50 @@ namespace DataStandardizer.File.InternetMessage
         /// <summary>
         /// Formats the list in the modern form, such as <c>first, "second one"</c>.
         /// </summary>
+        /// <remarks>
+        /// An encoded word stays as it was read, and any other text is written as it is, which may be UTF-8.  Use <see cref="ToString(ImfHeaderEncoding)"/> to choose.
+        /// </remarks>
         /// <returns>The list.</returns>
         public override string ToString()
+        {
+            return Format(null);
+        }
+
+        /// <summary>
+        /// Formats the list in the modern form, for a writer with the given header encoding.
+        /// </summary>
+        /// <remarks>
+        /// With <see cref="ImfHeaderEncoding.EncodedWords"/>, a phrase that isn't US-ASCII is written as RFC 2047 encoded words, in UTF-8, whatever form it was read in.
+        /// With <see cref="ImfHeaderEncoding.Utf8"/>, it is written as UTF-8 (RFC 6532), and an encoded word that was read is written as its text.  A control character
+        /// in a phrase has no form that can be written here, so it is left out.
+        /// </remarks>
+        /// <param name="encoding">How to write text that is not US-ASCII.</param>
+        /// <returns>The list, unfolded.</returns>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="encoding"/> is not an <see cref="ImfHeaderEncoding"/> member.</exception>
+        public string ToString(ImfHeaderEncoding encoding)
+        {
+            ImfHeaderText.CheckEncoding(encoding);
+
+            return Format(encoding);
+        }
+
+        private static bool TryParseCore(ReadOnlySpan<byte> value, ImfOptions options, [MaybeNullWhen(false)] out ImfPhraseList result)
+        {
+            result = null;
+            if (!ImfAddressParser.TryParsePhraseList(value, options, out var phrases)) return false;
+
+            result = new ImfPhraseList(phrases);
+            return true;
+        }
+
+        private string Format(ImfHeaderEncoding? encoding)
         {
             var output = new StringBuilder();
             for (var index = 0; index < _phrases.Length; index++)
             {
                 if (index > 0) output.Append(", ");
 
-                _phrases[index].AppendTo(output);
+                _phrases[index].AppendTo(output, encoding);
             }
 
             return output.ToString();

@@ -285,7 +285,10 @@ namespace DataStandardizer.File.InternetMessage
             return value.Length >= 4 && value[0] == '=' && value[1] == '?' && value[value.Length - 2] == '?' && value[value.Length - 1] == '=';
         }
 
-        private static bool HasOnlyPairedSurrogates(string value)
+        /// <summary>
+        /// Determines if every surrogate in a string is part of a pair.
+        /// </summary>
+        internal static bool HasOnlyPairedSurrogates(string value)
         {
             for (var index = 0; index < value.Length; index++)
             {
