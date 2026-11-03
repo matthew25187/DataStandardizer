@@ -220,6 +220,15 @@ Describe 'BuildPlan' {
                 Should -Be $script:Packages.packageName
         }
 
+        It 'lists every package when the commit changes only the .NET SDK version, without marking any as changed' {
+            $manifest = Get-Content (Join-Path $PSScriptRoot '..' 'packages.json') -Raw | ConvertFrom-Json
+            Push-Location (Initialize-Repository)
+            $commit = Add-TestCommit -File @{ 'global.json' = '{}' }
+            Get-ChangedTestPackageName -TestPackageName $script:Packages.packageName -Commit $commit -SharedTestFile @($manifest.sharedTestFiles) |
+                Should -Be $script:Packages.packageName
+            @(Get-ChangedPackageName -PackageInfo $script:Packages -Commit $commit -IsRelease $false -SharedBuildFile @($manifest.sharedBuildFiles)).Count | Should -Be 0
+        }
+
         It 'does not treat a file of the same name elsewhere as a shared test file' {
             Push-Location (Initialize-Repository)
             $commit = Add-TestCommit -File @{ 'benchmarks/Directory.Packages.props' = '<Project />' }

@@ -8,6 +8,7 @@
     "src/Directory.Build.targets"
   ],
   "sharedTestFiles": [
+    "global.json",
     "tests/Directory.Build.props",
     "tests/Directory.Build.targets",
     "tests/Directory.Packages.props"
