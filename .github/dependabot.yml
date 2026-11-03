@@ -1,0 +1,46 @@
+# Version updates for NuGet packages, GitHub Actions and the .NET SDK.  See "Dependabot" in AGENTS.md.
+#
+# There's no target-branch: pull requests go to the default branch, develop.  Setting it would stop the options below
+# applying to security updates, so a security update could move an ignored pin.
+
+version: 2
+
+updates:
+  - package-ecosystem: nuget
+    # DataStandardizer.sln lists every project, and through them Dependabot reaches all three Directory.Packages.props
+    # files.  It doesn't search subfolders, so tests/ and benchmarks/ can't be listed: neither holds a solution or project.
+    directory: /
+    schedule:
+      interval: weekly
+    ignore:
+      # Intentional exact pins.  The [4.5.5] pin of System.Memory needs no entry here: it's a conditional
+      # <PackageVersion Update=...>, and Dependabot only changes <PackageVersion Include=...>, which stays free to move.
+      - dependency-name: System.ValueTuple
+      - dependency-name: FluentAssertions
+    groups:
+      # The packages in tests/Directory.Packages.props and benchmarks/Directory.Packages.props, which never version a
+      # package.  A package added to either file gets its own pull requests until it's listed here.
+      test-and-benchmark:
+        patterns:
+          - BenchmarkDotNet
+          - coverlet.collector
+          - CsvHelper
+          - Ical.Net
+          - Microsoft.NET.Test.Sdk
+          - xunit
+          - xunit.runner.visualstudio
+        update-types:
+          - minor
+          - patch
+
+  # Updates the SHA pins and their version comments.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  # Changes only the version in global.json, so rollForward stays at disable.
+  - package-ecosystem: dotnet-sdk
+    directory: /
+    schedule:
+      interval: weekly
