@@ -9,6 +9,7 @@
       "src\\DataStandardizer.Geography\\DataStandardizer.Geography.csproj",
       "src\\DataStandardizer.Language\\DataStandardizer.Language.csproj",
       "src\\DataStandardizer.LanguageTag\\DataStandardizer.LanguageTag.csproj",
+      "tests\\DataStandardizer.File.InternetMessage.IntegrationTests\\DataStandardizer.File.InternetMessage.IntegrationTests.csproj",
       "tests\\DataStandardizer.File.InternetMessage.Tests\\DataStandardizer.File.InternetMessage.Tests.csproj"
     ]
   }
