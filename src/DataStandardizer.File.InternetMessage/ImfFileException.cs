@@ -16,13 +16,15 @@ namespace DataStandardizer.File.InternetMessage
         public static class DataItemName
         {
             /// <summary>
-            /// The 0-based offset, in bytes from the start of the data, at which the problem was found, as a <see cref="long"/>.
+            /// The 0-based offset, in bytes from the start of the data, at which the problem was found, as a <see cref="long"/>.  Present only for a problem
+            /// found by a reader.
             /// </summary>
             public const string BytePosition = "BytePosition";
 
             /// <summary>
             /// The path of the entity in which the problem was found, as a <see cref="string"/>, in the form that
-            /// <see cref="ImfEntityEvent.EntityPath"/> describes.  Present only for a problem found by an <see cref="ImfEntityReader"/>.
+            /// <see cref="ImfEntityEvent.EntityPath"/> describes.  Present only for a problem found by an <see cref="ImfEntityReader"/> or
+            /// <see cref="ImfEntityWriter"/>.
             /// </summary>
             public const string EntityPath = "EntityPath";
 
@@ -32,7 +34,7 @@ namespace DataStandardizer.File.InternetMessage
             public const string FieldName = "FieldName";
 
             /// <summary>
-            /// The 1-based number of the physical line on which the problem was found, as a <see cref="long"/>.
+            /// The 1-based number of the physical line on which the problem was found, as a <see cref="long"/>.  Present only for a problem found by a reader.
             /// </summary>
             public const string LineNumber = "LineNumber";
         }

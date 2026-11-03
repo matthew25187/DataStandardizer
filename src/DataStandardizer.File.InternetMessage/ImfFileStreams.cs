@@ -5,12 +5,12 @@ using System.IO;
 namespace DataStandardizer.File.InternetMessage
 {
     /// <summary>
-    /// Opens the files of the file-path constructors of the readers.
+    /// Opens the files of the file-path constructors of the readers and writers.
     /// </summary>
     /// <remarks>
     /// Every file is opened with <see cref="FileOptions.Asynchronous"/>, so the asynchronous members do no synchronous I/O.  The synchronous
-    /// members still work, at a small cost on Windows.  A caller who only reads synchronously can pass a <see cref="FileStream"/> of their own to
-    /// a <see cref="Stream"/> constructor instead.
+    /// members still work, at a small cost on Windows.  A caller who only reads or writes synchronously can pass a <see cref="FileStream"/> of their
+    /// own to a <see cref="Stream"/> constructor instead.
     /// </remarks>
     internal static class ImfFileStreams
     {
@@ -35,6 +35,18 @@ namespace DataStandardizer.File.InternetMessage
         {
             var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, NoBuffer,
                 FileOptions.Asynchronous | FileOptions.SequentialScan);
+            Opened?.Invoke(fileStream);
+            return fileStream;
+        }
+
+        /// <summary>
+        /// Creates or overwrites a file for asynchronous writing, sharing it for reading.
+        /// </summary>
+        /// <param name="path">The path of the file.</param>
+        /// <param name="bufferSize">The buffer size of the file stream, in bytes.</param>
+        internal static FileStream OpenWrite(string path, int bufferSize)
+        {
+            var fileStream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.Read, bufferSize, FileOptions.Asynchronous);
             Opened?.Invoke(fileStream);
             return fileStream;
         }
