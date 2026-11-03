@@ -6,7 +6,8 @@
 
 Provides types supporting the reading and writing of Internet messages, including:
 - RFC 5322 and RFC 6532: a streaming reader of the header fields of a message, with UTF-8 in field bodies
-- RFC 2045 and RFC 2046: a streaming reader of the MIME entities of a message, with multipart bodies, embedded messages and transfer decoding</Description>
+- RFC 2045 and RFC 2046: a streaming reader of the MIME entities of a message, with multipart bodies, embedded messages and transfer decoding
+- RFC 5322, RFC 6532, RFC 2045 and RFC 2046: streaming writers of header fields and MIME entities, with folding, transfer encoding, multipart boundaries and byte-exact copying of what has not changed</Description>
     <Copyright>Copyright © 2026, Matthew25187. All rights reserved.</Copyright>
     <PackageTags>data;standard;email;internet message;file;rfc 5322;rfc 6532;mime;rfc 2045;rfc 2046</PackageTags>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>

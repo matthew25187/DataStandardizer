@@ -3,11 +3,11 @@
 namespace DataStandardizer.File.InternetMessage
 {
     /// <summary>
-    /// Options to configure the behaviour of an Internet message reader.
+    /// Options to configure the behaviour of an Internet message reader or writer.
     /// </summary>
     /// <remarks>
     /// The default settings for all options ensure behaviour consistent with RFC 5322, RFC 6532, RFC 2045 and RFC 2046.  Each accommodation for common non-compliant
-    /// input is a separate option, off by default.
+    /// input is a separate option, off by default.  A writer always writes what the standards allow, so the accommodations affect it only where noted.
     /// </remarks>
 #if NET5_0_OR_GREATER
     public sealed record ImfOptions
@@ -43,9 +43,47 @@ namespace DataStandardizer.File.InternetMessage
         /// RFC 5322 §2.1 requires lines to end in CRLF, and §2.2 allows CR and LF in a field only as part of a fold.  When <c>false</c> (the
         /// default), a bare line feed causes an <see cref="ImfFileException"/>.  A bare carriage return is never accepted.  With an
         /// <see cref="ImfEntityReader"/>, the same goes for the line breaks of a multipart delimiter (RFC 2046 §5.1.1) and of a quoted-printable body
-        /// being decoded (RFC 2045 §6.7); when <c>false</c>, a delimiter with a bare line feed is content.
+        /// being decoded (RFC 2045 §6.7); when <c>false</c>, a delimiter with a bare line feed is content.  A writer never adds a bare line feed, but
+        /// with this option it accepts one in a raw field given to <see cref="ImfHeaderWriter.WriteRawField"/> or <see cref="ImfEntitySource.AddRawField"/>,
+        /// which it copies as it is.
         /// </remarks>
         public bool AcceptBareLineFeed
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
+        /// Gets a flag indicating if an <see cref="ImfEntityWriter"/> may give a body the <c>binary</c> transfer encoding, when it has not been told
+        /// which to use.
+        /// </summary>
+        /// <remarks>
+        /// RFC 2045 §2.9 and §6.2 define the encoding, but a transport can carry it only if it supports RFC 3030 BINARYMIME, so when <c>false</c> (the default)
+        /// such a body is encoded instead.  This setting doesn't relax a rule of the standard: it says what the destination can carry.
+        /// </remarks>
+        public bool AllowBinaryTransferEncoding
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
+        /// Gets a flag indicating if an <see cref="ImfEntityWriter"/> may give a body the <c>8bit</c> transfer encoding, when it has not been told which to
+        /// use.
+        /// </summary>
+        /// <remarks>
+        /// RFC 2045 §2.8 and §6.2 define the encoding, but a transport can carry it only if it supports RFC 6152 8BITMIME, so when <c>false</c> (the default)
+        /// such a body is encoded instead.  This setting doesn't relax a rule of the standard: it says what the destination can carry.
+        /// </remarks>
+        public bool AllowEightBitTransferEncoding
         {
             get;
 #if NET5_0_OR_GREATER
@@ -165,6 +203,24 @@ namespace DataStandardizer.File.InternetMessage
             set;
 #endif
         } = MimeCharset.Iso88591;
+
+        /// <summary>
+        /// Gets how a writer writes header text that is not US-ASCII.
+        /// </summary>
+        /// <remarks>
+        /// The default is <see cref="ImfHeaderEncoding.EncodedWords"/> (RFC 2047).  <see cref="ImfHeaderWriter"/> and <see cref="ImfEntityWriter"/> write header
+        /// text as they are given it, so with that default they refuse a field body that is not US-ASCII.  With <see cref="ImfHeaderEncoding.Utf8"/>, they
+        /// write valid UTF-8 as it is (RFC 6532).
+        /// </remarks>
+        public ImfHeaderEncoding HeaderEncoding
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
 
         /// <summary>
         /// Gets the maximum number of fields in a header section.

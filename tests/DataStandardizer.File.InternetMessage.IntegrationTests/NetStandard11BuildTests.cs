@@ -35,6 +35,9 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
         private static readonly string NetStandard11BuildPath =
             Path.Combine(AppContext.BaseDirectory, "netstandard1.1", "DataStandardizer.File.InternetMessage.dll");
 
+        private const string HeaderWriterTypeName = "ImfHeaderWriter";
+        private const string EntityWriterTypeName = "ImfEntityWriter";
+
         [Fact]
         public void Methods_ReaderInNetStandard11Build_HaveTheSynchronousRead()
         {
@@ -70,6 +73,30 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
         {
             // act
             var testResult = ReadConstructorParameterNames(ReaderTypeName);
+
+            // assert
+            testResult.Should().Contain(StreamParameterName).And.NotContain(FilePathParameterName);
+        }
+
+        [Theory]
+        [InlineData(HeaderWriterTypeName)]
+        [InlineData(EntityWriterTypeName)]
+        public void Methods_WriterInNetStandard11Build_HaveNoAsynchronousMembers(string typeName)
+        {
+            // act
+            var testResult = ReadMethodNames(typeName);
+
+            // assert
+            testResult.Should().NotBeEmpty().And.NotContain(name => name.EndsWith(AsyncSuffix, StringComparison.Ordinal));
+        }
+
+        [Theory]
+        [InlineData(HeaderWriterTypeName)]
+        [InlineData(EntityWriterTypeName)]
+        public void Constructors_WriterInNetStandard11Build_TakeAStreamAndNotAFilePath(string typeName)
+        {
+            // act
+            var testResult = ReadConstructorParameterNames(typeName);
 
             // assert
             testResult.Should().Contain(StreamParameterName).And.NotContain(FilePathParameterName);
