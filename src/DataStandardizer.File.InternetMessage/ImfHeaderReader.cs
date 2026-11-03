@@ -42,7 +42,7 @@ namespace DataStandardizer.File.InternetMessage
     /// is in progress throws <see cref="InvalidOperationException"/>.
     /// </para>
     /// </remarks>
-    public sealed class ImfHeaderReader : IDisposable
+    public sealed class ImfHeaderReader : IDisposable, IImfHeaderFieldSource
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
         , IAsyncDisposable
 #endif
@@ -343,12 +343,8 @@ namespace DataStandardizer.File.InternetMessage
         }
 #endif
 
-        /// <summary>
-        /// Gets the scanner holding the current field, for a view of that field.
-        /// </summary>
-        /// <exception cref="ObjectDisposedException">The reader has been disposed.</exception>
-        /// <exception cref="InvalidOperationException">The reader has moved on from the field the view was taken for.</exception>
-        internal ImfHeaderScanner GetScanner(int fieldVersion)
+        /// <inheritdoc />
+        ImfHeaderScanner IImfHeaderFieldSource.GetScanner(int fieldVersion)
         {
             ThrowIfDisposed();
             if (!_hasCurrentField || fieldVersion != _fieldVersion)
@@ -443,7 +439,7 @@ namespace DataStandardizer.File.InternetMessage
         }
 
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
-        private static FileStream OpenFile(string path)
+        internal static FileStream OpenFile(string path)
         {
             if (path is null)
                 throw new ArgumentNullException("messageFilePath");
@@ -452,7 +448,7 @@ namespace DataStandardizer.File.InternetMessage
         }
 #endif
 
-        private static Stream ValidateStream(Stream stream)
+        internal static Stream ValidateStream(Stream stream)
         {
             if (stream is null)
                 throw new ArgumentNullException("messageStream");
@@ -466,7 +462,7 @@ namespace DataStandardizer.File.InternetMessage
         /// Checks the options, and resolves the encoding for a field body that is not valid UTF-8.
         /// </summary>
         /// <returns>The encoding, or UTF-8 if the options don't accept such a field, in which case it is never used.</returns>
-        private static Encoding GetFallbackEncoding(ImfOptions options)
+        internal static Encoding GetFallbackEncoding(ImfOptions options)
         {
             if (options is null)
                 throw new ArgumentNullException(nameof(options));

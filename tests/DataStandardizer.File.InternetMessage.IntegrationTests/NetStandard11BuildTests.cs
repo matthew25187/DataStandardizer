@@ -22,6 +22,8 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
     {
         private const string ReaderTypeName = nameof(ImfHeaderReader);
         private const string SyncReadMethodName = nameof(ImfHeaderReader.ReadField);
+        private const string EntityReaderTypeName = nameof(ImfEntityReader);
+        private const string EntitySyncReadMethodName = nameof(ImfEntityReader.ReadEvent);
         private const string AsyncSuffix = "Async";
 
         // The constructors of the reader on this target: two public ones over a stream, the internal one for tests and container formats, and the
@@ -56,6 +58,36 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
         {
             // act
             var testResult = ReadMethodNames(ReaderTypeName);
+
+            // assert
+            testResult.Count(name => name == ".ctor").Should().Be(ConstructorCount);
+        }
+
+        [Fact]
+        public void Methods_EntityReaderInNetStandard11Build_HaveTheSynchronousRead()
+        {
+            // act
+            var testResult = ReadMethodNames(EntityReaderTypeName);
+
+            // assert
+            testResult.Should().Contain(EntitySyncReadMethodName);
+        }
+
+        [Fact]
+        public void Methods_EntityReaderInNetStandard11Build_HaveNoAsynchronousMembers()
+        {
+            // act
+            var testResult = ReadMethodNames(EntityReaderTypeName);
+
+            // assert
+            testResult.Should().NotContain(name => name.EndsWith(AsyncSuffix, StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void Methods_EntityReaderInNetStandard11Build_HaveNoFilePathConstructors()
+        {
+            // act
+            var testResult = ReadMethodNames(EntityReaderTypeName);
 
             // assert
             testResult.Count(name => name == ".ctor").Should().Be(ConstructorCount);

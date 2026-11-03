@@ -3,7 +3,7 @@
 namespace DataStandardizer.File.InternetMessage
 {
     /// <summary>
-    /// A view of the header field an <see cref="ImfHeaderReader"/> has just read, without allocation.
+    /// A view of the header field an <see cref="ImfHeaderReader"/> or <see cref="ImfEntityReader"/> has just read, without allocation.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -21,12 +21,12 @@ namespace DataStandardizer.File.InternetMessage
     /// </remarks>
     public readonly struct ImfHeaderFieldView
     {
-        private readonly ImfHeaderReader _reader;
+        private readonly IImfHeaderFieldSource _source;
         private readonly int _version;
 
-        internal ImfHeaderFieldView(ImfHeaderReader reader, int version)
+        internal ImfHeaderFieldView(IImfHeaderFieldSource source, int version)
         {
-            _reader = reader;
+            _source = source;
             _version = version;
         }
 
@@ -117,10 +117,10 @@ namespace DataStandardizer.File.InternetMessage
 
         private ImfHeaderScanner GetScanner()
         {
-            if (_reader is null)
+            if (_source is null)
                 throw new InvalidOperationException("The view was not obtained from a reader.");
 
-            return _reader.GetScanner(_version);
+            return _source.GetScanner(_version);
         }
     }
 }
