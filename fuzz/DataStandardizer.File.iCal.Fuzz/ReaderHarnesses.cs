@@ -97,11 +97,14 @@ internal static class ReaderHarnesses
 
     /// <summary>
     /// Gets whether a calendar reader can read on after an exception: only after a conformance problem with a calendar it has read in full.
-    /// <see cref="IcalDiagnosticKind.UnsupportedVersion"/> has a diagnostic kind too, but it stops the reader as soon as the VERSION is read.
+    /// <see cref="IcalDiagnosticKind.UnsupportedVersion"/> on the outermost VCALENDAR has a diagnostic kind too, but it stops the reader as soon as the
+    /// VERSION is read.  On a VCALENDAR nested in another component, it is an ordinary conformance problem, and its component path has a parent.
     /// </summary>
     private static bool CanContinueAfter(IcalFileException exception)
     {
-        return exception.Data[IcalFileException.DataItemName.DiagnosticKind] is IcalDiagnosticKind kind && kind != IcalDiagnosticKind.UnsupportedVersion;
+        return exception.Data[IcalFileException.DataItemName.DiagnosticKind] is IcalDiagnosticKind kind
+            && (kind != IcalDiagnosticKind.UnsupportedVersion
+                || (exception.Data[IcalFileException.DataItemName.ComponentPath] is string componentPath && componentPath.Contains('/')));
     }
 
     /// <summary>
