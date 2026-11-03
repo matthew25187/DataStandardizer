@@ -6,7 +6,7 @@
 
 Provides types supporting the reading and writing of Internet messages.</Description>
     <Copyright>Copyright © 2026, Matthew25187. All rights reserved.</Copyright>
-    <PackageTags>data;standard;email;internet message;eml;mime;mhtml;mht;mbox;emlx;rfc 5322;rfc 6532;rfc 2045;rfc 2046;rfc 2047;rfc 2231;rfc 2557;rfc 4155;file</PackageTags>
+    <PackageTags>data;standard;email;internet message;file</PackageTags>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
   </PropertyGroup>
 
