@@ -70,7 +70,9 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     uses: ./.github/workflows/build-and-publish.yml
     permissions:
+      attestations: write
       contents: write
+      id-token: write
       packages: write
     secrets: inherit
     with:

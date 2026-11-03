@@ -2,6 +2,9 @@
 # to nuget.org.  The package always comes from GitHub Packages, the store every CI build publishes to, so what is promoted
 # is exactly what was built and tested.
 #
+# The release also holds the package's build provenance, <package file>.sigstore.json, from the attestation the build
+# made (see SECURITY.md).  A package whose attestation doesn't verify is not promoted.
+#
 # The nuget.org push runs in the nuget-org environment, which requires the maintainer's approval.  It uses nuget.org
 # Trusted Publishing when the repository variable NUGET_TRUSTED_PUBLISHING is 'true', and the environment secret
 # NUGET_API_KEY otherwise.
@@ -21,6 +24,10 @@ on:
         required: true
       allow-prerelease:
         description: 'Allow a preview version'
+        type: boolean
+        default: false
+      allow-no-provenance:
+        description: 'Allow a version built before build provenance existed'
         type: boolean
         default: false
       push-nuget-org:
@@ -46,6 +53,7 @@ jobs:
     name: Validate
     runs-on: ubuntu-24.04
     permissions:
+      attestations: read
       contents: read
       packages: read
     outputs:
@@ -66,6 +74,7 @@ jobs:
           PACKAGE: ${{ inputs.package }}
           VERSION: ${{ inputs.version }}
           ALLOW_PRERELEASE: ${{ inputs.allow-prerelease }}
+          ALLOW_NO_PROVENANCE: ${{ inputs.allow-no-provenance }}
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           $InformationPreference = 'Continue'
@@ -94,6 +103,9 @@ jobs:
           # Save-NuGetPackage names the file in lower case.  -cne: the paths differ only in case, and Linux file names are
           # case-sensitive.
           if ($packagePath -cne $finalPath) { Move-Item -LiteralPath $packagePath -Destination $finalPath -Force }
+
+          $provenancePath = Save-BuildProvenance -PackagePath $finalPath -Repository $env:GH_REPO -AllowMissing:($env:ALLOW_NO_PROVENANCE -eq 'true')
+          if ($null -eq $provenancePath) { Write-CiIssue -Type warning -Message "$packageName $version has no build provenance; promoting it without any." }
 
           Add-Type -AssemblyName System.IO.Compression.FileSystem
           $archive = [System.IO.Compression.ZipFile]::OpenRead($finalPath)
@@ -147,6 +159,8 @@ jobs:
           PUSH_NUGET_ORG: ${{ inputs.push-nuget-org }}
         run: |
           $packagePath = "promote/$env:PACKAGE.$env:VERSION.nupkg"
+          $provenancePath = "$packagePath.sigstore.json"
+          $hasProvenance = Test-Path -LiteralPath $provenancePath
           $existing = gh release view $env:TAG --json 'isDraft,assets' 2>$null | ConvertFrom-Json
           if ($existing) {
             # A release made earlier must hold the same package.
@@ -158,6 +172,10 @@ jobs:
             $existingHash = (Get-FileHash -LiteralPath (Join-Path $downloaded $asset.name) -Algorithm SHA256).Hash.ToLowerInvariant()
             if ($existingHash -ne $env:SHA256) { throw "Release $env:TAG holds a different package (SHA-256 $existingHash, expected $env:SHA256)." }
             Write-Host "Release $env:TAG already exists ($($existing.isDraft ? 'draft' : 'published')); reusing it."
+            if ($hasProvenance -and -not ($existing.assets | Where-Object name -EQ (Split-Path $provenancePath -Leaf))) {
+              gh release upload $env:TAG $provenancePath
+              if ($LASTEXITCODE) { exit $LASTEXITCODE }
+            }
             if ($existing.isDraft -and $env:PUSH_NUGET_ORG -ne 'true') {
               gh release edit $env:TAG --draft=false
               if ($LASTEXITCODE) { exit $LASTEXITCODE }
@@ -168,6 +186,7 @@ jobs:
           # With a nuget.org push, the release stays a draft until the push succeeds, so nothing public claims a version
           # nuget.org doesn't have.
           $arguments = @('release', 'create', $env:TAG, $packagePath, '--verify-tag', '--title', "$env:PACKAGE $env:VERSION", '--notes-file', 'promote/notes.md')
+          if ($hasProvenance) { $arguments += $provenancePath }
           if ($env:PRERELEASE -eq 'true') { $arguments += '--prerelease' }
           if ($env:PUSH_NUGET_ORG -eq 'true') { $arguments += '--draft' }
           gh @arguments

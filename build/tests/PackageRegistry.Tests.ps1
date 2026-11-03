@@ -62,6 +62,51 @@ Describe 'PackageRegistry' {
         }
     }
 
+    Context 'Save-BuildProvenance' {
+        BeforeEach {
+            $script:PackagePath = Join-Path (New-TestFolder) 'P.1.0.0.nupkg'
+        }
+
+        It 'saves the verified bundle beside the package' {
+            Mock -ModuleName PackageRegistry gh { $global:LASTEXITCODE = 0; '{"mediaType":"application/vnd.dev.sigstore.bundle.v0.3+json"}' }
+            $path = Save-BuildProvenance -PackagePath $script:PackagePath -Repository 'owner/repo'
+            $path | Should -Be "$script:PackagePath.sigstore.json"
+            (Get-Content -LiteralPath $path -Raw).Trim() | Should -Be '{"mediaType":"application/vnd.dev.sigstore.bundle.v0.3+json"}'
+        }
+
+        It 'requires SLSA provenance signed by the build workflow on a hosted runner' {
+            Mock -ModuleName PackageRegistry gh { $global:LASTEXITCODE = 0; '{}' }
+            Save-BuildProvenance -PackagePath $script:PackagePath -Repository 'owner/repo' | Out-Null
+            Should -Invoke -ModuleName PackageRegistry gh -Times 1 -ParameterFilter {
+                "$args" -like '*--repo owner/repo *' -and
+                "$args" -like '*--signer-workflow owner/repo/.github/workflows/build-and-publish.yml *' -and
+                "$args" -like '*--predicate-type https://slsa.dev/provenance/v1 *' -and
+                "$args" -like '*--deny-self-hosted-runners *'
+            }
+        }
+
+        It 'throws for a package with no attestation' {
+            Mock -ModuleName PackageRegistry gh { $global:LASTEXITCODE = 1; 'Error: HTTP 404: Not Found' }
+            { Save-BuildProvenance -PackagePath $script:PackagePath -Repository 'owner/repo' } | Should -Throw '*P.1.0.0.nupkg did not verify*'
+        }
+
+        It 'returns nothing for a package with no attestation when that is allowed' {
+            Mock -ModuleName PackageRegistry gh { $global:LASTEXITCODE = 1; 'Error: HTTP 404: Not Found' }
+            Save-BuildProvenance -PackagePath $script:PackagePath -Repository 'owner/repo' -AllowMissing | Should -BeNullOrEmpty
+            Test-Path -LiteralPath "$script:PackagePath.sigstore.json" | Should -BeFalse
+        }
+
+        It 'returns nothing for a package with attestations but no provenance when that is allowed' {
+            Mock -ModuleName PackageRegistry gh { $global:LASTEXITCODE = 1; 'Error: no attestations found' }
+            Save-BuildProvenance -PackagePath $script:PackagePath -Repository 'owner/repo' -AllowMissing | Should -BeNullOrEmpty
+        }
+
+        It 'throws for an attestation that fails to verify, even when a missing one is allowed' {
+            Mock -ModuleName PackageRegistry gh { $global:LASTEXITCODE = 1; 'Error: verifying with issuer "sigstore.dev": certificate identity mismatch' }
+            { Save-BuildProvenance -PackagePath $script:PackagePath -Repository 'owner/repo' -AllowMissing } | Should -Throw '*certificate identity mismatch*'
+        }
+    }
+
     Context 'Get-PrunablePreviewVersion' {
         BeforeAll {
             $script:Now = [datetime]::new(2026, 10, 24, 0, 0, 0, [System.DateTimeKind]::Utc)
