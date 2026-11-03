@@ -8,6 +8,23 @@ Released versions are never changed or republished. When a release has a vulnera
 
 Preview packages built from the `develop` branch aren't supported.
 
+## Verifying a package
+
+Each package built by this repository has a signed [build provenance attestation](https://docs.github.com/en/actions/concepts/security/artifact-attestations) that links the `.nupkg` to the workflow run and commit that built it. The attestation is also attached to the package's GitHub Release, as `<package file>.sigstore.json`. Versions built before attestations were introduced don't have one.
+
+To verify a package, download it from its [release](https://github.com/matthew25187/DataStandardizer/releases) and run this with the [GitHub CLI](https://cli.github.com/):
+
+```shell
+gh attestation verify DataStandardizer.Core.2.0.0.nupkg \
+  --repo matthew25187/DataStandardizer \
+  --signer-workflow matthew25187/DataStandardizer/.github/workflows/build-and-publish.yml \
+  --source-ref refs/heads/master
+```
+
+Add `--bundle DataStandardizer.Core.2.0.0.nupkg.sigstore.json` to verify against the attached file instead of fetching the attestation from GitHub. For a preview version, use `--source-ref refs/heads/develop`.
+
+A package downloaded from nuget.org doesn't verify, because nuget.org adds its repository signature to the package (`.signature.p7s`), which changes the file's hash. Its other contents are the same as the release's.
+
 ## Reporting a vulnerability
 
 Report vulnerabilities privately through GitHub's [private vulnerability reporting](https://github.com/matthew25187/DataStandardizer/security/advisories/new) (the **Report a vulnerability** button on the repository's **Security** tab).

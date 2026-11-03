@@ -1,7 +1,7 @@
 #Requires -Version 7.4
 
-# Downloads packages from NuGet v3 feeds, reads the versions stamped on a package's assemblies, and decides which preview
-# versions may be pruned from the package store.
+# Downloads packages from NuGet v3 feeds, fetches their build provenance, reads the versions stamped on a package's
+# assemblies, and decides which preview versions may be pruned from the package store.
 
 Import-Module (Join-Path $PSScriptRoot '../VersionNumbers/VersionNumbers.psm1') -Scope Local
 
@@ -90,6 +90,49 @@ function Save-NuGetPackage {
     }
 
     return $null
+}
+
+function Save-BuildProvenance {
+    <#
+    .SYNOPSIS
+    Verifies the build provenance of a package and saves it beside the package as <package file>.sigstore.json, returning that file's path.
+
+    .DESCRIPTION
+    The attestation is looked up by the package's SHA-256 digest, so verifying it also shows that the file is byte-for-byte
+    what the build attested.  Throws when the attestation doesn't verify, or when there is none unless -AllowMissing is given.
+
+    .PARAMETER Repository
+    The repository, as owner/name, whose build workflow must have signed the attestation.
+
+    .PARAMETER AllowMissing
+    Return $null, rather than throw, for a package with no attestation.  An attestation that fails to verify still throws.
+    #>
+    [OutputType([string])]
+    param (
+        [Parameter(Mandatory)]
+        [string]    $PackagePath,
+
+        [Parameter(Mandatory)]
+        [string]    $Repository,
+
+        [Parameter()]
+        [switch]    $AllowMissing
+    )
+
+    # The signer is the reusable workflow that holds the attest job, not ci.yml or release.yml, which call it.
+    $output = @(gh attestation verify $PackagePath --repo $Repository --signer-workflow "$Repository/.github/workflows/build-and-publish.yml" `
+            --predicate-type 'https://slsa.dev/provenance/v1' --deny-self-hosted-runners --format json --jq '.[0].attestation.bundle' 2>&1)
+    if ($LASTEXITCODE) {
+        $message = $output -join [System.Environment]::NewLine
+        if ($AllowMissing -and $message -match 'HTTP 404|no attestations found') {
+            return $null
+        }
+        throw "The build provenance of $(Split-Path $PackagePath -Leaf) did not verify: $message"
+    }
+
+    $provenancePath = "$PackagePath.sigstore.json"
+    Set-Content -LiteralPath $provenancePath -Value ($output | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] })
+    return $provenancePath
 }
 
 function Get-AssemblyAttributeValue {
@@ -295,4 +338,4 @@ function Get-PrunablePreviewVersion {
     }
 }
 
-Export-ModuleMember -Function Save-NuGetPackage, Get-AssemblyAttributeValue, Get-PackageAssemblyVersion, Get-PrunablePreviewVersion
+Export-ModuleMember -Function Save-NuGetPackage, Save-BuildProvenance, Get-AssemblyAttributeValue, Get-PackageAssemblyVersion, Get-PrunablePreviewVersion

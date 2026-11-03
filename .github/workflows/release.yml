@@ -57,7 +57,9 @@ jobs:
     name: Build
     uses: ./.github/workflows/build-and-publish.yml
     permissions:
+      attestations: write
       contents: write
+      id-token: write
       packages: write
     secrets: inherit
     with:
