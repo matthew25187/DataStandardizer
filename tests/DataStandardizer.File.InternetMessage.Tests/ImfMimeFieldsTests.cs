@@ -598,6 +598,16 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Fact]
+        public void ParseContentLanguage_OnlyInvalidTagsWithAllowInvalidValues_GivesAnEmptyList()
+        {
+            // act
+            var testResult = ImfMimeFields.ParseContentLanguage("en_US", InvalidValues);
+
+            // assert
+            testResult.Should().BeEmpty();
+        }
+
+        [Fact]
         public void ParseContentLanguage_Null_Throws()
         {
             // act

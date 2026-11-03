@@ -134,6 +134,21 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Theory]
+        [InlineData("<\"a\x0001b\"@c>")]
+        [InlineData("<a@[b\x0001]>")]
+        public void ToCidUri_IdentifierWithAControlCharacter_Throws(string value)
+        {
+            // arrange
+            var messageId = ImfMessageId.Parse(value);
+
+            // act
+            Action testAction = () => messageId.ToCidUri();
+
+            // assert
+            testAction.Should().Throw<InvalidOperationException>();
+        }
+
+        [Theory]
         [MemberData(nameof(Formats))]
         public void ParseCidUri_UriFromAnIdentifier_GivesTheSameIdentifier(string value, string uri)
         {

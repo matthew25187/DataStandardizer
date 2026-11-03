@@ -243,9 +243,14 @@ namespace DataStandardizer.File.InternetMessage
         /// Any character that a URL can't hold, or that has a special meaning in one, is written as a <c>%</c> escape (RFC 1738 §2.2).
         /// </remarks>
         /// <returns>The URI.</returns>
-        /// <exception cref="InvalidOperationException">The identifier isn't US-ASCII, as only RFC 6532 allows, so it has no <c>cid:</c> URI.</exception>
+        /// <exception cref="InvalidOperationException">The identifier isn't US-ASCII, as only RFC 6532 allows, or holds a control character other than tab, as only the
+        /// obsolete syntax allows, so it has no <c>cid:</c> URI that gives the same identifier back.</exception>
         public string ToCidUri()
         {
+            // ToString leaves these out, which would make the URI refer to a different identifier.
+            if (!ImfGrammar.IsWritableText(IdLeft) || !ImfGrammar.IsWritableText(IdRight))
+                throw new InvalidOperationException("RFC 2392 §2 gives no form here for an identifier with a control character.");
+
             var text = ToString();
             var output = new StringBuilder(CidScheme, text.Length + CidScheme.Length);
             for (var index = 1; index < text.Length - 1; index++)

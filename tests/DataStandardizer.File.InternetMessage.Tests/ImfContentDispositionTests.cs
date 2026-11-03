@@ -26,6 +26,9 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string ExampleFileNameLetters15 = "aaaaaaaaaaaaaaa";
         private const string ExampleFileNameLetters80 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
+        private const string LongFileNameBody = "attachment; filename*0=" + ExampleFileNameLetters65 + "; filename*1=" + ExampleFileNameLetters15;
+        private const string LongFileNameField = "Content-Disposition: attachment;\r\n filename*0=" + ExampleFileNameLetters65 + ";\r\n filename*1=" + ExampleFileNameLetters15 + "\r\n";
+
         private const string AccentedFileName = "caf\x00E9.txt";
         private const string LongAccentedFileName = ExampleFileNameLetters80 + AccentedFileName;
         private const string EncodedWordFileName = "attachment; filename=\"=?UTF-8?Q?caf=C3=A9.txt?=\"";
@@ -377,7 +380,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var testResult = disposition.ToString();
 
             // assert
-            testResult.Should().Be("attachment; filename*0=" + ExampleFileNameLetters65 + "; filename*1=" + ExampleFileNameLetters15);
+            testResult.Should().Be(LongFileNameBody);
         }
 
         [Fact]
@@ -390,7 +393,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var testResult = MessageWrites.WriteField("Content-Disposition", body, ImfHeaderFieldKind.Structured);
 
             // assert
-            testResult.Should().Be("Content-Disposition: attachment;\r\n filename*0=" + ExampleFileNameLetters65 + ";\r\n filename*1=" + ExampleFileNameLetters15 + "\r\n");
+            testResult.Should().Be(LongFileNameField);
         }
 
         [Fact]
@@ -540,6 +543,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         [InlineData("a b")]
         [InlineData("a/b")]
         [InlineData("a;b=c")]
+        [InlineData("x~y")]
         public void Constructor_InvalidType_Throws(string type)
         {
             // act

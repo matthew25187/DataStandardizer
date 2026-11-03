@@ -393,7 +393,7 @@ namespace DataStandardizer.File.InternetMessage
             string text;
             MimeMediaType mediaType;
             if (!ImfFieldComments.TryRemove(GetFieldBodyText(field), out text)
-                || !MimeMediaType.TryParse(text, MimeMediaTypeParseOptions.AllowWhitespaceAroundDelimiters | MimeMediaTypeParseOptions.AllowRfc2045Tokens, _options.CharsetResolver ?? MimeCharsetResolver.Default, out mediaType)
+                || !MimeMediaType.TryParse(text, ImfMimeFields.GetParseOptions(_options) | MimeMediaTypeParseOptions.AllowWhitespaceAroundDelimiters, _options.CharsetResolver ?? MimeCharsetResolver.Default, out mediaType)
                 || mediaType != node.Source.ContentType)
                 throw BuildError($"A Content-Type field added to an entity must say the same as the media type the entity was made with, '{node.Source.ContentType}'.", node.Path);
 

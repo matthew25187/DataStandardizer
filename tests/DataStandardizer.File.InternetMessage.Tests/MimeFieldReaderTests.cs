@@ -9,25 +9,25 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string DescriptionText = "a complete map of the human genome";
 
         // ref. RFC 2231 §3: section numbers start at 0 with no gaps.
-        private const string MissingSectionBoundary = "Content-Type: multipart/mixed; boundary*1=b\r\n\r\n--b\r\n\r\n--b--";
+        private const string MissingSectionBoundary = "Content-Type: multipart/mixed; boundary*1=b\r\n\r\n--b\r\n\r\na\r\n--b--";
 
         public static TheoryData<string> MimeFields => new TheoryData<string>
         {
-            "Content-Type: text/plain",
-            "Content-Transfer-Encoding: 7bit",
-            "Content-ID: <a@b>",
-            "Content-Description: a",
-            "Content-Disposition: inline",
-            "Content-Language: en",
-            "CONTENT-TYPE: text/plain",
+            "Content-Type: text/plain\r\n\r\na",
+            "Content-Transfer-Encoding: 7bit\r\n\r\na",
+            "Content-ID: <a@b>\r\n\r\na",
+            "Content-Description: a\r\n\r\na",
+            "Content-Disposition: inline\r\n\r\na",
+            "Content-Language: en\r\n\r\na",
+            "CONTENT-TYPE: text/plain\r\n\r\na",
         };
 
         [Theory]
         [MemberData(nameof(MimeFields))]
-        public void ReadEvent_MimeFieldAndNoMimeVersion_ReportsADiagnostic(string field)
+        public void ReadEvent_MimeFieldAndNoMimeVersion_ReportsADiagnostic(string message)
         {
             // arrange
-            using (var reader = EntityEvents.CreateReader(field + "\r\n\r\na"))
+            using (var reader = EntityEvents.CreateReader(message))
             {
                 // act
                 EntityEvents.ReadToEnd(reader);
@@ -81,7 +81,9 @@ namespace DataStandardizer.File.InternetMessage.Tests
                 EntityEvents.ReadToEnd(reader);
 
                 // assert
-                reader.Diagnostics.Should().ContainSingle().Which.Kind.Should().Be(ImfDiagnosticKind.MissingMimeVersion);
+                var diagnostic = reader.Diagnostics.Should().ContainSingle().Which;
+                diagnostic.Kind.Should().Be(ImfDiagnosticKind.MissingMimeVersion);
+                diagnostic.EntityPath.Should().Be("1");
             }
         }
 
@@ -106,10 +108,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
             using (var reader = EntityEvents.CreateReader(MissingSectionBoundary, new ImfOptions { AllowMalformedParameters = true }))
             {
                 // act
-                Action testAction = () => EntityEvents.ReadToEnd(reader);
+                var testResult = EntityEvents.ReadOutline(reader);
 
                 // assert
-                testAction.Should().NotThrow();
+                testResult.Should().Contain("body 1 [a]");
             }
         }
 

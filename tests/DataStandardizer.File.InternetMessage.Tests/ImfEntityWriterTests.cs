@@ -11,6 +11,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
     /// </summary>
     public class ImfEntityWriterTests
     {
+        // ref. RFC 2231 §3: section numbers start at 0.
+        private const string MalformedContentType = "text/plain; c*1=d";
+        private const string MalformedContentTypeField = "Content-Type: text/plain; c*1=d\r\n";
+
         private const string Header = "MIME-Version: 1.0\r\nContent-Type: text/plain\r\n";
         private const string OneByteBody = "x";
         private const int BlockSizeOfOne = 1;
@@ -1779,6 +1783,36 @@ namespace DataStandardizer.File.InternetMessage.Tests
             }
 
             return bytes;
+        }
+
+        [Fact]
+        public void Write_AddedContentTypeWithMalformedParameter_IsRejected()
+        {
+            // arrange
+            var options = new ImfOptions { AllowMalformedParameters = true };
+            var source = ImfEntitySource.FromContent(ImfMimeFields.ParseContentType(MalformedContentType, options), new byte[0])
+                .AddRawField(Octets.Of(MalformedContentTypeField));
+
+            // act
+            Action testAction = () => MessageWrites.Write(source);
+
+            // assert
+            testAction.Should().Throw<ImfFileException>();
+        }
+
+        [Fact]
+        public void Write_AddedContentTypeWithMalformedParameterAndAllowMalformedParameters_CopiesIt()
+        {
+            // arrange
+            var options = new ImfOptions { AllowMalformedParameters = true };
+            var source = ImfEntitySource.FromContent(ImfMimeFields.ParseContentType(MalformedContentType, options), new byte[0])
+                .AddRawField(Octets.Of(MalformedContentTypeField));
+
+            // act
+            var testResult = MessageWrites.Write(source, options);
+
+            // assert
+            testResult.Should().Contain(MalformedContentTypeField);
         }
     }
 }

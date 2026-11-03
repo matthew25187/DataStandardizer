@@ -397,7 +397,7 @@ namespace DataStandardizer.File.InternetMessage
         /// </summary>
         /// <remarks>
         /// RFC 3282 §2 needs at least one tag, and no empty elements.  A tag has to be well-formed by the current edition of BCP 47 (RFC 5646 §2.2.9).  One that isn't is
-        /// rejected, unless <see cref="ImfOptions.AllowInvalidValues"/> is <c>true</c>, when it is left out of the list.
+        /// rejected, unless <see cref="ImfOptions.AllowInvalidValues"/> is <c>true</c>, when it is left out of the list.  The list is then empty if no tag was well-formed.
         /// </remarks>
         /// <param name="value">The field body, which may be folded and have comments, such as <c>en, fr (This is a dictionary)</c>.  Bytes that aren't valid UTF-8 are
         /// decoded with <see cref="ImfOptions.HeaderFallbackCharset"/>, if <see cref="ImfOptions.AllowEightBitHeaders"/> is <c>true</c>.</param>

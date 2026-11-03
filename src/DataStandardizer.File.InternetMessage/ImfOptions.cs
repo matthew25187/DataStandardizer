@@ -193,7 +193,8 @@ namespace DataStandardizer.File.InternetMessage
         /// size in a Content-Disposition field that breaks RFC 2183 §2 stays as a parameter, and its property is <c>null</c>.
         /// </para>
         /// <para>
-        /// An <see cref="ImfEntityReader"/> uses only the accommodations for RFC 2231.  It doesn't look at other parameters than those it needs to find the parts of a message.
+        /// An <see cref="ImfEntityReader"/> uses only the accommodations for RFC 2231.  It doesn't look at other parameters than those it needs to find the parts of a message.  An
+        /// <see cref="ImfEntityWriter"/> uses them only to read a Content-Type field added to an entity, which it copies as it is, and never to write a field of its own.
         /// </para>
         /// </remarks>
         public bool AllowMalformedParameters
