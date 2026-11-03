@@ -738,6 +738,22 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Fact]
+        public void WriteField_AfterAFlushFailure_ThrowsThatTheWriterCannotContinue()
+        {
+            // arrange
+            using (var writer = new ImfHeaderWriter(new FailingWriteStream()))
+            {
+                MessageWrites.IgnoreFailure(() => writer.Flush());
+
+                // act
+                Action testAction = () => writer.WriteField(FieldName, ShortValue, ImfHeaderFieldKind.Unstructured);
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>();
+            }
+        }
+
+        [Fact]
         public void WriteField_AfterAStreamFailure_ThrowsThatTheWriterCannotContinue()
         {
             // arrange

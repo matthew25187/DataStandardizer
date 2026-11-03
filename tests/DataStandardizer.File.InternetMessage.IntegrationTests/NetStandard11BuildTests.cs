@@ -102,6 +102,18 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
             testResult.Should().Contain(StreamParameterName).And.NotContain(FilePathParameterName);
         }
 
+        [Theory]
+        [InlineData(HeaderWriterTypeName)]
+        [InlineData(EntityWriterTypeName)]
+        public void Methods_WriterInNetStandard11Build_HaveNoFilePathConstructors(string typeName)
+        {
+            // act
+            var testResult = ReadMethodNames(typeName);
+
+            // assert
+            testResult.Count(name => name == ".ctor").Should().Be(ConstructorCount);
+        }
+
         [Fact]
         public void Methods_EntityReaderInNetStandard11Build_HaveTheSynchronousRead()
         {

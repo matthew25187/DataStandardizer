@@ -157,6 +157,48 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Fact]
+        public void Report_RecordingProgress_KeepsTheLargestStep()
+        {
+            // arrange
+            var progress = new RecordingProgress();
+            progress.Report(new ImfWriteProgress(0, 0, 5));
+            progress.Report(new ImfWriteProgress(0, 0, 7));
+
+            // act
+            var testResult = progress.LargestStep;
+
+            // assert
+            testResult.Should().Be(5);
+        }
+
+        [Fact]
+        public async Task FlushAsync_FailingWriteStream_FailsThroughTheTask()
+        {
+            // arrange
+            var stream = new FailingWriteStream();
+
+            // act
+            Func<Task> testAction = () => stream.FlushAsync();
+
+            // assert
+            await testAction.Should().ThrowAsync<IOException>().WithMessage(FailingWriteStream.FailureMessage);
+        }
+
+        [Fact]
+        public async Task WriteAsync_GatedWriteStreamOnceOpen_KeepsTheBytes()
+        {
+            // arrange
+            var stream = new GatedWriteStream();
+            stream.OpenGate();
+
+            // act
+            await stream.WriteAsync(OneByte, 0, 1);
+
+            // assert
+            stream.ToArray().Should().Equal(OneByte);
+        }
+
+        [Fact]
         public void CanSeek_ForwardOnlyStream_IsFalse()
         {
             // arrange

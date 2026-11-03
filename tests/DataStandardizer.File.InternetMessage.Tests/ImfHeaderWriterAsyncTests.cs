@@ -155,6 +155,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // assert
             Octets.ToText(stream.ToArray()).Should().Be(section);
+            progress.ReportCount.Should().Be(2);
             progress.Last.Should().Be(new ImfWriteProgress(2, 0, 14));
         }
 
@@ -293,6 +294,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
                 testAction.Should().Throw<InvalidOperationException>();
                 stream.OpenGate();
                 await pending;
+                Octets.ToText(stream.ToArray()).Should().Be(ShortField);
             });
         }
 
@@ -303,14 +305,49 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var stream = new GatedWriteStream();
             var writer = new ImfHeaderWriter(stream);
             var pending = writer.WriteFieldAsync(FieldName, ShortValue, ImfHeaderFieldKind.Unstructured).AsTask();
-            await writer.DisposeAsync();
+            var disposing = writer.DisposeAsync().AsTask();
             stream.OpenGate();
+            await disposing;
 
             // act
             Func<Task> testAction = () => pending;
 
             // assert
             await testAction.Should().ThrowAsync<ObjectDisposedException>();
+        }
+
+        [Fact]
+        public async Task DisposeAsync_WhileAWriteIsInProgress_DoesNotCompleteUntilTheWriteHasFinished()
+        {
+            // arrange
+            var stream = new GatedWriteStream();
+            var writer = new ImfHeaderWriter(stream);
+            _ = writer.WriteFieldAsync(FieldName, ShortValue, ImfHeaderFieldKind.Unstructured).AsTask();
+
+            // act
+            var disposing = writer.DisposeAsync().AsTask();
+
+            // assert
+            disposing.IsCompleted.Should().BeFalse();
+            stream.OpenGate();
+            await disposing;
+        }
+
+        [Fact]
+        public async Task WriteField_AfterAFlushFailure_ThrowsThatTheWriterCannotContinue()
+        {
+            // arrange
+            var writer = new ImfHeaderWriter(new FailingWriteStream());
+            await AsyncDisposal.UsingAsync(writer, async () =>
+            {
+                await MessageWrites.IgnoreFailureAsync(() => writer.FlushAsync());
+
+                // act
+                Action testAction = () => writer.WriteField(FieldName, ShortValue, ImfHeaderFieldKind.Unstructured);
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>();
+            });
         }
 
         [Fact]

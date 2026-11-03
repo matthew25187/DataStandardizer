@@ -26,12 +26,15 @@ namespace DataStandardizer.File.InternetMessage
     /// <b>Transfer encoding.</b>  Unless <see cref="ImfEntitySource.TransferEncoding"/> says which to use, each body gets the lightest that fits.
     /// <c>7bit</c> fits if its lines are at most 998 octets with CRLF line breaks, and it has no NULs or octets above 127 (RFC 2045 §2.7).  <c>8bit</c>, which
     /// also allows octets above 127, is next if <see cref="ImfOptions.AllowEightBitTransferEncoding"/> is set.  <c>binary</c>, which fits anything, is next if
-    /// <see cref="ImfOptions.AllowBinaryTransferEncoding"/> is set.  Otherwise it is <c>quoted-printable</c> or <c>base64</c>, whichever would be smaller, with
-    /// <c>quoted-printable</c> winning a tie.
+    /// <see cref="ImfOptions.AllowBinaryTransferEncoding"/> is set.  Otherwise it is <c>quoted-printable</c> or <c>base64</c>, whichever an estimate of their
+    /// sizes with line breaks says is smaller, with <c>quoted-printable</c> winning a tie.  The estimate can differ from the output by a few bytes, as an
+    /// encoded octet is never split across a soft line break.
     /// </para>
     /// <para>
-    /// A body that is encoded decodes to exactly the bytes given.  In <c>quoted-printable</c>, a CRLF in a <c>text</c> body is written as a line break, as RFC
-    /// 2045 §6.7 rule 4 says; if the body also holds a bare CR or LF, or is not <c>text</c>, each CR and LF is encoded, with only soft line breaks.
+    /// A body that is encoded decodes to exactly the bytes given, with one exception.  In <c>quoted-printable</c>, a CRLF in a <c>text</c> body is written as a
+    /// line break, as RFC 2045 §6.7 rule 4 says; if the body also holds a bare CR or LF, or is not <c>text</c>, each CR and LF is encoded, with only soft line
+    /// breaks.  The exception is a <c>text</c> body from a stream that doesn't support seeking, which can't be looked at first: it is treated as text in the
+    /// canonical form of RFC 2046 §4.1.1, so a bare LF in it is written as a line break, and decodes to a CRLF.
     /// </para>
     /// <para>
     /// A multipart entity or embedded message gets the identity encoding that covers what it holds (RFC 2045 §6.4), so one with an <c>8bit</c> part is labelled
@@ -217,10 +220,10 @@ namespace DataStandardizer.File.InternetMessage
         /// May be called more than once, and shares its state with <see cref="Dispose"/>.  If an operation is in progress, it completes with
         /// <see cref="ObjectDisposedException"/>, and the file is closed once it has finished with it.
         /// </remarks>
-        /// <returns>A task that completes once the file has been closed.</returns>
+        /// <returns>A task that completes once any operation in progress has finished, and the file has been closed.</returns>
         public ValueTask DisposeAsync()
         {
-            return _output.MarkDisposed() ? _output.ReleaseAsync() : default(ValueTask);
+            return _output.MarkDisposed() ? _output.ReleaseAsync() : _output.WaitForReleaseAsync();
         }
 #endif
 
@@ -255,7 +258,8 @@ namespace DataStandardizer.File.InternetMessage
         /// </remarks>
         /// <param name="message">The message.</param>
         /// <param name="progress">Receives the progress after each block of output has been handed to the stream, synchronously on the writing thread; or
-        /// <c>null</c>.  An exception it throws ends the call, leaving the message incomplete.</param>
+        /// <c>null</c>.  An exception from <see cref="IProgress{T}.Report"/> ends the call, leaving the message incomplete.  <see cref="Progress{T}"/> runs its handler later, so writing
+        /// doesn't wait for the handler, and an exception from the handler doesn't end the call.</param>
         /// <exception cref="ObjectDisposedException">The writer has been disposed, either before this call or during it.</exception>
         /// <exception cref="ArgumentNullException"><paramref name="message"/> is <c>null</c>.</exception>
         /// <exception cref="ImfFileException">The message can't be written: its <see cref="ImfFileException.DataItemName.EntityPath"/> item says which entity is
@@ -301,11 +305,10 @@ namespace DataStandardizer.File.InternetMessage
                         else
                         {
                             _output.Write(item.Bytes.Span);
+                            _fieldsWritten += item.FieldsWritten;
+                            _entitiesWritten += item.EntitiesWritten;
+                            progress?.Report(GetProgress());
                         }
-
-                        _fieldsWritten += item.FieldsWritten;
-                        _entitiesWritten += item.EntitiesWritten;
-                        progress?.Report(GetProgress());
                     }
                 }
                 catch
@@ -353,7 +356,8 @@ namespace DataStandardizer.File.InternetMessage
         /// </remarks>
         /// <param name="message">The message.</param>
         /// <param name="progress">Receives the progress after each block of output has been handed to the stream, synchronously on the writing thread; or
-        /// <c>null</c>.  An exception it throws ends the call, leaving the message incomplete.</param>
+        /// <c>null</c>.  An exception from <see cref="IProgress{T}.Report"/> ends the call, leaving the message incomplete.  <see cref="Progress{T}"/> runs its handler later, so writing
+        /// doesn't wait for the handler, and an exception from the handler doesn't end the call.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.  If the write is canceled, the writer cannot continue.</param>
         /// <returns>A task that completes once the whole message has been handed to the stream.</returns>
         /// <exception cref="ObjectDisposedException">The writer has been disposed.  Thrown by this call, or by the task if the writer is disposed while the
@@ -435,11 +439,10 @@ namespace DataStandardizer.File.InternetMessage
                     else
                     {
                         await _output.WriteAsync(item.Bytes, cancellationToken).ConfigureAwait(false);
+                        _fieldsWritten += item.FieldsWritten;
+                        _entitiesWritten += item.EntitiesWritten;
+                        progress?.Report(GetProgress());
                     }
-
-                    _fieldsWritten += item.FieldsWritten;
-                    _entitiesWritten += item.EntitiesWritten;
-                    progress?.Report(GetProgress());
                 }
 
                 _output.ThrowIfDisposed();
@@ -513,6 +516,7 @@ namespace DataStandardizer.File.InternetMessage
                 if (item.Encoder is null)
                 {
                     await _output.WriteAsync(block, cancellationToken).ConfigureAwait(false);
+                    progress?.Report(GetProgress());
                 }
                 else
                 {
@@ -524,10 +528,10 @@ namespace DataStandardizer.File.InternetMessage
                         status = EncodeBlock(item.Encoder, source.Span, encodedBlock, isFinalBlock, out var consumed, out length);
                         source = source.Slice(consumed);
                         await _output.WriteAsync(new ReadOnlyMemory<byte>(encodedBlock, 0, length), cancellationToken).ConfigureAwait(false);
+                        progress?.Report(GetProgress());
                     } while (status != OperationStatus.Done);
                 }
 
-                progress?.Report(GetProgress());
                 if (isFinalBlock) return;
             }
         }
@@ -600,6 +604,7 @@ namespace DataStandardizer.File.InternetMessage
                 if (item.Encoder is null)
                 {
                     _output.Write(block);
+                    progress?.Report(GetProgress());
                 }
                 else
                 {
@@ -610,10 +615,10 @@ namespace DataStandardizer.File.InternetMessage
                         status = EncodeBlock(item.Encoder, block, encodedBlock, isFinalBlock, out consumed, out length);
                         block = block.Slice(consumed);
                         _output.Write(new ReadOnlySpan<byte>(encodedBlock, 0, length));
+                        progress?.Report(GetProgress());
                     } while (status != OperationStatus.Done);
                 }
 
-                progress?.Report(GetProgress());
                 if (isFinalBlock) return;
             }
         }

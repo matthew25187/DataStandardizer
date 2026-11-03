@@ -462,7 +462,7 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Generates a new value for a boundary, unlike every other boundary.
+        /// Generates a new value for a boundary, unlike each boundary around it or inside it.  A sibling doesn't matter, as neither encloses the other.
         /// </summary>
         private void ReplaceBoundary(ImfBoundary boundary)
         {
@@ -473,7 +473,7 @@ namespace DataStandardizer.File.InternetMessage
                 var isUsable = IsValidBoundary(candidate) && candidate != previous;
                 foreach (var other in _boundaries)
                 {
-                    if (!ReferenceEquals(other, boundary) && other.Value.Length > 0 && other.ConflictsWith(candidate)) isUsable = false;
+                    if (other.Value.Length > 0 && (Encloses(other, boundary) || Encloses(boundary, other)) && other.ConflictsWith(candidate)) isUsable = false;
                 }
 
                 if (isUsable)
@@ -484,6 +484,11 @@ namespace DataStandardizer.File.InternetMessage
             }
 
             throw new ImfFileException($"No usable boundary was generated in {MaxBoundaryAttempts} attempts.");
+        }
+
+        private static bool Encloses(ImfBoundary outer, ImfBoundary inner)
+        {
+            return Array.IndexOf(inner.Enclosing, outer) >= 0;
         }
 
         /// <summary>

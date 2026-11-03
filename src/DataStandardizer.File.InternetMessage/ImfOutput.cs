@@ -21,17 +21,21 @@ namespace DataStandardizer.File.InternetMessage
         internal const int FileBufferSize = 16 * 1024;
 
         private const int CopyBlockSize = 16 * 1024;
+        private const int DisposedFlag = 2;
+        private const int OperationInProgressFlag = 1;
+        private const int ReleasedFlag = 4;
 
         private readonly string _ownerName;
         private readonly bool _ownsStream;
         private readonly Stream _stream;
+#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
+        private readonly TaskCompletionSource<bool> _released = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+#endif
         private bool _isBroken;
 
-        // These are changed with Interlocked, so that a Dispose from another thread while an operation is in progress releases the stream once only,
-        // after that operation has finished with it.
-        private int _isDisposed;
-        private int _isOperationInProgress;
-        private int _isReleased;
+        // The flags below, changed together with Interlocked, so that an operation can't start between the end of another and the decision to release
+        // the stream, and a Dispose from another thread while an operation is in progress releases the stream once only, after that operation.
+        private int _state;
 
         internal ImfOutput(Stream stream, bool ownsStream, string ownerName)
         {
@@ -57,7 +61,7 @@ namespace DataStandardizer.File.InternetMessage
 
         internal void ThrowIfDisposed()
         {
-            if (Volatile.Read(ref _isDisposed) != 0)
+            if ((Volatile.Read(ref _state) & DisposedFlag) != 0)
                 throw new ObjectDisposedException(_ownerName);
         }
 
@@ -68,22 +72,17 @@ namespace DataStandardizer.File.InternetMessage
         /// <exception cref="ObjectDisposedException">The writer has been disposed.</exception>
         internal void BeginOperation()
         {
-            if (Interlocked.CompareExchange(ref _isOperationInProgress, 1, 0) != 0)
-                throw new InvalidOperationException("Another operation is in progress.  Only one operation may be in progress at a time.");
-
-            // Dispose may have run between the caller's check and this one.
-            if (Volatile.Read(ref _isDisposed) != 0)
+            while (true)
             {
-                if (EndOperation()) Release();
+                var state = Volatile.Read(ref _state);
+                if ((state & OperationInProgressFlag) != 0)
+                    throw new InvalidOperationException("Another operation is in progress.  Only one operation may be in progress at a time.");
+                if ((state & DisposedFlag) != 0)
+                    throw new ObjectDisposedException(_ownerName);
+                if (_isBroken)
+                    throw new InvalidOperationException("The writer cannot continue after a write failed or was canceled, as its output is incomplete.");
 
-                throw new ObjectDisposedException(_ownerName);
-            }
-
-            if (_isBroken)
-            {
-                if (EndOperation()) Release();
-
-                throw new InvalidOperationException("The writer cannot continue after a write failed or was canceled, as its output is incomplete.");
+                if (Interlocked.CompareExchange(ref _state, state | OperationInProgressFlag, state) == state) return;
             }
         }
 
@@ -93,8 +92,15 @@ namespace DataStandardizer.File.InternetMessage
         /// <returns><c>true</c> if the writer was disposed while the operation was in progress, and the caller must now release it.</returns>
         internal bool EndOperation()
         {
-            Interlocked.Exchange(ref _isOperationInProgress, 0);
-            return Volatile.Read(ref _isDisposed) != 0 && Interlocked.Exchange(ref _isReleased, 1) == 0;
+            while (true)
+            {
+                var state = Volatile.Read(ref _state);
+                var mustRelease = (state & DisposedFlag) != 0 && (state & ReleasedFlag) == 0;
+                var next = state & ~OperationInProgressFlag;
+                if (mustRelease) next |= ReleasedFlag;
+
+                if (Interlocked.CompareExchange(ref _state, next, state) == state) return mustRelease;
+            }
         }
 
         /// <summary>
@@ -103,9 +109,17 @@ namespace DataStandardizer.File.InternetMessage
         /// <returns><c>true</c> if nothing is in progress and this is the first dispose, so the caller must now release it.</returns>
         internal bool MarkDisposed()
         {
-            if (Interlocked.Exchange(ref _isDisposed, 1) != 0) return false;
+            while (true)
+            {
+                var state = Volatile.Read(ref _state);
+                if ((state & DisposedFlag) != 0) return false;
 
-            return Volatile.Read(ref _isOperationInProgress) == 0 && Interlocked.Exchange(ref _isReleased, 1) == 0;
+                var mustRelease = (state & OperationInProgressFlag) == 0;
+                var next = state | DisposedFlag;
+                if (mustRelease) next |= ReleasedFlag;
+
+                if (Interlocked.CompareExchange(ref _state, next, state) == state) return mustRelease;
+            }
         }
 
         /// <summary>
@@ -151,7 +165,15 @@ namespace DataStandardizer.File.InternetMessage
 
         internal void Flush()
         {
-            _stream.Flush();
+            try
+            {
+                _stream.Flush();
+            }
+            catch
+            {
+                _isBroken = true;
+                throw;
+            }
         }
 
         /// <summary>
@@ -159,7 +181,16 @@ namespace DataStandardizer.File.InternetMessage
         /// </summary>
         internal void Release()
         {
-            if (_ownsStream) _stream.Dispose();
+            try
+            {
+                if (_ownsStream) _stream.Dispose();
+            }
+            finally
+            {
+#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
+                _released.TrySetResult(true);
+#endif
+            }
         }
 
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
@@ -189,9 +220,17 @@ namespace DataStandardizer.File.InternetMessage
             BytePosition += bytes.Length;
         }
 
-        internal Task FlushAsync(CancellationToken cancellationToken)
+        internal async Task FlushAsync(CancellationToken cancellationToken)
         {
-            return _stream.FlushAsync(cancellationToken);
+            try
+            {
+                await _stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch
+            {
+                _isBroken = true;
+                throw;
+            }
         }
 
         /// <summary>
@@ -199,20 +238,35 @@ namespace DataStandardizer.File.InternetMessage
         /// </summary>
         internal async ValueTask ReleaseAsync()
         {
-            if (!_ownsStream) return;
-
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-            await _stream.DisposeAsync().ConfigureAwait(false);
-#else
             try
             {
-                await _stream.FlushAsync().ConfigureAwait(false);
+                if (!_ownsStream) return;
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+                await _stream.DisposeAsync().ConfigureAwait(false);
+#else
+                try
+                {
+                    await _stream.FlushAsync().ConfigureAwait(false);
+                }
+                finally
+                {
+                    _stream.Dispose();
+                }
+#endif
             }
             finally
             {
-                _stream.Dispose();
+                _released.TrySetResult(true);
             }
-#endif
+        }
+
+        /// <summary>
+        /// Gets a task that completes once the writer has been released, for a dispose that is not the one to release it.
+        /// </summary>
+        internal ValueTask WaitForReleaseAsync()
+        {
+            return new ValueTask(_released.Task);
         }
 
 #if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP2_1_OR_GREATER

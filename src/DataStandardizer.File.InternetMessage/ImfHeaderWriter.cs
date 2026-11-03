@@ -176,10 +176,10 @@ namespace DataStandardizer.File.InternetMessage
         /// May be called more than once, and shares its state with <see cref="Dispose"/>.  If an operation is in progress, it completes with
         /// <see cref="ObjectDisposedException"/>, and the buffer and file are released once it has finished with them.
         /// </remarks>
-        /// <returns>A task that completes once the file has been closed.</returns>
+        /// <returns>A task that completes once any operation in progress has finished, and the file has been closed.</returns>
         public ValueTask DisposeAsync()
         {
-            return _output.MarkDisposed() ? ReleaseAsync() : default(ValueTask);
+            return _output.MarkDisposed() ? ReleaseAsync() : _output.WaitForReleaseAsync();
         }
 #endif
 
@@ -367,7 +367,8 @@ namespace DataStandardizer.File.InternetMessage
         /// </remarks>
         /// <param name="reader">The reader.</param>
         /// <param name="progress">Receives the progress after each field has been handed to the stream, synchronously on the writing thread; or
-        /// <c>null</c>.  An exception it throws ends the call; the field it was reporting has been written.</param>
+        /// <c>null</c>.  An exception from <see cref="IProgress{T}.Report"/> ends the call; the field it was reporting has been written.  <see cref="Progress{T}"/> runs its handler later,
+        /// so writing doesn't wait for the handler, and an exception from the handler doesn't end the call.</param>
         /// <exception cref="ObjectDisposedException">The writer has been disposed, either before this call or during it, or the reader has.</exception>
         /// <exception cref="ArgumentNullException"><paramref name="reader"/> is <c>null</c>.</exception>
         /// <exception cref="ImfFileException">The reader found a field it can't read.  The fields before it have been written.</exception>
@@ -558,7 +559,8 @@ namespace DataStandardizer.File.InternetMessage
         /// </remarks>
         /// <param name="reader">The reader.</param>
         /// <param name="progress">Receives the progress after each field has been handed to the stream, synchronously on the writing thread; or
-        /// <c>null</c>.  An exception it throws ends the call; the field it was reporting has been written.</param>
+        /// <c>null</c>.  An exception from <see cref="IProgress{T}.Report"/> ends the call; the field it was reporting has been written.  <see cref="Progress{T}"/> runs its handler later,
+        /// so writing doesn't wait for the handler, and an exception from the handler doesn't end the call.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.  If the write is canceled, the writer cannot continue.</param>
         /// <returns>A task that completes once every field has been handed to the stream.</returns>
         /// <exception cref="ObjectDisposedException">The writer has been disposed.  Thrown by this call, or by the task if the writer is disposed while the

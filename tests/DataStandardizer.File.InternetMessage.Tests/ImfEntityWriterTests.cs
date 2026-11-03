@@ -14,6 +14,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string Header = "MIME-Version: 1.0\r\nContent-Type: text/plain\r\n";
         private const string OneByteBody = "x";
         private const int BlockSizeOfOne = 1;
+
+        // The most the writer hands to the stream at once when it encodes a body, and an input block whose base64 is longer than that.
+        private const int EncodedBlockSize = 16 * 1024;
+        private const int LargeBlockSize = 64 * 1024;
         private const string FixedBoundaryType = "multipart/mixed;boundary=given";
 
         // ref. RFC 5322 §2.1.1
@@ -27,6 +31,11 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private static readonly string LongestLine = new string('a', MaxLineLength);
         private static readonly string LineOverLongest = new string('a', MaxLineLength + 1);
         private static readonly byte[] AllByteValues = BuildAllByteValues();
+
+        // 2,500 literal bytes and 500 encoded ones come to 4,000 characters of quoted-printable, as do 3,000 bytes of base64.  The line breaks settle it: 53 soft
+        // ones of 3 characters each, against 52 of 2.
+        private static readonly string TieBeforeLineBreaks = string.Concat(System.Linq.Enumerable.Repeat("aaaaa\x00FF", 500));
+        private static readonly byte[] BodyLargerThanTheEncodedBlock = new byte[LargeBlockSize];
 
         // ref. RFC 2045 §6.7 rule 5: a line of 76 characters, of which the last is the "=" of a soft line break.
         private static readonly string EncodedStartOfLineOverLongest = new string('a', 75) + "=\r\n";
@@ -224,6 +233,36 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // assert
             testResult.Should().Be("MIME-Version: 1.0\r\nContent-Type: application/octet-stream\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\nabcdefgh=0D=0Aij=C3");
+        }
+
+        [Fact]
+        public void WriteMessage_SizesTiedBeforeTheirLineBreaks_ChoosesTheSmallerWithThem()
+        {
+            // arrange
+            var source = ImfEntitySource.FromContent(MimeMediaType.TextPlain, Octets.Of(TieBeforeLineBreaks));
+
+            // act
+            var testResult = MessageWrites.Write(source);
+
+            // assert
+            testResult.Should().Contain("Content-Transfer-Encoding: base64\r\n");
+        }
+
+        [Fact]
+        public void WriteMessage_InputBlockLargerThanTheEncodedBlock_ReportsEachBlockOfOutput()
+        {
+            // arrange
+            var progress = new RecordingProgress();
+            var source = ImfEntitySource.FromContent(MimeMediaType.TextPlain, BodyLargerThanTheEncodedBlock);
+            source.TransferEncoding = MimeTransferEncoding.Base64;
+            using (var writer = new ImfEntityWriter(new MemoryStream(), new ImfOptions(), LargeBlockSize, false, MessageWrites.NextBoundary()))
+            {
+                // act
+                writer.WriteMessage(source, progress);
+            }
+
+            // assert
+            progress.LargestStep.Should().BeLessOrEqualTo(EncodedBlockSize);
         }
 
         [Fact]
@@ -1101,6 +1140,24 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // assert
             testResult.Should().StartWith("MIME-Version: 1.0\r\nContent-Type: multipart/mixed;boundary=\"=_2\"\r\n");
+        }
+
+        [Fact]
+        public void WriteMessage_GeneratedBoundaryIsAPrefixOfASibling_KeepsIt()
+        {
+            // arrange
+            // ref. RFC 2046 §5.1.1: only an enclosing boundary matters.  Every generated boundary starts with "=_".
+            var source = ImfEntitySource.FromParts(MultipartWithGivenBoundary, new[]
+            {
+                ImfEntitySource.FromParts(MimeMediaType.MultipartMixed.WithParameter("boundary", "=_"), new[] { ImfEntitySource.FromRaw(new byte[0]) }),
+                ImfEntitySource.FromParts(MimeMediaType.MultipartMixed, new[] { ImfEntitySource.FromRaw(new byte[0]) }),
+            });
+
+            // act
+            var testResult = MessageWrites.Write(source);
+
+            // assert
+            testResult.Should().Contain("boundary=\"=_1\"");
         }
 
         [Fact]

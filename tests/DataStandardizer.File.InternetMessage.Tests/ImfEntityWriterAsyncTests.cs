@@ -17,6 +17,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string BodyText = "caf\x00C3\x00A9\r\n";
         private const int BlockSizeOfOne = 1;
         private const int DefaultBlockSize = 4096;
+
+        // The most the writer hands to the stream at once when it encodes a body, and an input block whose base64 is longer than that.
+        private const int EncodedBlockSize = 16 * 1024;
+        private const int LargeBlockSize = 64 * 1024;
         private const string OneByteBody = "x";
 
         public static TheoryData<string, string> RoundTrips => ImfEntityWriterTests.RoundTrips;
@@ -258,6 +262,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
                 testAction.Should().Throw<InvalidOperationException>();
                 stream.OpenGate();
                 await pending;
+                Octets.ToText(stream.ToArray()).Should().Be(OneByteBody);
             });
         }
 
@@ -268,14 +273,65 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var stream = new GatedWriteStream();
             var writer = MessageWrites.CreateWriter(stream);
             var pending = writer.WriteMessageAsync(ImfEntitySource.FromRaw(Octets.Of(OneByteBody)));
-            await writer.DisposeAsync();
+            var disposing = writer.DisposeAsync().AsTask();
             stream.OpenGate();
+            await disposing;
 
             // act
             Func<Task> testAction = () => pending;
 
             // assert
             await testAction.Should().ThrowAsync<ObjectDisposedException>();
+        }
+
+        [Fact]
+        public async Task DisposeAsync_WhileAWriteIsInProgress_DoesNotCompleteUntilTheWriteHasFinished()
+        {
+            // arrange
+            var stream = new GatedWriteStream();
+            var writer = MessageWrites.CreateWriter(stream);
+            _ = writer.WriteMessageAsync(ImfEntitySource.FromRaw(Octets.Of(OneByteBody)));
+
+            // act
+            var disposing = writer.DisposeAsync().AsTask();
+
+            // assert
+            disposing.IsCompleted.Should().BeFalse();
+            stream.OpenGate();
+            await disposing;
+        }
+
+        [Fact]
+        public async Task WriteMessage_AfterAFlushFailure_ThrowsThatTheWriterCannotContinue()
+        {
+            // arrange
+            var writer = MessageWrites.CreateWriter(new FailingWriteStream());
+            await AsyncDisposal.UsingAsync(writer, async () =>
+            {
+                await MessageWrites.IgnoreFailureAsync(() => writer.FlushAsync());
+
+                // act
+                Action testAction = () => writer.WriteMessage(ImfEntitySource.FromRaw(Octets.Of(OneByteBody)));
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>();
+            });
+        }
+
+        [Fact]
+        public async Task WriteMessageAsync_InputBlockLargerThanTheEncodedBlock_ReportsEachBlockOfOutput()
+        {
+            // arrange
+            var progress = new RecordingProgress();
+            var source = ImfEntitySource.FromContent(MimeMediaType.TextPlain, new byte[LargeBlockSize]);
+            source.TransferEncoding = MimeTransferEncoding.Base64;
+            var writer = new ImfEntityWriter(new ModeWriteStream(BlockStreamMode.AsynchronousOnly), new ImfOptions(), LargeBlockSize, false, MessageWrites.NextBoundary());
+
+            // act
+            await AsyncDisposal.UsingAsync(writer, () => writer.WriteMessageAsync(source, progress));
+
+            // assert
+            progress.LargestStep.Should().BeLessOrEqualTo(EncodedBlockSize);
         }
 
         [Fact]

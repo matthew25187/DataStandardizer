@@ -50,8 +50,12 @@ namespace DataStandardizer.File.InternetMessage
     /// </summary>
     internal sealed class ImfBodyScan
     {
+        private const int Base64LineLength = 76;
         private const byte CarriageReturn = 0x0D;
         private const int EncodedBlockSize = 4096;
+        private const int LineBreakLength = 2;
+        private const int QuotedPrintableLineLength = 76;
+        private const int SoftLineBreakLength = 3;
         private const byte Hyphen = 0x2D;
         private const byte LineFeed = 0x0A;
 
@@ -72,6 +76,8 @@ namespace DataStandardizer.File.InternetMessage
         private long _literalBytes;
         private int _maxLineLength;
         private long _otherBytes;
+        private long _encodedLineLength;
+        private long _softLineBreakBytes;
         private bool _previousWasCarriageReturn;
         private bool _isCheckingOutput;
         private byte[] _encoded = new byte[0];
@@ -133,9 +139,18 @@ namespace DataStandardizer.File.InternetMessage
         internal bool IsStream => !ReferenceEquals(Stream, System.IO.Stream.Null);
 
         /// <summary>
-        /// Gets the size of the bytes in base64, without its line breaks.
+        /// Gets the size of the bytes in base64, with its line breaks.
         /// </summary>
-        internal long Base64Length => (TotalLength + 2) / 3 * 4;
+        internal long Base64Length
+        {
+            get
+            {
+                var encoded = (TotalLength + 2) / 3 * 4;
+
+                // ref. RFC 2045 §6.8: lines of 76 characters, with a CRLF between them.
+                return encoded == 0 ? 0 : encoded + (encoded - 1) / Base64LineLength * LineBreakLength;
+            }
+        }
 
         /// <summary>
         /// Gets the data domain of the bytes (RFC 2045 §2.7 to §2.9), in which each line break is the writer's, and each line is at most 998 octets.
@@ -158,12 +173,24 @@ namespace DataStandardizer.File.InternetMessage
         private long TotalLength => _literalBytes + _otherBytes + _lineBreakBytes;
 
         /// <summary>
-        /// Gets the size of the bytes in quoted-printable, without its soft line breaks.
+        /// Gets an estimate of the size of the bytes in quoted-printable, with its soft line breaks.
         /// </summary>
-        /// <param name="encodeLineBreaks"><c>true</c> if each CR and LF is encoded.</param>
+        /// <param name="encodeLineBreaks"><c>true</c> if each CR and LF is encoded, so that the whole body is one line that only soft line breaks split.</param>
         internal long GetQuotedPrintableLength(bool encodeLineBreaks)
         {
-            return _literalBytes + 3 * _otherBytes + (encodeLineBreaks ? 3 : 1) * _lineBreakBytes;
+            if (!encodeLineBreaks) return _literalBytes + 3 * _otherBytes + _lineBreakBytes + _softLineBreakBytes;
+
+            var encoded = _literalBytes + 3 * _otherBytes + 3 * _lineBreakBytes;
+            return encoded + GetSoftLineBreakBytes(encoded);
+        }
+
+        /// <summary>
+        /// Gets the size of the soft line breaks of a line of quoted-printable (RFC 2045 §6.7 rule 5): at most 76 characters to a line, of which the last is
+        /// the <c>=</c> of a soft line break, unless it is the last line.
+        /// </summary>
+        private static long GetSoftLineBreakBytes(long lineLength)
+        {
+            return lineLength <= QuotedPrintableLineLength ? 0 : (lineLength - 1) / (QuotedPrintableLineLength - 1) * SoftLineBreakLength;
         }
 
         /// <summary>
@@ -215,6 +242,7 @@ namespace DataStandardizer.File.InternetMessage
             {
                 if (_previousWasCarriageReturn) _hasBareLineBreak = true;
 
+                _softLineBreakBytes += GetSoftLineBreakBytes(_encodedLineLength);
                 _isClassified = true;
                 _isClassifying = false;
             }
@@ -242,6 +270,8 @@ namespace DataStandardizer.File.InternetMessage
 
                     _lineBreakBytes++;
                     _lineLength = 0;
+                    _softLineBreakBytes += GetSoftLineBreakBytes(_encodedLineLength);
+                    _encodedLineLength = 0;
                     _previousWasCarriageReturn = false;
                     continue;
                 }
@@ -262,8 +292,16 @@ namespace DataStandardizer.File.InternetMessage
                 if (octet >= 0x80) _hasEightBit = true;
 
                 // ref. RFC 2045 §6.7 rules 2 and 3: printable characters other than "=", and spaces and tabs, are written as themselves.
-                if ((octet >= 33 && octet <= 126 && octet != '=') || octet == ' ' || octet == '\t') _literalBytes++;
-                else _otherBytes++;
+                if ((octet >= 33 && octet <= 126 && octet != '=') || octet == ' ' || octet == '\t')
+                {
+                    _literalBytes++;
+                    _encodedLineLength++;
+                }
+                else
+                {
+                    _otherBytes++;
+                    _encodedLineLength += 3;
+                }
 
                 _lineLength++;
                 if (_lineLength > _maxLineLength) _maxLineLength = _lineLength;

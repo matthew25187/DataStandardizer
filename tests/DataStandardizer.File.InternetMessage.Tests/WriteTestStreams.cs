@@ -130,22 +130,34 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public override async Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
             await _gate.Task;
+            await base.WriteAsync(buffer, offset, count, cancellationToken);
         }
 
 #if NETCOREAPP2_1_OR_GREATER
         public override async ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
         {
             await _gate.Task;
+            await base.WriteAsync(buffer, cancellationToken);
         }
 #endif
     }
 
     /// <summary>
-    /// A stream whose writes fail with an <see cref="IOException"/>.
+    /// A stream whose writes and flushes fail with an <see cref="IOException"/>.
     /// </summary>
     internal sealed class FailingWriteStream : MemoryStream
     {
         public const string FailureMessage = "The write failed.";
+
+        public override void Flush()
+        {
+            throw new IOException(FailureMessage);
+        }
+
+        public override Task FlushAsync(CancellationToken cancellationToken)
+        {
+            return Task.FromException(new IOException(FailureMessage));
+        }
 
         public override void Write(byte[] buffer, int offset, int count)
         {
@@ -205,8 +217,14 @@ namespace DataStandardizer.File.InternetMessage.Tests
         /// </summary>
         public ImfWriteProgress Last { get; private set; }
 
+        /// <summary>
+        /// Gets the most bytes that any one report added to the one before it.
+        /// </summary>
+        public long LargestStep { get; private set; }
+
         public void Report(ImfWriteProgress value)
         {
+            LargestStep = Math.Max(LargestStep, value.BytesWritten - Last.BytesWritten);
             ReportCount++;
             Last = value;
         }
