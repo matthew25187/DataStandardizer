@@ -59,6 +59,23 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
+        /// Passes over any folding white space and comments at a position in some input, for a grammar that doesn't divide into tokens.
+        /// </summary>
+        /// <returns><c>false</c> if the input is not valid at this point.</returns>
+        internal static bool TrySkipCfws(ReadOnlySpan<byte> input, ref int position)
+        {
+            var tokenizer = new ImfTokenizer(input) { _position = position };
+            while (true)
+            {
+                if (!tokenizer.TrySkipFoldingWhiteSpace(out _)) return false;
+
+                position = tokenizer._position;
+                if (position == input.Length || input[position] != OpenParenthesis) return true;
+                if (!tokenizer.TrySkipComment()) return false;
+            }
+        }
+
+        /// <summary>
         /// Reads the next token, passing over folding white space and comments.
         /// </summary>
         /// <returns><c>false</c> if the input is not valid at this point.</returns>

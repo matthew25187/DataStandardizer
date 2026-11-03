@@ -8,8 +8,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
         // ref. RFC 5322 §A.1.1
         public const string A11From = "John Doe <jdoe@machine.example>";
         public const string A11MessageId = "<1234@local.machine.example>";
+        public const string A11Date = "Fri, 21 Nov 1997 09:55:06 -0600";
 
         // ref. RFC 5322 §A.1.2
+        public const string A12Date = "Tue, 1 Jul 2003 10:52:37 +0200";
         public const string A12From = "\"Joe Q. Public\" <john.q.public@example.com>";
         public const string A12To = "Mary Smith <mary@x.test>, jdoe@example.org, Who? <one@y.test>";
         public const string A12Cc = "<boss@nil.test>, \"Giant; \\\"Big\\\" Box\" <sysservices@example.net>";
@@ -23,8 +25,18 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
         // ref. RFC 5322 §A.2
         public const string A2References = "<1234@local.machine.example> <3456@example.net>";
+        public const string A2ReplyDate = "Fri, 21 Nov 1997 10:01:10 -0600";
+        public const string A2ReplyToReplyDate = "Fri, 21 Nov 1997 11:00:00 -0600";
+
+        // ref. RFC 5322 §A.3
+        public const string A3ResentDate = "Mon, 24 Nov 1997 14:22:01 -0800";
+
+        // ref. RFC 5322 §A.4
+        public const string A4ReceivedDate = "21 Nov 1997 10:05:43 -0600";
 
         // ref. RFC 5322 §A.5
+        public const string A5Date = "Thu,\r\n      13\r\n        Feb\r\n          1969\r\n      23:32\r\n               -0330 (Newfoundland Time)";
+        public const string A5DateModern = "Thu, 13 Feb 1969 23:32:00 -0330";
         public const string A5From = "Pete(A nice \\) chap) <pete(his account)@silly.test(his host)>";
         public const string A5FromModern = "Pete <pete@silly.test>";
         public const string A5To = "A Group(Some people)\r\n     :Chris Jones <c@(Chris's host.)public.example>,\r\n         joe@example.org,\r\n  John <jdoe@one.test> (my dear friend); (the end of the group)";
@@ -38,7 +50,12 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public const string A61To = "Mary Smith <@node.test:mary@example.net>, , jdoe@test  . example";
         public const string A61ToModern = "Mary Smith <mary@example.net>, jdoe@test.example";
 
+        // ref. RFC 5322 §A.6.2
+        public const string A62Date = "21 Nov 97 09:55:06 GMT";
+        public const string A62DateModern = "21 Nov 1997 09:55:06 +0000";
+
         // ref. RFC 5322 §A.6.3
+        public const string A63Date = "Fri, 21 Nov 1997 09(comment):   55  :  06 -0600";
         public const string A63From = "John Doe <jdoe@machine(comment).  example>";
         public const string A63FromModern = A11From;
         public const string A63To = "Mary Smith\r\n  \r\n <mary@example.net>";

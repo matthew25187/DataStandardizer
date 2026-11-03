@@ -114,6 +114,25 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
+        /// Gets a flag indicating if a date-time with a day of the week that doesn't match its date is accepted.
+        /// </summary>
+        /// <remarks>
+        /// RFC 5322 §3.3 requires the day of the week, if there is one, to be the day implied by the date.  When <c>false</c> (the default),
+        /// <see cref="ImfDateTime.Parse(string, ImfOptions)"/> throws a <see cref="System.FormatException"/> for one that isn't.  When <c>true</c>, the date
+        /// decides: <see cref="ImfDateTime.DayOfWeek"/> is the day implied by the date, and that is the day that gets written.  The other rules of
+        /// §3.3 are always enforced, because a value that breaks them, such as 30 February, is not a date.
+        /// </remarks>
+        public bool AllowInvalidValues
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
         /// Gets a flag indicating if a line longer than 998 octets is accepted.
         /// </summary>
         /// <remarks>
