@@ -99,6 +99,7 @@ Every .NET test follows Microsoft's [Unit testing best practices for .NET](https
 - **Release notes.** Dependabot's "Bump …" commits have no `Release-note:` trailer. A bump to `/Directory.Packages.props` changes every library package. When squash-merging a Dependabot PR, add the trailer in the merge dialog's commit body: `Release-note: none` for a build-only package such as Source Link, or a note when users would notice the change. Without a trailer, the "Bump …" subject is published under Changed on every package.
 - **Packages it manages.** A package held at an exact pin goes under `ignore`. A new test or benchmark package goes in the `test-and-benchmark` group's `patterns`, or its updates arrive as separate PRs.
 - **Benchmarks.** An update that changes only `benchmarks/Directory.Packages.props` doesn't start a package build, so CI doesn't compile it. Build the benchmarks before merging one.
+- **Fuzz projects.** `SharpFuzz` in `fuzz/Directory.Packages.props` has to stay on the same version as the `SharpFuzz.CommandLine` tool in `fuzz/.config/dotnet-tools.json`. Dependabot can't reach that manifest from `directory: /`, so `SharpFuzz` goes under `ignore` and neither gets updates, including security updates. Bump both by hand in one PR. A change only in `fuzz/` doesn't start a package build, so CI doesn't compile it. Build the fuzz projects before merging one.
 
 ## Repository rules
 
