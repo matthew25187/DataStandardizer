@@ -57,6 +57,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             { "a. b:;", "\"a. b\":;" },
             { "a:b@c, ,d@e,;", "a: b@c, d@e;" },
             { EncodedWord + ":;", EncodedWord + ":;" },
+            { EncodedWord + " \"" + EncodedWord + "\":;", EncodedWord + " \"" + EncodedWord + "\":;" },
         };
 
         public static TheoryData<string> InvalidValues => new TheoryData<string>

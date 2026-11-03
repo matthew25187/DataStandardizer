@@ -42,6 +42,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             { "\"a\",\"b c\",\"d,e\"", "a, b c, \"d,e\"" },
             { "a. b,, c", "\"a. b\", c" },
             { EncodedWord + ", \"" + EncodedWord + "\"", EncodedWord + ", \"" + EncodedWord + "\"" },
+            { EncodedWord + " \"" + EncodedWord + "\"", EncodedWord + " \"" + EncodedWord + "\"" },
         };
 
         public static TheoryData<string> InvalidValues => new TheoryData<string>
@@ -64,6 +65,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             { "a, b", "b, a", false },
             { "a", "a, b", false },
             { EncodedWord, "\"" + EncodedWord + "\"", false },
+            { EncodedWord + " \"=?utf-8?Q?b?=\"", "\"" + EncodedWord + "\" =?utf-8?Q?b?=", false },
         };
 
         [Theory]

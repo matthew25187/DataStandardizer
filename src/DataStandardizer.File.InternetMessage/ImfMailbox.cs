@@ -28,7 +28,7 @@ namespace DataStandardizer.File.InternetMessage
         /// Initializes a new mailbox with no display name.
         /// </summary>
         /// <param name="localPart">The local part, unquoted.</param>
-        /// <param name="domain">The domain, as a dot-atom or a domain-literal with its brackets.</param>
+        /// <param name="domain">The domain, as a dot-atom or a domain-literal with its brackets.  As when parsed, a domain-literal loses the white space just inside its brackets, and other white space in it becomes one space.</param>
         /// <exception cref="ArgumentNullException"><paramref name="localPart"/> or <paramref name="domain"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="localPart"/> holds a control character other than tab or an unpaired surrogate, or
         /// <paramref name="domain"/> is not a valid domain (RFC 5322 §3.4.1).</exception>
@@ -42,7 +42,7 @@ namespace DataStandardizer.File.InternetMessage
         /// </summary>
         /// <param name="displayName">The display name, as plain text, or an empty string for none.</param>
         /// <param name="localPart">The local part, unquoted.</param>
-        /// <param name="domain">The domain, as a dot-atom or a domain-literal with its brackets.</param>
+        /// <param name="domain">The domain, as a dot-atom or a domain-literal with its brackets.  As when parsed, a domain-literal loses the white space just inside its brackets, and other white space in it becomes one space.</param>
         /// <exception cref="ArgumentNullException"><paramref name="displayName"/>, <paramref name="localPart"/> or <paramref name="domain"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="displayName"/> or <paramref name="localPart"/> holds a control character other than tab or an
         /// unpaired surrogate, or <paramref name="domain"/> is not a valid domain (RFC 5322 §3.4.1).</exception>
@@ -55,9 +55,9 @@ namespace DataStandardizer.File.InternetMessage
             if (!ImfGrammar.IsWritableText(localPart)) throw new ArgumentException("The local part holds a character that cannot be written.", nameof(localPart));
             if (!ImfGrammar.IsDomain(domain)) throw new ArgumentException("The domain is not valid.", nameof(domain));
 
-            _displayName = new ImfPhrase(displayName, false);
+            _displayName = new ImfPhrase(displayName);
             LocalPart = localPart;
-            Domain = domain;
+            Domain = ImfGrammar.NormalizeDomain(domain);
         }
 
         internal ImfMailbox(ImfPhrase displayName, string localPart, string domain)
@@ -169,8 +169,7 @@ namespace DataStandardizer.File.InternetMessage
         public bool Equals([AllowNull] ImfMailbox other)
         {
             return HasSameAddress(other) &&
-                string.Equals(_displayName.Text, other._displayName.Text, StringComparison.Ordinal) &&
-                _displayName.HasEncodedWordAtom == other._displayName.HasEncodedWordAtom;
+                _displayName.ValueEquals(other._displayName);
         }
 
         /// <inheritdoc />
@@ -199,7 +198,7 @@ namespace DataStandardizer.File.InternetMessage
             }
             else
             {
-                ImfGrammar.AppendPhrase(_displayName.Text, _displayName.HasEncodedWordAtom, output);
+                _displayName.AppendTo(output);
                 output.Append(" <");
                 ImfGrammar.AppendAddrSpec(LocalPart, Domain, output);
                 output.Append('>');

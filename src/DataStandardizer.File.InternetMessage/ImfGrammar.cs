@@ -127,6 +127,18 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
+        /// Gets the form of a domain that <see cref="IsDomain"/> accepts that parsing it would give.
+        /// </summary>
+        internal static string NormalizeDomain(string domain)
+        {
+            if (!IsBracketed(domain)) return domain;
+
+            var tokenizer = new ImfTokenizer(Encoding.UTF8.GetBytes(domain));
+            tokenizer.TryRead(out var token);
+            return tokenizer.GetText(token);
+        }
+
+        /// <summary>
         /// Determines if a string is an RFC 5322 §3.6.4 no-fold-literal, without an unpaired surrogate.
         /// </summary>
         /// <remarks>
@@ -145,35 +157,12 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Writes a phrase in the modern form: atoms if every word can be one, otherwise a quoted-string.
+        /// Writes a phrase of plain text in the modern form: atoms if every word can be one, otherwise a quoted-string.  A word in the form of an encoded
+        /// word has to be quoted so that it does not become one.
         /// </summary>
-        /// <param name="text">The text.</param>
-        /// <param name="hasEncodedWordAtom">Whether the text was read from a phrase with an atom in the form of an encoded word.  Quoting that atom would
-        /// make it plain text, so each word is written on its own.  With no such atom, a word of that form is plain text, which has to be quoted so that
-        /// it does not become an encoded word.</param>
-        /// <param name="output">Where to write.</param>
-        internal static void AppendPhrase(string text, bool hasEncodedWordAtom, StringBuilder output)
+        internal static void AppendPhrase(string text, StringBuilder output)
         {
             var words = text.Split(Space);
-            if (hasEncodedWordAtom)
-            {
-                for (var index = 0; index < words.Length; index++)
-                {
-                    if (index > 0) output.Append(Space);
-
-                    if (IsAtom(words[index]))
-                    {
-                        output.Append(words[index]);
-                    }
-                    else
-                    {
-                        AppendQuotedString(words[index], output);
-                    }
-                }
-
-                return;
-            }
-
             foreach (var word in words)
             {
                 if (!IsAtom(word) || HasEncodedWordForm(word))

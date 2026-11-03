@@ -169,11 +169,11 @@ namespace DataStandardizer.File.InternetMessage
                 case ImfTokenKind.At:
                     if (!TryReadAddrSpec(ref tokenizer, out var localPart, out var domain)) return false;
 
-                    address = new ImfMailbox(new ImfPhrase(string.Empty, false), localPart, domain);
+                    address = new ImfMailbox(new ImfPhrase(string.Empty), localPart, domain);
                     return true;
 
                 case ImfTokenKind.LessThan:
-                    displayName = new ImfPhrase(string.Empty, false);
+                    displayName = new ImfPhrase(string.Empty);
                     if (tokenizer.TryPeek(out var first) && first.Kind != ImfTokenKind.LessThan && !ImfPhrase.TryRead(ref tokenizer, out displayName)) return false;
 
                     if (!TryReadAngleAddr(ref tokenizer, out var angleLocalPart, out var angleDomain)) return false;

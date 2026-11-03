@@ -30,7 +30,7 @@ namespace DataStandardizer.File.InternetMessage
             if (displayName is null) throw new ArgumentNullException(nameof(displayName));
             if (!ImfGrammar.IsWritableText(displayName)) throw new ArgumentException("The display name holds a character that cannot be written.", nameof(displayName));
 
-            _displayName = new ImfPhrase(displayName, false);
+            _displayName = new ImfPhrase(displayName);
             _mailboxes = ImfGrammar.CopyElements(mailboxes, nameof(mailboxes));
             _readOnlyMailboxes = new ReadOnlyCollection<ImfMailbox>(_mailboxes);
         }
@@ -110,8 +110,7 @@ namespace DataStandardizer.File.InternetMessage
         public bool Equals([AllowNull] ImfGroup other)
         {
             if (other is null ||
-                !string.Equals(_displayName.Text, other._displayName.Text, StringComparison.Ordinal) ||
-                _displayName.HasEncodedWordAtom != other._displayName.HasEncodedWordAtom ||
+                !_displayName.ValueEquals(other._displayName) ||
                 _mailboxes.Length != other._mailboxes.Length)
             {
                 return false;
@@ -150,7 +149,7 @@ namespace DataStandardizer.File.InternetMessage
         public override string ToString()
         {
             var output = new StringBuilder();
-            ImfGrammar.AppendPhrase(_displayName.Text, _displayName.HasEncodedWordAtom, output);
+            _displayName.AppendTo(output);
             output.Append(':');
             for (var index = 0; index < _mailboxes.Length; index++)
             {

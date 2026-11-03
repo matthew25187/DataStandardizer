@@ -41,7 +41,7 @@ namespace DataStandardizer.File.InternetMessage
             {
                 if (!ImfGrammar.IsWritableText(elements[index])) throw new ArgumentException("A phrase holds a character that cannot be written.", nameof(phrases));
 
-                _phrases[index] = new ImfPhrase(elements[index], false);
+                _phrases[index] = new ImfPhrase(elements[index]);
             }
         }
 
@@ -135,11 +135,7 @@ namespace DataStandardizer.File.InternetMessage
 
             for (var index = 0; index < _phrases.Length; index++)
             {
-                if (!string.Equals(_phrases[index].Text, other._phrases[index].Text, StringComparison.Ordinal) ||
-                    _phrases[index].HasEncodedWordAtom != other._phrases[index].HasEncodedWordAtom)
-                {
-                    return false;
-                }
+                if (!_phrases[index].ValueEquals(other._phrases[index])) return false;
             }
 
             return true;
@@ -194,7 +190,7 @@ namespace DataStandardizer.File.InternetMessage
             {
                 if (index > 0) output.Append(", ");
 
-                ImfGrammar.AppendPhrase(_phrases[index].Text, _phrases[index].HasEncodedWordAtom, output);
+                _phrases[index].AppendTo(output);
             }
 
             return output.ToString();

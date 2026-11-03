@@ -8,6 +8,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
     {
         private const string SimpleMailbox = "a@b";
         private const string EncodedWord = "=?utf-8?Q?a?=";
+        private const string OtherEncodedWord = "=?utf-8?Q?b?=";
 
         public static TheoryData<string, string, string, string> Parts => new TheoryData<string, string, string, string>
         {
@@ -144,7 +145,12 @@ namespace DataStandardizer.File.InternetMessage.Tests
             { "\"" + EncodedWord + "\" <a@b>", "\"" + EncodedWord + "\" <a@b>" },
             { "b " + EncodedWord + " \"c d\" <a@b>", "b " + EncodedWord + " c d <a@b>" },
             { "b " + EncodedWord + " \"c,\" <a@b>", "b " + EncodedWord + " \"c,\" <a@b>" },
-            { EncodedWord + " \"c  d\" <a@b>", EncodedWord + " c \"\" d <a@b>" },
+            { EncodedWord + " \"c  d\" <a@b>", EncodedWord + " \"c  d\" <a@b>" },
+            { EncodedWord + " " + OtherEncodedWord + " <a@b>", EncodedWord + " " + OtherEncodedWord + " <a@b>" },
+            { EncodedWord + " \"" + OtherEncodedWord + "\" <a@b>", EncodedWord + " \"" + OtherEncodedWord + "\" <a@b>" },
+            { "\"" + OtherEncodedWord + "\" " + EncodedWord + " <a@b>", "\"" + OtherEncodedWord + "\" " + EncodedWord + " <a@b>" },
+            { "c \"" + OtherEncodedWord + "\" " + EncodedWord + " d <a@b>", "\"c " + OtherEncodedWord + "\" " + EncodedWord + " d <a@b>" },
+            { "c. " + EncodedWord + " <a@b>", "\"c.\" " + EncodedWord + " <a@b>" },
         };
 
         public static TheoryData<string> InvalidValues => new TheoryData<string>
@@ -308,6 +314,19 @@ namespace DataStandardizer.File.InternetMessage.Tests
             { "", "a", "[b\r\n]" },
         };
 
+        public static TheoryData<string, string> ConstructedDomains => new TheoryData<string, string>
+        {
+            // ref. RFC 5322 §3.4.1: the same form that parsing gives, so that the two compare equal.
+            { "b.c", "b.c" },
+            { "[1.2.3.4]", "[1.2.3.4]" },
+            { "[]", "[]" },
+            { "[ ]", "[]" },
+            { "[ b ]", "[b]" },
+            { "[\tb\t]", "[b]" },
+            { "[b  c]", "[b c]" },
+            { "[b\tc]", "[b c]" },
+        };
+
         public static TheoryData<string, string, bool> EqualityCases => new TheoryData<string, string, bool>
         {
             { "a@b", "a@b", true },
@@ -336,6 +355,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // ref. RFC 2047 §5(3): an encoded word is not the same as a quoted-string that looks like one.
             { EncodedWord + " <a@b>", "\"" + EncodedWord + "\" <a@b>", false },
+            { EncodedWord + " \"" + OtherEncodedWord + "\" <a@b>", "\"" + EncodedWord + "\" " + OtherEncodedWord + " <a@b>", false },
         };
 
         public static TheoryData<string, string, bool> SameAddressCases => new TheoryData<string, string, bool>
@@ -523,6 +543,31 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // assert
             testResult.Should().Be(expected);
+        }
+
+        [Theory]
+        [MemberData(nameof(ConstructedDomains))]
+        public void Constructor_Domain_GivesTheParsedForm(string domain, string expected)
+        {
+            // act
+            var testResult = new ImfMailbox("a", domain);
+
+            // assert
+            testResult.Domain.Should().Be(expected);
+        }
+
+        [Fact]
+        public void HasSameAddress_ConstructedAndParsedDomainLiterals_ReturnsTrue()
+        {
+            // arrange
+            var subject = new ImfMailbox("a", "[ b ]");
+            var other = ImfMailbox.Parse("a@[ b ]");
+
+            // act
+            var testResult = subject.HasSameAddress(other);
+
+            // assert
+            testResult.Should().BeTrue();
         }
 
         [Fact]
