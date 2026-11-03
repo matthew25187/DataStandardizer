@@ -169,8 +169,6 @@ namespace DataStandardizer.File.InternetMessage
         private int _partCount;
         private long _pendingRawHeld;
         private int _pendingRawLength;
-        private long _pendingRawOffset;
-        private int _pendingRawStart;
         private int _search;
         private State _state = State.EntityStart;
         private long _unwindEnd;
@@ -902,18 +900,14 @@ namespace DataStandardizer.File.InternetMessage
             var position = _scanner.Position;
             var offset = _scanner.BytePosition;
             var length = chunkEnd - position;
-            var buffer = _scanner.Buffer;
-            _scanner.ConsumeBody(chunkEnd);
-
             if (_decoding != BodyDecoding.None)
             {
-                _pendingRawStart = position;
                 _pendingRawLength = length;
-                _pendingRawOffset = offset;
                 return DecodePending();
             }
 
-            _eventData = buffer;
+            _scanner.ConsumeBody(chunkEnd);
+            _eventData = _scanner.Buffer;
             _dataStart = position;
             _dataLength = length;
             Emit(_contentKind, offset, length);
@@ -921,22 +915,21 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Decodes as much as one event can hold of the raw bytes that have been consumed but not decoded.  They stay in the block, as it is refilled
-        /// only once they are all done.
+        /// Decodes as much as one event can hold of the raw bytes that have been found to be content.  They stay in the block, as it is refilled only once
+        /// they are all done, and are consumed as they are decoded, so that an error is reported at the byte and line of the problem.
         /// </summary>
         /// <returns><c>true</c> if there is an event.</returns>
         private bool DecodePending()
         {
             EnsureDecodeBuffer(_pendingRawLength);
 
-            var source = new ReadOnlySpan<byte>(_scanner.Buffer, _pendingRawStart, _pendingRawLength);
+            var source = new ReadOnlySpan<byte>(_scanner.Buffer, _scanner.Position, _pendingRawLength);
             int bytesConsumed, bytesWritten;
             var status = Decode(source, new Span<byte>(_decodeBuffer), out bytesConsumed, out bytesWritten, false);
-            if (status == OperationStatus.InvalidData) throw BuildDecodingError(_pendingRawOffset + bytesConsumed);
+            _scanner.ConsumeBody(_scanner.Position + bytesConsumed);
+            if (status == OperationStatus.InvalidData) throw BuildDecodingError();
 
-            _pendingRawStart += bytesConsumed;
             _pendingRawLength -= bytesConsumed;
-            _pendingRawOffset += bytesConsumed;
             _pendingRawHeld += bytesConsumed;
             if (bytesWritten == 0) return false;
 
@@ -945,7 +938,8 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Takes from the decoder what it was holding, at the end of a body.
+        /// Takes from the decoder what it was holding, at the end of a body.  Raw bytes that gave no output, such as a last line break, still get an event,
+        /// so that the chunks of a body cover all of its raw bytes.
         /// </summary>
         /// <returns><c>true</c> if there is an event.</returns>
         private bool FinishDecoding()
@@ -956,10 +950,10 @@ namespace DataStandardizer.File.InternetMessage
 
             int bytesConsumed, bytesWritten;
             var status = Decode(ReadOnlySpan<byte>.Empty, new Span<byte>(_decodeBuffer), out bytesConsumed, out bytesWritten, true);
-            if (status == OperationStatus.InvalidData) throw BuildDecodingError(_scanner.BytePosition);
+            if (status == OperationStatus.InvalidData) throw BuildDecodingError();
 
             _decodingFinished = status == OperationStatus.Done;
-            if (bytesWritten == 0) return false;
+            if (bytesWritten == 0 && _pendingRawHeld == 0) return false;
 
             EmitDecoded(bytesWritten);
             return true;
@@ -971,7 +965,7 @@ namespace DataStandardizer.File.InternetMessage
             _dataStart = 0;
             _dataLength = bytesWritten;
             _isEventDataDecoded = true;
-            Emit(_contentKind, _pendingRawOffset - _pendingRawHeld, _pendingRawHeld);
+            Emit(_contentKind, _scanner.BytePosition - _pendingRawHeld, _pendingRawHeld);
             _pendingRawHeld = 0;
         }
 
@@ -995,9 +989,9 @@ namespace DataStandardizer.File.InternetMessage
             _decodeBuffer = ArrayPool<byte>.Shared.Rent(length);
         }
 
-        private ImfFileException BuildDecodingError(long bytePosition)
+        private ImfFileException BuildDecodingError()
         {
-            return _scanner.BuildPositionException(_decoding == BodyDecoding.Base64 ? ErrorMessage.InvalidBase64 : ErrorMessage.InvalidQuotedPrintable, bytePosition);
+            return _scanner.BuildPositionException(_decoding == BodyDecoding.Base64 ? ErrorMessage.InvalidBase64 : ErrorMessage.InvalidQuotedPrintable);
         }
 
         /// <summary>
@@ -1050,7 +1044,7 @@ namespace DataStandardizer.File.InternetMessage
 
         private ImfFileException BuildError(string message)
         {
-            return _scanner.BuildPositionException(message, _scanner.BytePosition);
+            return _scanner.BuildPositionException(message);
         }
 
         /// <summary>

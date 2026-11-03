@@ -27,13 +27,14 @@ namespace DataStandardizer.File.InternetMessage
     /// <b>Multipart entities.</b>  A delimiter is a line break, <c>--</c>, the boundary, optional spaces and tabs, and a line break.  A close delimiter has
     /// <c>--</c> after the boundary, and may end the data with no line break.  The line break before a delimiter belongs to the delimiter, not to the
     /// part (RFC 2046 §5.1.1).  So a part with no body ends with the empty line that shares its line break with the delimiter, and a part with headers
-    /// and no empty line is not valid.  A line is a delimiter of an open multipart entity only if it matches exactly, the innermost entity first, so a
+    /// and no empty line before its delimiter is not valid.  A line is a delimiter of an open multipart entity only if it matches exactly, the innermost entity first, so a
     /// boundary may be a prefix of another, and a line that merely starts with a boundary is content.  A line longer than the 998 octets that RFC 5322
     /// §2.1.1 allows is never a delimiter.
     /// </para>
     /// <para>
     /// A delimiter of an enclosing entity ends every entity inside it.  A multipart entity that ends without its close delimiter, because of that or the
-    /// end of the data, is an error unless <see cref="ImfOptions.AllowMissingBoundaryTerminator"/> is set.
+    /// end of the data, is an error unless <see cref="ImfOptions.AllowMissingBoundaryTerminator"/> is set.  With that option, a part's header section may
+    /// end at the end of the data with no empty line, as there is then no delimiter to need one.
     /// </para>
     /// <para>
     /// <b>Embedded messages.</b>  The body of a <c>message/rfc822</c> or <c>message/global</c> (RFC 6532) entity is read as a nested entity, except that a

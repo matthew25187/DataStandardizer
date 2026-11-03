@@ -333,13 +333,12 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Builds an exception for a problem at a point after the bytes consumed so far.
+        /// Builds an exception for a problem at the end of the bytes consumed so far.
         /// </summary>
         /// <param name="message">The message.</param>
-        /// <param name="bytePosition">The byte position of the problem.</param>
-        internal ImfFileException BuildPositionException(string message, long bytePosition)
+        internal ImfFileException BuildPositionException(string message)
         {
-            return BuildException(message, bytePosition, _physicalLinesRead + 1, null);
+            return BuildException(message, _bytePosition, _physicalLinesRead + 1, null);
         }
 
         /// <summary>

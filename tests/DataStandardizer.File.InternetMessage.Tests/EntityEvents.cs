@@ -137,6 +137,23 @@ namespace DataStandardizer.File.InternetMessage.Tests
             return ranges;
         }
 
+        /// <summary>
+        /// Reads the rest of the message, and gives the raw byte range of each body chunk as its offset and length.
+        /// </summary>
+        public static List<string> ReadBodyChunkRanges(ImfEntityReader reader)
+        {
+            var ranges = new List<string>();
+            while (reader.ReadEvent() is ImfEntityEvent entityEvent)
+            {
+                if (entityEvent.Kind == ImfEntityEventKind.BodyChunk)
+                {
+                    ranges.Add(entityEvent.ByteOffset + " " + entityEvent.ByteLength);
+                }
+            }
+
+            return ranges;
+        }
+
         private static string DisplayPath(string path)
         {
             return path.Length == 0 ? "/" : path;

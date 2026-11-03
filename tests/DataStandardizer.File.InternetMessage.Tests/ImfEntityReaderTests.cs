@@ -48,6 +48,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             { "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b", "" },
             { "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\nx\r\n--b", "1" },
             { "Content-Type: multipart/mixed; boundary=b\r\n", "" },
+            { "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nA:1\r\n", "1" },
             { "Content-Type: multipart/mixed; boundary=a\r\n\r\n--a\r\nContent-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\nx\r\n--a--", "1.1" },
 
             // ref. RFC 2046 §5.1.1: at least one part.
@@ -115,6 +116,20 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // ref. RFC 6532 §3.7: a message/global that can't be read as a nested entity is decoded, as a body.
             { "Content-Type: message/global\r\nContent-Transfer-Encoding: base64\r\n\r\nQTox", "A:1" },
+        };
+
+        // A line one octet too long to be a delimiter line, which stays in the body.  Its padding is made here, as it is too long to write out.
+        public static TheoryData<string, string[]> DelimiterLinesTooLong => new TheoryData<string, string[]>
+        {
+            {
+                LongMessages.DelimiterLineWithPadding(LongestDelimiterPadding + 1),
+                new[]
+                {
+                    "start /", "field / Content-Type", "type / multipart/mixed",
+                    "start 1", "type 1 text/plain", "body 1 [x\r\n--b" + new string(' ', LongestDelimiterPadding + 1) + "\r\n\r\ny]", "end 1",
+                    "end /"
+                }
+            },
         };
 
         public static TheoryData<string> InvalidEncodedBodies => new TheoryData<string>
@@ -290,6 +305,36 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Fact]
+        public void ReadEvent_PartHeaderSectionEndsWithTheData_WithTheOptionHasNoBody()
+        {
+            // arrange
+            const string message = "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nA:1\r\n";
+            using (var reader = EntityEvents.CreateReader(message, new ImfOptions { AllowMissingBoundaryTerminator = true }))
+            {
+                // act
+                var testResult = EntityEvents.ReadOutline(reader);
+
+                // assert
+                testResult.Should().Equal("start /", "field / Content-Type", "type / multipart/mixed", "start 1", "field 1 A", "type 1 text/plain", "end 1", "end /");
+            }
+        }
+
+        [Fact]
+        public void ReadEvent_PartFieldCutOffByTheEndOfTheData_RejectedEvenWithTheOption()
+        {
+            // arrange
+            const string message = "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nA:1";
+            using (var reader = EntityEvents.CreateReader(message, new ImfOptions { AllowMissingBoundaryTerminator = true }))
+            {
+                // act
+                Action testAction = () => EntityEvents.ReadToEnd(reader);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>();
+            }
+        }
+
+        [Fact]
         public void ReadEvent_CloseDelimiterWithNoPart_RejectedEvenWithTheOption()
         {
             // arrange
@@ -404,17 +449,18 @@ namespace DataStandardizer.File.InternetMessage.Tests
             }
         }
 
-        [Fact]
-        public void ReadEvent_DelimiterLineTooLong_IsNotADelimiter()
+        [Theory]
+        [MemberData(nameof(DelimiterLinesTooLong))]
+        public void ReadEvent_DelimiterLineTooLong_IsNotADelimiter(string message, string[] expected)
         {
             // arrange
-            using (var reader = new ImfEntityReader(new MemoryStream(Octets.Of(LongMessages.DelimiterLineWithPadding(LongestDelimiterPadding + 1))), new ImfOptions(), SmallBlock, false))
+            using (var reader = new ImfEntityReader(new MemoryStream(Octets.Of(message)), new ImfOptions(), SmallBlock, false))
             {
                 // act
-                EntityEvents.ReadToEnd(reader);
+                var testResult = EntityEvents.ReadOutline(reader);
 
                 // assert
-                reader.EntitiesRead.Should().Be(2);
+                testResult.Should().Equal(expected);
             }
         }
 
@@ -653,6 +699,61 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Fact]
+        public void ReadEvent_DecodingOnInSeveralParts_GivesEachPartItsOwnDecodedBody()
+        {
+            // arrange
+            const string message = "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\nx=3D\r\n--b\r\nContent-Transfer-Encoding: base64\r\n\r\nQUI=\r\n--b--";
+            using (var reader = EntityEvents.CreateReader(message, new ImfOptions { DecodeTransferEncoding = true }))
+            {
+                // act
+                var testResult = EntityEvents.ReadOutline(reader);
+
+                // assert
+                testResult.Should().Equal(
+                    "start /", "field / Content-Type", "type / multipart/mixed",
+                    "start 1", "field 1 Content-Transfer-Encoding", "type 1 text/plain", "body 1 [x=]", "end 1",
+                    "start 2", "field 2 Content-Transfer-Encoding", "type 2 text/plain", "body 2 [AB]", "end 2",
+                    "end /");
+            }
+        }
+
+        [Fact]
+        public void ReadEvent_InvalidDataBeforeMoreLines_ReportsTheByteAndLineOfTheProblem()
+        {
+            // arrange
+            // ref. RFC 2045 §6.8: nothing of the alphabet can follow padding.  The header section takes 37 bytes and 2 lines, and "QUI=\r\n" 6 bytes and 1 line.
+            const string message = "Content-Transfer-Encoding: base64\r\n\r\nQUI=\r\nA\r\nB\r\n";
+            const long expectedBytePosition = 43;
+            const long expectedLineNumber = 4;
+            using (var reader = EntityEvents.CreateReader(message, new ImfOptions { DecodeTransferEncoding = true }))
+            {
+                // act
+                Action testAction = () => EntityEvents.ReadToEnd(reader);
+
+                // assert
+                var exception = testAction.Should().Throw<ImfFileException>().Which;
+                exception.Data[ImfFileException.DataItemName.BytePosition].Should().Be(expectedBytePosition);
+                exception.Data[ImfFileException.DataItemName.LineNumber].Should().Be(expectedLineNumber);
+            }
+        }
+
+        [Fact]
+        public void ReadEvent_RawBytesThatGiveNoOutputAtTheEnd_AreCoveredByALastChunk()
+        {
+            // arrange
+            // The 4 bytes of "QUJD" start at 37.  One byte at a time, the line break after them gives no output, so the last chunk covers it.
+            var stream = new BlockStream(Octets.Of("Content-Transfer-Encoding: base64\r\n\r\nQUJD\r\n"), BlockStreamMode.SynchronousOnly, 1, 1);
+            using (var reader = new ImfEntityReader(stream, new ImfOptions { DecodeTransferEncoding = true }, 1, false))
+            {
+                // act
+                var testResult = EntityEvents.ReadBodyChunkRanges(reader);
+
+                // assert
+                testResult.Should().Equal("37 4", "41 2");
+            }
+        }
+
+        [Fact]
         public void ReadEvent_DecodingOff_GivesRawBytesAndNotDecoded()
         {
             // arrange
@@ -776,17 +877,18 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Fact]
-        public void ReadEvent_ExtendedParameterWithCharsetTheResolverKnows_IsRead()
+        public void ReadEvent_ExtendedParameterWithCharsetTheResolverKnows_IsDecoded()
         {
             // arrange
             var options = new ImfOptions { CharsetResolver = new FixedCharsetResolver(Encoding.UTF8) };
             using (var reader = EntityEvents.CreateReader(UnknownCharsetContentType, options))
             {
                 // act
-                Action testAction = () => EntityEvents.ReadToEnd(reader);
+                var testResult = EntityEvents.ReadUntil(reader, ImfEntityEventKind.HeaderEnd).Value.ContentType;
 
                 // assert
-                testAction.Should().NotThrow();
+                testResult.TryGetParameter("title", out var title).Should().BeTrue();
+                title.Value.Should().Be("a");
             }
         }
 

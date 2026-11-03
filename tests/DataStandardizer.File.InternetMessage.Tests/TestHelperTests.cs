@@ -139,6 +139,20 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Fact]
+        public void ReadBodyChunkRanges_Message_GivesTheOffsetAndLengthOfEachChunk()
+        {
+            // arrange
+            using (var reader = EntityEvents.CreateReader("A:1\r\n\r\nxyz"))
+            {
+                // act
+                var testResult = EntityEvents.ReadBodyChunkRanges(reader);
+
+                // assert
+                testResult.Should().Equal("7 3");
+            }
+        }
+
+        [Fact]
         public void ReadUntil_KindNotInTheMessage_GivesNull()
         {
             // arrange

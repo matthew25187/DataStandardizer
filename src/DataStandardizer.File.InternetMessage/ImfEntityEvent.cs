@@ -90,8 +90,9 @@ namespace DataStandardizer.File.InternetMessage
         /// <see cref="ImfEntityEventKind.HeaderEnd"/> event covers.
         /// </para>
         /// <para>
-        /// A decoded body chunk covers the raw bytes consumed since the last chunk, which may include bytes the decoder holds for the next chunk.  The
-        /// last chunk of a body may cover nothing, if it only holds what the decoder was holding.
+        /// A decoded body chunk covers the raw bytes consumed since the last chunk, which may include bytes the decoder holds for the next chunk, so the
+        /// chunks of a body together cover all of its raw bytes.  The last chunk of a body may cover nothing, if it only holds what the decoder was holding,
+        /// and may hold no bytes, if it only covers raw bytes that gave no output, such as a line break after the last of the base64.
         /// </para>
         /// </remarks>
         /// <exception cref="ObjectDisposedException">The reader has been disposed.</exception>

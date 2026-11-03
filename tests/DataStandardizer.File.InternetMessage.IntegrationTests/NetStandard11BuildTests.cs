@@ -25,6 +25,8 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
         private const string EntityReaderTypeName = nameof(ImfEntityReader);
         private const string EntitySyncReadMethodName = nameof(ImfEntityReader.ReadEvent);
         private const string AsyncSuffix = "Async";
+        private const string StreamParameterName = "messageStream";
+        private const string FilePathParameterName = "messageFilePath";
 
         // The constructors of the reader on this target: two public ones over a stream, the internal one for tests and container formats, and the
         // private one they all call.
@@ -64,6 +66,16 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
         }
 
         [Fact]
+        public void Constructors_ReaderInNetStandard11Build_TakeAStreamAndNotAFilePath()
+        {
+            // act
+            var testResult = ReadConstructorParameterNames(ReaderTypeName);
+
+            // assert
+            testResult.Should().Contain(StreamParameterName).And.NotContain(FilePathParameterName);
+        }
+
+        [Fact]
         public void Methods_EntityReaderInNetStandard11Build_HaveTheSynchronousRead()
         {
             // act
@@ -91,6 +103,38 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
 
             // assert
             testResult.Count(name => name == ".ctor").Should().Be(ConstructorCount);
+        }
+
+        [Fact]
+        public void Constructors_EntityReaderInNetStandard11Build_TakeAStreamAndNotAFilePath()
+        {
+            // act
+            var testResult = ReadConstructorParameterNames(EntityReaderTypeName);
+
+            // assert
+            testResult.Should().Contain(StreamParameterName).And.NotContain(FilePathParameterName);
+        }
+
+        /// <summary>
+        /// Reads the names of the parameters of the constructors that a type of the assembly defines.
+        /// </summary>
+        private static List<string> ReadConstructorParameterNames(string typeName)
+        {
+            using (var stream = System.IO.File.OpenRead(NetStandard11BuildPath))
+            using (var peReader = new PEReader(stream))
+            {
+                var metadata = peReader.GetMetadataReader();
+                var type = metadata.TypeDefinitions
+                    .Select(metadata.GetTypeDefinition)
+                    .Single(definition => metadata.GetString(definition.Name) == typeName);
+
+                return type.GetMethods()
+                    .Select(metadata.GetMethodDefinition)
+                    .Where(method => metadata.GetString(method.Name) == ".ctor")
+                    .SelectMany(method => method.GetParameters())
+                    .Select(handle => metadata.GetString(metadata.GetParameter(handle).Name))
+                    .ToList();
+            }
         }
 
         /// <summary>
