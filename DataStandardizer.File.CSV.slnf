@@ -3,6 +3,7 @@
     "path": "DataStandardizer.sln",
     "projects": [
       "benchmarks\\DataStandardizer.File.CSV.Benchmarks\\DataStandardizer.File.CSV.Benchmarks.csproj",
+      "fuzz\\DataStandardizer.File.CSV.Fuzz\\DataStandardizer.File.CSV.Fuzz.csproj",
       "src\\DataStandardizer.Core\\DataStandardizer.Core.csproj",
       "src\\DataStandardizer.File.CSV\\DataStandardizer.File.CSV.csproj",
       "tests\\DataStandardizer.File.CSV.IntegrationTests\\DataStandardizer.File.CSV.IntegrationTests.csproj",
