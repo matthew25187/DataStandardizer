@@ -1,0 +1,43 @@
+﻿#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
+using System;
+using System.IO;
+
+namespace DataStandardizer.File.InternetMessage
+{
+    /// <summary>
+    /// Opens the files of the file-path constructors of the readers.
+    /// </summary>
+    /// <remarks>
+    /// Every file is opened with <see cref="FileOptions.Asynchronous"/>, so the asynchronous members do no synchronous I/O.  The synchronous
+    /// members still work, at a small cost on Windows.  A caller who only reads synchronously can pass a <see cref="FileStream"/> of their own to
+    /// a <see cref="Stream"/> constructor instead.
+    /// </remarks>
+    internal static class ImfFileStreams
+    {
+        // Turns off the buffer of the file stream, as the readers already read in large blocks.
+        private const int NoBuffer = 1;
+
+        /// <summary>
+        /// Called with each file stream as it is opened, on the thread that opened it, so tests can check how it was opened.
+        /// </summary>
+        [ThreadStatic]
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal static Action<FileStream>? Opened;
+#else
+        internal static Action<FileStream> Opened;
+#endif
+
+        /// <summary>
+        /// Opens a file for asynchronous, sequential reading, sharing it for reading.
+        /// </summary>
+        /// <param name="path">The path of the file.</param>
+        internal static FileStream OpenRead(string path)
+        {
+            var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, NoBuffer,
+                FileOptions.Asynchronous | FileOptions.SequentialScan);
+            Opened?.Invoke(fileStream);
+            return fileStream;
+        }
+    }
+}
+#endif
