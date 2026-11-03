@@ -92,6 +92,14 @@ Every .NET test follows Microsoft's [Unit testing best practices for .NET](https
 - **No infrastructure.** Unit tests don't use the file system, the network, environment variables or the clock. Use the `Stream`, `TextReader` and `TextWriter` overloads with in-memory data, and fixed dates instead of `DateTime.Now`. A behaviour that can only be shown with a system outside the project's control, or with a long run, is an integration test. Examples are a constructor that takes a file path, a resolver that reads the operating system's time zone data, and a concurrency test that runs calls on several threads at once and depends on how the scheduler interleaves them. It goes in the package's integration test project, `tests/<Package>.IntegrationTests`, which is kept separate from the unit tests in `tests/<Package>.Tests`. An integration test project takes the dependencies its tests need without adding them to the unit tests.
 - **Test through the public API.** Don't read or set private members through reflection. If a behaviour can't be observed through the public API, add a seam to the library that the tests reach through `InternalsVisibleTo`, and declare `Release-note: none` on its commit.
 
+## Dependabot
+
+`.github/dependabot.yml` asks for weekly version updates of NuGet packages, GitHub Actions and the .NET SDK, as PRs into `develop`. Complete them with **Squash and merge**, like any other PR.
+
+- **Release notes.** Dependabot's "Bump …" commits have no `Release-note:` trailer. A bump to `/Directory.Packages.props` changes every library package. When squash-merging a Dependabot PR, add the trailer in the merge dialog's commit body: `Release-note: none` for a build-only package such as Source Link, or a note when users would notice the change. Until #539 is fixed, a commit that changes only that file reaches no package's release notes, so its trailer has no effect yet.
+- **Packages it manages.** A package held at an exact pin goes under `ignore`. A new test or benchmark package goes in the `test-and-benchmark` group's `patterns`, or its updates arrive as separate PRs.
+- **Benchmarks.** An update that changes only `benchmarks/Directory.Packages.props` doesn't start a package build, so CI doesn't compile it. Build the benchmarks before merging one.
+
 ## Repository rules
 
 Branch rules for `develop` and `master` are kept as GitHub rulesets in `.github/rulesets/` and applied with `.github/rulesets/UpdateRepositoryRulesets.ps1`. Change the JSON there rather than in the GitHub UI, so the repo stays the source of truth. Both branches require a PR and a passing `DataStandardizer-CI` check.
