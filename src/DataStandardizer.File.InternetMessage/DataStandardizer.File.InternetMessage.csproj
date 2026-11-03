@@ -1,0 +1,43 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard1.1;netstandard2.0;netstandard2.1;net10.0</TargetFrameworks>
+    <Description>Data Standardizer provides implementations of various internationally recognised standards in data processing, covering topics ranging from languages to currencies and geographical entities. With strongly-typed enumerations for each standard (where applicable) or other targeted data types, you can represent these elements in your code such that errors with invalid values are minimised.
+
+Provides types supporting the reading and writing of Internet messages in EML, MHTML, mbox and EMLX files.  Includes:
+- Internet Message Format, RFC 5322
+- Internationalized Email Headers, RFC 6532
+- Group Syntax in the From and Sender Header Fields, RFC 6854
+- MIME Part One: Format of Internet Message Bodies, RFC 2045
+- MIME Part Two: Media Types, RFC 2046
+- MIME Part Three: Message Header Extensions for Non-ASCII Text, RFC 2047
+- MIME Part Five: Conformance Criteria and Examples, RFC 2049
+- The Content-Disposition Header Field, RFC 2183
+- MIME Parameter Value and Encoded Word Extensions, RFC 2231
+- The MIME Multipart/Related Content-type, RFC 2387
+- Content-ID and Message-ID Uniform Resource Locators, RFC 2392
+- MIME Encapsulation of Aggregate Documents, such as HTML (MHTML), RFC 2557
+- Content Language Headers, RFC 3282
+- The application/mbox Media Type, RFC 4155
+- Apple Mail EMLX files</Description>
+    <Copyright>Copyright © 2026, Matthew25187. All rights reserved.</Copyright>
+    <PackageTags>data;standard;email;internet message;eml;mime;mhtml;mht;mbox;emlx;rfc 5322;rfc 6532;rfc 2045;rfc 2046;rfc 2047;rfc 2231;rfc 2557;rfc 4155;file</PackageTags>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.1'">
+    <PackageReference Include="System.Net.Http" />
+    <PackageReference Include="System.Memory" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" />
+    <PackageReference Include="System.Memory" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DataStandardizer.Core\DataStandardizer.Core.csproj" />
+    <ProjectReference Include="..\DataStandardizer.Communication\DataStandardizer.Communication.csproj" />
+  </ItemGroup>
+
+</Project>
