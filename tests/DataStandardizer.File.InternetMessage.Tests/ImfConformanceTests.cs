@@ -95,6 +95,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
             { Minimal + "Return-Path: a@b.test\r\n" + EmptyLine, ImfDiagnosticKind.InvalidFieldValue, "Return-Path" },
             { "Received: by 2002:a05::1; " + SampleDate + "\r\n" + Minimal + EmptyLine, ImfDiagnosticKind.InvalidFieldValue, "Received" },
             { "Received: by a.test; yesterday\r\n" + Minimal + EmptyLine, ImfDiagnosticKind.InvalidFieldValue, "Received" },
+
+            // ref. RFC 5322 §3.6.7: received-token = word / angle-addr / addr-spec / domain, and these are none of them.
+            { "Received: from \"a\".b; " + SampleDate + "\r\n" + Minimal + EmptyLine, ImfDiagnosticKind.InvalidFieldValue, "Received" },
+            { "Received: from a.\"b\"; " + SampleDate + "\r\n" + Minimal + EmptyLine, ImfDiagnosticKind.InvalidFieldValue, "Received" },
             { "Resent-Date: yesterday\r\n" + ResentFromField + Minimal + EmptyLine, ImfDiagnosticKind.InvalidFieldValue, ResentDate },
             { ResentDateField + "Resent-From: nobody\r\n" + Minimal + EmptyLine, ImfDiagnosticKind.InvalidFieldValue, ResentFrom },
             { ResentDateField + ResentFromField + "Resent-Message-ID: 1\r\n" + Minimal + EmptyLine, ImfDiagnosticKind.InvalidFieldValue, "Resent-Message-ID" },

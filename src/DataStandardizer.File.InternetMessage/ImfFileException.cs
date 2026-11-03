@@ -35,7 +35,8 @@ namespace DataStandardizer.File.InternetMessage
             public const string EntityPath = "EntityPath";
 
             /// <summary>
-            /// The name of the header field, as a <see cref="string"/>.  Present only once the name has been read.
+            /// The name of the header field, as a <see cref="string"/>, which for a required field that is missing is the name it should have.  Otherwise present only once
+            /// the name has been read.
             /// </summary>
             public const string FieldName = "FieldName";
 

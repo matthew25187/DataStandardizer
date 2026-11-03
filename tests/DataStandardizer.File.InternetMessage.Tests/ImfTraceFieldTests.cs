@@ -20,6 +20,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string FoldedReceivedField = "Received: from a.test\r\n by b.test; 21 Nov 1997 10:01:22 -0600\r\n";
         private const string FoldedReceived = FoldedReceivedField + MinimalMessage;
         private const string InvalidReceived = "Received: by 2002:a05::1; 21 Nov 1997 10:01:22 -0600\r\n" + MinimalMessage;
+        private const string InvalidDateReceived = "Received: by a.test; yesterday\r\n" + MinimalMessage;
+
+        // ref. RFC 5322 §3.3: 21 November 1997 is a Friday.
+        private const string WrongDayReceived = "Received: by a.test; Mon, 21 Nov 1997 10:01:22 -0600\r\n" + MinimalMessage;
         private const string Prefix = "Received: ";
         private const string Suffix = "; 21 Nov 1997 10:01:22 -0600\r\n" + MinimalMessage;
 
@@ -32,6 +36,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             { Prefix + "for <x@y.test>" + Suffix, new[] { Pair("for", "<x@y.test>") } },
             { Prefix + "with \"quoted word\"" + Suffix, new[] { Pair("with", "quoted word") } },
             { Prefix + "from" + Suffix, new[] { Pair("from", string.Empty) } },
+            { Prefix + "for \"a\".b@y.test" + Suffix, new[] { Pair("for", "a.b@y.test") } },
         };
 
         [Fact]
@@ -147,6 +152,34 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // assert
             testResult.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void ReceivedPairs_InvalidDateAllowed_GivesNone()
+        {
+            // arrange
+            var subject = ImfMessages.Read(InvalidDateReceived, ImfMessages.AcceptAll());
+
+            // act
+            var testResult = subject.TraceFields[0];
+
+            // assert
+            testResult.ReceivedPairs.Should().BeEmpty();
+            testResult.ReceivedDate.Should().BeNull();
+        }
+
+        [Fact]
+        public void ReceivedPairs_WrongDayOfWeekAllowed_GivesThePairsAndTheDate()
+        {
+            // arrange
+            var subject = ImfMessages.Read(WrongDayReceived, ImfMessages.AcceptAll());
+
+            // act
+            var testResult = subject.TraceFields[0];
+
+            // assert
+            testResult.ReceivedPairs.Should().Equal(new[] { Pair("by", "a.test") });
+            testResult.ReceivedDate.ToString().Should().Be("Fri, 21 Nov 1997 10:01:22 -0600");
         }
 
         private static KeyValuePair<string, string> Pair(string name, string value)

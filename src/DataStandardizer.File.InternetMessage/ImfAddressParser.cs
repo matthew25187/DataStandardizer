@@ -250,10 +250,19 @@ namespace DataStandardizer.File.InternetMessage
             }
 
             // A word and a dot-atom start alike, and only what follows them tells a domain from the local part of an addr-spec.
-            if (!TryReadLocalPart(ref tokenizer, out var words) || !tokenizer.TryPeek(out token)) return false;
+            var scan = tokenizer;
+            if (!TryReadLocalPart(ref tokenizer, out var words) || !tokenizer.TryPeek(out var next)) return false;
 
-            if (token.Kind != ImfTokenKind.At)
+            if (next.Kind != ImfTokenKind.At)
             {
+                // Without an "@", only a local part can hold a quoted-string next to a period, so this must be one word, or a domain.
+                if (token.Kind == ImfTokenKind.QuotedString
+                    ? !scan.TryRead(out _) || !scan.TryPeek(out next) || next.Kind == ImfTokenKind.Period
+                    : !TryReadDomain(ref scan, out _))
+                {
+                    return false;
+                }
+
                 text = words;
                 return true;
             }

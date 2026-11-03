@@ -28,11 +28,11 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         [return: MaybeNull]
-        internal static ImfAddress GetAddress([AllowNull] ImfHeaderField field, ImfOptions options)
+        internal static ImfAddress GetSender([AllowNull] ImfHeaderField field, ImfOptions options)
         {
             if (field is null) return null;
 
-            return ImfAddress.TryParse(field.ValueBytes.Span, options, out var result) ? result : null;
+            return ImfAddress.TryParse(field.ValueBytes.Span, options, out var result) && IsValidSender(result) ? result : null;
         }
 
         [return: MaybeNull]
@@ -91,8 +91,7 @@ namespace DataStandardizer.File.InternetMessage
 
                 case "SENDER":
                 case "RESENT-SENDER":
-                    // ref. RFC 6854 §2.1: "If the sender field uses group syntax, the group MUST NOT contain more than one mailbox."
-                    return ImfAddress.TryParse(value, options, out var sender) && (!(sender is ImfGroup group) || group.Mailboxes.Count <= 1);
+                    return ImfAddress.TryParse(value, options, out var sender) && IsValidSender(sender);
 
                 case "BCC":
                 case "RESENT-BCC":
@@ -118,6 +117,12 @@ namespace DataStandardizer.File.InternetMessage
                 default:
                     return true;
             }
+        }
+
+        // ref. RFC 6854 §2.1: "If the sender field uses group syntax, the group MUST NOT contain more than one mailbox."
+        private static bool IsValidSender(ImfAddress sender)
+        {
+            return !(sender is ImfGroup group) || group.Mailboxes.Count <= 1;
         }
     }
 }

@@ -26,8 +26,11 @@ namespace DataStandardizer.File.InternetMessage
             }
             else if (ImfAddressParser.TryParseReceived(field.ValueBytes.Span, options, out var tokens, out var hasDate, out var date))
             {
+                ImfDateTime dateTime = default;
+                if (hasDate && !ImfDateTime.TryParse(date, options, out dateTime)) return;
+
                 ReceivedPairs = GetPairs(tokens);
-                if (hasDate && ImfDateTime.TryParse(date, options, out var dateTime)) ReceivedDate = dateTime;
+                if (hasDate) ReceivedDate = dateTime;
             }
         }
 

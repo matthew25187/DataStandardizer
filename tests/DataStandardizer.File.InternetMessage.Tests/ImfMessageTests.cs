@@ -41,6 +41,9 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string RepeatedFromApart = "From: a@b.test\r\nX-A: 1\r\nFrom: c@d.test\r\nDate: " + SampleDate + "\r\n\r\n";
         private const string RepeatedFromReplaced = "From: a@b.test, c@d.test\r\nX-A: 1\r\nDate: " + SampleDate + "\r\nSender: a@b.test\r\n\r\n";
         private const string TwoResentBlocks = "Resent-Date: " + SampleDate + "\r\nResent-From: a@b.test\r\nResent-Cc: c@d.test\r\nResent-Date: " + Rfc5322Examples.A3ResentDate + "\r\nResent-From: c@d.test\r\nResent-Sender: a@b.test\r\nResent-Bcc:\r\n" + MinimalMessage;
+        private const string SenderGroupOfTwo = MinimalHeader + "Sender: G: a@b.test, c@d.test;\r\n\r\n";
+        private const string SenderGroupOfOne = MinimalHeader + "Sender: G: a@b.test;\r\n\r\n";
+        private const string ResentSenderGroupOfTwo = "Resent-Date: " + SampleDate + "\r\nResent-From: a@b.test\r\nResent-Sender: G: a@b.test, c@d.test;\r\n" + MinimalMessage;
         private const string ResentFieldsApart = "Resent-Date: " + SampleDate + "\r\nX-A: 1\r\nResent-From: a@b.test\r\n" + MinimalMessage;
         private const string ResentReplyTo = "Resent-Date: " + SampleDate + "\r\nResent-From: a@b.test\r\nResent-Reply-To: c@d.test\r\n" + MinimalMessage;
 
@@ -235,6 +238,45 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // act
             var testResult = subject.From;
+
+            // assert
+            testResult.Should().BeNull();
+        }
+
+        [Fact]
+        public void Sender_GroupOfTwoAllowed_GivesNull()
+        {
+            // arrange
+            var subject = ImfMessages.Read(SenderGroupOfTwo, ImfMessages.AcceptAll());
+
+            // act
+            var testResult = subject.Sender;
+
+            // assert
+            testResult.Should().BeNull();
+        }
+
+        [Fact]
+        public void Sender_GroupOfOne_GivesTheGroup()
+        {
+            // arrange
+            var subject = ImfMessages.Read(SenderGroupOfOne);
+
+            // act
+            var testResult = subject.Sender;
+
+            // assert
+            testResult.Should().BeOfType<ImfGroup>();
+        }
+
+        [Fact]
+        public void Sender_ResentGroupOfTwoAllowed_GivesNull()
+        {
+            // arrange
+            var subject = ImfMessages.Read(ResentSenderGroupOfTwo, ImfMessages.AcceptAll());
+
+            // act
+            var testResult = subject.ResentBlocks[0].Sender;
 
             // assert
             testResult.Should().BeNull();

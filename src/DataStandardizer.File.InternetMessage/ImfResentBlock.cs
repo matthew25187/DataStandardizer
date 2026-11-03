@@ -54,7 +54,7 @@ namespace DataStandardizer.File.InternetMessage
         /// Gets the address of the Resent-Sender field.
         /// </summary>
         [MaybeNull]
-        public ImfAddress Sender => ImfFieldValues.GetAddress(Find(ImfFieldNames.ResentSender), _options);
+        public ImfAddress Sender => ImfFieldValues.GetSender(Find(ImfFieldNames.ResentSender), _options);
 
         /// <summary>
         /// Gets the addresses of the Resent-To field.

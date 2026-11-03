@@ -428,7 +428,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Fact]
-        public void Message_AfterTheReaderIsDisposed_StillHoldsItsContent()
+        public void ReadMessage_AfterTheReaderIsDisposed_StillHoldsItsContent()
         {
             // arrange
             ImfMessage message;

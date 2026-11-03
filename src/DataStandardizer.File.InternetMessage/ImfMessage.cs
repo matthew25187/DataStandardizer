@@ -99,7 +99,7 @@ namespace DataStandardizer.File.InternetMessage
         [AllowNull, MaybeNull]
         public ImfAddress Sender
         {
-            get => ImfFieldValues.GetAddress(Fields.Find(ImfFieldNames.Sender), Options);
+            get => ImfFieldValues.GetSender(Fields.Find(ImfFieldNames.Sender), Options);
             set
             {
                 var address = value;

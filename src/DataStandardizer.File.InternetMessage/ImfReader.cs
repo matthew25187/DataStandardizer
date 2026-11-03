@@ -220,6 +220,7 @@ namespace DataStandardizer.File.InternetMessage
                     _scanner.CompleteRefill(bytesRead);
                 }
 
+                ThrowIfDisposed();
                 return Complete();
             }
             finally
@@ -280,6 +281,7 @@ namespace DataStandardizer.File.InternetMessage
                     _scanner.CompleteRefill(bytesRead);
                 }
 
+                ThrowIfDisposed();
                 return Complete();
             }
             finally

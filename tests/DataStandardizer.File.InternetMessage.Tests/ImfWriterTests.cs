@@ -23,6 +23,16 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const int FirstFieldLength = 39;
         private const int TwoMessagesLength = 126;
         private const string TwoMessages = Message + Message;
+        private const string NonAsciiBodyMessage = Header + "\r\nBody\x00E9\r\n";
+
+        // A body that takes three of the writer's blocks of 16 KiB, in a message of 55 + 2 + 40000 bytes.
+        private const int LargeBodyLength = 40000;
+        private const int LargeMessageLength = 40057;
+
+        // The most output between two reports: the 2 bytes of the empty line, and the first block of 16 KiB.
+        private const int LargestProgressStep = 2 + 16 * 1024;
+
+        private static readonly string LargeMessage = Header + "\r\n" + new string('x', LargeBodyLength);
 
         [Theory]
         [MemberData(nameof(Rfc5322Messages.All), MemberType = typeof(Rfc5322Messages))]
@@ -117,7 +127,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Fact]
-        public void WriteMessage_NonAsciiBodyInDefaultWriter_IsRefusedAndWritesNothing()
+        public void WriteMessage_NonAsciiFieldBodyInDefaultWriter_IsRefusedAndWritesNothing()
         {
             // arrange
             var subject = ImfMessages.Read(Message);
@@ -132,6 +142,59 @@ namespace DataStandardizer.File.InternetMessage.Tests
                 testAction.Should().Throw<ImfFileException>();
                 stream.Length.Should().Be(0);
             }
+        }
+
+        [Fact]
+        public void WriteMessage_NonAsciiRawBodyInDefaultWriter_WritesItUnchanged()
+        {
+            // arrange
+            var subject = ImfMessages.Read(NonAsciiBodyMessage);
+            var stream = new MemoryStream();
+            using (var writer = new ImfWriter(stream))
+            {
+                // act
+                writer.WriteMessage(subject);
+
+                // assert
+                Octets.ToText(stream.ToArray()).Should().Be(NonAsciiBodyMessage);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_BodyOfSeveralBlocks_WritesItAllInBlocks()
+        {
+            // arrange
+            var subject = ImfMessages.Read(LargeMessage);
+            var stream = new MemoryStream();
+            var progress = new RecordingProgress();
+            using (var writer = new ImfWriter(stream))
+            {
+                // act
+                writer.WriteMessage(subject, progress);
+
+                // assert
+                Octets.ToText(stream.ToArray()).Should().Be(LargeMessage);
+                progress.Last.Should().Be(new ImfWriteProgress(2, 1, LargeMessageLength));
+                progress.LargestStep.Should().Be(LargestProgressStep);
+            }
+        }
+
+        [Fact]
+        public async Task WriteMessageAsync_BodyOfSeveralBlocks_WritesItAllInBlocks()
+        {
+            // arrange
+            var subject = ImfMessages.Read(LargeMessage);
+            var stream = new ModeWriteStream(BlockStreamMode.AsynchronousOnly);
+            var progress = new RecordingProgress();
+            var writer = new ImfWriter(stream);
+
+            // act
+            await AsyncDisposal.UsingAsync(writer, () => writer.WriteMessageAsync(subject, progress));
+
+            // assert
+            Octets.ToText(stream.ToArray()).Should().Be(LargeMessage);
+            progress.Last.Should().Be(new ImfWriteProgress(2, 1, LargeMessageLength));
+            progress.LargestStep.Should().Be(LargestProgressStep);
         }
 
         [Fact]
@@ -303,6 +366,24 @@ namespace DataStandardizer.File.InternetMessage.Tests
                     await testAction.Should().ThrowAsync<OperationCanceledException>();
                     stream.Length.Should().Be(0);
                 }
+            });
+        }
+
+        [Fact]
+        public async Task WriteMessage_AfterACanceledWrite_ThrowsThatTheWriterCannotContinue()
+        {
+            // arrange
+            var subject = ImfMessages.Read(Message);
+            var writer = new ImfWriter(new MemoryStream());
+            await AsyncDisposal.UsingAsync(writer, async () =>
+            {
+                await Record.ExceptionAsync(() => writer.WriteMessageAsync(subject, null, new CancellationToken(true)));
+
+                // act
+                Action testAction = () => writer.WriteMessage(subject);
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>();
             });
         }
 
