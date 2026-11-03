@@ -129,7 +129,7 @@ namespace DataStandardizer.File.InternetMessage
         /// <returns><c>true</c> if the value is a valid mailbox; otherwise <c>false</c>.</returns>
         public static bool TryParse(ReadOnlySpan<byte> value, [MaybeNullWhen(false)] out ImfMailbox result)
         {
-            return ImfAddressParser.TryParseMailbox(value, out result);
+            return ImfAddressParser.TryParseMailbox(value, ImfHeaderText.DefaultOptions, out result);
         }
 
         /// <summary>
@@ -142,6 +142,78 @@ namespace DataStandardizer.File.InternetMessage
         {
             result = null;
             return ImfGrammar.TryGetBytes(value, out var bytes) && TryParse(bytes, out result);
+        }
+
+        /// <summary>
+        /// Parses a mailbox.
+        /// </summary>
+        /// <param name="value">The mailbox, which may be folded, such as <c>Mary Smith &lt;mary@example.net&gt;</c>.  Bytes that aren't valid UTF-8 are decoded with
+        /// <see cref="ImfOptions.HeaderFallbackCharset"/> before any encoded word is read, if <see cref="ImfOptions.AllowEightBitHeaders"/> is <c>true</c>.</param>
+        /// <param name="options">The options, of which this uses <see cref="ImfOptions.AllowEightBitHeaders"/>, <see cref="ImfOptions.AllowMalformedEncodedWords"/>, <see cref="ImfOptions.CharsetResolver"/> and <see cref="ImfOptions.HeaderFallbackCharset"/>.</param>
+        /// <returns>The mailbox.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="options"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="options"/> has no <see cref="ImfOptions.CharsetResolver"/>, or a
+        /// <see cref="ImfOptions.HeaderFallbackCharset"/> that is needed and can't be resolved.</exception>
+        /// <exception cref="FormatException">The value is not a valid mailbox.</exception>
+        public static new ImfMailbox Parse(ReadOnlySpan<byte> value, ImfOptions options)
+        {
+            if (!TryParse(value, options, out var result)) throw new FormatException(InvalidFormatMessage);
+
+            return result;
+        }
+
+        /// <summary>
+        /// Parses a mailbox.
+        /// </summary>
+        /// <param name="value">The mailbox, which may be folded, such as <c>Mary Smith &lt;mary@example.net&gt;</c>.</param>
+        /// <param name="options">The options, of which this uses <see cref="ImfOptions.AllowMalformedEncodedWords"/> and <see cref="ImfOptions.CharsetResolver"/>.</param>
+        /// <returns>The mailbox.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="value"/> or <paramref name="options"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="options"/> has no <see cref="ImfOptions.CharsetResolver"/>, or a
+        /// <see cref="ImfOptions.HeaderFallbackCharset"/> that is needed and can't be resolved.</exception>
+        /// <exception cref="FormatException">The value is not a valid mailbox.</exception>
+        public static new ImfMailbox Parse(string value, ImfOptions options)
+        {
+            if (value is null) throw new ArgumentNullException(nameof(value));
+            if (!TryParse(value, options, out var result)) throw new FormatException(InvalidFormatMessage);
+
+            return result;
+        }
+
+        /// <summary>
+        /// Parses a mailbox.
+        /// </summary>
+        /// <param name="value">The mailbox, which may be folded, such as <c>Mary Smith &lt;mary@example.net&gt;</c>.  Bytes that aren't valid UTF-8 are decoded with
+        /// <see cref="ImfOptions.HeaderFallbackCharset"/> before any encoded word is read, if <see cref="ImfOptions.AllowEightBitHeaders"/> is <c>true</c>.</param>
+        /// <param name="options">The options, of which this uses <see cref="ImfOptions.AllowEightBitHeaders"/>, <see cref="ImfOptions.AllowMalformedEncodedWords"/>, <see cref="ImfOptions.CharsetResolver"/> and <see cref="ImfOptions.HeaderFallbackCharset"/>.</param>
+        /// <param name="result">The mailbox, if the value is valid.</param>
+        /// <returns><c>true</c> if the value is a valid mailbox; otherwise <c>false</c>.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="options"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="options"/> has no <see cref="ImfOptions.CharsetResolver"/>, or a
+        /// <see cref="ImfOptions.HeaderFallbackCharset"/> that is needed and can't be resolved.</exception>
+        public static bool TryParse(ReadOnlySpan<byte> value, ImfOptions options, [MaybeNullWhen(false)] out ImfMailbox result)
+        {
+            ImfHeaderText.CheckOptions(options);
+
+            return ImfAddressParser.TryParseMailbox(value, options, out result);
+        }
+
+        /// <summary>
+        /// Parses a mailbox.
+        /// </summary>
+        /// <param name="value">The mailbox, which may be folded, such as <c>Mary Smith &lt;mary@example.net&gt;</c>.</param>
+        /// <param name="options">The options, of which this uses <see cref="ImfOptions.AllowMalformedEncodedWords"/> and <see cref="ImfOptions.CharsetResolver"/>.</param>
+        /// <param name="result">The mailbox, if the value is valid.</param>
+        /// <returns><c>true</c> if the value is a valid mailbox; otherwise <c>false</c>, including for <c>null</c>.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="options"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="options"/> has no <see cref="ImfOptions.CharsetResolver"/>, or a
+        /// <see cref="ImfOptions.HeaderFallbackCharset"/> that is needed and can't be resolved.</exception>
+        public static bool TryParse([AllowNull, NotNullWhen(true)] string value, ImfOptions options, [MaybeNullWhen(false)] out ImfMailbox result)
+        {
+            ImfHeaderText.CheckOptions(options);
+
+            result = null;
+            return ImfGrammar.TryGetBytes(value, out var bytes) && TryParse(bytes, options, out result);
         }
 
         /// <summary>
@@ -163,8 +235,8 @@ namespace DataStandardizer.File.InternetMessage
         /// Indicates whether this mailbox equals another.
         /// </summary>
         /// <remarks>
-        /// The display name and local part are compared case-sensitively and the domain case-insensitively.  Use <see cref="HasSameAddress"/> to ignore the
-        /// display name.
+        /// The display name and local part are compared case-sensitively and the domain case-insensitively.  Display names are compared as text, so
+        /// <c>=?UTF-8?Q?a?=</c> and <c>a</c> are equal.  Use <see cref="HasSameAddress"/> to ignore the display name.
         /// </remarks>
         public bool Equals([AllowNull] ImfMailbox other)
         {
@@ -188,23 +260,30 @@ namespace DataStandardizer.File.InternetMessage
         /// <summary>
         /// Formats the mailbox in the modern form, such as <c>Mary Smith &lt;mary@example.net&gt;</c> or <c>mary@example.net</c>.
         /// </summary>
+        /// <remarks>
+        /// An encoded word stays as it was read, and any other text is written as it is, which may be UTF-8.  A word right next to a period is the exception: the
+        /// phrase is written as new encoded words, as only the obsolete form could keep it.  Use <see cref="ImfAddress.ToString(ImfHeaderEncoding)"/>
+        /// to choose.
+        /// </remarks>
         /// <returns>The mailbox.</returns>
         public override string ToString()
         {
-            var output = new StringBuilder();
+            return Format(null);
+        }
+
+        internal override void AppendTo(StringBuilder output, ImfHeaderEncoding? encoding)
+        {
             if (_displayName.Text.Length == 0)
             {
                 ImfGrammar.AppendAddrSpec(LocalPart, Domain, output);
             }
             else
             {
-                _displayName.AppendTo(output);
+                _displayName.AppendTo(output, encoding);
                 output.Append(" <");
                 ImfGrammar.AppendAddrSpec(LocalPart, Domain, output);
                 output.Append('>');
             }
-
-            return output.ToString();
         }
     }
 }

@@ -353,7 +353,10 @@ namespace DataStandardizer.File.InternetMessage
                         int length;
                         try
                         {
-                            length = ImfHeaderFormatter.Format(name, field.Value, field.Kind, _options.HeaderEncoding, _lineBreak, ref buffer);
+                            var value = field.IsText
+                                ? ImfHeaderFormatter.GetTextBody(name, Encoding.UTF8.GetString(field.Value, 0, field.Value.Length), _options.HeaderEncoding)
+                                : field.Value;
+                            length = ImfHeaderFormatter.Format(name, value, field.Kind, _options.HeaderEncoding, _lineBreak, ref buffer);
                         }
                         catch (ImfFileException exception)
                         {

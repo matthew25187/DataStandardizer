@@ -82,13 +82,20 @@ namespace DataStandardizer.File.InternetMessage.Tests
             { "To", Word70 + " \"x y\"", ImfHeaderFieldKind.Structured, "To: " + Word70 + "\r\n \"x y\"\r\n" },
             { "To", "\"" + Word70 + " y z\" b", ImfHeaderFieldKind.Structured, "To:\r\n \"" + Word70 + " y z\"\r\n b\r\n" },
             { "To", "\"" + Word70 + " y z\" b", ImfHeaderFieldKind.Unstructured, "To: \"" + Word70 + " y\r\n z\" b\r\n" },
-            { "To", "(" + Word70 + " y z) b", ImfHeaderFieldKind.Structured, "To:\r\n (" + Word70 + " y z)\r\n b\r\n" },
-            { "To", "((" + Word70 + ") y z) b", ImfHeaderFieldKind.Structured, "To:\r\n ((" + Word70 + ") y z)\r\n b\r\n" },
             { "To", "[" + Word70 + " y z] b", ImfHeaderFieldKind.Structured, "To:\r\n [" + Word70 + " y z]\r\n b\r\n" },
+
+            // ref. RFC 5322 §3.2.2: a comment may hold FWS between its words, but a space in a quoted-pair is not FWS.
+            { "To", "(" + Word70 + " y z) b", ImfHeaderFieldKind.Structured, "To: (" + Word70 + " y\r\n z) b\r\n" },
+            { "To", "((" + Word70 + ") y z) b", ImfHeaderFieldKind.Structured, "To: ((" + Word70 + ")\r\n y z) b\r\n" },
+            { "To", "(" + Word70 + "\\ y\\ z) b", ImfHeaderFieldKind.Structured, "To:\r\n (" + Word70 + "\\ y\\ z)\r\n b\r\n" },
+
+            // A line that starts inside a comment is still inside it: a quote there starts nothing, and a parenthesis closes it, so what follows is outside.
+            { "To", "(" + Word70 + " y \"" + Word70 + " y z x v) b", ImfHeaderFieldKind.Structured, "To: (" + Word70 + " y\r\n \"" + Word70 + " y z x\r\n v) b\r\n" },
+            { "To", "(" + Word70 + " y z) \"" + Word70 + " y z\" b", ImfHeaderFieldKind.Structured, "To: (" + Word70 + " y\r\n z)\r\n \"" + Word70 + " y z\"\r\n b\r\n" },
 
             // An escaped quote or parenthesis doesn't end the token.
             { "To", "\"\\\"" + Word70 + " y z\" b", ImfHeaderFieldKind.Structured, "To:\r\n \"\\\"" + Word70 + " y z\"\r\n b\r\n" },
-            { "To", "(\\)" + Word70 + " y z) b", ImfHeaderFieldKind.Structured, "To:\r\n (\\)" + Word70 + " y z)\r\n b\r\n" },
+            { "To", "(\\)" + Word70 + " y z) b", ImfHeaderFieldKind.Structured, "To: (\\)" + Word70 + "\r\n y z) b\r\n" },
 
             // A quote inside a comment, and a parenthesis inside a quoted string, start nothing.
             { "To", "(\"" + Word70 + ") y z", ImfHeaderFieldKind.Structured, "To: (\"" + Word70 + ")\r\n y z\r\n" },
@@ -111,7 +118,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             { "A", "1\x00" + "2" },
             { "A", "1\x007F" },
 
-            // Not US-ASCII, so left to the encoded words of the next layer up.
+            // Not US-ASCII, and a field body is written as it is given.  WriteTextField encodes text.
             { "A", "caf\x00E9" },
 
             // ref. RFC 5322 §2.1.1

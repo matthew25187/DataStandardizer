@@ -31,8 +31,9 @@ namespace DataStandardizer.File.InternetMessage.Tests
             // ref. RFC 5322 §4.1: obs-phrase
             { "a. b, c", new[] { "a. b", "c" } },
 
-            // ref. RFC 2047 §5(3): an encoded word is kept as written.
-            { EncodedWord, new[] { EncodedWord } },
+            // ref. RFC 2047 §5(3): an encoded word is decoded, and a quoted-string of that form is not.
+            { EncodedWord, new[] { "a" } },
+            { "\"" + EncodedWord + "\"", new[] { EncodedWord } },
         };
 
         public static TheoryData<string, string> Formats => new TheoryData<string, string>
@@ -66,6 +67,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
             { "a", "a, b", false },
             { EncodedWord, "\"" + EncodedWord + "\"", false },
             { EncodedWord + " \"=?utf-8?Q?b?=\"", "\"" + EncodedWord + "\" =?utf-8?Q?b?=", false },
+
+            // Phrases are compared as text, whichever form they were written in.
+            { EncodedWord, "a", true },
+            { "=?iso-8859-1?Q?=E9?=", "=?utf-8?Q?=C3=A9?=", true },
         };
 
         [Theory]

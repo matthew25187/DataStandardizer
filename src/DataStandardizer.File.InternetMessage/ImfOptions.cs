@@ -151,6 +151,29 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
+        /// Gets a flag indicating if RFC 2047 encoded words that don't follow the rules are decoded.
+        /// </summary>
+        /// <remarks>
+        /// When <c>false</c> (the default), a word that breaks a rule of RFC 2047 §2, §4, §5 or §6.3 stays as ordinary text (RFC 2047 §6.1 and §6.2).  When <c>true</c>,
+        /// each of the accommodations of <see cref="MimeEncodedWordParseOptions"/> applies: a word longer than the 75 characters of §2
+        /// (<see cref="MimeEncodedWordParseOptions.AllowLongWords"/>), a word not separated from the text next to it, which §5 requires
+        /// (<see cref="MimeEncodedWordParseOptions.AllowEmbeddedWords"/>), a character set that <see cref="CharsetResolver"/> can't resolve, which §6.2 lets a reader
+        /// show as it can (<see cref="MimeEncodedWordParseOptions.AllowUnknownCharsets"/>), lower-case hexadecimal digits, which §4.2 doesn't allow
+        /// (<see cref="MimeEncodedWordParseOptions.AllowLowercaseHexDigits"/>), octets that aren't valid in the character set, which §6.3 calls incorrectly formed
+        /// (<see cref="MimeEncodedWordParseOptions.AllowInvalidOctets"/>), and a character split between words, which §5 doesn't allow
+        /// (<see cref="MimeEncodedWordParseOptions.AllowSplitCharacters"/>).
+        /// </remarks>
+        public bool AllowMalformedEncodedWords
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
         /// Gets a flag indicating if a multipart entity with no close delimiter is accepted.
         /// </summary>
         /// <remarks>
@@ -170,12 +193,13 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Gets the resolver for character sets: <see cref="HeaderFallbackCharset"/>, and those named in the extended parameters of a Content-Type
-        /// field (RFC 2231 §4).
+        /// Gets the resolver for character sets: <see cref="HeaderFallbackCharset"/>, those named in the extended parameters of a Content-Type
+        /// field (RFC 2231 §4), and those of RFC 2047 encoded words.
         /// </summary>
         /// <remarks>
         /// The default is <see cref="MimeCharsetResolver.Default"/>.  An <see cref="ImfEntityReader"/> always needs it.  An
-        /// <see cref="ImfHeaderReader"/> needs it only when <see cref="AllowEightBitHeaders"/> is <c>true</c>.
+        /// <see cref="ImfHeaderReader"/> needs it when <see cref="AllowEightBitHeaders"/> is <c>true</c>, and for
+        /// <see cref="ImfHeaderFieldView.GetDecodedValue"/>.
         /// </remarks>
         public IMimeCharsetResolver CharsetResolver
         {
@@ -227,9 +251,10 @@ namespace DataStandardizer.File.InternetMessage
         /// Gets how a writer writes header text that is not US-ASCII.
         /// </summary>
         /// <remarks>
-        /// The default is <see cref="ImfHeaderEncoding.EncodedWords"/> (RFC 2047).  <see cref="ImfHeaderWriter"/> and <see cref="ImfEntityWriter"/> write header
-        /// text as they are given it, so with that default they refuse a field body that is not US-ASCII.  With <see cref="ImfHeaderEncoding.Utf8"/>, they
-        /// write valid UTF-8 as it is (RFC 6532).
+        /// The default is <see cref="ImfHeaderEncoding.EncodedWords"/> (RFC 2047).  <see cref="ImfHeaderWriter.WriteTextField"/> and
+        /// <see cref="ImfEntitySource.AddTextField"/> write text that is not US-ASCII as encoded words, as <see cref="ImfHeaderText.FormatUnstructured"/> describes.  A
+        /// field body is written as it is given, so with that default it is refused if it is not US-ASCII.  With <see cref="ImfHeaderEncoding.Utf8"/>, valid UTF-8 is
+        /// written as it is (RFC 6532).
         /// </remarks>
         public ImfHeaderEncoding HeaderEncoding
         {

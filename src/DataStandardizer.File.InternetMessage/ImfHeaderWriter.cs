@@ -19,8 +19,15 @@ namespace DataStandardizer.File.InternetMessage
     /// <b>Folding.</b>  A field given by name and body is folded at spaces and tabs already in the body, aiming for lines of 78 characters and never
     /// passing 998 octets (RFC 5322 §2.1.1 and §2.2.3, RFC 6532 §3.4).  No white space is added or removed, except that one space is written after the
     /// colon if the body has none, so unfolding gives the same body back.  A <see cref="ImfHeaderFieldKind.Structured"/> field is not folded inside a
-    /// quoted string, comment or domain literal.  A field that can't be folded within 998 octets is refused, and a line may pass 78 characters when
+    /// quoted string or domain literal.  A field that can't be folded within 998 octets is refused, and a line may pass 78 characters when
     /// it has nowhere to fold.
+    /// </para>
+    /// <para>
+    /// <b>Encoded words.</b>  <see cref="WriteTextField"/> writes text as an unstructured field, with what has to be encoded as RFC 2047 encoded words unless
+    /// <see cref="ImfOptions.HeaderEncoding"/> is <see cref="ImfHeaderEncoding.Utf8"/>.  Each word is folded whole, so a line holds at most 76 characters of encoded
+    /// words.  <see cref="WriteField(string, string, ImfHeaderFieldKind)"/> writes a field body as it is given: get a body with encoded words from
+    /// <see cref="ImfAddress.ToString(ImfHeaderEncoding)"/>, <see cref="ImfAddressList.ToString(ImfHeaderEncoding)"/>,
+    /// <see cref="ImfPhraseList.ToString(ImfHeaderEncoding)"/> or <see cref="ImfHeaderText.FormatComment"/>.
     /// </para>
     /// <para>
     /// <b>Refusals.</b>  A field name must be printable US-ASCII with no colon (RFC 5322 §3.6.8).  A body must be given unfolded, with no control
@@ -297,6 +304,42 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
+        /// Writes text as an unstructured field, such as Subject: encoded as <see cref="ImfHeaderText.FormatUnstructured"/> describes, and folded between words.
+        /// </summary>
+        /// <param name="name">The field name.</param>
+        /// <param name="text">The text.  One space is written before it if it doesn't start with a space or tab, and isn't empty.</param>
+        /// <exception cref="ObjectDisposedException">The writer has been disposed.</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="name"/> or <paramref name="text"/> is <c>null</c>.</exception>
+        /// <exception cref="ImfFileException">The field can't be written, as the text holds a control character other than tab or an unpaired surrogate.  Nothing has
+        /// been written.</exception>
+        /// <exception cref="InvalidOperationException">Another operation is in progress.
+        /// -or-
+        /// The section has ended.
+        /// -or-
+        /// An earlier write failed or was canceled, so the writer cannot continue.</exception>
+        public void WriteTextField(string name, string text)
+        {
+            _output.ThrowIfDisposed();
+            if (name is null)
+                throw new ArgumentNullException(nameof(name));
+            if (text is null)
+                throw new ArgumentNullException(nameof(text));
+
+            _output.BeginOperation();
+            try
+            {
+                ThrowIfEnded();
+                var nameBytes = ImfHeaderFormatter.GetBytes(name);
+                WriteFormattedField(nameBytes, ImfHeaderFormatter.GetTextBody(nameBytes, text, _encoding), ImfHeaderFieldKind.Unstructured);
+                _output.ThrowIfDisposed();
+            }
+            finally
+            {
+                EndOperation();
+            }
+        }
+
+        /// <summary>
         /// Writes a field that a reader has just read, byte for byte.
         /// </summary>
         /// <param name="field">The field.</param>
@@ -503,6 +546,37 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
+        /// Writes text as an unstructured field, such as Subject, asynchronously: encoded as <see cref="ImfHeaderText.FormatUnstructured"/> describes, and folded
+        /// between words.
+        /// </summary>
+        /// <param name="name">The field name.</param>
+        /// <param name="text">The text.  One space is written before it if it doesn't start with a space or tab, and isn't empty.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.  If the write is canceled, the writer cannot continue.</param>
+        /// <returns>A task that completes once the field has been handed to the stream.</returns>
+        /// <exception cref="ObjectDisposedException">The writer has been disposed.  Thrown by this call, or by the task if the writer is disposed while the
+        /// write is in progress.</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="name"/> or <paramref name="text"/> is <c>null</c>.</exception>
+        /// <exception cref="InvalidOperationException">Another operation is in progress.
+        /// -or-
+        /// An earlier write failed or was canceled, so the writer cannot continue.
+        /// -or-
+        /// By the task: the section has ended.</exception>
+        /// <exception cref="ImfFileException">By the task: the field can't be written, as the text holds a control character other than tab or an unpaired surrogate.
+        /// Nothing has been written.</exception>
+        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.</exception>
+        public ValueTask WriteTextFieldAsync(string name, string text, CancellationToken cancellationToken = default)
+        {
+            _output.ThrowIfDisposed();
+            if (name is null)
+                throw new ArgumentNullException(nameof(name));
+            if (text is null)
+                throw new ArgumentNullException(nameof(text));
+
+            _output.BeginOperation();
+            return WriteEncodedTextFieldCoreAsync(name, text, cancellationToken);
+        }
+
+        /// <summary>
         /// Writes a field that a reader has just read, byte for byte, asynchronously.
         /// </summary>
         /// <remarks>
@@ -634,6 +708,28 @@ namespace DataStandardizer.File.InternetMessage
                 ThrowIfEnded();
                 cancellationToken.ThrowIfCancellationRequested();
                 var length = FormatField(ImfHeaderFormatter.GetBytes(name), ImfHeaderFormatter.GetBytes(value), kind);
+                await WriteBufferAsync(length, cancellationToken).ConfigureAwait(false);
+                _output.ThrowIfDisposed();
+            }
+            catch (OperationCanceledException)
+            {
+                _output.MarkBroken();
+                throw;
+            }
+            finally
+            {
+                await EndOperationAsync().ConfigureAwait(false);
+            }
+        }
+
+        private async ValueTask WriteEncodedTextFieldCoreAsync(string name, string text, CancellationToken cancellationToken)
+        {
+            try
+            {
+                ThrowIfEnded();
+                cancellationToken.ThrowIfCancellationRequested();
+                var nameBytes = ImfHeaderFormatter.GetBytes(name);
+                var length = FormatField(nameBytes, ImfHeaderFormatter.GetTextBody(nameBytes, text, _encoding), ImfHeaderFieldKind.Unstructured);
                 await WriteBufferAsync(length, cancellationToken).ConfigureAwait(false);
                 _output.ThrowIfDisposed();
             }

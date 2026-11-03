@@ -115,6 +115,31 @@ namespace DataStandardizer.File.InternetMessage
             return GetScanner().GetValue();
         }
 
+        /// <summary>
+        /// Decodes <see cref="Value"/> as the body of an unstructured field, such as Subject or Comments, or a field of unknown meaning: as <see cref="GetValue"/> does,
+        /// and then without the white space at either end, and with each RFC 2047 encoded word decoded and the white space between adjacent encoded words removed
+        /// (RFC 2047 §6.2).
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// This is what <see cref="ImfHeaderText.DecodeUnstructured(string, ImfOptions)"/> does, with the options of the reader.  A word that can't be decoded stays as
+        /// ordinary text, as <see cref="ImfOptions.AllowMalformedEncodedWords"/> describes.
+        /// </para>
+        /// <para>
+        /// The result can hold anything that the words encode, including control characters and line breaks.  A structured field has encoded words only in some places
+        /// (RFC 2047 §5), so parse one with its type, such as <see cref="ImfAddressList"/>, and get its comments with <see cref="ImfHeaderText.GetComments(string, ImfOptions)"/>.
+        /// </para>
+        /// </remarks>
+        /// <exception cref="ObjectDisposedException">The reader has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">The reader has moved on to another field, or the view was not obtained from a
+        /// reader.
+        /// -or-
+        /// The options of the reader have no <see cref="ImfOptions.CharsetResolver"/>.</exception>
+        public string GetDecodedValue()
+        {
+            return GetScanner().GetDecodedValue();
+        }
+
         private ImfHeaderScanner GetScanner()
         {
             if (_source is null)

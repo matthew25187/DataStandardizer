@@ -6,8 +6,9 @@ namespace DataStandardizer.File.InternetMessage
     public enum ImfHeaderEncoding
     {
         /// <summary>
-        /// As RFC 2047 encoded words.  <see cref="ImfHeaderWriter"/> and <see cref="ImfEntityWriter"/> don't encode text themselves, so they refuse a
-        /// field body that is not US-ASCII.
+        /// As RFC 2047 encoded words, in UTF-8.  A field body given to <see cref="ImfHeaderWriter.WriteField(string, string, ImfHeaderFieldKind)"/> or
+        /// <see cref="ImfEntitySource.AddField(string, string, ImfHeaderFieldKind)"/> is written as it is, so one that is not US-ASCII is refused.  Text given to
+        /// <see cref="ImfHeaderWriter.WriteTextField"/> or <see cref="ImfEntitySource.AddTextField"/> is encoded.
         /// </summary>
         EncodedWords = 0,
 

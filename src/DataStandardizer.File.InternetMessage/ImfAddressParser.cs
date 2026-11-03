@@ -13,13 +13,13 @@ namespace DataStandardizer.File.InternetMessage
     /// </remarks>
     internal static class ImfAddressParser
     {
-        internal static bool TryParseAddress(ReadOnlySpan<byte> value, [MaybeNullWhen(false)] out ImfAddress result)
+        internal static bool TryParseAddress(ReadOnlySpan<byte> value, ImfOptions options, [MaybeNullWhen(false)] out ImfAddress result)
         {
             result = null;
-            if (!ImfTokenizer.IsWellFormed(value)) return false;
+            if (!ImfHeaderText.TryGetUtf8(value, options, out var utf8)) return false;
 
-            var tokenizer = new ImfTokenizer(value);
-            if (TryReadAddress(ref tokenizer, true, out var address) && IsAtEnd(ref tokenizer))
+            var tokenizer = new ImfTokenizer(utf8);
+            if (TryReadAddress(ref tokenizer, options, true, out var address) && IsAtEnd(ref tokenizer))
             {
                 result = address;
                 return true;
@@ -28,19 +28,19 @@ namespace DataStandardizer.File.InternetMessage
             return false;
         }
 
-        internal static bool TryParseMailbox(ReadOnlySpan<byte> value, [MaybeNullWhen(false)] out ImfMailbox result)
+        internal static bool TryParseMailbox(ReadOnlySpan<byte> value, ImfOptions options, [MaybeNullWhen(false)] out ImfMailbox result)
         {
             result = null;
-            if (!TryParseAddress(value, out var address)) return false;
+            if (!TryParseAddress(value, options, out var address)) return false;
 
             result = address as ImfMailbox;
             return !(result is null);
         }
 
-        internal static bool TryParseGroup(ReadOnlySpan<byte> value, [MaybeNullWhen(false)] out ImfGroup result)
+        internal static bool TryParseGroup(ReadOnlySpan<byte> value, ImfOptions options, [MaybeNullWhen(false)] out ImfGroup result)
         {
             result = null;
-            if (!TryParseAddress(value, out var address)) return false;
+            if (!TryParseAddress(value, options, out var address)) return false;
 
             result = address as ImfGroup;
             return !(result is null);
@@ -48,12 +48,12 @@ namespace DataStandardizer.File.InternetMessage
 
         // ref. RFC 5322 §3.4: address-list = (address *("," address)) / obs-addr-list
         // ref. RFC 5322 §4.4: obs-addr-list = *([CFWS] ",") address *("," [address / CFWS])
-        internal static bool TryParseAddressList(ReadOnlySpan<byte> value, [MaybeNullWhen(false)] out ImfAddress[] result)
+        internal static bool TryParseAddressList(ReadOnlySpan<byte> value, ImfOptions options, [MaybeNullWhen(false)] out ImfAddress[] result)
         {
             result = null;
-            if (!ImfTokenizer.IsWellFormed(value)) return false;
+            if (!ImfHeaderText.TryGetUtf8(value, options, out var utf8)) return false;
 
-            var tokenizer = new ImfTokenizer(value);
+            var tokenizer = new ImfTokenizer(utf8);
             var addresses = new List<ImfAddress>();
             while (true)
             {
@@ -67,7 +67,7 @@ namespace DataStandardizer.File.InternetMessage
 
                 if (token.Kind == ImfTokenKind.End) break;
 
-                if (!TryReadAddress(ref tokenizer, true, out var address) || !TryReadListSeparator(ref tokenizer, ImfTokenKind.End)) return false;
+                if (!TryReadAddress(ref tokenizer, options, true, out var address) || !TryReadListSeparator(ref tokenizer, ImfTokenKind.End)) return false;
 
                 addresses.Add(address);
             }
@@ -80,12 +80,12 @@ namespace DataStandardizer.File.InternetMessage
 
         // ref. RFC 5322 §3.6.5: keywords = "Keywords:" phrase *("," phrase) CRLF
         // ref. RFC 5322 §4.1: obs-phrase-list = [phrase / CFWS] *("," [phrase / CFWS])
-        internal static bool TryParsePhraseList(ReadOnlySpan<byte> value, [MaybeNullWhen(false)] out ImfPhrase[] result)
+        internal static bool TryParsePhraseList(ReadOnlySpan<byte> value, ImfOptions options, [MaybeNullWhen(false)] out ImfPhrase[] result)
         {
             result = null;
-            if (!ImfTokenizer.IsWellFormed(value)) return false;
+            if (!ImfHeaderText.TryGetUtf8(value, options, out var utf8)) return false;
 
-            var tokenizer = new ImfTokenizer(value);
+            var tokenizer = new ImfTokenizer(utf8);
             var phrases = new List<ImfPhrase>();
             while (true)
             {
@@ -99,7 +99,7 @@ namespace DataStandardizer.File.InternetMessage
 
                 if (token.Kind == ImfTokenKind.End) break;
 
-                if (!ImfPhrase.TryRead(ref tokenizer, out var phrase) || !TryReadListSeparator(ref tokenizer, ImfTokenKind.End)) return false;
+                if (!ImfPhrase.TryRead(ref tokenizer, options, out var phrase) || !TryReadListSeparator(ref tokenizer, ImfTokenKind.End)) return false;
 
                 phrases.Add(phrase);
             }
@@ -155,7 +155,7 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         // ref. RFC 5322 §3.4: address = mailbox / group; mailbox = name-addr / addr-spec; name-addr = [display-name] angle-addr
-        private static bool TryReadAddress(ref ImfTokenizer tokenizer, bool allowGroup, [MaybeNullWhen(false)] out ImfAddress address)
+        private static bool TryReadAddress(ref ImfTokenizer tokenizer, ImfOptions options, bool allowGroup, [MaybeNullWhen(false)] out ImfAddress address)
         {
             address = null;
 
@@ -174,7 +174,7 @@ namespace DataStandardizer.File.InternetMessage
 
                 case ImfTokenKind.LessThan:
                     displayName = new ImfPhrase(string.Empty);
-                    if (tokenizer.TryPeek(out var first) && first.Kind != ImfTokenKind.LessThan && !ImfPhrase.TryRead(ref tokenizer, out displayName)) return false;
+                    if (tokenizer.TryPeek(out var first) && first.Kind != ImfTokenKind.LessThan && !ImfPhrase.TryRead(ref tokenizer, options, out displayName)) return false;
 
                     if (!TryReadAngleAddr(ref tokenizer, out var angleLocalPart, out var angleDomain)) return false;
 
@@ -182,9 +182,9 @@ namespace DataStandardizer.File.InternetMessage
                     return true;
 
                 case ImfTokenKind.Colon:
-                    if (!allowGroup || !ImfPhrase.TryRead(ref tokenizer, out displayName)) return false;
+                    if (!allowGroup || !ImfPhrase.TryRead(ref tokenizer, options, out displayName)) return false;
 
-                    if (!TryReadGroupList(ref tokenizer, out var mailboxes)) return false;
+                    if (!TryReadGroupList(ref tokenizer, options, out var mailboxes)) return false;
 
                     address = new ImfGroup(displayName, mailboxes);
                     return true;
@@ -205,7 +205,7 @@ namespace DataStandardizer.File.InternetMessage
 
         // ref. RFC 5322 §3.4: group = display-name ":" [group-list] ";" [CFWS]; group-list = mailbox-list / CFWS / obs-group-list
         // ref. RFC 5322 §4.4: obs-mbox-list = *([CFWS] ",") mailbox *("," [mailbox / CFWS]); obs-group-list = 1*([CFWS] ",") [CFWS]
-        private static bool TryReadGroupList(ref ImfTokenizer tokenizer, [MaybeNullWhen(false)] out ImfMailbox[] mailboxes)
+        private static bool TryReadGroupList(ref ImfTokenizer tokenizer, ImfOptions options, [MaybeNullWhen(false)] out ImfMailbox[] mailboxes)
         {
             mailboxes = null;
             if (!tokenizer.TryRead(out var colon) || colon.Kind != ImfTokenKind.Colon) return false;
@@ -228,7 +228,7 @@ namespace DataStandardizer.File.InternetMessage
                     return true;
                 }
 
-                if (!TryReadAddress(ref tokenizer, false, out var address) || !TryReadListSeparator(ref tokenizer, ImfTokenKind.Semicolon)) return false;
+                if (!TryReadAddress(ref tokenizer, options, false, out var address) || !TryReadListSeparator(ref tokenizer, ImfTokenKind.Semicolon)) return false;
 
                 list.Add((ImfMailbox)address);
             }
