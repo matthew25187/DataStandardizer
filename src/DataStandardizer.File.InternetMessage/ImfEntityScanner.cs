@@ -821,6 +821,8 @@ namespace DataStandardizer.File.InternetMessage
                 // ref. RFC 2046 §5.1.1: only the close delimiter can be the last thing in the data.
                 _lineScan = -1;
                 resumeAt = end;
+                if (available > MaxLineLength) return LineMatch.NoMatch;
+
                 return MatchDelimiter(lineStart, end, -1) ? LineMatch.Delimiter : LineMatch.NoMatch;
             }
 

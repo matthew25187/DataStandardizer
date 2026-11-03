@@ -19,6 +19,9 @@ namespace DataStandardizer.File.InternetMessage.Tests
         // ref. RFC 2046 §5.1.1: a line of 998 octets is the longest allowed by RFC 5322 §2.1.1, so with the three of "--b" this is the longest padding.
         private const int LongestDelimiterPadding = 995;
 
+        // ref. RFC 5322 §2.1.1: likewise with the five of "--b--".
+        private const int LongestCloseDelimiterPadding = 993;
+
         private const int SmallBlock = 3;
 
         // Enough levels to overflow the stack, if each level took a stack frame.
@@ -461,6 +464,34 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
                 // assert
                 testResult.Should().Equal(expected);
+            }
+        }
+
+        [Fact]
+        public void ReadEvent_LongestCloseDelimiterLineAtTheEndOfTheData_IsADelimiter()
+        {
+            // arrange
+            using (var reader = EntityEvents.CreateReader(LongMessages.CloseDelimiterAtTheEndWithPadding(LongestCloseDelimiterPadding)))
+            {
+                // act
+                var testResult = EntityEvents.ReadOutline(reader);
+
+                // assert
+                testResult.Should().Equal("start /", "field / Content-Type", "type / multipart/mixed", "start 1", "type 1 text/plain", "body 1 [x]", "end 1", "end /");
+            }
+        }
+
+        [Fact]
+        public void ReadEvent_CloseDelimiterLineTooLongAtTheEndOfTheData_IsNotADelimiter()
+        {
+            // arrange
+            using (var reader = EntityEvents.CreateReader(LongMessages.CloseDelimiterAtTheEndWithPadding(LongestCloseDelimiterPadding + 1)))
+            {
+                // act
+                Action testAction = () => EntityEvents.ReadToEnd(reader);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>();
             }
         }
 

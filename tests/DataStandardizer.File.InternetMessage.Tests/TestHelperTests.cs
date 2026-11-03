@@ -250,6 +250,16 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Fact]
+        public void CloseDelimiterAtTheEndWithPadding_PaddingOfTwo_GivesTheSpaces()
+        {
+            // act
+            var testResult = LongMessages.CloseDelimiterAtTheEndWithPadding(2);
+
+            // assert
+            testResult.Should().Be("Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\nx\r\n--b--  ");
+        }
+
+        [Fact]
         public void ManyCandidateLines_CountOfTwo_GivesTwoLines()
         {
             // act

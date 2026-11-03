@@ -296,6 +296,14 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         /// <summary>
+        /// Gets a multipart message that ends with no line break, in a line that starts with a close delimiter and has the given number of spaces.
+        /// </summary>
+        public static string CloseDelimiterAtTheEndWithPadding(int paddingLength)
+        {
+            return "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\nx\r\n--b--" + new string(' ', paddingLength);
+        }
+
+        /// <summary>
         /// Gets text of the given length, in lines of 72 characters and a line break.
         /// </summary>
         private static string Lines(char character, int length)
