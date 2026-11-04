@@ -221,7 +221,7 @@ namespace DataStandardizer.File.InternetMessage
                     break;
                 default:
                     // ref. RFC 3501 §6.4.5: a message part and the message in it have the one number, but the body of a message is its part 1.
-                    node.Children.Add(Walk(source.Children[0], path.Length == 0 ? "1" : path, depth + 1, true, enclosing));
+                    node.Children.Add(Walk(source.Children[0], !isMessage ? path : path.Length == 0 ? "1" : path + ".1", depth + 1, true, enclosing));
                     break;
             }
 

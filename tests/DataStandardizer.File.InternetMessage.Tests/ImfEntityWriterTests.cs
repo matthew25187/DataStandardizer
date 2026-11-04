@@ -46,6 +46,16 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
         private static readonly string ExpectedLongLineMessage = Header + "Content-Transfer-Encoding: quoted-printable\r\n\r\n" + EncodedLongLine();
 
+        // ref. RFC 3501 §6.4.5: a message part and the message in it have the one number, but the body of a message is its part 1.
+        public static TheoryData<Func<ImfEntitySource>, string> SourcesWithAnErrorAtAPath => new TheoryData<Func<ImfEntitySource>, string>
+        {
+            { () => ImfEntitySource.FromMessage(ContentThatCannotBeWritten()), "1" },
+            { () => ImfEntitySource.FromMessage(ImfEntitySource.FromMessage(ContentThatCannotBeWritten())), "1.1" },
+            { () => ImfEntitySource.FromMessage(ImfEntitySource.FromMessage(ImfEntitySource.FromMessage(ContentThatCannotBeWritten()))), "1.1.1" },
+            { () => ImfEntitySource.FromParts(MimeMediaType.MultipartMixed, new[] { ImfEntitySource.FromMessage(ContentThatCannotBeWritten()) }), "1" },
+            { () => ImfEntitySource.FromParts(MimeMediaType.MultipartMixed, new[] { ImfEntitySource.FromMessage(ImfEntitySource.FromMessage(ContentThatCannotBeWritten())) }), "1.1" },
+        };
+
         public static TheoryData<string, byte[], string> ChosenEncodings => new TheoryData<string, byte[], string>
         {
             // ref. RFC 2045 §2.7
@@ -563,6 +573,29 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
                 // assert
                 testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.EntityPath].Should().Be("2");
+            }
+        }
+
+        private static ImfEntitySource ContentThatCannotBeWritten()
+        {
+            var content = ImfEntitySource.FromContent(MimeMediaType.TextPlain, Octets.Of(OneByteBody));
+            content.TransferEncoding = MimeTransferEncoding.Parse("x-private");
+            return content;
+        }
+
+        [Theory]
+        [MemberData(nameof(SourcesWithAnErrorAtAPath))]
+        public void WriteMessage_ErrorInANestedEntity_GivesThePathTheReaderGives(Func<ImfEntitySource> build, string expectedPath)
+        {
+            // arrange
+            var source = build();
+            using (var writer = new ImfEntityWriter(new MemoryStream()))
+            {
+                // act
+                Action testAction = () => writer.WriteMessage(source);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.EntityPath].Should().Be(expectedPath);
             }
         }
 
