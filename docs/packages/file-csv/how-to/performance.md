@@ -129,9 +129,8 @@ Each cell gives the mean time for the whole scenario and the memory allocated.
   project. Its `DataStandardizer.File.CSV` source is the same as version 1.1.1.
 - **After the performance work** was measured on commit `7fb24e5`, which includes
   every change released in version 1.2.0.
-- Both were run one straight after the other on the same machine: Windows 11,
-  Intel Core i9-14900K, .NET SDK 10.0.114, .NET 10.0.14 runtime, using the
-  `net10.0` build of the package.
+- Both were run one straight after the other on the same machine, with .NET SDK
+  10.0.114 and the .NET 10.0.14 runtime, using the `net10.0` build of the package.
 
 Your own figures will depend on your hardware, your data and the target
 framework you build for.
