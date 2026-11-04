@@ -8,18 +8,21 @@ namespace DataStandardizer.File.InternetMessage.Tests
     {
         private const string DescriptionText = "a complete map of the human genome";
 
+        // ref. RFC 5322 §3.6: the fields a message needs, so that these messages have only the problem the test is about.
+        private const string Origination = "Date: Thu, 1 Jan 2026 00:00:00 +0000\r\nFrom: a@b.test\r\n";
+
         // ref. RFC 2231 §3: section numbers start at 0 with no gaps.
         private const string MissingSectionBoundary = "Content-Type: multipart/mixed; boundary*1=b\r\n\r\n--b\r\n\r\na\r\n--b--";
 
         public static TheoryData<string> MimeFields => new TheoryData<string>
         {
-            "Content-Type: text/plain\r\n\r\na",
-            "Content-Transfer-Encoding: 7bit\r\n\r\na",
-            "Content-ID: <a@b>\r\n\r\na",
-            "Content-Description: a\r\n\r\na",
-            "Content-Disposition: inline\r\n\r\na",
-            "Content-Language: en\r\n\r\na",
-            "CONTENT-TYPE: text/plain\r\n\r\na",
+            Origination + "Content-Type: text/plain\r\n\r\na",
+            Origination + "Content-Transfer-Encoding: 7bit\r\n\r\na",
+            Origination + "Content-ID: <a@b>\r\n\r\na",
+            Origination + "Content-Description: a\r\n\r\na",
+            Origination + "Content-Disposition: inline\r\n\r\na",
+            Origination + "Content-Language: en\r\n\r\na",
+            Origination + "CONTENT-TYPE: text/plain\r\n\r\na",
         };
 
         [Theory]
@@ -38,10 +41,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Theory]
-        [InlineData("MIME-Version: 1.0\r\nContent-Type: text/plain\r\n\r\na")]
-        [InlineData("Content-Type: text/plain\r\nMIME-Version: 1.0\r\n\r\na")]
-        [InlineData("Subject: a\r\n\r\nb")]
-        [InlineData("Content-Length: 1\r\n\r\na")]
+        [InlineData(Origination + "MIME-Version: 1.0\r\nContent-Type: text/plain\r\n\r\na")]
+        [InlineData(Origination + "Content-Type: text/plain\r\nMIME-Version: 1.0\r\n\r\na")]
+        [InlineData(Origination + "Subject: a\r\n\r\nb")]
+        [InlineData(Origination + "Content-Length: 1\r\n\r\na")]
         public void ReadEvent_NoMimeVersionNeeded_ReportsNothing(string message)
         {
             // arrange
@@ -59,7 +62,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ReadEvent_PartWithMimeFields_ReportsNothing()
         {
             // arrange
-            const string message = "MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nContent-Type: text/plain\r\n\r\na\r\n--b--";
+            const string message = Origination + "MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nContent-Type: text/plain\r\n\r\na\r\n--b--";
             using (var reader = EntityEvents.CreateReader(message))
             {
                 // act
@@ -74,7 +77,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ReadEvent_EmbeddedMessageWithNoMimeVersion_ReportsItsPath()
         {
             // arrange
-            const string message = "MIME-Version: 1.0\r\nContent-Type: message/rfc822\r\n\r\nContent-Type: text/plain\r\n\r\na";
+            const string message = Origination + "MIME-Version: 1.0\r\nContent-Type: message/rfc822\r\n\r\nSubject: a\r\nContent-Type: text/plain\r\n\r\na";
             using (var reader = EntityEvents.CreateReader(message))
             {
                 // act
@@ -105,7 +108,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ReadEvent_MalformedParameterWithAllowMalformedParameters_ReadsTheParts()
         {
             // arrange
-            using (var reader = EntityEvents.CreateReader(MissingSectionBoundary, new ImfOptions { AllowMissingMimeVersion = true, AllowMalformedParameters = true }))
+            using (var reader = EntityEvents.CreateReader(MissingSectionBoundary, new ImfOptions { AllowMissingMimeVersion = true, AllowMissingRequiredFields = true, AllowMalformedParameters = true }))
             {
                 // act
                 var testResult = EntityEvents.ReadOutline(reader);

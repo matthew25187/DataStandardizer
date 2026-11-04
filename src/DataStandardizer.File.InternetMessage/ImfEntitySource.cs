@@ -246,7 +246,10 @@ namespace DataStandardizer.File.InternetMessage
         /// </summary>
         /// <remarks>
         /// With an <see cref="ImfEntityReader"/>, the raw bytes are the range of the data that an <see cref="ImfEntityEventKind.EntityEnd"/> event covers.  They
-        /// don't include the line break before the delimiter that follows a part.  They are not checked, except against the enclosing boundaries.
+        /// don't include the line break before the delimiter that follows a part.  A part is checked against the enclosing boundaries, and may not hold a line longer than RFC 5322 §2.1.1 allows, a NUL or
+        /// a bare CR or LF, unless <see cref="ImfOptions.AllowLongLines"/>, <see cref="ImfOptions.AllowInvalidBodyOctets"/> or <see cref="ImfOptions.AllowBinaryTransferEncoding"/> is set.  What the part
+        /// says of itself isn't read, so its bytes can't be checked against its own transfer encoding, or its fields against their grammar.  A whole message written this way, and bytes that were read
+        /// and haven't changed, aren't checked at all.
         /// </remarks>
         /// <param name="rawBytes">The raw bytes.</param>
         /// <returns>The entity.</returns>
@@ -260,8 +263,8 @@ namespace DataStandardizer.File.InternetMessage
         /// signature over it valid.
         /// </summary>
         /// <remarks>
-        /// The stream is read to its end, so to copy a part of a larger stream, give a stream of just that part.  The bytes are not checked, except against
-        /// the enclosing boundaries.
+        /// The stream is read to its end, so to copy a part of a larger stream, give a stream of just that part.  The bytes are checked as
+        /// <see cref="FromRaw(ReadOnlyMemory{byte})"/> says.
         /// </remarks>
         /// <param name="rawBytes">The stream of the raw bytes.</param>
         /// <returns>The entity.</returns>

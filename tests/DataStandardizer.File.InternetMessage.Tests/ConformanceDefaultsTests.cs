@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Linq;
+using DataStandardizer.Communication.Mime;
 using FluentAssertions;
 using Xunit;
 
@@ -396,6 +398,212 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
                 // assert
                 subject.Diagnostics.Should().ContainSingle().Which.Kind.Should().Be(ImfDiagnosticKind.MissingMimeVersion);
+            }
+        }
+
+        private const string MimeMessageTop = "Date: Thu, 1 Jan 2026 00:00:00 +0000\r\nFrom: a@b.test\r\nMIME-Version: 1.0\r\n";
+        private const string NoDateOrFrom = "Subject: no date or from\r\n\r\nx\r\n";
+        private const string InvalidDate = "Date: yesterday\r\nFrom: a@b.test\r\n\r\nx\r\n";
+        private const string EmbeddedWithInvalidDate = MimeMessageTop + "Content-Type: message/rfc822\r\n\r\nDate: yesterday\r\n\r\nx\r\n";
+        private const string PartWithInvalidDate = MimeMessageTop + "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nDate: yesterday\r\n\r\nx\r\n--b--\r\n";
+
+        // ref. RFC 5322 §2.1.1: a line is at most 998 octets.
+        private const int LongLineLength = 999;
+        private static readonly byte[] RawPartWithLongLine = Octets.Of("\r\n" + new string('x', LongLineLength));
+        private static readonly byte[] RawPartWithNul = Octets.Of("\r\nx\x0000y");
+        private static readonly byte[] RawPartWithBareLineFeed = Octets.Of("\r\nx\ny");
+
+        public static TheoryData<byte[], ImfDiagnosticKind> InvalidRawParts => new TheoryData<byte[], ImfDiagnosticKind>
+        {
+            { RawPartWithLongLine, ImfDiagnosticKind.LongBodyLine },
+            { RawPartWithNul, ImfDiagnosticKind.InvalidBodyOctets },
+            { RawPartWithBareLineFeed, ImfDiagnosticKind.InvalidBodyOctets },
+        };
+
+        public static TheoryData<byte[], ImfOptions> InvalidRawPartsWithOptions => new TheoryData<byte[], ImfOptions>
+        {
+            { RawPartWithLongLine, new ImfOptions { AllowLongLines = true } },
+            { RawPartWithNul, new ImfOptions { AllowInvalidBodyOctets = true } },
+            { RawPartWithBareLineFeed, new ImfOptions { AllowInvalidBodyOctets = true } },
+            { RawPartWithLongLine, new ImfOptions { AllowBinaryTransferEncoding = true } },
+            { RawPartWithNul, new ImfOptions { AllowBinaryTransferEncoding = true } },
+        };
+
+        [Fact]
+        public void ReadEvent_NoDateOrFrom_RecordsADiagnostic()
+        {
+            // arrange
+            // ref. RFC 5322 §4 and §4.5: a receiver must accept the obsolete syntax, which has no minimum for any field.
+            using (var subject = new ImfEntityReader(new MemoryStream(Octets.Of(NoDateOrFrom))))
+            {
+                // act
+                EntityEvents.ReadToEnd(subject);
+
+                // assert
+                subject.Diagnostics.Select(diagnostic => diagnostic.FieldName).Should().Equal("Date", "From");
+            }
+        }
+
+        [Fact]
+        public void ReadEvent_InvalidFieldBody_ThrowsByDefault()
+        {
+            // arrange
+            using (var subject = new ImfEntityReader(new MemoryStream(Octets.Of(InvalidDate))))
+            {
+                // act
+                Action testAction = () => EntityEvents.ReadToEnd(subject);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.InvalidFieldValue);
+            }
+        }
+
+        [Fact]
+        public void ReadEvent_InvalidFieldBodyWithOption_RecordsADiagnostic()
+        {
+            // arrange
+            using (var subject = new ImfEntityReader(new MemoryStream(Octets.Of(InvalidDate)), new ImfOptions { AllowInvalidValues = true }))
+            {
+                // act
+                EntityEvents.ReadToEnd(subject);
+
+                // assert
+                subject.Diagnostics.Should().ContainSingle().Which.Kind.Should().Be(ImfDiagnosticKind.InvalidFieldValue);
+            }
+        }
+
+        [Fact]
+        public void ReadEvent_EmbeddedMessageWithNoRequiredField_ThrowsByDefault()
+        {
+            // arrange
+            using (var subject = new ImfEntityReader(new MemoryStream(Octets.Of(EmbeddedWithNoRequiredField))))
+            {
+                // act
+                Action testAction = () => EntityEvents.ReadToEnd(subject);
+
+                // assert
+                var data = testAction.Should().Throw<ImfFileException>().Which.Data;
+                data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.MissingRequiredField);
+                data[ImfFileException.DataItemName.EntityPath].Should().Be("1");
+            }
+        }
+
+        [Fact]
+        public void ReadEvent_EmbeddedMessageWithNoRequiredFieldWithOption_RecordsADiagnostic()
+        {
+            // arrange
+            using (var subject = new ImfEntityReader(new MemoryStream(Octets.Of(EmbeddedWithNoRequiredField)), new ImfOptions { AllowMissingRequiredFields = true }))
+            {
+                // act
+                EntityEvents.ReadToEnd(subject);
+
+                // assert
+                var diagnostic = subject.Diagnostics.Should().ContainSingle().Which;
+                diagnostic.Kind.Should().Be(ImfDiagnosticKind.MissingRequiredField);
+                diagnostic.EntityPath.Should().Be("1");
+            }
+        }
+
+        [Fact]
+        public void ReadEvent_EmbeddedMessageWithInvalidFieldBody_ThrowsByDefault()
+        {
+            // arrange
+            using (var subject = new ImfEntityReader(new MemoryStream(Octets.Of(EmbeddedWithInvalidDate))))
+            {
+                // act
+                Action testAction = () => EntityEvents.ReadToEnd(subject);
+
+                // assert
+                var data = testAction.Should().Throw<ImfFileException>().Which.Data;
+                data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.InvalidFieldValue);
+                data[ImfFileException.DataItemName.EntityPath].Should().Be("1");
+            }
+        }
+
+        [Fact]
+        public void ReadMessage_EmbeddedMessageWithInvalidFieldBody_ThrowsByDefault()
+        {
+            // act
+            Action testAction = () => Read(EmbeddedWithInvalidDate, new ImfOptions());
+
+            // assert
+            testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.InvalidFieldValue);
+        }
+
+        [Fact]
+        public void ReadMessage_EmbeddedMessageWithInvalidFieldBodyWithOption_RecordsADiagnostic()
+        {
+            // arrange
+            using (var subject = new ImfReader(new MemoryStream(Octets.Of(EmbeddedWithInvalidDate)), new ImfOptions { AllowInvalidValues = true }))
+            {
+                // act
+                subject.ReadMessage();
+
+                // assert
+                subject.Diagnostics.Should().ContainSingle().Which.Kind.Should().Be(ImfDiagnosticKind.InvalidFieldValue);
+            }
+        }
+
+        [Fact]
+        public void ReadEvent_FieldOfAPartThatIsOnlyAMessageRule_RecordsNothing()
+        {
+            // arrange
+            using (var subject = new ImfEntityReader(new MemoryStream(Octets.Of(PartWithInvalidDate))))
+            {
+                // act
+                EntityEvents.ReadToEnd(subject);
+
+                // assert
+                subject.Diagnostics.Should().BeEmpty();
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(InvalidRawParts))]
+        public void WriteMessage_RawPartThatBreaksTheRulesForText_ThrowsByDefault(byte[] rawPart, ImfDiagnosticKind expected)
+        {
+            // arrange
+            var source = ImfEntitySource.FromParts(MimeMediaType.MultipartMixed, new[] { ImfEntitySource.FromRaw(rawPart) });
+            using (var writer = new ImfEntityWriter(new MemoryStream()))
+            {
+                // act
+                Action testAction = () => writer.WriteMessage(source);
+
+                // assert
+                var data = testAction.Should().Throw<ImfFileException>().Which.Data;
+                data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(expected);
+                data[ImfFileException.DataItemName.EntityPath].Should().Be("1");
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(InvalidRawPartsWithOptions))]
+        public void WriteMessage_RawPartThatBreaksTheRulesForTextWithOption_WritesIt(byte[] rawPart, ImfOptions options)
+        {
+            // arrange
+            var source = ImfEntitySource.FromParts(MimeMediaType.MultipartMixed, new[] { ImfEntitySource.FromRaw(rawPart) });
+            using (var writer = new ImfEntityWriter(new MemoryStream(), options))
+            {
+                // act
+                Action testAction = () => writer.WriteMessage(source);
+
+                // assert
+                testAction.Should().NotThrow();
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_WholeMessageFromRawBytes_IsNotChecked()
+        {
+            // arrange
+            var source = ImfEntitySource.FromRaw(RawPartWithNul);
+            using (var writer = new ImfEntityWriter(new MemoryStream()))
+            {
+                // act
+                Action testAction = () => writer.WriteMessage(source);
+
+                // assert
+                testAction.Should().NotThrow();
             }
         }
 

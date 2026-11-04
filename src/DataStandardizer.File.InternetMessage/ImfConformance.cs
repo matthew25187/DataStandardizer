@@ -153,7 +153,7 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Finds the embedded messages at any depth with none of the fields that RFC 2046 §5.2.1 requires of them.
+        /// Finds the embedded messages at any depth with a header that breaks a rule for them.
         /// </summary>
         internal static void CheckEmbedded(ImfMessage message, List<ImfDiagnostic> diagnostics)
         {
@@ -161,11 +161,27 @@ namespace DataStandardizer.File.InternetMessage
             {
                 if (node.Entity is ImfMessagePart part)
                 {
-                    var fields = part.Message.Fields;
-                    if (!fields.Contains(ImfFieldNames.From) && !fields.Contains(ImfFieldNames.Subject) && !fields.Contains(ImfFieldNames.Date))
-                    {
-                        diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.MissingRequiredField, MissingEmbeddedFieldMessage, part.Message.HeaderEndBytePosition, node.Path, ImfFieldNames.From, part.Message.HeaderEndLineNumber));
-                    }
+                    CheckEmbeddedHeader(part.Message, node.Path, message.Options, diagnostics);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Finds the problems in the header of an embedded message: none of the fields that RFC 2046 §5.2.1 requires, or a body that breaks the grammar of RFC 5322 §3.6.
+        /// </summary>
+        internal static void CheckEmbeddedHeader(ImfMessage message, string path, ImfOptions options, List<ImfDiagnostic> diagnostics)
+        {
+            var fields = message.Fields;
+            if (!fields.Contains(ImfFieldNames.From) && !fields.Contains(ImfFieldNames.Subject) && !fields.Contains(ImfFieldNames.Date))
+            {
+                diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.MissingRequiredField, MissingEmbeddedFieldMessage, message.HeaderEndBytePosition, path, ImfFieldNames.From, message.HeaderEndLineNumber));
+            }
+
+            foreach (var field in fields)
+            {
+                if (!ImfFieldValues.IsValid(field, options))
+                {
+                    diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.InvalidFieldValue, string.Format(InvalidValueMessage, field.Name), field.BytePosition, path, field.Name, field.LineNumber));
                 }
             }
         }

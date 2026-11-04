@@ -37,6 +37,13 @@ namespace DataStandardizer.File.InternetMessage
     /// end at the end of the data with no empty line, as there is then no delimiter to need one.
     /// </para>
     /// <para>
+    /// <b>Conformance.</b>  As the header of the message ends, it is checked as <see cref="ImfReader"/> describes: a field body that breaks its grammar causes an <see cref="ImfFileException"/>, unless
+    /// <see cref="ImfOptions.AllowInvalidValues"/> is set, and a missing required field or a repeated field is recorded in <see cref="Diagnostics"/>, as RFC 5322 §4 and §4.5 require a receiver to accept
+    /// them.  The header of an embedded message must have one of From, Subject or Date (RFC 2046 §5.2.1), unless <see cref="ImfOptions.AllowMissingRequiredFields"/> is set, and its field bodies are
+    /// held to their grammar in the same way.  The header of a part isn't that of a message, so none of this applies to it.  The fields of a message's header are held in memory until it ends, up to
+    /// <see cref="ImfOptions.MaxHeaderSectionLength"/>.
+    /// </para>
+    /// <para>
     /// <b>Embedded messages.</b>  The body of a <c>message/rfc822</c> or <c>message/global</c> (RFC 6532) entity is read as a nested entity, except that a
     /// <c>message/global</c> body with a <c>quoted-printable</c> or <c>base64</c> transfer encoding, which RFC 6532 §3.7 allows, is given as body chunks.
     /// The bodies of <c>message/partial</c> and <c>message/external-body</c> entities are given as body chunks too, and are not reassembled or followed: a
@@ -151,6 +158,7 @@ namespace DataStandardizer.File.InternetMessage
             _stream = stream;
             _ownsStream = ownsStream;
             _entityScanner = new ImfEntityScanner(new ImfHeaderScanner(bufferSize, options, fallbackEncoding, lineFeedIsLineBreak), options, lineFeedIsLineBreak);
+            _entityScanner.ApplyMessageRules();
             _diagnostics = new ReadOnlyCollection<ImfDiagnostic>(_entityScanner.Diagnostics);
         }
 

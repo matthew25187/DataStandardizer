@@ -160,6 +160,13 @@ namespace DataStandardizer.File.InternetMessage
         /// <summary>
         /// Gets the data domain of the bytes (RFC 2045 §2.7 to §2.9), in which each line break is the writer's, and each line is at most 998 octets.
         /// </summary>
+        internal bool HasLongLine => _maxLineLength > ImfHeaderFormatter.MaxLineLength;
+
+        /// <summary>
+        /// Gets a flag indicating that the bytes hold something no line of text can: a NUL, or a line break that isn't a whole one.
+        /// </summary>
+        internal bool HasInvalidOctets => _hasNul || _hasBareLineBreak;
+
         internal MimeDataDomain Domain
         {
             get

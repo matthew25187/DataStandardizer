@@ -98,6 +98,7 @@ namespace DataStandardizer.File.InternetMessage
             internal bool IsBoundaryActive;
             internal bool IsHeaderEnded;
             internal bool IsMessage;
+            internal List<ImfHeaderField> MessageFields = NoFields;
             internal bool IsMime;
             internal MimeDataDomain AllowedDomain = MimeDataDomain.Binary;
             internal int PartCount;
@@ -105,6 +106,8 @@ namespace DataStandardizer.File.InternetMessage
             internal long Start;
             internal MimeTransferEncoding TransferEncoding;
         }
+
+        private static readonly List<ImfHeaderField> NoFields = new List<ImfHeaderField>(0);
 
         private const byte CarriageReturn = 0x0D;
         private const byte Hyphen = 0x2D;
@@ -153,6 +156,7 @@ namespace DataStandardizer.File.InternetMessage
         private readonly MimeMediaTypeParseOptions _contentTypeOptions;
         private bool _decodeTransferEncoding;
         private readonly List<ImfDiagnostic> _diagnostics = new List<ImfDiagnostic>();
+        private readonly ImfOptions _options;
         private readonly List<Frame> _frames = new List<Frame>();
         private readonly bool _lineFeedIsLineBreak;
         private readonly int _maxNestingDepth;
@@ -185,6 +189,7 @@ namespace DataStandardizer.File.InternetMessage
         private long _pendingRawHeld;
         private int _pendingRawLength;
         private int _search;
+        private bool _appliesMessageRules;
         private State _state = State.EntityStart;
         private long _unwindEnd;
         private bool _unwindIsDelimiter;
@@ -196,6 +201,7 @@ namespace DataStandardizer.File.InternetMessage
         internal ImfEntityScanner(ImfHeaderScanner scanner, ImfOptions options, bool lineFeedIsLineBreak)
         {
             _scanner = scanner;
+            _options = options;
             _allowInvalidBodyOctets = options.AllowInvalidBodyOctets;
             _allowLongLines = options.AllowLongLines;
             _allowMissingMimeVersion = options.AllowMissingMimeVersion;
@@ -222,6 +228,14 @@ namespace DataStandardizer.File.InternetMessage
         internal void LeaveBodiesRaw()
         {
             _decodeTransferEncoding = false;
+        }
+
+        /// <summary>
+        /// Applies the rules for a whole message as each message's header ends, for a caller that doesn't have the messages to check them on afterwards.
+        /// </summary>
+        internal void ApplyMessageRules()
+        {
+            _appliesMessageRules = true;
         }
 
         /// <summary>
@@ -365,6 +379,7 @@ namespace DataStandardizer.File.InternetMessage
                         {
                             _scanner.ParseField();
                             ReadMimeField(CurrentFrame);
+                            KeepMessageField(CurrentFrame);
                             return Emit(ImfEntityEventKind.HeaderField, _scanner.FieldBytePosition, _scanner.RawBytes.Length);
                         }
 
@@ -494,6 +509,51 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
+        /// Keeps a field of a message until its header ends, when the rules for a message are applied.  What this holds is limited by <see cref="ImfOptions.MaxHeaderSectionLength"/>.
+        /// </summary>
+        private void KeepMessageField(Frame frame)
+        {
+            if (!_appliesMessageRules || !frame.IsMessage) return;
+
+            if (ReferenceEquals(frame.MessageFields, NoFields)) frame.MessageFields = new List<ImfHeaderField>();
+
+            frame.MessageFields.Add(_scanner.ToField());
+        }
+
+        /// <summary>
+        /// Applies the rules that <see cref="ImfReader"/> applies to a message, to the header of a message that has just ended.
+        /// </summary>
+        private void CheckMessageHeader(Frame frame)
+        {
+            if (!_appliesMessageRules || !frame.IsMessage) return;
+
+            var message = new ImfMessage(_options)
+            {
+                HeaderEndBytePosition = _scanner.BytePosition,
+                HeaderEndLineNumber = _scanner.PhysicalLinesRead + 1,
+            };
+            foreach (var field in frame.MessageFields)
+            {
+                message.Fields.Add(field);
+            }
+
+            frame.MessageFields = NoFields;
+            var isEmbedded = _frames.Count > 1;
+            var path = BuildPath();
+            var found = new List<ImfDiagnostic>();
+            if (isEmbedded) ImfConformance.CheckEmbeddedHeader(message, path, _options, found);
+            else found = ImfConformance.Check(message, _options);
+
+            foreach (var diagnostic in found)
+            {
+                if (!(isEmbedded ? ImfConformance.IsAllowed(diagnostic.Kind, _options) : ImfConformance.IsAllowedInHeaderWhenReading(diagnostic, _options)))
+                    throw ImfConformance.BuildException(diagnostic, true);
+
+                _diagnostics.Add(diagnostic);
+            }
+        }
+
+        /// <summary>
         /// Parses the value of a Content-Type field, with comments, and white space around the delimiters.
         /// </summary>
         /// <remarks>
@@ -530,6 +590,8 @@ namespace DataStandardizer.File.InternetMessage
         /// </summary>
         private void EndHeader(Frame frame)
         {
+            CheckMessageHeader(frame);
+
             // ref. RFC 2045 §4: the field is required at the top level of a message, and in an embedded message that claims to follow MIME.
             if (frame.IsMessage && frame.HasMimeField && !frame.HasMimeVersion)
             {
