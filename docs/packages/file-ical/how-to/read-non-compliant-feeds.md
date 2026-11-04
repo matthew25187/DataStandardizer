@@ -121,6 +121,11 @@ its property:
 - Date-times that must have the same value type as the component's `DTSTART`.
 - A `FMTTYPE` parameter that appears twice, has two values, or isn't a type and
   subtype, such as `FMTTYPE="text/html; charset=utf-8"` (RFC 5545 §3.2.8).
+- A parameter that RFC 5545 or RFC 7986 defines with one value and that has more, such
+  as `CN=Doe, John`, whose comma must be in a quoted string.
+- A parameter repeated on a property those RFCs define, such as
+  `SUMMARY;LANGUAGE=en;LANGUAGE=de:Text`. A property with an `X-` name may repeat one,
+  except for `FMTTYPE`.
 
 With `AllowInvalidValues`, the value is kept as it was written. It is still there in
 `GetProperty("DTSTART").Value`, but a typed accessor such as `IcalEvent.DtStart`

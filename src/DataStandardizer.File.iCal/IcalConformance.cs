@@ -52,6 +52,27 @@ namespace DataStandardizer.File.iCal
             IcalPropertyNames.Trigger
         };
 
+        /// <summary>
+        /// The parameters RFC 5545 §3.2 and RFC 7986 §6 define with one value.  <c>FMTTYPE</c> is left out, as it has a check of its own.
+        /// </summary>
+        private static readonly string[] SingleValueParameters =
+        {
+            IcalParameterNames.AlternateRepresentation, IcalParameterNames.CommonName, IcalParameterNames.CalendarUserType,
+            IcalParameterNames.Directory, IcalParameterNames.Encoding, IcalParameterNames.FreeBusyType, IcalParameterNames.Language,
+            IcalParameterNames.ParticipationStatus, IcalParameterNames.Range, IcalParameterNames.Related, IcalParameterNames.RelationshipType,
+            IcalParameterNames.Role, IcalParameterNames.Rsvp, IcalParameterNames.SentBy, IcalParameterNames.TimeZoneId, IcalParameterNames.Value,
+            IcalParameterNames.Email, IcalParameterNames.Label
+        };
+
+        /// <summary>
+        /// The parameters RFC 5545 §3.2 and RFC 7986 §6 define with a list of values.
+        /// </summary>
+        private static readonly string[] MultipleValueParameters =
+        {
+            IcalParameterNames.DelegatedFrom, IcalParameterNames.DelegatedTo, IcalParameterNames.Member, IcalParameterNames.Display,
+            IcalParameterNames.Feature
+        };
+
         private static readonly Dictionary<string, ComponentRule> Rules = new Dictionary<string, ComponentRule>(StringComparer.OrdinalIgnoreCase)
         {
             // ref. RFC 5545§3.6 and RFC 7986§5.
@@ -299,6 +320,7 @@ namespace DataStandardizer.File.iCal
             {
                 ValidateValue(property, path, context);
                 ValidateFormatType(property, path, context);
+                ValidateParameters(property, path, context);
                 if (context.IsCalendar)
                 {
                     ValidateTimeZoneReference(property, path, context);
@@ -798,6 +820,46 @@ namespace DataStandardizer.File.iCal
             if (property.TryGetFormatType(out _)) return;
 
             AddInvalidValue(property, path, IcalPropertyValue.BuildInvalidFormatTypeMessage(property.Name.ToUpperInvariant()), context);
+        }
+
+        /// <summary>
+        /// Checks how many values each parameter RFC 5545 and RFC 7986 define has, and, on a property they define, how often it occurs.
+        /// </summary>
+        private static void ValidateParameters(IcalContentLine property, string path, Context context)
+        {
+            var parameters = property.ParameterArray;
+            for (var index = 0; index < parameters.Length; index++)
+            {
+                var parameter = parameters[index];
+                var isSingleValue = SingleValueParameters.Contains(parameter.Name, StringComparer.OrdinalIgnoreCase);
+                if (!isSingleValue && !MultipleValueParameters.Contains(parameter.Name, StringComparer.OrdinalIgnoreCase)) continue;
+
+                // ref. RFC 5545§3.2: the grammar of each of these parameters has one value, so a comma in it must be in a quoted-string.
+                if (isSingleValue && parameter.ValueArray.Length > 1)
+                {
+                    AddInvalidValue(property, path,
+                        string.Format(CultureInfo.InvariantCulture, "The {0} parameter of the {1} property can have only one value.",
+                            parameter.Name.ToUpperInvariant(), property.Name.ToUpperInvariant()), context);
+                }
+
+                // ref. RFC 5545§3.8: each property's parameters "MUST NOT occur more than once".  §3.8.8.2 sets no such rule for a non-standard one.
+                if (IcalValueTypeRegistry.IsKnownProperty(property.Name.AsSpan()) && OccursEarlier(parameters, index))
+                {
+                    AddInvalidValue(property, path,
+                        string.Format(CultureInfo.InvariantCulture, "The {0} parameter appears more than once in the {1} property.",
+                            parameter.Name.ToUpperInvariant(), property.Name.ToUpperInvariant()), context);
+                }
+            }
+        }
+
+        private static bool OccursEarlier(IcalContentLineParameter[] parameters, int index)
+        {
+            for (var earlier = 0; earlier < index; earlier++)
+            {
+                if (IsName(parameters[earlier].Name, parameters[index].Name)) return true;
+            }
+
+            return false;
         }
 
         /// <summary>
