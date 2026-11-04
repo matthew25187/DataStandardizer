@@ -172,7 +172,8 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Builds a document, whose message shares nothing that can change with any other built from this builder.
+        /// Builds a document, whose message shares nothing that can change with any other built from this builder, except the options given to the builder, which they all use, so
+        /// do not change those afterwards.
         /// </summary>
         /// <returns>The document, with the base URI given to <see cref="SetLocation"/>, if any.</returns>
         /// <exception cref="InvalidOperationException">There is no root document.</exception>

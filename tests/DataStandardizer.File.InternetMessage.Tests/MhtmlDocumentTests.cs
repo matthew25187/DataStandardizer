@@ -18,6 +18,36 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string RelativeLogo2e = "images/ietflogo2e.gif";
         private const string TypeHtml = "; type=\"text/html\"";
         private const string SecondPart = "Content-Type: image/png\r\nContent-Location: http://example.org/logo.png\r\n";
+        private const string SameLocation = "http://example.org/same";
+        private const string RelatedWithNoParts = "MIME-Version: 1.0\r\nContent-Type: multipart/related; boundary=rel; type=\"text/html\"\r\n\r\nno delimiter\r\n";
+
+        private const string MixedWithSameLocation =
+            "MIME-Version: 1.0\r\n" +
+            "Content-Type: multipart/mixed; boundary=mix\r\n" +
+            "\r\n" +
+            "--mix\r\n" +
+            "Content-Location: http://example.org/same\r\n" +
+            "\r\n" +
+            "FIRST\r\n" +
+            "--mix\r\n" +
+            "Content-Location: http://example.org/same\r\n" +
+            "\r\n" +
+            "SECOND\r\n" +
+            "--mix--\r\n";
+
+        private const string MixedWithSameContentId =
+            "MIME-Version: 1.0\r\n" +
+            "Content-Type: multipart/mixed; boundary=mix\r\n" +
+            "\r\n" +
+            "--mix\r\n" +
+            "Content-ID: <same@b.test>\r\n" +
+            "\r\n" +
+            "FIRST\r\n" +
+            "--mix\r\n" +
+            "Content-ID: <same@b.test>\r\n" +
+            "\r\n" +
+            "SECOND\r\n" +
+            "--mix--\r\n";
 
         // The positions of the parts of MhtmlShapes.Rfc2557Section96 in Resources.
         private const int MoreInfoRoot = 3;
@@ -237,6 +267,75 @@ namespace DataStandardizer.File.InternetMessage.Tests
             // assert
             testResult.Should().BeTrue();
             resource.Should().BeSameAs(subject.Resources[1]);
+        }
+
+        [Fact]
+        public void TryResolve_CidUriWithAFragment_FindsTheContentId()
+        {
+            // arrange
+            var subject = Read(MhtmlShapes.Rfc2557Section95);
+
+            // act
+            var testResult = subject.TryResolve(new Uri("cid:foo4@foo1.bar.net#section"), out var resource);
+
+            // assert
+            testResult.Should().BeTrue();
+            resource.Should().BeSameAs(subject.Resources[1]);
+        }
+
+        [Fact]
+        public void TryResolve_SameLocationOutsideMultipartRelated_FindsTheFirstWithNoDiagnostic()
+        {
+            // arrange
+            var subject = Read(MixedWithSameLocation);
+
+            // act
+            var testResult = subject.TryResolve(new Uri(SameLocation), out var resource);
+
+            // assert
+            testResult.Should().BeTrue();
+            EntityTrees.ContentOf(resource.Entity).Should().Be("FIRST");
+            subject.Diagnostics.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void Constructor_SameContentIdOutsideMultipartRelated_Throws()
+        {
+            // arrange
+            var message = EntityTrees.Read(MixedWithSameContentId, new ImfOptions { AllowMissingRequiredFields = true });
+
+            // act
+            Action testAction = () => new MhtmlDocument(message);
+
+            // assert
+            testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.InvalidRelatedStructure);
+        }
+
+        [Fact]
+        public void Constructor_MultipartRelatedWithNoParts_Throws()
+        {
+            // arrange
+            var message = EntityTrees.Read(RelatedWithNoParts, new ImfOptions { AllowMissingRequiredFields = true, AllowMissingBoundaryTerminator = true });
+
+            // act
+            Action testAction = () => new MhtmlDocument(message);
+
+            // assert
+            testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.InvalidRelatedStructure);
+        }
+
+        [Fact]
+        public void Constructor_MultipartRelatedWithNoPartsAllowed_IsItsOwnRoot()
+        {
+            // arrange
+            var message = EntityTrees.Read(RelatedWithNoParts, new ImfOptions { AllowMissingRequiredFields = true, AllowMissingBoundaryTerminator = true, AllowInvalidRelatedStructure = true });
+
+            // act
+            var testResult = new MhtmlDocument(message);
+
+            // assert
+            testResult.Diagnostics.Should().ContainSingle().Which.Kind.Should().Be(ImfDiagnosticKind.InvalidRelatedStructure);
+            testResult.Root.Should().BeSameAs(message.Body);
         }
 
         [Theory]

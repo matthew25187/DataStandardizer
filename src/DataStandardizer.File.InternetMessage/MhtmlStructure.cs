@@ -24,9 +24,10 @@ namespace DataStandardizer.File.InternetMessage
 
         private const string BadStartMessage = "The start parameter of a multipart/related entity names no part (RFC 2387 §3.2).";
         private const string BadTypeMessage = "The type parameter of a multipart/related entity is not the media type of its root part (RFC 2387 §3.1).";
-        private const string DuplicateContentIdMessage = "Two parts of a multipart/related entity have the same Content-ID (RFC 2557 §7).";
+        private const string DuplicateContentIdMessage = "Two parts have the same Content-ID, which has to be unique (RFC 2045 §7, RFC 2557 §7).";
         private const string DuplicateLocationMessage = "Two parts of a multipart/related entity have a Content-Location that resolves to the same URL (RFC 2557 §7).";
         private const string InvalidLocationMessage = "The body of the Content-Location field is not a URI that a header can hold (RFC 2557 §4.1 and §4.4.1).";
+        private const string NoPartsMessage = "A multipart/related entity has no parts, so it has no root (RFC 2387 §3.2).";
         private const string MissingTypeMessage = "A multipart/related entity has no type parameter, which RFC 2387 §3.1 requires.";
         private const string TooManyLocationsMessage = "An entity has more than one Content-Location field, which RFC 2557 §4.2 doesn't allow.";
 
@@ -71,7 +72,7 @@ namespace DataStandardizer.File.InternetMessage
         internal static MhtmlStructure Read(ImfMessage message, string baseUrl)
         {
             var body = message.Body;
-            var top = new Scope(null);
+            var top = new Scope(null, false);
             var structure = new MhtmlStructure(FindRoot(body), top, baseUrl);
 
             var pending = new Stack<Node>();
@@ -92,7 +93,7 @@ namespace DataStandardizer.File.InternetMessage
                 if (IsRelated(multipart))
                 {
                     structure.CheckRelated(multipart, node.Path);
-                    scope = new Scope(node.Scope);
+                    scope = new Scope(node.Scope, true);
                 }
 
                 for (var index = multipart.Parts.Count - 1; index >= 0; index--)
@@ -133,7 +134,8 @@ namespace DataStandardizer.File.InternetMessage
             var resource = new MhtmlResource(entity, uri, this, node.Scope, referenceBase);
             Resources.Add(resource);
 
-            if (!(resolved is null) && !node.Scope.TryAdd(MhtmlUrl.WithoutFragment(resolved), resource))
+            // ref. RFC 2557 §7: "Within a multipart/related structure", so outside one the first simply stays.
+            if (!(resolved is null) && !node.Scope.TryAdd(MhtmlUrl.WithoutFragment(resolved), resource) && node.Scope.IsRelated)
             {
                 AddDiagnostic(ImfDiagnosticKind.InvalidRelatedStructure, DuplicateLocationMessage, node.Path, fields[0]);
             }
@@ -151,6 +153,12 @@ namespace DataStandardizer.File.InternetMessage
         {
             var contentType = multipart.ContentType;
             var field = multipart.Fields.Find(ImfFieldNames.ContentType);
+            if (multipart.Parts.Count == 0)
+            {
+                AddDiagnostic(ImfDiagnosticKind.InvalidRelatedStructure, NoPartsMessage, path, field);
+                return;
+            }
+
             if (contentType.TryGetParameter(StartParameterName, out var start) && !NamesPart(multipart, start.Value))
             {
                 AddDiagnostic(ImfDiagnosticKind.InvalidRelatedStructure, BadStartMessage, path, field);
@@ -247,10 +255,16 @@ namespace DataStandardizer.File.InternetMessage
             [AllowNull]
             private readonly Scope _parent;
 
-            internal Scope([AllowNull] Scope parent)
+            internal Scope([AllowNull] Scope parent, bool isRelated)
             {
                 _parent = parent;
+                IsRelated = isRelated;
             }
+
+            /// <summary>
+            /// Gets a flag indicating that these are the parts of a <c>multipart/related</c> entity, and not those outside any.
+            /// </summary>
+            internal bool IsRelated { get; }
 
             internal bool TryAdd(string location, MhtmlResource resource)
             {

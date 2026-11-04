@@ -159,7 +159,7 @@ namespace DataStandardizer.File.InternetMessage
             if (MhtmlUrl.HasScheme(text, CidScheme))
             {
                 resource = null;
-                return ImfMessageId.TryParseCidUri(text, out var contentId) && scope.TryFind(contentId, out resource);
+                return ImfMessageId.TryParseCidUri(MhtmlUrl.WithoutFragment(text), out var contentId) && scope.TryFind(contentId, out resource);
             }
 
             return scope.TryFind(MhtmlUrl.WithoutFragment(MhtmlUrl.Resolve(referenceBase, text)), out resource);

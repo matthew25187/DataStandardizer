@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using FluentAssertions;
 using Xunit;
 
@@ -67,6 +68,20 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // assert
             testResult.Should().BeNull();
+        }
+
+        [Fact]
+        public void ContentLocation_EncodedWordInACharsetOnlyTheOptionsResolve_DecodesIt()
+        {
+            // arrange
+            var subject = new ImfEntity(new ImfOptions { CharsetResolver = new FixedCharsetResolver(Encoding.UTF8) });
+            subject.Fields.Add(new ImfHeaderField(FieldName, " =?x-custom?Q?a=20b?=", ImfHeaderFieldKind.Structured));
+
+            // act
+            var testResult = subject.ContentLocation;
+
+            // assert
+            testResult.OriginalString.Should().Be("a b");
         }
 
         [Fact]

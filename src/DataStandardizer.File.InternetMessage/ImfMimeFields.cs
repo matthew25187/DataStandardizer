@@ -533,7 +533,7 @@ namespace DataStandardizer.File.InternetMessage
             result = null;
             if (!TryRemoveOuterComments(value, out var body)) return false;
 
-            var isEncoded = HasEncodedWord(body);
+            var isEncoded = HasEncodedWord(body, options);
             var text = isEncoded ? ImfHeaderText.DecodeUnstructured(body, options).Trim(WhiteSpace) : RemoveWhiteSpace(body);
             if (text.Length == 0) return false;
 
@@ -614,11 +614,12 @@ namespace DataStandardizer.File.InternetMessage
         /// <summary>
         /// Gets the accommodations of the media type parser that some options ask for.
         /// </summary>
-        private static bool HasEncodedWord(string body)
+        private static bool HasEncodedWord(string body, ImfOptions options)
         {
+            var wordOptions = ImfHeaderText.GetWordOptions(options);
             foreach (var word in body.Split(WhiteSpace, StringSplitOptions.RemoveEmptyEntries))
             {
-                if (MimeEncodedWord.TryParse(word, out _)) return true;
+                if (MimeEncodedWord.TryParse(word, MimeEncodedWordContext.Text, wordOptions, options.CharsetResolver, out _)) return true;
             }
 
             return false;

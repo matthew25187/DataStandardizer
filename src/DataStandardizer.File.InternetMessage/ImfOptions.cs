@@ -165,10 +165,12 @@ namespace DataStandardizer.File.InternetMessage
         /// of its structure.
         /// </summary>
         /// <remarks>
-        /// RFC 2387 §3.1 requires a <c>type</c> parameter that gives the media type of the root part, and §3.2 has the <c>start</c> parameter give the Content-ID of that part.  RFC 2557
-        /// §7 requires each part to have a different Content-ID, and a Content-Location that resolves to a different URL.  When <c>false</c> (the default), a <c>multipart/related</c>
-        /// entity that breaks one of these causes an <see cref="ImfFileException"/>.  When <c>true</c>, it records an <see cref="ImfDiagnostic"/> instead, the first part is the root
-        /// if <c>start</c> names none, and the first of the parts with the same label is the one that is found.  Word saves web pages with no <c>type</c> parameter.
+        /// RFC 2387 §3.1 requires a <c>type</c> parameter that gives the media type of the root part, and §3.2 has the <c>start</c> parameter give the Content-ID of that part, or otherwise
+        /// the first part be the root, so there has to be one.  RFC 2557 §7 requires each part to have a different Content-ID, and a Content-Location that resolves to a different URL.
+        /// RFC 2045 §7 requires a Content-ID to be unique outside a <c>multipart/related</c> entity too, so two parts outside one with the same Content-ID count here.  When <c>false</c>
+        /// (the default), breaking one of these causes an <see cref="ImfFileException"/>.  When <c>true</c>, it records an <see cref="ImfDiagnostic"/> instead, the first part is the root
+        /// if <c>start</c> names none, the entity is its own root if it has no parts, and the first of the parts with the same label is the one that is found.  Word saves web pages with
+        /// no <c>type</c> parameter.
         /// <see cref="ImfReader"/> and <see cref="ImfWriter"/> don't check these rules, and so don't use this option.
         /// </remarks>
         public bool AllowInvalidRelatedStructure

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -60,8 +61,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
                 // assert
                 subject.Diagnostics.Should().OnlyContain(diagnostic => diagnostic.Kind == ImfDiagnosticKind.MissingRequiredField);
-                subject.Diagnostics.Should().HaveCount(expected.Length);
-                subject.Diagnostics[0].FieldName.Should().Be(expected[0]);
+                subject.Diagnostics.Select(diagnostic => diagnostic.FieldName).Should().Equal(expected);
             }
         }
 
