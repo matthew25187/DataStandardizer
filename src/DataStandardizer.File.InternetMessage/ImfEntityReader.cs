@@ -46,7 +46,9 @@ namespace DataStandardizer.File.InternetMessage
     /// <b>Bodies.</b>  Body chunks are raw bytes unless <see cref="ImfOptions.DecodeTransferEncoding"/> is set.  A transfer encoding other than <c>7bit</c>,
     /// <c>8bit</c> or <c>binary</c> on a multipart or message entity is an error (RFC 2045 §6.4), and <c>message/partial</c> and <c>message/external-body</c>
     /// must be <c>7bit</c> (RFC 2046 §5.2).  The bytes of a body are checked against the rules of RFC 5322 §2.1.1 and §2.3, and its transfer encoding and that of what holds it (RFC 2045
-    /// §2.7, §2.8, §6.4, §6.7 and §6.8), unless <see cref="ImfOptions.AllowLongLines"/> or <see cref="ImfOptions.AllowInvalidBodyOctets"/> is set.
+    /// §2.7, §2.8, §6.4, §6.7 and §6.8), unless <see cref="ImfOptions.AllowLongLines"/> or <see cref="ImfOptions.AllowInvalidBodyOctets"/> is set.  The header of a part or an embedded message
+    /// may hold an octet above 127 only under an <c>8bit</c> or <c>binary</c> label on the entity that holds it (RFC 2045 §2.7 and §6.4, RFC 6532 §3.7), unless
+    /// <see cref="ImfOptions.AllowInvalidBodyOctets"/> is set.
     /// </para>
     /// <para>
     /// <b>Errors.</b>  Any <see cref="ImfFileException"/> ends reading, so later reads throw <see cref="InvalidOperationException"/>.  Its

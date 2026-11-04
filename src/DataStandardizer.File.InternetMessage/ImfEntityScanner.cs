@@ -92,6 +92,7 @@ namespace DataStandardizer.File.InternetMessage
             internal MimeMediaType ContentType;
             internal int Depth;
             internal bool HasContentType;
+            internal bool HasInvalidHeaderOctet;
             internal bool HasMimeField;
             internal bool HasMimeVersion;
             internal bool HasTransferEncoding;
@@ -374,6 +375,7 @@ namespace DataStandardizer.File.InternetMessage
                             _scanner.ParseField();
                             ReadMimeField(CurrentFrame);
                             CheckQuotedHeaderLine();
+                            CheckNestedHeaderField(CurrentFrame);
                             return Emit(ImfEntityEventKind.HeaderField, _scanner.FieldBytePosition, _scanner.RawBytes.Length);
                         }
 
@@ -520,6 +522,26 @@ namespace DataStandardizer.File.InternetMessage
             }
 
             _diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.LongBodyLine, ImfBodyCheck.LongQuotedLineMessage, _scanner.FieldBytePosition, BuildPath()));
+        }
+
+        /// <summary>
+        /// Checks the current field of a nested entity against the entity that holds it, whose encoding limits what it holds (RFC 2045 §6.4).  The header of the message itself has nothing
+        /// holding it, and RFC 6532 lets it hold UTF-8.
+        /// </summary>
+        private void CheckNestedHeaderField(Frame frame)
+        {
+            if (_frames.Count < 2 || frame.HasInvalidHeaderOctet) return;
+            if (!ImfBodyCheck.HasInvalidHeaderOctet(_scanner.RawBytes.Span, _frames[_frames.Count - 2].AllowedDomain)) return;
+
+            frame.HasInvalidHeaderOctet = true;
+            if (!_allowInvalidBodyOctets)
+            {
+                var exception = _scanner.BuildCurrentFieldException(ImfBodyCheck.InvalidHeaderOctetsMessage);
+                exception.Data[ImfFileException.DataItemName.DiagnosticKind] = ImfDiagnosticKind.InvalidBodyOctets;
+                throw exception;
+            }
+
+            _diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.InvalidBodyOctets, ImfBodyCheck.InvalidHeaderOctetsMessage, _scanner.FieldBytePosition, BuildPath()));
         }
 
         /// <summary>

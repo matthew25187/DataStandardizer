@@ -399,6 +399,199 @@ namespace DataStandardizer.File.InternetMessage.Tests
             }
         }
 
+        private const string EightBitHeaderTop = "Date: Thu, 1 Jan 2026 00:00:00 +0000\r\nFrom: a@b.test\r\nMIME-Version: 1.0\r\n";
+
+        // ref. RFC 2045 §2.7: "No octets with decimal values greater than 127 are allowed", and §6.4: a composite entity's encoding limits what it holds.  §6.1: the default is 7bit.
+        private const string EightBitPartHeader = EightBitHeaderTop + "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nX-Note: caf\xC3\xA9\r\n\r\nx\r\n--b--\r\n";
+        private const string EightBitEmbeddedHeader = EightBitHeaderTop + "Content-Type: message/rfc822\r\n\r\nSubject: caf\xC3\xA9\r\n\r\nx\r\n";
+        private const string EightBitPartHeaderUnder8Bit = EightBitHeaderTop + "Content-Type: multipart/mixed; boundary=b\r\nContent-Transfer-Encoding: 8bit\r\n\r\n--b\r\nX-Note: caf\xC3\xA9\r\n\r\nx\r\n--b--\r\n";
+        private const string EightBitEmbeddedHeaderUnder8Bit = EightBitHeaderTop + "Content-Type: message/rfc822\r\nContent-Transfer-Encoding: 8bit\r\n\r\nSubject: caf\xC3\xA9\r\n\r\nx\r\n";
+        private const string EightBitPartHeaderUnderBinary = EightBitHeaderTop + "Content-Type: multipart/mixed; boundary=b\r\nContent-Transfer-Encoding: binary\r\n\r\n--b\r\nX-Note: caf\xC3\xA9\r\n\r\nx\r\n--b--\r\n";
+        private const string EightBitNestedPartHeader = EightBitHeaderTop + "Content-Type: multipart/mixed; boundary=b\r\nContent-Transfer-Encoding: 8bit\r\n\r\n--b\r\nContent-Type: multipart/mixed; boundary=c\r\n\r\n--c\r\nX-Note: caf\xC3\xA9\r\n\r\nx\r\n--c--\r\n--b--\r\n";
+        private const string EightBitSecondPartHeader = EightBitHeaderTop + "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\nx\r\n--b\r\nX-Note: caf\xC3\xA9\r\n\r\ny\r\n--b--\r\n";
+        private const string TwoAsciiParts = EightBitHeaderTop + "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\nx\r\n--b\r\n\r\ny\r\n--b--\r\n";
+        private const string EightBitTopHeader = "Date: Thu, 1 Jan 2026 00:00:00 +0000\r\nFrom: a@b.test\r\nSubject: caf\xC3\xA9\r\n\r\nx\r\n";
+
+        public static TheoryData<string, string> EightBitHeadersUnder7Bit => new TheoryData<string, string>
+        {
+            { EightBitPartHeader, "1" },
+            { EightBitEmbeddedHeader, "1" },
+            { EightBitNestedPartHeader, "1.1" },
+        };
+
+        public static TheoryData<string> EightBitHeadersAllowed => new TheoryData<string>
+        {
+            EightBitPartHeaderUnder8Bit,
+            EightBitEmbeddedHeaderUnder8Bit,
+            EightBitPartHeaderUnderBinary,
+            EightBitTopHeader,
+        };
+
+        [Theory]
+        [MemberData(nameof(EightBitHeadersUnder7Bit))]
+        public void ReadMessage_EightBitHeaderUnder7Bit_ThrowsByDefault(string message, string expectedPath)
+        {
+            // act
+            Action testAction = () => Read(message, new ImfOptions());
+
+            // assert
+            var data = testAction.Should().Throw<ImfFileException>().Which.Data;
+            data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.InvalidBodyOctets);
+            data[ImfFileException.DataItemName.EntityPath].Should().Be(expectedPath);
+        }
+
+        [Theory]
+        [MemberData(nameof(EightBitHeadersUnder7Bit))]
+        public void ReadEvent_EightBitHeaderUnder7Bit_ThrowsByDefault(string message, string expectedPath)
+        {
+            // arrange
+            using (var subject = new ImfEntityReader(new MemoryStream(Octets.Of(message))))
+            {
+                // act
+                Action testAction = () => EntityEvents.ReadToEnd(subject);
+
+                // assert
+                var data = testAction.Should().Throw<ImfFileException>().Which.Data;
+                data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.InvalidBodyOctets);
+                data[ImfFileException.DataItemName.EntityPath].Should().Be(expectedPath);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(EightBitHeadersUnder7Bit))]
+        public void ReadMessage_EightBitHeaderUnder7BitWithOption_RecordsADiagnostic(string message, string expectedPath)
+        {
+            // arrange
+            using (var subject = new ImfReader(new MemoryStream(Octets.Of(message)), new ImfOptions { AllowInvalidBodyOctets = true }))
+            {
+                // act
+                subject.ReadMessage();
+
+                // assert
+                var diagnostic = subject.Diagnostics.Should().ContainSingle().Which;
+                diagnostic.Kind.Should().Be(ImfDiagnosticKind.InvalidBodyOctets);
+                diagnostic.EntityPath.Should().Be(expectedPath);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(EightBitHeadersAllowed))]
+        public void ReadMessage_EightBitHeaderThatIsAllowed_RecordsNothing(string message)
+        {
+            // arrange
+            using (var subject = new ImfReader(new MemoryStream(Octets.Of(message))))
+            {
+                // act
+                subject.ReadMessage();
+
+                // assert
+                subject.Diagnostics.Should().BeEmpty();
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(EightBitHeadersUnder7Bit))]
+        public void Validate_EightBitHeaderUnder7Bit_ReportsIt(string message, string expectedPath)
+        {
+            // arrange
+            var subject = Read(message, new ImfOptions { AllowInvalidBodyOctets = true });
+
+            // act
+            var testResult = subject.Validate();
+
+            // assert
+            var diagnostic = testResult.Should().ContainSingle().Which;
+            diagnostic.Kind.Should().Be(ImfDiagnosticKind.InvalidBodyOctets);
+            diagnostic.EntityPath.Should().Be(expectedPath);
+        }
+
+        [Theory]
+        [MemberData(nameof(EightBitHeadersAllowed))]
+        public void Validate_EightBitHeaderThatIsAllowed_ReportsNothing(string message)
+        {
+            // arrange
+            var subject = Read(message, new ImfOptions());
+
+            // act
+            var testResult = subject.Validate();
+
+            // assert
+            testResult.Should().BeEmpty();
+        }
+
+        [Theory]
+        [MemberData(nameof(EightBitHeadersUnder7Bit))]
+        public void WriteMessage_EightBitHeaderUnder7Bit_ThrowsByDefault(string message, string expectedPath)
+        {
+            // arrange
+            var subject = Read(message, new ImfOptions { AllowInvalidBodyOctets = true });
+            using (var writer = new ImfWriter(new MemoryStream()))
+            {
+                // act
+                Action testAction = () => writer.WriteMessage(subject);
+
+                // assert
+                var data = testAction.Should().Throw<ImfFileException>().Which.Data;
+                data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.InvalidBodyOctets);
+                data[ImfFileException.DataItemName.EntityPath].Should().Be(expectedPath);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_SiblingOfAnEightBitHeaderUnder7BitChanged_ThrowsByDefault()
+        {
+            // arrange
+            var subject = Read(EightBitSecondPartHeader, new ImfOptions { AllowInvalidBodyOctets = true });
+            ((ImfMultipart)subject.Body).Parts[0].SetContent(Octets.Of("changed"));
+            using (var writer = new ImfWriter(new MemoryStream()))
+            {
+                // act
+                Action testAction = () => writer.WriteMessage(subject);
+
+                // assert
+                var data = testAction.Should().Throw<ImfFileException>().Which.Data;
+                data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.InvalidBodyOctets);
+                data[ImfFileException.DataItemName.EntityPath].Should().Be("2");
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_NonAsciiFieldAddedToAPart_LabelsWhatHoldsIt()
+        {
+            // arrange
+            var options = new ImfOptions { HeaderEncoding = ImfHeaderEncoding.Utf8 };
+            var subject = Read(TwoAsciiParts, options);
+            ((ImfMultipart)subject.Body).Parts[0].Fields.Add(ImfHeaderField.FromText("X-Note", "caf\x00E9"));
+            var stream = new MemoryStream();
+            using (var writer = new ImfWriter(stream, options))
+            {
+                // act
+                writer.WriteMessage(subject);
+
+                // assert
+                Octets.ToText(stream.ToArray()).Should().Contain("Content-Transfer-Encoding: 8bit\r\n");
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(EightBitHeadersUnder7Bit))]
+        public void WriteMessage_EightBitHeaderUnder7BitWithOption_RecordsADiagnosticAndWritesByteForByte(string message, string expectedPath)
+        {
+            // arrange
+            var options = new ImfOptions { AllowInvalidBodyOctets = true };
+            var subject = Read(message, options);
+            var stream = new MemoryStream();
+            using (var writer = new ImfWriter(stream, options))
+            {
+                // act
+                writer.WriteMessage(subject);
+
+                // assert
+                writer.Diagnostics.Should().ContainSingle().Which.EntityPath.Should().Be(expectedPath);
+                Octets.ToText(stream.ToArray()).Should().Be(message);
+            }
+        }
+
         [Fact]
         public void ReadMessage_EmbeddedMessageWithNoRequiredField_ThrowsByDefault()
         {
