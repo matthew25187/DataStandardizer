@@ -124,12 +124,13 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Determines if a reader accepts a problem.
+        /// Determines if a reader accepts a problem in the header of a message, which <see cref="Check"/> found.
         /// </summary>
-        internal static bool IsAllowedWhenReading(ImfDiagnostic diagnostic, ImfOptions options)
+        internal static bool IsAllowedInHeaderWhenReading(ImfDiagnostic diagnostic, ImfOptions options)
         {
-            // ref. RFC 5322 §4: the obsolete syntax MUST be accepted and parsed by a receiver, and §4.5 lets it repeat any field.
-            return diagnostic.Kind == ImfDiagnosticKind.CardinalityViolation || IsAllowed(diagnostic.Kind, options);
+            // ref. RFC 5322 §3.5: message = (fields / obs-fields) [CRLF body]; §4: "they MUST be accepted and parsed by a conformant receiver"; and §4.5: obs-fields = *(...), which
+            // has no minimum or maximum for any field, and no rule for how they go together.
+            return diagnostic.Kind == ImfDiagnosticKind.CardinalityViolation || diagnostic.Kind == ImfDiagnosticKind.MissingRequiredField || IsAllowed(diagnostic.Kind, options);
         }
 
         /// <summary>

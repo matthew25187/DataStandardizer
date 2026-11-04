@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -116,16 +117,17 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Fact]
-        public void ReadMessage_EmptyData_Throws()
+        public void ReadMessage_EmptyData_RecordsTheMissingFields()
         {
             // arrange
+            // ref. RFC 5322 §4.5: obs-fields = *(...), so a message can have no fields.
             using (var reader = new ImfReader(new MemoryStream()))
             {
                 // act
-                Action testAction = () => reader.ReadMessage();
+                reader.ReadMessage();
 
                 // assert
-                testAction.Should().Throw<ImfFileException>();
+                reader.Diagnostics.Select(diagnostic => diagnostic.FieldName).Should().Equal("Date", "From");
             }
         }
 

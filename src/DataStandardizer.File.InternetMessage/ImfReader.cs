@@ -20,16 +20,16 @@ namespace DataStandardizer.File.InternetMessage
     /// §4 is accepted.
     /// </para>
     /// <para>
-    /// <b>Conformance.</b>  Once the header has been read, it is checked as <see cref="ImfMessage.Validate"/> describes.  A missing required field, a second field of a kind that may
-    /// appear only once, and a field body that breaks its grammar each cause an <see cref="ImfFileException"/>, unless <see cref="ImfOptions.AllowMissingRequiredFields"/>,
-    /// <see cref="ImfOptions.AllowCardinalityViolations"/> or <see cref="ImfOptions.AllowInvalidValues"/> is set.  With them set, the problem is recorded in
-    /// <see cref="Diagnostics"/> instead.  RFC 5322 §4 and §4.5 require a receiver to accept a repeated field, so that is always recorded in <see cref="Diagnostics"/>.
+    /// <b>Conformance.</b>  Once the header has been read, it is checked as <see cref="ImfMessage.Validate"/> describes.  A field body that breaks its grammar causes an
+    /// <see cref="ImfFileException"/>, unless <see cref="ImfOptions.AllowInvalidValues"/> is set, and then the problem is recorded in <see cref="Diagnostics"/> instead.  A field that RFC 5322 §3.6
+    /// requires being missing, and a second field of a kind that may appear only once, are always recorded in <see cref="Diagnostics"/>.  §3.5 lets a message follow <c>obs-fields</c>, which §4.5
+    /// defines with no minimum or maximum for any field, and §4 says that a receiver MUST accept the obsolete syntax.
     /// </para>
     /// <para>
     /// <b>Body.</b>  The rest of the data is the body, up to <see cref="ImfOptions.MaxEntitySize"/>, which is held in memory as it is.  Its structure is read into
     /// <see cref="ImfMessage.Body"/> as an <see cref="ImfEntityReader"/> reads it, under the same options, so a multipart entity that breaks RFC 2046 §5.1 causes an
     /// <see cref="ImfFileException"/>.  The bytes of a body are decoded, and checked against the transfer encoding, only when they are asked for.  A message inside a
-    /// <c>message/rfc822</c> entity has only to have one of From, Subject or Date, as RFC 2046 §5.2.1 says, under <see cref="ImfOptions.AllowMissingRequiredFields"/>.  Call
+    /// <c>message/rfc822</c> entity must have one of From, Subject or Date, as RFC 2046 §5.2.1 says, unless <see cref="ImfOptions.AllowMissingRequiredFields"/> is set.  Call
     /// <see cref="ImfMessage.Validate"/> on it to check it against RFC 5322.
     /// </para>
     /// <para>
@@ -354,7 +354,7 @@ namespace DataStandardizer.File.InternetMessage
 
             foreach (var diagnostic in ImfConformance.Check(_message, _options))
             {
-                if (!ImfConformance.IsAllowedWhenReading(diagnostic, _options))
+                if (!ImfConformance.IsAllowedInHeaderWhenReading(diagnostic, _options))
                     throw ImfConformance.BuildException(diagnostic, true);
 
                 _diagnostics.Add(diagnostic);
@@ -379,7 +379,7 @@ namespace DataStandardizer.File.InternetMessage
             ImfConformance.CheckEmbedded(_message, embedded);
             foreach (var diagnostic in embedded)
             {
-                if (!ImfConformance.IsAllowedWhenReading(diagnostic, _options))
+                if (!ImfConformance.IsAllowed(diagnostic.Kind, _options))
                     throw ImfConformance.BuildException(diagnostic, true);
 
                 _diagnostics.Add(diagnostic);

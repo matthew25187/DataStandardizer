@@ -109,7 +109,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string NoLengthMailbox = Separator1 + Header + "\none\n\n" + Separator2 + Message2 + "\n";
         private const string NotANumberMailbox = Separator1 + Header + "Content-Length: x\n\none\n\n" + Separator2 + Message2 + "\n";
 
-        private const string InvalidMiddleMailbox = OneMessageWithEmptyLine + Separator2 + "Subject: nothing required\n\nx\n\n" + OneMessageWithEmptyLine;
+        private const string InvalidMiddleMailbox = OneMessageWithEmptyLine + Separator2 + "Date: yesterday\n\nx\n\n" + OneMessageWithEmptyLine;
         private const string RejectedIndexOne = "rejected 1";
 
         // ref. RFC 5322 §2.1.1: a line is at most 998 octets, of which ">From " takes 6, so this one is 999 in the file and 998 in the message.
