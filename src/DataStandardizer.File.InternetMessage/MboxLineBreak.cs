@@ -11,7 +11,8 @@ namespace DataStandardizer.File.InternetMessage
         LineFeed = 0,
 
         /// <summary>
-        /// A carriage return and a line feed, for a mailbox that is not going to be transferred as <c>application/mbox</c> and that a program expects in this form.
+        /// A carriage return and a line feed, which RFC 4155 Appendix A doesn't allow, for a mailbox that a program expects in this form.  An <see cref="MboxReader"/> reads it only with
+        /// <see cref="ImfOptions.AllowMboxCarriageReturnLineFeed"/>.
         /// </summary>
         CarriageReturnLineFeed = 1,
     }

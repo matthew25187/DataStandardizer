@@ -122,6 +122,24 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
+        /// Gets a flag indicating if a message of an mbox file may hold octets above 127.
+        /// </summary>
+        /// <remarks>
+        /// RFC 4155 Appendix A requires seven-bit characters, with eight-bit data converted to a seven-bit form.  When <c>false</c> (the default), an octet above 127 causes an
+        /// <see cref="ImfFileException"/> from an <see cref="MboxReader"/> or <see cref="MboxWriter"/>.  When <c>true</c>, an <see cref="ImfDiagnostic"/> is recorded instead, once for each
+        /// message.  Many mailboxes kept on disk hold such messages.
+        /// </remarks>
+        public bool AllowEightBitMboxContent
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
         /// Gets a flag indicating if a field body whose bytes are not valid UTF-8 is accepted.
         /// </summary>
         /// <remarks>
@@ -339,14 +357,33 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Gets a flag indicating if an <see cref="MboxReader"/> accepts a separator line with no empty line before it.
+        /// Gets a flag indicating if an <see cref="MboxReader"/> accepts a message that isn't ended by an empty line.
         /// </summary>
         /// <remarks>
-        /// RFC 4155 Appendix A ends each message with an empty line.  When <c>false</c> (the default), a separator line that doesn't follow one causes an <see cref="ImfFileException"/>.  When
-        /// <c>true</c>, the message ends at the separator line, and an <see cref="ImfDiagnostic"/> is recorded.  A last message with no empty line before the end of the file is accepted either
-        /// way, with an <see cref="ImfDiagnostic"/>, as the end of the file ends it.
+        /// RFC 4155 Appendix A ends each message with an empty line.  When <c>false</c> (the default), a separator line or the end of the file that doesn't follow one causes an
+        /// <see cref="ImfFileException"/>.  When <c>true</c>, the message ends there, and an <see cref="ImfDiagnostic"/> is recorded.
         /// </remarks>
         public bool AllowMissingMboxBlankLine
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
+        /// Gets a flag indicating if an mbox file may have a carriage return and a line feed as a line break.
+        /// </summary>
+        /// <remarks>
+        /// RFC 4155 Appendix A requires a single line feed, and doesn't allow a carriage return and a line feed.  When <c>false</c> (the default), an <see cref="MboxReader"/> throws an
+        /// <see cref="ImfFileException"/> for a first separator line that ends in them, or a line of a message that does, and an <see cref="MboxWriter"/> writing line feeds does the same for a
+        /// line of a message that ends in them.  When <c>true</c>, an <see cref="ImfDiagnostic"/> is recorded instead.  A reader then reads a file whose first separator line ends in them with
+        /// that line break throughout, and in any other file the carriage return is part of its line.  An <see cref="MboxWriter"/> writes this line break only when
+        /// <see cref="MboxLineBreak.CarriageReturnLineFeed"/> is given to it, whatever this option says.
+        /// </remarks>
+        public bool AllowMboxCarriageReturnLineFeed
         {
             get;
 #if NET5_0_OR_GREATER

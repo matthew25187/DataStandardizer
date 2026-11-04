@@ -58,5 +58,15 @@
         /// doesn't match the length of its body.
         /// </summary>
         InvalidMboxContentLength = 9,
+
+        /// <summary>
+        /// An mbox file uses a carriage return and a line feed as a line break, which RFC 4155 Appendix A doesn't allow.
+        /// </summary>
+        MboxCarriageReturnLineFeed = 10,
+
+        /// <summary>
+        /// A message of an mbox file holds an octet above 127, which RFC 4155 Appendix A doesn't allow.
+        /// </summary>
+        EightBitMboxContent = 11,
     }
 }

@@ -67,6 +67,12 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const int TwoWritten = 2;
         private const long FirstIndex = 0;
 
+        private const string EightBitEml = CrLfHeader + "\r\ncaf\u00E9\r\n";
+        private const string EightBitInFile = Separator + Header + "\ncaf\u00E9\n\n";
+        private const string CrLfLineInFile = Separator + Header + "\none\r\n\n";
+
+        private static readonly ImfOptions AllowEightBit = new ImfOptions { AllowEightBitMboxContent = true };
+        private static readonly ImfOptions AllowCrLf = new ImfOptions { AllowMboxCarriageReturnLineFeed = true };
         private static readonly ImfOptions AllowMissingFields = new ImfOptions { AllowMissingRequiredFields = true };
         private static readonly ImfOptions AllowSeparator = new ImfOptions { AllowInvalidMboxSeparator = true };
 
@@ -308,7 +314,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var written = Mailboxes.WriteOne(Envelope, Mailboxes.ReadMessage(Eml), MboxVariant.Mboxcl2, MboxLineBreak.CarriageReturnLineFeed);
 
             // act
-            var testResult = Mailboxes.ReadAll(written, MboxVariant.Mboxcl2);
+            var testResult = Mailboxes.ReadAll(written, MboxVariant.Mboxcl2, AllowCrLf);
 
             // assert
             testResult.Should().Equal(CrLfLengthMessage);
@@ -425,6 +431,71 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
                 // assert
                 Octets.ToText(output.ToArray()).Should().Be(Eml);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_EightBitOctet_ThrowsAndWritesNothing()
+        {
+            // arrange
+            var message = Mailboxes.ReadMessage(EightBitEml);
+            var output = new MemoryStream();
+            using (var subject = new MboxWriter(output))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(Envelope, message);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.EightBitMboxContent);
+                output.Length.Should().Be(0);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_EightBitOctetAllowed_WritesItWithADiagnostic()
+        {
+            // arrange
+            var message = Mailboxes.ReadMessage(EightBitEml);
+            var output = new MemoryStream();
+            using (var subject = new MboxWriter(output, MboxVariant.Mboxrd, AllowEightBit))
+            {
+                // act
+                subject.WriteMessage(Envelope, message);
+
+                // assert
+                Octets.ToText(output.ToArray()).Should().Be(EightBitInFile);
+                subject.Diagnostics.Should().ContainSingle().Which.Kind.Should().Be(ImfDiagnosticKind.EightBitMboxContent);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_CrLfLineInLineFeedFile_ThrowsByDefault()
+        {
+            // arrange
+            var entry = Mailboxes.ReadFirst(CrLfLineInFile, MboxVariant.Mboxrd, AllowCrLf);
+            using (var subject = new MboxWriter(new MemoryStream()))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(entry.Envelope, entry.Message);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.MboxCarriageReturnLineFeed);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_CrLfLineInLineFeedFileAllowed_WritesItAsItWas()
+        {
+            // arrange
+            var entry = Mailboxes.ReadFirst(CrLfLineInFile, MboxVariant.Mboxrd, AllowCrLf);
+            var output = new MemoryStream();
+            using (var subject = new MboxWriter(output, MboxVariant.Mboxrd, AllowCrLf))
+            {
+                // act
+                subject.WriteMessage(entry.Envelope, entry.Message);
+
+                // assert
+                Octets.ToText(output.ToArray()).Should().Be(CrLfLineInFile);
             }
         }
 

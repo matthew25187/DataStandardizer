@@ -24,9 +24,14 @@ namespace DataStandardizer.File.InternetMessage
     /// changed.  Other variants leave any Content-Length field as it is.
     /// </para>
     /// <para>
-    /// <b>Line breaks.</b>  A message in a file uses the line break of the file, which is LF unless <see cref="MboxLineBreak.CarriageReturnLineFeed"/> is given (RFC 4155 Appendix A).  So one
-    /// read from an <c>.eml</c> file changes when written here.  A message that has to change this way can't have a <c>binary</c> entity (RFC 2045 §2.9), as a line break in it isn't one,
+    /// <b>Line breaks.</b>  A message in a file uses the line break of the file, which is the LF that RFC 4155 Appendix A requires, unless <see cref="MboxLineBreak.CarriageReturnLineFeed"/> is
+    /// given.  So one read from an <c>.eml</c> file changes when written here.  A line that still ends in CRLF in a file of LF, from a file read with
+    /// <see cref="ImfOptions.AllowMboxCarriageReturnLineFeed"/>, causes an <see cref="ImfFileException"/> unless that option is set.  A message that has to change this way can't have a <c>binary</c> entity (RFC 2045 §2.9), as a line break in it isn't one,
     /// which causes an <see cref="ImfFileException"/>.
+    /// </para>
+    /// <para>
+    /// <b>Seven bits.</b>  RFC 4155 Appendix A requires seven-bit characters, so an octet above 127 causes an <see cref="ImfFileException"/>, unless
+    /// <see cref="ImfOptions.AllowEightBitMboxContent"/> is set.  A body written by this package gets a transfer encoding that keeps to seven bits by default.
     /// </para>
     /// <para>
     /// <b>Last line.</b>  The empty line that ends a message has to be a line of its own, so a message whose last line has no line break gets one.  With
@@ -44,7 +49,13 @@ namespace DataStandardizer.File.InternetMessage
         , IAsyncDisposable
 #endif
     {
+        private const string CarriageReturnLineFeedMessage = "A line ends in a carriage return and a line feed, which RFC 4155 Appendix A doesn't allow.  ImfOptions.AllowMboxCarriageReturnLineFeed accepts it.";
+        private const string EightBitMessage = "The message holds an octet above 127, which RFC 4155 Appendix A doesn't allow.  ImfOptions.AllowEightBitMboxContent accepts it.";
         private const string InvalidSeparatorMessage = "The separator line doesn't have the form that RFC 4155 Appendix A requires.  ImfOptions.AllowInvalidMboxSeparator accepts it.";
+
+        private const byte CarriageReturn = 0x0D;
+        private const byte HighestSevenBitOctet = 0x7F;
+        private const byte LineFeed = 0x0A;
 
         private readonly Func<string> _boundaryGenerator;
         private readonly List<ImfDiagnostic> _diagnostics = new List<ImfDiagnostic>();
@@ -498,7 +509,7 @@ namespace DataStandardizer.File.InternetMessage
                 if (!envelope.IsConforming)
                 {
                     if (!_options.AllowInvalidMboxSeparator)
-                        throw BuildSeparatorException();
+                        throw BuildException(InvalidSeparatorMessage, ImfDiagnosticKind.InvalidMboxSeparator);
 
                     diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.InvalidMboxSeparator, InvalidSeparatorMessage, -1, string.Empty));
                 }
@@ -516,7 +527,9 @@ namespace DataStandardizer.File.InternetMessage
                 var bytes = new ReadOnlySpan<byte>(output.ToArray());
                 if (hasLineFeedBreaks == _isCrLf) bytes = ImfLineBreaks.Convert(message, bytes, _isCrLf);
 
-                return MboxFormatter.Format(envelope, bytes, _variant, _isCrLf);
+                var formatted = MboxFormatter.Format(envelope, bytes, _variant, _isCrLf);
+                CheckContent(formatted, diagnostics);
+                return formatted;
             }
             catch (ImfFileException exception) when (AddMessageIndex(exception))
             {
@@ -529,10 +542,33 @@ namespace DataStandardizer.File.InternetMessage
             return new ImfWriteProgress(_fieldsWritten, _messagesWritten, _output.BytePosition);
         }
 
-        private static ImfFileException BuildSeparatorException()
+        // ref. RFC 4155 Appendix A: seven-bit characters, and a line feed with no carriage return.
+        private void CheckContent(ReadOnlySpan<byte> bytes, List<ImfDiagnostic> diagnostics)
         {
-            var exception = new ImfFileException(InvalidSeparatorMessage);
-            exception.Data[ImfFileException.DataItemName.DiagnosticKind] = ImfDiagnosticKind.InvalidMboxSeparator;
+            var hasEightBit = false;
+            var hasCarriageReturnLineFeed = false;
+            for (var index = 0; index < bytes.Length; index++)
+            {
+                hasEightBit |= bytes[index] > HighestSevenBitOctet;
+                hasCarriageReturnLineFeed |= !_isCrLf && bytes[index] == LineFeed && index > 0 && bytes[index - 1] == CarriageReturn;
+            }
+
+            if (hasEightBit) Report(ImfDiagnosticKind.EightBitMboxContent, EightBitMessage, diagnostics);
+            if (hasCarriageReturnLineFeed) Report(ImfDiagnosticKind.MboxCarriageReturnLineFeed, CarriageReturnLineFeedMessage, diagnostics);
+        }
+
+        private void Report(ImfDiagnosticKind kind, string message, List<ImfDiagnostic> diagnostics)
+        {
+            if (!ImfConformance.IsAllowed(kind, _options))
+                throw BuildException(message, kind);
+
+            diagnostics.Add(new ImfDiagnostic(kind, message, -1, string.Empty));
+        }
+
+        private static ImfFileException BuildException(string message, ImfDiagnosticKind kind)
+        {
+            var exception = new ImfFileException(message);
+            exception.Data[ImfFileException.DataItemName.DiagnosticKind] = kind;
             return exception;
         }
 

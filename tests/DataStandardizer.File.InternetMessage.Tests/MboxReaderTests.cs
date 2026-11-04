@@ -65,8 +65,13 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string Mboxo = Separator1 + MboxoMessage + "\n";
         private const string Mboxcl = Separator1 + MboxclMessage + "\n";
         private const string Mboxcl2 = Separator1 + Mboxcl2Message + "\n";
-        private const string OtherQuotesMessage = Header + "\n> quoted\n>> From\n>Fromage\n>";
-        private const string OtherQuotesMailbox = Separator1 + OtherQuotesMessage;
+        private const string OtherQuotesMessage = Header + "\n> quoted\n>> From\n>Fromage\n>\n";
+        private const string OtherQuotesMailbox = Separator1 + OtherQuotesMessage + "\n";
+        private const string CrLfLineInLineFeedFileMessage = Header + "\none\r\n";
+        private const string CrLfLineInLineFeedFile = Separator1 + CrLfLineInLineFeedFileMessage + "\n";
+        private const string EightBitMessage = Header + "\ncaf\u00E9\n";
+        private const string EightBitMailbox = Separator1 + EightBitMessage + "\n";
+        private const string EightBitInCountedBody = Separator1 + Header + "Content-Length: 5\n\ncaf\u00E9\n\n";
 
         private const string Cl1Message = Header + "Content-Length: 4\n\none\n";
         private const string Cl1 = Separator1 + Cl1Message + "\n";
@@ -128,6 +133,8 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private static readonly string LargeMailbox = Separator1 + LargeMessage + "\n" + Separator2 + Message2 + "\n";
         private static readonly byte[] ManyMessagesMailbox = Mailboxes.Repeat(OneMessageWithEmptyLine, ManyMessages);
 
+        private static readonly ImfOptions AllowCrLf = new ImfOptions { AllowMboxCarriageReturnLineFeed = true };
+        private static readonly ImfOptions AllowEightBit = new ImfOptions { AllowEightBitMboxContent = true };
         private static readonly ImfOptions AllowBlankLine = new ImfOptions { AllowMissingMboxBlankLine = true };
         private static readonly ImfOptions AllowContentLength = new ImfOptions { AllowInvalidMboxContentLength = true };
         private static readonly ImfOptions AllowInvalidSeparator = new ImfOptions { AllowInvalidMboxSeparator = true };
@@ -169,30 +176,40 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Fact]
-        public void ReadMessage_NoTrailingEmptyLine_EndsAtTheEndOfTheFile()
+        public void ReadMessage_NoTrailingEmptyLine_ThrowsByDefault()
         {
             // act
-            var testResult = Mailboxes.ReadAll(OneMessage);
+            Action testAction = () => Mailboxes.ReadAll(OneMessage);
+
+            // assert
+            testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.MissingMboxBlankLine);
+        }
+
+        [Fact]
+        public void ReadMessage_NoTrailingEmptyLineAllowed_EndsAtTheEndOfTheFile()
+        {
+            // act
+            var testResult = Mailboxes.ReadAll(OneMessage, MboxVariant.Mboxrd, AllowBlankLine);
 
             // assert
             testResult.Should().Equal(Message1);
         }
 
         [Fact]
-        public void ReadMessage_NoTrailingEmptyLine_RecordsADiagnostic()
+        public void ReadMessage_NoTrailingEmptyLineAllowed_RecordsADiagnostic()
         {
             // act
-            var testResult = Mailboxes.ReadDiagnosticKinds(OneMessage, MboxVariant.Mboxrd, new ImfOptions());
+            var testResult = Mailboxes.ReadDiagnosticKinds(OneMessage, MboxVariant.Mboxrd, AllowBlankLine);
 
             // assert
             testResult.Should().Equal(ImfDiagnosticKind.MissingMboxBlankLine);
         }
 
         [Fact]
-        public void ReadMessage_NoLineBreakAtTheEnd_KeepsTheLastLineAsItIs()
+        public void ReadMessage_NoLineBreakAtTheEndAllowed_KeepsTheLastLineAsItIs()
         {
             // act
-            var testResult = Mailboxes.ReadAll(LastLineMailbox);
+            var testResult = Mailboxes.ReadAll(LastLineMailbox, MboxVariant.Mboxrd, AllowBlankLine);
 
             // assert
             testResult.Should().Equal(LastLineMessage);
@@ -209,10 +226,81 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Fact]
-        public void ReadMessage_CrLfFile_ReadsWithItsLineBreaks()
+        public void ReadMessage_CrLfFile_ThrowsByDefault()
         {
             // act
-            var testResult = Mailboxes.ReadAll(CrLfTwoMessages);
+            Action testAction = () => Mailboxes.ReadAll(CrLfTwoMessages);
+
+            // assert
+            testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.MboxCarriageReturnLineFeed);
+        }
+
+        [Fact]
+        public void ReadMessage_CrLfFileAllowed_RecordsADiagnostic()
+        {
+            // act
+            var testResult = Mailboxes.ReadDiagnosticKinds(CrLfTwoMessages, MboxVariant.Mboxrd, AllowCrLf);
+
+            // assert
+            testResult.Should().Equal(ImfDiagnosticKind.MboxCarriageReturnLineFeed);
+        }
+
+        [Fact]
+        public void ReadMessage_CrLfLineInLineFeedFile_ThrowsByDefault()
+        {
+            // act
+            Action testAction = () => Mailboxes.ReadAll(CrLfLineInLineFeedFile);
+
+            // assert
+            testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.MboxCarriageReturnLineFeed);
+        }
+
+        [Fact]
+        public void ReadMessage_CrLfLineInLineFeedFileAllowed_KeepsTheCarriageReturnInTheLine()
+        {
+            // act
+            var testResult = Mailboxes.ReadAll(CrLfLineInLineFeedFile, MboxVariant.Mboxrd, AllowCrLf);
+
+            // assert
+            testResult.Should().Equal(CrLfLineInLineFeedFileMessage);
+        }
+
+        [Fact]
+        public void ReadMessage_EightBitOctet_ThrowsByDefault()
+        {
+            // act
+            Action testAction = () => Mailboxes.ReadAll(EightBitMailbox);
+
+            // assert
+            testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.EightBitMboxContent);
+        }
+
+        [Fact]
+        public void ReadMessage_EightBitOctetInCountedBody_ThrowsByDefault()
+        {
+            // act
+            Action testAction = () => Mailboxes.ReadAll(EightBitInCountedBody, MboxVariant.Mboxcl2);
+
+            // assert
+            testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.EightBitMboxContent);
+        }
+
+        [Fact]
+        public void ReadMessage_EightBitOctetAllowed_KeepsItWithADiagnostic()
+        {
+            // act
+            var testResult = Mailboxes.ReadFirst(EightBitMailbox, MboxVariant.Mboxrd, AllowEightBit);
+
+            // assert
+            Mailboxes.Describe(testResult.Message).Should().Be(EightBitMessage);
+            testResult.Diagnostics.Should().ContainSingle().Which.Kind.Should().Be(ImfDiagnosticKind.EightBitMboxContent);
+        }
+
+        [Fact]
+        public void ReadMessage_CrLfFileAllowedTwoMessages_ReadsWithItsLineBreaks()
+        {
+            // act
+            var testResult = Mailboxes.ReadAll(CrLfTwoMessages, MboxVariant.Mboxrd, AllowCrLf);
 
             // assert
             testResult.Should().Equal(CrLfMessage1, CrLfMessage2);
@@ -222,7 +310,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ReadMessage_CrLfFileWithBareLineFeedBeforeFrom_IsNotALineStart()
         {
             // act
-            var testResult = Mailboxes.ReadAll(BareLineFeedMailbox);
+            var testResult = Mailboxes.ReadAll(BareLineFeedMailbox, MboxVariant.Mboxrd, AllowCrLf);
 
             // assert
             testResult.Should().Equal(BareLineFeedMessage);
@@ -492,10 +580,20 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Fact]
-        public void ReadMessage_ContentLengthRightAndNoEmptyLineAtTheEnd_RecordsADiagnostic()
+        public void ReadMessage_ContentLengthRightAndNoEmptyLineAtTheEnd_ThrowsByDefault()
         {
             // act
-            var testResult = Mailboxes.ReadDiagnosticKinds(NoEmptyLineAfterLength, MboxVariant.Mboxcl2, new ImfOptions());
+            Action testAction = () => Mailboxes.ReadAll(NoEmptyLineAfterLength, MboxVariant.Mboxcl2);
+
+            // assert
+            testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.MissingMboxBlankLine);
+        }
+
+        [Fact]
+        public void ReadMessage_ContentLengthRightAndNoEmptyLineAtTheEndAllowed_RecordsADiagnostic()
+        {
+            // act
+            var testResult = Mailboxes.ReadDiagnosticKinds(NoEmptyLineAfterLength, MboxVariant.Mboxcl2, AllowBlankLine);
 
             // assert
             testResult.Should().Equal(ImfDiagnosticKind.MissingMboxBlankLine);
@@ -639,7 +737,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             var stream = new BlockStream(Octets.Of(CrLfTwoMessages), BlockStreamMode.SynchronousOnly, 1, 1);
-            using (var subject = new MboxReader(stream))
+            using (var subject = new MboxReader(stream, MboxVariant.Mboxrd, AllowCrLf))
             {
                 // act
                 var testResult = Mailboxes.ReadAll(subject);

@@ -19,21 +19,21 @@ namespace DataStandardizer.File.InternetMessage
     /// <see cref="MboxVariant.Mboxrd"/>.  With <see cref="MboxVariant.Mboxcl"/> and <see cref="MboxVariant.Mboxcl2"/>, the Content-Length field finds the end of each message.
     /// </para>
     /// <para>
-    /// <b>Line breaks.</b>  A message in a file uses the line break of the file, which isn't a leniency, so it gives no diagnostic and doesn't depend on
-    /// <see cref="ImfOptions.AcceptBareLineFeed"/>.  RFC 4155 Appendix A requires LF of a canonical mbox database as transferred.  A file whose first separator line ends in CRLF is read with
-    /// CRLF line breaks throughout.
+    /// <b>Line breaks.</b>  RFC 4155 Appendix A requires LF, so a message in a file uses that, which is the format's own rule and doesn't depend on
+    /// <see cref="ImfOptions.AcceptBareLineFeed"/>.  With <see cref="ImfOptions.AllowMboxCarriageReturnLineFeed"/>, a file whose first separator line ends in CRLF is read with CRLF line breaks
+    /// throughout.
     /// </para>
     /// <para>
-    /// <b>Messages.</b>  A message ends at the empty line before the next separator line, or at the end of the file, and that empty line is not part of it.  Each is read as an
+    /// <b>Messages.</b>  A message ends at the empty line before the next separator line or the end of the file, and that empty line is not part of it.  Each is read as an
     /// <see cref="ImfReader"/> reads a message, under the same options, so the limits on a message apply to each.  An <see cref="ImfFileException"/> from a message that the file holds
     /// correctly ends only that message: the next read goes on to the next one.
     /// </para>
     /// <para>
-    /// <b>The format.</b>  A first line that isn't a separator line, a line starting <c>From </c> that isn't one, a separator line with no empty line before it, and a Content-Length field that
-    /// is missing or wrong each cause an <see cref="ImfFileException"/>, unless <see cref="ImfOptions.AllowMissingMboxSeparator"/>, <see cref="ImfOptions.AllowInvalidMboxSeparator"/>,
-    /// <see cref="ImfOptions.AllowMissingMboxBlankLine"/> or <see cref="ImfOptions.AllowInvalidMboxContentLength"/> is set.  The boundaries of the messages are then unknown, so reading ends,
-    /// and later reads throw <see cref="InvalidOperationException"/>.  RFC 4155 Appendix A also requires seven-bit characters of a database as transferred, which this doesn't check, as the
-    /// messages inside have rules of their own for that.
+    /// <b>The format.</b>  A first line that isn't a separator line, a line starting <c>From </c> that isn't one, a message not ended by an empty line, a Content-Length field that is missing or
+    /// wrong, a CRLF line break and an octet above 127 each cause an <see cref="ImfFileException"/>, unless <see cref="ImfOptions.AllowMissingMboxSeparator"/>,
+    /// <see cref="ImfOptions.AllowInvalidMboxSeparator"/>, <see cref="ImfOptions.AllowMissingMboxBlankLine"/>, <see cref="ImfOptions.AllowInvalidMboxContentLength"/>,
+    /// <see cref="ImfOptions.AllowMboxCarriageReturnLineFeed"/> or <see cref="ImfOptions.AllowEightBitMboxContent"/> is set.  Reading then ends, and later reads throw
+    /// <see cref="InvalidOperationException"/>.
     /// </para>
     /// <para>
     /// Mailbox locking and changing a mailbox in place are not supported.  Only one read may be in progress at a time, and a read started while another is in progress throws

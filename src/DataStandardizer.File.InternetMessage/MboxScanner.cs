@@ -67,6 +67,11 @@ namespace DataStandardizer.File.InternetMessage
             internal const string InvalidSeparatorDiagnostic = "The line starts with \"From \" and doesn't have the form of a separator line that RFC 4155 Appendix A requires.";
             internal const string MissingBlankLine = "The separator line doesn't follow an empty line, which ends each message (RFC 4155 Appendix A).  ImfOptions.AllowMissingMboxBlankLine accepts it.";
             internal const string MissingBlankLineDiagnostic = "The message isn't ended by the empty line that RFC 4155 Appendix A requires.";
+            internal const string CarriageReturnLineFeed = "The line ends in a carriage return and a line feed, which RFC 4155 Appendix A doesn't allow.  ImfOptions.AllowMboxCarriageReturnLineFeed accepts it.";
+            internal const string CarriageReturnLineFeedDiagnostic = "The line ends in a carriage return and a line feed, which RFC 4155 Appendix A doesn't allow.";
+            internal const string EightBit = "The message holds an octet above 127, which RFC 4155 Appendix A doesn't allow.  ImfOptions.AllowEightBitMboxContent accepts it.";
+            internal const string EightBitDiagnostic = "The message holds an octet above 127, which RFC 4155 Appendix A doesn't allow.";
+            internal const string MissingFinalBlankLine = "The file ended with no empty line to end the message (RFC 4155 Appendix A).  ImfOptions.AllowMissingMboxBlankLine accepts it.";
             internal const string MissingSeparator = "The file doesn't start with a separator line (RFC 4155 Appendix A).  ImfOptions.AllowMissingMboxSeparator skips what comes before the first.";
             internal const string MissingSeparatorDiagnostic = "The file doesn't start with a separator line, so what comes before the first has been skipped (RFC 4155 Appendix A).";
             internal const string TooManyMessagesTemplate = "The file has more than the maximum of {0} messages.";
@@ -79,6 +84,7 @@ namespace DataStandardizer.File.InternetMessage
 
         private const byte CarriageReturn = 0x0D;
         private const byte Colon = 0x3A;
+        private const byte HighestSevenBitOctet = 0x7F;
         private const byte LineFeed = 0x0A;
         private const byte Quote = 0x3E;
         private const byte Space = 0x20;
@@ -93,6 +99,8 @@ namespace DataStandardizer.File.InternetMessage
 
         private static readonly byte[] From = { (byte)'F', (byte)'r', (byte)'o', (byte)'m', Space };
 
+        private readonly bool _allowCarriageReturnLineFeed;
+        private readonly bool _allowEightBit;
         private readonly bool _allowInvalidContentLength;
         private readonly bool _allowInvalidSeparator;
         private readonly bool _allowMissingBlankLine;
@@ -105,6 +113,10 @@ namespace DataStandardizer.File.InternetMessage
         private readonly byte[] _queue = new byte[MaxHeldBytes];
 
         private byte[] _buffer;
+        private bool _checksContent;
+        private byte _previousOctet;
+        private bool _reportedCarriageReturnLineFeed;
+        private bool _reportedEightBit;
         private int _bufferEnd;
         private long _bodyBytes;
         private long _bytePosition;
@@ -145,6 +157,8 @@ namespace DataStandardizer.File.InternetMessage
         {
             _variant = variant;
             _usesContentLength = variant == MboxVariant.Mboxcl || variant == MboxVariant.Mboxcl2;
+            _allowCarriageReturnLineFeed = options.AllowMboxCarriageReturnLineFeed;
+            _allowEightBit = options.AllowEightBitMboxContent;
             _allowInvalidContentLength = options.AllowInvalidMboxContentLength;
             _allowInvalidSeparator = options.AllowInvalidMboxSeparator;
             _allowMissingBlankLine = options.AllowMissingMboxBlankLine;
@@ -380,6 +394,8 @@ namespace DataStandardizer.File.InternetMessage
                         // ref. #412 design decision 14: the first separator line says which line break the file uses.
                         _isCrLf = _buffer[_position + length - 2] == CarriageReturn;
                         _isLineBreakKnown = true;
+                        if (_isCrLf) ReportCarriageReturnLineFeed();
+
                         RememberEnvelope(envelope, length);
                         return Status.MessageFound;
                     default:
@@ -404,6 +420,7 @@ namespace DataStandardizer.File.InternetMessage
             _nextEnvelope = envelope;
             _nextEnvelopeBytePosition = _bytePosition;
             _nextEnvelopeLineNumber = _lineNumber;
+            _checksContent = false;
             Consume(lineLength);
         }
 
@@ -420,6 +437,10 @@ namespace DataStandardizer.File.InternetMessage
             }
 
             _phase = Phase.LineStart;
+            _checksContent = true;
+            _previousOctet = 0;
+            _reportedCarriageReturnLineFeed = false;
+            _reportedEightBit = false;
             _inHeader = _usesContentLength;
             _hasContentLength = false;
             _invalidContentLength = false;
@@ -577,6 +598,9 @@ namespace DataStandardizer.File.InternetMessage
             }
             else
             {
+                if (!_allowMissingBlankLine)
+                    throw Fault(ErrorMessage.MissingFinalBlankLine, ImfDiagnosticKind.MissingMboxBlankLine);
+
                 FlushHeld();
                 AddDiagnostic(ImfDiagnosticKind.MissingMboxBlankLine, ErrorMessage.MissingBlankLineDiagnostic);
             }
@@ -761,6 +785,9 @@ namespace DataStandardizer.File.InternetMessage
 
         private void EndCountedAtEndOfInput(int offset)
         {
+            if (!_allowMissingBlankLine)
+                throw Fault(ErrorMessage.MissingFinalBlankLine, ImfDiagnosticKind.MissingMboxBlankLine);
+
             Consume(offset - _position);
             AddDiagnostic(ImfDiagnosticKind.MissingMboxBlankLine, ErrorMessage.MissingBlankLineDiagnostic);
             _phase = Phase.MessageEnded;
@@ -904,17 +931,62 @@ namespace DataStandardizer.File.InternetMessage
         private void Consume(int count)
         {
             var bytes = new ReadOnlySpan<byte>(_buffer, _position, count);
-            while (true)
+            if (_checksContent && (!_reportedEightBit || (!_isCrLf && !_reportedCarriageReturnLineFeed)))
             {
-                var lineFeed = bytes.IndexOf(LineFeed);
-                if (lineFeed < 0) break;
+                ConsumeChecked(bytes);
+            }
+            else
+            {
+                while (true)
+                {
+                    var lineFeed = bytes.IndexOf(LineFeed);
+                    if (lineFeed < 0) break;
 
-                _lineNumber++;
-                bytes = bytes.Slice(lineFeed + 1);
+                    _lineNumber++;
+                    bytes = bytes.Slice(lineFeed + 1);
+                }
+
+                _bytePosition += count;
             }
 
             _position += count;
-            _bytePosition += count;
+        }
+
+        // ref. RFC 4155 Appendix A: seven-bit characters, and a line feed with no carriage return.  A problem found is reported once for each message, so that it takes no more memory for a larger one.
+        private void ConsumeChecked(ReadOnlySpan<byte> bytes)
+        {
+            foreach (var octet in bytes)
+            {
+                if (octet > HighestSevenBitOctet && !_reportedEightBit)
+                {
+                    _reportedEightBit = true;
+                    if (!_allowEightBit) throw Fault(ErrorMessage.EightBit, ImfDiagnosticKind.EightBitMboxContent);
+
+                    AddDiagnostic(ImfDiagnosticKind.EightBitMboxContent, ErrorMessage.EightBitDiagnostic);
+                }
+
+                if (octet == LineFeed)
+                {
+                    if (!_isCrLf && _previousOctet == CarriageReturn && !_reportedCarriageReturnLineFeed)
+                    {
+                        _reportedCarriageReturnLineFeed = true;
+                        ReportCarriageReturnLineFeed();
+                    }
+
+                    _lineNumber++;
+                }
+
+                _previousOctet = octet;
+                _bytePosition++;
+            }
+        }
+
+        private void ReportCarriageReturnLineFeed()
+        {
+            if (!_allowCarriageReturnLineFeed)
+                throw Fault(ErrorMessage.CarriageReturnLineFeed, ImfDiagnosticKind.MboxCarriageReturnLineFeed);
+
+            AddDiagnostic(ImfDiagnosticKind.MboxCarriageReturnLineFeed, ErrorMessage.CarriageReturnLineFeedDiagnostic);
         }
 
         private void AddDiagnostic(ImfDiagnosticKind kind, string message)

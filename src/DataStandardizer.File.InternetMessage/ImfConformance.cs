@@ -100,6 +100,10 @@ namespace DataStandardizer.File.InternetMessage
                     return options.AllowMissingMboxBlankLine;
                 case ImfDiagnosticKind.InvalidMboxContentLength:
                     return options.AllowInvalidMboxContentLength;
+                case ImfDiagnosticKind.MboxCarriageReturnLineFeed:
+                    return options.AllowMboxCarriageReturnLineFeed;
+                case ImfDiagnosticKind.EightBitMboxContent:
+                    return options.AllowEightBitMboxContent;
                 default:
                     return false;
             }
