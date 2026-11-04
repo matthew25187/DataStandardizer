@@ -812,12 +812,22 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
-        /// Checks the <c>FMTTYPE</c> parameter of any property, including one RFC 5545 and RFC 7986 do not define: RFC 5545 §3.2.8 sets its syntax,
-        /// and §3.8.1.1 and RFC 7986 §5.10 allow it once on ATTACH and IMAGE.
+        /// Checks the <c>FMTTYPE</c> parameter of any property, including one RFC 5545 and RFC 7986 do not define: RFC 5545 §3.2.8 sets its syntax.
+        /// RFC 5545 §3.8.1.1 and RFC 7986 §5.10 allow it once on ATTACH and IMAGE, but §3.8.8.2 sets no such rule for a non-standard property.
         /// </summary>
         private static void ValidateFormatType(IcalContentLine property, string path, Context context)
         {
-            if (property.TryGetFormatType(out _)) return;
+            var count = 0;
+            var isValid = true;
+            foreach (var parameter in property.ParameterArray)
+            {
+                if (!IsName(parameter.Name, IcalParameterNames.FormatType)) continue;
+
+                count++;
+                isValid &= parameter.ValueArray.Length == 1 && IcalPropertyValue.TryParseFormatType(parameter.ValueArray[0].AsSpan(), out _);
+            }
+
+            if (isValid && (count < 2 || !IcalValueTypeRegistry.IsKnownProperty(property.Name.AsSpan()))) return;
 
             AddInvalidValue(property, path, IcalPropertyValue.BuildInvalidFormatTypeMessage(property.Name.ToUpperInvariant()), context);
         }
@@ -828,9 +838,13 @@ namespace DataStandardizer.File.iCal
         private static void ValidateParameters(IcalContentLine property, string path, Context context)
         {
             var parameters = property.ParameterArray;
-            for (var index = 0; index < parameters.Length; index++)
+
+            // Only a line with two or more parameters can repeat one, and few do, so most lines allocate nothing here.
+            var seen = parameters.Length > 1 && IcalValueTypeRegistry.IsKnownProperty(property.Name.AsSpan())
+                ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                : null;
+            foreach (var parameter in parameters)
             {
-                var parameter = parameters[index];
                 var isSingleValue = SingleValueParameters.Contains(parameter.Name, StringComparer.OrdinalIgnoreCase);
                 if (!isSingleValue && !MultipleValueParameters.Contains(parameter.Name, StringComparer.OrdinalIgnoreCase)) continue;
 
@@ -843,23 +857,13 @@ namespace DataStandardizer.File.iCal
                 }
 
                 // ref. RFC 5545§3.8: each property's parameters "MUST NOT occur more than once".  §3.8.8.2 sets no such rule for a non-standard one.
-                if (IcalValueTypeRegistry.IsKnownProperty(property.Name.AsSpan()) && OccursEarlier(parameters, index))
+                if (seen != null && !seen.Add(parameter.Name))
                 {
                     AddInvalidValue(property, path,
                         string.Format(CultureInfo.InvariantCulture, "The {0} parameter appears more than once in the {1} property.",
                             parameter.Name.ToUpperInvariant(), property.Name.ToUpperInvariant()), context);
                 }
             }
-        }
-
-        private static bool OccursEarlier(IcalContentLineParameter[] parameters, int index)
-        {
-            for (var earlier = 0; earlier < index; earlier++)
-            {
-                if (IsName(parameters[earlier].Name, parameters[index].Name)) return true;
-            }
-
-            return false;
         }
 
         /// <summary>

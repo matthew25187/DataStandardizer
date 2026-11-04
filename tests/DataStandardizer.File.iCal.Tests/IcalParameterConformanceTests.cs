@@ -1,3 +1,4 @@
+using System.Linq;
 using FluentAssertions;
 using Xunit;
 using static DataStandardizer.File.iCal.Tests.ModelTestData;
@@ -37,6 +38,18 @@ namespace DataStandardizer.File.iCal.Tests
 
                 // ref. RFC 5545 §3.8.8.2: x-prop sets no limit on how often a parameter occurs.
                 "X-ABC;LANGUAGE=en;LANGUAGE=de:x",
+
+                // ref. RFC 5545 §3.8.8.2: this includes FMTTYPE.
+                "X-ABC;FMTTYPE=audio/basic;FMTTYPE=image/png:x",
+            };
+        }
+
+        public static TheoryData<string> LinesWithExcessValueParameters()
+        {
+            return new TheoryData<string>
+            {
+                "DTSTART;VALUE=DATE;VALUE=DATE-TIME:20260101",
+                "DTSTART;VALUE=DATE,DATE-TIME:20260101",
             };
         }
 
@@ -52,6 +65,20 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             testResult.Should().BeEmpty();
+        }
+
+        [Theory]
+        [MemberData(nameof(LinesWithExcessValueParameters))]
+        public void DtStart_ExcessValueParameterReadWithOption_UsesTheFirstValue(string line)
+        {
+            // arrange
+            var calendarEvent = ReadCalendar(EventCalendar(line), new IcalOptions { AllowInvalidValues = true }).Events.Single();
+
+            // act
+            var testResult = calendarEvent.DtStart;
+
+            // assert
+            testResult.Value.IsDate.Should().BeTrue();
         }
     }
 }

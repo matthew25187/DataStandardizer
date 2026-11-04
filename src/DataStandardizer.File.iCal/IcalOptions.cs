@@ -48,7 +48,7 @@ namespace DataStandardizer.File.iCal
         /// <para>
         /// When <c>true</c>, the value is kept as written.  A typed accessor such as <see cref="IcalEvent.DtStart"/> throws
         /// <see cref="IcalFileException"/> when it reads the value, as <see cref="IcalContentLine.GetFormatType"/> does for a <c>FMTTYPE</c>
-        /// parameter.
+        /// parameter.  For any other parameter that is repeated or has too many values, a typed accessor uses the first value.
         /// </para>
         /// </remarks>
         public bool AllowInvalidValues

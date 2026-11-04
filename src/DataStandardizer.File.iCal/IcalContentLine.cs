@@ -177,48 +177,33 @@ namespace DataStandardizer.File.iCal
         /// <remarks>
         /// The value must be a type and subtype whose names follow RFC 4288 §4.2, as RFC 5545 §3.2.8 requires, so it can't have media type
         /// parameters.  A reader or writer accepts a value that doesn't follow this only with <see cref="IcalOptions.AllowInvalidValues"/>.  To read
-        /// such a value, use <see cref="GetParameter"/> with <see cref="IcalParameterNames.FormatType"/>.
+        /// such a value, use <see cref="GetParameter"/> with <see cref="IcalParameterNames.FormatType"/>.  A non-standard property may repeat the
+        /// parameter (RFC 5545 §3.8.8.2), which readers and writers accept; this method throws for it, as it can't tell which media type applies.
         /// </remarks>
         /// <returns>The media type; or <c>null</c> if the line has no <c>FMTTYPE</c> parameter.</returns>
         /// <exception cref="IcalFileException">The line has more than one <c>FMTTYPE</c> parameter, or the parameter has more than one value or
         /// a value that is not valid.</exception>
         public MimeMediaType? GetFormatType()
         {
-            MimeMediaType? result;
-            if (!TryGetFormatType(out result))
+            var parameterIndex = -1;
+            for (var index = 0; index < _parameters.Length; index++)
+            {
+                if (!string.Equals(_parameters[index].Name, IcalParameterNames.FormatType, StringComparison.OrdinalIgnoreCase)) continue;
+                if (parameterIndex >= 0) throw IcalPropertyValue.BuildInvalidFormatTypeException(LineNumber, PhysicalLineNumber, Name);
+
+                parameterIndex = index;
+            }
+
+            if (parameterIndex < 0) return null;
+
+            var values = _parameters[parameterIndex].ValueArray;
+            MimeMediaType result;
+            if (values.Length != 1 || !IcalPropertyValue.TryParseFormatType(values[0].AsSpan(), out result))
             {
                 throw IcalPropertyValue.BuildInvalidFormatTypeException(LineNumber, PhysicalLineNumber, Name);
             }
 
             return result;
-        }
-
-        /// <summary>
-        /// Gets the media type in the <c>FMTTYPE</c> parameter, if the parameter follows RFC 5545 §3.2.8.
-        /// </summary>
-        /// <param name="result">The media type; or <c>null</c> if the line has no <c>FMTTYPE</c> parameter, or the parameter is not valid.</param>
-        /// <returns><c>false</c> if the line has more than one <c>FMTTYPE</c> parameter, or the parameter has more than one value or a value that
-        /// is not valid; otherwise <c>true</c>.</returns>
-        internal bool TryGetFormatType(out MimeMediaType? result)
-        {
-            result = null;
-            var parameterIndex = -1;
-            for (var index = 0; index < _parameters.Length; index++)
-            {
-                if (!string.Equals(_parameters[index].Name, IcalParameterNames.FormatType, StringComparison.OrdinalIgnoreCase)) continue;
-                if (parameterIndex >= 0) return false;
-
-                parameterIndex = index;
-            }
-
-            if (parameterIndex < 0) return true;
-
-            var values = _parameters[parameterIndex].ValueArray;
-            MimeMediaType mediaType;
-            if (values.Length != 1 || !IcalPropertyValue.TryParseFormatType(values[0].AsSpan(), out mediaType)) return false;
-
-            result = mediaType;
-            return true;
         }
 
         /// <summary>

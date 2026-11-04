@@ -18,6 +18,12 @@ namespace DataStandardizer.File.iCal.Tests
         private const string InvalidFormatTypeLine = "ATTACH;FMTTYPE=audio:http://example.com/a";
         private const string InvalidFormatTypeValue = "audio";
         private const string TwoFormatTypesLine = "ATTACH;FMTTYPE=audio/basic;FMTTYPE=image/png:http://example.com/a";
+        private const string FirstFormatType = "audio/basic";
+        private const string SecondFormatType = "image/png";
+        private const string ExtensionProperty = "X-ABC";
+
+        // ref. RFC 5545 §3.8.8.2: x-prop sets no limit on how often a parameter occurs.
+        private const string TwoFormatTypesOnExtensionPropertyLine = "X-ABC;FMTTYPE=audio/basic;FMTTYPE=image/png:x";
 
         private static readonly IcalOptions AllowingInvalidValues = new IcalOptions { AllowInvalidValues = true };
 
@@ -143,6 +149,36 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             testResult.Parameters.Should().HaveCount(2);
+            testResult.Parameters[0].Name.Should().Be(IcalParameterNames.FormatType);
+            testResult.Parameters[0].Values.Should().Equal(FirstFormatType);
+            testResult.Parameters[1].Name.Should().Be(IcalParameterNames.FormatType);
+            testResult.Parameters[1].Values.Should().Equal(SecondFormatType);
+        }
+
+        [Fact]
+        public void ReadCalendar_TwoFormatTypesOnExtensionPropertyWithDefaults_KeepsBoth()
+        {
+            // arrange
+            var text = EventCalendar(TwoFormatTypesOnExtensionPropertyLine);
+
+            // act
+            var testResult = ReadCalendar(text).Components.Single().GetProperty(ExtensionProperty);
+
+            // assert
+            testResult.Parameters.Should().HaveCount(2);
+        }
+
+        [Fact]
+        public void GetFormatType_TwoFormatTypesOnExtensionProperty_ThrowsIcalFileException()
+        {
+            // arrange
+            var property = ReadCalendar(EventCalendar(TwoFormatTypesOnExtensionPropertyLine)).Components.Single().GetProperty(ExtensionProperty);
+
+            // act
+            Action testAction = () => property.GetFormatType();
+
+            // assert
+            testAction.Should().Throw<IcalFileException>();
         }
 
         [Fact]
