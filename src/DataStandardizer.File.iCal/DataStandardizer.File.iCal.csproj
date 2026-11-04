@@ -36,6 +36,7 @@ Provides types supporting the reading and writing of iCalendar files.  Includes:
   <ItemGroup>
     <ProjectReference Include="..\DataStandardizer.Core\DataStandardizer.Core.csproj" />
     <ProjectReference Include="..\DataStandardizer.Chronology\DataStandardizer.Chronology.csproj" />
+    <ProjectReference Include="..\DataStandardizer.Communication\DataStandardizer.Communication.csproj" />
   </ItemGroup>
 
 </Project>

@@ -24,7 +24,8 @@ public static class IcalParameterNames
 
 Parameter names are case-insensitive. These constants are in the upper case the RFCs
 use. Use them with `IcalContentLine.GetParameter`, or to create an
-[IcalContentLineParameter](IcalContentLineParameter.md).
+[IcalContentLineParameter](IcalContentLineParameter.md). To read `FMTTYPE` as a
+`MimeMediaType`, use `IcalContentLine.GetFormatType`.
 
 ## Fields
 

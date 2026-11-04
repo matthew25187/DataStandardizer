@@ -58,8 +58,8 @@ decoded into a scratch buffer that is sized for the whole line and does not move
 while the line is current, so a decoded value taken out earlier stays valid when
 later values are decoded.
 
-**Allocation.** No member allocates, except `ToContentLine`, and the first decode of a
-line, which may rent the scratch buffer from `ArrayPool<char>.Shared`.
+**Allocation.** No member allocates, except `ToContentLine`, `GetFormatType`, and the
+first decode of a line, which may rent the scratch buffer from `ArrayPool<char>.Shared`.
 
 **Thread safety.** The stamp check is not synchronized with reads. Do not use a view
 on one thread while another thread reads from the same reader.
@@ -107,6 +107,7 @@ Every method throws `ObjectDisposedException` if the reader has been disposed, o
 | `GetParameterValue(int parameterIndex, int valueIndex)` | `ReadOnlySpan<char>` | A parameter value with RFC 6868 caret encoding decoded: `^n` becomes a line feed, `^'` a double quote, and `^^` a caret. A caret followed by anything else is kept. |
 | `GetParameterValueMemory(int parameterIndex, int valueIndex)` | `ReadOnlyMemory<char>` | As `GetParameterValue`, as memory. |
 | `IsParameterValueQuoted(int parameterIndex, int valueIndex)` | `bool` | Whether the parameter value was enclosed in double quotes. |
+| `GetFormatType()` | `MimeMediaType?` | The media type in the `FMTTYPE` parameter (RFC 5545 §3.2.8), or `null` if there is none. The value must be a type and subtype whose names follow RFC 4288 §4.2, so it can't have media type parameters. Throws `IcalFileException` if the line has more than one `FMTTYPE` parameter, or the parameter has more than one value or a value that isn't valid. To read a value that doesn't follow this, use `IndexOfParameter` and `GetParameterValue`. |
 
 ### Values and copying
 

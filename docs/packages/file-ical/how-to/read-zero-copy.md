@@ -63,6 +63,7 @@ view are available on every target, .NET Standard 1.1 included.
 | `GetParameterValue(i, j)` | Value `j` of parameter `i`, with RFC 6868 caret encoding decoded. |
 | `GetRawParameterValue(i, j)` | The same value as written, with caret encoding in place. |
 | `IsParameterValueQuoted(i, j)` | Whether the value was in double quotes. |
+| `GetFormatType()` | The `FMTTYPE` parameter as a `MimeMediaType`, or `null` if there is none. This allocates. |
 | `LineNumber`, `PhysicalLineNumber` | Where the line is: its logical line, and the physical line it starts on. |
 
 Each span member has a `Memory` variant that returns `ReadOnlyMemory<char>`, such as

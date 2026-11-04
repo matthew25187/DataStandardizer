@@ -513,6 +513,65 @@ namespace DataStandardizer.File.iCal.Tests
             charsWritten.Should().Be(0);
         }
 
+        [Fact]
+        public void TryFormatBinary_DestinationTooShort_LeavesDestinationUnchanged()
+        {
+            // arrange
+            var destination = new char[7];
+
+            // act
+            IcalValue.TryFormatBinary(new byte[] { 1, 2, 3, 4 }, destination, out _, IcalValueFormat.Text);
+
+            // assert
+            destination.Should().Equal(new char[7]);
+        }
+
+        [Fact]
+        public void TryFormatBinary_DestinationExactLength_WritesBase64()
+        {
+            // arrange
+            var destination = new char[8];
+
+            // act
+            var testResult = IcalValue.TryFormatBinary(new byte[] { 0x0B, 0x30, 0x55, 0x7A }, destination, out var charsWritten, IcalValueFormat.Text);
+
+            // assert
+            testResult.Should().BeTrue();
+            charsWritten.Should().Be(8);
+            new string(destination).Should().Be("CzBVeg==");
+        }
+
+        // ref. RFC 4648 §3.5: a decoder may accept pad bits that are not zero.
+        [Theory]
+        [InlineData("Cx==", new byte[] { 0x0B })]
+        [InlineData("CzB=", new byte[] { 0x0B, 0x30 })]
+        public void TryParseBinary_PadBitsNotZero_GivesTheOctets(string value, byte[] expected)
+        {
+            // act
+            var testResult = IcalValue.TryParseBinary(value.AsSpan(), IcalValueFormat.Text, out var bytes);
+
+            // assert
+            testResult.Should().BeTrue();
+            bytes.Should().Equal(expected);
+        }
+
+        [Theory]
+        [InlineData("AA==AAAA")]
+        [InlineData("AAA=AAAA")]
+        [InlineData("AAAA====")]
+        [InlineData("AA=")]
+        [InlineData("AAA\xE9")]
+        [InlineData("AA\xFF\xFF")]
+        public void TryParseBinary_MisplacedPaddingOrNonAsciiCharacter_Fails(string value)
+        {
+            // act
+            var testResult = IcalValue.TryParseBinary(value.AsSpan(), IcalValueFormat.Text, out var bytes);
+
+            // assert
+            testResult.Should().BeFalse();
+            bytes.Should().BeNull();
+        }
+
         #endregion
 
         #region URI and CAL-ADDRESS
