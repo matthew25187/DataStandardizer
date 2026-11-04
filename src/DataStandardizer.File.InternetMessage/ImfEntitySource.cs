@@ -142,6 +142,11 @@ namespace DataStandardizer.File.InternetMessage
         internal bool IsPreserved { get; set; }
 
         /// <summary>
+        /// Gets or sets a flag indicating that raw bytes that were read hold a header that has since changed, so what holds them can't go by the label it was read with (RFC 2045 §6.4).
+        /// </summary>
+        internal bool HasChangedHeader { get; set; }
+
+        /// <summary>
         /// Describes an entity with content in memory.
         /// </summary>
         /// <param name="contentType">The media type, which is written as the Content-Type field.  Say what character set any text is in, with a

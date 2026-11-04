@@ -55,7 +55,7 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Determines if the bytes of a field of a nested entity hold an octet that what holds the entity doesn't allow (RFC 2045 §2.7 and §6.4).
+        /// Determines if the bytes of a field of a nested entity hold an octet that the entity holding it doesn't allow (RFC 2045 §2.7 and §6.4).
         /// </summary>
         internal static bool HasInvalidHeaderOctet(ReadOnlySpan<byte> bytes, MimeDataDomain enclosing)
         {

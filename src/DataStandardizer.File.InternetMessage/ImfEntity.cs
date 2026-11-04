@@ -574,6 +574,7 @@ namespace DataStandardizer.File.InternetMessage
             }
 
             source.IsPreserved = !_isMoved;
+            source.HasChangedHeader = HasChangedFields;
             return source;
         }
 

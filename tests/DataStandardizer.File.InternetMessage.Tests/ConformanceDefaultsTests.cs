@@ -408,6 +408,8 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string EightBitEmbeddedHeaderUnder8Bit = EightBitHeaderTop + "Content-Type: message/rfc822\r\nContent-Transfer-Encoding: 8bit\r\n\r\nSubject: caf\xC3\xA9\r\n\r\nx\r\n";
         private const string EightBitPartHeaderUnderBinary = EightBitHeaderTop + "Content-Type: multipart/mixed; boundary=b\r\nContent-Transfer-Encoding: binary\r\n\r\n--b\r\nX-Note: caf\xC3\xA9\r\n\r\nx\r\n--b--\r\n";
         private const string EightBitNestedPartHeader = EightBitHeaderTop + "Content-Type: multipart/mixed; boundary=b\r\nContent-Transfer-Encoding: 8bit\r\n\r\n--b\r\nContent-Type: multipart/mixed; boundary=c\r\n\r\n--c\r\nX-Note: caf\xC3\xA9\r\n\r\nx\r\n--c--\r\n--b--\r\n";
+        private const string EightBitSecondPartHeader = EightBitHeaderTop + "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\nx\r\n--b\r\nX-Note: caf\xC3\xA9\r\n\r\ny\r\n--b--\r\n";
+        private const string TwoAsciiParts = EightBitHeaderTop + "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\nx\r\n--b\r\n\r\ny\r\n--b--\r\n";
         private const string EightBitTopHeader = "Date: Thu, 1 Jan 2026 00:00:00 +0000\r\nFrom: a@b.test\r\nSubject: caf\xC3\xA9\r\n\r\nx\r\n";
 
         public static TheoryData<string, string> EightBitHeadersUnder7Bit => new TheoryData<string, string>
@@ -532,6 +534,42 @@ namespace DataStandardizer.File.InternetMessage.Tests
                 var data = testAction.Should().Throw<ImfFileException>().Which.Data;
                 data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.InvalidBodyOctets);
                 data[ImfFileException.DataItemName.EntityPath].Should().Be(expectedPath);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_SiblingOfAnEightBitHeaderUnder7BitChanged_ThrowsByDefault()
+        {
+            // arrange
+            var subject = Read(EightBitSecondPartHeader, new ImfOptions { AllowInvalidBodyOctets = true });
+            ((ImfMultipart)subject.Body).Parts[0].SetContent(Octets.Of("changed"));
+            using (var writer = new ImfWriter(new MemoryStream()))
+            {
+                // act
+                Action testAction = () => writer.WriteMessage(subject);
+
+                // assert
+                var data = testAction.Should().Throw<ImfFileException>().Which.Data;
+                data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.InvalidBodyOctets);
+                data[ImfFileException.DataItemName.EntityPath].Should().Be("2");
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_NonAsciiFieldAddedToAPart_LabelsWhatHoldsIt()
+        {
+            // arrange
+            var options = new ImfOptions { HeaderEncoding = ImfHeaderEncoding.Utf8 };
+            var subject = Read(TwoAsciiParts, options);
+            ((ImfMultipart)subject.Body).Parts[0].Fields.Add(ImfHeaderField.FromText("X-Note", "caf\x00E9"));
+            var stream = new MemoryStream();
+            using (var writer = new ImfWriter(stream, options))
+            {
+                // act
+                writer.WriteMessage(subject);
+
+                // assert
+                Octets.ToText(stream.ToArray()).Should().Contain("Content-Transfer-Encoding: 8bit\r\n");
             }
         }
 
