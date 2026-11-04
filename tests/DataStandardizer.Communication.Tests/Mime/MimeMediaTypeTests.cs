@@ -65,7 +65,7 @@ namespace DataStandardizer.Communication.Tests.Mime
         private const string TildeSubtype = "x~y";
 
         // The lowest bit that no MimeMediaTypeParseOptions member uses.
-        private const MimeMediaTypeParseOptions UndefinedOption = (MimeMediaTypeParseOptions)(1 << 9);
+        private const MimeMediaTypeParseOptions UndefinedOption = (MimeMediaTypeParseOptions)(1 << 10);
 
         private const MimeMediaTypeParseOptions WhitespaceAndRfc2045Tokens =
             MimeMediaTypeParseOptions.AllowWhitespaceAroundDelimiters | MimeMediaTypeParseOptions.AllowRfc2045Tokens;
@@ -337,6 +337,100 @@ namespace DataStandardizer.Communication.Tests.Mime
 
             // assert
             testAction.Should().Throw<ArgumentNullException>();
+        }
+
+        public static TheoryData<string> Utf8InQuotedStrings => new TheoryData<string>
+        {
+            "a/b;c=\"\x00E9\"",
+            "a/b;c=\"\\\x00E9\"",
+            "a/b;c=\"\xD83D\xDE00\"",
+        };
+
+        // ref. RFC 2045 §5.1: a token is US-ASCII.  RFC 2231 §7: an extended value holds only US-ASCII, and §4.1: a raw character has no octets to join with extended sections.
+        // ref. RFC 5322 §3.2.4: qtext doesn't hold controls, which RFC 6532 §3.2 leaves as they are.
+        public static TheoryData<string> Utf8OutsideQuotedStrings => new TheoryData<string>
+        {
+            "a/b;c=\x00E9",
+            "a/b;\x00E9=d",
+            "a/b;c*=\"UTF-8''\x00E9\"",
+            "a/b;c*0*=UTF-8''d;c*1=\"\x00E9\"",
+            "a/b;c=\"\x007F\"",
+        };
+
+        // ref. RFC 3629 §3: no UTF-8 sequence stands for a surrogate.  These are delegates because a test runner replaces an unpaired surrogate in a string theory argument
+        // when it serializes it, so the code would never see one.
+        public static TheoryData<Func<bool>> UnpairedSurrogateCalls => new TheoryData<Func<bool>>
+        {
+            () => MimeMediaType.TryParse("a/b;c=\"\xD83D\"", MimeMediaTypeParseOptions.AllowUtf8QuotedStrings, out _),
+            () => MimeMediaType.TryParse("a/b;c=\"\xDE00\xD83D\"", MimeMediaTypeParseOptions.AllowUtf8QuotedStrings, out _),
+            () => MimeMediaType.TryParse("a/b;c=\"\\\xD83D\"", MimeMediaTypeParseOptions.AllowUtf8QuotedStrings, out _),
+        };
+
+        [Theory]
+        [MemberData(nameof(Utf8InQuotedStrings))]
+        public void TryParse_Utf8InQuotedStringByDefault_ReturnsFalse(string value)
+        {
+            // act
+            var testResult = MimeMediaType.TryParse(value, out _);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Theory]
+        [MemberData(nameof(Utf8InQuotedStrings))]
+        public void TryParse_Utf8InQuotedStringWithOption_ReturnsTrue(string value)
+        {
+            // act
+            var testResult = MimeMediaType.TryParse(value, MimeMediaTypeParseOptions.AllowUtf8QuotedStrings, out _);
+
+            // assert
+            testResult.Should().BeTrue();
+        }
+
+        [Theory]
+        [MemberData(nameof(Utf8OutsideQuotedStrings))]
+        public void TryParse_NotUtf8InAQuotedStringWithOption_ReturnsFalse(string value)
+        {
+            // act
+            var testResult = MimeMediaType.TryParse(value, MimeMediaTypeParseOptions.AllowUtf8QuotedStrings | MimeMediaTypeParseOptions.AllowQuotedExtendedValues, out _);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Theory]
+        [MemberData(nameof(UnpairedSurrogateCalls))]
+        public void TryParse_UnpairedSurrogateInQuotedStringWithOption_ReturnsFalse(Func<bool> tryParse)
+        {
+            // act
+            var testResult = tryParse();
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void Parse_QuotedPairOfANonAsciiCharacterWithOption_DropsTheBackslash()
+        {
+            // act
+            var testResult = MimeMediaType.Parse("a/b;c=\"\\\x00E9\"", MimeMediaTypeParseOptions.AllowUtf8QuotedStrings);
+
+            // assert
+            testResult.Parameters[0].Value.Should().Be("\x00E9");
+        }
+
+        [Fact]
+        public void ToString_ValueReadFromUtf8QuotedString_WritesTheExtendedForm()
+        {
+            // arrange
+            var subject = MimeMediaType.Parse("a/b;c=\"\x00E9\"", MimeMediaTypeParseOptions.AllowUtf8QuotedStrings);
+
+            // act
+            var testResult = subject.ToString();
+
+            // assert
+            testResult.Should().Be("a/b;c*=UTF-8''%C3%A9");
         }
 
         [Fact]

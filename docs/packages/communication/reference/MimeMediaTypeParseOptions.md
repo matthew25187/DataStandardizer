@@ -35,6 +35,7 @@ public enum MimeMediaTypeParseOptions
 | `AllowQuotedExtendedValues` | 64 | An extended value written as a quoted-string (RFC 2231 §7). |
 | `AllowLowercaseHexDigits` | 128 | Lower-case digits in the `%` escapes of an extended value, such as `%c3%a9` (RFC 2231 §7). |
 | `AllowInvalidOctets` | 256 | An extended value whose octets aren't valid in its character set (RFC 2231 §4, and RFC 3629 §3 for UTF-8). Each invalid sequence is read as U+FFFD. |
+| `AllowUtf8QuotedStrings` | 512 | Non-ASCII characters in a parameter value written as a quoted-string, which the US-ASCII grammar of RFC 2045 §5.1 doesn't allow and RFC 6532 §3.2 does, for the header of a message that uses UTF-8. A token, an extended value (RFC 2231 §7) and a section joined with extended ones (RFC 2231 §4.1) must still be US-ASCII, and an unpaired surrogate is never accepted (RFC 3629 §3). |
 | `AllowNonstandardSections` | 28 | `AllowMissingSections`, `AllowDuplicateSections` and `AllowLeadingZeroSectionNumbers`. |
 | `AllowNonstandardExtendedValues` | 192 | `AllowQuotedExtendedValues` and `AllowLowercaseHexDigits`. `AllowUnknownCharsets` isn't included, as it changes how a value is decoded. |
 

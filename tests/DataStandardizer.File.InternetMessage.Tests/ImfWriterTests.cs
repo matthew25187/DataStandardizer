@@ -34,6 +34,24 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
         private static readonly string LargeMessage = Header + "\r\n" + new string('x', LargeBodyLength);
 
+        [Fact]
+        public void WriteMessage_Utf8InQuotedContentTypeParameter_WritesItBackByteForByte()
+        {
+            // arrange
+            // ref. RFC 6532 §3.2
+            const string message = "Date: Thu, 1 Jan 2026 00:00:00 +0000\r\nFrom: a@b.test\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; c=\"\xC3\xA9\"\r\n\r\nx\r\n";
+            var subject = ImfMessages.Read(message);
+            var stream = new MemoryStream();
+            using (var writer = new ImfWriter(stream))
+            {
+                // act
+                writer.WriteMessage(subject);
+
+                // assert
+                Octets.ToText(stream.ToArray()).Should().Be(message);
+            }
+        }
+
         [Theory]
         [MemberData(nameof(Rfc5322Messages.All), MemberType = typeof(Rfc5322Messages))]
         public void WriteMessage_AppendixAMessage_WritesItBackByteForByte(string message)

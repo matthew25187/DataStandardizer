@@ -110,6 +110,21 @@ namespace DataStandardizer.Communication.Mime
         AllowInvalidOctets = 1 << 8,
 
         /// <summary>
+        /// Accept non-ASCII characters in a parameter value written as a quoted-string, such as <c>name="é.txt"</c>, which the US-ASCII grammar of
+        /// RFC 2045 §5.1 doesn't allow and RFC 6532 §3.2 does, for the header of a message that uses UTF-8.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// A token, an extended value (RFC 2231 §7), and a section that is joined with extended ones (RFC 2231 §4.1) must still be US-ASCII, and an unpaired
+        /// surrogate is never accepted (RFC 3629 §3).
+        /// </para>
+        /// <para>
+        /// The value is written back in the RFC 2231 form, as all non-ASCII values are.
+        /// </para>
+        /// </remarks>
+        AllowUtf8QuotedStrings = 1 << 9,
+
+        /// <summary>
         /// Accept a parameter whose sections break any of the RFC 2231 §3 numbering rules: <see cref="AllowMissingSections"/>,
         /// <see cref="AllowDuplicateSections"/> and <see cref="AllowLeadingZeroSectionNumbers"/>.
         /// </summary>

@@ -1140,6 +1140,21 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Fact]
+        public void ContentType_Utf8InQuotedParameter_GivesTheValue()
+        {
+            // arrange
+            // ref. RFC 6532 §3.2
+            using (var reader = EntityEvents.CreateReader("Date: Thu, 1 Jan 2026 00:00:00 +0000\r\nFrom: a@b.test\r\nMIME-Version: 1.0\r\nContent-Type: a/b; c=\"\xC3\xA9\"\r\n\r\n"))
+            {
+                // act
+                var testResult = EntityEvents.ReadUntil(reader, ImfEntityEventKind.HeaderEnd).Value.ContentType;
+
+                // assert
+                testResult.Parameters[0].Value.Should().Be("\x00E9");
+            }
+        }
+
+        [Fact]
         public void ContentType_BeforeTheHeaderEnds_Throws()
         {
             // arrange

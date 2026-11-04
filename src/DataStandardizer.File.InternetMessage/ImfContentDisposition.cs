@@ -240,7 +240,7 @@ namespace DataStandardizer.File.InternetMessage
 
             // ref. RFC 2183 §2: disposition := "Content-Disposition" ":" disposition-type *(";" disposition-parm)
             result = null;
-            if (!ImfMimeFields.TryParseParameterized(value, HolderPrefix, FileNameParameterName, true, options, out var parsed)) return false;
+            if (!ImfMimeFields.TryParseParameterized(value, HolderPrefix, FileNameParameterName, true, ImfMimeFields.GetParseOptions(options), options, out var parsed)) return false;
             if (!TypedParameters.TryRead(parsed, options.AllowInvalidValues, options.AllowMalformedParameters, out var typed)) return false;
 
             result = new ImfContentDisposition(parsed, typed);

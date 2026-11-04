@@ -108,8 +108,11 @@ namespace DataStandardizer.File.InternetMessage.Tests
             "a/b; c=d; c=e",
             FinalSemicolon,
 
-            // ref. RFC 6532 §3.2 allows this in a quoted-string, but the media type parser takes only US-ASCII.
-            "a/b; c=\"\x00E9\"",
+            // ref. RFC 2045 §5.1: a token is US-ASCII, as RFC 6532 §3.2 leaves it.
+            "a/b; c=\x00E9",
+
+            // ref. RFC 2231 §4.1: a raw character has no octets to join with those of an extended section.
+            "a/b; c*0*=UTF-8''d; c*1=\"\x00E9\"",
 
             // ref. RFC 2231 §3 and §7
             MissingSection,
@@ -270,6 +273,42 @@ namespace DataStandardizer.File.InternetMessage.Tests
         [MemberData(nameof(InvalidContentTypes))]
         public void ParseContentType_InvalidForm_Throws(string value)
         {
+            // act
+            Action testAction = () => ImfMimeFields.ParseContentType(value);
+
+            // assert
+            testAction.Should().Throw<FormatException>();
+        }
+
+        [Fact]
+        public void ParseContentType_Utf8InQuotedParameter_GivesTheValue()
+        {
+            // act
+            var testResult = ImfMimeFields.ParseContentType("a/b; c=\"\x00E9\"");
+
+            // assert
+            testResult.Parameters[0].Value.Should().Be("\x00E9");
+        }
+
+        [Fact]
+        public void ParseContentType_Utf8BytesInFoldedQuotedParameter_GivesTheValue()
+        {
+            // arrange
+            var value = Octets.Of("a/b; c=\"\xC3\xA9\r\n d\"");
+
+            // act
+            var testResult = ImfMimeFields.ParseContentType(value);
+
+            // assert
+            testResult.Parameters[0].Value.Should().Be("\x00E9 d");
+        }
+
+        [Fact]
+        public void ParseContentType_InvalidUtf8InQuotedParameter_Throws()
+        {
+            // arrange
+            var value = Octets.Of("a/b; c=\"\xC3\"");
+
             // act
             Action testAction = () => ImfMimeFields.ParseContentType(value);
 

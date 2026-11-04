@@ -529,6 +529,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             () => ImfEntitySource.FromContent(MimeMediaType.TextPlain, new byte[0]).AddField("Content-Type", "text/html", ImfHeaderFieldKind.Structured),
             () => ImfEntitySource.FromContent(MimeMediaType.TextPlain, new byte[0]).AddField("Content-Type", "not a type", ImfHeaderFieldKind.Structured),
+            () => ImfEntitySource.FromContent(MimeMediaType.TextPlain.WithParameter("c", "\x00E9"), new byte[0]).AddRawField(Octets.Of("Content-Type: text/plain; c=\"\xC3\"\r\n")),
             () => ImfEntitySource.FromContent(MimeMediaType.TextPlain, new byte[0])
                 .AddField("Content-Type", "text/plain", ImfHeaderFieldKind.Structured).AddField("content-type", "text/plain", ImfHeaderFieldKind.Structured),
             () => ImfEntitySource.FromContent(MimeMediaType.TextPlain, new byte[0])
@@ -597,6 +598,20 @@ namespace DataStandardizer.File.InternetMessage.Tests
                 // assert
                 testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.EntityPath].Should().Be(expectedPath);
             }
+        }
+
+        [Fact]
+        public void WriteMessage_ContentTypeFieldWithUtf8InQuotedParameter_WritesTheField()
+        {
+            // arrange
+            // ref. RFC 6532 §3.2
+            var source = ImfEntitySource.FromContent(MimeMediaType.TextPlain.WithParameter("c", "\x00E9"), new byte[0]).AddRawField(Octets.Of("Content-Type: text/plain; c=\"\xC3\xA9\"\r\n"));
+
+            // act
+            var testResult = MessageWrites.Write(source);
+
+            // assert
+            testResult.Should().Be("Content-Type: text/plain; c=\"\xC3\xA9\"\r\nMIME-Version: 1.0\r\n\r\n");
         }
 
         [Fact]
