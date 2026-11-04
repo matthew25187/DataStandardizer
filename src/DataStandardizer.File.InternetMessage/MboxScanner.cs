@@ -721,7 +721,8 @@ namespace DataStandardizer.File.InternetMessage
         {
             if (_quotedLineLength != NotAQuotedLine)
             {
-                var length = _previousOctet == CarriageReturn ? _quotedLineLength - 1 : _quotedLineLength;
+                // A file of CRLF has already left its line break out.  In a file of LF, a carriage return before the line feed is the line break that AllowMboxCarriageReturnLineFeed accepts.
+                var length = !_isCrLf && _previousOctet == CarriageReturn ? _quotedLineLength - 1 : _quotedLineLength;
                 if (length > ImfBodyCheck.MaxLineLength) LongQuotedLines.Add(new ImfLongLine(_quotedLineOffset, _bytePosition - _quotedLineLength, _lineNumber));
             }
 

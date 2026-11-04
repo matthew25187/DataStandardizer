@@ -119,6 +119,8 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private static readonly string TooLongQuotedLineMailbox = Separator1 + Header + "\n" + TooLongQuotedLine + "\n\n";
         private static readonly string TooLongQuotedLineThenGood = TooLongQuotedLineMailbox + OneMessageWithEmptyLine;
         private static readonly string LongestQuotedLineMailbox = Separator1 + Header + "\n>From " + new string('x', ShorterFromLinePadding) + "\n\n";
+        private static readonly string TooLongQuotedLineEndingInCarriageReturn = "From a@b.test Thu Jan  1 00:00:00 2026\r\nDate: Thu, 1 Jan 2026 00:00:00 +0000\r\nFrom: a@b.test\r\n\r\n>From " + new string('x', ShorterFromLinePadding) + "\r\r\n\r\n";
+        private static readonly string LongestQuotedLineWithCrLfInLfFile = Separator1 + Header + "\n>From " + new string('x', ShorterFromLinePadding) + "\r\n\n";
         private static readonly string LongestUnquotedFromLine = Separator1 + Header + "\nFrom " + new string('x', LongestFromLinePadding) + "\n\n";
         private static readonly string TooLongQuotedLineBesideBinary = Separator1 + Header + "MIME-Version: 1.0\nContent-Type: multipart/mixed; boundary=b\nContent-Transfer-Encoding: binary\n\n--b\nContent-Transfer-Encoding: binary\n\nx\n--b\n\n" + TooLongQuotedLine + "\n--b--\n\n";
         private static readonly string TooLongQuotedLineInBinary = Separator1 + Header + "MIME-Version: 1.0\nContent-Transfer-Encoding: binary\n\n" + TooLongQuotedLine + "\n\n";
@@ -1014,6 +1016,32 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // act
             var testResult = Mailboxes.ReadDiagnosticKinds(LongestUnquotedFromLine, MboxVariant.Mboxrd, options);
+
+            // assert
+            testResult.Should().NotContain(ImfDiagnosticKind.LongBodyLine);
+        }
+
+        [Fact]
+        public void ReadMessage_CarriageReturnInAQuotedLineOfACrLfFile_CountsTowardsTheLimit()
+        {
+            // arrange
+            var options = new ImfOptions { AllowMboxCarriageReturnLineFeed = true, AllowInvalidBodyOctets = true };
+
+            // act
+            Action testAction = () => Mailboxes.ReadFirst(TooLongQuotedLineEndingInCarriageReturn, MboxVariant.Mboxrd, options);
+
+            // assert
+            testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.LongBodyLine);
+        }
+
+        [Fact]
+        public void ReadMessage_CarriageReturnLineFeedInAQuotedLineOfALineFeedFile_IsTheLineBreak()
+        {
+            // arrange
+            var options = new ImfOptions { AllowMboxCarriageReturnLineFeed = true, AllowInvalidBodyOctets = true };
+
+            // act
+            var testResult = Mailboxes.ReadDiagnosticKinds(LongestQuotedLineWithCrLfInLfFile, MboxVariant.Mboxrd, options);
 
             // assert
             testResult.Should().NotContain(ImfDiagnosticKind.LongBodyLine);
