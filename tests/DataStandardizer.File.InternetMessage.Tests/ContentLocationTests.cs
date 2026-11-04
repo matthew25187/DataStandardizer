@@ -74,7 +74,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ContentLocation_EncodedWordInACharsetOnlyTheOptionsResolve_DecodesIt()
         {
             // arrange
-            var subject = new ImfEntity(new ImfOptions { CharsetResolver = new FixedCharsetResolver(Encoding.UTF8) });
+            var subject = new ImfEntity(new ImfOptions { AllowMissingRequiredFields = true, CharsetResolver = new FixedCharsetResolver(Encoding.UTF8) });
             subject.Fields.Add(new ImfHeaderField(FieldName, " =?x-custom?Q?a=20b?=", ImfHeaderFieldKind.Structured));
 
             // act

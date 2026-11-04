@@ -18,6 +18,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string EmptyLine = "\r\n";
         private const string OnlyFrom = FromField + EmptyLine;
         private const string RepeatedFrom = FromField + FromField + EmptyLine;
+        private const string RepeatedToMessage = Minimal + "To: a@b.test\r\nTo: c@d.test, e@f.test\r\n" + EmptyLine;
+        private const int RepeatedToCount = 3;
+        private const string FirstSubject = "first";
+        private const string RepeatedSubjectMessage = Minimal + "Subject: first\r\nSubject: second\r\n" + EmptyLine;
         private const string OnlyFromWithBody = OnlyFrom + "Body";
         private const string OnlyInvalidFrom = "From: nobody\r\n\r\n";
         private const string SeveralProblems = "Subject: 1\r\nSubject: 2\r\nCc: nobody\r\n\r\n";
@@ -45,6 +49,24 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string WrongDayOfWeek = "Mon, 21 Nov 1997 09:55:06 -0600";
 
         /// <summary>
+        /// Each header that repeats a field that the table of RFC 5322 §3.6 allows once.  §4 and §4.5 require a receiver to accept it, and a writer must not generate it.
+        /// </summary>
+        public static TheoryData<string, ImfDiagnosticKind, string> RepeatedFields => new TheoryData<string, ImfDiagnosticKind, string>
+        {
+            { DateField + DateField + FromField + EmptyLine, ImfDiagnosticKind.CardinalityViolation, Date },
+            { DateField + FromField + FromField + EmptyLine, ImfDiagnosticKind.CardinalityViolation, From },
+            { Minimal + "Sender: a@b.test\r\nSender: a@b.test\r\n" + EmptyLine, ImfDiagnosticKind.CardinalityViolation, Sender },
+            { Minimal + "Reply-To: a@b.test\r\nReply-To: a@b.test\r\n" + EmptyLine, ImfDiagnosticKind.CardinalityViolation, "Reply-To" },
+            { Minimal + "To: a@b.test\r\nto: a@b.test\r\n" + EmptyLine, ImfDiagnosticKind.CardinalityViolation, "to" },
+            { Minimal + "Cc: a@b.test\r\nCc: a@b.test\r\n" + EmptyLine, ImfDiagnosticKind.CardinalityViolation, "Cc" },
+            { Minimal + "Bcc:\r\nBcc:\r\n" + EmptyLine, ImfDiagnosticKind.CardinalityViolation, "Bcc" },
+            { Minimal + "Message-ID: <1@b.test>\r\nMessage-ID: <2@b.test>\r\n" + EmptyLine, ImfDiagnosticKind.CardinalityViolation, "Message-ID" },
+            { Minimal + "In-Reply-To: <1@b.test>\r\nIn-Reply-To: <2@b.test>\r\n" + EmptyLine, ImfDiagnosticKind.CardinalityViolation, "In-Reply-To" },
+            { Minimal + "References: <1@b.test>\r\nReferences: <2@b.test>\r\n" + EmptyLine, ImfDiagnosticKind.CardinalityViolation, "References" },
+            { Minimal + "Subject: 1\r\nSubject: 2\r\n" + EmptyLine, ImfDiagnosticKind.CardinalityViolation, "Subject" },
+        };
+
+        /// <summary>
         /// Each header with one problem, the kind of that problem, and the field it is with.
         /// </summary>
         public static TheoryData<string, ImfDiagnosticKind, string> Violations => new TheoryData<string, ImfDiagnosticKind, string>
@@ -62,19 +84,6 @@ namespace DataStandardizer.File.InternetMessage.Tests
             { ResentFromField + Minimal + EmptyLine, ImfDiagnosticKind.MissingRequiredField, ResentDate },
             { ResentDateField + Minimal + EmptyLine, ImfDiagnosticKind.MissingRequiredField, ResentFrom },
             { ResentDateField + "Resent-From: a@b.test, c@d.test\r\n" + Minimal + EmptyLine, ImfDiagnosticKind.MissingRequiredField, ResentSender },
-
-            // ref. RFC 5322 §3.6: the fields with a maximum number of 1.
-            { DateField + DateField + FromField + EmptyLine, ImfDiagnosticKind.CardinalityViolation, Date },
-            { DateField + FromField + FromField + EmptyLine, ImfDiagnosticKind.CardinalityViolation, From },
-            { Minimal + "Sender: a@b.test\r\nSender: a@b.test\r\n" + EmptyLine, ImfDiagnosticKind.CardinalityViolation, Sender },
-            { Minimal + "Reply-To: a@b.test\r\nReply-To: a@b.test\r\n" + EmptyLine, ImfDiagnosticKind.CardinalityViolation, "Reply-To" },
-            { Minimal + "To: a@b.test\r\nto: a@b.test\r\n" + EmptyLine, ImfDiagnosticKind.CardinalityViolation, "to" },
-            { Minimal + "Cc: a@b.test\r\nCc: a@b.test\r\n" + EmptyLine, ImfDiagnosticKind.CardinalityViolation, "Cc" },
-            { Minimal + "Bcc:\r\nBcc:\r\n" + EmptyLine, ImfDiagnosticKind.CardinalityViolation, "Bcc" },
-            { Minimal + "Message-ID: <1@b.test>\r\nMessage-ID: <2@b.test>\r\n" + EmptyLine, ImfDiagnosticKind.CardinalityViolation, "Message-ID" },
-            { Minimal + "In-Reply-To: <1@b.test>\r\nIn-Reply-To: <2@b.test>\r\n" + EmptyLine, ImfDiagnosticKind.CardinalityViolation, "In-Reply-To" },
-            { Minimal + "References: <1@b.test>\r\nReferences: <2@b.test>\r\n" + EmptyLine, ImfDiagnosticKind.CardinalityViolation, "References" },
-            { Minimal + "Subject: 1\r\nSubject: 2\r\n" + EmptyLine, ImfDiagnosticKind.CardinalityViolation, "Subject" },
 
             // ref. RFC 5322 §3.6: the grammar of each field body.
             { "Date: yesterday\r\n" + FromField + EmptyLine, ImfDiagnosticKind.InvalidFieldValue, Date },
@@ -196,6 +205,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
         [Theory]
         [MemberData(nameof(Violations))]
+        [MemberData(nameof(RepeatedFields))]
         public void ReadMessage_ViolationWithOption_RecordsADiagnostic(string message, ImfDiagnosticKind kind, string fieldName)
         {
             // arrange
@@ -214,6 +224,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
         [Theory]
         [MemberData(nameof(Violations))]
+        [MemberData(nameof(RepeatedFields))]
         public void Validate_Violation_GivesTheDiagnosticWithoutThrowing(string message, ImfDiagnosticKind kind, string fieldName)
         {
             // arrange
@@ -230,6 +241,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
         [Theory]
         [MemberData(nameof(Violations))]
+        [MemberData(nameof(RepeatedFields))]
         public void WriteMessage_ViolationWithoutOption_ThrowsAndWritesNothing(string message, ImfDiagnosticKind kind, string fieldName)
         {
             // arrange
@@ -252,6 +264,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
         [Theory]
         [MemberData(nameof(Violations))]
+        [MemberData(nameof(RepeatedFields))]
         public async Task WriteMessageAsync_ViolationWithoutOption_FaultsTheTaskAndWritesNothing(string message, ImfDiagnosticKind kind, string fieldName)
         {
             // arrange
@@ -306,19 +319,47 @@ namespace DataStandardizer.File.InternetMessage.Tests
             }
         }
 
-        [Fact]
-        public void ReadMessage_OnlyTheMissingFieldOption_StillRejectsARepeatedField()
+        [Theory]
+        [MemberData(nameof(RepeatedFields))]
+        public void ReadMessage_RepeatedFieldByDefault_RecordsADiagnostic(string message, ImfDiagnosticKind kind, string fieldName)
         {
             // arrange
-            var options = new ImfOptions { AllowMissingRequiredFields = true };
-            using (var reader = new ImfReader(new MemoryStream(Octets.Of(RepeatedFrom)), options))
+            using (var reader = new ImfReader(new MemoryStream(Octets.Of(message))))
             {
                 // act
-                Action testAction = () => reader.ReadMessage();
+                reader.ReadMessage();
 
                 // assert
-                testAction.Should().Throw<ImfFileException>();
+                reader.Diagnostics.Should().ContainSingle();
+                reader.Diagnostics[0].Kind.Should().Be(kind);
+                reader.Diagnostics[0].FieldName.Should().Be(fieldName);
             }
+        }
+
+        [Fact]
+        public void To_RepeatedField_CombinesTheAddresses()
+        {
+            // arrange
+            var subject = ImfMessages.Read(RepeatedToMessage);
+
+            // act
+            var testResult = subject.To;
+
+            // assert
+            testResult.Should().HaveCount(RepeatedToCount);
+        }
+
+        [Fact]
+        public void Subject_RepeatedField_GivesTheFirst()
+        {
+            // arrange
+            var subject = ImfMessages.Read(RepeatedSubjectMessage);
+
+            // act
+            var testResult = subject.Subject;
+
+            // assert
+            testResult.Should().Be(FirstSubject);
         }
 
         [Fact]

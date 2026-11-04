@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -72,7 +73,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string OtherQuotesMailbox = Separator1 + OtherQuotesMessage + "\n";
         private const string CrLfLineInLineFeedFileMessage = Header + "\none\r\n";
         private const string CrLfLineInLineFeedFile = Separator1 + CrLfLineInLineFeedFileMessage + "\n";
-        private const string EightBitMessage = Header + "\ncaf\u00E9\n";
+        private const string EightBitMessage = Header + "MIME-Version: 1.0\nContent-Transfer-Encoding: 8bit\n\ncaf\u00E9\n";
         private const string EightBitMailbox = Separator1 + EightBitMessage + "\n";
         private const string EightBitInCountedBody = Separator1 + Header + "Content-Length: 5\n\ncaf\u00E9\n\n";
 
@@ -117,8 +118,9 @@ namespace DataStandardizer.File.InternetMessage.Tests
         // ref. RFC 5322 §2.1.1: longer than a line may be.
         private const int LongAddressLength = 1000;
 
-        // Longer than the block of the reader.
-        private const int LargeBodyLength = 50000;
+        // Longer than the block of the reader, in lines as long as RFC 5322 §2.1.1 allows.
+        private const int LargeBodyLineLength = 998;
+        private const int LargeBodyLineCount = 50;
 
         // The most the reader holds from its stream between messages, which is its block.
         private const int MostHeldBytes = 16 * 1024;
@@ -132,7 +134,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const int TwoRead = 2;
 
         private static readonly string LongSeparatorMailbox = "From " + new string('a', LongAddressLength) + "@b.test Thu Jan  1 00:00:00 2026\n" + Message1 + "\n";
-        private static readonly string LargeMessage = Header + "\n" + new string('x', LargeBodyLength) + "\n";
+        private static readonly string LargeMessage = Header + "\n" + string.Concat(Enumerable.Repeat(new string('x', LargeBodyLineLength) + "\n", LargeBodyLineCount));
         private static readonly string LargeMailbox = Separator1 + LargeMessage + "\n" + Separator2 + Message2 + "\n";
         private static readonly byte[] ManyMessagesMailbox = Mailboxes.Repeat(OneMessageWithEmptyLine, ManyMessages);
 

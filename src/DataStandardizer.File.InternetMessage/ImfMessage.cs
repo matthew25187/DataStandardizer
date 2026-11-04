@@ -240,7 +240,7 @@ namespace DataStandardizer.File.InternetMessage
         [AllowNull, MaybeNull]
         public ImfAddressList To
         {
-            get => ImfFieldValues.GetAddressList(Fields.Find(ImfFieldNames.To), Options);
+            get => GetDestinations(ImfFieldNames.To);
             set => SetAddressList(ImfFieldNames.To, value);
         }
 
@@ -250,7 +250,7 @@ namespace DataStandardizer.File.InternetMessage
         [AllowNull, MaybeNull]
         public ImfAddressList Cc
         {
-            get => ImfFieldValues.GetAddressList(Fields.Find(ImfFieldNames.Cc), Options);
+            get => GetDestinations(ImfFieldNames.Cc);
             set => SetAddressList(ImfFieldNames.Cc, value);
         }
 
@@ -261,7 +261,7 @@ namespace DataStandardizer.File.InternetMessage
         [AllowNull, MaybeNull]
         public ImfAddressList Bcc
         {
-            get => ImfFieldValues.GetAddressList(Fields.Find(ImfFieldNames.Bcc), Options);
+            get => GetDestinations(ImfFieldNames.Bcc);
             set => SetAddressList(ImfFieldNames.Bcc, value);
         }
 
@@ -507,7 +507,26 @@ namespace DataStandardizer.File.InternetMessage
         /// <returns>Every problem found, in a read-only list.</returns>
         public IReadOnlyList<ImfDiagnostic> Validate()
         {
-            return new ReadOnlyCollection<ImfDiagnostic>(ImfConformance.Check(this, Options));
+            var diagnostics = ImfConformance.Check(this, Options);
+            diagnostics.AddRange(ImfConformance.CheckContent(this, Options));
+            return new ReadOnlyCollection<ImfDiagnostic>(diagnostics);
+        }
+
+        // ref. RFC 5322 §4.5: several destination fields SHOULD be treated as if their lists were one.
+        [return: MaybeNull]
+        private ImfAddressList GetDestinations(string name)
+        {
+            var fields = Fields.FindAll(name);
+            if (fields.Count < 2) return ImfFieldValues.GetAddressList(Fields.Find(name), Options);
+
+            var addresses = new List<ImfAddress>();
+            foreach (var field in fields)
+            {
+                var list = ImfFieldValues.GetAddressList(field, Options);
+                if (!(list is null)) addresses.AddRange(list);
+            }
+
+            return addresses.Count == 0 ? null : new ImfAddressList(addresses);
         }
 
         private IEnumerable<ImfEntityNode> Enumerate(bool followMessages, bool stopAtAttachments)

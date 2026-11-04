@@ -145,12 +145,13 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Fact]
-        public void WriteMessage_NonAsciiRawBodyInDefaultWriter_WritesItUnchanged()
+        public void WriteMessage_NonAsciiRawBodyAllowed_WritesItUnchanged()
         {
             // arrange
-            var subject = ImfMessages.Read(NonAsciiBodyMessage);
+            var options = new ImfOptions { AllowInvalidBodyOctets = true };
+            var subject = ImfMessages.Read(NonAsciiBodyMessage, options);
             var stream = new MemoryStream();
-            using (var writer = new ImfWriter(stream))
+            using (var writer = new ImfWriter(stream, options))
             {
                 // act
                 writer.WriteMessage(subject);
@@ -164,10 +165,11 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void WriteMessage_BodyOfSeveralBlocks_WritesItAllInBlocks()
         {
             // arrange
-            var subject = ImfMessages.Read(LargeMessage);
+            var options = new ImfOptions { AllowLongLines = true };
+            var subject = ImfMessages.Read(LargeMessage, options);
             var stream = new MemoryStream();
             var progress = new RecordingProgress();
-            using (var writer = new ImfWriter(stream))
+            using (var writer = new ImfWriter(stream, options))
             {
                 // act
                 writer.WriteMessage(subject, progress);
@@ -183,10 +185,11 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public async Task WriteMessageAsync_BodyOfSeveralBlocks_WritesItAllInBlocks()
         {
             // arrange
-            var subject = ImfMessages.Read(LargeMessage);
+            var options = new ImfOptions { AllowLongLines = true };
+            var subject = ImfMessages.Read(LargeMessage, options);
             var stream = new ModeWriteStream(BlockStreamMode.AsynchronousOnly);
             var progress = new RecordingProgress();
-            var writer = new ImfWriter(stream);
+            var writer = new ImfWriter(stream, options);
 
             // act
             await AsyncDisposal.UsingAsync(writer, () => writer.WriteMessageAsync(subject, progress));

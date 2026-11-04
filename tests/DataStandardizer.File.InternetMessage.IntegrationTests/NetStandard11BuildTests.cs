@@ -32,7 +32,7 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
         // private one they all call.
         private const int ConstructorCount = 4;
 
-        // The constructors of ImfReader and ImfWriter on this target, which also have an internal one for a format with its own conformance rules.
+        // The constructors of ImfWriter on this target, which also has an internal one for a format with its own conformance rules.
         private const int MessageConstructorCount = 5;
 
         private static readonly string NetStandard11BuildPath =
@@ -214,7 +214,7 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
             var testResult = ReadMethodNames(MessageReaderTypeName);
 
             // assert
-            testResult.Count(name => name == ".ctor").Should().Be(MessageConstructorCount);
+            testResult.Count(name => name == ".ctor").Should().Be(ConstructorCount);
         }
 
         [Fact]

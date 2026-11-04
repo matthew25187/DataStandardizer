@@ -11,8 +11,7 @@ namespace DataStandardizer.File.InternetMessage
         Message = 0,
 
         /// <summary>
-        /// The rules of an MHTML file, whose top level is a MIME entity, so a missing origination field of RFC 5322 §3.6 is a diagnostic.  A writer also checks the structure of its
-        /// <c>multipart/related</c> entities.
+        /// The rules of an MHTML file: those of a message, and a writer also checks the structure of its <c>multipart/related</c> entities.
         /// </summary>
         Mhtml = 1,
     }

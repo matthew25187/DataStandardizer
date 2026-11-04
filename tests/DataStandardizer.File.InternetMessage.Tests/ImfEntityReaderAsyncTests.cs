@@ -28,7 +28,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             var stream = new BlockStream(Octets.Of(message), BlockStreamMode.AsynchronousOnly);
-            var reader = new ImfEntityReader(stream);
+            var reader = new ImfEntityReader(stream, EntityEvents.MimeEntityOptions);
             await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 // act
@@ -45,7 +45,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             var stream = new BlockStream(Octets.Of(message), BlockStreamMode.AsynchronousOnly, 1, 1);
-            var reader = new ImfEntityReader(stream, new ImfOptions(), 1, false);
+            var reader = new ImfEntityReader(stream, new ImfOptions { AllowMissingMimeVersion = true }, 1, false);
             await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 // act
@@ -62,7 +62,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             var stream = new BlockStream(SplitMessages.Message, BlockStreamMode.AsynchronousOnly, firstReadLength);
-            var reader = new ImfEntityReader(stream, new ImfOptions(), bufferSize, false);
+            var reader = new ImfEntityReader(stream, EntityEvents.AnyOctetsOptions, bufferSize, false);
             await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 // act
@@ -79,7 +79,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             var stream = new BlockStream(Octets.Of(message), BlockStreamMode.AsynchronousOnly);
-            var reader = new ImfEntityReader(stream);
+            var reader = new ImfEntityReader(stream, EntityEvents.MimeEntityOptions);
             await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 // act
@@ -97,7 +97,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             var stream = new BlockStream(Octets.Of(message), BlockStreamMode.AsynchronousOnly, 1, 1);
-            var reader = new ImfEntityReader(stream, new ImfOptions { DecodeTransferEncoding = true }, 1, false);
+            var reader = new ImfEntityReader(stream, new ImfOptions { AllowMissingMimeVersion = true, DecodeTransferEncoding = true }, 1, false);
             await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 // act
@@ -113,7 +113,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             var stream = new BlockStream(Octets.Of(OneFieldMessage), BlockStreamMode.AsynchronousOnly);
-            var reader = new ImfEntityReader(stream);
+            var reader = new ImfEntityReader(stream, EntityEvents.MimeEntityOptions);
             await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 await reader.ReadEventAsync();
@@ -132,7 +132,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             var stream = new BlockStream(Octets.Of(MissingBoundary), BlockStreamMode.AsynchronousOnly);
-            var reader = new ImfEntityReader(stream);
+            var reader = new ImfEntityReader(stream, EntityEvents.MimeEntityOptions);
             await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 await reader.ReadEventAsync();
@@ -152,7 +152,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public async Task ReadEventAsync_StreamFails_ReportsItThroughTheTask()
         {
             // arrange
-            var reader = new ImfEntityReader(new FailingStream());
+            var reader = new ImfEntityReader(new FailingStream(), EntityEvents.MimeEntityOptions);
             await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 await reader.ReadEventAsync();
@@ -172,7 +172,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             var stream = new BlockStream(Octets.Of(OneFieldMessage), BlockStreamMode.AsynchronousOnly);
-            var reader = new ImfEntityReader(stream);
+            var reader = new ImfEntityReader(stream, EntityEvents.MimeEntityOptions);
             await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 // act
@@ -189,7 +189,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             var stream = new BlockStream(Octets.Of(OneFieldMessage), BlockStreamMode.AsynchronousOnly);
-            var reader = new ImfEntityReader(stream);
+            var reader = new ImfEntityReader(stream, EntityEvents.MimeEntityOptions);
             await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 _ = reader.ReadEventAsync(new CancellationToken(true));
@@ -208,7 +208,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             var stream = new GatedStream();
-            var reader = new ImfEntityReader(stream);
+            var reader = new ImfEntityReader(stream, EntityEvents.MimeEntityOptions);
             await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 await reader.ReadEventAsync();
@@ -231,7 +231,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             var stream = new GatedStream();
-            var reader = new ImfEntityReader(stream);
+            var reader = new ImfEntityReader(stream, EntityEvents.MimeEntityOptions);
             await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 await reader.ReadEventAsync();
@@ -252,7 +252,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             var stream = new GatedStream();
-            var reader = new ImfEntityReader(stream);
+            var reader = new ImfEntityReader(stream, EntityEvents.MimeEntityOptions);
             await reader.ReadEventAsync();
             var pendingRead = reader.ReadEventAsync();
             reader.Dispose();
@@ -269,7 +269,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public async Task DisposeAsync_CalledTwice_DoesNotThrow()
         {
             // arrange
-            var reader = new ImfEntityReader(new MemoryStream());
+            var reader = new ImfEntityReader(new MemoryStream(), EntityEvents.MimeEntityOptions);
             await reader.DisposeAsync();
 
             // act

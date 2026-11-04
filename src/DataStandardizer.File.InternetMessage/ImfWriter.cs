@@ -21,7 +21,9 @@ namespace DataStandardizer.File.InternetMessage
     /// <b>Conformance.</b>  The header is checked as <see cref="ImfMessage.Validate"/> describes, under the options of the writer.  A missing required field, a second field of a kind
     /// that may appear only once, and a field body that breaks its grammar each cause an <see cref="ImfFileException"/>, unless <see cref="ImfOptions.AllowMissingRequiredFields"/>,
     /// <see cref="ImfOptions.AllowCardinalityViolations"/> or <see cref="ImfOptions.AllowInvalidValues"/> is set.  With them set, the problem is recorded in
-    /// <see cref="Diagnostics"/> instead.  A message inside a <c>message/rfc822</c> entity is not checked, as RFC 2046 §5.2.1 doesn't hold it to RFC 5322.
+    /// <see cref="Diagnostics"/> instead.  A message inside a <c>message/rfc822</c> entity has only to have one of From, Subject or Date, as RFC 2046 §5.2.1 says.  A message with a MIME field and no MIME-Version field (RFC 2045 §4),
+    /// and a body that hasn't changed and that breaks the rules of RFC 5322 §2.1.1 and §2.3 or of its transfer encoding, are refused the same way, unless
+    /// <see cref="ImfOptions.AllowMissingMimeVersion"/>, <see cref="ImfOptions.AllowLongLines"/> or <see cref="ImfOptions.AllowInvalidBodyOctets"/> is set.
     /// </para>
     /// <para>
     /// <b>Unchanged fields.</b>  A field that was read is written byte for byte, whichever options it was read under, so that signatures over it stay valid.  That includes any
@@ -585,11 +587,12 @@ namespace DataStandardizer.File.InternetMessage
         private List<ImfDiagnostic> CheckConformance(ImfMessage message)
         {
             var diagnostics = ImfConformance.Check(message, _options);
+            diagnostics.AddRange(ImfConformance.CheckContent(message, _options));
             if (_profile == ImfConformanceProfile.Mhtml) diagnostics.AddRange(MhtmlStructure.Read(message, MhtmlUrl.ThisMessageBase).Diagnostics);
 
             foreach (var diagnostic in diagnostics)
             {
-                if (!ImfConformance.IsAllowed(diagnostic, _options, _profile))
+                if (!ImfConformance.IsAllowed(diagnostic.Kind, _options))
                     throw ImfConformance.BuildException(diagnostic, false);
             }
 

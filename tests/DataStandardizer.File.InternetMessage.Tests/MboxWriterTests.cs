@@ -67,8 +67,8 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const int TwoWritten = 2;
         private const long FirstIndex = 0;
 
-        private const string EightBitEml = CrLfHeader + "\r\ncaf\u00E9\r\n";
-        private const string EightBitInFile = Separator + Header + "\ncaf\u00E9\n\n";
+        private const string EightBitEml = CrLfHeader + "MIME-Version: 1.0\r\nContent-Transfer-Encoding: 8bit\r\n\r\ncaf\u00E9\r\n";
+        private const string EightBitInFile = Separator + Header + "MIME-Version: 1.0\nContent-Transfer-Encoding: 8bit\n\ncaf\u00E9\n\n";
         private const string CrLfLineInFile = Separator + Header + "\none\r\n\n";
 
         private static readonly ImfOptions AllowEightBit = new ImfOptions { AllowEightBitMboxContent = true };

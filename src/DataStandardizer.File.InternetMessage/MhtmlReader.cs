@@ -14,13 +14,11 @@ namespace DataStandardizer.File.InternetMessage
     /// </summary>
     /// <remarks>
     /// <para>
-    /// An MHTML file is a MIME message, so this reads it as an <see cref="ImfReader"/> does, under the same options, and gives the same tree of entities.  It differs in two ways.
+    /// An MHTML file is a MIME message (RFC 2557 §3), so this reads it as an <see cref="ImfReader"/> does, under the same options, and gives the same tree of entities.
     /// </para>
     /// <para>
-    /// <b>Required fields.</b>  The top level of an MHTML file is a MIME entity as much as a message, and some programs write no Date or From field.  So a Date or From field that RFC 5322
-    /// §3.6 requires, or a Sender field that §3.6.2 requires, is recorded in <see cref="Diagnostics"/> if it is missing, whatever <see cref="ImfOptions.AllowMissingRequiredFields"/> says.
-    /// The fields that §3.6.6 requires in a block of resent fields are not relaxed.  Every other check stays as strict as that of <see cref="ImfReader"/>, including the grammar of a
-    /// field that is there.  So the <c>From: &lt;Saved by Blink&gt;</c> that Chromium writes needs <see cref="ImfOptions.AllowInvalidValues"/>.
+    /// <b>Required fields.</b>  Every check of <see cref="ImfReader"/> applies.  Some programs write no Date or From field, which needs <see cref="ImfOptions.AllowMissingRequiredFields"/>, and
+    /// the <c>From: &lt;Saved by Blink&gt;</c> that Chromium writes needs <see cref="ImfOptions.AllowInvalidValues"/>.
     /// </para>
     /// <para>
     /// <b>Structure.</b>  Once it has been read, the message is checked as <see cref="MhtmlDocument"/> describes.  So a <c>multipart/related</c> entity with no <c>type</c> parameter, as Word
@@ -67,7 +65,7 @@ namespace DataStandardizer.File.InternetMessage
         /// <see cref="ImfOptions.HeaderFallbackCharset"/> that is needed and can't be resolved.</exception>
         public MhtmlReader(Stream messageStream, ImfOptions options)
         {
-            _reader = new ImfReader(messageStream, options, DefaultBufferSize, false, ImfConformanceProfile.Mhtml);
+            _reader = new ImfReader(messageStream, options, DefaultBufferSize, false);
         }
 
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
@@ -93,7 +91,7 @@ namespace DataStandardizer.File.InternetMessage
         /// resolved.</exception>
         public MhtmlReader(string messageFilePath, ImfOptions options)
         {
-            _reader = new ImfReader(messageFilePath, options, ImfConformanceProfile.Mhtml);
+            _reader = new ImfReader(messageFilePath, options);
         }
 #endif
 

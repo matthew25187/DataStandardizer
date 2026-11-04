@@ -98,6 +98,8 @@ namespace DataStandardizer.File.InternetMessage
             internal bool IsBoundaryActive;
             internal bool IsHeaderEnded;
             internal bool IsMessage;
+            internal bool IsMime;
+            internal MimeDataDomain AllowedDomain = MimeDataDomain.Binary;
             internal int PartCount;
             internal int PathNumber;
             internal long Start;
@@ -141,6 +143,10 @@ namespace DataStandardizer.File.InternetMessage
         private static readonly MimeMediaType DefaultContentType = MimeMediaType.TextPlain.WithParameter("charset", "us-ascii");
 
         private readonly bool _acceptBareLineFeed;
+        private readonly bool _allowInvalidBodyOctets;
+        private readonly bool _allowLongLines;
+        private readonly bool _allowMissingMimeVersion;
+        private readonly ImfBodyCheck _bodyCheck;
         private readonly bool _allowMissingBoundaryTerminator;
         private readonly MimeBase64Decoder _base64Decoder = new MimeBase64Decoder(MimeBase64Mode.Mime);
         private readonly IMimeCharsetResolver _charsetResolver;
@@ -190,6 +196,10 @@ namespace DataStandardizer.File.InternetMessage
         internal ImfEntityScanner(ImfHeaderScanner scanner, ImfOptions options, bool lineFeedIsLineBreak)
         {
             _scanner = scanner;
+            _allowInvalidBodyOctets = options.AllowInvalidBodyOctets;
+            _allowLongLines = options.AllowLongLines;
+            _allowMissingMimeVersion = options.AllowMissingMimeVersion;
+            _bodyCheck = new ImfBodyCheck(options, lineFeedIsLineBreak);
             _acceptBareLineFeed = options.AcceptBareLineFeed;
             _allowMissingBoundaryTerminator = options.AllowMissingBoundaryTerminator;
             _charsetResolver = options.CharsetResolver;
@@ -385,6 +395,7 @@ namespace DataStandardizer.File.InternetMessage
                             break;
                         }
 
+                        ReportBodyProblems(false, _bodyCheck.End());
                         if (FinishDecoding()) return Status.EventRead;
 
                         StartUnwinding(contentResult == ContentResult.Delimiter);
@@ -522,6 +533,9 @@ namespace DataStandardizer.File.InternetMessage
             // ref. RFC 2045 §4: the field is required at the top level of a message, and in an embedded message that claims to follow MIME.
             if (frame.IsMessage && frame.HasMimeField && !frame.HasMimeVersion)
             {
+                if (_frames.Count == 1 && !_allowMissingMimeVersion)
+                    throw BuildKindError(ErrorMessage.MissingMimeVersion, ImfDiagnosticKind.MissingMimeVersion);
+
                 _diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.MissingMimeVersion, ErrorMessage.MissingMimeVersion, _scanner.BytePosition, BuildPath()));
             }
 
@@ -536,6 +550,10 @@ namespace DataStandardizer.File.InternetMessage
                 // ref. RFC 2045 §6.1
                 frame.TransferEncoding = MimeTransferEncoding.SevenBit;
             }
+
+            var enclosing = _frames.Count > 1 ? _frames[_frames.Count - 2] : null;
+            frame.IsMime = frame.HasMimeVersion || frame.HasMimeField || (!(enclosing is null) && enclosing.IsMime);
+            frame.AllowedDomain = ImfBodyCheck.GetAllowedDomain(frame.TransferEncoding, enclosing is null ? MimeDataDomain.Binary : enclosing.AllowedDomain);
 
             frame.IsHeaderEnded = true;
             _bodyStartLineBreakLength = _scanner.SectionEndLineBreakLength;
@@ -644,6 +662,8 @@ namespace DataStandardizer.File.InternetMessage
 
         private void StartContent(ImfEntityEventKind kind, BodyDecoding decoding)
         {
+            var frame = CurrentFrame;
+            _bodyCheck.Start(frame.AllowedDomain, frame.IsMime, kind == ImfEntityEventKind.BodyChunk ? ImfBodyCheck.GetMaxLineLength(frame.TransferEncoding) : ImfBodyCheck.MaxLineLength);
             _contentKind = kind;
             _decoding = decoding;
             _decodingFinished = false;
@@ -937,6 +957,8 @@ namespace DataStandardizer.File.InternetMessage
             var position = _scanner.Position;
             var offset = _scanner.BytePosition;
             var length = chunkEnd - position;
+            _bodyCheck.Check(new ReadOnlySpan<byte>(_scanner.Buffer, position, length), out var foundLongLine, out var foundInvalidOctet);
+            ReportBodyProblems(foundLongLine, foundInvalidOctet);
             if (_decoding != BodyDecoding.None)
             {
                 _pendingRawLength = length;
@@ -1077,6 +1099,30 @@ namespace DataStandardizer.File.InternetMessage
             _scanner.ConsumeBody(_matchLineEnd);
             frame.PartCount++;
             PushFrame(frame.PartCount, false);
+        }
+
+        private void ReportBodyProblems(bool foundLongLine, bool foundInvalidOctet)
+        {
+            if (foundLongLine)
+            {
+                if (!_allowLongLines) throw BuildKindError(ImfBodyCheck.LongLineMessage, ImfDiagnosticKind.LongBodyLine);
+
+                _diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.LongBodyLine, ImfBodyCheck.LongLineMessage, _scanner.BytePosition, BuildPath()));
+            }
+
+            if (foundInvalidOctet)
+            {
+                if (!_allowInvalidBodyOctets) throw BuildKindError(ImfBodyCheck.InvalidOctetsMessage, ImfDiagnosticKind.InvalidBodyOctets);
+
+                _diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.InvalidBodyOctets, ImfBodyCheck.InvalidOctetsMessage, _scanner.BytePosition, BuildPath()));
+            }
+        }
+
+        private ImfFileException BuildKindError(string message, ImfDiagnosticKind kind)
+        {
+            var exception = BuildError(message);
+            exception.Data[ImfFileException.DataItemName.DiagnosticKind] = kind;
+            return exception;
         }
 
         private ImfFileException BuildError(string message)

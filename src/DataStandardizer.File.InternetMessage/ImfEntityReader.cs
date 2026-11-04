@@ -20,7 +20,7 @@ namespace DataStandardizer.File.InternetMessage
     /// <b>Structure.</b>  Each entity's header section is read as an <see cref="ImfHeaderReader"/> reads one, under the same options, and the limits on a
     /// section apply to each section.  An entity with no Content-Type field is <c>text/plain; charset=us-ascii</c> (RFC 2045 §5.2), or
     /// <c>message/rfc822</c> if it is a part of a <c>multipart/digest</c> entity (RFC 2046 §5.1.5).  A message with a MIME field and no MIME-Version field, which RFC 2045 §4
-    /// requires, is still read, with an <see cref="ImfDiagnostic"/>.  A field that is not valid, or a second Content-Type or Content-Transfer-Encoding field, is
+    /// requires, causes an <see cref="ImfFileException"/>, unless <see cref="ImfOptions.AllowMissingMimeVersion"/> is set.  A field that is not valid, or a second Content-Type or Content-Transfer-Encoding field, is
     /// an error.
     /// </para>
     /// <para>
@@ -45,7 +45,8 @@ namespace DataStandardizer.File.InternetMessage
     /// <para>
     /// <b>Bodies.</b>  Body chunks are raw bytes unless <see cref="ImfOptions.DecodeTransferEncoding"/> is set.  A transfer encoding other than <c>7bit</c>,
     /// <c>8bit</c> or <c>binary</c> on a multipart or message entity is an error (RFC 2045 §6.4), and <c>message/partial</c> and <c>message/external-body</c>
-    /// must be <c>7bit</c> (RFC 2046 §5.2).  The bytes of a body are not otherwise checked against its transfer encoding.
+    /// must be <c>7bit</c> (RFC 2046 §5.2).  The bytes of a body are checked against the rules of RFC 5322 §2.1.1 and §2.3, and its transfer encoding and that of what holds it (RFC 2045
+    /// §2.7, §2.8, §6.4, §6.7 and §6.8), unless <see cref="ImfOptions.AllowLongLines"/> or <see cref="ImfOptions.AllowInvalidBodyOctets"/> is set.
     /// </para>
     /// <para>
     /// <b>Errors.</b>  Any <see cref="ImfFileException"/> ends reading, so later reads throw <see cref="InvalidOperationException"/>.  Its

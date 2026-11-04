@@ -89,9 +89,10 @@ namespace DataStandardizer.File.InternetMessage
         /// Gets a flag indicating if a header may have more than one of a field that RFC 5322 §3.6 allows at most once.
         /// </summary>
         /// <remarks>
-        /// The table in RFC 5322 §3.6 allows Date, From, Sender, Reply-To, To, Cc, Bcc, Message-ID, In-Reply-To, References and Subject at most once.  When <c>false</c> (the default),
-        /// an <see cref="ImfReader"/> or <see cref="ImfWriter"/> throws an <see cref="ImfFileException"/> for a second one.  When <c>true</c>, it records an
-        /// <see cref="ImfDiagnostic"/> instead, and the accessors of <see cref="ImfMessage"/> use the first.
+        /// The table in RFC 5322 §3.6 allows Date, From, Sender, Reply-To, To, Cc, Bcc, Message-ID, In-Reply-To, References and Subject at most once, so a message that has more MUST NOT be
+        /// generated.  When <c>false</c> (the default), an <see cref="ImfWriter"/> throws an <see cref="ImfFileException"/> for a second one.  When <c>true</c>, it records an
+        /// <see cref="ImfDiagnostic"/> instead.  A reader doesn't use this option: RFC 5322 §4 and §4.5 require a receiver to accept repeated fields, so it always records an
+        /// <see cref="ImfDiagnostic"/>.  The accessors of <see cref="ImfMessage"/> use the first, except that To, Cc and Bcc combine theirs, as §4.5 says.
         /// </remarks>
         public bool AllowCardinalityViolations
         {
@@ -150,6 +151,25 @@ namespace DataStandardizer.File.InternetMessage
         /// 127 in a name is always rejected.
         /// </remarks>
         public bool AllowEightBitHeaders
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
+        /// Gets a flag indicating if a body may hold an octet or a line break that its transfer encoding doesn't allow.
+        /// </summary>
+        /// <remarks>
+        /// RFC 5322 §2.3 makes a body US-ASCII, and RFC 2045 §6.1 makes <c>7bit</c> the default.  §2.7 allows no octet above 127 and no NUL in <c>7bit</c> data, §2.8 allows no NUL in <c>8bit</c>
+        /// data, and both allow CR and LF only as a CRLF.  §6.4 limits a part to the encoding of the entity that holds it.  When <c>false</c> (the default), a reader or an <see cref="ImfWriter"/>
+        /// throws an <see cref="ImfFileException"/> for such a body.  When <c>true</c>, it records an <see cref="ImfDiagnostic"/> instead, once for each body.  A message with no MIME fields may
+        /// always hold NUL and bare CR and LF, as RFC 5322 §4.1 requires a receiver to accept them.  <see cref="AcceptBareLineFeed"/> accepts a bare line feed on its own.
+        /// </remarks>
+        public bool AllowInvalidBodyOctets
         {
             get;
 #if NET5_0_OR_GREATER
@@ -268,9 +288,10 @@ namespace DataStandardizer.File.InternetMessage
         /// Gets a flag indicating if a line longer than 998 octets is accepted.
         /// </summary>
         /// <remarks>
-        /// RFC 5322 §2.1.1 limits each line to 998 octets, not counting the CRLF.  When <c>false</c> (the default), a longer line causes an
-        /// <see cref="ImfFileException"/>.  The limit is on each physical line, so a folded field may be longer once unfolded.  When <c>true</c>,
-        /// a line is still limited by <see cref="MaxHeaderSectionLength"/>.
+        /// RFC 5322 §2.1.1 limits each line to 998 octets, not counting the CRLF, and RFC 2045 §6.7 and §6.8 limit a line of a <c>quoted-printable</c> or <c>base64</c> body to 76.  A
+        /// <c>binary</c> body has no lines (RFC 2045 §2.9).  When <c>false</c> (the default), a longer line causes an <see cref="ImfFileException"/>.  The limit is on each physical line, so a
+        /// folded field may be longer once unfolded.  When <c>true</c>, a line of a header is still limited by <see cref="MaxHeaderSectionLength"/>, and a line of a body records an
+        /// <see cref="ImfDiagnostic"/>, once for each body.
         /// </remarks>
         public bool AllowLongLines
         {
@@ -411,12 +432,31 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
+        /// Gets a flag indicating if a header may have a MIME field with no MIME-Version field.
+        /// </summary>
+        /// <remarks>
+        /// RFC 2045 §4 requires the field at the top level of a message that follows MIME.  When <c>false</c> (the default), a reader of whole messages or an <see cref="ImfWriter"/> throws an
+        /// <see cref="ImfFileException"/> for a message without one.  When <c>true</c>, it records an <see cref="ImfDiagnostic"/> instead.  An embedded message needs one only if it claims to
+        /// follow MIME, so one without it only ever records an <see cref="ImfDiagnostic"/>.
+        /// </remarks>
+        public bool AllowMissingMimeVersion
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
         /// Gets a flag indicating if a header may lack a field that RFC 5322 requires.
         /// </summary>
         /// <remarks>
         /// RFC 5322 §3.6 requires Date and From.  §3.6.2 and RFC 6854 §2.1 require Sender when From has more than one mailbox, and §3.6.6 applies the same rules to Resent-Date,
-        /// Resent-From and Resent-Sender in each block of resent fields.  When <c>false</c> (the default), an <see cref="ImfReader"/> or <see cref="ImfWriter"/> throws an
-        /// <see cref="ImfFileException"/> for a message without one.  When <c>true</c>, it records an <see cref="ImfDiagnostic"/> instead.
+        /// Resent-From and Resent-Sender in each block of resent fields.  RFC 2046 §5.2.1 requires one of From, Subject or Date in an embedded message.  When <c>false</c> (the default), an
+        /// <see cref="ImfReader"/>, <see cref="ImfWriter"/>, <see cref="MhtmlReader"/> or <see cref="MhtmlWriter"/> throws an <see cref="ImfFileException"/> for a message without one.  When
+        /// <c>true</c>, it records an <see cref="ImfDiagnostic"/> instead.  Programs that save web pages as MHTML often leave out Date and From, so reading such a file needs this option.
         /// </remarks>
         public bool AllowMissingRequiredFields
         {

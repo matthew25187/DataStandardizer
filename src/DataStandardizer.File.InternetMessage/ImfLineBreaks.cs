@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using DataStandardizer.Communication.Mime;
 
@@ -62,17 +63,26 @@ namespace DataStandardizer.File.InternetMessage
 #endif
         }
 
-        private static bool HasBinaryEntity(ImfEntity entity)
+        // The open entities are kept in a list, not on the call stack, so nesting can't overflow the stack.
+        private static bool HasBinaryEntity(ImfEntity body)
         {
-            if (entity.ContentTransferEncoding == MimeTransferEncoding.Binary) return true;
-
-            if (entity is ImfMessagePart messagePart) return HasBinaryEntity(messagePart.Message.Body);
-
-            if (entity is ImfMultipart multipart)
+            var pending = new Stack<ImfEntity>();
+            pending.Push(body);
+            while (pending.Count > 0)
             {
-                foreach (var part in multipart.Parts)
+                var entity = pending.Pop();
+                if (entity.ContentTransferEncoding == MimeTransferEncoding.Binary) return true;
+
+                if (entity is ImfMessagePart messagePart)
                 {
-                    if (HasBinaryEntity(part)) return true;
+                    pending.Push(messagePart.Message.Body);
+                }
+                else if (entity is ImfMultipart multipart)
+                {
+                    foreach (var part in multipart.Parts)
+                    {
+                        pending.Push(part);
+                    }
                 }
             }
 

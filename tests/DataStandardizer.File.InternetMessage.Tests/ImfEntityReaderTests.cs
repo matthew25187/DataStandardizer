@@ -167,7 +167,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             var stream = new BlockStream(Octets.Of(message), BlockStreamMode.SynchronousOnly, 1, 1);
-            using (var reader = new ImfEntityReader(stream, new ImfOptions(), 1, false))
+            using (var reader = new ImfEntityReader(stream, new ImfOptions { AllowMissingMimeVersion = true }, 1, false))
             {
                 // act
                 var testResult = EntityEvents.ReadOutline(reader);
@@ -183,7 +183,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             var stream = new BlockStream(SplitMessages.Message, BlockStreamMode.SynchronousOnly, firstReadLength);
-            using (var reader = new ImfEntityReader(stream, new ImfOptions(), bufferSize, false))
+            using (var reader = new ImfEntityReader(stream, EntityEvents.AnyOctetsOptions, bufferSize, false))
             {
                 // act
                 var testResult = EntityEvents.ReadOutline(reader);
@@ -261,7 +261,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ReadEvent_NoCloseDelimiterAtTheEndOfTheData_AcceptedWithTheOption()
         {
             // arrange
-            using (var reader = EntityEvents.CreateReader(NoCloseDelimiter, new ImfOptions { AllowMissingBoundaryTerminator = true }))
+            using (var reader = EntityEvents.CreateReader(NoCloseDelimiter, new ImfOptions { AllowMissingMimeVersion = true, AllowMissingBoundaryTerminator = true }))
             {
                 // act
                 var testResult = EntityEvents.ReadOutline(reader);
@@ -276,7 +276,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             const string message = "Content-Type: multipart/mixed; boundary=a\r\n\r\n--a\r\nContent-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\nx\r\n--a\r\n\r\ny\r\n--a--";
-            using (var reader = EntityEvents.CreateReader(message, new ImfOptions { AllowMissingBoundaryTerminator = true }))
+            using (var reader = EntityEvents.CreateReader(message, new ImfOptions { AllowMissingMimeVersion = true, AllowMissingBoundaryTerminator = true }))
             {
                 // act
                 var testResult = EntityEvents.ReadOutline(reader);
@@ -297,7 +297,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             const string message = "Content-Type: multipart/mixed; boundary=b\r\n\r\ntext\r\n";
-            using (var reader = EntityEvents.CreateReader(message, new ImfOptions { AllowMissingBoundaryTerminator = true }))
+            using (var reader = EntityEvents.CreateReader(message, new ImfOptions { AllowMissingMimeVersion = true, AllowMissingBoundaryTerminator = true }))
             {
                 // act
                 var testResult = EntityEvents.ReadOutline(reader);
@@ -312,7 +312,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             const string message = "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nA:1\r\n";
-            using (var reader = EntityEvents.CreateReader(message, new ImfOptions { AllowMissingBoundaryTerminator = true }))
+            using (var reader = EntityEvents.CreateReader(message, new ImfOptions { AllowMissingMimeVersion = true, AllowMissingBoundaryTerminator = true }))
             {
                 // act
                 var testResult = EntityEvents.ReadOutline(reader);
@@ -327,7 +327,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             const string message = "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nA:1";
-            using (var reader = EntityEvents.CreateReader(message, new ImfOptions { AllowMissingBoundaryTerminator = true }))
+            using (var reader = EntityEvents.CreateReader(message, new ImfOptions { AllowMissingMimeVersion = true, AllowMissingBoundaryTerminator = true }))
             {
                 // act
                 Action testAction = () => EntityEvents.ReadToEnd(reader);
@@ -342,7 +342,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             const string message = "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b--";
-            using (var reader = EntityEvents.CreateReader(message, new ImfOptions { AllowMissingBoundaryTerminator = true }))
+            using (var reader = EntityEvents.CreateReader(message, new ImfOptions { AllowMissingMimeVersion = true, AllowMissingBoundaryTerminator = true }))
             {
                 // act
                 Action testAction = () => EntityEvents.ReadToEnd(reader);
@@ -357,7 +357,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             const string message = "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\nx\n--b\r\ny\r\n--b--";
-            using (var reader = EntityEvents.CreateReader(message))
+            using (var reader = EntityEvents.CreateReader(message, EntityEvents.AnyOctetsOptions))
             {
                 // act
                 var testResult = EntityEvents.ReadOutline(reader);
@@ -372,7 +372,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             const string message = "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\nx\r\n--b\ny\r\n--b--\nz\r\n--b--";
-            using (var reader = EntityEvents.CreateReader(message))
+            using (var reader = EntityEvents.CreateReader(message, EntityEvents.AnyOctetsOptions))
             {
                 // act
                 var testResult = EntityEvents.ReadOutline(reader);
@@ -387,7 +387,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             const string message = "Content-Type: multipart/mixed; boundary=b\n\n--b\n\nx\n--b\r\n\r\ny\r\n--b--\nz\n";
-            using (var reader = EntityEvents.CreateReader(message, new ImfOptions { AcceptBareLineFeed = true }))
+            using (var reader = EntityEvents.CreateReader(message, new ImfOptions { AllowMissingMimeVersion = true, AcceptBareLineFeed = true }))
             {
                 // act
                 var testResult = EntityEvents.ReadOutline(reader);
@@ -406,7 +406,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             const string message = "Content-Transfer-Encoding: quoted-printable\n\na=\nb\n";
-            using (var reader = EntityEvents.CreateReader(message, new ImfOptions { AcceptBareLineFeed = true, DecodeTransferEncoding = true }))
+            using (var reader = EntityEvents.CreateReader(message, new ImfOptions { AllowMissingMimeVersion = true, AcceptBareLineFeed = true, DecodeTransferEncoding = true }))
             {
                 // act
                 var testResult = EntityEvents.ReadOutline(reader);
@@ -421,7 +421,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             const string message = "Content-Type: multipart/mixed; boundary=b\n\n--b\n\nx\r\n--b\r\ny\n--b--\nz\n";
-            using (var reader = new ImfEntityReader(new MemoryStream(Octets.Of(message)), new ImfOptions(), SmallBlock, true))
+            using (var reader = new ImfEntityReader(new MemoryStream(Octets.Of(message)), new ImfOptions { AllowMissingMimeVersion = true }, SmallBlock, true))
             {
                 // act
                 var testResult = EntityEvents.ReadOutline(reader);
@@ -457,7 +457,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ReadEvent_DelimiterLineTooLong_IsNotADelimiter(string message, string[] expected)
         {
             // arrange
-            using (var reader = new ImfEntityReader(new MemoryStream(Octets.Of(message)), new ImfOptions(), SmallBlock, false))
+            using (var reader = new ImfEntityReader(new MemoryStream(Octets.Of(message)), new ImfOptions { AllowMissingMimeVersion = true, AllowLongLines = true }, SmallBlock, false))
             {
                 // act
                 var testResult = EntityEvents.ReadOutline(reader);
@@ -513,7 +513,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ReadEvent_NestingAtTheLimit_IsRead()
         {
             // arrange
-            using (var reader = EntityEvents.CreateReader(LongMessages.EmbeddedMessages(3), new ImfOptions { MaxNestingDepth = 3 }))
+            using (var reader = EntityEvents.CreateReader(LongMessages.EmbeddedMessages(3), new ImfOptions { AllowMissingMimeVersion = true, MaxNestingDepth = 3 }))
             {
                 // act
                 EntityEvents.ReadToEnd(reader);
@@ -527,7 +527,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ReadEvent_NestingPastTheLimit_Throws()
         {
             // arrange
-            using (var reader = EntityEvents.CreateReader(LongMessages.EmbeddedMessages(4), new ImfOptions { MaxNestingDepth = 3 }))
+            using (var reader = EntityEvents.CreateReader(LongMessages.EmbeddedMessages(4), new ImfOptions { AllowMissingMimeVersion = true, MaxNestingDepth = 3 }))
             {
                 // act
                 Action testAction = () => EntityEvents.ReadToEnd(reader);
@@ -541,7 +541,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ReadEvent_MultipartNestingAtTheLimit_IsRead()
         {
             // arrange
-            using (var reader = EntityEvents.CreateReader(LongMessages.NestedMultiparts(3), new ImfOptions { MaxNestingDepth = 3 }))
+            using (var reader = EntityEvents.CreateReader(LongMessages.NestedMultiparts(3), new ImfOptions { AllowMissingMimeVersion = true, MaxNestingDepth = 3 }))
             {
                 // act
                 EntityEvents.ReadToEnd(reader);
@@ -555,7 +555,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ReadEvent_MultipartNestingPastTheLimit_Throws()
         {
             // arrange
-            using (var reader = EntityEvents.CreateReader(LongMessages.NestedMultiparts(4), new ImfOptions { MaxNestingDepth = 3 }))
+            using (var reader = EntityEvents.CreateReader(LongMessages.NestedMultiparts(4), new ImfOptions { AllowMissingMimeVersion = true, MaxNestingDepth = 3 }))
             {
                 // act
                 Action testAction = () => EntityEvents.ReadToEnd(reader);
@@ -583,7 +583,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ReadEvent_VeryDeepNestingWithALimitToMatch_DoesNotOverflowTheStack()
         {
             // arrange
-            var options = new ImfOptions { MaxNestingDepth = VeryDeep, MaxPartCount = VeryDeep };
+            var options = new ImfOptions { AllowMissingMimeVersion = true, MaxNestingDepth = VeryDeep, MaxPartCount = VeryDeep };
             using (var reader = EntityEvents.CreateReader(LongMessages.EmbeddedMessages(VeryDeep), options))
             {
                 // act
@@ -598,7 +598,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ReadEvent_PartsAtTheLimit_AreRead()
         {
             // arrange
-            using (var reader = EntityEvents.CreateReader(LongMessages.Parts(3), new ImfOptions { MaxPartCount = 3 }))
+            using (var reader = EntityEvents.CreateReader(LongMessages.Parts(3), new ImfOptions { AllowMissingMimeVersion = true, MaxPartCount = 3 }))
             {
                 // act
                 EntityEvents.ReadToEnd(reader);
@@ -612,7 +612,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ReadEvent_PartsPastTheLimit_Throws()
         {
             // arrange
-            using (var reader = EntityEvents.CreateReader(LongMessages.Parts(4), new ImfOptions { MaxPartCount = 3 }))
+            using (var reader = EntityEvents.CreateReader(LongMessages.Parts(4), new ImfOptions { AllowMissingMimeVersion = true, MaxPartCount = 3 }))
             {
                 // act
                 Action testAction = () => EntityEvents.ReadToEnd(reader);
@@ -626,7 +626,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ReadEvent_EmbeddedMessagePastThePartLimit_Throws()
         {
             // arrange
-            using (var reader = EntityEvents.CreateReader(LongMessages.EmbeddedMessages(2), new ImfOptions { MaxPartCount = 1 }))
+            using (var reader = EntityEvents.CreateReader(LongMessages.EmbeddedMessages(2), new ImfOptions { AllowMissingMimeVersion = true, MaxPartCount = 1 }))
             {
                 // act
                 Action testAction = () => EntityEvents.ReadToEnd(reader);
@@ -641,7 +641,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             const string message = "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nA:1\r\n\r\nx\r\n--b\r\nB:2\r\n\r\ny\r\n--b--";
-            using (var reader = EntityEvents.CreateReader(message, new ImfOptions { MaxHeaderFieldCount = 1, MaxHeaderSectionLength = 45 }))
+            using (var reader = EntityEvents.CreateReader(message, new ImfOptions { AllowMissingMimeVersion = true, MaxHeaderFieldCount = 1, MaxHeaderSectionLength = 45 }))
             {
                 // act
                 EntityEvents.ReadToEnd(reader);
@@ -656,7 +656,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             const string message = "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nA:1\r\nB:2\r\n\r\nx\r\n--b--";
-            using (var reader = EntityEvents.CreateReader(message, new ImfOptions { MaxHeaderFieldCount = 1 }))
+            using (var reader = EntityEvents.CreateReader(message, new ImfOptions { AllowMissingMimeVersion = true, MaxHeaderFieldCount = 1 }))
             {
                 // act
                 Action testAction = () => EntityEvents.ReadToEnd(reader);
@@ -671,7 +671,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ReadEvent_DecodingOn_GivesTheDecodedBodies(string message, string expected)
         {
             // arrange
-            var options = new ImfOptions { DecodeTransferEncoding = true };
+            var options = new ImfOptions { AllowMissingMimeVersion = true, DecodeTransferEncoding = true };
             using (var reader = EntityEvents.CreateReader(message, options))
             {
                 // act
@@ -687,7 +687,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ReadEvent_DecodingOnOneByteAtATime_GivesTheSameBodies(string message, string expected)
         {
             // arrange
-            var options = new ImfOptions { DecodeTransferEncoding = true };
+            var options = new ImfOptions { AllowMissingMimeVersion = true, DecodeTransferEncoding = true };
             var stream = new BlockStream(Octets.Of(message), BlockStreamMode.SynchronousOnly, 1, 1);
             using (var reader = new ImfEntityReader(stream, options, 1, false))
             {
@@ -704,7 +704,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ReadEvent_DecodingOnWithInvalidData_Throws(string message)
         {
             // arrange
-            using (var reader = EntityEvents.CreateReader(message, new ImfOptions { DecodeTransferEncoding = true }))
+            using (var reader = EntityEvents.CreateReader(message, new ImfOptions { AllowMissingMimeVersion = true, DecodeTransferEncoding = true }))
             {
                 // act
                 Action testAction = () => EntityEvents.ReadToEnd(reader);
@@ -734,7 +734,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             const string message = "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\nx=3D\r\n--b\r\nContent-Transfer-Encoding: base64\r\n\r\nQUI=\r\n--b--";
-            using (var reader = EntityEvents.CreateReader(message, new ImfOptions { DecodeTransferEncoding = true }))
+            using (var reader = EntityEvents.CreateReader(message, new ImfOptions { AllowMissingMimeVersion = true, DecodeTransferEncoding = true }))
             {
                 // act
                 var testResult = EntityEvents.ReadOutline(reader);
@@ -756,7 +756,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             const string message = "Content-Transfer-Encoding: base64\r\n\r\nQUI=\r\nA\r\nB\r\n";
             const long expectedBytePosition = 43;
             const long expectedLineNumber = 4;
-            using (var reader = EntityEvents.CreateReader(message, new ImfOptions { DecodeTransferEncoding = true }))
+            using (var reader = EntityEvents.CreateReader(message, new ImfOptions { AllowMissingMimeVersion = true, DecodeTransferEncoding = true }))
             {
                 // act
                 Action testAction = () => EntityEvents.ReadToEnd(reader);
@@ -774,7 +774,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             // arrange
             // The 4 bytes of "QUJD" start at 37.  One byte at a time, the line break after them gives no output, so the last chunk covers it.
             var stream = new BlockStream(Octets.Of("Content-Transfer-Encoding: base64\r\n\r\nQUJD\r\n"), BlockStreamMode.SynchronousOnly, 1, 1);
-            using (var reader = new ImfEntityReader(stream, new ImfOptions { DecodeTransferEncoding = true }, 1, false))
+            using (var reader = new ImfEntityReader(stream, new ImfOptions { AllowMissingMimeVersion = true, DecodeTransferEncoding = true }, 1, false))
             {
                 // act
                 var testResult = EntityEvents.ReadBodyChunkRanges(reader);
@@ -804,7 +804,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ReadEvent_DecodingOn_MarksTheChunkAsDecoded()
         {
             // arrange
-            using (var reader = EntityEvents.CreateReader("Content-Transfer-Encoding: base64\r\n\r\nQUJD", new ImfOptions { DecodeTransferEncoding = true }))
+            using (var reader = EntityEvents.CreateReader("Content-Transfer-Encoding: base64\r\n\r\nQUJD", new ImfOptions { AllowMissingMimeVersion = true, DecodeTransferEncoding = true }))
             {
                 // act
                 var testResult = EntityEvents.ReadUntil(reader, ImfEntityEventKind.BodyChunk).Value;
@@ -820,7 +820,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             const string message = "MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nContent-Transfer-Encoding: x-other\r\n\r\nQUI=\r\n--b--";
-            using (var reader = EntityEvents.CreateReader(message, new ImfOptions { DecodeTransferEncoding = true }))
+            using (var reader = EntityEvents.CreateReader(message, new ImfOptions { AllowMissingMimeVersion = true, DecodeTransferEncoding = true }))
             {
                 // act
                 var testResult = DecodedBodies.Read(reader);
@@ -911,7 +911,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ReadEvent_ExtendedParameterWithCharsetTheResolverKnows_IsDecoded()
         {
             // arrange
-            var options = new ImfOptions { CharsetResolver = new FixedCharsetResolver(Encoding.UTF8) };
+            var options = new ImfOptions { AllowMissingMimeVersion = true, CharsetResolver = new FixedCharsetResolver(Encoding.UTF8) };
             using (var reader = EntityEvents.CreateReader(UnknownCharsetContentType, options))
             {
                 // act
@@ -941,7 +941,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ReadEvent_LargeBase64BodyDecoded_NeverHoldsMoreThanABlock()
         {
             // arrange
-            using (var reader = EntityEvents.CreateReader(LongMessages.Base64Body(LargeBodyLength), new ImfOptions { DecodeTransferEncoding = true }))
+            using (var reader = EntityEvents.CreateReader(LongMessages.Base64Body(LargeBodyLength), new ImfOptions { AllowMissingMimeVersion = true, DecodeTransferEncoding = true }))
             {
                 // act
                 var testResult = DecodedBodies.ReadLongestChunk(reader);
@@ -1189,7 +1189,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void Constructor_NullStream_Throws()
         {
             // act
-            Action testAction = () => new ImfEntityReader((Stream)null);
+            Action testAction = () => new ImfEntityReader((Stream)null, EntityEvents.MimeEntityOptions);
 
             // assert
             testAction.Should().Throw<ArgumentNullException>();
@@ -1209,7 +1209,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void Constructor_WriteOnlyStream_Throws()
         {
             // act
-            Action testAction = () => new ImfEntityReader(new WriteOnlyStream());
+            Action testAction = () => new ImfEntityReader(new WriteOnlyStream(), EntityEvents.MimeEntityOptions);
 
             // assert
             testAction.Should().Throw<ArgumentException>();
@@ -1219,7 +1219,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void Constructor_NestingLimitBelowOne_Throws()
         {
             // act
-            Action testAction = () => new ImfEntityReader(new MemoryStream(), new ImfOptions { MaxNestingDepth = 0 });
+            Action testAction = () => new ImfEntityReader(new MemoryStream(), new ImfOptions { AllowMissingMimeVersion = true, MaxNestingDepth = 0 });
 
             // assert
             testAction.Should().Throw<ArgumentException>();
@@ -1229,7 +1229,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void Constructor_PartLimitBelowOne_Throws()
         {
             // act
-            Action testAction = () => new ImfEntityReader(new MemoryStream(), new ImfOptions { MaxPartCount = 0 });
+            Action testAction = () => new ImfEntityReader(new MemoryStream(), new ImfOptions { AllowMissingMimeVersion = true, MaxPartCount = 0 });
 
             // assert
             testAction.Should().Throw<ArgumentException>();
@@ -1239,7 +1239,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void Constructor_NoCharsetResolver_Throws()
         {
             // act
-            Action testAction = () => new ImfEntityReader(new MemoryStream(), new ImfOptions { CharsetResolver = null });
+            Action testAction = () => new ImfEntityReader(new MemoryStream(), new ImfOptions { AllowMissingMimeVersion = true, CharsetResolver = null });
 
             // assert
             testAction.Should().Throw<ArgumentException>();
@@ -1249,7 +1249,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void Constructor_HeaderLimitBelowOne_Throws()
         {
             // act
-            Action testAction = () => new ImfEntityReader(new MemoryStream(), new ImfOptions { MaxHeaderFieldCount = 0 });
+            Action testAction = () => new ImfEntityReader(new MemoryStream(), new ImfOptions { AllowMissingMimeVersion = true, MaxHeaderFieldCount = 0 });
 
             // assert
             testAction.Should().Throw<ArgumentException>();
@@ -1330,7 +1330,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             var stream = new MemoryStream(Octets.Of(OneField));
-            var reader = new ImfEntityReader(stream);
+            var reader = new ImfEntityReader(stream, EntityEvents.MimeEntityOptions);
 
             // act
             reader.Dispose();

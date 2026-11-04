@@ -30,21 +30,67 @@ namespace DataStandardizer.File.InternetMessage.Tests
         // "caf=E9" in MhtmlShapes.Word, where 0xE9 is U+00E9 in windows-1252.
         private const string WordRootText = "<html>caf\x00E9</html>";
 
-        private static readonly ImfOptions ChromiumOptions = new ImfOptions { AllowInvalidValues = true };
-        private static readonly ImfOptions WordOptions = new ImfOptions { AllowInvalidRelatedStructure = true };
+        private static readonly ImfOptions ChromiumOptions = new ImfOptions { AllowMissingRequiredFields = true, AllowInvalidValues = true };
+        private static readonly ImfOptions WordOptions = new ImfOptions { AllowMissingRequiredFields = true, AllowInvalidRelatedStructure = true };
 
         public static TheoryData<string, ImfOptions> RoundTrips => new TheoryData<string, ImfOptions>
         {
-            { MhtmlShapes.Rfc2557Section91, new ImfOptions() },
-            { MhtmlShapes.Rfc2557Section92, new ImfOptions() },
-            { MhtmlShapes.Rfc2557Section93, new ImfOptions() },
-            { MhtmlShapes.Rfc2557Section94, new ImfOptions() },
-            { MhtmlShapes.Rfc2557Section95, new ImfOptions() },
-            { MhtmlShapes.Rfc2557Section96, new ImfOptions() },
-            { MhtmlShapes.AlternativeRoot, new ImfOptions() },
+            { MhtmlShapes.Rfc2557Section91, new ImfOptions { AllowMissingRequiredFields = true } },
+            { MhtmlShapes.Rfc2557Section92, new ImfOptions { AllowMissingRequiredFields = true } },
+            { MhtmlShapes.Rfc2557Section93, new ImfOptions { AllowMissingRequiredFields = true } },
+            { MhtmlShapes.Rfc2557Section94, new ImfOptions { AllowMissingRequiredFields = true } },
+            { MhtmlShapes.Rfc2557Section95, new ImfOptions { AllowMissingRequiredFields = true } },
+            { MhtmlShapes.Rfc2557Section96, new ImfOptions { AllowMissingRequiredFields = true } },
+            { MhtmlShapes.AlternativeRoot, new ImfOptions { AllowMissingRequiredFields = true } },
             { MhtmlShapes.Chromium, ChromiumOptions },
             { MhtmlShapes.Word, WordOptions },
         };
+
+        [Theory]
+        [InlineData(NoHeader)]
+        [InlineData(NoFrom)]
+        [InlineData(NoDate)]
+        [InlineData(NoSender)]
+        public void ReadDocument_MissingOriginationFieldByDefault_Throws(string document)
+        {
+            // arrange
+            using (var subject = new MhtmlReader(new MemoryStream(Octets.Of(document))))
+            {
+                // act
+                Action testAction = () => subject.ReadDocument();
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.MissingRequiredField);
+            }
+        }
+
+        [Fact]
+        public void ReadDocument_SecondSubject_RecordsADiagnostic()
+        {
+            // arrange
+            using (var subject = new MhtmlReader(new MemoryStream(Octets.Of(SecondSubject)), EntityEvents.DocumentOptions))
+            {
+                // act
+                subject.ReadDocument();
+
+                // assert
+                subject.Diagnostics.Should().Contain(diagnostic => diagnostic.Kind == ImfDiagnosticKind.CardinalityViolation);
+            }
+        }
+
+        [Fact]
+        public void ReadDocument_ResentBlockWithNoDate_ThrowsByDefault()
+        {
+            // arrange
+            using (var subject = new MhtmlReader(new MemoryStream(Octets.Of(ResentWithoutDate))))
+            {
+                // act
+                Action testAction = () => subject.ReadDocument();
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.MissingRequiredField);
+            }
+        }
 
         [Theory]
         [InlineData(NoHeader, new[] { "Date", "From" })]
@@ -54,7 +100,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ReadDocument_MissingOriginationField_RecordsADiagnostic(string document, string[] expected)
         {
             // arrange
-            using (var subject = new MhtmlReader(new MemoryStream(Octets.Of(document))))
+            using (var subject = new MhtmlReader(new MemoryStream(Octets.Of(document)), EntityEvents.DocumentOptions))
             {
                 // act
                 subject.ReadDocument();
@@ -85,14 +131,12 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
         [Theory]
         // ref. RFC 5322 §3.6.6: a block of resent fields is not an origination field.
-        [InlineData(ResentWithoutDate, ImfDiagnosticKind.MissingRequiredField)]
-        [InlineData(SecondSubject, ImfDiagnosticKind.CardinalityViolation)]
         [InlineData(InvalidDate, ImfDiagnosticKind.InvalidFieldValue)]
         [InlineData(MhtmlShapes.Chromium, ImfDiagnosticKind.InvalidFieldValue)]
         public void ReadDocument_OtherProblemInTheHeader_Throws(string document, ImfDiagnosticKind expected)
         {
             // arrange
-            using (var subject = new MhtmlReader(new MemoryStream(Octets.Of(document))))
+            using (var subject = new MhtmlReader(new MemoryStream(Octets.Of(document)), EntityEvents.DocumentOptions))
             {
                 // act
                 Action testAction = () => subject.ReadDocument();
@@ -108,7 +152,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ReadDocument_InvalidStructure_Throws(string document)
         {
             // arrange
-            using (var subject = new MhtmlReader(new MemoryStream(Octets.Of(document))))
+            using (var subject = new MhtmlReader(new MemoryStream(Octets.Of(document)), EntityEvents.DocumentOptions))
             {
                 // act
                 Action testAction = () => subject.ReadDocument();
@@ -172,7 +216,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void GetText_WordRootWithACodePageResolver_DecodesWindows1252()
         {
             // arrange
-            var options = new ImfOptions { AllowInvalidRelatedStructure = true, CharsetResolver = new CodePageCharsetResolver() };
+            var options = new ImfOptions { AllowMissingRequiredFields = true, AllowInvalidRelatedStructure = true, CharsetResolver = new CodePageCharsetResolver() };
             MhtmlDocument document;
             using (var reader = new MhtmlReader(new MemoryStream(Octets.Of(MhtmlShapes.Word)), options))
             {
@@ -190,7 +234,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void GetText_WordRootWithNoResolverForItsCharset_ThrowsAfterReadingSucceeds()
         {
             // arrange
-            var options = new ImfOptions { AllowInvalidRelatedStructure = true, CharsetResolver = new NoCharsetResolver() };
+            var options = new ImfOptions { AllowMissingRequiredFields = true, AllowInvalidRelatedStructure = true, CharsetResolver = new NoCharsetResolver() };
             MhtmlDocument document;
             using (var reader = new MhtmlReader(new MemoryStream(Octets.Of(MhtmlShapes.Word)), options))
             {
@@ -232,7 +276,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             var expected = EntityTrees.Describe(EntityTrees.Read(document));
-            using (var subject = new MhtmlReader(new MemoryStream(Octets.Of(document))))
+            using (var subject = new MhtmlReader(new MemoryStream(Octets.Of(document)), EntityEvents.DocumentOptions))
             {
                 // act
                 var testResult = subject.ReadDocument();
@@ -301,7 +345,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public async Task ReadDocumentAsync_InvalidStructure_FailsTheTask()
         {
             // arrange
-            var subject = new MhtmlReader(new MemoryStream(Octets.Of(MhtmlShapes.Word)));
+            var subject = new MhtmlReader(new MemoryStream(Octets.Of(MhtmlShapes.Word)), EntityEvents.DocumentOptions);
             await AsyncDisposal.UsingAsync(subject, async () =>
             {
                 // act
@@ -316,7 +360,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public async Task ReadDocumentAsync_CanceledToken_Throws()
         {
             // arrange
-            var subject = new MhtmlReader(new MemoryStream(Octets.Of(NoHeader)));
+            var subject = new MhtmlReader(new MemoryStream(Octets.Of(NoHeader)), EntityEvents.DocumentOptions);
             var canceled = new CancellationToken(true);
             await AsyncDisposal.UsingAsync(subject, async () =>
             {
@@ -332,7 +376,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ReadDocument_BaseUri_ResolvesAgainstIt()
         {
             // arrange
-            using (var subject = new MhtmlReader(new MemoryStream(Octets.Of(MhtmlShapes.RelativePartsNoBase))))
+            using (var subject = new MhtmlReader(new MemoryStream(Octets.Of(MhtmlShapes.RelativePartsNoBase)), EntityEvents.DocumentOptions))
             {
                 // act
                 var testResult = subject.ReadDocument(new Uri("http://caller.example/a/b/"));
@@ -346,7 +390,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ReadDocument_RelativeBaseUri_Throws()
         {
             // arrange
-            using (var subject = new MhtmlReader(new MemoryStream(Octets.Of(NoHeader))))
+            using (var subject = new MhtmlReader(new MemoryStream(Octets.Of(NoHeader)), EntityEvents.DocumentOptions))
             {
                 // act
                 Action testAction = () => subject.ReadDocument(new Uri("a", UriKind.Relative));
@@ -360,7 +404,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ReadDocument_SecondRead_Throws()
         {
             // arrange
-            using (var subject = new MhtmlReader(new MemoryStream(Octets.Of(NoHeader))))
+            using (var subject = new MhtmlReader(new MemoryStream(Octets.Of(NoHeader)), EntityEvents.DocumentOptions))
             {
                 subject.ReadDocument();
 
@@ -376,7 +420,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ReadDocument_Disposed_Throws()
         {
             // arrange
-            var subject = new MhtmlReader(new MemoryStream(Octets.Of(NoHeader)));
+            var subject = new MhtmlReader(new MemoryStream(Octets.Of(NoHeader)), EntityEvents.DocumentOptions);
             subject.Dispose();
 
             // act
@@ -390,7 +434,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void Diagnostics_Disposed_Throws()
         {
             // arrange
-            var subject = new MhtmlReader(new MemoryStream(Octets.Of(NoHeader)));
+            var subject = new MhtmlReader(new MemoryStream(Octets.Of(NoHeader)), EntityEvents.DocumentOptions);
             subject.Dispose();
 
             // act
@@ -404,7 +448,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void BytePosition_AfterReading_IsTheLengthOfTheData()
         {
             // arrange
-            using (var subject = new MhtmlReader(new MemoryStream(Octets.Of(NoHeader))))
+            using (var subject = new MhtmlReader(new MemoryStream(Octets.Of(NoHeader)), EntityEvents.DocumentOptions))
             {
                 subject.ReadDocument();
 
@@ -420,7 +464,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void Constructor_NullStream_Throws()
         {
             // act
-            Action testAction = () => new MhtmlReader((Stream)null);
+            Action testAction = () => new MhtmlReader((Stream)null, EntityEvents.DocumentOptions);
 
             // assert
             testAction.Should().Throw<ArgumentNullException>();

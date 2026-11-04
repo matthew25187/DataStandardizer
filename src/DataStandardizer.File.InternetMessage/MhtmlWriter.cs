@@ -13,11 +13,7 @@ namespace DataStandardizer.File.InternetMessage
     /// </summary>
     /// <remarks>
     /// <para>
-    /// This writes the message of a document as an <see cref="ImfWriter"/> does, under the same options, so anything that hasn't changed is written byte for byte.  It differs in two ways.
-    /// </para>
-    /// <para>
-    /// <b>Required fields.</b>  A missing Date or From field that RFC 5322 §3.6 requires, or Sender field that §3.6.2 requires, is recorded in <see cref="Diagnostics"/>, as the top level of
-    /// an MHTML file is a MIME entity as much as a message.  To send a document as a message, use an <see cref="ImfWriter"/>, which refuses one without them.
+    /// This writes the message of a document as an <see cref="ImfWriter"/> does, under the same options, so anything that hasn't changed is written byte for byte, and with the same checks.
     /// </para>
     /// <para>
     /// <b>Structure.</b>  The message as it now is, not as it was when the document was made, is checked as <see cref="MhtmlDocument"/> describes, under the options of the writer and with no

@@ -193,7 +193,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void Build_TwoResourcesWithTheSameUrlAndOptionsThatAllowIt_Throws()
         {
             // arrange
-            var subject = new MhtmlDocumentBuilder(new ImfOptions { AllowInvalidRelatedStructure = true })
+            var subject = new MhtmlDocumentBuilder(new ImfOptions { AllowMissingRequiredFields = true, AllowInvalidRelatedStructure = true })
                 .SetHtml(new Uri(PageUrl), Html)
                 .AddResource(new Uri(LogoUrl), Png, PngBytes)
                 .AddResource(new Uri(LogoUrl), Png, PngBytes);
@@ -273,13 +273,13 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
         private static MhtmlDocumentBuilder CreateBuilder()
         {
-            return new MhtmlDocumentBuilder(new ImfOptions(), () => ImfMessageId.Parse(RootId));
+            return new MhtmlDocumentBuilder(new ImfOptions { AllowMissingRequiredFields = true }, () => ImfMessageId.Parse(RootId));
         }
 
         private static string Write(MhtmlDocument document)
         {
             var output = new MemoryStream();
-            using (var writer = new MhtmlWriter(output, new ImfOptions(), MessageWrites.NextBoundary()))
+            using (var writer = new MhtmlWriter(output, new ImfOptions { AllowMissingRequiredFields = true }, MessageWrites.NextBoundary()))
             {
                 writer.WriteDocument(document);
             }
@@ -289,7 +289,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
         private static MhtmlDocument Read(string document)
         {
-            using (var reader = new MhtmlReader(new MemoryStream(Octets.Of(document))))
+            using (var reader = new MhtmlReader(new MemoryStream(Octets.Of(document)), EntityEvents.DocumentOptions))
             {
                 return reader.ReadDocument();
             }

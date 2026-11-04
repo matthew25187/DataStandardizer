@@ -302,7 +302,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             const string Nested = Header + "Content-Type: message/rfc822\r\n\r\nContent-Type: message/rfc822\r\n\r\nFrom: c@d.test\r\n\r\nx";
-            var subject = EntityTrees.Read(Nested);
+            var subject = EntityTrees.Read(Nested, new ImfOptions { AllowMissingRequiredFields = true });
 
             // act
             var testResult = EntityTrees.Describe(subject);
@@ -316,7 +316,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             const string Empty = Header + "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nContent-Type: message/rfc822\r\n\r\n--b--\r\n";
-            var subject = EntityTrees.Read(Empty);
+            var subject = EntityTrees.Read(Empty, new ImfOptions { AllowMissingRequiredFields = true });
 
             // act
             var testResult = EntityTrees.Describe(subject);
@@ -572,10 +572,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Fact]
-        public void ReadMessage_MimeFieldWithNoMimeVersion_RecordsADiagnostic()
+        public void ReadMessage_MimeFieldWithNoMimeVersionAllowed_RecordsADiagnostic()
         {
             // arrange
-            using (var reader = new ImfReader(new MemoryStream(Octets.Of(NoMimeVersion))))
+            using (var reader = new ImfReader(new MemoryStream(Octets.Of(NoMimeVersion)), new ImfOptions { AllowMissingMimeVersion = true }))
             {
                 // act
                 reader.ReadMessage();
@@ -594,7 +594,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var message = EntityTrees.MessageWithPartOfLength(LongerThanABlock);
 
             // act
-            var testResult = EntityTrees.At(EntityTrees.Read(message), "1").GetContent().Length;
+            var testResult = EntityTrees.At(EntityTrees.Read(message, new ImfOptions { AllowLongLines = true }), "1").GetContent().Length;
 
             // assert
             testResult.Should().Be(LongerThanABlock);
@@ -992,7 +992,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void WriteMessage_RawBodySetAndBodyNeverAskedFor_WritesItAsItIs()
         {
             // arrange
-            var subject = EntityTrees.Read(TwoParts);
+            var subject = EntityTrees.Read(TwoParts, new ImfOptions { AllowMissingBoundaryTerminator = true });
             subject.RawBody = EntityTrees.Bytes(NewBody);
 
             // act
@@ -1044,7 +1044,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var source = EntityTrees.Read(HoldsDelimiter);
             var moved = EntityTrees.At(source, "1");
             ((ImfMultipart)source.Body).Parts.RemoveAt(0);
-            var subject = EntityTrees.Read(Nested);
+            var subject = EntityTrees.Read(Nested, new ImfOptions { AllowMissingRequiredFields = true });
             ((ImfMultipart)EntityTrees.At(subject, "1")).Parts.Add(moved);
             var output = new MemoryStream();
             using (var writer = new ImfWriter(output))
@@ -1194,7 +1194,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void WriteMessage_MessagePartWithNoBodyGivenAMessage_SeparatesItFromTheHeader()
         {
             // arrange
-            var subject = EntityTrees.Read(EmptyEmbeddedMessage);
+            var subject = EntityTrees.Read(EmptyEmbeddedMessage, new ImfOptions { AllowMissingRequiredFields = true });
             ((ImfMessagePart)EntityTrees.At(subject, "1")).Message.Subject = "New";
 
             // act

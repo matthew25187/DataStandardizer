@@ -68,5 +68,15 @@
         /// A message of an mbox file holds an octet above 127, which RFC 4155 Appendix A doesn't allow.
         /// </summary>
         EightBitMboxContent = 11,
+
+        /// <summary>
+        /// A body holds an octet or a line break that RFC 5322 §2.3 or its transfer encoding doesn't allow (RFC 2045 §2.7, §2.8 and §6.4).
+        /// </summary>
+        InvalidBodyOctets = 12,
+
+        /// <summary>
+        /// A body has a line longer than RFC 5322 §2.1.1, or the 76 characters of RFC 2045 §6.7 and §6.8 for an encoded body, allow.
+        /// </summary>
+        LongBodyLine = 13,
     }
 }

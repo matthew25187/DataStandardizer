@@ -37,6 +37,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
         // ref. RFC 2046 §5.1.1: transport padding after a delimiter, which only a copy of the whole entity keeps.
         public const string MultipartSignedWithPadding =
+            "MIME-Version: 1.0\r\n" +
             "Content-Type: multipart/signed; micalg=pgp-sha256;\r\n" +
             "  protocol=\"application/pgp-signature\"; boundary=b\r\n" +
             "\r\n" +
