@@ -5,15 +5,15 @@ using System.Threading;
 using System.Threading.Tasks;
 #endif
 
-namespace DataStandardizer.File.iCal
+namespace DataStandardizer.File.ContentLine
 {
     /// <summary>
-    /// A read-only stream over UTF-8 iCalendar data that moves each fold found inside a multi-octet UTF-8 sequence to just after that sequence.
+    /// A read-only stream over UTF-8 content lines that moves each fold found inside a multi-octet UTF-8 sequence to just after that sequence.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// RFC 5545 §3.1 notes that simple writers may fold in the middle of a multi-octet UTF-8 sequence, and that readers must unfold so as to
-    /// restore it.  The content line scanner unfolds characters, after a <see cref="StreamReader"/> has decoded them, and decoding a sequence with
+    /// RFC 5545 §3.1 and RFC 6350 §3.2 note that simple writers may fold in the middle of a multi-octet UTF-8 sequence, and that readers should
+    /// unfold so as to restore it.  The content line scanner unfolds characters, after a <see cref="StreamReader"/> has decoded them, and decoding a sequence with
     /// a fold inside it gives replacement characters.  Moving the fold rather than removing it leaves the decoded line the same once unfolded,
     /// and keeps every line break, so physical line numbers stay right.
     /// </para>

@@ -2,11 +2,11 @@
 using System.Buffers;
 using System.Collections.Generic;
 
-namespace DataStandardizer.File.iCal
+namespace DataStandardizer.File.ContentLine
 {
     /// <summary>
-    /// Finds and parses content lines (RFC 5545 §3.1) in a pooled character block.  It does no I/O: when it needs more input it says so, and a
-    /// driver refills the block and calls it again.
+    /// Finds and parses content lines (RFC 5545 §3.1, RFC 6350 §3.3) in a pooled character block.  It does no I/O: when it needs more input it
+    /// says so, and a driver refills the block and calls it again.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -15,34 +15,20 @@ namespace DataStandardizer.File.iCal
     /// longer than half the block makes the scanner rent a larger one.
     /// </para>
     /// <para>
-    /// The name, each parameter name and value, and the value are held as <c>(offset, length)</c> slices of the block.  Caret decoding and
-    /// TEXT unescaping are done only when asked for, into a pooled scratch buffer sized for the whole line, so the raw slices stay intact.
+    /// The group, the name, each parameter name and value, and the value are held as <c>(offset, length)</c> slices of the block.  Caret decoding
+    /// and TEXT unescaping are done only when asked for, into a pooled scratch buffer sized for the whole line, so the raw slices stay intact.
+    /// </para>
+    /// <para>
+    /// A problem is reported to the <see cref="IContentLineErrorFactory"/> passed in, and the scanner throws the exception it returns.
     /// </para>
     /// </remarks>
-    internal sealed class IcalContentLineScanner
+    internal sealed class ContentLineScanner
     {
         internal enum ScanStatus
         {
             LineRead,
             NeedMoreInput,
             EndOfInput
-        }
-
-        private static class ErrorMessage
-        {
-            internal const string BareLineFeed = "Found a line feed without a carriage return.  RFC 5545 requires a CRLF line break.";
-            internal const string EmptyLine = "Found an empty content line.";
-            internal const string ExpectedNameEnd = "Expected ';' or ':' after the property name.";
-            internal const string ExpectedParameterEquals = "Expected '=' after the parameter name.";
-            internal const string ExpectedParameterName = "Expected a parameter name after ';'.";
-            internal const string ExpectedParameterValueEnd = "Expected ',', ';' or ':' after the parameter value.";
-            internal const string ExpectedPropertyName = "Expected a property name at the start of the content line.";
-            internal const string InvalidParameterValueCharacterTemplate = "Found an invalid character U+{0:X4} in a parameter value.";
-            internal const string InvalidTextEscape = "Found a backslash that does not start a valid TEXT escape sequence.";
-            internal const string InvalidValueCharacterTemplate = "Found an invalid character U+{0:X4} in the property value.";
-            internal const string LineTooLongTemplate = "The content line is longer than the maximum of {0} characters.";
-            internal const string MissingValue = "Expected ':' and a property value.";
-            internal const string UnterminatedQuotedString = "Expected a closing '\"' for the quoted parameter value.";
         }
 
         private const char ByteOrderMark = '﻿';
@@ -63,7 +49,9 @@ namespace DataStandardizer.File.iCal
 #endif
 
         private readonly bool _acceptBareLineFeed;
+        private readonly bool _allowGroupPrefix;
         private readonly int _bufferSize;
+        private readonly IContentLineErrorFactory _errorFactory;
         private readonly int _maxLineLength;
 
         private char[] _buffer = EmptyCharacters;
@@ -72,12 +60,14 @@ namespace DataStandardizer.File.iCal
         private bool _endOfInput;
         private int[] _foldOffsets = new int[4];
         private int _foldCount;
+        private int _groupLength;
         private int _lineEnd;
         private bool _lineInProgress;
         private long _lineNumber;
         private long _linesRead;
         private int _lineStart;
         private int _nameLength;
+        private int _nameOffset;
         private ParameterSlice[] _parameters = new ParameterSlice[4];
         private int _parameterCount;
         private ValueSlice[] _parameterValues = new ValueSlice[4];
@@ -94,13 +84,15 @@ namespace DataStandardizer.File.iCal
         private int _valueOffset;
 
         /// <param name="bufferSize">The initial size, in characters, of the block.</param>
-        /// <param name="acceptBareLineFeed"><c>true</c> to accept a bare line feed as a line break.</param>
-        /// <param name="maxLineLength">The maximum length of a logical line, or <see cref="int.MaxValue"/> for no limit.</param>
-        internal IcalContentLineScanner(int bufferSize, bool acceptBareLineFeed, int maxLineLength)
+        /// <param name="settings">The rules to scan by.</param>
+        /// <param name="errorFactory">Builds the exception for each problem found.</param>
+        internal ContentLineScanner(int bufferSize, ContentLineScannerSettings settings, IContentLineErrorFactory errorFactory)
         {
             _bufferSize = bufferSize;
-            _acceptBareLineFeed = acceptBareLineFeed;
-            _maxLineLength = maxLineLength;
+            _acceptBareLineFeed = settings.AcceptBareLineFeed;
+            _allowGroupPrefix = settings.AllowGroupPrefix;
+            _errorFactory = errorFactory;
+            _maxLineLength = settings.MaxLineLength;
         }
 
         /// <summary>
@@ -141,8 +133,8 @@ namespace DataStandardizer.File.iCal
         /// <see cref="PrepareRefill"/> and <see cref="CompleteRefill"/>, then call this method again; <see cref="ScanStatus.EndOfInput"/> when
         /// there are no more lines.
         /// </returns>
-        /// <exception cref="IcalFileException">A bare line feed was found and is not accepted, or the line is longer than the maximum.  The scanner
-        /// is then faulted.</exception>
+        /// <exception cref="Exception">What the error factory builds: a bare line feed was found and is not accepted, or the line is longer than the
+        /// maximum.  The scanner is then faulted.</exception>
         internal ScanStatus Scan()
         {
             // Every early return leaves the state as it was at a point the scan can restart from.
@@ -194,7 +186,7 @@ namespace DataStandardizer.File.iCal
                 {
                     if (!_acceptBareLineFeed)
                     {
-                        throw Fault(ErrorMessage.BareLineFeed);
+                        throw Fault(ContentLineErrorKind.BareLineFeed);
                     }
 
                     lineBreakLength = 1;
@@ -287,13 +279,15 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
-        /// Splits the line found by <see cref="Scan"/> into its name, parameters and value.
+        /// Splits the line found by <see cref="Scan"/> into its group, name, parameters and value.
         /// </summary>
-        /// <exception cref="IcalFileException">The line does not follow the content line syntax of RFC 5545 §3.1.  The line has been consumed, so
-        /// the next line can still be read.</exception>
+        /// <exception cref="Exception">What the error factory builds: the line does not follow the content line syntax.  The line has been consumed,
+        /// so the next line can still be read.</exception>
         internal void ParseLine()
         {
+            _groupLength = 0;
             _nameLength = 0;
+            _nameOffset = _lineStart;
             _parameterCount = 0;
             _parameterValueCount = 0;
             _scratchEnd = 0;
@@ -302,20 +296,31 @@ namespace DataStandardizer.File.iCal
             var line = new ReadOnlySpan<char>(_buffer, _lineStart, _lineEnd - _lineStart);
             if (line.Length == 0)
             {
-                throw BuildException(ErrorMessage.EmptyLine, 0);
+                throw BuildError(ContentLineErrorKind.EmptyLine, 0);
             }
 
             // ref. RFC 5545§3.1: contentline = name *(";" param ) ":" value CRLF
+            // ref. RFC 6350§3.3: contentline = [group "."] name *(";" param) ":" value CRLF
+            var nameStart = 0;
             var index = IndexOfNameEnd(line, 0);
-            if (index == 0)
+            if (_allowGroupPrefix && index > 0 && index < line.Length && line[index] == '.')
             {
-                throw BuildException(ErrorMessage.ExpectedPropertyName, 0);
+                // ref. RFC 6350§3.3: group = 1*(ALPHA / DIGIT / "-")
+                _groupLength = index;
+                nameStart = index + 1;
+                index = IndexOfNameEnd(line, nameStart);
             }
 
-            _nameLength = index;
+            if (index == nameStart)
+            {
+                throw BuildError(ContentLineErrorKind.ExpectedPropertyName, index);
+            }
+
+            _nameOffset = _lineStart + nameStart;
+            _nameLength = index - nameStart;
             if (index == line.Length)
             {
-                throw BuildException(ErrorMessage.MissingValue, index);
+                throw BuildError(ContentLineErrorKind.MissingValue, index);
             }
 
             while (line[index] == ';')
@@ -325,12 +330,12 @@ namespace DataStandardizer.File.iCal
                 index = IndexOfNameEnd(line, index);
                 if (index == parameterNameStart)
                 {
-                    throw BuildException(ErrorMessage.ExpectedParameterName, index);
+                    throw BuildError(ContentLineErrorKind.ExpectedParameterName, index);
                 }
 
                 if (index == line.Length || line[index] != '=')
                 {
-                    throw BuildException(ErrorMessage.ExpectedParameterEquals, index);
+                    throw BuildError(ContentLineErrorKind.ExpectedParameterEquals, index);
                 }
 
                 var parameter = new ParameterSlice
@@ -350,7 +355,7 @@ namespace DataStandardizer.File.iCal
 
             if (line[index] != ':')
             {
-                throw BuildException(ErrorMessage.ExpectedNameEnd, index);
+                throw BuildError(ContentLineErrorKind.ExpectedNameEnd, index);
             }
 
             // ref. RFC 5545§3.1: value = *VALUE-CHAR, which excludes every control character except horizontal tab.
@@ -358,8 +363,7 @@ namespace DataStandardizer.File.iCal
             var invalidIndex = IndexOfControlCharacter(line.Slice(index));
             if (invalidIndex >= 0)
             {
-                var message = string.Format(ErrorMessage.InvalidValueCharacterTemplate, (int)line[index + invalidIndex]);
-                throw BuildException(message, index + invalidIndex);
+                throw BuildError(ContentLineErrorKind.InvalidValueCharacter, index + invalidIndex, line[index + invalidIndex]);
             }
 
             _valueOffset = _lineStart + index;
@@ -387,7 +391,12 @@ namespace DataStandardizer.File.iCal
 
         internal ReadOnlyMemory<char> RawLine => new ReadOnlyMemory<char>(_buffer, _lineStart, _lineEnd - _lineStart);
 
-        internal ReadOnlyMemory<char> Name => new ReadOnlyMemory<char>(_buffer, _lineStart, _nameLength);
+        /// <summary>
+        /// Gets the group of the current line, without its '.'; empty if the line has none.
+        /// </summary>
+        internal ReadOnlyMemory<char> Group => new ReadOnlyMemory<char>(_buffer, _lineStart, _groupLength);
+
+        internal ReadOnlyMemory<char> Name => new ReadOnlyMemory<char>(_buffer, _nameOffset, _nameLength);
 
         internal int ParameterCount => _parameterCount;
 
@@ -431,7 +440,7 @@ namespace DataStandardizer.File.iCal
                 else
                 {
                     var scratch = GetScratch();
-                    var decodedLength = IcalEscaping.DecodeCaret(raw, scratch);
+                    var decodedLength = ContentLineEscaping.DecodeCaret(raw, scratch);
                     value.Decoded = new DecodedSlice(DecodedInScratch, _scratchEnd, decodedLength);
                     _scratchEnd += decodedLength;
                 }
@@ -443,7 +452,8 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Gets the value with RFC 5545 §3.3.11 TEXT escaping removed.  The value is unescaped once per line and kept.
         /// </summary>
-        /// <exception cref="IcalFileException">The value contains a backslash that does not start a valid escape sequence.</exception>
+        /// <exception cref="Exception">What the error factory builds: the value contains a backslash that does not start a valid escape
+        /// sequence.</exception>
         internal ReadOnlyMemory<char> GetTextValue()
         {
             if (_textValue.Source == DecodedNone)
@@ -457,9 +467,9 @@ namespace DataStandardizer.File.iCal
                 {
                     var scratch = GetScratch();
                     int unescapedLength, errorIndex;
-                    if (!IcalEscaping.TryUnescapeText(raw, scratch, out unescapedLength, out errorIndex))
+                    if (!ContentLineEscaping.TryUnescapeText(raw, scratch, out unescapedLength, out errorIndex))
                     {
-                        throw BuildException(ErrorMessage.InvalidTextEscape, _valueOffset - _lineStart + errorIndex);
+                        throw BuildError(ContentLineErrorKind.InvalidTextEscape, _valueOffset - _lineStart + errorIndex);
                     }
 
                     _textValue = new DecodedSlice(DecodedInScratch, _scratchEnd, unescapedLength);
@@ -520,45 +530,23 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Builds an exception for a problem at a character of a logical line.
         /// </summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        internal static IcalFileException BuildException(string message, long lineNumber, long physicalLineNumber, string? propertyName)
-#else
-        internal static IcalFileException BuildException(string message, long lineNumber, long physicalLineNumber, string propertyName)
-#endif
-        {
-            var exception = new IcalFileException(message);
-            exception.Data.Add(IcalFileException.DataItemName.LineNumber, lineNumber);
-            exception.Data.Add(IcalFileException.DataItemName.PhysicalLineNumber, physicalLineNumber);
-            if (propertyName != null)
-            {
-                exception.Data.Add(IcalFileException.DataItemName.PropertyName, propertyName);
-            }
-
-            return exception;
-        }
-
-        internal static IcalFileException BuildInvalidTextEscapeException(long lineNumber, long physicalLineNumber, string propertyName)
-        {
-            return BuildException(ErrorMessage.InvalidTextEscape, lineNumber, physicalLineNumber, propertyName);
-        }
-
-        private IcalFileException BuildException(string message, int offsetInLine)
+        private Exception BuildError(ContentLineErrorKind kind, int offsetInLine, int character = 0)
         {
             var physicalLineNumber = GetPhysicalLineNumber(_physicalLineNumber, _foldOffsets, _foldCount, offsetInLine);
-            var propertyName = _nameLength > 0 ? new string(_buffer, _lineStart, _nameLength) : null;
-            return BuildException(message, _lineNumber, physicalLineNumber, propertyName);
+            var propertyName = _nameLength > 0 ? new string(_buffer, _nameOffset, _nameLength) : null;
+            return _errorFactory.CreateException(new ContentLineError(kind, _lineNumber, physicalLineNumber, propertyName, character: character));
         }
 
         /// <summary>
         /// Builds an exception for a problem found while finding a line's boundaries, and faults the scanner, since where the line ends is
         /// then unknown.
         /// </summary>
-        private IcalFileException Fault(string message)
+        private Exception Fault(ContentLineErrorKind kind, int maximumLineLength = 0)
         {
             IsFaulted = true;
 
             // The line has not been counted yet.
-            return BuildException(message, _linesRead + 1, _physicalLinesRead + 1, null);
+            return _errorFactory.CreateException(new ContentLineError(kind, _linesRead + 1, _physicalLinesRead + 1, null, maximumLineLength: maximumLineLength));
         }
 
         private void AddFoldOffset(int offset)
@@ -605,7 +593,7 @@ namespace DataStandardizer.File.iCal
 
             if (_lineEnd - _lineStart + count > _maxLineLength)
             {
-                throw Fault(string.Format(ErrorMessage.LineTooLongTemplate, _maxLineLength));
+                throw Fault(ContentLineErrorKind.LineTooLong, _maxLineLength);
             }
 
             if (_lineEnd != _position)
@@ -688,20 +676,20 @@ namespace DataStandardizer.File.iCal
                 var stopIndex = IndexOfQuotedStringStop(line.Slice(start));
                 if (stopIndex < 0)
                 {
-                    throw BuildException(ErrorMessage.UnterminatedQuotedString, line.Length);
+                    throw BuildError(ContentLineErrorKind.UnterminatedQuotedString, line.Length);
                 }
 
                 end = start + stopIndex;
                 if (line[end] != Quote)
                 {
-                    throw BuildException(string.Format(ErrorMessage.InvalidParameterValueCharacterTemplate, (int)line[end]), end);
+                    throw BuildError(ContentLineErrorKind.InvalidParameterValueCharacter, end, line[end]);
                 }
 
                 AddParameterValue(start, end - start, true);
                 end++;
                 if (end == line.Length || !IsParameterValueEnd(line[end]))
                 {
-                    throw BuildException(ErrorMessage.ExpectedParameterValueEnd, end);
+                    throw BuildError(ContentLineErrorKind.ExpectedParameterValueEnd, end);
                 }
 
                 return end;
@@ -711,13 +699,13 @@ namespace DataStandardizer.File.iCal
             var textStopIndex = IndexOfParameterTextStop(line.Slice(index));
             if (textStopIndex < 0)
             {
-                throw BuildException(ErrorMessage.MissingValue, line.Length);
+                throw BuildError(ContentLineErrorKind.MissingValue, line.Length);
             }
 
             end = index + textStopIndex;
             if (!IsParameterValueEnd(line[end]))
             {
-                throw BuildException(string.Format(ErrorMessage.InvalidParameterValueCharacterTemplate, (int)line[end]), end);
+                throw BuildError(ContentLineErrorKind.InvalidParameterValueCharacter, end, line[end]);
             }
 
             AddParameterValue(index, end - index, false);

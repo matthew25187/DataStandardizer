@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.Diagnostics.CodeAnalysis;
 using DataStandardizer.Communication.Mime;
+using DataStandardizer.File.ContentLine;
 
 namespace DataStandardizer.File.iCal
 {
@@ -54,7 +55,7 @@ namespace DataStandardizer.File.iCal
             }
 
             int errorIndex;
-            if (!IcalEscaping.TryUnescapeText(value, destination, out charsWritten, out errorIndex))
+            if (!ContentLineEscaping.TryUnescapeText(value, destination, out charsWritten, out errorIndex))
             {
                 charsWritten = 0;
                 return false;

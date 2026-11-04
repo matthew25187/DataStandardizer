@@ -96,7 +96,7 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         internal static IcalFileException BuildInvalidFormatTypeException(long lineNumber, long physicalLineNumber, string propertyName)
         {
-            return IcalContentLineScanner.BuildException(BuildInvalidFormatTypeMessage(propertyName), lineNumber, physicalLineNumber, propertyName);
+            return IcalContentLineErrorFactory.BuildException(BuildInvalidFormatTypeMessage(propertyName), lineNumber, physicalLineNumber, propertyName);
         }
 
         /// <summary>
@@ -150,7 +150,7 @@ namespace DataStandardizer.File.iCal
                 ? string.Format(CultureInfo.InvariantCulture, "The value of the {0} property is not of a value type it allows.", property.Name)
                 : string.Format(CultureInfo.InvariantCulture, "The value of the {0} property is not a valid {1}.", property.Name,
                     IcalValueTypeRegistry.GetValueTypeName(valueType));
-            return IcalContentLineScanner.BuildException(message, property.LineNumber, property.PhysicalLineNumber, property.Name);
+            return IcalContentLineErrorFactory.BuildException(message, property.LineNumber, property.PhysicalLineNumber, property.Name);
         }
     }
 }

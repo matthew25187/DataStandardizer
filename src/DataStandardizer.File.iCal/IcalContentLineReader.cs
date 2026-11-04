@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
 using System.Runtime.CompilerServices;
 #endif
+using DataStandardizer.File.ContentLine;
 
 namespace DataStandardizer.File.iCal
 {
@@ -87,7 +88,7 @@ namespace DataStandardizer.File.iCal
         private readonly bool _isInternalReader;
         private int _lineVersion;
         private readonly TextReader _reader;
-        private readonly IcalContentLineScanner _scanner;
+        private readonly ContentLineScanner _scanner;
 
         /// <summary>
         /// Gets the text reader that the lines are read from, so that tests can check how a constructor built it.
@@ -97,7 +98,7 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Gets the scanner, so that tests can check when its buffer is returned.
         /// </summary>
-        internal IcalContentLineScanner Scanner => _scanner;
+        internal ContentLineScanner Scanner => _scanner;
 
         /// <summary>
         /// Creates a reader for iCalendar data in a stream, read as UTF-8 unless the stream starts with a byte order mark.
@@ -189,7 +190,8 @@ namespace DataStandardizer.File.iCal
 
             _reader = reader;
             _isInternalReader = isInternalReader;
-            _scanner = new IcalContentLineScanner(bufferSize, options.AcceptBareLineFeed, options.MaxLineLength ?? int.MaxValue);
+            _scanner = new ContentLineScanner(bufferSize, new ContentLineScannerSettings(options.AcceptBareLineFeed, options.MaxLineLength ?? int.MaxValue),
+                IcalContentLineErrorFactory.Instance);
         }
 
         /// <summary>
@@ -404,7 +406,7 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <exception cref="ObjectDisposedException">The reader has been disposed.</exception>
         /// <exception cref="InvalidOperationException">The reader has moved on from the line the view was taken for.</exception>
-        internal IcalContentLineScanner GetScanner(int lineVersion)
+        internal ContentLineScanner GetScanner(int lineVersion)
         {
             ThrowIfDisposed();
             if (!_hasCurrentLine || lineVersion != _lineVersion)
@@ -452,7 +454,7 @@ namespace DataStandardizer.File.iCal
                 while (true)
                 {
                     var status = _scanner.Scan();
-                    if (status != IcalContentLineScanner.ScanStatus.NeedMoreInput)
+                    if (status != ContentLineScanner.ScanStatus.NeedMoreInput)
                     {
                         return result(this, CompleteLine(status));
                     }
@@ -496,7 +498,7 @@ namespace DataStandardizer.File.iCal
                 try
                 {
                     var status = _scanner.Scan();
-                    if (status != IcalContentLineScanner.ScanStatus.NeedMoreInput)
+                    if (status != ContentLineScanner.ScanStatus.NeedMoreInput)
                     {
                         return new ValueTask<TResult>(result(this, CompleteLine(status)));
                     }
@@ -525,7 +527,7 @@ namespace DataStandardizer.File.iCal
         {
             try
             {
-                IcalContentLineScanner.ScanStatus status;
+                ContentLineScanner.ScanStatus status;
                 do
                 {
                     int offset, count;
@@ -540,7 +542,7 @@ namespace DataStandardizer.File.iCal
                     ThrowIfDisposed();
                     _scanner.CompleteRefill(charactersRead);
                     status = _scanner.Scan();
-                } while (status == IcalContentLineScanner.ScanStatus.NeedMoreInput);
+                } while (status == ContentLineScanner.ScanStatus.NeedMoreInput);
 
                 return result(this, CompleteLine(status));
             }
@@ -612,9 +614,9 @@ namespace DataStandardizer.File.iCal
         /// Parses the line found by the scanner, if any, and makes it current.
         /// </summary>
         /// <returns><c>true</c> if a line was read; <c>false</c> if the end of the data has been reached.</returns>
-        private bool CompleteLine(IcalContentLineScanner.ScanStatus status)
+        private bool CompleteLine(ContentLineScanner.ScanStatus status)
         {
-            if (status != IcalContentLineScanner.ScanStatus.LineRead) return false;
+            if (status != ContentLineScanner.ScanStatus.LineRead) return false;
 
             _scanner.ParseLine();
             _hasCurrentLine = true;

@@ -79,8 +79,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataStandardizer.File.Inter
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataStandardizer.File.InternetMessage.Benchmarks", "benchmarks\DataStandardizer.File.InternetMessage.Benchmarks\DataStandardizer.File.InternetMessage.Benchmarks.csproj", "{7C2A9D14-5E3B-4F60-9A18-3D6B2E41C7F5}"
 EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "DataStandardizer.File.ContentLine.Shared", "src\DataStandardizer.File.ContentLine.Shared\DataStandardizer.File.ContentLine.Shared.shproj", "{8B0EFD27-1FC7-4CBC-95BE-F4696D059DFF}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		src\DataStandardizer.File.ContentLine.Shared\DataStandardizer.File.ContentLine.Shared.projitems*{85d73f2e-bc03-420f-b8ff-c51a97e06fb3}*SharedItemsImports = 5
+		src\DataStandardizer.File.ContentLine.Shared\DataStandardizer.File.ContentLine.Shared.projitems*{8b0efd27-1fc7-4cbc-95be-f4696d059dff}*SharedItemsImports = 13
 		src\DataStandardizer.CodeAnalysis.Shared\DataStandardizer.CodeAnalysis.Shared.projitems*{1fff72b8-1fda-49bd-a4fb-860c28cabd0d}*SharedItemsImports = 5
 		src\DataStandardizer.CodeAnalysis.Shared\DataStandardizer.CodeAnalysis.Shared.projitems*{33a7d2e1-4058-41a1-8cfd-878710c195e2}*SharedItemsImports = 5
 		src\DataStandardizer.CodeAnalysis.Shared\DataStandardizer.CodeAnalysis.Shared.projitems*{35823b25-5a3e-482d-96c9-4e29371a9a42}*SharedItemsImports = 5
@@ -236,6 +240,7 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{F72F7EEE-59B3-4D67-BAC8-938342D98975} = {944A45A5-E3FA-4C1D-B5EC-76FAE6974F21}
+		{8B0EFD27-1FC7-4CBC-95BE-F4696D059DFF} = {944A45A5-E3FA-4C1D-B5EC-76FAE6974F21}
 		{33A7D2E1-4058-41A1-8CFD-878710C195E2} = {944A45A5-E3FA-4C1D-B5EC-76FAE6974F21}
 		{BEF6A15F-E1A6-40D8-9911-C2FB93B65DB0} = {B9FDB3AD-0254-49E2-B2B8-20BC6B0AB93B}
 		{89CE1280-F797-4F8B-A3FB-F9305504128C} = {944A45A5-E3FA-4C1D-B5EC-76FAE6974F21}

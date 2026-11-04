@@ -65,7 +65,97 @@ Describe 'BuildPlan' {
         }
     }
 
+    Context 'Get-SharedProjectFolder' {
+        BeforeAll {
+            # A package project holding the given Import elements.
+            function New-TestProjectContent {
+                param ([string[]]$Import)
+                $imports = ($Import | ForEach-Object { "<Import Project=`"$_`" Label=`"Shared`" />" }) -join ''
+                return "<Project Sdk=`"Microsoft.NET.Sdk`">$imports</Project>"
+            }
+        }
+
+        It 'finds the folder of an imported .projitems, whichever separator the import uses' -ForEach @(
+            @{ Import = '..\DataStandardizer.Shared\DataStandardizer.Shared.projitems' }
+            @{ Import = '../DataStandardizer.Shared/DataStandardizer.Shared.projitems' }
+        ) {
+            Push-Location (New-TestRepository)
+            Add-TestCommit -File @{ 'src/DataStandardizer.Core/DataStandardizer.Core.csproj' = New-TestProjectContent -Import $Import } | Out-Null
+            Get-SharedProjectFolder -PackageSourcePath 'src/DataStandardizer.Core' | Should -Be @('src/DataStandardizer.Shared')
+        }
+
+        It 'ignores an import that is not of a .projitems' {
+            Push-Location (New-TestRepository)
+            Add-TestCommit -File @{ 'src/DataStandardizer.Core/DataStandardizer.Core.csproj' = New-TestProjectContent -Import '..\Common.props' } | Out-Null
+            @(Get-SharedProjectFolder -PackageSourcePath 'src/DataStandardizer.Core').Count | Should -Be 0
+        }
+
+        It 'finds nothing for a folder with no project' {
+            Push-Location (New-TestRepository)
+            Add-TestCommit -File @{ 'src/DataStandardizer.Core/Core.cs' = 'core' } | Out-Null
+            @(Get-SharedProjectFolder -PackageSourcePath 'src/DataStandardizer.Core').Count | Should -Be 0
+        }
+
+        It 'finds nothing for a folder that does not exist' {
+            Push-Location (New-TestRepository)
+            Add-TestCommit -File @{ 'README.md' = 'readme' } | Out-Null
+            @(Get-SharedProjectFolder -PackageSourcePath 'src/DataStandardizer.Core').Count | Should -Be 0
+        }
+
+        It 'fails on an import through an MSBuild property, whose folder it cannot find' {
+            Push-Location (New-TestRepository)
+            Add-TestCommit -File @{ 'src/DataStandardizer.Core/DataStandardizer.Core.csproj' = New-TestProjectContent -Import '$(SharedRoot)\Shared.projitems' } | Out-Null
+            { Get-SharedProjectFolder -PackageSourcePath 'src/DataStandardizer.Core' } | Should -Throw '*relative path*'
+        }
+
+        It 'finds the content line engine for File.iCal in this repository' {
+            Push-Location (Join-Path $PSScriptRoot '..' '..')
+            try {
+                Get-SharedProjectFolder -PackageSourcePath 'src/DataStandardizer.File.iCal' | Should -Be @('src/DataStandardizer.File.ContentLine.Shared')
+            }
+            finally {
+                Pop-Location
+            }
+        }
+    }
+
     Context 'Get-ChangedPackageName' {
+        BeforeAll {
+            # A repository in which File.CSV alone imports a Shared Project, released with everything else.
+            function Initialize-SharedProjectRepository {
+                Push-Location (Initialize-Repository)
+                Add-TestCommit -File @{
+                    'src/DataStandardizer.File.CSV/DataStandardizer.File.CSV.csproj' = '<Project Sdk="Microsoft.NET.Sdk"><Import Project="..\DataStandardizer.Shared\DataStandardizer.Shared.projitems" Label="Shared" /></Project>'
+                    'src/DataStandardizer.Shared/DataStandardizer.Shared.projitems'  = '<Project />'
+                    'src/DataStandardizer.Shared/Shared.cs'                          = 'shared'
+                } | Out-Null
+                foreach ($package in $script:Packages) {
+                    Add-TestTag -Name "v1.1.0.2-$($package.packageName)"
+                }
+            }
+        }
+
+        It 'lists only the packages that import a Shared Project when <File> changes' -ForEach @(
+            @{ File = 'src/DataStandardizer.Shared/Shared.cs' }
+            @{ File = 'src/DataStandardizer.Shared/DataStandardizer.Shared.projitems' }
+        ) {
+            Initialize-SharedProjectRepository
+            $commit = Add-TestCommit -File @{ $File = 'changed' }
+            Get-ChangedPackageName -PackageInfo $script:Packages -Commit $commit -IsRelease $false | Should -Be @('DataStandardizer.File.CSV')
+        }
+
+        It 'still lists only the package itself when a package that imports a Shared Project changes' {
+            Initialize-SharedProjectRepository
+            $commit = Add-TestCommit -File @{ 'src/DataStandardizer.File.CSV/Csv.cs' = 'csv 3' }
+            Get-ChangedPackageName -PackageInfo $script:Packages -Commit $commit -IsRelease $false | Should -Be @('DataStandardizer.File.CSV')
+        }
+
+        It 'does not count a change to a folder whose name extends a Shared Project''s' {
+            Initialize-SharedProjectRepository
+            $commit = Add-TestCommit -File @{ 'src/DataStandardizer.Shared.Other/Other.cs' = 'other' }
+            @(Get-ChangedPackageName -PackageInfo $script:Packages -Commit $commit -IsRelease $false).Count | Should -Be 0
+        }
+
         It 'lists only the packages changed since their latest preview' {
             Push-Location (Initialize-Repository)
             $commit = Add-TestCommit -File @{ 'src/DataStandardizer.File.CSV/Csv.cs' = 'csv 3' }

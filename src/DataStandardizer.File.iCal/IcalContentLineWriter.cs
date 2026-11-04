@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading;
+using DataStandardizer.File.ContentLine;
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
 using System.Threading.Tasks;
 #endif
@@ -50,7 +51,7 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         private static readonly Encoding DefaultEncoding = new UTF8Encoding(false, true);
 
-        private readonly IcalContentLineFormatter _formatter;
+        private readonly ContentLineFormatter _formatter;
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
         private bool _isCanceled;
 #endif
@@ -153,7 +154,7 @@ namespace DataStandardizer.File.iCal
             _writer = writer;
             _isInternalWriter = isInternalWriter;
             _ownsOutput = ownsOutput;
-            _formatter = new IcalContentLineFormatter(options.FoldLength, options.FoldWhitespace, options.LineBreak);
+            _formatter = new ContentLineFormatter(options.FoldLength, options.FoldWhitespace, options.LineBreak, IcalContentLineErrorFactory.Instance);
         }
 
         /// <summary>
@@ -488,7 +489,7 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         private void WriteLineCore(IcalContentLine line)
         {
-            var length = _formatter.Format(line, _linesWritten + 1);
+            var length = _formatter.Format(new IcalContentLineData(line), _linesWritten + 1);
             _writer.Write(_formatter.Buffer, 0, length);
             _linesWritten++;
         }
@@ -505,7 +506,7 @@ namespace DataStandardizer.File.iCal
         /// </remarks>
         private ValueTask WriteLineCoreAsync(IcalContentLine line, CancellationToken cancellationToken)
         {
-            var length = _formatter.Format(line, _linesWritten + 1);
+            var length = _formatter.Format(new IcalContentLineData(line), _linesWritten + 1);
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP2_1_OR_GREATER
             var write = _writer.WriteAsync(new ReadOnlyMemory<char>(_formatter.Buffer, 0, length), cancellationToken);
 #else

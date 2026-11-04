@@ -28,6 +28,7 @@ param (
 
 $modulePath = Join-Path $PSScriptRoot "../psmodules/CommonHelpers/CommonHelpers.psm1"
 Import-Module $modulePath -Force -Scope Local
+Import-Module (Join-Path $PSScriptRoot "../psmodules/BuildPlan/BuildPlan.psm1") -Force -Scope Local
 
 if (0 -lt $TraceLevel) {
     Set-PSDebug -Trace $TraceLevel
@@ -35,7 +36,9 @@ if (0 -lt $TraceLevel) {
 
 # Resolve the package's source folder so release notes can be scoped to commits that
 # actually touched this package (rather than every change across the repository). A change to a
-# shared build file marks every package as changed, so those commits count for every package too.
+# shared build file marks every package as changed, so those commits count for every package too,
+# and a change to a Shared Project marks each package that imports it, so those commits count for
+# each of them.
 $packageManifest = Get-PackageManifest
 $packageInfo = Get-PackageInfo | Where-Object -Property packageName -EQ -Value $PackageName
 if ($null -eq $packageInfo) {
@@ -43,7 +46,7 @@ if ($null -eq $packageInfo) {
     exit
 }
 $packageSourcePath = $packageInfo.packageSourcePath
-[string[]]$commitPaths = @($packageSourcePath) + @($packageManifest.sharedBuildFiles)
+[string[]]$commitPaths = @($packageSourcePath) + @(Get-SharedProjectFolder -PackageSourcePath $packageSourcePath) + @($packageManifest.sharedBuildFiles)
 
 # Find the most recent tag for the package that is an ancestor of the build commit.
 # `--merged` (not `--no-contains`) restricts the candidates to tags reachable from the

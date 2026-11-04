@@ -33,6 +33,8 @@ Provides types supporting the reading and writing of iCalendar files.  Includes:
     <PackageReference Include="System.Text.Json" />
   </ItemGroup>
 
+  <Import Project="..\DataStandardizer.File.ContentLine.Shared\DataStandardizer.File.ContentLine.Shared.projitems" Label="Shared" />
+
   <ItemGroup>
     <ProjectReference Include="..\DataStandardizer.Core\DataStandardizer.Core.csproj" />
     <ProjectReference Include="..\DataStandardizer.Chronology\DataStandardizer.Chronology.csproj" />

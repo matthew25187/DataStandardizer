@@ -143,10 +143,55 @@ function Get-PackageBaselineTag {
     return $baselineTag
 }
 
+function Get-SharedProjectFolder {
+    <#
+    .SYNOPSIS
+    The repository-relative folders of the Shared Projects a package compiles, found from the .projitems files that the csproj in
+    its source folder imports.  A Shared Project has no package of its own, so its code ships inside each package that imports it.
+    The current directory must be inside the repository.
+    #>
+    [OutputType([string[]])]
+    param (
+        [Parameter(Mandatory)]
+        [string]    $PackageSourcePath
+    )
+
+    $repositoryRoot = & git rev-parse --show-toplevel
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Failed to find the root of the repository.'
+    }
+
+    $packageFolder = Join-Path $repositoryRoot $PackageSourcePath
+    if (-not (Test-Path -LiteralPath $packageFolder -PathType Container)) {
+        return [string[]]@()
+    }
+
+    $folders = foreach ($projectFile in (Get-ChildItem -LiteralPath $packageFolder -Filter '*.csproj' -File)) {
+        $project = [xml](Get-Content -LiteralPath $projectFile.FullName -Raw)
+        foreach ($import in $project.SelectNodes("//*[local-name()='Import']")) {
+            $importPath = $import.GetAttribute('Project')
+            if (-not $importPath.EndsWith('.projitems', [System.StringComparison]::OrdinalIgnoreCase)) {
+                continue
+            }
+
+            # Missing a folder here would stop changes to it from building the package, so don't guess at an MSBuild property.
+            if ($importPath.Contains('$(')) {
+                throw "$($projectFile.Name) imports $importPath.  Import a Shared Project by a relative path, so that the build scripts can find its folder."
+            }
+
+            $fullPath = [System.IO.Path]::GetFullPath((Join-Path $projectFile.DirectoryName ($importPath -replace '\\', '/')))
+            [System.IO.Path]::GetRelativePath($repositoryRoot, (Split-Path -Path $fullPath -Parent)) -replace '\\', '/'
+        }
+    }
+
+    return [string[]]@($folders | Select-Object -Unique)
+}
+
 function Get-ChangedPackageName {
     <#
     .SYNOPSIS
-    The packages with a change under their source folder (or to a shared build file) since their baseline tag.
+    The packages with a change under their source folder, a Shared Project they import, or a shared build file, since their
+    baseline tag.
     #>
     [OutputType([string[]])]
     param (
@@ -174,6 +219,8 @@ function Get-ChangedPackageName {
     foreach ($package in $PackageInfo) {
         Write-Verbose "Checking for changes made to package $($package.packageName)"
 
+        $packageFolders = @($package.packageSourcePath) + @(Get-SharedProjectFolder -PackageSourcePath $package.packageSourcePath)
+
         $baselineTag = Get-PackageBaselineTag -PackageName $package.packageName -Commit $Commit -IsRelease $IsRelease
         if (-not [string]::IsNullOrWhiteSpace($baselineTag)) {
             Write-Debug "Getting file differences between tags/$baselineTag and $Commit."
@@ -190,7 +237,8 @@ function Get-ChangedPackageName {
 
         $changedFile = $changedFiles | Where-Object {
             $path = $_.Trim()
-            (Test-PathInFolder -FolderPath $package.packageSourcePath -Path ($path | Split-Path -Parent)) -or
+            $folder = $path | Split-Path -Parent
+            (@($packageFolders | Where-Object { Test-PathInFolder -FolderPath $_ -Path $folder }).Count -gt 0) -or
             ($SharedBuildFile -contains $path)
         } | Select-Object -First 1
         if ($changedFile) {
@@ -489,6 +537,6 @@ function Get-TestMatrix {
     }
 }
 
-Export-ModuleMember -Function Test-PathInFolder, Get-PackageBaselineTag, Get-ChangedPackageName, Get-DependentPackageName, `
+Export-ModuleMember -Function Test-PathInFolder, Get-PackageBaselineTag, Get-SharedProjectFolder, Get-ChangedPackageName, Get-DependentPackageName, `
     Get-TestPackageName, Get-ChangedTestPackageName, Get-BuildPlan, Get-BuildMatrix, Get-TestMatrix, Get-TestProjectName, `
     Get-TestAssemblyPath, Get-ProjectPackageName

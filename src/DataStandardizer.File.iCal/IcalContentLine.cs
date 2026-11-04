@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using DataStandardizer.Communication.Mime;
+using DataStandardizer.File.ContentLine;
 
 namespace DataStandardizer.File.iCal
 {
@@ -222,12 +223,12 @@ namespace DataStandardizer.File.iCal
 
             var unescaped = new char[value.Length];
             int unescapedLength, errorIndex;
-            if (!IcalEscaping.TryUnescapeText(value.AsSpan(), unescaped, out unescapedLength, out errorIndex))
+            if (!ContentLineEscaping.TryUnescapeText(value.AsSpan(), unescaped, out unescapedLength, out errorIndex))
             {
                 var physicalLineNumber = PhysicalLineNumber == 0
                     ? 0
-                    : IcalContentLineScanner.GetPhysicalLineNumber(PhysicalLineNumber, _foldOffsets, _foldOffsets?.Length ?? 0, _valueOffset + errorIndex);
-                throw IcalContentLineScanner.BuildInvalidTextEscapeException(LineNumber, physicalLineNumber, Name);
+                    : ContentLineScanner.GetPhysicalLineNumber(PhysicalLineNumber, _foldOffsets, _foldOffsets?.Length ?? 0, _valueOffset + errorIndex);
+                throw IcalContentLineErrorFactory.BuildInvalidTextEscapeException(LineNumber, physicalLineNumber, Name);
             }
 
             return new string(unescaped, 0, unescapedLength);
@@ -248,7 +249,7 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Creates a content line from the reader's current line.
         /// </summary>
-        internal static IcalContentLine FromScanner(IcalContentLineScanner scanner)
+        internal static IcalContentLine FromScanner(ContentLineScanner scanner)
         {
             var parameterCount = scanner.ParameterCount;
             var parameters = parameterCount == 0 ? NoParameters : new IcalContentLineParameter[parameterCount];
