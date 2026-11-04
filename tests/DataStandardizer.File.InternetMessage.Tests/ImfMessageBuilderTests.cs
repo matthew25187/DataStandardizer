@@ -19,6 +19,56 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string FileName = "report.pdf";
         private const string InlineId = "<img@b.test>";
 
+        private const string BuiltTextOnly = Header + "MIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\nplain";
+        private const string BuiltNothing = Header + "\r\n";
+
+        private const string BuiltTextAndHtmlAndAttachment =
+            Header +
+            "MIME-Version: 1.0\r\n" +
+            "Content-Type: multipart/mixed; boundary=\"=_1\"\r\n" +
+            "\r\n" +
+            "--=_1\r\n" +
+            "Content-Type: multipart/alternative; boundary=\"=_2\"\r\n" +
+            "\r\n" +
+            "--=_2\r\n" +
+            "Content-Type: text/plain; charset=UTF-8\r\n" +
+            "\r\n" +
+            "plain\r\n" +
+            "--=_2\r\n" +
+            "Content-Type: text/html; charset=UTF-8\r\n" +
+            "\r\n" +
+            "<p>html</p>\r\n" +
+            "--=_2--\r\n" +
+            "--=_1\r\n" +
+            "Content-Type: application/pdf\r\n" +
+            "Content-Disposition: attachment; filename=report.pdf\r\n" +
+            "\r\n" +
+            "%PDF\r\n" +
+            "--=_1--";
+
+        private const string BuiltForward =
+            Header +
+            "MIME-Version: 1.0\r\n" +
+            "Content-Type: multipart/mixed; boundary=\"=_1\"\r\n" +
+            "\r\n" +
+            "--=_1\r\n" +
+            "Content-Type: text/plain; charset=UTF-8\r\n" +
+            "\r\n" +
+            "plain\r\n" +
+            "--=_1\r\n" +
+            "Content-Disposition: attachment\r\n" +
+            "Content-Type: message/rfc822\r\n" +
+            "\r\n" +
+            "Date: Fri, 21 Nov 1997 09:55:06 -0600\r\n" +
+            "From: a@b.test\r\n" +
+            "MIME-Version: 1.0\r\n" +
+            "Content-Type: text/plain; charset=utf-8\r\n" +
+            "Content-Transfer-Encoding: quoted-printable\r\n" +
+            "\r\n" +
+            "caf=C3=A9\r\n" +
+            "\r\n" +
+            "--=_1--";
+
         private static readonly MimeMediaType Pdf = new MimeMediaType("application", "pdf");
         private static readonly MimeMediaType Png = new MimeMediaType("image", "png");
         private static readonly ReadOnlyMemory<byte> PdfBytes = Octets.Of("%PDF");
@@ -56,10 +106,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var subject = setUp(CreateBuilder());
 
             // act
-            var testResult = subject.Build();
+            var testResult = EntityTrees.Describe(subject.Build());
 
             // assert
-            EntityTrees.Describe(testResult).Should().Equal(expected);
+            testResult.Should().Equal(expected);
         }
 
         [Theory]
@@ -70,10 +120,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var subject = setUp(CreateBuilder()).Build();
 
             // act
-            var testResult = EntityTrees.Read(EntityTrees.Write(subject));
+            var testResult = EntityTrees.Describe(EntityTrees.Read(EntityTrees.Write(subject)));
 
             // assert
-            EntityTrees.Describe(testResult).Should().Equal(expected);
+            testResult.Should().Equal(expected);
         }
 
         [Fact]
@@ -86,7 +136,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var testResult = EntityTrees.Write(subject);
 
             // assert
-            testResult.Should().Be(Header + "MIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\nplain");
+            testResult.Should().Be(BuiltTextOnly);
         }
 
         [Fact]
@@ -99,29 +149,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var testResult = EntityTrees.Write(subject);
 
             // assert
-            testResult.Should().Be(
-                Header +
-                "MIME-Version: 1.0\r\n" +
-                "Content-Type: multipart/mixed; boundary=\"=_1\"\r\n" +
-                "\r\n" +
-                "--=_1\r\n" +
-                "Content-Type: multipart/alternative; boundary=\"=_2\"\r\n" +
-                "\r\n" +
-                "--=_2\r\n" +
-                "Content-Type: text/plain; charset=UTF-8\r\n" +
-                "\r\n" +
-                "plain\r\n" +
-                "--=_2\r\n" +
-                "Content-Type: text/html; charset=UTF-8\r\n" +
-                "\r\n" +
-                "<p>html</p>\r\n" +
-                "--=_2--\r\n" +
-                "--=_1\r\n" +
-                "Content-Type: application/pdf\r\n" +
-                "Content-Disposition: attachment; filename=report.pdf\r\n" +
-                "\r\n" +
-                "%PDF\r\n" +
-                "--=_1--");
+            testResult.Should().Be(BuiltTextAndHtmlAndAttachment);
         }
 
         [Fact]
@@ -152,10 +180,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var subject = CreateBuilder().SetHtml(Html).AddInlineResource(ImfMessageId.Parse(InlineId), Png, PngBytes);
 
             // act
-            var testResult = subject.Build();
+            var testResult = subject.Build().Body.ContentType.ToString();
 
             // assert
-            testResult.Body.ContentType.ToString().Should().Be("multipart/related;type=\"text/html\"");
+            testResult.Should().Be("multipart/related;type=\"text/html\"");
         }
 
         [Fact]
@@ -169,22 +197,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var testResult = EntityTrees.Write(subject);
 
             // assert
-            testResult.Should().Be(
-                Header +
-                "MIME-Version: 1.0\r\n" +
-                "Content-Type: multipart/mixed; boundary=\"=_1\"\r\n" +
-                "\r\n" +
-                "--=_1\r\n" +
-                "Content-Type: text/plain; charset=UTF-8\r\n" +
-                "\r\n" +
-                "plain\r\n" +
-                "--=_1\r\n" +
-                "Content-Disposition: attachment\r\n" +
-                "Content-Type: message/rfc822\r\n" +
-                "\r\n" +
-                MimeShapes.TextOnly +
-                "\r\n" +
-                "--=_1--");
+            testResult.Should().Be(BuiltForward);
         }
 
         [Fact]
@@ -197,7 +210,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var testResult = EntityTrees.Write(subject);
 
             // assert
-            testResult.Should().Be(Header + "\r\n");
+            testResult.Should().Be(BuiltNothing);
         }
 
         [Fact]
@@ -210,9 +223,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // act
             first.Attachments[0].ContentDescription = "Changed";
+            var testResult = second.Attachments[0].ContentDescription;
 
             // assert
-            second.Attachments[0].ContentDescription.Should().BeNull();
+            testResult.Should().BeNull();
         }
 
         [Fact]
@@ -265,6 +279,47 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // assert
             testAction.Should().Throw<ArgumentException>();
+        }
+
+        [Fact]
+        public void AddInlineResource_RepeatedIdentifier_Throws()
+        {
+            // arrange (ref. RFC 2045 §7: a Content-ID must be unique)
+            var subject = CreateBuilder().AddInlineResource(ImfMessageId.Parse(InlineId), Png, PngBytes);
+
+            // act
+            Action testAction = () => subject.AddInlineResource(ImfMessageId.Parse(InlineId), Png, PngBytes);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>();
+        }
+
+        [Fact]
+        public void Build_MessageTypeAttachmentIn7bit_ReadsBackAsAnEmbeddedMessage()
+        {
+            // arrange
+            var eml = Octets.Of("From: c@d.test\r\n\r\nx");
+            var subject = CreateBuilder().AddAttachment("a.eml", MimeMediaType.MessageRfc822, eml).Build();
+
+            // act
+            var testResult = EntityTrees.Describe(EntityTrees.Read(EntityTrees.Write(subject)));
+
+            // assert
+            testResult.Should().Equal("/ 0 multipart multipart/mixed", "1 1 part message/rfc822", "1 2 leaf text/plain");
+        }
+
+        [Fact]
+        public void Build_MessageTypeAttachmentNotIn7bit_IsRefusedByTheWriterRatherThanEncoded()
+        {
+            // arrange (ref. RFC 2045 §6.4: such an entity can't be given a base64 or quoted-printable encoding)
+            var eml = Octets.Of("From: c@d.test\r\n\r\ncaf\x00E9");
+            var subject = CreateBuilder().AddAttachment("a.eml", MimeMediaType.MessageRfc822, eml).Build();
+
+            // act
+            Action testAction = () => EntityTrees.Write(subject);
+
+            // assert
+            testAction.Should().Throw<ImfFileException>();
         }
 
         [Fact]

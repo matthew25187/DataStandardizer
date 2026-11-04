@@ -253,11 +253,6 @@ namespace DataStandardizer.File.InternetMessage
         internal bool LineFeedIsLineBreak => _lineFeedIsLineBreak;
 
         /// <summary>
-        /// Gets the line break of the empty line that ended the header, as it was read.
-        /// </summary>
-        internal ReadOnlyMemory<byte> RawHeaderEnd => _rawHeaderEnd;
-
-        /// <summary>
         /// Gets a flag indicating that the body differs from what was read.  The fields are not looked at, except as they change what the body means.
         /// </summary>
         internal virtual bool HasChangedBody => _isContentSet;
@@ -566,7 +561,49 @@ namespace DataStandardizer.File.InternetMessage
         {
             var source = ImfEntitySource.FromContent(ContentType, GetContent());
             AddFields(source, encoding, lineBreak, null);
+            KeepHeaderEnd(source);
             return source;
+        }
+
+        /// <summary>
+        /// Has a writer write the empty line that ended the header as it was read.  A part with no body has none of its own, as it shared the line break of a delimiter, and needs
+        /// the writer's now that something comes after its header.
+        /// </summary>
+        internal void KeepHeaderEnd(ImfEntitySource source)
+        {
+            if (_isRead && !_rawHeaderEnd.IsEmpty) source.RawHeaderEnd = _rawHeaderEnd;
+        }
+
+        /// <summary>
+        /// Checks the depth of what has changed in the tree before anything follows it on the call stack, which a tree of any depth that a caller made could overflow.  What has not
+        /// changed is written as one run of bytes, so its depth doesn't matter.
+        /// </summary>
+        /// <exception cref="ImfFileException">The entities that have changed are nested deeper than <see cref="ImfOptions.MaxNestingDepth"/> allows.</exception>
+        internal void CheckChangedDepth(int maxNestingDepth)
+        {
+            var pending = new Stack<KeyValuePair<ImfEntity, int>>();
+            pending.Push(new KeyValuePair<ImfEntity, int>(this, 0));
+            while (pending.Count > 0)
+            {
+                var current = pending.Pop();
+                if (current.Value > maxNestingDepth)
+                    throw new ImfFileException($"The entities are nested more than {maxNestingDepth} levels deep, the most that ImfOptions.MaxNestingDepth allows.");
+
+                if (!current.Key.HasChangedBody) continue;
+
+                if (current.Key is ImfMultipart multipart)
+                {
+                    foreach (var part in multipart.Parts)
+                    {
+                        pending.Push(new KeyValuePair<ImfEntity, int>(part, current.Value + 1));
+                    }
+                }
+                else if (current.Key is ImfMessagePart messagePart)
+                {
+                    var body = messagePart.Message.LoadedBody;
+                    if (!(body is null)) pending.Push(new KeyValuePair<ImfEntity, int>(body, current.Value + 1));
+                }
+            }
         }
 
         /// <summary>

@@ -102,10 +102,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var subject = EntityTrees.Read(NoContentType);
 
             // act
-            var testResult = subject.Body.ContentType;
+            var testResult = subject.Body.ContentType.ToString();
 
             // assert
-            testResult.ToString().Should().Be("text/plain;charset=us-ascii");
+            testResult.Should().Be("text/plain;charset=us-ascii");
         }
 
         [Fact]
@@ -273,10 +273,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var subject = EntityTrees.Read(EncodedWordName).Body;
 
             // act
-            var testResult = subject.ContentType;
+            var testResult = subject.ContentType.Subtype;
 
             // assert
-            testResult.Subtype.Should().Be("pdf");
+            testResult.Should().Be("pdf");
         }
 
         [Fact]
@@ -515,9 +515,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // act
             subject.SetContent(EntityTrees.Bytes(PdfMagic));
+            var testResult = EntityTrees.ContentOf(subject);
 
             // assert
-            EntityTrees.ContentOf(subject).Should().Be(PdfMagic);
+            testResult.Should().Be(PdfMagic);
         }
 
         [Fact]
@@ -567,9 +568,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // act
             subject.SetText("a\nb\rc\r\nd");
+            var testResult = subject.GetText();
 
             // assert
-            subject.GetText().Should().Be("a\r\nb\r\nc\r\nd");
+            testResult.Should().Be("a\r\nb\r\nc\r\nd");
         }
 
         [Fact]
@@ -580,9 +582,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // act
             subject.SetText(Cafe, MimeCharset.Iso88591);
+            var testResult = subject.ContentType.ToString();
 
             // assert
-            subject.ContentType.ToString().Should().Be("text/plain;charset=ISO-8859-1");
+            testResult.Should().Be("text/plain;charset=ISO-8859-1");
         }
 
         [Fact]

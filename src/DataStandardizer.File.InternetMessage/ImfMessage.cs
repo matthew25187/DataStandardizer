@@ -107,6 +107,11 @@ namespace DataStandardizer.File.InternetMessage
         /// <para>
         /// Setting this takes the fields whose names start with <c>Content-</c> out of the message, and adds those of the entity after the other fields.
         /// </para>
+        /// <para>
+        /// The type of the entity, and the parts it holds, are settled when it is read.  Replacing the Content-Type field through <see cref="Fields"/> afterwards doesn't read the body
+        /// again, so to have it read under a new media type, set <see cref="RawBody"/>.  To change the media type of what the entity already holds, use
+        /// <see cref="ImfEntity.ContentType"/>.
+        /// </para>
         /// </remarks>
         /// <exception cref="ImfFileException">On get: <see cref="RawBody"/> was set, and it breaks a rule of RFC 2046 §5.1 that the options don't accept.</exception>
         /// <exception cref="ArgumentNullException">On set: the value is <c>null</c>.</exception>
@@ -143,7 +148,8 @@ namespace DataStandardizer.File.InternetMessage
         /// <remarks>
         /// The search follows the structure of the message.  Of the parts of a <c>multipart/alternative</c> entity, it takes the last that has one, as RFC 2046 §5.1.4 puts the best
         /// last.  In a <c>multipart/related</c> entity, it looks only in the root part (RFC 2387 §3.2).  In any other multipart entity, it takes the first part that has one.  An
-        /// entity with a Content-Disposition of <c>attachment</c> isn't the text of the message, and neither is what is inside an embedded message.
+        /// entity with a Content-Disposition that <see cref="ImfContentDisposition.IsAttachment"/> says is an attachment isn't the text of the message, and neither is what it holds,
+        /// or what is inside an embedded message.
         /// </remarks>
         /// <exception cref="ImfFileException"><see cref="RawBody"/> was set, and it breaks a rule of RFC 2046 §5.1 that the options don't accept.</exception>
         [MaybeNull]
@@ -159,7 +165,8 @@ namespace DataStandardizer.File.InternetMessage
         /// <summary>
         /// Gets the attachments of the message: each entity with a Content-Disposition that <see cref="ImfContentDisposition.IsAttachment"/> says is one, and each entity without
         /// parts that is not text and has a <see cref="ImfEntity.FileName"/>, in the order of the message.  The list is read-only, and doesn't follow later changes.  What is inside
-        /// an embedded message is not looked at, as that belongs to that message.
+        /// an embedded message is not looked at, as that belongs to that message, and neither are the parts of a multipart entity that is an attachment.  Such an entity is listed, and
+        /// has parts rather than content.
         /// </summary>
         /// <exception cref="ImfFileException"><see cref="RawBody"/> was set, and it breaks a rule of RFC 2046 §5.1 that the options don't accept.</exception>
         public IReadOnlyList<ImfEntity> Attachments
@@ -167,12 +174,9 @@ namespace DataStandardizer.File.InternetMessage
             get
             {
                 var attachments = new List<ImfEntity>();
-                foreach (var node in Enumerate(false))
+                foreach (var node in Enumerate(false, true))
                 {
-                    if (node.Entity is ImfMultipart) continue;
-
-                    var disposition = node.Entity.ContentDisposition;
-                    if ((!(disposition is null) && disposition.IsAttachment) || (!IsText(node.Entity) && !(node.Entity.FileName is null))) attachments.Add(node.Entity);
+                    if (IsAttachment(node.Entity) || (!(node.Entity is ImfMultipart) && !IsText(node.Entity) && !(node.Entity.FileName is null))) attachments.Add(node.Entity);
                 }
 
                 return new ReadOnlyCollection<ImfEntity>(attachments);
@@ -457,7 +461,7 @@ namespace DataStandardizer.File.InternetMessage
         /// <exception cref="ImfFileException"><see cref="RawBody"/> was set, and it breaks a rule of RFC 2046 §5.1 that the options don't accept.</exception>
         public IEnumerable<ImfEntityNode> EnumerateEntities()
         {
-            return Enumerate(true);
+            return Enumerate(true, false);
         }
 
         /// <summary>
@@ -474,7 +478,7 @@ namespace DataStandardizer.File.InternetMessage
             if (contentId is null)
                 throw new ArgumentNullException(nameof(contentId));
 
-            foreach (var node in Enumerate(false))
+            foreach (var node in Enumerate(false, false))
             {
                 if (node.Entity.ContentId == contentId) return node.Entity;
             }
@@ -506,7 +510,7 @@ namespace DataStandardizer.File.InternetMessage
             return new ReadOnlyCollection<ImfDiagnostic>(ImfConformance.Check(this, Options));
         }
 
-        private IEnumerable<ImfEntityNode> Enumerate(bool followMessages)
+        private IEnumerable<ImfEntityNode> Enumerate(bool followMessages, bool stopAtAttachments)
         {
             // The open entities are kept in a list, not on the call stack, so nesting can't overflow the stack, or cost a call for each level.
             var pending = new Stack<ImfEntityNode>();
@@ -518,6 +522,8 @@ namespace DataStandardizer.File.InternetMessage
 
                 if (node.Entity is ImfMultipart multipart)
                 {
+                    if (stopAtAttachments && IsAttachment(multipart)) continue;
+
                     for (var index = multipart.Parts.Count - 1; index >= 0; index--)
                     {
                         var number = (index + 1).ToString(CultureInfo.InvariantCulture);
@@ -536,30 +542,56 @@ namespace DataStandardizer.File.InternetMessage
         [return: MaybeNull]
         private static ImfEntity FindBodyPart(ImfEntity entity, string subtype)
         {
-            if (entity is ImfMultipart multipart)
+            // The open entities are kept in a list, not on the call stack, so nesting can't overflow the stack.  What is pushed last is looked at first.
+            var pending = new Stack<ImfEntity>();
+            pending.Push(entity);
+            while (pending.Count > 0)
             {
-                var parts = multipart.Parts;
-                if (HasSubtype(multipart, RelatedSubtype))
-                {
-                    var root = GetRelatedRoot(multipart);
-                    return root is null ? null : FindBodyPart(root, subtype);
-                }
+                var current = pending.Pop();
+                if (IsAttachment(current)) continue;
 
-                // ref. RFC 2046 §5.1.4: "the best choice" is the last that can be shown.
-                var isAlternative = HasSubtype(multipart, AlternativeSubtype);
-                for (var index = 0; index < parts.Count; index++)
+                if (current is ImfMultipart multipart)
                 {
-                    var found = FindBodyPart(parts[isAlternative ? parts.Count - 1 - index : index], subtype);
-                    if (!(found is null)) return found;
+                    PushBodyCandidates(multipart, pending);
                 }
-
-                return null;
+                else if (!(current is ImfMessagePart) && IsText(current) && HasSubtype(current, subtype))
+                {
+                    return current;
+                }
             }
 
-            if (entity is ImfMessagePart || !IsText(entity) || !HasSubtype(entity, subtype)) return null;
+            return null;
+        }
 
+        private static void PushBodyCandidates(ImfMultipart multipart, Stack<ImfEntity> pending)
+        {
+            var parts = multipart.Parts;
+            if (HasSubtype(multipart, RelatedSubtype))
+            {
+                var root = GetRelatedRoot(multipart);
+                if (!(root is null)) pending.Push(root);
+            }
+            else if (HasSubtype(multipart, AlternativeSubtype))
+            {
+                // ref. RFC 2046 §5.1.4: "the best choice" is the last that can be shown.
+                foreach (var part in parts)
+                {
+                    pending.Push(part);
+                }
+            }
+            else
+            {
+                for (var index = parts.Count - 1; index >= 0; index--)
+                {
+                    pending.Push(parts[index]);
+                }
+            }
+        }
+
+        private static bool IsAttachment(ImfEntity entity)
+        {
             var disposition = entity.ContentDisposition;
-            return !(disposition is null) && disposition.IsAttachment ? null : entity;
+            return !(disposition is null) && disposition.IsAttachment;
         }
 
         /// <summary>

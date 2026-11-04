@@ -400,10 +400,20 @@ namespace DataStandardizer.File.InternetMessage
                 throw BuildError("An entity must not have two Content-Type fields (RFC 2045 §5).", node.Path);
 
             string text;
-            MimeMediaType mediaType;
-            if (!field.IsModelField && (!ImfFieldComments.TryRemove(GetFieldBodyText(field), out text)
-                || !MimeMediaType.TryParse(text, ImfMimeFields.GetParseOptions(_options) | MimeMediaTypeParseOptions.AllowWhitespaceAroundDelimiters, _options.CharsetResolver ?? MimeCharsetResolver.Default, out mediaType)
-                || mediaType != node.Source.ContentType))
+            var mediaType = default(MimeMediaType);
+            var isValid = ImfFieldComments.TryRemove(GetFieldBodyText(field), out text)
+                && MimeMediaType.TryParse(text, ImfMimeFields.GetParseOptions(_options) | MimeMediaTypeParseOptions.AllowWhitespaceAroundDelimiters, _options.CharsetResolver ?? MimeCharsetResolver.Default, out mediaType);
+            if (field.IsModelField)
+            {
+                // The object model reads parameters more closely than this, so only what decides how the entity is written has to agree.
+                if (!isValid || !IsSameStructure(mediaType, node.Source.ContentType))
+                    throw BuildError($"The Content-Type field of the entity is not valid, or does not say the same as the media type it is being written as, '{node.Source.ContentType}' (RFC 2045 §5.1).", node.Path);
+
+                node.HasContentTypeField = true;
+                return;
+            }
+
+            if (!isValid || mediaType != node.Source.ContentType)
                 throw BuildError($"A Content-Type field added to an entity must say the same as the media type the entity was made with, '{node.Source.ContentType}'.", node.Path);
 
             node.HasContentTypeField = true;
@@ -426,6 +436,17 @@ namespace DataStandardizer.File.InternetMessage
 
             node.HasTransferEncodingField = true;
             node.RequestedEncoding = encoding;
+        }
+
+        private static bool IsSameStructure(MimeMediaType left, MimeMediaType right)
+        {
+            MimeParameter leftBoundary, rightBoundary;
+            var hasLeftBoundary = left.TryGetParameter(BoundaryParameterName, out leftBoundary);
+            var hasRightBoundary = right.TryGetParameter(BoundaryParameterName, out rightBoundary);
+            return string.Equals(left.Type, right.Type, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(left.Subtype, right.Subtype, StringComparison.OrdinalIgnoreCase)
+                && hasLeftBoundary == hasRightBoundary
+                && (!hasLeftBoundary || leftBoundary.Value == rightBoundary.Value);
         }
 
         private static string GetFieldBodyText(ImfEntitySource.FieldEntry field)

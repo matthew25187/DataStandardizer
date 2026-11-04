@@ -163,6 +163,26 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         /// <summary>
+        /// Gets a message whose body is multipart entities nested to a depth, with text at the bottom.  They are made from the top down, as adding a part looks through all of that part.
+        /// </summary>
+        public static ImfMessage MessageNestedToDepth(int depth, ImfOptions options)
+        {
+            var top = new ImfMultipart(MimeMediaType.MultipartMixed, options);
+            var current = top;
+            for (var level = 1; level < depth; level++)
+            {
+                var next = new ImfMultipart(MimeMediaType.MultipartMixed, options);
+                current.Parts.Add(next);
+                current = next;
+            }
+
+            var text = new ImfEntity(options);
+            text.SetText("x");
+            current.Parts.Add(text);
+            return new ImfMessage(options) { Body = top };
+        }
+
+        /// <summary>
         /// Gets the bytes of a string, as a body to give an entity.
         /// </summary>
         public static ReadOnlyMemory<byte> Bytes(string text)
@@ -185,7 +205,14 @@ namespace DataStandardizer.File.InternetMessage.Tests
 #if NETCOREAPP3_0_OR_GREATER
             encoding = CodePagesEncodingProvider.Instance.GetEncoding(charset.Name);
 #else
-            encoding = Encoding.GetEncoding(charset.Name);
+            try
+            {
+                encoding = Encoding.GetEncoding(charset.Name);
+            }
+            catch (ArgumentException)
+            {
+                encoding = null;
+            }
 #endif
             return !(encoding is null);
         }

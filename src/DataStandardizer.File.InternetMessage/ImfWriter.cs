@@ -272,10 +272,10 @@ namespace DataStandardizer.File.InternetMessage
             {
                 if (message.IsBodyChanged)
                 {
-                    var source = PlanChangedBody(message);
+                    var source = PlanChangedBody(message, out var diagnostics);
                     var writer = new ImfEntityWriter(_options, _output, ImfEntityWriter.DefaultBlockSize, _lineFeedIsLineBreak, _boundaryGenerator);
                     writer.WriteEntities(source, CreateProgress(progress));
-                    CompleteChangedBody(writer, progress);
+                    CompleteChangedBody(writer, diagnostics, progress);
                     _output.ThrowIfDisposed();
                     return;
                 }
@@ -404,10 +404,10 @@ namespace DataStandardizer.File.InternetMessage
                 cancellationToken.ThrowIfCancellationRequested();
                 if (message.IsBodyChanged)
                 {
-                    var source = PlanChangedBody(message);
+                    var source = PlanChangedBody(message, out var diagnostics);
                     var writer = new ImfEntityWriter(_options, _output, ImfEntityWriter.DefaultBlockSize, _lineFeedIsLineBreak, _boundaryGenerator);
                     await writer.WriteEntitiesAsync(source, CreateProgress(progress), cancellationToken).ConfigureAwait(false);
-                    CompleteChangedBody(writer, progress);
+                    CompleteChangedBody(writer, diagnostics, progress);
                     _output.ThrowIfDisposed();
                     return;
                 }
@@ -465,20 +465,21 @@ namespace DataStandardizer.File.InternetMessage
         /// Checks a message whose body has changed, and describes it for an <see cref="ImfEntityWriter"/>, which checks the rest before it writes anything.
         /// </summary>
         /// <exception cref="ImfFileException">The message can't be written.</exception>
-        private ImfEntitySource PlanChangedBody(ImfMessage message)
+        private ImfEntitySource PlanChangedBody(ImfMessage message, out List<ImfDiagnostic> diagnostics)
         {
-            var diagnostics = CheckConformance(message);
-            var source = message.Body.ToSource(_options.HeaderEncoding, _lineBreak);
-            _diagnostics.AddRange(diagnostics);
-            return source;
+            diagnostics = CheckConformance(message);
+            message.Body.CheckChangedDepth(_options.MaxNestingDepth);
+            return message.Body.ToSource(_options.HeaderEncoding, _lineBreak);
         }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        private void CompleteChangedBody(ImfEntityWriter writer, IProgress<ImfWriteProgress>? progress)
+        private void CompleteChangedBody(ImfEntityWriter writer, List<ImfDiagnostic> diagnostics, IProgress<ImfWriteProgress>? progress)
 #else
-        private void CompleteChangedBody(ImfEntityWriter writer, IProgress<ImfWriteProgress> progress)
+        private void CompleteChangedBody(ImfEntityWriter writer, List<ImfDiagnostic> diagnostics, IProgress<ImfWriteProgress> progress)
 #endif
         {
+            // A message that the entity writer refuses leaves nothing behind, as with one that this writer refuses.
+            _diagnostics.AddRange(diagnostics);
             _fieldsWritten += writer.FieldCount;
             _entitiesWritten++;
             progress?.Report(GetProgress());

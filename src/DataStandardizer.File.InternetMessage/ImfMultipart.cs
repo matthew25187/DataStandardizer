@@ -180,7 +180,7 @@ namespace DataStandardizer.File.InternetMessage
             if (IsFramingKept)
             {
                 source.RawFraming = GetFramingToWrite(lineBreak);
-                source.RawHeaderEnd = RawHeaderEnd;
+                KeepHeaderEnd(source);
                 source.IsPreserved = true;
             }
             else

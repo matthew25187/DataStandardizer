@@ -170,6 +170,45 @@ namespace DataStandardizer.File.InternetMessage.Tests
             "two\r\n" +
             "--c--\r\n";
 
+        private const string TwoPartsWithFirstEncoded = Header + "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nContent-Type: text/plain; charset=us-ascii\r\nContent-Transfer-Encoding: base64\r\n\r\nY2Fmw6k=\r\n--b\r\n\r\ntwo\r\n--b--\r\n";
+        private const string TextOnlyWithNewBody = Header + "Content-Type: text/plain; charset=utf-8\r\n\r\nnew";
+        private const string TextOnlyInBase64 = Header + "Content-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: base64\r\n\r\nY2Fmw6kNCg==";
+        private const string TwoPartsHeaderWithNewRawBody = Header + "Content-Type: multipart/mixed; boundary=b\r\n\r\nnew";
+        private const string HeaderWithNewBodyEntity = Header + "Content-Type: application/octet-stream\r\n\r\nx";
+
+        private const string AttachedAlternative =
+            Header +
+            "Content-Type: multipart/mixed; boundary=b\r\n" +
+            "\r\n" +
+            "--b\r\n" +
+            "Content-Type: multipart/alternative; boundary=c\r\n" +
+            "Content-Disposition: attachment; filename=both.txt\r\n" +
+            "\r\n" +
+            "--c\r\n" +
+            "\r\n" +
+            "attached\r\n" +
+            "--c\r\n" +
+            "Content-Type: application/pdf; name=inner.pdf\r\n" +
+            "\r\n" +
+            "x\r\n" +
+            "--c--\r\n" +
+            "--b\r\n" +
+            "\r\n" +
+            "body\r\n" +
+            "--b--\r\n";
+
+        private const string EmptyEmbeddedMessage = Header + "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nContent-Type: message/rfc822\r\n\r\n--b--\r\n";
+        private const string EmbeddedMessageGivenASubject = Header + "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nContent-Type: message/rfc822\r\n\r\nSubject: New\r\n\r\n--b--\r\n";
+
+        // ref. RFC 5322 §3.5: a message need have no body, and here no empty line either.
+        private const string NoHeaderEnd = "Date: Fri, 21 Nov 1997 09:55:06 -0600\r\nFrom: a@b.test\r\n";
+        private const string NoHeaderEndGivenABody = "Date: Fri, 21 Nov 1997 09:55:06 -0600\r\nFrom: a@b.test\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=us-ascii\r\n\r\nnew";
+
+        private const string BareLineFeedHeaderEnd = "Date: Fri, 21 Nov 1997 09:55:06 -0600\r\nFrom: a@b.test\r\nMIME-Version: 1.0\r\nContent-Type: text/plain\r\n\nold";
+        private const string BareLineFeedHeaderEndGivenABody = "Date: Fri, 21 Nov 1997 09:55:06 -0600\r\nFrom: a@b.test\r\nMIME-Version: 1.0\r\nContent-Type: text/plain\r\n\nnew";
+
+        private const int DeeperThanTheStackCanFollow = 100000;
+
         private const string NewBody = "new";
 
         public static TheoryData<string, string[]> Trees => new TheoryData<string, string[]>
@@ -294,10 +333,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var subject = EntityTrees.Read(message);
 
             // act
-            var testResult = subject.TextBody;
+            var testResult = subject.TextBody.GetText();
 
             // assert
-            testResult.GetText().Should().Be(expected);
+            testResult.Should().Be(expected);
         }
 
         [Theory]
@@ -322,10 +361,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var subject = EntityTrees.Read(message);
 
             // act
-            var testResult = subject.HtmlBody;
+            var testResult = subject.HtmlBody.GetText();
 
             // assert
-            testResult.GetText().Should().Be(expected);
+            testResult.Should().Be(expected);
         }
 
         [Theory]
@@ -350,10 +389,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var subject = EntityTrees.Read(Alternatives);
 
             // act
-            var testResult = subject.TextBody;
+            var testResult = subject.TextBody.GetText();
 
             // assert
-            testResult.GetText().Should().Be("last");
+            testResult.Should().Be("last");
         }
 
         [Fact]
@@ -364,10 +403,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var subject = EntityTrees.Read(AttachedFirst);
 
             // act
-            var testResult = subject.TextBody;
+            var testResult = subject.TextBody.GetText();
 
             // assert
-            testResult.GetText().Should().Be("body");
+            testResult.Should().Be("body");
         }
 
         [Theory]
@@ -391,10 +430,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var subject = EntityTrees.Read(MimeShapes.HtmlWithInlineImage);
 
             // act
-            var testResult = subject.FindByContentId(ImfMessageId.Parse("<img@b.test>"));
+            var testResult = subject.FindByContentId(ImfMessageId.Parse("<img@b.test>")).ContentType.Type;
 
             // assert
-            testResult.ContentType.Type.Should().Be("image");
+            testResult.Should().Be("image");
         }
 
         [Fact]
@@ -404,10 +443,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var subject = EntityTrees.Read(MimeShapes.HtmlWithInlineImage);
 
             // act
-            var testResult = subject.FindByContentId("cid:img@b.test");
+            var testResult = subject.FindByContentId("cid:img@b.test").ContentType.Type;
 
             // assert
-            testResult.ContentType.Type.Should().Be("image");
+            testResult.Should().Be("image");
         }
 
         [Fact]
@@ -496,10 +535,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var options = new ImfOptions { AllowMissingBoundaryTerminator = true };
 
             // act
-            var testResult = EntityTrees.Read(NoCloseDelimiter, options);
+            var testResult = EntityTrees.Describe(EntityTrees.Read(NoCloseDelimiter, options));
 
             // assert
-            EntityTrees.Describe(testResult).Should().Equal("/ 0 multipart multipart/mixed", "1 1 leaf text/plain");
+            testResult.Should().Equal("/ 0 multipart multipart/mixed", "1 1 leaf text/plain");
         }
 
         [Fact]
@@ -540,9 +579,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
             {
                 // act
                 reader.ReadMessage();
+                var testResult = reader.Diagnostics;
 
                 // assert
-                reader.Diagnostics.Should().ContainSingle().Which.Kind.Should().Be(ImfDiagnosticKind.MissingMimeVersion);
+                testResult.Should().ContainSingle().Which.Kind.Should().Be(ImfDiagnosticKind.MissingMimeVersion);
             }
         }
 
@@ -554,10 +594,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var message = EntityTrees.MessageWithPartOfLength(LongerThanABlock);
 
             // act
-            var testResult = EntityTrees.Read(message);
+            var testResult = EntityTrees.At(EntityTrees.Read(message), "1").GetContent().Length;
 
             // assert
-            EntityTrees.At(testResult, "1").GetContent().Length.Should().Be(LongerThanABlock);
+            testResult.Should().Be(LongerThanABlock);
         }
 
         [Fact]
@@ -567,10 +607,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
             using (var reader = new ImfReader(new MemoryStream(Octets.Of(MimeShapes.TextAndHtml))))
             {
                 // act
-                var testResult = await reader.ReadMessageAsync();
+                var testResult = EntityTrees.Describe(await reader.ReadMessageAsync());
 
                 // assert
-                EntityTrees.Describe(testResult).Should().Equal("/ 0 multipart multipart/alternative", "1 1 leaf text/plain", "2 1 leaf text/html");
+                testResult.Should().Equal("/ 0 multipart multipart/alternative", "1 1 leaf text/plain", "2 1 leaf text/html");
             }
         }
 
@@ -582,10 +622,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var options = new ImfOptions { MaxEntitySize = 15 };
 
             // act
-            var testResult = EntityTrees.Read(Message, options);
+            var testResult = EntityTrees.At(EntityTrees.Read(Message, options), "1").GetText();
 
             // assert
-            EntityTrees.At(testResult, "1").GetText().Should().Be("x");
+            testResult.Should().Be("x");
         }
 
         [Fact]
@@ -714,7 +754,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var testResult = EntityTrees.Write(subject);
 
             // assert
-            testResult.Should().Be(Header + "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nContent-Type: text/plain; charset=us-ascii\r\nContent-Transfer-Encoding: base64\r\n\r\nY2Fmw6k=\r\n--b\r\n\r\ntwo\r\n--b--\r\n");
+            testResult.Should().Be(TwoPartsWithFirstEncoded);
         }
 
         [Fact]
@@ -728,7 +768,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var testResult = EntityTrees.Write(subject);
 
             // assert
-            testResult.Should().Be(Header + "Content-Type: text/plain; charset=utf-8\r\n\r\nnew");
+            testResult.Should().Be(TextOnlyWithNewBody);
         }
 
         [Fact]
@@ -742,7 +782,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var testResult = EntityTrees.Write(subject);
 
             // assert
-            testResult.Should().Be(Header + "Content-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: base64\r\n\r\nY2Fmw6kNCg==");
+            testResult.Should().Be(TextOnlyInBase64);
         }
 
         [Fact]
@@ -912,10 +952,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
             {
                 // act
                 writer.WriteMessage(subject, new SynchronousProgress(progress));
+                var testResult = new[] { progress[progress.Count - 1].EntitiesWritten, writer.EntitiesWritten };
 
                 // assert
-                progress[progress.Count - 1].EntitiesWritten.Should().Be(1);
-                writer.EntitiesWritten.Should().Be(1);
+                testResult.Should().Equal(1L, 1L);
             }
         }
 
@@ -959,7 +999,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var testResult = EntityTrees.Write(subject);
 
             // assert
-            testResult.Should().Be(Header + "Content-Type: multipart/mixed; boundary=b\r\n\r\nnew");
+            testResult.Should().Be(TwoPartsHeaderWithNewRawBody);
         }
 
         [Fact]
@@ -975,7 +1015,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var testResult = EntityTrees.Write(subject);
 
             // assert
-            testResult.Should().Be(Header + "Content-Type: application/octet-stream\r\n\r\nx");
+            testResult.Should().Be(HeaderWithNewBodyEntity);
         }
 
         [Fact]
@@ -1045,6 +1085,195 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // assert
             testResult.Should().Be("a=b\n");
+        }
+
+        [Fact]
+        public void WriteMessage_ContentSetAndContentTypeFieldNotValid_ThrowsAndWritesNothing()
+        {
+            // arrange
+            var subject = EntityTrees.Read(MimeShapes.TextOnly);
+            subject.Body.SetContent(EntityTrees.Bytes(NewBody));
+            subject.Fields.RemoveAll("Content-Type");
+            subject.Fields.Add(new ImfHeaderField("Content-Type", ";;;", ImfHeaderFieldKind.Structured));
+            var output = new MemoryStream();
+            using (var writer = new ImfWriter(output))
+            {
+                // act
+                Action testAction = () => writer.WriteMessage(subject);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>();
+                output.Length.Should().Be(0);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_ContentSetAndEncodedWordInParameter_KeepsTheFieldAsItIs()
+        {
+            // arrange (ref. RFC 2047 §5: not allowed in a parameter, though a reader goes by the parameters it needs)
+            const string Message = "Date: Fri, 21 Nov 1997 09:55:06 -0600\r\nFrom: a@b.test\r\nMIME-Version: 1.0\r\nContent-Type: application/pdf; name=\"=?UTF-8?Q?a?=\"\r\n\r\nold";
+            const string Expected = "Date: Fri, 21 Nov 1997 09:55:06 -0600\r\nFrom: a@b.test\r\nMIME-Version: 1.0\r\nContent-Type: application/pdf; name=\"=?UTF-8?Q?a?=\"\r\n\r\nnew";
+            var subject = EntityTrees.Read(Message);
+            subject.Body.SetContent(EntityTrees.Bytes(NewBody));
+
+            // act
+            var testResult = EntityTrees.Write(subject);
+
+            // assert
+            testResult.Should().Be(Expected);
+        }
+
+        [Fact]
+        public void WriteMessage_AllowedProblemAndBodyRefused_RecordsNoDiagnostic()
+        {
+            // arrange
+            var options = new ImfOptions { AllowMissingRequiredFields = true };
+            var subject = EntityTrees.Read(TwoParts, options);
+            subject.Date = null;
+            EntityTrees.At(subject, "1").SetContent(EntityTrees.Bytes("--b\r\n"));
+            using (var writer = new ImfWriter(new MemoryStream(), options))
+            {
+                // act
+                MessageWrites.IgnoreFailure(() => writer.WriteMessage(subject));
+                var testResult = writer.Diagnostics;
+
+                // assert
+                testResult.Should().BeEmpty();
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_AllowedProblemAndBodyWritten_RecordsADiagnostic()
+        {
+            // arrange
+            var options = new ImfOptions { AllowMissingRequiredFields = true };
+            var subject = EntityTrees.Read(TwoParts, options);
+            subject.Date = null;
+            EntityTrees.At(subject, "1").SetContent(EntityTrees.Bytes(NewBody));
+            using (var writer = new ImfWriter(new MemoryStream(), options))
+            {
+                // act
+                writer.WriteMessage(subject);
+                var testResult = writer.Diagnostics;
+
+                // assert
+                testResult.Should().ContainSingle();
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_BareLineFeedEndedTheHeaderAndContentSet_KeepsIt()
+        {
+            // arrange
+            var options = new ImfOptions { AcceptBareLineFeed = true };
+            var subject = EntityTrees.Read(BareLineFeedHeaderEnd, options);
+            subject.Body.SetContent(EntityTrees.Bytes(NewBody));
+
+            // act
+            var testResult = EntityTrees.Write(subject, options);
+
+            // assert
+            testResult.Should().Be(BareLineFeedHeaderEndGivenABody);
+        }
+
+        [Fact]
+        public void WriteMessage_NoEmptyLineAfterTheHeaderAndContentSet_AddsOne()
+        {
+            // arrange
+            var subject = EntityTrees.Read(NoHeaderEnd);
+            subject.Body.SetContent(EntityTrees.Bytes(NewBody));
+
+            // act
+            var testResult = EntityTrees.Write(subject);
+
+            // assert
+            testResult.Should().Be(NoHeaderEndGivenABody);
+        }
+
+        [Fact]
+        public void WriteMessage_MessagePartWithNoBodyGivenAMessage_SeparatesItFromTheHeader()
+        {
+            // arrange
+            var subject = EntityTrees.Read(EmptyEmbeddedMessage);
+            ((ImfMessagePart)EntityTrees.At(subject, "1")).Message.Subject = "New";
+
+            // act
+            var testResult = EntityTrees.Write(subject);
+
+            // assert
+            testResult.Should().Be(EmbeddedMessageGivenASubject);
+        }
+
+        [Fact]
+        public void WriteMessage_NestedDeeperThanTheStackCanFollow_ThrowsAndWritesNothing()
+        {
+            // arrange
+            var options = new ImfOptions { AllowMissingRequiredFields = true };
+            var subject = EntityTrees.MessageNestedToDepth(DeeperThanTheStackCanFollow, options);
+            var output = new MemoryStream();
+            using (var writer = new ImfWriter(output, options))
+            {
+                // act
+                Action testAction = () => writer.WriteMessage(subject);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>();
+                output.Length.Should().Be(0);
+            }
+        }
+
+        [Fact]
+        public void TextBody_NestedDeeperThanTheStackCanFollow_IsFound()
+        {
+            // arrange
+            var subject = EntityTrees.MessageNestedToDepth(DeeperThanTheStackCanFollow, new ImfOptions());
+
+            // act
+            var testResult = subject.TextBody.GetText();
+
+            // assert
+            testResult.Should().Be("x");
+        }
+
+        [Fact]
+        public void TextBody_InsideAMultipartThatIsAnAttachment_IsNotTheTextOfTheMessage()
+        {
+            // arrange
+            var subject = EntityTrees.Read(AttachedAlternative);
+
+            // act
+            var testResult = subject.TextBody.GetText();
+
+            // assert
+            testResult.Should().Be("body");
+        }
+
+        [Fact]
+        public void Attachments_MultipartThatIsAnAttachment_IsListedAndNotLookedInside()
+        {
+            // arrange
+            var subject = EntityTrees.Read(AttachedAlternative);
+
+            // act
+            var testResult = EntityTrees.TypesOf(subject.Attachments);
+
+            // assert
+            testResult.Should().Equal("multipart/alternative");
+        }
+
+        [Fact]
+        public void GetContent_LineFeedMessageWithEmbeddedMessageChanged_KeepsItsLineBreaks()
+        {
+            // arrange
+            const string Message = "Date: Fri, 21 Nov 1997 09:55:06 -0600\nFrom: a@b.test\nMIME-Version: 1.0\nContent-Type: message/rfc822\n\nSubject: Old\n\nbody";
+            var subject = (ImfMessagePart)EntityTrees.ReadWithLineFeeds(Message).Body;
+            subject.Message.Body.SetContent(EntityTrees.Bytes(NewBody));
+
+            // act
+            var testResult = EntityTrees.ContentOf(subject);
+
+            // assert
+            testResult.Should().Be("Subject: Old\nMIME-Version: 1.0\nContent-Type: text/plain; charset=us-ascii\n\nnew");
         }
 
         [Fact]
@@ -1144,9 +1373,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // act
             subject.Parts.Add(part);
+            var testResult = subject.Parts.Count;
 
             // assert
-            subject.Parts.Should().ContainSingle();
+            testResult.Should().Be(1);
         }
 
         [Fact]

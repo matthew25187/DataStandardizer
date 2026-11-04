@@ -13,6 +13,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
     {
         private const string TwoLeaves = "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\none\r\n--b\r\nContent-Type: text/html\r\n\r\ntwo\r\n--b--\r\n";
         private const int ShiftJisCodePage = 932;
+        private const string MessageWithThreeOctets = "Date: Fri, 21 Nov 1997 09:55:06 -0600\r\nFrom: a@b.test\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\nxxx\r\n--b--\r\n";
 
         private static ImfOptions NoRequiredFields => new ImfOptions { AllowMissingRequiredFields = true };
 
@@ -104,7 +105,33 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var testResult = EntityTrees.MessageWithPartOfLength(Length);
 
             // assert
-            testResult.Should().Be(MimeShapes.Header + "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\nxxx\r\n--b--\r\n");
+            testResult.Should().Be(MessageWithThreeOctets);
+        }
+
+        [Fact]
+        public void MessageNestedToDepth_Two_GivesThatTree()
+        {
+            // arrange
+            var subject = EntityTrees.MessageNestedToDepth(2, new ImfOptions());
+
+            // act
+            var testResult = EntityTrees.Describe(subject);
+
+            // assert
+            testResult.Should().Equal("/ 0 multipart multipart/mixed", "1 1 multipart multipart/mixed", "1.1 2 leaf text/plain");
+        }
+
+        [Fact]
+        public void TryGetEncoding_UnknownName_IsFalse()
+        {
+            // arrange
+            var subject = new CodePageCharsetResolver();
+
+            // act
+            var testResult = subject.TryGetEncoding(DataStandardizer.Communication.Mime.MimeCharset.Parse("x-no-such-charset"), out _);
+
+            // assert
+            testResult.Should().BeFalse();
         }
 
         [Fact]

@@ -32,6 +32,7 @@ namespace DataStandardizer.File.InternetMessage
         private static readonly MimeMediaType HtmlType = new MimeMediaType(MimeTopLevelTypes.Text, "html");
 
         private readonly List<Func<ImfEntity>> _attachments = new List<Func<ImfEntity>>();
+        private readonly HashSet<ImfMessageId> _resourceIds = new HashSet<ImfMessageId>();
         private readonly List<Func<ImfEntity>> _resources = new List<Func<ImfEntity>>();
 
         private MimeCharset _htmlCharset;
@@ -163,13 +164,17 @@ namespace DataStandardizer.File.InternetMessage
         /// <param name="content">The content.  The memory must not change until the last write of a message that is built.</param>
         /// <returns>This object.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="contentId"/> is <c>null</c>.</exception>
-        /// <exception cref="ArgumentException"><paramref name="contentType"/> is not initialised, or is of the top-level type <c>multipart</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="contentType"/> is not initialised, or is of the top-level type <c>multipart</c>, or
+        /// <paramref name="contentId"/> has already been added, as RFC 2045 §7 requires it to be unique.</exception>
         public ImfMessageBuilder AddInlineResource(ImfMessageId contentId, MimeMediaType contentType, ReadOnlyMemory<byte> content)
         {
             if (contentId is null)
                 throw new ArgumentNullException(nameof(contentId));
 
             CheckContentType(contentType, nameof(contentType));
+            if (!_resourceIds.Add(contentId))
+                throw new ArgumentException($"An inline resource already has the Content-ID {contentId} (RFC 2045 §7).", nameof(contentId));
+
             _resources.Add(() =>
             {
                 var entity = CreateLeaf(contentType, content);
@@ -181,7 +186,8 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Builds a message, which shares nothing that can change with any other built from this builder.
+        /// Builds a message, which shares nothing that can change with any other built from this builder, except a message given to <see cref="AddAttachment(ImfMessage)"/>, which they
+        /// all hold, so that a later change to it changes them all.
         /// </summary>
         /// <returns>The message.  With no text, HTML or attachments, it has no body.</returns>
         /// <exception cref="InvalidOperationException">There are inline resources and no HTML to refer to them.</exception>

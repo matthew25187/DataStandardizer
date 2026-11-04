@@ -67,8 +67,10 @@ namespace DataStandardizer.File.InternetMessage
         {
             if (!HasChangedBody) return RawBody;
 
+            _message.Body.CheckChangedDepth(Options.MaxNestingDepth);
+
             var output = new MemoryStream();
-            using (var writer = new ImfEntityWriter(output, Options))
+            using (var writer = new ImfEntityWriter(output, Options, ImfEntityWriter.DefaultBlockSize, LineFeedIsLineBreak, ImfEntityWriter.GenerateBoundary))
             {
                 writer.WriteMessage(_message.Body.ToSource(Options.HeaderEncoding, LineFeedIsLineBreak ? new byte[] { 0x0A } : new byte[] { 0x0D, 0x0A }));
             }
@@ -87,7 +89,7 @@ namespace DataStandardizer.File.InternetMessage
             AddFields(source, encoding, lineBreak, null);
             if (IsRead)
             {
-                source.RawHeaderEnd = RawHeaderEnd;
+                KeepHeaderEnd(source);
                 source.IsPreserved = true;
             }
 
