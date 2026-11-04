@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -20,6 +21,13 @@ namespace DataStandardizer.File.InternetMessage.Tests
         // The bytes of Message, which SplitAcrossRefills splits at chosen points.
         private const int MessageLength = 63;
         private const int HeaderEndsAt = 55;
+
+        // A body that takes several reads of the small buffer.
+        private const string LongBody = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\r\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\r\n";
+        private const string LongMessage = Header + "\r\n" + LongBody;
+        private const int LongBodyLength = 104;
+        private const int LongMessageLength = 161;
+        private const int SmallBufferSize = 16;
 
         // A byte above 127 that is not valid UTF-8, and "\x00E9" in ISO-8859-1.
         private const string Latin1Acute = "\x00E9";
@@ -243,6 +251,96 @@ namespace DataStandardizer.File.InternetMessage.Tests
             // arrange
             var options = new ImfOptions { MaxEntitySize = 5 };
             using (var reader = new ImfReader(new MemoryStream(Octets.Of(Message)), options))
+            {
+                // act
+                Action testAction = () => reader.ReadMessage();
+
+                // assert
+                testAction.Should().Throw<ImfFileException>();
+            }
+        }
+
+        [Fact]
+        public void ReadMessage_SeekableStream_SizesTheBodyToWhatRemains()
+        {
+            // arrange
+            using (var reader = new ImfReader(new MemoryStream(Octets.Of(LongMessage)), new ImfOptions(), SmallBufferSize, false))
+            {
+                // act
+                var testResult = reader.ReadMessage();
+
+                // assert
+                MemoryMarshal.TryGetArray(testResult.RawBody, out var body).Should().BeTrue();
+                body.Array.Should().HaveCount(LongBodyLength);
+                Octets.ToText(testResult.RawBody.Span).Should().Be(LongBody);
+            }
+        }
+
+        [Fact]
+        public void ReadMessage_SeekableStreamNotAtItsStart_SizesTheBodyToWhatRemains()
+        {
+            // arrange
+            var stream = new MemoryStream(Octets.Of("before" + LongMessage)) { Position = 6 };
+            using (var reader = new ImfReader(stream, new ImfOptions(), SmallBufferSize, false))
+            {
+                // act
+                var testResult = reader.ReadMessage();
+
+                // assert
+                MemoryMarshal.TryGetArray(testResult.RawBody, out var body).Should().BeTrue();
+                body.Array.Should().HaveCount(LongBodyLength);
+                Octets.ToText(testResult.RawBody.Span).Should().Be(LongBody);
+            }
+        }
+
+        [Fact]
+        public void ReadMessage_LengthPastTheLimit_AllocatesOnlyWhatIsRead()
+        {
+            // arrange
+            var stream = new ClaimedLengthStream(Octets.Of(Message), long.MaxValue);
+            using (var reader = new ImfReader(stream, new ImfOptions()))
+            {
+                // act
+                var testResult = reader.ReadMessage();
+
+                // assert
+                MemoryMarshal.TryGetArray(testResult.RawBody, out var body).Should().BeTrue();
+                body.Array.Should().HaveCount(Body.Length);
+                Octets.ToText(testResult.RawBody.Span).Should().Be(Body);
+            }
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(HeaderEndsAt)]
+        [InlineData(LongMessageLength - 1)]
+        [InlineData(LongMessageLength)]
+        [InlineData(LongMessageLength + 1)]
+        [InlineData(LongMessageLength * 2)]
+        [InlineData(long.MaxValue)]
+        public void ReadMessage_LengthThatIsWrong_ReadsTheWholeBody(long claimedLength)
+        {
+            // arrange
+            var stream = new ClaimedLengthStream(Octets.Of(LongMessage), claimedLength);
+            using (var reader = new ImfReader(stream, new ImfOptions(), SmallBufferSize, false))
+            {
+                // act
+                var testResult = reader.ReadMessage();
+
+                // assert
+                Octets.ToText(testResult.RawBody.Span).Should().Be(LongBody);
+            }
+        }
+
+        [Theory]
+        [InlineData(HeaderEndsAt)]
+        [InlineData(LongMessageLength)]
+        public void ReadMessage_BodyPastMaxEntitySizeWithALengthThatFits_Throws(long claimedLength)
+        {
+            // arrange
+            var stream = new ClaimedLengthStream(Octets.Of(LongMessage), claimedLength);
+            var options = new ImfOptions { MaxEntitySize = LongBodyLength - 1 };
+            using (var reader = new ImfReader(stream, options, SmallBufferSize, false))
             {
                 // act
                 Action testAction = () => reader.ReadMessage();

@@ -332,8 +332,7 @@ namespace DataStandardizer.File.InternetMessage
 
                 if (count > _body.Length - _bodyLength)
                 {
-                    // Doubling keeps the copying linear in the size of the body, and the limit caps what hostile input can make it allocate.
-                    Array.Resize(ref _body, (int)Math.Min(Math.Max(_body.Length * 2L, (long)_bodyLength + count), _options.MaxEntitySize));
+                    Array.Resize(ref _body, GetBodyCapacity(count));
                 }
 
                 Array.Copy(_scanner.Buffer, _scanner.Position, _body, _bodyLength, count);
@@ -342,6 +341,25 @@ namespace DataStandardizer.File.InternetMessage
             }
 
             return _scanner.IsEndOfInput;
+        }
+
+        /// <summary>
+        /// Gets the size to make the body for it to take in some more bytes, which fit within <see cref="ImfOptions.MaxEntitySize"/>.
+        /// </summary>
+        /// <param name="count">The number of bytes.</param>
+        private int GetBodyCapacity(int count)
+        {
+            var required = (long)_bodyLength + count;
+            if (_body.Length == 0 && _stream.CanSeek)
+            {
+                // A stream that gives its length doesn't need the copies of doubling.  A body that wouldn't fit gets no early allocation, so a length that claims too much costs nothing, and the
+                // limit is still only reached by reading that many bytes.  If the length turns out to be too small, doubling takes over.
+                var expected = required + (_stream.Length - _stream.Position);
+                if (expected >= required && expected <= _options.MaxEntitySize) return (int)expected;
+            }
+
+            // Doubling keeps the copying linear in the size of the body, and the limit caps what hostile input can make it allocate.
+            return (int)Math.Min(Math.Max(_body.Length * 2L, required), _options.MaxEntitySize);
         }
 
         /// <summary>
