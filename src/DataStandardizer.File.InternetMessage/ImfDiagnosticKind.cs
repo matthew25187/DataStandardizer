@@ -37,5 +37,26 @@
         /// doesn't allow anywhere, are reported the same way.
         /// </summary>
         InvalidRelatedStructure = 5,
+
+        /// <summary>
+        /// An mbox file doesn't start with a separator line, which RFC 4155 Appendix A requires before each message.
+        /// </summary>
+        MissingMboxSeparator = 6,
+
+        /// <summary>
+        /// A line of an mbox file starts with <c>From </c> and doesn't have the form of a separator line that RFC 4155 Appendix A requires.
+        /// </summary>
+        InvalidMboxSeparator = 7,
+
+        /// <summary>
+        /// A message of an mbox file is not ended by the empty line that RFC 4155 Appendix A requires.
+        /// </summary>
+        MissingMboxBlankLine = 8,
+
+        /// <summary>
+        /// A message of an mbox file in the <see cref="MboxVariant.Mboxcl"/> or <see cref="MboxVariant.Mboxcl2"/> variant has a Content-Length field that is missing or not valid, or that
+        /// doesn't match the length of its body.
+        /// </summary>
+        InvalidMboxContentLength = 9,
     }
 }

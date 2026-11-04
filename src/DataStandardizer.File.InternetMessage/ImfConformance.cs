@@ -92,6 +92,14 @@ namespace DataStandardizer.File.InternetMessage
                     return options.AllowCardinalityViolations;
                 case ImfDiagnosticKind.InvalidFieldValue:
                     return options.AllowInvalidValues;
+                case ImfDiagnosticKind.MissingMboxSeparator:
+                    return options.AllowMissingMboxSeparator;
+                case ImfDiagnosticKind.InvalidMboxSeparator:
+                    return options.AllowInvalidMboxSeparator;
+                case ImfDiagnosticKind.MissingMboxBlankLine:
+                    return options.AllowMissingMboxBlankLine;
+                case ImfDiagnosticKind.InvalidMboxContentLength:
+                    return options.AllowInvalidMboxContentLength;
                 default:
                     return false;
             }

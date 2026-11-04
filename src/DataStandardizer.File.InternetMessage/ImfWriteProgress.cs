@@ -5,7 +5,7 @@ namespace DataStandardizer.File.InternetMessage
 {
     /// <summary>
     /// The progress of a writer.  <see cref="ImfHeaderWriter"/> reports it after each field of a bulk write, <see cref="ImfEntityWriter"/> after each
-    /// block of output, and <see cref="ImfWriter"/> after each field and each block of a body.
+    /// block of output, and <see cref="ImfWriter"/> after each field and each block of a body, and <see cref="MboxWriter"/> after each message of a bulk write.
     /// </summary>
     /// <remarks>
     /// Counts are cumulative for the writer, not for the call that reports them.
@@ -32,7 +32,7 @@ namespace DataStandardizer.File.InternetMessage
 
         /// <summary>
         /// Gets the number of entities the writer has written so far, at any depth, including each message; always 0 for
-        /// <see cref="ImfHeaderWriter"/>.  An entity written from its raw bytes counts as one, whatever it holds.
+        /// <see cref="ImfHeaderWriter"/>.  <see cref="MboxWriter"/> counts each message as one.  An entity written from its raw bytes counts as one, whatever it holds.
         /// </summary>
         public long EntitiesWritten { get; }
 

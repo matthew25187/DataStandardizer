@@ -460,7 +460,7 @@ namespace DataStandardizer.File.InternetMessage
         /// <summary>
         /// Checks the options, and resolves the encoding for a field body that is not valid UTF-8.
         /// </summary>
-        private static Encoding CheckOptions(ImfOptions options)
+        internal static Encoding CheckOptions(ImfOptions options)
         {
             var encoding = ImfHeaderReader.GetFallbackEncoding(options);
             if (options.MaxEntitySize < 1)

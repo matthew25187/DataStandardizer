@@ -23,7 +23,7 @@ namespace DataStandardizer.File.InternetMessage
 
             /// <summary>
             /// The kind of problem, as an <see cref="ImfDiagnosticKind"/>.  Present only for a problem that an option can turn into an <see cref="ImfDiagnostic"/>, found by an
-            /// <see cref="ImfReader"/> or <see cref="ImfWriter"/>.
+            /// <see cref="ImfReader"/>, <see cref="ImfWriter"/>, <see cref="MboxReader"/> or <see cref="MboxWriter"/>.
             /// </summary>
             public const string DiagnosticKind = "DiagnosticKind";
 
@@ -44,6 +44,13 @@ namespace DataStandardizer.File.InternetMessage
             /// The 1-based number of the physical line on which the problem was found, as a <see cref="long"/>.  Present only for a problem found by a reader.
             /// </summary>
             public const string LineNumber = "LineNumber";
+
+            /// <summary>
+            /// The 0-based index of the message in an mbox file, as a <see cref="long"/>.  Present only for a problem found by an <see cref="MboxReader"/> or <see cref="MboxWriter"/>, or by an
+            /// <see cref="ImfEntityReader"/> that an <see cref="MboxReader"/> gave.  In a problem with the format of the file, <see cref="BytePosition"/> and <see cref="LineNumber"/> count from
+            /// the start of the file.  In a problem in a message, they count from the start of the message as it reads after any quotes have been removed.
+            /// </summary>
+            public const string MessageIndex = "MessageIndex";
         }
 
         /// <summary>

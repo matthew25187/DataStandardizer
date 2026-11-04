@@ -6,7 +6,7 @@ namespace DataStandardizer.File.InternetMessage
     /// Options to configure the behaviour of an Internet message reader or writer.
     /// </summary>
     /// <remarks>
-    /// The default settings for all options ensure behaviour consistent with RFC 5322, RFC 6532, RFC 2045 and RFC 2046.  Each accommodation for common non-compliant
+    /// The default settings for all options ensure behaviour consistent with RFC 5322, RFC 6532, RFC 2045, RFC 2046 and RFC 4155.  Each accommodation for common non-compliant
     /// input is a separate option, off by default.  A writer always writes what the standards allow, so the accommodations affect it only where noted.
     /// </remarks>
 #if NET5_0_OR_GREATER
@@ -29,6 +29,11 @@ namespace DataStandardizer.File.InternetMessage
         /// The default value of <see cref="MaxHeaderSectionLength"/>, which is 1 MiB.
         /// </summary>
         public const int DefaultMaxHeaderSectionLength = 1024 * 1024;
+
+        /// <summary>
+        /// The default value of <see cref="MaxMessageCount"/>.
+        /// </summary>
+        public const int DefaultMaxMessageCount = 1000000;
 
         /// <summary>
         /// The default value of <see cref="MaxNestingDepth"/>.
@@ -184,6 +189,46 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
+        /// Gets a flag indicating if an <see cref="MboxReader"/> accepts a Content-Length field that is missing or wrong, in the <see cref="MboxVariant.Mboxcl"/> and
+        /// <see cref="MboxVariant.Mboxcl2"/> variants.
+        /// </summary>
+        /// <remarks>
+        /// These variants find the end of a message from its Content-Length field.  When <c>false</c> (the default), a field that is missing, that is not a single number, or that doesn't lead
+        /// to an empty line and then a separator line or the end of the file, causes an <see cref="ImfFileException"/>.  When <c>true</c>, the field is not relied on: a message ends at the next
+        /// separator line that follows an empty line, and an <see cref="ImfDiagnostic"/> is recorded if the field doesn't give the length found.  So a body of the
+        /// <see cref="MboxVariant.Mboxcl2"/> variant that holds an empty line and then what looks like a separator line is split there, even if its field was right.
+        /// </remarks>
+        public bool AllowInvalidMboxContentLength
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
+        /// Gets a flag indicating if a line of an mbox file that starts with <c>From </c> may differ from the separator line that RFC 4155 Appendix A requires.
+        /// </summary>
+        /// <remarks>
+        /// RFC 4155 Appendix A requires an <c>addr-spec</c> and a UTC date and time in the form of <c>ctime</c>.  When <c>false</c> (the default), an <see cref="MboxReader"/> throws an
+        /// <see cref="ImfFileException"/> for a line starting <c>From </c> in any other form, and an <see cref="MboxWriter"/> does the same for an <see cref="MboxEnvelope"/> that was read in
+        /// another form.  When <c>true</c>, an <see cref="ImfDiagnostic"/> is recorded instead, and the line is a separator line if it has a sender and a date and time, with the day not padded,
+        /// no seconds, a time zone before or after the year, or more white space, as Thunderbird and Gmail write.  Any other line starting <c>From </c> is then part of the message, as programs
+        /// that quote only some of these lines leave them.  <see cref="MboxEnvelope.Sender"/> or <see cref="MboxEnvelope.Date"/> is <c>null</c> if it can't be understood.
+        /// </remarks>
+        public bool AllowInvalidMboxSeparator
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
         /// Gets a flag indicating if <see cref="ImfEntity.GetText"/> accepts octets that are not valid in the character set of the text.
         /// </summary>
         /// <remarks>
@@ -284,6 +329,41 @@ namespace DataStandardizer.File.InternetMessage
         /// whole body is its preamble.
         /// </remarks>
         public bool AllowMissingBoundaryTerminator
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
+        /// Gets a flag indicating if an <see cref="MboxReader"/> accepts a separator line with no empty line before it.
+        /// </summary>
+        /// <remarks>
+        /// RFC 4155 Appendix A ends each message with an empty line.  When <c>false</c> (the default), a separator line that doesn't follow one causes an <see cref="ImfFileException"/>.  When
+        /// <c>true</c>, the message ends at the separator line, and an <see cref="ImfDiagnostic"/> is recorded.  A last message with no empty line before the end of the file is accepted either
+        /// way, with an <see cref="ImfDiagnostic"/>, as the end of the file ends it.
+        /// </remarks>
+        public bool AllowMissingMboxBlankLine
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
+        /// Gets a flag indicating if an <see cref="MboxReader"/> accepts a file that doesn't start with a separator line.
+        /// </summary>
+        /// <remarks>
+        /// RFC 4155 Appendix A has a separator line immediately before each message.  When <c>false</c> (the default), a file with any other first line causes an
+        /// <see cref="ImfFileException"/>.  When <c>true</c>, everything before the first separator line is skipped, and an <see cref="ImfDiagnostic"/> is recorded.
+        /// </remarks>
+        public bool AllowMissingMboxSeparator
         {
             get;
 #if NET5_0_OR_GREATER
@@ -455,6 +535,23 @@ namespace DataStandardizer.File.InternetMessage
             set;
 #endif
         } = DefaultMaxNestingDepth;
+
+        /// <summary>
+        /// Gets the maximum number of messages that an <see cref="MboxReader"/> reads from a file.
+        /// </summary>
+        /// <remarks>
+        /// RFC 4155 sets no limit.  This one guards against hostile input.  The default is <see cref="DefaultMaxMessageCount"/>, and the value must be at least 1.  One more message causes an
+        /// <see cref="ImfFileException"/>.  The other limits apply to each message.
+        /// </remarks>
+        public int MaxMessageCount
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        } = DefaultMaxMessageCount;
 
         /// <summary>
         /// Gets the maximum number of entities in a message, not counting the message itself.

@@ -193,6 +193,11 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
+        /// Gets or sets the index of the message in the mbox file it came from, for the exceptions of this reader, or -1 if it didn't come from one.
+        /// </summary>
+        internal long MessageIndex { get; set; } = -1;
+
+        /// <summary>
         /// Releases the reader's buffers, and the file it opened itself.  A caller-supplied stream is left open.
         /// </summary>
         /// <remarks>
@@ -258,6 +263,10 @@ namespace DataStandardizer.File.InternetMessage
                     _entityScanner.HeaderScanner.CompleteRefill(bytesRead);
                 }
             }
+            catch (ImfFileException exception) when (AddMessageIndex(exception))
+            {
+                throw;
+            }
             finally
             {
                 EndRead();
@@ -304,6 +313,7 @@ namespace DataStandardizer.File.InternetMessage
                 }
                 catch (ImfFileException exception)
                 {
+                    AddMessageIndex(exception);
                     return new ValueTask<ImfEntityEvent?>(Task.FromException<ImfEntityEvent?>(exception));
                 }
 
@@ -343,6 +353,10 @@ namespace DataStandardizer.File.InternetMessage
 
                 return CompleteEvent(status);
             }
+            catch (ImfFileException exception) when (AddMessageIndex(exception))
+            {
+                throw;
+            }
             catch (OperationCanceledException)
             {
                 _isCanceled = true;
@@ -374,6 +388,14 @@ namespace DataStandardizer.File.InternetMessage
                 throw new InvalidOperationException("The reader has moved on from the event of this view.");
 
             return _entityScanner;
+        }
+
+        // Used as an exception filter that never catches, so that the exception keeps its stack trace.
+        private bool AddMessageIndex(ImfFileException exception)
+        {
+            if (MessageIndex >= 0) exception.Data[ImfFileException.DataItemName.MessageIndex] = MessageIndex;
+
+            return false;
         }
 
         /// <summary>

@@ -37,6 +37,10 @@ namespace DataStandardizer.File.InternetMessage
     /// the delimiter lines of a multipart entity whose parts are all still there, is written byte for byte.  A multipart entity that was read with no close delimiter gets one.
     /// </para>
     /// <para>
+    /// <b>Messages from containers.</b>  A message read from an mbox file with LF line breaks is written with CRLF line breaks, as RFC 5322 §2.1 requires, so everything in it changes in that
+    /// way.  One that has a <c>binary</c> entity (RFC 2045 §2.9) can't change like that, which causes an <see cref="ImfFileException"/>.
+    /// </para>
+    /// <para>
     /// Only one operation may be in progress at a time.  Synchronous and asynchronous calls may follow one another, but a call made while another is in
     /// progress throws <see cref="InvalidOperationException"/>.  After a write fails once output has started, a message is incomplete, so the writer cannot continue, and the
     /// same goes after any write is canceled, whether or not output had started.
@@ -288,6 +292,15 @@ namespace DataStandardizer.File.InternetMessage
             _output.BeginOperation();
             try
             {
+                if (NeedsConversion(message))
+                {
+                    var converted = PlanConverted(message, out var convertedDiagnostics, out var fieldCount);
+                    _output.Write(converted);
+                    CompleteConverted(convertedDiagnostics, fieldCount, progress);
+                    _output.ThrowIfDisposed();
+                    return;
+                }
+
                 if (message.IsBodyChanged)
                 {
                     var source = PlanChangedBody(message, out var diagnostics);
@@ -420,6 +433,16 @@ namespace DataStandardizer.File.InternetMessage
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                if (NeedsConversion(message))
+                {
+                    var converted = PlanConverted(message, out var convertedDiagnostics, out var fieldCount);
+                    hasStartedOutput = true;
+                    await _output.WriteAsync(converted, cancellationToken).ConfigureAwait(false);
+                    CompleteConverted(convertedDiagnostics, fieldCount, progress);
+                    _output.ThrowIfDisposed();
+                    return;
+                }
+
                 if (message.IsBodyChanged)
                 {
                     var source = PlanChangedBody(message, out var diagnostics);
@@ -486,6 +509,41 @@ namespace DataStandardizer.File.InternetMessage
         internal void ThrowIfDisposed()
         {
             _output.ThrowIfDisposed();
+        }
+
+        // ref. #412 design decision 14: a message from a container that uses LF changes when it leaves that container.
+        private bool NeedsConversion(ImfMessage message)
+        {
+            return message.LineFeedIsLineBreak && !_lineFeedIsLineBreak;
+        }
+
+        /// <summary>
+        /// Checks a message with LF line breaks, and gets its bytes with CRLF line breaks, so that one that is refused leaves nothing in the output.
+        /// </summary>
+        /// <exception cref="ImfFileException">The message can't be written.</exception>
+        private byte[] PlanConverted(ImfMessage message, out List<ImfDiagnostic> diagnostics, out long fieldCount)
+        {
+            var output = new MemoryStream();
+            using (var writer = new ImfWriter(output, _options, true, _boundaryGenerator, _profile))
+            {
+                writer.WriteMessage(message);
+                diagnostics = new List<ImfDiagnostic>(writer.Diagnostics);
+                fieldCount = writer.FieldsWritten;
+            }
+
+            return ImfLineBreaks.Convert(message, output.ToArray(), true);
+        }
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private void CompleteConverted(List<ImfDiagnostic> diagnostics, long fieldCount, IProgress<ImfWriteProgress>? progress)
+#else
+        private void CompleteConverted(List<ImfDiagnostic> diagnostics, long fieldCount, IProgress<ImfWriteProgress> progress)
+#endif
+        {
+            _diagnostics.AddRange(diagnostics);
+            _fieldsWritten += fieldCount;
+            _entitiesWritten++;
+            progress?.Report(GetProgress());
         }
 
         /// <summary>
