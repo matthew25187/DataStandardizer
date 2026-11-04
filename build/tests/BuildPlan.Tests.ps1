@@ -121,10 +121,11 @@ Describe 'BuildPlan' {
 
     Context 'Get-ChangedPackageName' {
         BeforeAll {
-            # A repository in which File.CSV alone imports a Shared Project, released with everything else.
+            # A repository in which File and File.CSV import a Shared Project and Core doesn't, released with everything else.
             function Initialize-SharedProjectRepository {
                 Push-Location (Initialize-Repository)
                 Add-TestCommit -File @{
+                    'src/DataStandardizer.File/DataStandardizer.File.csproj'         = '<Project Sdk="Microsoft.NET.Sdk"><Import Project="..\DataStandardizer.Shared\DataStandardizer.Shared.projitems" Label="Shared" /></Project>'
                     'src/DataStandardizer.File.CSV/DataStandardizer.File.CSV.csproj' = '<Project Sdk="Microsoft.NET.Sdk"><Import Project="..\DataStandardizer.Shared\DataStandardizer.Shared.projitems" Label="Shared" /></Project>'
                     'src/DataStandardizer.Shared/DataStandardizer.Shared.projitems'  = '<Project />'
                     'src/DataStandardizer.Shared/Shared.cs'                          = 'shared'
@@ -141,7 +142,7 @@ Describe 'BuildPlan' {
         ) {
             Initialize-SharedProjectRepository
             $commit = Add-TestCommit -File @{ $File = 'changed' }
-            Get-ChangedPackageName -PackageInfo $script:Packages -Commit $commit -IsRelease $false | Should -Be @('DataStandardizer.File.CSV')
+            Get-ChangedPackageName -PackageInfo $script:Packages -Commit $commit -IsRelease $false | Should -Be @('DataStandardizer.File', 'DataStandardizer.File.CSV')
         }
 
         It 'still lists only the package itself when a package that imports a Shared Project changes' {
