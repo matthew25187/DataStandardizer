@@ -6,7 +6,7 @@ namespace DataStandardizer.File.InternetMessage
     /// Options to configure the behaviour of an Internet message reader or writer.
     /// </summary>
     /// <remarks>
-    /// The default settings for all options ensure behaviour consistent with RFC 5322, RFC 6532, RFC 2045, RFC 2046 and RFC 4155.  Each accommodation for common non-compliant
+    /// The default settings for all options ensure behaviour consistent with RFC 5322, RFC 6532, RFC 2045, RFC 2046 and RFC 4155, and with the layout that Apple Mail gives EMLX files, which has no published standard.  Each accommodation for common non-compliant
     /// input is a separate option, off by default.  A writer always writes what the standards allow, so the accommodations affect it only where noted.
     /// </remarks>
 #if NET5_0_OR_GREATER
@@ -24,6 +24,11 @@ namespace DataStandardizer.File.InternetMessage
         /// The default value of <see cref="MaxEntitySize"/>, which is 256 MiB.
         /// </summary>
         public const int DefaultMaxEntitySize = 256 * 1024 * 1024;
+
+        /// <summary>
+        /// The default value of <see cref="MaxEmlxMetadataLength"/>, which is 1 MiB.
+        /// </summary>
+        public const int DefaultMaxEmlxMetadataLength = 1024 * 1024;
 
         /// <summary>
         /// The default value of <see cref="MaxHeaderSectionLength"/>, which is 1 MiB.
@@ -450,6 +455,45 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
+        /// Gets a flag indicating if an EMLX file may start with a byte count that is wrong.
+        /// </summary>
+        /// <remarks>
+        /// EMLX has no published standard.  The layout that open-source readers agree on starts with the length of the message in bytes.  When <c>false</c> (the default), a first line that isn't
+        /// a number, a count that passes the end of the file, and a count after which the bytes don't start a property list each cause an <see cref="ImfFileException"/>.  When <c>true</c>, an
+        /// <see cref="EmlxReader"/> records an <see cref="ImfDiagnostic"/> instead, discards the first line, and takes the last <c>&lt;?xml</c>, or failing that the last <c>&lt;plist</c>, as the
+        /// start of the property list.  If it finds neither, the whole of the rest is the message.  This is a best guess: in a file with no property list, a message that holds such text is cut short
+        /// there.  An <see cref="EmlxWriter"/> always writes the right count, so it doesn't use this option.
+        /// </remarks>
+        public bool AllowInvalidEmlxByteCount
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
+        /// Gets a flag indicating if an EMLX file may have a property list that is missing or not well formed.
+        /// </summary>
+        /// <remarks>
+        /// EMLX has no published standard.  The layout that open-source readers agree on ends with an XML property list whose root is a <c>dict</c>.  When <c>false</c> (the default), an
+        /// <see cref="EmlxReader"/> or <see cref="EmlxWriter"/> throws an <see cref="ImfFileException"/> for a file with none, or with one that isn't well formed.  When <c>true</c>, it records an
+        /// <see cref="ImfDiagnostic"/> instead.  The reader gives an <see cref="EmlxMetadata"/> with no entries that keeps the bytes in <see cref="EmlxMetadata.RawBytes"/>, and the writer writes
+        /// them back as they are.
+        /// </remarks>
+        public bool AllowInvalidEmlxMetadata
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
         /// Gets a flag indicating if a header may lack a field that RFC 5322 requires.
         /// </summary>
         /// <remarks>
@@ -543,6 +587,23 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
+        /// Gets the maximum length, in octets, of the property list of an EMLX file.
+        /// </summary>
+        /// <remarks>
+        /// EMLX has no published standard, so this limit is the package's own, and guards against hostile input.  The default is <see cref="DefaultMaxEmlxMetadataLength"/>, and the value must be at
+        /// least 1.  One more octet causes an <see cref="ImfFileException"/> from an <see cref="EmlxReader"/> or <see cref="EmlxWriter"/>.
+        /// </remarks>
+        public int MaxEmlxMetadataLength
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        } = DefaultMaxEmlxMetadataLength;
+
+        /// <summary>
         /// Gets the maximum size, in octets, of the body that an <see cref="ImfReader"/> holds in memory, and of the content given to <see cref="ImfEntity.SetContent"/>.
         /// </summary>
         /// <remarks>
@@ -601,7 +662,8 @@ namespace DataStandardizer.File.InternetMessage
         /// <remarks>
         /// RFC 2046 sets no limit.  This one guards against hostile input.  Each part of a multipart entity, and each embedded message, is one level
         /// deeper than the entity that holds it.  The default is <see cref="DefaultMaxNestingDepth"/>, and the value must be at least 1.  An entity
-        /// one level deeper causes an <see cref="ImfFileException"/>.
+        /// one level deeper causes an <see cref="ImfFileException"/>.  It also limits how deeply the values of the property list of an EMLX file nest, and deeper values make the
+        /// property list one that isn't well formed, as <see cref="AllowInvalidEmlxMetadata"/> describes.
         /// </remarks>
         public int MaxNestingDepth
         {

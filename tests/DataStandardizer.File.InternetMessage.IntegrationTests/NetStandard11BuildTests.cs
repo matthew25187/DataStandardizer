@@ -47,6 +47,8 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
         private const string MhtmlWriterTypeName = nameof(MhtmlWriter);
         private const string MboxReaderTypeName = nameof(MboxReader);
         private const string MboxWriterTypeName = nameof(MboxWriter);
+        private const string EmlxReaderTypeName = nameof(EmlxReader);
+        private const string EmlxWriterTypeName = nameof(EmlxWriter);
         private const string MailboxStreamParameterName = "mailboxStream";
         private const string MailboxFilePathParameterName = "mailboxFilePath";
 
@@ -98,6 +100,8 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
         [InlineData(MhtmlWriterTypeName)]
         [InlineData(MboxReaderTypeName)]
         [InlineData(MboxWriterTypeName)]
+        [InlineData(EmlxReaderTypeName)]
+        [InlineData(EmlxWriterTypeName)]
         public void Methods_WriterInNetStandard11Build_HaveNoAsynchronousMembers(string typeName)
         {
             // act
@@ -113,6 +117,8 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
         [InlineData(MessageWriterTypeName)]
         [InlineData(MhtmlReaderTypeName)]
         [InlineData(MhtmlWriterTypeName)]
+        [InlineData(EmlxReaderTypeName)]
+        [InlineData(EmlxWriterTypeName)]
         public void Constructors_WriterInNetStandard11Build_TakeAStreamAndNotAFilePath(string typeName)
         {
             // act

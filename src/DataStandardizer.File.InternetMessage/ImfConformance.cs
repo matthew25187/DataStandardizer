@@ -114,6 +114,10 @@ namespace DataStandardizer.File.InternetMessage
                     return options.AllowMboxCarriageReturnLineFeed;
                 case ImfDiagnosticKind.EightBitMboxContent:
                     return options.AllowEightBitMboxContent;
+                case ImfDiagnosticKind.InvalidEmlxByteCount:
+                    return options.AllowInvalidEmlxByteCount;
+                case ImfDiagnosticKind.InvalidEmlxMetadata:
+                    return options.AllowInvalidEmlxMetadata;
                 default:
                     return false;
             }
