@@ -62,7 +62,7 @@ foreach (var pair in entry.Metadata.Entries)
 
 if (entry.Metadata.TryGetValue("x-my-key", out var value))
 {
-    Console.WriteLine(value!.Text);
+    Console.WriteLine(value.Text);
 }
 ```
 

@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -14,6 +16,8 @@ namespace DataStandardizer.File.InternetMessage.Tests
     /// </summary>
     public class EmlxWriterTests
     {
+        private const int TryGetValueOutParameterIndex = 1;
+
         private const string Message = EmlxFiles.Message;
         private const string Metadata = EmlxFiles.Metadata;
 
@@ -450,6 +454,20 @@ namespace DataStandardizer.File.InternetMessage.Tests
             // assert
             testResult.Should().BeTrue();
             value.Text.Should().Be(ChangedSubject);
+        }
+
+        [Fact]
+        public void TryGetValue_OutParameter_IsMaybeNullOnlyWhenFalse()
+        {
+            // arrange
+            var parameter = typeof(EmlxMetadata).GetMethod(nameof(EmlxMetadata.TryGetValue)).GetParameters()[TryGetValueOutParameterIndex];
+
+            // act
+            var testResult = parameter.GetCustomAttribute<MaybeNullWhenAttribute>();
+
+            // assert
+            testResult.Should().NotBeNull();
+            testResult.ReturnValue.Should().BeFalse();
         }
 
         [Fact]
