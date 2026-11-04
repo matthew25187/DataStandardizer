@@ -53,6 +53,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string TooDeepInDict = "57\n" + Message + "<plist><dict><key>a</key><array><array><array/></array></array></dict></plist>";
 
         private const string CrLfMessage = "59\nDate: Thu, 1 Jan 2026 00:00:00 +0000\r\nFrom: a@b.test\r\n\r\none\r\n" + Metadata;
+        private const string TooLargeCountWithByteOrderMark = "9999\n" + Message + EmlxFiles.ByteOrderMark + Metadata;
         private const string BadMessage = "14\nSubject: x\n\ny\n" + Metadata;
 
         // ref. the bits in EmlxFiles.KnownAndUnknownFlags.
@@ -64,7 +65,9 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string ExpectedRemoteId = "42";
         private const long DateReceivedTicks = 639028224000000000;
         private const long DateLastViewedTicks = 639028224600000000;
-        private const long HalfSecondTicks = 5000000;
+
+        // Half a second after DateReceivedTicks.
+        private const long DateLastViewedAsRealTicks = 639028224005000000;
         private const long PositionAfterCount = 60;
         private const long LineAfterMessage = 6;
         private const int ShallowDepth = 2;
@@ -89,11 +92,22 @@ namespace DataStandardizer.File.InternetMessage.Tests
         // The three octets that the base64 of EmlxFiles.PartContent decodes to.
         private static readonly byte[] DecodedPart = { 0, 1, 2 };
 
+        // The limits that give a message and its parts 1000 octets, for a message of 313, so that after a first part of 400 the second has room for 287, and is read as far as one past that.
+        private const int TotalLimitPerSection = 500;
+        private const int FirstPartLength = 400;
+        private const long SecondPartBytesRead = 288;
+
+        // Under ten octets for each of three limits, and 64 for the count, a file of more is read one octet past those 94 before it is refused.
+        private const long BytesReadPastTheLimits = 95;
+
+        private static readonly byte[] FirstPartOctets = Octets.Of(new string('A', FirstPartLength));
+
         // A part over PartLimit.
         private static readonly string LargePart = new string('A', 2 * PartLimit);
 
         private static readonly DateTimeOffset DateReceived = new DateTimeOffset(DateReceivedTicks, TimeSpan.Zero);
         private static readonly DateTimeOffset DateLastViewed = new DateTimeOffset(DateLastViewedTicks, TimeSpan.Zero);
+        private static readonly DateTimeOffset DateLastViewedAsReal = new DateTimeOffset(DateLastViewedAsRealTicks, TimeSpan.Zero);
 
         public static TheoryData<string> BadByteCounts => new TheoryData<string>
         {
@@ -121,6 +135,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             { TooSmallCount, Message },
             { CountIntoMetadata, Message },
             { WrongCountNoTrailer, Message },
+            { TooLargeCountWithByteOrderMark, Message },
         };
 
         [Fact]
@@ -267,7 +282,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // assert
             testResult.DateReceived.Should().Be(DateReceived);
-            testResult.DateLastViewed.Should().Be(DateReceived.AddTicks(HalfSecondTicks));
+            testResult.DateLastViewed.Should().Be(DateLastViewedAsReal);
         }
 
         [Theory]
@@ -425,6 +440,92 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // assert
             testAction.Should().Throw<ImfFileException>();
+        }
+
+        [Fact]
+        public void BytePosition_FilePastTheLimits_CountsWhatWasRead()
+        {
+            // arrange
+            var options = new ImfOptions { MaxEntitySize = SmallLimit, MaxHeaderSectionLength = SmallLimit, MaxEmlxMetadataLength = SmallLimit };
+            var subject = new EmlxReader(new MemoryStream(Octets.Of(EmlxFiles.Plain)), options);
+            EmlxFiles.TryRefuse(subject);
+
+            // act
+            var testResult = subject.BytePosition;
+
+            // assert
+            testResult.Should().Be(BytesReadPastTheLimits);
+        }
+
+        [Fact]
+        public void ReadEntry_ByteOrderMarkBeforeThePlist_ReadsIt()
+        {
+            // act
+            var testResult = EmlxFiles.Read(EmlxFiles.WithByteOrderMark);
+
+            // assert
+            Mailboxes.Describe(testResult.Message).Should().Be(Message);
+            testResult.Metadata.Subject.Should().Be(ExpectedSubject);
+            testResult.Diagnostics.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void ReadEntry_PartsThatTogetherPassTheLimit_StopsReadingAtTheLimit()
+        {
+            // arrange
+            var options = new ImfOptions { MaxEntitySize = TotalLimitPerSection, MaxHeaderSectionLength = TotalLimitPerSection };
+            var second = new CountingStream(FirstPartOctets);
+            var resolver = EmlxFiles.ResolveTo(new MemoryStream(FirstPartOctets), second);
+
+            // act
+            Action testAction = () => EmlxFiles.Read(EmlxFiles.TwoParts, options, resolver);
+
+            // assert
+            testAction.Should().Throw<ImfFileException>();
+            second.BytesRead.Should().Be(SecondPartBytesRead);
+        }
+
+        [Fact]
+        public async Task ReadEntryAsync_PartsThatTogetherPassTheLimit_Throws()
+        {
+            // arrange
+            var options = new ImfOptions { MaxEntitySize = TotalLimitPerSection, MaxHeaderSectionLength = TotalLimitPerSection };
+            var resolver = EmlxFiles.ResolveTo(new MemoryStream(FirstPartOctets), new MemoryStream(FirstPartOctets));
+            var subject = new EmlxReader(new MemoryStream(Octets.Of(EmlxFiles.TwoParts)), options);
+            await AsyncDisposal.UsingAsync(subject, async () =>
+            {
+                // act
+                Func<Task> testAction = () => subject.ReadEntryAsync(resolver);
+
+                // assert
+                await testAction.Should().ThrowAsync<ImfFileException>();
+            });
+        }
+
+        [Fact]
+        public void TryRefuse_FileThatIsRefused_GivesTrue()
+        {
+            // arrange
+            var reader = new EmlxReader(new MemoryStream(Octets.Of(NoTrailer)));
+
+            // act
+            var testResult = EmlxFiles.TryRefuse(reader);
+
+            // assert
+            testResult.Should().BeTrue();
+        }
+
+        [Fact]
+        public void TryRefuse_FileThatIsRead_GivesFalse()
+        {
+            // arrange
+            var reader = new EmlxReader(new MemoryStream(Octets.Of(EmlxFiles.Plain)));
+
+            // act
+            var testResult = EmlxFiles.TryRefuse(reader);
+
+            // assert
+            testResult.Should().BeFalse();
         }
 
         [Fact]

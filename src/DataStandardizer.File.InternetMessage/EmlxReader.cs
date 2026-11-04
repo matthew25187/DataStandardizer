@@ -230,6 +230,7 @@ namespace DataStandardizer.File.InternetMessage
 
                     buffer.CompleteRefill(bytesRead);
                     Volatile.Write(ref _bytePosition, buffer.Length);
+                    buffer.ThrowIfPastLimit();
                 }
 
                 var layout = EmlxLayout.Read(buffer.Bytes, buffer.Length, _options, _diagnostics);
@@ -240,10 +241,13 @@ namespace DataStandardizer.File.InternetMessage
                 var parts = FindMissingParts(message);
                 if (!(partResolver is null))
                 {
+                    var room = GetMessageLimit() - layout.Message.Count;
                     foreach (var part in parts)
                     {
-                        contents.Add(ReadPart(partResolver, part));
+                        var content = ReadPart(partResolver, part, room);
                         ThrowIfDisposed();
+                        contents.Add(content);
+                        room -= content.Length;
                     }
                 }
 
@@ -306,6 +310,7 @@ namespace DataStandardizer.File.InternetMessage
                     if (bytesRead == 0) break;
 
                     Volatile.Write(ref _bytePosition, buffer.Length);
+                    buffer.ThrowIfPastLimit();
                 }
 
                 var layout = EmlxLayout.Read(buffer.Bytes, buffer.Length, _options, _diagnostics);
@@ -316,10 +321,13 @@ namespace DataStandardizer.File.InternetMessage
                 var parts = FindMissingParts(message);
                 if (!(partResolver is null))
                 {
+                    var room = GetMessageLimit() - layout.Message.Count;
                     foreach (var part in parts)
                     {
-                        contents.Add(await ReadPartAsync(partResolver, part, cancellationToken).ConfigureAwait(false));
+                        var content = await ReadPartAsync(partResolver, part, room, cancellationToken).ConfigureAwait(false);
                         ThrowIfDisposed();
+                        contents.Add(content);
+                        room -= content.Length;
                     }
                 }
 
@@ -331,15 +339,16 @@ namespace DataStandardizer.File.InternetMessage
             }
         }
 
-        private async Task<byte[]> ReadPartAsync(EmlxPartResolver partResolver, EmlxMissingPart part, CancellationToken cancellationToken)
+        private async Task<byte[]> ReadPartAsync(EmlxPartResolver partResolver, EmlxMissingPart part, long room, CancellationToken cancellationToken)
         {
             using (var stream = partResolver(part))
             {
                 if (stream is null) return NoContent;
 
-                var buffer = new ReadBuffer(_options.MaxEntitySize, MessageTooLongMessage);
+                var buffer = new ReadBuffer(Math.Min(_options.MaxEntitySize, room), MessageTooLongMessage);
                 while (await RefillAsync(stream, buffer, cancellationToken).ConfigureAwait(false) != 0)
                 {
+                    buffer.ThrowIfPastLimit();
                 }
 
                 return buffer.ToArray();
@@ -359,13 +368,14 @@ namespace DataStandardizer.File.InternetMessage
         }
 #endif
 
-        private byte[] ReadPart(EmlxPartResolver partResolver, EmlxMissingPart part)
+        // The room is what the message has left under its limit, so that many parts can't together hold more in memory than one message may.
+        private byte[] ReadPart(EmlxPartResolver partResolver, EmlxMissingPart part, long room)
         {
             using (var stream = partResolver(part))
             {
                 if (stream is null) return NoContent;
 
-                var buffer = new ReadBuffer(_options.MaxEntitySize, MessageTooLongMessage);
+                var buffer = new ReadBuffer(Math.Min(_options.MaxEntitySize, room), MessageTooLongMessage);
                 while (true)
                 {
                     buffer.PrepareRefill(out var offset, out var count);
@@ -373,8 +383,14 @@ namespace DataStandardizer.File.InternetMessage
                     if (bytesRead == 0) return buffer.ToArray();
 
                     buffer.CompleteRefill(bytesRead);
+                    buffer.ThrowIfPastLimit();
                 }
             }
+        }
+
+        private long GetMessageLimit()
+        {
+            return (long)_options.MaxEntitySize + _options.MaxHeaderSectionLength;
         }
 
         private ImfMessage ReadMessage(ArraySegment<byte> bytes, List<ImfDiagnostic> diagnostics)
@@ -432,7 +448,7 @@ namespace DataStandardizer.File.InternetMessage
         {
             var source = new ReadOnlySpan<byte>(messageBytes.Array, messageBytes.Offset, messageBytes.Count);
             var headerLength = source.Length - message.RawBody.Length;
-            var limit = (long)_options.MaxEntitySize + _options.MaxHeaderSectionLength;
+            var limit = GetMessageLimit();
             var output = new MemoryStream(source.Length);
             var position = 0;
             for (var index = 0; index < parts.Count; index++)
@@ -564,7 +580,7 @@ namespace DataStandardizer.File.InternetMessage
             internal ReadBuffer(long limit, string limitMessage)
             {
                 // One less than the longest array, so that there is always room for the octet that shows a stream has passed the limit.
-                _limit = Math.Min(limit, MaxArrayLength - 1);
+                _limit = Math.Max(0, Math.Min(limit, MaxArrayLength - 1));
                 _limitMessage = limitMessage;
                 Bytes = new byte[Math.Min(BlockSize, _limit + 1)];
             }
@@ -590,6 +606,10 @@ namespace DataStandardizer.File.InternetMessage
             internal void CompleteRefill(int bytesRead)
             {
                 Length += bytesRead;
+            }
+
+            internal void ThrowIfPastLimit()
+            {
                 if (Length > _limit)
                     throw new ImfFileException(_limitMessage);
             }

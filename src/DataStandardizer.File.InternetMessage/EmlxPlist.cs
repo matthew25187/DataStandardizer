@@ -121,6 +121,41 @@ namespace DataStandardizer.File.InternetMessage
             return output.ToArray();
         }
 
+        /// <summary>
+        /// Gets how deeply the values under a <c>dict</c> nest, counted as <see cref="TryRead"/> counts them: the <c>dict</c> itself is at depth 1, and each <c>dict</c> or <c>array</c> in it is
+        /// one deeper.
+        /// </summary>
+        /// <param name="entries">The keys and values of the <c>dict</c>.</param>
+        internal static int GetDepth(IReadOnlyList<KeyValuePair<string, EmlxPlistValue>> entries)
+        {
+            var deepest = 1;
+            var pending = new Stack<KeyValuePair<EmlxPlistValue, int>>();
+            foreach (var entry in entries)
+            {
+                pending.Push(new KeyValuePair<EmlxPlistValue, int>(entry.Value, 2));
+            }
+
+            while (pending.Count > 0)
+            {
+                var next = pending.Pop();
+                var value = next.Key;
+                if (value.Kind != EmlxPlistValueKind.Dictionary && value.Kind != EmlxPlistValueKind.Array) continue;
+
+                deepest = Math.Max(deepest, next.Value);
+                foreach (var item in value.Items)
+                {
+                    pending.Push(new KeyValuePair<EmlxPlistValue, int>(item, next.Value + 1));
+                }
+
+                foreach (var entry in value.Entries)
+                {
+                    pending.Push(new KeyValuePair<EmlxPlistValue, int>(entry.Value, next.Value + 1));
+                }
+            }
+
+            return deepest;
+        }
+
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private static EmlxPlistValue? ReadDocument(XmlReader reader, int maxNestingDepth, out string problem)
 #else

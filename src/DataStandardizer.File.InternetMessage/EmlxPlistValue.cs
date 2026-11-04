@@ -14,6 +14,8 @@ namespace DataStandardizer.File.InternetMessage
     public sealed class EmlxPlistValue
     {
         private const string DateFormat = "yyyy-MM-dd'T'HH:mm:ss'Z'";
+        private const int DecimalBase = 10;
+        private const int HexBase = 16;
         private const string HexPrefix = "0x";
         private const string NaNText = "nan";
         private const string NegativeInfinityText = "-infinity";
@@ -191,24 +193,28 @@ namespace DataStandardizer.File.InternetMessage
         /// <summary>
         /// Gets the number of a <c>real</c> or an <c>integer</c>.
         /// </summary>
-        /// <param name="value">Receives the number.</param>
-        /// <returns><c>true</c> if this is a number that a <see cref="double"/> can hold.</returns>
+        /// <param name="value">Receives the number, rounded if a <see cref="double"/> can't hold it exactly, or 0.</param>
+        /// <returns><c>true</c> if this is a number within the range of a <see cref="double"/>, or a <c>real</c> that holds a word for a value with no digits.</returns>
         public bool TryGetDouble(out double value)
         {
             value = 0;
             if (Kind == EmlxPlistValueKind.Integer)
             {
-                if (!TryGetInt64(out var integer)) return false;
+                if (TryGetInt64(out var integer))
+                {
+                    value = integer;
+                    return true;
+                }
 
-                value = integer;
-                return true;
+                return TryGetLargeInteger(out value);
             }
 
             if (Kind != EmlxPlistValueKind.Real) return false;
 
             if (TryGetSpecialReal(Text, out value)) return true;
 
-            return double.TryParse(Text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+            // A number past the range is an infinity on some runtimes, and a failure on others.
+            return double.TryParse(Text, NumberStyles.Float, CultureInfo.InvariantCulture, out value) && KeepIfFinite(ref value);
         }
 
         /// <summary>
@@ -309,6 +315,29 @@ namespace DataStandardizer.File.InternetMessage
                 if (!isValid)
                     throw new ArgumentException("The text holds a character that XML doesn't allow.", parameterName);
             }
+        }
+
+        private bool TryGetLargeInteger(out double value)
+        {
+            if (!Text.StartsWith(HexPrefix, StringComparison.OrdinalIgnoreCase))
+                return double.TryParse(Text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out value) && KeepIfFinite(ref value);
+
+            value = 0;
+            for (var index = HexPrefix.Length; index < Text.Length; index++)
+            {
+                var character = Text[index];
+                value = (value * HexBase) + (character <= '9' ? character - '0' : (char.ToLowerInvariant(character) - 'a') + DecimalBase);
+            }
+
+            return KeepIfFinite(ref value);
+        }
+
+        private static bool KeepIfFinite(ref double value)
+        {
+            if (!double.IsInfinity(value)) return true;
+
+            value = 0;
+            return false;
         }
 
         private static bool IsValidInteger(string text)

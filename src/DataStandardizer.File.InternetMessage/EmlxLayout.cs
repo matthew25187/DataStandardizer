@@ -23,6 +23,7 @@ namespace DataStandardizer.File.InternetMessage
         private const byte LineFeed = 0x0A;
         private const byte Space = 0x20;
 
+        private static readonly byte[] ByteOrderMark = { 0xEF, 0xBB, 0xBF };
         private static readonly byte[] XmlStart = Encoding.UTF8.GetBytes("<?xml");
         private static readonly byte[] DocumentTypeStart = Encoding.UTF8.GetBytes("<!DOCTYPE");
         private static readonly byte[] PlistStart = Encoding.UTF8.GetBytes("<plist");
@@ -129,7 +130,11 @@ namespace DataStandardizer.File.InternetMessage
             if (count > rest.Length) return false;
 
             var after = rest.Slice((int)count);
-            return after.IsEmpty || after.StartsWith(XmlStart) || after.StartsWith(DocumentTypeStart) || after.StartsWith(PlistStart);
+            if (after.IsEmpty) return true;
+
+            if (after.StartsWith(ByteOrderMark)) after = after.Slice(ByteOrderMark.Length);
+
+            return after.StartsWith(XmlStart) || after.StartsWith(DocumentTypeStart) || after.StartsWith(PlistStart);
         }
 
         private static int FindMetadata(ReadOnlySpan<byte> rest)
@@ -137,7 +142,10 @@ namespace DataStandardizer.File.InternetMessage
             var start = rest.LastIndexOf(XmlStart);
             if (start < 0) start = rest.LastIndexOf(PlistStart);
 
-            return start < 0 ? rest.Length : start;
+            if (start < 0) return rest.Length;
+
+            // A byte order mark belongs to the property list that it comes before.
+            return rest.Slice(0, start).EndsWith(ByteOrderMark) ? start - ByteOrderMark.Length : start;
         }
 
         private static EmlxMetadata ReadMetadata(byte[] bytes, long position, long lineNumber, ImfOptions options, List<ImfDiagnostic> diagnostics)

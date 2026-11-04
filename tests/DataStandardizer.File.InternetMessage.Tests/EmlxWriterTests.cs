@@ -37,6 +37,15 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string BinaryEml = "Date: Thu, 1 Jan 2026 00:00:00 +0000\r\nFrom: a@b.test\r\nMIME-Version: 1.0\r\nContent-Transfer-Encoding: binary\r\n\r\nx\r\n";
         private const string ChangedSubject = "Hi";
 
+        // A property list of 22 octets.
+        private const string ShortMetadataFile = "57\n" + Message + "<plist><dict/></plist>";
+        private const int ShortMetadataLength = 22;
+
+        // The dict at the root of a property list is at depth 1, and the two arrays are at 2 and 3.
+        private const int DepthOfNestedArrays = 3;
+        private const int BelowDepthOfNestedArrays = 2;
+        private const string NestedArraysKey = "a";
+
         // The message with one more field, in a file whose count was padded to 10 characters.
         private const string PaddedAfterChange = "84        \nDate: Thu, 1 Jan 2026 00:00:00 +0000\nFrom: a@b.test\nSubject: Hello to you, too\n\none\n" + Metadata;
         private const string ChangedFieldSubject = "Hello to you, too";
@@ -61,11 +70,19 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             EmlxFiles.Plain,
             EmlxFiles.UnknownKeys,
+            EmlxFiles.WithByteOrderMark,
             EmlxFiles.Padded,
             EmlxFiles.NoFinalLineBreak,
             EmlxFiles.Attachment,
             EmlxFiles.Partial,
             EmlxFiles.NoEmptyLine,
+        };
+
+        public static TheoryData<EmlxPlistValueKind, string> NumbersPastTheRange => new TheoryData<EmlxPlistValueKind, string>
+        {
+            { EmlxPlistValueKind.Real, "1e999" },
+            { EmlxPlistValueKind.Integer, new string('9', 400) },
+            { EmlxPlistValueKind.Integer, "0x" + new string('F', 300) },
         };
 
         public static TheoryData<string> LenientFiles => new TheoryData<string>
@@ -665,6 +682,116 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Fact]
+        public void WriteEntry_MetadataPastTheLengthLimit_ThrowsAndWritesNothing()
+        {
+            // arrange
+            var options = new ImfOptions { MaxEmlxMetadataLength = ShortMetadataLength - 1 };
+            var entry = EmlxFiles.Read(ShortMetadataFile);
+            var output = new MemoryStream();
+            var subject = new EmlxWriter(output, options);
+
+            // act
+            Action testAction = () => subject.WriteEntry(entry);
+
+            // assert
+            testAction.Should().Throw<ImfFileException>();
+            output.Length.Should().Be(0);
+        }
+
+        [Fact]
+        public void WriteEntry_MetadataAtTheLengthLimit_WritesIt()
+        {
+            // arrange
+            var options = new ImfOptions { MaxEmlxMetadataLength = ShortMetadataLength };
+            var entry = EmlxFiles.Read(ShortMetadataFile);
+
+            // act
+            var testResult = EmlxFiles.Write(entry, options);
+
+            // assert
+            testResult.Should().Be(ShortMetadataFile);
+        }
+
+        [Fact]
+        public void WriteEntry_MetadataPastTheDepthLimit_ThrowsByDefault()
+        {
+            // arrange
+            var options = new ImfOptions { MaxNestingDepth = BelowDepthOfNestedArrays };
+            var entry = new EmlxEntry(EmlxFiles.Read(EmlxFiles.Plain).Message, CreateNestedArrays());
+            var subject = new EmlxWriter(new MemoryStream(), options);
+
+            // act
+            Action testAction = () => subject.WriteEntry(entry);
+
+            // assert
+            testAction.Should().Throw<ImfFileException>()
+                .Which.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.InvalidEmlxMetadata);
+        }
+
+        [Fact]
+        public void WriteEntry_MetadataPastTheDepthLimitWithOption_RecordsADiagnostic()
+        {
+            // arrange
+            var options = new ImfOptions { MaxNestingDepth = BelowDepthOfNestedArrays, AllowInvalidEmlxMetadata = true };
+            var entry = new EmlxEntry(EmlxFiles.Read(EmlxFiles.Plain).Message, CreateNestedArrays());
+            var subject = new EmlxWriter(new MemoryStream(), options);
+
+            // act
+            subject.WriteEntry(entry);
+
+            // assert
+            subject.Diagnostics.Should().ContainSingle().Which.Kind.Should().Be(ImfDiagnosticKind.InvalidEmlxMetadata);
+        }
+
+        [Fact]
+        public void WriteEntry_MetadataAtTheDepthLimit_CanBeReadBackUnderTheSameLimit()
+        {
+            // arrange
+            var options = new ImfOptions { MaxNestingDepth = DepthOfNestedArrays };
+            var written = EmlxFiles.Write(new EmlxEntry(EmlxFiles.Read(EmlxFiles.Plain).Message, CreateNestedArrays()), options);
+
+            // act
+            var testResult = EmlxFiles.Read(written, options);
+
+            // assert
+            testResult.Metadata.Entries.Should().ContainSingle();
+        }
+
+        [Theory]
+        [InlineData("9223372036854775808", 9223372036854775808d)]
+        [InlineData("-9223372036854775809", -9223372036854775808d)]
+        [InlineData("0xFFFFFFFFFFFFFFFF", 18446744073709551615d)]
+        [InlineData("0x1F", 31d)]
+        [InlineData("5", 5d)]
+        public void TryGetDouble_Integer_GivesTheNumber(string text, double expected)
+        {
+            // arrange
+            var subject = EmlxPlistValue.CreateScalar(EmlxPlistValueKind.Integer, text);
+
+            // act
+            var testResult = subject.TryGetDouble(out var value);
+
+            // assert
+            testResult.Should().BeTrue();
+            value.Should().Be(expected);
+        }
+
+        [Theory]
+        [MemberData(nameof(NumbersPastTheRange))]
+        public void TryGetDouble_NumberPastTheRange_GivesFalseAndZero(EmlxPlistValueKind kind, string text)
+        {
+            // arrange
+            var subject = EmlxPlistValue.CreateScalar(kind, text);
+
+            // act
+            var testResult = subject.TryGetDouble(out var value);
+
+            // assert
+            testResult.Should().BeFalse();
+            value.Should().Be(0);
+        }
+
+        [Fact]
         public void WriteEntry_NullEntry_Throws()
         {
             // arrange
@@ -750,6 +877,13 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // assert
             testAction.Should().Throw<ArgumentNullException>();
+        }
+
+        private static EmlxMetadata CreateNestedArrays()
+        {
+            var metadata = new EmlxMetadata();
+            metadata.Set(NestedArraysKey, EmlxPlistValue.FromArray(new[] { EmlxPlistValue.FromArray(new EmlxPlistValue[0]) }));
+            return metadata;
         }
 
         private sealed class SynchronousProgress : IProgress<ImfWriteProgress>

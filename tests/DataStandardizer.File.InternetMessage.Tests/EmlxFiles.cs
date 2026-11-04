@@ -3,6 +3,28 @@ using System.IO;
 namespace DataStandardizer.File.InternetMessage.Tests
 {
     /// <summary>
+    /// A stream that counts what is read from it.
+    /// </summary>
+    internal sealed class CountingStream : MemoryStream
+    {
+        public CountingStream(byte[] bytes) : base(bytes)
+        {
+        }
+
+        /// <summary>
+        /// Gets the number of bytes read so far, which stays available once the stream is disposed.
+        /// </summary>
+        public long BytesRead { get; private set; }
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            var bytesRead = base.Read(buffer, offset, count);
+            BytesRead += bytesRead;
+            return bytesRead;
+        }
+    }
+
+    /// <summary>
     /// Hand-written EMLX files in the layout that Apple Mail produces, and the helpers that read and write them for the tests.
     /// </summary>
     /// <remarks>
@@ -27,6 +49,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public const string Eml = "Date: Thu, 1 Jan 2026 00:00:00 +0000\r\nFrom: a@b.test\r\n\r\none\r\n";
         public const string Plain = "57\n" + Message + Metadata;
         public const string UnknownKeys = "57\n" + Message + UnknownKeysMetadata;
+
+        // A UTF-8 byte order mark before the property list.
+        public const string ByteOrderMark = "\xEF\xBB\xBF";
+        public const string WithByteOrderMark = "57\n" + Message + ByteOrderMark + Metadata;
 
         // 57 octets, with spaces after the count, which at least one open-source reader trims.
         public const string Padded = "57        \n" + Message + Metadata;
@@ -97,6 +123,31 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public static EmlxPartResolver ResolveTwoParts()
         {
             return part => new MemoryStream(Octets.Of(part.Path == "1" ? "hi" : PartContent));
+        }
+
+        /// <summary>
+        /// Gets a resolver that supplies one stream for part 1 and another for the rest.
+        /// </summary>
+        public static EmlxPartResolver ResolveTo(Stream first, Stream second)
+        {
+            return part => part.Path == "1" ? first : second;
+        }
+
+        /// <summary>
+        /// Tries to read a file that the reader should refuse, so that a test can go on to look at the reader.
+        /// </summary>
+        /// <returns><c>true</c> if the reader refused the file.</returns>
+        public static bool TryRefuse(EmlxReader reader)
+        {
+            try
+            {
+                reader.ReadEntry();
+                return false;
+            }
+            catch (ImfFileException)
+            {
+                return true;
+            }
         }
 
         /// <summary>

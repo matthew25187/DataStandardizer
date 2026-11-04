@@ -591,7 +591,7 @@ namespace DataStandardizer.File.InternetMessage
         /// </summary>
         /// <remarks>
         /// EMLX has no published standard, so this limit is the package's own, and guards against hostile input.  The default is <see cref="DefaultMaxEmlxMetadataLength"/>, and the value must be at
-        /// least 1.  One more octet causes an <see cref="ImfFileException"/>.
+        /// least 1.  One more octet causes an <see cref="ImfFileException"/> from an <see cref="EmlxReader"/> or <see cref="EmlxWriter"/>.
         /// </remarks>
         public int MaxEmlxMetadataLength
         {

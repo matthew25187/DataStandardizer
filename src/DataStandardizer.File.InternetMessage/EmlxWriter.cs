@@ -27,7 +27,9 @@ namespace DataStandardizer.File.InternetMessage
     /// </para>
     /// <para>
     /// <b>Metadata.</b>  Metadata that was read and hasn't changed is written byte for byte.  A property list that was missing or not well formed when read causes an
-    /// <see cref="ImfFileException"/>, unless <see cref="ImfOptions.AllowInvalidEmlxMetadata"/> is set, which writes its bytes back with a diagnostic.
+    /// <see cref="ImfFileException"/>, unless <see cref="ImfOptions.AllowInvalidEmlxMetadata"/> is set, which writes its bytes back with a diagnostic.  Values that nest more deeply than <see cref="ImfOptions.MaxNestingDepth"/> are
+    /// treated the same way, and a property list longer than <see cref="ImfOptions.MaxEmlxMetadataLength"/> always causes an <see cref="ImfFileException"/>, as a reader with the same options wouldn't
+    /// accept either.
     /// </para>
     /// <para>
     /// A file holds one entry, so a second write throws <see cref="InvalidOperationException"/>, though a write that was refused with nothing written can be tried again with another entry.  Only one
@@ -41,6 +43,8 @@ namespace DataStandardizer.File.InternetMessage
     {
         private const int BlockSize = 16 * 1024;
         private const string InvalidMetadataMessage = "The metadata was read from a property list that is missing or not well formed.  ImfOptions.AllowInvalidEmlxMetadata accepts it.";
+        private const string MetadataTooDeepMessage = "The values of the metadata nest more deeply than ImfOptions.MaxNestingDepth, so a reader wouldn't accept them.  ImfOptions.AllowInvalidEmlxMetadata accepts it.";
+        private const string MetadataTooLongTemplate = "The property list is longer than the maximum of {0} octets.";
 
         private readonly Func<string> _boundaryGenerator;
         private readonly List<ImfDiagnostic> _diagnostics = new List<ImfDiagnostic>();
@@ -399,20 +403,14 @@ namespace DataStandardizer.File.InternetMessage
             var messageBytes = hasLineFeedBreaks ? output.ToArray() : ImfLineBreaks.Convert(message, output.ToArray(), false);
 
             var metadata = entry.Metadata;
-            if (!metadata.IsWellFormed)
-            {
-                if (!ImfConformance.IsAllowed(ImfDiagnosticKind.InvalidEmlxMetadata, _options))
-                {
-                    var exception = new ImfFileException(InvalidMetadataMessage);
-                    exception.Data[ImfFileException.DataItemName.DiagnosticKind] = ImfDiagnosticKind.InvalidEmlxMetadata;
-                    throw exception;
-                }
+            if (!metadata.IsWellFormed) ReportInvalidMetadata(InvalidMetadataMessage, diagnostics);
+            else if (EmlxPlist.GetDepth(metadata.Entries) > _options.MaxNestingDepth) ReportInvalidMetadata(MetadataTooDeepMessage, diagnostics);
 
-                diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.InvalidEmlxMetadata, InvalidMetadataMessage, -1, string.Empty));
-            }
+            var metadataBytes = metadata.GetBytes();
+            if (metadataBytes.Length > _options.MaxEmlxMetadataLength)
+                throw new ImfFileException(string.Format(MetadataTooLongTemplate, _options.MaxEmlxMetadataLength));
 
             var byteCountLine = EmlxLayout.FormatByteCount(messageBytes.Length, entry.ByteCountLine);
-            var metadataBytes = metadata.GetBytes();
             var file = new byte[byteCountLine.Length + messageBytes.Length + metadataBytes.Length];
             Array.Copy(byteCountLine, file, byteCountLine.Length);
             Array.Copy(messageBytes, 0, file, byteCountLine.Length, messageBytes.Length);
@@ -420,6 +418,18 @@ namespace DataStandardizer.File.InternetMessage
 
             _hasWritten = true;
             return file;
+        }
+
+        private void ReportInvalidMetadata(string message, List<ImfDiagnostic> diagnostics)
+        {
+            if (!ImfConformance.IsAllowed(ImfDiagnosticKind.InvalidEmlxMetadata, _options))
+            {
+                var exception = new ImfFileException(message);
+                exception.Data[ImfFileException.DataItemName.DiagnosticKind] = ImfDiagnosticKind.InvalidEmlxMetadata;
+                throw exception;
+            }
+
+            diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.InvalidEmlxMetadata, message, -1, string.Empty));
         }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER

@@ -90,7 +90,8 @@
         InvalidEmlxByteCount = 15,
 
         /// <summary>
-        /// An EMLX file has no property list after its message, or what it has isn't a well-formed XML property list with a <c>dict</c> at its root.
+        /// An EMLX file has no property list after its message, or what it has isn't a well-formed XML property list with a <c>dict</c> at its root.  A writer also reports metadata whose values nest more deeply than
+        /// <see cref="ImfOptions.MaxNestingDepth"/> this way.
         /// </summary>
         InvalidEmlxMetadata = 16,
 
