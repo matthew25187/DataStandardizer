@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -29,7 +30,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string BinaryInLineFeedFile = Separator + Header + "MIME-Version: 1.0\nContent-Transfer-Encoding: binary\n\nx\n\n";
         private const string EmlInCrLfFile = CrLfSeparator + Eml + "\r\n";
         private const string MessageInFile = Separator + Message + "\n";
-        private const string TwoMessagesInFile = MessageInFile + MessageInFile;
+        private const string SecondMessageInFile = Separator + Header + "\ntwo\n\n";
+        private const string TwoDistinctMessagesInFile = MessageInFile + SecondMessageInFile;
+        private const string ExtensionEml = CrLfHeader + "MIME-Version: 1.0\r\nContent-Transfer-Encoding: x-private\r\n\r\nx\r\n";
+        private const string ExtensionInFile = Separator + Header + "MIME-Version: 1.0\nContent-Transfer-Encoding: x-private\n\nx\n\n";
 
         private const string MboxoBody = ">From here\n>From there\n>>From far\n\nnot From\n";
         private const string MboxrdFile = Separator + Header + "\n>From here\n>>From there\n>>>From far\n\nnot From\n\n";
@@ -63,6 +67,17 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
         // The length of a file of one message: 39 of the separator line, 57 of the message and 1 of the empty line.
         private const long MessageFileLength = 97;
+
+        // 39 of the separator line, 52 of the two fields, 18 of the Content-Length field, 1 of the empty line, 4 of the body and 1 of the empty line that ends it.
+        private const long CountedFileLength = 115;
+        private const long CountedFieldCount = 3;
+
+        // 56 of the header and its empty line, and 50 lines of 998 octets and a CRLF.
+        private const long LargeEmlLength = 50056;
+        private const long TwoFieldsWritten = 2;
+        private const long BlockSize = 16 * 1024;
+        private const int LargeLineLength = 998;
+        private const int LargeLineCount = 50;
         private const long TwoMessagesFileLength = 194;
         private const int TwoWritten = 2;
         private const long FirstIndex = 0;
@@ -70,6 +85,8 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string EightBitEml = CrLfHeader + "MIME-Version: 1.0\r\nContent-Transfer-Encoding: 8bit\r\n\r\ncaf\u00E9\r\n";
         private const string EightBitInFile = Separator + Header + "MIME-Version: 1.0\nContent-Transfer-Encoding: 8bit\n\ncaf\u00E9\n\n";
         private const string CrLfLineInFile = Separator + Header + "\none\r\n\n";
+
+        private static readonly string LargeInFile = Separator + Header + "\n" + string.Concat(Enumerable.Repeat(new string('x', LargeLineLength) + "\n", LargeLineCount)) + "\n";
 
         private static readonly ImfOptions AllowEightBit = new ImfOptions { AllowEightBitMboxContent = true };
         private static readonly ImfOptions AllowCrLf = new ImfOptions { AllowMboxCarriageReturnLineFeed = true };
@@ -500,6 +517,124 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Fact]
+        public void WriteMessages_ContentLengthAdded_CountsTheField()
+        {
+            // arrange
+            var entry = new MboxEntry(Envelope, Mailboxes.ReadMessage(Eml));
+            var progress = new RecordingProgress();
+            using (var subject = new MboxWriter(new MemoryStream(), MboxVariant.Mboxcl2, new ImfOptions()))
+            {
+                // act
+                subject.WriteMessages(new[] { entry }, progress);
+
+                // assert
+                progress.Last.Should().Be(new ImfWriteProgress(CountedFieldCount, 1, CountedFileLength));
+            }
+        }
+
+        [Fact]
+        public void WriteMessages_TwoContentLengthFieldsReplaced_CountsTheOneLeft()
+        {
+            // arrange
+            var entry = new MboxEntry(Envelope, Mailboxes.ReadMessage(TwoLengthsEml));
+            var progress = new RecordingProgress();
+            using (var subject = new MboxWriter(new MemoryStream(), MboxVariant.Mboxcl2, new ImfOptions()))
+            {
+                // act
+                subject.WriteMessages(new[] { entry }, progress);
+
+                // assert
+                progress.Last.Should().Be(new ImfWriteProgress(CountedFieldCount, 1, CountedFileLength));
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_ExtensionMechanismThatHasToChange_ThrowsAndWritesNothing()
+        {
+            // arrange
+            var message = Mailboxes.ReadMessage(ExtensionEml);
+            var output = new MemoryStream();
+            using (var subject = new MboxWriter(output))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(Envelope, message);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>();
+                output.Length.Should().Be(0);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterWithAnExtensionMechanismFromAMailbox_ThrowsAndWritesNothing()
+        {
+            // arrange
+            var message = Mailboxes.ReadFirst(ExtensionInFile).Message;
+            var output = new MemoryStream();
+            using (var subject = new ImfWriter(output))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(message);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>();
+                output.Length.Should().Be(0);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_ImfWriterWithALargeMessageFromAMailbox_ReportsProgressInBlocks()
+        {
+            // arrange
+            var message = Mailboxes.ReadFirst(LargeInFile).Message;
+            var progress = new RecordingProgress();
+            using (var subject = new ImfWriter(new MemoryStream()))
+            {
+                // act
+                subject.WriteMessage(message, progress);
+
+                // assert
+                progress.LargestStep.Should().Be(BlockSize);
+                progress.Last.Should().Be(new ImfWriteProgress(TwoFieldsWritten, 1, LargeEmlLength));
+            }
+        }
+
+        [Fact]
+        public async Task WriteMessageAsync_ImfWriterWithALargeMessageFromAMailbox_ReportsProgressInBlocks()
+        {
+            // arrange
+            var message = Mailboxes.ReadFirst(LargeInFile).Message;
+            var progress = new RecordingProgress();
+            var subject = new ImfWriter(new MemoryStream());
+            await AsyncDisposal.UsingAsync(subject, async () =>
+            {
+                // act
+                await subject.WriteMessageAsync(message, progress);
+
+                // assert
+                progress.LargestStep.Should().Be(BlockSize);
+                progress.Last.Should().Be(new ImfWriteProgress(TwoFieldsWritten, 1, LargeEmlLength));
+            });
+        }
+
+        [Fact]
+        public void WriteMessage_ProgressThrowsPartWayThroughAConvertedMessage_LeavesTheWriterUnableToContinue()
+        {
+            // arrange
+            var message = Mailboxes.ReadFirst(LargeInFile).Message;
+            using (var subject = new ImfWriter(new MemoryStream()))
+            {
+                Mailboxes.WriteFailing(subject, message, new ThrowingProgress());
+
+                // act
+                Action testAction = () => subject.WriteMessage(message);
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>();
+            }
+        }
+
+        [Fact]
         public void WriteMessage_NonconformingEnvelope_ThrowsByDefault()
         {
             // arrange
@@ -606,7 +741,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void WriteMessages_FromAReader_CopiesTheMailbox()
         {
             // arrange
-            var read = new[] { Mailboxes.ReadFirst(TwoMessagesInFile), Mailboxes.ReadFirst(TwoMessagesInFile) };
+            var read = new[] { Mailboxes.ReadFirst(MessageInFile), Mailboxes.ReadFirst(SecondMessageInFile) };
             var output = new MemoryStream();
             using (var subject = new MboxWriter(output))
             {
@@ -614,7 +749,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
                 subject.WriteMessages(read);
 
                 // assert
-                Octets.ToText(output.ToArray()).Should().Be(TwoMessagesInFile);
+                Octets.ToText(output.ToArray()).Should().Be(TwoDistinctMessagesInFile);
             }
         }
 

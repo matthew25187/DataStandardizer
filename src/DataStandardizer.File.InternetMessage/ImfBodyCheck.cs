@@ -84,20 +84,33 @@ namespace DataStandardizer.File.InternetMessage
         /// <param name="bytes">The next bytes.</param>
         /// <param name="foundLongLine"><c>true</c> if a line is too long.</param>
         /// <param name="foundInvalidOctet"><c>true</c> if an octet or line break is not allowed.</param>
-        internal void Check(ReadOnlySpan<byte> bytes, out bool foundLongLine, out bool foundInvalidOctet)
+        /// <param name="longLineOffset">The index in <paramref name="bytes"/> of the octet that takes a line past the limit, if one was found.</param>
+        /// <param name="invalidOctetOffset">The index in <paramref name="bytes"/> at which an octet or line break was found not to be allowed, if one was.</param>
+        internal void Check(ReadOnlySpan<byte> bytes, out bool foundLongLine, out bool foundInvalidOctet, out int longLineOffset, out int invalidOctetOffset)
         {
-            var hadLongLine = _hasLongLine;
-            var hadInvalidOctet = _hasInvalidOctet;
-            if (_domain != MimeDataDomain.Binary)
+            foundLongLine = false;
+            foundInvalidOctet = false;
+            longLineOffset = 0;
+            invalidOctetOffset = 0;
+            if (_domain == MimeDataDomain.Binary) return;
+
+            for (var index = 0; index < bytes.Length; index++)
             {
-                foreach (var octet in bytes)
+                var hadLongLine = _hasLongLine;
+                var hadInvalidOctet = _hasInvalidOctet;
+                CheckOctet(bytes[index]);
+                if (_hasLongLine && !hadLongLine)
                 {
-                    CheckOctet(octet);
+                    foundLongLine = true;
+                    longLineOffset = index;
+                }
+
+                if (_hasInvalidOctet && !hadInvalidOctet)
+                {
+                    foundInvalidOctet = true;
+                    invalidOctetOffset = index;
                 }
             }
-
-            foundLongLine = _hasLongLine && !hadLongLine;
-            foundInvalidOctet = _hasInvalidOctet && !hadInvalidOctet;
         }
 
         /// <summary>

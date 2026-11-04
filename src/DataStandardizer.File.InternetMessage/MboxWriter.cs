@@ -26,8 +26,8 @@ namespace DataStandardizer.File.InternetMessage
     /// <para>
     /// <b>Line breaks.</b>  A message in a file uses the line break of the file, which is the LF that RFC 4155 Appendix A requires, unless <see cref="MboxLineBreak.CarriageReturnLineFeed"/> is
     /// given.  So one read from an <c>.eml</c> file changes when written here.  A line that still ends in CRLF in a file of LF, from a file read with
-    /// <see cref="ImfOptions.AllowMboxCarriageReturnLineFeed"/>, causes an <see cref="ImfFileException"/> unless that option is set.  A message that has to change this way can't have a <c>binary</c> entity (RFC 2045 §2.9), as a line break in it isn't one,
-    /// which causes an <see cref="ImfFileException"/>.
+    /// <see cref="ImfOptions.AllowMboxCarriageReturnLineFeed"/>, causes an <see cref="ImfFileException"/> unless that option is set.  A message that has to change this way can't have a <c>binary</c> entity (RFC 2045 §2.9) or an extension mechanism (§6.3), as a line break in it may not be
+    /// one, which causes an <see cref="ImfFileException"/>.
     /// </para>
     /// <para>
     /// <b>Seven bits.</b>  RFC 4155 Appendix A requires seven-bit characters, so an octet above 127 causes an <see cref="ImfFileException"/>, unless
@@ -527,7 +527,8 @@ namespace DataStandardizer.File.InternetMessage
                 var bytes = new ReadOnlySpan<byte>(output.ToArray());
                 if (hasLineFeedBreaks == _isCrLf) bytes = ImfLineBreaks.Convert(message, bytes, _isCrLf);
 
-                var formatted = MboxFormatter.Format(envelope, bytes, _variant, _isCrLf);
+                var formatted = MboxFormatter.Format(envelope, bytes, _variant, _isCrLf, out var fieldChange);
+                fieldCount += fieldChange;
                 CheckContent(formatted, diagnostics);
                 return formatted;
             }

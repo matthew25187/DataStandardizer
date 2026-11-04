@@ -23,7 +23,7 @@ namespace DataStandardizer.File.InternetMessage
 
             /// <summary>
             /// The kind of problem, as an <see cref="ImfDiagnosticKind"/>.  Present only for a problem that an option can turn into an <see cref="ImfDiagnostic"/>, found by an
-            /// <see cref="ImfReader"/>, <see cref="ImfWriter"/>, <see cref="MboxReader"/> or <see cref="MboxWriter"/>.
+            /// <see cref="ImfReader"/>, <see cref="ImfWriter"/>, <see cref="ImfEntityReader"/>, <see cref="MboxReader"/> or <see cref="MboxWriter"/>.
             /// </summary>
             public const string DiagnosticKind = "DiagnosticKind";
 

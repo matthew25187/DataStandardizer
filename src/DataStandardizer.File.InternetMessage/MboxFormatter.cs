@@ -30,9 +30,11 @@ namespace DataStandardizer.File.InternetMessage
         /// <param name="message">The bytes of the message, in the line breaks of the file.</param>
         /// <param name="variant">The variant of the format.</param>
         /// <param name="isCrLf"><c>true</c> if the line breaks of the file are CRLF.</param>
+        /// <param name="fieldChange">How many fields the file holds beyond those of the message, from setting its Content-Length field.</param>
         /// <returns>The separator line, the message and the empty line that ends it.</returns>
-        internal static byte[] Format(MboxEnvelope envelope, ReadOnlySpan<byte> message, MboxVariant variant, bool isCrLf)
+        internal static byte[] Format(MboxEnvelope envelope, ReadOnlySpan<byte> message, MboxVariant variant, bool isCrLf, out int fieldChange)
         {
+            fieldChange = 0;
             var lineBreak = isCrLf ? CrLf : Lf;
             var quoted = variant == MboxVariant.Mboxcl2 ? message.ToArray() : AddQuotes(message, variant, isCrLf);
             var output = new MemoryStream(quoted.Length + envelope.RawLine.Length + 2 * lineBreak.Length + ContentLengthFieldName.Length + lineBreak.Length);
@@ -41,7 +43,7 @@ namespace DataStandardizer.File.InternetMessage
 
             if (variant == MboxVariant.Mboxcl || variant == MboxVariant.Mboxcl2)
             {
-                WriteWithContentLength(output, quoted, lineBreak, isCrLf);
+                fieldChange = WriteWithContentLength(output, quoted, lineBreak, isCrLf);
             }
             else
             {
@@ -99,8 +101,9 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         // ref. RFC 5322 §2.1: the header ends at the first empty line.  A field given the right length already stays as it is, so that a message that hasn't changed stays the same.
-        private static void WriteWithContentLength(MemoryStream output, ReadOnlySpan<byte> quoted, byte[] lineBreak, bool isCrLf)
+        private static int WriteWithContentLength(MemoryStream output, ReadOnlySpan<byte> quoted, byte[] lineBreak, bool isCrLf)
         {
+            var fieldChange = 0;
             var headerLength = FindHeaderLength(quoted, isCrLf, out var bodyStart);
             var bodyLength = bodyStart < 0 ? 0L : quoted.Length - bodyStart;
             var header = quoted.Slice(0, headerLength);
@@ -112,13 +115,14 @@ namespace DataStandardizer.File.InternetMessage
             }
             else
             {
-                WriteWithoutContentLength(output, header, isCrLf);
+                fieldChange = 1 - WriteWithoutContentLength(output, header, isCrLf);
                 Write(output, Encoding.UTF8.GetBytes(ContentLengthFieldName + bodyLength.ToString(CultureInfo.InvariantCulture)));
                 Write(output, lineBreak);
             }
 
             Write(output, lineBreak);
             Write(output, body);
+            return fieldChange;
         }
 
         private static int FindHeaderLength(ReadOnlySpan<byte> quoted, bool isCrLf, out int bodyStart)
@@ -161,8 +165,10 @@ namespace DataStandardizer.File.InternetMessage
             return found == 1 && isRight;
         }
 
-        private static void WriteWithoutContentLength(MemoryStream output, ReadOnlySpan<byte> header, bool isCrLf)
+        // Gives the number of fields left out.
+        private static int WriteWithoutContentLength(MemoryStream output, ReadOnlySpan<byte> header, bool isCrLf)
         {
+            var removed = 0;
             var isSkipping = false;
             for (var rest = header; !rest.IsEmpty;)
             {
@@ -170,12 +176,18 @@ namespace DataStandardizer.File.InternetMessage
                 var line = rest.Slice(0, lineLength);
                 // ref. RFC 5322 §2.2.3: a line that starts with white space continues the field before it.
                 var isContinuation = line[0] == Space || line[0] == Tab;
-                if (!isContinuation) isSkipping = MboxScanner.StartsWithContentLengthName(line, out _);
+                if (!isContinuation)
+                {
+                    isSkipping = MboxScanner.StartsWithContentLengthName(line, out _);
+                    if (isSkipping) removed++;
+                }
 
                 if (!isSkipping) Write(output, line);
 
                 rest = rest.Slice(lineLength);
             }
+
+            return removed;
         }
 
         private static ReadOnlySpan<byte> TrimLineBreak(ReadOnlySpan<byte> line)

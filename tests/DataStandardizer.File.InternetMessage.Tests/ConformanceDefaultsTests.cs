@@ -44,6 +44,22 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string EmbeddedWithFrom = MimeHeader + "Content-Type: message/rfc822\r\n\r\nFrom: c@d.test\r\n\r\nz\r\n";
         private const string EmbeddedWithDate = MimeHeader + "Content-Type: message/rfc822\r\n\r\nDate: Thu, 1 Jan 2026 00:00:00 +0000\r\n\r\nz\r\n";
 
+        // A multipart header, for a body set afterwards that has no delimiters (RFC 2046 §5.1.1).
+        private const string MultipartMessage = MimeHeader + "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\nx\r\n--b--\r\n";
+        private const string BodyWithNoDelimiters = "no delimiters\r\n";
+
+        // The position of the octet above 127 in EightBitUnderDefault: 75 of the header and its empty line, and 3 of "caf", on line 5.
+        private const long EightBitPosition = 78;
+        private const long EightBitLine = 5;
+
+        // The position of the octet that passes the limit in LineOverTheLimit: 56 of the header and its empty line, and 998 of the line, on line 4.
+        private const long LongLinePosition = 1054;
+        private const long LongLineLine = 4;
+
+        // The end of the embedded header in EmbeddedWithNoRequiredField: 105 of the outer header and its empty line, and 14 of the embedded one, on line 8.
+        private const long EmbeddedHeaderEndPosition = 119;
+        private const long EmbeddedHeaderEndLine = 8;
+
         // ref. RFC 5322 §2.1.1: 998 octets and then a line break is the longest line.
         private const int LongestLine = 998;
         private const int LongestEncodedLine = 76;
@@ -222,6 +238,78 @@ namespace DataStandardizer.File.InternetMessage.Tests
                 Octets.ToText(output.ToArray()).Should().Be(message);
                 subject.Diagnostics.Should().BeEmpty();
             }
+        }
+
+        [Fact]
+        public void ReadEvent_InvalidBodyOctet_GivesItsPosition()
+        {
+            // arrange
+            using (var subject = new ImfEntityReader(new MemoryStream(Octets.Of(EightBitUnderDefault))))
+            {
+                // act
+                Action testAction = () => EntityEvents.ReadToEnd(subject);
+
+                // assert
+                var exception = testAction.Should().Throw<ImfFileException>().Which;
+                exception.Data[ImfFileException.DataItemName.BytePosition].Should().Be(EightBitPosition);
+                exception.Data[ImfFileException.DataItemName.LineNumber].Should().Be(EightBitLine);
+            }
+        }
+
+        [Fact]
+        public void ReadEvent_LongBodyLine_GivesItsPosition()
+        {
+            // arrange
+            using (var subject = new ImfEntityReader(new MemoryStream(Octets.Of(LineOverTheLimit))))
+            {
+                // act
+                Action testAction = () => EntityEvents.ReadToEnd(subject);
+
+                // assert
+                var exception = testAction.Should().Throw<ImfFileException>().Which;
+                exception.Data[ImfFileException.DataItemName.BytePosition].Should().Be(LongLinePosition);
+                exception.Data[ImfFileException.DataItemName.LineNumber].Should().Be(LongLineLine);
+            }
+        }
+
+        [Fact]
+        public void ReadMessage_InvalidBodyOctetAllowed_GivesItsPositionInTheDiagnostic()
+        {
+            // arrange
+            using (var subject = new ImfReader(new MemoryStream(Octets.Of(EightBitUnderDefault)), new ImfOptions { AllowInvalidBodyOctets = true }))
+            {
+                // act
+                subject.ReadMessage();
+
+                // assert
+                subject.Diagnostics.Should().ContainSingle().Which.BytePosition.Should().Be(EightBitPosition);
+            }
+        }
+
+        [Fact]
+        public void ReadMessage_EmbeddedMessageWithNoRequiredField_GivesThePositionOfItsHeaderEnd()
+        {
+            // act
+            Action testAction = () => Read(EmbeddedWithNoRequiredField, new ImfOptions());
+
+            // assert
+            var exception = testAction.Should().Throw<ImfFileException>().Which;
+            exception.Data[ImfFileException.DataItemName.BytePosition].Should().Be(EmbeddedHeaderEndPosition);
+            exception.Data[ImfFileException.DataItemName.LineNumber].Should().Be(EmbeddedHeaderEndLine);
+        }
+
+        [Fact]
+        public void Validate_BodyWhoseStructureCannotBeRead_GivesTheProblemWithoutThrowing()
+        {
+            // arrange
+            var subject = Read(MultipartMessage, new ImfOptions());
+            subject.RawBody = Octets.Of(BodyWithNoDelimiters);
+
+            // act
+            var testResult = subject.Validate();
+
+            // assert
+            testResult.Should().ContainSingle().Which.Kind.Should().Be(ImfDiagnosticKind.InvalidBodyStructure);
         }
 
         [Fact]

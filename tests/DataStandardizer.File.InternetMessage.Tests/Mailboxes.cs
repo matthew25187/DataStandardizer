@@ -150,6 +150,20 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         /// <summary>
+        /// Writes a message with progress that throws, and swallows the exception, to leave the writer as that left it.
+        /// </summary>
+        public static void WriteFailing(ImfWriter writer, ImfMessage message, IProgress<ImfWriteProgress> progress)
+        {
+            try
+            {
+                writer.WriteMessage(message, progress);
+            }
+            catch (InvalidOperationException)
+            {
+            }
+        }
+
+        /// <summary>
         /// Reads the events of every message of a file asynchronously, and gives how many messages there were.
         /// </summary>
         public static async Task<int> ReadAllEventsAsync(MboxReader reader)

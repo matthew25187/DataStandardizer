@@ -93,6 +93,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string UnquotedSeparatorMessage = Header + "Content-Length: 43\n\nx\nFrom c@d.test Fri Jan  2 12:30:45 2026\ny\n";
         private const string UnquotedSeparatorMailbox = Separator1 + UnquotedSeparatorMessage + "\n";
         private const string ObsoleteFromMessage = "Date: Thu, 1 Jan 2026 00:00:00 +0000\nFrom : a@b.test\nContent-Length: 4\n\none\n";
+        private const string FromLineInCountedBody = Separator1 + Header + "Content-Length: 13\n\nFrom here on\n\n";
         private const string ObsoleteFromMailbox = Separator1 + ObsoleteFromMessage + "\n";
 
         private const string ShortLengthRest = Separator1 + Header + "Content-Length: 3\n\none\n\nmore";
@@ -131,6 +132,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const long SecondSeparatorLine = 6;
 
         private const long FirstIndex = 0;
+        private const long SecondIndex = 1;
         private const int TwoRead = 2;
 
         private static readonly string LongSeparatorMailbox = "From " + new string('a', LongAddressLength) + "@b.test Thu Jan  1 00:00:00 2026\n" + Message1 + "\n";
@@ -670,6 +672,26 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Fact]
+        public void ReadMessage_ContentLengthOptionWithInvalidFromLineInBody_RecordsADiagnostic()
+        {
+            // act
+            var testResult = Mailboxes.ReadDiagnosticKinds(FromLineInCountedBody, MboxVariant.Mboxcl2, AllowContentLength);
+
+            // assert
+            testResult.Should().Equal(ImfDiagnosticKind.InvalidMboxSeparator);
+        }
+
+        [Fact]
+        public void ReadMessage_ContentLengthOptionWithObsoleteFromField_RecordsNoDiagnostic()
+        {
+            // act
+            var testResult = Mailboxes.ReadDiagnosticKinds(ObsoleteFromMailbox, MboxVariant.Mboxcl2, AllowContentLength);
+
+            // assert
+            testResult.Should().BeEmpty();
+        }
+
+        [Fact]
         public void ReadMessage_ObsoleteFromFieldInContentLengthVariant_IsAField()
         {
             // act
@@ -686,7 +708,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             Action testAction = () => Mailboxes.ReadAll(TwoMessages, MboxVariant.Mboxrd, OneMessageOnly);
 
             // assert
-            testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.MessageIndex].Should().Be(FirstIndex);
+            testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.MessageIndex].Should().Be(SecondIndex);
         }
 
         [Fact]

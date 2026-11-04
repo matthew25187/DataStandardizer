@@ -501,15 +501,34 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Checks the header against RFC 5322 §3.6, without throwing: the required fields, the fields that may appear only once, and the grammar of the body of each field that §3.6
-        /// defines.  The options don't change what is reported, except in how a field body is read.
+        /// Checks the message, without throwing: the required fields, the fields that may appear only once, and the grammar of the body of each field that RFC 5322 §3.6 defines; the
+        /// MIME-Version field (RFC 2045 §4); embedded messages (RFC 2046 §5.2.1); and the bytes of each body that hasn't changed (RFC 5322 §2.1.1 and §2.3, RFC 2045 §2.7, §2.8, §6.4, §6.7 and
+        /// §6.8).  A body whose structure can't be read is reported as a problem, and what it holds isn't checked.  The options don't change what is reported, except in how a field body is read.
         /// </summary>
         /// <returns>Every problem found, in a read-only list.</returns>
         public IReadOnlyList<ImfDiagnostic> Validate()
         {
             var diagnostics = ImfConformance.Check(this, Options);
-            diagnostics.AddRange(ImfConformance.CheckContent(this, Options));
+            try
+            {
+                ImfConformance.CheckContent(this, Options, diagnostics);
+            }
+            catch (ImfFileException exception)
+            {
+                diagnostics.Add(BuildBodyDiagnostic(exception));
+            }
+
             return new ReadOnlyCollection<ImfDiagnostic>(diagnostics);
+        }
+
+        private static ImfDiagnostic BuildBodyDiagnostic(ImfFileException exception)
+        {
+            var data = exception.Data;
+            var kind = data[ImfFileException.DataItemName.DiagnosticKind] is ImfDiagnosticKind found ? found : ImfDiagnosticKind.InvalidBodyStructure;
+            var bytePosition = data[ImfFileException.DataItemName.BytePosition] is long position ? position : -1;
+            var lineNumber = data[ImfFileException.DataItemName.LineNumber] is long line ? line : 0;
+            var path = data[ImfFileException.DataItemName.EntityPath] as string ?? string.Empty;
+            return new ImfDiagnostic(kind, exception.Message, bytePosition, path, string.Empty, lineNumber);
         }
 
         // ref. RFC 5322 §4.5: several destination fields SHOULD be treated as if their lists were one.

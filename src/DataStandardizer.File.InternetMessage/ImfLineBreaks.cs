@@ -13,7 +13,7 @@ namespace DataStandardizer.File.InternetMessage
         private const byte CarriageReturn = 0x0D;
         private const byte LineFeed = 0x0A;
 
-        private const string BinaryEntityMessage = "A binary entity can't change its line breaks, as a line break in it isn't one (RFC 2045 §2.9).";
+        private const string OpaqueEntityMessage = "An entity with the binary transfer encoding or an extension mechanism can't change its line breaks, as a line break in it may not be one (RFC 2045 §2.9 and §6.3).";
 
         private static readonly byte[] CrLf = { CarriageReturn, LineFeed };
         private static readonly byte[] Lf = { LineFeed };
@@ -28,8 +28,8 @@ namespace DataStandardizer.File.InternetMessage
         /// <exception cref="ImfFileException">The message has a <c>binary</c> entity.</exception>
         internal static byte[] Convert(ImfMessage message, ReadOnlySpan<byte> bytes, bool toCrLf)
         {
-            if (HasBinaryEntity(message.Body))
-                throw new ImfFileException(BinaryEntityMessage);
+            if (HasOpaqueEntity(message.Body))
+                throw new ImfFileException(OpaqueEntityMessage);
 
             var output = new MemoryStream(bytes.Length);
             var rest = bytes;
@@ -64,14 +64,15 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         // The open entities are kept in a list, not on the call stack, so nesting can't overflow the stack.
-        private static bool HasBinaryEntity(ImfEntity body)
+        private static bool HasOpaqueEntity(ImfEntity body)
         {
             var pending = new Stack<ImfEntity>();
             pending.Push(body);
             while (pending.Count > 0)
             {
                 var entity = pending.Pop();
-                if (entity.ContentTransferEncoding == MimeTransferEncoding.Binary) return true;
+                var encoding = entity.ContentTransferEncoding;
+                if (encoding == MimeTransferEncoding.Binary || !encoding.IsKnown) return true;
 
                 if (entity is ImfMessagePart messagePart)
                 {

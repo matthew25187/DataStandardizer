@@ -288,7 +288,11 @@ namespace DataStandardizer.File.InternetMessage
             }
 
             if (_messagesFound == _maxMessageCount)
-                throw Fault(string.Format(ErrorMessage.TooManyMessagesTemplate, _maxMessageCount), null);
+            {
+                var exception = Fault(string.Format(ErrorMessage.TooManyMessagesTemplate, _maxMessageCount), null);
+                exception.Data[ImfFileException.DataItemName.MessageIndex] = _messagesFound;
+                throw exception;
+            }
 
             StartMessage();
             return Status.MessageFound;
@@ -574,8 +578,8 @@ namespace DataStandardizer.File.InternetMessage
 
         private void CheckInvalidSeparator()
         {
-            // These variants don't rely on the lines of a message, and an obsolete "From : " field is one of them.
-            if (_usesContentLength) return;
+            // An obsolete "From : " field is a line of a header, in the variants that have no quoting of one.
+            if (_inHeader) return;
 
             // ref. RFC 4155 Appendix A: only a full separator line is one, and no escape syntax is prescribed, so this line is part of the message.
             if (!_reportedInvalidSeparator)

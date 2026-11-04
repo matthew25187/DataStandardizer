@@ -78,5 +78,10 @@
         /// A body has a line longer than RFC 5322 §2.1.1, or the 76 characters of RFC 2045 §6.7 and §6.8 for an encoded body, allow.
         /// </summary>
         LongBodyLine = 13,
+
+        /// <summary>
+        /// <see cref="ImfMessage.Validate"/> found that the body breaks a rule of RFC 2046 §5 that the options don't accept, so what it holds could not be checked.
+        /// </summary>
+        InvalidBodyStructure = 14,
     }
 }

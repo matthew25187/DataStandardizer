@@ -257,7 +257,9 @@ namespace DataStandardizer.File.InternetMessage
 
                 using (var reader = new ImfReader(new MboxMessageStream(this, false), _options, MessageBufferSize, !_scanner.IsCrLf))
                 {
-                    return BuildEntry(reader.ReadMessage(), reader);
+                    var entry = BuildEntry(reader.ReadMessage(), reader);
+                    ThrowIfDisposed();
+                    return entry;
                 }
             }
             catch (ImfFileException exception) when (AddMessageIndex(exception))
@@ -361,7 +363,9 @@ namespace DataStandardizer.File.InternetMessage
 
                 using (var reader = new ImfReader(new MboxMessageStream(this, false), _options, MessageBufferSize, !_scanner.IsCrLf))
                 {
-                    return BuildEntry(await reader.ReadMessageAsync(cancellationToken).ConfigureAwait(false), reader);
+                    var entry = BuildEntry(await reader.ReadMessageAsync(cancellationToken).ConfigureAwait(false), reader);
+                    ThrowIfDisposed();
+                    return entry;
                 }
             }
             catch (ImfFileException exception) when (AddMessageIndex(exception))
@@ -563,7 +567,10 @@ namespace DataStandardizer.File.InternetMessage
         // Used as an exception filter that never catches, so that the exception keeps its stack trace.
         private bool AddMessageIndex(ImfFileException exception)
         {
-            exception.Data[ImfFileException.DataItemName.MessageIndex] = _scanner.MessageIndex;
+            // The limit on the number of messages has already said which one it refused, which isn't the current one.
+            if (!exception.Data.Contains(ImfFileException.DataItemName.MessageIndex))
+                exception.Data[ImfFileException.DataItemName.MessageIndex] = _scanner.MessageIndex;
+
             return false;
         }
 

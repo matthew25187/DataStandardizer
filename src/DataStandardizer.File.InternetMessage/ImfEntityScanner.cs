@@ -395,7 +395,7 @@ namespace DataStandardizer.File.InternetMessage
                             break;
                         }
 
-                        ReportBodyProblems(false, _bodyCheck.End());
+                        ReportBodyProblems(false, _bodyCheck.End(), 0, 0);
                         if (FinishDecoding()) return Status.EventRead;
 
                         StartUnwinding(contentResult == ContentResult.Delimiter);
@@ -957,8 +957,8 @@ namespace DataStandardizer.File.InternetMessage
             var position = _scanner.Position;
             var offset = _scanner.BytePosition;
             var length = chunkEnd - position;
-            _bodyCheck.Check(new ReadOnlySpan<byte>(_scanner.Buffer, position, length), out var foundLongLine, out var foundInvalidOctet);
-            ReportBodyProblems(foundLongLine, foundInvalidOctet);
+            _bodyCheck.Check(new ReadOnlySpan<byte>(_scanner.Buffer, position, length), out var foundLongLine, out var foundInvalidOctet, out var longLineOffset, out var invalidOctetOffset);
+            ReportBodyProblems(foundLongLine, foundInvalidOctet, longLineOffset, invalidOctetOffset);
             if (_decoding != BodyDecoding.None)
             {
                 _pendingRawLength = length;
@@ -1101,20 +1101,32 @@ namespace DataStandardizer.File.InternetMessage
             PushFrame(frame.PartCount, false);
         }
 
-        private void ReportBodyProblems(bool foundLongLine, bool foundInvalidOctet)
+        /// <summary>
+        /// Reports what a check of the bytes at the current position found, at the offsets from there that it gives.  An error consumes the bytes before the problem, so that it is reported at
+        /// the byte and line of the problem, as reading ends there.
+        /// </summary>
+        private void ReportBodyProblems(bool foundLongLine, bool foundInvalidOctet, int longLineOffset, int invalidOctetOffset)
         {
             if (foundLongLine)
             {
-                if (!_allowLongLines) throw BuildKindError(ImfBodyCheck.LongLineMessage, ImfDiagnosticKind.LongBodyLine);
+                if (!_allowLongLines)
+                {
+                    _scanner.ConsumeBody(_scanner.Position + longLineOffset);
+                    throw BuildKindError(ImfBodyCheck.LongLineMessage, ImfDiagnosticKind.LongBodyLine);
+                }
 
-                _diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.LongBodyLine, ImfBodyCheck.LongLineMessage, _scanner.BytePosition, BuildPath()));
+                _diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.LongBodyLine, ImfBodyCheck.LongLineMessage, _scanner.BytePosition + longLineOffset, BuildPath()));
             }
 
             if (foundInvalidOctet)
             {
-                if (!_allowInvalidBodyOctets) throw BuildKindError(ImfBodyCheck.InvalidOctetsMessage, ImfDiagnosticKind.InvalidBodyOctets);
+                if (!_allowInvalidBodyOctets)
+                {
+                    _scanner.ConsumeBody(_scanner.Position + invalidOctetOffset);
+                    throw BuildKindError(ImfBodyCheck.InvalidOctetsMessage, ImfDiagnosticKind.InvalidBodyOctets);
+                }
 
-                _diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.InvalidBodyOctets, ImfBodyCheck.InvalidOctetsMessage, _scanner.BytePosition, BuildPath()));
+                _diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.InvalidBodyOctets, ImfBodyCheck.InvalidOctetsMessage, _scanner.BytePosition + invalidOctetOffset, BuildPath()));
             }
         }
 

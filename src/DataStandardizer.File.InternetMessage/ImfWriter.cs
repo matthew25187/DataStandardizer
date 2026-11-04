@@ -40,7 +40,8 @@ namespace DataStandardizer.File.InternetMessage
     /// </para>
     /// <para>
     /// <b>Messages from containers.</b>  A message read from an mbox file with LF line breaks is written with CRLF line breaks, as RFC 5322 §2.1 requires, so everything in it changes in that
-    /// way.  One that has a <c>binary</c> entity (RFC 2045 §2.9) can't change like that, which causes an <see cref="ImfFileException"/>.
+    /// way.  One that has a <c>binary</c> entity (RFC 2045 §2.9), or one with an extension mechanism (§6.3), whose line breaks may not be line breaks, can't change like that, which causes an
+    /// <see cref="ImfFileException"/>.  Such a message is written in blocks, with the progress reported after each, and its fields are counted once, at the end.
     /// </para>
     /// <para>
     /// Only one operation may be in progress at a time.  Synchronous and asynchronous calls may follow one another, but a call made while another is in
@@ -297,8 +298,23 @@ namespace DataStandardizer.File.InternetMessage
                 if (NeedsConversion(message))
                 {
                     var converted = PlanConverted(message, out var convertedDiagnostics, out var fieldCount);
-                    _output.Write(converted);
-                    CompleteConverted(convertedDiagnostics, fieldCount, progress);
+                    try
+                    {
+                        for (var remaining = new ReadOnlyMemory<byte>(converted); !remaining.IsEmpty; remaining = remaining.Slice(Math.Min(remaining.Length, BlockSize)))
+                        {
+                            _output.ThrowIfDisposed();
+                            _output.Write(remaining.Span.Slice(0, Math.Min(remaining.Length, BlockSize)));
+                            progress?.Report(GetProgress());
+                        }
+
+                        CompleteConverted(convertedDiagnostics, fieldCount, progress);
+                    }
+                    catch
+                    {
+                        _output.MarkBroken();
+                        throw;
+                    }
+
                     _output.ThrowIfDisposed();
                     return;
                 }
@@ -439,7 +455,14 @@ namespace DataStandardizer.File.InternetMessage
                 {
                     var converted = PlanConverted(message, out var convertedDiagnostics, out var fieldCount);
                     hasStartedOutput = true;
-                    await _output.WriteAsync(converted, cancellationToken).ConfigureAwait(false);
+                    for (var remaining = new ReadOnlyMemory<byte>(converted); !remaining.IsEmpty; remaining = remaining.Slice(Math.Min(remaining.Length, BlockSize)))
+                    {
+                        _output.ThrowIfDisposed();
+                        cancellationToken.ThrowIfCancellationRequested();
+                        await _output.WriteAsync(remaining.Slice(0, Math.Min(remaining.Length, BlockSize)), cancellationToken).ConfigureAwait(false);
+                        progress?.Report(GetProgress());
+                    }
+
                     CompleteConverted(convertedDiagnostics, fieldCount, progress);
                     _output.ThrowIfDisposed();
                     return;
@@ -587,7 +610,7 @@ namespace DataStandardizer.File.InternetMessage
         private List<ImfDiagnostic> CheckConformance(ImfMessage message)
         {
             var diagnostics = ImfConformance.Check(message, _options);
-            diagnostics.AddRange(ImfConformance.CheckContent(message, _options));
+            ImfConformance.CheckContent(message, _options, diagnostics);
             if (_profile == ImfConformanceProfile.Mhtml) diagnostics.AddRange(MhtmlStructure.Read(message, MhtmlUrl.ThisMessageBase).Diagnostics);
 
             foreach (var diagnostic in diagnostics)

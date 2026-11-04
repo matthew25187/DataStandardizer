@@ -133,10 +133,8 @@ namespace DataStandardizer.File.InternetMessage
         /// bodies that hadn't been changed.
         /// </summary>
         /// <exception cref="ImfFileException"><see cref="ImfMessage.RawBody"/> was set, and it breaks a rule of RFC 2046 §5.1 that the options don't accept.</exception>
-        internal static List<ImfDiagnostic> CheckContent(ImfMessage message, ImfOptions options)
+        internal static void CheckContent(ImfMessage message, ImfOptions options, List<ImfDiagnostic> diagnostics)
         {
-            var diagnostics = new List<ImfDiagnostic>();
-
             // ref. RFC 2045 §4.  A writer adds the field to a message whose body has changed.
             if (!message.IsBodyChanged && HasMimeField(message) && !message.Fields.Contains(ImfFieldNames.MimeVersion))
             {
@@ -147,7 +145,6 @@ namespace DataStandardizer.File.InternetMessage
 
             var check = new ImfBodyCheck(options, message.LineFeedIsLineBreak);
             CheckBodies(message, check, diagnostics);
-            return diagnostics;
         }
 
         /// <summary>
@@ -162,7 +159,7 @@ namespace DataStandardizer.File.InternetMessage
                     var fields = part.Message.Fields;
                     if (!fields.Contains(ImfFieldNames.From) && !fields.Contains(ImfFieldNames.Subject) && !fields.Contains(ImfFieldNames.Date))
                     {
-                        diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.MissingRequiredField, MissingEmbeddedFieldMessage, -1, node.Path, ImfFieldNames.From, 0));
+                        diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.MissingRequiredField, MissingEmbeddedFieldMessage, part.Message.HeaderEndBytePosition, node.Path, ImfFieldNames.From, part.Message.HeaderEndLineNumber));
                     }
                 }
             }
@@ -227,7 +224,7 @@ namespace DataStandardizer.File.InternetMessage
         private static void CheckBytes(ReadOnlyMemory<byte> bytes, ImfBodyCheck check, MimeDataDomain domain, bool isMime, int maxLineLength, string path, List<ImfDiagnostic> diagnostics)
         {
             check.Start(domain, isMime, maxLineLength);
-            check.Check(bytes.Span, out var foundLongLine, out var foundInvalidOctet);
+            check.Check(bytes.Span, out var foundLongLine, out var foundInvalidOctet, out _, out _);
             foundInvalidOctet |= check.End();
             if (foundLongLine) diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.LongBodyLine, ImfBodyCheck.LongLineMessage, -1, path));
             if (foundInvalidOctet) diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.InvalidBodyOctets, ImfBodyCheck.InvalidOctetsMessage, -1, path));
