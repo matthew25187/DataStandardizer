@@ -32,6 +32,7 @@ updates:
           - CsvHelper
           - Ical.Net
           - Microsoft.NET.Test.Sdk
+          - MimeKit
           - xunit
           - xunit.runner.visualstudio
         update-types:

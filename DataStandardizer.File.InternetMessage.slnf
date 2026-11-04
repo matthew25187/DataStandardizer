@@ -3,6 +3,7 @@
     "path": "DataStandardizer.sln",
     "projects": [
       "src\\DataStandardizer.CodeAnalysis.Shared\\DataStandardizer.CodeAnalysis.Shared.shproj",
+      "benchmarks\\DataStandardizer.File.InternetMessage.Benchmarks\\DataStandardizer.File.InternetMessage.Benchmarks.csproj",
       "src\\DataStandardizer.Communication\\DataStandardizer.Communication.csproj",
       "src\\DataStandardizer.Core\\DataStandardizer.Core.csproj",
       "src\\DataStandardizer.File.InternetMessage\\DataStandardizer.File.InternetMessage.csproj",

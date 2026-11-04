@@ -55,8 +55,8 @@ root:
 dotnet test DataStandardizer.sln
 ```
 
-The `DataStandardizer.LanguageTag`, `DataStandardizer.Communication` and
-`DataStandardizer.File.iCal` tests also target .NET Framework 4.8, so that each
+The `DataStandardizer.LanguageTag`, `DataStandardizer.Communication`,
+`DataStandardizer.File.iCal` and `DataStandardizer.File.InternetMessage` tests also target .NET Framework 4.8, so that each
 package's `netstandard2.0` build is tested as well as its `net10.0` build. Running them on .NET Framework needs Windows. On other operating systems,
 choose a framework with `-f`:
 
@@ -64,6 +64,7 @@ choose a framework with `-f`:
 dotnet test tests/DataStandardizer.LanguageTag.Tests -f net10.0
 dotnet test tests/DataStandardizer.Communication.Tests -f net10.0
 dotnet test tests/DataStandardizer.File.iCal.Tests -f net10.0
+dotnet test tests/DataStandardizer.File.InternetMessage.Tests -f net10.0
 ```
 
 In *Visual Studio*, the
