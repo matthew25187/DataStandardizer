@@ -18,6 +18,34 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private static ImfOptions NoRequiredFields => new ImfOptions { AllowMissingMimeVersion = true, AllowMissingRequiredFields = true };
 
         [Fact]
+        public void BodyChecksRun_ProblemsInBlocks_GivesEachWithItsBlockAndOffset()
+        {
+            // arrange
+            var check = new ImfBodyCheck(new ImfOptions(), false);
+            check.Start(DataStandardizer.Communication.Mime.MimeDataDomain.SevenBit, true, 2);
+
+            // act
+            var testResult = BodyChecks.Run(check, new[] { "a", "aaa\x0080\r" });
+
+            // assert
+            testResult.Should().Be("long:1:1 invalid:1:3");
+        }
+
+        [Fact]
+        public void BodyChecksRun_BareCarriageReturnAtTheEnd_GivesEnd()
+        {
+            // arrange
+            var check = new ImfBodyCheck(new ImfOptions(), false);
+            check.Start(DataStandardizer.Communication.Mime.MimeDataDomain.SevenBit, true, 2);
+
+            // act
+            var testResult = BodyChecks.Run(check, new[] { "a\r" });
+
+            // assert
+            testResult.Should().Be("end");
+        }
+
+        [Fact]
         public void WriteWithLineFeeds_ReadWithLineFeeds_GivesTheSameBytes()
         {
             // arrange
