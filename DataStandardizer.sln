@@ -81,11 +81,16 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataStandardizer.File.Inter
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "DataStandardizer.File.ContentLine.Shared", "src\DataStandardizer.File.ContentLine.Shared\DataStandardizer.File.ContentLine.Shared.shproj", "{8B0EFD27-1FC7-4CBC-95BE-F4696D059DFF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataStandardizer.File.vCard", "src\DataStandardizer.File.vCard\DataStandardizer.File.vCard.csproj", "{4BA6E30D-6FAF-425F-A23E-E9BE3172788F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataStandardizer.File.vCard.Tests", "tests\DataStandardizer.File.vCard.Tests\DataStandardizer.File.vCard.Tests.csproj", "{14BD0E34-4799-4809-83C9-3FD0A636B791}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		src\DataStandardizer.File.ContentLine.Shared\DataStandardizer.File.ContentLine.Shared.projitems*{85d73f2e-bc03-420f-b8ff-c51a97e06fb3}*SharedItemsImports = 5
 		src\DataStandardizer.File.ContentLine.Shared\DataStandardizer.File.ContentLine.Shared.projitems*{8b0efd27-1fc7-4cbc-95be-f4696d059dff}*SharedItemsImports = 13
 		src\DataStandardizer.CodeAnalysis.Shared\DataStandardizer.CodeAnalysis.Shared.projitems*{1fff72b8-1fda-49bd-a4fb-860c28cabd0d}*SharedItemsImports = 5
+		src\DataStandardizer.CodeAnalysis.Shared\DataStandardizer.CodeAnalysis.Shared.projitems*{4ba6e30d-6faf-425f-a23e-e9be3172788f}*SharedItemsImports = 5
 		src\DataStandardizer.CodeAnalysis.Shared\DataStandardizer.CodeAnalysis.Shared.projitems*{33a7d2e1-4058-41a1-8cfd-878710c195e2}*SharedItemsImports = 5
 		src\DataStandardizer.CodeAnalysis.Shared\DataStandardizer.CodeAnalysis.Shared.projitems*{35823b25-5a3e-482d-96c9-4e29371a9a42}*SharedItemsImports = 5
 		src\DataStandardizer.CodeAnalysis.Shared\DataStandardizer.CodeAnalysis.Shared.projitems*{3a4f50aa-f0c0-4be9-b756-20178c03ff32}*SharedItemsImports = 5
@@ -234,6 +239,14 @@ Global
 		{7C2A9D14-5E3B-4F60-9A18-3D6B2E41C7F5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7C2A9D14-5E3B-4F60-9A18-3D6B2E41C7F5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7C2A9D14-5E3B-4F60-9A18-3D6B2E41C7F5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4BA6E30D-6FAF-425F-A23E-E9BE3172788F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4BA6E30D-6FAF-425F-A23E-E9BE3172788F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4BA6E30D-6FAF-425F-A23E-E9BE3172788F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4BA6E30D-6FAF-425F-A23E-E9BE3172788F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{14BD0E34-4799-4809-83C9-3FD0A636B791}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{14BD0E34-4799-4809-83C9-3FD0A636B791}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{14BD0E34-4799-4809-83C9-3FD0A636B791}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{14BD0E34-4799-4809-83C9-3FD0A636B791}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -274,6 +287,8 @@ Global
 		{1FFF72B8-1FDA-49BD-A4FB-860C28CABD0D} = {944A45A5-E3FA-4C1D-B5EC-76FAE6974F21}
 		{69F32671-EE93-4642-A327-43C747FF7273} = {B9FDB3AD-0254-49E2-B2B8-20BC6B0AB93B}
 		{294C74B2-0472-4361-B18D-8C7D35A05E69} = {B9FDB3AD-0254-49E2-B2B8-20BC6B0AB93B}
+		{4BA6E30D-6FAF-425F-A23E-E9BE3172788F} = {944A45A5-E3FA-4C1D-B5EC-76FAE6974F21}
+		{14BD0E34-4799-4809-83C9-3FD0A636B791} = {B9FDB3AD-0254-49E2-B2B8-20BC6B0AB93B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D102BDCC-44EF-4389-9803-1D0385E0F7B8}

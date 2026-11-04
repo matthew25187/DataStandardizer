@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard1.1;netstandard2.0;netstandard2.1;net10.0</TargetFrameworks>
+    <Description>Data Standardizer provides implementations of various internationally recognised standards in data processing, covering topics ranging from languages to currencies and geographical entities. With strongly-typed enumerations for each standard (where applicable) or other targeted data types, you can represent these elements in your code such that errors with invalid values are minimised.
+
+Provides types supporting the reading and writing of vCard files.</Description>
+    <Copyright>Copyright © 2026, Matthew25187. All rights reserved.</Copyright>
+    <PackageTags>data;standard;vcard;contact;file</PackageTags>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.1'">
+    <PackageReference Include="System.Net.Http" />
+    <PackageReference Include="System.Memory" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" />
+    <PackageReference Include="System.Memory" />
+  </ItemGroup>
+
+  <!-- jCard (RFC 7095) uses System.Text.Json, which is in the box on net10.0 and is not available on netstandard1.1. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'netstandard2.1'">
+    <PackageReference Include="System.Text.Json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DataStandardizer.Core\DataStandardizer.Core.csproj" />
+    <ProjectReference Include="..\DataStandardizer.LanguageTag\DataStandardizer.LanguageTag.csproj" />
+  </ItemGroup>
+
+</Project>
