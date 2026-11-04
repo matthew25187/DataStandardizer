@@ -63,6 +63,20 @@ namespace DataStandardizer.File.InternetMessage.Tests
     }
 
     /// <summary>
+    /// A seekable stream that reports a length other than what it holds, as a file can if something else changes it during the read.
+    /// </summary>
+    internal sealed class ClaimedLengthStream : MemoryStream
+    {
+        public ClaimedLengthStream(byte[] data, long claimedLength)
+            : base(data)
+        {
+            Length = claimedLength;
+        }
+
+        public override long Length { get; }
+    }
+
+    /// <summary>
     /// A stream that gives a fixed number of bytes in its first read and another fixed number in each read after that, so that a test can end a
     /// read at a chosen point.  The members for the other mode throw, so that any I/O on the wrong path fails the test.
     /// </summary>
