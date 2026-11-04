@@ -199,15 +199,22 @@ namespace DataStandardizer.File.InternetMessage
         {
             var isTopMime = HasMimeField(message) || message.Fields.Contains(ImfFieldNames.MimeVersion);
             var pending = new Stack<PendingBody>();
-            pending.Push(new PendingBody(message.Body, isTopMime, MimeDataDomain.Binary, EntityPath));
+            pending.Push(new PendingBody(message.Body, isTopMime, MimeDataDomain.Binary, EntityPath, true, true));
             while (pending.Count > 0)
             {
                 var item = pending.Pop();
+
+                // A writer labels what holds a new or changed header by what it holds, but what was read and hasn't changed stays under the label it had.
+                if (item.IsHolderKept && item.Entity.IsRead && !item.Entity.HasChangedFields) CheckHeaderOctets(item, diagnostics);
+
+                var isKept = item.IsHolderKept && item.Entity.IsRead;
                 var encoding = item.Entity.ContentTransferEncoding;
                 var domain = ImfBodyCheck.GetAllowedDomain(encoding, item.Enclosing);
                 if (item.Entity is ImfMessagePart part)
                 {
-                    pending.Push(new PendingBody(part.Message.Body, item.IsMime || part.Message.Fields.Contains(ImfFieldNames.MimeVersion), domain, item.Path));
+                    // ref. RFC 3501 §6.4.5: a message part and the message in it have the one number, but the body of a message is its part 1.
+                    var path = !item.IsMessageBody ? item.Path : item.Path.Length == 0 ? "1" : item.Path + ".1";
+                    pending.Push(new PendingBody(part.Message.Body, item.IsMime || part.Message.Fields.Contains(ImfFieldNames.MimeVersion), domain, path, true, isKept));
                 }
                 else if (item.Entity is ImfMultipart multipart)
                 {
@@ -216,7 +223,7 @@ namespace DataStandardizer.File.InternetMessage
                     for (var index = multipart.Parts.Count - 1; index >= 0; index--)
                     {
                         var number = (index + 1).ToString(CultureInfo.InvariantCulture);
-                        pending.Push(new PendingBody(multipart.Parts[index], item.IsMime, domain, item.Path.Length == 0 ? number : item.Path + "." + number));
+                        pending.Push(new PendingBody(multipart.Parts[index], item.IsMime, domain, item.Path.Length == 0 ? number : item.Path + "." + number, false, isKept));
                     }
                 }
                 else if (item.Entity.IsRead && !item.Entity.HasChangedBody)
@@ -233,13 +240,29 @@ namespace DataStandardizer.File.InternetMessage
             internal readonly bool IsMime;
             internal readonly MimeDataDomain Enclosing;
             internal readonly string Path;
+            internal readonly bool IsMessageBody;
+            internal readonly bool IsHolderKept;
 
-            internal PendingBody(ImfEntity entity, bool isMime, MimeDataDomain enclosing, string path)
+            internal PendingBody(ImfEntity entity, bool isMime, MimeDataDomain enclosing, string path, bool isMessageBody, bool isHolderKept)
             {
+                IsMessageBody = isMessageBody;
+                IsHolderKept = isHolderKept;
                 Entity = entity;
                 IsMime = isMime;
                 Enclosing = enclosing;
                 Path = path;
+            }
+        }
+
+        private static void CheckHeaderOctets(PendingBody item, List<ImfDiagnostic> diagnostics)
+        {
+            foreach (var field in item.Entity.Fields)
+            {
+                if (ImfBodyCheck.HasInvalidHeaderOctet(field.RawBytes.Span, item.Enclosing))
+                {
+                    diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.InvalidBodyOctets, ImfBodyCheck.InvalidHeaderOctetsMessage, field.BytePosition, item.Path, field.Name, field.LineNumber));
+                    return;
+                }
             }
         }
 

@@ -37,6 +37,11 @@ namespace DataStandardizer.File.InternetMessage
     /// part of the message, with an <see cref="ImfDiagnostic"/>.
     /// </para>
     /// <para>
+    /// <b>Line length.</b>  RFC 4155 Appendix A requires each message to follow the formatting rules of RFC 2822, so RFC 5322 §2.1.1 limits each line in the file to 998 octets.  With
+    /// <see cref="MboxVariant.Mboxrd"/>, a line whose quote takes it past that, though the line of the message fits once the quote is off, is treated as any long line of the message is: it causes an
+    /// <see cref="ImfFileException"/> for that message, once the message has been read, unless <see cref="ImfOptions.AllowLongLines"/> is set, or it is in a body that has no line limit, such as a <c>binary</c> one.
+    /// </para>
+    /// <para>
     /// Mailbox locking and changing a mailbox in place are not supported.  Only one read may be in progress at a time, and a read started while another is in progress throws
     /// <see cref="InvalidOperationException"/>.
     /// </para>
@@ -255,7 +260,7 @@ namespace DataStandardizer.File.InternetMessage
             {
                 if (!MoveToMessage()) return null;
 
-                using (var reader = new ImfReader(new MboxMessageStream(this, false), _options, MessageBufferSize, !_scanner.IsCrLf))
+                using (var reader = new ImfReader(new MboxMessageStream(this, false), _options, MessageBufferSize, !_scanner.IsCrLf) { LongLinesOutsideTheData = () => _scanner.LongQuotedLines })
                 {
                     var entry = BuildEntry(reader.ReadMessage(), reader);
                     ThrowIfDisposed();
@@ -361,7 +366,7 @@ namespace DataStandardizer.File.InternetMessage
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!await MoveToMessageAsync(cancellationToken).ConfigureAwait(false)) return null;
 
-                using (var reader = new ImfReader(new MboxMessageStream(this, false), _options, MessageBufferSize, !_scanner.IsCrLf))
+                using (var reader = new ImfReader(new MboxMessageStream(this, false), _options, MessageBufferSize, !_scanner.IsCrLf) { LongLinesOutsideTheData = () => _scanner.LongQuotedLines })
                 {
                     var entry = BuildEntry(await reader.ReadMessageAsync(cancellationToken).ConfigureAwait(false), reader);
                     ThrowIfDisposed();
@@ -551,6 +556,7 @@ namespace DataStandardizer.File.InternetMessage
         {
             var reader = new ImfEntityReader(new MboxMessageStream(this, true), _options, MessageBufferSize, !_scanner.IsCrLf)
             {
+                LongLinesOutsideTheData = () => _scanner.LongQuotedLines,
                 MessageIndex = _scanner.MessageIndex
             };
             _entityReader = reader;

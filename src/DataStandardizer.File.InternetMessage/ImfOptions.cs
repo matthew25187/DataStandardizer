@@ -170,8 +170,10 @@ namespace DataStandardizer.File.InternetMessage
         /// </summary>
         /// <remarks>
         /// RFC 5322 §2.3 makes a body US-ASCII, and RFC 2045 §6.1 makes <c>7bit</c> the default.  §2.7 allows no octet above 127 and no NUL in <c>7bit</c> data, §2.8 allows no NUL in <c>8bit</c>
-        /// data, and both allow CR and LF only as a CRLF.  §6.4 limits a part to the encoding of the entity that holds it.  When <c>false</c> (the default), a reader or an <see cref="ImfWriter"/>
-        /// throws an <see cref="ImfFileException"/> for such a body.  When <c>true</c>, it records an <see cref="ImfDiagnostic"/> instead, once for each body.  A message with no MIME fields may
+        /// data, and both allow CR and LF only as a CRLF.  §6.4 limits a part to the encoding of the entity that holds it, and that goes for the header of a part or an embedded message too, so
+        /// one with an octet above 127 needs an <c>8bit</c> or <c>binary</c> label on the entity that holds it (RFC 6532 §3.7).  The header of the message itself has nothing holding it, so RFC 6532
+        /// §3.2 lets it hold UTF-8.  When <c>false</c> (the default), a reader or an <see cref="ImfWriter"/> throws an <see cref="ImfFileException"/> for such a body or header.  When <c>true</c>, it
+        /// records an <see cref="ImfDiagnostic"/> instead, once for each body and each header.  A message with no MIME fields may
         /// always hold NUL and bare CR and LF, as RFC 5322 §4.1 requires a receiver to accept them.  <see cref="AcceptBareLineFeed"/> accepts a bare line feed on its own.
         /// </remarks>
         public bool AllowInvalidBodyOctets
@@ -296,7 +298,8 @@ namespace DataStandardizer.File.InternetMessage
         /// RFC 5322 §2.1.1 limits each line to 998 octets, not counting the CRLF, and RFC 2045 §6.7 and §6.8 limit a line of a <c>quoted-printable</c> or <c>base64</c> body to 76.  A
         /// <c>binary</c> body has no lines (RFC 2045 §2.9).  When <c>false</c> (the default), a longer line causes an <see cref="ImfFileException"/>.  The limit is on each physical line, so a
         /// folded field may be longer once unfolded.  When <c>true</c>, a line of a header is still limited by <see cref="MaxHeaderSectionLength"/>, and a line of a body records an
-        /// <see cref="ImfDiagnostic"/>, once for each body.
+        /// <see cref="ImfDiagnostic"/>, once for each body.  RFC 4155 Appendix A applies the 998 octets to each line in an mbox file, so the quote that <see cref="MboxWriter"/> adds and
+        /// <see cref="MboxReader"/> takes off counts towards them, and this option accepts a line that it takes past them, with an <see cref="ImfDiagnostic"/>.
         /// </remarks>
         public bool AllowLongLines
         {

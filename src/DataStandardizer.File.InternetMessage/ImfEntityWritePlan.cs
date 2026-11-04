@@ -643,7 +643,7 @@ namespace DataStandardizer.File.InternetMessage
             foreach (var child in node.Children)
             {
                 var childDomain = ChooseEncodings(child);
-                if (!isPreserved || !child.Source.IsPreserved || child.Source.Kind != ImfEntitySource.SourceKind.Raw) domain = Max(domain, childDomain);
+                if (!isPreserved || !child.Source.IsPreserved || child.Source.HasChangedHeader || child.Source.Kind != ImfEntitySource.SourceKind.Raw) domain = Max(domain, childDomain);
             }
 
             domain = Max(domain, CheckDiscardText(node, node.PreambleScan));
