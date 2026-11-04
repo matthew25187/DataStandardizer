@@ -120,15 +120,15 @@ namespace DataStandardizer.File.InternetMessage
 #endif
 
         /// <summary>
-        /// Creates a reader with a specific size for the internal block and a line break setting.  Allows tests to force refills at chosen points,
-        /// and the readers of container formats to read the LF line breaks of their messages.
-        /// </summary>
-        /// <summary>
         /// Sets what gives, once the message has ended, the lines of it that are too long in a form that this reader doesn't see.
         /// </summary>
         [AllowNull]
         internal Func<List<ImfLongLine>> LongLinesOutsideTheData { private get; set; }
 
+        /// <summary>
+        /// Creates a reader with a specific size for the internal block and a line break setting.  Allows tests to force refills at chosen points,
+        /// and the readers of container formats to read the LF line breaks of their messages.
+        /// </summary>
         internal ImfReader(Stream messageStream, ImfOptions options, int bufferSize, bool lineFeedIsLineBreak)
             : this(CheckOptions(options), ImfHeaderReader.ValidateStream(messageStream), false, options, bufferSize, lineFeedIsLineBreak)
         {

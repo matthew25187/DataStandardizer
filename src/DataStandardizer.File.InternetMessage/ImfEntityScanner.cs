@@ -87,15 +87,6 @@ namespace DataStandardizer.File.InternetMessage
         /// <summary>
         /// An entity whose end has not been reached.
         /// </summary>
-        // The bytes of the fields and what a part or a message holds, in the order they were read.
-        private sealed class BodyRange
-        {
-            internal long Start;
-            internal long End;
-            internal string Path = string.Empty;
-            internal bool IsBinary;
-        }
-
         private sealed class Frame
         {
             internal byte[] Boundary = EmptyBytes;
@@ -115,6 +106,15 @@ namespace DataStandardizer.File.InternetMessage
             internal int PathNumber;
             internal long Start;
             internal MimeTransferEncoding TransferEncoding;
+        }
+
+        // The bytes of the fields and what a part or a message holds, in the order they were read.
+        private sealed class BodyRange
+        {
+            internal long Start;
+            internal long End;
+            internal string Path = string.Empty;
+            internal bool IsBinary;
         }
 
         private const byte CarriageReturn = 0x0D;
