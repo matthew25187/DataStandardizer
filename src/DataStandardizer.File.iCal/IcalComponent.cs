@@ -163,8 +163,8 @@ namespace DataStandardizer.File.iCal
         /// <remarks>
         /// <para>
         /// This checks the rules that <see cref="IcalReader"/> and <see cref="IcalWriter"/> enforce: required properties and components, how
-        /// often each property may appear, the syntax of property values, where each component may be nested, and the <c>VERSION</c> of a
-        /// calendar.  Whether a <c>TZID</c> parameter names a VTIMEZONE, and whether a VEVENT needs a <c>DTSTART</c>, depend on the calendar,
+        /// often each property may appear, the syntax of property values and of the <c>FMTTYPE</c> parameter, where each component may be nested,
+        /// and the <c>VERSION</c> of a calendar.  Whether a <c>TZID</c> parameter names a VTIMEZONE, and whether a VEVENT needs a <c>DTSTART</c>, depend on the calendar,
         /// so they are checked only when this is an <see cref="IcalCalendar"/>.
         /// </para>
         /// <para>

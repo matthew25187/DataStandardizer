@@ -40,11 +40,13 @@ namespace DataStandardizer.File.iCal
         /// When <c>false</c> (the default), <see cref="IcalReader"/> rejects a calendar holding such a value, and <see cref="IcalWriter"/> refuses
         /// to write one, with an <see cref="IcalFileException"/>.  The checks cover the value types of RFC 5545 §3.3 and the rules that tie a value
         /// to its property: a <c>VALUE</c> parameter the property does not allow, or one it requires; a DATE-TIME that must be in UTC; and
-        /// date-times that must have the same value type as the property's <c>DTSTART</c>.
+        /// date-times that must have the same value type as the property's <c>DTSTART</c>.  They also cover the <c>FMTTYPE</c> parameter, which
+        /// RFC 5545 §3.2.8 makes one type and subtype with no media type parameters, and which may appear only once.
         /// </para>
         /// <para>
         /// When <c>true</c>, the value is kept as written.  A typed accessor such as <see cref="IcalEvent.DtStart"/> throws
-        /// <see cref="IcalFileException"/> when it reads the value.
+        /// <see cref="IcalFileException"/> when it reads the value, as <see cref="IcalContentLine.GetFormatType"/> does for a <c>FMTTYPE</c>
+        /// parameter.
         /// </para>
         /// </remarks>
         public bool AllowInvalidValues

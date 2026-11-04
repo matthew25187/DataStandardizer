@@ -105,7 +105,7 @@ namespace DataStandardizer.File.iCal.Tests
             testResult.Should().Be(expected);
         }
 
-        public static TheoryData<string> XcalConformanceCases() => ConformanceCases.XcalAndJcalCases();
+        public static TheoryData<string> XcalConformanceCases() => ConformanceCases.XcalCases();
 
         [Theory]
         [MemberData(nameof(XcalConformanceCases))]

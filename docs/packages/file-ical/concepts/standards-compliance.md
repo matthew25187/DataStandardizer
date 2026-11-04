@@ -55,7 +55,7 @@ rest.
 | `AllowMissingRequiredProperties` | A missing required property or component, such as the `UID` or `DTSTAMP` of a VEVENT, or the STANDARD or DAYLIGHT parts of a VTIMEZONE. | The "MUST include" rules of each component. |
 | `AllowCardinalityViolations` | A property that may appear once appearing more than once, or two properties that exclude each other both appearing, such as `DTEND` and `DURATION` in a VEVENT. A typed accessor reads the first. | The "MUST NOT occur more than once" rules. |
 | `AllowUndefinedTimeZones` | A `TZID` parameter that names a time zone with no VTIMEZONE in the calendar. | RFC 5545 §3.2.19: a VTIMEZONE MUST be specified for each `TZID`. |
-| `AllowInvalidValues` | A value that doesn't follow the syntax of its value type, or breaks a rule that ties it to its property. The value is kept as written, and a typed accessor such as `IcalEvent.DtStart` throws `IcalFileException` when it reads it. | RFC 5545 §3.3 and the value rules of each property. |
+| `AllowInvalidValues` | A value that doesn't follow the syntax of its value type, or breaks a rule that ties it to its property, or a `FMTTYPE` parameter that isn't one type and subtype. The value is kept as written, and a typed accessor such as `IcalEvent.DtStart` throws `IcalFileException` when it reads it. | RFC 5545 §3.3, the value rules of each property, and RFC 5545 §3.2.8. |
 
 The same options apply to reading and writing:
 

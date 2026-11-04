@@ -119,10 +119,14 @@ its property:
 - A `VALUE` parameter that the property doesn't allow, or one it requires.
 - A DATE-TIME that must be in UTC.
 - Date-times that must have the same value type as the component's `DTSTART`.
+- A `FMTTYPE` parameter that appears twice, has two values, or isn't a type and
+  subtype, such as `FMTTYPE="text/html; charset=utf-8"` (RFC 5545 §3.2.8).
 
 With `AllowInvalidValues`, the value is kept as it was written. It is still there in
 `GetProperty("DTSTART").Value`, but a typed accessor such as `IcalEvent.DtStart`
-throws `IcalFileException` when it reads it.
+throws `IcalFileException` when it reads it. In the same way, `GetFormatType()` throws
+for a `FMTTYPE` parameter that isn't valid, and `GetParameter("FMTTYPE")` gives it as
+written.
 
 When the xCal or jCal writer writes such a value, it writes it as an unknown type
 with its `VALUE` parameter.

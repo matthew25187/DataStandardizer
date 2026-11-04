@@ -298,6 +298,7 @@ namespace DataStandardizer.File.iCal
             foreach (var property in component.Properties)
             {
                 ValidateValue(property, path, context);
+                ValidateFormatType(property, path, context);
                 if (context.IsCalendar)
                 {
                     ValidateTimeZoneReference(property, path, context);
@@ -786,6 +787,17 @@ namespace DataStandardizer.File.iCal
                     string.Format(CultureInfo.InvariantCulture, "The {0} property must be from {1} to {2}.", property.Name.ToUpperInvariant(), minimum,
                         maximum), context);
             }
+        }
+
+        /// <summary>
+        /// Checks the <c>FMTTYPE</c> parameter of any property, including one RFC 5545 and RFC 7986 do not define: RFC 5545 §3.2.8 sets its syntax,
+        /// and §3.8.1.1 and RFC 7986 §5.10 allow it once on ATTACH and IMAGE.
+        /// </summary>
+        private static void ValidateFormatType(IcalContentLine property, string path, Context context)
+        {
+            if (property.TryGetFormatType(out _)) return;
+
+            AddInvalidValue(property, path, IcalPropertyValue.BuildInvalidFormatTypeMessage(property.Name.ToUpperInvariant()), context);
         }
 
         /// <summary>
