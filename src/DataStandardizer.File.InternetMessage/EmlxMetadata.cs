@@ -183,7 +183,7 @@ namespace DataStandardizer.File.InternetMessage
         /// <param name="value">Receives the value, or <c>null</c> if the key isn't there.</param>
         /// <returns><c>true</c> if the key is there.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="key"/> is <c>null</c>.</exception>
-        public bool TryGetValue(string key, [MaybeNull] out EmlxPlistValue value)
+        public bool TryGetValue(string key, [MaybeNullWhen(false)] out EmlxPlistValue value)
         {
             if (key is null)
                 throw new ArgumentNullException(nameof(key));
