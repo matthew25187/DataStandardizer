@@ -10,7 +10,7 @@ namespace DataStandardizer.File.InternetMessage
     /// Finds the three pieces of an EMLX file: a line with the byte count, the message, and the property list.
     /// </summary>
     /// <remarks>
-    /// EMLX is proprietary and undocumented.  This follows the layout that open-source readers agree on.  Several of them trim white space from the count before they read it, so spaces after it
+    /// EMLX is proprietary and undocumented.  This follows the layout that open-source readers agree on.  At least one of them trims white space from the count before it reads it, so spaces after it
     /// are kept and not treated as a problem.
     /// </remarks>
     internal sealed class EmlxLayout

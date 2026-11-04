@@ -28,7 +28,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public const string Plain = "57\n" + Message + Metadata;
         public const string UnknownKeys = "57\n" + Message + UnknownKeysMetadata;
 
-        // 57 octets, with spaces after the count, which several open-source readers trim.
+        // 57 octets, with spaces after the count, which at least one open-source reader trims.
         public const string Padded = "57        \n" + Message + Metadata;
 
         public const string MessageNoFinalLineBreak = "Date: Thu, 1 Jan 2026 00:00:00 +0000\nFrom: a@b.test\n\none";
