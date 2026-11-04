@@ -83,5 +83,20 @@
         /// <see cref="ImfMessage.Validate"/> found that the body breaks a rule of RFC 2046 §5 that the options don't accept, so what it holds could not be checked.
         /// </summary>
         InvalidBodyStructure = 14,
+
+        /// <summary>
+        /// The first line of an EMLX file isn't a byte count, or the count doesn't fit the file: it passes the end of the file, or the bytes after it don't start a property list.
+        /// </summary>
+        InvalidEmlxByteCount = 15,
+
+        /// <summary>
+        /// An EMLX file has no property list after its message, or what it has isn't a well-formed XML property list with a <c>dict</c> at its root.
+        /// </summary>
+        InvalidEmlxMetadata = 16,
+
+        /// <summary>
+        /// A part of a partial EMLX file is stored in another file, and no content was supplied for it.
+        /// </summary>
+        MissingEmlxPart = 17,
     }
 }

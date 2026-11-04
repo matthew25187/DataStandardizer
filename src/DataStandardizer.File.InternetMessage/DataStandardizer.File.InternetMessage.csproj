@@ -15,9 +15,10 @@ Provides types supporting the reading and writing of Internet messages, includin
 - RFC 5322 and RFC 6854: a message object model with typed accessors for the origination, destination, identification, informational, resent and trace fields, a reader and writer that keep unchanged fields byte for byte, and the conformance checks of RFC 5322 §3.6
 - RFC 2045, RFC 2046, RFC 2387 and RFC 2392: a MIME entity tree with decoded content, text and HTML bodies, attachments, cid: lookup, a message builder, and a writer that rewrites only what has changed
 - RFC 2557 and RFC 2387: MHTML files, with Content-Location, the root of a multipart/related entity, URLs resolved to their parts, a document builder, and a reader and writer
-- RFC 4155: mbox files in the mboxrd, mboxo, mboxcl and mboxcl2 variants, with a reader that takes one message at a time, so a mailbox of any size can be processed, and a writer</Description>
+- RFC 4155: mbox files in the mboxrd, mboxo, mboxcl and mboxcl2 variants, with a reader that takes one message at a time, so a mailbox of any size can be processed, and a writer
+- Apple Mail EMLX files: a message with its byte count and its property list of metadata, with typed flags and dates, unknown keys kept, partial files with their parts supplied by the caller, and a reader and writer</Description>
     <Copyright>Copyright © 2026, Matthew25187. All rights reserved.</Copyright>
-    <PackageTags>data;standard;email;internet message;file;rfc 5322;rfc 6532;rfc 6854;mime;rfc 2045;rfc 2046;rfc 2047;rfc 2183;rfc 2231;rfc 2387;rfc 2392;rfc 2557;rfc 3282;mhtml;rfc 4155;mbox</PackageTags>
+    <PackageTags>data;standard;email;internet message;file;rfc 5322;rfc 6532;rfc 6854;mime;rfc 2045;rfc 2046;rfc 2047;rfc 2183;rfc 2231;rfc 2387;rfc 2392;rfc 2557;rfc 3282;mhtml;rfc 4155;mbox;emlx;apple mail</PackageTags>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
   </PropertyGroup>
 
