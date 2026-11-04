@@ -23,6 +23,8 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string FirstSubject = "first";
         private const string RepeatedSubjectMessage = Minimal + "Subject: first\r\nSubject: second\r\n" + EmptyLine;
         private const string OnlyFromWithBody = OnlyFrom + "Body";
+        private const string InvalidDateMessage = "Date: yesterday\r\n\r\n";
+        private const string InvalidDateWithBody = InvalidDateMessage + "Body";
         private const string OnlyInvalidFrom = "From: nobody\r\n\r\n";
         private const string SeveralProblems = "Subject: 1\r\nSubject: 2\r\nCc: nobody\r\n\r\n";
         private const string InvalidFromAtPosition = "Subject: 1\r\n" + DateField + OnlyInvalidFrom;
@@ -31,6 +33,9 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
         // The length of OnlyFrom: 16 for the field, and 2 for the empty line.
         private const int OnlyFromLength = 18;
+
+        // The length of InvalidDateMessage: 17 for the field, and 2 for the empty line.
+        private const int InvalidDateMessageLength = 19;
 
         // Where the From field of InvalidFromAtPosition starts: 12 for the Subject field, and 39 for the Date field.
         private const int InvalidFromPosition = 51;
@@ -67,9 +72,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
         };
 
         /// <summary>
-        /// Each header with one problem, the kind of that problem, and the field it is with.
+        /// Each header with no field of a kind it needs.  §3.5, §4 and §4.5 of RFC 5322 require a receiver to accept it, as the <c>obs-fields</c> grammar has no minimum for any field, and a
+        /// writer must not generate it.
         /// </summary>
-        public static TheoryData<string, ImfDiagnosticKind, string> Violations => new TheoryData<string, ImfDiagnosticKind, string>
+        public static TheoryData<string, ImfDiagnosticKind, string> MissingFields => new TheoryData<string, ImfDiagnosticKind, string>
         {
             // ref. RFC 5322 §3.6: the fields with a minimum number of 1.
             { FromField + EmptyLine, ImfDiagnosticKind.MissingRequiredField, Date },
@@ -84,7 +90,13 @@ namespace DataStandardizer.File.InternetMessage.Tests
             { ResentFromField + Minimal + EmptyLine, ImfDiagnosticKind.MissingRequiredField, ResentDate },
             { ResentDateField + Minimal + EmptyLine, ImfDiagnosticKind.MissingRequiredField, ResentFrom },
             { ResentDateField + "Resent-From: a@b.test, c@d.test\r\n" + Minimal + EmptyLine, ImfDiagnosticKind.MissingRequiredField, ResentSender },
+        };
 
+        /// <summary>
+        /// Each header with one problem that a reader refuses by default, the kind of that problem, and the field it is with.
+        /// </summary>
+        public static TheoryData<string, ImfDiagnosticKind, string> Violations => new TheoryData<string, ImfDiagnosticKind, string>
+        {
             // ref. RFC 5322 §3.6: the grammar of each field body.
             { "Date: yesterday\r\n" + FromField + EmptyLine, ImfDiagnosticKind.InvalidFieldValue, Date },
             { "Date: " + WrongDayOfWeek + "\r\n" + FromField + EmptyLine, ImfDiagnosticKind.InvalidFieldValue, Date },
@@ -205,6 +217,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
         [Theory]
         [MemberData(nameof(Violations))]
+        [MemberData(nameof(MissingFields))]
         [MemberData(nameof(RepeatedFields))]
         public void ReadMessage_ViolationWithOption_RecordsADiagnostic(string message, ImfDiagnosticKind kind, string fieldName)
         {
@@ -224,6 +237,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
         [Theory]
         [MemberData(nameof(Violations))]
+        [MemberData(nameof(MissingFields))]
         [MemberData(nameof(RepeatedFields))]
         public void Validate_Violation_GivesTheDiagnosticWithoutThrowing(string message, ImfDiagnosticKind kind, string fieldName)
         {
@@ -241,6 +255,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
         [Theory]
         [MemberData(nameof(Violations))]
+        [MemberData(nameof(MissingFields))]
         [MemberData(nameof(RepeatedFields))]
         public void WriteMessage_ViolationWithoutOption_ThrowsAndWritesNothing(string message, ImfDiagnosticKind kind, string fieldName)
         {
@@ -264,6 +279,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
         [Theory]
         [MemberData(nameof(Violations))]
+        [MemberData(nameof(MissingFields))]
         [MemberData(nameof(RepeatedFields))]
         public async Task WriteMessageAsync_ViolationWithoutOption_FaultsTheTaskAndWritesNothing(string message, ImfDiagnosticKind kind, string fieldName)
         {
@@ -286,6 +302,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
         [Theory]
         [MemberData(nameof(Violations))]
+        [MemberData(nameof(MissingFields))]
         public void WriteMessage_ViolationWithOption_RecordsADiagnosticAndWritesByteForByte(string message, ImfDiagnosticKind kind, string fieldName)
         {
             // arrange
@@ -305,11 +322,11 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Fact]
-        public void ReadMessage_OnlyTheCardinalityOption_StillRejectsAMissingField()
+        public void ReadMessage_OnlyTheCardinalityOption_StillRejectsAnInvalidValue()
         {
             // arrange
             var options = new ImfOptions { AllowCardinalityViolations = true };
-            using (var reader = new ImfReader(new MemoryStream(Octets.Of(OnlyFrom)), options))
+            using (var reader = new ImfReader(new MemoryStream(Octets.Of(InvalidDateMessage)), options))
             {
                 // act
                 Action testAction = () => reader.ReadMessage();
@@ -320,8 +337,9 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Theory]
+        [MemberData(nameof(MissingFields))]
         [MemberData(nameof(RepeatedFields))]
-        public void ReadMessage_RepeatedFieldByDefault_RecordsADiagnostic(string message, ImfDiagnosticKind kind, string fieldName)
+        public void ReadMessage_ObsoleteSyntaxByDefault_RecordsADiagnostic(string message, ImfDiagnosticKind kind, string fieldName)
         {
             // arrange
             using (var reader = new ImfReader(new MemoryStream(Octets.Of(message))))
@@ -463,7 +481,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ReadMessage_ViolationAtFault_LeavesTheBodyUnread()
         {
             // arrange
-            var stream = new BlockStream(Octets.Of(OnlyFromWithBody), BlockStreamMode.SynchronousOnly, OnlyFromLength);
+            var stream = new BlockStream(Octets.Of(InvalidDateWithBody), BlockStreamMode.SynchronousOnly, InvalidDateMessageLength);
             using (var reader = new ImfReader(stream))
             {
                 // act
@@ -471,7 +489,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
                 // assert
                 testAction.Should().Throw<ImfFileException>();
-                stream.BytesGiven.Should().Be(OnlyFromLength);
+                stream.BytesGiven.Should().Be(InvalidDateMessageLength);
             }
         }
     }

@@ -17,8 +17,8 @@ namespace DataStandardizer.File.InternetMessage
     /// An MHTML file is a MIME message (RFC 2557 §3), so this reads it as an <see cref="ImfReader"/> does, under the same options, and gives the same tree of entities.
     /// </para>
     /// <para>
-    /// <b>Required fields.</b>  Every check of <see cref="ImfReader"/> applies.  Some programs write no Date or From field, which needs <see cref="ImfOptions.AllowMissingRequiredFields"/>, and
-    /// the <c>From: &lt;Saved by Blink&gt;</c> that Chromium writes needs <see cref="ImfOptions.AllowInvalidValues"/>.
+    /// <b>Required fields.</b>  Every check of <see cref="ImfReader"/> applies.  Some programs write no Date or From field, which is recorded in <see cref="Diagnostics"/>, as
+    /// <see cref="ImfReader"/> describes, and the <c>From: &lt;Saved by Blink&gt;</c> that Chromium writes needs <see cref="ImfOptions.AllowInvalidValues"/>.
     /// </para>
     /// <para>
     /// <b>Structure.</b>  Once it has been read, the message is checked as <see cref="MhtmlDocument"/> describes.  So a <c>multipart/related</c> entity with no <c>type</c> parameter, as Word

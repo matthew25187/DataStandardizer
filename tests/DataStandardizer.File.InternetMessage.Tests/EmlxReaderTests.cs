@@ -54,7 +54,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
         private const string CrLfMessage = "59\nDate: Thu, 1 Jan 2026 00:00:00 +0000\r\nFrom: a@b.test\r\n\r\none\r\n" + Metadata;
         private const string TooLargeCountWithByteOrderMark = "9999\n" + Message + EmlxFiles.ByteOrderMark + Metadata;
-        private const string BadMessage = "14\nSubject: x\n\ny\n" + Metadata;
+        private const string BadMessage = "11\nDate: x\n\ny\n" + Metadata;
 
         // ref. the bits in EmlxFiles.KnownAndUnknownFlags.
         private const EmlxMessageFlags ExpectedFlags = EmlxMessageFlags.Read | EmlxMessageFlags.Answered;
@@ -546,7 +546,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // assert
             testAction.Should().Throw<ImfFileException>()
-                .Which.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.MissingRequiredField);
+                .Which.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.InvalidFieldValue);
         }
 
         [Fact]

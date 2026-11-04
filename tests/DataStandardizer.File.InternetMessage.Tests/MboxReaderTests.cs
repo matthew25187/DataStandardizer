@@ -109,7 +109,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string NoLengthMailbox = Separator1 + Header + "\none\n\n" + Separator2 + Message2 + "\n";
         private const string NotANumberMailbox = Separator1 + Header + "Content-Length: x\n\none\n\n" + Separator2 + Message2 + "\n";
 
-        private const string InvalidMiddleMailbox = OneMessageWithEmptyLine + Separator2 + "Subject: nothing required\n\nx\n\n" + OneMessageWithEmptyLine;
+        private const string InvalidMiddleMailbox = OneMessageWithEmptyLine + Separator2 + "Date: yesterday\n\nx\n\n" + OneMessageWithEmptyLine;
         private const string RejectedIndexOne = "rejected 1";
 
         private const string EnvelopeAndBody1 = Envelope1 + "|one\n";
