@@ -48,7 +48,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string InvalidFirstLine = "From nobody\n" + Message1 + "\n";
         private const string NoEmptyLineBeforeSecond = OneMessage + Separator2 + Message2 + "\n";
         private const string EndsAtSecondSeparator = OneMessage + Separator2;
-        private const string UnquotedFromLine = Separator1 + Header + "\nFrom here on\n\n";
+        private const string UnquotedFromLineMessage = Header + "\nFrom here on\n";
+        private const string UnquotedFromLine = Separator1 + UnquotedFromLineMessage + "\n";
+        private const string ThunderbirdLaterMessage = Message1 + "\nFrom - Fri Jan  2 12:30:45 2026\n" + Message2;
+        private const string ThunderbirdLater = Separator1 + ThunderbirdLaterMessage + "\n";
         private const string UnquotedMessage = Header + "\nFrom here on\nand From there\n";
         private const string UnquotedMailbox = Separator1 + UnquotedMessage + "\n";
         private const string ManyUnquotedMailbox = Separator1 + Header + "\nFrom one\nFrom two\nFrom three\n\n";
@@ -323,7 +326,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             Action testAction = () => Mailboxes.ReadAll(CrLfSeparatorLater);
 
             // assert
-            testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.InvalidMboxSeparator);
+            testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.MboxCarriageReturnLineFeed);
         }
 
         [Fact]
@@ -407,17 +410,17 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Fact]
-        public void ReadMessage_UnquotedFromLineInBody_ThrowsByDefault()
+        public void ReadMessage_UnquotedFromLineInBody_IsContentByDefault()
         {
             // act
-            Action testAction = () => Mailboxes.ReadAll(UnquotedFromLine);
+            var testResult = Mailboxes.ReadAll(UnquotedFromLine);
 
             // assert
-            testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.InvalidMboxSeparator);
+            testResult.Should().Equal(UnquotedFromLineMessage);
         }
 
         [Fact]
-        public void ReadMessage_UnquotedFromLineInBodyAllowed_IsContent()
+        public void ReadMessage_UnquotedFromLinesUnderTheOption_AreContent()
         {
             // act
             var testResult = Mailboxes.ReadAll(UnquotedMailbox, MboxVariant.Mboxrd, AllowInvalidSeparator);
@@ -427,13 +430,33 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Fact]
-        public void ReadMessage_ManyUnquotedFromLinesAllowed_RecordsOneDiagnostic()
+        public void ReadMessage_ManyUnquotedFromLines_RecordsOneDiagnostic()
         {
             // act
-            var testResult = Mailboxes.ReadDiagnosticKinds(ManyUnquotedMailbox, MboxVariant.Mboxrd, AllowInvalidSeparator);
+            var testResult = Mailboxes.ReadDiagnosticKinds(ManyUnquotedMailbox, MboxVariant.Mboxrd, new ImfOptions());
 
             // assert
             testResult.Should().Equal(ImfDiagnosticKind.InvalidMboxSeparator);
+        }
+
+        [Fact]
+        public void ReadMessage_NonstandardSeparatorLaterByDefault_IsContent()
+        {
+            // act
+            var testResult = Mailboxes.ReadAll(ThunderbirdLater);
+
+            // assert
+            testResult.Should().Equal(ThunderbirdLaterMessage);
+        }
+
+        [Fact]
+        public void ReadMessage_NonstandardSeparatorLaterUnderTheOption_StartsAMessage()
+        {
+            // act
+            var testResult = Mailboxes.ReadAll(ThunderbirdLater, MboxVariant.Mboxrd, AllowInvalidSeparator);
+
+            // assert
+            testResult.Should().Equal(Message1, Message2);
         }
 
         [Fact]

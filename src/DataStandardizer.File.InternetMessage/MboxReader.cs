@@ -29,11 +29,12 @@ namespace DataStandardizer.File.InternetMessage
     /// correctly ends only that message: the next read goes on to the next one.
     /// </para>
     /// <para>
-    /// <b>The format.</b>  A first line that isn't a separator line, a line starting <c>From </c> that isn't one, a message not ended by an empty line, a Content-Length field that is missing or
+    /// <b>The format.</b>  A first line that isn't a separator line, a message not ended by an empty line, a Content-Length field that is missing or
     /// wrong, a CRLF line break and an octet above 127 each cause an <see cref="ImfFileException"/>, unless <see cref="ImfOptions.AllowMissingMboxSeparator"/>,
     /// <see cref="ImfOptions.AllowInvalidMboxSeparator"/>, <see cref="ImfOptions.AllowMissingMboxBlankLine"/>, <see cref="ImfOptions.AllowInvalidMboxContentLength"/>,
     /// <see cref="ImfOptions.AllowMboxCarriageReturnLineFeed"/> or <see cref="ImfOptions.AllowEightBitMboxContent"/> is set.  Reading then ends, and later reads throw
-    /// <see cref="InvalidOperationException"/>.
+    /// <see cref="InvalidOperationException"/>.  RFC 4155 Appendix A prescribes no way to quote a line of a message that starts <c>From </c>, so a later line that isn't a full separator line is
+    /// part of the message, with an <see cref="ImfDiagnostic"/>.
     /// </para>
     /// <para>
     /// Mailbox locking and changing a mailbox in place are not supported.  Only one read may be in progress at a time, and a read started while another is in progress throws

@@ -227,14 +227,14 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Gets a flag indicating if a line of an mbox file that starts with <c>From </c> may differ from the separator line that RFC 4155 Appendix A requires.
+        /// Gets a flag indicating if a separator line of an mbox file may differ from the form that RFC 4155 Appendix A requires.
         /// </summary>
         /// <remarks>
         /// RFC 4155 Appendix A requires an <c>addr-spec</c> and a UTC date and time in the form of <c>ctime</c>.  When <c>false</c> (the default), an <see cref="MboxReader"/> throws an
-        /// <see cref="ImfFileException"/> for a line starting <c>From </c> in any other form, and an <see cref="MboxWriter"/> does the same for an <see cref="MboxEnvelope"/> that was read in
-        /// another form.  When <c>true</c>, an <see cref="ImfDiagnostic"/> is recorded instead, and the line is a separator line if it has a sender and a date and time, with the day not padded,
-        /// no seconds, a time zone before or after the year, or more white space, as Thunderbird and Gmail write.  Any other line starting <c>From </c> is then part of the message, as programs
-        /// that quote only some of these lines leave them.  <see cref="MboxEnvelope.Sender"/> or <see cref="MboxEnvelope.Date"/> is <c>null</c> if it can't be understood.
+        /// <see cref="ImfFileException"/> for a first line in any other form, and takes any later line in another form as part of the message, as the standard prescribes no way to quote one, with
+        /// an <see cref="ImfDiagnostic"/>.  An <see cref="MboxWriter"/> throws for an <see cref="MboxEnvelope"/> that was read in another form.  When <c>true</c>, a line is a separator line if it
+        /// has a sender and a date and time, with the day not padded, no seconds, a time zone before or after the year, or more white space, as Thunderbird and Gmail write, and an
+        /// <see cref="ImfDiagnostic"/> is recorded.  <see cref="MboxEnvelope.Sender"/> or <see cref="MboxEnvelope.Date"/> is <c>null</c> if it can't be understood.
         /// </remarks>
         public bool AllowInvalidMboxSeparator
         {

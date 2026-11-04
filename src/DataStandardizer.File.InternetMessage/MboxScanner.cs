@@ -63,8 +63,8 @@ namespace DataStandardizer.File.InternetMessage
             internal const string ContentLengthMismatch = "The body of the length given by the Content-Length field isn't followed by an empty line and then a separator line or the end of the file.  ImfOptions.AllowInvalidMboxContentLength doesn't rely on it.";
             internal const string ContentLengthTooLong = "The file ended before the end of the body of the length given by the Content-Length field.  ImfOptions.AllowInvalidMboxContentLength doesn't rely on it.";
             internal const string ContentLengthDiagnostic = "The Content-Length field is missing or not valid, or doesn't give the length of the body.";
-            internal const string InvalidSeparator = "The line starts with \"From \" and doesn't have the form of a separator line (RFC 4155 Appendix A), so it needs a quote.  ImfOptions.AllowInvalidMboxSeparator accepts it.";
-            internal const string InvalidSeparatorDiagnostic = "The line starts with \"From \" and doesn't have the form of a separator line that RFC 4155 Appendix A requires.";
+            internal const string InvalidSeparator = "The first line starts with \"From \" and doesn't have the form of a separator line (RFC 4155 Appendix A).  ImfOptions.AllowInvalidMboxSeparator accepts other forms.";
+            internal const string InvalidSeparatorDiagnostic = "A line starts with \"From \" and doesn't have the form that RFC 4155 Appendix A requires of a separator line, so if it was meant as one, it isn't taken as one, unless it is in a form that ImfOptions.AllowInvalidMboxSeparator accepts.";
             internal const string MissingBlankLine = "The separator line doesn't follow an empty line, which ends each message (RFC 4155 Appendix A).  ImfOptions.AllowMissingMboxBlankLine accepts it.";
             internal const string MissingBlankLineDiagnostic = "The message isn't ended by the empty line that RFC 4155 Appendix A requires.";
             internal const string CarriageReturnLineFeed = "The line ends in a carriage return and a line feed, which RFC 4155 Appendix A doesn't allow.  ImfOptions.AllowMboxCarriageReturnLineFeed accepts it.";
@@ -577,9 +577,7 @@ namespace DataStandardizer.File.InternetMessage
             // These variants don't rely on the lines of a message, and an obsolete "From : " field is one of them.
             if (_usesContentLength) return;
 
-            if (!_allowInvalidSeparator)
-                throw Fault(ErrorMessage.InvalidSeparator, ImfDiagnosticKind.InvalidMboxSeparator);
-
+            // ref. RFC 4155 Appendix A: only a full separator line is one, and no escape syntax is prescribed, so this line is part of the message.
             if (!_reportedInvalidSeparator)
             {
                 _reportedInvalidSeparator = true;

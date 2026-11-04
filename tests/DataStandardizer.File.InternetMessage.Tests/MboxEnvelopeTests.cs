@@ -20,6 +20,15 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const int Minute = 5;
         private const int Second = 9;
 
+        // ref. IERS Bulletin C: the leap second at the end of 2016.
+        private const string LeapSecondLine = "From a@b.test Sat Dec 31 23:59:60 2016";
+        private const int LeapYear = 2016;
+        private const int LeapMonth = 12;
+        private const int LeapDay = 31;
+        private const int LeapHour = 23;
+        private const int LeapMinute = 59;
+        private const int LastSecond = 59;
+
         private static readonly DateTimeOffset FirstOfJanuary = new DateTimeOffset(Year, Month, Day, 0, 0, 0, TimeSpan.Zero);
 
         [Fact]
@@ -147,7 +156,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         [InlineData("From a@b.test Sat Feb 30 00:00:00 2026")]
         [InlineData("From a@b.test Thu Jan  1 24:00:00 2026")]
         [InlineData("From a@b.test Thu Jan  1 00:60:00 2026")]
-        [InlineData("From a@b.test Thu Jan  1 00:00:60 2026")]
+        [InlineData("From a@b.test Thu Jan  1 00:00:61 2026")]
         [InlineData("From a@b.test Thu Jan  1 00:00:00 +0000 2026")]
         [InlineData("From a@b.test Thu Jan  1 00:00 2026")]
         [InlineData("From a@b.test Thu Jan  1 00:00:00 2026 ")]
@@ -159,6 +168,21 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // assert
             testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void TryParse_LeapSecond_IsConformingAndGivesSecond59()
+        {
+            // arrange
+            var expected = new DateTimeOffset(LeapYear, LeapMonth, LeapDay, LeapHour, LeapMinute, LastSecond, TimeSpan.Zero);
+
+            // act
+            MboxEnvelope.TryParse(Octets.Of(LeapSecondLine), false, out var testResult);
+
+            // assert
+            testResult.IsConforming.Should().BeTrue();
+            testResult.Date.Should().Be(expected);
+            Octets.ToText(testResult.RawLine.Span).Should().Be(LeapSecondLine);
         }
 
         [Fact]

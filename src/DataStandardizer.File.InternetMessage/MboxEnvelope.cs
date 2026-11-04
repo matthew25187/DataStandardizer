@@ -31,6 +31,9 @@ namespace DataStandardizer.File.InternetMessage
         private const int MaximumHour = 23;
         private const int MaximumMinuteOrSecond = 59;
 
+        // ref. ISO C struct tm: tm_sec goes up to 60, so ctime can give a leap second.
+        private const int LeapSecond = 60;
+
         private static readonly string[] DayNames = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
         private static readonly string[] MonthNames = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
@@ -87,7 +90,8 @@ namespace DataStandardizer.File.InternetMessage
 
         /// <summary>
         /// Gets the date and time that the message was received, or <c>null</c> if the line was read under <see cref="ImfOptions.AllowInvalidMboxSeparator"/> and doesn't give one that can be
-        /// understood, such as one with a time zone given as a name other than UTC or GMT.
+        /// understood, such as one with a time zone given as a name other than UTC or GMT.  A leap second becomes second 59 of the same minute, as <see cref="DateTimeOffset"/> has no leap
+        /// seconds, and <see cref="RawLine"/> keeps it.
         /// </summary>
         public DateTimeOffset? Date { get; }
 
@@ -313,11 +317,11 @@ namespace DataStandardizer.File.InternetMessage
             date = default;
             // The most a time zone offset can be.
             const int maximumOffsetHours = 14;
-            if (year < 1 || day < 1 || day > DateTime.DaysInMonth(year, month) || hour > MaximumHour || minute > MaximumMinuteOrSecond || second > MaximumMinuteOrSecond
+            if (year < 1 || day < 1 || day > DateTime.DaysInMonth(year, month) || hour > MaximumHour || minute > MaximumMinuteOrSecond || second > LeapSecond
                 || offset.Duration() > TimeSpan.FromHours(maximumOffsetHours))
                 return false;
 
-            var clock = new DateTime(year, month, day, hour, minute, second, DateTimeKind.Unspecified);
+            var clock = new DateTime(year, month, day, hour, minute, Math.Min(second, MaximumMinuteOrSecond), DateTimeKind.Unspecified);
             var utcTicks = clock.Ticks - offset.Ticks;
             if (utcTicks < DateTime.MinValue.Ticks || utcTicks > DateTime.MaxValue.Ticks) return false;
 
