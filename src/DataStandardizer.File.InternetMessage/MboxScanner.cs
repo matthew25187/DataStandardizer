@@ -87,6 +87,7 @@ namespace DataStandardizer.File.InternetMessage
         private const byte HighestSevenBitOctet = 0x7F;
         private const byte LineFeed = 0x0A;
         private const byte Quote = 0x3E;
+        private const long NotAQuotedLine = -1;
         private const byte Space = 0x20;
         private const byte Tab = 0x09;
 
@@ -145,6 +146,9 @@ namespace DataStandardizer.File.InternetMessage
         private int _position;
         private bool _previousLineWasEmpty;
         private long _quoteCount;
+        private long _quotedLineLength = NotAQuotedLine;
+        private long _quotedLineOffset;
+        private long _messageOffset;
         private long _quotesToWrite;
         private int _queueLength;
         private int _queueStart;
@@ -183,9 +187,10 @@ namespace DataStandardizer.File.InternetMessage
         internal List<ImfDiagnostic> Diagnostics { get; } = new List<ImfDiagnostic>();
 
         /// <summary>
-        /// Gets which lines have lost a quote that the file holds.  In the other variants, the quotes stay in the message, so its own checks count them.
+        /// Gets the lines of the current message that have lost a quote and were longer in the file than RFC 5322 §2.1.1 allows, which what is read from the file doesn't show.
+        /// In the other variants, the quotes stay in the message, so its own checks count them.
         /// </summary>
-        internal ImfBodyCheck.QuotedLines QuotedLines => _variant == MboxVariant.Mboxrd ? ImfBodyCheck.QuotedLines.QuotedFrom : ImfBodyCheck.QuotedLines.None;
+        internal List<ImfLongLine> LongQuotedLines { get; } = new List<ImfLongLine>();
 
         /// <summary>
         /// Gets the separator line of the current message.
@@ -459,6 +464,9 @@ namespace DataStandardizer.File.InternetMessage
             _heldIsHeaderEnd = false;
             _previousLineWasEmpty = false;
             _reportedInvalidSeparator = false;
+            _quotedLineLength = NotAQuotedLine;
+            _messageOffset = 0;
+            LongQuotedLines.Clear();
         }
 
         // Each of these steps returns false if it needs more input.
@@ -596,6 +604,7 @@ namespace DataStandardizer.File.InternetMessage
 
         private void EndAtEndOfInput()
         {
+            CheckQuotedLine();
             if (_inHeader && !_allowInvalidContentLength)
                 throw Fault(ErrorMessage.ContentLengthInvalid, ImfDiagnosticKind.InvalidMboxContentLength);
 
@@ -641,6 +650,9 @@ namespace DataStandardizer.File.InternetMessage
 
             // ref. mboxrd: a line matching ">+From " has lost one quote when it is read.
             _quotesToWrite = isPrefix && available >= FromLength ? _quoteCount - 1 : _quoteCount;
+            _quotedLineLength = _quotesToWrite < _quoteCount ? _quoteCount : NotAQuotedLine;
+            _quotedLineOffset = _messageOffset;
+            _messageOffset += _quotesToWrite;
             _phase = Phase.InLine;
             return true;
         }
@@ -697,12 +709,28 @@ namespace DataStandardizer.File.InternetMessage
             unread.Slice(0, count).CopyTo(destination);
             written += count;
             if (!_inHeader) _bodyBytes += count;
+            _messageOffset += count;
+            if (_quotedLineLength != NotAQuotedLine) _quotedLineLength += count;
+
             Consume(count);
             return true;
         }
 
+        // ref. RFC 4155 Appendix A: each message follows RFC 2822, whose §2.1.1 limits the lines in the file, and so counts the quote that a reader takes off.
+        private void CheckQuotedLine()
+        {
+            if (_quotedLineLength != NotAQuotedLine)
+            {
+                var length = _previousOctet == CarriageReturn ? _quotedLineLength - 1 : _quotedLineLength;
+                if (length > ImfBodyCheck.MaxLineLength) LongQuotedLines.Add(new ImfLongLine(_quotedLineOffset, _bytePosition - _quotedLineLength, _lineNumber));
+            }
+
+            _quotedLineLength = NotAQuotedLine;
+        }
+
         private void EndLine(int length)
         {
+            CheckQuotedLine();
             Consume(length);
             _heldLength = length;
             _heldIsHeaderEnd = false;
@@ -933,6 +961,7 @@ namespace DataStandardizer.File.InternetMessage
             if (lineBreakLength == 2) _queue[at++] = CarriageReturn;
             _queue[at] = LineFeed;
             _queueLength += lineBreakLength;
+            _messageOffset += lineBreakLength;
         }
 
         private void Consume(int count)

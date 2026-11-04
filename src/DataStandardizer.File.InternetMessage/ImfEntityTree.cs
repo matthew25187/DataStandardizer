@@ -44,7 +44,7 @@ namespace DataStandardizer.File.InternetMessage
 
             var scanner = new ImfEntityScanner(new ImfHeaderScanner(BlockSize, options, ImfHeaderReader.GetFallbackEncoding(options), lineFeedIsLineBreak), options, lineFeedIsLineBreak);
             scanner.LeaveBodiesRaw();
-            scanner.CountQuotes(message.QuotedLines);
+            scanner.LongLinesOutsideTheData = message.LongLinesOutsideTheData;
             try
             {
                 var root = new Frame(0, null, null);

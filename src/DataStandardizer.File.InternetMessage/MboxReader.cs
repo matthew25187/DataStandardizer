@@ -260,7 +260,7 @@ namespace DataStandardizer.File.InternetMessage
             {
                 if (!MoveToMessage()) return null;
 
-                using (var reader = new ImfReader(new MboxMessageStream(this, false), _options, MessageBufferSize, !_scanner.IsCrLf) { QuotedLines = _scanner.QuotedLines })
+                using (var reader = new ImfReader(new MboxMessageStream(this, false), _options, MessageBufferSize, !_scanner.IsCrLf) { LongLinesOutsideTheData = () => _scanner.LongQuotedLines })
                 {
                     var entry = BuildEntry(reader.ReadMessage(), reader);
                     ThrowIfDisposed();
@@ -366,7 +366,7 @@ namespace DataStandardizer.File.InternetMessage
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!await MoveToMessageAsync(cancellationToken).ConfigureAwait(false)) return null;
 
-                using (var reader = new ImfReader(new MboxMessageStream(this, false), _options, MessageBufferSize, !_scanner.IsCrLf) { QuotedLines = _scanner.QuotedLines })
+                using (var reader = new ImfReader(new MboxMessageStream(this, false), _options, MessageBufferSize, !_scanner.IsCrLf) { LongLinesOutsideTheData = () => _scanner.LongQuotedLines })
                 {
                     var entry = BuildEntry(await reader.ReadMessageAsync(cancellationToken).ConfigureAwait(false), reader);
                     ThrowIfDisposed();
@@ -556,7 +556,7 @@ namespace DataStandardizer.File.InternetMessage
         {
             var reader = new ImfEntityReader(new MboxMessageStream(this, true), _options, MessageBufferSize, !_scanner.IsCrLf)
             {
-                QuotedLines = _scanner.QuotedLines,
+                LongLinesOutsideTheData = () => _scanner.LongQuotedLines,
                 MessageIndex = _scanner.MessageIndex
             };
             _entityReader = reader;

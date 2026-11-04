@@ -566,20 +566,14 @@ namespace DataStandardizer.File.InternetMessage
             if (hasCarriageReturnLineFeed) Report(ImfDiagnosticKind.MboxCarriageReturnLineFeed, CarriageReturnLineFeedMessage, diagnostics);
         }
 
-        // ref. RFC 4155 Appendix A: each message follows RFC 2822, whose §2.1.1 limits the lines in the file, so a quote counts.  ImfWriter has already looked at each body, and it reports a long
-        // line once for each.  Most messages have no long line in the file, so they don't need to be read to find what holds it.
+        // ref. RFC 4155 Appendix A: each message follows RFC 2822, whose §2.1.1 limits the lines in the file, so a quote counts.  Most messages have no long line in the file, so they don't need to
+        // be read to find what holds it.  A reader of what was written treats each line as this does, and refuses what the message can't be read with, such as a long line of a header.
         private void CheckLineLengths(ReadOnlySpan<byte> formatted, ReadOnlySpan<byte> message, List<ImfDiagnostic> diagnostics)
         {
-            if (_variant == MboxVariant.Mboxcl2 || !HasLongLine(formatted) || diagnostics.Exists(diagnostic => diagnostic.Kind == ImfDiagnosticKind.LongBodyLine)) return;
+            if (!HasLongLine(formatted)) return;
 
-            if (HasLongQuotedLine(message)) Report(ImfDiagnosticKind.LongBodyLine, ImfBodyCheck.LongQuotedLineMessage, diagnostics);
-        }
-
-        // A line of a body with no limit on its lines, such as a binary one, is not too long.
-        private bool HasLongQuotedLine(ReadOnlySpan<byte> message)
-        {
-            var quoted = _variant == MboxVariant.Mboxrd ? ImfBodyCheck.QuotedLines.QuotedFrom : ImfBodyCheck.QuotedLines.From;
-            using (var reader = new ImfEntityReader(new MemoryStream(message.ToArray()), _options, QuotedLineScanBufferSize, !_isCrLf) { QuotedLines = quoted })
+            var lines = FindLongQuotedLines(message);
+            using (var reader = new ImfEntityReader(new MemoryStream(message.ToArray()), _options, QuotedLineScanBufferSize, !_isCrLf) { LongLinesOutsideTheData = () => lines })
             {
                 try
                 {
@@ -589,11 +583,36 @@ namespace DataStandardizer.File.InternetMessage
                 }
                 catch (ImfFileException exception)
                 {
-                    return exception.Data[ImfFileException.DataItemName.DiagnosticKind] is ImfDiagnosticKind kind && kind == ImfDiagnosticKind.LongBodyLine;
+                    Report(ImfDiagnosticKind.LongBodyLine, exception.Message, diagnostics);
+                    return;
                 }
 
-                return new List<ImfDiagnostic>(reader.Diagnostics).Exists(diagnostic => diagnostic.Kind == ImfDiagnosticKind.LongBodyLine);
+                foreach (var diagnostic in reader.Diagnostics)
+                {
+                    if (diagnostic.Message == ImfBodyCheck.LongQuotedLineMessage) diagnostics.Add(new ImfDiagnostic(diagnostic.Kind, diagnostic.Message, -1, diagnostic.EntityPath));
+                }
             }
+        }
+
+        // ImfWriter has looked at the lines of each body as they are, so only those that a quote takes past the limit are left.
+        private List<ImfLongLine> FindLongQuotedLines(ReadOnlySpan<byte> message)
+        {
+            var lines = new List<ImfLongLine>();
+            if (_variant == MboxVariant.Mboxcl2) return lines;
+
+            var offset = 0;
+            while (offset < message.Length)
+            {
+                var rest = message.Slice(offset);
+                var lineFeed = rest.IndexOf(LineFeed);
+                var next = lineFeed < 0 ? rest.Length : lineFeed + 1;
+                var length = lineFeed < 0 ? rest.Length : lineFeed > 0 && rest[lineFeed - 1] == CarriageReturn ? lineFeed - 1 : lineFeed;
+                if (length == ImfBodyCheck.MaxLineLength && MboxFormatter.NeedsQuote(rest.Slice(0, length), _variant)) lines.Add(new ImfLongLine(offset, -1, 0));
+
+                offset += next;
+            }
+
+            return lines;
         }
 
         private static bool HasLongLine(ReadOnlySpan<byte> bytes)

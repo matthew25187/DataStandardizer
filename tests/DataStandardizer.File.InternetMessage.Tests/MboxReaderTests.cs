@@ -119,6 +119,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private static readonly string TooLongQuotedLineMailbox = Separator1 + Header + "\n" + TooLongQuotedLine + "\n\n";
         private static readonly string TooLongQuotedLineThenGood = TooLongQuotedLineMailbox + OneMessageWithEmptyLine;
         private static readonly string LongestQuotedLineMailbox = Separator1 + Header + "\n>From " + new string('x', ShorterFromLinePadding) + "\n\n";
+        private static readonly string LongestUnquotedFromLine = Separator1 + Header + "\nFrom " + new string('x', LongestFromLinePadding) + "\n\n";
         private static readonly string TooLongQuotedLineBesideBinary = Separator1 + Header + "MIME-Version: 1.0\nContent-Type: multipart/mixed; boundary=b\nContent-Transfer-Encoding: binary\n\n--b\nContent-Transfer-Encoding: binary\n\nx\n--b\n\n" + TooLongQuotedLine + "\n--b--\n\n";
         private static readonly string TooLongQuotedLineInBinary = Separator1 + Header + "MIME-Version: 1.0\nContent-Transfer-Encoding: binary\n\n" + TooLongQuotedLine + "\n\n";
 
@@ -1002,6 +1003,20 @@ namespace DataStandardizer.File.InternetMessage.Tests
                 data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.LongBodyLine);
                 data[ImfFileException.DataItemName.EntityPath].Should().Be("2");
             }
+        }
+
+        [Fact]
+        public void ReadMessage_LongestLineWithNoQuoteInTheFile_IsNotTooLong()
+        {
+            // arrange
+            // ref. RFC 4155 Appendix A prescribes no way to quote such a line, so one that isn't a separator line is part of the message, at the 998 octets it has.
+            var options = new ImfOptions { AllowInvalidMboxSeparator = true };
+
+            // act
+            var testResult = Mailboxes.ReadDiagnosticKinds(LongestUnquotedFromLine, MboxVariant.Mboxrd, options);
+
+            // assert
+            testResult.Should().NotContain(ImfDiagnosticKind.LongBodyLine);
         }
 
         [Fact]

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using DataStandardizer.Communication.Mime;
 
@@ -86,6 +87,15 @@ namespace DataStandardizer.File.InternetMessage
         /// <summary>
         /// An entity whose end has not been reached.
         /// </summary>
+        // The bytes of what a part or a message holds, in the order they were read.
+        private sealed class BodyRange
+        {
+            internal long Start;
+            internal long End;
+            internal string Path = string.Empty;
+            internal bool IsBinary;
+        }
+
         private sealed class Frame
         {
             internal byte[] Boundary = EmptyBytes;
@@ -186,6 +196,7 @@ namespace DataStandardizer.File.InternetMessage
         private long _pendingRawHeld;
         private int _pendingRawLength;
         private int _search;
+        private readonly List<BodyRange> _bodyRanges = new List<BodyRange>();
         private State _state = State.EntityStart;
         private long _unwindEnd;
         private bool _unwindIsDelimiter;
@@ -226,14 +237,6 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Says which lines have a quote in an mbox file that isn't in the data, and counts towards their length.
-        /// </summary>
-        internal void CountQuotes(ImfBodyCheck.QuotedLines quoted)
-        {
-            _bodyCheck.Quoted = quoted;
-        }
-
-        /// <summary>
         /// Gets the scanner that reads the header sections, whose block a driver refills.
         /// </summary>
         internal ImfHeaderScanner HeaderScanner => _scanner;
@@ -252,6 +255,12 @@ namespace DataStandardizer.File.InternetMessage
         /// Gets a flag indicating that a problem was found, after which the structure of the message is unknown.
         /// </summary>
         internal bool IsFaulted { get; private set; }
+
+        /// <summary>
+        /// Gets or sets what gives, once the message has ended, the lines of it that are too long in a form that this scanner doesn't see, as with a quote that a container took off.
+        /// </summary>
+        [AllowNull]
+        internal Func<List<ImfLongLine>> LongLinesOutsideTheData { get; set; }
 
         internal ImfEntityEventKind EventKind => _eventKind;
 
@@ -330,7 +339,9 @@ namespace DataStandardizer.File.InternetMessage
             catch (ImfFileException exception)
             {
                 IsFaulted = true;
-                exception.Data[ImfFileException.DataItemName.EntityPath] = BuildPath();
+                // A problem found once the message has ended has said which entity it is in.
+                if (!exception.Data.Contains(ImfFileException.DataItemName.EntityPath)) exception.Data[ImfFileException.DataItemName.EntityPath] = BuildPath();
+
                 throw;
             }
         }
@@ -374,7 +385,6 @@ namespace DataStandardizer.File.InternetMessage
                         {
                             _scanner.ParseField();
                             ReadMimeField(CurrentFrame);
-                            CheckQuotedHeaderLine();
                             CheckNestedHeaderField(CurrentFrame);
                             return Emit(ImfEntityEventKind.HeaderField, _scanner.FieldBytePosition, _scanner.RawBytes.Length);
                         }
@@ -432,6 +442,7 @@ namespace DataStandardizer.File.InternetMessage
                         else
                         {
                             _state = State.End;
+                            CheckLongLinesOutsideTheData();
                         }
 
                         break;
@@ -505,26 +516,6 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Checks the first line of the current field, the only one of a field that can start as a quoted line does, as <see cref="ImfBodyCheck.Quoted"/> says.
-        /// </summary>
-        private void CheckQuotedHeaderLine()
-        {
-            var raw = _scanner.RawBytes.Span;
-            var lineFeed = raw.IndexOf(LineFeed);
-            var length = lineFeed < 0 ? raw.Length : lineFeed > 0 && raw[lineFeed - 1] == CarriageReturn ? lineFeed - 1 : lineFeed;
-            if (!ImfBodyCheck.IsLongQuotedLine(raw.Slice(0, length), _bodyCheck.Quoted)) return;
-
-            if (!_allowLongLines)
-            {
-                var exception = _scanner.BuildCurrentFieldException(ImfBodyCheck.LongQuotedLineMessage);
-                exception.Data[ImfFileException.DataItemName.DiagnosticKind] = ImfDiagnosticKind.LongBodyLine;
-                throw exception;
-            }
-
-            _diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.LongBodyLine, ImfBodyCheck.LongQuotedLineMessage, _scanner.FieldBytePosition, BuildPath()));
-        }
-
-        /// <summary>
         /// Checks the current field of a nested entity against the entity that holds it, whose encoding limits what it holds (RFC 2045 §6.4).  The header of the message itself has nothing
         /// holding it, and RFC 6532 lets it hold UTF-8.
         /// </summary>
@@ -542,6 +533,43 @@ namespace DataStandardizer.File.InternetMessage
             }
 
             _diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.InvalidBodyOctets, ImfBodyCheck.InvalidHeaderOctetsMessage, _scanner.FieldBytePosition, BuildPath()));
+        }
+
+        /// <summary>
+        /// Keeps where a run of content is, if there will be lines to find it for.
+        /// </summary>
+        private void RecordBodyRange(long start, long length)
+        {
+            if (LongLinesOutsideTheData is null) return;
+
+            var path = BuildPath();
+            var last = _bodyRanges.Count == 0 ? null : _bodyRanges[_bodyRanges.Count - 1];
+            if (!(last is null) && last.End == start && last.Path == path)
+            {
+                last.End = start + length;
+                return;
+            }
+
+            // ref. RFC 2045 §2.9: binary data has no lines.  A preamble or epilogue isn't in the encoding of the entity, only under its label.
+            var isBinary = _contentKind == ImfEntityEventKind.BodyChunk && CurrentFrame.TransferEncoding == MimeTransferEncoding.Binary;
+            _bodyRanges.Add(new BodyRange { Start = start, End = start + length, Path = path, IsBinary = isBinary });
+        }
+
+        private void CheckLongLinesOutsideTheData()
+        {
+            if (LongLinesOutsideTheData is null) return;
+
+            foreach (var line in LongLinesOutsideTheData())
+            {
+                var range = _bodyRanges.Find(body => line.MessageOffset >= body.Start && line.MessageOffset < body.End);
+                if (!(range is null) && range.IsBinary) continue;
+
+                var diagnostic = new ImfDiagnostic(ImfDiagnosticKind.LongBodyLine, ImfBodyCheck.LongQuotedLineMessage, line.BytePosition, range?.Path ?? string.Empty, string.Empty, line.LineNumber);
+                if (!_allowLongLines)
+                    throw ImfConformance.BuildException(diagnostic, true);
+
+                _diagnostics.Add(diagnostic);
+            }
         }
 
         /// <summary>
@@ -1020,6 +1048,7 @@ namespace DataStandardizer.File.InternetMessage
             _eventData = _scanner.Buffer;
             _dataStart = position;
             _dataLength = length;
+            RecordBodyRange(offset, length);
             Emit(_contentKind, offset, length);
             return true;
         }
@@ -1075,6 +1104,7 @@ namespace DataStandardizer.File.InternetMessage
             _dataStart = 0;
             _dataLength = bytesWritten;
             _isEventDataDecoded = true;
+            RecordBodyRange(_scanner.BytePosition - _pendingRawHeld, _pendingRawHeld);
             Emit(_contentKind, _scanner.BytePosition - _pendingRawHeld, _pendingRawHeld);
             _pendingRawHeld = 0;
         }
@@ -1160,14 +1190,13 @@ namespace DataStandardizer.File.InternetMessage
         {
             if (foundLongLine)
             {
-                var longLineMessage = _bodyCheck.LongLineIsQuoted ? ImfBodyCheck.LongQuotedLineMessage : ImfBodyCheck.LongLineMessage;
                 if (!_allowLongLines)
                 {
                     _scanner.ConsumeBody(_scanner.Position + longLineOffset);
-                    throw BuildKindError(longLineMessage, ImfDiagnosticKind.LongBodyLine);
+                    throw BuildKindError(ImfBodyCheck.LongLineMessage, ImfDiagnosticKind.LongBodyLine);
                 }
 
-                _diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.LongBodyLine, longLineMessage, _scanner.BytePosition + longLineOffset, BuildPath()));
+                _diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.LongBodyLine, ImfBodyCheck.LongLineMessage, _scanner.BytePosition + longLineOffset, BuildPath()));
             }
 
             if (foundInvalidOctet)
