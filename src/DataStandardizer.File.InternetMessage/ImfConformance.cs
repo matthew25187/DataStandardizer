@@ -157,12 +157,13 @@ namespace DataStandardizer.File.InternetMessage
         /// </summary>
         internal static void CheckEmbedded(ImfMessage message, List<ImfDiagnostic> diagnostics)
         {
+            // The entity after a message part is the body of the message in it, which has the path of that message.
+            var holder = default(ImfMessagePart);
             foreach (var node in message.EnumerateEntities())
             {
-                if (node.Entity is ImfMessagePart part)
-                {
-                    CheckEmbeddedHeader(part.Message, node.Path, message.Options, diagnostics);
-                }
+                if (!(holder is null)) CheckEmbeddedHeader(holder.Message, node.Path, message.Options, diagnostics);
+
+                holder = node.Entity as ImfMessagePart;
             }
         }
 

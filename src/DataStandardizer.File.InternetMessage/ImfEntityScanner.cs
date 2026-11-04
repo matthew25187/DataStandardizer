@@ -335,7 +335,9 @@ namespace DataStandardizer.File.InternetMessage
             catch (ImfFileException exception)
             {
                 IsFaulted = true;
-                exception.Data[ImfFileException.DataItemName.EntityPath] = BuildPath();
+                // A problem with a message that has no entity of its own has said where it is.
+                if (!exception.Data.Contains(ImfFileException.DataItemName.EntityPath)) exception.Data[ImfFileException.DataItemName.EntityPath] = BuildPath();
+
                 throw;
             }
         }
@@ -554,6 +556,27 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
+        /// Applies the rules for an embedded message to one that has nothing in it, so has no entity for them to be applied to as its header ends.
+        /// </summary>
+        private void CheckEmptyEmbeddedMessage()
+        {
+            if (!_appliesMessageRules) return;
+
+            var path = BuildPath();
+            if (CurrentFrame.IsMessage) path = path.Length == 0 ? "1" : path + ".1";
+
+            var found = new List<ImfDiagnostic>();
+            ImfConformance.CheckEmbeddedHeader(new ImfMessage(_options) { HeaderEndBytePosition = _scanner.BytePosition, HeaderEndLineNumber = _scanner.PhysicalLinesRead + 1 }, path, _options, found);
+            foreach (var diagnostic in found)
+            {
+                if (!ImfConformance.IsAllowed(diagnostic.Kind, _options))
+                    throw ImfConformance.BuildException(diagnostic, true);
+
+                _diagnostics.Add(diagnostic);
+            }
+        }
+
+        /// <summary>
         /// Parses the value of a Content-Type field, with comments, and white space around the delimiters.
         /// </summary>
         /// <remarks>
@@ -745,6 +768,7 @@ namespace DataStandardizer.File.InternetMessage
             {
                 if (!_scanner.IsEndOfInput) return false;
 
+                CheckEmptyEmbeddedMessage();
                 StartUnwinding(false);
                 return true;
             }
@@ -756,6 +780,7 @@ namespace DataStandardizer.File.InternetMessage
 
             if (match == LineMatch.Delimiter)
             {
+                CheckEmptyEmbeddedMessage();
                 StartUnwinding(true);
                 return true;
             }

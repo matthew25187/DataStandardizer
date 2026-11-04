@@ -402,6 +402,8 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         private const string MimeMessageTop = "Date: Thu, 1 Jan 2026 00:00:00 +0000\r\nFrom: a@b.test\r\nMIME-Version: 1.0\r\n";
+        private const string EmptyEmbedded = MimeMessageTop + "Content-Type: message/rfc822\r\n\r\n";
+        private const string EmptyEmbeddedPart = MimeMessageTop + "Content-Type: multipart/digest; boundary=b\r\n\r\n--b\r\n\r\n--b--\r\n";
         private const string NoDateOrFrom = "Subject: no date or from\r\n\r\nx\r\n";
         private const string InvalidDate = "Date: yesterday\r\nFrom: a@b.test\r\n\r\nx\r\n";
         private const string EmbeddedWithInvalidDate = MimeMessageTop + "Content-Type: message/rfc822\r\n\r\nDate: yesterday\r\n\r\nx\r\n";
@@ -412,6 +414,12 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private static readonly byte[] RawPartWithLongLine = Octets.Of("\r\n" + new string('x', LongLineLength));
         private static readonly byte[] RawPartWithNul = Octets.Of("\r\nx\x0000y");
         private static readonly byte[] RawPartWithBareLineFeed = Octets.Of("\r\nx\ny");
+
+        public static TheoryData<string, string> EmptyEmbeddedMessages => new TheoryData<string, string>
+        {
+            { EmptyEmbedded, "1" },
+            { EmptyEmbeddedPart, "1" },
+        };
 
         public static TheoryData<byte[], ImfDiagnosticKind> InvalidRawParts => new TheoryData<byte[], ImfDiagnosticKind>
         {
@@ -502,6 +510,49 @@ namespace DataStandardizer.File.InternetMessage.Tests
                 diagnostic.Kind.Should().Be(ImfDiagnosticKind.MissingRequiredField);
                 diagnostic.EntityPath.Should().Be("1");
             }
+        }
+
+        [Theory]
+        [MemberData(nameof(EmptyEmbeddedMessages))]
+        public void ReadEvent_EmbeddedMessageWithNothingInIt_ThrowsByDefault(string message, string expectedPath)
+        {
+            // arrange
+            using (var subject = new ImfEntityReader(new MemoryStream(Octets.Of(message))))
+            {
+                // act
+                Action testAction = () => EntityEvents.ReadToEnd(subject);
+
+                // assert
+                var data = testAction.Should().Throw<ImfFileException>().Which.Data;
+                data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.MissingRequiredField);
+                data[ImfFileException.DataItemName.EntityPath].Should().Be(expectedPath);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(EmptyEmbeddedMessages))]
+        public void ReadEvent_EmbeddedMessageWithNothingInItWithOption_RecordsADiagnostic(string message, string expectedPath)
+        {
+            // arrange
+            using (var subject = new ImfEntityReader(new MemoryStream(Octets.Of(message)), new ImfOptions { AllowMissingRequiredFields = true }))
+            {
+                // act
+                EntityEvents.ReadToEnd(subject);
+
+                // assert
+                subject.Diagnostics.Should().ContainSingle().Which.EntityPath.Should().Be(expectedPath);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(EmptyEmbeddedMessages))]
+        public void ReadMessage_EmbeddedMessageWithNothingInIt_ThrowsGivingThePathTheEventsGive(string message, string expectedPath)
+        {
+            // act
+            Action testAction = () => Read(message, new ImfOptions());
+
+            // assert
+            testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.EntityPath].Should().Be(expectedPath);
         }
 
         [Fact]
