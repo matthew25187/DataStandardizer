@@ -160,6 +160,24 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
+        /// Gets a flag indicating if <see cref="ImfEntity.GetText"/> accepts octets that are not valid in the character set of the text.
+        /// </summary>
+        /// <remarks>
+        /// RFC 2046 §4.1.2 has the <c>charset</c> parameter say what character set the text is in, with US-ASCII as the default, so other octets are not text of that type.  When
+        /// <c>false</c> (the default), they cause an <see cref="ImfFileException"/>.  When <c>true</c>, each is read as U+FFFD, which helps with old messages that send 8-bit text
+        /// and name no character set.
+        /// </remarks>
+        public bool AllowInvalidTextOctets
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
         /// Gets a flag indicating if a line longer than 998 octets is accepted.
         /// </summary>
         /// <remarks>
@@ -344,11 +362,12 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Gets the maximum size, in octets, of the body that an <see cref="ImfReader"/> holds in memory.
+        /// Gets the maximum size, in octets, of the body that an <see cref="ImfReader"/> holds in memory, and of the content given to <see cref="ImfEntity.SetContent"/>.
         /// </summary>
         /// <remarks>
         /// RFC 5322 sets no limit.  This one guards against hostile input.  The default is <see cref="DefaultMaxEntitySize"/>, and the value must be at least 1.  One more octet
-        /// causes an <see cref="ImfFileException"/>.  The readers and writers that don't hold a whole body in memory don't use it.
+        /// causes an <see cref="ImfFileException"/>, or an <see cref="System.ArgumentException"/> from <see cref="ImfEntity.SetContent"/>.  A part of a message that was read is within
+        /// the body, so it can't pass the limit, and decoding it can only make it shorter.  The readers and writers that don't hold a whole body in memory don't use it.
         /// </remarks>
         public int MaxEntitySize
         {

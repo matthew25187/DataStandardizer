@@ -26,7 +26,10 @@ namespace DataStandardizer.File.InternetMessage
     /// <see cref="Diagnostics"/> instead.  RFC 5322 §4.5 lets its obsolete syntax repeat any field, but leaves what that means unspecified, so it needs the option too.
     /// </para>
     /// <para>
-    /// <b>Body.</b>  The rest of the data is the body, up to <see cref="ImfOptions.MaxEntitySize"/>.  It is held as it is, and its bytes are not checked.
+    /// <b>Body.</b>  The rest of the data is the body, up to <see cref="ImfOptions.MaxEntitySize"/>, which is held in memory as it is.  Its structure is read into
+    /// <see cref="ImfMessage.Body"/> as an <see cref="ImfEntityReader"/> reads it, under the same options, so a multipart entity that breaks RFC 2046 §5.1 causes an
+    /// <see cref="ImfFileException"/>.  The bytes of a body are decoded, and checked against the transfer encoding, only when they are asked for.  A message inside a
+    /// <c>message/rfc822</c> entity is not checked for conformance, as RFC 2046 §5.2.1 doesn't hold it to RFC 5322: call <see cref="ImfMessage.Validate"/> on it to do so.
     /// </para>
     /// <para>
     /// The data holds one message, so it can be read only once, and any <see cref="ImfFileException"/> ends reading.  Later reads throw <see cref="InvalidOperationException"/>.  A
@@ -46,6 +49,7 @@ namespace DataStandardizer.File.InternetMessage
         private readonly ReadOnlyCollection<ImfDiagnostic> _readOnlyDiagnostics;
         private readonly List<ImfDiagnostic> _diagnostics = new List<ImfDiagnostic>();
         private readonly ImfOptions _options;
+        private readonly bool _lineFeedIsLineBreak;
         private readonly bool _ownsStream;
         private readonly ImfHeaderScanner _scanner;
         private readonly Stream _stream;
@@ -131,6 +135,7 @@ namespace DataStandardizer.File.InternetMessage
             _stream = stream;
             _ownsStream = ownsStream;
             _options = options;
+            _lineFeedIsLineBreak = lineFeedIsLineBreak;
             _scanner = new ImfHeaderScanner(bufferSize, options, fallbackEncoding, lineFeedIsLineBreak);
             _message = new ImfMessage(options);
             _readOnlyDiagnostics = new ReadOnlyCollection<ImfDiagnostic>(_diagnostics);
@@ -358,6 +363,8 @@ namespace DataStandardizer.File.InternetMessage
         private ImfMessage Complete()
         {
             _message.RawBody = new ReadOnlyMemory<byte>(_body, 0, _bodyLength);
+            _message.LineFeedIsLineBreak = _lineFeedIsLineBreak;
+            _message.ReadBody(_diagnostics);
             return _message;
         }
 
@@ -432,6 +439,10 @@ namespace DataStandardizer.File.InternetMessage
             var encoding = ImfHeaderReader.GetFallbackEncoding(options);
             if (options.MaxEntitySize < 1)
                 throw new ArgumentException("The maximum entity size must be at least 1.", nameof(options));
+            if (options.MaxNestingDepth < 1)
+                throw new ArgumentException("The maximum nesting depth must be at least 1.", nameof(options));
+            if (options.MaxPartCount < 1)
+                throw new ArgumentException("The maximum part count must be at least 1.", nameof(options));
             if (options.CharsetResolver is null)
                 throw new ArgumentException("A character set resolver is required to read a message.", nameof(options));
 

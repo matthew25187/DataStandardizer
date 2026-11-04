@@ -21,7 +21,7 @@ namespace DataStandardizer.File.InternetMessage
     /// <b>Conformance.</b>  The header is checked as <see cref="ImfMessage.Validate"/> describes, under the options of the writer.  A missing required field, a second field of a kind
     /// that may appear only once, and a field body that breaks its grammar each cause an <see cref="ImfFileException"/>, unless <see cref="ImfOptions.AllowMissingRequiredFields"/>,
     /// <see cref="ImfOptions.AllowCardinalityViolations"/> or <see cref="ImfOptions.AllowInvalidValues"/> is set.  With them set, the problem is recorded in
-    /// <see cref="Diagnostics"/> instead.
+    /// <see cref="Diagnostics"/> instead.  A message inside a <c>message/rfc822</c> entity is not checked, as RFC 2046 §5.2.1 doesn't hold it to RFC 5322.
     /// </para>
     /// <para>
     /// <b>Unchanged fields.</b>  A field that was read is written byte for byte, whichever options it was read under, so that signatures over it stay valid.  That includes any
@@ -32,7 +32,9 @@ namespace DataStandardizer.File.InternetMessage
     /// <see cref="ImfOptions.HeaderEncoding"/> of the writer.
     /// </para>
     /// <para>
-    /// <b>Body.</b>  <see cref="ImfMessage.RawBody"/> is written as it is.
+    /// <b>Body.</b>  A body that hasn't changed is written from <see cref="ImfMessage.RawBody"/>, as it is.  If anything in <see cref="ImfMessage.Body"/> has changed, only what has
+    /// changed is written again, as <see cref="ImfEntityWriter"/> writes it.  So an entity whose content was set gets a transfer encoding of its own, and everything else, including
+    /// the delimiter lines of a multipart entity whose parts are all still there, is written byte for byte.  A multipart entity that was read with no close delimiter gets one.
     /// </para>
     /// <para>
     /// Only one operation may be in progress at a time.  Synchronous and asynchronous calls may follow one another, but a call made while another is in
@@ -56,7 +58,9 @@ namespace DataStandardizer.File.InternetMessage
         private static readonly byte[] CrLf = { 0x0D, 0x0A };
         private static readonly byte[] Lf = { 0x0A };
 
+        private readonly Func<string> _boundaryGenerator;
         private readonly List<ImfDiagnostic> _diagnostics = new List<ImfDiagnostic>();
+        private readonly bool _lineFeedIsLineBreak;
         private readonly byte[] _lineBreak;
         private readonly ImfOptions _options;
         private readonly ImfOutput _output;
@@ -85,7 +89,7 @@ namespace DataStandardizer.File.InternetMessage
         /// -or-
         /// <paramref name="options"/> has no <see cref="ImfOptions.CharsetResolver"/>, or an <see cref="ImfOptions.HeaderFallbackCharset"/> that is needed and can't be
         /// resolved.</exception>
-        public ImfWriter(Stream messageStream, ImfOptions options) : this(messageStream, options, false)
+        public ImfWriter(Stream messageStream, ImfOptions options) : this(messageStream, options, false, ImfEntityWriter.GenerateBoundary)
         {
         }
 
@@ -110,23 +114,26 @@ namespace DataStandardizer.File.InternetMessage
         /// <exception cref="ArgumentException"><paramref name="options"/> has no <see cref="ImfOptions.CharsetResolver"/>, or an <see cref="ImfOptions.HeaderFallbackCharset"/> that
         /// is needed and can't be resolved.</exception>
         public ImfWriter(string messageFilePath, ImfOptions options)
-            : this(CheckOptions(options), OpenFile(messageFilePath), true, false)
+            : this(CheckOptions(options), OpenFile(messageFilePath), true, false, ImfEntityWriter.GenerateBoundary)
         {
         }
 #endif
 
         /// <summary>
-        /// Creates a writer with a line break setting.  Allows the writers of container formats to write the LF line breaks of their messages.
+        /// Creates a writer with a line break setting and a source of boundaries.  Allows the writers of container formats to write the LF line breaks of their messages, and tests
+        /// to choose the boundaries.
         /// </summary>
-        internal ImfWriter(Stream messageStream, ImfOptions options, bool lineFeedIsLineBreak)
-            : this(CheckOptions(options), ImfOutput.ValidateStream(messageStream), false, lineFeedIsLineBreak)
+        internal ImfWriter(Stream messageStream, ImfOptions options, bool lineFeedIsLineBreak, Func<string> boundaryGenerator)
+            : this(CheckOptions(options), ImfOutput.ValidateStream(messageStream), false, lineFeedIsLineBreak, boundaryGenerator)
         {
         }
 
         // The options come first, so that bad options are found before a file is opened.
-        private ImfWriter(ImfOptions options, Stream stream, bool ownsStream, bool lineFeedIsLineBreak)
+        private ImfWriter(ImfOptions options, Stream stream, bool ownsStream, bool lineFeedIsLineBreak, Func<string> boundaryGenerator)
         {
             _options = options;
+            _boundaryGenerator = boundaryGenerator;
+            _lineFeedIsLineBreak = lineFeedIsLineBreak;
             _output = new ImfOutput(stream, ownsStream, GetType().Name);
             _lineBreak = lineFeedIsLineBreak ? Lf : CrLf;
             _readOnlyDiagnostics = new ReadOnlyCollection<ImfDiagnostic>(_diagnostics);
@@ -263,6 +270,16 @@ namespace DataStandardizer.File.InternetMessage
             _output.BeginOperation();
             try
             {
+                if (message.IsBodyChanged)
+                {
+                    var source = PlanChangedBody(message);
+                    var writer = new ImfEntityWriter(_options, _output, ImfEntityWriter.DefaultBlockSize, _lineFeedIsLineBreak, _boundaryGenerator);
+                    writer.WriteEntities(source, CreateProgress(progress));
+                    CompleteChangedBody(writer, progress);
+                    _output.ThrowIfDisposed();
+                    return;
+                }
+
                 var fields = Plan(message);
                 try
                 {
@@ -385,6 +402,16 @@ namespace DataStandardizer.File.InternetMessage
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                if (message.IsBodyChanged)
+                {
+                    var source = PlanChangedBody(message);
+                    var writer = new ImfEntityWriter(_options, _output, ImfEntityWriter.DefaultBlockSize, _lineFeedIsLineBreak, _boundaryGenerator);
+                    await writer.WriteEntitiesAsync(source, CreateProgress(progress), cancellationToken).ConfigureAwait(false);
+                    CompleteChangedBody(writer, progress);
+                    _output.ThrowIfDisposed();
+                    return;
+                }
+
                 var fields = Plan(message);
                 hasStartedOutput = true;
                 foreach (var field in fields)
@@ -435,10 +462,41 @@ namespace DataStandardizer.File.InternetMessage
 #endif
 
         /// <summary>
-        /// Checks a message, and gets the bytes of its fields, so that a message that is refused leaves nothing in the output.
+        /// Checks a message whose body has changed, and describes it for an <see cref="ImfEntityWriter"/>, which checks the rest before it writes anything.
         /// </summary>
         /// <exception cref="ImfFileException">The message can't be written.</exception>
-        private ReadOnlyMemory<byte>[] Plan(ImfMessage message)
+        private ImfEntitySource PlanChangedBody(ImfMessage message)
+        {
+            var diagnostics = CheckConformance(message);
+            var source = message.Body.ToSource(_options.HeaderEncoding, _lineBreak);
+            _diagnostics.AddRange(diagnostics);
+            return source;
+        }
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private void CompleteChangedBody(ImfEntityWriter writer, IProgress<ImfWriteProgress>? progress)
+#else
+        private void CompleteChangedBody(ImfEntityWriter writer, IProgress<ImfWriteProgress> progress)
+#endif
+        {
+            _fieldsWritten += writer.FieldCount;
+            _entitiesWritten++;
+            progress?.Report(GetProgress());
+        }
+
+        /// <summary>
+        /// Gets a receiver of the progress of an <see cref="ImfEntityWriter"/> that passes it on in the terms of this writer, which counts each message once.
+        /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private IProgress<ImfWriteProgress>? CreateProgress(IProgress<ImfWriteProgress>? progress)
+#else
+        private IProgress<ImfWriteProgress> CreateProgress(IProgress<ImfWriteProgress> progress)
+#endif
+        {
+            return progress is null ? null : new ProgressAdapter(progress, _fieldsWritten, _entitiesWritten);
+        }
+
+        private List<ImfDiagnostic> CheckConformance(ImfMessage message)
         {
             var diagnostics = ImfConformance.Check(message, _options);
             foreach (var diagnostic in diagnostics)
@@ -447,6 +505,16 @@ namespace DataStandardizer.File.InternetMessage
                     throw ImfConformance.BuildException(diagnostic, false);
             }
 
+            return diagnostics;
+        }
+
+        /// <summary>
+        /// Checks a message, and gets the bytes of its fields, so that a message that is refused leaves nothing in the output.
+        /// </summary>
+        /// <exception cref="ImfFileException">The message can't be written.</exception>
+        private ReadOnlyMemory<byte>[] Plan(ImfMessage message)
+        {
+            var diagnostics = CheckConformance(message);
             var fields = new ReadOnlyMemory<byte>[message.Fields.Count];
             var buffer = ArrayPool<byte>.Shared.Rent(InitialBufferSize);
             try
@@ -482,6 +550,25 @@ namespace DataStandardizer.File.InternetMessage
         {
             ImfHeaderText.CheckOptions(options);
             return options;
+        }
+
+        private sealed class ProgressAdapter : IProgress<ImfWriteProgress>
+        {
+            private readonly long _entitiesWritten;
+            private readonly long _fieldsWritten;
+            private readonly IProgress<ImfWriteProgress> _progress;
+
+            internal ProgressAdapter(IProgress<ImfWriteProgress> progress, long fieldsWritten, long entitiesWritten)
+            {
+                _progress = progress;
+                _fieldsWritten = fieldsWritten;
+                _entitiesWritten = entitiesWritten;
+            }
+
+            public void Report(ImfWriteProgress value)
+            {
+                _progress.Report(new ImfWriteProgress(_fieldsWritten + value.FieldsWritten, _entitiesWritten, value.BytesWritten));
+            }
         }
     }
 }

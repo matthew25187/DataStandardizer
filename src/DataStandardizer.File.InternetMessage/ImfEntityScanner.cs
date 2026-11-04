@@ -145,7 +145,7 @@ namespace DataStandardizer.File.InternetMessage
         private readonly MimeBase64Decoder _base64Decoder = new MimeBase64Decoder(MimeBase64Mode.Mime);
         private readonly IMimeCharsetResolver _charsetResolver;
         private readonly MimeMediaTypeParseOptions _contentTypeOptions;
-        private readonly bool _decodeTransferEncoding;
+        private bool _decodeTransferEncoding;
         private readonly List<ImfDiagnostic> _diagnostics = new List<ImfDiagnostic>();
         private readonly List<Frame> _frames = new List<Frame>();
         private readonly bool _lineFeedIsLineBreak;
@@ -204,6 +204,14 @@ namespace DataStandardizer.File.InternetMessage
 
             _frames.Add(new Frame { IsMessage = true });
             _entitiesRead = 1;
+        }
+
+        /// <summary>
+        /// Leaves bodies as raw bytes, whatever the options say, for a caller that goes only by the ranges of the data.
+        /// </summary>
+        internal void LeaveBodiesRaw()
+        {
+            _decodeTransferEncoding = false;
         }
 
         /// <summary>

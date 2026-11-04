@@ -241,6 +241,7 @@ namespace DataStandardizer.File.InternetMessage
             if (boundary.IsGenerated && node.HasContentTypeField)
                 throw BuildError("A Content-Type field added to a multipart entity must have a boundary parameter (RFC 2046 §5.1.1).", node.Path);
 
+            boundary.IsPreserved = !(source.RawFraming is null);
             _boundaries.Add(boundary);
             node.Boundary = boundary;
 
@@ -271,7 +272,7 @@ namespace DataStandardizer.File.InternetMessage
             if (depth == 0) return;
 
             CheckCanRead(node.Source, node.Path);
-            node.BodyScan = AddScan(node.Source.Content, node.Source.ContentStream, enclosing);
+            node.BodyScan = AddScan(node.Source.Content, node.Source.ContentStream, node.Source.IsPreserved ? WithoutPreserved(enclosing) : enclosing);
         }
 
         private void AddContentScan(Node node, ImfBoundary[] enclosing)
@@ -308,6 +309,14 @@ namespace DataStandardizer.File.InternetMessage
             }
 
             node.BodyScan = AddScan(source.Content, source.ContentStream, enclosing);
+        }
+
+        /// <summary>
+        /// Gets the boundaries that bytes that were read have to be checked against: a reader found none of the others in them.
+        /// </summary>
+        private static ImfBoundary[] WithoutPreserved(ImfBoundary[] boundaries)
+        {
+            return new List<ImfBoundary>(boundaries).FindAll(boundary => !boundary.IsPreserved).ToArray();
         }
 
         private ImfBodyScan AddScan(ReadOnlyMemory<byte> memory, Stream stream, ImfBoundary[] enclosing)
@@ -392,9 +401,9 @@ namespace DataStandardizer.File.InternetMessage
 
             string text;
             MimeMediaType mediaType;
-            if (!ImfFieldComments.TryRemove(GetFieldBodyText(field), out text)
+            if (!field.IsModelField && (!ImfFieldComments.TryRemove(GetFieldBodyText(field), out text)
                 || !MimeMediaType.TryParse(text, ImfMimeFields.GetParseOptions(_options) | MimeMediaTypeParseOptions.AllowWhitespaceAroundDelimiters, _options.CharsetResolver ?? MimeCharsetResolver.Default, out mediaType)
-                || mediaType != node.Source.ContentType)
+                || mediaType != node.Source.ContentType))
                 throw BuildError($"A Content-Type field added to an entity must say the same as the media type the entity was made with, '{node.Source.ContentType}'.", node.Path);
 
             node.HasContentTypeField = true;
@@ -446,7 +455,8 @@ namespace DataStandardizer.File.InternetMessage
             {
                 foreach (var enclosing in boundary.Enclosing)
                 {
-                    if (!boundary.ConflictsWith(enclosing.Value)) continue;
+                    // ref. RFC 2046 §5.1.1: a reader matches a whole line, so a boundary that was read may be a prefix of another that was.
+                    if (!boundary.ConflictsWith(enclosing.Value) || (boundary.IsPreserved && enclosing.IsPreserved)) continue;
 
                     if (boundary.IsGenerated)
                     {
@@ -573,10 +583,13 @@ namespace DataStandardizer.File.InternetMessage
 
         private MimeDataDomain ChooseCompositeEncoding(Node node)
         {
+            // What was read and hasn't changed stays as it is, even if its label doesn't cover it, which is common, so only what has changed can call for another label.
+            var isPreserved = node.Source.IsPreserved;
             var domain = MimeDataDomain.SevenBit;
             foreach (var child in node.Children)
             {
-                domain = Max(domain, ChooseEncodings(child));
+                var childDomain = ChooseEncodings(child);
+                if (!isPreserved || !child.Source.IsPreserved || child.Source.Kind != ImfEntitySource.SourceKind.Raw) domain = Max(domain, childDomain);
             }
 
             domain = Max(domain, CheckDiscardText(node, node.PreambleScan));
@@ -665,7 +678,8 @@ namespace DataStandardizer.File.InternetMessage
             builder.AddLiteral(node.HeaderBytes);
             builder.CompleteFields(node.FieldCount);
             AddGeneratedFields(node, builder);
-            builder.AddLiteral(_lineBreak);
+            if (source.RawHeaderEnd is ReadOnlyMemory<byte> headerEnd) builder.AddLiteral(headerEnd.Span);
+            else builder.AddLiteral(_lineBreak);
 
             switch (source.Kind)
             {
@@ -685,7 +699,7 @@ namespace DataStandardizer.File.InternetMessage
 
         private void AddGeneratedFields(Node node, ItemBuilder builder)
         {
-            if (node.IsMessage && !node.HasMimeVersion)
+            if (node.IsMessage && !node.HasMimeVersion && !node.Source.IsPreserved)
             {
                 AddGeneratedField(MimeVersionFieldName, MimeVersionValue, builder);
             }
@@ -727,6 +741,18 @@ namespace DataStandardizer.File.InternetMessage
             var boundary = node.Boundary;
             if (boundary is null)
                 throw new InvalidOperationException("A multipart entity has no boundary.");
+
+            if (!(source.RawFraming is null))
+            {
+                for (var index = 0; index < node.Children.Count; index++)
+                {
+                    builder.AddLiteral(source.RawFraming[index].Span);
+                    AddEntity(node.Children[index], builder);
+                }
+
+                builder.AddLiteral(source.RawFraming[node.Children.Count].Span);
+                return;
+            }
 
             var delimiter = GetDelimiter(boundary.Value);
             if (source.Preamble is ReadOnlyMemory<byte> preamble)

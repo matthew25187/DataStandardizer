@@ -28,6 +28,11 @@ namespace DataStandardizer.File.InternetMessage
         internal bool IsGenerated { get; }
 
         /// <summary>
+        /// Gets or sets a flag indicating that the boundary is that of a multipart entity that was read, whose delimiters are written as they were.
+        /// </summary>
+        internal bool IsPreserved { get; set; }
+
+        /// <summary>
         /// Gets a flag indicating that quoted-printable output can't hold the boundary, because a <c>=</c> in it is always followed by two hexadecimal
         /// digits or a line break (RFC 2045 §6.7).  Base64 output can't hold any delimiter, as it has no <c>-</c>.
         /// </summary>
