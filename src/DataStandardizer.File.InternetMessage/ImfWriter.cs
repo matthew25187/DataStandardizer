@@ -64,6 +64,7 @@ namespace DataStandardizer.File.InternetMessage
         private readonly byte[] _lineBreak;
         private readonly ImfOptions _options;
         private readonly ImfOutput _output;
+        private readonly ImfConformanceProfile _profile;
         private readonly ReadOnlyCollection<ImfDiagnostic> _readOnlyDiagnostics;
 
         private long _entitiesWritten;
@@ -114,7 +115,15 @@ namespace DataStandardizer.File.InternetMessage
         /// <exception cref="ArgumentException"><paramref name="options"/> has no <see cref="ImfOptions.CharsetResolver"/>, or an <see cref="ImfOptions.HeaderFallbackCharset"/> that
         /// is needed and can't be resolved.</exception>
         public ImfWriter(string messageFilePath, ImfOptions options)
-            : this(CheckOptions(options), OpenFile(messageFilePath), true, false, ImfEntityWriter.GenerateBoundary)
+            : this(messageFilePath, options, ImfConformanceProfile.Message)
+        {
+        }
+
+        /// <summary>
+        /// Creates a writer of messages to a file, for a format with its own conformance rules.
+        /// </summary>
+        internal ImfWriter(string messageFilePath, ImfOptions options, ImfConformanceProfile profile)
+            : this(CheckOptions(options), OpenFile(messageFilePath), true, false, ImfEntityWriter.GenerateBoundary, profile)
         {
         }
 #endif
@@ -124,14 +133,23 @@ namespace DataStandardizer.File.InternetMessage
         /// to choose the boundaries.
         /// </summary>
         internal ImfWriter(Stream messageStream, ImfOptions options, bool lineFeedIsLineBreak, Func<string> boundaryGenerator)
-            : this(CheckOptions(options), ImfOutput.ValidateStream(messageStream), false, lineFeedIsLineBreak, boundaryGenerator)
+            : this(messageStream, options, lineFeedIsLineBreak, boundaryGenerator, ImfConformanceProfile.Message)
+        {
+        }
+
+        /// <summary>
+        /// Creates a writer with a line break setting and a source of boundaries, for a format with its own conformance rules.
+        /// </summary>
+        internal ImfWriter(Stream messageStream, ImfOptions options, bool lineFeedIsLineBreak, Func<string> boundaryGenerator, ImfConformanceProfile profile)
+            : this(CheckOptions(options), ImfOutput.ValidateStream(messageStream), false, lineFeedIsLineBreak, boundaryGenerator, profile)
         {
         }
 
         // The options come first, so that bad options are found before a file is opened.
-        private ImfWriter(ImfOptions options, Stream stream, bool ownsStream, bool lineFeedIsLineBreak, Func<string> boundaryGenerator)
+        private ImfWriter(ImfOptions options, Stream stream, bool ownsStream, bool lineFeedIsLineBreak, Func<string> boundaryGenerator, ImfConformanceProfile profile)
         {
             _options = options;
+            _profile = profile;
             _boundaryGenerator = boundaryGenerator;
             _lineFeedIsLineBreak = lineFeedIsLineBreak;
             _output = new ImfOutput(stream, ownsStream, GetType().Name);
@@ -462,6 +480,15 @@ namespace DataStandardizer.File.InternetMessage
 #endif
 
         /// <summary>
+        /// Checks that the writer has not been disposed, for a type that wraps it and has its own arguments to check.
+        /// </summary>
+        /// <exception cref="ObjectDisposedException">The writer has been disposed.</exception>
+        internal void ThrowIfDisposed()
+        {
+            _output.ThrowIfDisposed();
+        }
+
+        /// <summary>
         /// Checks a message whose body has changed, and describes it for an <see cref="ImfEntityWriter"/>, which checks the rest before it writes anything.
         /// </summary>
         /// <exception cref="ImfFileException">The message can't be written.</exception>
@@ -500,9 +527,11 @@ namespace DataStandardizer.File.InternetMessage
         private List<ImfDiagnostic> CheckConformance(ImfMessage message)
         {
             var diagnostics = ImfConformance.Check(message, _options);
+            if (_profile == ImfConformanceProfile.Mhtml) diagnostics.AddRange(MhtmlStructure.Read(message, MhtmlUrl.ThisMessageBase).Diagnostics);
+
             foreach (var diagnostic in diagnostics)
             {
-                if (!ImfConformance.IsAllowed(diagnostic.Kind, _options))
+                if (!ImfConformance.IsAllowed(diagnostic, _options, _profile))
                     throw ImfConformance.BuildException(diagnostic, false);
             }
 

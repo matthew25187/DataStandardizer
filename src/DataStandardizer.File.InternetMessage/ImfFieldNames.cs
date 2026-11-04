@@ -12,6 +12,7 @@ namespace DataStandardizer.File.InternetMessage
         internal const string ContentDisposition = "Content-Disposition";
         internal const string ContentId = "Content-ID";
         internal const string ContentLanguage = "Content-Language";
+        internal const string ContentLocation = "Content-Location";
         internal const string ContentTransferEncoding = "Content-Transfer-Encoding";
         internal const string ContentType = "Content-Type";
         internal const string Date = "Date";

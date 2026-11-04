@@ -49,6 +49,7 @@ namespace DataStandardizer.File.InternetMessage
         private readonly ReadOnlyCollection<ImfDiagnostic> _readOnlyDiagnostics;
         private readonly List<ImfDiagnostic> _diagnostics = new List<ImfDiagnostic>();
         private readonly ImfOptions _options;
+        private readonly ImfConformanceProfile _profile;
         private readonly bool _lineFeedIsLineBreak;
         private readonly bool _ownsStream;
         private readonly ImfHeaderScanner _scanner;
@@ -112,7 +113,15 @@ namespace DataStandardizer.File.InternetMessage
         /// <see cref="ImfOptions.CharsetResolver"/>, or an <see cref="ImfOptions.HeaderFallbackCharset"/> that is needed and can't be
         /// resolved.</exception>
         public ImfReader(string messageFilePath, ImfOptions options)
-            : this(CheckOptions(options), ImfHeaderReader.OpenFile(messageFilePath), true, options, DefaultBufferSize, false)
+            : this(messageFilePath, options, ImfConformanceProfile.Message)
+        {
+        }
+
+        /// <summary>
+        /// Creates a reader for the message in a file, for a format with its own conformance rules.
+        /// </summary>
+        internal ImfReader(string messageFilePath, ImfOptions options, ImfConformanceProfile profile)
+            : this(CheckOptions(options), ImfHeaderReader.OpenFile(messageFilePath), true, options, DefaultBufferSize, false, profile)
         {
         }
 #endif
@@ -122,12 +131,20 @@ namespace DataStandardizer.File.InternetMessage
         /// and the readers of container formats to read the LF line breaks of their messages.
         /// </summary>
         internal ImfReader(Stream messageStream, ImfOptions options, int bufferSize, bool lineFeedIsLineBreak)
-            : this(CheckOptions(options), ImfHeaderReader.ValidateStream(messageStream), false, options, bufferSize, lineFeedIsLineBreak)
+            : this(messageStream, options, bufferSize, lineFeedIsLineBreak, ImfConformanceProfile.Message)
+        {
+        }
+
+        /// <summary>
+        /// Creates a reader with a specific size for the internal block and a line break setting, for a format with its own conformance rules.
+        /// </summary>
+        internal ImfReader(Stream messageStream, ImfOptions options, int bufferSize, bool lineFeedIsLineBreak, ImfConformanceProfile profile)
+            : this(CheckOptions(options), ImfHeaderReader.ValidateStream(messageStream), false, options, bufferSize, lineFeedIsLineBreak, profile)
         {
         }
 
         // The encoding comes first, so that bad options are found before a file is opened.
-        private ImfReader(Encoding fallbackEncoding, Stream stream, bool ownsStream, ImfOptions options, int bufferSize, bool lineFeedIsLineBreak)
+        private ImfReader(Encoding fallbackEncoding, Stream stream, bool ownsStream, ImfOptions options, int bufferSize, bool lineFeedIsLineBreak, ImfConformanceProfile profile)
         {
             if (bufferSize < 1)
                 throw new ArgumentOutOfRangeException(nameof(bufferSize));
@@ -135,6 +152,7 @@ namespace DataStandardizer.File.InternetMessage
             _stream = stream;
             _ownsStream = ownsStream;
             _options = options;
+            _profile = profile;
             _lineFeedIsLineBreak = lineFeedIsLineBreak;
             _scanner = new ImfHeaderScanner(bufferSize, options, fallbackEncoding, lineFeedIsLineBreak);
             _message = new ImfMessage(options);
@@ -353,11 +371,19 @@ namespace DataStandardizer.File.InternetMessage
 
             foreach (var diagnostic in ImfConformance.Check(_message, _options))
             {
-                if (!ImfConformance.IsAllowed(diagnostic.Kind, _options))
+                if (!ImfConformance.IsAllowed(diagnostic, _options, _profile))
                     throw ImfConformance.BuildException(diagnostic, true);
 
                 _diagnostics.Add(diagnostic);
             }
+        }
+
+        /// <summary>
+        /// Records problems that a format found in what was read, as another read can't be in progress after the one read of the message.
+        /// </summary>
+        internal void AddDiagnostics(IEnumerable<ImfDiagnostic> diagnostics)
+        {
+            _diagnostics.AddRange(diagnostics);
         }
 
         private ImfMessage Complete()

@@ -32,6 +32,9 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
         // private one they all call.
         private const int ConstructorCount = 4;
 
+        // The constructors of ImfReader and ImfWriter on this target, which also have an internal one for a format with its own conformance rules.
+        private const int MessageConstructorCount = 5;
+
         private static readonly string NetStandard11BuildPath =
             Path.Combine(AppContext.BaseDirectory, "netstandard1.1", "DataStandardizer.File.InternetMessage.dll");
 
@@ -40,6 +43,8 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
         private const string MessageWriterTypeName = "ImfWriter";
         private const string MessageReaderTypeName = nameof(ImfReader);
         private const string MessageSyncReadMethodName = nameof(ImfReader.ReadMessage);
+        private const string MhtmlReaderTypeName = nameof(MhtmlReader);
+        private const string MhtmlWriterTypeName = nameof(MhtmlWriter);
 
         [Fact]
         public void Methods_ReaderInNetStandard11Build_HaveTheSynchronousRead()
@@ -85,6 +90,8 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
         [InlineData(HeaderWriterTypeName)]
         [InlineData(EntityWriterTypeName)]
         [InlineData(MessageWriterTypeName)]
+        [InlineData(MhtmlReaderTypeName)]
+        [InlineData(MhtmlWriterTypeName)]
         public void Methods_WriterInNetStandard11Build_HaveNoAsynchronousMembers(string typeName)
         {
             // act
@@ -98,6 +105,8 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
         [InlineData(HeaderWriterTypeName)]
         [InlineData(EntityWriterTypeName)]
         [InlineData(MessageWriterTypeName)]
+        [InlineData(MhtmlReaderTypeName)]
+        [InlineData(MhtmlWriterTypeName)]
         public void Constructors_WriterInNetStandard11Build_TakeAStreamAndNotAFilePath(string typeName)
         {
             // act
@@ -108,16 +117,16 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
         }
 
         [Theory]
-        [InlineData(HeaderWriterTypeName)]
-        [InlineData(EntityWriterTypeName)]
-        [InlineData(MessageWriterTypeName)]
-        public void Methods_WriterInNetStandard11Build_HaveNoFilePathConstructors(string typeName)
+        [InlineData(HeaderWriterTypeName, ConstructorCount)]
+        [InlineData(EntityWriterTypeName, ConstructorCount)]
+        [InlineData(MessageWriterTypeName, MessageConstructorCount)]
+        public void Methods_WriterInNetStandard11Build_HaveNoFilePathConstructors(string typeName, int expected)
         {
             // act
             var testResult = ReadMethodNames(typeName);
 
             // assert
-            testResult.Count(name => name == ".ctor").Should().Be(ConstructorCount);
+            testResult.Count(name => name == ".ctor").Should().Be(expected);
         }
 
         [Fact]
@@ -187,7 +196,7 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
             var testResult = ReadMethodNames(MessageReaderTypeName);
 
             // assert
-            testResult.Count(name => name == ".ctor").Should().Be(ConstructorCount);
+            testResult.Count(name => name == ".ctor").Should().Be(MessageConstructorCount);
         }
 
         [Fact]

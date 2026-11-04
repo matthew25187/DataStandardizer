@@ -147,9 +147,31 @@ namespace DataStandardizer.File.InternetMessage
         /// <see cref="ImfContentDisposition"/>.  <see cref="ImfMimeFields.ParseContentLanguage(string, ImfOptions)"/> rejects a language tag that isn't well-formed
         /// (RFC 3282 §2).  When <c>true</c>, it leaves that tag out of the list.  An <see cref="ImfReader"/> or <see cref="ImfWriter"/> throws an <see cref="ImfFileException"/> if the
         /// body of a field that RFC 5322 §3.6 defines breaks its grammar, or a Sender or Resent-Sender group has more than one mailbox (RFC 6854 §2.1).  When <c>true</c>, it records an
-        /// <see cref="ImfDiagnostic"/> instead, the field stays as it is, and the accessor for it gives <c>null</c>, unless the value is only a day of the week that doesn't match.
+        /// <see cref="ImfDiagnostic"/> instead, the field stays as it is, and the accessor for it gives <c>null</c>, unless the value is only a day of the week that doesn't match.  The
+        /// same goes for an <see cref="MhtmlDocument"/> and a Content-Location field that breaks RFC 2557 §4.1 or §4.4.1.
         /// </remarks>
         public bool AllowInvalidValues
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
+        /// Gets a flag indicating if an <see cref="MhtmlDocument"/>, <see cref="MhtmlReader"/> or <see cref="MhtmlWriter"/> accepts a <c>multipart/related</c> entity that breaks the rules
+        /// of its structure.
+        /// </summary>
+        /// <remarks>
+        /// RFC 2387 §3.1 requires a <c>type</c> parameter that gives the media type of the root part, and §3.2 has the <c>start</c> parameter give the Content-ID of that part.  RFC 2557
+        /// §7 requires each part to have a different Content-ID, and a Content-Location that resolves to a different URL.  When <c>false</c> (the default), a <c>multipart/related</c>
+        /// entity that breaks one of these causes an <see cref="ImfFileException"/>.  When <c>true</c>, it records an <see cref="ImfDiagnostic"/> instead, the first part is the root
+        /// if <c>start</c> names none, and the first of the parts with the same label is the one that is found.  Word saves web pages with no <c>type</c> parameter.
+        /// <see cref="ImfReader"/> and <see cref="ImfWriter"/> don't check these rules, and so don't use this option.
+        /// </remarks>
+        public bool AllowInvalidRelatedStructure
         {
             get;
 #if NET5_0_OR_GREATER

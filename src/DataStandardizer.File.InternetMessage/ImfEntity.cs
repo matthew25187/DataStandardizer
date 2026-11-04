@@ -214,6 +214,30 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
+        /// Gets or sets the URI of the Content-Location field (RFC 2557 §4), which is absolute or relative, and is kept as it was written, so <see cref="Uri.OriginalString"/> gives it
+        /// octet by octet.  It labels the entity, and doesn't say where it came from (RFC 2557 §11.1).
+        /// </summary>
+        /// <remarks>
+        /// Reading unfolds the URI and decodes any RFC 2047 encoded words (RFC 2557 §4.4.3).  Writing folds a long URI, and writes one with characters that a header can't hold as encoded
+        /// words (RFC 2557 §4.4.1 and §4.4.2).  To resolve one that is relative, use an <see cref="MhtmlDocument"/>.
+        /// </remarks>
+        /// <exception cref="ArgumentException">On set: the URI holds an unpaired surrogate.</exception>
+        [AllowNull, MaybeNull]
+        public Uri ContentLocation
+        {
+            get
+            {
+                var headerField = Fields.Find(ImfFieldNames.ContentLocation);
+                return !(headerField is null) && ImfMimeFields.TryParseContentLocation(headerField.Value, Options, out var location) ? location : null;
+            }
+            set
+            {
+                var location = value;
+                Fields.Set(ImfFieldNames.ContentLocation, location is null ? NoFields : new[] { ImfHeaderField.FromValue(ImfFieldNames.ContentLocation, encoding => ImfMimeFields.FormatContentLocation(location)) });
+            }
+        }
+
+        /// <summary>
         /// Gets the suggested file name of the entity: the <c>filename</c> parameter of the Content-Disposition field, in the form of RFC 2231 if it has one (<c>filename*</c>), or the
         /// <c>name</c> parameter of the Content-Type field, which RFC 2046 §4.5.1 leaves in use for this; or <c>null</c> if it has none.
         /// </summary>

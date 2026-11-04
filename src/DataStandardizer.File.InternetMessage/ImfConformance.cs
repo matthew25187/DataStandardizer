@@ -84,6 +84,8 @@ namespace DataStandardizer.File.InternetMessage
         {
             switch (kind)
             {
+                case ImfDiagnosticKind.InvalidRelatedStructure:
+                    return options.AllowInvalidRelatedStructure;
                 case ImfDiagnosticKind.MissingRequiredField:
                     return options.AllowMissingRequiredFields;
                 case ImfDiagnosticKind.CardinalityViolation:
@@ -93,6 +95,20 @@ namespace DataStandardizer.File.InternetMessage
                 default:
                     return false;
             }
+        }
+
+        /// <summary>
+        /// Determines if a profile or some options accept a problem.
+        /// </summary>
+        internal static bool IsAllowed(ImfDiagnostic diagnostic, ImfOptions options, ImfConformanceProfile profile)
+        {
+            // ref. RFC 2557 §3: the top level of an aggregate document is a MIME entity as much as a message, and the origination fields of RFC 5322 §3.6 say nothing about it.  A block of
+            // resent fields does say that a message was sent, so its rules stay.
+            if (profile == ImfConformanceProfile.Mhtml && diagnostic.Kind == ImfDiagnosticKind.MissingRequiredField
+                && (diagnostic.FieldName == ImfFieldNames.Date || diagnostic.FieldName == ImfFieldNames.From || diagnostic.FieldName == ImfFieldNames.Sender))
+                return true;
+
+            return IsAllowed(diagnostic.Kind, options);
         }
 
         /// <summary>
