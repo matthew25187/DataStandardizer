@@ -842,6 +842,42 @@ namespace DataStandardizer.Communication.Tests.Mime
         }
 
         [Theory]
+        [InlineData(MimeBase64Mode.Strict, "Zg==", new byte[] { 0x66 })]
+        [InlineData(MimeBase64Mode.Strict, "Zm8=", new byte[] { 0x66, 0x6F })]
+        [InlineData(MimeBase64Mode.Strict, "Zm9vYg==", new byte[] { 0x66, 0x6F, 0x6F, 0x62 })]
+        [InlineData(MimeBase64Mode.Mime, "Zm\r\n9vYg==", new byte[] { 0x66, 0x6F, 0x6F, 0x62 })]
+        [InlineData(MimeBase64Mode.Mime, "Zm9vYg=\r\n=", new byte[] { 0x66, 0x6F, 0x6F, 0x62 })]
+        [InlineData(MimeBase64Mode.Mime, "Zg=\r\n=", new byte[] { 0x66 })]
+        [InlineData(MimeBase64Mode.Mime, "Zg==\r\n", new byte[] { 0x66 })]
+        public void TryDecode_PaddedData_GivesTheBytes(MimeBase64Mode mode, string encoded, byte[] expected)
+        {
+            // act
+            var testResult = MimeBase64.TryDecode(encoded.AsSpan(), mode, MimeBase64DecoderOptions.None, out var result);
+
+            // assert
+            testResult.Should().BeTrue();
+            result.Should().Equal(expected);
+        }
+
+        [Theory]
+        [InlineData(MimeBase64Mode.Strict, "=")]
+        [InlineData(MimeBase64Mode.Strict, "==")]
+        [InlineData(MimeBase64Mode.Strict, "===")]
+        [InlineData(MimeBase64Mode.Strict, "AAAAAAA==")]
+        [InlineData(MimeBase64Mode.Mime, "=")]
+        [InlineData(MimeBase64Mode.Mime, "==")]
+        [InlineData(MimeBase64Mode.Mime, "AAAAAAA==")]
+        public void TryDecode_MorePaddingThanTheDataAllows_ReturnsFalse(MimeBase64Mode mode, string encoded)
+        {
+            // act
+            var testResult = MimeBase64.TryDecode(encoded.AsSpan(), mode, MimeBase64DecoderOptions.None, out var result);
+
+            // assert
+            testResult.Should().BeFalse();
+            result.Should().BeNull();
+        }
+
+        [Theory]
         [MemberData(nameof(MimeBadPaddingOrTruncated))]
         public void TryDecode_MimeBadPaddingOrTruncated_ReturnsFalse(string encoded, MimeBase64DecoderOptions options)
         {

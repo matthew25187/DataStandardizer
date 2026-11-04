@@ -128,7 +128,7 @@ namespace DataStandardizer.Communication.Mime
             CheckMode(mode);
             CheckOptions(options);
 
-            var buffer = new byte[GetMaxDecodedLength(source.Length)];
+            var buffer = new byte[GetDecodedLengthLimit(source)];
             var decoder = new MimeBase64DecoderState(mode, options);
             int charsConsumed;
             int bytesWritten;
@@ -177,6 +177,17 @@ namespace DataStandardizer.Communication.Mime
         internal static void CheckOptions(MimeBase64DecoderOptions options)
         {
             if ((options & ~MimeBase64DecoderOptions.RejectNonAlphabetCharacters) != 0) throw new ArgumentOutOfRangeException(nameof(options));
+        }
+
+        // Gets the largest number of bytes that valid data can decode to, so that the usual padded data needs no resize.
+        // ref. RFC 4648 §4: each "=" at the end of a final quantum means one byte fewer than a full quantum. Data that has more bytes than
+        // this is not valid, and fails to decode either way.
+        private static int GetDecodedLengthLimit(ReadOnlySpan<char> source)
+        {
+            var length = GetMaxDecodedLength(source.Length);
+            if (length == 0 || source[source.Length - 1] != '=') return length;
+
+            return source[source.Length - 2] == '=' ? length - 2 : length - 1;
         }
 
         private static sbyte[] CreateDecodeMap()
