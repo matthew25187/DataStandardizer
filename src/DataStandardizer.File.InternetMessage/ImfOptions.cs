@@ -494,13 +494,19 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Gets a flag indicating if a header may lack a field that RFC 5322 requires.
+        /// Gets a flag indicating if a header may lack a field that RFC 5322 or RFC 2046 requires.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// RFC 5322 §3.6 requires Date and From.  §3.6.2 and RFC 6854 §2.1 require Sender when From has more than one mailbox, and §3.6.6 applies the same rules to Resent-Date,
-        /// Resent-From and Resent-Sender in each block of resent fields.  RFC 2046 §5.2.1 requires one of From, Subject or Date in an embedded message.  When <c>false</c> (the default), an
-        /// <see cref="ImfReader"/>, <see cref="ImfWriter"/>, <see cref="MhtmlReader"/> or <see cref="MhtmlWriter"/> throws an <see cref="ImfFileException"/> for a message without one.  When
-        /// <c>true</c>, it records an <see cref="ImfDiagnostic"/> instead.  Programs that save web pages as MHTML often leave out Date and From, so reading such a file needs this option.
+        /// Resent-From and Resent-Sender in each block of resent fields.  When <c>false</c> (the default), an <see cref="ImfWriter"/> or <see cref="MhtmlWriter"/> throws an
+        /// <see cref="ImfFileException"/> for a message without one.  When <c>true</c>, it records an <see cref="ImfDiagnostic"/> instead.  A reader doesn't need this option for these, and always
+        /// records an <see cref="ImfDiagnostic"/>: RFC 5322 §4 says that a receiver MUST accept the obsolete syntax, and the <c>obs-fields</c> of §4.5 has no minimum for any field.
+        /// </para>
+        /// <para>
+        /// RFC 2046 §5.2.1 requires one of From, Subject or Date in an embedded message.  When <c>false</c> (the default), a reader or writer throws an <see cref="ImfFileException"/> for an
+        /// embedded message with none of them.  When <c>true</c>, it records an <see cref="ImfDiagnostic"/> instead.
+        /// </para>
         /// </remarks>
         public bool AllowMissingRequiredFields
         {
