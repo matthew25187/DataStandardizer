@@ -161,6 +161,10 @@ namespace DataStandardizer.File.InternetMessage
         private readonly bool _allowLongLines;
         private readonly bool _allowMissingMimeVersion;
         private readonly ImfBodyCheck _bodyCheck;
+
+        // The path of the current entity, once something has asked for it.  It changes only when the entities that are open do.
+        [AllowNull]
+        private string _path;
         private readonly bool _allowMissingBoundaryTerminator;
         private readonly MimeBase64Decoder _base64Decoder = new MimeBase64Decoder(MimeBase64Mode.Mime);
         private readonly IMimeCharsetResolver _charsetResolver;
@@ -496,6 +500,7 @@ namespace DataStandardizer.File.InternetMessage
             }
 
             _frames.RemoveAt(_frames.Count - 1);
+            _path = null;
         }
 
         /// <summary>
@@ -886,6 +891,7 @@ namespace DataStandardizer.File.InternetMessage
                 throw BuildError(string.Format(ErrorMessage.TooManyPartsTemplate, _maxPartCount));
 
             _frames.Add(new Frame { Depth = depth, IsMessage = isMessage, PathNumber = pathNumber, Start = _scanner.BytePosition });
+            _path = null;
             _entitiesRead++;
             _state = State.EntityStart;
         }
@@ -1317,6 +1323,11 @@ namespace DataStandardizer.File.InternetMessage
         /// Builds the path of the current entity from those of the entities that hold it.
         /// </summary>
         private string BuildPath()
+        {
+            return _path ?? (_path = BuildPathFromFrames());
+        }
+
+        private string BuildPathFromFrames()
         {
             var path = new StringBuilder();
             foreach (var frame in _frames)

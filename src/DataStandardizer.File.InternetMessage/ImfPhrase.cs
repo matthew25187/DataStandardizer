@@ -106,6 +106,31 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
+        /// Passes over what <see cref="TryRead(ref ImfTokenizer, ImfOptions, out ImfPhrase)"/> reads, and builds nothing, unless the phrase has an atom in the form of an encoded word.  Decoding one
+        /// calls <see cref="ImfOptions.CharsetResolver"/>, which can do anything, including throw, so such a phrase is read.  With no such atom, decoding changes nothing and can't fail.
+        /// </summary>
+        /// <returns><c>false</c> if the next token does not start a phrase, or the input is not valid.</returns>
+        internal static bool TrySkip(ref ImfTokenizer tokenizer, ImfOptions options)
+        {
+            if (!tokenizer.TryPeek(out var token) || !token.IsWord) return false;
+
+            var start = tokenizer;
+            while (token.IsWord || token.Kind == ImfTokenKind.Period)
+            {
+                tokenizer.TryRead(out token);
+                if (IsEncodedWordAtom(tokenizer, token))
+                {
+                    tokenizer = start;
+                    return TryRead(ref tokenizer, options, out _);
+                }
+
+                if (!tokenizer.TryPeek(out token)) return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// Indicates whether this phrase equals another: it has the same text, compared case-sensitively, whichever form it was written in.
         /// </summary>
         internal bool ValueEquals(ImfPhrase other)
