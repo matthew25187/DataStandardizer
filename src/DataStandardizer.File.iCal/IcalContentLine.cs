@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
+using DataStandardizer.Communication.Mime;
 
 namespace DataStandardizer.File.iCal
 {
@@ -168,6 +169,39 @@ namespace DataStandardizer.File.iCal
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Gets the media type in the <c>FMTTYPE</c> parameter (RFC 5545 §3.2.8), such as <c>audio/basic</c>.
+        /// </summary>
+        /// <remarks>
+        /// The value must be a type and subtype whose names follow RFC 4288 §4.2, as RFC 5545 §3.2.8 requires, so it can't have media type
+        /// parameters.  To read a value that doesn't follow this, use <see cref="GetParameter"/> with <see cref="IcalParameterNames.FormatType"/>.
+        /// </remarks>
+        /// <returns>The media type; or <c>null</c> if the line has no <c>FMTTYPE</c> parameter.</returns>
+        /// <exception cref="IcalFileException">The line has more than one <c>FMTTYPE</c> parameter, or the parameter has more than one value or
+        /// a value that is not valid.</exception>
+        public MimeMediaType? GetFormatType()
+        {
+            var parameterIndex = -1;
+            for (var index = 0; index < _parameters.Length; index++)
+            {
+                if (!string.Equals(_parameters[index].Name, IcalParameterNames.FormatType, StringComparison.OrdinalIgnoreCase)) continue;
+                if (parameterIndex >= 0) throw IcalPropertyValue.BuildInvalidFormatTypeException(LineNumber, PhysicalLineNumber, Name);
+
+                parameterIndex = index;
+            }
+
+            if (parameterIndex < 0) return null;
+
+            var values = _parameters[parameterIndex].ValueArray;
+            MimeMediaType result;
+            if (values.Length != 1 || !IcalPropertyValue.TryParseFormatType(values[0].AsSpan(), out result))
+            {
+                throw IcalPropertyValue.BuildInvalidFormatTypeException(LineNumber, PhysicalLineNumber, Name);
+            }
+
+            return result;
         }
 
         /// <summary>

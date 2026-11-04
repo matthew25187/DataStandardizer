@@ -1426,6 +1426,7 @@ namespace DataStandardizer.File.iCal.Tests
             view => view.GetParameterValue(0, 0).ToString(),
             view => view.GetParameterValueMemory(0, 0),
             view => view.IsParameterValueQuoted(0, 0),
+            view => view.GetFormatType(),
             view => view.GetTextValue().ToString(),
             view => view.GetTextValueMemory(),
             view => view.ToContentLine(),

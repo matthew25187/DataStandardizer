@@ -1,4 +1,5 @@
 ﻿using System;
+using DataStandardizer.Communication.Mime;
 
 namespace DataStandardizer.File.iCal
 {
@@ -197,6 +198,47 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
+        /// Gets the media type in the <c>FMTTYPE</c> parameter (RFC 5545 §3.2.8), such as <c>audio/basic</c>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The value must be a type and subtype whose names follow RFC 4288 §4.2, as RFC 5545 §3.2.8 requires, so it can't have media type
+        /// parameters.  To read a value that doesn't follow this, use <see cref="IndexOfParameter"/> and <see cref="GetParameterValue"/>.
+        /// </para>
+        /// <para>
+        /// Unlike the other members, this allocates: the media type holds its names as strings.
+        /// </para>
+        /// </remarks>
+        /// <returns>The media type; or <c>null</c> if the line has no <c>FMTTYPE</c> parameter.</returns>
+        /// <exception cref="ObjectDisposedException">The reader has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">The reader has moved on to another line.</exception>
+        /// <exception cref="IcalFileException">The line has more than one <c>FMTTYPE</c> parameter, or the parameter has more than one value or
+        /// a value that is not valid.</exception>
+        public MimeMediaType? GetFormatType()
+        {
+            var scanner = GetScanner();
+            var parameterIndex = -1;
+            for (var index = 0; index < scanner.ParameterCount; index++)
+            {
+                if (!EqualsIgnoreCase(scanner.GetParameterName(index).Span, IcalParameterNames.FormatType.AsSpan())) continue;
+                if (parameterIndex >= 0) throw BuildInvalidFormatTypeException(scanner);
+
+                parameterIndex = index;
+            }
+
+            if (parameterIndex < 0) return null;
+
+            MimeMediaType result;
+            if (scanner.GetParameterValueCount(parameterIndex) != 1 ||
+                !IcalPropertyValue.TryParseFormatType(scanner.GetParameterValue(parameterIndex, 0).Span, out result))
+            {
+                throw BuildInvalidFormatTypeException(scanner);
+            }
+
+            return result;
+        }
+
+        /// <summary>
         /// Gets the value with RFC 5545 §3.3.11 TEXT escaping removed: <c>\\</c>, <c>\;</c> and <c>\,</c> become the escaped character, and
         /// <c>\n</c> or <c>\N</c> a line feed.
         /// </summary>
@@ -234,6 +276,11 @@ namespace DataStandardizer.File.iCal
                 throw new InvalidOperationException("The view was not obtained from a reader.");
 
             return _reader.GetScanner(_version);
+        }
+
+        private static IcalFileException BuildInvalidFormatTypeException(IcalContentLineScanner scanner)
+        {
+            return IcalPropertyValue.BuildInvalidFormatTypeException(scanner.LineNumber, scanner.PhysicalLineNumber, scanner.Name.Span.ToString());
         }
 
         private static bool EqualsIgnoreCase(ReadOnlySpan<char> left, ReadOnlySpan<char> right)

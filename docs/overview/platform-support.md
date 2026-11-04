@@ -71,7 +71,9 @@ dependency. Likewise, the `netstandard1.1` and `netstandard2.0` builds of
 **DataStandardizer.File.iCal** get the span types from `System.Memory`, and the
 `netstandard2.0` build gets `IAsyncEnumerable<T>` and `IAsyncDisposable` from
 `Microsoft.Bcl.AsyncInterfaces`. **DataStandardizer.File.InternetMessage** gets them
-from the same packages, on the same targets.
+from the same packages, on the same targets. Both packages depend on
+**DataStandardizer.Communication**, which has no `netstandard2.1` target, so their
+`netstandard2.1` builds get `System.Memory` through it.
 
 **DataStandardizer.LanguageTag** has no `netstandard2.1` target. Its
 `netstandard1.1` and `netstandard2.0` builds get the span types from

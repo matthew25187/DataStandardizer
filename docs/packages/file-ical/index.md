@@ -43,6 +43,10 @@ Targets .NET Standard 1.1, 2.0 and 2.1, and .NET 10.
 > `IcalOptions` is a `record` on `net10.0`, so `with` expressions work
 > there, and a plain `class` on the .NET Standard targets.
 
+The package depends on [DataStandardizer.Communication](../communication/index.md) for
+media types and base64, which brings in **DataStandardizer.LanguageTag**,
+**DataStandardizer.Geography** and **DataStandardizer.Language**.
+
 See [Platform support](../../overview/platform-support.md) for the full matrix.
 
 ## How-to guides

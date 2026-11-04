@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Globalization;
+using DataStandardizer.Communication.Mime;
 
 namespace DataStandardizer.File.iCal
 {
@@ -8,6 +9,8 @@ namespace DataStandardizer.File.iCal
     /// </summary>
     internal static class IcalPropertyValue
     {
+        private const int MaxRegNameLength = 127;
+
         /// <summary>
         /// Gets the value type of a property: the type its <c>VALUE</c> parameter names, or its default type.
         /// </summary>
@@ -66,6 +69,64 @@ namespace DataStandardizer.File.iCal
 
             result = default(IcalDateOrDateTime);
             return false;
+        }
+
+        /// <summary>
+        /// Parses the value of a <c>FMTTYPE</c> parameter (RFC 5545 §3.2.8).
+        /// </summary>
+        /// <param name="value">The parameter value, without any enclosing double quotes and with RFC 6868 caret encoding decoded.</param>
+        /// <param name="result">The media type, if the value is valid.</param>
+        /// <returns><c>true</c> if the value is a type and subtype; otherwise <c>false</c>.  Media type parameters are not valid.</returns>
+        internal static bool TryParseFormatType(ReadOnlySpan<char> value, out MimeMediaType result)
+        {
+            // ref. RFC 5545§3.2.8: fmttypeparam = "FMTTYPE" "=" type-name "/" subtype-name
+            var separator = value.IndexOf('/');
+            if (separator < 0 || !IsRegName(value.Slice(0, separator)) || !IsRegName(value.Slice(separator + 1)))
+            {
+                result = default(MimeMediaType);
+                return false;
+            }
+
+            // A reg-name may start with a symbol, which the RFC 6838 §4.2 names that MimeMediaType requires by default may not.
+            return MimeMediaType.TryParse(value, MimeMediaTypeParseOptions.AllowRfc2045Tokens, out result);
+        }
+
+        /// <summary>
+        /// Builds the exception a typed accessor throws for a <c>FMTTYPE</c> parameter that is not valid.
+        /// </summary>
+        internal static IcalFileException BuildInvalidFormatTypeException(long lineNumber, long physicalLineNumber, string propertyName)
+        {
+            var message = string.Format(CultureInfo.InvariantCulture,
+                "The {0} property must have one FMTTYPE parameter with one value, which is a type and subtype.", propertyName);
+            return IcalContentLineScanner.BuildException(message, lineNumber, physicalLineNumber, propertyName);
+        }
+
+        // TODO: RFC 5545 cites RFC 4288, which RFC 6838 has obsoleted.  RFC 6838 §4.2 requires a name to start with a letter or digit.
+        // ref. RFC 4288§4.2: reg-name = 1*127reg-name-chars
+        private static bool IsRegName(ReadOnlySpan<char> value)
+        {
+            if (value.IsEmpty || value.Length > MaxRegNameLength) return false;
+
+            foreach (var character in value)
+            {
+                if (!IsRegNameCharacter(character)) return false;
+            }
+
+            return true;
+        }
+
+        // ref. RFC 4288§4.2: reg-name-chars = ALPHA / DIGIT / "!" / "#" / "$" / "&" / "." / "+" / "-" / "^" / "_"
+        private static bool IsRegNameCharacter(char character)
+        {
+            if ((character >= 'A' && character <= 'Z') || (character >= 'a' && character <= 'z') || (character >= '0' && character <= '9')) return true;
+
+            switch (character)
+            {
+                case '!': case '#': case '$': case '&': case '.': case '+': case '-': case '^': case '_':
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         internal static string FormatInteger(int value)
