@@ -1,4 +1,7 @@
 using System;
+#if !NET10_0_OR_GREATER
+using System.Runtime.InteropServices;
+#endif
 using DataStandardizer.Communication.Mime;
 
 namespace DataStandardizer.File.InternetMessage
@@ -27,6 +30,10 @@ namespace DataStandardizer.File.InternetMessage
         private const byte CarriageReturn = 0x0D;
         private const byte LineFeed = 0x0A;
         private const byte HighestSevenBitOctet = 0x7F;
+#if !NET10_0_OR_GREATER
+        private const ulong HighBits = 0x8080808080808080UL;
+        private const ulong LowBits = 0x0101010101010101UL;
+#endif
 
         private readonly bool _acceptBareLineFeed;
         private readonly bool _lineFeedIsLineBreak;
@@ -60,14 +67,7 @@ namespace DataStandardizer.File.InternetMessage
         /// </summary>
         internal static bool HasInvalidHeaderOctet(ReadOnlySpan<byte> bytes, MimeDataDomain enclosing)
         {
-            if (enclosing != MimeDataDomain.SevenBit) return false;
-
-            foreach (var octet in bytes)
-            {
-                if (octet > HighestSevenBitOctet) return true;
-            }
-
-            return false;
+            return enclosing == MimeDataDomain.SevenBit && IndexOfNonPlain(bytes, MimeDataDomain.SevenBit, false) >= 0;
         }
 
         /// <summary>
@@ -111,8 +111,13 @@ namespace DataStandardizer.File.InternetMessage
             invalidOctetOffset = 0;
             if (_domain == MimeDataDomain.Binary) return;
 
-            for (var index = 0; index < bytes.Length; index++)
+            var index = 0;
+            while (true)
             {
+                index += SkipPlainLines(bytes.Slice(index));
+                if (index == bytes.Length) return;
+
+                // Only the checks of single octets decide what is wrong, so a body gets the same answer however the plain lines around the problem are passed over.
                 var hadLongLine = _hasLongLine;
                 var hadInvalidOctet = _hasInvalidOctet;
                 CheckOctet(bytes[index]);
@@ -127,6 +132,8 @@ namespace DataStandardizer.File.InternetMessage
                     foundInvalidOctet = true;
                     invalidOctetOffset = index;
                 }
+
+                index++;
             }
         }
 
@@ -140,6 +147,79 @@ namespace DataStandardizer.File.InternetMessage
             _previousWasCarriageReturn = false;
             _hasInvalidOctet |= isBare;
             return isBare;
+        }
+
+        /// <summary>
+        /// Passes over the lines at the start of some bytes that have no problem, and stops at the first octet that <see cref="CheckOctet"/> has to look at.
+        /// </summary>
+        /// <returns>The number of bytes passed over.</returns>
+        private int SkipPlainLines(ReadOnlySpan<byte> bytes)
+        {
+            if (_previousWasCarriageReturn || _hasInvalidOctet || _hasLongLine) return 0;
+
+            var position = 0;
+            while (position < bytes.Length)
+            {
+                // The search ends just past the limit, as a line longer than that stops here, so that a long line isn't searched again for each of its octets.
+                var room = _maxLineLength - _lineLength;
+                var rest = bytes.Slice(position);
+                var window = rest.Length > room ? rest.Slice(0, room + 1) : rest;
+                var lineEnd = window.IndexOfAny(CarriageReturn, LineFeed);
+                var segment = lineEnd >= 0 ? window.Slice(0, lineEnd) : window.Length > room ? window.Slice(0, room) : window;
+
+                var nonPlain = IndexOfNonPlain(segment, _domain, _isMime);
+                if (nonPlain >= 0)
+                {
+                    _lineLength += nonPlain;
+                    return position + nonPlain;
+                }
+
+                _lineLength += segment.Length;
+                position += segment.Length;
+                if (lineEnd < 0) return position;
+
+                // ref. RFC 2045 §2.7: CR and LF only as a CRLF.  A CR with nothing after it yet may be half of one, which CheckOctet remembers.
+                var lineBreakLength = bytes[position] == LineFeed ? (_lineFeedIsLineBreak ? 1 : 0) : (position + 1 < bytes.Length && bytes[position + 1] == LineFeed ? 2 : 0);
+                if (lineBreakLength == 0) return position;
+
+                position += lineBreakLength;
+                _lineLength = 0;
+            }
+
+            return position;
+        }
+
+        /// <summary>
+        /// Finds the first octet, in bytes with no line break, that a body with some rules doesn't allow: one above 127 under <see cref="MimeDataDomain.SevenBit"/>, and a NUL in a body with MIME
+        /// fields.
+        /// </summary>
+        /// <returns>The index of the octet, or -1 if there is none.</returns>
+        private static int IndexOfNonPlain(ReadOnlySpan<byte> bytes, MimeDataDomain domain, bool isMime)
+        {
+            if (domain != MimeDataDomain.SevenBit) return isMime ? bytes.IndexOf((byte)0) : -1;
+
+#if NET10_0_OR_GREATER
+            return bytes.IndexOfAnyExceptInRange(isMime ? (byte)1 : (byte)0, HighestSevenBitOctet);
+#else
+            // Eight octets at a time.  The subtraction sets a high bit only for a NUL, or just above one, so a word that shows nothing has nothing in it, and the octets of one that shows
+            // something are looked at one by one.
+            var index = 0;
+            while (bytes.Length - index >= sizeof(ulong))
+            {
+                var word = MemoryMarshal.Read<ulong>(bytes.Slice(index));
+                if (((isMime ? word | (word - LowBits) : word) & HighBits) != 0) break;
+
+                index += sizeof(ulong);
+            }
+
+            for (; index < bytes.Length; index++)
+            {
+                var octet = bytes[index];
+                if (octet > HighestSevenBitOctet || (octet == 0 && isMime)) return index;
+            }
+
+            return -1;
+#endif
         }
 
         private void CheckOctet(byte octet)
