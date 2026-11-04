@@ -354,6 +354,25 @@ namespace DataStandardizer.File.InternetMessage.Tests
             }
         }
 
+        [Theory]
+        [MemberData(nameof(MissingFields))]
+        [MemberData(nameof(RepeatedFields))]
+        public async Task ReadMessageAsync_ObsoleteSyntaxByDefault_RecordsADiagnostic(string message, ImfDiagnosticKind kind, string fieldName)
+        {
+            // arrange
+            var reader = new ImfReader(new BlockStream(Octets.Of(message), BlockStreamMode.AsynchronousOnly));
+            await AsyncDisposal.UsingAsync(reader, async () =>
+            {
+                // act
+                await reader.ReadMessageAsync();
+
+                // assert
+                reader.Diagnostics.Should().ContainSingle();
+                reader.Diagnostics[0].Kind.Should().Be(kind);
+                reader.Diagnostics[0].FieldName.Should().Be(fieldName);
+            });
+        }
+
         [Fact]
         public void To_RepeatedField_CombinesTheAddresses()
         {
