@@ -58,6 +58,12 @@
       "enableTests": true
     },
     {
+      "packageName": "DataStandardizer.File.vCard",
+      "packageSourcePath": "src/DataStandardizer.File.vCard",
+      "variableSuffix": "FILE_VCARD",
+      "enableTests": true
+    },
+    {
       "packageName": "DataStandardizer.Geography",
       "packageSourcePath": "src/DataStandardizer.Geography",
       "variableSuffix": "GEOGRAPHY",
