@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using DataStandardizer.Communication.Mime;
 
@@ -121,6 +122,24 @@ namespace DataStandardizer.File.InternetMessage
         internal IReadOnlyList<ImfEntitySource> Children { get; }
 
         internal IReadOnlyList<FieldEntry> Fields => _fields;
+
+        /// <summary>
+        /// Gets or sets the bytes between the header and the parts of a multipart entity that was read, between each two parts, and after the last, to write in place of
+        /// new delimiters, or <c>null</c> for new ones.
+        /// </summary>
+        [MaybeNull]
+        internal IReadOnlyList<ReadOnlyMemory<byte>> RawFraming { get; set; }
+
+        /// <summary>
+        /// Gets or sets the line break of the empty line that ended the header of an entity that was read, or <c>null</c> for the writer's own.
+        /// </summary>
+        internal ReadOnlyMemory<byte>? RawHeaderEnd { get; set; }
+
+        /// <summary>
+        /// Gets or sets a flag indicating that the entity comes from one that was read, and what hasn't changed stays as it is: the writer adds no field for what it already holds
+        /// unchanged, and doesn't check that against a boundary that also hasn't changed.
+        /// </summary>
+        internal bool IsPreserved { get; set; }
 
         /// <summary>
         /// Describes an entity with content in memory.
@@ -347,6 +366,14 @@ namespace DataStandardizer.File.InternetMessage
             return this;
         }
 
+        /// <summary>
+        /// Adds the bytes a writer is to write for a field of an entity of the object model, which holds what the field means, so nothing is checked.
+        /// </summary>
+        internal void AddOutputField(ReadOnlyMemory<byte> output)
+        {
+            _fields.Add(new FieldEntry(output.ToArray(), false, true));
+        }
+
         private void CheckHasFields()
         {
             if (Kind == SourceKind.Raw)
@@ -386,9 +413,10 @@ namespace DataStandardizer.File.InternetMessage
                 IsRaw = false;
                 IsText = isText;
                 NeedsCheck = false;
+                IsModelField = false;
             }
 
-            internal FieldEntry(byte[] rawBytes, bool needsCheck)
+            internal FieldEntry(byte[] rawBytes, bool needsCheck, bool isModelField = false)
             {
                 Name = rawBytes;
                 Value = rawBytes;
@@ -396,6 +424,7 @@ namespace DataStandardizer.File.InternetMessage
                 IsRaw = true;
                 IsText = false;
                 NeedsCheck = needsCheck;
+                IsModelField = isModelField;
             }
 
             internal byte[] Name { get; }
@@ -412,6 +441,11 @@ namespace DataStandardizer.File.InternetMessage
             internal bool IsText { get; }
 
             internal bool NeedsCheck { get; }
+
+            /// <summary>
+            /// Gets a flag indicating that the field comes from an entity of the object model, whose media type is read from it, so that they can't disagree.
+            /// </summary>
+            internal bool IsModelField { get; }
         }
     }
 }

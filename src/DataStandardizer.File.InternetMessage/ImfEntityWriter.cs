@@ -73,7 +73,7 @@ namespace DataStandardizer.File.InternetMessage
 #endif
     {
         private const byte CarriageReturn = 0x0D;
-        private const int DefaultBlockSize = 16 * 1024;
+        internal const int DefaultBlockSize = 16 * 1024;
         private const string GeneratedBoundaryPrefix = "=_";
         private const string GuidFormatWithoutSeparators = "N";
 
@@ -132,7 +132,7 @@ namespace DataStandardizer.File.InternetMessage
         /// <exception cref="ArgumentNullException"><paramref name="messageFilePath"/> or <paramref name="options"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="options"/> has a limit that is less than 1.</exception>
         public ImfEntityWriter(string messageFilePath, ImfOptions options)
-            : this(CheckOptions(options), OpenFile(messageFilePath), true, DefaultBlockSize, false, GenerateBoundary)
+            : this(CheckOptions(options), new ImfOutput(OpenFile(messageFilePath), true, nameof(ImfEntityWriter)), DefaultBlockSize, false, GenerateBoundary)
         {
         }
 #endif
@@ -142,18 +142,21 @@ namespace DataStandardizer.File.InternetMessage
         /// points and to choose the boundaries, and the writers of container formats to write the LF line breaks of their messages.
         /// </summary>
         internal ImfEntityWriter(Stream messageStream, ImfOptions options, int blockSize, bool lineFeedIsLineBreak, Func<string> boundaryGenerator)
-            : this(CheckOptions(options), ImfOutput.ValidateStream(messageStream), false, blockSize, lineFeedIsLineBreak, boundaryGenerator)
+            : this(CheckOptions(options), new ImfOutput(ImfOutput.ValidateStream(messageStream), false, nameof(ImfEntityWriter)), blockSize, lineFeedIsLineBreak, boundaryGenerator)
         {
         }
 
-        // The options come first, so that bad options are found before a file is opened.
-        private ImfEntityWriter(ImfOptions options, Stream stream, bool ownsStream, int blockSize, bool lineFeedIsLineBreak, Func<string> boundaryGenerator)
+        /// <summary>
+        /// Creates a writer on an output, which an <see cref="ImfWriter"/> shares, and which owns the operation that <see cref="WriteEntities"/> runs in.  The options come first, so
+        /// that bad options are found before a file is opened.
+        /// </summary>
+        internal ImfEntityWriter(ImfOptions options, ImfOutput output, int blockSize, bool lineFeedIsLineBreak, Func<string> boundaryGenerator)
         {
             if (blockSize < 1)
                 throw new ArgumentOutOfRangeException(nameof(blockSize));
 
             _options = options;
-            _output = new ImfOutput(stream, ownsStream, GetType().Name);
+            _output = output;
             _blockSize = blockSize;
             _lineFeedIsLineBreak = lineFeedIsLineBreak;
             _boundaryGenerator = boundaryGenerator;
@@ -199,6 +202,11 @@ namespace DataStandardizer.File.InternetMessage
                 return _fieldsWritten;
             }
         }
+
+        /// <summary>
+        /// Gets the number of header fields written so far, for the writer that shares the output.
+        /// </summary>
+        internal long FieldCount => _fieldsWritten;
 
         /// <summary>
         /// Closes the file the writer opened itself.  A caller-supplied stream is left open.
@@ -278,6 +286,26 @@ namespace DataStandardizer.File.InternetMessage
                 throw new ArgumentNullException(nameof(message));
 
             _output.BeginOperation();
+            try
+            {
+                WriteEntities(message, progress);
+                _output.ThrowIfDisposed();
+            }
+            finally
+            {
+                if (_output.EndOperation()) _output.Release();
+            }
+        }
+
+        /// <summary>
+        /// Does the work of <see cref="WriteMessage"/>, within an operation of the output.
+        /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal void WriteEntities(ImfEntitySource message, IProgress<ImfWriteProgress>? progress)
+#else
+        internal void WriteEntities(ImfEntitySource message, IProgress<ImfWriteProgress> progress)
+#endif
+        {
             var readBlock = ArrayPool<byte>.Shared.Rent(_blockSize);
             var encodedBlock = ArrayPool<byte>.Shared.Rent(EncodedBlockSize);
             try
@@ -316,14 +344,11 @@ namespace DataStandardizer.File.InternetMessage
                     _output.MarkBroken();
                     throw;
                 }
-
-                _output.ThrowIfDisposed();
             }
             finally
             {
                 ArrayPool<byte>.Shared.Return(encodedBlock);
                 ArrayPool<byte>.Shared.Return(readBlock);
-                if (_output.EndOperation()) _output.Release();
             }
         }
 
@@ -410,6 +435,28 @@ namespace DataStandardizer.File.InternetMessage
 #endif
             CancellationToken cancellationToken)
         {
+            try
+            {
+                await WriteEntitiesAsync(message, progress, cancellationToken).ConfigureAwait(false);
+                _output.ThrowIfDisposed();
+            }
+            finally
+            {
+                if (_output.EndOperation()) await _output.ReleaseAsync().ConfigureAwait(false);
+            }
+        }
+
+        /// <summary>
+        /// Does the work of <see cref="WriteMessageAsync"/>, within an operation of the output.
+        /// </summary>
+        internal async Task WriteEntitiesAsync(ImfEntitySource message,
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            IProgress<ImfWriteProgress>? progress,
+#else
+            IProgress<ImfWriteProgress> progress,
+#endif
+            CancellationToken cancellationToken)
+        {
             var readBlock = ArrayPool<byte>.Shared.Rent(_blockSize);
             var encodedBlock = ArrayPool<byte>.Shared.Rent(EncodedBlockSize);
             var hasStartedOutput = false;
@@ -444,8 +491,6 @@ namespace DataStandardizer.File.InternetMessage
                         progress?.Report(GetProgress());
                     }
                 }
-
-                _output.ThrowIfDisposed();
             }
             catch (OperationCanceledException)
             {
@@ -461,7 +506,6 @@ namespace DataStandardizer.File.InternetMessage
             {
                 ArrayPool<byte>.Shared.Return(encodedBlock);
                 ArrayPool<byte>.Shared.Return(readBlock);
-                if (_output.EndOperation()) await _output.ReleaseAsync().ConfigureAwait(false);
             }
         }
 
@@ -662,7 +706,7 @@ namespace DataStandardizer.File.InternetMessage
             }
         }
 
-        private static string GenerateBoundary()
+        internal static string GenerateBoundary()
         {
             // ref. RFC 2046 §5.1.1, RFC 2045 §6.7: all of these are bchars, and quoted-printable output can't hold "=_".
             return GeneratedBoundaryPrefix + Guid.NewGuid().ToString(GuidFormatWithoutSeparators);

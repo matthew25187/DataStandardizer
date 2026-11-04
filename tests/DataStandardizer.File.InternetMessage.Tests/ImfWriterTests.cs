@@ -116,7 +116,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             subject.Subject = "Hi";
             subject.RawBody = Octets.Of("Body\n");
             var stream = new MemoryStream();
-            using (var writer = new ImfWriter(stream, new ImfOptions(), true))
+            using (var writer = new ImfWriter(stream, new ImfOptions(), true, MessageWrites.NextBoundary()))
             {
                 // act
                 writer.WriteMessage(subject);

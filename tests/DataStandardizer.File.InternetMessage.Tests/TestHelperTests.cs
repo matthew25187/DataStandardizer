@@ -11,6 +11,143 @@ namespace DataStandardizer.File.InternetMessage.Tests
     /// </summary>
     public class TestHelperTests
     {
+        private const string TwoLeaves = "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\none\r\n--b\r\nContent-Type: text/html\r\n\r\ntwo\r\n--b--\r\n";
+        private const int ShiftJisCodePage = 932;
+        private const string MessageWithThreeOctets = "Date: Fri, 21 Nov 1997 09:55:06 -0600\r\nFrom: a@b.test\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\nxxx\r\n--b--\r\n";
+
+        private static ImfOptions NoRequiredFields => new ImfOptions { AllowMissingRequiredFields = true };
+
+        [Fact]
+        public void WriteWithLineFeeds_ReadWithLineFeeds_GivesTheSameBytes()
+        {
+            // arrange
+            var subject = EntityTrees.ReadWithLineFeeds("From: a@b.test\nDate: Fri, 21 Nov 1997 09:55:06 -0600\n\nbody\n");
+
+            // act
+            var testResult = EntityTrees.WriteWithLineFeeds(subject);
+
+            // assert
+            testResult.Should().Be("From: a@b.test\nDate: Fri, 21 Nov 1997 09:55:06 -0600\n\nbody\n");
+        }
+
+        [Fact]
+        public void Describe_MultipartMessage_GivesALineForEachEntity()
+        {
+            // arrange
+            var subject = EntityTrees.Read(TwoLeaves, NoRequiredFields);
+
+            // act
+            var testResult = EntityTrees.Describe(subject);
+
+            // assert
+            testResult.Should().Equal("/ 0 multipart multipart/mixed", "1 1 leaf text/plain", "2 1 leaf text/html");
+        }
+
+        [Fact]
+        public void At_KnownPath_GivesThatEntity()
+        {
+            // arrange
+            var subject = EntityTrees.Read(TwoLeaves, NoRequiredFields);
+
+            // act
+            var testResult = EntityTrees.At(subject, "2");
+
+            // assert
+            testResult.ContentType.Subtype.Should().Be("html");
+        }
+
+        [Fact]
+        public void At_UnknownPath_Throws()
+        {
+            // arrange
+            var subject = EntityTrees.Read(TwoLeaves, NoRequiredFields);
+
+            // act
+            Action testAction = () => EntityTrees.At(subject, "3");
+
+            // assert
+            testAction.Should().Throw<ArgumentException>();
+        }
+
+        [Fact]
+        public void DescribeFields_OneField_GivesItsNameAndBody()
+        {
+            // arrange
+            var subject = new ImfEntity { ContentId = ImfMessageId.Parse("<a@b.test>") };
+
+            // act
+            var testResult = EntityTrees.DescribeFields(subject);
+
+            // assert
+            testResult.Should().Equal("Content-ID:<a@b.test>");
+        }
+
+        [Fact]
+        public void TypesOf_TwoEntities_LeavesOutTheParameters()
+        {
+            // arrange
+            var subject = new[] { new ImfEntity(), new ImfEntity { ContentType = DataStandardizer.Communication.Mime.MimeMediaType.ApplicationOctetStream } };
+
+            // act
+            var testResult = EntityTrees.TypesOf(subject);
+
+            // assert
+            testResult.Should().Equal("text/plain", "application/octet-stream");
+        }
+
+        [Fact]
+        public void MessageWithPartOfLength_SmallLength_HoldsThatManyOctets()
+        {
+            // arrange
+            const int Length = 3;
+
+            // act
+            var testResult = EntityTrees.MessageWithPartOfLength(Length);
+
+            // assert
+            testResult.Should().Be(MessageWithThreeOctets);
+        }
+
+        [Fact]
+        public void MessageNestedToDepth_Two_GivesThatTree()
+        {
+            // arrange
+            var subject = EntityTrees.MessageNestedToDepth(2, new ImfOptions());
+
+            // act
+            var testResult = EntityTrees.Describe(subject);
+
+            // assert
+            testResult.Should().Equal("/ 0 multipart multipart/mixed", "1 1 multipart multipart/mixed", "1.1 2 leaf text/plain");
+        }
+
+        [Fact]
+        public void TryGetEncoding_UnknownName_IsFalse()
+        {
+            // arrange
+            var subject = new CodePageCharsetResolver();
+
+            // act
+            var testResult = subject.TryGetEncoding(DataStandardizer.Communication.Mime.MimeCharset.Parse("x-no-such-charset"), out _);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void TryGetEncoding_CodePage_GivesItsEncoding()
+        {
+            // arrange
+            var subject = new CodePageCharsetResolver();
+
+            // act
+            var testResult = subject.TryGetEncoding(DataStandardizer.Communication.Mime.MimeCharset.Parse("shift_jis"), out var encoding);
+
+            // assert
+            testResult.Should().BeTrue();
+            encoding.CodePage.Should().Be(ShiftJisCodePage);
+        }
+
         private const string Text = "A\r\n\xE9";
         private const int BufferLength = 6;
 
