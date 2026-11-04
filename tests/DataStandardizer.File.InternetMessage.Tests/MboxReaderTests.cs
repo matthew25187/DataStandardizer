@@ -115,12 +115,17 @@ namespace DataStandardizer.File.InternetMessage.Tests
         // ref. RFC 5322 §2.1.1: a line is at most 998 octets, of which ">From " takes 6, so this one is 999 in the file and 998 in the message.
         private const int LongestFromLinePadding = 993;
         private const int ShorterFromLinePadding = 992;
+
+        // The padding that takes a line of ">From : ", 8 octets, and "@b.test", 7, to 999.
+        private const int LongestFromFieldPadding = 984;
         private static readonly string TooLongQuotedLine = ">From " + new string('x', LongestFromLinePadding);
         private static readonly string TooLongQuotedLineMailbox = Separator1 + Header + "\n" + TooLongQuotedLine + "\n\n";
         private static readonly string TooLongQuotedLineThenGood = TooLongQuotedLineMailbox + OneMessageWithEmptyLine;
         private static readonly string LongestQuotedLineMailbox = Separator1 + Header + "\n>From " + new string('x', ShorterFromLinePadding) + "\n\n";
         private static readonly string TooLongQuotedLineEndingInCarriageReturn = "From a@b.test Thu Jan  1 00:00:00 2026\r\nDate: Thu, 1 Jan 2026 00:00:00 +0000\r\nFrom: a@b.test\r\n\r\n>From " + new string('x', ShorterFromLinePadding) + "\r\r\n\r\n";
         private static readonly string LongestQuotedLineWithCrLfInLfFile = Separator1 + Header + "\n>From " + new string('x', ShorterFromLinePadding) + "\r\n\n";
+        private static readonly string TooLongQuotedLineAtTheEnd = Separator1 + Header + "\n" + TooLongQuotedLine;
+        private static readonly string TooLongQuotedLineInAPartHeader = Separator1 + Header + "MIME-Version: 1.0\nContent-Type: multipart/mixed; boundary=b\n\n--b\n\nx\n--b\n>From : " + new string('x', LongestFromFieldPadding) + "@b.test\n\ny\n--b--\n\n";
         private static readonly string LongestUnquotedFromLine = Separator1 + Header + "\nFrom " + new string('x', LongestFromLinePadding) + "\n\n";
         private static readonly string TooLongQuotedLineBesideBinary = Separator1 + Header + "MIME-Version: 1.0\nContent-Type: multipart/mixed; boundary=b\nContent-Transfer-Encoding: binary\n\n--b\nContent-Transfer-Encoding: binary\n\nx\n--b\n\n" + TooLongQuotedLine + "\n--b--\n\n";
         private static readonly string TooLongQuotedLineInBinary = Separator1 + Header + "MIME-Version: 1.0\nContent-Transfer-Encoding: binary\n\n" + TooLongQuotedLine + "\n\n";
@@ -1045,6 +1050,37 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // assert
             testResult.Should().NotContain(ImfDiagnosticKind.LongBodyLine);
+        }
+
+        [Fact]
+        public void ReadMessage_LineTooLongInTheFileWithNoLineBreakAtTheEnd_RecordsADiagnostic()
+        {
+            // arrange
+            var options = new ImfOptions { AllowLongLines = true, AllowMissingMboxBlankLine = true };
+
+            // act
+            var testResult = Mailboxes.ReadDiagnosticKinds(TooLongQuotedLineAtTheEnd, MboxVariant.Mboxrd, options);
+
+            // assert
+            testResult.Should().Contain(ImfDiagnosticKind.LongBodyLine);
+        }
+
+        [Fact]
+        public void ReadEntityEvents_LineOfAPartHeaderTooLongInTheFile_GivesThePathOfThePart()
+        {
+            // arrange
+            using (var subject = new MboxReader(new MemoryStream(Octets.Of(TooLongQuotedLineInAPartHeader))))
+            {
+                var events = subject.ReadEntityEvents();
+
+                // act
+                Action testAction = () => EntityEvents.ReadToEnd(events);
+
+                // assert
+                var data = testAction.Should().Throw<ImfFileException>().Which.Data;
+                data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.LongBodyLine);
+                data[ImfFileException.DataItemName.EntityPath].Should().Be("2");
+            }
         }
 
         [Fact]

@@ -87,7 +87,7 @@ namespace DataStandardizer.File.InternetMessage
         /// <summary>
         /// An entity whose end has not been reached.
         /// </summary>
-        // The bytes of what a part or a message holds, in the order they were read.
+        // The bytes of the fields and what a part or a message holds, in the order they were read.
         private sealed class BodyRange
         {
             internal long Start;
@@ -385,6 +385,7 @@ namespace DataStandardizer.File.InternetMessage
                         {
                             _scanner.ParseField();
                             ReadMimeField(CurrentFrame);
+                            RecordRange(_scanner.FieldBytePosition, _scanner.RawBytes.Length, false);
                             CheckNestedHeaderField(CurrentFrame);
                             return Emit(ImfEntityEventKind.HeaderField, _scanner.FieldBytePosition, _scanner.RawBytes.Length);
                         }
@@ -540,18 +541,22 @@ namespace DataStandardizer.File.InternetMessage
         /// </summary>
         private void RecordBodyRange(long start, long length)
         {
+            // ref. RFC 2045 §2.9: binary data has no lines.  A preamble or epilogue isn't in the encoding of the entity, only under its label.
+            RecordRange(start, length, _contentKind == ImfEntityEventKind.BodyChunk && CurrentFrame.TransferEncoding == MimeTransferEncoding.Binary);
+        }
+
+        private void RecordRange(long start, long length, bool isBinary)
+        {
             if (LongLinesOutsideTheData is null) return;
 
             var path = BuildPath();
             var last = _bodyRanges.Count == 0 ? null : _bodyRanges[_bodyRanges.Count - 1];
-            if (!(last is null) && last.End == start && last.Path == path)
+            if (!(last is null) && last.End == start && last.Path == path && last.IsBinary == isBinary)
             {
                 last.End = start + length;
                 return;
             }
 
-            // ref. RFC 2045 §2.9: binary data has no lines.  A preamble or epilogue isn't in the encoding of the entity, only under its label.
-            var isBinary = _contentKind == ImfEntityEventKind.BodyChunk && CurrentFrame.TransferEncoding == MimeTransferEncoding.Binary;
             _bodyRanges.Add(new BodyRange { Start = start, End = start + length, Path = path, IsBinary = isBinary });
         }
 

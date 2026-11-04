@@ -39,7 +39,7 @@ namespace DataStandardizer.File.InternetMessage
     /// <para>
     /// <b>Line length.</b>  RFC 4155 Appendix A requires each message to follow the formatting rules of RFC 2822, so RFC 5322 §2.1.1 limits each line in the file to 998 octets.  With
     /// <see cref="MboxVariant.Mboxrd"/>, a line whose quote takes it past that, though the line of the message fits once the quote is off, is treated as any long line of the message is: it causes an
-    /// <see cref="ImfFileException"/> for that message, unless <see cref="ImfOptions.AllowLongLines"/> is set, or it is in a body that has no line limit, such as a <c>binary</c> one.
+    /// <see cref="ImfFileException"/> for that message, once the message has been read, unless <see cref="ImfOptions.AllowLongLines"/> is set, or it is in a body that has no line limit, such as a <c>binary</c> one.
     /// </para>
     /// <para>
     /// Mailbox locking and changing a mailbox in place are not supported.  Only one read may be in progress at a time, and a read started while another is in progress throws
