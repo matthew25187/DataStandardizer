@@ -85,7 +85,7 @@ namespace DataStandardizer.File.iCal
             {
                 var frame = _frames[_frames.Count - 1];
                 var name = frame.Component.Name.ToUpperInvariant();
-                var exception = IcalContentLineScanner.BuildException(
+                var exception = IcalContentLineErrorFactory.BuildException(
                     string.Format(CultureInfo.InvariantCulture, "The data ended before END:{0}; the BEGIN:{0} on line {1} is not closed.", name,
                         frame.Component.LineNumber),
                     frame.Component.LineNumber, frame.PhysicalLineNumber, BeginName);
@@ -205,7 +205,7 @@ namespace DataStandardizer.File.iCal
         private static IcalFileException BuildException(string message, IcalContentLine line, string path)
 #endif
         {
-            var exception = IcalContentLineScanner.BuildException(message, line.LineNumber, line.PhysicalLineNumber, line.Name);
+            var exception = IcalContentLineErrorFactory.BuildException(message, line.LineNumber, line.PhysicalLineNumber, line.Name);
             if (path != null)
             {
                 exception.Data.Add(IcalFileException.DataItemName.ComponentPath, path);

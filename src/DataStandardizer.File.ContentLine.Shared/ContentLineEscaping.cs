@@ -1,12 +1,12 @@
 ﻿using System;
 
-namespace DataStandardizer.File.iCal
+namespace DataStandardizer.File.ContentLine
 {
     /// <summary>
     /// Decodes the escaping used inside content lines.  Neither decoding ever lengthens a value, so a destination as long as the source is
     /// always enough.
     /// </summary>
-    internal static class IcalEscaping
+    internal static class ContentLineEscaping
     {
         /// <summary>
         /// The character a decoded newline becomes.  It is never taken from <see cref="Environment.NewLine"/>.
@@ -53,7 +53,7 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
-        /// Removes RFC 5545 §3.3.11 TEXT escaping: <c>\\</c>, <c>\;</c> and <c>\,</c> become the escaped character, and <c>\n</c> or <c>\N</c> a
+        /// Removes TEXT escaping (RFC 5545 §3.3.11, RFC 6350 §3.4): <c>\\</c>, <c>\;</c> and <c>\,</c> become the escaped character, and <c>\n</c> or <c>\N</c> a
         /// newline.
         /// </summary>
         /// <param name="source">The escaped value.</param>

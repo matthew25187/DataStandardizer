@@ -2,10 +2,10 @@
 using System.Buffers;
 using System.Collections.Generic;
 
-namespace DataStandardizer.File.iCal
+namespace DataStandardizer.File.ContentLine
 {
     /// <summary>
-    /// Formats content lines (RFC 5545 §3.1) into a pooled line buffer, folded and with their line break, ready to be written in one call.  It
+    /// Formats content lines (RFC 5545 §3.1, RFC 6350 §3.3) into a pooled line buffer, folded and with their line break, ready to be written in one call.  It
     /// does no I/O, so a sync driver and an async driver can share it.
     /// </summary>
     /// <remarks>
@@ -19,17 +19,8 @@ namespace DataStandardizer.File.iCal
     /// Fold lengths are counted in octets of the UTF-8 encoding.  A fold never splits a character or a surrogate pair.
     /// </para>
     /// </remarks>
-    internal sealed class IcalContentLineFormatter
+    internal sealed class ContentLineFormatter
     {
-        private static class ErrorMessage
-        {
-            internal const string InvalidParameterNameTemplate = "The parameter name \"{0}\" is not valid.  A name has one or more letters, digits or '-'.";
-            internal const string InvalidParameterValueCharacterTemplate = "Found an invalid character U+{0:X4} in a value of parameter {1}.";
-            internal const string InvalidPropertyNameTemplate = "The property name \"{0}\" is not valid.  A name has one or more letters, digits or '-'.";
-            internal const string InvalidValueCharacterTemplate = "Found an invalid character U+{0:X4} in the property value.";
-            internal const string LineTooLong = "The content line is too long to write.";
-        }
-
         private const int MinimumBufferSize = 256;
         private const char Quote = '"';
 
@@ -43,6 +34,7 @@ namespace DataStandardizer.File.iCal
 #endif
 
         private char[] _buffer = EmptyCharacters;
+        private readonly IContentLineErrorFactory _errorFactory;
         private readonly int _foldLength;
         private readonly char _foldWhitespace;
         private readonly string _lineBreak;
@@ -50,8 +42,10 @@ namespace DataStandardizer.File.iCal
         /// <param name="foldLength">The length, in octets, at which lines are folded.</param>
         /// <param name="foldWhitespace">The white space at the start of each continuation line.</param>
         /// <param name="lineBreak">The line break.</param>
-        internal IcalContentLineFormatter(int foldLength, char foldWhitespace, string lineBreak)
+        /// <param name="errorFactory">Builds the exception for each problem found.</param>
+        internal ContentLineFormatter(int foldLength, char foldWhitespace, string lineBreak, IContentLineErrorFactory errorFactory)
         {
+            _errorFactory = errorFactory;
             _foldLength = foldLength;
             _foldWhitespace = foldWhitespace;
             _lineBreak = lineBreak;
@@ -65,12 +59,14 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Formats a content line, folded and with its line break, into <see cref="Buffer"/>.
         /// </summary>
+        /// <typeparam name="TLine">The type of the line, a struct wherever possible so that its members are called directly.</typeparam>
         /// <param name="line">The line.</param>
         /// <param name="lineNumber">The 1-based number the line will have once written, for error reports.</param>
         /// <returns>The number of characters of <see cref="Buffer"/> that hold the formatted line.</returns>
-        /// <exception cref="IcalFileException">The line cannot be written: a name is not valid, or a parameter value or the value holds a
-        /// character that is not allowed.</exception>
-        internal int Format(IcalContentLine line, long lineNumber)
+        /// <exception cref="Exception">What the error factory builds: the line cannot be written, because a name is not valid, or a parameter value
+        /// or the value holds a character that is not allowed.</exception>
+        internal int Format<TLine>(TLine line, long lineNumber)
+            where TLine : IContentLineData
         {
             var logicalLength = Measure(line, lineNumber);
             var start = EnsureCapacity(logicalLength, lineNumber, line.Name);
@@ -84,7 +80,7 @@ namespace DataStandardizer.File.iCal
             }
             else
             {
-                position = AppendParameters(line.ParameterArray, position);
+                position = AppendParameters(line, position);
             }
 
             _buffer[position++] = ':';
@@ -108,19 +104,20 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Checks that a line can be written, and measures its logical (unfolded) length.
         /// </summary>
-        private static long Measure(IcalContentLine line, long lineNumber)
+        private long Measure<TLine>(TLine line, long lineNumber)
+            where TLine : IContentLineData
         {
             // ref. RFC 5545§3.1: contentline = name *(";" param ) ":" value CRLF
             var name = line.Name;
             if (!IsName(name))
             {
-                throw BuildException(string.Format(ErrorMessage.InvalidPropertyNameTemplate, name), lineNumber, null);
+                throw _errorFactory.CreateException(new ContentLineError(ContentLineErrorKind.InvalidPropertyNameToWrite, lineNumber, null, null, name));
             }
 
             var invalidIndex = IndexOfInvalidValueCharacter(line.Value);
             if (invalidIndex >= 0)
             {
-                throw BuildException(string.Format(ErrorMessage.InvalidValueCharacterTemplate, (int)line.Value[invalidIndex]), lineNumber, name);
+                throw BuildInvalidValueCharacterError(line.Value[invalidIndex], lineNumber, name);
             }
 
             long length = name.Length + 1 + line.Value.Length;
@@ -131,30 +128,32 @@ namespace DataStandardizer.File.iCal
                 invalidIndex = IndexOfInvalidValueCharacter(rawParameters);
                 if (invalidIndex >= 0)
                 {
-                    throw BuildException(string.Format(ErrorMessage.InvalidValueCharacterTemplate, (int)rawParameters[invalidIndex]), lineNumber, name);
+                    throw BuildInvalidValueCharacterError(rawParameters[invalidIndex], lineNumber, name);
                 }
 
                 return length + rawParameters.Length;
             }
 
-            foreach (var parameter in line.ParameterArray)
+            var parameterCount = line.ParameterCount;
+            for (var parameterIndex = 0; parameterIndex < parameterCount; parameterIndex++)
             {
                 // ref. RFC 5545§3.1: param = param-name "=" param-value *("," param-value)
-                if (!IsName(parameter.Name))
+                var parameterName = line.GetParameterName(parameterIndex);
+                if (!IsName(parameterName))
                 {
-                    throw BuildException(string.Format(ErrorMessage.InvalidParameterNameTemplate, parameter.Name), lineNumber, name);
+                    throw _errorFactory.CreateException(new ContentLineError(ContentLineErrorKind.InvalidParameterNameToWrite, lineNumber, null, name, parameterName));
                 }
 
-                length += 1 + parameter.Name.Length + 1;
-                var values = parameter.ValueArray;
-                for (var valueIndex = 0; valueIndex < values.Length; valueIndex++)
+                length += 1 + parameterName.Length + 1;
+                var valueCount = line.GetParameterValueCount(parameterIndex);
+                for (var valueIndex = 0; valueIndex < valueCount; valueIndex++)
                 {
                     int invalidCharacter;
-                    var valueLength = MeasureParameterValue(values[valueIndex], out invalidCharacter);
+                    var valueLength = MeasureParameterValue(line.GetParameterValue(parameterIndex, valueIndex), out invalidCharacter);
                     if (valueLength < 0)
                     {
-                        var message = string.Format(ErrorMessage.InvalidParameterValueCharacterTemplate, invalidCharacter, parameter.Name);
-                        throw BuildException(message, lineNumber, name);
+                        throw _errorFactory.CreateException(new ContentLineError(ContentLineErrorKind.InvalidParameterValueCharacterToWrite, lineNumber, null, name,
+                            parameterName, invalidCharacter));
                     }
 
                     length += valueLength + (valueIndex > 0 ? 1 : 0);
@@ -176,7 +175,7 @@ namespace DataStandardizer.File.iCal
             var capacity = logicalLength + maxFolds * (_lineBreak.Length + 1) + _lineBreak.Length;
             if (capacity > int.MaxValue)
             {
-                throw BuildException(ErrorMessage.LineTooLong, lineNumber, name);
+                throw _errorFactory.CreateException(new ContentLineError(ContentLineErrorKind.LineTooLongToWrite, lineNumber, null, name));
             }
 
             if (_buffer.Length < capacity)
@@ -257,25 +256,26 @@ namespace DataStandardizer.File.iCal
             return position;
         }
 
-        private int AppendParameters(IcalContentLineParameter[] parameters, int position)
+        private int AppendParameters<TLine>(TLine line, int position)
+            where TLine : IContentLineData
         {
             var buffer = _buffer;
-            for (var parameterIndex = 0; parameterIndex < parameters.Length; parameterIndex++)
+            var parameterCount = line.ParameterCount;
+            for (var parameterIndex = 0; parameterIndex < parameterCount; parameterIndex++)
             {
-                var parameter = parameters[parameterIndex];
                 buffer[position++] = ';';
-                position = Append(parameter.Name, position);
+                position = Append(line.GetParameterName(parameterIndex), position);
                 buffer[position++] = '=';
 
-                var values = parameter.ValueArray;
-                for (var valueIndex = 0; valueIndex < values.Length; valueIndex++)
+                var valueCount = line.GetParameterValueCount(parameterIndex);
+                for (var valueIndex = 0; valueIndex < valueCount; valueIndex++)
                 {
                     if (valueIndex > 0)
                     {
                         buffer[position++] = ',';
                     }
 
-                    position = AppendParameterValue(values[valueIndex], position);
+                    position = AppendParameterValue(line.GetParameterValue(parameterIndex, valueIndex), position);
                 }
             }
 
@@ -342,21 +342,9 @@ namespace DataStandardizer.File.iCal
             return position;
         }
 
-        private static IcalFileException BuildException(string message, long lineNumber,
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-            string? propertyName)
-#else
-            string propertyName)
-#endif
+        private Exception BuildInvalidValueCharacterError(int character, long lineNumber, string propertyName)
         {
-            var exception = new IcalFileException(message);
-            exception.Data.Add(IcalFileException.DataItemName.LineNumber, lineNumber);
-            if (propertyName != null)
-            {
-                exception.Data.Add(IcalFileException.DataItemName.PropertyName, propertyName);
-            }
-
-            return exception;
+            return _errorFactory.CreateException(new ContentLineError(ContentLineErrorKind.InvalidValueCharacter, lineNumber, null, propertyName, character: character));
         }
 
         /// <summary>

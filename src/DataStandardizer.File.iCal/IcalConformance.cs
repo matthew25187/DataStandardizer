@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using DataStandardizer.File.ContentLine;
 
 namespace DataStandardizer.File.iCal
 {
@@ -749,7 +750,7 @@ namespace DataStandardizer.File.iCal
                 case IcalValueType.Recur:
                     return IcalRecurrenceRule.TryParse(span, IcalValueFormat.Text, out _);
                 case IcalValueType.Text:
-                    return IcalEscaping.TryUnescapeText(span, new char[span.Length], out _, out _);
+                    return ContentLineEscaping.TryUnescapeText(span, new char[span.Length], out _, out _);
                 case IcalValueType.Time:
                     return IcalTime.TryParse(span, IcalValueFormat.Text, out _);
                 case IcalValueType.Uri:

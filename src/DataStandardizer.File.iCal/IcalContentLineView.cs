@@ -1,5 +1,6 @@
 ﻿using System;
 using DataStandardizer.Communication.Mime;
+using DataStandardizer.File.ContentLine;
 
 namespace DataStandardizer.File.iCal
 {
@@ -270,7 +271,7 @@ namespace DataStandardizer.File.iCal
             return IcalContentLine.FromScanner(GetScanner());
         }
 
-        private IcalContentLineScanner GetScanner()
+        private ContentLineScanner GetScanner()
         {
             if (_reader is null)
                 throw new InvalidOperationException("The view was not obtained from a reader.");
@@ -278,7 +279,7 @@ namespace DataStandardizer.File.iCal
             return _reader.GetScanner(_version);
         }
 
-        private static IcalFileException BuildInvalidFormatTypeException(IcalContentLineScanner scanner)
+        private static IcalFileException BuildInvalidFormatTypeException(ContentLineScanner scanner)
         {
             return IcalPropertyValue.BuildInvalidFormatTypeException(scanner.LineNumber, scanner.PhysicalLineNumber, scanner.Name.Span.ToString());
         }

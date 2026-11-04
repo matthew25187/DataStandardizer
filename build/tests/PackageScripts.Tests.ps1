@@ -255,6 +255,24 @@ Describe 'Package scripts' {
             Get-TestReleaseNote -PackageName 'DataStandardizer.Geography' | Should -Be "Fixed:`n- Embed the symbols."
         }
 
+        Context 'with a Shared Project that Core imports' {
+            BeforeEach {
+                New-TaggedTestRepository
+                Add-TestCommit -File @{
+                    'src/DataStandardizer.Core/DataStandardizer.Core.csproj' = '<Project Sdk="Microsoft.NET.Sdk"><Import Project="..\DataStandardizer.Shared\DataStandardizer.Shared.projitems" Label="Shared" /></Project>'
+                } -Message "Import the shared project`n`nRelease-note: none" | Out-Null
+                Add-TestCommit -File @{ 'src/DataStandardizer.Shared/Shared.cs' = 'shared' } -Message "Fold long lines`n`nRelease-note: fixed" | Out-Null
+            }
+
+            It 'publishes a commit that changes only the Shared Project for the package that imports it' {
+                Get-TestReleaseNote | Should -Be "Fixed:`n- Fold long lines."
+            }
+
+            It 'leaves it out for a package that does not import it' {
+                Get-TestReleaseNote -PackageName 'DataStandardizer.Geography' | Should -Not -Match 'Fold long lines'
+            }
+        }
+
         It 'infers the note of a commit that changes only a shared build file and declares nothing' {
             New-TaggedTestRepository
             Add-TestCommit -File @{ 'Directory.Packages.props' = '<Project />' } -Message 'Bump System.Memory from 4.6.2 to 4.6.3' | Out-Null

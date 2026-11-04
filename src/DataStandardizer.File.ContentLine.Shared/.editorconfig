@@ -1,0 +1,4 @@
+[*.cs]
+
+# Every await in this code uses ConfigureAwait(false).  The .editorconfig of a package that imports this project doesn't apply here.
+dotnet_diagnostic.CA2007.severity = warning

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using DataStandardizer.File.ContentLine;
 using FluentAssertions;
 using Xunit;
 using static DataStandardizer.File.iCal.Tests.IcalTestData;
