@@ -402,7 +402,7 @@ namespace DataStandardizer.File.InternetMessage
             string text;
             var mediaType = default(MimeMediaType);
             var isValid = ImfFieldComments.TryRemove(GetFieldBodyText(field), out text)
-                && MimeMediaType.TryParse(text, ImfMimeFields.GetParseOptions(_options) | MimeMediaTypeParseOptions.AllowWhitespaceAroundDelimiters, _options.CharsetResolver ?? MimeCharsetResolver.Default, out mediaType);
+                && MimeMediaType.TryParse(text, ImfMimeFields.GetContentTypeParseOptions(_options) | MimeMediaTypeParseOptions.AllowWhitespaceAroundDelimiters, _options.CharsetResolver ?? MimeCharsetResolver.Default, out mediaType);
             if (field.IsModelField)
             {
                 // The object model reads parameters more closely than this, so only what decides how the entity is written has to agree.
@@ -449,17 +449,25 @@ namespace DataStandardizer.File.InternetMessage
                 && (!hasLeftBoundary || leftBoundary.Value == rightBoundary.Value);
         }
 
-        private static string GetFieldBodyText(ImfEntitySource.FieldEntry field)
+        /// <summary>
+        /// Gets the unfolded body of a field the caller added, as a reader with these options would see it.
+        /// </summary>
+        /// <returns>The text, which is empty, so not a valid value, if its bytes aren't valid UTF-8 and the options don't accept that.</returns>
+        private string GetFieldBodyText(ImfEntitySource.FieldEntry field)
         {
             var bytes = field.Value;
             var start = field.IsRaw ? Array.IndexOf(bytes, Colon) + 1 : 0;
-            var text = new StringBuilder(bytes.Length - start);
+            var body = new byte[bytes.Length - start];
+            var length = 0;
             for (var index = start; index < bytes.Length; index++)
             {
-                if (bytes[index] != CarriageReturn && bytes[index] != LineFeed) text.Append((char)bytes[index]);
+                if (bytes[index] != CarriageReturn && bytes[index] != LineFeed) body[length++] = bytes[index];
             }
 
-            return text.ToString();
+            if (!ImfHeaderText.TryGetUtf8(new ReadOnlySpan<byte>(body, 0, length), _options, out var utf8)) return string.Empty;
+
+            var text = utf8.ToArray();
+            return Encoding.UTF8.GetString(text, 0, text.Length);
         }
 
         /// <summary>

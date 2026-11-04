@@ -35,7 +35,8 @@ namespace DataStandardizer.Communication.Mime
         private const MimeMediaTypeParseOptions AllParseOptions =
             MimeMediaTypeParseOptions.AllowWhitespaceAroundDelimiters | MimeMediaTypeParseOptions.AllowRfc2045Tokens |
             MimeMediaTypeParseOptions.AllowNonstandardSections | MimeMediaTypeParseOptions.AllowUnknownCharsets |
-            MimeMediaTypeParseOptions.AllowNonstandardExtendedValues | MimeMediaTypeParseOptions.AllowInvalidOctets;
+            MimeMediaTypeParseOptions.AllowNonstandardExtendedValues | MimeMediaTypeParseOptions.AllowInvalidOctets |
+            MimeMediaTypeParseOptions.AllowUtf8QuotedStrings;
 
         private static readonly ReadOnlyCollection<MimeParameter> NoParameters = new ReadOnlyCollection<MimeParameter>(new MimeParameter[0]);
 
@@ -655,6 +656,7 @@ namespace DataStandardizer.Communication.Mime
             result = default(MimeMediaType);
             var allowWhitespace = (options & MimeMediaTypeParseOptions.AllowWhitespaceAroundDelimiters) != 0;
             var allowRfc2045Tokens = (options & MimeMediaTypeParseOptions.AllowRfc2045Tokens) != 0;
+            var allowUtf8 = (options & MimeMediaTypeParseOptions.AllowUtf8QuotedStrings) != 0;
             var position = 0;
 
             var type = ReadToken(value, ref position);
@@ -692,7 +694,7 @@ namespace DataStandardizer.Communication.Mime
                 string parameterValue;
                 if (position < value.Length && value[position] == '"')
                 {
-                    if (!MimeGrammar.TryReadQuotedString(value, ref position, out parameterValue)) return false;
+                    if (!MimeGrammar.TryReadQuotedString(value, ref position, allowUtf8, out parameterValue)) return false;
 
                     rawParameter.IsQuoted = true;
                 }

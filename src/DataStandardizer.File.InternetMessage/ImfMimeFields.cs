@@ -199,7 +199,7 @@ namespace DataStandardizer.File.InternetMessage
         /// <remarks>
         /// <para>
         /// The grammar is that of RFC 2045 §5.1, so a name may be any token, not only the narrower names that RFC 6838 §4.2 requires of a registration.  Parameters in the
-        /// forms of RFC 2231 are joined and decoded.  A parameter value with raw non-ASCII text is rejected: write it in the form of RFC 2231.
+        /// forms of RFC 2231 are joined and decoded.  A quoted-string may hold raw UTF-8, as RFC 6532 §3.2 allows.  A token must be US-ASCII, as RFC 2045 §5.1 requires.
         /// </para>
         /// <para>
         /// A value breaks RFC 2231 if its sections or extended value aren't valid, or a character set can't be resolved, and it breaks RFC 2047 §5 if a parameter holds an
@@ -220,7 +220,7 @@ namespace DataStandardizer.File.InternetMessage
         {
             ImfHeaderText.CheckOptions(options);
 
-            return TryParseParameterized(value, string.Empty, ContentNameParameterName, options.AllowMalformedParameters, options, out result);
+            return TryParseParameterized(value, string.Empty, ContentNameParameterName, options.AllowMalformedParameters, GetContentTypeParseOptions(options), options, out result);
         }
 
         /// <summary>
@@ -584,14 +584,14 @@ namespace DataStandardizer.File.InternetMessage
             return output.ToString();
         }
 
-        internal static bool TryParseParameterized(ReadOnlySpan<byte> value, string prefix, string wordParameterName, bool allowFinalSemicolon, ImfOptions options, out MimeMediaType result)
+        internal static bool TryParseParameterized(ReadOnlySpan<byte> value, string prefix, string wordParameterName, bool allowFinalSemicolon, MimeMediaTypeParseOptions parseOptions, ImfOptions options, out MimeMediaType result)
         {
             result = default;
             if (!ImfHeaderText.TryGetUtf8(value, options, out var utf8) || !TryRemoveCfws(utf8, out var text)) return false;
 
             if (allowFinalSemicolon && text.Length > 0 && text[text.Length - 1] == ';') text = text.Substring(0, text.Length - 1);
 
-            if (!MimeMediaType.TryParse(prefix + text, GetParseOptions(options), options.CharsetResolver, out var parsed)) return false;
+            if (!MimeMediaType.TryParse(prefix + text, parseOptions, options.CharsetResolver, out var parsed)) return false;
 
             result = parsed;
             foreach (var parameter in parsed.Parameters)
@@ -715,6 +715,12 @@ namespace DataStandardizer.File.InternetMessage
         {
             // ref. RFC 2045 §5.1: a name in a field is a token, as the narrower names of RFC 6838 §4.2 are only for a registration.
             return MimeMediaTypeParseOptions.AllowRfc2045Tokens | (options.AllowMalformedParameters ? MalformedParameterOptions : MimeMediaTypeParseOptions.None);
+        }
+
+        internal static MimeMediaTypeParseOptions GetContentTypeParseOptions(ImfOptions options)
+        {
+            // ref. RFC 6532 §3.2: a message's header may hold UTF-8 in a quoted-string, which RFC 2045 §5.1 makes a parameter value.
+            return GetParseOptions(options) | MimeMediaTypeParseOptions.AllowUtf8QuotedStrings;
         }
 
         /// <summary>

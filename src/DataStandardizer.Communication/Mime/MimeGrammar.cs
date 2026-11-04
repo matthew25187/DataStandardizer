@@ -245,13 +245,14 @@ namespace DataStandardizer.Communication.Mime
         /// </summary>
         /// <param name="source">Text to read.</param>
         /// <param name="position">Position of the opening quote; on success, the position after the closing quote.</param>
+        /// <param name="allowUtf8">Whether to accept UTF8-non-ascii in qtext and quoted-pair (ref. RFC 6532 §3.2).</param>
         /// <param name="value">The decoded value.</param>
         /// <returns><c>true</c> if a well-formed quoted-string was read; otherwise <c>false</c>.</returns>
         /// <remarks>
         /// quoted-string = DQUOTE *([FWS] qcontent) [FWS] DQUOTE; qcontent = qtext / quoted-pair (ref. RFC 5322 §3.2.4).
         /// Folding is not accepted, as the caller unfolds header fields first.
         /// </remarks>
-        internal static bool TryReadQuotedString(ReadOnlySpan<char> source, ref int position, out string value)
+        internal static bool TryReadQuotedString(ReadOnlySpan<char> source, ref int position, bool allowUtf8, out string value)
         {
             value = string.Empty;
 
@@ -269,16 +270,20 @@ namespace DataStandardizer.Communication.Mime
                 if (c == '\\')
                 {
                     // ref. RFC 5322 §3.2.1: quoted-pair = ("\" (VCHAR / WSP))
-                    if (index + 1 >= source.Length || !IsValueChar(source[index + 1])) return false;
+                    if (index + 1 >= source.Length) return false;
+
+                    var pairLength = GetQuotedCharLength(source, index + 1, allowUtf8);
+                    if (pairLength == 0) return false;
 
                     escapeCount++;
-                    index += 2;
+                    index += 1 + pairLength;
                     continue;
                 }
 
-                if (!IsValueChar(c)) return false;
+                var charLength = GetQuotedCharLength(source, index, allowUtf8);
+                if (charLength == 0) return false;
 
-                index++;
+                index += charLength;
             }
 
             var content = source.Slice(start, index - start);
@@ -300,6 +305,22 @@ namespace DataStandardizer.Communication.Mime
 
             value = new string(decoded);
             return true;
+        }
+
+        /// <summary>
+        /// Get the number of UTF-16 code units of the character at a position of a quoted-string, or 0 if it can't appear there.
+        /// </summary>
+        /// <remarks>
+        /// An unpaired surrogate is never accepted, as no UTF-8 sequence stands for one (ref. RFC 3629 §3).
+        /// </remarks>
+        private static int GetQuotedCharLength(ReadOnlySpan<char> source, int index, bool allowUtf8)
+        {
+            var c = source[index];
+            if (IsValueChar(c)) return 1;
+            if (!allowUtf8 || c < '\x80') return 0;
+            if (!char.IsSurrogate(c)) return 1;
+
+            return char.IsHighSurrogate(c) && index + 1 < source.Length && char.IsLowSurrogate(source[index + 1]) ? 2 : 0;
         }
     }
 }

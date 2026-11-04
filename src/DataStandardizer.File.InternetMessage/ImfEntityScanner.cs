@@ -203,7 +203,7 @@ namespace DataStandardizer.File.InternetMessage
             _acceptBareLineFeed = options.AcceptBareLineFeed;
             _allowMissingBoundaryTerminator = options.AllowMissingBoundaryTerminator;
             _charsetResolver = options.CharsetResolver;
-            _contentTypeOptions = ImfMimeFields.GetParseOptions(options) | MimeMediaTypeParseOptions.AllowWhitespaceAroundDelimiters;
+            _contentTypeOptions = ImfMimeFields.GetContentTypeParseOptions(options) | MimeMediaTypeParseOptions.AllowWhitespaceAroundDelimiters;
             _decodeTransferEncoding = options.DecodeTransferEncoding;
             _lineFeedIsLineBreak = lineFeedIsLineBreak;
             _maxNestingDepth = options.MaxNestingDepth;
