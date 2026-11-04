@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Text;
@@ -117,6 +118,12 @@ namespace DataStandardizer.File.InternetMessage
         {
         }
 #endif
+
+        /// <summary>
+        /// Sets what gives, once the message has ended, the lines of it that are too long in a form that this reader doesn't see.
+        /// </summary>
+        [AllowNull]
+        internal Func<List<ImfLongLine>> LongLinesOutsideTheData { private get; set; }
 
         /// <summary>
         /// Creates a reader with a specific size for the internal block and a line break setting.  Allows tests to force refills at chosen points,
@@ -373,6 +380,7 @@ namespace DataStandardizer.File.InternetMessage
         {
             _message.RawBody = new ReadOnlyMemory<byte>(_body, 0, _bodyLength);
             _message.LineFeedIsLineBreak = _lineFeedIsLineBreak;
+            _message.LongLinesOutsideTheData = LongLinesOutsideTheData;
             _message.ReadBody(_diagnostics);
 
             var embedded = new List<ImfDiagnostic>();

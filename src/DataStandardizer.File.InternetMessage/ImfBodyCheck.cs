@@ -22,6 +22,7 @@ namespace DataStandardizer.File.InternetMessage
         internal const string InvalidOctetsMessage = "The body holds an octet or a line break that its transfer encoding doesn't allow (RFC 5322 §2.3, RFC 2045 §2.7, §2.8 and §6.4).  ImfOptions.AllowInvalidBodyOctets accepts it.";
         internal const string InvalidHeaderOctetsMessage = "The header of an entity holds an octet above 127, which the 7bit label of the entity that holds it doesn't allow (RFC 2045 §2.7 and §6.4, RFC 6532 §3.7).  ImfOptions.AllowInvalidBodyOctets accepts it.";
         internal const string LongLineMessage = "The body has a line longer than its transfer encoding or RFC 5322 §2.1.1 allows (RFC 2045 §2.7, §2.8, §6.7 and §6.8).  ImfOptions.AllowLongLines accepts it.";
+        internal const string LongQuotedLineMessage = "A line of the message is longer than the 998 octets of RFC 5322 §2.1.1 with the quote it has in an mbox file (RFC 4155 Appendix A).  ImfOptions.AllowLongLines accepts it.";
 
         private const byte CarriageReturn = 0x0D;
         private const byte LineFeed = 0x0A;

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using DataStandardizer.Communication.Mime;
 
@@ -107,6 +108,15 @@ namespace DataStandardizer.File.InternetMessage
             internal MimeTransferEncoding TransferEncoding;
         }
 
+        // The bytes of the fields and what a part or a message holds, in the order they were read.
+        private sealed class BodyRange
+        {
+            internal long Start;
+            internal long End;
+            internal string Path = string.Empty;
+            internal bool IsBinary;
+        }
+
         private const byte CarriageReturn = 0x0D;
         private const byte Hyphen = 0x2D;
         private const byte LineFeed = 0x0A;
@@ -186,6 +196,7 @@ namespace DataStandardizer.File.InternetMessage
         private long _pendingRawHeld;
         private int _pendingRawLength;
         private int _search;
+        private readonly List<BodyRange> _bodyRanges = new List<BodyRange>();
         private State _state = State.EntityStart;
         private long _unwindEnd;
         private bool _unwindIsDelimiter;
@@ -244,6 +255,12 @@ namespace DataStandardizer.File.InternetMessage
         /// Gets a flag indicating that a problem was found, after which the structure of the message is unknown.
         /// </summary>
         internal bool IsFaulted { get; private set; }
+
+        /// <summary>
+        /// Gets or sets what gives, once the message has ended, the lines of it that are too long in a form that this scanner doesn't see, as with a quote that a container took off.
+        /// </summary>
+        [AllowNull]
+        internal Func<List<ImfLongLine>> LongLinesOutsideTheData { get; set; }
 
         internal ImfEntityEventKind EventKind => _eventKind;
 
@@ -322,7 +339,9 @@ namespace DataStandardizer.File.InternetMessage
             catch (ImfFileException exception)
             {
                 IsFaulted = true;
-                exception.Data[ImfFileException.DataItemName.EntityPath] = BuildPath();
+                // A problem found once the message has ended has said which entity it is in.
+                if (!exception.Data.Contains(ImfFileException.DataItemName.EntityPath)) exception.Data[ImfFileException.DataItemName.EntityPath] = BuildPath();
+
                 throw;
             }
         }
@@ -366,6 +385,7 @@ namespace DataStandardizer.File.InternetMessage
                         {
                             _scanner.ParseField();
                             ReadMimeField(CurrentFrame);
+                            RecordRange(_scanner.FieldBytePosition, _scanner.RawBytes.Length, false);
                             CheckNestedHeaderField(CurrentFrame);
                             return Emit(ImfEntityEventKind.HeaderField, _scanner.FieldBytePosition, _scanner.RawBytes.Length);
                         }
@@ -423,6 +443,7 @@ namespace DataStandardizer.File.InternetMessage
                         else
                         {
                             _state = State.End;
+                            CheckLongLinesOutsideTheData();
                         }
 
                         break;
@@ -513,6 +534,47 @@ namespace DataStandardizer.File.InternetMessage
             }
 
             _diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.InvalidBodyOctets, ImfBodyCheck.InvalidHeaderOctetsMessage, _scanner.FieldBytePosition, BuildPath()));
+        }
+
+        /// <summary>
+        /// Keeps where a run of content is, if there will be lines to find it for.
+        /// </summary>
+        private void RecordBodyRange(long start, long length)
+        {
+            // ref. RFC 2045 §2.9: binary data has no lines.  A preamble or epilogue isn't in the encoding of the entity, only under its label.
+            RecordRange(start, length, _contentKind == ImfEntityEventKind.BodyChunk && CurrentFrame.TransferEncoding == MimeTransferEncoding.Binary);
+        }
+
+        private void RecordRange(long start, long length, bool isBinary)
+        {
+            if (LongLinesOutsideTheData is null) return;
+
+            var path = BuildPath();
+            var last = _bodyRanges.Count == 0 ? null : _bodyRanges[_bodyRanges.Count - 1];
+            if (!(last is null) && last.End == start && last.Path == path && last.IsBinary == isBinary)
+            {
+                last.End = start + length;
+                return;
+            }
+
+            _bodyRanges.Add(new BodyRange { Start = start, End = start + length, Path = path, IsBinary = isBinary });
+        }
+
+        private void CheckLongLinesOutsideTheData()
+        {
+            if (LongLinesOutsideTheData is null) return;
+
+            foreach (var line in LongLinesOutsideTheData())
+            {
+                var range = _bodyRanges.Find(body => line.MessageOffset >= body.Start && line.MessageOffset < body.End);
+                if (!(range is null) && range.IsBinary) continue;
+
+                var diagnostic = new ImfDiagnostic(ImfDiagnosticKind.LongBodyLine, ImfBodyCheck.LongQuotedLineMessage, line.BytePosition, range?.Path ?? string.Empty, string.Empty, line.LineNumber);
+                if (!_allowLongLines)
+                    throw ImfConformance.BuildException(diagnostic, true);
+
+                _diagnostics.Add(diagnostic);
+            }
         }
 
         /// <summary>
@@ -991,6 +1053,7 @@ namespace DataStandardizer.File.InternetMessage
             _eventData = _scanner.Buffer;
             _dataStart = position;
             _dataLength = length;
+            RecordBodyRange(offset, length);
             Emit(_contentKind, offset, length);
             return true;
         }
@@ -1046,6 +1109,7 @@ namespace DataStandardizer.File.InternetMessage
             _dataStart = 0;
             _dataLength = bytesWritten;
             _isEventDataDecoded = true;
+            RecordBodyRange(_scanner.BytePosition - _pendingRawHeld, _pendingRawHeld);
             Emit(_contentKind, _scanner.BytePosition - _pendingRawHeld, _pendingRawHeld);
             _pendingRawHeld = 0;
         }

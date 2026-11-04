@@ -75,7 +75,7 @@ namespace DataStandardizer.File.InternetMessage
             return output.ToArray();
         }
 
-        private static bool NeedsQuote(ReadOnlySpan<byte> line, MboxVariant variant)
+        internal static bool NeedsQuote(ReadOnlySpan<byte> line, MboxVariant variant)
         {
             var start = 0;
             if (variant == MboxVariant.Mboxrd)

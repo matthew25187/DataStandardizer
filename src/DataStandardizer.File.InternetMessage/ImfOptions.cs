@@ -298,7 +298,8 @@ namespace DataStandardizer.File.InternetMessage
         /// RFC 5322 §2.1.1 limits each line to 998 octets, not counting the CRLF, and RFC 2045 §6.7 and §6.8 limit a line of a <c>quoted-printable</c> or <c>base64</c> body to 76.  A
         /// <c>binary</c> body has no lines (RFC 2045 §2.9).  When <c>false</c> (the default), a longer line causes an <see cref="ImfFileException"/>.  The limit is on each physical line, so a
         /// folded field may be longer once unfolded.  When <c>true</c>, a line of a header is still limited by <see cref="MaxHeaderSectionLength"/>, and a line of a body records an
-        /// <see cref="ImfDiagnostic"/>, once for each body.
+        /// <see cref="ImfDiagnostic"/>, once for each body.  RFC 4155 Appendix A applies the 998 octets to each line in an mbox file, so the quote that <see cref="MboxWriter"/> adds and
+        /// <see cref="MboxReader"/> takes off counts towards them, and this option accepts a line that it takes past them, with an <see cref="ImfDiagnostic"/>.
         /// </remarks>
         public bool AllowLongLines
         {

@@ -416,6 +416,12 @@ namespace DataStandardizer.File.InternetMessage
         internal bool LineFeedIsLineBreak { get; set; }
 
         /// <summary>
+        /// Gets or sets what gives, for the one read of the body by a reader, the lines of the message that are too long in a form that the reader doesn't see.
+        /// </summary>
+        [AllowNull]
+        internal Func<List<ImfLongLine>> LongLinesOutsideTheData { get; set; }
+
+        /// <summary>
         /// Gets a flag indicating that the body differs from <see cref="RawBody"/>, without reading <see cref="Body"/> if it has not been asked for.
         /// </summary>
         internal bool IsBodyChanged => _isBodyReplaced || (!(_body is null) && _body.HasChangedBody);
@@ -439,6 +445,7 @@ namespace DataStandardizer.File.InternetMessage
         internal void ReadBody(List<ImfDiagnostic> diagnostics)
         {
             _body = ImfEntityTree.Read(this, diagnostics);
+            LongLinesOutsideTheData = null;
         }
 
         /// <summary>
