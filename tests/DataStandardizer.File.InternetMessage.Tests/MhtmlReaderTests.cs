@@ -17,7 +17,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string NoFrom = "Date: Fri, 21 Nov 1997 09:55:06 -0600\r\nMIME-Version: 1.0\r\nContent-Type: text/html\r\n\r\n<p>page</p>\r\n";
         private const string NoDate = "From: a@b.test\r\nMIME-Version: 1.0\r\nContent-Type: text/html\r\n\r\n<p>page</p>\r\n";
         private const string NoSender = "Date: Fri, 21 Nov 1997 09:55:06 -0600\r\nFrom: a@b.test, c@b.test\r\n\r\n";
-        private const string ResentWithoutDate = "Resent-From: a@b.test\r\nContent-Type: text/html\r\n\r\n<p>page</p>\r\n";
+        private const string ResentWithoutDate = "Resent-From: a@b.test\r\nMIME-Version: 1.0\r\nContent-Type: text/html\r\n\r\n<p>page</p>\r\n";
         private const string SecondSubject = "Subject: a\r\nSubject: b\r\n\r\n";
         private const string InvalidDate = "Date: not a date\r\n\r\n";
         private const string SnapshotField = "Snapshot-Content-Location";
@@ -46,24 +46,6 @@ namespace DataStandardizer.File.InternetMessage.Tests
             { MhtmlShapes.Word, WordOptions },
         };
 
-        [Theory]
-        [InlineData(NoHeader)]
-        [InlineData(NoFrom)]
-        [InlineData(NoDate)]
-        [InlineData(NoSender)]
-        public void ReadDocument_MissingOriginationFieldByDefault_Throws(string document)
-        {
-            // arrange
-            using (var subject = new MhtmlReader(new MemoryStream(Octets.Of(document))))
-            {
-                // act
-                Action testAction = () => subject.ReadDocument();
-
-                // assert
-                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.MissingRequiredField);
-            }
-        }
-
         [Fact]
         public void ReadDocument_SecondSubject_RecordsADiagnostic()
         {
@@ -78,29 +60,16 @@ namespace DataStandardizer.File.InternetMessage.Tests
             }
         }
 
-        [Fact]
-        public void ReadDocument_ResentBlockWithNoDate_ThrowsByDefault()
-        {
-            // arrange
-            using (var subject = new MhtmlReader(new MemoryStream(Octets.Of(ResentWithoutDate))))
-            {
-                // act
-                Action testAction = () => subject.ReadDocument();
-
-                // assert
-                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.MissingRequiredField);
-            }
-        }
-
         [Theory]
         [InlineData(NoHeader, new[] { "Date", "From" })]
         [InlineData(NoFrom, new[] { "From" })]
         [InlineData(NoDate, new[] { "Date" })]
         [InlineData(NoSender, new[] { "Sender" })]
-        public void ReadDocument_MissingOriginationField_RecordsADiagnostic(string document, string[] expected)
+        [InlineData(ResentWithoutDate, new[] { "Date", "From", "Resent-Date" })]
+        public void ReadDocument_MissingFieldByDefault_RecordsADiagnostic(string document, string[] expected)
         {
             // arrange
-            using (var subject = new MhtmlReader(new MemoryStream(Octets.Of(document)), EntityEvents.DocumentOptions))
+            using (var subject = new MhtmlReader(new MemoryStream(Octets.Of(document))))
             {
                 // act
                 subject.ReadDocument();
@@ -112,20 +81,20 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         [Theory]
-        [InlineData(NoHeader)]
-        [InlineData(NoFrom)]
-        [InlineData(NoDate)]
-        [InlineData(NoSender)]
-        public void ReadMessage_MissingOriginationFieldWithImfReader_Throws(string document)
+        [InlineData(NoHeader, new[] { "Date", "From" })]
+        [InlineData(NoFrom, new[] { "From" })]
+        [InlineData(NoDate, new[] { "Date" })]
+        [InlineData(NoSender, new[] { "Sender" })]
+        public void ReadMessage_MissingOriginationFieldWithImfReader_RecordsTheSameDiagnostics(string document, string[] expected)
         {
             // arrange
             using (var reader = new ImfReader(new MemoryStream(Octets.Of(document))))
             {
                 // act
-                Action testAction = () => reader.ReadMessage();
+                reader.ReadMessage();
 
                 // assert
-                testAction.Should().Throw<ImfFileException>();
+                reader.Diagnostics.Select(diagnostic => diagnostic.FieldName).Should().Equal(expected);
             }
         }
 

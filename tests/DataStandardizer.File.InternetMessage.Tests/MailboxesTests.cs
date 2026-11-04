@@ -10,7 +10,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
     {
         private const int RepeatCount = 3;
         private const string GoodMessage = "Date: Thu, 1 Jan 2026 00:00:00 +0000\nFrom: a@b.test\n\ny\n";
-        private const string RejectedThenGood = "From a@b.test Thu Jan  1 00:00:00 2026\nSubject: no date or from\n\nx\n\nFrom a@b.test Thu Jan  1 00:00:00 2026\nDate: Thu, 1 Jan 2026 00:00:00 +0000\nFrom: a@b.test\n\ny\n\n";
+        private const string RejectedThenGood = "From a@b.test Thu Jan  1 00:00:00 2026\nDate: yesterday\n\nx\n\nFrom a@b.test Thu Jan  1 00:00:00 2026\nDate: Thu, 1 Jan 2026 00:00:00 +0000\nFrom: a@b.test\n\ny\n\n";
         private const string RejectedIndexZero = "rejected 0";
 
         [Fact]
