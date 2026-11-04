@@ -27,7 +27,7 @@ An instance is immutable. One that was read keeps its line as it was, so it is w
 
 | Constructor | Notes |
 | --- | --- |
-| `MboxEnvelope(ImfMailbox sender, DateTimeOffset date)` | Creates a separator line. **Throws** `ArgumentNullException`: `sender` is `null`. **Throws** `ArgumentException`: The address of `sender` isn't the `addr-spec` of US-ASCII characters that RFC 4155 Appendix A requires. **Throws** `ArgumentOutOfRangeException`: The year of `date` in UTC doesn't have four digits. |
+| `MboxEnvelope(ImfMailbox sender, DateTimeOffset date)` | Creates a separator line. **`date`:** The date and time that the message was received, which is written in UTC, to the second. **Throws** `ArgumentNullException`: `sender` is `null`. **Throws** `ArgumentException`: The address of `sender` isn't the `addr-spec` of US-ASCII characters that RFC 4155 Appendix A requires. **Throws** `ArgumentOutOfRangeException`: The year of `date` in UTC doesn't have four digits. |
 
 ## Properties
 

@@ -42,7 +42,7 @@ Counts are cumulative for the writer, not for the call that reports them.
 | Method | Returns | Notes |
 | --- | --- | --- |
 | `Equals(ImfWriteProgress other)` | `bool` | Indicates whether this progress value equals another. **Returns:** `true` if all the counts are equal; otherwise `false`. |
-| `ToString()` | `string` | The value in the form it is written in a header. |
+| `ToString()` | `string` | The three counts, in the form `FieldsWritten = 1, EntitiesWritten = 1, BytesWritten = 100`. |
 
 ## Operators
 

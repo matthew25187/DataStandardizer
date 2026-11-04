@@ -29,8 +29,8 @@ A multipart entity has parts and no content of its own, so [`ImfEntity.GetConten
 
 | Constructor | Notes |
 | --- | --- |
-| `ImfMultipart(MimeMediaType contentType)` | Creates a multipart entity with no parts, whose accessors use the default options. **Throws** `ArgumentException`: `contentType` is not initialised or not `multipart`. |
-| `ImfMultipart(MimeMediaType contentType, ImfOptions options)` | Creates a multipart entity with no parts. **Throws** `ArgumentNullException`: `options` is `null`. **Throws** `ArgumentException`: `contentType` is not initialised or not `multipart`, or `options` has no [`ImfOptions.CharsetResolver`](ImfOptions.md), or an [`ImfOptions.HeaderFallbackCharset`](ImfOptions.md) that is needed and can't be resolved. |
+| `ImfMultipart(MimeMediaType contentType)` | Creates a multipart entity with no parts, whose accessors use the default options. **`contentType`:** The media type, which must be of the top-level type `multipart`. Without a `boundary` parameter, a writer generates a boundary. **Throws** `ArgumentException`: `contentType` is not initialised or not `multipart`. |
+| `ImfMultipart(MimeMediaType contentType, ImfOptions options)` | Creates a multipart entity with no parts. **`contentType`:** The media type, which must be of the top-level type `multipart`. Without a `boundary` parameter, a writer generates a boundary. **Throws** `ArgumentNullException`: `options` is `null`. **Throws** `ArgumentException`: `contentType` is not initialised or not `multipart`, or `options` has no [`ImfOptions.CharsetResolver`](ImfOptions.md), or an [`ImfOptions.HeaderFallbackCharset`](ImfOptions.md) that is needed and can't be resolved. |
 
 ## Properties
 

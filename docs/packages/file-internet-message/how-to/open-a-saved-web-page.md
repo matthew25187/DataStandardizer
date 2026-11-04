@@ -58,12 +58,11 @@ Content-ID.
 
 ## Resolve a URL
 
-`TryResolve` finds the part that an absolute URI refers to. The URLs in the page are relative
-to the page, so resolve them against its URI first:
+`TryResolve` finds the part that the page refers to with a URI, as the page gives it. A relative
+URI resolves against the base URI of the root, so you can pass what the HTML says:
 
 ```csharp
-var pageUri = document.Resources[0].Uri!;
-var imageUri = new Uri(pageUri, "images/logo.png");
+var imageUri = new Uri("images/logo.png", UriKind.Relative);
 
 if (document.TryResolve(imageUri, out var image))
 {

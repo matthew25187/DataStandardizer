@@ -44,9 +44,9 @@ A value that was read keeps its text, so that a `real` of `1.50`, or an `integer
 | `static FromInteger(long value)` | `EmlxPlistValue` | Creates an `integer`. **Returns:** The value. |
 | `static FromReal(double value)` | `EmlxPlistValue` | Creates a `real`. **Returns:** The value. |
 | `static FromString(string value)` | `EmlxPlistValue` | Creates a `string`. **Returns:** The value. **Throws** `ArgumentNullException`: `value` is `null`. **Throws** `ArgumentException`: `value` holds a character that XML doesn't allow. |
-| `TryGetData(out byte[] value)` | `bool` | Gets the bytes of a `data`. **Returns:** `true` if this is a `data`. |
+| `TryGetData(out byte[] value)` | `bool` | Gets the bytes of a `data`. **Returns:** `true` if this is a `data`. **`value`:** Receives a copy of the bytes, or an empty array if this is not a `data`. |
 | `TryGetDate(out DateTimeOffset value)` | `bool` | Gets the date and time of a `date`. **Returns:** `true` if this is a `date`. |
-| `TryGetDouble(out double value)` | `bool` | Gets the number of a `real` or an `integer`. **Returns:** `true` if this is a number within the range of a `Double`, or a `real` that holds a word for a value with no digits. |
+| `TryGetDouble(out double value)` | `bool` | Gets the number of a `real` or an `integer`. **Returns:** `true` if this is a number within the range of a `Double`, or a `real` that holds a word for a value with no digits. **`value`:** Receives the number, rounded if a `Double` can't hold it exactly, or 0. |
 | `TryGetInt64(out long value)` | `bool` | Gets the number of an `integer`. **Returns:** `true` if this is an `integer` that a `Int64` can hold. |
 
 ## Applies to

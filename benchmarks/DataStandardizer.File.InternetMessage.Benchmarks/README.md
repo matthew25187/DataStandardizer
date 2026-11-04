@@ -71,7 +71,7 @@ This package checks what it reads against the standards by default, including th
 
 There are no `*_Async` benchmarks: MimeKit's asynchronous API isn't the subject of this comparison.
 
-`[GlobalSetup]` runs each benchmark once and checks its result, and throws if one doesn't give what the corpus holds, so that a library that reads the corpus differently isn't reported as being faster: the header benchmarks give 41 fields, the read benchmarks 3 attachments or 1,662,976 decoded bytes, the stream benchmarks 5 parts or 50,331,648 decoded bytes, and the mbox benchmarks 10,000 messages. The write benchmarks return the number of bytes written, which differ between the libraries, as each chooses its own boundaries and encodings.
+`[GlobalSetup]` in every class except `WriteBenchmarks` runs each benchmark once and checks its result, and throws if one doesn't give what the corpus holds, so that a library that reads the corpus differently isn't reported as being faster: the header benchmarks give 41 fields, the read benchmarks 3 attachments or 1,662,976 decoded bytes, the stream benchmarks 5 parts or 50,331,648 decoded bytes, and the mbox benchmarks 10,000 messages. The write benchmarks return the number of bytes written, which differ between the libraries, as each chooses its own boundaries and encodings, and nothing checks what they write.
 
 Every class uses `[MemoryDiagnoser]`. The allocation of `Stream_Events` and `Stream_Events_Decoded` should not grow with the size of the message: it is the fixed cost of the reader and its buffers.
 

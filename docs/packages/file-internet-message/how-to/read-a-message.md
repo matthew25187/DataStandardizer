@@ -98,27 +98,35 @@ See [Read text in other character sets](register-code-pages.md).
 ## Save the attachments
 
 `Attachments` lists each entity with a Content-Disposition of `attachment`, and each
-entity without parts that isn't text and has a file name. `GetContent` gives the bytes,
-decoded from the transfer encoding:
+entity without parts that isn't text and has a file name. `OpenContentStream` gives the
+bytes, decoded from the transfer encoding, and `GetContent` gives the same bytes as memory:
 
 ```csharp
 foreach (var attachment in message.Attachments)
 {
+    // A multipart entity has parts and no content of its own.
+    if (attachment is ImfMultipart)
+    {
+        continue;
+    }
+
+    using var content = attachment.OpenContentStream();
+
+    // A file name comes from the sender, so keep only its last segment, and don't overwrite a file.
     var fileName = Path.GetFileName(attachment.FileName ?? "attachment.bin");
-    File.WriteAllBytes(Path.Combine(saveFolder, fileName), attachment.GetContent().ToArray());
+    using var file = new FileStream(Path.Combine(saveFolder, fileName), FileMode.CreateNew, FileAccess.Write);
+    content.CopyTo(file);
 }
 ```
 
 A file name comes from whoever sent the message, so it may hold a path, or name a file
 you don't want overwritten. RFC 2183 §2.3 says not to respect any directory path in it, and
-`FileName` doesn't check it. See
+`FileName` doesn't check it. Here `FileMode.CreateNew` throws `IOException` if the file is
+already there, which stops the loop, so choose a name of your own if you need to go on. See
 [Limits for hostile input](../concepts/hostile-input-limits.md#what-the-limits-dont-cover).
 
-An attachment can be a multipart entity, which has parts and no content of its own, so
-`GetContent` throws `InvalidOperationException` for it. Check for `ImfMultipart`, if your
-messages might hold one.
-
-`OpenContentStream` gives the same bytes as a `Stream`.
+For a multipart attachment, `GetContent` and `OpenContentStream` throw
+`InvalidOperationException`. To save what it holds, go through its `Parts`.
 
 ## Walk the parts
 

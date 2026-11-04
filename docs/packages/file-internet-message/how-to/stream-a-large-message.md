@@ -62,40 +62,61 @@ using var reader = new ImfEntityReader("large.eml", options);
 
 string? fileName = null;
 FileStream? output = null;
-while (reader.ReadEvent() is { } entityEvent)
+try
 {
-    switch (entityEvent.Kind)
+    while (reader.ReadEvent() is { } entityEvent)
     {
-        case ImfEntityEventKind.HeaderField:
-            var field = entityEvent.Field;
-            if (field.GetName().Equals("Content-Disposition", StringComparison.OrdinalIgnoreCase)
-                && ImfContentDisposition.TryParse(field.Value, out var disposition)
-                && disposition.IsAttachment)
-            {
-                fileName = disposition.FileName;
-            }
-            break;
+        switch (entityEvent.Kind)
+        {
+            case ImfEntityEventKind.HeaderField:
+                var field = entityEvent.Field;
+                if (field.GetName().Equals("Content-Disposition", StringComparison.OrdinalIgnoreCase)
+                    && ImfContentDisposition.TryParse(field.Value, out var disposition)
+                    && disposition.IsAttachment)
+                {
+                    fileName = disposition.FileName;
+                }
+                break;
 
-        case ImfEntityEventKind.HeaderEnd:
-            if (fileName != null)
-            {
-                // A file name comes from the sender, so keep only its last segment.
-                output = File.Create(Path.Combine(saveFolder, Path.GetFileName(fileName)));
-            }
-            break;
+            case ImfEntityEventKind.HeaderEnd:
+                // A multipart or message/rfc822 attachment holds entities, which come next with
+                // their own headers, and has no body of its own to save.
+                var type = entityEvent.ContentType.Type;
+                if (fileName != null
+                    && !type.Equals("multipart", StringComparison.OrdinalIgnoreCase)
+                    && !type.Equals("message", StringComparison.OrdinalIgnoreCase))
+                {
+                    // A file name comes from the sender, so keep only its last segment, and don't
+                    // overwrite a file.
+                    var path = Path.Combine(saveFolder, Path.GetFileName(fileName));
+                    output = new FileStream(path, FileMode.CreateNew, FileAccess.Write);
+                }
+                fileName = null;
+                break;
 
-        case ImfEntityEventKind.BodyChunk:
-            output?.Write(entityEvent.Data);
-            break;
+            case ImfEntityEventKind.BodyChunk:
+                output?.Write(entityEvent.Data);
+                break;
 
-        case ImfEntityEventKind.EntityEnd:
-            output?.Dispose();
-            output = null;
-            fileName = null;
-            break;
+            case ImfEntityEventKind.EntityEnd:
+                output?.Dispose();
+                output = null;
+                break;
+        }
     }
 }
+finally
+{
+    output?.Dispose();
+}
 ```
+
+`FileMode.CreateNew` throws `IOException` if the file is already there, which stops the loop,
+so choose a name of your own if you need to go on. An error from `ReadEvent` leaves the file of
+the attachment it was reading, with what had been read so far, so delete it if you don't want it.
+
+An attached message is passed over here, and so is a `message/partial` or `message/external-body`
+body. To save one whole, copy the range of the data that its `EntityEnd` event gives.
 
 `Write(ReadOnlySpan<byte>)` is on .NET Standard 2.1 and later. On the other targets, use
 `entityEvent.DataMemory` with a `MemoryMarshal.TryGetArray`, or copy to an array of your own.

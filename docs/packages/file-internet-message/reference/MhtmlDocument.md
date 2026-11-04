@@ -34,7 +34,7 @@ The document describes the message as it was when the document was made. After a
 | Constructor | Notes |
 | --- | --- |
 | `MhtmlDocument(ImfMessage message)` | Creates a view of a message, with no base URI. **Throws** `ArgumentNullException`: `message` is `null`. **Throws** [`ImfFileException`](ImfFileException.md): The message breaks a rule that its options don't accept. |
-| `MhtmlDocument(ImfMessage message, Uri? baseUri)` | Creates a view of a message. **Throws** `ArgumentNullException`: `message` is `null`. **Throws** `ArgumentException`: `baseUri` is not absolute. **Throws** [`ImfFileException`](ImfFileException.md): The message breaks a rule that its options don't accept. |
+| `MhtmlDocument(ImfMessage message, Uri? baseUri)` | Creates a view of a message. **`baseUri`:** The absolute URI for a relative one to resolve against when the message has none of its own, such as the one the file was retrieved with (RFC 2557 §5 (d)); or `null` for none. **Throws** `ArgumentNullException`: `message` is `null`. **Throws** `ArgumentException`: `baseUri` is not absolute. **Throws** [`ImfFileException`](ImfFileException.md): The message breaks a rule that its options don't accept. |
 
 ## Properties
 
@@ -50,8 +50,8 @@ The document describes the message as it was when the document was made. After a
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `TryResolve(Uri uri, out MhtmlResource? resource)` | `bool` | Finds the part that the root refers to with a URI (RFC 2557 §8.2). **Returns:** `true` if a part was found. **Throws** `ArgumentNullException`: `uri` is `null`. |
-| `TryResolve(Uri uri, MhtmlResource referrer, out MhtmlResource? resource)` | `bool` | Finds the part that another part refers to with a URI (RFC 2557 §8.2), such as an image in a style sheet. A reference reaches the parts of the `multipart/related` entity that holds the part it is in, and of those around that one. RFC 2557 §7 and its example in §9.6 don't have it reach those of an entity that is nested or parallel. **Returns:** `true` if a part was found. **Throws** `ArgumentNullException`: `uri` or `referrer` is `null`. **Throws** `ArgumentException`: `referrer` is not from this document. |
+| `TryResolve(Uri uri, out MhtmlResource? resource)` | `bool` | Finds the part that the root refers to with a URI (RFC 2557 §8.2). **Returns:** `true` if a part was found. **`uri`:** The URI, as the root gives it. A `cid:` URI is matched against Content-ID fields only (RFC 2557 §8.3), and any other against Content-Location fields. A relative one resolves against the base URI of the root. **Throws** `ArgumentNullException`: `uri` is `null`. |
+| `TryResolve(Uri uri, MhtmlResource referrer, out MhtmlResource? resource)` | `bool` | Finds the part that another part refers to with a URI (RFC 2557 §8.2), such as an image in a style sheet. A reference reaches the parts of the `multipart/related` entity that holds the part it is in, and of those around that one. RFC 2557 §7 and its example in §9.6 don't have it reach those of an entity that is nested or parallel. **Returns:** `true` if a part was found. **`uri`:** The URI, as the part gives it. A `cid:` URI is matched against Content-ID fields only (RFC 2557 §8.3), and any other against Content-Location fields. A relative one resolves against the base URI of that part. **Throws** `ArgumentNullException`: `uri` or `referrer` is `null`. **Throws** `ArgumentException`: `referrer` is not from this document. |
 
 ## Applies to
 
