@@ -502,8 +502,8 @@ namespace DataStandardizer.File.InternetMessage
 
         /// <summary>
         /// Checks the message, without throwing: the required fields, the fields that may appear only once, and the grammar of the body of each field that RFC 5322 §3.6 defines; the
-        /// MIME-Version field (RFC 2045 §4); embedded messages (RFC 2046 §5.2.1); and the bytes of each body that hasn't changed (RFC 5322 §2.1.1 and §2.3, RFC 2045 §2.7, §2.8, §6.4, §6.7 and
-        /// §6.8).  A body whose structure can't be read is reported as a problem, and what it holds isn't checked.  The options don't change what is reported, except in how a field body is read.
+        /// MIME-Version field (RFC 2045 §4); embedded messages (RFC 2046 §5.2.1); the bytes of each body that hasn't changed (RFC 5322 §2.1.1 and §2.3, RFC 2045 §2.7, §2.8, §6.4, §6.7 and
+        /// §6.8); and, if no body has changed, the octets of the header of each nested entity (RFC 2045 §2.7 and §6.4).  A body whose structure can't be read is reported as a problem, and what it holds isn't checked.  The options don't change what is reported, except in how a field body is read.
         /// </summary>
         /// <returns>Every problem found, in a read-only list.</returns>
         public IReadOnlyList<ImfDiagnostic> Validate()
