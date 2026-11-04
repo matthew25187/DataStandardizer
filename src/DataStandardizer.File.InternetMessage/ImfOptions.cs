@@ -6,7 +6,7 @@ namespace DataStandardizer.File.InternetMessage
     /// Options to configure the behaviour of an Internet message reader or writer.
     /// </summary>
     /// <remarks>
-    /// The default settings for all options ensure behaviour consistent with RFC 5322, RFC 6532, RFC 2045 and RFC 2046.  Each accommodation for common non-compliant
+    /// The default settings for all options ensure behaviour consistent with RFC 5322, RFC 6532, RFC 2045, RFC 2046 and RFC 4155.  Each accommodation for common non-compliant
     /// input is a separate option, off by default.  A writer always writes what the standards allow, so the accommodations affect it only where noted.
     /// </remarks>
 #if NET5_0_OR_GREATER
@@ -29,6 +29,11 @@ namespace DataStandardizer.File.InternetMessage
         /// The default value of <see cref="MaxHeaderSectionLength"/>, which is 1 MiB.
         /// </summary>
         public const int DefaultMaxHeaderSectionLength = 1024 * 1024;
+
+        /// <summary>
+        /// The default value of <see cref="MaxMessageCount"/>.
+        /// </summary>
+        public const int DefaultMaxMessageCount = 1000000;
 
         /// <summary>
         /// The default value of <see cref="MaxNestingDepth"/>.
@@ -84,9 +89,10 @@ namespace DataStandardizer.File.InternetMessage
         /// Gets a flag indicating if a header may have more than one of a field that RFC 5322 §3.6 allows at most once.
         /// </summary>
         /// <remarks>
-        /// The table in RFC 5322 §3.6 allows Date, From, Sender, Reply-To, To, Cc, Bcc, Message-ID, In-Reply-To, References and Subject at most once.  When <c>false</c> (the default),
-        /// an <see cref="ImfReader"/> or <see cref="ImfWriter"/> throws an <see cref="ImfFileException"/> for a second one.  When <c>true</c>, it records an
-        /// <see cref="ImfDiagnostic"/> instead, and the accessors of <see cref="ImfMessage"/> use the first.
+        /// The table in RFC 5322 §3.6 allows Date, From, Sender, Reply-To, To, Cc, Bcc, Message-ID, In-Reply-To, References and Subject at most once, so a message that has more MUST NOT be
+        /// generated.  When <c>false</c> (the default), an <see cref="ImfWriter"/> throws an <see cref="ImfFileException"/> for a second one.  When <c>true</c>, it records an
+        /// <see cref="ImfDiagnostic"/> instead.  A reader doesn't use this option: RFC 5322 §4 and §4.5 require a receiver to accept repeated fields, so it always records an
+        /// <see cref="ImfDiagnostic"/>.  The accessors of <see cref="ImfMessage"/> use the first, except that To, Cc and Bcc combine theirs, as §4.5 says.
         /// </remarks>
         public bool AllowCardinalityViolations
         {
@@ -117,6 +123,24 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
+        /// Gets a flag indicating if a message of an mbox file may hold octets above 127.
+        /// </summary>
+        /// <remarks>
+        /// RFC 4155 Appendix A requires seven-bit characters, with eight-bit data converted to a seven-bit form.  When <c>false</c> (the default), an octet above 127 causes an
+        /// <see cref="ImfFileException"/> from an <see cref="MboxReader"/> or <see cref="MboxWriter"/>.  When <c>true</c>, an <see cref="ImfDiagnostic"/> is recorded instead, once for each
+        /// message.  Many mailboxes kept on disk hold such messages.
+        /// </remarks>
+        public bool AllowEightBitMboxContent
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
         /// Gets a flag indicating if a field body whose bytes are not valid UTF-8 is accepted.
         /// </summary>
         /// <remarks>
@@ -127,6 +151,25 @@ namespace DataStandardizer.File.InternetMessage
         /// 127 in a name is always rejected.
         /// </remarks>
         public bool AllowEightBitHeaders
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
+        /// Gets a flag indicating if a body may hold an octet or a line break that its transfer encoding doesn't allow.
+        /// </summary>
+        /// <remarks>
+        /// RFC 5322 §2.3 makes a body US-ASCII, and RFC 2045 §6.1 makes <c>7bit</c> the default.  §2.7 allows no octet above 127 and no NUL in <c>7bit</c> data, §2.8 allows no NUL in <c>8bit</c>
+        /// data, and both allow CR and LF only as a CRLF.  §6.4 limits a part to the encoding of the entity that holds it.  When <c>false</c> (the default), a reader or an <see cref="ImfWriter"/>
+        /// throws an <see cref="ImfFileException"/> for such a body.  When <c>true</c>, it records an <see cref="ImfDiagnostic"/> instead, once for each body.  A message with no MIME fields may
+        /// always hold NUL and bare CR and LF, as RFC 5322 §4.1 requires a receiver to accept them.  <see cref="AcceptBareLineFeed"/> accepts a bare line feed on its own.
+        /// </remarks>
+        public bool AllowInvalidBodyOctets
         {
             get;
 #if NET5_0_OR_GREATER
@@ -184,6 +227,46 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
+        /// Gets a flag indicating if an <see cref="MboxReader"/> accepts a Content-Length field that is missing or wrong, in the <see cref="MboxVariant.Mboxcl"/> and
+        /// <see cref="MboxVariant.Mboxcl2"/> variants.
+        /// </summary>
+        /// <remarks>
+        /// These variants find the end of a message from its Content-Length field.  When <c>false</c> (the default), a field that is missing, that is not a single number, or that doesn't lead
+        /// to an empty line and then a separator line or the end of the file, causes an <see cref="ImfFileException"/>.  When <c>true</c>, the field is not relied on: a message ends at the next
+        /// separator line that follows an empty line, and an <see cref="ImfDiagnostic"/> is recorded if the field doesn't give the length found.  So a body of the
+        /// <see cref="MboxVariant.Mboxcl2"/> variant that holds an empty line and then what looks like a separator line is split there, even if its field was right.
+        /// </remarks>
+        public bool AllowInvalidMboxContentLength
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
+        /// Gets a flag indicating if a separator line of an mbox file may differ from the form that RFC 4155 Appendix A requires.
+        /// </summary>
+        /// <remarks>
+        /// RFC 4155 Appendix A requires an <c>addr-spec</c> and a UTC date and time in the form of <c>ctime</c>.  When <c>false</c> (the default), an <see cref="MboxReader"/> throws an
+        /// <see cref="ImfFileException"/> for a first line in any other form, and takes any later line in another form as part of the message, as the standard prescribes no way to quote one, with
+        /// an <see cref="ImfDiagnostic"/>.  An <see cref="MboxWriter"/> throws for an <see cref="MboxEnvelope"/> that was read in another form.  When <c>true</c>, a line is a separator line if it
+        /// has a sender and a date and time, with the day not padded, no seconds, a time zone before or after the year, or more white space, as Thunderbird and Gmail write, and an
+        /// <see cref="ImfDiagnostic"/> is recorded.  <see cref="MboxEnvelope.Sender"/> or <see cref="MboxEnvelope.Date"/> is <c>null</c> if it can't be understood.
+        /// </remarks>
+        public bool AllowInvalidMboxSeparator
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
         /// Gets a flag indicating if <see cref="ImfEntity.GetText"/> accepts octets that are not valid in the character set of the text.
         /// </summary>
         /// <remarks>
@@ -205,9 +288,10 @@ namespace DataStandardizer.File.InternetMessage
         /// Gets a flag indicating if a line longer than 998 octets is accepted.
         /// </summary>
         /// <remarks>
-        /// RFC 5322 §2.1.1 limits each line to 998 octets, not counting the CRLF.  When <c>false</c> (the default), a longer line causes an
-        /// <see cref="ImfFileException"/>.  The limit is on each physical line, so a folded field may be longer once unfolded.  When <c>true</c>,
-        /// a line is still limited by <see cref="MaxHeaderSectionLength"/>.
+        /// RFC 5322 §2.1.1 limits each line to 998 octets, not counting the CRLF, and RFC 2045 §6.7 and §6.8 limit a line of a <c>quoted-printable</c> or <c>base64</c> body to 76.  A
+        /// <c>binary</c> body has no lines (RFC 2045 §2.9).  When <c>false</c> (the default), a longer line causes an <see cref="ImfFileException"/>.  The limit is on each physical line, so a
+        /// folded field may be longer once unfolded.  When <c>true</c>, a line of a header is still limited by <see cref="MaxHeaderSectionLength"/>, and a line of a body records an
+        /// <see cref="ImfDiagnostic"/>, once for each body.
         /// </remarks>
         public bool AllowLongLines
         {
@@ -294,12 +378,85 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
+        /// Gets a flag indicating if an <see cref="MboxReader"/> accepts a message that isn't ended by an empty line.
+        /// </summary>
+        /// <remarks>
+        /// RFC 4155 Appendix A ends each message with an empty line.  When <c>false</c> (the default), a separator line or the end of the file that doesn't follow one causes an
+        /// <see cref="ImfFileException"/>.  When <c>true</c>, the message ends there, and an <see cref="ImfDiagnostic"/> is recorded.
+        /// </remarks>
+        public bool AllowMissingMboxBlankLine
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
+        /// Gets a flag indicating if an mbox file may have a carriage return and a line feed as a line break.
+        /// </summary>
+        /// <remarks>
+        /// RFC 4155 Appendix A requires a single line feed, and doesn't allow a carriage return and a line feed.  When <c>false</c> (the default), an <see cref="MboxReader"/> throws an
+        /// <see cref="ImfFileException"/> for a first separator line that ends in them, or a line of a message that does, and an <see cref="MboxWriter"/> writing line feeds does the same for a
+        /// line of a message that ends in them.  When <c>true</c>, an <see cref="ImfDiagnostic"/> is recorded instead.  A reader then reads a file whose first separator line ends in them with
+        /// that line break throughout, and in any other file the carriage return is part of its line.  An <see cref="MboxWriter"/> writes this line break only when
+        /// <see cref="MboxLineBreak.CarriageReturnLineFeed"/> is given to it, whatever this option says.
+        /// </remarks>
+        public bool AllowMboxCarriageReturnLineFeed
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
+        /// Gets a flag indicating if an <see cref="MboxReader"/> accepts a file that doesn't start with a separator line.
+        /// </summary>
+        /// <remarks>
+        /// RFC 4155 Appendix A has a separator line immediately before each message.  When <c>false</c> (the default), a file with any other first line causes an
+        /// <see cref="ImfFileException"/>.  When <c>true</c>, everything before the first separator line is skipped, and an <see cref="ImfDiagnostic"/> is recorded.
+        /// </remarks>
+        public bool AllowMissingMboxSeparator
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
+        /// Gets a flag indicating if a header may have a MIME field with no MIME-Version field.
+        /// </summary>
+        /// <remarks>
+        /// RFC 2045 §4 requires the field at the top level of a message that follows MIME.  When <c>false</c> (the default), a reader of whole messages or an <see cref="ImfWriter"/> throws an
+        /// <see cref="ImfFileException"/> for a message without one.  When <c>true</c>, it records an <see cref="ImfDiagnostic"/> instead.  An embedded message needs one only if it claims to
+        /// follow MIME, so one without it only ever records an <see cref="ImfDiagnostic"/>.
+        /// </remarks>
+        public bool AllowMissingMimeVersion
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
         /// Gets a flag indicating if a header may lack a field that RFC 5322 requires.
         /// </summary>
         /// <remarks>
         /// RFC 5322 §3.6 requires Date and From.  §3.6.2 and RFC 6854 §2.1 require Sender when From has more than one mailbox, and §3.6.6 applies the same rules to Resent-Date,
-        /// Resent-From and Resent-Sender in each block of resent fields.  When <c>false</c> (the default), an <see cref="ImfReader"/> or <see cref="ImfWriter"/> throws an
-        /// <see cref="ImfFileException"/> for a message without one.  When <c>true</c>, it records an <see cref="ImfDiagnostic"/> instead.
+        /// Resent-From and Resent-Sender in each block of resent fields.  RFC 2046 §5.2.1 requires one of From, Subject or Date in an embedded message.  When <c>false</c> (the default), an
+        /// <see cref="ImfReader"/>, <see cref="ImfWriter"/>, <see cref="MhtmlReader"/> or <see cref="MhtmlWriter"/> throws an <see cref="ImfFileException"/> for a message without one.  When
+        /// <c>true</c>, it records an <see cref="ImfDiagnostic"/> instead.  Programs that save web pages as MHTML often leave out Date and From, so reading such a file needs this option.
         /// </remarks>
         public bool AllowMissingRequiredFields
         {
@@ -455,6 +612,23 @@ namespace DataStandardizer.File.InternetMessage
             set;
 #endif
         } = DefaultMaxNestingDepth;
+
+        /// <summary>
+        /// Gets the maximum number of messages that an <see cref="MboxReader"/> reads from a file.
+        /// </summary>
+        /// <remarks>
+        /// RFC 4155 sets no limit.  This one guards against hostile input.  The default is <see cref="DefaultMaxMessageCount"/>, and the value must be at least 1.  One more message causes an
+        /// <see cref="ImfFileException"/>.  The other limits apply to each message.
+        /// </remarks>
+        public int MaxMessageCount
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        } = DefaultMaxMessageCount;
 
         /// <summary>
         /// Gets the maximum number of entities in a message, not counting the message itself.

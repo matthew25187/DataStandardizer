@@ -651,7 +651,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
         private static MhtmlDocument Read(string document)
         {
-            using (var reader = new MhtmlReader(new MemoryStream(Octets.Of(document))))
+            using (var reader = new MhtmlReader(new MemoryStream(Octets.Of(document)), EntityEvents.DocumentOptions))
             {
                 return reader.ReadDocument();
             }

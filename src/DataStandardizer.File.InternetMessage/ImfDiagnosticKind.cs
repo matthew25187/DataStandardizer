@@ -37,5 +37,51 @@
         /// doesn't allow anywhere, are reported the same way.
         /// </summary>
         InvalidRelatedStructure = 5,
+
+        /// <summary>
+        /// An mbox file doesn't start with a separator line, which RFC 4155 Appendix A requires before each message.
+        /// </summary>
+        MissingMboxSeparator = 6,
+
+        /// <summary>
+        /// A line of an mbox file starts with <c>From </c> and doesn't have the form of a separator line that RFC 4155 Appendix A requires.
+        /// </summary>
+        InvalidMboxSeparator = 7,
+
+        /// <summary>
+        /// A message of an mbox file is not ended by the empty line that RFC 4155 Appendix A requires.
+        /// </summary>
+        MissingMboxBlankLine = 8,
+
+        /// <summary>
+        /// A message of an mbox file in the <see cref="MboxVariant.Mboxcl"/> or <see cref="MboxVariant.Mboxcl2"/> variant has a Content-Length field that is missing or not valid, or that
+        /// doesn't match the length of its body.
+        /// </summary>
+        InvalidMboxContentLength = 9,
+
+        /// <summary>
+        /// An mbox file uses a carriage return and a line feed as a line break, which RFC 4155 Appendix A doesn't allow.
+        /// </summary>
+        MboxCarriageReturnLineFeed = 10,
+
+        /// <summary>
+        /// A message of an mbox file holds an octet above 127, which RFC 4155 Appendix A doesn't allow.
+        /// </summary>
+        EightBitMboxContent = 11,
+
+        /// <summary>
+        /// A body holds an octet or a line break that RFC 5322 §2.3 or its transfer encoding doesn't allow (RFC 2045 §2.7, §2.8 and §6.4).
+        /// </summary>
+        InvalidBodyOctets = 12,
+
+        /// <summary>
+        /// A body has a line longer than RFC 5322 §2.1.1, or the 76 characters of RFC 2045 §6.7 and §6.8 for an encoded body, allow.
+        /// </summary>
+        LongBodyLine = 13,
+
+        /// <summary>
+        /// <see cref="ImfMessage.Validate"/> found that the body breaks a rule of RFC 2046 §5 that the options don't accept, so what it holds could not be checked.
+        /// </summary>
+        InvalidBodyStructure = 14,
     }
 }

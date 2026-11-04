@@ -15,7 +15,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const int ShiftJisCodePage = 932;
         private const string MessageWithThreeOctets = "Date: Fri, 21 Nov 1997 09:55:06 -0600\r\nFrom: a@b.test\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\n\r\nxxx\r\n--b--\r\n";
 
-        private static ImfOptions NoRequiredFields => new ImfOptions { AllowMissingRequiredFields = true };
+        private static ImfOptions NoRequiredFields => new ImfOptions { AllowMissingMimeVersion = true, AllowMissingRequiredFields = true };
 
         [Fact]
         public void WriteWithLineFeeds_ReadWithLineFeeds_GivesTheSameBytes()
@@ -112,7 +112,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void MessageNestedToDepth_Two_GivesThatTree()
         {
             // arrange
-            var subject = EntityTrees.MessageNestedToDepth(2, new ImfOptions());
+            var subject = EntityTrees.MessageNestedToDepth(2, new ImfOptions { AllowMissingMimeVersion = true });
 
             // act
             var testResult = EntityTrees.Describe(subject);
@@ -168,7 +168,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ReadDecodedValue_Section_GivesTheFirstFieldDecoded()
         {
             // act
-            var testResult = EncodedWordFields.ReadDecodedValue("A: =?utf-8?Q?a?=\r\nB: c\r\n\r\n", new ImfOptions());
+            var testResult = EncodedWordFields.ReadDecodedValue("A: =?utf-8?Q?a?=\r\nB: c\r\n\r\n", new ImfOptions { AllowMissingMimeVersion = true });
 
             // assert
             testResult.Should().Be("a");
@@ -178,7 +178,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ReadDecodedValue_NoFields_GivesAnEmptyString()
         {
             // act
-            var testResult = EncodedWordFields.ReadDecodedValue("\r\n", new ImfOptions());
+            var testResult = EncodedWordFields.ReadDecodedValue("\r\n", new ImfOptions { AllowMissingMimeVersion = true });
 
             // assert
             testResult.Should().BeEmpty();
@@ -280,7 +280,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             var stream = new BlockStream(Octets.Of("A:1\r\n\r\nxyz"), BlockStreamMode.SynchronousOnly, 1, 1);
-            using (var reader = new ImfEntityReader(stream))
+            using (var reader = new ImfEntityReader(stream, EntityEvents.MimeEntityOptions))
             {
                 // act
                 var testResult = EntityEvents.ReadOutline(reader);
@@ -389,7 +389,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             var stream = new BlockStream(Octets.Of("\r\nxyz"), BlockStreamMode.SynchronousOnly, 3, 2);
-            using (var reader = new ImfEntityReader(stream, new ImfOptions(), 1, false))
+            using (var reader = new ImfEntityReader(stream, new ImfOptions { AllowMissingMimeVersion = true }, 1, false))
             {
                 // act
                 var testResult = DecodedBodies.ReadLongestChunk(reader);

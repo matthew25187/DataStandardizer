@@ -23,13 +23,14 @@ namespace DataStandardizer.File.InternetMessage
     /// <b>Conformance.</b>  Once the header has been read, it is checked as <see cref="ImfMessage.Validate"/> describes.  A missing required field, a second field of a kind that may
     /// appear only once, and a field body that breaks its grammar each cause an <see cref="ImfFileException"/>, unless <see cref="ImfOptions.AllowMissingRequiredFields"/>,
     /// <see cref="ImfOptions.AllowCardinalityViolations"/> or <see cref="ImfOptions.AllowInvalidValues"/> is set.  With them set, the problem is recorded in
-    /// <see cref="Diagnostics"/> instead.  RFC 5322 §4.5 lets its obsolete syntax repeat any field, but leaves what that means unspecified, so it needs the option too.
+    /// <see cref="Diagnostics"/> instead.  RFC 5322 §4 and §4.5 require a receiver to accept a repeated field, so that is always recorded in <see cref="Diagnostics"/>.
     /// </para>
     /// <para>
     /// <b>Body.</b>  The rest of the data is the body, up to <see cref="ImfOptions.MaxEntitySize"/>, which is held in memory as it is.  Its structure is read into
     /// <see cref="ImfMessage.Body"/> as an <see cref="ImfEntityReader"/> reads it, under the same options, so a multipart entity that breaks RFC 2046 §5.1 causes an
     /// <see cref="ImfFileException"/>.  The bytes of a body are decoded, and checked against the transfer encoding, only when they are asked for.  A message inside a
-    /// <c>message/rfc822</c> entity is not checked for conformance, as RFC 2046 §5.2.1 doesn't hold it to RFC 5322: call <see cref="ImfMessage.Validate"/> on it to do so.
+    /// <c>message/rfc822</c> entity has only to have one of From, Subject or Date, as RFC 2046 §5.2.1 says, under <see cref="ImfOptions.AllowMissingRequiredFields"/>.  Call
+    /// <see cref="ImfMessage.Validate"/> on it to check it against RFC 5322.
     /// </para>
     /// <para>
     /// The data holds one message, so it can be read only once, and any <see cref="ImfFileException"/> ends reading.  Later reads throw <see cref="InvalidOperationException"/>.  A
@@ -49,7 +50,6 @@ namespace DataStandardizer.File.InternetMessage
         private readonly ReadOnlyCollection<ImfDiagnostic> _readOnlyDiagnostics;
         private readonly List<ImfDiagnostic> _diagnostics = new List<ImfDiagnostic>();
         private readonly ImfOptions _options;
-        private readonly ImfConformanceProfile _profile;
         private readonly bool _lineFeedIsLineBreak;
         private readonly bool _ownsStream;
         private readonly ImfHeaderScanner _scanner;
@@ -113,15 +113,7 @@ namespace DataStandardizer.File.InternetMessage
         /// <see cref="ImfOptions.CharsetResolver"/>, or an <see cref="ImfOptions.HeaderFallbackCharset"/> that is needed and can't be
         /// resolved.</exception>
         public ImfReader(string messageFilePath, ImfOptions options)
-            : this(messageFilePath, options, ImfConformanceProfile.Message)
-        {
-        }
-
-        /// <summary>
-        /// Creates a reader for the message in a file, for a format with its own conformance rules.
-        /// </summary>
-        internal ImfReader(string messageFilePath, ImfOptions options, ImfConformanceProfile profile)
-            : this(CheckOptions(options), ImfHeaderReader.OpenFile(messageFilePath), true, options, DefaultBufferSize, false, profile)
+            : this(CheckOptions(options), ImfHeaderReader.OpenFile(messageFilePath), true, options, DefaultBufferSize, false)
         {
         }
 #endif
@@ -131,20 +123,12 @@ namespace DataStandardizer.File.InternetMessage
         /// and the readers of container formats to read the LF line breaks of their messages.
         /// </summary>
         internal ImfReader(Stream messageStream, ImfOptions options, int bufferSize, bool lineFeedIsLineBreak)
-            : this(messageStream, options, bufferSize, lineFeedIsLineBreak, ImfConformanceProfile.Message)
-        {
-        }
-
-        /// <summary>
-        /// Creates a reader with a specific size for the internal block and a line break setting, for a format with its own conformance rules.
-        /// </summary>
-        internal ImfReader(Stream messageStream, ImfOptions options, int bufferSize, bool lineFeedIsLineBreak, ImfConformanceProfile profile)
-            : this(CheckOptions(options), ImfHeaderReader.ValidateStream(messageStream), false, options, bufferSize, lineFeedIsLineBreak, profile)
+            : this(CheckOptions(options), ImfHeaderReader.ValidateStream(messageStream), false, options, bufferSize, lineFeedIsLineBreak)
         {
         }
 
         // The encoding comes first, so that bad options are found before a file is opened.
-        private ImfReader(Encoding fallbackEncoding, Stream stream, bool ownsStream, ImfOptions options, int bufferSize, bool lineFeedIsLineBreak, ImfConformanceProfile profile)
+        private ImfReader(Encoding fallbackEncoding, Stream stream, bool ownsStream, ImfOptions options, int bufferSize, bool lineFeedIsLineBreak)
         {
             if (bufferSize < 1)
                 throw new ArgumentOutOfRangeException(nameof(bufferSize));
@@ -152,7 +136,6 @@ namespace DataStandardizer.File.InternetMessage
             _stream = stream;
             _ownsStream = ownsStream;
             _options = options;
-            _profile = profile;
             _lineFeedIsLineBreak = lineFeedIsLineBreak;
             _scanner = new ImfHeaderScanner(bufferSize, options, fallbackEncoding, lineFeedIsLineBreak);
             _message = new ImfMessage(options);
@@ -371,7 +354,7 @@ namespace DataStandardizer.File.InternetMessage
 
             foreach (var diagnostic in ImfConformance.Check(_message, _options))
             {
-                if (!ImfConformance.IsAllowed(diagnostic, _options, _profile))
+                if (!ImfConformance.IsAllowedWhenReading(diagnostic, _options))
                     throw ImfConformance.BuildException(diagnostic, true);
 
                 _diagnostics.Add(diagnostic);
@@ -391,6 +374,17 @@ namespace DataStandardizer.File.InternetMessage
             _message.RawBody = new ReadOnlyMemory<byte>(_body, 0, _bodyLength);
             _message.LineFeedIsLineBreak = _lineFeedIsLineBreak;
             _message.ReadBody(_diagnostics);
+
+            var embedded = new List<ImfDiagnostic>();
+            ImfConformance.CheckEmbedded(_message, embedded);
+            foreach (var diagnostic in embedded)
+            {
+                if (!ImfConformance.IsAllowedWhenReading(diagnostic, _options))
+                    throw ImfConformance.BuildException(diagnostic, true);
+
+                _diagnostics.Add(diagnostic);
+            }
+
             return _message;
         }
 
@@ -460,7 +454,7 @@ namespace DataStandardizer.File.InternetMessage
         /// <summary>
         /// Checks the options, and resolves the encoding for a field body that is not valid UTF-8.
         /// </summary>
-        private static Encoding CheckOptions(ImfOptions options)
+        internal static Encoding CheckOptions(ImfOptions options)
         {
             var encoding = ImfHeaderReader.GetFallbackEncoding(options);
             if (options.MaxEntitySize < 1)

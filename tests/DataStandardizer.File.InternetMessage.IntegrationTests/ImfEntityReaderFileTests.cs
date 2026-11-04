@@ -25,7 +25,7 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
         {
             // arrange
             using (var file = TemporaryFile.Create(MessageBytes))
-            using (var reader = new ImfEntityReader(file.Path))
+            using (var reader = new ImfEntityReader(file.Path, EntityEvents.MimeEntityOptions))
             {
                 // act
                 var testResult = EntityEvents.ReadOutline(reader);
@@ -41,7 +41,7 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
             // arrange
             using (var file = TemporaryFile.Create(MessageBytes))
             {
-                var reader = new ImfEntityReader(file.Path);
+                var reader = new ImfEntityReader(file.Path, EntityEvents.MimeEntityOptions);
                 await AsyncDisposal.UsingAsync(reader, async () =>
                 {
                     // act
@@ -58,7 +58,7 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
         {
             // arrange
             using (var file = TemporaryFile.Create(MessageBytes))
-            using (var reader = new ImfEntityReader(file.Path, new ImfOptions { MaxHeaderSectionLength = 1 }))
+            using (var reader = new ImfEntityReader(file.Path, new ImfOptions { AllowMissingMimeVersion = true, MaxHeaderSectionLength = 1 }))
             {
                 // act
                 Action testAction = () => EntityEvents.ReadToEnd(reader);
@@ -76,7 +76,7 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
             using (var recorder = new OpenedFileStreamRecorder())
             {
                 // act
-                var reader = new ImfEntityReader(file.Path);
+                var reader = new ImfEntityReader(file.Path, EntityEvents.MimeEntityOptions);
 
                 // assert
                 recorder.Opened.IsAsync.Should().BeTrue();
@@ -92,7 +92,7 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
             // arrange
             using (var file = TemporaryFile.Create(MessageBytes))
             {
-                var reader = new ImfEntityReader(file.Path);
+                var reader = new ImfEntityReader(file.Path, EntityEvents.MimeEntityOptions);
 
                 // act
                 reader.Dispose();
@@ -109,7 +109,7 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
             // arrange
             using (var file = TemporaryFile.Create(MessageBytes))
             {
-                var reader = new ImfEntityReader(file.Path);
+                var reader = new ImfEntityReader(file.Path, EntityEvents.MimeEntityOptions);
                 reader.ReadEvent();
 
                 // act
@@ -127,7 +127,7 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
             // arrange
             using (var file = TemporaryFile.Create(MessageBytes))
             {
-                var reader = new ImfEntityReader(file.Path);
+                var reader = new ImfEntityReader(file.Path, EntityEvents.MimeEntityOptions);
 
                 // act
                 await reader.DisposeAsync();
@@ -146,7 +146,7 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
             using (var recorder = new OpenedFileStreamRecorder())
             {
                 // act
-                Action testAction = () => new ImfEntityReader(file.Path, new ImfOptions { MaxNestingDepth = 0 });
+                Action testAction = () => new ImfEntityReader(file.Path, new ImfOptions { AllowMissingMimeVersion = true, MaxNestingDepth = 0 });
 
                 // assert
                 testAction.Should().Throw<ArgumentException>().WithParameterName("options");
@@ -158,7 +158,7 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
         public void Constructor_NullFilePath_ThrowsArgumentNullException()
         {
             // act
-            Action testAction = () => new ImfEntityReader((string)null);
+            Action testAction = () => new ImfEntityReader((string)null, EntityEvents.MimeEntityOptions);
 
             // assert
             testAction.Should().Throw<ArgumentNullException>().WithParameterName("messageFilePath");
@@ -171,7 +171,7 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
             var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
 
             // act
-            Action testAction = () => new ImfEntityReader(path);
+            Action testAction = () => new ImfEntityReader(path, EntityEvents.MimeEntityOptions);
 
             // assert
             testAction.Should().Throw<FileNotFoundException>();

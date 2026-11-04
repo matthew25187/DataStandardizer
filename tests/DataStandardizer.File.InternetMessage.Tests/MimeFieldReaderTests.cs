@@ -105,7 +105,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void ReadEvent_MalformedParameterWithAllowMalformedParameters_ReadsTheParts()
         {
             // arrange
-            using (var reader = EntityEvents.CreateReader(MissingSectionBoundary, new ImfOptions { AllowMalformedParameters = true }))
+            using (var reader = EntityEvents.CreateReader(MissingSectionBoundary, new ImfOptions { AllowMissingMimeVersion = true, AllowMalformedParameters = true }))
             {
                 // act
                 var testResult = EntityEvents.ReadOutline(reader);

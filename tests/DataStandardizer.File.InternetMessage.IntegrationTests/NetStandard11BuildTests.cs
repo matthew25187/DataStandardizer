@@ -32,7 +32,7 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
         // private one they all call.
         private const int ConstructorCount = 4;
 
-        // The constructors of ImfReader and ImfWriter on this target, which also have an internal one for a format with its own conformance rules.
+        // The constructors of ImfWriter on this target, which also has an internal one for a format with its own conformance rules.
         private const int MessageConstructorCount = 5;
 
         private static readonly string NetStandard11BuildPath =
@@ -45,6 +45,10 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
         private const string MessageSyncReadMethodName = nameof(ImfReader.ReadMessage);
         private const string MhtmlReaderTypeName = nameof(MhtmlReader);
         private const string MhtmlWriterTypeName = nameof(MhtmlWriter);
+        private const string MboxReaderTypeName = nameof(MboxReader);
+        private const string MboxWriterTypeName = nameof(MboxWriter);
+        private const string MailboxStreamParameterName = "mailboxStream";
+        private const string MailboxFilePathParameterName = "mailboxFilePath";
 
         [Fact]
         public void Methods_ReaderInNetStandard11Build_HaveTheSynchronousRead()
@@ -92,6 +96,8 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
         [InlineData(MessageWriterTypeName)]
         [InlineData(MhtmlReaderTypeName)]
         [InlineData(MhtmlWriterTypeName)]
+        [InlineData(MboxReaderTypeName)]
+        [InlineData(MboxWriterTypeName)]
         public void Methods_WriterInNetStandard11Build_HaveNoAsynchronousMembers(string typeName)
         {
             // act
@@ -114,6 +120,18 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
 
             // assert
             testResult.Should().Contain(StreamParameterName).And.NotContain(FilePathParameterName);
+        }
+
+        [Theory]
+        [InlineData(MboxReaderTypeName)]
+        [InlineData(MboxWriterTypeName)]
+        public void Constructors_MboxTypesInNetStandard11Build_TakeAStreamAndNotAFilePath(string typeName)
+        {
+            // act
+            var testResult = ReadConstructorParameterNames(typeName);
+
+            // assert
+            testResult.Should().Contain(MailboxStreamParameterName).And.NotContain(MailboxFilePathParameterName);
         }
 
         [Theory]
@@ -196,7 +214,7 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
             var testResult = ReadMethodNames(MessageReaderTypeName);
 
             // assert
-            testResult.Count(name => name == ".ctor").Should().Be(MessageConstructorCount);
+            testResult.Count(name => name == ".ctor").Should().Be(ConstructorCount);
         }
 
         [Fact]

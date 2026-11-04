@@ -23,7 +23,7 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
         {
             // arrange
             using (var file = TemporaryFile.Create(Octets.Of(Document)))
-            using (var subject = new MhtmlReader(file.Path))
+            using (var subject = new MhtmlReader(file.Path, EntityEvents.DocumentOptions))
             {
                 // act
                 var testResult = subject.ReadDocument();
@@ -39,7 +39,7 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
             // arrange
             using (var file = TemporaryFile.Create(Octets.Of(Document)))
             {
-                var subject = new MhtmlReader(file.Path);
+                var subject = new MhtmlReader(file.Path, EntityEvents.DocumentOptions);
                 await AsyncDisposal.UsingAsync(subject, async () =>
                 {
                     // act
@@ -59,7 +59,7 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
             using (var recorder = new OpenedFileStreamRecorder())
             {
                 // act
-                using (new MhtmlReader(file.Path))
+                using (new MhtmlReader(file.Path, EntityEvents.DocumentOptions))
                 {
                     // assert
                     recorder.Opened.IsAsync.Should().BeTrue();
@@ -73,7 +73,7 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
             // arrange
             using (var file = TemporaryFile.Create(Octets.Of(Document)))
             {
-                var subject = new MhtmlReader(file.Path);
+                var subject = new MhtmlReader(file.Path, EntityEvents.DocumentOptions);
 
                 // act
                 subject.Dispose();
@@ -88,7 +88,7 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
         public void Constructor_NullPath_Throws()
         {
             // act
-            Action testAction = () => new MhtmlReader((string)null);
+            Action testAction = () => new MhtmlReader((string)null, EntityEvents.DocumentOptions);
 
             // assert
             testAction.Should().Throw<ArgumentNullException>();
@@ -99,7 +99,7 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
         {
             // arrange
             MhtmlDocument document;
-            using (var reader = new MhtmlReader(new MemoryStream(Octets.Of(Document))))
+            using (var reader = new MhtmlReader(new MemoryStream(Octets.Of(Document)), EntityEvents.DocumentOptions))
             {
                 document = reader.ReadDocument();
             }
@@ -107,7 +107,7 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
             using (var file = TemporaryFile.Create(OldContent))
             {
                 // act
-                using (var subject = new MhtmlWriter(file.Path))
+                using (var subject = new MhtmlWriter(file.Path, EntityEvents.DocumentOptions))
                 {
                     subject.WriteDocument(document);
                 }
@@ -122,7 +122,7 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
         {
             // arrange
             MhtmlDocument document;
-            using (var reader = new MhtmlReader(new MemoryStream(Octets.Of(Document))))
+            using (var reader = new MhtmlReader(new MemoryStream(Octets.Of(Document)), EntityEvents.DocumentOptions))
             {
                 document = reader.ReadDocument();
             }
@@ -130,7 +130,7 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
             using (var file = TemporaryFile.Create(OldContent))
             {
                 // act
-                var subject = new MhtmlWriter(file.Path);
+                var subject = new MhtmlWriter(file.Path, EntityEvents.DocumentOptions);
                 await AsyncDisposal.UsingAsync(subject, () => subject.WriteDocumentAsync(document));
 
                 // assert
@@ -142,7 +142,7 @@ namespace DataStandardizer.File.InternetMessage.IntegrationTests
         public void Constructor_WriterNullPath_Throws()
         {
             // act
-            Action testAction = () => new MhtmlWriter((string)null);
+            Action testAction = () => new MhtmlWriter((string)null, EntityEvents.DocumentOptions);
 
             // assert
             testAction.Should().Throw<ArgumentNullException>();

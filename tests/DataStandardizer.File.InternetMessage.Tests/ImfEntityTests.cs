@@ -457,7 +457,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void GetText_OctetsOutsideTheDefaultCharacterSet_Throws()
         {
             // arrange
-            var subject = EntityTrees.Read(EightBitWithNoCharset).Body;
+            var subject = EntityTrees.Read(EightBitWithNoCharset, new ImfOptions { AllowInvalidBodyOctets = true }).Body;
 
             // act
             Action testAction = () => subject.GetText();
@@ -470,7 +470,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void GetText_OctetsOutsideTheDefaultCharacterSetWithOption_ReplacesThem()
         {
             // arrange
-            var options = new ImfOptions { AllowInvalidTextOctets = true };
+            var options = new ImfOptions { AllowInvalidTextOctets = true, AllowInvalidBodyOctets = true };
             var subject = EntityTrees.Read(EightBitWithNoCharset, options).Body;
 
             // act

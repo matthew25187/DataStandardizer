@@ -11,14 +11,14 @@ namespace DataStandardizer.File.InternetMessage.Tests
     /// </summary>
     public class MhtmlWriterTests
     {
-        private const string Unrelated = "From: a@b.test\r\nContent-Type: text/html\r\n\r\n<p>page</p>\r\n";
+        private const string Unrelated = "From: a@b.test\r\nMIME-Version: 1.0\r\nContent-Type: text/html\r\n\r\n<p>page</p>\r\n";
 
         [Fact]
         public void WriteDocument_NoDateOrFrom_RecordsDiagnostics()
         {
             // arrange
             var document = Read(MhtmlShapes.RelativePartsNoBase);
-            using (var subject = new MhtmlWriter(new MemoryStream()))
+            using (var subject = new MhtmlWriter(new MemoryStream(), EntityEvents.DocumentOptions))
             {
                 // act
                 subject.WriteDocument(document);
@@ -47,9 +47,9 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void WriteDocument_InvalidStructure_ThrowsAndWritesNothing()
         {
             // arrange
-            var document = Read(MhtmlShapes.Word, new ImfOptions { AllowInvalidRelatedStructure = true });
+            var document = Read(MhtmlShapes.Word, new ImfOptions { AllowMissingRequiredFields = true, AllowInvalidRelatedStructure = true });
             var output = new MemoryStream();
-            using (var subject = new MhtmlWriter(output))
+            using (var subject = new MhtmlWriter(output, EntityEvents.DocumentOptions))
             {
                 // act
                 Action testAction = () => subject.WriteDocument(document);
@@ -64,7 +64,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void WriteDocument_InvalidStructureAllowed_WritesTheSameBytes()
         {
             // arrange
-            var options = new ImfOptions { AllowInvalidRelatedStructure = true };
+            var options = new ImfOptions { AllowMissingRequiredFields = true, AllowInvalidRelatedStructure = true };
             var document = Read(MhtmlShapes.Word, options);
             var output = new MemoryStream();
             using (var subject = new MhtmlWriter(output, options))
@@ -84,7 +84,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var document = Read(MhtmlShapes.Rfc2557Section94);
             ((ImfMultipart)document.Message.Body).ContentType = DataStandardizer.Communication.Mime.MimeMediaType.MultipartRelated;
             var output = new MemoryStream();
-            using (var subject = new MhtmlWriter(output))
+            using (var subject = new MhtmlWriter(output, EntityEvents.DocumentOptions))
             {
                 // act
                 Action testAction = () => subject.WriteDocument(document);
@@ -100,7 +100,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             // arrange
             var document = Read(Unrelated);
             var output = new MemoryStream();
-            using (var subject = new MhtmlWriter(output))
+            using (var subject = new MhtmlWriter(output, EntityEvents.DocumentOptions))
             {
                 // act
                 subject.WriteDocument(document);
@@ -117,7 +117,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
             // arrange
             var document = Read(MhtmlShapes.Rfc2557Section93);
             var output = new MemoryStream();
-            var subject = new MhtmlWriter(output);
+            var subject = new MhtmlWriter(output, EntityEvents.DocumentOptions);
             await AsyncDisposal.UsingAsync(subject, async () =>
             {
                 // act
@@ -132,8 +132,8 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public async Task WriteDocumentAsync_InvalidStructure_FailsTheTask()
         {
             // arrange
-            var document = Read(MhtmlShapes.Word, new ImfOptions { AllowInvalidRelatedStructure = true });
-            var subject = new MhtmlWriter(new MemoryStream());
+            var document = Read(MhtmlShapes.Word, new ImfOptions { AllowMissingRequiredFields = true, AllowInvalidRelatedStructure = true });
+            var subject = new MhtmlWriter(new MemoryStream(), EntityEvents.DocumentOptions);
             await AsyncDisposal.UsingAsync(subject, async () =>
             {
                 // act
@@ -148,7 +148,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void WriteDocument_Null_Throws()
         {
             // arrange
-            using (var subject = new MhtmlWriter(new MemoryStream()))
+            using (var subject = new MhtmlWriter(new MemoryStream(), EntityEvents.DocumentOptions))
             {
                 // act
                 Action testAction = () => subject.WriteDocument(null);
@@ -162,7 +162,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void WriteDocument_Disposed_Throws()
         {
             // arrange
-            var subject = new MhtmlWriter(new MemoryStream());
+            var subject = new MhtmlWriter(new MemoryStream(), EntityEvents.DocumentOptions);
             subject.Dispose();
 
             // act
@@ -176,7 +176,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void Flush_Disposed_Throws()
         {
             // arrange
-            var subject = new MhtmlWriter(new MemoryStream());
+            var subject = new MhtmlWriter(new MemoryStream(), EntityEvents.DocumentOptions);
             subject.Dispose();
 
             // act
@@ -190,7 +190,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public async Task FlushAsync_Disposed_Throws()
         {
             // arrange
-            var subject = new MhtmlWriter(new MemoryStream());
+            var subject = new MhtmlWriter(new MemoryStream(), EntityEvents.DocumentOptions);
             subject.Dispose();
 
             // act
@@ -204,7 +204,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         public void Constructor_NullStream_Throws()
         {
             // act
-            Action testAction = () => new MhtmlWriter((Stream)null);
+            Action testAction = () => new MhtmlWriter((Stream)null, EntityEvents.DocumentOptions);
 
             // assert
             testAction.Should().Throw<ArgumentNullException>();
@@ -212,7 +212,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
         private static MhtmlDocument Read(string document)
         {
-            return Read(document, new ImfOptions());
+            return Read(document, new ImfOptions { AllowMissingRequiredFields = true });
         }
 
         private static MhtmlDocument Read(string document, ImfOptions options)

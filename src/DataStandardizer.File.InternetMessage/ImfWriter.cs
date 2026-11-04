@@ -21,7 +21,9 @@ namespace DataStandardizer.File.InternetMessage
     /// <b>Conformance.</b>  The header is checked as <see cref="ImfMessage.Validate"/> describes, under the options of the writer.  A missing required field, a second field of a kind
     /// that may appear only once, and a field body that breaks its grammar each cause an <see cref="ImfFileException"/>, unless <see cref="ImfOptions.AllowMissingRequiredFields"/>,
     /// <see cref="ImfOptions.AllowCardinalityViolations"/> or <see cref="ImfOptions.AllowInvalidValues"/> is set.  With them set, the problem is recorded in
-    /// <see cref="Diagnostics"/> instead.  A message inside a <c>message/rfc822</c> entity is not checked, as RFC 2046 §5.2.1 doesn't hold it to RFC 5322.
+    /// <see cref="Diagnostics"/> instead.  A message inside a <c>message/rfc822</c> entity has only to have one of From, Subject or Date, as RFC 2046 §5.2.1 says.  A message with a MIME field and no MIME-Version field (RFC 2045 §4),
+    /// and a body that hasn't changed and that breaks the rules of RFC 5322 §2.1.1 and §2.3 or of its transfer encoding, are refused the same way, unless
+    /// <see cref="ImfOptions.AllowMissingMimeVersion"/>, <see cref="ImfOptions.AllowLongLines"/> or <see cref="ImfOptions.AllowInvalidBodyOctets"/> is set.
     /// </para>
     /// <para>
     /// <b>Unchanged fields.</b>  A field that was read is written byte for byte, whichever options it was read under, so that signatures over it stay valid.  That includes any
@@ -35,6 +37,11 @@ namespace DataStandardizer.File.InternetMessage
     /// <b>Body.</b>  A body that hasn't changed is written from <see cref="ImfMessage.RawBody"/>, as it is.  If anything in <see cref="ImfMessage.Body"/> has changed, only what has
     /// changed is written again, as <see cref="ImfEntityWriter"/> writes it.  So an entity whose content was set gets a transfer encoding of its own, and everything else, including
     /// the delimiter lines of a multipart entity whose parts are all still there, is written byte for byte.  A multipart entity that was read with no close delimiter gets one.
+    /// </para>
+    /// <para>
+    /// <b>Messages from containers.</b>  A message read from an mbox file with LF line breaks is written with CRLF line breaks, as RFC 5322 §2.1 requires, so everything in it changes in that
+    /// way.  One that has a <c>binary</c> entity (RFC 2045 §2.9), or one with an extension mechanism (§6.3), whose line breaks may not be line breaks, can't change like that, which causes an
+    /// <see cref="ImfFileException"/>.  Such a message is written in blocks, with the progress reported after each, and its fields are counted once, at the end.
     /// </para>
     /// <para>
     /// Only one operation may be in progress at a time.  Synchronous and asynchronous calls may follow one another, but a call made while another is in
@@ -288,6 +295,30 @@ namespace DataStandardizer.File.InternetMessage
             _output.BeginOperation();
             try
             {
+                if (NeedsConversion(message))
+                {
+                    var converted = PlanConverted(message, out var convertedDiagnostics, out var fieldCount);
+                    try
+                    {
+                        for (var remaining = new ReadOnlyMemory<byte>(converted); !remaining.IsEmpty; remaining = remaining.Slice(Math.Min(remaining.Length, BlockSize)))
+                        {
+                            _output.ThrowIfDisposed();
+                            _output.Write(remaining.Span.Slice(0, Math.Min(remaining.Length, BlockSize)));
+                            progress?.Report(GetProgress());
+                        }
+
+                        CompleteConverted(convertedDiagnostics, fieldCount, progress);
+                    }
+                    catch
+                    {
+                        _output.MarkBroken();
+                        throw;
+                    }
+
+                    _output.ThrowIfDisposed();
+                    return;
+                }
+
                 if (message.IsBodyChanged)
                 {
                     var source = PlanChangedBody(message, out var diagnostics);
@@ -420,6 +451,23 @@ namespace DataStandardizer.File.InternetMessage
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                if (NeedsConversion(message))
+                {
+                    var converted = PlanConverted(message, out var convertedDiagnostics, out var fieldCount);
+                    hasStartedOutput = true;
+                    for (var remaining = new ReadOnlyMemory<byte>(converted); !remaining.IsEmpty; remaining = remaining.Slice(Math.Min(remaining.Length, BlockSize)))
+                    {
+                        _output.ThrowIfDisposed();
+                        cancellationToken.ThrowIfCancellationRequested();
+                        await _output.WriteAsync(remaining.Slice(0, Math.Min(remaining.Length, BlockSize)), cancellationToken).ConfigureAwait(false);
+                        progress?.Report(GetProgress());
+                    }
+
+                    CompleteConverted(convertedDiagnostics, fieldCount, progress);
+                    _output.ThrowIfDisposed();
+                    return;
+                }
+
                 if (message.IsBodyChanged)
                 {
                     var source = PlanChangedBody(message, out var diagnostics);
@@ -488,6 +536,41 @@ namespace DataStandardizer.File.InternetMessage
             _output.ThrowIfDisposed();
         }
 
+        // ref. #412 design decision 14: a message from a container that uses LF changes when it leaves that container.
+        private bool NeedsConversion(ImfMessage message)
+        {
+            return message.LineFeedIsLineBreak && !_lineFeedIsLineBreak;
+        }
+
+        /// <summary>
+        /// Checks a message with LF line breaks, and gets its bytes with CRLF line breaks, so that one that is refused leaves nothing in the output.
+        /// </summary>
+        /// <exception cref="ImfFileException">The message can't be written.</exception>
+        private byte[] PlanConverted(ImfMessage message, out List<ImfDiagnostic> diagnostics, out long fieldCount)
+        {
+            var output = new MemoryStream();
+            using (var writer = new ImfWriter(output, _options, true, _boundaryGenerator, _profile))
+            {
+                writer.WriteMessage(message);
+                diagnostics = new List<ImfDiagnostic>(writer.Diagnostics);
+                fieldCount = writer.FieldsWritten;
+            }
+
+            return ImfLineBreaks.Convert(message, output.ToArray(), true);
+        }
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private void CompleteConverted(List<ImfDiagnostic> diagnostics, long fieldCount, IProgress<ImfWriteProgress>? progress)
+#else
+        private void CompleteConverted(List<ImfDiagnostic> diagnostics, long fieldCount, IProgress<ImfWriteProgress> progress)
+#endif
+        {
+            _diagnostics.AddRange(diagnostics);
+            _fieldsWritten += fieldCount;
+            _entitiesWritten++;
+            progress?.Report(GetProgress());
+        }
+
         /// <summary>
         /// Checks a message whose body has changed, and describes it for an <see cref="ImfEntityWriter"/>, which checks the rest before it writes anything.
         /// </summary>
@@ -527,11 +610,12 @@ namespace DataStandardizer.File.InternetMessage
         private List<ImfDiagnostic> CheckConformance(ImfMessage message)
         {
             var diagnostics = ImfConformance.Check(message, _options);
+            ImfConformance.CheckContent(message, _options, diagnostics);
             if (_profile == ImfConformanceProfile.Mhtml) diagnostics.AddRange(MhtmlStructure.Read(message, MhtmlUrl.ThisMessageBase).Diagnostics);
 
             foreach (var diagnostic in diagnostics)
             {
-                if (!ImfConformance.IsAllowed(diagnostic, _options, _profile))
+                if (!ImfConformance.IsAllowed(diagnostic.Kind, _options))
                     throw ImfConformance.BuildException(diagnostic, false);
             }
 

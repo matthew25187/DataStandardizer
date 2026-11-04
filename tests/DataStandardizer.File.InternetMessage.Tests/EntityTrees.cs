@@ -353,6 +353,8 @@ namespace DataStandardizer.File.InternetMessage.Tests
             "From: a@b.test\r\n" +
             "Subject:   folded,\r\n" +
             "\tkept\r\n" +
+            "MIME-Version: 1.0\r\n" +
+            "Content-Transfer-Encoding: 8bit\r\n" +
             "Content-Type:multipart/mixed;\r\n" +
             "  boundary=\"b b\"\r\n" +
             "\r\n" +
@@ -377,6 +379,8 @@ namespace DataStandardizer.File.InternetMessage.Tests
             "From: a@b.test\r\n" +
             "Subject:   folded,\r\n" +
             "\tkept\r\n" +
+            "MIME-Version: 1.0\r\n" +
+            "Content-Transfer-Encoding: 8bit\r\n" +
             "Content-Type:multipart/mixed;\r\n" +
             "  boundary=\"b b\"\r\n" +
             "\r\n" +

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using DataStandardizer.Communication.Mime;
 
 namespace DataStandardizer.File.InternetMessage
 {
@@ -12,6 +14,8 @@ namespace DataStandardizer.File.InternetMessage
         private const string EntityPath = "";
 
         private const string InvalidValueMessage = "The body of the {0} field does not follow its grammar (RFC 5322 §3.6, RFC 6854 §2.1).";
+        private const string MissingMimeVersionMessage = "The header has a MIME field and no MIME-Version field, which RFC 2045 §4 requires.  ImfOptions.AllowMissingMimeVersion accepts it.";
+        private const string MissingEmbeddedFieldMessage = "An embedded message has none of From, Subject or Date, one of which RFC 2046 §5.2.1 requires.  ImfOptions.AllowMissingRequiredFields accepts it.";
         private const string MissingFieldMessage = "The header has no {0} field, which RFC 5322 §3.6 requires.";
         private const string MissingSenderMessage = "The {0} field has more than one mailbox, so a {1} field is required (RFC 5322 §3.6.2 and §3.6.6, RFC 6854 §2.1).";
         private const string MissingResentFieldMessage = "A block of resent fields has no {0} field, which RFC 5322 §3.6.6 requires.";
@@ -92,23 +96,138 @@ namespace DataStandardizer.File.InternetMessage
                     return options.AllowCardinalityViolations;
                 case ImfDiagnosticKind.InvalidFieldValue:
                     return options.AllowInvalidValues;
+                case ImfDiagnosticKind.MissingMboxSeparator:
+                    return options.AllowMissingMboxSeparator;
+                case ImfDiagnosticKind.InvalidMboxSeparator:
+                    return options.AllowInvalidMboxSeparator;
+                case ImfDiagnosticKind.MissingMboxBlankLine:
+                    return options.AllowMissingMboxBlankLine;
+                case ImfDiagnosticKind.InvalidMboxContentLength:
+                    return options.AllowInvalidMboxContentLength;
+                case ImfDiagnosticKind.MissingMimeVersion:
+                    return options.AllowMissingMimeVersion;
+                case ImfDiagnosticKind.InvalidBodyOctets:
+                    return options.AllowInvalidBodyOctets;
+                case ImfDiagnosticKind.LongBodyLine:
+                    return options.AllowLongLines;
+                case ImfDiagnosticKind.MboxCarriageReturnLineFeed:
+                    return options.AllowMboxCarriageReturnLineFeed;
+                case ImfDiagnosticKind.EightBitMboxContent:
+                    return options.AllowEightBitMboxContent;
                 default:
                     return false;
             }
         }
 
         /// <summary>
-        /// Determines if a profile or some options accept a problem.
+        /// Determines if a reader accepts a problem.
         /// </summary>
-        internal static bool IsAllowed(ImfDiagnostic diagnostic, ImfOptions options, ImfConformanceProfile profile)
+        internal static bool IsAllowedWhenReading(ImfDiagnostic diagnostic, ImfOptions options)
         {
-            // ref. RFC 2557 §3: the top level of an aggregate document is a MIME entity as much as a message, and the origination fields of RFC 5322 §3.6 say nothing about it.  A block of
-            // resent fields does say that a message was sent, so its rules stay.
-            if (profile == ImfConformanceProfile.Mhtml && diagnostic.Kind == ImfDiagnosticKind.MissingRequiredField
-                && (diagnostic.FieldName == ImfFieldNames.Date || diagnostic.FieldName == ImfFieldNames.From || diagnostic.FieldName == ImfFieldNames.Sender))
-                return true;
+            // ref. RFC 5322 §4: the obsolete syntax MUST be accepted and parsed by a receiver, and §4.5 lets it repeat any field.
+            return diagnostic.Kind == ImfDiagnosticKind.CardinalityViolation || IsAllowed(diagnostic.Kind, options);
+        }
 
-            return IsAllowed(diagnostic.Kind, options);
+        /// <summary>
+        /// Finds the problems in what a message holds, other than its header, for <see cref="ImfMessage.Validate"/> and a writer: the MIME-Version field, embedded messages, and the bytes of the
+        /// bodies that hadn't been changed.
+        /// </summary>
+        /// <exception cref="ImfFileException"><see cref="ImfMessage.RawBody"/> was set, and it breaks a rule of RFC 2046 §5.1 that the options don't accept.</exception>
+        internal static void CheckContent(ImfMessage message, ImfOptions options, List<ImfDiagnostic> diagnostics)
+        {
+            // ref. RFC 2045 §4.  A writer adds the field to a message whose body has changed.
+            if (!message.IsBodyChanged && HasMimeField(message) && !message.Fields.Contains(ImfFieldNames.MimeVersion))
+            {
+                diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.MissingMimeVersion, MissingMimeVersionMessage, message.HeaderEndBytePosition, EntityPath, ImfFieldNames.MimeVersion, message.HeaderEndLineNumber));
+            }
+
+            CheckEmbedded(message, diagnostics);
+
+            var check = new ImfBodyCheck(options, message.LineFeedIsLineBreak);
+            CheckBodies(message, check, diagnostics);
+        }
+
+        /// <summary>
+        /// Finds the embedded messages at any depth with none of the fields that RFC 2046 §5.2.1 requires of them.
+        /// </summary>
+        internal static void CheckEmbedded(ImfMessage message, List<ImfDiagnostic> diagnostics)
+        {
+            foreach (var node in message.EnumerateEntities())
+            {
+                if (node.Entity is ImfMessagePart part)
+                {
+                    var fields = part.Message.Fields;
+                    if (!fields.Contains(ImfFieldNames.From) && !fields.Contains(ImfFieldNames.Subject) && !fields.Contains(ImfFieldNames.Date))
+                    {
+                        diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.MissingRequiredField, MissingEmbeddedFieldMessage, part.Message.HeaderEndBytePosition, node.Path, ImfFieldNames.From, part.Message.HeaderEndLineNumber));
+                    }
+                }
+            }
+        }
+
+        private static bool HasMimeField(ImfMessage message)
+        {
+            var fields = message.Fields;
+            return fields.Contains(ImfFieldNames.ContentType) || fields.Contains(ImfFieldNames.ContentTransferEncoding) || fields.Contains(ImfFieldNames.ContentId)
+                || fields.Contains(ImfFieldNames.ContentDescription) || fields.Contains(ImfFieldNames.ContentDisposition) || fields.Contains(ImfFieldNames.ContentLanguage);
+        }
+
+        // The open entities are kept in a list, not on the call stack, so nesting can't overflow the stack.
+        private static void CheckBodies(ImfMessage message, ImfBodyCheck check, List<ImfDiagnostic> diagnostics)
+        {
+            var isTopMime = HasMimeField(message) || message.Fields.Contains(ImfFieldNames.MimeVersion);
+            var pending = new Stack<PendingBody>();
+            pending.Push(new PendingBody(message.Body, isTopMime, MimeDataDomain.Binary, EntityPath));
+            while (pending.Count > 0)
+            {
+                var item = pending.Pop();
+                var encoding = item.Entity.ContentTransferEncoding;
+                var domain = ImfBodyCheck.GetAllowedDomain(encoding, item.Enclosing);
+                if (item.Entity is ImfMessagePart part)
+                {
+                    pending.Push(new PendingBody(part.Message.Body, item.IsMime || part.Message.Fields.Contains(ImfFieldNames.MimeVersion), domain, item.Path));
+                }
+                else if (item.Entity is ImfMultipart multipart)
+                {
+                    CheckBytes(multipart.Preamble ?? default(ReadOnlyMemory<byte>), check, domain, item.IsMime, ImfBodyCheck.MaxLineLength, item.Path, diagnostics);
+                    CheckBytes(multipart.Epilogue ?? default(ReadOnlyMemory<byte>), check, domain, item.IsMime, ImfBodyCheck.MaxLineLength, item.Path, diagnostics);
+                    for (var index = multipart.Parts.Count - 1; index >= 0; index--)
+                    {
+                        var number = (index + 1).ToString(CultureInfo.InvariantCulture);
+                        pending.Push(new PendingBody(multipart.Parts[index], item.IsMime, domain, item.Path.Length == 0 ? number : item.Path + "." + number));
+                    }
+                }
+                else if (item.Entity.IsRead && !item.Entity.HasChangedBody)
+                {
+                    // What a writer encodes itself is checked as it is encoded.
+                    CheckBytes(item.Entity.RawBody, check, domain, item.IsMime, ImfBodyCheck.GetMaxLineLength(encoding), item.Path, diagnostics);
+                }
+            }
+        }
+
+        private struct PendingBody
+        {
+            internal readonly ImfEntity Entity;
+            internal readonly bool IsMime;
+            internal readonly MimeDataDomain Enclosing;
+            internal readonly string Path;
+
+            internal PendingBody(ImfEntity entity, bool isMime, MimeDataDomain enclosing, string path)
+            {
+                Entity = entity;
+                IsMime = isMime;
+                Enclosing = enclosing;
+                Path = path;
+            }
+        }
+
+        private static void CheckBytes(ReadOnlyMemory<byte> bytes, ImfBodyCheck check, MimeDataDomain domain, bool isMime, int maxLineLength, string path, List<ImfDiagnostic> diagnostics)
+        {
+            check.Start(domain, isMime, maxLineLength);
+            check.Check(bytes.Span, out var foundLongLine, out var foundInvalidOctet, out _, out _);
+            foundInvalidOctet |= check.End();
+            if (foundLongLine) diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.LongBodyLine, ImfBodyCheck.LongLineMessage, -1, path));
+            if (foundInvalidOctet) diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.InvalidBodyOctets, ImfBodyCheck.InvalidOctetsMessage, -1, path));
         }
 
         /// <summary>
