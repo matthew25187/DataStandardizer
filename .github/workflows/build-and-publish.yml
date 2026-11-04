@@ -73,9 +73,8 @@ jobs:
           persist-credentials: false
       - name: Install Pester
         run: |
-          # A hosted runner occasionally starts without PSGallery registered (actions/runner-images#13758).
-          if (-not (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) { Register-PSRepository -Default }
-          Install-Module Pester -RequiredVersion $env:PESTER_VERSION -Scope CurrentUser -Force -SkipPublisherCheck
+          # Not Install-Module: PowerShellGet's repository state is occasionally broken on a hosted runner (actions/runner-images#13758). PSResourceGet keeps its own, and doesn't call nuget.exe.
+          Install-PSResource -Name Pester -Version $env:PESTER_VERSION -Repository PSGallery -Scope CurrentUser -TrustRepository -Quiet
       - name: Run Pester
         run: |
           git config --global user.name 'Build Tests'
