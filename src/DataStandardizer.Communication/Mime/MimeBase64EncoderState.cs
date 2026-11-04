@@ -41,14 +41,23 @@ namespace DataStandardizer.Communication.Mime
             while (_heldCount + source.Length - consumed >= 3)
             {
 #if NET10_0_OR_GREATER
-                if (_heldCount == 0 && !_wrapLines)
+                if (_heldCount == 0)
                 {
-                    var count = Math.Min((source.Length - consumed) / 3, (destination.Length - written) / 4);
+                    if (_wrapLines && _lineLength == MimeBase64.MaxLineLength && destination.Length - written >= QuantumLength)
+                    {
+                        destination[written++] = (byte)'\r';
+                        destination[written++] = (byte)'\n';
+                        _lineLength = 0;
+                    }
+
+                    var count = GetRunLength(source.Length - consumed, destination.Length - written);
                     if (count > 0)
                     {
                         Base64.EncodeToUtf8(source.Slice(consumed, count * 3), destination.Slice(written), out _, out var encoded, true);
                         consumed += count * 3;
                         written += encoded;
+                        if (_wrapLines) _lineLength += encoded;
+
                         continue;
                     }
                 }
@@ -103,14 +112,23 @@ namespace DataStandardizer.Communication.Mime
             while (_heldCount + source.Length - consumed >= 3)
             {
 #if NET10_0_OR_GREATER
-                if (_heldCount == 0 && !_wrapLines)
+                if (_heldCount == 0)
                 {
-                    var count = Math.Min((source.Length - consumed) / 3, (destination.Length - written) / 4);
+                    if (_wrapLines && _lineLength == MimeBase64.MaxLineLength && destination.Length - written >= QuantumLength)
+                    {
+                        destination[written++] = '\r';
+                        destination[written++] = '\n';
+                        _lineLength = 0;
+                    }
+
+                    var count = GetRunLength(source.Length - consumed, destination.Length - written);
                     if (count > 0)
                     {
                         Convert.TryToBase64Chars(source.Slice(consumed, count * 3), destination.Slice(written), out var encoded);
                         consumed += count * 3;
                         written += encoded;
+                        if (_wrapLines) _lineLength += encoded;
+
                         continue;
                     }
                 }
@@ -158,6 +176,15 @@ namespace DataStandardizer.Communication.Mime
             return OperationStatus.Done;
         }
 
+#if NET10_0_OR_GREATER
+        // Gets how many groups of 3 bytes can be encoded in one go: as many as there are, that fit, and that don't pass the end of the line.
+        private int GetRunLength(int sourceLength, int destinationLength)
+        {
+            var count = Math.Min(sourceLength / 3, destinationLength / 4);
+            return _wrapLines ? Math.Min(count, (MimeBase64.MaxLineLength - _lineLength) / 4) : count;
+        }
+
+#endif
         // Keeps the last 1 or 2 bytes of a block for the next call, as they don't fill a quantum.
         private void Hold(ReadOnlySpan<byte> source, ref int consumed)
         {
@@ -190,10 +217,20 @@ namespace DataStandardizer.Communication.Mime
                 _lineLength = 0;
             }
 
-            // ref. RFC 4648 §4: each byte short of a full group of 3 leaves one "=" at the end of the quantum.
-            for (var offset = 0; offset < 4; offset++)
+            if (byteCount == 3)
             {
-                destination[written++] = (byte)(offset <= byteCount ? MimeBase64.Alphabet[(group >> (18 - 6 * offset)) & 0x3F] : '=');
+                destination[written++] = (byte)MimeBase64.Alphabet[(group >> 18) & 0x3F];
+                destination[written++] = (byte)MimeBase64.Alphabet[(group >> 12) & 0x3F];
+                destination[written++] = (byte)MimeBase64.Alphabet[(group >> 6) & 0x3F];
+                destination[written++] = (byte)MimeBase64.Alphabet[group & 0x3F];
+            }
+            else
+            {
+                // ref. RFC 4648 §4: each byte short of a full group of 3 leaves one "=" at the end of the quantum.
+                for (var offset = 0; offset < 4; offset++)
+                {
+                    destination[written++] = (byte)(offset <= byteCount ? MimeBase64.Alphabet[(group >> (18 - 6 * offset)) & 0x3F] : '=');
+                }
             }
 
             if (_wrapLines)
@@ -214,10 +251,20 @@ namespace DataStandardizer.Communication.Mime
                 _lineLength = 0;
             }
 
-            // ref. RFC 4648 §4: each byte short of a full group of 3 leaves one "=" at the end of the quantum.
-            for (var offset = 0; offset < 4; offset++)
+            if (byteCount == 3)
             {
-                destination[written++] = offset <= byteCount ? MimeBase64.Alphabet[(group >> (18 - 6 * offset)) & 0x3F] : '=';
+                destination[written++] = MimeBase64.Alphabet[(group >> 18) & 0x3F];
+                destination[written++] = MimeBase64.Alphabet[(group >> 12) & 0x3F];
+                destination[written++] = MimeBase64.Alphabet[(group >> 6) & 0x3F];
+                destination[written++] = MimeBase64.Alphabet[group & 0x3F];
+            }
+            else
+            {
+                // ref. RFC 4648 §4: each byte short of a full group of 3 leaves one "=" at the end of the quantum.
+                for (var offset = 0; offset < 4; offset++)
+                {
+                    destination[written++] = offset <= byteCount ? MimeBase64.Alphabet[(group >> (18 - 6 * offset)) & 0x3F] : '=';
+                }
             }
 
             if (_wrapLines)
