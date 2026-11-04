@@ -35,11 +35,16 @@ namespace DataStandardizer.File.InternetMessage
         // ref. RFC 5322 §2.1.1: a line SHOULD be no more than 78 characters.  A section goes on a line of its own, after a space and before a semicolon.
         private const int MaxSectionLength = 76;
 
+        // ref. RFC 2017 §3.1: URL-word := token ; Must not exceed 40 characters in length
+        private const int MaxUrlWordLength = 40;
+
         private const string ContentNameParameterName = "name";
         private const string InvalidContentLanguageMessage = "The Content-Language field body is not in a valid format.";
         private const string InvalidContentTypeMessage = "The Content-Type field body is not in a valid format.";
         private const string InvalidMimeVersionMessage = "The MIME-Version field body is not in a valid format.";
         private const string InvalidTransferEncodingMessage = "The Content-Transfer-Encoding field body is not in a valid format.";
+
+        private static readonly char[] WhiteSpace = { ' ', '\t' };
 
         /// <summary>
         /// The version that RFC 2045 §4 defines and requires a message to give, which formats as <c>1.0</c>.
@@ -520,6 +525,65 @@ namespace DataStandardizer.File.InternetMessage
         /// <param name="options">The options.</param>
         /// <param name="result">The value.</param>
         /// <returns><c>false</c> if the value is not valid.</returns>
+        /// <summary>
+        /// Parses the body of a Content-Location field (RFC 2557 §4.1): a URI between comments and white space, folded as §4.4.2 allows, with any RFC 2047 encoded words of §4.4.1 decoded.
+        /// </summary>
+        internal static bool TryParseContentLocation(string value, ImfOptions options, [MaybeNullWhen(false)] out Uri result)
+        {
+            result = null;
+            if (!TryRemoveOuterComments(value, out var body)) return false;
+
+            var isEncoded = HasEncodedWord(body, options);
+            var text = isEncoded ? ImfHeaderText.DecodeUnstructured(body, options).Trim(WhiteSpace) : RemoveWhiteSpace(body);
+            if (text.Length == 0) return false;
+
+            foreach (var c in text)
+            {
+                if (c < 0x20 || c == 0x7F) return false;
+            }
+
+            // ref. RFC 2557 §4.4.1: what a header can't hold has to be in an encoded word.
+            if (!isEncoded && !IsWritableUrl(text)) return false;
+
+            // The scheme decides, as Uri takes a path that starts with a slash to be an absolute file path on some operating systems.
+            return Uri.TryCreate(text, MhtmlUrl.IsAbsolute(text) ? UriKind.Absolute : UriKind.Relative, out result);
+        }
+
+        /// <summary>
+        /// Formats the body of a Content-Location field, with a space at each place it can be folded.
+        /// </summary>
+        /// <exception cref="ArgumentException">The URI holds an unpaired surrogate.</exception>
+        internal static string FormatContentLocation(Uri location)
+        {
+            var text = location.OriginalString;
+            if (!IsWritableUrl(text) || text.Contains("=?"))
+            {
+                // ref. RFC 2557 §4.4.1.
+                var encoded = new StringBuilder();
+                foreach (var word in MimeEncodedWord.EncodeText(text, MimeEncodedWordContext.Text))
+                {
+                    if (encoded.Length > 0) encoded.Append(' ');
+
+                    encoded.Append(word);
+                }
+
+                return encoded.ToString();
+            }
+
+            if (text.Length <= MaxSectionLength) return text;
+
+            // ref. RFC 2017 §3.1, which RFC 2557 §4.4.2 refers to: a reader takes the white space out again.
+            var output = new StringBuilder(text.Length + (text.Length / MaxUrlWordLength));
+            for (var index = 0; index < text.Length; index += MaxUrlWordLength)
+            {
+                if (index > 0) output.Append(' ');
+
+                output.Append(text, index, Math.Min(MaxUrlWordLength, text.Length - index));
+            }
+
+            return output.ToString();
+        }
+
         internal static bool TryParseParameterized(ReadOnlySpan<byte> value, string prefix, string wordParameterName, bool allowFinalSemicolon, ImfOptions options, out MimeMediaType result)
         {
             result = default;
@@ -550,6 +614,103 @@ namespace DataStandardizer.File.InternetMessage
         /// <summary>
         /// Gets the accommodations of the media type parser that some options ask for.
         /// </summary>
+        private static bool HasEncodedWord(string body, ImfOptions options)
+        {
+            var wordOptions = ImfHeaderText.GetWordOptions(options);
+            foreach (var word in body.Split(WhiteSpace, StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (MimeEncodedWord.TryParse(word, MimeEncodedWordContext.Text, wordOptions, options.CharsetResolver, out _)) return true;
+            }
+
+            return false;
+        }
+
+        private static string RemoveWhiteSpace(string body)
+        {
+            return body.Replace(" ", string.Empty).Replace("\t", string.Empty);
+        }
+
+        // Only what no URI can hold in a header is refused, as RFC 2557 §4.1 leaves the URI schemes open.
+        private static bool IsWritableUrl(string text)
+        {
+            foreach (var c in text)
+            {
+                if (c <= 0x20 || c >= 0x7F || c == '"' || c == '<' || c == '>' || c == '\\') return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Takes the comments before and after a URI out of the body of a field.  A parenthesis is a character of a URL, so only one set off by white space starts a comment after it.
+        /// </summary>
+        private static bool TryRemoveOuterComments(string value, out string body)
+        {
+            // Each character is looked at once, so that a field of nothing but comments costs no more than its length.
+            body = string.Empty;
+            var text = value.Trim(WhiteSpace);
+            var start = SkipComments(text, 0);
+            if (start < 0) return false;
+
+            for (var index = start + 1; index < text.Length; index++)
+            {
+                if (text[index] != '(' || (text[index - 1] != ' ' && text[index - 1] != '\t')) continue;
+
+                var next = SkipComments(text, index);
+                if (next < 0) return false;
+
+                if (next == text.Length)
+                {
+                    body = text.Substring(start, index - start).TrimEnd(WhiteSpace);
+                    return true;
+                }
+
+                index = next - 1;
+            }
+
+            body = start >= text.Length ? string.Empty : text.Substring(start);
+            return true;
+        }
+
+        /// <summary>
+        /// Skips any comments, and the white space around them, from a position.
+        /// </summary>
+        /// <returns>The position after them, or -1 if one isn't closed.</returns>
+        private static int SkipComments(string text, int start)
+        {
+            var position = start;
+            while (position < text.Length && text[position] == '(')
+            {
+                var end = FindCommentEnd(text, position);
+                if (end < 0) return -1;
+
+                position = end + 1;
+                while (position < text.Length && (text[position] == ' ' || text[position] == '\t'))
+                {
+                    position++;
+                }
+            }
+
+            return position;
+        }
+
+        /// <summary>
+        /// Finds the parenthesis that closes a comment, or gives -1 if it isn't closed.
+        /// </summary>
+        private static int FindCommentEnd(string text, int start)
+        {
+            var depth = 0;
+            for (var index = start; index < text.Length; index++)
+            {
+                var c = text[index];
+                if (c == '\\') index++;
+                else if (c == '(') depth++;
+                else if (c == ')' && --depth == 0) return index;
+            }
+
+            return -1;
+        }
+
         internal static MimeMediaTypeParseOptions GetParseOptions(ImfOptions options)
         {
             // ref. RFC 2045 §5.1: a name in a field is a token, as the narrower names of RFC 6838 §4.2 are only for a registration.

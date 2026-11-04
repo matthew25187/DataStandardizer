@@ -30,5 +30,12 @@
         /// The body of a field that RFC 5322 §3.6 defines does not follow its grammar.
         /// </summary>
         InvalidFieldValue = 4,
+
+        /// <summary>
+        /// A <c>multipart/related</c> entity breaks a rule of RFC 2387 §3 or RFC 2557 §7: it has no parts, it has no <c>type</c> parameter, its <c>type</c> parameter doesn't match its root
+        /// part, its <c>start</c> parameter names no part, or two of its parts have a Content-Location that resolves to the same URL.  Two parts with the same Content-ID, which RFC 2045 §7
+        /// doesn't allow anywhere, are reported the same way.
+        /// </summary>
+        InvalidRelatedStructure = 5,
     }
 }

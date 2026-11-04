@@ -598,7 +598,7 @@ namespace DataStandardizer.File.InternetMessage
         /// Gets the root part of a <c>multipart/related</c> entity: the one its <c>start</c> parameter names, or otherwise the first (RFC 2387 §3.2).
         /// </summary>
         [return: MaybeNull]
-        private static ImfEntity GetRelatedRoot(ImfMultipart multipart)
+        internal static ImfEntity GetRelatedRoot(ImfMultipart multipart)
         {
             if (multipart.ContentType.TryGetParameter(StartParameterName, out var start) && ImfMessageId.TryParse(start.Value, out var contentId))
             {

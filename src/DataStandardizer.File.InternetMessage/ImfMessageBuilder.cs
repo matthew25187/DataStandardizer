@@ -186,8 +186,8 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Builds a message, which shares nothing that can change with any other built from this builder, except a message given to <see cref="AddAttachment(ImfMessage)"/>, which they
-        /// all hold, so that a later change to it changes them all.
+        /// Builds a message, which shares nothing that can change with any other built from this builder, except the options given to the builder, and a message given to
+        /// <see cref="AddAttachment(ImfMessage)"/>, which they all hold, so that a later change to either changes them all.
         /// </summary>
         /// <returns>The message.  With no text, HTML or attachments, it has no body.</returns>
         /// <exception cref="InvalidOperationException">There are inline resources and no HTML to refer to them.</exception>
