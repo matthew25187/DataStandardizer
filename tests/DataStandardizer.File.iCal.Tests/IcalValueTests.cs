@@ -517,13 +517,14 @@ namespace DataStandardizer.File.iCal.Tests
         public void TryFormatBinary_DestinationTooShort_LeavesDestinationUnchanged()
         {
             // arrange
-            var destination = new char[7];
+            const string originalContents = "abcdefg";
+            var destination = originalContents.ToCharArray();
 
             // act
             IcalValue.TryFormatBinary(new byte[] { 1, 2, 3, 4 }, destination, out _, IcalValueFormat.Text);
 
             // assert
-            destination.Should().Equal(new char[7]);
+            new string(destination).Should().Be(originalContents);
         }
 
         [Fact]
