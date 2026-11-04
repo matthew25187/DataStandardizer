@@ -101,6 +101,6 @@ When a performance change is proposed, paste the before and after results into t
 1. The BenchmarkDotNet markdown table, from `BenchmarkDotNet.Artifacts/results/*-report-github.md`.
 2. The cold-start output, from several runs on each target, if the change could affect start-up.
 3. The commit hash that was measured (`git rev-parse --short HEAD`).
-4. The machine summary BenchmarkDotNet prints above the table (OS, CPU, .NET SDK and runtimes).
+4. The .NET SDK and runtime versions. Leave out the rest of the summary BenchmarkDotNet prints above the table (the OS and CPU), as these reports are public and it describes your own machine.
 
 Run "before" and "after" on the same machine, one straight after the other, so the numbers can be compared.
