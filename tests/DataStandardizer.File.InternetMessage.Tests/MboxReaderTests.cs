@@ -112,6 +112,15 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string InvalidMiddleMailbox = OneMessageWithEmptyLine + Separator2 + "Subject: nothing required\n\nx\n\n" + OneMessageWithEmptyLine;
         private const string RejectedIndexOne = "rejected 1";
 
+        // ref. RFC 5322 §2.1.1: a line is at most 998 octets, of which ">From " takes 6, so this one is 999 in the file and 998 in the message.
+        private const int LongestFromLinePadding = 993;
+        private const int ShorterFromLinePadding = 992;
+        private static readonly string TooLongQuotedLine = ">From " + new string('x', LongestFromLinePadding);
+        private static readonly string TooLongQuotedLineMailbox = Separator1 + Header + "\n" + TooLongQuotedLine + "\n\n";
+        private static readonly string TooLongQuotedLineThenGood = TooLongQuotedLineMailbox + OneMessageWithEmptyLine;
+        private static readonly string LongestQuotedLineMailbox = Separator1 + Header + "\n>From " + new string('x', ShorterFromLinePadding) + "\n\n";
+        private static readonly string TooLongQuotedLineInBinary = Separator1 + Header + "MIME-Version: 1.0\nContent-Transfer-Encoding: binary\n\n" + TooLongQuotedLine + "\n\n";
+
         private const string EnvelopeAndBody1 = Envelope1 + "|one\n";
         private const string EnvelopeAndBody2 = Envelope2 + "|two\n";
         private const string EnvelopeAndQuotableBody = Envelope1 + "|" + QuotableBody;
@@ -921,6 +930,112 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
                 // assert
                 testAction.Should().Throw<InvalidOperationException>();
+            }
+        }
+
+        [Theory]
+        [InlineData(MboxVariant.Mboxrd)]
+        [InlineData(MboxVariant.Mboxo)]
+        public void ReadMessage_LineTooLongInTheFile_ThrowsByDefault(MboxVariant variant)
+        {
+            // arrange
+            using (var subject = new MboxReader(new MemoryStream(Octets.Of(TooLongQuotedLineMailbox)), variant, new ImfOptions()))
+            {
+                // act
+                Action testAction = () => subject.ReadMessage();
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.LongBodyLine);
+            }
+        }
+
+        [Theory]
+        [InlineData(MboxVariant.Mboxrd)]
+        [InlineData(MboxVariant.Mboxo)]
+        public void ReadMessage_LineTooLongInTheFileWithOption_RecordsADiagnostic(MboxVariant variant)
+        {
+            // act
+            var testResult = Mailboxes.ReadDiagnosticKinds(TooLongQuotedLineMailbox, variant, new ImfOptions { AllowLongLines = true });
+
+            // assert
+            testResult.Should().Equal(ImfDiagnosticKind.LongBodyLine);
+        }
+
+        [Fact]
+        public void ReadMessage_LineTooLongInTheFile_GivesItsIndexAndGoesOnToTheNext()
+        {
+            // act
+            var testResult = Mailboxes.ReadEach(TooLongQuotedLineThenGood);
+
+            // assert
+            testResult.Should().Equal("rejected 0", Message1);
+        }
+
+        [Fact]
+        public void ReadMessage_QuotedLineThatFitsInTheFile_RecordsNothing()
+        {
+            // act
+            var testResult = Mailboxes.ReadDiagnosticKinds(LongestQuotedLineMailbox, MboxVariant.Mboxrd, new ImfOptions());
+
+            // assert
+            testResult.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void ReadMessage_LineTooLongInTheFileOfABinaryEntity_RecordsNothing()
+        {
+            // act
+            var testResult = Mailboxes.ReadDiagnosticKinds(TooLongQuotedLineInBinary, MboxVariant.Mboxrd, new ImfOptions());
+
+            // assert
+            testResult.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void ReadEntityEvents_LineTooLongInTheFile_ThrowsByDefault()
+        {
+            // arrange
+            using (var subject = new MboxReader(new MemoryStream(Octets.Of(TooLongQuotedLineMailbox))))
+            {
+                var events = subject.ReadEntityEvents();
+
+                // act
+                Action testAction = () => EntityEvents.ReadToEnd(events);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.LongBodyLine);
+            }
+        }
+
+        [Fact]
+        public void ReadEntityEvents_LineTooLongInTheFileWithOption_RecordsADiagnostic()
+        {
+            // arrange
+            using (var subject = new MboxReader(new MemoryStream(Octets.Of(TooLongQuotedLineMailbox)), MboxVariant.Mboxrd, new ImfOptions { AllowLongLines = true }))
+            {
+                var events = subject.ReadEntityEvents();
+
+                // act
+                EntityEvents.ReadToEnd(events);
+
+                // assert
+                events.Diagnostics.Should().ContainSingle().Which.Kind.Should().Be(ImfDiagnosticKind.LongBodyLine);
+            }
+        }
+
+        [Fact]
+        public void ReadEntityEvents_LineTooLongInTheFileOfABinaryEntity_RecordsNothing()
+        {
+            // arrange
+            using (var subject = new MboxReader(new MemoryStream(Octets.Of(TooLongQuotedLineInBinary))))
+            {
+                var events = subject.ReadEntityEvents();
+
+                // act
+                EntityEvents.ReadToEnd(events);
+
+                // assert
+                events.Diagnostics.Should().BeEmpty();
             }
         }
 

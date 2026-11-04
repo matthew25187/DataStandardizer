@@ -96,6 +96,93 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private static readonly DateTimeOffset FirstOfJanuary = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
         private static readonly MboxEnvelope Envelope = new MboxEnvelope(new ImfMailbox("a", "b.test"), FirstOfJanuary);
 
+        // ref. RFC 5322 §2.1.1: a line is at most 998 octets, of which "From " takes 5, so a quote takes this one to 999.
+        private const int LongestFromLinePadding = 993;
+        private const int ShorterFromLinePadding = 992;
+        private static readonly string LongestFromLine = "From " + new string('x', LongestFromLinePadding);
+        private static readonly string ShorterFromLine = "From " + new string('x', ShorterFromLinePadding);
+        private static readonly string LongestFromLineEml = CrLfHeader + "\r\n" + LongestFromLine + "\r\n";
+        private static readonly string ShorterFromLineEml = CrLfHeader + "\r\n" + ShorterFromLine + "\r\n";
+        private static readonly string LongestFromLineBinaryEml = CrLfHeader + "MIME-Version: 1.0\r\nContent-Transfer-Encoding: binary\r\n\r\n" + LongestFromLine + "\r\n";
+
+        public static TheoryData<MboxVariant> QuotingVariants => new TheoryData<MboxVariant> { MboxVariant.Mboxrd, MboxVariant.Mboxo, MboxVariant.Mboxcl };
+
+        [Theory]
+        [MemberData(nameof(QuotingVariants))]
+        public void WriteMessage_QuoteTakesALinePastTheLimit_ThrowsByDefaultAndWritesNothing(MboxVariant variant)
+        {
+            // arrange
+            var message = Mailboxes.ReadMessage(LongestFromLineEml);
+            var output = new MemoryStream();
+            using (var subject = new MboxWriter(output, variant, new ImfOptions()))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(Envelope, message);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.LongBodyLine);
+                output.Length.Should().Be(0);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(QuotingVariants))]
+        public void WriteMessage_QuoteTakesALinePastTheLimitWithOption_RecordsADiagnosticAndWritesIt(MboxVariant variant)
+        {
+            // arrange
+            var message = Mailboxes.ReadMessage(LongestFromLineEml);
+            var output = new MemoryStream();
+            using (var subject = new MboxWriter(output, variant, new ImfOptions { AllowLongLines = true }))
+            {
+                // act
+                subject.WriteMessage(Envelope, message);
+
+                // assert
+                subject.Diagnostics.Should().ContainSingle().Which.Kind.Should().Be(ImfDiagnosticKind.LongBodyLine);
+                Octets.ToText(output.ToArray()).Should().Contain(">" + LongestFromLine + "\n");
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_QuotedLineThatFits_WritesIt()
+        {
+            // arrange
+            var message = Mailboxes.ReadMessage(ShorterFromLineEml);
+
+            // act
+            var testResult = Mailboxes.WriteOne(Envelope, message);
+
+            // assert
+            testResult.Should().Contain(">" + ShorterFromLine + "\n");
+        }
+
+        [Fact]
+        public void WriteMessage_LongestLineInMboxcl2_WritesItWithNoQuote()
+        {
+            // arrange
+            var message = Mailboxes.ReadMessage(LongestFromLineEml);
+
+            // act
+            var testResult = Mailboxes.WriteOne(Envelope, message, MboxVariant.Mboxcl2);
+
+            // assert
+            testResult.Should().Contain("\n" + LongestFromLine + "\n");
+        }
+
+        [Fact]
+        public void WriteMessage_QuoteTakesALineOfABinaryEntityPastTheLimit_WritesIt()
+        {
+            // arrange
+            // ref. RFC 2045 §2.9: binary data has no lines.
+            var message = Mailboxes.ReadMessage(LongestFromLineBinaryEml);
+
+            // act
+            var testResult = Mailboxes.WriteOne(Envelope, message, MboxVariant.Mboxrd, MboxLineBreak.CarriageReturnLineFeed);
+
+            // assert
+            testResult.Should().Contain(">" + LongestFromLine + "\r\n");
+        }
+
         [Theory]
         [InlineData(MboxVariant.Mboxrd, MboxrdFile)]
         [InlineData(MboxVariant.Mboxo, MboxoFile)]

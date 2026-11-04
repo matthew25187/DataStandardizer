@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using DataStandardizer.Communication.Mime;
 
@@ -185,6 +186,7 @@ namespace DataStandardizer.File.InternetMessage
         private long _pendingRawHeld;
         private int _pendingRawLength;
         private int _search;
+        private bool _hasBinaryEntity;
         private State _state = State.EntityStart;
         private long _unwindEnd;
         private bool _unwindIsDelimiter;
@@ -243,6 +245,12 @@ namespace DataStandardizer.File.InternetMessage
         /// Gets a flag indicating that a problem was found, after which the structure of the message is unknown.
         /// </summary>
         internal bool IsFaulted { get; private set; }
+
+        /// <summary>
+        /// Gets or sets what says, once the message has ended, if a line of it was too long in a form that this scanner didn't see, as with a quote that a container took off.
+        /// </summary>
+        [AllowNull]
+        internal Func<bool> HasLongLineOutsideTheData { get; set; }
 
         internal ImfEntityEventKind EventKind => _eventKind;
 
@@ -421,6 +429,7 @@ namespace DataStandardizer.File.InternetMessage
                         else
                         {
                             _state = State.End;
+                            if (!_hasBinaryEntity && !(HasLongLineOutsideTheData is null) && HasLongLineOutsideTheData()) ReportBodyProblems(true, false, 0, 0);
                         }
 
                         break;
@@ -555,6 +564,7 @@ namespace DataStandardizer.File.InternetMessage
             frame.IsMime = frame.HasMimeVersion || frame.HasMimeField || (!(enclosing is null) && enclosing.IsMime);
             frame.AllowedDomain = ImfBodyCheck.GetAllowedDomain(frame.TransferEncoding, enclosing is null ? MimeDataDomain.Binary : enclosing.AllowedDomain);
 
+            _hasBinaryEntity |= frame.TransferEncoding == MimeTransferEncoding.Binary;
             frame.IsHeaderEnded = true;
             _bodyStartLineBreakLength = _scanner.SectionEndLineBreakLength;
             _atLineStart = true;

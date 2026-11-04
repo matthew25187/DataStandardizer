@@ -199,6 +199,14 @@ namespace DataStandardizer.File.InternetMessage
         internal long MessageIndex { get; set; } = -1;
 
         /// <summary>
+        /// Sets what says, once the message has ended, if a line of it was too long in a form that this reader didn't see.
+        /// </summary>
+        internal Func<bool> HasLongLineOutsideTheData
+        {
+            set => _entityScanner.HasLongLineOutsideTheData = value;
+        }
+
+        /// <summary>
         /// Releases the reader's buffers, and the file it opened itself.  A caller-supplied stream is left open.
         /// </summary>
         /// <remarks>

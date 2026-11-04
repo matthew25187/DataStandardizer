@@ -34,6 +34,11 @@ namespace DataStandardizer.File.InternetMessage
     /// <see cref="ImfOptions.AllowEightBitMboxContent"/> is set.  A body written by this package gets a transfer encoding that keeps to seven bits by default.
     /// </para>
     /// <para>
+    /// <b>Line length.</b>  RFC 4155 Appendix A requires each message to follow the formatting rules of RFC 2822, so RFC 5322 §2.1.1 limits each line in the file to 998 octets.  A quote that takes
+    /// a line past that causes an <see cref="ImfFileException"/>, unless <see cref="ImfOptions.AllowLongLines"/> is set, or the message has a <c>binary</c> entity, which has no lines.  A variant
+    /// that adds no quotes, such as <see cref="MboxVariant.Mboxcl2"/>, can write the line.
+    /// </para>
+    /// <para>
     /// <b>Last line.</b>  The empty line that ends a message has to be a line of its own, so a message whose last line has no line break gets one.  With
     /// <see cref="MboxVariant.Mboxcl"/> and <see cref="MboxVariant.Mboxcl2"/>, the Content-Length field doesn't count it, so the message reads back without it.  With the others, it reads back
     /// with it.
@@ -530,6 +535,7 @@ namespace DataStandardizer.File.InternetMessage
                 var formatted = MboxFormatter.Format(envelope, bytes, _variant, _isCrLf, out var fieldChange);
                 fieldCount += fieldChange;
                 CheckContent(formatted, diagnostics);
+                CheckLineLengths(formatted, message, diagnostics);
                 return formatted;
             }
             catch (ImfFileException exception) when (AddMessageIndex(exception))
@@ -556,6 +562,32 @@ namespace DataStandardizer.File.InternetMessage
 
             if (hasEightBit) Report(ImfDiagnosticKind.EightBitMboxContent, EightBitMessage, diagnostics);
             if (hasCarriageReturnLineFeed) Report(ImfDiagnosticKind.MboxCarriageReturnLineFeed, CarriageReturnLineFeedMessage, diagnostics);
+        }
+
+        // ref. RFC 4155 Appendix A: each message follows RFC 2822, whose §2.1.1 limits the lines in the file, so what the formatter added counts.  ImfWriter has already looked at each body,
+        // and it reports a long line once for each.
+        private void CheckLineLengths(ReadOnlySpan<byte> bytes, ImfMessage message, List<ImfDiagnostic> diagnostics)
+        {
+            if (HasLongLine(bytes) && !diagnostics.Exists(diagnostic => diagnostic.Kind == ImfDiagnosticKind.LongBodyLine) && !ImfConformance.HasBinaryEntity(message))
+                Report(ImfDiagnosticKind.LongBodyLine, ImfBodyCheck.LongQuotedLineMessage, diagnostics);
+        }
+
+        private static bool HasLongLine(ReadOnlySpan<byte> bytes)
+        {
+            // The separator line isn't a line of the message.
+            var rest = bytes.Slice(bytes.IndexOf(LineFeed) + 1);
+            while (rest.Length > ImfBodyCheck.MaxLineLength)
+            {
+                var lineFeed = rest.IndexOf(LineFeed);
+                var length = lineFeed < 0 ? rest.Length : lineFeed > 0 && rest[lineFeed - 1] == CarriageReturn ? lineFeed - 1 : lineFeed;
+                if (length > ImfBodyCheck.MaxLineLength) return true;
+
+                if (lineFeed < 0) return false;
+
+                rest = rest.Slice(lineFeed + 1);
+            }
+
+            return false;
         }
 
         private void Report(ImfDiagnosticKind kind, string message, List<ImfDiagnostic> diagnostics)
