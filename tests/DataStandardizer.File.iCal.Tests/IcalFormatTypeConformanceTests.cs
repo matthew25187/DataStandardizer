@@ -25,7 +25,7 @@ namespace DataStandardizer.File.iCal.Tests
         {
             return new TheoryData<string, string, string>
             {
-                // ref. RFC 5545 §3.8.1.1: the example of the ATTACH property.
+                // ref. RFC 5545 §3.2.8: the example of the parameter.
                 { "ATTACH;FMTTYPE=application/msword:ftp://example.com/pub/docs/agenda.doc", Attachment, "application/msword" },
 
                 // ref. RFC 7986 §5.10: the example of the IMAGE property.
@@ -57,10 +57,10 @@ namespace DataStandardizer.File.iCal.Tests
             var text = EventCalendar(line);
 
             // act
-            var testResult = ReadCalendar(text);
+            var testResult = ReadCalendar(text).Components.Single().GetProperty(propertyName).GetFormatType();
 
             // assert
-            testResult.Components.Single().GetProperty(propertyName).GetFormatType().ToString().Should().Be(expected);
+            testResult.ToString().Should().Be(expected);
         }
 
         [Theory]
@@ -71,10 +71,10 @@ namespace DataStandardizer.File.iCal.Tests
             var calendar = ReadCalendar(EventCalendar(line));
 
             // act
-            var testResult = ReadCalendar(WriteCalendars(new[] { calendar }));
+            var testResult = ReadCalendar(WriteCalendars(new[] { calendar })).Components.Single().GetProperty(propertyName).GetFormatType();
 
             // assert
-            testResult.Components.Single().GetProperty(propertyName).GetFormatType().ToString().Should().Be(expected);
+            testResult.ToString().Should().Be(expected);
         }
 
         [Theory]
@@ -100,10 +100,10 @@ namespace DataStandardizer.File.iCal.Tests
             var text = EventCalendar(InvalidFormatTypeLine);
 
             // act
-            var testResult = ReadCalendar(text, AllowingInvalidValues);
+            var testResult = ReadCalendar(text, AllowingInvalidValues).Components.Single().GetProperty(Attachment).GetParameter(IcalParameterNames.FormatType);
 
             // assert
-            testResult.Components.Single().GetProperty(Attachment).GetParameter(IcalParameterNames.FormatType).Values.Should().Equal(InvalidFormatTypeValue);
+            testResult.Values.Should().Equal(InvalidFormatTypeValue);
         }
 
         [Fact]
@@ -139,10 +139,10 @@ namespace DataStandardizer.File.iCal.Tests
             var calendar = ReadCalendar(EventCalendar(TwoFormatTypesLine), AllowingInvalidValues);
 
             // act
-            var testResult = ReadXcal(WriteXcal(new[] { calendar }, AllowingInvalidValues), AllowingInvalidValues);
+            var testResult = ReadXcal(WriteXcal(new[] { calendar }, AllowingInvalidValues), AllowingInvalidValues).Single().Components.Single().GetProperty(Attachment);
 
             // assert
-            testResult.Single().Components.Single().GetProperty(Attachment).Parameters.Should().HaveCount(2);
+            testResult.Parameters.Should().HaveCount(2);
         }
 
         [Fact]
