@@ -53,10 +53,14 @@ namespace DataStandardizer.File.InternetMessage
 
             foreach (var name in SingleFields)
             {
-                var found = fields.FindAll(name);
-                for (var index = 1; index < found.Count; index++)
+                var isRepeat = false;
+                foreach (var field in fields)
                 {
-                    diagnostics.Add(Build(ImfDiagnosticKind.CardinalityViolation, string.Format(TooManyMessage, name), found[index]));
+                    if (!field.HasName(name)) continue;
+
+                    if (isRepeat) diagnostics.Add(Build(ImfDiagnosticKind.CardinalityViolation, string.Format(TooManyMessage, name), field));
+
+                    isRepeat = true;
                 }
             }
 
@@ -68,14 +72,14 @@ namespace DataStandardizer.File.InternetMessage
                 }
             }
 
-            CheckSender(diagnostics, message, ImfFieldValues.GetAddressList(fields.Find(ImfFieldNames.From), options), fields.Contains(ImfFieldNames.Sender), ImfFieldNames.From, ImfFieldNames.Sender);
+            CheckSender(diagnostics, message, ImfFieldValues.CountMailboxes(fields.Find(ImfFieldNames.From), options), fields.Contains(ImfFieldNames.Sender), ImfFieldNames.From, ImfFieldNames.Sender);
 
             foreach (var block in ImfResentBlock.GetBlocks(fields, options))
             {
                 if (block.Find(ImfFieldNames.ResentDate) is null) AddMissing(diagnostics, message, MissingResentFieldMessage, ImfFieldNames.ResentDate);
                 if (block.Find(ImfFieldNames.ResentFrom) is null) AddMissing(diagnostics, message, MissingResentFieldMessage, ImfFieldNames.ResentFrom);
 
-                CheckSender(diagnostics, message, block.From, !(block.Find(ImfFieldNames.ResentSender) is null), ImfFieldNames.ResentFrom, ImfFieldNames.ResentSender);
+                CheckSender(diagnostics, message, ImfFieldValues.CountMailboxes(block.Find(ImfFieldNames.ResentFrom), options), !(block.Find(ImfFieldNames.ResentSender) is null), ImfFieldNames.ResentFrom, ImfFieldNames.ResentSender);
             }
 
             return diagnostics;
@@ -296,9 +300,9 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         // ref. RFC 6854 §2.1: "If the from field contains more than one mailbox specification (including all mailboxes included in any groups), then the sender field [...] MUST appear".
-        private static void CheckSender(List<ImfDiagnostic> diagnostics, ImfMessage message, [AllowNull] ImfAddressList from, bool hasSender, string fromName, string senderName)
+        private static void CheckSender(List<ImfDiagnostic> diagnostics, ImfMessage message, int fromMailboxCount, bool hasSender, string fromName, string senderName)
         {
-            if (hasSender || from is null || ImfFieldValues.CountMailboxes(from) <= 1) return;
+            if (hasSender || fromMailboxCount <= 1) return;
 
             diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.MissingRequiredField, string.Format(MissingSenderMessage, fromName, senderName), message.HeaderEndBytePosition,
                 EntityPath, senderName, message.HeaderEndLineNumber));

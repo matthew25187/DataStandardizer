@@ -12,6 +12,44 @@ namespace DataStandardizer.File.InternetMessage
     /// </remarks>
     internal static class ImfFieldValues
     {
+        private static readonly Dictionary<string, FieldGrammar> Grammars = new Dictionary<string, FieldGrammar>(StringComparer.OrdinalIgnoreCase)
+        {
+            { ImfFieldNames.Date, FieldGrammar.DateTime },
+            { ImfFieldNames.ResentDate, FieldGrammar.DateTime },
+            { ImfFieldNames.From, FieldGrammar.AddressList },
+            { ImfFieldNames.ReplyTo, FieldGrammar.AddressList },
+            { ImfFieldNames.To, FieldGrammar.AddressList },
+            { ImfFieldNames.Cc, FieldGrammar.AddressList },
+            { ImfFieldNames.ResentFrom, FieldGrammar.AddressList },
+            { ImfFieldNames.ResentReplyTo, FieldGrammar.AddressList },
+            { ImfFieldNames.ResentTo, FieldGrammar.AddressList },
+            { ImfFieldNames.ResentCc, FieldGrammar.AddressList },
+            { ImfFieldNames.Sender, FieldGrammar.Sender },
+            { ImfFieldNames.ResentSender, FieldGrammar.Sender },
+            { ImfFieldNames.Bcc, FieldGrammar.Bcc },
+            { ImfFieldNames.ResentBcc, FieldGrammar.Bcc },
+            { ImfFieldNames.MessageId, FieldGrammar.MessageId },
+            { ImfFieldNames.ResentMessageId, FieldGrammar.MessageId },
+            { ImfFieldNames.InReplyTo, FieldGrammar.MessageIdList },
+            { ImfFieldNames.References, FieldGrammar.MessageIdList },
+            { ImfFieldNames.Keywords, FieldGrammar.PhraseList },
+            { ImfFieldNames.ReturnPath, FieldGrammar.Path },
+            { ImfFieldNames.Received, FieldGrammar.Received },
+        };
+
+        private enum FieldGrammar
+        {
+            DateTime,
+            AddressList,
+            Sender,
+            Bcc,
+            MessageId,
+            MessageIdList,
+            PhraseList,
+            Path,
+            Received,
+        }
+
         internal static ImfDateTime? GetDate([AllowNull] ImfHeaderField field, ImfOptions options)
         {
             if (field is null) return null;
@@ -52,70 +90,60 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
-        /// Counts the mailboxes in a list of addresses, including all those in groups (RFC 6854 §2.1).
+        /// Counts the mailboxes in the addresses of a field, including all those in groups (RFC 6854 §2.1), without keeping the addresses.
         /// </summary>
-        internal static int CountMailboxes(ImfAddressList addresses)
+        /// <returns>The number; or 0 if the field is absent or not valid.</returns>
+        internal static int CountMailboxes([AllowNull] ImfHeaderField field, ImfOptions options)
         {
-            var count = 0;
-            foreach (var address in addresses)
-            {
-                var group = address as ImfGroup;
-                count += group is null ? 1 : group.Mailboxes.Count;
-            }
+            if (field is null) return 0;
 
-            return count;
+            ImfHeaderText.CheckOptions(options);
+
+            return ImfAddressParser.IsValidAddressList(field.ValueBytes.Span, options, out var count) ? count : 0;
         }
 
         /// <summary>
         /// Determines if the body of a field follows the grammar of its name, without the accommodation of <see cref="ImfOptions.AllowInvalidValues"/>.  A field of any other
-        /// name, or an unstructured field, is valid whatever its body.
+        /// name, or an unstructured field, is valid whatever its body.  The value of the field isn't kept, so this asks for nothing to be built that a <c>TryParse</c> method would.
         /// </summary>
         internal static bool IsValid(ImfHeaderField field, ImfOptions options)
         {
+            if (!Grammars.TryGetValue(field.Name, out var grammar)) return true;
+
             var value = field.ValueBytes.Span;
-            switch (field.Name.ToUpperInvariant())
+            switch (grammar)
             {
-                case "DATE":
-                case "RESENT-DATE":
+                case FieldGrammar.DateTime:
                     return ImfDateTime.TryParse(value, out _);
 
-                case "FROM":
-                case "REPLY-TO":
-                case "TO":
-                case "CC":
-                case "RESENT-FROM":
-                case "RESENT-REPLY-TO":
-                case "RESENT-TO":
-                case "RESENT-CC":
-                    return ImfAddressList.TryParse(value, options, out _);
+                case FieldGrammar.AddressList:
+                    ImfHeaderText.CheckOptions(options);
+                    return ImfAddressParser.IsValidAddressList(value, options, out _);
 
-                case "SENDER":
-                case "RESENT-SENDER":
-                    return ImfAddress.TryParse(value, options, out var sender) && IsValidSender(sender);
+                case FieldGrammar.Sender:
+                    // ref. RFC 6854 §2.1: "If the sender field uses group syntax, the group MUST NOT contain more than one mailbox."
+                    ImfHeaderText.CheckOptions(options);
+                    return ImfAddressParser.IsValidAddress(value, options, out var mailboxCount) && mailboxCount <= 1;
 
-                case "BCC":
-                case "RESENT-BCC":
-                    return ImfAddressList.TryParse(value, options, out _) || ImfAddressParser.IsEmptyAddressList(value, options);
+                case FieldGrammar.Bcc:
+                    ImfHeaderText.CheckOptions(options);
+                    return ImfAddressParser.IsValidAddressList(value, options, out _) || ImfAddressParser.IsEmptyAddressList(value, options);
 
-                case "MESSAGE-ID":
-                case "RESENT-MESSAGE-ID":
-                    return ImfMessageId.TryParse(value, out _);
+                case FieldGrammar.MessageId:
+                    return ImfAddressParser.IsValidMessageId(value);
 
-                case "IN-REPLY-TO":
-                case "REFERENCES":
-                    return ImfMessageId.TryParseList(value, out _);
+                case FieldGrammar.MessageIdList:
+                    return ImfAddressParser.IsValidMessageIdList(value);
 
-                case "KEYWORDS":
-                    return ImfPhraseList.TryParse(value, options, out _);
+                case FieldGrammar.PhraseList:
+                    ImfHeaderText.CheckOptions(options);
+                    return ImfAddressParser.IsValidPhraseList(value, options);
 
-                case "RETURN-PATH":
-                    return ImfAddressParser.TryParsePath(value, options, out _);
-
-                case "RECEIVED":
-                    return ImfAddressParser.TryParseReceived(value, options, out _, out var hasDate, out var date) && (!hasDate || ImfDateTime.TryParse(date, out _));
+                case FieldGrammar.Path:
+                    return ImfAddressParser.IsValidPath(value, options);
 
                 default:
-                    return true;
+                    return ImfAddressParser.IsValidReceived(value, options, out var hasDate, out var date) && (!hasDate || ImfDateTime.TryParse(date, out _));
             }
         }
 

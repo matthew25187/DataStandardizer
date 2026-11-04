@@ -93,7 +93,7 @@ namespace DataStandardizer.File.InternetMessage
             foreach (var field in fields)
             {
                 var isResent = IsResentField(field);
-                if (current.Count > 0 && (!isResent || current.Exists(other => other.HasName(field.Name))))
+                if (current.Count > 0 && (!isResent || HasField(current, field.Name)))
                 {
                     blocks.Add(new ImfResentBlock(current, options));
                     current = new List<ImfHeaderField>();
@@ -105,6 +105,16 @@ namespace DataStandardizer.File.InternetMessage
             if (current.Count > 0) blocks.Add(new ImfResentBlock(current, options));
 
             return new ReadOnlyCollection<ImfResentBlock>(blocks);
+        }
+
+        private static bool HasField(List<ImfHeaderField> fields, string name)
+        {
+            foreach (var field in fields)
+            {
+                if (field.HasName(name)) return true;
+            }
+
+            return false;
         }
 
         [return: MaybeNull]
