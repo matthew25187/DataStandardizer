@@ -2,6 +2,9 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
+#if NET10_0_OR_GREATER
+using System.Numerics;
+#endif
 using DataStandardizer.Communication.Mime;
 
 namespace DataStandardizer.File.InternetMessage
@@ -66,6 +69,14 @@ namespace DataStandardizer.File.InternetMessage
 
         // ref. RFC 2046 §5.1.1: a boundary is at most 70 characters, after two hyphens.
         private const int MaxDelimiterLength = 72;
+
+        // What OctetKinds says of an octet.
+        private const byte IsEncoded = 1;
+        private const byte IsNul = 2;
+        private const byte IsEightBit = 4;
+
+        // A table has no branch that random bytes mispredict, which is most of the time a loop over them with comparisons takes.
+        private static readonly byte[] OctetKinds = BuildOctetKinds();
 
         private readonly bool _lineFeedIsLineBreak;
         private readonly byte[] _linePrefix = new byte[MaxDelimiterLength];
@@ -274,58 +285,128 @@ namespace DataStandardizer.File.InternetMessage
 
         private void Classify(ReadOnlySpan<byte> bytes)
         {
-            foreach (var octet in bytes)
+            while (!bytes.IsEmpty)
             {
-                if (octet == LineFeed)
-                {
-                    if (!_lineFeedIsLineBreak && !_previousWasCarriageReturn) _hasBareLineBreak = true;
+                var lineEnd = bytes.IndexOfAny(CarriageReturn, LineFeed);
+                if (lineEnd != 0) ClassifyLineOctets(lineEnd < 0 ? bytes : bytes.Slice(0, lineEnd));
+                if (lineEnd < 0) return;
 
-                    _lineBreakBytes++;
-                    _lineLength = 0;
-                    _softLineBreakBytes += GetSoftLineBreakBytes(_encodedLineLength);
-                    _encodedLineLength = 0;
-                    _previousWasCarriageReturn = false;
-                    continue;
-                }
-
-                if (_previousWasCarriageReturn) _hasBareLineBreak = true;
-
-                if (octet == CarriageReturn)
-                {
-                    if (_lineFeedIsLineBreak) _hasBareLineBreak = true;
-
-                    _lineBreakBytes++;
-                    _previousWasCarriageReturn = true;
-                    continue;
-                }
-
-                _previousWasCarriageReturn = false;
-                if (octet == 0) _hasNul = true;
-                if (octet >= 0x80) _hasEightBit = true;
-
-                // ref. RFC 2045 §6.7 rules 2 and 3: printable characters other than "=", and spaces and tabs, are written as themselves.
-                if ((octet >= 33 && octet <= 126 && octet != '=') || octet == ' ' || octet == '\t')
-                {
-                    _literalBytes++;
-                    _encodedLineLength++;
-                }
-                else
-                {
-                    _otherBytes++;
-                    _encodedLineLength += 3;
-                }
-
-                _lineLength++;
-                if (_lineLength > _maxLineLength) _maxLineLength = _lineLength;
+                ClassifyLineBreakOctet(bytes[lineEnd]);
+                bytes = bytes.Slice(lineEnd + 1);
             }
+        }
+
+        private void ClassifyLineBreakOctet(byte octet)
+        {
+            _lineBreakBytes++;
+            if (octet == LineFeed)
+            {
+                if (!_lineFeedIsLineBreak && !_previousWasCarriageReturn) _hasBareLineBreak = true;
+
+                _lineLength = 0;
+                _softLineBreakBytes += GetSoftLineBreakBytes(_encodedLineLength);
+                _encodedLineLength = 0;
+                _previousWasCarriageReturn = false;
+                return;
+            }
+
+            if (_previousWasCarriageReturn || _lineFeedIsLineBreak) _hasBareLineBreak = true;
+
+            _previousWasCarriageReturn = true;
+        }
+
+        // Takes in the octets of a line, which has no CR or LF in them.
+        private void ClassifyLineOctets(ReadOnlySpan<byte> octets)
+        {
+            if (_previousWasCarriageReturn) _hasBareLineBreak = true;
+
+            _previousWasCarriageReturn = false;
+
+            var encoded = CountEncodedOctets(octets);
+            _literalBytes += octets.Length - encoded;
+            _otherBytes += encoded;
+
+            // ref. RFC 2045 §6.7 rule 1: an octet that is not written as itself is written as three characters.
+            _encodedLineLength += octets.Length + 2L * encoded;
+            _lineLength += octets.Length;
+            if (_lineLength > _maxLineLength) _maxLineLength = _lineLength;
+        }
+
+        // Counts the octets that RFC 2045 §6.7 rules 2 and 3 don't let quoted-printable write as themselves, and notes any NUL and any octet above 127.
+        private int CountEncodedOctets(ReadOnlySpan<byte> octets)
+        {
+            var count = 0;
+            var index = 0;
+#if NET10_0_OR_GREATER
+            if (Vector.IsHardwareAccelerated && octets.Length >= Vector<byte>.Count)
+            {
+                var one = Vector<byte>.One;
+                var firstPrintable = new Vector<byte>((byte)' ');
+                var lastPrintable = new Vector<byte>((byte)126);
+                var tab = new Vector<byte>((byte)'\t');
+                var equalsSign = new Vector<byte>((byte)'=');
+                var seenNul = Vector<byte>.Zero;
+                var seenOctets = Vector<byte>.Zero;
+                for (; octets.Length - index >= Vector<byte>.Count; index += Vector<byte>.Count)
+                {
+                    var block = new Vector<byte>(octets.Slice(index));
+                    var isControl = Vector.AndNot(Vector.LessThan(block, firstPrintable), Vector.Equals(block, tab));
+                    var isEncoded = isControl | Vector.GreaterThan(block, lastPrintable) | Vector.Equals(block, equalsSign);
+
+                    // At most 64 ones, so this can't wrap.
+                    count += Vector.Sum(isEncoded & one);
+                    seenNul |= Vector.Equals(block, Vector<byte>.Zero);
+                    seenOctets |= block;
+                }
+
+                if (seenNul != Vector<byte>.Zero) _hasNul = true;
+                if (Vector.GreaterThanAny(seenOctets, new Vector<byte>((byte)127))) _hasEightBit = true;
+            }
+#endif
+            var kinds = OctetKinds;
+            var seen = 0;
+            for (; index < octets.Length; index++)
+            {
+                var kind = kinds[octets[index]];
+                count += kind & IsEncoded;
+                seen |= kind;
+            }
+
+            if ((seen & IsNul) != 0) _hasNul = true;
+            if ((seen & IsEightBit) != 0) _hasEightBit = true;
+
+            return count;
+        }
+
+        private static byte[] BuildOctetKinds()
+        {
+            var kinds = new byte[256];
+            for (var octet = 0; octet < kinds.Length; octet++)
+            {
+                // ref. RFC 2045 §6.7 rules 2 and 3: printable characters other than "=", and spaces and tabs, are written as themselves.
+                var isLiteral = (octet >= 33 && octet <= 126 && octet != '=') || octet == ' ' || octet == '\t';
+                kinds[octet] = (byte)((isLiteral ? 0 : IsEncoded) | (octet == 0 ? IsNul : 0) | (octet >= 0x80 ? IsEightBit : 0));
+            }
+
+            return kinds;
         }
 
         private void MatchLines(ReadOnlySpan<byte> bytes)
         {
             if (Enclosing.Length == 0) return;
 
-            foreach (var octet in bytes)
+            for (var index = 0; index < bytes.Length; index++)
             {
+                if (_linePrefixLength < 0)
+                {
+                    // The rest of a line that can't be a delimiter needs no looking at.
+                    var lineFeed = bytes.Slice(index).IndexOf(LineFeed);
+                    if (lineFeed < 0) return;
+
+                    index += lineFeed;
+                }
+
+                var octet = bytes[index];
                 if (_linePrefixLength >= 0)
                 {
                     if (octet == LineFeed || octet == CarriageReturn)
