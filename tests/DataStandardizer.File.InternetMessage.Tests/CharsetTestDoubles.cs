@@ -25,4 +25,20 @@ namespace DataStandardizer.File.InternetMessage.Tests
             return true;
         }
     }
+
+    /// <summary>
+    /// A character set resolver that resolves no character set, as on a runtime with no code pages.
+    /// </summary>
+    internal sealed class NoCharsetResolver : IMimeCharsetResolver
+    {
+#if NETCOREAPP3_0_OR_GREATER
+        public bool TryGetEncoding(MimeCharset charset, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Encoding encoding)
+#else
+        public bool TryGetEncoding(MimeCharset charset, out Encoding encoding)
+#endif
+        {
+            encoding = null;
+            return false;
+        }
+    }
 }

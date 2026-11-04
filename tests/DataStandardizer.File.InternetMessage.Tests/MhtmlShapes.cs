@@ -219,10 +219,12 @@ namespace DataStandardizer.File.InternetMessage.Tests
             "iVBORw==\r\n" +
             "------MultipartBoundary--abc------\r\n";
 
-        /// <summary>What Word saves as a web page: no Date or From, no <c>type</c> parameter, a preamble, and <c>file:</c> locations.</summary>
+        /// <summary>
+        /// What Word saves as a web page, with the structure of a file saved from Word: no Date or From, no <c>type</c> parameter, a preamble, <c>file:</c> locations, HTML in
+        /// <c>windows-1252</c>, and supporting files as parts.
+        /// </summary>
         public const string Word =
             "MIME-Version: 1.0\r\n" +
-            "X-Document-Type: Document\r\n" +
             "Content-Type: multipart/related; boundary=\"----=_NextPart_01C1BFB8.D3BA6F40\"\r\n" +
             "\r\n" +
             "This document is a Single File Web Page, also known as a Web Archive file.\r\n" +
@@ -230,15 +232,21 @@ namespace DataStandardizer.File.InternetMessage.Tests
             "------=_NextPart_01C1BFB8.D3BA6F40\r\n" +
             "Content-Location: file:///C:/page.htm\r\n" +
             "Content-Transfer-Encoding: quoted-printable\r\n" +
-            "Content-Type: text/html; charset=\"us-ascii\"\r\n" +
+            "Content-Type: text/html; charset=\"windows-1252\"\r\n" +
             "\r\n" +
-            "<html>word</html>\r\n" +
+            "<html>caf=E9</html>\r\n" +
             "------=_NextPart_01C1BFB8.D3BA6F40\r\n" +
-            "Content-Location: file:///C:/page_files/image001.png\r\n" +
+            "Content-Location: file:///C:/page_files/themedata.thmx\r\n" +
             "Content-Transfer-Encoding: base64\r\n" +
-            "Content-Type: image/png\r\n" +
+            "Content-Type: application/vnd.ms-officetheme\r\n" +
             "\r\n" +
-            "iVBORw==\r\n" +
+            "UEsDBA==\r\n" +
+            "------=_NextPart_01C1BFB8.D3BA6F40\r\n" +
+            "Content-Location: file:///C:/page_files/filelist.xml\r\n" +
+            "Content-Transfer-Encoding: quoted-printable\r\n" +
+            "Content-Type: text/xml; charset=\"utf-8\"\r\n" +
+            "\r\n" +
+            "<xml/>\r\n" +
             "------=_NextPart_01C1BFB8.D3BA6F40--\r\n";
 
         /// <summary>A root that is <c>multipart/alternative</c>, for which <c>type</c> gives that type (RFC 2557 §7).</summary>

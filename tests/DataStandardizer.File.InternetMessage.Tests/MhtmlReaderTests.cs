@@ -23,7 +23,11 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private const string SnapshotLocation = " https://example.org/page.html";
         private const string ChromiumPage = "https://example.org/page.html";
         private const string ChromiumLogo = "https://example.org/logo.png";
-        private const string WordLogo = "file:///C:/page_files/image001.png";
+        private const string WordFileList = "file:///C:/page_files/filelist.xml";
+        private const string WordThemeData = "file:///C:/page_files/themedata.thmx";
+
+        // "caf=E9" in MhtmlShapes.Word, where 0xE9 is U+00E9 in windows-1252.
+        private const string WordRootText = "<html>caf\x00E9</html>";
 
         private static readonly ImfOptions ChromiumOptions = new ImfOptions { AllowInvalidValues = true };
         private static readonly ImfOptions WordOptions = new ImfOptions { AllowInvalidRelatedStructure = true };
@@ -158,8 +162,46 @@ namespace DataStandardizer.File.InternetMessage.Tests
                 // assert
                 subject.Diagnostics.Should().HaveCount(3);
                 testResult.RootMediaType.Subtype.Should().Be("html");
-                testResult.Resources[1].Uri.OriginalString.Should().Be(WordLogo);
+                testResult.Resources.Should().HaveCount(3);
+                testResult.Resources[1].Uri.OriginalString.Should().Be(WordThemeData);
+                testResult.Resources[2].Uri.OriginalString.Should().Be(WordFileList);
             }
+        }
+
+        [Fact]
+        public void GetText_WordRootWithACodePageResolver_DecodesWindows1252()
+        {
+            // arrange
+            var options = new ImfOptions { AllowInvalidRelatedStructure = true, CharsetResolver = new CodePageCharsetResolver() };
+            MhtmlDocument document;
+            using (var reader = new MhtmlReader(new MemoryStream(Octets.Of(MhtmlShapes.Word)), options))
+            {
+                document = reader.ReadDocument();
+            }
+
+            // act
+            var testResult = document.Root.GetText();
+
+            // assert
+            testResult.Should().Be(WordRootText);
+        }
+
+        [Fact]
+        public void GetText_WordRootWithNoResolverForItsCharset_ThrowsAfterReadingSucceeds()
+        {
+            // arrange
+            var options = new ImfOptions { AllowInvalidRelatedStructure = true, CharsetResolver = new NoCharsetResolver() };
+            MhtmlDocument document;
+            using (var reader = new MhtmlReader(new MemoryStream(Octets.Of(MhtmlShapes.Word)), options))
+            {
+                document = reader.ReadDocument();
+            }
+
+            // act
+            Action testAction = () => document.Root.GetText();
+
+            // assert
+            testAction.Should().Throw<ImfFileException>();
         }
 
         [Fact]
@@ -173,11 +215,11 @@ namespace DataStandardizer.File.InternetMessage.Tests
             }
 
             // act
-            var testResult = subject.TryResolve(new Uri("page_files/image001.png", UriKind.Relative), out var resource);
+            var testResult = subject.TryResolve(new Uri("page_files/filelist.xml", UriKind.Relative), out var resource);
 
             // assert
             testResult.Should().BeTrue();
-            resource.Uri.OriginalString.Should().Be(WordLogo);
+            resource.Uri.OriginalString.Should().Be(WordFileList);
         }
 
         [Theory]

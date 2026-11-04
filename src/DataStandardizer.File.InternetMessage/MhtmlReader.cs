@@ -27,6 +27,11 @@ namespace DataStandardizer.File.InternetMessage
     /// writes, needs <see cref="ImfOptions.AllowInvalidRelatedStructure"/>.
     /// </para>
     /// <para>
+    /// <b>Character sets.</b>  Word writes its HTML in <c>windows-1252</c>.  On .NET Core and .NET 5 and later, <see cref="ImfEntity.GetText"/> can't resolve that character set until the
+    /// application registers the code pages or supplies an <see cref="ImfOptions.CharsetResolver"/>, as <see cref="DataStandardizer.Communication.Mime.MimeCharsetResolver"/> describes.
+    /// Reading the document doesn't need it.
+    /// </para>
+    /// <para>
     /// The data holds one document, so it can be read only once, and any <see cref="ImfFileException"/> ends reading.  Later reads throw <see cref="InvalidOperationException"/>.  A read
     /// started while another is in progress does too.
     /// </para>
