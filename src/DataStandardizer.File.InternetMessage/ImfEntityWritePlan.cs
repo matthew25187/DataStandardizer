@@ -541,6 +541,7 @@ namespace DataStandardizer.File.InternetMessage
         {
             if (node.Source.Kind == ImfEntitySource.SourceKind.Raw)
             {
+                CheckRawEntity(node);
                 return node.BodyScan?.Domain ?? MimeDataDomain.Binary;
             }
 
@@ -556,6 +557,30 @@ namespace DataStandardizer.File.InternetMessage
             }
 
             return Max(bodyDomain, node.HeaderScan?.Domain ?? MimeDataDomain.SevenBit);
+        }
+
+        /// <summary>
+        /// Checks an entity that the caller gave as raw bytes, which the writer can only label with what holds it, and not encode.  Its header and body are one run of bytes to the writer, so it
+        /// can't look at what the entity says of itself.  One that was read has already been checked.
+        /// </summary>
+        private void CheckRawEntity(Node node)
+        {
+            var scan = node.BodyScan;
+            if (scan is null || node.Source.IsPreserved || _options.AllowBinaryTransferEncoding) return;
+
+            // ref. RFC 5322 §2.1.1 and §2.3, RFC 2045 §2.7 and §2.8.  Only the binary label of §2.9 covers these, which has to be asked for.
+            if (scan.HasLongLine && !_options.AllowLongLines)
+                throw BuildKindError(ImfBodyCheck.LongLineMessage, ImfDiagnosticKind.LongBodyLine, node.Path);
+
+            if (scan.HasInvalidOctets && !_options.AllowInvalidBodyOctets)
+                throw BuildKindError(ImfBodyCheck.InvalidOctetsMessage, ImfDiagnosticKind.InvalidBodyOctets, node.Path);
+        }
+
+        private static ImfFileException BuildKindError(string message, ImfDiagnosticKind kind, string path)
+        {
+            var exception = BuildError(message, path);
+            exception.Data[ImfFileException.DataItemName.DiagnosticKind] = kind;
+            return exception;
         }
 
         private MimeDataDomain ChooseContentEncoding(Node node)

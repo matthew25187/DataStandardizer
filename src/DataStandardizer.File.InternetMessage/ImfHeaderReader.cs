@@ -15,6 +15,10 @@ namespace DataStandardizer.File.InternetMessage
     /// </summary>
     /// <remarks>
     /// <para>
+    /// This reads one header section, which may be that of a part, so the rules for the header of a whole message, such as the fields that RFC 5322 §3.6 requires, don't apply to it.  Use
+    /// <see cref="ImfReader"/> or <see cref="ImfEntityReader"/> for those.
+    /// </para>
+    /// <para>
     /// The section ends at an empty line or at the end of the data, since a message may have no body.  The bytes after the empty line are not
     /// read as fields.  The reader reads ahead, so the position of a stream afterwards is not the start of the body; that is at
     /// <see cref="BytePosition"/> from where the reader started.

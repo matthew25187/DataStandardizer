@@ -30,8 +30,8 @@ namespace DataStandardizer.File.InternetMessage
     /// <b>Body.</b>  The rest of the data is the body, up to <see cref="ImfOptions.MaxEntitySize"/>, which is held in memory as it is.  Its structure is read into
     /// <see cref="ImfMessage.Body"/> as an <see cref="ImfEntityReader"/> reads it, under the same options, so a multipart entity that breaks RFC 2046 §5.1 causes an
     /// <see cref="ImfFileException"/>.  The bytes of a body are decoded, and checked against the transfer encoding, only when they are asked for.  A message inside a
-    /// <c>message/rfc822</c> entity must have one of From, Subject or Date, as RFC 2046 §5.2.1 says, unless <see cref="ImfOptions.AllowMissingRequiredFields"/> is set.  Call
-    /// <see cref="ImfMessage.Validate"/> on it to check it against RFC 5322.
+    /// <c>message/rfc822</c> entity must have one of From, Subject or Date, as RFC 2046 §5.2.1 says, unless <see cref="ImfOptions.AllowMissingRequiredFields"/> is set, and the bodies of its fields
+    /// must follow their grammar, unless <see cref="ImfOptions.AllowInvalidValues"/> is set.  Call <see cref="ImfMessage.Validate"/> on it to check it against the rest of RFC 5322.
     /// </para>
     /// <para>
     /// The data holds one message, so it can be read only once, and any <see cref="ImfFileException"/> ends reading.  Later reads throw <see cref="InvalidOperationException"/>.  A

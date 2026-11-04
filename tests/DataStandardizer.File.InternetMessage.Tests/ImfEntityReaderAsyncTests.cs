@@ -45,7 +45,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             var stream = new BlockStream(Octets.Of(message), BlockStreamMode.AsynchronousOnly, 1, 1);
-            var reader = new ImfEntityReader(stream, new ImfOptions { AllowMissingMimeVersion = true }, 1, false);
+            var reader = new ImfEntityReader(stream, EntityEvents.MimeEntityOptions, 1, false);
             await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 // act
@@ -97,7 +97,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         {
             // arrange
             var stream = new BlockStream(Octets.Of(message), BlockStreamMode.AsynchronousOnly, 1, 1);
-            var reader = new ImfEntityReader(stream, new ImfOptions { AllowMissingMimeVersion = true, DecodeTransferEncoding = true }, 1, false);
+            var reader = new ImfEntityReader(stream, new ImfOptions { AllowMissingMimeVersion = true, AllowMissingRequiredFields = true, DecodeTransferEncoding = true }, 1, false);
             await AsyncDisposal.UsingAsync(reader, async () =>
             {
                 // act

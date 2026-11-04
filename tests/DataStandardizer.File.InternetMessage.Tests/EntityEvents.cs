@@ -15,9 +15,10 @@ namespace DataStandardizer.File.InternetMessage.Tests
     internal static class EntityEvents
     {
         /// <summary>
-        /// The options for fixtures that are about the structure of MIME entities, and so leave out the MIME-Version field that RFC 2045 §4 requires of a message.
+        /// The options for fixtures that are about the structure of MIME entities, and so leave out the MIME-Version field that RFC 2045 §4 requires of a message, and the fields that RFC 2046
+        /// §5.2.1 requires of an embedded one, and may hold placeholders for field bodies, as the examples of RFC 2049 Appendix A do.
         /// </summary>
-        public static readonly ImfOptions MimeEntityOptions = new ImfOptions { AllowMissingMimeVersion = true };
+        public static readonly ImfOptions MimeEntityOptions = new ImfOptions { AllowMissingMimeVersion = true, AllowMissingRequiredFields = true, AllowInvalidValues = true };
 
         /// <summary>
         /// The options for fixtures that are about the structure of MHTML documents, and so leave out the Date and From fields that RFC 5322 §3.6 requires.
@@ -27,7 +28,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         /// <summary>
         /// The options for fixtures that are about how bodies are split into lines and parts, and so hold bare line breaks that RFC 2045 §2.7 doesn't allow.
         /// </summary>
-        public static readonly ImfOptions AnyOctetsOptions = new ImfOptions { AllowMissingMimeVersion = true, AllowInvalidBodyOctets = true };
+        public static readonly ImfOptions AnyOctetsOptions = new ImfOptions { AllowMissingMimeVersion = true, AllowMissingRequiredFields = true, AllowInvalidBodyOctets = true };
 
         public static ImfEntityReader CreateReader(string message)
         {
