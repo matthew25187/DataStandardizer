@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using DataStandardizer.Communication.Mime;
 
@@ -186,7 +185,6 @@ namespace DataStandardizer.File.InternetMessage
         private long _pendingRawHeld;
         private int _pendingRawLength;
         private int _search;
-        private bool _hasBinaryEntity;
         private State _state = State.EntityStart;
         private long _unwindEnd;
         private bool _unwindIsDelimiter;
@@ -227,6 +225,14 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
+        /// Says which lines have a quote in an mbox file that isn't in the data, and counts towards their length.
+        /// </summary>
+        internal void CountQuotes(ImfBodyCheck.QuotedLines quoted)
+        {
+            _bodyCheck.Quoted = quoted;
+        }
+
+        /// <summary>
         /// Gets the scanner that reads the header sections, whose block a driver refills.
         /// </summary>
         internal ImfHeaderScanner HeaderScanner => _scanner;
@@ -245,12 +251,6 @@ namespace DataStandardizer.File.InternetMessage
         /// Gets a flag indicating that a problem was found, after which the structure of the message is unknown.
         /// </summary>
         internal bool IsFaulted { get; private set; }
-
-        /// <summary>
-        /// Gets or sets what says, once the message has ended, if a line of it was too long in a form that this scanner didn't see, as with a quote that a container took off.
-        /// </summary>
-        [AllowNull]
-        internal Func<bool> HasLongLineOutsideTheData { get; set; }
 
         internal ImfEntityEventKind EventKind => _eventKind;
 
@@ -373,6 +373,7 @@ namespace DataStandardizer.File.InternetMessage
                         {
                             _scanner.ParseField();
                             ReadMimeField(CurrentFrame);
+                            CheckQuotedHeaderLine();
                             return Emit(ImfEntityEventKind.HeaderField, _scanner.FieldBytePosition, _scanner.RawBytes.Length);
                         }
 
@@ -429,7 +430,6 @@ namespace DataStandardizer.File.InternetMessage
                         else
                         {
                             _state = State.End;
-                            if (!_hasBinaryEntity && !(HasLongLineOutsideTheData is null) && HasLongLineOutsideTheData()) ReportBodyProblems(true, false, 0, 0);
                         }
 
                         break;
@@ -503,6 +503,26 @@ namespace DataStandardizer.File.InternetMessage
         }
 
         /// <summary>
+        /// Checks the first line of the current field, the only one of a field that can start as a quoted line does, as <see cref="ImfBodyCheck.Quoted"/> says.
+        /// </summary>
+        private void CheckQuotedHeaderLine()
+        {
+            var raw = _scanner.RawBytes.Span;
+            var lineFeed = raw.IndexOf(LineFeed);
+            var length = lineFeed < 0 ? raw.Length : lineFeed > 0 && raw[lineFeed - 1] == CarriageReturn ? lineFeed - 1 : lineFeed;
+            if (!ImfBodyCheck.IsLongQuotedLine(raw.Slice(0, length), _bodyCheck.Quoted)) return;
+
+            if (!_allowLongLines)
+            {
+                var exception = _scanner.BuildCurrentFieldException(ImfBodyCheck.LongQuotedLineMessage);
+                exception.Data[ImfFileException.DataItemName.DiagnosticKind] = ImfDiagnosticKind.LongBodyLine;
+                throw exception;
+            }
+
+            _diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.LongBodyLine, ImfBodyCheck.LongQuotedLineMessage, _scanner.FieldBytePosition, BuildPath()));
+        }
+
+        /// <summary>
         /// Parses the value of a Content-Type field, with comments, and white space around the delimiters.
         /// </summary>
         /// <remarks>
@@ -564,7 +584,6 @@ namespace DataStandardizer.File.InternetMessage
             frame.IsMime = frame.HasMimeVersion || frame.HasMimeField || (!(enclosing is null) && enclosing.IsMime);
             frame.AllowedDomain = ImfBodyCheck.GetAllowedDomain(frame.TransferEncoding, enclosing is null ? MimeDataDomain.Binary : enclosing.AllowedDomain);
 
-            _hasBinaryEntity |= frame.TransferEncoding == MimeTransferEncoding.Binary;
             frame.IsHeaderEnded = true;
             _bodyStartLineBreakLength = _scanner.SectionEndLineBreakLength;
             _atLineStart = true;
@@ -1119,13 +1138,14 @@ namespace DataStandardizer.File.InternetMessage
         {
             if (foundLongLine)
             {
+                var longLineMessage = _bodyCheck.LongLineIsQuoted ? ImfBodyCheck.LongQuotedLineMessage : ImfBodyCheck.LongLineMessage;
                 if (!_allowLongLines)
                 {
                     _scanner.ConsumeBody(_scanner.Position + longLineOffset);
-                    throw BuildKindError(ImfBodyCheck.LongLineMessage, ImfDiagnosticKind.LongBodyLine);
+                    throw BuildKindError(longLineMessage, ImfDiagnosticKind.LongBodyLine);
                 }
 
-                _diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.LongBodyLine, ImfBodyCheck.LongLineMessage, _scanner.BytePosition + longLineOffset, BuildPath()));
+                _diagnostics.Add(new ImfDiagnostic(ImfDiagnosticKind.LongBodyLine, longLineMessage, _scanner.BytePosition + longLineOffset, BuildPath()));
             }
 
             if (foundInvalidOctet)

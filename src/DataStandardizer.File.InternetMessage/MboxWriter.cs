@@ -35,8 +35,8 @@ namespace DataStandardizer.File.InternetMessage
     /// </para>
     /// <para>
     /// <b>Line length.</b>  RFC 4155 Appendix A requires each message to follow the formatting rules of RFC 2822, so RFC 5322 §2.1.1 limits each line in the file to 998 octets.  A quote that takes
-    /// a line past that causes an <see cref="ImfFileException"/>, unless <see cref="ImfOptions.AllowLongLines"/> is set, or the message has a <c>binary</c> entity, which has no lines.  A variant
-    /// that adds no quotes, such as <see cref="MboxVariant.Mboxcl2"/>, can write the line.
+    /// a line past that causes an <see cref="ImfFileException"/>, unless <see cref="ImfOptions.AllowLongLines"/> is set, or it is in a body that has no line limit, such as a <c>binary</c> one.  A
+    /// variant that adds no quotes, such as <see cref="MboxVariant.Mboxcl2"/>, can write the line.
     /// </para>
     /// <para>
     /// <b>Last line.</b>  The empty line that ends a message has to be a line of its own, so a message whose last line has no line break gets one.  With
@@ -57,6 +57,8 @@ namespace DataStandardizer.File.InternetMessage
         private const string CarriageReturnLineFeedMessage = "A line ends in a carriage return and a line feed, which RFC 4155 Appendix A doesn't allow.  ImfOptions.AllowMboxCarriageReturnLineFeed accepts it.";
         private const string EightBitMessage = "The message holds an octet above 127, which RFC 4155 Appendix A doesn't allow.  ImfOptions.AllowEightBitMboxContent accepts it.";
         private const string InvalidSeparatorMessage = "The separator line doesn't have the form that RFC 4155 Appendix A requires.  ImfOptions.AllowInvalidMboxSeparator accepts it.";
+
+        private const int QuotedLineScanBufferSize = 16 * 1024;
 
         private const byte CarriageReturn = 0x0D;
         private const byte HighestSevenBitOctet = 0x7F;
@@ -535,7 +537,7 @@ namespace DataStandardizer.File.InternetMessage
                 var formatted = MboxFormatter.Format(envelope, bytes, _variant, _isCrLf, out var fieldChange);
                 fieldCount += fieldChange;
                 CheckContent(formatted, diagnostics);
-                CheckLineLengths(formatted, message, diagnostics);
+                CheckLineLengths(formatted, bytes, diagnostics);
                 return formatted;
             }
             catch (ImfFileException exception) when (AddMessageIndex(exception))
@@ -564,12 +566,34 @@ namespace DataStandardizer.File.InternetMessage
             if (hasCarriageReturnLineFeed) Report(ImfDiagnosticKind.MboxCarriageReturnLineFeed, CarriageReturnLineFeedMessage, diagnostics);
         }
 
-        // ref. RFC 4155 Appendix A: each message follows RFC 2822, whose §2.1.1 limits the lines in the file, so what the formatter added counts.  ImfWriter has already looked at each body,
-        // and it reports a long line once for each.
-        private void CheckLineLengths(ReadOnlySpan<byte> bytes, ImfMessage message, List<ImfDiagnostic> diagnostics)
+        // ref. RFC 4155 Appendix A: each message follows RFC 2822, whose §2.1.1 limits the lines in the file, so a quote counts.  ImfWriter has already looked at each body, and it reports a long
+        // line once for each.  Most messages have no long line in the file, so they don't need to be read to find what holds it.
+        private void CheckLineLengths(ReadOnlySpan<byte> formatted, ReadOnlySpan<byte> message, List<ImfDiagnostic> diagnostics)
         {
-            if (HasLongLine(bytes) && !diagnostics.Exists(diagnostic => diagnostic.Kind == ImfDiagnosticKind.LongBodyLine) && !ImfConformance.HasBinaryEntity(message))
-                Report(ImfDiagnosticKind.LongBodyLine, ImfBodyCheck.LongQuotedLineMessage, diagnostics);
+            if (_variant == MboxVariant.Mboxcl2 || !HasLongLine(formatted) || diagnostics.Exists(diagnostic => diagnostic.Kind == ImfDiagnosticKind.LongBodyLine)) return;
+
+            if (HasLongQuotedLine(message)) Report(ImfDiagnosticKind.LongBodyLine, ImfBodyCheck.LongQuotedLineMessage, diagnostics);
+        }
+
+        // A line of a body with no limit on its lines, such as a binary one, is not too long.
+        private bool HasLongQuotedLine(ReadOnlySpan<byte> message)
+        {
+            var quoted = _variant == MboxVariant.Mboxrd ? ImfBodyCheck.QuotedLines.QuotedFrom : ImfBodyCheck.QuotedLines.From;
+            using (var reader = new ImfEntityReader(new MemoryStream(message.ToArray()), _options, QuotedLineScanBufferSize, !_isCrLf) { QuotedLines = quoted })
+            {
+                try
+                {
+                    while (!(reader.ReadEvent() is null))
+                    {
+                    }
+                }
+                catch (ImfFileException exception)
+                {
+                    return exception.Data[ImfFileException.DataItemName.DiagnosticKind] is ImfDiagnosticKind kind && kind == ImfDiagnosticKind.LongBodyLine;
+                }
+
+                return new List<ImfDiagnostic>(reader.Diagnostics).Exists(diagnostic => diagnostic.Kind == ImfDiagnosticKind.LongBodyLine);
+            }
         }
 
         private static bool HasLongLine(ReadOnlySpan<byte> bytes)

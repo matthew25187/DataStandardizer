@@ -99,11 +99,17 @@ namespace DataStandardizer.File.InternetMessage.Tests
         // ref. RFC 5322 §2.1.1: a line is at most 998 octets, of which "From " takes 5, so a quote takes this one to 999.
         private const int LongestFromLinePadding = 993;
         private const int ShorterFromLinePadding = 992;
+
+        // The padding that takes a line of "From : ", 7 octets, and "@b.test", 7, to 998.
+        private const int LongestFromFieldPadding = 984;
         private static readonly string LongestFromLine = "From " + new string('x', LongestFromLinePadding);
         private static readonly string ShorterFromLine = "From " + new string('x', ShorterFromLinePadding);
         private static readonly string LongestFromLineEml = CrLfHeader + "\r\n" + LongestFromLine + "\r\n";
         private static readonly string ShorterFromLineEml = CrLfHeader + "\r\n" + ShorterFromLine + "\r\n";
         private static readonly string LongestFromLineBinaryEml = CrLfHeader + "MIME-Version: 1.0\r\nContent-Transfer-Encoding: binary\r\n\r\n" + LongestFromLine + "\r\n";
+
+        private static readonly string LongestFromLineBesideBinaryEml = CrLfHeader + "MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=b\r\nContent-Transfer-Encoding: binary\r\n\r\n--b\r\nContent-Transfer-Encoding: binary\r\n\r\nx\r\n--b\r\n\r\n" + LongestFromLine + "\r\n--b--\r\n";
+        private static readonly string LongestFromFieldEml = "Date: Thu, 1 Jan 2026 00:00:00 +0000\r\nFrom : " + new string('x', LongestFromFieldPadding) + "@b.test\r\n\r\none\r\n";
 
         public static TheoryData<MboxVariant> QuotingVariants => new TheoryData<MboxVariant> { MboxVariant.Mboxrd, MboxVariant.Mboxo, MboxVariant.Mboxcl };
 
@@ -140,6 +146,36 @@ namespace DataStandardizer.File.InternetMessage.Tests
                 // assert
                 subject.Diagnostics.Should().ContainSingle().Which.Kind.Should().Be(ImfDiagnosticKind.LongBodyLine);
                 Octets.ToText(output.ToArray()).Should().Contain(">" + LongestFromLine + "\n");
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_QuoteTakesALineBesideABinaryEntityPastTheLimit_Throws()
+        {
+            // arrange
+            var message = Mailboxes.ReadMessage(LongestFromLineBesideBinaryEml);
+            using (var subject = new MboxWriter(new MemoryStream(), MboxVariant.Mboxrd, new ImfOptions(), MboxLineBreak.CarriageReturnLineFeed))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(Envelope, message);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.LongBodyLine);
+            }
+        }
+
+        [Fact]
+        public void WriteMessage_QuoteTakesALineOfTheHeaderPastTheLimit_Throws()
+        {
+            // arrange
+            var message = Mailboxes.ReadMessage(LongestFromFieldEml);
+            using (var subject = new MboxWriter(new MemoryStream()))
+            {
+                // act
+                Action testAction = () => subject.WriteMessage(Envelope, message);
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.LongBodyLine);
             }
         }
 

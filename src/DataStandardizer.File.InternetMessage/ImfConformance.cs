@@ -170,19 +170,6 @@ namespace DataStandardizer.File.InternetMessage
             }
         }
 
-        /// <summary>
-        /// Determines if a message has an entity with the <c>binary</c> transfer encoding, which has no lines (RFC 2045 §2.9), at any depth.
-        /// </summary>
-        internal static bool HasBinaryEntity(ImfMessage message)
-        {
-            foreach (var node in message.EnumerateEntities())
-            {
-                if (node.Entity.ContentTransferEncoding == MimeTransferEncoding.Binary) return true;
-            }
-
-            return false;
-        }
-
         private static bool HasMimeField(ImfMessage message)
         {
             var fields = message.Fields;

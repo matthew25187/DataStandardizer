@@ -199,11 +199,11 @@ namespace DataStandardizer.File.InternetMessage
         internal long MessageIndex { get; set; } = -1;
 
         /// <summary>
-        /// Sets what says, once the message has ended, if a line of it was too long in a form that this reader didn't see.
+        /// Sets which lines have a quote in an mbox file that isn't in the data.
         /// </summary>
-        internal Func<bool> HasLongLineOutsideTheData
+        internal ImfBodyCheck.QuotedLines QuotedLines
         {
-            set => _entityScanner.HasLongLineOutsideTheData = value;
+            set => _entityScanner.CountQuotes(value);
         }
 
         /// <summary>

@@ -416,6 +416,11 @@ namespace DataStandardizer.File.InternetMessage
         internal bool LineFeedIsLineBreak { get; set; }
 
         /// <summary>
+        /// Gets or sets which lines have a quote in an mbox file that isn't in the message.
+        /// </summary>
+        internal ImfBodyCheck.QuotedLines QuotedLines { get; set; }
+
+        /// <summary>
         /// Gets a flag indicating that the body differs from <see cref="RawBody"/>, without reading <see cref="Body"/> if it has not been asked for.
         /// </summary>
         internal bool IsBodyChanged => _isBodyReplaced || (!(_body is null) && _body.HasChangedBody);

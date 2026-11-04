@@ -119,6 +119,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         private static readonly string TooLongQuotedLineMailbox = Separator1 + Header + "\n" + TooLongQuotedLine + "\n\n";
         private static readonly string TooLongQuotedLineThenGood = TooLongQuotedLineMailbox + OneMessageWithEmptyLine;
         private static readonly string LongestQuotedLineMailbox = Separator1 + Header + "\n>From " + new string('x', ShorterFromLinePadding) + "\n\n";
+        private static readonly string TooLongQuotedLineBesideBinary = Separator1 + Header + "MIME-Version: 1.0\nContent-Type: multipart/mixed; boundary=b\nContent-Transfer-Encoding: binary\n\n--b\nContent-Transfer-Encoding: binary\n\nx\n--b\n\n" + TooLongQuotedLine + "\n--b--\n\n";
         private static readonly string TooLongQuotedLineInBinary = Separator1 + Header + "MIME-Version: 1.0\nContent-Transfer-Encoding: binary\n\n" + TooLongQuotedLine + "\n\n";
 
         private const string EnvelopeAndBody1 = Envelope1 + "|one\n";
@@ -969,6 +970,38 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
             // assert
             testResult.Should().Equal("rejected 0", Message1);
+        }
+
+        [Fact]
+        public void ReadMessage_LineTooLongInTheFileBesideABinaryEntity_Throws()
+        {
+            // arrange
+            using (var subject = new MboxReader(new MemoryStream(Octets.Of(TooLongQuotedLineBesideBinary))))
+            {
+                // act
+                Action testAction = () => subject.ReadMessage();
+
+                // assert
+                testAction.Should().Throw<ImfFileException>().Which.Data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.LongBodyLine);
+            }
+        }
+
+        [Fact]
+        public void ReadEntityEvents_LineTooLongInTheFileBesideABinaryEntity_ThrowsAtThePart()
+        {
+            // arrange
+            using (var subject = new MboxReader(new MemoryStream(Octets.Of(TooLongQuotedLineBesideBinary))))
+            {
+                var events = subject.ReadEntityEvents();
+
+                // act
+                Action testAction = () => EntityEvents.ReadToEnd(events);
+
+                // assert
+                var data = testAction.Should().Throw<ImfFileException>().Which.Data;
+                data[ImfFileException.DataItemName.DiagnosticKind].Should().Be(ImfDiagnosticKind.LongBodyLine);
+                data[ImfFileException.DataItemName.EntityPath].Should().Be("2");
+            }
         }
 
         [Fact]
