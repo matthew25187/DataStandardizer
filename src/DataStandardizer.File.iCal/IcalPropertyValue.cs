@@ -96,9 +96,16 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         internal static IcalFileException BuildInvalidFormatTypeException(long lineNumber, long physicalLineNumber, string propertyName)
         {
-            var message = string.Format(CultureInfo.InvariantCulture,
+            return IcalContentLineScanner.BuildException(BuildInvalidFormatTypeMessage(propertyName), lineNumber, physicalLineNumber, propertyName);
+        }
+
+        /// <summary>
+        /// Builds the message for a <c>FMTTYPE</c> parameter that is not valid.
+        /// </summary>
+        internal static string BuildInvalidFormatTypeMessage(string propertyName)
+        {
+            return string.Format(CultureInfo.InvariantCulture,
                 "The {0} property must have one FMTTYPE parameter with one value, which is a type and subtype.", propertyName);
-            return IcalContentLineScanner.BuildException(message, lineNumber, physicalLineNumber, propertyName);
         }
 
         // TODO: RFC 5545 cites RFC 4288, which RFC 6838 has obsoleted.  RFC 6838 §4.2 requires a name to start with a letter or digit.

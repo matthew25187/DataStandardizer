@@ -99,7 +99,8 @@ escaping in place. `GetTextValue()` removes the escaping. `SetProperty` and
 `GetFormatType()` reads the `FMTTYPE` parameter of a property such as `ATTACH` as a
 `MimeMediaType`, from `DataStandardizer.Communication.Mime`. It returns `null` if the
 property has no `FMTTYPE` parameter, and throws `IcalFileException` if the parameter
-isn't a type and subtype, as RFC 5545 §3.2.8 requires.
+isn't a type and subtype, as RFC 5545 §3.2.8 requires. The reader rejects such a
+parameter when it reads the calendar, unless `AllowInvalidValues` is set.
 
 ```csharp
 foreach (var attachment in calendarEvent.GetProperties("ATTACH"))

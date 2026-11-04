@@ -16,7 +16,13 @@ namespace DataStandardizer.File.iCal.Tests
         public const string TwoSummariesCase = "TwoSummaries";
         public const string RefreshIntervalWithoutValueCase = "RefreshIntervalWithoutValue";
         public const string BinaryWithoutEncodingCase = "BinaryWithoutEncoding";
+        public const string TwoFormatTypesCase = "TwoFormatTypes";
+        public const string TwoLanguagesCase = "TwoLanguages";
+        public const string TwoEncodingsCase = "TwoEncodings";
+        public const string TwoValueParametersCase = "TwoValueParameters";
+        public const string ValueParameterWithTwoValuesCase = "ValueParameterWithTwoValues";
 
+        private const string Attachment = "ATTACH";
         private const string DtStart = "DTSTART";
         private const string Duration = "DURATION";
         private const string RecurrenceRule = "RRULE";
@@ -124,7 +130,7 @@ namespace DataStandardizer.File.iCal.Tests
                 RecurrenceRule, EventPath),
             [RefreshIntervalWithoutValueCase] = new Case(Calendar("REFRESH-INTERVAL:P1D", BeginJournal, JournalUid, NewYearStamp,
                 EndJournal), IcalDiagnosticKind.InvalidValue, "REFRESH-INTERVAL", CalendarPath),
-            [BinaryWithoutEncodingCase] = new Case(EventCalendar("ATTACH;VALUE=BINARY:AAAA"), IcalDiagnosticKind.InvalidValue, "ATTACH", EventPath),
+            [BinaryWithoutEncodingCase] = new Case(EventCalendar("ATTACH;VALUE=BINARY:AAAA"), IcalDiagnosticKind.InvalidValue, Attachment, EventPath),
             ["PriorityOutOfRange"] = new Case(EventCalendar("PRIORITY:10"), IcalDiagnosticKind.InvalidValue, "PRIORITY", EventPath),
             ["InvalidTextEscape"] = new Case(EventCalendar("SUMMARY:Back\\slash"), IcalDiagnosticKind.InvalidValue, "SUMMARY", EventPath),
             ["InvalidGeo"] = new Case(EventCalendar("GEO:37.386013"), IcalDiagnosticKind.InvalidValue, "GEO", EventPath),
@@ -133,7 +139,34 @@ namespace DataStandardizer.File.iCal.Tests
                 ZeroOffsetTo, EndStandard, EndTimeZone), IcalDiagnosticKind.InvalidValue, DtStart, "VCALENDAR/VTIMEZONE[1]/STANDARD[1]"),
             ["EmptyTimeZoneId"] = new Case(Calendar(BeginTimeZone, "TZID:", BeginStandard, "DTSTART:19700101T000000", ZeroOffsetFrom,
                 ZeroOffsetTo, EndStandard, EndTimeZone), IcalDiagnosticKind.InvalidValue, "TZID", TimeZonePath),
-            ["TimeDurationForDateStart"] = new Case(EventCalendar(DateStart, OneHour), IcalDiagnosticKind.InvalidValue, Duration, EventPath)
+            ["TimeDurationForDateStart"] = new Case(EventCalendar(DateStart, OneHour), IcalDiagnosticKind.InvalidValue, Duration, EventPath),
+
+            // The FMTTYPE parameter, ref. RFC 5545 §3.2.8.
+            ["FormatTypeWithoutSubtype"] = new Case(EventCalendar("ATTACH;FMTTYPE=audio:http://example.com/a"), IcalDiagnosticKind.InvalidValue,
+                Attachment, EventPath),
+            ["FormatTypeWithTwoValues"] = new Case(EventCalendar("ATTACH;FMTTYPE=audio/basic,image/png:http://example.com/a"),
+                IcalDiagnosticKind.InvalidValue, Attachment, EventPath),
+            [TwoFormatTypesCase] = new Case(EventCalendar("ATTACH;FMTTYPE=audio/basic;FMTTYPE=image/png:http://example.com/a"),
+                IcalDiagnosticKind.InvalidValue, Attachment, EventPath),
+            ["FormatTypeWithMediaTypeParameter"] = new Case(EventCalendar("ATTACH;FMTTYPE=\"text/html; charset=utf-8\":http://example.com/a"),
+                IcalDiagnosticKind.InvalidValue, Attachment, EventPath),
+            ["FormatTypeOnImage"] = new Case(EventCalendar("IMAGE;VALUE=URI;FMTTYPE=png:http://example.com/a.png"), IcalDiagnosticKind.InvalidValue,
+                "IMAGE", EventPath),
+            ["FormatTypeOnExtensionProperty"] = new Case(EventCalendar("X-ABC-MMSUBJ;VALUE=URI;FMTTYPE=audio:http://www.example.org/mysubj.au"),
+                IcalDiagnosticKind.InvalidValue, "X-ABC-MMSUBJ", EventPath),
+
+            // Other parameters, ref. RFC 5545 §3.2 and the rule of each property that a parameter "MUST NOT occur more than once".
+            [TwoLanguagesCase] = new Case(EventCalendar("SUMMARY;LANGUAGE=en;LANGUAGE=de:x"), IcalDiagnosticKind.InvalidValue, "SUMMARY", EventPath),
+            [TwoEncodingsCase] = new Case(EventCalendar("ATTACH;ENCODING=BASE64;ENCODING=8BIT;VALUE=BINARY:AAAA"), IcalDiagnosticKind.InvalidValue,
+                Attachment, EventPath),
+            [TwoValueParametersCase] = new Case(EventCalendar("ATTACH;VALUE=URI;VALUE=BINARY:http://example.com/a"), IcalDiagnosticKind.InvalidValue,
+                Attachment, EventPath),
+            [ValueParameterWithTwoValuesCase] = new Case(EventCalendar("ATTACH;VALUE=URI,BINARY:http://example.com/a"), IcalDiagnosticKind.InvalidValue,
+                Attachment, EventPath),
+            ["CommonNameWithUnquotedComma"] = new Case(EventCalendar("ATTENDEE;CN=Doe, John:mailto:a@example.com"), IcalDiagnosticKind.InvalidValue,
+                "ATTENDEE", EventPath),
+            ["LanguageWithTwoValuesOnExtensionProperty"] = new Case(EventCalendar("X-ABC;LANGUAGE=en,de:x"), IcalDiagnosticKind.InvalidValue, "X-ABC",
+                EventPath)
         };
 
         /// <summary>
@@ -185,16 +218,37 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         /// <summary>
-        /// The cases that xCal and jCal can hold.  Three cannot be written in either: the writer always writes VERSION, the value element or
-        /// type identifier of REFRESH-INTERVAL gives it the VALUE parameter it lacked, and a binary value gives its property the ENCODING
-        /// parameter it lacked.
+        /// The cases that xCal can hold.  Five cannot be written in it: the writer always writes VERSION, the value element of REFRESH-INTERVAL
+        /// gives it the VALUE parameter it lacked, a binary value gives its property the ENCODING parameter it lacked, and the value element of
+        /// a property takes the place of its VALUE parameters, however many there are or however many values they have.
         /// </summary>
-        public static TheoryData<string> XcalAndJcalCases()
+        public static TheoryData<string> XcalCases()
         {
             var data = new TheoryData<string>();
             foreach (var name in All.Keys)
             {
-                if (name != MissingVersionCase && name != RefreshIntervalWithoutValueCase && name != BinaryWithoutEncodingCase)
+                if (name != MissingVersionCase && name != RefreshIntervalWithoutValueCase && name != BinaryWithoutEncodingCase &&
+                    name != TwoValueParametersCase && name != ValueParameterWithTwoValuesCase)
+                {
+                    data.Add(name);
+                }
+            }
+
+            return data;
+        }
+
+        /// <summary>
+        /// The cases that jCal can hold: those of <see cref="XcalCases"/>, except for a parameter that appears twice, since each parameter is a key
+        /// of a JSON object (RFC 7265 §3.5).
+        /// </summary>
+        public static TheoryData<string> JcalCases()
+        {
+            var data = new TheoryData<string>();
+            foreach (var name in All.Keys)
+            {
+                if (name != MissingVersionCase && name != RefreshIntervalWithoutValueCase && name != BinaryWithoutEncodingCase &&
+                    name != TwoValueParametersCase && name != ValueParameterWithTwoValuesCase && name != TwoFormatTypesCase &&
+                    name != TwoLanguagesCase && name != TwoEncodingsCase)
                 {
                     data.Add(name);
                 }

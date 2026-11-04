@@ -370,15 +370,15 @@ namespace DataStandardizer.File.iCal.Tests
         [Fact]
         public void WriteCalendar_RepeatedParameter_Throws()
         {
-            // arrange
-            var calendar = ReadCalendar(EventCalendar("SUMMARY;LANGUAGE=en;language=fr:Hello"));
+            // arrange: RFC 5545 §3.8.8.2 lets a non-standard property repeat a parameter, which a key of a JSON object can't.
+            var calendar = ReadCalendar(EventCalendar("X-ABC;LANGUAGE=en;language=fr:Hello"));
 
             // act
             Action testAction = () => WriteJcal(new[] { calendar });
 
             // assert
             testAction.Should().Throw<IcalFileException>().WithMessage("*LANGUAGE parameter appears more than once*")
-                .Which.Data[IcalFileException.DataItemName.PropertyName].Should().Be("SUMMARY");
+                .Which.Data[IcalFileException.DataItemName.PropertyName].Should().Be("X-ABC");
         }
 
         [Fact]

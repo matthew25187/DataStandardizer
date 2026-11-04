@@ -247,7 +247,7 @@ namespace DataStandardizer.File.iCal.Tests
             testResult.Should().Be(UnknownPropertiesCalendar);
         }
 
-        public static TheoryData<string> JcalConformanceCases() => ConformanceCases.XcalAndJcalCases();
+        public static TheoryData<string> JcalConformanceCases() => ConformanceCases.JcalCases();
 
         [Theory]
         [MemberData(nameof(JcalConformanceCases))]

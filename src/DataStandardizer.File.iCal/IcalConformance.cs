@@ -52,6 +52,27 @@ namespace DataStandardizer.File.iCal
             IcalPropertyNames.Trigger
         };
 
+        /// <summary>
+        /// The parameters RFC 5545 §3.2 and RFC 7986 §6 define with one value.  <c>FMTTYPE</c> is left out, as it has a check of its own.
+        /// </summary>
+        private static readonly string[] SingleValueParameters =
+        {
+            IcalParameterNames.AlternateRepresentation, IcalParameterNames.CommonName, IcalParameterNames.CalendarUserType,
+            IcalParameterNames.Directory, IcalParameterNames.Encoding, IcalParameterNames.FreeBusyType, IcalParameterNames.Language,
+            IcalParameterNames.ParticipationStatus, IcalParameterNames.Range, IcalParameterNames.Related, IcalParameterNames.RelationshipType,
+            IcalParameterNames.Role, IcalParameterNames.Rsvp, IcalParameterNames.SentBy, IcalParameterNames.TimeZoneId, IcalParameterNames.Value,
+            IcalParameterNames.Email, IcalParameterNames.Label
+        };
+
+        /// <summary>
+        /// The parameters RFC 5545 §3.2 and RFC 7986 §6 define with a list of values.
+        /// </summary>
+        private static readonly string[] MultipleValueParameters =
+        {
+            IcalParameterNames.DelegatedFrom, IcalParameterNames.DelegatedTo, IcalParameterNames.Member, IcalParameterNames.Display,
+            IcalParameterNames.Feature
+        };
+
         private static readonly Dictionary<string, ComponentRule> Rules = new Dictionary<string, ComponentRule>(StringComparer.OrdinalIgnoreCase)
         {
             // ref. RFC 5545§3.6 and RFC 7986§5.
@@ -298,6 +319,8 @@ namespace DataStandardizer.File.iCal
             foreach (var property in component.Properties)
             {
                 ValidateValue(property, path, context);
+                ValidateFormatType(property, path, context);
+                ValidateParameters(property, path, context);
                 if (context.IsCalendar)
                 {
                     ValidateTimeZoneReference(property, path, context);
@@ -785,6 +808,61 @@ namespace DataStandardizer.File.iCal
                 AddInvalidValue(property, path,
                     string.Format(CultureInfo.InvariantCulture, "The {0} property must be from {1} to {2}.", property.Name.ToUpperInvariant(), minimum,
                         maximum), context);
+            }
+        }
+
+        /// <summary>
+        /// Checks the <c>FMTTYPE</c> parameter of any property, including one RFC 5545 and RFC 7986 do not define: RFC 5545 §3.2.8 sets its syntax.
+        /// RFC 5545 §3.8.1.1 and RFC 7986 §5.10 allow it once on ATTACH and IMAGE, but §3.8.8.2 sets no such rule for a non-standard property.
+        /// </summary>
+        private static void ValidateFormatType(IcalContentLine property, string path, Context context)
+        {
+            var count = 0;
+            var isValid = true;
+            foreach (var parameter in property.ParameterArray)
+            {
+                if (!IsName(parameter.Name, IcalParameterNames.FormatType)) continue;
+
+                count++;
+                isValid &= parameter.ValueArray.Length == 1 && IcalPropertyValue.TryParseFormatType(parameter.ValueArray[0].AsSpan(), out _);
+            }
+
+            if (isValid && (count < 2 || !IcalValueTypeRegistry.IsKnownProperty(property.Name.AsSpan()))) return;
+
+            AddInvalidValue(property, path, IcalPropertyValue.BuildInvalidFormatTypeMessage(property.Name.ToUpperInvariant()), context);
+        }
+
+        /// <summary>
+        /// Checks how many values each parameter RFC 5545 and RFC 7986 define has, and, on a property they define, how often it occurs.
+        /// </summary>
+        private static void ValidateParameters(IcalContentLine property, string path, Context context)
+        {
+            var parameters = property.ParameterArray;
+
+            // Only a line with two or more parameters can repeat one, and few do, so most lines allocate nothing here.
+            var seen = parameters.Length > 1 && IcalValueTypeRegistry.IsKnownProperty(property.Name.AsSpan())
+                ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                : null;
+            foreach (var parameter in parameters)
+            {
+                var isSingleValue = SingleValueParameters.Contains(parameter.Name, StringComparer.OrdinalIgnoreCase);
+                if (!isSingleValue && !MultipleValueParameters.Contains(parameter.Name, StringComparer.OrdinalIgnoreCase)) continue;
+
+                // ref. RFC 5545§3.2: the grammar of each of these parameters has one value, so a comma in it must be in a quoted-string.
+                if (isSingleValue && parameter.ValueArray.Length > 1)
+                {
+                    AddInvalidValue(property, path,
+                        string.Format(CultureInfo.InvariantCulture, "The {0} parameter of the {1} property can have only one value.",
+                            parameter.Name.ToUpperInvariant(), property.Name.ToUpperInvariant()), context);
+                }
+
+                // ref. RFC 5545§3.8: each property's parameters "MUST NOT occur more than once".  §3.8.8.2 sets no such rule for a non-standard one.
+                if (seen != null && !seen.Add(parameter.Name))
+                {
+                    AddInvalidValue(property, path,
+                        string.Format(CultureInfo.InvariantCulture, "The {0} parameter appears more than once in the {1} property.",
+                            parameter.Name.ToUpperInvariant(), property.Name.ToUpperInvariant()), context);
+                }
             }
         }
 
