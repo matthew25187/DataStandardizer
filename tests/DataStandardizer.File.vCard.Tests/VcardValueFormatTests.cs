@@ -59,15 +59,75 @@ namespace DataStandardizer.File.vCard.Tests
             };
         }
 
+        /// <summary>
+        /// The calls of the structured values, which have no single form in jCard (RFC 7095 §3.3.1.3).
+        /// </summary>
+        public static TheoryData<Action<VcardValueFormat>> StructuredParseAndFormatCalls()
+        {
+            var destination = new char[64];
+            return new TheoryData<Action<VcardValueFormat>>
+            {
+                format => VcardName.TryParse(default(ReadOnlySpan<char>), format, out _),
+                format => VcardName.TryParseView(default(ReadOnlySpan<char>), format, out _),
+                format => new VcardName(new[] { "Doe" }, new[] { "Jane" }, new string[0], new string[0], new string[0]).TryFormat(destination, out _, format),
+                format => VcardAddress.TryParse(default(ReadOnlySpan<char>), format, out _),
+                format => VcardAddress.TryParseView(default(ReadOnlySpan<char>), format, out _),
+                format => VcardOrganization.TryParse(default(ReadOnlySpan<char>), format, out _),
+                format => VcardOrganization.TryParseView(default(ReadOnlySpan<char>), format, out _),
+                format => VcardGender.TryParse(default(ReadOnlySpan<char>), format, out _),
+                format => new VcardGender(VcardSex.Male, null).TryFormat(destination, out _, format),
+                format => VcardClientPidMap.TryParse(default(ReadOnlySpan<char>), format, out _),
+            };
+        }
+
         [Theory]
-        [MemberData(nameof(ParseAndFormatCalls), DisableDiscoveryEnumeration = true)]
-        public void Call_JsonForm_ThrowsNotSupported(Action<VcardValueFormat> call)
+        [MemberData(nameof(StructuredParseAndFormatCalls), DisableDiscoveryEnumeration = true)]
+        public void Call_StructuredValueInJsonForm_ThrowsNotSupported(Action<VcardValueFormat> call)
         {
             // act
             Action testAction = () => call(VcardValueFormat.Json);
 
             // assert
             testAction.Should().Throw<NotSupportedException>();
+        }
+
+        /// <summary>
+        /// The calls that take a version, which in the JSON form must be vCard 4.0, since jCard represents no other (RFC 7095 §3.3.1.1).
+        /// </summary>
+        public static TheoryData<Action<VcardVersion>> JsonCallsWithAVersion()
+        {
+            var date = new VcardDate(1985, 4, 12);
+            var time = new VcardTime(10, 22, 0);
+            var destination = new char[64];
+            return new TheoryData<Action<VcardVersion>>
+            {
+                version => VcardDate.TryParse(default(ReadOnlySpan<char>), VcardValueFormat.Json, version, out _),
+                version => date.TryFormat(destination, out _, VcardValueFormat.Json, version),
+                version => VcardTime.TryParse(default(ReadOnlySpan<char>), VcardValueFormat.Json, version, out _),
+                version => time.TryFormat(destination, out _, VcardValueFormat.Json, version),
+                version => VcardDateTime.TryParse(default(ReadOnlySpan<char>), VcardValueFormat.Json, version, out _),
+                version => new VcardDateTime(date, time).TryFormat(destination, out _, VcardValueFormat.Json, version),
+                version => VcardTimestamp.TryParse(default(ReadOnlySpan<char>), VcardValueFormat.Json, version, out _),
+                version => new VcardTimestamp(date, time).TryFormat(destination, out _, VcardValueFormat.Json, version),
+                version => VcardDateAndOrTime.TryParse(default(ReadOnlySpan<char>), VcardValueFormat.Json, version, out _),
+                version => new VcardDateAndOrTime(date).TryFormat(destination, out _, VcardValueFormat.Json, version),
+                version => VcardUtcOffset.TryParse(default(ReadOnlySpan<char>), VcardValueFormat.Json, version, out _),
+                version => new VcardUtcOffset(false, 1, null).TryFormat(destination, out _, VcardValueFormat.Json, version),
+                version => VcardGeo.TryParse(default(ReadOnlySpan<char>), VcardValueFormat.Json, version, out _),
+                version => VcardValue.TryParseText(default(ReadOnlySpan<char>), VcardValueFormat.Json, version, destination, out _),
+                version => VcardValue.TryFormatText(default(ReadOnlySpan<char>), destination, out _, VcardValueFormat.Json, version),
+            };
+        }
+
+        [Theory]
+        [MemberData(nameof(JsonCallsWithAVersion), DisableDiscoveryEnumeration = true)]
+        public void Call_JsonFormWithVersion30_ThrowsArgumentException(Action<VcardVersion> call)
+        {
+            // act
+            Action testAction = () => call(VcardVersion.V3_0);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>().Which.ParamName.Should().Be("version");
         }
 
         [Theory]

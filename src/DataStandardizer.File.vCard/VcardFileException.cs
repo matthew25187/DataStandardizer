@@ -16,6 +16,13 @@ namespace DataStandardizer.File.vCard
         public static class DataItemName
         {
             /// <summary>
+            /// The 0-based offset, in bytes from the start of the data, of the JSON token at which the problem was found, as a <see cref="long"/>.  Present only for problems that
+            /// <c>JcardReader</c> finds in the structure of the data.  A byte order mark at the start of the data is counted.  For data that is not valid JSON, the offset of the end of the
+            /// last token that was read.
+            /// </summary>
+            public const string BytePosition = "BytePosition";
+
+            /// <summary>
             /// The 0-based index of the card in which the problem was found, counting each <c>BEGIN:VCARD</c> line in the data, as an <see cref="int"/>.
             /// Present only when the line is in a card: from a <c>BEGIN:VCARD</c> line up to and including its <c>END:VCARD</c> line.  A syntax error
             /// on what would have been a <c>BEGIN:VCARD</c> line therefore doesn't count as a card.
@@ -35,12 +42,24 @@ namespace DataStandardizer.File.vCard
             public const string Group = "Group";
 
             /// <summary>
+            /// The path of the JSON value at which the problem was found, such as <c>$[1][3][2]</c> or <c>$[1][3][1]['type']</c>, as a <see cref="string"/>.  Present only for problems
+            /// that <c>JcardReader</c> finds in the structure of the data once the value has been read; a problem in the JSON syntax itself has <see cref="BytePosition"/> instead.
+            /// </summary>
+            public const string JsonPath = "JsonPath";
+
+            /// <summary>
             /// The 1-based number of the logical (unfolded) content line, as a <see cref="long"/>.  Not present when the data could not be decoded,
             /// since decoding works on whole blocks, ahead of the lines that have been returned.  For a value that
             /// <see cref="VcardContentLine.GetTextValue"/> cannot read, it is <see cref="VcardContentLine.LineNumber"/>, which is 0 for a line not
-            /// read from data.
+            /// read from data.  For data that <c>JcardReader</c> finds is not valid JSON, it is the 1-based number of the line of the JSON document.
             /// </summary>
             public const string LineNumber = "LineNumber";
+
+            /// <summary>
+            /// The 1-based position in bytes on the line of the JSON document at which the problem was found, as a <see cref="long"/>.  Present only for data that <c>JcardReader</c>
+            /// finds is not valid JSON.
+            /// </summary>
+            public const string LinePosition = "LinePosition";
 
             /// <summary>
             /// The 1-based number of the physical line on which the problem was found, as a <see cref="long"/>.  Not present when the data could not

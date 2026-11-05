@@ -18,6 +18,10 @@ namespace DataStandardizer.File.vCard
     /// A default instance is not initialised: <see cref="Name"/>, <see cref="Units"/> and <see cref="IsDefinedIn"/> throw <see cref="InvalidOperationException"/>,
     /// <see cref="TryFormat(Span{char}, out int, VcardValueFormat)"/> writes nothing, and <see cref="ToString()"/> gives the type name.
     /// </para>
+    /// <para>
+    /// In jCard (RFC 7095 §3.3.1.3) the value is a JSON array with an element for each component, not a single string, so it has no <see cref="VcardValueFormat.Json"/> form of
+    /// its own, and parsing or formatting in that form throws <see cref="NotSupportedException"/>.  <c>JcardReader</c> and <c>JcardWriter</c> map the array to and from the text form.
+    /// </para>
     /// </remarks>
     public readonly struct VcardOrganization : IEquatable<VcardOrganization>
     {
@@ -166,7 +170,7 @@ namespace DataStandardizer.File.vCard
         /// <exception cref="NotSupportedException"><paramref name="format"/> is not <see cref="VcardValueFormat.Text"/>.</exception>
         public static bool TryParseView(ReadOnlySpan<char> value, VcardValueFormat format, VcardVersion version, out VcardStructuredValueView result)
         {
-            VcardValueFormatting.CheckFormat(format);
+            VcardValueFormatting.CheckStructuredFormat(format, "An ORG value");
             VcardValueFormatting.CheckVersion(version);
 
             // ref. RFC 6350 §6.6.4: ORG-value = component *(";" component)
@@ -240,7 +244,7 @@ namespace DataStandardizer.File.vCard
         /// <exception cref="InvalidOperationException"><paramref name="version"/> has no form for this organization; see <see cref="IsDefinedIn"/>.</exception>
         public bool TryFormat(Span<char> destination, out int charsWritten, VcardValueFormat format, VcardVersion version)
         {
-            VcardValueFormatting.CheckFormat(format);
+            VcardValueFormatting.CheckStructuredFormat(format, "An ORG value");
             VcardValueFormatting.CheckVersion(version);
 
             if (_name is null)

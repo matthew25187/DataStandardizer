@@ -19,6 +19,7 @@ gradually or must remain on older frameworks indefinitely.
 | **DataStandardizer.File.CSV** | `netstandard1.3`, `netstandard2.0`, `netstandard2.1`, `net10.0` |
 | **DataStandardizer.File.iCal** | `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, `net10.0` |
 | **DataStandardizer.File.InternetMessage** | `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, `net10.0` |
+| **DataStandardizer.File.vCard** | `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, `net10.0` |
 | **DataStandardizer.Geography** | `netstandard1.0`, `netstandard2.0`, `net10.0` |
 | **DataStandardizer.Language** | `netstandard1.0`, `netstandard2.0`, `net10.0` |
 | **DataStandardizer.LanguageTag** | `netstandard1.1`, `netstandard2.0`, `net10.0` |
@@ -117,6 +118,14 @@ System.Text.Json from its NuGet package, which NuGet installs automatically; on
 `net10.0` it is part of the framework. The jCal lexical form of
 single values, `IcalValueFormat.Json`, needs no JSON library, so the value types
 support it on every target, `netstandard1.1` included.
+
+In the same way, **DataStandardizer.File.vCard** needs `netstandard2.0` or later for
+jCard (the JSON form of vCard, RFC 7095): `JcardReader` and `JcardWriter` use
+System.Text.Json, so they are not available on its `netstandard1.1` build, and the
+`netstandard2.0` and `netstandard2.1` builds get System.Text.Json from its NuGet
+package. The jCard lexical form of single values, `VcardValueFormat.Json`, needs no
+JSON library, so the value types support it on every target. That build also has no
+async API and no file-path constructors, as for **DataStandardizer.File.iCal**.
 
 The `netstandard1.1` build of **DataStandardizer.File.InternetMessage** is limited
 in two of the same ways: it has no async API, such as `ImfReader.ReadMessageAsync`

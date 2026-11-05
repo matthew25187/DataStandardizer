@@ -12,6 +12,10 @@ namespace DataStandardizer.File.vCard
     /// is positive, so neither can be zero.  An integer too large for a <see cref="long"/> is rejected.  Leading zeros are accepted, and not written.
     /// </para>
     /// <para>
+    /// In jCard a parameter value is a JSON string with "the original case of the parameter value" (RFC 7095 §3.4), so the <see cref="VcardValueFormat.Json"/> form is the same as the
+    /// text form.
+    /// </para>
+    /// <para>
     /// A default instance is not initialised: <see cref="LocalId"/> and <see cref="SourceId"/> throw <see cref="InvalidOperationException"/>,
     /// <see cref="TryFormat(Span{char}, out int, VcardValueFormat)"/> writes nothing, and <see cref="ToString()"/> gives the type name.
     /// </para>
@@ -86,7 +90,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="result">The PID value, if the value is valid.</param>
         /// <returns><c>true</c> if the value is valid; otherwise <c>false</c>.</returns>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not a <see cref="VcardValueFormat"/> member.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is not <see cref="VcardValueFormat.Text"/>.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
         public static bool TryParse(ReadOnlySpan<char> value, VcardValueFormat format, out VcardPid result)
         {
             VcardValueFormatting.CheckFormat(format);
@@ -118,7 +122,7 @@ namespace DataStandardizer.File.vCard
         /// <returns>The PID value.</returns>
         /// <exception cref="FormatException">The value is not valid.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not a <see cref="VcardValueFormat"/> member.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is not <see cref="VcardValueFormat.Text"/>.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
         public static VcardPid Parse(ReadOnlySpan<char> value, VcardValueFormat format)
         {
             VcardPid result;
@@ -136,7 +140,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="format">The lexical form to write.</param>
         /// <returns><c>true</c> if the value was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not a <see cref="VcardValueFormat"/> member.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is not <see cref="VcardValueFormat.Text"/>.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
         public bool TryFormat(Span<char> destination, out int charsWritten, VcardValueFormat format)
         {
             VcardValueFormatting.CheckFormat(format);

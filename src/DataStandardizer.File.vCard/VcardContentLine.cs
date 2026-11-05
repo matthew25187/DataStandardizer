@@ -374,6 +374,25 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
+        /// Creates a line converted from another form of a vCard 4.0 card, such as a property of jCard (RFC 7095).  It has no place in <c>.vcf</c> data, so its line numbers are 0,
+        /// and it is in a card of vCard 4.0, whose parameters mean what RFC 6350 says.
+        /// </summary>
+        /// <param name="group">The group, without its '.'; or <c>null</c> for none.</param>
+        /// <param name="name">The property name.</param>
+        /// <param name="parameters">The parameters, which the line takes ownership of.</param>
+        /// <param name="value">The value, as it appears in a content line.</param>
+        /// <param name="cardIndex">The 0-based index of the card the line is in.</param>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal static VcardContentLine FromConversion(string? group, string name, VcardContentLineParameter[] parameters, string value, int cardIndex)
+#else
+        internal static VcardContentLine FromConversion(string group, string name, VcardContentLineParameter[] parameters, string value, int cardIndex)
+#endif
+        {
+            return new VcardContentLine(group, name, parameters.Length == 0 ? NoParameters : parameters, value, 0, 0, null, 0, cardIndex, false, VcardValueDecoder.Default,
+                VcardLineVersion.Version40);
+        }
+
+        /// <summary>
         /// Creates a content line from the reader's current line.
         /// </summary>
         /// <param name="scanner">The scanner holding the line.</param>

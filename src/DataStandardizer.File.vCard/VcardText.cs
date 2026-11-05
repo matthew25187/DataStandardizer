@@ -33,17 +33,8 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         internal static bool IsValidText(ReadOnlySpan<char> value, VcardVersion version)
         {
-            if (version == VcardVersion.V2_1)
-            {
-                // ref. vCard 2.1 §2.1.3: a value decoded from quoted-printable can hold line breaks.
-                for (var index = 0; index < value.Length; index++)
-                {
-                    var character = value[index];
-                    if (character != '\r' && character != '\n' && !IsValueCharacter(value, ref index)) return false;
-                }
-
-                return true;
-            }
+            // ref. vCard 2.1 §2.1.3: a value decoded from quoted-printable can hold line breaks.
+            if (version == VcardVersion.V2_1) return IsValidUnescapedText(value);
 
             for (var index = 0; index < value.Length; index++)
             {
@@ -68,6 +59,21 @@ namespace DataStandardizer.File.vCard
 
                         break;
                 }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Gets whether text with no escaping, such as a value of vCard 2.1 or the content of a JSON string of jCard, holds only characters a value can hold: those of
+        /// <see cref="CheckCharacters"/>.
+        /// </summary>
+        internal static bool IsValidUnescapedText(ReadOnlySpan<char> value)
+        {
+            for (var index = 0; index < value.Length; index++)
+            {
+                var character = value[index];
+                if (character != '\r' && character != '\n' && !IsValueCharacter(value, ref index)) return false;
             }
 
             return true;

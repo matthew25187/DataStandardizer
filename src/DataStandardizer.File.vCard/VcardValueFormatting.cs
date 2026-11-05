@@ -17,13 +17,104 @@ namespace DataStandardizer.File.vCard
             switch (format)
             {
                 case VcardValueFormat.Text:
-                    return;
                 case VcardValueFormat.Json:
+                    return;
                 case VcardValueFormat.Xml:
-                    throw new NotSupportedException("Only the text form of a vCard value is implemented.");
+                    throw new NotSupportedException("The xCard form of a vCard value is not implemented yet.");
                 default:
                     throw new ArgumentOutOfRangeException(nameof(format), format, "The value format is not recognised.");
             }
+        }
+
+        /// <summary>
+        /// Checks that a value format and a version can be used together.  jCard (RFC 7095) represents vCard 4.0 (RFC 6350) alone, so the JSON form has no other version.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> or <paramref name="version"/> is not a member of its type.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is a form that isn't implemented yet.</exception>
+        /// <exception cref="ArgumentException"><paramref name="format"/> is <see cref="VcardValueFormat.Json"/> and <paramref name="version"/> isn't vCard 4.0.</exception>
+        internal static void CheckFormat(VcardValueFormat format, VcardVersion version)
+        {
+            CheckFormat(format);
+            CheckVersion(version);
+            if (format == VcardValueFormat.Json && version != VcardVersion.V4_0)
+                throw new ArgumentException("jCard (RFC 7095) represents vCard 4.0 alone, so a value in the JSON form is a value of vCard 4.0.", nameof(version));
+        }
+
+        /// <summary>
+        /// Checks that a value format is one that a structured value can be parsed from and formatted in.  In jCard a structured value is a JSON array with an element for each
+        /// component (RFC 7095 §3.3.1.3), not a single string, so it has no form of its own there.
+        /// </summary>
+        /// <param name="format">The format.</param>
+        /// <param name="valueName">The name of the value, such as <c>An N value</c>, for the message.</param>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not a <see cref="VcardValueFormat"/> member.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Json"/> or <see cref="VcardValueFormat.Xml"/>.</exception>
+        internal static void CheckStructuredFormat(VcardValueFormat format, string valueName)
+        {
+            CheckFormat(format);
+            if (format == VcardValueFormat.Json)
+                throw new NotSupportedException(valueName + " has no single lexical form in jCard (RFC 7095 §3.3.1.3), where a structured value is a JSON array with an element for " +
+                                                "each component.  JcardReader and JcardWriter read and write that array.");
+        }
+
+        /// <summary>
+        /// Gets the version that a value formatted by a .NET format string is written in: vCard 4.0 for the JSON form, which has no other, and otherwise the value's own default.
+        /// </summary>
+        internal static VcardVersion GetFormattingVersion(VcardValueFormat format, VcardVersion defaultVersion)
+        {
+            return format == VcardValueFormat.Json ? VcardVersion.V4_0 : defaultVersion;
+        }
+
+        /// <summary>
+        /// Gets whether text is a JSON number (RFC 8259 §6): an optional minus sign, an integer with no leading zeros, an optional fraction and an optional exponent.
+        /// </summary>
+        internal static bool IsJsonNumber(ReadOnlySpan<char> value)
+        {
+            // ref. RFC 8259 §6: number = [ minus ] int [ frac ] [ exp ]; int = zero / ( digit1-9 *DIGIT )
+            var index = 0;
+            if (index < value.Length && value[index] == '-')
+            {
+                index++;
+            }
+
+            if (index == value.Length || !IsDigit(value[index])) return false;
+
+            if (value[index++] != '0')
+            {
+                while (index < value.Length && IsDigit(value[index]))
+                {
+                    index++;
+                }
+            }
+
+            if (index < value.Length && value[index] == '.')
+            {
+                var fractionStart = ++index;
+                while (index < value.Length && IsDigit(value[index]))
+                {
+                    index++;
+                }
+
+                if (index == fractionStart) return false;
+            }
+
+            if (index < value.Length && (value[index] == 'e' || value[index] == 'E'))
+            {
+                index++;
+                if (index < value.Length && (value[index] == '+' || value[index] == '-'))
+                {
+                    index++;
+                }
+
+                var exponentStart = index;
+                while (index < value.Length && IsDigit(value[index]))
+                {
+                    index++;
+                }
+
+                if (index == exponentStart) return false;
+            }
+
+            return index == value.Length;
         }
 
         /// <summary>
