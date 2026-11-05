@@ -15,7 +15,9 @@ namespace DataStandardizer.File.vCard
     /// <para>
     /// Each card is written as content lines by a <see cref="VcardContentLineWriter"/>, so the same options and rules apply to its lines: folding, line breaks, and the encoding of
     /// parameter values.  The card is written as <c>BEGIN:VCARD</c>, then a <c>VERSION</c> line, then its properties in order, then <c>END:VCARD</c>.  In vCard 4.0, a property read by
-    /// <see cref="VcardReader"/> keeps its group and parameters as they are in the model, and in vCard 3.0 they are converted from the canonical form of the model.
+    /// <see cref="VcardReader"/> keeps its group and parameters as they are in the model, and in vCard 3.0 and 2.1 they are converted from the canonical form of the model.  In vCard 2.1, a
+    /// value is written in quoted-printable where it has a character that isn't printable US-ASCII or its line would be longer than 75 characters, binary data in <c>BASE64</c>, and the card an
+    /// agent holds after its <c>AGENT</c> line (§2.5.4).
     /// </para>
     /// <para>
     /// Before a card is written, it is checked as <see cref="VcardCard.Validate(VcardVersion)"/> does for that version.  If it breaks a rule that the options do not accept,
@@ -47,7 +49,7 @@ namespace DataStandardizer.File.vCard
         private int _isOperationInProgress;
 
         /// <summary>
-        /// Creates a writer of iCard data to a stream, as UTF-8 without a byte order mark.
+        /// Creates a writer of vCard data to a stream, as UTF-8 without a byte order mark.
         /// </summary>
         /// <param name="vcardStream">The stream.  It is left open when the writer is disposed.</param>
         /// <exception cref="ArgumentNullException"><paramref name="vcardStream"/> is <c>null</c>.</exception>
@@ -57,7 +59,7 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Creates a writer of iCard data to a stream.
+        /// Creates a writer of vCard data to a stream.
         /// </summary>
         /// <param name="vcardStream">The stream.  It is left open when the writer is disposed.</param>
         /// <param name="options">The options.</param>
@@ -67,14 +69,14 @@ namespace DataStandardizer.File.vCard
         /// <see cref="VcardOptions.FoldLength"/>, <see cref="VcardOptions.FoldWhitespace"/> or <see cref="VcardOptions.LineBreak"/> is not
         /// valid.
         /// -or-
-        /// <see cref="VcardOptions.WriteVersion"/> is one that can't be written yet.</exception>
+        /// <see cref="VcardOptions.WriteVersion"/> is not a <see cref="VcardVersion"/> member.</exception>
         public VcardWriter(Stream vcardStream, VcardOptions options) : this(new VcardContentLineWriter(vcardStream, CheckWriteVersion(options)), options)
         {
         }
 
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
         /// <summary>
-        /// Creates a writer of an iCard file, as UTF-8 without a byte order mark.  An existing file is overwritten.
+        /// Creates a writer of a vCard file, as UTF-8 without a byte order mark.  An existing file is overwritten.
         /// </summary>
         /// <param name="vcardFilePath">The path of the file.</param>
         /// <exception cref="ArgumentNullException"><paramref name="vcardFilePath"/> is <c>null</c>.</exception>
@@ -83,7 +85,7 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Creates a writer of an iCard file.  An existing file is overwritten.
+        /// Creates a writer of a vCard file.  An existing file is overwritten.
         /// </summary>
         /// <param name="vcardFilePath">The path of the file.</param>
         /// <param name="options">The options.</param>
@@ -96,7 +98,7 @@ namespace DataStandardizer.File.vCard
 #endif
 
         /// <summary>
-        /// Creates a writer of iCard data to a text writer.
+        /// Creates a writer of vCard data to a text writer.
         /// </summary>
         /// <param name="writer">The text writer.  It is neither flushed nor closed when the writer is disposed; call <see cref="Flush"/> first.</param>
         /// <exception cref="ArgumentNullException"><paramref name="writer"/> is <c>null</c>.</exception>
@@ -105,7 +107,7 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Creates a writer of iCard data to a text writer.
+        /// Creates a writer of vCard data to a text writer.
         /// </summary>
         /// <param name="writer">The text writer.  It is neither flushed nor closed when the writer is disposed; call <see cref="Flush"/> first.</param>
         /// <param name="options">The options.  <see cref="VcardOptions.Encoding"/> must be <c>null</c>, since the text writer does its own
@@ -583,7 +585,7 @@ namespace DataStandardizer.File.vCard
             var lines = new List<VcardContentLine>(properties.Count + 3);
             lines.Add(new VcardContentLine(VcardPropertyNames.Begin, VcardCardBuilder.CardValue));
             lines.Add(new VcardContentLine(VcardPropertyNames.Version, _mapping.VersionText));
-            lines.AddRange(properties);
+            lines.AddRange(_mapping.Version == VcardVersion.V2_1 ? VcardVersion21Mapping.ExpandHeldCards(properties, _options) : properties);
             lines.Add(new VcardContentLine(VcardPropertyNames.End, VcardCardBuilder.CardValue));
             return lines;
         }

@@ -39,7 +39,8 @@ namespace DataStandardizer.File.vCard
     /// because vCard 2.1 and later versions unfold them differently, so no fold is read the same way by every reader.  A value with
     /// <c>ENCODING=QUOTED-PRINTABLE</c> is broken with soft line breaks so that no line reaches 76 characters (vCard 2.1 §2.1.3); a line whose group, name and parameters leave no room for that on its first line can't be written.  A value with <c>ENCODING=BASE64</c> is
     /// written on the lines after the property's own, indented, with the empty line that ends it (vCard 2.1 §2.9).  The value must already be in the encoding, or the line
-    /// can't be written.  A parameter is written with its name, which vCard 2.1 §2.9 allows for all of them.</item>
+    /// can't be written.  A <c>TYPE</c> whose one value is a <c>knowntype</c> of vCard 2.1 §2.9, such as <c>WORK</c>, is written as that value alone, unless
+    /// <see cref="VcardOptions.WriteNamedTypesInVersion21"/> is set, and every other parameter with its name.</item>
     /// </list>
     /// <para>
     /// A line read by <see cref="VcardContentLineReader"/> with its default options is written back as the same line: reading it again gives the same
@@ -72,6 +73,7 @@ namespace DataStandardizer.File.vCard
         private static readonly Encoding DefaultEncoding = new UTF8Encoding(false, true);
 
         private readonly bool _allowLossyVersionConversion;
+        private readonly bool _writesNamedTypesInVersion21;
         private static readonly Func<string, bool> IsAlwaysQuoted = VcardPropertyParameterReader.IsAlwaysQuoted;
 
         private readonly ContentLineFormatter _formatter;
@@ -188,6 +190,7 @@ namespace DataStandardizer.File.vCard
             _isInternalWriter = isInternalWriter;
             _ownsOutput = ownsOutput;
             _allowLossyVersionConversion = options.AllowLossyVersionConversion;
+            _writesNamedTypesInVersion21 = options.WriteNamedTypesInVersion21;
             _formatter = new ContentLineFormatter(options.FoldLength, options.FoldWhitespace, options.LineBreak, new VcardContentLineErrorFactory(_lineState));
         }
 
@@ -534,7 +537,8 @@ namespace DataStandardizer.File.vCard
 
             var foldMode = _lineState.IsVersion21 ? GetVersion21FoldMode(line) : ContentLineFoldMode.Fold;
             // ref. RFC 6350 §5: the case of a value that isn't quoted is not significant.  The rule is of vCard 4.0, and vCard 2.1 has no quoted strings.
-            return _formatter.Format(new VcardContentLineData(line), _linesWritten + 1, caretMode, foldMode, _lineState.IsVersion40 ? IsAlwaysQuoted : null);
+            var data = new VcardContentLineData(line, _lineState.IsVersion21 && !_writesNamedTypesInVersion21);
+            return _formatter.Format(data, _linesWritten + 1, caretMode, foldMode, _lineState.IsVersion40 ? IsAlwaysQuoted : null);
         }
 
         /// <summary>

@@ -23,11 +23,11 @@ public static class VcardVersionConverter
 
 | Method | Notes |
 | --- | --- |
-| `Analyze(card, version)` | Lists what a card can't keep in a version, without changing or writing anything. For vCard 3.0 each item is `Lossy`. For vCard 4.0 each is `VersionConversion`: a property of an older version that stays as one 4.0 doesn't define. |
+| `Analyze(card, version)` | Lists what a card can't keep in a version, without changing or writing anything. For vCard 3.0 and 2.1 each item is `Lossy`. For vCard 4.0 each is `VersionConversion`: a property of an older version that stays as one 4.0 doesn't define. |
 | `Convert(card, version)` | A copy of a card with `SourceVersion` set to that version. It throws `VcardFileException` if the card has a `Lossy` item. |
 | `Convert(card, version, options)` | The same, and `AllowLossyVersionConversion` leaves out what the version can't hold. |
 
-Each throws `ArgumentException` for vCard 2.1, which can't be written yet.
+Each throws `ArgumentOutOfRangeException` for a value that isn't a `VcardVersion` member.
 
 ## Applies to
 

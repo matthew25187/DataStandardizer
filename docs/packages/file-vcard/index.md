@@ -8,8 +8,8 @@ has_children: true
 # DataStandardizer.File.vCard
 
 Reading and writing of vCard data, either as cards or at the level of its content lines. The
-package is a preview under development: vCard 4.0 and 3.0 cards can be read and written so far, and
-vCard 2.1 cards, jCard and xCard are still to come. See
+package is a preview under development: vCard 4.0, 3.0 and 2.1 cards can be read and written, and
+jCard and xCard are still to come. See
 [The card object model](card-model.md) and [Converting between versions](version-conversion.md).
 
 ## Standards
@@ -18,7 +18,7 @@ vCard 2.1 cards, jCard and xCard are still to come. See
 | --- | --- |
 | **RFC 6350** | *vCard Format Specification*: the content-line syntax, including groups, line folding and TEXT escaping; the typed values of §4; and the properties and parameters of §5 and §6, with their conformance rules. |
 | **RFC 6868** | *Parameter Value Encoding in iCalendar and vCard*: caret encoding of double quotes and line breaks in parameter values. |
-| **vCard 2.1** | *The Electronic Business Card*: the lexical syntax, including quoted-printable, `BASE64`, `CHARSET` and parameters with no name. See [Legacy syntax and character sets](legacy-syntax.md). |
+| **vCard 2.1** | *The Electronic Business Card*: vCard 2.1 cards, including quoted-printable, `BASE64`, `CHARSET`, parameters with no name and the card an `AGENT` holds. See [Legacy syntax and character sets](legacy-syntax.md) and [Converting between versions](version-conversion.md). |
 | **RFC 2425, RFC 2426** | *vCard MIME Directory Profile*: vCard 3.0 cards, with their errata. See [Converting between versions](version-conversion.md). |
 | **RFC 2739** | *Calendar Attributes for vCard and LDAP*: `FBURL`, `CALADRURI`, `CAPURI` and `CALURI` in vCard 3.0. |
 | **RFC 4770** | *vCard Extensions for Instant Messaging*: `IMPP` in vCard 3.0. |

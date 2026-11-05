@@ -15,6 +15,7 @@ The public types of **DataStandardizer.File.vCard**. All types are in the
 | Type | Description |
 | --- | --- |
 | [Vcard30PropertyParameters](Vcard30PropertyParameters.md) | The group and parameters of a property being added in the shape of vCard 3.0. |
+| [Vcard21PropertyParameters](Vcard21PropertyParameters.md) | The group and parameters of a property being added in the shape of vCard 2.1. |
 | [VcardAgent](VcardAgent.md) | Who acts for the entity of a card. |
 | [VcardCard](VcardCard.md) | A vCard: an open list of properties, with typed accessors. |
 | [VcardContentLine](VcardContentLine.md) | A content line (RFC 6350 §3.3): group, property name, parameters and value. |
@@ -23,7 +24,7 @@ The public types of **DataStandardizer.File.vCard**. All types are in the
 | [VcardContentLineWriter](VcardContentLineWriter.md) | Writes content lines, folding them and treating each as its card's version says, with async and progress options. |
 | [VcardDiagnostic](VcardDiagnostic.md) | A conformance problem. |
 | [VcardFileException](VcardFileException.md) | The exception for a problem in vCard data, with where it was found. |
-| [VcardMediaValue](VcardMediaValue.md) | A binary, URI or text media value in the shape of vCard 3.0. |
+| [VcardMediaValue](VcardMediaValue.md) | A binary, URI or text media value in the shape of vCard 3.0 or 2.1. |
 | [VcardOptions](VcardOptions.md) | Options for a reader or writer; the defaults follow RFC 6350 and its extensions. |
 | [VcardLegacyMediaTypes](VcardLegacyMediaTypes.md) | Maps the TYPE tokens of older versions to media types. |
 | [VcardParameterNames](VcardParameterNames.md) | The names of the parameters of vCard 4.0. |
@@ -45,6 +46,9 @@ The public types of **DataStandardizer.File.vCard**. All types are in the
 | [IVcard30Card](IVcard30Card.md) | A card in the shape of vCard 3.0. |
 | [IVcard30Property](IVcard30Property.md) | A property in the shape of vCard 3.0. |
 | [IVcard30PropertyList](IVcard30PropertyList.md) | The instances of one property in the shape of vCard 3.0. |
+| [IVcard21Card](IVcard21Card.md) | A card in the shape of vCard 2.1. |
+| [IVcard21Property](IVcard21Property.md) | A property in the shape of vCard 2.1. |
+| [IVcard21PropertyList](IVcard21PropertyList.md) | The instances of one property in the shape of vCard 2.1. |
 | [IVcard40Card](IVcard40Card.md) | A card in the shape of vCard 4.0. |
 | [IVcard40Property](IVcard40Property.md) | A property in the shape of vCard 4.0. |
 | [IVcard40PropertyList](IVcard40PropertyList.md) | The instances of one property in the shape of vCard 4.0. |

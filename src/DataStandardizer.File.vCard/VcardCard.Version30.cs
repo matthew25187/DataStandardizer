@@ -174,7 +174,6 @@ namespace DataStandardizer.File.vCard
         /// <param name="version">The version.</param>
         /// <returns>Every problem found.</returns>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="version"/> is not a <see cref="VcardVersion"/> member.</exception>
-        /// <exception cref="ArgumentException">Cards of <paramref name="version"/> can't be written yet.</exception>
         public IReadOnlyList<VcardDiagnostic> Validate(VcardVersion version)
         {
             var mapping = VcardVersionMapping.For(version, nameof(version));

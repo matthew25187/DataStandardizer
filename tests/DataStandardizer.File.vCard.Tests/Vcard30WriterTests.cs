@@ -487,23 +487,18 @@ namespace DataStandardizer.File.vCard.Tests
             testResult.Should().Be("abcd\r\nef");
         }
 
-        public static TheoryData<VcardVersion> UnwritableVersionData()
-        {
-            return new TheoryData<VcardVersion> { VcardVersion.V2_1 };
-        }
-
-        [Theory]
-        [MemberData(nameof(UnwritableVersionData))]
-        public void Constructor_VersionThatCanNotBeWrittenYet_ThrowsArgumentException(VcardVersion version)
+        [Fact]
+        public void Constructor_VersionThatIsNotAMember_ThrowsArgumentOutOfRangeException()
         {
             // arrange
-            var options = new VcardOptions { WriteVersion = version };
+            const VcardVersion NotAVersion = (VcardVersion)3;
+            var options = new VcardOptions { WriteVersion = NotAVersion };
 
             // act
             Action testAction = () => new VcardWriter(new StringWriter(), options);
 
             // assert
-            testAction.Should().Throw<ArgumentException>();
+            testAction.Should().Throw<ArgumentOutOfRangeException>();
         }
 
         [Fact]

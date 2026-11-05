@@ -69,9 +69,14 @@ namespace DataStandardizer.File.vCard.Tests
 
         private static string Write(params VcardContentLine[] lines)
         {
+            return Write(new VcardOptions(), lines);
+        }
+
+        private static string Write(VcardOptions options, params VcardContentLine[] lines)
+        {
             using (var text = new StringWriter())
             {
-                using (var writer = new VcardContentLineWriter(text))
+                using (var writer = new VcardContentLineWriter(text, options))
                 {
                     writer.WriteLines(lines);
                 }
@@ -371,7 +376,7 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Fact]
-        public void WriteLines_LineReadWithValuelessParameters_WritesThemWithTheirNames()
+        public void WriteLines_LineReadWithValuelessParameters_WritesKnownTypesAlone()
         {
             // arrange
             using (var reader = CreateReader(Crlf("BEGIN:VCARD", "VERSION:2.1", "TEL;HOME;VOICE:1")))
@@ -382,8 +387,61 @@ namespace DataStandardizer.File.vCard.Tests
                 var testResult = Write(lines.ToArray());
 
                 // assert
-                testResult.Should().Be(CardStart + "TEL;TYPE=HOME;TYPE=VOICE:1\r\n");
+                testResult.Should().Be(CardStart + "TEL;HOME;VOICE:1\r\n");
             }
+        }
+
+        [Fact]
+        public void WriteLines_KnownTypesWithNamedTypesOption_WritesThemWithTheirNames()
+        {
+            // arrange
+            var options = new VcardOptions { WriteNamedTypesInVersion21 = true };
+            var line = new VcardContentLine("TEL", new[] { new VcardContentLineParameter("TYPE", "HOME"), new VcardContentLineParameter("TYPE", "VOICE") }, "1");
+
+            // act
+            var testResult = Write(options, Begin, Version21, line);
+
+            // assert
+            testResult.Should().Be(CardStart + "TEL;TYPE=HOME;TYPE=VOICE:1\r\n");
+        }
+
+        [Fact]
+        public void WriteLines_TypeThatIsNotAKnownType_WritesItWithItsName()
+        {
+            // arrange
+            var line = new VcardContentLine("TEL", new[] { new VcardContentLineParameter("TYPE", "HOME"), new VcardContentLineParameter("TYPE", "X-CUSTOM") }, "1");
+
+            // act
+            var testResult = Write(Begin, Version21, line);
+
+            // assert
+            testResult.Should().Be(CardStart + "TEL;HOME;TYPE=X-CUSTOM:1\r\n");
+        }
+
+        [Fact]
+        public void WriteLines_TypeWithTwoValues_WritesEveryParameterWithItsName()
+        {
+            // arrange
+            var line = new VcardContentLine("TEL", new[] { new VcardContentLineParameter("TYPE", "HOME", "WORK") }, "1");
+
+            // act
+            var testResult = Write(Begin, Version21, line);
+
+            // assert
+            testResult.Should().Be(CardStart + "TEL;TYPE=HOME,WORK:1\r\n");
+        }
+
+        [Fact]
+        public void WriteLines_KnownTypeOutsideVersion21_WritesItWithItsName()
+        {
+            // arrange
+            var line = new VcardContentLine("TEL", new[] { new VcardContentLineParameter("TYPE", "HOME") }, "1");
+
+            // act
+            var testResult = Write(line);
+
+            // assert
+            testResult.Should().Be("TEL;TYPE=HOME:1\r\n");
         }
 
         [Fact]

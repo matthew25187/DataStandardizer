@@ -369,7 +369,7 @@ namespace DataStandardizer.File.vCard.Tests
 
         public static TheoryData<string> UnsupportedVersionData()
         {
-            return new TheoryData<string> { "VERSION:2.1", "VERSION:5.0", "VERSION:4" };
+            return new TheoryData<string> { "VERSION:2.0", "VERSION:5.0", "VERSION:4" };
         }
 
         [Theory]

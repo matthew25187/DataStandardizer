@@ -15,17 +15,26 @@ namespace DataStandardizer.File.vCard
         // ref. RFC 6715 §3.1 and §5, as published: the name that errata 3340 and 3341 correct to ORG-DIRECTORY.
         private const string OrgUriName = "ORG-URI";
 
+        // ref. vCard 2.1 §2.9: "AGENT" [params] ":" vcard CRLF, where vcard starts with "BEGIN" ":" "VCARD".
+        private const string InlineCardValue = "BEGIN:VCARD";
+
+        // Nothing sets a limit.  It matches that of a card held as text.
+        private const int MaxDepth = 8;
+
         private readonly VcardOptions _options;
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private VcardContentLine? _beginLine;
         private VcardCard? _card;
         private VcardVersionMapping? _mapping;
+        private VcardCardBuilder? _heldCardBuilder;
 #else
         private VcardContentLine _beginLine;
         private VcardCard _card;
         private VcardVersionMapping _mapping;
+        private VcardCardBuilder _heldCardBuilder;
 #endif
+        private int _agentIndex;
         private readonly VcardVersionMapping _defaultMapping;
         private readonly int _depth;
         private List<VcardDiagnostic> _structureDiagnostics = new List<VcardDiagnostic>();
@@ -66,8 +75,21 @@ namespace DataStandardizer.File.vCard
         internal VcardCard Add(VcardContentLine line)
 #endif
         {
+            var heldCardBuilder = _heldCardBuilder;
+            if (heldCardBuilder != null)
+            {
+                AddToHeldCard(heldCardBuilder, line);
+                return null;
+            }
+
             if (IsName(line, VcardPropertyNames.Begin))
             {
+                if (IsAgentCardStart(line))
+                {
+                    StartHeldCard(line);
+                    return null;
+                }
+
                 Begin(line);
                 return null;
             }
@@ -85,9 +107,81 @@ namespace DataStandardizer.File.vCard
             else
             {
                 card.Properties.Add(ApplyAccommodations(line));
+                if (IsInlineAgent(line, VcardLegacyTokens.EqualsIgnoreCase(line.Value.AsSpan(), InlineCardValue)))
+                {
+                    // The value starts the card, so the line that begins it is this one.
+                    // vCard 2.1 §2.9: a group is on the AGENT item, and the vcard of its value has none.
+                    StartHeldCard(line.With(null, VcardPropertyNames.Begin, new VcardContentLineParameter[0], CardValue));
+                }
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Gets whether a line is an <c>AGENT</c> of a vCard 2.1 card whose value is a card.
+        /// </summary>
+        /// <param name="line">The line.</param>
+        /// <param name="isCardStart"><c>true</c> if the value of the line starts the card, or for an empty value, if the next line does.</param>
+        private bool IsInlineAgent(VcardContentLine line, bool isCardStart)
+        {
+            // ref. vCard 2.1 §2.1.8: a VALUE other than INLINE says that the value is elsewhere.  A card held by another with no VERSION is of vCard 2.1, as the content-line reader takes it.
+            var mapping = _mapping ?? _defaultMapping;
+            return isCardStart && mapping.Version == VcardVersion.V2_1 && IsName(line, VcardPropertyNames.Agent) && Vcard21Conformance.GetValueLocation(line) is null;
+        }
+
+        /// <summary>
+        /// Gets whether a <c>BEGIN:VCARD</c> starts the card of the <c>AGENT</c> line before it, as in the example of vCard 2.1 §2.5.4, where the value is on the lines after.
+        /// </summary>
+        private bool IsAgentCardStart(VcardContentLine line)
+        {
+            var card = _card;
+            if (card is null || card.Properties.Count == 0 || !IsCardValue(line)) return false;
+
+            var agent = card.Properties[card.Properties.Count - 1];
+            return agent.HeldCard is null && agent.Value.Length == 0 && IsInlineAgent(agent, true);
+        }
+
+        /// <summary>
+        /// Starts reading the card that the last line of this card, an <c>AGENT</c>, holds.  ref. vCard 2.1 §2.1.4.1: "the vCard data stream can contain a property whose value is a nested vCard".
+        /// </summary>
+        /// <param name="beginLine">The <c>BEGIN:VCARD</c> line of the card.</param>
+        private void StartHeldCard(VcardContentLine beginLine)
+        {
+            if (_depth + 1 >= MaxDepth)
+                throw BuildStructureException("The card of an AGENT is nested too deeply.", beginLine);
+
+            var card = _card;
+            _agentIndex = card is null ? 0 : card.Properties.Count - 1;
+
+            // The lines of the card are of vCard 2.1 until its VERSION says otherwise, as the content-line reader takes them.
+            var heldCardBuilder = new VcardCardBuilder(_options, VcardVersionMapping.Version21, _depth + 1);
+            heldCardBuilder.Add(beginLine);
+            _heldCardBuilder = heldCardBuilder;
+        }
+
+        private void AddToHeldCard(VcardCardBuilder heldCardBuilder, VcardContentLine line)
+        {
+            var held = heldCardBuilder.Add(line);
+            var card = _card;
+            if (held is null || card is null) return;
+
+            _heldCardBuilder = null;
+            var found = heldCardBuilder.TakeStructureDiagnostics();
+
+            // A card of vCard 4.0 is checked once it is read, as the reader does with a card that isn't nested.
+            if (held.SourceVersion == VcardVersion.V4_0)
+            {
+                VcardConformance.Validate(held, found);
+            }
+
+            foreach (var diagnostic in found)
+            {
+                _structureDiagnostics.Add(new VcardDiagnostic(diagnostic.Kind, "In the card of an AGENT: " + diagnostic.Message, diagnostic.PropertyName, diagnostic.Group, diagnostic.LineNumber,
+                    card.CardIndex));
+            }
+
+            card.Properties[_agentIndex] = card.Properties[_agentIndex].WithHeldCard(held);
         }
 
         /// <summary>
@@ -96,6 +190,8 @@ namespace DataStandardizer.File.vCard
         /// <exception cref="VcardFileException">A card has not been ended, or the data held no card.</exception>
         internal void Complete()
         {
+            _heldCardBuilder?.Complete();
+
             var beginLine = _beginLine;
             if (beginLine != null)
                 throw BuildStructureException(Format("The data ended before END:VCARD; the BEGIN:VCARD on line {0} is not closed.", beginLine.LineNumber), beginLine);
@@ -236,10 +332,12 @@ namespace DataStandardizer.File.vCard
         {
             // ref. RFC 6350 §3.3: vcard = "BEGIN:VCARD" CRLF "VERSION:4.0" CRLF 1*contentline "END:VCARD" CRLF.  So neither has a group or a parameter.
             // ref. RFC 2426 §4: vcard = [group "."] "BEGIN" ":" "VCARD" 1*CRLF 1*(contentline) [group "."] "END" ":" "VCARD" 1*CRLF.  So they may have a group.
-            if ((mapping.Version == VcardVersion.V4_0 && line.Group != null) || line.ParameterArray.Length != 0)
+            // ref. vCard 2.1 §2.9: vcard = "BEGIN" [ws] ":" [ws] "VCARD" [ws] 1*CRLF items *CRLF "END" [ws] ":" [ws] "VCARD".  So neither has a group or a parameter.
+            if ((mapping.Version != VcardVersion.V3_0 && line.Group != null) || line.ParameterArray.Length != 0)
             {
                 _structureDiagnostics.Add(new VcardDiagnostic(VcardDiagnosticKind.InvalidStructure,
-                    Format("A {0} line of this version can't have that group or parameters: RFC 6350 §3.3, RFC 2426 §4.", line.Name.ToUpperInvariant()), line.Name, line.Group, line.LineNumber, card.CardIndex));
+                    Format("A {0} line of this version can't have that group or parameters: RFC 6350 §3.3, RFC 2426 §4, vCard 2.1 §2.9.", line.Name.ToUpperInvariant()), line.Name, line.Group,
+                    line.LineNumber, card.CardIndex));
             }
         }
 
@@ -250,7 +348,7 @@ namespace DataStandardizer.File.vCard
             if (mapping is null)
             {
                 throw VcardConformance.BuildException(new VcardDiagnostic(VcardDiagnosticKind.UnsupportedVersion,
-                    Format("The card has VERSION:{0}.  Only vCard 4.0 and 3.0 can be read so far.", line.Value), line.Name, line.Group, line.LineNumber, card.CardIndex));
+                    Format("The card has VERSION:{0}.  Only vCard 4.0, 3.0 and 2.1 can be read.", line.Value), line.Name, line.Group, line.LineNumber, card.CardIndex));
             }
 
             if (mapping.Version == VcardVersion.V4_0)
@@ -264,7 +362,7 @@ namespace DataStandardizer.File.vCard
                         line.LineNumber, card.CardIndex));
                 }
             }
-            else
+            else if (mapping.Version == VcardVersion.V3_0)
             {
                 Vcard30Conformance.ValidateVersionLine(line, card, _structureDiagnostics);
             }

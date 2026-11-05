@@ -43,7 +43,7 @@ namespace DataStandardizer.File.vCard
         private static readonly MimeMediaType OctetStream = new MimeMediaType(ApplicationType, "octet-stream");
 
         // ref. RFC 6350 and its extensions: the parameters vCard 4.0 has that RFC 2426 doesn't, other than those a line here converts.
-        private static readonly string[] Version40OnlyParameters =
+        internal static readonly string[] Version40OnlyParameters =
         {
             VcardParameterNames.Pid, VcardParameterNames.AlternativeId, VcardParameterNames.CalendarScale, VcardParameterNames.Geo, VcardParameterNames.TimeZone,
             VcardParameterNames.Index, VcardParameterNames.Level, VcardParameterNames.CountryCode, VcardParameterNames.Author, VcardParameterNames.AuthorName,
@@ -215,7 +215,7 @@ namespace DataStandardizer.File.vCard
             return string.Equals(parameter.Name, name, StringComparison.OrdinalIgnoreCase);
         }
 
-        private static string Find(List<VcardContentLineParameter> parameters, string name)
+        internal static string Find(List<VcardContentLineParameter> parameters, string name)
         {
             foreach (var parameter in parameters)
             {
@@ -225,12 +225,12 @@ namespace DataStandardizer.File.vCard
             return null;
         }
 
-        private static void Remove(List<VcardContentLineParameter> parameters, string name)
+        internal static void Remove(List<VcardContentLineParameter> parameters, string name)
         {
             parameters.RemoveAll(parameter => IsParameterName(parameter, name));
         }
 
-        private static List<string> GetTypes(List<VcardContentLineParameter> parameters)
+        internal static List<string> GetTypes(List<VcardContentLineParameter> parameters)
         {
             var types = new List<string>();
             foreach (var parameter in parameters)
@@ -249,7 +249,7 @@ namespace DataStandardizer.File.vCard
         /// <summary>
         /// Replaces the <c>TYPE</c> parameters with one holding the given values, where the first of them was.
         /// </summary>
-        private static void SetTypes(List<VcardContentLineParameter> parameters, List<string> types)
+        internal static void SetTypes(List<VcardContentLineParameter> parameters, List<string> types)
         {
             var position = parameters.FindIndex(parameter => IsParameterName(parameter, VcardParameterNames.Type));
             Remove(parameters, VcardParameterNames.Type);
@@ -264,7 +264,7 @@ namespace DataStandardizer.File.vCard
             return values.Any(candidate => string.Equals(candidate, value, StringComparison.OrdinalIgnoreCase));
         }
 
-        private static bool TryUnescape(string value, out string text)
+        internal static bool TryUnescape(string value, out string text)
         {
             text = null;
             if (!VcardText.IsValidText(value.AsSpan(), VcardVersion.V4_0)) return false;
@@ -512,7 +512,7 @@ namespace DataStandardizer.File.vCard
             return line.With(VcardPropertyNames.Related, parameters.ToArray(), value);
         }
 
-        private static void AttachLabels(VcardCard card)
+        internal static void AttachLabels(VcardCard card)
         {
             for (var index = 0; index < card.Properties.Count; index++)
             {

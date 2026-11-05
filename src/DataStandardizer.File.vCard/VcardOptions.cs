@@ -187,6 +187,25 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
+        /// Gets a flag indicating if a writer writes each <c>TYPE</c> value of a vCard 2.1 card with the parameter's name, as <c>TEL;TYPE=WORK;TYPE=VOICE:</c>.
+        /// </summary>
+        /// <remarks>
+        /// The vCard 2.1 specification §2.9 allows a <c>knowntype</c>, such as <c>WORK</c>, with or without <c>TYPE=</c>.  When <c>false</c> (the default), one is written alone, as
+        /// <c>TEL;WORK;VOICE:</c>, which is the form of every example in the specification and the one that the most readers of vCard 2.1 understand.  When <c>true</c>, it is written
+        /// with its name.  Either way a <c>TYPE</c> that isn't a <c>knowntype</c>, such as <c>X-CUSTOM</c>, is written with its name, and so is every other parameter.  Ignored by a
+        /// reader, which reads both.
+        /// </remarks>
+        public bool WriteNamedTypesInVersion21
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
         /// Gets a flag indicating if the last content line may end without a line break.
         /// </summary>
         /// <remarks>
@@ -281,8 +300,9 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <remarks>
         /// RFC 6350 §6.2.1 requires at least one <c>FN</c> property, and §6.7.9 a <c>VERSION</c> property.  RFC 8605 §2.1 requires a card with <c>CONTACT-URI</c> properties to have one with a
-        /// <c>mailto</c>, <c>http</c> or <c>https</c> URI.  When <c>false</c> (the default), <see cref="VcardReader"/> and
-        /// <see cref="VcardWriter"/> throw <see cref="VcardFileException"/> for a card without them.  With <c>true</c> a card with no <c>VERSION</c> is read as vCard 4.0, and its
+        /// <c>mailto</c>, <c>http</c> or <c>https</c> URI.  RFC 2426 §5 requires <c>N</c> and <c>FN</c> in vCard 3.0, and the vCard 2.1 specification §2.2.2 an <c>N</c>.  When <c>false</c>
+        /// (the default), <see cref="VcardReader"/> and <see cref="VcardWriter"/> throw <see cref="VcardFileException"/> for a card without them.  With <c>true</c> a card with no
+        /// <c>VERSION</c> is read as vCard 4.0, or as vCard 2.1 where it is the value of an <c>AGENT</c> in a vCard 2.1 card, and its
         /// <see cref="VcardCard.SourceVersion"/> is <c>null</c>, but RFC 6868 caret encoding isn't decoded in it unless <see cref="AcceptCaretEncodingInAllVersions"/> is set, since the
         /// content line reader doesn't know its version.  A writer always writes <c>VERSION</c>.  The content line reader and writer ignore this.
         /// </remarks>
@@ -444,9 +464,9 @@ namespace DataStandardizer.File.vCard
         /// Gets the version that <see cref="VcardWriter"/> writes.
         /// </summary>
         /// <remarks>
-        /// The default is <see cref="VcardVersion.V4_0"/>, whatever version a card was read from.  <see cref="VcardVersion.V3_0"/> converts a card from the canonical form of the model; see
-        /// <see cref="AllowLossyVersionConversion"/> for what it can't hold.  <see cref="VcardVersion.V2_1"/> can't be written yet, so a writer's constructor throws
-        /// <see cref="System.ArgumentException"/> for it.  Ignored by a reader and by <see cref="VcardContentLineWriter"/>, which writes the <c>VERSION</c> line it is given.
+        /// The default is <see cref="VcardVersion.V4_0"/>, whatever version a card was read from.  <see cref="VcardVersion.V3_0"/> and <see cref="VcardVersion.V2_1"/> convert a card from the
+        /// canonical form of the model; see <see cref="AllowLossyVersionConversion"/> for what they can't hold.  Ignored by a reader and by <see cref="VcardContentLineWriter"/>, which writes the
+        /// <c>VERSION</c> line it is given.
         /// </remarks>
         public VcardVersion WriteVersion
         {

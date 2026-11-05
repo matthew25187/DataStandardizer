@@ -16,7 +16,7 @@ A vCard: an open list of properties, with typed accessors that don't depend on t
 **Syntax**
 
 ```csharp
-public sealed partial class VcardCard : IVcard40Card, IVcard30Card
+public sealed partial class VcardCard : IVcard40Card, IVcard30Card, IVcard21Card
 ```
 
 ## Constructors
@@ -114,6 +114,7 @@ The typed members leave out a property whose value isn't valid, which `AllowInva
 | --- | --- |
 | `AddAgent(card)`, `AddAgent(uri)` | Adds a `RELATED` with `TYPE=agent`. A card is held as a copy, in the text of the property. |
 | `RemoveAgents()` | Removes every `RELATED` with `TYPE=agent`, and gives how many there were. |
+| `AsVersion21()` | The card as an [IVcard21Card](IVcard21Card.md). It is this object, so a change through either is a change to both. |
 | `AsVersion30()` | The card as an [IVcard30Card](IVcard30Card.md). It is this object, so a change through either is a change to both. |
 | `AsVersion40()` | The card as an [IVcard40Card](IVcard40Card.md). It is this object, so a change through either is a change to both. |
 | `GetProperties(string name)` | The instances of a property, whether or not their values are valid. |

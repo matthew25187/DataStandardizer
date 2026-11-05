@@ -36,6 +36,16 @@ namespace DataStandardizer.File.vCard
             "X509", "PGP"
         };
 
+        // ref. vCard 2.1 §2.9: the knowntype values that name a format, of a picture (§2.2.3.1), a sound (§2.6.3.1) or a key (§2.7.2).
+        private static readonly string[] FormatTypes =
+        {
+            "GIF", "CGM", "WMF", "BMP", "MET", "PMB", "DIB",
+            "PICT", "TIFF", "PDF", "PS", "JPEG", "QTIME",
+            "MPEG", "MPEG2", "AVI",
+            "WAVE", "AIFF", "PCM",
+            "X509", "PGP"
+        };
+
         // ref. vCard 2.1 §2.9: pvalueval.
         private static readonly string[] ValueLocations = { "INLINE", "URL", "CONTENT-ID", "CID" };
 
@@ -65,6 +75,73 @@ namespace DataStandardizer.File.vCard
         internal static bool IsValuelessAllowedInVersion21(ReadOnlySpan<char> token)
         {
             return EqualsAny(token, KnownTypes) || IsEncoding(token);
+        }
+
+        /// <summary>
+        /// Gets whether a token is a <c>knowntype</c> of vCard 2.1 §2.9.
+        /// </summary>
+        internal static bool IsKnownType(ReadOnlySpan<char> token)
+        {
+            return EqualsAny(token, KnownTypes);
+        }
+
+        /// <summary>
+        /// Gets whether a token is a <c>knowntype</c> of vCard 2.1 §2.9 that names a format, such as <c>GIF</c>, rather than a use, such as <c>WORK</c>.
+        /// </summary>
+        internal static bool IsFormatType(ReadOnlySpan<char> token)
+        {
+            return EqualsAny(token, FormatTypes);
+        }
+
+        /// <summary>
+        /// Gets whether a token is a value location of vCard 2.1 §2.9 (<c>pvalueval</c>), other than an <c>X-</c> one.
+        /// </summary>
+        internal static bool IsValueLocation(ReadOnlySpan<char> token)
+        {
+            return EqualsAny(token, ValueLocations);
+        }
+
+        /// <summary>
+        /// Gets whether a token is an encoding of vCard 2.1 §2.9 (<c>pencodingval</c>), other than an <c>X-</c> one.
+        /// </summary>
+        internal static bool IsEncodingName(ReadOnlySpan<char> token)
+        {
+            return IsEncoding(token);
+        }
+
+        /// <summary>
+        /// Gets whether text is a <c>word</c> of vCard 2.1 §2.9: "any printable 7bit us-ascii except []=:., ".  A semicolon, which delimits a parameter, isn't one either.
+        /// </summary>
+        internal static bool IsWord(string text)
+        {
+            if (text.Length == 0) return false;
+
+            foreach (var character in text)
+            {
+                if (character <= ' ' || character >= '\x7F') return false;
+
+                switch (character)
+                {
+                    case '[':
+                    case ']':
+                    case '=':
+                    case ':':
+                    case '.':
+                    case ',':
+                    case ';':
+                        return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Gets whether text is an <c>X-</c> word of vCard 2.1 §2.9, as an extension's name or a parameter's value is.
+        /// </summary>
+        internal static bool IsExtensionWord(string text)
+        {
+            return text.Length > 2 && (text[0] == 'X' || text[0] == 'x') && text[1] == '-' && IsWord(text);
         }
 
         /// <summary>
