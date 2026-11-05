@@ -429,11 +429,22 @@ namespace DataStandardizer.File.vCard
             if (_card is null) return false;
 
             // The card has been read in full, so a problem with it does not stop the reader.
+            var structure = _builder.TakeStructureDiagnostics();
             var conformance = new List<VcardDiagnostic>();
-            VcardConformance.Validate(_card, conformance);
+            try
+            {
+                VcardConformance.Validate(_card, conformance);
+            }
+            catch
+            {
+                // A problem in a card is a diagnostic, so this came from something else, such as a CharsetResolver of the caller's.
+                _isFaulted = true;
+                _card = null;
+                throw;
+            }
 
             // A stable sort, so that the first problem on the earliest line is the one reported.
-            var diagnostics = _builder.TakeStructureDiagnostics().Concat(conformance).OrderBy(diagnostic => diagnostic.LineNumber);
+            var diagnostics = structure.Concat(conformance).OrderBy(diagnostic => diagnostic.LineNumber);
             foreach (var diagnostic in diagnostics)
             {
                 if (!VcardConformance.IsAccepted(diagnostic.Kind, _options, false))
@@ -454,6 +465,9 @@ namespace DataStandardizer.File.vCard
         {
             var card = _card;
             _card = null;
+
+            // The reader may have been disposed while the card was being checked.
+            ThrowIfDisposed();
             return card;
         }
 

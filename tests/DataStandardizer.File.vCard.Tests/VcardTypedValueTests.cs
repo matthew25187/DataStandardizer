@@ -129,6 +129,7 @@ namespace DataStandardizer.File.vCard.Tests
                 { new VcardTypedValue(TextValue), new VcardTypedValue("b"), false },
                 { new VcardTypedValue(new Uri(UriValue)), new VcardTypedValue(new Uri(UriValue)), true },
                 { new VcardTypedValue(new Uri(UriValue)), new VcardTypedValue(new Uri("http://example.org/")), false },
+                { new VcardTypedValue(new Uri("http://EXAMPLE.com/")), new VcardTypedValue(new Uri(UriValue)), false },
                 { new VcardTypedValue(DateValue), new VcardTypedValue(DateValue), true },
                 { new VcardTypedValue(UtcOffsetValue), new VcardTypedValue(UtcOffsetValue), true },
                 { new VcardTypedValue(UriValue), new VcardTypedValue(new Uri(UriValue)), false },

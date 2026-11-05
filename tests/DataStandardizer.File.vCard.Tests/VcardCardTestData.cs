@@ -2,8 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
+using DataStandardizer.Communication.Mime;
 using System.Threading.Tasks;
+using Xunit;
 
 namespace DataStandardizer.File.vCard.Tests
 {
@@ -87,8 +90,27 @@ namespace DataStandardizer.File.vCard.Tests
             }
             catch (VcardFileException)
             {
-                // What the test is about comes after this.
+                return;
             }
+
+            Assert.Fail("The read was expected to fail.");
+        }
+
+        /// <summary>
+        /// Reads a card, and leaves the <see cref="ArithmeticException"/> a test's character set resolver throws for the test to go on from.
+        /// </summary>
+        public static void ReadPastResolverFailure(VcardReader reader)
+        {
+            try
+            {
+                reader.ReadCard();
+            }
+            catch (ArithmeticException)
+            {
+                return;
+            }
+
+            Assert.Fail("The read was expected to fail.");
         }
 
         /// <summary>
@@ -102,12 +124,14 @@ namespace DataStandardizer.File.vCard.Tests
             }
             catch (VcardFileException)
             {
-                // What the test is about comes after this.
+                return;
             }
             catch (OperationCanceledException)
             {
-                // What the test is about comes after this.
+                return;
             }
+
+            Assert.Fail("The read was expected to fail or be canceled.");
         }
 
         /// <summary>
@@ -121,8 +145,10 @@ namespace DataStandardizer.File.vCard.Tests
             }
             catch (OperationCanceledException)
             {
-                // What the test is about comes after this.
+                return;
             }
+
+            Assert.Fail("The write was expected to be canceled.");
         }
 
         /// <summary>
@@ -147,6 +173,24 @@ namespace DataStandardizer.File.vCard.Tests
             var card = new VcardCard();
             card.FormattedNames.Add("Jane Doe");
             return card;
+        }
+
+        /// <summary>
+        /// A character set resolver that runs an action when it is asked for anything, then says it knows UTF-8.  For a test of what happens part way through checking a card.
+        /// </summary>
+        internal sealed class CallbackCharsetResolver : IMimeCharsetResolver
+        {
+            /// <summary>
+            /// Gets or sets what to run.
+            /// </summary>
+            public Action OnResolve { get; set; }
+
+            public bool TryGetEncoding(MimeCharset charset, out Encoding encoding)
+            {
+                OnResolve();
+                encoding = Encoding.UTF8;
+                return true;
+            }
         }
 
         /// <summary>

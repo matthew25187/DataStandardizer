@@ -160,7 +160,12 @@ namespace DataStandardizer.File.vCard
                 CheckParameters(line, info, sourceIds, card, found);
                 if (info != null)
                 {
-                    CheckValue(line, info, card, found);
+                    // ref. RFC 6350 §5.8: a property with a CALSCALE this package doesn't understand is ignored, so what its value means isn't known.
+                    if (IsUnderstoodCalendarScale(line))
+                    {
+                        CheckValue(line, info, card, found);
+                    }
+
                     CheckCardinality(line, info, altIds, instanceCounts, card, found);
                     if (!isGroup && string.Equals(line.Name, VcardPropertyNames.Member, StringComparison.OrdinalIgnoreCase))
                     {
@@ -178,6 +183,20 @@ namespace DataStandardizer.File.vCard
 
             // A stable sort, so problems on the same line, and in a card built in code, stay in the order they were found.
             diagnostics.AddRange(found.OrderBy(diagnostic => diagnostic.LineNumber == 0 ? long.MaxValue : diagnostic.LineNumber));
+        }
+
+        /// <summary>
+        /// Checks a <c>VERSION</c> line, which a card doesn't hold, by the rules of RFC 6350 §6.7.9 for its parameters: <c>VALUE=text</c> and <c>any-param</c>.
+        /// </summary>
+        /// <param name="line">The line.</param>
+        /// <param name="card">The card it is in.</param>
+        /// <param name="found">Receives the problems found.</param>
+        internal static void ValidateVersionLine(VcardContentLine line, VcardCard card, List<VcardDiagnostic> found)
+        {
+            var info = VcardPropertyInfo.Find(VcardPropertyNames.Version);
+            CheckLegacySyntax(line, card, found);
+            CheckParameters(line, info, new HashSet<long>(), card, found);
+            CheckValue(line, info, card, found);
         }
 
         private static string Format(string format, params object[] arguments)
@@ -217,8 +236,9 @@ namespace DataStandardizer.File.vCard
             foreach (var line in card.Properties)
             {
                 VcardClientPidMap map;
-                if (string.Equals(line.Name, VcardPropertyNames.ClientPidMap, StringComparison.OrdinalIgnoreCase) &&
-                    VcardClientPidMap.TryParse(line.Value.AsSpan(), VcardValueFormat.Text, out map))
+                string text;
+                if (string.Equals(line.Name, VcardPropertyNames.ClientPidMap, StringComparison.OrdinalIgnoreCase) && TryGetValueText(line, out text) &&
+                    VcardClientPidMap.TryParse(text.AsSpan(), VcardValueFormat.Text, out map))
                 {
                     sourceIds.Add(map.SourceId);
                 }
@@ -490,15 +510,18 @@ namespace DataStandardizer.File.vCard
         private static void CheckSortAs(VcardContentLine line, VcardContentLineParameter parameter, VcardCard card, List<VcardDiagnostic> found)
         {
             // ref. RFC 6350 §5.9: "as many or fewer elements as the corresponding property value has components".  Only N and ORG have it, and a parameter elsewhere is reported anyway.
+            string text;
+            if (!TryGetValueText(line, out text)) return;
+
             VcardStructuredValueView view;
             bool isParsed;
             if (string.Equals(line.Name, VcardPropertyNames.Name, StringComparison.OrdinalIgnoreCase))
             {
-                isParsed = VcardName.TryParseView(line.Value.AsSpan(), VcardValueFormat.Text, out view);
+                isParsed = VcardName.TryParseView(text.AsSpan(), VcardValueFormat.Text, out view);
             }
             else if (string.Equals(line.Name, VcardPropertyNames.Organization, StringComparison.OrdinalIgnoreCase))
             {
-                isParsed = VcardOrganization.TryParseView(line.Value.AsSpan(), VcardValueFormat.Text, out view);
+                isParsed = VcardOrganization.TryParseView(text.AsSpan(), VcardValueFormat.Text, out view);
             }
             else
             {
@@ -617,14 +640,17 @@ namespace DataStandardizer.File.vCard
             return VcardValue.TryParseText(value, VcardValueFormat.Text, VcardVersion.V4_0, buffer, out charsWritten);
         }
 
-        /// <summary>
-        /// Checks that text is one XML element in an explicit namespace that isn't that of vCard 4.0.  ref. RFC 6350 §6.1.5.
-        /// </summary>
         private static bool IsValidXmlProperty(string text)
         {
             string unescaped;
-            if (!VcardValue.TryParseText(text.AsSpan(), VcardValueFormat.Text, out unescaped)) return false;
+            return VcardValue.TryParseText(text.AsSpan(), VcardValueFormat.Text, out unescaped) && IsValidXmlElement(unescaped);
+        }
 
+        /// <summary>
+        /// Checks that text, with its escaping removed, is one XML element in an explicit namespace that isn't that of vCard 4.0.  ref. RFC 6350 §6.1.5.
+        /// </summary>
+        internal static bool IsValidXmlElement(string unescaped)
+        {
             // The text comes from outside, so it is not allowed a DTD, and so no entity can expand.
             var settings = new XmlReaderSettings { ConformanceLevel = ConformanceLevel.Fragment, DtdProcessing = DtdProcessing.Prohibit };
             try

@@ -120,14 +120,14 @@ namespace DataStandardizer.File.vCard
         /// Removes an instance.
         /// </summary>
         /// <param name="property">The instance.</param>
-        /// <returns><c>true</c> if it was in the card; otherwise <c>false</c>.</returns>
+        /// <returns><c>true</c> if it was an instance of this property in the card; otherwise <c>false</c>.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="property"/> is <c>null</c>.</exception>
         public bool Remove(VcardProperty<TValue> property)
         {
             if (property is null)
                 throw new ArgumentNullException(nameof(property));
 
-            return _card.Properties.Remove(property.Line);
+            return string.Equals(property.Line.Name, _codec.Name, StringComparison.OrdinalIgnoreCase) && _card.Properties.Remove(property.Line);
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -138,7 +138,7 @@ namespace DataStandardizer.File.vCard
         private VcardProperty<TValue> AddLine(TValue value, VcardContentLine line)
         {
             _card.Properties.Add(line);
-            return new VcardProperty<TValue>(line, value);
+            return _codec.CreateProperty(line, value);
         }
 
         private List<VcardProperty<TValue>> GetInstances()

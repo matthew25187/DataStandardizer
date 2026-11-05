@@ -18,6 +18,8 @@ namespace DataStandardizer.File.vCard.Tests
                 { "TEL;PREF=0:1", VcardDiagnosticKind.InvalidParameter },
                 { "TEL;PREF=00:1", VcardDiagnosticKind.InvalidParameter },
                 { "TEL;PREF=101:1", VcardDiagnosticKind.InvalidParameter },
+                { "TEL;PREF=001:1", VcardDiagnosticKind.InvalidParameter },
+                { "TEL;PREF=099:1", VcardDiagnosticKind.InvalidParameter },
                 { "TEL;PREF=x:1", VcardDiagnosticKind.InvalidParameter },
                 { "TEL;PREF=1;PREF=2:1", VcardDiagnosticKind.InvalidParameter },
                 { "TEL;PREF=1,2:1", VcardDiagnosticKind.InvalidParameter },
@@ -110,6 +112,7 @@ namespace DataStandardizer.File.vCard.Tests
                 { "KEY:free text", VcardDiagnosticKind.InvalidValue },
                 { "RELATED:free text", VcardDiagnosticKind.InvalidValue },
                 { "BDAY:1996-04-15", VcardDiagnosticKind.InvalidValue },
+                { "BDAY:19960230", VcardDiagnosticKind.InvalidValue },
                 { "REV:19960415", VcardDiagnosticKind.InvalidValue },
                 { "LANG:not_a_tag", VcardDiagnosticKind.InvalidValue },
                 { "TZ;VALUE=utc-offset:Z", VcardDiagnosticKind.InvalidValue },
@@ -221,6 +224,10 @@ namespace DataStandardizer.File.vCard.Tests
                 new[] { "BDAY;VALUE=text;LANGUAGE=en:circa 1800" },
                 new[] { "BDAY;CALSCALE=gregorian:19960415" },
                 new[] { "BDAY;CALSCALE=GREGORIAN:19960415T1200" },
+
+                // ref. RFC 6350 §5.8: a property with a CALSCALE that isn't understood is ignored, so its value can't be judged.
+                new[] { "BDAY;CALSCALE=x-mayan:19960230" },
+
                 new[] { "TEL;VALUE=uri;MEDIATYPE=text/plain:tel:+1" },
                 new[] { "RELATED;VALUE=text;LANGUAGE=en:a" },
                 new[] { "RELATED;MEDIATYPE=text/vcard:urn:a" },

@@ -49,7 +49,7 @@ Each is `null` if the card has none with a valid value. The setters replace ever
 | `Revision` | `REV` | `VcardTimestamp` | `SetRevision(value)` |
 | `Uid` | `UID` | `VcardTypedValue` (URI or text) | `SetUid(value)` |
 
-`SetKind` takes a `VcardKind`, or the text of a value RFC 6350 doesn't define.
+`SetKind` takes a `VcardKind`, or the text of a value RFC 6350 doesn't define. A value that isn't initialised throws `ArgumentException`, and leaves the card as it was.
 
 ### Properties with any number of instances
 
@@ -99,7 +99,7 @@ The typed members leave out a property whose value isn't valid, which `AllowInva
 | `AddExtensionProperty(string name, string value)` | Adds a property RFC 6350 doesn't define. There is an overload with parameters. |
 | `ResolveMembers(IEnumerable<VcardCard> cards)` | The cards of a set that the `MEMBER` properties link to by `UID`. One that doesn't resolve, such as a `mailto` URI, is left out. |
 | `FindByUid(IEnumerable<VcardCard> cards, string uid)` | Static. The first card with a `UID`, compared as RFC 6350 §7.1.1 says. `null` if there is none. |
-| `Validate()` | Every [VcardDiagnostic](VcardDiagnostic.md), without throwing. |
+| `Validate()` | Every [VcardDiagnostic](VcardDiagnostic.md), without throwing for a problem in the card. An exception from a `CharsetResolver` of the caller's isn't caught. |
 
 ## Applies to
 

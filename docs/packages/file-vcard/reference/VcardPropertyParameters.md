@@ -35,7 +35,7 @@ public sealed class VcardPropertyParameters
 | `GeoLocation` | `Uri?` | `GEO`. |
 | `TimeZone` | `string?` | `TZ`. |
 | `Label` | `string?` | `LABEL`. |
-| `AdditionalParameters` | `IList<VcardContentLineParameter>` | Parameters RFC 6350 doesn't define. |
+| `AdditionalParameters` | `IList<VcardContentLineParameter>` | Parameters RFC 6350 doesn't define. A `VALUE` here throws `ArgumentException` when added to a property RFC 6350 defines, since it comes from the value. |
 
 Apart from `Pref`, nothing here is checked until the card is validated or written.
 

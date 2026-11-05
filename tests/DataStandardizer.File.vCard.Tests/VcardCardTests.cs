@@ -170,6 +170,135 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Fact]
+        public void SetName_DefaultValue_ThrowsAndLeavesTheCardAsItWas()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(VcardCardTestData.Card("N:a;;;;"));
+
+            // act
+            Action testAction = () => card.SetName(default(VcardName));
+
+            // assert
+            testAction.Should().Throw<ArgumentException>();
+            card.Name.Value.ToString(VcardValueFormat.Text).Should().Be("a;;;;");
+        }
+
+        [Fact]
+        public void SetName_EmptyComponents_IsNotTakenForADefaultValue()
+        {
+            // arrange
+            var card = new VcardCard();
+
+            // act
+            card.SetName(VcardName.Parse(";;;;".AsSpan(), VcardValueFormat.Text));
+
+            // assert
+            card.Properties.Single().Value.Should().Be(";;;;");
+        }
+
+        [Fact]
+        public void Add_AdditionalValueParameter_ThrowsArgumentException()
+        {
+            // arrange
+            var card = new VcardCard();
+            var parameters = new VcardPropertyParameters();
+            parameters.AdditionalParameters.Add(new VcardContentLineParameter("VALUE", "uri"));
+
+            // act
+            Action testAction = () => card.Telephones.Add(new VcardTypedValue("1"), parameters);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>();
+        }
+
+        [Fact]
+        public void AddExtensionProperty_AdditionalValueParameter_KeepsIt()
+        {
+            // arrange
+            var card = new VcardCard();
+            var parameters = new VcardPropertyParameters();
+            parameters.AdditionalParameters.Add(new VcardContentLineParameter("VALUE", "uri"));
+
+            // act
+            card.AddExtensionProperty("X-A", "urn:a", parameters);
+
+            // assert
+            LineDescription.Of(card.Properties.Single()).Should().Be("0/0 X-A;VALUE=uri:urn:a");
+        }
+
+        [Fact]
+        public void Add_ListChangedAfterwards_DoesNotChangeTheInstanceReturned()
+        {
+            // arrange
+            var card = new VcardCard();
+            var nicknames = new[] { "Jim" };
+            var testResult = card.Nicknames.Add(nicknames);
+
+            // act
+            nicknames[0] = "Tim";
+
+            // assert
+            testResult.Value.Should().Equal("Jim");
+        }
+
+        [Fact]
+        public void Add_XmlThatIsNotOneElement_ThrowsArgumentException()
+        {
+            // arrange
+            var card = new VcardCard();
+
+            // act
+            Action testAction = () => card.Xml.Add("not an element");
+
+            // assert
+            testAction.Should().Throw<ArgumentException>();
+        }
+
+        [Fact]
+        public void Remove_InstanceOfAnotherProperty_ReturnsFalseAndKeepsIt()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(VcardCardTestData.Card("NOTE:a"));
+            var note = card.Notes[0];
+
+            // act
+            var testResult = card.Emails.Remove(note);
+
+            // assert
+            testResult.Should().BeFalse();
+            card.Notes.Should().ContainSingle();
+        }
+
+        [Fact]
+        public void FindByUid_TextThatLooksLikeAnEquivalentUri_DoesNotMatch()
+        {
+            // arrange
+            // ref. RFC 6350 §6.7.6: free-form text is not a URI, so RFC 3986 §6 doesn't apply to it.
+            var card = new VcardCard();
+            card.SetUid(new VcardTypedValue("HTTP://EXAMPLE.com/a"));
+
+            // act
+            var testResult = VcardCard.FindByUid(new[] { card }, "http://example.com/a");
+
+            // assert
+            testResult.Should().BeNull();
+        }
+
+        [Fact]
+        public void ResolveMembers_NullInTheCards_ThrowsArgumentException()
+        {
+            // arrange
+            var card = new VcardCard();
+            var cards = new VcardCard[] { null };
+
+            // act
+            Action testAction = () => card.ResolveMembers(cards);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>();
+        }
+
+        [Fact]
         public void Properties_AddNull_ThrowsArgumentNullException()
         {
             // arrange

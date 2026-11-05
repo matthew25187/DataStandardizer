@@ -31,7 +31,7 @@ public sealed class VcardPropertyList<TValue> : IReadOnlyList<VcardProperty<TVal
 | `GetPreferred()` | The first instance with the lowest `PREF` (RFC 6350 §5.3), or `null` if there are none. |
 | `GetAlternatives()` | The instances grouped by `ALTID` (RFC 6350 §5.4). |
 
-`Add` throws `ArgumentNullException` for a `null` value, and `ArgumentException` for a value of a type the property doesn't allow or one that can't be written.
+`Add` throws `ArgumentNullException` for a `null` value, and `ArgumentException` for a value of a type the property doesn't allow, one that isn't initialised, one that can't be written, or a `VALUE` in `AdditionalParameters`. An `XML` value must be one element in a namespace of its own (RFC 6350 §6.1.5). `Remove` gives `false` for an instance of another property.
 
 ## Applies to
 

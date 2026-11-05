@@ -29,8 +29,8 @@ don't, and vCard 3.0 has `MAILER`, which 4.0 doesn't. So the model has two halve
 
 **The common members** are the public members of `VcardCard` and `VcardProperty<TValue>`. They cover
 every version, and each concept is held once, in a **canonical form**: the form of vCard 4.0 wherever
-4.0 has an equivalent. A card loads without trouble whatever its version, and `SourceVersion` records
-the version it was read from.
+4.0 has an equivalent. A card of a version that can be read loads into these members, and
+`SourceVersion` records the version it was read from.
 
 **The versioned interfaces** give one version's shape. Each is implemented explicitly on the same
 object, so a view is not a copy, and a change through one is a change through the other.

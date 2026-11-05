@@ -16,14 +16,24 @@ namespace DataStandardizer.File.vCard
     /// </summary>
     internal sealed class VcardPropertyCodec<TValue>
     {
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private readonly Func<TValue, TValue>? _copy;
+#else
+        private readonly Func<TValue, TValue> _copy;
+#endif
         private readonly VcardValueType _defaultValueType;
         private readonly Func<TValue, string> _format;
         private readonly Func<TValue, VcardValueType> _getValueType;
         private readonly VcardValueParser<TValue> _parse;
 
-        internal VcardPropertyCodec(string name, VcardValueParser<TValue> parse, Func<TValue, string> format, Func<TValue, VcardValueType> getValueType)
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal VcardPropertyCodec(string name, VcardValueParser<TValue> parse, Func<TValue, string> format, Func<TValue, VcardValueType> getValueType, Func<TValue, TValue>? copy = null)
+#else
+        internal VcardPropertyCodec(string name, VcardValueParser<TValue> parse, Func<TValue, string> format, Func<TValue, VcardValueType> getValueType, Func<TValue, TValue> copy = null)
+#endif
         {
             Name = name;
+            _copy = copy;
             _parse = parse;
             _format = format;
             _getValueType = getValueType;
@@ -66,7 +76,8 @@ namespace DataStandardizer.File.vCard
         /// Gets the content line of a value.
         /// </summary>
         /// <exception cref="ArgumentNullException"><paramref name="value"/> is <c>null</c>.</exception>
-        /// <exception cref="ArgumentException"><paramref name="value"/> can't be written, or is of a type the property doesn't allow.</exception>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is not initialised, can't be written, or is of a type the property doesn't allow; or
+        /// <paramref name="parameters"/> has a <c>VALUE</c>, which comes from the value.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         internal VcardContentLine CreateLine(TValue value, VcardPropertyParameters? parameters)
 #else
@@ -75,6 +86,20 @@ namespace DataStandardizer.File.vCard
         {
             if (value == null)
                 throw new ArgumentNullException(nameof(value));
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            if (EqualityComparer<TValue>.Default.Equals(value, default(TValue)!))
+#else
+            if (EqualityComparer<TValue>.Default.Equals(value, default(TValue)))
+#endif
+                throw new ArgumentException("The value is not initialised.", nameof(value));
+            if (parameters != null)
+            {
+                foreach (var parameter in parameters.AdditionalParameters)
+                {
+                    if (string.Equals(parameter.Name, VcardParameterNames.Value, StringComparison.OrdinalIgnoreCase))
+                        throw new ArgumentException("A VALUE parameter comes from the value, so it can't be an additional parameter.", nameof(parameters));
+                }
+            }
 
             var valueType = _getValueType(value);
             if (!VcardValueTypeRegistry.IsAllowedValueType(Name.AsSpan(), valueType))
@@ -83,6 +108,14 @@ namespace DataStandardizer.File.vCard
             var valueParameter = valueType == _defaultValueType ? string.Empty : VcardValueTypeRegistry.GetValueTypeName(valueType);
             var text = _format(value);
             return new VcardContentLine(parameters?.Group, Name, (parameters ?? new VcardPropertyParameters()).ToContentLineParameters(valueParameter), text);
+        }
+
+        /// <summary>
+        /// Gets the wrapper of a line just created from a value, which keeps a copy of a value the caller could go on to change.
+        /// </summary>
+        internal VcardProperty<TValue> CreateProperty(VcardContentLine line, TValue value)
+        {
+            return new VcardProperty<TValue>(line, _copy is null ? value : _copy(value));
         }
     }
 
@@ -98,7 +131,12 @@ namespace DataStandardizer.File.vCard
 
         internal static VcardPropertyCodec<IReadOnlyList<string>> TextList(string name)
         {
-            return new VcardPropertyCodec<IReadOnlyList<string>>(name, ParseTextList, FormatTextList, value => VcardValueType.Text);
+            return new VcardPropertyCodec<IReadOnlyList<string>>(name, ParseTextList, FormatTextList, value => VcardValueType.Text, CopyTextList);
+        }
+
+        internal static VcardPropertyCodec<string> Xml()
+        {
+            return new VcardPropertyCodec<string>(VcardPropertyNames.Xml, ParseXml, FormatXml, GetTextType);
         }
 
         internal static VcardPropertyCodec<Uri> Uri(string name)
@@ -108,7 +146,7 @@ namespace DataStandardizer.File.vCard
 
         internal static VcardPropertyCodec<VcardTypedValue> Typed(string name)
         {
-            return new VcardPropertyCodec<VcardTypedValue>(name, ParseTyped, FormatTyped, GetTypedValueType);
+            return new VcardPropertyCodec<VcardTypedValue>(name, ParseTyped, FormatTyped, value => value.ValueType);
         }
 
         internal static VcardPropertyCodec<VcardName> Name()
@@ -173,6 +211,24 @@ namespace DataStandardizer.File.vCard
         private static string FormatText(string value)
         {
             return VcardValue.FormatText(value, VcardValueFormat.Text, VcardVersion.V4_0);
+        }
+
+        private static bool ParseXml(string text, VcardValueType valueType, out string value)
+        {
+            return ParseText(text, valueType, out value) && VcardConformance.IsValidXmlElement(value);
+        }
+
+        private static string FormatXml(string value)
+        {
+            if (!VcardConformance.IsValidXmlElement(value))
+                throw new ArgumentException("RFC 6350 §6.1.5 requires one XML element, in an explicit namespace that isn't that of vCard 4.0.", nameof(value));
+
+            return FormatText(value);
+        }
+
+        private static IReadOnlyList<string> CopyTextList(IReadOnlyList<string> value)
+        {
+            return new ReadOnlyCollection<string>(new List<string>(value));
         }
 
         private static bool ParseTextList(string text, VcardValueType valueType, out IReadOnlyList<string> value)
@@ -260,14 +316,6 @@ namespace DataStandardizer.File.vCard
                 default:
                     return false;
             }
-        }
-
-        private static VcardValueType GetTypedValueType(VcardTypedValue value)
-        {
-            if (value == default(VcardTypedValue))
-                throw new ArgumentException("The value is not initialised.", nameof(value));
-
-            return value.ValueType;
         }
 
         private static string FormatTyped(VcardTypedValue value)

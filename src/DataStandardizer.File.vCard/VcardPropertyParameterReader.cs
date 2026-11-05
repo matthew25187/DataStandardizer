@@ -13,7 +13,9 @@ namespace DataStandardizer.File.vCard
         internal const int MinPreference = 1;
         internal const int MaxPreference = 100;
 
-        private const int MaxPreferenceLength = 3;
+        // ref. RFC 6350 §5.3: pref-param = "PREF=" (1*2DIGIT / "100")
+        private const int MaxPreferenceDigits = 2;
+        private const string MaxPreferenceText = "100";
 
         /// <summary>
         /// Gets the text of an integer.
@@ -52,7 +54,7 @@ namespace DataStandardizer.File.vCard
         internal static bool TryParsePreference(string value, out int result)
         {
             result = 0;
-            if (value.Length == 0 || value.Length > MaxPreferenceLength) return false;
+            if (value.Length == 0 || (value.Length > MaxPreferenceDigits && value != MaxPreferenceText)) return false;
 
             foreach (var character in value)
             {

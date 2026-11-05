@@ -403,6 +403,142 @@ namespace DataStandardizer.File.vCard.Tests
             }
         }
 
+        public static TheoryData<string, VcardDiagnosticKind> VersionLineData()
+        {
+            // ref. RFC 6350 §6.7.9: VERSION-param = "VALUE=text" / any-param.  §3.3 has no group.
+            return new TheoryData<string, VcardDiagnosticKind>
+            {
+                { "VERSION;VALUE=uri:4.0", VcardDiagnosticKind.InvalidValue },
+                { "VERSION;PREF=1:4.0", VcardDiagnosticKind.InvalidParameter },
+                { "VERSION;ENCODING=7BIT:4.0", VcardDiagnosticKind.LegacySyntax },
+                { "VERSION;CHARSET=UTF-8:4.0", VcardDiagnosticKind.LegacySyntax }
+            };
+        }
+
+        [Theory]
+        [MemberData(nameof(VersionLineData))]
+        public void ReadCard_VersionLineBreaksARule_Throws(string versionLine, VcardDiagnosticKind expected)
+        {
+            // arrange
+            var text = VcardTestData.Crlf("BEGIN:VCARD", versionLine, "FN:Jane Doe", "END:VCARD");
+            using (var reader = new VcardReader(new StringReader(text)))
+            {
+                // act
+                Action testAction = () => reader.ReadCard();
+
+                // assert
+                testAction.Should().Throw<VcardFileException>()
+                    .Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(expected);
+            }
+        }
+
+        [Fact]
+        public void ReadCard_GroupOnSecondVersionAndCardinalityOption_ThrowsInvalidStructure()
+        {
+            // arrange
+            var text = VcardTestData.Crlf("BEGIN:VCARD", "VERSION:4.0", "item.VERSION:4.0", "FN:Jane Doe", "END:VCARD");
+            using (var reader = new VcardReader(new StringReader(text), new VcardOptions { AllowCardinalityViolations = true }))
+            {
+                // act
+                Action testAction = () => reader.ReadCard();
+
+                // assert
+                testAction.Should().Throw<VcardFileException>()
+                    .Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.InvalidStructure);
+            }
+        }
+
+        [Fact]
+        public void ReadCard_VersionWithExtensionParameter_ReadsTheCard()
+        {
+            // arrange
+            var text = VcardTestData.Crlf("BEGIN:VCARD", "VERSION;X-A=1:4.0", "FN:Jane Doe", "END:VCARD");
+
+            // act
+            var testResult = VcardCardTestData.Read(text);
+
+            // assert
+            testResult.SourceVersion.Should().Be(VcardVersion.V4_0);
+        }
+
+        [Fact]
+        public void ReadCard_EncodedClientPidMapAndAcceptLegacySyntax_CountsItsSource()
+        {
+            // arrange
+            var text = VcardCardTestData.Card("CLIENTPIDMAP;ENCODING=QUOTED-PRINTABLE:1=3Burn=3Aa", "EMAIL;PID=1.1:a@example.com");
+            var options = new VcardOptions { AcceptLegacySyntax = true };
+
+            // act
+            var testResult = VcardCardTestData.Read(text, options);
+
+            // assert
+            testResult.ClientPidMaps[0].Value.SourceId.Should().Be(1);
+        }
+
+        [Fact]
+        public void ReadCard_EncodedSemicolonAndSortAsAndAcceptLegacySyntax_CountsTheDecodedComponents()
+        {
+            // arrange
+            var text = VcardCardTestData.Card("ORG;SORT-AS=\"Acme,Research\";ENCODING=QUOTED-PRINTABLE:Acme=3BResearch");
+            var options = new VcardOptions { AcceptLegacySyntax = true };
+
+            // act
+            var testResult = VcardCardTestData.Read(text, options);
+
+            // assert
+            testResult.Organizations[0].SortAs.Should().Equal("Acme", "Research");
+        }
+
+        [Fact]
+        public void ReadCard_InvalidXmlValueAccepted_KeepsItInPropertiesAndLeavesItOutOfTheTypedMember()
+        {
+            // arrange
+            var text = VcardCardTestData.Card("XML:not an element");
+            var options = new VcardOptions { AllowInvalidValues = true };
+
+            // act
+            var testResult = VcardCardTestData.Read(text, options);
+
+            // assert
+            testResult.Xml.Should().BeEmpty();
+            testResult.GetProperties(VcardPropertyNames.Xml).Should().ContainSingle();
+        }
+
+        [Fact]
+        public void ReadCard_CharsetResolverThrows_CannotContinue()
+        {
+            // arrange
+            var text = VcardCardTestData.Stream(VcardCardTestData.Card("NOTE;ENCODING=QUOTED-PRINTABLE;CHARSET=x-test:a"), VcardCardTestData.Card());
+            var resolver = new VcardCardTestData.CallbackCharsetResolver { OnResolve = () => throw new ArithmeticException() };
+            var options = new VcardOptions { AcceptLegacySyntax = true, CharsetResolver = resolver };
+            using (var reader = new VcardReader(new StringReader(text), options))
+            {
+                VcardCardTestData.ReadPastResolverFailure(reader);
+
+                // act
+                Action testAction = () => reader.ReadCard();
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>();
+            }
+        }
+
+        [Fact]
+        public void ReadCard_DisposedWhileTheCardIsChecked_ThrowsObjectDisposedException()
+        {
+            // arrange
+            var resolver = new VcardCardTestData.CallbackCharsetResolver();
+            var options = new VcardOptions { AcceptLegacySyntax = true, CharsetResolver = resolver };
+            var reader = new VcardReader(new StringReader(VcardCardTestData.Card("NOTE;ENCODING=QUOTED-PRINTABLE;CHARSET=x-test:a")), options);
+            resolver.OnResolve = reader.Dispose;
+
+            // act
+            Action testAction = () => reader.ReadCard();
+
+            // assert
+            testAction.Should().Throw<ObjectDisposedException>();
+        }
+
         [Fact]
         public void ReadCard_VersionWithValueParameter_ReadsTheCard()
         {

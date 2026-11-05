@@ -139,6 +139,23 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Fact]
+        public async Task ReadCardAsync_CanceledToken_ThrowsOperationCanceledException()
+        {
+            // arrange
+            using (var reader = new VcardReader(new StringReader(VcardCardTestData.Card())))
+            using (var source = new CancellationTokenSource())
+            {
+                source.Cancel();
+
+                // act
+                Func<Task> testAction = async () => await reader.ReadCardAsync(source.Token);
+
+                // assert
+                await testAction.Should().ThrowAsync<OperationCanceledException>();
+            }
+        }
+
+        [Fact]
         public async Task ReadCard_WhileAsyncReadInProgress_ThrowsInvalidOperationException()
         {
             // arrange

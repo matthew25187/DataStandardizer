@@ -53,14 +53,13 @@ namespace DataStandardizer.File.vCard.Tests
             testResult.Should().Be(text);
         }
 
-        public static TheoryData<string, Action<VcardCard>, VcardOptions, VcardDiagnosticKind> RefusedCardData()
+        public static TheoryData<string, Action<VcardCard>, VcardDiagnosticKind> RefusedCardData()
         {
-            return new TheoryData<string, Action<VcardCard>, VcardOptions, VcardDiagnosticKind>
+            return new TheoryData<string, Action<VcardCard>, VcardDiagnosticKind>
             {
                 {
                     "no FN",
                     card => card.RemoveProperties(VcardPropertyNames.FormattedName),
-                    new VcardOptions { AllowMissingRequiredProperties = true },
                     VcardDiagnosticKind.MissingRequiredProperty
                 },
                 {
@@ -70,19 +69,16 @@ namespace DataStandardizer.File.vCard.Tests
                         card.Properties.Add(new VcardContentLine("N", "a;;;;"));
                         card.Properties.Add(new VcardContentLine("N", "b;;;;"));
                     },
-                    new VcardOptions { AllowCardinalityViolations = true },
                     VcardDiagnosticKind.CardinalityViolation
                 },
                 {
                     "a value that isn't valid",
                     card => card.Properties.Add(new VcardContentLine("URL", "not a uri")),
-                    new VcardOptions { AllowInvalidValues = true },
                     VcardDiagnosticKind.InvalidValue
                 },
                 {
                     "a parameter that isn't allowed",
                     card => card.Properties.Add(new VcardContentLine("GENDER", new[] { new VcardContentLineParameter("PREF", "1") }, "M")),
-                    new VcardOptions { AllowInvalidValues = true },
                     VcardDiagnosticKind.InvalidParameter
                 }
             };
@@ -90,9 +86,7 @@ namespace DataStandardizer.File.vCard.Tests
 
         [Theory]
         [MemberData(nameof(RefusedCardData))]
-#pragma warning disable xUnit1026 // Theory methods should use all of their parameters: the options are for the other test of the data.
-        public void WriteCard_NonconformingCard_ThrowsAndWritesNothing(string scenario, Action<VcardCard> change, VcardOptions options, VcardDiagnosticKind expected)
-#pragma warning restore xUnit1026
+        public void WriteCard_NonconformingCard_ThrowsAndWritesNothing(string scenario, Action<VcardCard> change, VcardDiagnosticKind expected)
         {
             // arrange
             var card = VcardCardTestData.NewCard();
@@ -110,11 +104,44 @@ namespace DataStandardizer.File.vCard.Tests
             }
         }
 
+        public static TheoryData<string, Action<VcardCard>, VcardOptions, string> AcceptedCardData()
+        {
+            return new TheoryData<string, Action<VcardCard>, VcardOptions, string>
+            {
+                {
+                    "no FN",
+                    card => card.RemoveProperties(VcardPropertyNames.FormattedName),
+                    new VcardOptions { AllowMissingRequiredProperties = true },
+                    VcardTestData.Crlf("BEGIN:VCARD", "VERSION:4.0", "END:VCARD")
+                },
+                {
+                    "two N",
+                    card =>
+                    {
+                        card.Properties.Add(new VcardContentLine("N", "a;;;;"));
+                        card.Properties.Add(new VcardContentLine("N", "b;;;;"));
+                    },
+                    new VcardOptions { AllowCardinalityViolations = true },
+                    VcardTestData.Crlf("BEGIN:VCARD", "VERSION:4.0", "FN:Jane Doe", "N:a;;;;", "N:b;;;;", "END:VCARD")
+                },
+                {
+                    "a value that isn't valid",
+                    card => card.Properties.Add(new VcardContentLine("URL", "not a uri")),
+                    new VcardOptions { AllowInvalidValues = true },
+                    VcardTestData.Crlf("BEGIN:VCARD", "VERSION:4.0", "FN:Jane Doe", "URL:not a uri", "END:VCARD")
+                },
+                {
+                    "a parameter that isn't allowed",
+                    card => card.Properties.Add(new VcardContentLine("GENDER", new[] { new VcardContentLineParameter("PREF", "1") }, "M")),
+                    new VcardOptions { AllowInvalidValues = true },
+                    VcardTestData.Crlf("BEGIN:VCARD", "VERSION:4.0", "FN:Jane Doe", "GENDER;PREF=1:M", "END:VCARD")
+                }
+            };
+        }
+
         [Theory]
-        [MemberData(nameof(RefusedCardData))]
-#pragma warning disable xUnit1026 // Theory methods should use all of their parameters: the kind is for the other test of the data.
-        public void WriteCard_NonconformingCardAndOptionSet_WritesIt(string scenario, Action<VcardCard> change, VcardOptions options, VcardDiagnosticKind expected)
-#pragma warning restore xUnit1026
+        [MemberData(nameof(AcceptedCardData))]
+        public void WriteCard_NonconformingCardAndOptionSet_WritesIt(string scenario, Action<VcardCard> change, VcardOptions options, string expected)
         {
             // arrange
             var card = VcardCardTestData.NewCard();
@@ -126,7 +153,7 @@ namespace DataStandardizer.File.vCard.Tests
                 writer.WriteCard(card);
 
                 // assert
-                writer.CardsWritten.Should().Be(1, scenario);
+                output.ToString().Should().Be(expected, scenario);
             }
         }
 
@@ -361,6 +388,23 @@ namespace DataStandardizer.File.vCard.Tests
 
                 // assert
                 output.ToString().Should().Be(VcardCardTestData.TwoMinimalCards);
+            }
+        }
+
+        [Fact]
+        public async Task WriteCardsAsync_NoCardsAndCanceledToken_ThrowsOperationCanceledException()
+        {
+            // arrange
+            using (var writer = new VcardWriter(new StringWriter()))
+            using (var source = new CancellationTokenSource())
+            {
+                source.Cancel();
+
+                // act
+                Func<Task> testAction = () => writer.WriteCardsAsync(new List<VcardCard>(), null, source.Token);
+
+                // assert
+                await testAction.Should().ThrowAsync<OperationCanceledException>();
             }
         }
 

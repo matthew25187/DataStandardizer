@@ -450,6 +450,8 @@ namespace DataStandardizer.File.vCard
         {
             try
             {
+                // Check here as well, so that a canceled token cancels the call when there are no cards, as it does for an asynchronous sequence.
+                cancellationToken.ThrowIfCancellationRequested();
                 foreach (var card in cards)
                 {
                     ThrowIfDisposed();

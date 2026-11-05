@@ -37,7 +37,7 @@ namespace DataStandardizer.File.vCard
         private static readonly VcardPropertyCodec<VcardTypedValue> UidCodec = VcardPropertyCodecs.Typed(VcardPropertyNames.Uid);
 
         private static readonly VcardPropertyCodec<Uri> SourcesCodec = VcardPropertyCodecs.Uri(VcardPropertyNames.Source);
-        private static readonly VcardPropertyCodec<string> XmlCodec = VcardPropertyCodecs.Text(VcardPropertyNames.Xml);
+        private static readonly VcardPropertyCodec<string> XmlCodec = VcardPropertyCodecs.Xml();
         private static readonly VcardPropertyCodec<string> FormattedNamesCodec = VcardPropertyCodecs.Text(VcardPropertyNames.FormattedName);
         private static readonly VcardPropertyCodec<IReadOnlyList<string>> NicknamesCodec = VcardPropertyCodecs.TextList(VcardPropertyNames.Nickname);
         private static readonly VcardPropertyCodec<Uri> PhotosCodec = VcardPropertyCodecs.Uri(VcardPropertyNames.Photo);
@@ -516,7 +516,7 @@ namespace DataStandardizer.File.vCard
                     throw new ArgumentException("The cards cannot contain null.", nameof(cards));
 
                 var cardUid = card.Uid;
-                if (cardUid != null && AreEquivalentUids(GetUidText(cardUid.Value), uid)) return card;
+                if (cardUid != null && AreEquivalentUids(cardUid.Value, uid)) return card;
             }
 
             return null;
@@ -627,14 +627,30 @@ namespace DataStandardizer.File.vCard
             if (cards is null)
                 throw new ArgumentNullException(nameof(cards));
 
-            var set = new List<VcardCard>(cards);
+            // Each UID is parsed once here, rather than once for each member.
+            var candidates = new List<KeyValuePair<VcardCard, VcardTypedValue>>();
+            foreach (var card in cards)
+            {
+                if (card is null)
+                    throw new ArgumentException("The cards cannot contain null.", nameof(cards));
+
+                var cardUid = card.Uid;
+                if (cardUid != null)
+                {
+                    candidates.Add(new KeyValuePair<VcardCard, VcardTypedValue>(card, cardUid.Value));
+                }
+            }
+
             var result = new List<VcardCard>();
             foreach (var member in Members)
             {
-                var card = FindByUid(set, member.Value.OriginalString);
-                if (card != null)
+                foreach (var candidate in candidates)
                 {
-                    result.Add(card);
+                    if (AreEquivalentUids(candidate.Value, member.Value.OriginalString))
+                    {
+                        result.Add(candidate.Key);
+                        break;
+                    }
                 }
             }
 
@@ -681,6 +697,7 @@ namespace DataStandardizer.File.vCard
         /// Sets the <c>N</c> property, replacing any there are.
         /// </summary>
         /// <param name="value">The value.</param>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is not initialised.</exception>
         public void SetName(VcardName value)
         {
             SetSingle(NameCodec, value, null);
@@ -692,6 +709,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="value">The value.</param>
         /// <param name="parameters">The group and parameters.</param>
         /// <exception cref="ArgumentNullException"><paramref name="parameters"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is not initialised.</exception>
         public void SetName(VcardName value, VcardPropertyParameters parameters)
         {
             SetSingle(NameCodec, value, CheckParameters(parameters));
@@ -745,6 +763,7 @@ namespace DataStandardizer.File.vCard
         /// Sets the <c>GENDER</c> property, replacing any there are.
         /// </summary>
         /// <param name="value">The value.</param>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is not initialised.</exception>
         public void SetGender(VcardGender value)
         {
             SetSingle(GenderCodec, value, null);
@@ -756,6 +775,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="value">The value.</param>
         /// <param name="parameters">The group and parameters.</param>
         /// <exception cref="ArgumentNullException"><paramref name="parameters"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is not initialised.</exception>
         public void SetGender(VcardGender value, VcardPropertyParameters parameters)
         {
             SetSingle(GenderCodec, value, CheckParameters(parameters));
@@ -776,6 +796,7 @@ namespace DataStandardizer.File.vCard
         /// Sets the <c>REV</c> property, replacing any there are.
         /// </summary>
         /// <param name="value">The value.</param>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is not initialised.</exception>
         public void SetRevision(VcardTimestamp value)
         {
             SetSingle(RevisionCodec, value, null);
@@ -823,7 +844,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <remarks>
         /// It checks the rules a writer checks, whatever the options, so a reader or writer may accept a card that has problems here.  The structure of the lines a card was read from
-        /// isn't kept, so it doesn't report that.
+        /// isn't kept, so it doesn't report that.  A problem in the card never throws, but an exception from a <see cref="VcardOptions.CharsetResolver"/> of the caller's isn't caught.
         /// </remarks>
         /// <returns>Every problem found, in the order of the lines they were found on.</returns>
         public IReadOnlyList<VcardDiagnostic> Validate()
@@ -938,13 +959,12 @@ namespace DataStandardizer.File.vCard
             return parameters;
         }
 
-        private static string GetUidText(VcardTypedValue uid)
+        private static bool AreEquivalentUids(VcardTypedValue cardUid, string right)
         {
-            return uid.ValueType == VcardValueType.Uri ? uid.Uri.OriginalString : uid.Text;
-        }
+            // Free-form text has no equivalence of its own, whatever it looks like.
+            if (cardUid.ValueType != VcardValueType.Uri) return string.Equals(cardUid.Text, right, StringComparison.Ordinal);
 
-        private static bool AreEquivalentUids(string left, string right)
-        {
+            var left = cardUid.Uri.OriginalString;
             if (string.Equals(left, right, StringComparison.Ordinal)) return true;
 
             if (left.StartsWith(UuidUrnPrefix, StringComparison.OrdinalIgnoreCase) && right.StartsWith(UuidUrnPrefix, StringComparison.OrdinalIgnoreCase))

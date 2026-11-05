@@ -17,7 +17,8 @@ namespace DataStandardizer.File.vCard
         private int? _pref;
 
         /// <summary>
-        /// Gets parameters that RFC 6350 doesn't define, to go after the others.  It can be changed.
+        /// Gets parameters that RFC 6350 doesn't define, to go after the others.  It can be changed.  On a property that RFC 6350 does define, a <c>VALUE</c> here causes an
+        /// <see cref="ArgumentException"/> when the property is added, since it comes from the value.
         /// </summary>
         public IList<VcardContentLineParameter> AdditionalParameters { get; } = new List<VcardContentLineParameter>();
 

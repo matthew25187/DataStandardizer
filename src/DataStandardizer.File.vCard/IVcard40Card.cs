@@ -270,6 +270,7 @@ namespace DataStandardizer.File.vCard
         /// Sets the <c>N</c> property, replacing any there are.
         /// </summary>
         /// <param name="value">The value.</param>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is not initialised.</exception>
         void SetName(VcardName value);
 
         /// <summary>
@@ -278,6 +279,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="value">The value.</param>
         /// <param name="parameters">The group and parameters.</param>
         /// <exception cref="ArgumentNullException"><paramref name="parameters"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is not initialised.</exception>
         void SetName(VcardName value, VcardPropertyParameters parameters);
 
         /// <summary>
@@ -316,6 +318,7 @@ namespace DataStandardizer.File.vCard
         /// Sets the <c>GENDER</c> property, replacing any there are.
         /// </summary>
         /// <param name="value">The value.</param>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is not initialised.</exception>
         void SetGender(VcardGender value);
 
         /// <summary>
@@ -324,6 +327,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="value">The value.</param>
         /// <param name="parameters">The group and parameters.</param>
         /// <exception cref="ArgumentNullException"><paramref name="parameters"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is not initialised.</exception>
         void SetGender(VcardGender value, VcardPropertyParameters parameters);
 
         /// <summary>
@@ -338,6 +342,7 @@ namespace DataStandardizer.File.vCard
         /// Sets the <c>REV</c> property, replacing any there are.
         /// </summary>
         /// <param name="value">The value.</param>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is not initialised.</exception>
         void SetRevision(VcardTimestamp value);
 
         /// <summary>

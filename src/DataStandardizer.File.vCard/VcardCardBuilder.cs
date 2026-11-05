@@ -193,6 +193,15 @@ namespace DataStandardizer.File.vCard
                     Format("The card has VERSION:{0}.  Only vCard 4.0 can be read so far.", line.Value), line.Name, line.Group, line.LineNumber, card.CardIndex));
             }
 
+            VcardConformance.ValidateVersionLine(line, card, _structureDiagnostics);
+
+            // ref. RFC 6350 §3.3 has no group here, though §6.7.9 does allow the VALUE=text and any-param that a line can have.
+            if (line.Group != null)
+            {
+                _structureDiagnostics.Add(new VcardDiagnostic(VcardDiagnosticKind.InvalidStructure, "RFC 6350 §3.3 doesn't allow a group on a VERSION line.", line.Name, line.Group,
+                    line.LineNumber, card.CardIndex));
+            }
+
             if (_mapping != null)
             {
                 _structureDiagnostics.Add(new VcardDiagnostic(VcardDiagnosticKind.CardinalityViolation, "RFC 6350 §6.7.9 allows exactly one VERSION property.", line.Name, line.Group,
@@ -205,13 +214,6 @@ namespace DataStandardizer.File.vCard
             {
                 _structureDiagnostics.Add(new VcardDiagnostic(VcardDiagnosticKind.InvalidStructure, "RFC 6350 §6.7.9 requires the VERSION property immediately after BEGIN:VCARD.",
                     line.Name, line.Group, line.LineNumber, card.CardIndex));
-            }
-
-            // ref. RFC 6350 §3.3 has no group here, though §6.7.9 does allow the VALUE=text and any-param that a line can have.
-            if (line.Group != null)
-            {
-                _structureDiagnostics.Add(new VcardDiagnostic(VcardDiagnosticKind.InvalidStructure, "RFC 6350 §3.3 doesn't allow a group on a VERSION line.", line.Name, line.Group,
-                    line.LineNumber, card.CardIndex));
             }
 
             _mapping = mapping;

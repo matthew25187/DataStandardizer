@@ -837,6 +837,7 @@ namespace DataStandardizer.File.vCard.Tests
             { progress => progress != new VcardWriteProgress(4), true },
             { progress => progress.Equals((object)new VcardWriteProgress(3)), true },
             { progress => progress.Equals(null), false },
+            { progress => progress.Equals(new VcardWriteProgress(3, 1)), false },
         };
 
         [Theory]
