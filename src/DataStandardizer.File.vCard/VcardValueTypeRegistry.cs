@@ -3,7 +3,7 @@
 namespace DataStandardizer.File.vCard
 {
     /// <summary>
-    /// Gives the value type of each property defined by RFC 6350 §6, and honours a <c>VALUE</c> parameter that overrides it.
+    /// Gives the value type of each property of vCard 4.0, as RFC 6350 §6 and its extensions define them, and honours a <c>VALUE</c> parameter that overrides it.
     /// </summary>
     /// <remarks>
     /// Unknown and experimental (<c>X-</c>) properties have the value type <see cref="VcardValueType.Unknown"/> whatever their <c>VALUE</c> parameter says, so that their values are
@@ -92,7 +92,21 @@ namespace DataStandardizer.File.vCard
             // ref. RFC 6350 §6.9: calendar properties.
             new Entry("FBURL", VcardValueType.Uri),
             new Entry("CALADRURI", VcardValueType.Uri),
-            new Entry("CALURI", VcardValueType.Uri)
+            new Entry("CALURI", VcardValueType.Uri),
+
+            // ref. RFC 6474 §2: places and date of death.
+            new Entry("BIRTHPLACE", VcardValueType.Text, VcardValueType.Uri),
+            new Entry("DEATHPLACE", VcardValueType.Text, VcardValueType.Uri),
+            new Entry("DEATHDATE", VcardValueType.DateAndOrTime, VcardValueType.Text),
+
+            // ref. RFC 6715 §2: the properties of the OMA Converged Address Book.
+            new Entry("EXPERTISE", VcardValueType.Text),
+            new Entry("HOBBY", VcardValueType.Text),
+            new Entry("INTEREST", VcardValueType.Text),
+            new Entry("ORG-DIRECTORY", VcardValueType.Uri),
+
+            // ref. RFC 8605 §2.1.
+            new Entry("CONTACT-URI", VcardValueType.Uri)
         };
 
         /// <summary>

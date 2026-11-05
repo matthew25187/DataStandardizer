@@ -30,6 +30,7 @@ public sealed class VcardPropertyList<TValue> : IReadOnlyList<VcardProperty<TVal
 | `Clear()` | Removes every instance, including any whose value isn't valid. |
 | `GetPreferred()` | The first instance with the lowest `PREF` (RFC 6350 §5.3), or `null` if there are none. |
 | `GetAlternatives()` | The instances grouped by `ALTID` (RFC 6350 §5.4). |
+| `GetOrderedByIndex()` | The instances in the order of their `INDEX` (RFC 6715 §3.1). One without a valid `INDEX` comes after those that have it, as erratum 3342 of the RFC says, and instances that can't be told apart stay in the order they appear. |
 
 `Add` throws `ArgumentNullException` for a `null` value, and `ArgumentException` for a value of a type the property doesn't allow, one that isn't initialised, one that can't be written, or a `VALUE` in `AdditionalParameters`. An `XML` value must be one element in a namespace of its own (RFC 6350 §6.1.5). `Remove` gives `false` for an instance of another property.
 

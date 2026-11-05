@@ -326,6 +326,14 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
+        /// Gets a copy of the line, read from the same place, with another name and value.
+        /// </summary>
+        internal VcardContentLine WithNameAndValue(string name, string value)
+        {
+            return new VcardContentLine(Group, name, _parameters, value, LineNumber, PhysicalLineNumber, _foldOffsets, _valueOffset, _cardIndex, _hasValuelessParameter, _decoder, _version);
+        }
+
+        /// <summary>
         /// Creates a content line from the reader's current line.
         /// </summary>
         /// <param name="scanner">The scanner holding the line.</param>

@@ -296,7 +296,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             // act
             VcardGeo result;
-            var testResult = VcardGeo.TryParse(VcardValueExamples.GeoUri.AsSpan(), VcardValueFormat.Text, out result);
+            var testResult = VcardGeo.TryParse(VcardValueExamples.GeoValue.AsSpan(), VcardValueFormat.Text, out result);
 
             // assert
             testResult.Should().BeTrue();
@@ -305,14 +305,14 @@ namespace DataStandardizer.File.vCard.Tests
             result.Altitude.Should().BeNull();
             result.Uncertainty.Should().BeNull();
             result.UriText.Should().Be(VcardValueExamples.GeoUri);
-            result.ToString(VcardValueFormat.Text).Should().Be(VcardValueExamples.GeoUri);
+            result.ToString(VcardValueFormat.Text).Should().Be(VcardValueExamples.GeoValue);
         }
 
         [Fact]
         public void TryParse_Rfc5870GeoWithAltitudeAndUncertainty_GivesThem()
         {
             // act
-            var testResult = VcardGeo.Parse(VcardValueExamples.GeoUriWithUncertainty.AsSpan(), VcardValueFormat.Text);
+            var testResult = VcardGeo.Parse(VcardValueExamples.GeoValueWithUncertainty.AsSpan(), VcardValueFormat.Text);
 
             // assert
             testResult.Altitude.Should().Be(183);
@@ -338,7 +338,7 @@ namespace DataStandardizer.File.vCard.Tests
         {
             // act
             VcardGeo result;
-            var testResult = VcardGeo.TryParse("geo:1000,2000;crs=other".AsSpan(), VcardValueFormat.Text, out result);
+            var testResult = VcardGeo.TryParse("geo:1000\\,2000;crs=other".AsSpan(), VcardValueFormat.Text, out result);
 
             // assert
             testResult.Should().BeTrue();
@@ -346,10 +346,10 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Theory]
-        [InlineData("geo:1,2;crs=wgs84;u=3;a=b")]
-        [InlineData("GEO:1,2;CRS=WGS84")]
-        [InlineData("geo:1,2;flag")]
-        [InlineData("geo:-90,180")]
+        [InlineData("geo:1\\,2;crs=wgs84;u=3;a=b")]
+        [InlineData("GEO:1\\,2;CRS=WGS84")]
+        [InlineData("geo:1\\,2;flag")]
+        [InlineData("geo:-90\\,180")]
         public void TryParse_ValidGeoUri_ReturnsTrue(string value)
         {
             // act
@@ -365,18 +365,18 @@ namespace DataStandardizer.File.vCard.Tests
         [InlineData(VcardValueExamples.GeoVersion30)]
         [InlineData("geo:")]
         [InlineData("geo:1")]
-        [InlineData("geo:1,")]
-        [InlineData("geo:+1,2")]
-        [InlineData("geo:1,2,3,4")]
-        [InlineData("geo:91,0")]
-        [InlineData("geo:0,181")]
-        [InlineData("geo:1,2;")]
-        [InlineData("geo:1,2;u=-1")]
-        [InlineData("geo:1,2;u=1;u=2")]
-        [InlineData("geo:1,2;crs=wgs84;crs=wgs84")]
-        [InlineData("geo:1,2;u=1;crs=wgs84")]
-        [InlineData("geo:1,2;a=")]
-        [InlineData("geo:1,2;a=b,c")]
+        [InlineData("geo:1\\,")]
+        [InlineData("geo:+1\\,2")]
+        [InlineData("geo:1\\,2\\,3\\,4")]
+        [InlineData("geo:91\\,0")]
+        [InlineData("geo:0\\,181")]
+        [InlineData("geo:1\\,2;")]
+        [InlineData("geo:1\\,2;u=-1")]
+        [InlineData("geo:1\\,2;u=1;u=2")]
+        [InlineData("geo:1\\,2;crs=wgs84;crs=wgs84")]
+        [InlineData("geo:1\\,2;u=1;crs=wgs84")]
+        [InlineData("geo:1\\,2;a=")]
+        [InlineData("geo:1\\,2;a=b\\,c")]
         public void TryParse_InvalidVersion40Geo_ReturnsFalse(string value)
         {
             // act
@@ -404,7 +404,7 @@ namespace DataStandardizer.File.vCard.Tests
         [Theory]
         [InlineData(VcardValueExamples.GeoVersion21, VcardVersion.V3_0)]
         [InlineData(VcardValueExamples.GeoVersion30, VcardVersion.V2_1)]
-        [InlineData(VcardValueExamples.GeoUri, VcardVersion.V3_0)]
+        [InlineData(VcardValueExamples.GeoValue, VcardVersion.V3_0)]
         [InlineData("91;0", VcardVersion.V3_0)]
         [InlineData("0;181", VcardVersion.V3_0)]
         [InlineData("1;2;3", VcardVersion.V3_0)]
@@ -425,7 +425,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void ToString_GeoUriInLegacyVersion_WritesTheFormOfTheVersion(VcardVersion version, string expected)
         {
             // arrange
-            var geo = VcardGeo.Parse(VcardValueExamples.GeoUri.AsSpan(), VcardValueFormat.Text);
+            var geo = VcardGeo.Parse(VcardValueExamples.GeoValue.AsSpan(), VcardValueFormat.Text);
 
             // act
             var testResult = geo.ToString(VcardValueFormat.Text, version);
@@ -435,10 +435,10 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Theory]
-        [InlineData(VcardValueExamples.GeoUri, true)]
-        [InlineData(VcardValueExamples.GeoUriWithUncertainty, false)]
+        [InlineData(VcardValueExamples.GeoValue, true)]
+        [InlineData(VcardValueExamples.GeoValueWithUncertainty, false)]
         [InlineData(VcardValueExamples.UriHttp, false)]
-        [InlineData("geo:1,2;crs=wgs84", false)]
+        [InlineData("geo:1\\,2;crs=wgs84", false)]
         public void IsDefinedIn_Version30_IsOnlyForAPlainLatitudeAndLongitude(string value, bool expected)
         {
             // arrange
@@ -475,7 +475,7 @@ namespace DataStandardizer.File.vCard.Tests
             var testResult = geo.ToString();
 
             // assert
-            testResult.Should().Be(VcardValueExamples.GeoUri);
+            testResult.Should().Be(VcardValueExamples.GeoValue);
         }
 
         [Theory]

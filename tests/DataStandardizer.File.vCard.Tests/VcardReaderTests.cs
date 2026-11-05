@@ -40,7 +40,7 @@ namespace DataStandardizer.File.vCard.Tests
             var options = new VcardOptions();
 
             // act
-            var testResult = VcardCardTestData.Read(Rfc6350Examples.Example, options);
+            var testResult = VcardCardTestData.Read(Rfc6350Examples.ExampleWithEscapedComma, options);
 
             // assert
             testResult.Properties.Should().HaveCount(ExamplePropertyCount);
@@ -51,7 +51,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void ReadCard_Rfc6350Example_GivesTypedValues()
         {
             // arrange
-            var text = Rfc6350Examples.Example;
+            var text = Rfc6350Examples.ExampleWithEscapedComma;
 
             // act
             var testResult = VcardCardTestData.Read(text);
@@ -78,7 +78,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void ReadCard_AnyBufferSize_GivesTheSameLines(int bufferSize)
         {
             // arrange
-            using (var reader = new VcardReader(new StringReader(Rfc6350Examples.Example), new VcardOptions(), bufferSize))
+            using (var reader = new VcardReader(new StringReader(Rfc6350Examples.ExampleWithEscapedComma), new VcardOptions(), bufferSize))
             {
                 // act
                 var testResult = reader.ReadCard();
@@ -97,7 +97,7 @@ namespace DataStandardizer.File.vCard.Tests
                     "TEL:tel:+1-418-656-9254;ext=102",
                     "TEL:tel:+1-418-262-6501",
                     "EMAIL:simon.perreault@viagenie.ca",
-                    "GEO:geo:46.772673,-71.282945",
+                    "GEO:geo:46.772673\\,-71.282945",
                     "KEY:http://www.viagenie.ca/simon.perreault/simon.asc",
                     "TZ:-0500",
                     "URL:http://nomis80.org");
@@ -108,7 +108,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void ReadCard_QuotedTypeValueList_SplitsItLikeAParameterList()
         {
             // arrange
-            var text = Rfc6350Examples.Example;
+            var text = Rfc6350Examples.ExampleWithEscapedComma;
 
             // act
             var testResult = VcardCardTestData.Read(text);
@@ -120,11 +120,12 @@ namespace DataStandardizer.File.vCard.Tests
 
         public static TheoryData<string> Rfc6350PropertyExamples()
         {
-            // ref. RFC 6350 §5 and §6: the example of each property and parameter, apart from those that need another property and the RFC's own typos (§5.4 and §6.2.5).
+            // ref. RFC 6350 §5 and §6: the example of each property and parameter, apart from those that need another property and the RFC's own typos (§5.4 and §6.2.5).  A comma in a URI
+            // value is escaped: errata 3845 and 3846 correct §6.2.4 and §6.5.2 and say the same is true elsewhere, and §6.1.3 and §6.7.5 are the same case.
             return new TheoryData<string>
             {
                 "ROLE;LANGUAGE=tr:hoca",
-                "SOURCE:ldap://ldap.example.com/cn=Babs%20Jensen,%20o=Babsco,%20c=US",
+                "SOURCE:ldap://ldap.example.com/cn=Babs%20Jensen\\,%20o=Babsco\\,%20c=US",
                 "SOURCE:http://directory.example.com/addressbooks/jdoe/Jean%20Dupont.vcf",
                 "KIND:individual",
                 "KIND:org",
@@ -138,7 +139,7 @@ namespace DataStandardizer.File.vCard.Tests
                 "NICKNAME:Jim,Jimmie",
                 "NICKNAME;TYPE=work:Boss",
                 "PHOTO:http://www.example.com/pub/photos/jqpublic.gif",
-                "PHOTO:data:image/jpeg;base64,MIICajCCAdOgAwIBAgICBEUwDQYJKoZIhv",
+                "PHOTO:data:image/jpeg;base64\\,MIICajCCAdOgAwIBAgICBEUwDQYJKoZIhv",
                 "BDAY:19960415",
                 "BDAY:--0415",
                 "BDAY;VALUE=text:circa 1800",
@@ -159,7 +160,7 @@ namespace DataStandardizer.File.vCard.Tests
                 "LANG;TYPE=home:fr",
                 "TZ:Raleigh/North America",
                 "TZ;VALUE=utc-offset:-0500",
-                "GEO:geo:37.386013,-122.082932",
+                "GEO:geo:37.386013\\,-122.082932",
                 "TITLE:Research Scientist",
                 "ROLE:Project Leader",
                 "LOGO:http://www.example.com/pub/logos/abccorp.jpg",
@@ -172,7 +173,7 @@ namespace DataStandardizer.File.vCard.Tests
                 "PRODID:-//ONLINE DIRECTORY//NONSGML Version 1//EN",
                 "REV:19951031T222710Z",
                 "SOUND:CID:JOHNQPUBLIC.part8.19960229T080000.xyzMail@example.com",
-                "SOUND:data:audio/basic;base64,MIICajCCAdOgAwIBAgICBEUwDQYJKoZIh",
+                "SOUND:data:audio/basic;base64\\,MIICajCCAdOgAwIBAgICBEUwDQYJKoZIh",
                 "UID:urn:uuid:f81d4fae-7dec-11d0-a765-00a0c91e6bf6",
                 "CLIENTPIDMAP:1;urn:uuid:3df403f4-5924-4bb7-b077-3c711d9eb34b",
                 "URL:http://example.org/restaurant.french/~chezchic.html",

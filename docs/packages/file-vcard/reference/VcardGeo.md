@@ -23,7 +23,7 @@ public readonly struct VcardGeo : IEquatable<VcardGeo>
 
 | Version | Form | Standard |
 | --- | --- | --- |
-| 4.0 | a URI, such as `geo:37.386013,-122.082932` | RFC 6350 §6.5.2 |
+| 4.0 | a URI, with its comma escaped in a content line, such as `geo:37.386013\,-122.082932` | RFC 6350 §6.5.2 and its erratum 3846 |
 | 3.0 | `37.386013;-122.082932` | RFC 2426 §3.4.2 |
 | 2.1 | `37.24,-17.87` | vCard 2.1 §2.4.6 |
 
@@ -49,7 +49,7 @@ The digits are kept as they were written when one form becomes another, apart fr
 
 | Property | Notes |
 | --- | --- |
-| `string UriText` | The URI. |
+| `string UriText` | The URI, with no escaping. |
 | `double? Latitude`, `double? Longitude`, `double? Altitude` | The coordinates in WGS 84, or `null`. |
 | `double? Uncertainty` | The `u` parameter of RFC 5870 §3.4.3, or `null`. |
 
@@ -59,6 +59,7 @@ The digits are kept as they were written when one form becomes another, apart fr
 | --- | --- |
 | `TryParse(value, format, out result)` | Parses a vCard 4.0 value. Returns `false` if it isn't valid. |
 | `TryParse(value, format, version, out result)` | Parses a value by the grammar of a version. |
+| `TryParse(Uri uri, out result)` | Reads a URI, such as one from `VcardCard.GeoLocations`, which has no escaping. Returns `false` if it isn't valid. |
 | `Parse(value, format)`, `Parse(value, format, version)` | As `TryParse`, and throws `FormatException` if the value isn't valid. |
 | `TryFormat(destination, out charsWritten, format)`, `TryFormat(destination, out charsWritten, format, version)` | Writes the value. Returns `false` if the destination is too short. |
 | `ToString(format)`, `ToString(format, version)` | Formats the value as a string. |

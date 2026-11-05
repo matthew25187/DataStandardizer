@@ -31,9 +31,9 @@ public sealed class VcardCard : IVcard40Card
 | --- | --- | --- |
 | `Properties` | `IList<VcardContentLine>` | Every property in order, including unknown and `X-` properties, whether or not its value is valid. It can be changed. It doesn't hold `BEGIN`, `VERSION` or `END`. |
 | `SourceVersion` | `VcardVersion?` | The version the card was read from. `null` if it was built in code, or read with no `VERSION`. |
-| `Kind` | `VcardKind` | What the card represents. With no `KIND` it is `Individual`, as RFC 6350 §6.1.4 says. |
-| `KindText` | `string?` | The value of `KIND` as written, which holds any value RFC 6350 doesn't define. |
-| `ExtensionProperties` | `IReadOnlyList<VcardProperty<string>>` | The properties RFC 6350 doesn't define. Each value is as it appears in the content line. |
+| `Kind` | `VcardKind` | What the card represents. With no `KIND` it is `Individual`, as RFC 6350 §6.1.4 says. RFC 6473 adds `Application` and RFC 6869 adds `Device`. |
+| `KindText` | `string?` | The value of `KIND` as written, which holds any value that RFC 6350 and its extensions don't define. |
+| `ExtensionProperties` | `IReadOnlyList<VcardProperty<string>>` | The properties RFC 6350 and its extensions don't define. Each value is as it appears in the content line. |
 
 ### Properties with at most one instance
 
@@ -48,8 +48,11 @@ Each is `null` if the card has none with a valid value. The setters replace ever
 | `ProductId` | `PRODID` | `string` | `SetProductId(value)` |
 | `Revision` | `REV` | `VcardTimestamp` | `SetRevision(value)` |
 | `Uid` | `UID` | `VcardTypedValue` (URI or text) | `SetUid(value)` |
+| `BirthPlace` | `BIRTHPLACE` (RFC 6474 §2.1) | `VcardTypedValue` (text or URI) | `SetBirthPlace(value)`, `SetBirthPlace(value, parameters)` |
+| `DeathPlace` | `DEATHPLACE` (RFC 6474 §2.2) | `VcardTypedValue` (text or URI) | `SetDeathPlace(value)`, `SetDeathPlace(value, parameters)` |
+| `DeathDate` | `DEATHDATE` (RFC 6474 §2.3) | `VcardTypedValue` (date-and-or-time or text) | `SetDeathDate(value)`, `SetDeathDate(value, parameters)` |
 
-`SetKind` takes a `VcardKind`, or the text of a value RFC 6350 doesn't define. A value that isn't initialised throws `ArgumentException`, and leaves the card as it was.
+`SetKind` takes a `VcardKind`, or the text of a value that RFC 6350 and its extensions don't define. A value that isn't initialised throws `ArgumentException`, and leaves the card as it was.
 
 ### Properties with any number of instances
 
@@ -84,6 +87,11 @@ Each is a [VcardPropertyList](VcardPropertyList.md), a live view of `Properties`
 | `FreeBusyUrls` | `FBURL` | `Uri` |
 | `CalendarAddressUris` | `CALADRURI` | `Uri` |
 | `CalendarUris` | `CALURI` | `Uri` |
+| `Expertise` | `EXPERTISE` (RFC 6715 §2.1) | `string` |
+| `Hobbies` | `HOBBY` (RFC 6715 §2.2) | `string` |
+| `Interests` | `INTEREST` (RFC 6715 §2.3) | `string` |
+| `OrganizationDirectories` | `ORG-DIRECTORY` (RFC 6715 §2.4) | `Uri` |
+| `ContactUris` | `CONTACT-URI` (RFC 8605 §2.1) | `Uri` |
 
 The typed members leave out a property whose value isn't valid, which `AllowInvalidValues` lets a reader accept, and one with a `CALSCALE` other than `gregorian`, which RFC 6350 §5.8 says to ignore. Both stay in `Properties`.
 
@@ -96,7 +104,7 @@ The typed members leave out a property whose value isn't valid, which `AllowInva
 | `GetPreferred(string name)` | The first instance with the lowest `PREF`; an instance without it is least preferred (RFC 6350 §5.3). `null` if there are none. |
 | `GetAlternatives(string name)` | The instances grouped by `ALTID`, in the order each group first appears (RFC 6350 §5.4). An instance without it is a group of its own. |
 | `RemoveProperties(string name)` | Removes every instance, and gives how many. |
-| `AddExtensionProperty(string name, string value)` | Adds a property RFC 6350 doesn't define. There is an overload with parameters. |
+| `AddExtensionProperty(string name, string value)` | Adds a property that RFC 6350 and its extensions don't define. There is an overload with parameters. |
 | `ResolveMembers(IEnumerable<VcardCard> cards)` | The cards of a set that the `MEMBER` properties link to by `UID`. One that doesn't resolve, such as a `mailto` URI, is left out. |
 | `FindByUid(IEnumerable<VcardCard> cards, string uid)` | Static. The first card with a `UID`, compared as RFC 6350 §7.1.1 says. `null` if there is none. |
 | `Validate()` | Every [VcardDiagnostic](VcardDiagnostic.md), without throwing for a problem in the card. An exception from a `CharsetResolver` of the caller's isn't caught. |

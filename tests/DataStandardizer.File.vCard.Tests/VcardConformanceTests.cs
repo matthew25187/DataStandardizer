@@ -154,10 +154,10 @@ namespace DataStandardizer.File.vCard.Tests
 
         public static TheoryData<string> PropertyWithOneInstanceData()
         {
-            // ref. RFC 6350 §6: the properties with cardinality *1.
+            // ref. RFC 6350 §6 and RFC 6474 §2: the properties with cardinality *1.
             return new TheoryData<string>
             {
-                "KIND:individual", "N:a;;;;", "BDAY:19960415", "ANNIVERSARY:19960415", "GENDER:M", "PRODID:a", "REV:19951031T222710Z", "UID:urn:a"
+                "KIND:individual", "N:a;;;;", "BDAY:19960415", "ANNIVERSARY:19960415", "GENDER:M", "PRODID:a", "REV:19951031T222710Z", "UID:urn:a", "BIRTHPLACE:a", "DEATHPLACE:a", "DEATHDATE:19960415"
             };
         }
 

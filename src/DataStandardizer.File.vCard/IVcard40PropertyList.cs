@@ -37,6 +37,12 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         IReadOnlyList<IReadOnlyList<IVcard40Property<TValue>>> GetAlternatives();
 
+        /// <summary>
+        /// Gets the instances in the order of their <c>INDEX</c> (RFC 6715 §3.1).  An instance without a valid one comes after those that have it, as erratum 3342 of the RFC says, and
+        /// instances that can't be told apart stay in the order they appear.
+        /// </summary>
+        IReadOnlyList<IVcard40Property<TValue>> GetOrderedByIndex();
+
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         /// <summary>
         /// Gets the first of the instances with the lowest <c>PREF</c> (RFC 6350 §5.3); or <c>null</c> if there are none.  An instance without it is least preferred.

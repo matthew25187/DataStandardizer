@@ -11,7 +11,7 @@ nav_exclude: true
 
 Namespace: `DataStandardizer.File.vCard`
 
-The kind of object a card represents (RFC 6350 §6.1.4).
+The kind of object a card represents (RFC 6350 §6.1.4, RFC 6473 and RFC 6869).
 
 **Syntax**
 
@@ -27,7 +27,9 @@ public enum VcardKind
 | `Group` | 1 | `group`, the only kind that may have `MEMBER` properties |
 | `Organization` | 2 | `org` |
 | `Location` | 3 | `location` |
-| `Other` | 4 | Any other value, which `VcardCard.KindText` holds |
+| `Application` | 4 | `application`, a software application such as a server, an online service or a bot (RFC 6473 §2) |
+| `Device` | 5 | `device`, a computing device such as an appliance, a computer or a network element (RFC 6869 §2) |
+| `Other` | 6 | Any other value, which `VcardCard.KindText` holds |
 
 ## Applies to
 

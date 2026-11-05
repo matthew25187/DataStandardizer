@@ -150,7 +150,8 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Parses a vCard 4.0 value, such as <c>geo:37.386013,-122.082932</c>.
+        /// Parses a vCard 4.0 value as it appears in a content line, such as <c>geo:37.386013\,-122.082932</c>, with its comma escaped as RFC 6350 §3.4 and its erratum 3846 say.  To read
+        /// a <see cref="Uri"/>, such as one from <see cref="VcardCard.GeoLocations"/>, use <see cref="TryParse(Uri, out VcardGeo)"/>.
         /// </summary>
         /// <param name="value">The value.</param>
         /// <param name="format">The lexical form of the value.</param>
@@ -166,7 +167,7 @@ namespace DataStandardizer.File.vCard
         /// <summary>
         /// Parses a value in the form a version uses.
         /// </summary>
-        /// <param name="value">The value: a URI in vCard 4.0, <c>37.386013;-122.082932</c> in vCard 3.0 and <c>37.24,-17.87</c> in vCard 2.1.</param>
+        /// <param name="value">The value: a URI in vCard 4.0, with its comma escaped, <c>37.386013;-122.082932</c> in vCard 3.0 and <c>37.24,-17.87</c> in vCard 2.1.</param>
         /// <param name="format">The lexical form of the value.</param>
         /// <param name="version">The version whose grammar applies.</param>
         /// <param name="result">The value, if it is valid.</param>
@@ -179,6 +180,27 @@ namespace DataStandardizer.File.vCard
             VcardValueFormatting.CheckVersion(version);
 
             return version == VcardVersion.V4_0 ? TryParseUri(value, format, out result) : TryParseLegacy(value, version, out result);
+        }
+
+        /// <summary>
+        /// Reads a URI, such as one from <see cref="VcardCard.GeoLocations"/>.
+        /// </summary>
+        /// <param name="uri">The URI.</param>
+        /// <param name="result">The value, if the URI is valid.</param>
+        /// <returns><c>true</c> if the URI is valid: absolute, and if it is of the <c>geo</c> scheme, a <c>geo</c> URI of RFC 5870; otherwise <c>false</c>.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="uri"/> is <c>null</c>.</exception>
+        public static bool TryParse(Uri uri, out VcardGeo result)
+        {
+            if (uri is null)
+                throw new ArgumentNullException(nameof(uri));
+
+            result = default(VcardGeo);
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            Uri? parsed;
+#else
+            Uri parsed;
+#endif
+            return uri.IsAbsoluteUri && VcardValue.TryParseUriText(uri.OriginalString.AsSpan(), out parsed) && TryCreateFromUri(parsed, out result);
         }
 
         /// <summary>
@@ -256,7 +278,7 @@ namespace DataStandardizer.File.vCard
             var writer = new VcardSpanWriter(destination);
             if (version == VcardVersion.V4_0)
             {
-                writer.Append(_uri.AsSpan());
+                writer.Append(VcardValue.EscapeUri(_uri).AsSpan());
             }
             else
             {
@@ -291,7 +313,8 @@ namespace DataStandardizer.File.vCard
         /// <exception cref="InvalidOperationException"><paramref name="version"/> has no form for this value; see <see cref="IsDefinedIn"/>.</exception>
         public string ToString(VcardValueFormat format, VcardVersion version)
         {
-            var buffer = new char[_uri is null ? 0 : _uri.Length];
+            // A vCard 4.0 value is the longest form, with a backslash before each comma.
+            var buffer = new char[_uri is null ? 0 : VcardValue.EscapeUri(_uri).Length];
             int charsWritten;
             return VcardValueFormatting.ToString(buffer, TryFormat(buffer, out charsWritten, format, version), charsWritten);
         }
@@ -301,7 +324,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         public override string ToString()
         {
-            return _uri ?? typeof(VcardGeo).FullName ?? nameof(VcardGeo);
+            return _uri is null ? typeof(VcardGeo).FullName ?? nameof(VcardGeo) : VcardValue.EscapeUri(_uri);
         }
 
         /// <summary>
@@ -352,17 +375,21 @@ namespace DataStandardizer.File.vCard
 #else
             Uri uri;
 #endif
-            if (!VcardValue.TryParseUri(value, format, out uri)) return false;
+            return VcardValue.TryParseUri(value, format, out uri) && TryCreateFromUri(uri, out result);
+        }
 
+        private static bool TryCreateFromUri(Uri uri, out VcardGeo result)
+        {
             // ref. RFC 6350 §6.5.2: "other schemes MAY be used".  A value that says it is a geo URI has to be one.
-            var colonIndex = value.IndexOf(':');
-            if (!VcardValueFormatting.EqualsKeyword(value.Slice(0, colonIndex), GeoScheme))
+            var text = uri.OriginalString.AsSpan();
+            var colonIndex = text.IndexOf(':');
+            if (!VcardValueFormatting.EqualsKeyword(text.Slice(0, colonIndex), GeoScheme))
             {
                 result = new VcardGeo(uri.OriginalString, null, null, null, null, false);
                 return true;
             }
 
-            return TryParseGeoPath(value.Slice(colonIndex + 1), uri.OriginalString, out result);
+            return TryParseGeoPath(text.Slice(colonIndex + 1), uri.OriginalString, out result);
         }
 
         private static bool TryParseGeoPath(ReadOnlySpan<char> path, string uri, out VcardGeo result)

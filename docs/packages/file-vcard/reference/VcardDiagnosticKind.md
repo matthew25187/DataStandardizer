@@ -23,10 +23,10 @@ public enum VcardDiagnosticKind
 
 | Field | Value | Accepted with | Notes |
 | --- | --- | --- | --- |
-| `MissingRequiredProperty` | 1 | `AllowMissingRequiredProperties` | `FN`, or the `VERSION` of a card being read. |
-| `CardinalityViolation` | 2 | `AllowCardinalityViolations` | More instances than RFC 6350 §6 allows, or a `MEMBER` without `KIND:group`. |
+| `MissingRequiredProperty` | 1 | `AllowMissingRequiredProperties` | `FN`, the `VERSION` of a card being read, or a `CONTACT-URI` with a `mailto`, `http` or `https` URI in a card that has others (RFC 8605 §2.1). |
+| `CardinalityViolation` | 2 | `AllowCardinalityViolations` | More instances than RFC 6350 §6 or the extension that defines the property allows, or a `MEMBER` without `KIND:group`. |
 | `InvalidValue` | 3 | `AllowInvalidValues` | A value that doesn't follow its syntax, or a `VALUE` the property doesn't allow. |
-| `InvalidParameter` | 4 | `AllowInvalidValues` | A parameter on a property that doesn't allow it, repeated, or not valid; or a `PID` source with no `CLIENTPIDMAP`. |
+| `InvalidParameter` | 4 | `AllowInvalidValues` | A parameter on a property that doesn't allow it, repeated, or not valid; a `PID` source with no `CLIENTPIDMAP`; or several `CONTACT-URI` properties with no `PREF` (RFC 8605 §2.1). |
 | `UnsupportedVersion` | 5 | Nothing | A version that can't be read. |
 | `VersionConversion` | 6 | | Not reported yet. It arrives with reading and writing vCard 3.0. |
 | `Lossy` | 7 | `AllowLossyVersionConversion` | Not reported yet. It arrives with reading and writing vCard 3.0. |

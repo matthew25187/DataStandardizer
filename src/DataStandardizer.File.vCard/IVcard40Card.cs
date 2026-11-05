@@ -5,7 +5,7 @@ using DataStandardizer.LanguageTag;
 namespace DataStandardizer.File.vCard
 {
     /// <summary>
-    /// A card in the shape of vCard 4.0 (RFC 6350).  Get one from <see cref="VcardCard.AsVersion40"/>.
+    /// A card in the shape of vCard 4.0 (RFC 6350 and its extensions).  Get one from <see cref="VcardCard.AsVersion40"/>.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -14,7 +14,7 @@ namespace DataStandardizer.File.vCard
     /// </para>
     /// <para>
     /// The interface exposes only what vCard 4.0 defines, so code written against it is checked by the compiler against that version.  It doesn't inherit from the interface of any
-    /// other version, and it doesn't expose the raw <see cref="VcardCard.Properties"/> list.  Properties and parameters that RFC 6350 doesn't define are reached through
+    /// other version, and it doesn't expose the raw <see cref="VcardCard.Properties"/> list.  Properties and parameters that RFC 6350 and its extensions don't define are reached through
     /// <see cref="ExtensionProperties"/> and <see cref="IVcard40Property{TValue}.ExtensionParameters"/>.
     /// </para>
     /// <para>
@@ -25,7 +25,7 @@ namespace DataStandardizer.File.vCard
     public interface IVcard40Card
     {
         /// <summary>
-        /// Gets the kind of object the card represents (RFC 6350 §6.1.4).  With no <c>KIND</c> it is <see cref="VcardKind.Individual"/>.
+        /// Gets the kind of object the card represents (RFC 6350 §6.1.4, RFC 6473 and RFC 6869).  With no <c>KIND</c> it is <see cref="VcardKind.Individual"/>.
         /// </summary>
         VcardKind Kind { get; }
 
@@ -165,7 +165,32 @@ namespace DataStandardizer.File.vCard
         IVcard40PropertyList<Uri> CalendarUris { get; }
 
         /// <summary>
-        /// Gets the properties RFC 6350 doesn't define, including <c>X-</c> properties, in the order they appear.  Each value is as it appears in the content line, since what its
+        /// Gets the <c>EXPERTISE</c> properties (RFC 6715 §2.1).
+        /// </summary>
+        IVcard40PropertyList<string> Expertise { get; }
+
+        /// <summary>
+        /// Gets the <c>HOBBY</c> properties (RFC 6715 §2.2).
+        /// </summary>
+        IVcard40PropertyList<string> Hobbies { get; }
+
+        /// <summary>
+        /// Gets the <c>INTEREST</c> properties (RFC 6715 §2.3).
+        /// </summary>
+        IVcard40PropertyList<string> Interests { get; }
+
+        /// <summary>
+        /// Gets the <c>ORG-DIRECTORY</c> properties (RFC 6715 §2.4).
+        /// </summary>
+        IVcard40PropertyList<Uri> OrganizationDirectories { get; }
+
+        /// <summary>
+        /// Gets the <c>CONTACT-URI</c> properties (RFC 8605 §2.1).
+        /// </summary>
+        IVcard40PropertyList<Uri> ContactUris { get; }
+
+        /// <summary>
+        /// Gets the properties that RFC 6350 and its extensions don't define, including <c>X-</c> properties, in the order they appear.  Each value is as it appears in the content line, since what its
         /// escaping means is not known.
         /// </summary>
         IReadOnlyList<IVcard40Property<string>> ExtensionProperties { get; }
@@ -210,6 +235,21 @@ namespace DataStandardizer.File.vCard
         /// Gets the <c>UID</c> property (RFC 6350 §6.7.6), a URI or text; or <c>null</c> if the card has none with a valid value.
         /// </summary>
         IVcard40Property<VcardTypedValue>? Uid { get; }
+
+        /// <summary>
+        /// Gets the <c>BIRTHPLACE</c> property (RFC 6474 §2.1), text or a URI; or <c>null</c> if the card has none with a valid value.
+        /// </summary>
+        IVcard40Property<VcardTypedValue>? BirthPlace { get; }
+
+        /// <summary>
+        /// Gets the <c>DEATHPLACE</c> property (RFC 6474 §2.2), text or a URI; or <c>null</c> if the card has none with a valid value.
+        /// </summary>
+        IVcard40Property<VcardTypedValue>? DeathPlace { get; }
+
+        /// <summary>
+        /// Gets the <c>DEATHDATE</c> property (RFC 6474 §2.3), a date-and-or-time or text; or <c>null</c> if the card has none with a valid value.
+        /// </summary>
+        IVcard40Property<VcardTypedValue>? DeathDate { get; }
 #else
         /// <summary>
         /// Gets the value of the <c>KIND</c> property (RFC 6350 §6.1.4) as written; or <c>null</c> if the card has none.
@@ -250,6 +290,21 @@ namespace DataStandardizer.File.vCard
         /// Gets the <c>UID</c> property (RFC 6350 §6.7.6), a URI or text; or <c>null</c> if the card has none with a valid value.
         /// </summary>
         IVcard40Property<VcardTypedValue> Uid { get; }
+
+        /// <summary>
+        /// Gets the <c>BIRTHPLACE</c> property (RFC 6474 §2.1), text or a URI; or <c>null</c> if the card has none with a valid value.
+        /// </summary>
+        IVcard40Property<VcardTypedValue> BirthPlace { get; }
+
+        /// <summary>
+        /// Gets the <c>DEATHPLACE</c> property (RFC 6474 §2.2), text or a URI; or <c>null</c> if the card has none with a valid value.
+        /// </summary>
+        IVcard40Property<VcardTypedValue> DeathPlace { get; }
+
+        /// <summary>
+        /// Gets the <c>DEATHDATE</c> property (RFC 6474 §2.3), a date-and-or-time or text; or <c>null</c> if the card has none with a valid value.
+        /// </summary>
+        IVcard40Property<VcardTypedValue> DeathDate { get; }
 #endif
 
         /// <summary>
@@ -353,24 +408,72 @@ namespace DataStandardizer.File.vCard
         void SetUid(VcardTypedValue value);
 
         /// <summary>
-        /// Adds a property that RFC 6350 doesn't define.
+        /// Sets the <c>BIRTHPLACE</c> property, replacing any there are.
+        /// </summary>
+        /// <param name="value">The value, text or a URI.</param>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is of a type the property doesn't allow, or can't be written.</exception>
+        void SetBirthPlace(VcardTypedValue value);
+
+        /// <summary>
+        /// Sets the <c>BIRTHPLACE</c> property, replacing any there are.
+        /// </summary>
+        /// <param name="value">The value, text or a URI.</param>
+        /// <param name="parameters">The group and parameters.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="parameters"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is of a type the property doesn't allow, or can't be written.</exception>
+        void SetBirthPlace(VcardTypedValue value, VcardPropertyParameters parameters);
+
+        /// <summary>
+        /// Sets the <c>DEATHPLACE</c> property, replacing any there are.
+        /// </summary>
+        /// <param name="value">The value, text or a URI.</param>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is of a type the property doesn't allow, or can't be written.</exception>
+        void SetDeathPlace(VcardTypedValue value);
+
+        /// <summary>
+        /// Sets the <c>DEATHPLACE</c> property, replacing any there are.
+        /// </summary>
+        /// <param name="value">The value, text or a URI.</param>
+        /// <param name="parameters">The group and parameters.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="parameters"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is of a type the property doesn't allow, or can't be written.</exception>
+        void SetDeathPlace(VcardTypedValue value, VcardPropertyParameters parameters);
+
+        /// <summary>
+        /// Sets the <c>DEATHDATE</c> property, replacing any there are.
+        /// </summary>
+        /// <param name="value">The value, a date-and-or-time or text.</param>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is of a type the property doesn't allow, or can't be written.</exception>
+        void SetDeathDate(VcardTypedValue value);
+
+        /// <summary>
+        /// Sets the <c>DEATHDATE</c> property, replacing any there are.
+        /// </summary>
+        /// <param name="value">The value, a date-and-or-time or text.</param>
+        /// <param name="parameters">The group and parameters.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="parameters"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is of a type the property doesn't allow, or can't be written.</exception>
+        void SetDeathDate(VcardTypedValue value, VcardPropertyParameters parameters);
+
+        /// <summary>
+        /// Adds a property that RFC 6350 and its extensions don't define.
         /// </summary>
         /// <param name="name">The name of the property.</param>
         /// <param name="value">The value, as it appears in the content line.</param>
         /// <returns>The new property.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="name"/> or <paramref name="value"/> is <c>null</c>.</exception>
-        /// <exception cref="ArgumentException">RFC 6350 defines the property, so it has a member of its own.</exception>
+        /// <exception cref="ArgumentException">vCard 4.0 defines the property, so it has a member of its own.</exception>
         IVcard40Property<string> AddExtensionProperty(string name, string value);
 
         /// <summary>
-        /// Adds a property that RFC 6350 doesn't define.
+        /// Adds a property that RFC 6350 and its extensions don't define.
         /// </summary>
         /// <param name="name">The name of the property.</param>
         /// <param name="value">The value, as it appears in the content line.</param>
         /// <param name="parameters">The group and parameters.</param>
         /// <returns>The new property.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="name"/>, <paramref name="value"/> or <paramref name="parameters"/> is <c>null</c>.</exception>
-        /// <exception cref="ArgumentException">RFC 6350 defines the property, so it has a member of its own.</exception>
+        /// <exception cref="ArgumentException">vCard 4.0 defines the property, so it has a member of its own.</exception>
         IVcard40Property<string> AddExtensionProperty(string name, string value, VcardPropertyParameters parameters);
 
         /// <summary>
@@ -382,7 +485,7 @@ namespace DataStandardizer.File.vCard
         int RemoveProperties(string name);
 
         /// <summary>
-        /// Checks the card against RFC 6350, without throwing.
+        /// Checks the card against RFC 6350 and its extensions, without throwing.
         /// </summary>
         /// <returns>Every problem found.</returns>
         IReadOnlyList<VcardDiagnostic> Validate();

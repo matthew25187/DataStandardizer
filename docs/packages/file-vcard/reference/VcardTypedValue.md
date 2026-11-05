@@ -11,7 +11,7 @@ nav_exclude: true
 
 Namespace: `DataStandardizer.File.vCard`
 
-The value of a property that can have more than one value type: `TEL`, `UID`, `KEY` and `RELATED` (text or URI), `BDAY` and `ANNIVERSARY` (date-and-or-time or text), and `TZ` (text, URI or UTC offset).
+The value of a property that can have more than one value type: `TEL`, `UID`, `KEY`, `RELATED`, `BIRTHPLACE` and `DEATHPLACE` (text or URI), `BDAY`, `ANNIVERSARY` and `DEATHDATE` (date-and-or-time or text), and `TZ` (text, URI or UTC offset).
 
 **Syntax**
 

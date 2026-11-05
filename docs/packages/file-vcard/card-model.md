@@ -66,6 +66,27 @@ A typed member leaves out a property whose value isn't valid, which it can only 
 `AllowInvalidValues` let it be read, or if it was added to `Properties` directly. It also leaves out one
 with a `CALSCALE` other than `gregorian`, since RFC 6350 §5.8 says to ignore it.
 
+## Extensions
+
+The extensions of vCard 4.0 have members of their own, and aren't in `ExtensionProperties`. None of them exists in vCard 3.0 or 2.1.
+
+| Standard | What it adds | Members |
+| --- | --- | --- |
+| RFC 6473, RFC 6869 | `KIND:application`, `KIND:device` | `VcardKind.Application`, `VcardKind.Device` |
+| RFC 6474 | `BIRTHPLACE`, `DEATHPLACE`, `DEATHDATE` | `BirthPlace`, `DeathPlace`, `DeathDate` |
+| RFC 6715 | `EXPERTISE`, `HOBBY`, `INTEREST`, `ORG-DIRECTORY`, and the parameters `LEVEL` and `INDEX` | `Expertise`, `Hobbies`, `Interests`, `OrganizationDirectories`, and `Level` and `Index` on a property |
+| RFC 8605 | `CONTACT-URI`, and the parameter `CC` on `ADR` | `ContactUris`, and `CountryCode` on a property |
+
+```csharp
+var hobbies = card.Hobbies.GetOrderedByIndex();
+VcardLevel? level = hobbies[0].Level;
+Iso3166Part1Alpha2Country? country = card.Addresses[0].CountryCode;
+```
+
+## Commas in URI values
+
+RFC 6350 §3.4 says a comma in a value "MUST be escaped", and its verified errata 3845 and 3846 apply that to URI values, so a card has `GEO:geo:37.386013\,-122.082932`. A `System.Uri` in the model has no escaping, and a writer adds it. The RFC still prints some values with a bare comma and many writers write them, so `AcceptUnescapedCommasInUris` lets a reader accept them. A `GEO` parameter on `ADR` is a quoted string, to which this doesn't apply.
+
 ## Preference and alternatives
 
 ```csharp
@@ -91,16 +112,19 @@ var members = group.ResolveMembers(cards);
 
 ## Conformance
 
-By default a reader rejects what RFC 6350 doesn't allow, and a writer refuses to write it. `Validate()`
+By default a reader rejects what RFC 6350 and its extensions don't allow, with their errata applied, and a writer refuses to write it. `Validate()`
 returns every problem in a card as a `VcardDiagnostic`, without throwing.
 
 | Rule | Reference | Accepted with |
 | --- | --- | --- |
 | `VERSION` immediately after `BEGIN` | §6.7.9 | `AllowVersionNotFirst`, reading only |
 | A `VERSION`, and at least one `FN` | §6.7.9, §6.2.1 | `AllowMissingRequiredProperties` |
+| A `CONTACT-URI` with a `mailto`, `http` or `https` URI, in a card that has others | RFC 8605 §2.1 | `AllowMissingRequiredProperties` |
 | The cardinality of each property, and `MEMBER` only with `KIND:group` | §6, §6.6.5 | `AllowCardinalityViolations` |
 | The syntax of each value, and `VALUE` only with a type the property allows | §4, §6 | `AllowInvalidValues` |
+| A comma in a URI value escaped with a backslash | §3.4 and errata 3845 and 3846 | `AcceptUnescapedCommasInUris`, reading only |
 | Parameters only on the properties that allow them, `PREF` from 1 to 100, and a `CLIENTPIDMAP` for each `PID` source | §5, §6, §6.7.7 | `AllowInvalidValues` |
+| `LEVEL` by property, `INDEX` strictly positive, `CC` an ISO 3166 code on `ADR`, and a `PREF` among several `CONTACT-URI` properties | RFC 6715 §3, RFC 8605 | `AllowInvalidValues` |
 | No forms of vCard 2.1 or 3.0: a parameter with no name, `ENCODING` or `CHARSET` | §5, Appendix A | `AcceptLegacySyntax`, reading only |
 
 Each option is separate, and off by default. Nothing accepts a `BEGIN` or `END` that isn't paired, a

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using DataStandardizer.Communication.Mime;
+using DataStandardizer.Geography;
 using DataStandardizer.LanguageTag;
 
 namespace DataStandardizer.File.vCard
@@ -9,15 +10,17 @@ namespace DataStandardizer.File.vCard
     /// The group and parameters of a property being added to a card.  Each one left at its default is left out.
     /// </summary>
     /// <remarks>
-    /// <c>VALUE</c> isn't here, since it comes from the value that is added.  Nothing here is checked until the card is validated or written, except <see cref="Pref"/>, whose
-    /// range is checked when it is set.
+    /// <c>VALUE</c> isn't here, since it comes from the value that is added.  Nothing here is checked until the card is validated or written, except the range of <see cref="Pref"/>,
+    /// <see cref="Index"/> and <see cref="Level"/>, which is checked when each is set.
     /// </remarks>
     public sealed class VcardPropertyParameters
     {
+        private long? _index;
+        private VcardLevel? _level;
         private int? _pref;
 
         /// <summary>
-        /// Gets parameters that RFC 6350 doesn't define, to go after the others.  It can be changed.  On a property that RFC 6350 does define, a <c>VALUE</c> here causes an
+        /// Gets parameters that RFC 6350 and its extensions don't define, to go after the others.  It can be changed.  On a property they do define, a <c>VALUE</c> here causes an
         /// <see cref="ArgumentException"/> when the property is added, since it comes from the value.
         /// </summary>
         public IList<VcardContentLineParameter> AdditionalParameters { get; } = new List<VcardContentLineParameter>();
@@ -38,9 +41,46 @@ namespace DataStandardizer.File.vCard
         public IList<string> Types { get; } = new List<string>();
 
         /// <summary>
+        /// Gets or sets the <c>CC</c> (RFC 8605 §3.1), which only <c>ADR</c> allows.
+        /// </summary>
+        public Iso3166Part1Alpha2Country? CountryCode { get; set; }
+
+        /// <summary>
+        /// Gets or sets the <c>INDEX</c> (RFC 6715 §3.1), which is strictly positive.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">The value is not positive.</exception>
+        public long? Index
+        {
+            get => _index;
+            set
+            {
+                if (value <= 0)
+                    throw new ArgumentOutOfRangeException(nameof(value), value, "The index must be strictly positive.");
+
+                _index = value;
+            }
+        }
+
+        /// <summary>
         /// Gets or sets the <c>LANGUAGE</c> (RFC 6350 §5.1).
         /// </summary>
         public Bcp47LanguageTag? Language { get; set; }
+
+        /// <summary>
+        /// Gets or sets the <c>LEVEL</c> (RFC 6715 §3.2).
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">The value is not a <see cref="VcardLevel"/> member.</exception>
+        public VcardLevel? Level
+        {
+            get => _level;
+            set
+            {
+                if (value.HasValue && !VcardPropertyParameterReader.IsDefinedLevel(value.Value))
+                    throw new ArgumentOutOfRangeException(nameof(value), value, "The level is not recognised.");
+
+                _level = value;
+            }
+        }
 
         /// <summary>
         /// Gets or sets the <c>MEDIATYPE</c> (RFC 6350 §5.7).
@@ -126,7 +166,7 @@ namespace DataStandardizer.File.vCard
 #endif
 
         /// <summary>
-        /// Gets the parameters of a content line, in the order of RFC 6350 §5.
+        /// Gets the parameters of a content line, in the order of RFC 6350 §5, then those of its extensions.
         /// </summary>
         /// <param name="valueType">The name of the value type, for a value that isn't the property's default type; or an empty string.</param>
         internal List<VcardContentLineParameter> ToContentLineParameters(string valueType)
@@ -162,6 +202,9 @@ namespace DataStandardizer.File.vCard
             AddParameter(parameters, VcardParameterNames.Geo, GeoLocation?.OriginalString);
             AddParameter(parameters, VcardParameterNames.TimeZone, TimeZone);
             AddParameter(parameters, VcardParameterNames.Label, Label);
+            AddParameter(parameters, VcardParameterNames.Level, _level.HasValue ? VcardPropertyParameterReader.FormatLevel(_level.Value) : null);
+            AddParameter(parameters, VcardParameterNames.Index, _index.HasValue ? VcardPropertyParameterReader.FormatInteger(_index.Value) : null);
+            AddParameter(parameters, VcardParameterNames.CountryCode, CountryCode?.ToString());
             parameters.AddRange(AdditionalParameters);
             return parameters;
         }

@@ -12,7 +12,7 @@ namespace DataStandardizer.File.vCard.Tests
 
         public static TheoryData<string, VcardKind> KindData()
         {
-            // ref. RFC 6350 §6.1.4.
+            // ref. RFC 6350 §6.1.4, RFC 6473 §2 and RFC 6869 §2.
             return new TheoryData<string, VcardKind>
             {
                 { "KIND:individual", VcardKind.Individual },
@@ -20,6 +20,9 @@ namespace DataStandardizer.File.vCard.Tests
                 { "KIND:GROUP", VcardKind.Group },
                 { "KIND:org", VcardKind.Organization },
                 { "KIND:location", VcardKind.Location },
+                { "KIND:application", VcardKind.Application },
+                { "KIND:APPLICATION", VcardKind.Application },
+                { "KIND:device", VcardKind.Device },
                 { "KIND:x-robot", VcardKind.Other }
             };
         }
@@ -71,7 +74,9 @@ namespace DataStandardizer.File.vCard.Tests
                 { VcardKind.Individual, "individual" },
                 { VcardKind.Group, "group" },
                 { VcardKind.Organization, "org" },
-                { VcardKind.Location, "location" }
+                { VcardKind.Location, "location" },
+                { VcardKind.Application, "application" },
+                { VcardKind.Device, "device" }
             };
         }
 

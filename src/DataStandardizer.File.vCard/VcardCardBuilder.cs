@@ -12,6 +12,9 @@ namespace DataStandardizer.File.vCard
         // ref. RFC 6350 §6.1.1 and §6.1.2: the value of BEGIN and END, which is case-insensitive.
         internal const string CardValue = "VCARD";
 
+        // ref. RFC 6715 §3.1 and §5, as published: the name that errata 3340 and 3341 correct to ORG-DIRECTORY.
+        private const string OrgUriName = "ORG-URI";
+
         private readonly VcardOptions _options;
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
@@ -67,7 +70,7 @@ namespace DataStandardizer.File.vCard
             }
             else
             {
-                card.Properties.Add(line);
+                card.Properties.Add(ApplyAccommodations(line));
             }
 
             return null;
@@ -100,6 +103,29 @@ namespace DataStandardizer.File.vCard
             var diagnostics = _structureDiagnostics;
             _structureDiagnostics = new List<VcardDiagnostic>();
             return diagnostics;
+        }
+
+        /// <summary>
+        /// Gives a line the form it has in a card under the options that accept another form.
+        /// </summary>
+        private VcardContentLine ApplyAccommodations(VcardContentLine line)
+        {
+            if (_options.AcceptOrgUriProperty && IsName(line, OrgUriName))
+            {
+                line = line.WithNameAndValue(VcardPropertyNames.OrganizationDirectory, line.Value);
+            }
+
+            if (_options.AcceptUnescapedCommasInUris && !VcardConformance.HasEncodingParameter(line) &&
+                (IsName(line, VcardPropertyNames.ClientPidMap) || VcardValueTypeRegistry.GetValueType(line) == VcardValueType.Uri))
+            {
+                var value = VcardValue.EscapeBareCommas(line.Value);
+                if (!ReferenceEquals(value, line.Value))
+                {
+                    line = line.WithNameAndValue(line.Name, value);
+                }
+            }
+
+            return line;
         }
 
         private static bool IsName(VcardContentLine line, string name)
