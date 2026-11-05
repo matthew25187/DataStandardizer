@@ -1,11 +1,11 @@
 ---
-title: Legacy syntax and character sets
+title: Handle legacy character sets
 parent: File.vCard
 grand_parent: Packages
-nav_order: 10
+nav_order: 7
 ---
 
-# Legacy syntax and character sets
+# Handle legacy syntax and character sets
 
 vCard 2.1 has lexical forms that later versions removed. The content-line reader and
 writer handle them in a vCard 2.1 card, from its `VERSION:2.1` line up to and including
@@ -82,13 +82,13 @@ character set. It isn't replaced.
 
 ## Character sets
 
-A `CHARSET` is resolved by [`MimeCharsetResolver`](../communication/how-to/resolve-character-sets.md),
+A `CHARSET` is resolved by [`MimeCharsetResolver`](../../communication/how-to/resolve-character-sets.md),
 then by `VcardOptions.CharsetResolver` if you set one. The built-in encodings work on every
 target: US-ASCII, ISO-8859-1 and the UTF-8, UTF-16 and UTF-32 family.
 
 Which other character sets exist depends on the runtime. .NET Framework has the Windows code
 pages. .NET Core and .NET 5 and later don't, until the application registers them. See
-[Resolve character sets](../communication/how-to/resolve-character-sets.md). The package doesn't
+[Resolve character sets](../../communication/how-to/resolve-character-sets.md). The package doesn't
 depend on `System.Text.Encoding.CodePages`.
 
 A character set that can't be resolved throws `VcardFileException`. To decode it as
@@ -143,7 +143,7 @@ In a vCard 2.1 card, `VcardContentLineWriter`:
 The value must already be in its encoding, and the line can't be written if it isn't. Use
 `MimeQuotedPrintable` or `MimeBase64` from `DataStandardizer.Communication` to encode it. The
 writer doesn't produce these forms outside a vCard 2.1 card. `VcardWriter` does this for a whole card
-written as vCard 2.1; see [Converting between versions](version-conversion.md#writing-vcard-21).
+written as vCard 2.1; see [Versions and canonical forms](../concepts/versions-and-canonical-forms.md#writing-vcard-21).
 
 ## Cards that break the rules
 
@@ -153,3 +153,12 @@ in `=` in a value with `ENCODING=QUOTED-PRINTABLE` is then always a soft line br
 also accepts a parameter with no name that vCard 2.1 doesn't allow, as a `VALUE` or `CHARSET` if
 it is one and otherwise as a `TYPE`, and in `GetTextValue` a backslash that RFC 6350 §3.4 doesn't
 define, such as `\:`.
+
+## See also
+
+- [The shared content-line engine](../concepts/content-line-engine.md)
+- [Versions and canonical forms](../concepts/versions-and-canonical-forms.md)
+- [Read non-compliant cards](read-non-compliant-cards.md)
+- [VcardContentLine](../reference/VcardContentLine.md)
+- [VcardLegacySyntax](../reference/VcardLegacySyntax.md)
+- [VcardOptions](../reference/VcardOptions.md)

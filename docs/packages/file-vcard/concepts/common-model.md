@@ -1,13 +1,13 @@
 ---
-title: The card object model
+title: Common model and versioned interfaces
 parent: File.vCard
 grand_parent: Packages
-nav_order: 5
+nav_order: 11
 ---
 
-# The card object model
+# The common model and the versioned interfaces
 
-`VcardCard` is the object model of a card, and `VcardReader` and `VcardWriter` read and write it.
+`VcardCard` is the object model of a card, the top layer of the package (see [The layered model](layered-model.md)), and `VcardReader` and `VcardWriter` read and write it.
 
 ```csharp
 using (var reader = new VcardReader("contacts.vcf"))
@@ -19,7 +19,7 @@ using (var reader = new VcardReader("contacts.vcf"))
 }
 ```
 
-vCard 4.0, 3.0 and 2.1 can be read and written. See [Converting between versions](version-conversion.md).
+vCard 4.0, 3.0 and 2.1 can be read and written. See [Versions and canonical forms](versions-and-canonical-forms.md).
 
 ## Common and versioned members
 
@@ -53,8 +53,8 @@ The rules of a versioned interface, which each version follows:
 
 Property wrappers and lists have versioned interfaces in the same way: `IVcard40Property<TValue>` and
 `IVcard40PropertyList<TValue>`, `IVcard30Property<TValue>` and `IVcard30PropertyList<TValue>`, and `IVcard21Property<TValue>` and
-`IVcard21PropertyList<TValue>`. `AsVersion30()` gives the [IVcard30Card](reference/IVcard30Card.md) view, and `AsVersion21()` the
-[IVcard21Card](reference/IVcard21Card.md) view.
+`IVcard21PropertyList<TValue>`. `AsVersion30()` gives the [IVcard30Card](../reference/IVcard30Card.md) view, and `AsVersion21()` the
+[IVcard21Card](../reference/IVcard21Card.md) view.
 
 ## The open list of properties
 
@@ -122,7 +122,7 @@ foreach (var alternatives in card.Addresses.GetAlternatives())
 
 ### Writing to an older version
 
-None of this exists in vCard 3.0 or 2.1, and `VcardPropertyInfo.IsDefinedIn` says so. Writing vCard 3.0 reports it as `Lossy`; see [Converting between versions](version-conversion.md).
+None of this exists in vCard 3.0 or 2.1, and `VcardPropertyInfo.IsDefinedIn` says so. Writing vCard 3.0 reports it as `Lossy`; see [Versions and canonical forms](versions-and-canonical-forms.md).
 
 ## Commas in URI values
 
@@ -130,15 +130,7 @@ RFC 6350 §3.4 says a comma in a value "MUST be escaped", and its verified errat
 
 ## Preference and alternatives
 
-```csharp
-VcardContentLine preferred = card.GetPreferred(VcardPropertyNames.Telephone);
-var byAltId = card.GetAlternatives(VcardPropertyNames.Title);
-```
-
-`GetPreferred` gives the first instance with the lowest `PREF`. An instance without one is least
-preferred. `GetAlternatives` groups instances by `ALTID`. Two instances are alternatives if and only if
-they have the same name and the same `ALTID`, and an `ALTID` may be reused on another property
-(RFC 6350 §5.4). `VcardPropertyList<TValue>` has both methods as well, with typed values.
+`GetPreferred` and `GetAlternatives` find the preferred instance of a property and the alternatives among its instances. See [PREF, PID and ALTID](pref-pid-altid.md).
 
 ## Groups
 
@@ -153,37 +145,15 @@ var members = group.ResolveMembers(cards);
 
 ## Conformance
 
-By default a reader rejects what RFC 6350 and its extensions don't allow, with their errata applied, and a writer refuses to write it. `Validate()`
-returns every problem in a card as a `VcardDiagnostic`, without throwing. These are the rules of vCard 4.0. [Converting between versions](version-conversion.md) has those of vCard 3.0, and `Validate(version)` checks a card by the rules of a version.
-
-| Rule | Reference | Accepted with |
-| --- | --- | --- |
-| `VERSION` immediately after `BEGIN` | §6.7.9 | `AllowVersionNotFirst`, reading only |
-| A `VERSION`, and at least one `FN` | §6.7.9, §6.2.1 | `AllowMissingRequiredProperties` |
-| A `CONTACT-URI` with a `mailto`, `http` or `https` URI, in a card that has others | RFC 8605 §2.1 | `AllowMissingRequiredProperties` |
-| The cardinality of each property, and `MEMBER` only with `KIND:group` | §6, §6.6.5 | `AllowCardinalityViolations` |
-| The syntax of each value, and `VALUE` only with a type the property allows | §4, §6 | `AllowInvalidValues` |
-| A comma in a URI value escaped with a backslash | §3.4 and errata 3845 and 3846 | `AcceptUnescapedCommasInUris`, reading only |
-| Parameters only on the properties that allow them, `PREF` from 1 to 100, and a `CLIENTPIDMAP` for each `PID` source | §5, §6, §6.7.7 | `AllowInvalidValues` |
-| `LEVEL` by property, `INDEX` strictly positive, `CC` an ISO 3166 code on `ADR`, and a `PREF` among several `CONTACT-URI` properties | RFC 6715 §3, RFC 8605 | `AllowInvalidValues` |
-| `SERVICE-TYPE` on a `SOCIALPROFILE` whose value is text, and `USERNAME` only with a URI | RFC 9554 §3.5, §4.10 | `AllowInvalidValues` |
-| `GRAMGENDER` instances that differ in `LANGUAGE`, and the `TYPE` values `billing` and `delivery` only on `ADR` | RFC 9554 §3.2, §5 | `AllowInvalidValues` |
-| `PHONETIC` only on `N` and `ADR`, with a registered value, an `ALTID` and a related property that has its components; `SCRIPT` with `PHONETIC=script`; and different `LANGUAGE` values among those with the same `ALTID` | RFC 9554 §4.6 | `AllowInvalidValues` |
-| No forms of vCard 2.1 or 3.0: a parameter with no name, `ENCODING` or `CHARSET` | §5, Appendix A | `AcceptLegacySyntax`, reading only |
-
-Each option is separate, and off by default. Nothing accepts a `BEGIN` or `END` that isn't paired, a
-group or parameter on them, or a version that can't be read.
-
-A problem in a card that has been read in full doesn't stop the reader: the card's exception can be
-caught, and reading goes on with the next card.
+`Validate()` returns every problem in a card as a `VcardDiagnostic`, without throwing, and `Validate(version)` checks a card by the rules of a version. The rules, and the options that accept a card that breaks one, are in [Standards compliance by default](standards-compliance.md).
 
 ## See also
 
-- [VcardCard](reference/VcardCard.md)
-- [IVcard40Card](reference/IVcard40Card.md)
-- [IVcard30Card](reference/IVcard30Card.md)
-- [IVcard21Card](reference/IVcard21Card.md)
-- [Converting between versions](version-conversion.md)
-- [VcardReader](reference/VcardReader.md)
-- [VcardWriter](reference/VcardWriter.md)
-- [VcardOptions](reference/VcardOptions.md)
+- [The layered model](layered-model.md)
+- [Versions and canonical forms](versions-and-canonical-forms.md)
+- [PREF, PID and ALTID](pref-pid-altid.md)
+- [Standards compliance by default](standards-compliance.md)
+- [VcardCard](../reference/VcardCard.md)
+- [IVcard40Card](../reference/IVcard40Card.md)
+- [IVcard30Card](../reference/IVcard30Card.md)
+- [IVcard21Card](../reference/IVcard21Card.md)

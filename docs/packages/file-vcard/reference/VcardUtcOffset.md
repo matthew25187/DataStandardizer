@@ -31,7 +31,7 @@ An offset keeps what was written: `-05` and `-0500` are different values with th
 
 **Versions.** Every parse and format method has an overload taking a [VcardVersion](VcardVersion.md). The overload without one uses vCard 4.0. `IsDefinedIn` says whether a version can write the value, and formatting one it can't throws `InvalidOperationException`.
 
-**Forms.** Only `VcardValueFormat.Text` is implemented. `Json` and `Xml` throw `NotSupportedException` until the jCard and xCard work adds them.
+**Forms.** In `Json`, the form of jCard (RFC 7095 §3.5.11), an offset has a colon between its hours and minutes: `-05:00`, or `-05` with no minutes. In `Xml`, the form of xCard (RFC 6351 Appendix A), it is the content of a `utc-offset` element, in the basic format, such as `-0500`. jCard and xCard represent vCard 4.0 alone, so those forms have no other version.
 
 **Parsing from a string.** `Parse` and `TryParse` take a `ReadOnlySpan<char>`. A `string` converts implicitly on .NET Core and .NET Standard 2.1. On .NET Framework, call `AsSpan()`.
 

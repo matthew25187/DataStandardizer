@@ -48,6 +48,19 @@ instructions, how-to guides, and an API reference.
 | **RFC 3282** | [File.InternetMessage](../packages/file-internet-message/index.md) | The Content-Language header field. |
 | **RFC 4155** | [File.InternetMessage](../packages/file-internet-message/index.md) | The mbox format, in the mboxrd, mboxo, mboxcl and mboxcl2 variants. |
 | **EMLX** | [File.InternetMessage](../packages/file-internet-message/index.md) | The message files of Apple Mail, which have no published standard. The package follows the layout that open-source readers agree on. |
+| **RFC 6350** | [File.vCard](../packages/file-vcard/index.md) | vCard Format Specification (vCard 4.0): `.vcf` files, their properties, parameters and values, and the rules a card must follow. |
+| **RFC 6868** | [File.vCard](../packages/file-vcard/index.md) | Parameter value encoding in iCalendar and vCard, in vCard 4.0 cards. |
+| **RFC 7095** | [File.vCard](../packages/file-vcard/index.md) | jCard: the JSON format for vCard. |
+| **RFC 6351** | [File.vCard](../packages/file-vcard/index.md) | xCard: the XML format for vCard. |
+| **vCard 2.1** | [File.vCard](../packages/file-vcard/index.md) | The Electronic Business Card, version 2.1, with quoted-printable, `BASE64` and `CHARSET`. |
+| **RFC 2425, RFC 2426** | [File.vCard](../packages/file-vcard/index.md) | The MIME directory profile for vCard 3.0. |
+| **RFC 2739** | [File.vCard](../packages/file-vcard/index.md) | Calendar attributes for vCard, such as `FBURL` and `CALURI`, in vCard 3.0. |
+| **RFC 4770** | [File.vCard](../packages/file-vcard/index.md) | Instant messaging addresses (`IMPP`) in vCard 3.0. |
+| **RFC 9554** | [File.vCard](../packages/file-vcard/index.md) | vCard extensions for JSContact, such as `PRONOUNS`, `SOCIALPROFILE` and the `PHONETIC` parameter. |
+| **RFC 6473, RFC 6869** | [File.vCard](../packages/file-vcard/index.md) | `KIND:application` and `KIND:device`. |
+| **RFC 6474** | [File.vCard](../packages/file-vcard/index.md) | Place of birth, and place and date of death. |
+| **RFC 6715** | [File.vCard](../packages/file-vcard/index.md) | The extensions of the OMA Converged Address Book, such as `EXPERTISE`, `HOBBY` and `INTEREST`. |
+| **RFC 8605** | [File.vCard](../packages/file-vcard/index.md) | The ICANN extensions for RDAP: `CONTACT-URI` and the `CC` parameter. |
 | **ISO 3166-1** | [Geography](../packages/geography/index.md) | Codes for the representation of names of countries — Part 1: Country code. |
 | **ISO 3166-2** | [Geography](../packages/geography/index.md) | Codes for the representation of names of countries — Part 2: Country subdivision code. |
 | **UN M49** | [Geography](../packages/geography/index.md) | Standard Country or Area Codes for Statistical Use (Series M, No. 49). |

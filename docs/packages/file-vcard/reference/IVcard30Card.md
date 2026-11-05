@@ -11,7 +11,7 @@ nav_exclude: true
 
 Namespace: `DataStandardizer.File.vCard`
 
-A card in the shape of vCard 3.0 (RFC 2426, with RFC 2739 and RFC 4770). Get one from `VcardCard.AsVersion30()`. See [Converting between versions](../version-conversion.md).
+A card in the shape of vCard 3.0 (RFC 2426, with RFC 2739 and RFC 4770). Get one from `VcardCard.AsVersion30()`. See [Versions and canonical forms](../concepts/versions-and-canonical-forms.md).
 
 **Syntax**
 

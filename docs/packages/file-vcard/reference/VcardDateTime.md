@@ -25,7 +25,7 @@ In vCard 4.0 the date may be truncated but not reduced, and the time may be redu
 
 **Versions.** Every parse and format method has an overload taking a [VcardVersion](VcardVersion.md). The overload without one uses vCard 4.0. `IsDefinedIn` says whether a version can write the value, and formatting one it can't throws `InvalidOperationException`.
 
-**Forms.** Only `VcardValueFormat.Text` is implemented. `Json` and `Xml` throw `NotSupportedException` until the jCard and xCard work adds them.
+**Forms.** In `Json`, the form of jCard (RFC 7095 §3.5.5), the date and the time are in the extended format where it applies, such as `1996-10-22T14:00:00` or `--10-22T14:00`. In `Xml`, the form of xCard (RFC 6351 Appendix A), a value is the content of a `date-time` element, in the basic format, such as `19961022T140000`. jCard and xCard represent vCard 4.0 alone, so those forms have no other version.
 
 **Parsing from a string.** `Parse` and `TryParse` take a `ReadOnlySpan<char>`. A `string` converts implicitly on .NET Core and .NET Standard 2.1. On .NET Framework, call `AsSpan()`.
 

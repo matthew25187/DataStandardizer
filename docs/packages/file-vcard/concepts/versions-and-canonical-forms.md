@@ -1,27 +1,15 @@
 ---
-title: Converting between versions
+title: Versions and canonical forms
 parent: File.vCard
 grand_parent: Packages
-nav_order: 7
+nav_order: 12
 ---
 
-# Converting between versions
+# Versions and canonical forms
 
-A `VcardCard` holds each concept once, in a canonical form, whichever version it was read from. So converting a card to another version is a matter of writing it in that version. vCard 4.0, 3.0 and 2.1 can be read and written.
+vCard 4.0, 3.0 and 2.1 can be read and written, and one stream can hold cards of each. The versions aren't additive: each has things the others don't. So a `VcardCard` holds each concept once, in a **canonical form**, which is the form of vCard 4.0 wherever 4.0 has an equivalent, and `SourceVersion` records the version a card was read from. A reader checks a card by the rules of its own version, then maps it to the canonical form. A writer maps it back to the version it writes, which is `VcardOptions.WriteVersion`, vCard 4.0 by default.
 
-```csharp
-var options = new VcardOptions { WriteVersion = VcardVersion.V3_0 };
-using (var reader = new VcardReader("version40.vcf"))
-using (var writer = new VcardWriter("version30.vcf", options))
-{
-    foreach (var card in reader.ReadCards())
-    {
-        writer.WriteCard(card);
-    }
-}
-```
-
-A stream can hold cards of different versions, and `SourceVersion` says which each was. `WriteVersion` is 4.0 by default, whatever a card was read from.
+This page says how each version maps to the model, and what each can't hold. To convert cards, see [Convert between 4.0, 3.0 and 2.1](../how-to/convert-versions.md). For the shape of the model, see [The common model and the versioned interfaces](common-model.md).
 
 ## How vCard 3.0 maps to the model
 
@@ -46,7 +34,7 @@ A stream can hold cards of different versions, and `SourceVersion` says which ea
 
 **Dates in `REV`.** A `REV` of vCard 4.0 has a time, so RFC 2426's `REV:1997-11-15` becomes the first moment of that day in UTC, and is written back as `1997-11-15T00:00:00Z`.
 
-**Media types.** A `TYPE` becomes a media type through [VcardLegacyMediaTypes](reference/VcardLegacyMediaTypes.md). RFC 2426 says the value is an image or audio format that IANA registers, or a non-standard one, so any other token is taken as a subtype: `TYPE=HEIC` on a `PHOTO` is `image/heic`, and is written back as `HEIC`. A binary value with no `TYPE` is `application/octet-stream`.
+**Media types.** A `TYPE` becomes a media type through [VcardLegacyMediaTypes](../reference/VcardLegacyMediaTypes.md). RFC 2426 says the value is an image or audio format that IANA registers, or a non-standard one, so any other token is taken as a subtype: `TYPE=HEIC` on a `PHOTO` is `image/heic`, and is written back as `HEIC`. A binary value with no `TYPE` is `application/octet-stream`.
 
 **Agents.** An `AGENT` holds a card as escaped text. `Agents` gives what each agent holds, with `Card` read from that text, so changing it doesn't change the property. `AddAgent` and `RemoveAgents` change them.
 
@@ -96,7 +84,7 @@ vCard 3.0 requires `N` as well as `FN` (RFC 2426 §5), and vCard 4.0 doesn't. So
 
 ## How vCard 2.1 maps to the model
 
-A vCard 2.1 value is decoded by its `ENCODING` and `CHARSET` as it is read (see [Legacy syntax and character sets](legacy-syntax.md)), so the model holds the text, not the encoding. vCard 2.1 escapes nothing but `\;` in a compound value, so text gains the escaping of RFC 6350 §3.4.
+A vCard 2.1 value is decoded by its `ENCODING` and `CHARSET` as it is read (see [Handle legacy character sets](../how-to/handle-legacy-character-sets.md)), so the model holds the text, not the encoding. vCard 2.1 escapes nothing but `\;` in a compound value, so text gains the escaping of RFC 6350 §3.4.
 
 | vCard 2.1 | Canonical form (vCard 4.0) |
 | --- | --- |
@@ -118,7 +106,7 @@ A vCard 2.1 value is decoded by its `ENCODING` and `CHARSET` as it is read (see 
 | `N` and `ADR` with fewer components | All their components |
 | `MAILER`, and an `X-` property | Kept as they are |
 
-**Media types.** A `knowntype` becomes a media type through [VcardLegacyMediaTypes](reference/VcardLegacyMediaTypes.md). A format with no media type, such as `PICT`, stays a `TYPE`, with `application/octet-stream` data. Quoted-printable is how vCard 2.1 writes text, so a `PHOTO`, `LOGO`, `SOUND` or `KEY` in quoted-printable is binary only where a `TYPE` names its format (§2.1.9), such as `GIF` or `PICT`, and not where it says what it is for, such as `WORK`.
+**Media types.** A `knowntype` becomes a media type through [VcardLegacyMediaTypes](../reference/VcardLegacyMediaTypes.md). A format with no media type, such as `PICT`, stays a `TYPE`, with `application/octet-stream` data. Quoted-printable is how vCard 2.1 writes text, so a `PHOTO`, `LOGO`, `SOUND` or `KEY` in quoted-printable is binary only where a `TYPE` names its format (§2.1.9), such as `GIF` or `PICT`, and not where it says what it is for, such as `WORK`.
 
 **Agents.** The card of an `AGENT` follows its line, up to its own `END:VCARD` (§2.5.4). The example of §2.5.4 has it on the next line, and the grammar of §2.9 starts it on the `AGENT` line, as `AGENT:BEGIN:VCARD`. A reader takes both. The card is read under the options of the card around it, and is vCard 2.1 unless its `VERSION` says otherwise. Nesting is limited to 8 levels. A `BEGIN:VCARD` inside a card with no `AGENT` before it, as in the distribution list of §2.8.1, isn't allowed by the grammar, and throws `InvalidStructure`.
 
@@ -164,7 +152,7 @@ A card that is valid in vCard 3.0 may break a rule of vCard 4.0. For example, RF
 
 ## The shape of vCard 3.0
 
-`AsVersion30()` gives the card as an [IVcard30Card](reference/IVcard30Card.md), which has only what vCard 3.0 defines, in its shape. It is the same object, not a copy, and it hides what vCard 3.0 can't show.
+`AsVersion30()` gives the card as an [IVcard30Card](../reference/IVcard30Card.md), which has only what vCard 3.0 defines, in its shape. It is the same object, not a copy, and it hides what vCard 3.0 can't show.
 
 ```csharp
 IVcard30Card version30 = card.AsVersion30();
@@ -175,7 +163,7 @@ byte[] data = photo.GetData();
 
 ## The shape of vCard 2.1
 
-`AsVersion21()` gives the card as an [IVcard21Card](reference/IVcard21Card.md), which has only what vCard 2.1 defines, in its shape: bare `TYPE` tokens, inline data as a `knowntype` and its octets, and `Agent` as the card it holds.
+`AsVersion21()` gives the card as an [IVcard21Card](../reference/IVcard21Card.md), which has only what vCard 2.1 defines, in its shape: bare `TYPE` tokens, inline data as a `knowntype` and its octets, and `Agent` as the card it holds.
 
 ```csharp
 IVcard21Card version21 = card.AsVersion21();
@@ -212,8 +200,10 @@ Parameters with no name, quoted-printable, `BASE64` and `CHARSET` are the forms 
 
 ## See also
 
-- [The card object model](card-model.md)
-- [Legacy syntax and character sets](legacy-syntax.md)
-- [VcardVersionConverter](reference/VcardVersionConverter.md)
-- [IVcard30Card](reference/IVcard30Card.md)
-- [IVcard21Card](reference/IVcard21Card.md)
+- [Convert between 4.0, 3.0 and 2.1](../how-to/convert-versions.md)
+- [The common model and the versioned interfaces](common-model.md)
+- [Handle legacy character sets](../how-to/handle-legacy-character-sets.md)
+- [Standards compliance by default](standards-compliance.md)
+- [VcardVersionConverter](../reference/VcardVersionConverter.md)
+- [IVcard30Card](../reference/IVcard30Card.md)
+- [IVcard21Card](../reference/IVcard21Card.md)

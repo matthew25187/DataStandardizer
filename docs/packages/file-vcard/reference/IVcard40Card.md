@@ -11,7 +11,7 @@ nav_exclude: true
 
 Namespace: `DataStandardizer.File.vCard`
 
-A card in the shape of vCard 4.0 (RFC 6350). Get one from `VcardCard.AsVersion40()`. See [The card object model](../card-model.md).
+A card in the shape of vCard 4.0 (RFC 6350). Get one from `VcardCard.AsVersion40()`. See [The common model and the versioned interfaces](../concepts/common-model.md).
 
 **Syntax**
 
@@ -43,4 +43,4 @@ Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 - [IVcard40Property](IVcard40Property.md)
 - [IVcard40PropertyList](IVcard40PropertyList.md)
 - [VcardCard](VcardCard.md)
-- [The card object model](../card-model.md)
+- [The common model and the versioned interfaces](../concepts/common-model.md)

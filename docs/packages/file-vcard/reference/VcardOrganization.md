@@ -25,7 +25,7 @@ A component holds one piece of text, not a list, so in vCard 4.0 and 3.0 a comma
 
 **Versions.** Every parse and format method has an overload taking a [VcardVersion](VcardVersion.md). The overload without one uses vCard 4.0. `IsDefinedIn` says whether a version can write the value, and formatting one it can't throws `InvalidOperationException`.
 
-**Forms.** Only `VcardValueFormat.Text` is implemented. `Json` and `Xml` throw `NotSupportedException` until the jCard and xCard work adds them.
+**Forms.** Only `VcardValueFormat.Text` has a form of its own. In jCard (RFC 7095 §3.3.1.3) the value is a JSON array with an element for each component, and in xCard (RFC 6351 §5) a tree of XML elements, one for each component, so `Json` and `Xml` throw `NotSupportedException`. `JcardReader`, `JcardWriter`, `XcardReader` and `XcardWriter` map them to and from the text form.
 
 **Allocation.** This type holds copies of its text, so parsing into it allocates. `TryParseView` checks the value and gives a [VcardStructuredValueView](VcardStructuredValueView.md) without allocating (covered by `VcardValueAllocationTests`).
 

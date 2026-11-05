@@ -44,4 +44,4 @@ to find out that it is there.
 ## See also
 
 - [VcardContentLine](VcardContentLine.md)
-- [Legacy syntax and character sets](../legacy-syntax.md)
+- [Handle legacy character sets](../how-to/handle-legacy-character-sets.md)
