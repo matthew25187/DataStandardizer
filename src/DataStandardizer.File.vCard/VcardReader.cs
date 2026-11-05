@@ -63,7 +63,7 @@ namespace DataStandardizer.File.vCard
         private int _isReadInProgress;
 
         /// <summary>
-        /// Creates a reader for iCard data in a stream, read as UTF-8.
+        /// Creates a reader for vCard data in a stream, read as UTF-8.
         /// </summary>
         /// <param name="vcardStream">The stream.  It is left open when the reader is disposed.</param>
         /// <exception cref="ArgumentNullException"><paramref name="vcardStream"/> is <c>null</c>.</exception>
@@ -73,7 +73,7 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Creates a reader for iCard data in a stream.
+        /// Creates a reader for vCard data in a stream.
         /// </summary>
         /// <param name="vcardStream">The stream.  It is left open when the reader is disposed.</param>
         /// <param name="options">The options.</param>
@@ -87,7 +87,7 @@ namespace DataStandardizer.File.vCard
 
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
         /// <summary>
-        /// Creates a reader for an iCard file, read as UTF-8.
+        /// Creates a reader for a vCard file, read as UTF-8.
         /// </summary>
         /// <param name="vcardFilePath">The path of the file.</param>
         /// <exception cref="ArgumentNullException"><paramref name="vcardFilePath"/> is <c>null</c>.</exception>
@@ -96,7 +96,7 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Creates a reader for an iCard file.
+        /// Creates a reader for a vCard file.
         /// </summary>
         /// <param name="vcardFilePath">The path of the file.</param>
         /// <param name="options">The options.</param>
@@ -108,7 +108,7 @@ namespace DataStandardizer.File.vCard
 #endif
 
         /// <summary>
-        /// Creates a reader for iCard data from a text reader.
+        /// Creates a reader for vCard data from a text reader.
         /// </summary>
         /// <param name="reader">The text reader.  It is left open when the reader is disposed.</param>
         /// <exception cref="ArgumentNullException"><paramref name="reader"/> is <c>null</c>.</exception>
@@ -117,7 +117,7 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Creates a reader for iCard data from a text reader.
+        /// Creates a reader for vCard data from a text reader.
         /// </summary>
         /// <param name="reader">The text reader.  It is left open when the reader is disposed.</param>
         /// <param name="options">The options.  <see cref="VcardOptions.Encoding"/> must be <c>null</c>, since the text reader has already decoded
@@ -229,8 +229,8 @@ namespace DataStandardizer.File.vCard
         /// Reads the next card.
         /// </summary>
         /// <returns>The card; or <c>null</c> if the end of the data has been reached.</returns>
-        /// <exception cref="VcardFileException">The data is not valid iCard: a content line is not valid, a <c>BEGIN</c> or <c>END</c> is not
-        /// paired, the <c>VERSION</c> is not 4.0 or 3.0, or the data holds no card.
+        /// <exception cref="VcardFileException">The data is not valid vCard: a content line is not valid, a <c>BEGIN</c> or <c>END</c> is not
+        /// paired, the <c>VERSION</c> is not 4.0, 3.0 or 2.1, or the data holds no card.
         /// -or-
         /// The card breaks a rule of RFC 6350 that the options do not accept.  The card has been read, and reading can continue.</exception>
         /// <exception cref="ObjectDisposedException">The reader has been disposed.</exception>
@@ -278,7 +278,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <returns>The cards, read as the sequence is enumerated.</returns>
         /// <exception cref="ObjectDisposedException">The reader has been disposed, either before this call or during enumeration.</exception>
-        /// <exception cref="VcardFileException">During enumeration: the data is not valid iCard, or a card breaks a rule of RFC 6350 that
+        /// <exception cref="VcardFileException">During enumeration: the data is not valid vCard, or a card breaks a rule of RFC 6350 that
         /// the options do not accept.</exception>
         /// <exception cref="InvalidOperationException">During enumeration: another read is in progress, or an earlier read failed or was
         /// canceled.</exception>
@@ -305,7 +305,7 @@ namespace DataStandardizer.File.vCard
         /// <exception cref="InvalidOperationException">Another read is in progress.
         /// -or-
         /// An earlier read failed or was canceled, so the reader cannot continue.</exception>
-        /// <exception cref="VcardFileException">By the task: the data is not valid iCard, or the card breaks a rule of RFC 6350 that the
+        /// <exception cref="VcardFileException">By the task: the data is not valid vCard, or the card breaks a rule of RFC 6350 that the
         /// options do not accept.</exception>
         /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
@@ -327,7 +327,7 @@ namespace DataStandardizer.File.vCard
         /// <see cref="IAsyncEnumerable{T}.GetAsyncEnumerator"/>.  If a read is canceled, the reader cannot continue.</param>
         /// <returns>The cards, read as the sequence is enumerated.</returns>
         /// <exception cref="ObjectDisposedException">The reader has been disposed, either before this call or during enumeration.</exception>
-        /// <exception cref="VcardFileException">During enumeration: the data is not valid iCard, or a card breaks a rule of RFC 6350 that
+        /// <exception cref="VcardFileException">During enumeration: the data is not valid vCard, or a card breaks a rule of RFC 6350 that
         /// the options do not accept.</exception>
         /// <exception cref="InvalidOperationException">During enumeration: another read is in progress, or an earlier read failed or was
         /// canceled.</exception>
