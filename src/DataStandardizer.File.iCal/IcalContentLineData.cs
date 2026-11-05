@@ -15,6 +15,12 @@ namespace DataStandardizer.File.iCal
             _line = line;
         }
 
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        public string? Group => null;
+#else
+        public string Group => null;
+#endif
+
         public string Name => _line.Name;
 
         public int ParameterCount => _line.ParameterArray.Length;

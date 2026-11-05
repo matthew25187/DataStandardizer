@@ -9,9 +9,11 @@
     <Import_RootNamespace>DataStandardizer.File.ContentLine</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)ContentLineCaretMode.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ContentLineError.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ContentLineErrorKind.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ContentLineEscaping.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ContentLineFoldMode.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ContentLineFormatter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ContentLineScanner.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ContentLineScannerSettings.cs" />
