@@ -11,7 +11,7 @@ nav_exclude: true
 
 Namespace: `DataStandardizer.File.vCard`
 
-The names of the properties RFC 6350 §6 defines. Names are case-insensitive; these are in the upper case the RFC uses.
+The names of the properties of vCard 4.0: those RFC 6350 §6 defines, and those of the extensions RFC 6474, RFC 6715 and RFC 8605. Names are case-insensitive; these are in the upper case the RFC uses.
 
 **Syntax**
 
@@ -29,17 +29,31 @@ Each is a `const string`.
 | `Anniversary` | `ANNIVERSARY` | RFC 6350 §6.2.6: the date of marriage, or equivalent. |
 | `Begin` | `BEGIN` | RFC 6350 §6.1.1: the start of a card.  A reader or writer deals with it, so it is not in `VcardCard.Properties`. |
 | `Birthday` | `BDAY` | RFC 6350 §6.2.5: the date of birth. |
+| `BirthPlace` | `BIRTHPLACE` | RFC 6474 §2.1: the place of birth. |
+| `BirthPlace` | `BIRTHPLACE` | RFC 6474 §2.1: the place of birth. |
 | `CalendarAddressUri` | `CALADRURI` | RFC 6350 §6.9.2: where to send a scheduling request. |
 | `CalendarUri` | `CALURI` | RFC 6350 §6.9.3: a calendar. |
 | `Categories` | `CATEGORIES` | RFC 6350 §6.7.1: application categories, also known as tags. |
 | `ClientPidMap` | `CLIENTPIDMAP` | RFC 6350 §6.7.7: the global meaning of a PID source identifier. |
+| `ContactUri` | `CONTACT-URI` | RFC 8605 §2.1: a way to contact the entity without identifying the individual. |
+| `DeathDate` | `DEATHDATE` | RFC 6474 §2.3: the date of death. |
+| `DeathPlace` | `DEATHPLACE` | RFC 6474 §2.2: the place of death. |
+| `ContactUri` | `CONTACT-URI` | RFC 8605 §2.1: a way to contact the entity without identifying the individual. |
+| `DeathDate` | `DEATHDATE` | RFC 6474 §2.3: the date of death. |
+| `DeathPlace` | `DEATHPLACE` | RFC 6474 §2.2: the place of death. |
 | `Email` | `EMAIL` | RFC 6350 §6.4.2: an electronic mail address. |
 | `End` | `END` | RFC 6350 §6.1.2: the end of a card.  A reader or writer deals with it, so it is not in `VcardCard.Properties`. |
+| `Expertise` | `EXPERTISE` | RFC 6715 §2.1: a field of expertise. |
+| `Expertise` | `EXPERTISE` | RFC 6715 §2.1: a field of expertise. |
 | `FormattedName` | `FN` | RFC 6350 §6.2.1: the formatted name. |
 | `FreeBusyUrl` | `FBURL` | RFC 6350 §6.9.1: busy time. |
 | `Gender` | `GENDER` | RFC 6350 §6.2.7: sex and gender identity. |
 | `Geo` | `GEO` | RFC 6350 §6.5.2: a global position. |
+| `Hobby` | `HOBBY` | RFC 6715 §2.2: an activity one actively engages in. |
+| `Hobby` | `HOBBY` | RFC 6715 §2.2: an activity one actively engages in. |
 | `InstantMessaging` | `IMPP` | RFC 6350 §6.4.3: instant messaging and presence. |
+| `Interest` | `INTEREST` | RFC 6715 §2.3: an activity or topic one finds interesting, but doesn't necessarily engage in. |
+| `Interest` | `INTEREST` | RFC 6715 §2.3: an activity or topic one finds interesting, but doesn't necessarily engage in. |
 | `Key` | `KEY` | RFC 6350 §6.8.1: a public key or authentication certificate. |
 | `Kind` | `KIND` | RFC 6350 §6.1.4: the kind of object the card represents. |
 | `Language` | `LANG` | RFC 6350 §6.4.4: a language that may be used for contact. |
@@ -49,6 +63,8 @@ Each is a `const string`.
 | `Nickname` | `NICKNAME` | RFC 6350 §6.2.3: nicknames. |
 | `Note` | `NOTE` | RFC 6350 §6.7.2: a supplemental comment. |
 | `Organization` | `ORG` | RFC 6350 §6.6.4: the organization name and units. |
+| `OrganizationDirectory` | `ORG-DIRECTORY` | RFC 6715 §2.4: a directory of an organization the entity belongs to. The RFC also calls it `ORG-URI`, which its errata 3340 and 3341 correct; see `VcardOptions.AcceptOrgUriProperty`. |
+| `OrganizationDirectory` | `ORG-DIRECTORY` | RFC 6715 §2.4: a directory of an organization the entity belongs to. The RFC also calls it `ORG-URI`, which its errata 3340 and 3341 correct; see `VcardOptions.AcceptOrgUriProperty`. |
 | `Photo` | `PHOTO` | RFC 6350 §6.2.4: an image or photograph. |
 | `ProductId` | `PRODID` | RFC 6350 §6.7.3: the product that created the card. |
 | `Related` | `RELATED` | RFC 6350 §6.6.6: a relationship with another entity. |

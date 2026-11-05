@@ -194,7 +194,7 @@ namespace DataStandardizer.File.vCard.Tests
 
         [Theory]
         [InlineData("http://[::1]/a")]
-        [InlineData("geo:1,2;a=[b]")]
+        [InlineData("geo:1\\,2;a=[b]")]
         public void TryParseUri_BracketsWhereTheirStandardAllowsThem_IsValid(string value)
         {
             // act

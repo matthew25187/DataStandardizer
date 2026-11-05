@@ -3,8 +3,8 @@ using System;
 namespace DataStandardizer.File.vCard
 {
     /// <summary>
-    /// The value of a property that can have more than one value type: <c>TEL</c>, <c>UID</c>, <c>KEY</c> and <c>RELATED</c> (text or URI), <c>BDAY</c> and <c>ANNIVERSARY</c>
-    /// (date-and-or-time or text), and <c>TZ</c> (text, URI or UTC offset).
+    /// The value of a property that can have more than one value type: <c>TEL</c>, <c>UID</c>, <c>KEY</c>, <c>RELATED</c>, <c>BIRTHPLACE</c> and <c>DEATHPLACE</c> (text or URI),
+    /// <c>BDAY</c>, <c>ANNIVERSARY</c> and <c>DEATHDATE</c> (date-and-or-time or text), and <c>TZ</c> (text, URI or UTC offset).
     /// </summary>
     /// <remarks>
     /// <see cref="ValueType"/> says which it holds, and asking for another throws <see cref="InvalidOperationException"/>.  A default instance is not initialised: every member
@@ -211,7 +211,7 @@ namespace DataStandardizer.File.vCard
                 case VcardValueType.Text:
                     return VcardValue.FormatText(_text ?? string.Empty, VcardValueFormat.Text, VcardVersion.V4_0);
                 case VcardValueType.Uri:
-                    return _uri?.OriginalString ?? string.Empty;
+                    return VcardValue.EscapeUri(_uri?.OriginalString ?? string.Empty);
                 case VcardValueType.DateAndOrTime:
                     return _dateAndOrTime.ToString(VcardValueFormat.Text);
                 case VcardValueType.UtcOffset:

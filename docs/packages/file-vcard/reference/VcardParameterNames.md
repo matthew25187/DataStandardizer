@@ -11,7 +11,7 @@ nav_exclude: true
 
 Namespace: `DataStandardizer.File.vCard`
 
-The names of the parameters RFC 6350 defines. Names are case-insensitive; these are in the upper case the RFC uses.
+The names of the parameters of vCard 4.0: those RFC 6350 defines, and those of the extensions RFC 6715 and RFC 8605. Names are case-insensitive; these are in the upper case the RFC uses.
 
 **Syntax**
 
@@ -27,9 +27,12 @@ Each is a `const string`.
 | --- | --- | --- |
 | `AlternativeId` | `ALTID` | RFC 6350 §5.4: tags instances of a property as alternative representations of the same logical property. |
 | `CalendarScale` | `CALSCALE` | RFC 6350 §5.8: the calendar system of a date or date-time. |
+| `CountryCode` | `CC` | RFC 8605 §3.1: the ISO 3166 country code of the country name of an address. |
 | `Geo` | `GEO` | RFC 6350 §5.10: a global position specific to an address. |
+| `Index` | `INDEX` | RFC 6715 §3.1: the position of a value among the instances of a property. |
 | `Label` | `LABEL` | RFC 6350 §6.3.1: a delivery address label. |
 | `Language` | `LANGUAGE` | RFC 6350 §5.1: the language of a value. |
+| `Level` | `LEVEL` | RFC 6715 §3.2: the level of an expertise, hobby or interest. |
 | `MediaType` | `MEDIATYPE` | RFC 6350 §5.7: a hint at the media type of the resource a URI identifies. |
 | `Pid` | `PID` | RFC 6350 §5.5: identifies a specific instance of a property. |
 | `Preference` | `PREF` | RFC 6350 §5.3: the level of preference, from 1 (most preferred) to 100. |

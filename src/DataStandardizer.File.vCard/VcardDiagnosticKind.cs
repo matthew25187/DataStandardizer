@@ -6,12 +6,13 @@ namespace DataStandardizer.File.vCard
     public enum VcardDiagnosticKind
     {
         /// <summary>
-        /// A required property is missing: <c>FN</c>, or the <c>VERSION</c> of a card being read.  Accepted with <see cref="VcardOptions.AllowMissingRequiredProperties"/>.
+        /// A required property is missing: <c>FN</c>, the <c>VERSION</c> of a card being read, or a <c>CONTACT-URI</c> with a <c>mailto</c>, <c>http</c> or <c>https</c> URI in a card
+        /// that has others (RFC 8605 §2.1).  Accepted with <see cref="VcardOptions.AllowMissingRequiredProperties"/>.
         /// </summary>
         MissingRequiredProperty = 1,
 
         /// <summary>
-        /// A property appears more often than RFC 6350 §6 allows, or a <c>MEMBER</c> appears in a card whose <c>KIND</c> is not <c>group</c>.  Accepted with
+        /// A property appears more often than RFC 6350 §6 or the extension that defines it allows, or a <c>MEMBER</c> appears in a card whose <c>KIND</c> is not <c>group</c>.  Accepted with
         /// <see cref="VcardOptions.AllowCardinalityViolations"/>.
         /// </summary>
         CardinalityViolation = 2,
@@ -23,7 +24,8 @@ namespace DataStandardizer.File.vCard
         InvalidValue = 3,
 
         /// <summary>
-        /// A parameter is on a property that doesn't allow it, is repeated, or has a value that is not valid; or a <c>PID</c> names a source that has no <c>CLIENTPIDMAP</c>.
+        /// A parameter is on a property that doesn't allow it, is repeated, or has a value that is not valid; a <c>PID</c> names a source that has no <c>CLIENTPIDMAP</c>; or several
+        /// <c>CONTACT-URI</c> properties have no <c>PREF</c> (RFC 8605 §2.1).
         /// Accepted with <see cref="VcardOptions.AllowInvalidValues"/>.
         /// </summary>
         InvalidParameter = 4,

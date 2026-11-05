@@ -21,13 +21,13 @@ The public types of **DataStandardizer.File.vCard**. All types are in the
 | [VcardContentLineWriter](VcardContentLineWriter.md) | Writes content lines, folding them and treating each as its card's version says, with async and progress options. |
 | [VcardDiagnostic](VcardDiagnostic.md) | A conformance problem. |
 | [VcardFileException](VcardFileException.md) | The exception for a problem in vCard data, with where it was found. |
-| [VcardOptions](VcardOptions.md) | Options for a reader or writer; RFC 6350 defaults. |
+| [VcardOptions](VcardOptions.md) | Options for a reader or writer; the defaults follow RFC 6350 and its extensions. |
 | [VcardLegacyMediaTypes](VcardLegacyMediaTypes.md) | Maps the TYPE tokens of older versions to media types. |
-| [VcardParameterNames](VcardParameterNames.md) | The names of the parameters RFC 6350 defines. |
+| [VcardParameterNames](VcardParameterNames.md) | The names of the parameters of vCard 4.0. |
 | [VcardProperty](VcardProperty.md) | A property of a card with its value parsed. |
 | [VcardPropertyInfo](VcardPropertyInfo.md) | Which versions define a property, and its cardinality. |
 | [VcardPropertyList](VcardPropertyList.md) | The instances of one property of a card, as a live view. |
-| [VcardPropertyNames](VcardPropertyNames.md) | The names of the properties RFC 6350 defines. |
+| [VcardPropertyNames](VcardPropertyNames.md) | The names of the properties of vCard 4.0. |
 | [VcardPropertyParameters](VcardPropertyParameters.md) | The group and parameters of a property being added. |
 | [VcardReader](VcardReader.md) | Reads vCard data into cards, sync and async. |
 | [VcardValue](VcardValue.md) | TEXT, BOOLEAN, INTEGER, FLOAT, URI and LANGUAGE-TAG values. |
@@ -75,6 +75,7 @@ The public types of **DataStandardizer.File.vCard**. All types are in the
 | [VcardDiagnosticKind](VcardDiagnosticKind.md) | The kinds of conformance problem. |
 | [VcardKind](VcardKind.md) | The kind of object a card represents. |
 | [VcardLegacySyntax](VcardLegacySyntax.md) | The lexical features of vCard 2.1 that a line uses. |
+| [VcardLevel](VcardLevel.md) | The level of an expertise, hobby or interest. |
 | [VcardDateAndOrTimeKind](VcardDateAndOrTimeKind.md) | What a date-and-or-time holds. |
 | [VcardSex](VcardSex.md) | The sex component of GENDER. |
 | [VcardValueFormat](VcardValueFormat.md) | The lexical form of a value. |

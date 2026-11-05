@@ -8,12 +8,13 @@ using System.IO;
 using System.Linq;
 using System.Xml;
 using DataStandardizer.Communication.Mime;
+using DataStandardizer.Geography;
 using DataStandardizer.LanguageTag;
 
 namespace DataStandardizer.File.vCard
 {
     /// <summary>
-    /// Checks cards against the rules of RFC 6350 that <see cref="VcardReader"/> and <see cref="VcardWriter"/> enforce.
+    /// Checks cards against the rules of RFC 6350 and its extensions that <see cref="VcardReader"/> and <see cref="VcardWriter"/> enforce.
     /// </summary>
     internal static class VcardConformance
     {
@@ -29,6 +30,9 @@ namespace DataStandardizer.File.vCard
         private static readonly string[] TelephoneTypes = { "text", "voice", "fax", "cell", "video", "pager", "textphone" };
 
         // ref. RFC 6350 §6.6.6: related-type-value, which "MUST NOT be used with a property other than RELATED".
+        // ref. RFC 8605 §2.1: 'At least one "mailto", "http", or "https" URI value MUST be provided.'
+        private static readonly string[] ContactUriSchemes = { "mailto", "http", "https" };
+
         private static readonly string[] RelatedTypes =
         {
             "contact", "acquaintance", "friend", "met", "co-worker", "colleague", "co-resident", "neighbor", "child", "parent", "sibling", "spouse", "kin", "muse", "crush", "date",
@@ -92,7 +96,7 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Gets whether RFC 6350 defines a parameter.
+        /// Gets whether RFC 6350 or one of its extensions defines a parameter.
         /// </summary>
         internal static bool IsDefinedParameter(string name)
         {
@@ -174,6 +178,8 @@ namespace DataStandardizer.File.vCard
                 }
             }
 
+            CheckContactUris(card, found);
+
             int formattedNames;
             if (!instanceCounts.TryGetValue(VcardPropertyNames.FormattedName, out formattedNames))
             {
@@ -247,7 +253,7 @@ namespace DataStandardizer.File.vCard
             return sourceIds;
         }
 
-        private static bool HasEncodingParameter(VcardContentLine line)
+        internal static bool HasEncodingParameter(VcardContentLine line)
         {
             foreach (var parameter in line.ParameterArray)
             {
@@ -283,7 +289,7 @@ namespace DataStandardizer.File.vCard
             instanceCounts[info.Name] = count;
             if (info.Cardinality == VcardCardinality.AtMostOne && count > 1)
             {
-                Add(found, VcardDiagnosticKind.CardinalityViolation, Format("RFC 6350 §6 allows at most one {0} property.", info.Name), line, card);
+                Add(found, VcardDiagnosticKind.CardinalityViolation, Format("vCard 4.0 allows at most one {0} property.", info.Name), line, card);
             }
         }
 
@@ -297,7 +303,7 @@ namespace DataStandardizer.File.vCard
                 {
                     if (info != null && !info.AllowsValueParameter)
                     {
-                        Add(found, VcardDiagnosticKind.InvalidParameter, Format("RFC 6350 doesn't allow a VALUE parameter on {0}.", info.Name), line, card);
+                        Add(found, VcardDiagnosticKind.InvalidParameter, Format("vCard 4.0 doesn't allow a VALUE parameter on {0}.", info.Name), line, card);
                     }
 
                     CheckSingleValue(line, parameter, isRepeated, card, found);
@@ -311,12 +317,12 @@ namespace DataStandardizer.File.vCard
                     {
                         if (!info.AllowsOtherParameters && !IsLegacyParameterName(parameter.Name))
                         {
-                            Add(found, VcardDiagnosticKind.InvalidParameter, Format("RFC 6350 doesn't allow the parameter {0} on {1}.", parameter.Name, info.Name), line, card);
+                            Add(found, VcardDiagnosticKind.InvalidParameter, Format("vCard 4.0 doesn't allow the parameter {0} on {1}.", parameter.Name, info.Name), line, card);
                         }
                     }
                     else if ((info.Parameters & flag) == 0)
                     {
-                        Add(found, VcardDiagnosticKind.InvalidParameter, Format("RFC 6350 doesn't allow the parameter {0} on {1}.", parameter.Name, info.Name), line, card);
+                        Add(found, VcardDiagnosticKind.InvalidParameter, Format("vCard 4.0 doesn't allow the parameter {0} on {1}.", parameter.Name, info.Name), line, card);
                     }
                 }
 
@@ -370,6 +376,12 @@ namespace DataStandardizer.File.vCard
                     return VcardParameterSet.TimeZone;
                 case VcardParameterNames.Label:
                     return VcardParameterSet.Label;
+                case VcardParameterNames.Index:
+                    return VcardParameterSet.Index;
+                case VcardParameterNames.Level:
+                    return VcardParameterSet.Level;
+                case VcardParameterNames.CountryCode:
+                    return VcardParameterSet.CountryCode;
                 default:
                     return VcardParameterSet.None;
             }
@@ -463,6 +475,18 @@ namespace DataStandardizer.File.vCard
                 case VcardParameterSet.Geo:
                     isValid = VcardValue.IsUriText(value.AsSpan());
                     break;
+                case VcardParameterSet.Index:
+                    long index;
+                    isValid = VcardPropertyParameterReader.TryParseIndex(value, out index);
+                    break;
+                case VcardParameterSet.Level:
+                    VcardLevel level;
+                    isValid = VcardPropertyParameterReader.TryParseLevel(value, line.Name, out level);
+                    break;
+                case VcardParameterSet.CountryCode:
+                    Iso3166Part1Alpha2Country countryCode;
+                    isValid = VcardPropertyParameterReader.TryParseCountryCode(value, out countryCode);
+                    break;
             }
 
             if (!isValid)
@@ -486,15 +510,16 @@ namespace DataStandardizer.File.vCard
         {
             var valueType = VcardValueTypeRegistry.GetValueType(line);
             var isKeyOrTelephoneOrRelated = info.Name == VcardPropertyNames.Telephone || info.Name == VcardPropertyNames.Key || info.Name == VcardPropertyNames.Related;
+            var isDateOfBirthOrDeath = info.Name == VcardPropertyNames.Birthday || info.Name == VcardPropertyNames.DeathDate;
 
             // ref. RFC 6350 §6.4.1, §6.6.6 and §6.8.1: mediatype-param is only with a URI, and "Value and parameter MUST match".
             var isMismatch = flag == VcardParameterSet.MediaType && isKeyOrTelephoneOrRelated && valueType != VcardValueType.Uri;
 
-            // ref. RFC 6350 §6.2.5 and §6.6.6: language-param is only with text.
-            isMismatch |= flag == VcardParameterSet.Language && (info.Name == VcardPropertyNames.Birthday || info.Name == VcardPropertyNames.Related) && valueType != VcardValueType.Text;
+            // ref. RFC 6350 §6.2.5 and §6.6.6, and RFC 6474 §2.3: language-param is only with text.
+            isMismatch |= flag == VcardParameterSet.Language && (isDateOfBirthOrDeath || info.Name == VcardPropertyNames.Related) && valueType != VcardValueType.Text;
 
-            // ref. RFC 6350 §6.2.5 and §6.2.6: "calscale-param can only be present when BDAY-value is date-and-or-time and actually contains a date or date-time."
-            if (flag == VcardParameterSet.CalendarScale && (info.Name == VcardPropertyNames.Birthday || info.Name == VcardPropertyNames.Anniversary))
+            // ref. RFC 6350 §6.2.5 and §6.2.6, and RFC 6474 §2.3: "calscale-param can only be present when BDAY-value is date-and-or-time and actually contains a date or date-time."
+            if (flag == VcardParameterSet.CalendarScale && (isDateOfBirthOrDeath || info.Name == VcardPropertyNames.Anniversary))
             {
                 VcardDateAndOrTime dateAndOrTime;
                 isMismatch |= valueType != VcardValueType.DateAndOrTime ||
@@ -503,7 +528,34 @@ namespace DataStandardizer.File.vCard
 
             if (isMismatch)
             {
-                Add(found, VcardDiagnosticKind.InvalidParameter, Format("RFC 6350 doesn't allow the parameter {0} on {1} with this type of value.", parameter.Name, info.Name), line, card);
+                Add(found, VcardDiagnosticKind.InvalidParameter, Format("vCard 4.0 doesn't allow the parameter {0} on {1} with this type of value.", parameter.Name, info.Name), line, card);
+            }
+        }
+
+        private static void CheckContactUris(VcardCard card, List<VcardDiagnostic> found)
+        {
+            var instances = card.GetProperties(VcardPropertyNames.ContactUri);
+            if (instances.Count == 0) return;
+
+            var hasRequiredScheme = false;
+            var hasPreference = false;
+            foreach (var line in instances)
+            {
+                string text;
+                Uri uri;
+                hasRequiredScheme |= TryGetValueText(line, out text) && VcardValue.TryParseUri(text.AsSpan(), VcardValueFormat.Text, out uri) && ContainsIgnoringCase(ContactUriSchemes, uri.Scheme);
+                hasPreference |= VcardPropertyParameterReader.GetPreferenceOrLeast(line) <= VcardPropertyParameterReader.MaxPreference;
+            }
+
+            if (!hasRequiredScheme)
+            {
+                Add(found, VcardDiagnosticKind.MissingRequiredProperty, "RFC 8605 §2.1 requires at least one CONTACT-URI with a mailto, http or https URI.", instances[0], card);
+            }
+
+            // ref. RFC 8605 §2.1: "If multiple CONTACT-URI properties are used, the vCard PREF parameter MUST be used to describe the most preferred property".
+            if (instances.Count > 1 && !hasPreference)
+            {
+                Add(found, VcardDiagnosticKind.InvalidParameter, "RFC 8605 §2.1 requires a PREF parameter where a card has several CONTACT-URI properties.", instances[0], card);
             }
         }
 
@@ -540,7 +592,7 @@ namespace DataStandardizer.File.vCard
             if (!VcardValueTypeRegistry.IsAllowedValueType(info.Name.AsSpan(), valueType))
             {
                 var valueParameter = VcardPropertyParameterReader.GetValue(line, VcardParameterNames.Value);
-                Add(found, VcardDiagnosticKind.InvalidValue, Format("RFC 6350 doesn't allow the value type {0} on {1}.", valueParameter, info.Name), line, card);
+                Add(found, VcardDiagnosticKind.InvalidValue, Format("vCard 4.0 doesn't allow the value type {0} on {1}.", valueParameter, info.Name), line, card);
                 return;
             }
 

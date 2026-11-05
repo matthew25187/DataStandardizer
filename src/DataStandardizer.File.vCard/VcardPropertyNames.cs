@@ -1,7 +1,7 @@
 namespace DataStandardizer.File.vCard
 {
     /// <summary>
-    /// The names of the properties that RFC 6350 §6 defines.
+    /// The names of the properties of vCard 4.0: those RFC 6350 §6 defines, and those of the extensions RFC 6474, RFC 6715 and RFC 8605.
     /// </summary>
     /// <remarks>
     /// Property names are case-insensitive; these are in the upper case the RFC uses.  Use them with <see cref="VcardCard.GetProperties"/>, or to
@@ -18,6 +18,11 @@ namespace DataStandardizer.File.vCard
         /// <c>ANNIVERSARY</c> (RFC 6350 §6.2.6): the date of marriage, or equivalent.
         /// </summary>
         public const string Anniversary = "ANNIVERSARY";
+
+        /// <summary>
+        /// <c>BIRTHPLACE</c> (RFC 6474 §2.1): the place of birth.
+        /// </summary>
+        public const string BirthPlace = "BIRTHPLACE";
 
         /// <summary>
         /// <c>BEGIN</c> (RFC 6350 §6.1.1): the start of a card.  A reader or writer deals with it, so it is not in <see cref="VcardCard.Properties"/>.
@@ -50,6 +55,21 @@ namespace DataStandardizer.File.vCard
         public const string ClientPidMap = "CLIENTPIDMAP";
 
         /// <summary>
+        /// <c>CONTACT-URI</c> (RFC 8605 §2.1): a way to contact the entity without identifying the individual.
+        /// </summary>
+        public const string ContactUri = "CONTACT-URI";
+
+        /// <summary>
+        /// <c>DEATHDATE</c> (RFC 6474 §2.3): the date of death.
+        /// </summary>
+        public const string DeathDate = "DEATHDATE";
+
+        /// <summary>
+        /// <c>DEATHPLACE</c> (RFC 6474 §2.2): the place of death.
+        /// </summary>
+        public const string DeathPlace = "DEATHPLACE";
+
+        /// <summary>
         /// <c>EMAIL</c> (RFC 6350 §6.4.2): an electronic mail address.
         /// </summary>
         public const string Email = "EMAIL";
@@ -58,6 +78,11 @@ namespace DataStandardizer.File.vCard
         /// <c>END</c> (RFC 6350 §6.1.2): the end of a card.  A reader or writer deals with it, so it is not in <see cref="VcardCard.Properties"/>.
         /// </summary>
         public const string End = "END";
+
+        /// <summary>
+        /// <c>EXPERTISE</c> (RFC 6715 §2.1): a field of expertise.
+        /// </summary>
+        public const string Expertise = "EXPERTISE";
 
         /// <summary>
         /// <c>FN</c> (RFC 6350 §6.2.1): the formatted name.
@@ -80,9 +105,19 @@ namespace DataStandardizer.File.vCard
         public const string Geo = "GEO";
 
         /// <summary>
+        /// <c>HOBBY</c> (RFC 6715 §2.2): an activity one actively engages in.
+        /// </summary>
+        public const string Hobby = "HOBBY";
+
+        /// <summary>
         /// <c>IMPP</c> (RFC 6350 §6.4.3): instant messaging and presence.
         /// </summary>
         public const string InstantMessaging = "IMPP";
+
+        /// <summary>
+        /// <c>INTEREST</c> (RFC 6715 §2.3): an activity or topic one finds interesting, but doesn't necessarily engage in.
+        /// </summary>
+        public const string Interest = "INTEREST";
 
         /// <summary>
         /// <c>KEY</c> (RFC 6350 §6.8.1): a public key or authentication certificate.
@@ -128,6 +163,12 @@ namespace DataStandardizer.File.vCard
         /// <c>ORG</c> (RFC 6350 §6.6.4): the organization name and units.
         /// </summary>
         public const string Organization = "ORG";
+
+        /// <summary>
+        /// <c>ORG-DIRECTORY</c> (RFC 6715 §2.4): a directory of an organization the entity belongs to.  The RFC calls it <c>ORG-URI</c> in two places, which its errata 3340 and 3341 correct;
+        /// see <see cref="VcardOptions.AcceptOrgUriProperty"/>.
+        /// </summary>
+        public const string OrganizationDirectory = "ORG-DIRECTORY";
 
         /// <summary>
         /// <c>PHOTO</c> (RFC 6350 §6.2.4): an image or photograph.

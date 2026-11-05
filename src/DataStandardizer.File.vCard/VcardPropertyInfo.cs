@@ -5,7 +5,7 @@ using System.Collections.ObjectModel;
 namespace DataStandardizer.File.vCard
 {
     /// <summary>
-    /// The parameters RFC 6350 defines, for the table of which property allows which.  <c>VALUE</c> is left out, as <see cref="VcardValueTypeRegistry"/> deals with it.
+    /// The parameters of vCard 4.0, for the table of which property allows which.  <c>VALUE</c> is left out, as <see cref="VcardValueTypeRegistry"/> deals with it.
     /// </summary>
     [Flags]
     internal enum VcardParameterSet
@@ -21,7 +21,10 @@ namespace DataStandardizer.File.vCard
         SortAs = 1 << 7,
         Geo = 1 << 8,
         TimeZone = 1 << 9,
-        Label = 1 << 10
+        Label = 1 << 10,
+        Index = 1 << 11,
+        Level = 1 << 12,
+        CountryCode = 1 << 13
     }
 
     /// <summary>
@@ -51,6 +54,10 @@ namespace DataStandardizer.File.vCard
         private const VcardParameterSet TypedText = Instance | VcardParameterSet.Type;
         private const VcardParameterSet LanguageText = TypedText | VcardParameterSet.Language;
 
+        // ref. RFC 6715 §2.1, §2.2 and §2.3: EXPERTISE-param, HOBBY-param and INTEREST-param, which have no PID and no VALUE.
+        private const VcardParameterSet CabText =
+            VcardParameterSet.Level | VcardParameterSet.Index | VcardParameterSet.Language | VcardParameterSet.Preference | VcardParameterSet.AlternativeId | VcardParameterSet.Type;
+
         private static readonly VcardPropertyInfo[] Infos =
         {
             // ref. RFC 6350 §6.1: general properties.
@@ -73,7 +80,7 @@ namespace DataStandardizer.File.vCard
 
             // ref. RFC 6350 §6.3: delivery addressing properties.
             new VcardPropertyInfo(VcardPropertyNames.Address, Versions.All, VcardCardinality.Any,
-                LanguageText | VcardParameterSet.Label | VcardParameterSet.Geo | VcardParameterSet.TimeZone),
+                LanguageText | VcardParameterSet.Label | VcardParameterSet.Geo | VcardParameterSet.TimeZone | VcardParameterSet.CountryCode),
 
             // ref. RFC 6350 §6.4: communications properties.
             new VcardPropertyInfo(VcardPropertyNames.Telephone, Versions.All, VcardCardinality.Any, TypedUri),
@@ -112,6 +119,22 @@ namespace DataStandardizer.File.vCard
             new VcardPropertyInfo(VcardPropertyNames.CalendarAddressUri, Versions.From30, VcardCardinality.Any, TypedUri),
             new VcardPropertyInfo(VcardPropertyNames.CalendarUri, Versions.From30, VcardCardinality.Any, TypedUri),
 
+            // ref. RFC 6474 §2: extensions of vCard 4.0, as the rest of this block are.
+            new VcardPropertyInfo(VcardPropertyNames.BirthPlace, Versions.V4, VcardCardinality.AtMostOne, VcardParameterSet.AlternativeId | VcardParameterSet.Language),
+            new VcardPropertyInfo(VcardPropertyNames.DeathPlace, Versions.V4, VcardCardinality.AtMostOne, VcardParameterSet.AlternativeId | VcardParameterSet.Language),
+            new VcardPropertyInfo(VcardPropertyNames.DeathDate, Versions.V4, VcardCardinality.AtMostOne,
+                VcardParameterSet.Language | VcardParameterSet.AlternativeId | VcardParameterSet.CalendarScale),
+
+            // ref. RFC 6715 §2: none of these has a VALUE in its ABNF.
+            new VcardPropertyInfo(VcardPropertyNames.Expertise, Versions.V4, VcardCardinality.Any, CabText, true, false),
+            new VcardPropertyInfo(VcardPropertyNames.Hobby, Versions.V4, VcardCardinality.Any, CabText, true, false),
+            new VcardPropertyInfo(VcardPropertyNames.Interest, Versions.V4, VcardCardinality.Any, CabText, true, false),
+            new VcardPropertyInfo(VcardPropertyNames.OrganizationDirectory, Versions.V4, VcardCardinality.Any,
+                VcardParameterSet.Preference | VcardParameterSet.Index | VcardParameterSet.Language | VcardParameterSet.Pid | VcardParameterSet.AlternativeId | VcardParameterSet.Type, true, false),
+
+            // ref. RFC 8605 §2.1: CONTACT-URI-param = "VALUE=uri" / pref-param, which has no any-param.
+            new VcardPropertyInfo(VcardPropertyNames.ContactUri, Versions.V4, VcardCardinality.Any, VcardParameterSet.Preference, false),
+
             // ref. RFC 6350 Appendix A: the properties vCard 4.0 removed, from RFC 2426, RFC 2739 and vCard 2.1.  To vCard 4.0 they are unknown properties.
             new VcardPropertyInfo("AGENT", Versions.Before40, VcardCardinality.Any, VcardParameterSet.None),
             new VcardPropertyInfo("CAPURI", Versions.V3, VcardCardinality.Any, VcardParameterSet.None),
@@ -146,7 +169,7 @@ namespace DataStandardizer.File.vCard
         public static IReadOnlyList<VcardPropertyInfo> All => AllInfos;
 
         /// <summary>
-        /// Gets how many instances a vCard 4.0 card may have, as RFC 6350 §6 says.  A property vCard 4.0 doesn't define is <see cref="VcardCardinality.Any"/>.
+        /// Gets how many instances a vCard 4.0 card may have, as RFC 6350 §6 or the extension that defines it says.  A property vCard 4.0 doesn't define is <see cref="VcardCardinality.Any"/>.
         /// </summary>
         public VcardCardinality Cardinality { get; }
 
@@ -156,12 +179,12 @@ namespace DataStandardizer.File.vCard
         public string Name { get; }
 
         /// <summary>
-        /// Gets the parameters RFC 6350 defines that the property allows in vCard 4.0, other than <c>VALUE</c>.
+        /// Gets the parameters of vCard 4.0 that the property allows, other than <c>VALUE</c>.
         /// </summary>
         internal VcardParameterSet Parameters { get; }
 
         /// <summary>
-        /// Gets a flag indicating if the property allows the <c>any-param</c> of RFC 6350 §3.3 in vCard 4.0: parameters that RFC 6350 doesn't define.
+        /// Gets a flag indicating if the property allows the <c>any-param</c> of RFC 6350 §3.3 in vCard 4.0: parameters that RFC 6350 and its extensions don't define.
         /// </summary>
         internal bool AllowsOtherParameters { get; }
 

@@ -23,7 +23,7 @@ public static class VcardValueTypeRegistry
 
 Unknown and experimental (`X-`) properties are `Unknown` whatever their `VALUE` parameter says. Names are compared case-insensitively. A known type is returned even if the property doesn't allow it, which `IsAllowedValueType` checks. N, ADR, ORG, GENDER and CLIENTPIDMAP are `Text` here; their structure has a type of its own, such as [VcardName](VcardName.md).
 
-This covers the properties of RFC 6350. The extension properties and those of older versions are added with the issues that implement them.
+This covers the properties of RFC 6350 and the extensions RFC 6474, RFC 6715 and RFC 8605. Those of RFC 9554 and of older versions are added with the issues that implement them.
 
 ## Methods
 

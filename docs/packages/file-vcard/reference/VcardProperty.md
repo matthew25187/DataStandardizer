@@ -38,7 +38,10 @@ public sealed class VcardProperty<TValue> : IVcard40Property<TValue>
 | `GeoLocation` | `Uri?` | `GEO` (§5.10), or `null` if there is no valid one. |
 | `TimeZone` | `string?` | `TZ` (§5.11). |
 | `Label` | `string?` | `LABEL` (§6.3.1). |
-| `ExtensionParameters` | `IReadOnlyList<VcardContentLineParameter>` | The parameters RFC 6350 doesn't define. |
+| `Level` | `VcardLevel?` | `LEVEL` (RFC 6715 §3.2), or `null` if there is none that is valid for the property. |
+| `Index` | `long?` | `INDEX` (RFC 6715 §3.1), or `null` if there is no valid one. See `VcardPropertyList<TValue>.GetOrderedByIndex()`. |
+| `CountryCode` | `Iso3166Part1Alpha2Country?` | `CC` (RFC 8605 §3.1), or `null` if there is no valid one. |
+| `ExtensionParameters` | `IReadOnlyList<VcardContentLineParameter>` | The parameters RFC 6350 and its extensions don't define. |
 
 ## Applies to
 

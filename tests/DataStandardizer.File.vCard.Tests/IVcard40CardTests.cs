@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DataStandardizer.Geography;
 using DataStandardizer.LanguageTag;
 using FluentAssertions;
 using Xunit;
@@ -75,7 +76,7 @@ namespace DataStandardizer.File.vCard.Tests
                 { "LANG", card => card.Languages.Add(EnglishTag), "0/0 LANG:en" },
                 { "TZ", card => card.TimeZones.Add(new VcardTypedValue("a")), "0/0 TZ:a" },
                 { "TZ", card => card.TimeZones.Add(new VcardTypedValue(VcardUtcOffset.Parse("-0500".AsSpan(), VcardValueFormat.Text))), "0/0 TZ;VALUE=utc-offset:-0500" },
-                { "GEO", card => card.GeoLocations.Add(new Uri("geo:1,2")), "0/0 GEO:geo:1,2" },
+                { "GEO", card => card.GeoLocations.Add(new Uri("geo:1,2")), "0/0 GEO:geo:1\\,2" },
                 { "TITLE", card => card.Titles.Add("a"), "0/0 TITLE:a" },
                 { "ROLE", card => card.Roles.Add("a"), "0/0 ROLE:a" },
                 { "LOGO", card => card.Logos.Add(ExampleUri), "0/0 LOGO:http://example.com/" },
@@ -107,6 +108,17 @@ namespace DataStandardizer.File.vCard.Tests
                 { "REV", card => card.SetRevision(VcardTimestamp.Parse("19951031T222710Z".AsSpan(), VcardValueFormat.Text)), "0/0 REV:19951031T222710Z" },
                 { "UID", card => card.SetUid(new VcardTypedValue(new Uri("urn:a"))), "0/0 UID:urn:a" },
                 { "UID", card => card.SetUid(new VcardTypedValue("a")), "0/0 UID;VALUE=text:a" },
+                { "BIRTHPLACE", card => card.SetBirthPlace(new VcardTypedValue("a")), "0/0 BIRTHPLACE:a" },
+                { "BIRTHPLACE", card => card.SetBirthPlace(new VcardTypedValue("a"), new VcardPropertyParameters { Group = "b" }), "0/0 b.BIRTHPLACE:a" },
+                { "DEATHPLACE", card => card.SetDeathPlace(new VcardTypedValue(new Uri("urn:a"))), "0/0 DEATHPLACE;VALUE=uri:urn:a" },
+                { "DEATHPLACE", card => card.SetDeathPlace(new VcardTypedValue("a"), new VcardPropertyParameters { Group = "b" }), "0/0 b.DEATHPLACE:a" },
+                { "DEATHDATE", card => card.SetDeathDate(new VcardTypedValue("a")), "0/0 DEATHDATE;VALUE=text:a" },
+                { "DEATHDATE", card => card.SetDeathDate(new VcardTypedValue("a"), new VcardPropertyParameters { Group = "b" }), "0/0 b.DEATHDATE;VALUE=text:a" },
+                { "EXPERTISE", card => card.Expertise.Add("a"), "0/0 EXPERTISE:a" },
+                { "HOBBY", card => card.Hobbies.Add("a"), "0/0 HOBBY:a" },
+                { "INTEREST", card => card.Interests.Add("a"), "0/0 INTEREST:a" },
+                { "ORG-DIRECTORY", card => card.OrganizationDirectories.Add(ExampleUri), "0/0 ORG-DIRECTORY:http://example.com/" },
+                { "CONTACT-URI", card => card.ContactUris.Add(ExampleUri), "0/0 CONTACT-URI:http://example.com/" },
                 { "X-A", card => card.AddExtensionProperty("X-A", "a"), "0/0 X-A:a" },
                 { "X-A", card => card.AddExtensionProperty("X-A", "a", new VcardPropertyParameters { Group = "b" }), "0/0 b.X-A:a" }
             };
@@ -143,7 +155,7 @@ namespace DataStandardizer.File.vCard.Tests
                 { "IMPP:xmpp:a@example.com", card => card.InstantMessaging[0].Value.OriginalString, "xmpp:a@example.com" },
                 { "LANG:en", card => card.Languages[0].Value.ToString(), "en" },
                 { "TZ;VALUE=utc-offset:-0500", card => card.TimeZones[0].Value.UtcOffset.ToString(VcardValueFormat.Text), "-0500" },
-                { "GEO:geo:1,2", card => card.GeoLocations[0].Value.OriginalString, "geo:1,2" },
+                { "GEO:geo:1\\,2", card => card.GeoLocations[0].Value.OriginalString, "geo:1,2" },
                 { "TITLE:a", card => card.Titles[0].Value, "a" },
                 { "ROLE:a", card => card.Roles[0].Value, "a" },
                 { "LOGO:http://example.com/", card => card.Logos[0].Value.OriginalString, "http://example.com/" },
@@ -167,6 +179,17 @@ namespace DataStandardizer.File.vCard.Tests
                 { "PRODID:a", card => card.ProductId.Value, "a" },
                 { "REV:19951031T222710Z", card => card.Revision.Value.ToString(VcardValueFormat.Text), "19951031T222710Z" },
                 { "UID;VALUE=text:a", card => card.Uid.Value.Text, "a" },
+                { "BIRTHPLACE:a", card => card.BirthPlace.Value.Text, "a" },
+                { "DEATHPLACE:a", card => card.DeathPlace.Value.Text, "a" },
+                { "DEATHDATE;VALUE=text:a", card => card.DeathDate.Value.Text, "a" },
+                { "EXPERTISE;LEVEL=expert:a", card => card.Expertise[0].Level, VcardLevel.Expert },
+                { "HOBBY;INDEX=2:a", card => card.Hobbies[0].Index, 2L },
+                { "INTEREST:a", card => card.Interests[0].Value, "a" },
+                { "ORG-DIRECTORY:http://example.com/", card => card.OrganizationDirectories[0].Value.OriginalString, "http://example.com/" },
+                { "CONTACT-URI:http://example.com/", card => card.ContactUris[0].Value.OriginalString, "http://example.com/" },
+                { "ADR;CC=US:;;;;;;", card => card.Addresses[0].CountryCode, Iso3166Part1Alpha2Country.US },
+                { "KIND:application", card => card.Kind, VcardKind.Application },
+                { "KIND:device", card => card.Kind, VcardKind.Device },
                 { "X-A:a", card => card.ExtensionProperties[0].Value, "a" }
             };
         }
@@ -376,7 +399,13 @@ namespace DataStandardizer.File.vCard.Tests
 
             public string Value => "a";
 
+            public Iso3166Part1Alpha2Country? CountryCode => null;
+
             public IReadOnlyList<VcardContentLineParameter> ExtensionParameters => new VcardContentLineParameter[0];
+
+            public long? Index => null;
+
+            public VcardLevel? Level => null;
 
             public Bcp47LanguageTag? Language => null;
 

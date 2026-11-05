@@ -1,7 +1,7 @@
 namespace DataStandardizer.File.vCard
 {
     /// <summary>
-    /// The names of the property parameters that RFC 6350 defines.
+    /// The names of the property parameters of vCard 4.0: those RFC 6350 defines, and those of the extensions RFC 6715 and RFC 8605.
     /// </summary>
     /// <remarks>
     /// Parameter names are case-insensitive; these are in the upper case the RFC uses.  Use them with <see cref="VcardContentLine.GetParameter"/>, or to
@@ -20,9 +20,19 @@ namespace DataStandardizer.File.vCard
         public const string CalendarScale = "CALSCALE";
 
         /// <summary>
+        /// <c>CC</c> (RFC 8605 §3.1): the ISO 3166 country code of the country name of an address.
+        /// </summary>
+        public const string CountryCode = "CC";
+
+        /// <summary>
         /// <c>GEO</c> (RFC 6350 §5.10): a global position specific to an address.
         /// </summary>
         public const string Geo = "GEO";
+
+        /// <summary>
+        /// <c>INDEX</c> (RFC 6715 §3.1): the position of a value among the instances of a property.
+        /// </summary>
+        public const string Index = "INDEX";
 
         /// <summary>
         /// <c>LABEL</c> (RFC 6350 §6.3.1): a delivery address label.
@@ -33,6 +43,11 @@ namespace DataStandardizer.File.vCard
         /// <c>LANGUAGE</c> (RFC 6350 §5.1): the language of a value.
         /// </summary>
         public const string Language = "LANGUAGE";
+
+        /// <summary>
+        /// <c>LEVEL</c> (RFC 6715 §3.2): the level of an expertise, hobby or interest.
+        /// </summary>
+        public const string Level = "LEVEL";
 
         /// <summary>
         /// <c>MEDIATYPE</c> (RFC 6350 §5.7): a hint at the media type of the resource a URI identifies.

@@ -281,7 +281,7 @@ namespace DataStandardizer.File.vCard
         private static string FormatUri(Uri value)
         {
             VcardValue.CheckUri(value, nameof(value));
-            return value.OriginalString;
+            return VcardValue.EscapeUri(value.OriginalString);
         }
 
         private static bool ParseTyped(string text, VcardValueType valueType, out VcardTypedValue value)

@@ -16,13 +16,13 @@ namespace DataStandardizer.File.vCard.Tests
         public void WriteCard_Rfc6350ExampleRead_WritesItBack()
         {
             // arrange
-            var card = VcardCardTestData.Read(Rfc6350Examples.Example);
+            var card = VcardCardTestData.Read(Rfc6350Examples.ExampleWithEscapedComma);
 
             // act
             var testResult = VcardCardTestData.Write(card);
 
             // assert
-            testResult.Should().Be(Rfc6350Examples.ExampleWritten);
+            testResult.Should().Be(Rfc6350Examples.ExampleWrittenWithEscapedComma);
         }
 
         [Fact]

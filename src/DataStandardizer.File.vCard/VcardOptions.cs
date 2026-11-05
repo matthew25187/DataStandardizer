@@ -7,7 +7,7 @@ namespace DataStandardizer.File.vCard
     /// Options to configure the behaviour of a vCard reader or writer.
     /// </summary>
     /// <remarks>
-    /// The default settings for all options ensure behaviour consistent with RFC 6350.  Each accommodation for common non-compliant input or output is
+    /// The default settings for all options ensure behaviour consistent with RFC 6350 and its extensions, with their errata.  Each accommodation for common non-compliant input or output is
     /// a separate option, off by default.  A vCard 2.1 card follows its own specification, without needing an option.
     /// </remarks>
 #if NET5_0_OR_GREATER
@@ -129,6 +129,45 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
+        /// Gets a flag indicating if <see cref="VcardReader"/> reads a property named <c>ORG-URI</c> as <c>ORG-DIRECTORY</c>.
+        /// </summary>
+        /// <remarks>
+        /// RFC 6715 §2.4 defines <c>ORG-DIRECTORY</c>, and IANA registers that name.  The RFC as published also says <c>ORG-URI</c> in §3.1 and §5, which its errata 3340 and 3341 correct.  When
+        /// <c>false</c> (the default), <c>ORG-URI</c> is a property nothing defines: it is kept, and <see cref="VcardCard.ExtensionProperties"/> gives it.  When <c>true</c>, its name is changed
+        /// to <c>ORG-DIRECTORY</c> as it is read, so it is judged by the rules of that property, <see cref="VcardCard.OrganizationDirectories"/> gives it, and a writer writes that name.  The
+        /// content line reader and writer ignore this, and so does a writer given a line named <c>ORG-URI</c>.
+        /// </remarks>
+        public bool AcceptOrgUriProperty
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
+        /// Gets a flag indicating if <see cref="VcardReader"/> accepts a comma with no backslash in a URI value of a vCard 4.0 card.
+        /// </summary>
+        /// <remarks>
+        /// RFC 6350 §3.4 says a comma in a value "MUST be escaped", and its verified errata 3845 and 3846 apply that to URI values, as RFC 6474's errata 4557 and 4559 do for its own.  So
+        /// <c>GEO:geo:37.386013\,-122.082932</c> is valid, and when <c>false</c> (the default) <c>GEO:geo:37.386013,-122.082932</c> isn't, though the RFC still prints some values that way
+        /// and many writers write them.  When <c>true</c>, the comma is escaped as the line is read, so the typed members of <see cref="VcardCard"/> give the value, and a writer writes it
+        /// escaped.  It applies to a property whose value type is URI, and to the URI of <c>CLIENTPIDMAP</c>, and not to a line with <c>ENCODING</c> or <c>CHARSET</c>.  The content line
+        /// reader and writer ignore this, and so does a writer given a line with such a comma, which it refuses unless <see cref="AllowInvalidValues"/> is set.
+        /// </remarks>
+        public bool AcceptUnescapedCommasInUris
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
         /// Gets a flag indicating if a fold in a vCard 2.1 card is unfolded by the rule of RFC 6350 §3.2 rather than its own.
         /// </summary>
         /// <remarks>
@@ -165,10 +204,10 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Gets a flag indicating if a card may break the cardinality rules of RFC 6350 §6.
+        /// Gets a flag indicating if a card may break the cardinality rules of RFC 6350 §6 and its extensions.
         /// </summary>
         /// <remarks>
-        /// RFC 6350 §6 says how many instances of each property a card may have, and §6.6.5 allows a <c>MEMBER</c> property only if the <c>KIND</c> property is <c>group</c>.  When
+        /// RFC 6350 §6 and its extensions say how many instances of each property a card may have, and §6.6.5 allows a <c>MEMBER</c> property only if the <c>KIND</c> property is <c>group</c>.  When
         /// <c>false</c> (the default), <see cref="VcardReader"/> and <see cref="VcardWriter"/> throw <see cref="VcardFileException"/> for a card that breaks those rules.  With
         /// <c>true</c> they keep and write every instance, and read two <c>VERSION</c> lines as one.  The content line reader and writer ignore this.
         /// </remarks>
@@ -183,13 +222,14 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Gets a flag indicating if a value or parameter may break the rules of RFC 6350.
+        /// Gets a flag indicating if a value or parameter may break the rules of RFC 6350 and its extensions.
         /// </summary>
         /// <remarks>
         /// <para>
         /// RFC 6350 §4 and §6 give the syntax of each value, and §5 and §6 the parameters each property allows and what they may hold.  This covers a <c>VALUE</c> parameter that names
         /// a type the property doesn't allow; a parameter on a property that doesn't allow it, such as a <c>PID</c> on a property that may have only one instance (§5.5); a <c>PREF</c>
-        /// outside 1 to 100 (§5.3); and a <c>PID</c> source with no <c>CLIENTPIDMAP</c> (§6.7.7).
+        /// outside 1 to 100 (§5.3); and a <c>PID</c> source with no <c>CLIENTPIDMAP</c> (§6.7.7).  It also covers a <c>LEVEL</c> or <c>INDEX</c> that RFC 6715 §3 doesn't allow, a <c>CC</c> that
+        /// isn't an ISO 3166 code (RFC 8605 §3.1), and several <c>CONTACT-URI</c> properties with no <c>PREF</c> (RFC 8605 §2.1).
         /// </para>
         /// <para>
         /// When <c>false</c> (the default), <see cref="VcardReader"/> and <see cref="VcardWriter"/> throw <see cref="VcardFileException"/> for such a card.  With <c>true</c> the line is
@@ -235,7 +275,8 @@ namespace DataStandardizer.File.vCard
         /// Gets a flag indicating if a card may leave out a property that is required.
         /// </summary>
         /// <remarks>
-        /// RFC 6350 §6.2.1 requires at least one <c>FN</c> property, and §6.7.9 a <c>VERSION</c> property.  When <c>false</c> (the default), <see cref="VcardReader"/> and
+        /// RFC 6350 §6.2.1 requires at least one <c>FN</c> property, and §6.7.9 a <c>VERSION</c> property.  RFC 8605 §2.1 requires a card with <c>CONTACT-URI</c> properties to have one with a
+        /// <c>mailto</c>, <c>http</c> or <c>https</c> URI.  When <c>false</c> (the default), <see cref="VcardReader"/> and
         /// <see cref="VcardWriter"/> throw <see cref="VcardFileException"/> for a card without them.  With <c>true</c> a card with no <c>VERSION</c> is read as vCard 4.0, and its
         /// <see cref="VcardCard.SourceVersion"/> is <c>null</c>, but RFC 6868 caret encoding isn't decoded in it unless <see cref="AcceptCaretEncodingInAllVersions"/> is set, since the
         /// content line reader doesn't know its version.  A writer always writes <c>VERSION</c>.  The content line reader and writer ignore this.

@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace DataStandardizer.File.vCard
 {
@@ -103,6 +104,15 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
+        /// Gets the instances in the order of their <c>INDEX</c> (RFC 6715 §3.1).  An instance without a valid one comes after those that have it, as erratum 3342 of the RFC says, and
+        /// instances that can't be told apart stay in the order they appear.
+        /// </summary>
+        public IReadOnlyList<VcardProperty<TValue>> GetOrderedByIndex()
+        {
+            return new ReadOnlyCollection<VcardProperty<TValue>>(GetInstances().OrderBy(instance => instance.Index ?? long.MaxValue).ToList());
+        }
+
+        /// <summary>
         /// Gets the first of the instances with the lowest <c>PREF</c> (RFC 6350 §5.3); or <c>null</c> if there are none.  An instance without it is least preferred.
         /// </summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
@@ -200,6 +210,12 @@ namespace DataStandardizer.File.vCard
             public IEnumerator<IVcard40Property<TValue>> GetEnumerator()
             {
                 return _list.GetEnumerator();
+            }
+
+            public IReadOnlyList<IVcard40Property<TValue>> GetOrderedByIndex()
+            {
+                // A read-only list of a class is covariant, so the list doesn't have to be copied.
+                return _list.GetOrderedByIndex();
             }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER

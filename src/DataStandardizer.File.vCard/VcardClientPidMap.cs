@@ -99,7 +99,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="value">The value.</param>
         /// <param name="format">The lexical form of the value.</param>
         /// <param name="sourceId">The source identifier, if the value is valid.</param>
-        /// <param name="uri">The text of the URI, if the value is valid.</param>
+        /// <param name="uri">The text of the URI as it appears in the value, with any escaping, if the value is valid.</param>
         /// <returns><c>true</c> if the value is valid; otherwise <c>false</c>.</returns>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not a <see cref="VcardValueFormat"/> member.</exception>
         /// <exception cref="NotSupportedException"><paramref name="format"/> is not <see cref="VcardValueFormat.Text"/>.</exception>
@@ -115,7 +115,7 @@ namespace DataStandardizer.File.vCard
 
             long parsedId;
             var uriPart = value.Slice(delimiterIndex + 1);
-            if (!VcardValueFormatting.TryParseNumber(value.Slice(0, delimiterIndex), out parsedId) || parsedId == 0 || !VcardValue.IsUriText(uriPart)) return false;
+            if (!VcardValueFormatting.TryParseNumber(value.Slice(0, delimiterIndex), out parsedId) || parsedId == 0 || !VcardValue.IsUriValue(uriPart)) return false;
 
             sourceId = parsedId;
             uri = uriPart;
@@ -158,7 +158,7 @@ namespace DataStandardizer.File.vCard
             {
                 writer.Append(_sourceId.ToString(CultureInfo.InvariantCulture).AsSpan());
                 writer.Append(';');
-                writer.Append(_uri.OriginalString.AsSpan());
+                writer.Append(VcardValue.EscapeUri(_uri.OriginalString).AsSpan());
             }
 
             return writer.TryComplete(out charsWritten);
@@ -169,7 +169,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         public override string ToString()
         {
-            return _uri is null ? typeof(VcardClientPidMap).FullName ?? nameof(VcardClientPidMap) : _sourceId.ToString(CultureInfo.InvariantCulture) + ";" + _uri.OriginalString;
+            return _uri is null ? typeof(VcardClientPidMap).FullName ?? nameof(VcardClientPidMap) : _sourceId.ToString(CultureInfo.InvariantCulture) + ";" + VcardValue.EscapeUri(_uri.OriginalString);
         }
 
         /// <summary>

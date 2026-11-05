@@ -89,8 +89,9 @@
         public const string ClientPidMapUri = "urn:uuid:3df403f4-5924-4bb7-b077-3c711d9eb34b";
         public const string PidLocalAndSource = "3.1";
 
-        // ref. RFC 6350 §6.5.2: example for GEO.
+        // ref. RFC 6350 §6.5.2 and its erratum 3846: example for GEO, as the URI and as the value in a content line.
         public const string GeoUri = "geo:37.386013,-122.082932";
+        public const string GeoValue = "geo:37.386013\\,-122.082932";
 
         // ref. RFC 2426 §3.4.2: example for GEO.
         public const string GeoVersion30 = "37.386013;-122.082932";
@@ -100,7 +101,7 @@
         public const string GeoVersion21AsUri = "geo:37.24,-17.87";
 
         // ref. RFC 5870 §1: example of a geo URI with an uncertainty, and with a coordinate reference system.
-        public const string GeoUriWithUncertainty = "geo:48.2010,16.3695,183;u=40";
+        public const string GeoValueWithUncertainty = "geo:48.2010\\,16.3695\\,183;u=40";
 
         // ref. RFC 2426 §3.1.5: examples for BDAY.
         public const string Version30DateExtended = "1996-04-15";

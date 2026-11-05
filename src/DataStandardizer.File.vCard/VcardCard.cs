@@ -36,6 +36,10 @@ namespace DataStandardizer.File.vCard
         private static readonly VcardPropertyCodec<VcardTimestamp> RevisionCodec = VcardPropertyCodecs.Timestamp();
         private static readonly VcardPropertyCodec<VcardTypedValue> UidCodec = VcardPropertyCodecs.Typed(VcardPropertyNames.Uid);
 
+        private static readonly VcardPropertyCodec<VcardTypedValue> BirthPlaceCodec = VcardPropertyCodecs.Typed(VcardPropertyNames.BirthPlace);
+        private static readonly VcardPropertyCodec<VcardTypedValue> DeathPlaceCodec = VcardPropertyCodecs.Typed(VcardPropertyNames.DeathPlace);
+        private static readonly VcardPropertyCodec<VcardTypedValue> DeathDateCodec = VcardPropertyCodecs.Typed(VcardPropertyNames.DeathDate);
+
         private static readonly VcardPropertyCodec<Uri> SourcesCodec = VcardPropertyCodecs.Uri(VcardPropertyNames.Source);
         private static readonly VcardPropertyCodec<string> XmlCodec = VcardPropertyCodecs.Xml();
         private static readonly VcardPropertyCodec<string> FormattedNamesCodec = VcardPropertyCodecs.Text(VcardPropertyNames.FormattedName);
@@ -63,11 +67,22 @@ namespace DataStandardizer.File.vCard
         private static readonly VcardPropertyCodec<Uri> FreeBusyUrlsCodec = VcardPropertyCodecs.Uri(VcardPropertyNames.FreeBusyUrl);
         private static readonly VcardPropertyCodec<Uri> CalendarAddressUrisCodec = VcardPropertyCodecs.Uri(VcardPropertyNames.CalendarAddressUri);
         private static readonly VcardPropertyCodec<Uri> CalendarUrisCodec = VcardPropertyCodecs.Uri(VcardPropertyNames.CalendarUri);
+        private static readonly VcardPropertyCodec<string> ExpertiseCodec = VcardPropertyCodecs.Text(VcardPropertyNames.Expertise);
+        private static readonly VcardPropertyCodec<string> HobbiesCodec = VcardPropertyCodecs.Text(VcardPropertyNames.Hobby);
+        private static readonly VcardPropertyCodec<string> InterestsCodec = VcardPropertyCodecs.Text(VcardPropertyNames.Interest);
+        private static readonly VcardPropertyCodec<Uri> OrganizationDirectoriesCodec = VcardPropertyCodecs.Uri(VcardPropertyNames.OrganizationDirectory);
+        private static readonly VcardPropertyCodec<Uri> ContactUrisCodec = VcardPropertyCodecs.Uri(VcardPropertyNames.ContactUri);
 
         private const string IndividualText = "individual";
         private const string GroupText = "group";
         private const string OrganizationText = "org";
         private const string LocationText = "location";
+
+        // ref. RFC 6473 §2.
+        private const string ApplicationText = "application";
+
+        // ref. RFC 6869 §2.
+        private const string DeviceText = "device";
 
         // ref. RFC 4122 §3: UUIDs are case-insensitive on input.
         private const string UuidUrnPrefix = "urn:uuid:";
@@ -104,6 +119,11 @@ namespace DataStandardizer.File.vCard
             FreeBusyUrls = new VcardPropertyList<Uri>(this, FreeBusyUrlsCodec);
             CalendarAddressUris = new VcardPropertyList<Uri>(this, CalendarAddressUrisCodec);
             CalendarUris = new VcardPropertyList<Uri>(this, CalendarUrisCodec);
+            Expertise = new VcardPropertyList<string>(this, ExpertiseCodec);
+            Hobbies = new VcardPropertyList<string>(this, HobbiesCodec);
+            Interests = new VcardPropertyList<string>(this, InterestsCodec);
+            OrganizationDirectories = new VcardPropertyList<Uri>(this, OrganizationDirectoriesCodec);
+            ContactUris = new VcardPropertyList<Uri>(this, ContactUrisCodec);
         }
 
         /// <summary>
@@ -131,8 +151,8 @@ namespace DataStandardizer.File.vCard
         internal long LineNumber { get; set; }
 
         /// <summary>
-        /// Gets the kind of object the card represents (RFC 6350 §6.1.4).  With no <c>KIND</c> it is <see cref="VcardKind.Individual"/>, as the RFC says.  Any value other than those
-        /// the RFC defines is <see cref="VcardKind.Other"/>, and <see cref="KindText"/> holds it.
+        /// Gets the kind of object the card represents (RFC 6350 §6.1.4, RFC 6473 and RFC 6869).  With no <c>KIND</c> it is <see cref="VcardKind.Individual"/>, as RFC 6350 says.  Any value
+        /// other than those the RFCs define is <see cref="VcardKind.Other"/>, and <see cref="KindText"/> holds it.
         /// </summary>
         public VcardKind Kind
         {
@@ -143,6 +163,8 @@ namespace DataStandardizer.File.vCard
                 if (string.Equals(text, GroupText, StringComparison.OrdinalIgnoreCase)) return VcardKind.Group;
                 if (string.Equals(text, OrganizationText, StringComparison.OrdinalIgnoreCase)) return VcardKind.Organization;
                 if (string.Equals(text, LocationText, StringComparison.OrdinalIgnoreCase)) return VcardKind.Location;
+                if (string.Equals(text, ApplicationText, StringComparison.OrdinalIgnoreCase)) return VcardKind.Application;
+                if (string.Equals(text, DeviceText, StringComparison.OrdinalIgnoreCase)) return VcardKind.Device;
 
                 return VcardKind.Other;
             }
@@ -284,7 +306,32 @@ namespace DataStandardizer.File.vCard
         public VcardPropertyList<Uri> CalendarUris { get; }
 
         /// <summary>
-        /// Gets the properties RFC 6350 doesn't define, including <c>X-</c> properties, in the order they appear.  Each value is as it appears in the content line, since what its
+        /// Gets the <c>EXPERTISE</c> properties (RFC 6715 §2.1).  <see cref="VcardProperty{TValue}.Level"/> and <see cref="VcardProperty{TValue}.Index"/> give their parameters.
+        /// </summary>
+        public VcardPropertyList<string> Expertise { get; }
+
+        /// <summary>
+        /// Gets the <c>HOBBY</c> properties (RFC 6715 §2.2).  <see cref="VcardProperty{TValue}.Level"/> and <see cref="VcardProperty{TValue}.Index"/> give their parameters.
+        /// </summary>
+        public VcardPropertyList<string> Hobbies { get; }
+
+        /// <summary>
+        /// Gets the <c>INTEREST</c> properties (RFC 6715 §2.3).  <see cref="VcardProperty{TValue}.Level"/> and <see cref="VcardProperty{TValue}.Index"/> give their parameters.
+        /// </summary>
+        public VcardPropertyList<string> Interests { get; }
+
+        /// <summary>
+        /// Gets the <c>ORG-DIRECTORY</c> properties (RFC 6715 §2.4).  See <see cref="VcardOptions.AcceptOrgUriProperty"/>.
+        /// </summary>
+        public VcardPropertyList<Uri> OrganizationDirectories { get; }
+
+        /// <summary>
+        /// Gets the <c>CONTACT-URI</c> properties (RFC 8605 §2.1).
+        /// </summary>
+        public VcardPropertyList<Uri> ContactUris { get; }
+
+        /// <summary>
+        /// Gets the properties that RFC 6350 and its extensions don't define, including <c>X-</c> properties, in the order they appear.  Each value is as it appears in the content line, since what its
         /// escaping means is not known.
         /// </summary>
         public IReadOnlyList<VcardProperty<string>> ExtensionProperties
@@ -345,6 +392,21 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         public VcardProperty<VcardTypedValue>? Uid => GetSingle(UidCodec);
 
+        /// <summary>
+        /// Gets the <c>BIRTHPLACE</c> property (RFC 6474 §2.1), text or a URI; or <c>null</c> if the card has none with a valid value.
+        /// </summary>
+        public VcardProperty<VcardTypedValue>? BirthPlace => GetSingle(BirthPlaceCodec);
+
+        /// <summary>
+        /// Gets the <c>DEATHPLACE</c> property (RFC 6474 §2.2), text or a URI; or <c>null</c> if the card has none with a valid value.
+        /// </summary>
+        public VcardProperty<VcardTypedValue>? DeathPlace => GetSingle(DeathPlaceCodec);
+
+        /// <summary>
+        /// Gets the <c>DEATHDATE</c> property (RFC 6474 §2.3), a date-and-or-time or text; or <c>null</c> if the card has none with a valid value.
+        /// </summary>
+        public VcardProperty<VcardTypedValue>? DeathDate => GetSingle(DeathDateCodec);
+
         string? IVcard40Card.KindText => KindText;
 
         IVcard40Property<VcardName>? IVcard40Card.Name => Name;
@@ -360,6 +422,12 @@ namespace DataStandardizer.File.vCard
         IVcard40Property<VcardTimestamp>? IVcard40Card.Revision => Revision;
 
         IVcard40Property<VcardTypedValue>? IVcard40Card.Uid => Uid;
+
+        IVcard40Property<VcardTypedValue>? IVcard40Card.BirthPlace => BirthPlace;
+
+        IVcard40Property<VcardTypedValue>? IVcard40Card.DeathPlace => DeathPlace;
+
+        IVcard40Property<VcardTypedValue>? IVcard40Card.DeathDate => DeathDate;
 #else
         /// <summary>
         /// Gets the value of the <c>KIND</c> property (RFC 6350 §6.1.4) as written; or <c>null</c> if the card has none with a valid value.
@@ -401,6 +469,21 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         public VcardProperty<VcardTypedValue> Uid => GetSingle(UidCodec);
 
+        /// <summary>
+        /// Gets the <c>BIRTHPLACE</c> property (RFC 6474 §2.1), text or a URI; or <c>null</c> if the card has none with a valid value.
+        /// </summary>
+        public VcardProperty<VcardTypedValue> BirthPlace => GetSingle(BirthPlaceCodec);
+
+        /// <summary>
+        /// Gets the <c>DEATHPLACE</c> property (RFC 6474 §2.2), text or a URI; or <c>null</c> if the card has none with a valid value.
+        /// </summary>
+        public VcardProperty<VcardTypedValue> DeathPlace => GetSingle(DeathPlaceCodec);
+
+        /// <summary>
+        /// Gets the <c>DEATHDATE</c> property (RFC 6474 §2.3), a date-and-or-time or text; or <c>null</c> if the card has none with a valid value.
+        /// </summary>
+        public VcardProperty<VcardTypedValue> DeathDate => GetSingle(DeathDateCodec);
+
         string IVcard40Card.KindText => KindText;
 
         IVcard40Property<VcardName> IVcard40Card.Name => Name;
@@ -416,6 +499,12 @@ namespace DataStandardizer.File.vCard
         IVcard40Property<VcardTimestamp> IVcard40Card.Revision => Revision;
 
         IVcard40Property<VcardTypedValue> IVcard40Card.Uid => Uid;
+
+        IVcard40Property<VcardTypedValue> IVcard40Card.BirthPlace => BirthPlace;
+
+        IVcard40Property<VcardTypedValue> IVcard40Card.DeathPlace => DeathPlace;
+
+        IVcard40Property<VcardTypedValue> IVcard40Card.DeathDate => DeathDate;
 #endif
 
         VcardKind IVcard40Card.Kind => Kind;
@@ -473,6 +562,16 @@ namespace DataStandardizer.File.vCard
         IVcard40PropertyList<Uri> IVcard40Card.CalendarAddressUris => CalendarAddressUris.Version40;
 
         IVcard40PropertyList<Uri> IVcard40Card.CalendarUris => CalendarUris.Version40;
+
+        IVcard40PropertyList<string> IVcard40Card.Expertise => Expertise.Version40;
+
+        IVcard40PropertyList<string> IVcard40Card.Hobbies => Hobbies.Version40;
+
+        IVcard40PropertyList<string> IVcard40Card.Interests => Interests.Version40;
+
+        IVcard40PropertyList<Uri> IVcard40Card.OrganizationDirectories => OrganizationDirectories.Version40;
+
+        IVcard40PropertyList<Uri> IVcard40Card.ContactUris => ContactUris.Version40;
 
         IReadOnlyList<IVcard40Property<string>> IVcard40Card.ExtensionProperties => ExtensionProperties;
 
@@ -678,6 +777,12 @@ namespace DataStandardizer.File.vCard
                 case VcardKind.Location:
                     SetKind(LocationText);
                     break;
+                case VcardKind.Application:
+                    SetKind(ApplicationText);
+                    break;
+                case VcardKind.Device:
+                    SetKind(DeviceText);
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(kind), kind, "The kind has no text.");
             }
@@ -813,34 +918,100 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Adds a property that RFC 6350 doesn't define.
+        /// Sets the <c>BIRTHPLACE</c> property, replacing any there are.
+        /// </summary>
+        /// <param name="value">The value, text or a URI.</param>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is of a type the property doesn't allow, or can't be written.</exception>
+        public void SetBirthPlace(VcardTypedValue value)
+        {
+            SetSingle(BirthPlaceCodec, value, null);
+        }
+
+        /// <summary>
+        /// Sets the <c>BIRTHPLACE</c> property, replacing any there are.
+        /// </summary>
+        /// <param name="value">The value, text or a URI.</param>
+        /// <param name="parameters">The group and parameters.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="parameters"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is of a type the property doesn't allow, or can't be written.</exception>
+        public void SetBirthPlace(VcardTypedValue value, VcardPropertyParameters parameters)
+        {
+            SetSingle(BirthPlaceCodec, value, CheckParameters(parameters));
+        }
+
+        /// <summary>
+        /// Sets the <c>DEATHPLACE</c> property, replacing any there are.
+        /// </summary>
+        /// <param name="value">The value, text or a URI.</param>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is of a type the property doesn't allow, or can't be written.</exception>
+        public void SetDeathPlace(VcardTypedValue value)
+        {
+            SetSingle(DeathPlaceCodec, value, null);
+        }
+
+        /// <summary>
+        /// Sets the <c>DEATHPLACE</c> property, replacing any there are.
+        /// </summary>
+        /// <param name="value">The value, text or a URI.</param>
+        /// <param name="parameters">The group and parameters.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="parameters"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is of a type the property doesn't allow, or can't be written.</exception>
+        public void SetDeathPlace(VcardTypedValue value, VcardPropertyParameters parameters)
+        {
+            SetSingle(DeathPlaceCodec, value, CheckParameters(parameters));
+        }
+
+        /// <summary>
+        /// Sets the <c>DEATHDATE</c> property, replacing any there are.
+        /// </summary>
+        /// <param name="value">The value, a date-and-or-time or text.</param>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is of a type the property doesn't allow, or can't be written.</exception>
+        public void SetDeathDate(VcardTypedValue value)
+        {
+            SetSingle(DeathDateCodec, value, null);
+        }
+
+        /// <summary>
+        /// Sets the <c>DEATHDATE</c> property, replacing any there are.
+        /// </summary>
+        /// <param name="value">The value, a date-and-or-time or text.</param>
+        /// <param name="parameters">The group and parameters.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="parameters"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is of a type the property doesn't allow, or can't be written.</exception>
+        public void SetDeathDate(VcardTypedValue value, VcardPropertyParameters parameters)
+        {
+            SetSingle(DeathDateCodec, value, CheckParameters(parameters));
+        }
+
+        /// <summary>
+        /// Adds a property that RFC 6350 and its extensions don't define.
         /// </summary>
         /// <param name="name">The name of the property.</param>
         /// <param name="value">The value, as it appears in the content line.</param>
         /// <returns>The new property.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="name"/> or <paramref name="value"/> is <c>null</c>.</exception>
-        /// <exception cref="ArgumentException">RFC 6350 defines the property, so it has a member of its own.</exception>
+        /// <exception cref="ArgumentException">vCard 4.0 defines the property, so it has a member of its own.</exception>
         public VcardProperty<string> AddExtensionProperty(string name, string value)
         {
             return AddExtensionPropertyCore(name, value, new VcardPropertyParameters());
         }
 
         /// <summary>
-        /// Adds a property that RFC 6350 doesn't define.
+        /// Adds a property that RFC 6350 and its extensions don't define.
         /// </summary>
         /// <param name="name">The name of the property.</param>
         /// <param name="value">The value, as it appears in the content line.</param>
         /// <param name="parameters">The group and parameters.</param>
         /// <returns>The new property.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="name"/>, <paramref name="value"/> or <paramref name="parameters"/> is <c>null</c>.</exception>
-        /// <exception cref="ArgumentException">RFC 6350 defines the property, so it has a member of its own.</exception>
+        /// <exception cref="ArgumentException">vCard 4.0 defines the property, so it has a member of its own.</exception>
         public VcardProperty<string> AddExtensionProperty(string name, string value, VcardPropertyParameters parameters)
         {
             return AddExtensionPropertyCore(name, value, CheckParameters(parameters));
         }
 
         /// <summary>
-        /// Checks the card against RFC 6350, without throwing.
+        /// Checks the card against RFC 6350 and its extensions, without throwing.
         /// </summary>
         /// <remarks>
         /// It checks the rules a writer checks, whatever the options, so a reader or writer may accept a card that has problems here.  The structure of the lines a card was read from
@@ -925,6 +1096,36 @@ namespace DataStandardizer.File.vCard
             SetUid(value);
         }
 
+        void IVcard40Card.SetBirthPlace(VcardTypedValue value)
+        {
+            SetBirthPlace(value);
+        }
+
+        void IVcard40Card.SetBirthPlace(VcardTypedValue value, VcardPropertyParameters parameters)
+        {
+            SetBirthPlace(value, parameters);
+        }
+
+        void IVcard40Card.SetDeathPlace(VcardTypedValue value)
+        {
+            SetDeathPlace(value);
+        }
+
+        void IVcard40Card.SetDeathPlace(VcardTypedValue value, VcardPropertyParameters parameters)
+        {
+            SetDeathPlace(value, parameters);
+        }
+
+        void IVcard40Card.SetDeathDate(VcardTypedValue value)
+        {
+            SetDeathDate(value);
+        }
+
+        void IVcard40Card.SetDeathDate(VcardTypedValue value, VcardPropertyParameters parameters)
+        {
+            SetDeathDate(value, parameters);
+        }
+
         IVcard40Property<string> IVcard40Card.AddExtensionProperty(string name, string value)
         {
             return AddExtensionProperty(name, value);
@@ -975,7 +1176,7 @@ namespace DataStandardizer.File.vCard
 #else
             Uri leftUri, rightUri;
 #endif
-            return VcardValue.TryParseUri(left.AsSpan(), VcardValueFormat.Text, out leftUri) && VcardValue.TryParseUri(right.AsSpan(), VcardValueFormat.Text, out rightUri) &&
+            return VcardValue.TryParseUriText(left.AsSpan(), out leftUri) && VcardValue.TryParseUriText(right.AsSpan(), out rightUri) &&
                    Uri.Compare(leftUri, rightUri, UriComponents.AbsoluteUri, UriFormat.SafeUnescaped, StringComparison.Ordinal) == 0;
         }
 
@@ -1027,7 +1228,7 @@ namespace DataStandardizer.File.vCard
             if (value is null)
                 throw new ArgumentNullException(nameof(value));
             if (IsDefinedInVersion40(name))
-                throw new ArgumentException("RFC 6350 defines the property " + name + ", so it has a member of its own.", nameof(name));
+                throw new ArgumentException("vCard 4.0 defines the property " + name + ", so it has a member of its own.", nameof(name));
 
             var line = new VcardContentLine(parameters.Group, name, parameters.ToContentLineParameters(string.Empty), value);
             Properties.Add(line);

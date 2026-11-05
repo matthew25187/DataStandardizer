@@ -1,7 +1,7 @@
 namespace DataStandardizer.File.vCard
 {
     /// <summary>
-    /// The kind of object a card represents (RFC 6350 §6.1.4).
+    /// The kind of object a card represents (RFC 6350 §6.1.4, RFC 6473 and RFC 6869).
     /// </summary>
     public enum VcardKind
     {
@@ -26,8 +26,18 @@ namespace DataStandardizer.File.vCard
         Location = 3,
 
         /// <summary>
+        /// A software application, such as a server, an online service or a bot: <c>application</c> (RFC 6473 §2).
+        /// </summary>
+        Application = 4,
+
+        /// <summary>
+        /// A computing device, such as an appliance, a computer or a network element: <c>device</c> (RFC 6869 §2).
+        /// </summary>
+        Device = 5,
+
+        /// <summary>
         /// Any other value, which <see cref="VcardCard.KindText"/> holds.
         /// </summary>
-        Other = 4
+        Other = 6
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using DataStandardizer.Communication.Mime;
+using DataStandardizer.Geography;
 using DataStandardizer.LanguageTag;
 
 namespace DataStandardizer.File.vCard
@@ -26,14 +27,29 @@ namespace DataStandardizer.File.vCard
         TValue Value { get; }
 
         /// <summary>
-        /// Gets the parameters of the property that RFC 6350 doesn't define, in the order they appear.
+        /// Gets the <c>CC</c> (RFC 8605 §3.1), the country code of the country name of an address; or <c>null</c> if the property doesn't have a valid one.
+        /// </summary>
+        Iso3166Part1Alpha2Country? CountryCode { get; }
+
+        /// <summary>
+        /// Gets the parameters of the property that RFC 6350 and its extensions don't define, in the order they appear.
         /// </summary>
         IReadOnlyList<VcardContentLineParameter> ExtensionParameters { get; }
+
+        /// <summary>
+        /// Gets the <c>INDEX</c> (RFC 6715 §3.1), the position of the value among the instances of the property; or <c>null</c> if the property doesn't have a valid one.
+        /// </summary>
+        long? Index { get; }
 
         /// <summary>
         /// Gets the <c>LANGUAGE</c> (RFC 6350 §5.1); or <c>null</c> if the property doesn't have a valid one.
         /// </summary>
         Bcp47LanguageTag? Language { get; }
+
+        /// <summary>
+        /// Gets the <c>LEVEL</c> (RFC 6715 §3.2); or <c>null</c> if the property doesn't have one that is valid for it.
+        /// </summary>
+        VcardLevel? Level { get; }
 
         /// <summary>
         /// Gets the <c>MEDIATYPE</c> (RFC 6350 §5.7); or <c>null</c> if the property doesn't have a valid one.

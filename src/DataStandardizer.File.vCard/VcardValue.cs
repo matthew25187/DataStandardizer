@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Text;
 using DataStandardizer.LanguageTag;
 
 namespace DataStandardizer.File.vCard
@@ -342,11 +343,18 @@ namespace DataStandardizer.File.vCard
         #region URI
 
         /// <summary>
-        /// Parses a URI value (RFC 6350 §4.2): an absolute URI, which starts with a scheme.
+        /// Parses a URI value (RFC 6350 §4.2) as it appears in a content line of vCard 4.0: an absolute URI, which starts with a scheme, with its commas escaped.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// This allocates the <see cref="Uri"/>.  Characters RFC 3986 doesn't allow are rejected, including <c>[</c> and <c>]</c> outside the host (§3.2.2), except in a <c>geo</c> URI,
         /// whose parameter values RFC 5870 §3.3 lets hold them.
+        /// </para>
+        /// <para>
+        /// RFC 6350 §3.4 says a comma in a value "MUST be escaped", and its errata 3845 and 3846 apply that to URI values, as in <c>geo:37.386013\,-122.082932</c>.  So a comma with no
+        /// backslash is rejected; see <see cref="VcardOptions.AcceptUnescapedCommasInUris"/>.  A semicolon "MAY be escaped".  The <see cref="Uri"/> has the text with its escaping
+        /// removed.
+        /// </para>
         /// </remarks>
         /// <param name="value">The value, such as <c>http://www.example.com/my/picture.jpg</c>.</param>
         /// <param name="format">The lexical form of the value.</param>
@@ -363,11 +371,17 @@ namespace DataStandardizer.File.vCard
             VcardValueFormatting.CheckFormat(format);
 
             result = null;
-            return IsUriText(value) && Uri.TryCreate(value.ToString(), UriKind.Absolute, out result);
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            string? text;
+#else
+            string text;
+#endif
+            return TryUnescapeUri(value, out text) && TryParseUriText(text.AsSpan(), out result);
         }
 
         /// <summary>
-        /// Formats a URI value (RFC 6350 §4.2), as the URI was given.
+        /// Formats a URI value (RFC 6350 §4.2) as it appears in a content line of vCard 4.0: the URI as it was given, with its commas escaped, as RFC 6350 §3.4 and its errata 3845 and 3846
+        /// say.
         /// </summary>
         /// <param name="value">The URI, which must be absolute.</param>
         /// <param name="destination">The span to write to.</param>
@@ -387,7 +401,7 @@ namespace DataStandardizer.File.vCard
             VcardValueFormatting.CheckFormat(format);
 
             var writer = new VcardSpanWriter(destination);
-            writer.Append(value.OriginalString.AsSpan());
+            writer.Append(EscapeUri(value.OriginalString).AsSpan());
             return writer.TryComplete(out charsWritten);
         }
 
@@ -533,6 +547,73 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
+        /// Parses the text of a URI that has no escaping of a content line, such as the value of a <c>GEO</c> parameter, or the text a <see cref="Uri"/> was given.
+        /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal static bool TryParseUriText(ReadOnlySpan<char> text, [NotNullWhen(true)] out Uri? result)
+#else
+        internal static bool TryParseUriText(ReadOnlySpan<char> text, [MaybeNullWhen(false)] out Uri result)
+#endif
+        {
+            result = null;
+            return IsUriText(text) && Uri.TryCreate(text.ToString(), UriKind.Absolute, out result);
+        }
+
+        /// <summary>
+        /// Gets the text of a URI as it appears in a content line of vCard 4.0.  ref. RFC 6350 §3.4 and its errata 3845 and 3846: a comma "MUST be escaped".  A semicolon "MAY be escaped",
+        /// and isn't, since the RFC writes one as it is in <c>tel:+1-555-555-5555;ext=5555</c> (§6.4.1).
+        /// </summary>
+        internal static string EscapeUri(string text)
+        {
+            return text.IndexOf(',') < 0 ? text : text.Replace(",", "\\,");
+        }
+
+        /// <summary>
+        /// Gets the text of a URI value with the commas that have no backslash escaped, for <see cref="VcardOptions.AcceptUnescapedCommasInUris"/>.  Anything else, including an escape
+        /// that isn't valid, is left to be judged as usual.
+        /// </summary>
+        /// <returns>The text; or <paramref name="value"/> itself if it has no comma.</returns>
+        internal static string EscapeBareCommas(string value)
+        {
+            if (value.IndexOf(',') < 0) return value;
+
+            var builder = new StringBuilder(value.Length + 1);
+            for (var index = 0; index < value.Length; index++)
+            {
+                var character = value[index];
+                if (character == '\\' && index + 1 < value.Length)
+                {
+                    builder.Append(character).Append(value[++index]);
+                }
+                else if (character == ',')
+                {
+                    builder.Append('\\').Append(character);
+                }
+                else
+                {
+                    builder.Append(character);
+                }
+            }
+
+            return builder.ToString();
+        }
+
+        /// <summary>
+        /// Gets whether a URI value, as it appears in a content line of vCard 4.0, is valid, without allocating unless it has an escape or a comma.
+        /// </summary>
+        internal static bool IsUriValue(ReadOnlySpan<char> value)
+        {
+            if (value.IndexOf('\\') < 0 && value.IndexOf(',') < 0) return IsUriText(value);
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            string? text;
+#else
+            string text;
+#endif
+            return TryUnescapeUri(value, out text) && IsUriText(text.AsSpan());
+        }
+
+        /// <summary>
         /// Gets whether text has the characters and the scheme of a URI (RFC 3986 §2, §3).  It stops a path being taken as a file URI.
         /// </summary>
         internal static bool IsUriText(ReadOnlySpan<char> value)
@@ -577,6 +658,36 @@ namespace DataStandardizer.File.vCard
             }
 
             return false;
+        }
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private static bool TryUnescapeUri(ReadOnlySpan<char> value, [NotNullWhen(true)] out string? text)
+#else
+        private static bool TryUnescapeUri(ReadOnlySpan<char> value, [MaybeNullWhen(false)] out string text)
+#endif
+        {
+            // ref. RFC 6350 §3.4: a comma "MUST be escaped", and a semicolon "MAY be escaped".  A backslash can't be in a URI (RFC 3986 §2), so no other escape can be either.
+            text = null;
+            var characters = new char[value.Length];
+            var length = 0;
+            for (var index = 0; index < value.Length; index++)
+            {
+                var character = value[index];
+                if (character == ',') return false;
+
+                if (character == '\\')
+                {
+                    if (++index == value.Length) return false;
+
+                    character = value[index];
+                    if (character != ',' && character != ';') return false;
+                }
+
+                characters[length++] = character;
+            }
+
+            text = new string(characters, 0, length);
+            return true;
         }
 
         private static bool AreBracketsAllowed(ReadOnlySpan<char> value, int colonIndex)

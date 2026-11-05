@@ -35,9 +35,12 @@ public sealed class VcardPropertyParameters
 | `GeoLocation` | `Uri?` | `GEO`. |
 | `TimeZone` | `string?` | `TZ`. |
 | `Label` | `string?` | `LABEL`. |
-| `AdditionalParameters` | `IList<VcardContentLineParameter>` | Parameters RFC 6350 doesn't define. A `VALUE` here throws `ArgumentException` when added to a property RFC 6350 defines, since it comes from the value. |
+| `Level` | `VcardLevel?` | `LEVEL`. Setting anything other than a member throws `ArgumentOutOfRangeException`. |
+| `Index` | `long?` | `INDEX`. Setting anything that isn't positive throws `ArgumentOutOfRangeException`. |
+| `CountryCode` | `Iso3166Part1Alpha2Country?` | `CC`, which only `ADR` allows. |
+| `AdditionalParameters` | `IList<VcardContentLineParameter>` | Parameters RFC 6350 and its extensions don't define. A `VALUE` here throws `ArgumentException` when added to a property they define, since it comes from the value. |
 
-Apart from `Pref`, nothing here is checked until the card is validated or written.
+Apart from the range of `Pref`, `Level` and `Index`, nothing here is checked until the card is validated or written.
 
 ## Applies to
 

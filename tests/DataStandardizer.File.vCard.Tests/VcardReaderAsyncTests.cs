@@ -17,7 +17,7 @@ namespace DataStandardizer.File.vCard.Tests
         public async Task ReadCardAsync_AsyncOnlyStream_ReadsTheCardWithNoSynchronousRead()
         {
             // arrange
-            var data = Encoding.UTF8.GetBytes(Rfc6350Examples.Example);
+            var data = Encoding.UTF8.GetBytes(Rfc6350Examples.ExampleWithEscapedComma);
             using (var reader = new VcardReader(new AsyncOnlyStream(data)))
             {
                 // act
@@ -46,8 +46,8 @@ namespace DataStandardizer.File.vCard.Tests
         public async Task ReadCardsAsync_SameData_GivesWhatReadCardsGives()
         {
             // arrange
-            using (var syncReader = new VcardReader(new StringReader(Rfc6350Examples.Example)))
-            using (var asyncReader = new VcardReader(new StringReader(Rfc6350Examples.Example)))
+            using (var syncReader = new VcardReader(new StringReader(Rfc6350Examples.ExampleWithEscapedComma)))
+            using (var asyncReader = new VcardReader(new StringReader(Rfc6350Examples.ExampleWithEscapedComma)))
             {
                 var expected = LineDescription.OfAll(syncReader.ReadCards().Single().Properties);
 

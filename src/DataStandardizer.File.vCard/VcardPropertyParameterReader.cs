@@ -1,11 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using DataStandardizer.Geography;
 
 namespace DataStandardizer.File.vCard
 {
     /// <summary>
-    /// Reads the parameters RFC 6350 defines from a content line.
+    /// Reads the parameters of vCard 4.0 from a content line.
     /// </summary>
     internal static class VcardPropertyParameterReader
     {
@@ -17,12 +18,89 @@ namespace DataStandardizer.File.vCard
         private const int MaxPreferenceDigits = 2;
         private const string MaxPreferenceText = "100";
 
+        // ref. RFC 6715 §3.2: LEVEL-value, in the order of VcardLevel.
+        private static readonly string[] LevelTexts = { "beginner", "average", "expert", "high", "medium", "low" };
+
+        // ref. RFC 8605 §3.1: CC-param = "CC=" 2ALPHA
+        private const int CountryCodeLength = 2;
+
         /// <summary>
         /// Gets the text of an integer.
         /// </summary>
         internal static string FormatInteger(int value)
         {
             return value.ToString(CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// Gets the text of an integer.
+        /// </summary>
+        internal static string FormatInteger(long value)
+        {
+            return value.ToString(CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// Gets the text of a level.
+        /// </summary>
+        internal static string FormatLevel(VcardLevel level)
+        {
+            return LevelTexts[(int)level];
+        }
+
+        /// <summary>
+        /// Gets whether a value is a member of <see cref="VcardLevel"/>.
+        /// </summary>
+        internal static bool IsDefinedLevel(VcardLevel level)
+        {
+            return level >= VcardLevel.Beginner && level <= VcardLevel.Low;
+        }
+
+        /// <summary>
+        /// Parses the value of a <c>LEVEL</c> parameter (RFC 6715 §3.2), which RFC 6350 §5 makes case-insensitive.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="propertyName">The name of the property it is on.  The RFC limits the values of <c>EXPERTISE</c>, <c>HOBBY</c> and <c>INTEREST</c>, and says nothing of others.</param>
+        /// <param name="result">The level, if it is one the property allows.</param>
+        internal static bool TryParseLevel(string value, string propertyName, out VcardLevel result)
+        {
+            for (var index = 0; index < LevelTexts.Length; index++)
+            {
+                if (string.Equals(value, LevelTexts[index], StringComparison.OrdinalIgnoreCase))
+                {
+                    result = (VcardLevel)index;
+                    return IsLevelOfProperty(result, propertyName);
+                }
+            }
+
+            result = VcardLevel.Beginner;
+            return false;
+        }
+
+        /// <summary>
+        /// Parses the value of an <c>INDEX</c> parameter.  ref. RFC 6715 §3.1: INDEX-value = integer, and "INDEX values must be strictly positive.  Zero is not allowed."
+        /// </summary>
+        internal static bool TryParseIndex(string value, out long result)
+        {
+            return VcardValue.TryParseInteger(value.AsSpan(), VcardValueFormat.Text, out result) && result > 0;
+        }
+
+        /// <summary>
+        /// Parses the value of a <c>CC</c> parameter (RFC 8605 §3.1), which RFC 6350 §5 makes case-insensitive.
+        /// </summary>
+        internal static bool TryParseCountryCode(string value, out Iso3166Part1Alpha2Country result)
+        {
+            // TODO: RFC 8605 §6.1 cites the third edition of ISO 3166, of 1988, and this is today's list.  So it rejects a code that has been withdrawn since, such as DD, and accepts one
+            // assigned since, such as RS.  Revisit it if the edition matters to someone, which needs that edition's list.
+            result = default(Iso3166Part1Alpha2Country);
+            if (value.Length != CountryCodeLength) return false;
+
+            foreach (var character in value)
+            {
+                if (!((character >= 'A' && character <= 'Z') || (character >= 'a' && character <= 'z'))) return false;
+            }
+
+            return Enum.TryParse(value.ToUpperInvariant(), false, out result);
         }
 
         /// <summary>
@@ -115,6 +193,16 @@ namespace DataStandardizer.File.vCard
             }
 
             return groups;
+        }
+
+        private static bool IsLevelOfProperty(VcardLevel level, string propertyName)
+        {
+            // ref. RFC 6715 §3.2: "'beginner', 'average', 'expert' when used with EXPERTISE", and "'high', 'medium', 'low' when used with HOBBY or INTEREST".
+            if (string.Equals(propertyName, VcardPropertyNames.Expertise, StringComparison.OrdinalIgnoreCase)) return level <= VcardLevel.Expert;
+
+            var isHobbyOrInterest = string.Equals(propertyName, VcardPropertyNames.Hobby, StringComparison.OrdinalIgnoreCase) ||
+                                    string.Equals(propertyName, VcardPropertyNames.Interest, StringComparison.OrdinalIgnoreCase);
+            return !isHobbyOrInterest || level >= VcardLevel.High;
         }
 
         /// <summary>

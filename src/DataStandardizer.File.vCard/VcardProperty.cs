@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using DataStandardizer.Communication.Mime;
+using DataStandardizer.Geography;
 using DataStandardizer.LanguageTag;
 
 namespace DataStandardizer.File.vCard
@@ -28,7 +29,20 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Gets the parameters of the property that RFC 6350 doesn't define, in the order they appear.
+        /// Gets the <c>CC</c> (RFC 8605 §3.1), the country code of the country name of an address; or <c>null</c> if the property doesn't have a valid one.
+        /// </summary>
+        public Iso3166Part1Alpha2Country? CountryCode
+        {
+            get
+            {
+                var text = VcardPropertyParameterReader.GetValue(Line, VcardParameterNames.CountryCode);
+                Iso3166Part1Alpha2Country result;
+                return text != null && VcardPropertyParameterReader.TryParseCountryCode(text, out result) ? result : (Iso3166Part1Alpha2Country?)null;
+            }
+        }
+
+        /// <summary>
+        /// Gets the parameters of the property that RFC 6350 and its extensions don't define, in the order they appear.
         /// </summary>
         public IReadOnlyList<VcardContentLineParameter> ExtensionParameters
         {
@@ -48,6 +62,20 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
+        /// Gets the <c>INDEX</c> (RFC 6715 §3.1), the position of the value among the instances of the property; or <c>null</c> if the property doesn't have a valid one.  See
+        /// <see cref="VcardPropertyList{TValue}.GetOrderedByIndex"/>.
+        /// </summary>
+        public long? Index
+        {
+            get
+            {
+                var text = VcardPropertyParameterReader.GetValue(Line, VcardParameterNames.Index);
+                long result;
+                return text != null && VcardPropertyParameterReader.TryParseIndex(text, out result) ? result : (long?)null;
+            }
+        }
+
+        /// <summary>
         /// Gets the <c>LANGUAGE</c> (RFC 6350 §5.1); or <c>null</c> if the property doesn't have a valid one.
         /// </summary>
         public Bcp47LanguageTag? Language
@@ -57,6 +85,19 @@ namespace DataStandardizer.File.vCard
                 var text = VcardPropertyParameterReader.GetValue(Line, VcardParameterNames.Language);
                 Bcp47LanguageTag result;
                 return text != null && VcardValue.TryParseLanguageTag(text.AsSpan(), VcardValueFormat.Text, out result) ? result : (Bcp47LanguageTag?)null;
+            }
+        }
+
+        /// <summary>
+        /// Gets the <c>LEVEL</c> (RFC 6715 §3.2); or <c>null</c> if the property doesn't have one that is valid for it.
+        /// </summary>
+        public VcardLevel? Level
+        {
+            get
+            {
+                var text = VcardPropertyParameterReader.GetValue(Line, VcardParameterNames.Level);
+                VcardLevel result;
+                return text != null && VcardPropertyParameterReader.TryParseLevel(text, Line.Name, out result) ? result : (VcardLevel?)null;
             }
         }
 
@@ -151,7 +192,7 @@ namespace DataStandardizer.File.vCard
             {
                 var text = VcardPropertyParameterReader.GetValue(Line, VcardParameterNames.Geo);
                 Uri? result;
-                return text != null && VcardValue.TryParseUri(text.AsSpan(), VcardValueFormat.Text, out result) ? result : null;
+                return text != null && VcardValue.TryParseUriText(text.AsSpan(), out result) ? result : null;
             }
         }
 
@@ -201,7 +242,7 @@ namespace DataStandardizer.File.vCard
             {
                 var text = VcardPropertyParameterReader.GetValue(Line, VcardParameterNames.Geo);
                 Uri result;
-                return text != null && VcardValue.TryParseUri(text.AsSpan(), VcardValueFormat.Text, out result) ? result : null;
+                return text != null && VcardValue.TryParseUriText(text.AsSpan(), out result) ? result : null;
             }
         }
 
@@ -233,9 +274,15 @@ namespace DataStandardizer.File.vCard
         string IVcard40Property<TValue>.TimeZone => TimeZone;
 #endif
 
+        Iso3166Part1Alpha2Country? IVcard40Property<TValue>.CountryCode => CountryCode;
+
         IReadOnlyList<VcardContentLineParameter> IVcard40Property<TValue>.ExtensionParameters => ExtensionParameters;
 
+        long? IVcard40Property<TValue>.Index => Index;
+
         Bcp47LanguageTag? IVcard40Property<TValue>.Language => Language;
+
+        VcardLevel? IVcard40Property<TValue>.Level => Level;
 
         MimeMediaType? IVcard40Property<TValue>.MediaType => MediaType;
 
