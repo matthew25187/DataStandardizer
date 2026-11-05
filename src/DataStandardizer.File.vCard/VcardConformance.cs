@@ -648,6 +648,7 @@ namespace DataStandardizer.File.vCard
         {
             var instances = card.GetProperties(name);
             var languagesByAltId = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+            Dictionary<string, List<VcardComponentList>> relatedByAltId = null;
             foreach (var line in instances)
             {
                 var phonetic = VcardPropertyParameterReader.GetValue(line, VcardParameterNames.Phonetic);
@@ -668,25 +669,17 @@ namespace DataStandardizer.File.vCard
 
                 CheckPhoneticLanguage(line, altId, languagesByAltId, card, found);
 
-                var hasRelated = false;
-                var isCovered = false;
-                foreach (var candidate in instances)
+                if (relatedByAltId is null)
                 {
-                    if (VcardPropertyParameterReader.GetValue(candidate, VcardParameterNames.Phonetic) != null ||
-                        !string.Equals(VcardPropertyParameterReader.GetValue(candidate, VcardParameterNames.AlternativeId), altId, StringComparison.Ordinal))
-                    {
-                        continue;
-                    }
-
-                    hasRelated = true;
-                    isCovered |= HasComponentsOf(candidate, line);
+                    relatedByAltId = GetRelatedComponents(instances);
                 }
 
-                if (!hasRelated)
+                List<VcardComponentList> related;
+                if (!relatedByAltId.TryGetValue(altId, out related))
                 {
                     Add(found, VcardDiagnosticKind.InvalidParameter, Format("RFC 9554 §4.6 requires a {0} property without PHONETIC and with the same ALTID.", name), line, card);
                 }
-                else if (!isCovered)
+                else if (!IsCoveredByARelatedProperty(line, related))
                 {
                     // ref. RFC 9554 §4.6: "If a component value is set in the property on which the PHONETIC parameter is set, then a component value also MUST be set at that same
                     // position in the related property."
@@ -713,20 +706,54 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Gets whether a property has a value in each component that a phonetic representation of it has one.  A value that can't be parsed is reported anyway, so it is passed over.
+        /// Gets the components of the instances without <c>PHONETIC</c>, by their <c>ALTID</c>, once for the whole card.  An instance whose value can't be parsed is reported anyway, so it
+        /// makes an entry with no components of its own.
         /// </summary>
-        private static bool HasComponentsOf(VcardContentLine related, VcardContentLine phonetic)
+        private static Dictionary<string, List<VcardComponentList>> GetRelatedComponents(IReadOnlyList<VcardContentLine> instances)
         {
-            VcardComponentList relatedComponents, phoneticComponents;
-            if (!TryGetComponents(phonetic, out phoneticComponents)) return true;
-            if (!TryGetComponents(related, out relatedComponents)) return false;
-
-            for (var index = 0; index < phoneticComponents.Count; index++)
+            var result = new Dictionary<string, List<VcardComponentList>>(StringComparer.Ordinal);
+            foreach (var line in instances)
             {
-                if (phoneticComponents.HasValueAt(index) && !relatedComponents.HasValueAt(index)) return false;
+                var altId = VcardPropertyParameterReader.GetValue(line, VcardParameterNames.AlternativeId);
+                if (altId is null || VcardPropertyParameterReader.GetValue(line, VcardParameterNames.Phonetic) != null) continue;
+
+                List<VcardComponentList> group;
+                if (!result.TryGetValue(altId, out group))
+                {
+                    group = new List<VcardComponentList>();
+                    result.Add(altId, group);
+                }
+
+                VcardComponentList components;
+                if (TryGetComponents(line, out components))
+                {
+                    group.Add(components);
+                }
             }
 
-            return true;
+            return result;
+        }
+
+        /// <summary>
+        /// Gets whether a related property has a value in each component that a phonetic representation of it has one.  A value that can't be parsed is reported anyway, so it is passed over.
+        /// </summary>
+        private static bool IsCoveredByARelatedProperty(VcardContentLine phonetic, List<VcardComponentList> related)
+        {
+            VcardComponentList phoneticComponents;
+            if (!TryGetComponents(phonetic, out phoneticComponents)) return true;
+
+            foreach (var relatedComponents in related)
+            {
+                var isCovered = true;
+                for (var index = 0; index < phoneticComponents.Count && isCovered; index++)
+                {
+                    isCovered = !phoneticComponents.HasValueAt(index) || relatedComponents.HasValueAt(index);
+                }
+
+                if (isCovered) return true;
+            }
+
+            return false;
         }
 
         private static bool TryGetComponents(VcardContentLine line, out VcardComponentList components)
@@ -930,7 +957,7 @@ namespace DataStandardizer.File.vCard
         /// <summary>
         /// Gets whether text is an <c>iana-token</c> or <c>x-name</c> of RFC 6350 §3.3: one or more letters, digits or '-'.
         /// </summary>
-        private static bool IsToken(string text)
+        internal static bool IsToken(string text)
         {
             if (text.Length == 0) return false;
 

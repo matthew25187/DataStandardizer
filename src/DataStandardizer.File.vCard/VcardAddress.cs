@@ -273,7 +273,7 @@ namespace DataStandardizer.File.vCard
         /// there for backwards compatibility.
         /// </summary>
         /// <exception cref="InvalidOperationException">The instance is not initialised.</exception>
-        public bool HasDetailedComponents => !GetComponents().AreEmptyFrom(Rfc6350ComponentCount);
+        public bool HasDetailedComponents => GetComponents().HasValueFrom(Rfc6350ComponentCount);
 
         /// <summary>
         /// Gets the components, for use within the package; or <c>null</c> if the instance is not initialised.
@@ -298,7 +298,7 @@ namespace DataStandardizer.File.vCard
         public VcardAddress WithBackwardCompatibleComponents()
         {
             var components = GetComponents();
-            if (components[StreetAddressComponent].Count != 0) return this;
+            if (components.HasValueAt(StreetAddressComponent)) return this;
 
             var street = new StringBuilder();
             foreach (var part in StreetAddressParts)

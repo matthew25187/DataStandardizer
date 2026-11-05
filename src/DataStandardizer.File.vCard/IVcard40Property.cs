@@ -119,7 +119,7 @@ namespace DataStandardizer.File.vCard
         string? ServiceType { get; }
 
         /// <summary>
-        /// Gets the <c>USERNAME</c> (RFC 9554 §4.10), with its case as written; or <c>null</c> if the property doesn't have one, or doesn't allow it.
+        /// Gets the <c>USERNAME</c> (RFC 9554 §4.10), with its case as written; or <c>null</c> if the property doesn't have one, or doesn't allow it, or its value isn't a URI.
         /// </summary>
         string? Username { get; }
 
@@ -179,7 +179,7 @@ namespace DataStandardizer.File.vCard
         string ServiceType { get; }
 
         /// <summary>
-        /// Gets the <c>USERNAME</c> (RFC 9554 §4.10), with its case as written; or <c>null</c> if the property doesn't have one, or doesn't allow it.
+        /// Gets the <c>USERNAME</c> (RFC 9554 §4.10), with its case as written; or <c>null</c> if the property doesn't have one, or doesn't allow it, or its value isn't a URI.
         /// </summary>
         string Username { get; }
 

@@ -218,6 +218,15 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
+        /// Gets whether a line may have a <c>USERNAME</c>.  ref. RFC 9554 §4.10: "The IMPP or SOCIALPROFILE value type MUST be URI."  The value type of an unknown property isn't known.
+        /// </summary>
+        internal static bool IsUsernameAllowed(VcardContentLine line)
+        {
+            return IsAllowedOnProperty(VcardParameterSet.Username, line.Name) &&
+                   (!VcardValueTypeRegistry.IsKnownProperty(line.Name.AsSpan()) || VcardValueTypeRegistry.GetValueType(line) == VcardValueType.Uri);
+        }
+
+        /// <summary>
         /// Gets whether a parameter is written in quotes whatever its value holds.  ref. RFC 9554 §4.9 and §4.10: the case of <c>SERVICE-TYPE</c> and <c>USERNAME</c> is significant and
         /// "MUST be preserved", and RFC 6350 §5 says that a value not in quotes is case-insensitive.  Erratum 8652 of RFC 9554 quotes the value in the example.
         /// </summary>

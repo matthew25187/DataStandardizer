@@ -264,9 +264,9 @@ namespace DataStandardizer.File.vCard
         public string? ServiceType => VcardPropertyParameterReader.IsAllowedOnProperty(VcardParameterSet.ServiceType, Line.Name) ? VcardPropertyParameterReader.GetValue(Line, VcardParameterNames.ServiceType) : null;
 
         /// <summary>
-        /// Gets the <c>USERNAME</c> (RFC 9554 §4.10), with its case as written; or <c>null</c> if the property doesn't have one, or doesn't allow it.
+        /// Gets the <c>USERNAME</c> (RFC 9554 §4.10), with its case as written; or <c>null</c> if the property doesn't have one, or doesn't allow it, or its value isn't a URI.
         /// </summary>
-        public string? Username => VcardPropertyParameterReader.IsAllowedOnProperty(VcardParameterSet.Username, Line.Name) ? VcardPropertyParameterReader.GetValue(Line, VcardParameterNames.Username) : null;
+        public string? Username => VcardPropertyParameterReader.IsUsernameAllowed(Line) ? VcardPropertyParameterReader.GetValue(Line, VcardParameterNames.Username) : null;
 
         /// <summary>
         /// Gets the <c>ALTID</c> (RFC 6350 §5.4); or <c>null</c> if the property doesn't have one.
@@ -380,9 +380,9 @@ namespace DataStandardizer.File.vCard
         public string ServiceType => VcardPropertyParameterReader.IsAllowedOnProperty(VcardParameterSet.ServiceType, Line.Name) ? VcardPropertyParameterReader.GetValue(Line, VcardParameterNames.ServiceType) : null;
 
         /// <summary>
-        /// Gets the <c>USERNAME</c> (RFC 9554 §4.10), with its case as written; or <c>null</c> if the property doesn't have one, or doesn't allow it.
+        /// Gets the <c>USERNAME</c> (RFC 9554 §4.10), with its case as written; or <c>null</c> if the property doesn't have one, or doesn't allow it, or its value isn't a URI.
         /// </summary>
-        public string Username => VcardPropertyParameterReader.IsAllowedOnProperty(VcardParameterSet.Username, Line.Name) ? VcardPropertyParameterReader.GetValue(Line, VcardParameterNames.Username) : null;
+        public string Username => VcardPropertyParameterReader.IsUsernameAllowed(Line) ? VcardPropertyParameterReader.GetValue(Line, VcardParameterNames.Username) : null;
 
         /// <summary>
         /// Gets the <c>ALTID</c> (RFC 6350 §5.4); or <c>null</c> if the property doesn't have one.

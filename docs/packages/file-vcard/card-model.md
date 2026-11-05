@@ -95,7 +95,7 @@ RFC 9554 adds components to `N` and `ADR`, and says what to do so that software 
 | **Writing** | A secondary surname also goes in the family names, and a generation in the honorific suffixes. | The new components are combined in the street address. |
 | **Reading** | Ignore a value in those older components that is also in the new one: `FamilyNamesExcludingSecondarySurnames`, `HonorificSuffixesExcludingGenerations`. | Ignore the street address if `HasDetailedComponents` is `true`. |
 
-`SetName` and `Addresses.Add` do the writing half, and `WithBackwardCompatibleComponents` does it for a value of your own. The RFC doesn't say how to combine the components of an address, so give the address a street address if the order matters: one it already has is left alone. A line added to `Properties` is written as it is. A card that was read keeps its values as they were.
+`SetName` and `Addresses.Add` do the writing half, and `WithBackwardCompatibleComponents` does it for a value of your own. The RFC doesn't say how to combine the components of an address, so give the address a street address if the order matters: one it already has is left alone. A line added to `Properties` is written as it is, and so is a value with a `PHONETIC` parameter, because §4.6 needs its related property to have a value in each of its components. A card that was read keeps its values as they were.
 
 ```csharp
 var name = VcardName.Parse("Doe;John;;;;Smith;Jr.".AsSpan(), VcardValueFormat.Text);
@@ -104,7 +104,7 @@ card.SetName(name); // N:Doe,Smith;John;;;Jr.;Smith;Jr.
 
 ### Phonetic values
 
-A `PHONETIC` property says how to pronounce another of the same name, which has the same `ALTID` and no `PHONETIC` (§4.6). `Name` gives the one without it, whichever comes first.
+A `PHONETIC` property says how to pronounce another of the same name, which has the same `ALTID` and no `PHONETIC` (§4.6). `Name` gives the one without it, whichever comes first. `SetName` replaces every `N`, so to write a pair, add both lines to `Properties`.
 
 ```csharp
 foreach (var alternatives in card.Addresses.GetAlternatives())

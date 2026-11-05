@@ -411,6 +411,7 @@ namespace DataStandardizer.File.vCard.Tests
                 { "NOTE;SERVICE-TYPE=a:b", card => card.Notes[0].ServiceType },
                 { "NOTE;USERNAME=a:b", card => card.Notes[0].Username },
                 { "ADR;ALTID=1;PHONETIC=klingon:;;;;;;", card => card.Addresses[0].Phonetic },
+                { "SOCIALPROFILE;VALUE=text;SERVICE-TYPE=a;USERNAME=b:c", card => card.SocialProfiles[0].Username },
                 { "CREATED:a", card => card.Created },
                 { "LANGUAGE:not a tag", card => card.DefaultLanguage }
             };
@@ -525,6 +526,77 @@ namespace DataStandardizer.File.vCard.Tests
 
             // assert
             VcardCardTestData.ValuesOf(testResult).Should().BeEquivalentTo(new[] { new[] { "first", "second" } }, options => options.WithStrictOrdering());
+        }
+
+        [Fact]
+        public void GetDuplicatePropertyIds_InvalidValues_LeavesThemOut()
+        {
+            // arrange
+            var options = new VcardOptions { AllowInvalidValues = true };
+            var card = VcardCardTestData.Read(VcardCardTestData.Card("NOTE;PROP-ID=a.b:c", "NOTE;PROP-ID=a.b:d"), options);
+
+            // act
+            var testResult = card.GetDuplicatePropertyIds();
+
+            // assert
+            testResult.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void GrammaticalGenders_ValueThatIsNotAToken_LeavesItOut()
+        {
+            // arrange
+            var options = new VcardOptions { AllowInvalidValues = true };
+            var card = VcardCardTestData.Read(VcardCardTestData.Card("GRAMGENDER:a b", "GRAMGENDER;LANGUAGE=de:common"), options);
+
+            // act
+            var testResult = card.GrammaticalGenders.Single();
+
+            // assert
+            testResult.Value.Should().Be("common");
+        }
+
+        [Fact]
+        public void Birthday_FirstWithAPhoneticItDoesNotAllow_GivesTheFirst()
+        {
+            // arrange
+            var options = new VcardOptions { AllowInvalidValues = true, AllowCardinalityViolations = true };
+            var card = VcardCardTestData.Read(VcardCardTestData.Card("BDAY;PHONETIC=ipa:19960415", "BDAY:19970101"), options);
+
+            // act
+            var testResult = card.Birthday;
+
+            // assert
+            testResult.Line.Value.Should().Be("19960415");
+        }
+
+        [Fact]
+        public void WriteCard_PhoneticAddressAddedToAReadAddressWithNoStreet_Writes()
+        {
+            // arrange
+            // ref. RFC 9554 §4.6: the phonetic line can't have a street value that the related property doesn't.
+            var card = VcardCardTestData.Read(VcardCardTestData.Card("ADR;ALTID=1:;;;;;;;;;;1;a;;;;;;"));
+            card.Addresses.Add(VcardAddress.Parse(";;;;;;;;;;1;b;;;;;;".AsSpan(), VcardValueFormat.Text), new VcardPropertyParameters { AltId = "1", Phonetic = VcardPhoneticSystem.Ipa });
+
+            // act
+            var testResult = VcardCardTestData.Write(card);
+
+            // assert
+            testResult.Should().Be(VcardCardTestData.Card("ADR;ALTID=1:;;;;;;;;;;1;a;;;;;;", "ADR;ALTID=1;PHONETIC=ipa:;;;;;;;;;;1;b;;;;;;"));
+        }
+
+        [Fact]
+        public void Add_PhoneticAddress_GivesTheFormItWrites()
+        {
+            // arrange
+            var card = VcardCardTestData.NewCard();
+            var address = VcardAddress.Parse(";;;;;;;;;;1;b;;;;;;".AsSpan(), VcardValueFormat.Text);
+
+            // act
+            var testResult = card.Addresses.Add(address, new VcardPropertyParameters { AltId = "1", Phonetic = VcardPhoneticSystem.Ipa });
+
+            // assert
+            testResult.Value.StreetAddress.Should().BeEmpty();
         }
 
         [Fact]
@@ -961,6 +1033,9 @@ namespace DataStandardizer.File.vCard.Tests
                 // The items of a component.
                 { ";;;;;;;;;;;A,B;;;;;;", ";;A B;;;;;;;;;A,B;;;;;;" },
 
+                // A street address with no text in it is no street address.
+                { ";;,;;;;;;;;123;;;;;;;", ";;123;;;;;;;;123;;;;;;;" },
+
                 // A street address is left as it is.
                 { ";;Other;;;;;;;;123;Main Street;;;;;;", ";;Other;;;;;;;;123;Main Street;;;;;;" },
 
@@ -1000,6 +1075,7 @@ namespace DataStandardizer.File.vCard.Tests
         [Theory]
         [InlineData(MainStreetAddress, false)]
         [InlineData(";;;;;;;;;;;;;;;;;", false)]
+        [InlineData(";;;;;;;,;;;;;;;;;;", false)]
         [InlineData(";;;;;;;a;;;;;;;;;;", true)]
         [InlineData(";;;;;;;;;;;;;;;;;a", true)]
         public void HasDetailedComponents_Address_SaysIfOneHasAValue(string value, bool expected)

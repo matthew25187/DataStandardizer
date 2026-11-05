@@ -39,6 +39,19 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
+        /// Gets whether a component from a position on has an item with text in it.
+        /// </summary>
+        internal bool HasValueFrom(int start)
+        {
+            for (var index = start; index < _components.Length; index++)
+            {
+                if (HasValueAt(index)) return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Gets the items of a component that aren't in another, compared ordinally.
         /// </summary>
         internal IReadOnlyList<string> GetItemsNotIn(int index, int otherIndex)

@@ -110,7 +110,7 @@ The typed members leave out a property whose value isn't valid, which `AllowInva
 | `GetProperties(string name)` | The instances of a property, whether or not their values are valid. |
 | `GetPreferred(string name)` | The first instance with the lowest `PREF`; an instance without it is least preferred (RFC 6350 §5.3). `null` if there are none. |
 | `GetAlternatives(string name)` | The instances grouped by `ALTID`, in the order each group first appears (RFC 6350 §5.4). An instance without it is a group of its own. |
-| `GetDuplicatePropertyIds()` | The instances that have the same `PROP-ID` as another of the same name, as groups. RFC 9554 §4.7 leaves what to do about them to the application, so `Validate()` doesn't report them. |
+| `GetDuplicatePropertyIds()` | The instances that have the same valid `PROP-ID` as another of the same name, as groups. RFC 9554 §4.7 leaves what to do about them to the application, so `Validate()` doesn't report them. |
 | `RemoveProperties(string name)` | Removes every instance, and gives how many. |
 | `AddExtensionProperty(string name, string value)` | Adds a property that RFC 6350 and its extensions don't define. There is an overload with parameters. |
 | `ResolveMembers(IEnumerable<VcardCard> cards)` | The cards of a set that the `MEMBER` properties link to by `UID`. One that doesn't resolve, such as a `mailto` URI, is left out. |

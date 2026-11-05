@@ -30,7 +30,8 @@ namespace DataStandardizer.File.vCard
     /// </para>
     /// <para>
     /// <see cref="SetName(VcardName)"/> and <see cref="Addresses"/> also put the components of RFC 9554 in the older components, as its §2.1 and §2.2 say to; see
-    /// <see cref="VcardName.WithBackwardCompatibleComponents"/> and <see cref="VcardAddress.WithBackwardCompatibleComponents"/>.  A line added to <see cref="Properties"/> is left as it is.
+    /// <see cref="VcardName.WithBackwardCompatibleComponents"/> and <see cref="VcardAddress.WithBackwardCompatibleComponents"/>.  A line added to <see cref="Properties"/> is left as it is, and
+    /// so is a value with a <c>PHONETIC</c> parameter, because RFC 9554 §4.6 needs its related property to have a value in each of its components.
     /// </para>
     /// </remarks>
     public sealed class VcardCard : IVcard40Card
@@ -82,7 +83,7 @@ namespace DataStandardizer.File.vCard
         private static readonly VcardPropertyCodec<string> InterestsCodec = VcardPropertyCodecs.Text(VcardPropertyNames.Interest);
         private static readonly VcardPropertyCodec<Uri> OrganizationDirectoriesCodec = VcardPropertyCodecs.Uri(VcardPropertyNames.OrganizationDirectory);
         private static readonly VcardPropertyCodec<Uri> ContactUrisCodec = VcardPropertyCodecs.Uri(VcardPropertyNames.ContactUri);
-        private static readonly VcardPropertyCodec<string> GrammaticalGendersCodec = VcardPropertyCodecs.Text(VcardPropertyNames.GrammaticalGender);
+        private static readonly VcardPropertyCodec<string> GrammaticalGendersCodec = VcardPropertyCodecs.Token(VcardPropertyNames.GrammaticalGender);
         private static readonly VcardPropertyCodec<string> PronounsCodec = VcardPropertyCodecs.Text(VcardPropertyNames.Pronouns);
         private static readonly VcardPropertyCodec<VcardTypedValue> SocialProfilesCodec = VcardPropertyCodecs.Typed(VcardPropertyNames.SocialProfile);
 
@@ -712,7 +713,7 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Gets the instances that have the same <c>PROP-ID</c> as another of the same name, as groups in the order each first appears.
+        /// Gets the instances that have the same valid <c>PROP-ID</c> as another of the same name, as groups in the order each first appears.
         /// </summary>
         /// <remarks>
         /// ref. RFC 9554 §4.7: an application "SHOULD assign a unique identifier to each sibling property of the same name", and "Resolving duplicate identifier conflicts is specific to the
@@ -727,7 +728,7 @@ namespace DataStandardizer.File.vCard
             foreach (var line in Properties)
             {
                 var propertyId = VcardPropertyParameterReader.GetValue(line, VcardParameterNames.PropertyId);
-                if (propertyId is null) continue;
+                if (propertyId is null || !VcardPropertyParameterReader.IsPropertyId(propertyId)) continue;
 
                 var key = line.Name + "\0" + propertyId;
                 if (!groupsByKey.ContainsKey(key))
@@ -1361,7 +1362,11 @@ namespace DataStandardizer.File.vCard
 #endif
                 if (string.Equals(line.Name, codec.Name, StringComparison.OrdinalIgnoreCase) && codec.TryCreateProperty(line, out property))
                 {
-                    if (VcardPropertyParameterReader.GetValue(line, VcardParameterNames.Phonetic) is null) return property;
+                    if (VcardPropertyParameterReader.GetValue(line, VcardParameterNames.Phonetic) is null ||
+                        !VcardPropertyParameterReader.IsAllowedOnProperty(VcardParameterSet.Phonetic, line.Name))
+                    {
+                        return property;
+                    }
 
                     if (phonetic is null)
                     {

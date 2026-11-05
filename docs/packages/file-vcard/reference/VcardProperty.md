@@ -49,7 +49,7 @@ public sealed class VcardProperty<TValue> : IVcard40Property<TValue>
 | `PropertyId` | `string?` | `PROP-ID` (RFC 9554 §4.7), or `null` if there is no valid one. |
 | `Script` | `string?` | `SCRIPT` (RFC 9554 §4.8), or `null` if there is no valid one. With `Phonetic`, a script subtag in `Language` is to be ignored in favour of this. |
 | `ServiceType` | `string?` | `SERVICE-TYPE` (RFC 9554 §4.9), with its case as written, or `null` if the property doesn't allow it. Two names are equal if they match case-insensitively (§3.5). |
-| `Username` | `string?` | `USERNAME` (RFC 9554 §4.10), with its case as written, or `null` if the property doesn't allow it. |
+| `Username` | `string?` | `USERNAME` (RFC 9554 §4.10), with its case as written, or `null` if the property doesn't allow it or its value isn't a URI. |
 | `ExtensionParameters` | `IReadOnlyList<VcardContentLineParameter>` | The parameters RFC 6350 and its extensions don't define. |
 
 ## Applies to
