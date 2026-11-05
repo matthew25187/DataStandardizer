@@ -14,15 +14,33 @@ The public types of **DataStandardizer.File.vCard**. All types are in the
 
 | Type | Description |
 | --- | --- |
+| [VcardCard](VcardCard.md) | A vCard: an open list of properties, with typed accessors. |
 | [VcardContentLine](VcardContentLine.md) | A content line (RFC 6350 §3.3): group, property name, parameters and value. |
 | [VcardContentLineParameter](VcardContentLineParameter.md) | A parameter of a content line, with its values. |
 | [VcardContentLineReader](VcardContentLineReader.md) | Reads the unfolded content lines of vCard data, with zero-copy and async options. |
 | [VcardContentLineWriter](VcardContentLineWriter.md) | Writes content lines, folding them and treating each as its card's version says, with async and progress options. |
+| [VcardDiagnostic](VcardDiagnostic.md) | A conformance problem. |
 | [VcardFileException](VcardFileException.md) | The exception for a problem in vCard data, with where it was found. |
 | [VcardOptions](VcardOptions.md) | Options for a reader or writer; RFC 6350 defaults. |
 | [VcardLegacyMediaTypes](VcardLegacyMediaTypes.md) | Maps the TYPE tokens of older versions to media types. |
+| [VcardParameterNames](VcardParameterNames.md) | The names of the parameters RFC 6350 defines. |
+| [VcardProperty](VcardProperty.md) | A property of a card with its value parsed. |
+| [VcardPropertyInfo](VcardPropertyInfo.md) | Which versions define a property, and its cardinality. |
+| [VcardPropertyList](VcardPropertyList.md) | The instances of one property of a card, as a live view. |
+| [VcardPropertyNames](VcardPropertyNames.md) | The names of the properties RFC 6350 defines. |
+| [VcardPropertyParameters](VcardPropertyParameters.md) | The group and parameters of a property being added. |
+| [VcardReader](VcardReader.md) | Reads vCard data into cards, sync and async. |
 | [VcardValue](VcardValue.md) | TEXT, BOOLEAN, INTEGER, FLOAT, URI and LANGUAGE-TAG values. |
 | [VcardValueTypeRegistry](VcardValueTypeRegistry.md) | The value type of each property, and `VALUE` overrides. |
+| [VcardWriter](VcardWriter.md) | Writes cards, sync and async, with progress. |
+
+## Interfaces
+
+| Type | Description |
+| --- | --- |
+| [IVcard40Card](IVcard40Card.md) | A card in the shape of vCard 4.0. |
+| [IVcard40Property](IVcard40Property.md) | A property in the shape of vCard 4.0. |
+| [IVcard40PropertyList](IVcard40PropertyList.md) | The instances of one property in the shape of vCard 4.0. |
 
 ## Structs
 
@@ -46,12 +64,16 @@ The public types of **DataStandardizer.File.vCard**. All types are in the
 | [VcardStructuredValueView](VcardStructuredValueView.md) | A zero-copy view of a structured value. |
 | [VcardTime](VcardTime.md) | A TIME value, which may be reduced or truncated. |
 | [VcardTimestamp](VcardTimestamp.md) | A TIMESTAMP value. |
+| [VcardTypedValue](VcardTypedValue.md) | The value of a property that can have more than one value type. |
 | [VcardUtcOffset](VcardUtcOffset.md) | A UTC-OFFSET value. |
 
 ## Enumerations
 
 | Type | Description |
 | --- | --- |
+| [VcardCardinality](VcardCardinality.md) | How many instances of a property a card may have. |
+| [VcardDiagnosticKind](VcardDiagnosticKind.md) | The kinds of conformance problem. |
+| [VcardKind](VcardKind.md) | The kind of object a card represents. |
 | [VcardLegacySyntax](VcardLegacySyntax.md) | The lexical features of vCard 2.1 that a line uses. |
 | [VcardDateAndOrTimeKind](VcardDateAndOrTimeKind.md) | What a date-and-or-time holds. |
 | [VcardSex](VcardSex.md) | The sex component of GENDER. |

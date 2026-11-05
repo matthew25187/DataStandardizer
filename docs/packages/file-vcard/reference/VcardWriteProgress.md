@@ -23,7 +23,9 @@ public readonly struct VcardWriteProgress : IEquatable<VcardWriteProgress>
 ## Remarks
 
 [VcardContentLineWriter](VcardContentLineWriter.md) reports it after each line that
-`WriteLines` or `WriteLinesAsync` hands to the underlying `TextWriter`.
+`WriteLines` or `WriteLinesAsync` hands to the underlying `TextWriter`, and
+[VcardWriter](VcardWriter.md) after each card that `WriteCards` or `WriteCardsAsync`
+hands to it.
 
 Counts are cumulative for the writer, not for the call that reports them. They count
 what has been handed to the underlying `TextWriter`, which may not have been flushed
@@ -37,22 +39,24 @@ to keep.
 
 | Constructor | Notes |
 | --- | --- |
-| `VcardWriteProgress(long linesWritten)` | Sets the count. The argument is not checked. |
+| `VcardWriteProgress(long linesWritten)` | Sets the count of lines, with no cards. The argument is not checked. |
+| `VcardWriteProgress(long linesWritten, long cardsWritten)` | Sets both counts. The arguments are not checked. |
 
 ## Properties
 
 | Property | Signature | Notes |
 | --- | --- | --- |
+| `CardsWritten` | `long CardsWritten { get; }` | The number of cards written so far. It stays 0 for a `VcardContentLineWriter`, which doesn't deal in cards. |
 | `LinesWritten` | `long LinesWritten { get; }` | The number of logical (unfolded) content lines written so far. |
 
 ## Methods
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `Equals(VcardWriteProgress other)` | `bool` | `true` if the counts are equal. |
-| `Equals(object? obj)` | `bool` | `true` if `obj` is a `VcardWriteProgress` with an equal count. |
-| `GetHashCode()` | `int` | The hash code of the count. |
-| `ToString()` | `string` | `LinesWritten = n`, formatted with the invariant culture. |
+| `Equals(VcardWriteProgress other)` | `bool` | `true` if both counts are equal. |
+| `Equals(object? obj)` | `bool` | `true` if `obj` is a `VcardWriteProgress` with equal counts. |
+| `GetHashCode()` | `int` | The hash code of the counts. |
+| `ToString()` | `string` | `LinesWritten = n, CardsWritten = n`, formatted with the invariant culture. |
 
 ## Operators
 
@@ -70,4 +74,5 @@ and `net10.0` builds.
 ## See also
 
 - [VcardContentLineWriter](VcardContentLineWriter.md)
+- [VcardWriter](VcardWriter.md)
 - [File.vCard API reference](index.md)

@@ -5,7 +5,7 @@ namespace DataStandardizer.File.vCard
 {
     /// <summary>
     /// The progress of a writer.  <see cref="VcardContentLineWriter"/> reports it after each line a bulk write hands to the underlying
-    /// <see cref="System.IO.TextWriter"/>.
+    /// <see cref="System.IO.TextWriter"/>, and <see cref="VcardWriter"/> after each card.
     /// </summary>
     /// <remarks>
     /// Counts are cumulative for the writer, not for the call that reports them.
@@ -16,10 +16,25 @@ namespace DataStandardizer.File.vCard
         /// Creates a progress value.
         /// </summary>
         /// <param name="linesWritten">The number of logical (unfolded) content lines written.</param>
-        public VcardWriteProgress(long linesWritten)
+        public VcardWriteProgress(long linesWritten) : this(linesWritten, 0)
+        {
+        }
+
+        /// <summary>
+        /// Creates a progress value.
+        /// </summary>
+        /// <param name="linesWritten">The number of logical (unfolded) content lines written.</param>
+        /// <param name="cardsWritten">The number of cards written.</param>
+        public VcardWriteProgress(long linesWritten, long cardsWritten)
         {
             LinesWritten = linesWritten;
+            CardsWritten = cardsWritten;
         }
+
+        /// <summary>
+        /// Gets the number of cards the writer has written so far.  It stays 0 for a <see cref="VcardContentLineWriter"/>, which doesn't deal in cards.
+        /// </summary>
+        public long CardsWritten { get; }
 
         /// <summary>
         /// Gets the number of logical (unfolded) content lines the writer has written so far.
@@ -33,7 +48,7 @@ namespace DataStandardizer.File.vCard
         /// <returns><c>true</c> if the counts are equal; otherwise <c>false</c>.</returns>
         public bool Equals(VcardWriteProgress other)
         {
-            return LinesWritten == other.LinesWritten;
+            return LinesWritten == other.LinesWritten && CardsWritten == other.CardsWritten;
         }
 
         /// <inheritdoc />
@@ -49,13 +64,13 @@ namespace DataStandardizer.File.vCard
         /// <inheritdoc />
         public override int GetHashCode()
         {
-            return LinesWritten.GetHashCode();
+            return (LinesWritten.GetHashCode() * 397) ^ CardsWritten.GetHashCode();
         }
 
         /// <inheritdoc />
         public override string ToString()
         {
-            return string.Format(CultureInfo.InvariantCulture, "LinesWritten = {0}", LinesWritten);
+            return string.Format(CultureInfo.InvariantCulture, "LinesWritten = {0}, CardsWritten = {1}", LinesWritten, CardsWritten);
         }
 
         /// <summary>
