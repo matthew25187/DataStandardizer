@@ -492,7 +492,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void GetDecodedValue_Version30Base64_DecodesIt(string version)
         {
             // arrange
-            // ref. RFC 2426 §3.1.4: ENCODING=b.  "SGVsbG8=" is "Hello" (RFC 4648 §4).
+            // ref. RFC 2426 §4: ENCODING=b.  "SGVsbG8=" is "Hello" (RFC 4648 §4).
             using (var reader = CreateReader(Crlf(BeginCard, version, "KEY;ENCODING=b:SGVsbG8=")))
             {
                 var subject = ReadLast(reader);

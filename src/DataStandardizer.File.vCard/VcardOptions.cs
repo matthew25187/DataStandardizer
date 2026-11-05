@@ -100,12 +100,12 @@ namespace DataStandardizer.File.vCard
         /// That goes for a line before the <c>VERSION</c> line or outside a card too, since its version isn't known.
         /// </para>
         /// <para>
-        /// When <c>true</c>, on every line, a parameter may have no name, as in vCard 2.1 §2.1.2 and §4; a quoted-printable value may have soft line breaks and a
-        /// <c>BASE64</c> value continues to an empty line, as in vCard 2.1 §2.1.3 and §4; and <c>ENCODING</c> and <c>CHARSET</c> apply.  In addition, in any card, it
+        /// When <c>true</c>, on every line, a parameter may have no name, as in vCard 2.1 §2.9; a quoted-printable value may have soft line breaks and a
+        /// <c>BASE64</c> value continues to an empty line, as in vCard 2.1 §2.1.3 and §2.9; and <c>ENCODING</c> and <c>CHARSET</c> apply.  In addition, in any card, it
         /// relaxes these rules:
         /// </para>
         /// <list type="bullet">
-        /// <item>vCard 2.1 §4 has only a <c>knowntype</c> or, by the example in §2.6.3, an encoding as a parameter with no name.  Any other is accepted, as a
+        /// <item>vCard 2.1 §2.9 has only a <c>knowntype</c> or, by the example in §2.6.3, an encoding as a parameter with no name.  Any other is accepted, as a
         /// <c>VALUE</c> or <c>CHARSET</c> if it is one, otherwise as a <c>TYPE</c>.</item>
         /// <item>RFC 6350 §3.4 has only four escape sequences.  In <see cref="VcardContentLine.GetTextValue"/>, a backslash before any other character gives that
         /// character, and a backslash at the end of the value stays.</item>

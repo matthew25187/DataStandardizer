@@ -32,7 +32,7 @@ to find out that it is there.
 | `None` | `0` | The line uses none of them. |
 | `ValuelessParameter` | `1` | A parameter with no name, only a value, as in `TEL;HOME;VOICE:`. |
 | `QuotedPrintable` | `2` | The `QUOTED-PRINTABLE` encoding (vCard 2.1 §2.1.5). |
-| `Base64` | `4` | The `BASE64` encoding (vCard 2.1 §2.1.5), not the `b` of RFC 2426 §3.1.4. |
+| `Base64` | `4` | The `BASE64` encoding (vCard 2.1 §2.1.5), not the `b` of RFC 2426 §4. |
 | `SevenBit` | `8` | The `7BIT` encoding (vCard 2.1 §2.1.5), named. |
 | `EightBit` | `16` | The `8BIT` encoding (vCard 2.1 §2.1.5). |
 | `Charset` | `32` | The `CHARSET` parameter (vCard 2.1 §2.1.6). |

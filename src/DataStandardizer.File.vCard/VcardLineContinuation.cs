@@ -64,7 +64,7 @@ namespace DataStandardizer.File.vCard
                     dataLength = _valueOffset + quotedPrintableLength;
                     return ContentLineContinuationKind.Join;
                 case ValueKind.Base64:
-                    // ref. vCard 2.1 §4: "the end of the text is marked with two CRLF sequences".
+                    // ref. vCard 2.1 §2.9: "the end of the text is marked with two CRLF sequences".
                     if (physicalLineStart > 0 && physicalLineStart == line.Length) return ContentLineContinuationKind.End;
 
                     return IsBase64Text(line.Slice(Math.Max(physicalLineStart, _valueOffset)))

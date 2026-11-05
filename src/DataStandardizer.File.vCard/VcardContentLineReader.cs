@@ -705,7 +705,7 @@ namespace DataStandardizer.File.vCard
             _hasCurrentLine = false;
             _state.MoveToNextLine();
 
-            // ref. vCard 2.1 §2.1.3 and §4.  The version can only change on a line that is read as the one before it says.
+            // ref. vCard 2.1 §2.1.3 and §2.9.  The version can only change on a line that is read as the one before it says.
             _scanner.AllowValuelessParameters = _state.IsVersion21 || _acceptLegacySyntax;
             _scanner.KeepFoldWhitespace = _state.IsVersion21 && !_acceptRfc6350FoldsInVersion21;
         }

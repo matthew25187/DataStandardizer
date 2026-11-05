@@ -12,14 +12,14 @@ namespace DataStandardizer.File.vCard
         private const string TypeName = "TYPE";
         private const string ValueName = "VALUE";
 
-        // ref. vCard 2.1 §2.1.5 and §4: pencodingval.  "b" is RFC 2426 §3.1.4.
+        // ref. vCard 2.1 §2.1.5 and §2.9: pencodingval.  "b" is RFC 2426 §4.
         internal const string Base64 = "BASE64";
         internal const string EightBit = "8BIT";
         internal const string QuotedPrintable = "QUOTED-PRINTABLE";
         internal const string SevenBit = "7BIT";
         internal const string Version30Base64 = "b";
 
-        // ref. vCard 2.1 §4: knowntype.
+        // ref. vCard 2.1 §2.9: knowntype.
         private static readonly string[] KnownTypes =
         {
             "DOM", "INTL", "POSTAL", "PARCEL", "HOME", "WORK",
@@ -35,7 +35,7 @@ namespace DataStandardizer.File.vCard
             "X509", "PGP"
         };
 
-        // ref. vCard 2.1 §4: pvalueval.
+        // ref. vCard 2.1 §2.9: pvalueval.
         private static readonly string[] ValueLocations = { "INLINE", "URL", "CONTENT-ID", "CID" };
 
         // The character sets a bare token is taken for, a fixed list so that the answer doesn't depend on the encodings a runtime has.
@@ -58,7 +58,7 @@ namespace DataStandardizer.File.vCard
         /// Gets whether vCard 2.1 allows a value with no name.
         /// </summary>
         /// <remarks>
-        /// ref. vCard 2.1 §4: <c>param</c> allows a <c>knowntype</c> alone.  It has no such form for an encoding, but the example in §2.6.3 is
+        /// ref. vCard 2.1 §2.9: <c>param</c> allows a <c>knowntype</c> alone.  It has no such form for an encoding, but the example in §2.6.3 is
         /// <c>SOUND;WAVE;BASE64:</c>, so an encoding is allowed too.  Nothing there allows a value location or a character set alone.
         /// </remarks>
         internal static bool IsValuelessAllowedInVersion21(ReadOnlySpan<char> token)

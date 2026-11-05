@@ -73,7 +73,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="line">The line.</param>
         /// <param name="version">The version of the line's card.</param>
         /// <param name="encoding">The encoding; not initialised if its name isn't a valid token.</param>
-        /// <param name="isVersion30Base64"><c>true</c> if the parameter is the <c>b</c> of RFC 2426 §3.1.4, in the strict form of RFC 2047 §4.1.</param>
+        /// <param name="isVersion30Base64"><c>true</c> if the parameter is the <c>b</c> of RFC 2426 §4, in the strict form of RFC 2047 §4.1.</param>
         /// <returns><c>true</c> if an encoding applies.</returns>
         internal bool TryGetTransferEncoding(VcardContentLine line, VcardLineVersion version, out MimeTransferEncoding encoding, out bool isVersion30Base64)
         {
@@ -125,7 +125,7 @@ namespace DataStandardizer.File.vCard
 
             if (transferEncoding == MimeTransferEncoding.QuotedPrintable)
             {
-                // ref. vCard 2.1 §4: quoted-printable = <MIME RFC 1521 quoted-printable text>.  The reader has joined its soft line breaks.
+                // ref. vCard 2.1 §2.9: quoted-printable = <MIME RFC 1521 quoted-printable text>.  The reader has joined its soft line breaks.
                 if (!MimeQuotedPrintable.TryDecode(line.Value.AsSpan(), MimeQuotedPrintableMode.Body, MimeQuotedPrintableDecoderOptions.None, out var octets))
                 {
                     throw VcardContentLineErrorFactory.BuildValueException(ErrorMessage.InvalidQuotedPrintable, line);
@@ -134,7 +134,7 @@ namespace DataStandardizer.File.vCard
                 return octets;
             }
 
-            // ref. vCard 2.1 §4: base64 = <MIME RFC 1521 base64 text>, whose line breaks and indents are ignored; RFC 2426 §3.1.4: "b" is RFC 2047 §4.1, which has none.
+            // ref. vCard 2.1 §2.9: base64 = <MIME RFC 1521 base64 text>, whose line breaks and indents are ignored; RFC 2426 §4: "b" is RFC 2047 §4.1, which has none.
             var mode = isVersion30Base64 ? MimeBase64Mode.Strict : MimeBase64Mode.Mime;
             if (!MimeBase64.TryDecode(line.Value.AsSpan(), mode, MimeBase64DecoderOptions.None, out var result))
             {
@@ -260,7 +260,7 @@ namespace DataStandardizer.File.vCard
             return hasEncoding && encoding == MimeTransferEncoding.EightBit;
         }
 
-        // ref. vCard 2.1 §4: pencodingval has 7BIT and 8BIT, which leave the data as it is, and no "binary".
+        // ref. vCard 2.1 §2.9: pencodingval has 7BIT and 8BIT, which leave the data as it is, and no "binary".
         private static bool IsIdentity(MimeTransferEncoding encoding)
         {
             return encoding == MimeTransferEncoding.SevenBit || encoding == MimeTransferEncoding.EightBit;

@@ -41,7 +41,7 @@ the source. `LegacySyntax` on a line or a view says which of these features the 
 A line before the `VERSION` line isn't known to be vCard 2.1, so it doesn't get these
 forms.
 
-vCard 2.1 §4 allows a name to be left out only for a `knowntype`, and the example in
+vCard 2.1 §2.9 allows a name to be left out only for a `knowntype`, and the example in
 §2.6.3 does so for an encoding. So `PHOTO;URL:` and `NOTE;UTF-8:` are errors, even in a
 vCard 2.1 card, unless `AcceptLegacySyntax` is set.
 
@@ -138,7 +138,7 @@ In a vCard 2.1 card, `VcardContentLineWriter`:
 - never folds a line, since no fold is read the same way by every reader
 - breaks a value with `ENCODING=QUOTED-PRINTABLE` with soft line breaks, so that no line reaches 76 characters (vCard 2.1 §2.1.3)
 - writes a value with `ENCODING=BASE64` on indented lines after the property's own, with the empty line that ends it
-- writes every parameter with its name (`TYPE=HOME`), which vCard 2.1 §4 allows for all of them
+- writes every parameter with its name (`TYPE=HOME`), which vCard 2.1 §2.9 allows for all of them
 
 The value must already be in its encoding, and the line can't be written if it isn't. Use
 `MimeQuotedPrintable` or `MimeBase64` from `DataStandardizer.Communication` to encode it. The

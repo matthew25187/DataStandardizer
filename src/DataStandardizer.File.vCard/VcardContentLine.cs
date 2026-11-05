@@ -201,7 +201,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <remarks>
         /// <para>
-        /// <c>QUOTED-PRINTABLE</c> and <c>BASE64</c> (vCard 2.1 §2.1.5) and <c>b</c> (RFC 2426 §3.1.4) are decoded.  With no encoding, or with <c>7BIT</c> or <c>8BIT</c>, the
+        /// <c>QUOTED-PRINTABLE</c> and <c>BASE64</c> (vCard 2.1 §2.1.5) and <c>b</c> (RFC 2426 §4) are decoded.  With no encoding, or with <c>7BIT</c> or <c>8BIT</c>, the
         /// octets are the value in the encoding of the source.
         /// </para>
         /// <para>
@@ -251,7 +251,7 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Gets the transfer encoding of the value (RFC 2045 §6.1), from its <c>ENCODING</c> parameter.  <c>b</c> (RFC 2426 §3.1.4) gives <c>base64</c>.
+        /// Gets the transfer encoding of the value (RFC 2045 §6.1), from its <c>ENCODING</c> parameter.  <c>b</c> (RFC 2426 §4) gives <c>base64</c>.
         /// </summary>
         /// <param name="encoding">The encoding, if there is one.</param>
         /// <returns><c>true</c> if the line has an encoding with a valid name that applies to it; see <see cref="GetDecodedValue"/>.</returns>

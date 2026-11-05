@@ -30,7 +30,7 @@ namespace DataStandardizer.File.vCard
 
         /// <summary>
         /// The <c>BASE64</c> encoding (vCard 2.1 §2.1.5), whose value is on the lines that follow and ends at an empty line.  It isn't the <c>b</c> encoding of
-        /// vCard 3.0 (RFC 2426 §3.1.4).
+        /// vCard 3.0 (RFC 2426 §4).
         /// </summary>
         Base64 = 1 << 2,
 
