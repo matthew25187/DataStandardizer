@@ -23,11 +23,21 @@ namespace DataStandardizer.File.ContentLine
     /// order mark, which the <see cref="StreamReader"/> will honour, every byte passes through unchanged.
     /// </para>
     /// <para>
+    /// The folds held back inside one sequence are limited to <see cref="MaxDeferredByteCount"/> bytes.  A fold beyond that ends the sequence early,
+    /// which is invalid UTF-8 the decoder will report, and no fold is lost.
+    /// </para>
+    /// <para>
     /// The realigning itself does no I/O, so <see cref="Read"/> and <c>ReadAsync</c> share it and differ only in how they read the inner stream.
     /// </para>
     /// </remarks>
     internal sealed class Utf8FoldRealigningStream : Stream
     {
+        /// <summary>
+        /// The most bytes of folds held back inside one sequence.  A sequence has at most three places to fold, so this is far more than a writer
+        /// that folds to a line length would produce.
+        /// </summary>
+        private const int MaxDeferredByteCount = 256;
+
         private const byte CarriageReturn = 0x0D;
         private const byte LineFeed = 0x0A;
         private const byte Space = 0x20;
@@ -293,7 +303,7 @@ namespace DataStandardizer.File.ContentLine
                         return ProcessStatus.NeedInput;
                     }
 
-                    if (foldLength > 0)
+                    if (foldLength > 0 && _deferredCount + foldLength <= MaxDeferredByteCount)
                     {
                         Defer(foldLength);
                         continue;

@@ -17,6 +17,10 @@ namespace DataStandardizer.File.iCal.Tests
         // A UTF-16 byte order mark and U+0DE2 U+200A U+0D82, which in UTF-16 is E2 0D 0A 20 82 0D.
         private static readonly byte[] WideByteOrderMarkInput = Encoding.Unicode.GetPreamble().Concat(Encoding.Unicode.GetBytes("\x0DE2\x200A\x0D82")).ToArray();
 
+        // The folds that fill the 256 bytes held back inside a sequence, at three bytes a fold, and one too many.
+        private const int FoldsThatFillTheLimit = 85;
+        private const int FoldsOverTheLimit = 86;
+
         public static TheoryData<int> BufferSizeData()
         {
             return new TheoryData<int>(1, 2, 3, 4, 5, 6, 7, 16 * 1024);
@@ -48,6 +52,35 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             testResult.Should().Equal(0x41, 0xE2, 0x82, 0xAC, 0x0D, 0x0A, 0x20, 0x42);
+        }
+
+        [Theory]
+        [MemberData(nameof(BufferSizeData))]
+        public void Read_FoldsInsideSequenceUpToLimit_MovesAllAfterSequence(int bufferSize)
+        {
+            // arrange
+            var input = EuroSignWithFoldsAfterLeadByte(FoldsThatFillTheLimit);
+            var expected = EuroSignThenFolds(FoldsThatFillTheLimit);
+
+            // act
+            var testResult = ReadThrough(input, bufferSize);
+
+            // assert
+            testResult.Should().Equal(expected);
+        }
+
+        [Theory]
+        [MemberData(nameof(BufferSizeData))]
+        public void Read_FoldsInsideSequenceOverLimit_EndsSequenceAndKeepsEveryByte(int bufferSize)
+        {
+            // arrange
+            var input = EuroSignWithFoldsAfterLeadByte(FoldsOverTheLimit);
+
+            // act
+            var testResult = ReadThrough(input, bufferSize);
+
+            // assert
+            testResult.Should().Equal(input);
         }
 
         [Theory]
@@ -310,6 +343,27 @@ namespace DataStandardizer.File.iCal.Tests
         /// <summary>
         /// Reads all of the input through the stream, a few bytes at a time.
         /// </summary>
+        /// <summary>
+        /// The euro sign in UTF-8, E2 82 AC, with a number of CRLF-space folds between its first and second octets.
+        /// </summary>
+        private static byte[] EuroSignWithFoldsAfterLeadByte(int foldCount)
+        {
+            return new byte[] { 0xE2 }.Concat(Folds(foldCount)).Concat(new byte[] { 0x82, 0xAC }).ToArray();
+        }
+
+        /// <summary>
+        /// The euro sign in UTF-8, E2 82 AC, followed by a number of CRLF-space folds.
+        /// </summary>
+        private static byte[] EuroSignThenFolds(int foldCount)
+        {
+            return new byte[] { 0xE2, 0x82, 0xAC }.Concat(Folds(foldCount)).ToArray();
+        }
+
+        private static byte[] Folds(int foldCount)
+        {
+            return Enumerable.Repeat(new byte[] { 0x0D, 0x0A, 0x20 }, foldCount).SelectMany(fold => fold).ToArray();
+        }
+
         private static byte[] ReadThrough(byte[] input, int bufferSize)
         {
             using (var stream = new Utf8FoldRealigningStream(new MemoryStream(input), false, bufferSize))
