@@ -27,3 +27,9 @@ The public types of **DataStandardizer.File.vCard**. All types are in the
 | --- | --- |
 | [VcardContentLineView](VcardContentLineView.md) | A zero-copy view of the line a reader has just read. |
 | [VcardWriteProgress](VcardWriteProgress.md) | The progress of a writer. |
+
+## Enumerations
+
+| Type | Description |
+| --- | --- |
+| [VcardLegacySyntax](VcardLegacySyntax.md) | The lexical features of vCard 2.1 that a line uses. |

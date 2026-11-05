@@ -4,6 +4,7 @@
     "projects": [
       "src\\DataStandardizer.CodeAnalysis.Shared\\DataStandardizer.CodeAnalysis.Shared.shproj",
       "src\\DataStandardizer.File.ContentLine.Shared\\DataStandardizer.File.ContentLine.Shared.shproj",
+      "src\\DataStandardizer.Communication\\DataStandardizer.Communication.csproj",
       "src\\DataStandardizer.Core\\DataStandardizer.Core.csproj",
       "src\\DataStandardizer.File.vCard\\DataStandardizer.File.vCard.csproj",
       "src\\DataStandardizer.Geography\\DataStandardizer.Geography.csproj",

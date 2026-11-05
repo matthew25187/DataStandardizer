@@ -60,6 +60,8 @@ Properties with a `Memory` form return `ReadOnlyMemory<char>`, for use across an
 
 | Method | Signature | Notes |
 | --- | --- | --- |
+| `GetDecodedText` | `string GetDecodedText()`, `string GetDecodedText(out bool usedCharsetFallback)` | As on [VcardContentLine](VcardContentLine.md). These allocate. |
+| `GetDecodedValue` | `byte[] GetDecodedValue()` | As on [VcardContentLine](VcardContentLine.md). It allocates. |
 | `GetParameterName`, `GetParameterNameMemory` | `ReadOnlySpan<char> GetParameterName(int parameterIndex)` | The parameter name, as written. |
 | `GetParameterValue`, `GetParameterValueMemory` | `ReadOnlySpan<char> GetParameterValue(int parameterIndex, int valueIndex)` | A value without enclosing double quotes. RFC 6868 caret encoding is decoded where [the reader](VcardContentLineReader.md#caret-encoding) says it is. |
 | `GetParameterValueCount` | `int GetParameterValueCount(int parameterIndex)` | The number of values. Always at least one. |

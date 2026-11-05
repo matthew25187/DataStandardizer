@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading;
+using DataStandardizer.Communication.Mime;
 using DataStandardizer.File.ContentLine;
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
 using System.Threading.Tasks;
@@ -35,7 +36,10 @@ namespace DataStandardizer.File.vCard
     /// quote or a line break, which only caret encoding can represent, can't be written, unless <see cref="VcardOptions.AllowLossyVersionConversion"/>
     /// is set.</item>
     /// <item>On the lines of a vCard 2.1 card, from its <c>VERSION:2.1</c> line up to and including its <c>END:VCARD</c> line, lines are never folded,
-    /// because vCard 2.1 and later versions unfold them differently, so no fold is read the same way by every reader.</item>
+    /// because vCard 2.1 and later versions unfold them differently, so no fold is read the same way by every reader.  A value with
+    /// <c>ENCODING=QUOTED-PRINTABLE</c> is broken with soft line breaks so that no line reaches 76 characters (vCard 2.1 §2.1.3).  A value with <c>ENCODING=BASE64</c> is
+    /// written on the lines after the property's own, indented, with the empty line that ends it (vCard 2.1 §4).  The value must already be in the encoding, or the line
+    /// can't be written.  A parameter is written with its name, which vCard 2.1 §4 allows for all of them.</item>
     /// </list>
     /// <para>
     /// A line read by <see cref="VcardContentLineReader"/> with its default options is written back as the same line: reading it again gives the same
@@ -526,8 +530,35 @@ namespace DataStandardizer.File.vCard
                 caretMode = _allowLossyVersionConversion ? ContentLineCaretMode.Omit : ContentLineCaretMode.Reject;
             }
 
-            var foldMode = _lineState.IsVersion21 ? ContentLineFoldMode.None : ContentLineFoldMode.Fold;
+            var foldMode = _lineState.IsVersion21 ? GetVersion21FoldMode(line) : ContentLineFoldMode.Fold;
             return _formatter.Format(new VcardContentLineData(line), _linesWritten + 1, caretMode, foldMode);
+        }
+
+        /// <summary>
+        /// Gets how a line of a vCard 2.1 card is broken, which depends on its encoding, and checks that its value is in that encoding.
+        /// </summary>
+        /// <exception cref="VcardFileException">The value isn't in the encoding its <c>ENCODING</c> parameter says.</exception>
+        private ContentLineFoldMode GetVersion21FoldMode(VcardContentLine line)
+        {
+            var encoding = line.GetParameter(VcardLegacyTokens.EncodingName);
+            if (encoding is null) return ContentLineFoldMode.None;
+
+            var encodingName = encoding.ValueArray[0];
+            var value = line.Value.AsSpan();
+            if (VcardLegacyTokens.EqualsIgnoreCase(encodingName.AsSpan(), VcardLegacyTokens.QuotedPrintable))
+            {
+                if (MimeQuotedPrintable.TryDecode(value, MimeQuotedPrintableMode.Body, MimeQuotedPrintableDecoderOptions.None, out _)) return ContentLineFoldMode.QuotedPrintableSoftBreak;
+            }
+            else if (VcardLegacyTokens.EqualsIgnoreCase(encodingName.AsSpan(), VcardLegacyTokens.Base64))
+            {
+                if (VcardLineContinuation.IsBase64Text(value) && MimeBase64.TryDecode(value, MimeBase64Mode.Mime, MimeBase64DecoderOptions.None, out _)) return ContentLineFoldMode.Base64Lines;
+            }
+            else
+            {
+                return ContentLineFoldMode.None;
+            }
+
+            throw VcardContentLineErrorFactory.BuildEncodedValueToWriteException(encodingName, _linesWritten + 1, line.Name, line.Group, _lineState.CardIndexOfLine);
         }
 
         /// <summary>

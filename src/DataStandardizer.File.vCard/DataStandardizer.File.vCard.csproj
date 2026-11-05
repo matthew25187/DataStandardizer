@@ -6,9 +6,10 @@
 
 Provides types supporting the reading and writing of vCard files.  Includes:
 - vCard Format Specification, RFC 6350 (content lines)
-- Parameter Value Encoding in iCalendar and vCard, RFC 6868</Description>
+- Parameter Value Encoding in iCalendar and vCard, RFC 6868
+- vCard 2.1 (lexical syntax: quoted-printable, BASE64, CHARSET and parameters with no name)</Description>
     <Copyright>Copyright © 2026, Matthew25187. All rights reserved.</Copyright>
-    <PackageTags>data;standard;vcard;vcf;contact;rfc 6350;rfc 6868;file</PackageTags>
+    <PackageTags>data;standard;vcard;vcf;contact;rfc 6350;rfc 6868;vcard 2.1;quoted-printable;file</PackageTags>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
   </PropertyGroup>
 
@@ -30,6 +31,7 @@ Provides types supporting the reading and writing of vCard files.  Includes:
   <Import Project="..\DataStandardizer.File.ContentLine.Shared\DataStandardizer.File.ContentLine.Shared.projitems" Label="Shared" />
 
   <ItemGroup>
+    <ProjectReference Include="..\DataStandardizer.Communication\DataStandardizer.Communication.csproj" />
     <ProjectReference Include="..\DataStandardizer.Core\DataStandardizer.Core.csproj" />
     <ProjectReference Include="..\DataStandardizer.LanguageTag\DataStandardizer.LanguageTag.csproj" />
   </ItemGroup>

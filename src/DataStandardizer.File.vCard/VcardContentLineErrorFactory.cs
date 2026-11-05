@@ -10,6 +10,7 @@ namespace DataStandardizer.File.vCard
     {
         private static class ErrorMessage
         {
+            internal const string EncodedValueToWriteTemplate = "The value is not valid {0}, as its ENCODING parameter says it is.";
             internal const string DecodingFailed = "The data could not be decoded.  RFC 6350 requires UTF-8.";
             internal const string BareLineFeed = "Found a line feed without a carriage return.  RFC 6350 requires a CRLF line break.";
             internal const string EmptyLine = "Found an empty content line.";
@@ -64,6 +65,41 @@ namespace DataStandardizer.File.vCard
         internal static VcardFileException BuildDecodingException(Exception innerException)
         {
             return new VcardFileException(ErrorMessage.DecodingFailed, innerException);
+        }
+
+        /// <summary>
+        /// Builds the exception for a line whose value can't be decoded.
+        /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal static VcardFileException BuildValueException(string message, VcardContentLine line, Exception? innerException = null)
+#else
+        internal static VcardFileException BuildValueException(string message, VcardContentLine line, Exception innerException = null)
+#endif
+        {
+            var exception = innerException is null ? new VcardFileException(message) : new VcardFileException(message, innerException);
+            if (line.LineNumber > 0)
+            {
+                exception.Data.Add(VcardFileException.DataItemName.LineNumber, line.LineNumber);
+                exception.Data.Add(VcardFileException.DataItemName.PhysicalLineNumber, line.PhysicalLineNumber);
+            }
+
+            AddLineDetails(exception, line.Name, line.Group, line.CardIndex);
+            return exception;
+        }
+
+        /// <summary>
+        /// Builds the exception for a value that a line says is in an encoding, but isn't.
+        /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal static VcardFileException BuildEncodedValueToWriteException(string encoding, long lineNumber, string propertyName, string? group, int cardIndex)
+#else
+        internal static VcardFileException BuildEncodedValueToWriteException(string encoding, long lineNumber, string propertyName, string group, int cardIndex)
+#endif
+        {
+            var exception = new VcardFileException(string.Format(ErrorMessage.EncodedValueToWriteTemplate, encoding));
+            exception.Data.Add(VcardFileException.DataItemName.LineNumber, lineNumber);
+            AddLineDetails(exception, propertyName, group, cardIndex);
+            return exception;
         }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER

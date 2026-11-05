@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using DataStandardizer.Communication.Mime;
 
 namespace DataStandardizer.File.vCard
 {
@@ -7,7 +8,7 @@ namespace DataStandardizer.File.vCard
     /// </summary>
     /// <remarks>
     /// The default settings for all options ensure behaviour consistent with RFC 6350.  Each accommodation for common non-compliant input or output is
-    /// a separate option, off by default.
+    /// a separate option, off by default.  A vCard 2.1 card follows its own specification, without needing an option.
     /// </remarks>
 #if NET5_0_OR_GREATER
     public sealed record VcardOptions
@@ -71,6 +72,78 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
+        /// Gets a flag indicating if a value in a vCard 2.1 card may hold characters outside US-ASCII without <c>ENCODING=8BIT</c>.
+        /// </summary>
+        /// <remarks>
+        /// The vCard 2.1 specification §2.1.5 makes 7-bit the default encoding, but some writers leave the parameter out.  When <c>false</c> (the default), decoding
+        /// such a value, with <see cref="VcardContentLine.GetDecodedText()"/>, causes a <see cref="VcardFileException"/>.  When <c>true</c>, it is decoded by its
+        /// <c>CHARSET</c>, which must still be able to hold it.  Ignored by a writer.
+        /// </remarks>
+        public bool AcceptEightBitWithoutEncoding
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
+        /// Gets a flag indicating if the lexical forms of vCard 2.1 are accepted on every line, and if other non-standard forms that are common in cards are accepted.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// A vCard 2.1 card, from its <c>VERSION:2.1</c> line up to and including its <c>END:VCARD</c> line, has the forms its specification defines without this option.
+        /// RFC 2426 and RFC 6350 define none of them, so when <c>false</c> (the default), a parameter with no name causes a <see cref="VcardFileException"/>, a line
+        /// ending in <c>=</c> is complete, and <c>ENCODING=QUOTED-PRINTABLE</c> or <c>CHARSET</c> is an unknown parameter, which doesn't change how the value is read.
+        /// That goes for a line before the <c>VERSION</c> line or outside a card too, since its version isn't known.
+        /// </para>
+        /// <para>
+        /// When <c>true</c>, on every line, a parameter may have no name, as in vCard 2.1 §2.1.2 and §4; a quoted-printable value may have soft line breaks and a
+        /// <c>BASE64</c> value continues to an empty line, as in vCard 2.1 §2.1.3 and §4; and <c>ENCODING</c> and <c>CHARSET</c> apply.  In addition, in any card, it
+        /// relaxes these rules:
+        /// </para>
+        /// <list type="bullet">
+        /// <item>vCard 2.1 §4 has only a <c>knowntype</c> or, by the example in §2.6.3, an encoding as a parameter with no name.  Any other is accepted, as a
+        /// <c>VALUE</c> or <c>CHARSET</c> if it is one, otherwise as a <c>TYPE</c>.</item>
+        /// <item>RFC 6350 §3.4 has only four escape sequences.  In <see cref="VcardContentLine.GetTextValue"/>, a backslash before any other character gives that
+        /// character, and a backslash at the end of the value stays.</item>
+        /// </list>
+        /// <para>
+        /// Ignored by a writer, which writes the forms of vCard 2.1 only in a vCard 2.1 card.
+        /// </para>
+        /// </remarks>
+        public bool AcceptLegacySyntax
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
+        /// Gets a flag indicating if a fold in a vCard 2.1 card is unfolded by the rule of RFC 6350 §3.2 rather than its own.
+        /// </summary>
+        /// <remarks>
+        /// By the vCard 2.1 specification §2.1.3, as in RFC 822 §3.1.1, a line break followed by white space is equivalent to the white space, so when <c>false</c> (the
+        /// default), only the line break is removed.  Many writers rely on the later rule, which removes one white space character as well, and that is what <c>true</c>
+        /// does.  Either way a value folded by the other rule reads differently.  It doesn't affect a quoted-printable soft line break or a <c>BASE64</c> value.  Ignored
+        /// by a writer, which doesn't fold a vCard 2.1 card.
+        /// </remarks>
+        public bool AcceptRfc6350FoldsInVersion21
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
         /// Gets a flag indicating if the last content line may end without a line break.
         /// </summary>
         /// <remarks>
@@ -112,6 +185,45 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
+        /// Gets a flag indicating if a value in a character set that can't be resolved is decoded as ISO-8859-1.
+        /// </summary>
+        /// <remarks>
+        /// The vCard 2.1 specification §2.1.6 allows any character set registered with IANA, and not every runtime has them all; see <see cref="CharsetResolver"/>.
+        /// When <c>false</c> (the default), decoding such a value causes a <see cref="VcardFileException"/>.  When <c>true</c>, it is decoded as ISO-8859-1, which
+        /// never fails but may give the wrong characters, and <see cref="VcardContentLine.GetDecodedText(out bool)"/> says it did.  Ignored by a writer.
+        /// </remarks>
+        public bool AllowUnknownCharsetAsLatin1
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
+        /// Gets what resolves the character sets that <see cref="MimeCharsetResolver.Default"/> doesn't.
+        /// </summary>
+        /// <remarks>
+        /// A <c>CHARSET</c> is resolved by the encodings built into <see cref="MimeCharsetResolver"/>, then those of the runtime, then this.  When <c>null</c> (the
+        /// default), there is nothing after the runtime's.  Ignored by a writer.
+        /// </remarks>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        public IMimeCharsetResolver? CharsetResolver
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+#else
+        public IMimeCharsetResolver CharsetResolver { get; set; }
+#endif
+
+        /// <summary>
         /// Gets the encoding for the vCard data.
         /// </summary>
         /// <remarks>
@@ -125,6 +237,10 @@ namespace DataStandardizer.File.vCard
         /// replaces invalid data instead of rejecting it, and an encoding with a preamble has it removed from the start of the data, whatever
         /// <see cref="AcceptByteOrderMark"/> says.  A decoder that throws <see cref="System.Text.DecoderFallbackException"/> gives a
         /// <see cref="VcardFileException"/>.  A writer writes the encoding's preamble, if it has one, at the start of the data.
+        /// </para>
+        /// <para>
+        /// A raw 8-bit vCard 2.1 value in another character set can't be read as UTF-8.  To read one, read the data as ISO-8859-1, which gives each octet as one character,
+        /// so that <see cref="VcardContentLine.GetDecodedText()"/> can get the octets back and decode them by the line's <c>CHARSET</c>.
         /// </para>
         /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
