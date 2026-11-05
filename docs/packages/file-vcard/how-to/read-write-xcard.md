@@ -156,7 +156,10 @@ var text = time.ToString(VcardValueFormat.Text);   // "T1230"
 The xCard form of dates, times and UTC offsets is the basic format of vCard 4.0,
 except that RFC 6351's pattern for a DATE has no year alone. So `1985` doesn't parse
 in that form, and a date of a year alone throws `InvalidOperationException` when
-formatted in it. The writer writes such a value in an `unknown` element.
+formatted in it. The writer writes such a value in an `unknown` element, which reads
+back the same when the type is the property's default, as for `BDAY:1985`. It refuses
+one with a `VALUE` parameter, such as `X-A;VALUE=date:1985`, whose type would be
+lost.
 
 xCard represents vCard 4.0 alone, so a method that takes a `VcardVersion` throws
 `ArgumentException` for `VcardValueFormat.Xml` with any other version. N, ADR, ORG,
@@ -199,8 +202,9 @@ The checks are on by default, as they are for `.vcf`:
   After such an error, the reader can't continue.
 - **What the writer refuses:** a card that xCard can't hold. That is a name or group
   that isn't letters, digits and hyphens, a `BEGIN`, `END` or `GROUP` property, whose
-  names xCard gives to its own elements, a property with two `VALUE` parameters, or a
-  value with a character XML can't hold, such as U+FFFE. The writer checks and builds
+  names xCard gives to its own elements, a property with two `VALUE` parameters, a
+  `VALUE` parameter on a DATE of a year alone, or a value with a character XML can't
+  hold, such as U+FFFE. The writer checks and builds
   each card in full before it writes any of it.
 
 ## Asynchronous reading and writing

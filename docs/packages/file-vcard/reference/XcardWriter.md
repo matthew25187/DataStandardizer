@@ -61,7 +61,8 @@ Each throws `ObjectDisposedException` once the writer is disposed.
 
 A card is checked as `VcardCard.Validate(VcardVersion.V4_0)` does before it is written. If it breaks a rule the options don't accept, [VcardFileException](VcardFileException.md) is
 thrown and nothing of that card is written. A card that xCard can't hold throws too, before any of it is written: a name or group that isn't letters, digits and hyphens, a `BEGIN`,
-`END` or `GROUP` property, a property with two `VALUE` parameters, or a value with a character XML can't hold. A write that fails leaves the writer unable to continue.
+`END` or `GROUP` property, a property with two `VALUE` parameters, a `VALUE` parameter on a DATE of a year alone, which xCard has no form for, or a value with a character XML can't
+hold. A write that fails leaves the writer unable to continue.
 
 Only one operation may be in progress at a time.
 

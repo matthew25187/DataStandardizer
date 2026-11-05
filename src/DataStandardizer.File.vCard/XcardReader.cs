@@ -308,10 +308,18 @@ namespace DataStandardizer.File.vCard
                 while (true)
                 {
                     bool isNode;
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+                    string? value;
+#else
+                    string value;
+#endif
                     try
                     {
                         ThrowIfDisposed();
                         isNode = MoveToNextNode();
+
+                        // The XML reader may parse the rest of a text node only when its value is asked for, and find a problem there.
+                        value = isNode && IsTextNode(_reader.NodeType) ? _reader.Value : null;
                     }
                     catch (XmlException exception)
                     {
@@ -323,7 +331,6 @@ namespace DataStandardizer.File.vCard
                         throw;
                     }
 
-                    var value = isNode && IsTextNode(_reader.NodeType) ? _reader.Value : null;
                     var result = AddNode(isNode, value);
                     if (result == NodeResult.ReadForeignProperty)
                     {

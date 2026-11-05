@@ -36,9 +36,10 @@ namespace DataStandardizer.File.vCard
     /// one are joined.</description></item>
     /// <item><description>The value of an <c>XML</c> property with no parameters is copied as it is, as an element in its own namespace (§6).</description></item>
     /// <item><description>A value that is not valid for its type, which <see cref="VcardOptions.AllowInvalidValues"/> lets a card hold, is written as it is in the element of its
-    /// type, which reads back the same, as a value that <see cref="VcardOptions.AllowInvalidValues"/> accepts.  A TEXT, URI, DATE-AND-OR-TIME or structured value that isn't valid,
-    /// and a DATE of a year alone, which xCard has no form for, are written as they are in an <c>unknown</c> element instead, and lose any <c>VALUE</c>
-    /// parameter.</description></item>
+    /// type, which reads back the same, as a value that <see cref="VcardOptions.AllowInvalidValues"/> accepts.  A TEXT, URI, DATE-AND-OR-TIME or structured value that isn't valid
+    /// is written as it is in an <c>unknown</c> element instead, and loses any <c>VALUE</c> parameter.</description></item>
+    /// <item><description>A DATE of a year alone, such as <c>BDAY:1985</c>, which xCard has no form for, is written as it is in an <c>unknown</c> element, which reads back the same
+    /// when the type is the property's default.  One with a <c>VALUE</c> parameter, whose type would be lost, is refused.</description></item>
     /// </list>
     /// <para>
     /// So a card written by this writer and read back by <see cref="XcardReader"/> has the same properties, with the same values; only the spelling may change, such as the case of a
@@ -49,7 +50,7 @@ namespace DataStandardizer.File.vCard
     /// Before a card is written, it is checked as <see cref="VcardCard.Validate(VcardVersion)"/> does for vCard 4.0, against the same rules and options as <see cref="VcardWriter"/>.
     /// If it breaks a rule that the options do not accept, <see cref="VcardFileException"/> is thrown, carrying the property in its data, and nothing of that card is written.  The card
     /// is also refused if a name or a group is not a valid vCard name, it has a <c>BEGIN</c>, <c>END</c> or <c>GROUP</c> property, whose names xCard gives to its elements, a property
-    /// has more than one <c>VALUE</c> parameter, or a value holds a character that XML cannot hold.
+    /// has more than one <c>VALUE</c> parameter or a <c>VALUE</c> parameter and a DATE of a year alone, or a value holds a character that XML cannot hold.
     /// </para>
     /// <para>
     /// Of the options, <see cref="VcardOptions.Encoding"/> sets the encoding of a stream or file, UTF-8 with no byte order mark by default, and <see cref="VcardOptions.LineBreak"/>

@@ -49,6 +49,11 @@ namespace DataStandardizer.File.vCard
         private static readonly string[] LanguageTagParameters = { VcardParameterNames.Language };
 
         /// <summary>
+        /// The values of the sex element of GENDER (RFC 6351 Appendix A §6.2.7).
+        /// </summary>
+        private static readonly string[] SexValues = { string.Empty, "M", "F", "O", "N", "U" };
+
+        /// <summary>
         /// The parameters of RFC 6350, RFC 6351, RFC 6715, RFC 8605 and RFC 9554 whose values are TEXT.  Any parameter in none of these lists is unrecognised, and its values are
         /// written in <c>unknown</c> elements (RFC 6351 §6).
         /// </summary>
@@ -435,11 +440,13 @@ namespace DataStandardizer.File.vCard
             }
 
             // ref. RFC 6350 §6.2.2 and §6.3.1, and RFC 9554 §2: N has 5 or 7 components, and ADR 7 or 18.  GENDER may have its sex alone, and CLIENTPIDMAP has both of its parts.
+            // Once a component of RFC 9554 is there, each of its components has an element too, as each of RFC 6350's does, and as the writer writes them.
             int requiredCount, count;
             if (IsName(propertyName, VcardPropertyNames.Name) || IsName(propertyName, VcardPropertyNames.Address))
             {
-                requiredCount = IsName(propertyName, VcardPropertyNames.Name) ? 5 : 7;
-                count = lastIndex < requiredCount ? requiredCount : componentNames.Length;
+                var rfc6350Count = IsName(propertyName, VcardPropertyNames.Name) ? 5 : 7;
+                count = lastIndex < rfc6350Count ? rfc6350Count : componentNames.Length;
+                requiredCount = count;
             }
             else
             {
@@ -457,7 +464,7 @@ namespace DataStandardizer.File.vCard
 
                 if (items[index] is null)
                 {
-                    // ref. RFC 6351 Appendix A: each component of RFC 6350 has an element, even an empty one.
+                    // ref. RFC 6351 Appendix A: each component has an element, even an empty one.
                     if (index < requiredCount)
                     {
                         conversion.IsValueNotInXcardForm = true;
@@ -489,6 +496,14 @@ namespace DataStandardizer.File.vCard
                     return trimmed;
                 case XcardNames.Uri:
                     return VcardValue.EscapeUri(VcardValueFormatting.TrimXmlWhitespace(component.Text.AsSpan()).ToString());
+                case XcardNames.Sex:
+                    // ref. RFC 6351 Appendix A §6.2.7: element sex { "" | "M" | "F" | "O" | "N" | "U" }, whose values XML compares by case, unlike the ABNF of RFC 6350.
+                    if (Array.IndexOf(SexValues, component.Text) < 0)
+                    {
+                        conversion.IsValueNotInXcardForm = true;
+                    }
+
+                    return EscapeText(component, propertyName, true);
                 default:
                     return EscapeText(component, propertyName, true);
             }
@@ -594,6 +609,13 @@ namespace DataStandardizer.File.vCard
 
             if (values is null)
             {
+                // ref. RFC 6351 Appendix A §4.3.1: value-date has no year alone.  In an unknown element such a value would lose the type its VALUE parameter names (§6), so it is
+                // refused; with no VALUE parameter, the type is the property's default, which the unknown element keeps.
+                if (valueParameter != null && HasYearAloneDate(valueType, property.Value))
+                    throw BuildWriteException(
+                        Format("The {0} property has VALUE={1} and a date of a year alone, which xCard has no form for: RFC 6351 Appendix A §4.3.1.", name.ToUpperInvariant(),
+                            valueParameter), property);
+
                 values = new List<XcardElement> { CreateTextElement(XcardNames.Unknown, property.Value, property) };
             }
 
@@ -884,7 +906,9 @@ namespace DataStandardizer.File.vCard
             if (!VcardGender.TryParseParts(value.AsSpan(), VcardValueFormat.Text, out sex, out identity)) return null;
 
             var delimiterIndex = value.IndexOf(';');
-            var elements = new List<XcardElement> { CreateTextElement(XcardNames.Sex, delimiterIndex < 0 ? value : value.Substring(0, delimiterIndex), property) };
+            // ref. RFC 6351 Appendix A §6.2.7: the sex is one of "M", "F", "O", "N" and "U" in upper case, which RFC 6350 lets be in either case.
+            var sexText = (delimiterIndex < 0 ? value : value.Substring(0, delimiterIndex)).ToUpperInvariant();
+            var elements = new List<XcardElement> { CreateTextElement(XcardNames.Sex, sexText, property) };
             if (delimiterIndex >= 0)
             {
                 elements.Add(CreateTextElement(XcardNames.Identity, VcardText.Unescape(identity, VcardVersion.V4_0), property));
@@ -929,6 +953,22 @@ namespace DataStandardizer.File.vCard
             var element = new XcardElement(name);
             element.AppendText(text);
             return element;
+        }
+
+        /// <summary>
+        /// Gets whether a value of a DATE or DATE-AND-OR-TIME, or a list of them, has a date of a year alone, which is valid in vCard 4.0 and has no xCard form.
+        /// </summary>
+        private static bool HasYearAloneDate(VcardValueType valueType, string value)
+        {
+            if (valueType != VcardValueType.Date && valueType != VcardValueType.DateAndOrTime) return false;
+
+            foreach (var item in VcardValue.EnumerateList(value.AsSpan(), VcardValueFormat.Text))
+            {
+                VcardDate date;
+                if (VcardDate.TryParse(item, VcardValueFormat.Text, out date) && date.IsYearAlone) return true;
+            }
+
+            return false;
         }
 
         private static int CountParameters(VcardContentLine property, string name)

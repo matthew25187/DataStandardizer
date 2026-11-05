@@ -58,13 +58,14 @@ namespace DataStandardizer.File.vCard.Tests
             { CardStart + "<gender><sex/><identity>it's complicated</identity></gender>" + CardEnd, "GENDER:;it's complicated" },
             { CardStart + "<clientpidmap><sourceid> 1 </sourceid><uri>urn:a,b</uri></clientpidmap>" + CardEnd, "CLIENTPIDMAP:1;urn:a\\,b" },
 
-            // ref. RFC 9554 §2: the components it adds, whose elements are those agreed for this package.  Once one is there, the value has every component.
+            // ref. RFC 9554 §2: the components it adds, whose elements are those agreed for this package.
             {
-                CardStart + "<n><surname>Doe</surname><given>Jane</given><additional/><prefix/><suffix/><generation>III</generation></n>" + CardEnd,
+                CardStart + "<n><surname>Doe</surname><given>Jane</given><additional/><prefix/><suffix/><surname2/><generation>III</generation></n>" + CardEnd,
                 "N:Doe;Jane;;;;;III"
             },
             {
-                CardStart + "<adr><pobox/><ext/><street/><locality>Town</locality><region/><code/><country/><room>12</room><streetnumber>54</streetnumber></adr>" + CardEnd,
+                CardStart + "<adr><pobox/><ext/><street/><locality>Town</locality><region/><code/><country/><room>12</room><apartment/><floor/><streetnumber>54</streetnumber>" +
+                "<streetname/><building/><block/><subdistrict/><district/><landmark/><direction/></adr>" + CardEnd,
                 "ADR:;;;Town;;;;12;;;54;;;;;;;"
             },
 
@@ -190,6 +191,14 @@ namespace DataStandardizer.File.vCard.Tests
             // ref. RFC 6351 Appendix A: each component of RFC 6350 has its element, GENDER has a sex element, and a CLIENTPIDMAP source is an xsd:positiveInteger.
             { CardStart + "<n><surname>Doe</surname><prefix>Dr.</prefix></n>" + CardEnd, "N:Doe;;;Dr.;" },
             { CardStart + "<gender><identity>a</identity></gender>" + CardEnd, "GENDER:;a" },
+            { CardStart + "<gender><sex>m</sex></gender>" + CardEnd, "GENDER:m" },
+
+            // Once a component of RFC 9554 is there, each of its components has an element, as the writer writes them.
+            { CardStart + "<n><surname>Doe</surname><given>Jane</given><additional/><prefix/><suffix/><generation>III</generation></n>" + CardEnd, "N:Doe;Jane;;;;;III" },
+            {
+                CardStart + "<adr><pobox/><ext/><street/><locality>Town</locality><region/><code/><country/><room>12</room><streetnumber>54</streetnumber></adr>" + CardEnd,
+                "ADR:;;;Town;;;;12;;;54;;;;;;;"
+            },
             { CardStart + "<clientpidmap><sourceid>0</sourceid><uri>urn:a</uri></clientpidmap>" + CardEnd, "CLIENTPIDMAP:0;urn:a" },
 
             // ref. RFC 6351 Appendix A §5.2: the value of PREF is an integer element.
@@ -267,6 +276,36 @@ namespace DataStandardizer.File.vCard.Tests
                 // assert
                 var data = testAction.Should().Throw<VcardFileException>().Which.Data;
                 (data[VcardFileException.DataItemName.LineNumber], data[VcardFileException.DataItemName.LinePosition]).Should().Be((3L, 4L));
+            }
+        }
+
+        [Fact]
+        public void ReadCard_TextValueThatFailsToRead_ThrowsVcardFileException()
+        {
+            // arrange
+            using (var reader = new XcardReader(new ValueFailingXmlReader(XmlReader.Create(new StringReader(MinimalDocument)))))
+            {
+                // act
+                Action testAction = () => reader.ReadCard();
+
+                // assert
+                testAction.Should().Throw<VcardFileException>().WithInnerException<XmlException>();
+            }
+        }
+
+        [Fact]
+        public void ReadCard_AfterATextValueFailedToRead_ThrowsInvalidOperation()
+        {
+            // arrange
+            using (var reader = new XcardReader(new ValueFailingXmlReader(XmlReader.Create(new StringReader(MinimalDocument)))))
+            {
+                ReadPastFailure(reader);
+
+                // act
+                Action testAction = () => reader.ReadCard();
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>();
             }
         }
 
