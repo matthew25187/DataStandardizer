@@ -38,7 +38,7 @@ namespace DataStandardizer.File.vCard
     /// <item><description>INTEGER and FLOAT values are JSON numbers, BOOLEAN values JSON literals, and the dates and times in the extended format of ISO 8601 where it applies.  A URI
     /// has no escaping of its commas.</description></item>
     /// <item><description>A value that is not valid for its type, which <see cref="VcardOptions.AllowInvalidValues"/> lets a card hold, is written as a string with its type
-    /// identifier, which reads back the same.  A TEXT, URI or structured value that isn't valid is written as it is with the <c>unknown</c> type instead, so that its escaping isn't
+    /// identifier, which reads back the same, as a value that <see cref="VcardOptions.AllowInvalidValues"/> accepts.  A TEXT, URI or structured value that isn't valid is written as it is with the <c>unknown</c> type instead, so that its escaping isn't
     /// changed, and loses any <c>VALUE</c> parameter.</description></item>
     /// </list>
     /// <para>
@@ -59,7 +59,8 @@ namespace DataStandardizer.File.vCard
     /// </para>
     /// <para>
     /// Only one operation may be in progress at a time.  Synchronous and asynchronous calls may follow one another, but a call made while another is in progress throws
-    /// <see cref="InvalidOperationException"/>.
+    /// <see cref="InvalidOperationException"/>.  A write to the stream that fails leaves what reached it unknown, so later calls throw <see cref="InvalidOperationException"/>, and
+    /// disposal writes nothing more to the stream.
     /// </para>
     /// <para>
     /// jCard needs System.Text.Json, so this type is not available on netstandard1.1.
@@ -80,6 +81,7 @@ namespace DataStandardizer.File.vCard
         private readonly JcardBufferWriter _held = new JcardBufferWriter();
         private bool _isArrayStarted;
         private bool _isCanceled;
+        private bool _isFaulted;
         private bool _isHeld;
         private readonly Utf8JsonWriter _jsonWriter;
         private long _linesWritten;
@@ -197,9 +199,11 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <remarks>
         /// May be called more than once, and shares its state with <see cref="Dispose"/>.  If an operation is in progress, it completes with <see cref="ObjectDisposedException"/>,
-        /// and the document is ended once that operation has finished.  The file is closed even if ending the document throws.
+        /// and the document is ended once that operation has finished, so the task this returns has completed before then; await the operation as well before using the stream.  The
+        /// file is closed even if ending the document throws.
         /// </remarks>
-        /// <returns>A task that completes once the document has been ended and the writer released.</returns>
+        /// <returns>A task that completes once the document has been ended and the writer released; or a task that has already completed, if an operation is in progress, which then
+        /// ends the document.</returns>
         public ValueTask DisposeAsync()
         {
             if (Interlocked.Exchange(ref _isDisposed, 1) != 0) return default(ValueTask);
@@ -218,7 +222,7 @@ namespace DataStandardizer.File.vCard
         /// <exception cref="ObjectDisposedException">The writer has been disposed.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, so the writer cannot continue.</exception>
+        /// An earlier asynchronous operation was canceled, or a write to the stream failed, so the writer cannot continue.</exception>
         public void Flush()
         {
             ThrowIfDisposed();
@@ -246,7 +250,7 @@ namespace DataStandardizer.File.vCard
         /// written.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, so the writer cannot continue.</exception>
+        /// An earlier asynchronous operation was canceled, or a write to the stream failed, so the writer cannot continue.</exception>
         public void WriteCard(VcardCard card)
         {
             ThrowIfDisposed();
@@ -284,7 +288,7 @@ namespace DataStandardizer.File.vCard
         /// written.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, so the writer cannot continue.</exception>
+        /// An earlier asynchronous operation was canceled, or a write to the stream failed, so the writer cannot continue.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public void WriteCards(IEnumerable<VcardCard> cards, IProgress<VcardWriteProgress>? progress = null)
 #else
@@ -325,7 +329,7 @@ namespace DataStandardizer.File.vCard
         /// progress.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, so the writer cannot continue.</exception>
+        /// An earlier asynchronous operation was canceled, or a write to the stream failed, so the writer cannot continue.</exception>
         /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.</exception>
         public Task FlushAsync(CancellationToken cancellationToken = default)
         {
@@ -346,7 +350,7 @@ namespace DataStandardizer.File.vCard
         /// <exception cref="ArgumentNullException"><paramref name="card"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, so the writer cannot continue.</exception>
+        /// An earlier asynchronous operation was canceled, or a write to the stream failed, so the writer cannot continue.</exception>
         /// <exception cref="VcardFileException">By the task: the card breaks a rule of RFC 6350 that the options do not accept, or cannot be written in jCard, and nothing has been
         /// written.</exception>
         /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.</exception>
@@ -379,7 +383,7 @@ namespace DataStandardizer.File.vCard
         /// <exception cref="ArgumentNullException"><paramref name="cards"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, so the writer cannot continue.</exception>
+        /// An earlier asynchronous operation was canceled, or a write to the stream failed, so the writer cannot continue.</exception>
         /// <exception cref="ArgumentException">By the task: <paramref name="cards"/> contains <c>null</c>.  The cards before it have been written.</exception>
         /// <exception cref="VcardFileException">By the task: a card breaks a rule of RFC 6350 that the options do not accept, or cannot be written in jCard.  The cards before it have
         /// been written.</exception>
@@ -417,7 +421,7 @@ namespace DataStandardizer.File.vCard
         /// <exception cref="ArgumentNullException"><paramref name="cards"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, so the writer cannot continue.</exception>
+        /// An earlier asynchronous operation was canceled, or a write to the stream failed, so the writer cannot continue.</exception>
         /// <exception cref="ArgumentException">By the task: <paramref name="cards"/> contains <c>null</c>.  The cards before it have been written.</exception>
         /// <exception cref="VcardFileException">By the task: a card breaks a rule of RFC 6350 that the options do not accept, or cannot be written in jCard.  The cards before it have
         /// been written.</exception>
@@ -443,6 +447,9 @@ namespace DataStandardizer.File.vCard
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 await _stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+
+                // The writer may have been disposed while the flush was in progress.
+                ThrowIfDisposed();
             }
             catch (OperationCanceledException)
             {
@@ -463,6 +470,9 @@ namespace DataStandardizer.File.vCard
             try
             {
                 await WriteCardCoreAsync(card, cancellationToken).ConfigureAwait(false);
+
+                // The writer may have been disposed while the card was being written.
+                ThrowIfDisposed();
             }
             catch (OperationCanceledException)
             {
@@ -568,14 +578,23 @@ namespace DataStandardizer.File.vCard
             var propertyCount = Encode(card);
             if (_cardsWritten != 0)
             {
-                if (_isHeld)
+                try
                 {
-                    await _stream.WriteAsync(ArrayStart, 0, ArrayStart.Length, CancellationToken.None).ConfigureAwait(false);
-                    await _stream.WriteAsync(_held.Buffer, 0, _held.Count, CancellationToken.None).ConfigureAwait(false);
-                    ReleaseHeld();
-                }
+                    if (_isHeld)
+                    {
+                        await _stream.WriteAsync(ArrayStart, 0, ArrayStart.Length, CancellationToken.None).ConfigureAwait(false);
+                        await _stream.WriteAsync(_held.Buffer, 0, _held.Count, CancellationToken.None).ConfigureAwait(false);
+                        ReleaseHeld();
+                    }
 
-                await _stream.WriteAsync(_encoded.Buffer, 0, _encoded.Count, CancellationToken.None).ConfigureAwait(false);
+                    await _stream.WriteAsync(_encoded.Buffer, 0, _encoded.Count, CancellationToken.None).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // What reached the stream is now unknown.
+                    _isFaulted = true;
+                    throw;
+                }
             }
 
             CountCard(propertyCount);
@@ -588,16 +607,19 @@ namespace DataStandardizer.File.vCard
         {
             try
             {
-                if (_isHeld)
+                if (!_isFaulted)
                 {
-                    await _stream.WriteAsync(_held.Buffer, 0, _held.Count, CancellationToken.None).ConfigureAwait(false);
-                }
-                else if (_isArrayStarted)
-                {
-                    await _stream.WriteAsync(ArrayEnd, 0, ArrayEnd.Length, CancellationToken.None).ConfigureAwait(false);
-                }
+                    if (_isHeld)
+                    {
+                        await _stream.WriteAsync(_held.Buffer, 0, _held.Count, CancellationToken.None).ConfigureAwait(false);
+                    }
+                    else if (_isArrayStarted)
+                    {
+                        await _stream.WriteAsync(ArrayEnd, 0, ArrayEnd.Length, CancellationToken.None).ConfigureAwait(false);
+                    }
 
-                await _stream.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+                    await _stream.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+                }
             }
             finally
             {
@@ -621,14 +643,23 @@ namespace DataStandardizer.File.vCard
             var propertyCount = Encode(card);
             if (_cardsWritten != 0)
             {
-                if (_isHeld)
+                try
                 {
-                    _stream.Write(ArrayStart, 0, ArrayStart.Length);
-                    _stream.Write(_held.Buffer, 0, _held.Count);
-                    ReleaseHeld();
-                }
+                    if (_isHeld)
+                    {
+                        _stream.Write(ArrayStart, 0, ArrayStart.Length);
+                        _stream.Write(_held.Buffer, 0, _held.Count);
+                        ReleaseHeld();
+                    }
 
-                _stream.Write(_encoded.Buffer, 0, _encoded.Count);
+                    _stream.Write(_encoded.Buffer, 0, _encoded.Count);
+                }
+                catch
+                {
+                    // What reached the stream is now unknown.
+                    _isFaulted = true;
+                    throw;
+                }
             }
 
             CountCard(propertyCount);
@@ -750,6 +781,16 @@ namespace DataStandardizer.File.vCard
 
                 throw new InvalidOperationException("The writer cannot continue after an operation was canceled.");
             }
+
+            if (_isFaulted)
+            {
+                if (EndOperation())
+                {
+                    Release();
+                }
+
+                throw new InvalidOperationException("The writer cannot continue after a write to the stream failed.");
+            }
         }
 
         /// <summary>
@@ -778,16 +819,19 @@ namespace DataStandardizer.File.vCard
         {
             try
             {
-                if (_isHeld)
+                if (!_isFaulted)
                 {
-                    _stream.Write(_held.Buffer, 0, _held.Count);
-                }
-                else if (_isArrayStarted)
-                {
-                    _stream.Write(ArrayEnd, 0, ArrayEnd.Length);
-                }
+                    if (_isHeld)
+                    {
+                        _stream.Write(_held.Buffer, 0, _held.Count);
+                    }
+                    else if (_isArrayStarted)
+                    {
+                        _stream.Write(ArrayEnd, 0, ArrayEnd.Length);
+                    }
 
-                _stream.Flush();
+                    _stream.Flush();
+                }
             }
             finally
             {

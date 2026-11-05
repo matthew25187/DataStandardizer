@@ -65,6 +65,93 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
+        /// The most places a JSON number's exponent may move its decimal point when it is expanded, so that a short number can't become a long text.
+        /// </summary>
+        internal const int MaxJsonExponentShift = 400;
+
+        /// <summary>
+        /// Rewrites a JSON number (RFC 8259 §6) with no exponent, moving its decimal point in the text so that every digit is kept.
+        /// </summary>
+        /// <param name="value">The text of the number.</param>
+        /// <param name="isNegative"><c>true</c> if it has a minus sign.</param>
+        /// <param name="integerDigits">The digits before the decimal point, with no leading zeros; empty for a number below 1.</param>
+        /// <param name="fractionDigits">The digits after the decimal point, as written; empty if there are none.</param>
+        /// <returns><c>false</c> if the text isn't a JSON number, or its exponent would move the point more than <see cref="MaxJsonExponentShift"/> places.</returns>
+        internal static bool TryExpandJsonNumber(ReadOnlySpan<char> value, out bool isNegative, out string integerDigits, out string fractionDigits)
+        {
+            isNegative = false;
+            integerDigits = string.Empty;
+            fractionDigits = string.Empty;
+            if (!IsJsonNumber(value)) return false;
+
+            var index = 0;
+            isNegative = value[0] == '-';
+            if (isNegative)
+            {
+                index++;
+            }
+
+            var integerStart = index;
+            while (index < value.Length && IsDigit(value[index]))
+            {
+                index++;
+            }
+
+            var integerPart = value.Slice(integerStart, index - integerStart);
+            var fractionPart = default(ReadOnlySpan<char>);
+            if (index < value.Length && value[index] == '.')
+            {
+                var fractionStart = ++index;
+                while (index < value.Length && IsDigit(value[index]))
+                {
+                    index++;
+                }
+
+                fractionPart = value.Slice(fractionStart, index - fractionStart);
+            }
+
+            var shift = 0;
+            if (index < value.Length)
+            {
+                // The exponent: "e" or "E", an optional sign and its digits, which IsJsonNumber has checked.
+                index++;
+                var isExponentNegative = value[index] == '-';
+                if (value[index] == '-' || value[index] == '+')
+                {
+                    index++;
+                }
+
+                for (; index < value.Length; index++)
+                {
+                    shift = shift * 10 + (value[index] - '0');
+                    if (shift > MaxJsonExponentShift) return false;
+                }
+
+                shift = isExponentNegative ? -shift : shift;
+            }
+
+            // Move the point: the digits are those of the integer then the fraction, and the point sits after the integer's, moved by the exponent.
+            var digits = string.Concat(integerPart.ToString(), fractionPart.ToString());
+            var pointIndex = integerPart.Length + shift;
+            if (pointIndex <= 0)
+            {
+                fractionDigits = new string('0', -pointIndex) + digits;
+            }
+            else if (pointIndex >= digits.Length)
+            {
+                integerDigits = digits + new string('0', pointIndex - digits.Length);
+            }
+            else
+            {
+                integerDigits = digits.Substring(0, pointIndex);
+                fractionDigits = digits.Substring(pointIndex);
+            }
+
+            integerDigits = integerDigits.TrimStart('0');
+            return true;
+        }
+
+        /// <summary>
         /// Gets whether text is a JSON number (RFC 8259 §6): an optional minus sign, an integer with no leading zeros, an optional fraction and an optional exponent.
         /// </summary>
         internal static bool IsJsonNumber(ReadOnlySpan<char> value)

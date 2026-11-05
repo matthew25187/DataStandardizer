@@ -60,9 +60,12 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="property">The property array: a name, a parameters object, a type identifier and one or more values.</param>
         /// <param name="cardIndex">The 0-based index of the card the property is in.</param>
+        /// <param name="isValueNotInJcardForm"><c>true</c> if a value isn't in the form jCard gives its type, such as a date in the basic format of ISO 8601 or a string for an
+        /// INTEGER.  It is kept as it is, and the caller reports it, since its text may be a valid value of vCard that the conformance check wouldn't report.</param>
         /// <exception cref="VcardFileException">The array is not a valid jCard property.</exception>
-        internal static VcardContentLine ToContentLine(JcardNode property, int cardIndex)
+        internal static VcardContentLine ToContentLine(JcardNode property, int cardIndex, out bool isValueNotInJcardForm)
         {
+            isValueNotInJcardForm = false;
             var items = property.Items;
             if (items.Count == 0 || items[0].Kind != JcardNodeKind.String)
                 throw BuildException(property, null, "A property must be an array whose first element is the name of the property, as a string.");
@@ -102,7 +105,9 @@ namespace DataStandardizer.File.vCard
                 values.Add(items[index]);
             }
 
-            var value = ReadValues(values, name, valueType, isExtensionType);
+            var conversion = new Conversion();
+            var value = ReadValues(values, name, valueType, isExtensionType, conversion);
+            isValueNotInJcardForm = conversion.IsValueNotInJcardForm;
 
             // ref. RFC 7095 §3.4.1 and §4: a VALUE parameter is added if the type is not the property's default, and never for an unknown value.
             if (isExtensionType)
@@ -203,7 +208,7 @@ namespace DataStandardizer.File.vCard
         /// <summary>
         /// Converts the values of a property into the text of a content line.
         /// </summary>
-        private static string ReadValues(List<JcardNode> values, string propertyName, VcardValueType valueType, bool isExtensionType)
+        private static string ReadValues(List<JcardNode> values, string propertyName, VcardValueType valueType, bool isExtensionType, Conversion conversion)
         {
             // ref. RFC 7095 §3.3: only a multi-valued property has more than one value.  The values of a property whose type isn't known may be a list too, as long as their type is.
             // ref. §5.2: an unknown value "MUST be taken over in vCard without processing", so it is one string.
@@ -219,13 +224,13 @@ namespace DataStandardizer.File.vCard
                     builder.Append(',');
                 }
 
-                builder.Append(ReadValue(values[index], propertyName, valueType, isExtensionType));
+                builder.Append(ReadValue(values[index], propertyName, valueType, isExtensionType, conversion));
             }
 
             return builder.ToString();
         }
 
-        private static string ReadValue(JcardNode value, string propertyName, VcardValueType valueType, bool isExtensionType)
+        private static string ReadValue(JcardNode value, string propertyName, VcardValueType valueType, bool isExtensionType, Conversion conversion)
         {
             var isUnknownType = valueType == VcardValueType.Unknown && !isExtensionType;
             switch (value.Kind)
@@ -234,21 +239,24 @@ namespace DataStandardizer.File.vCard
                     if (isUnknownType || isExtensionType) return value.Text;
 
                     // A string is taken for any type, so that a value that doesn't follow its type is kept, and the conformance check reports it.
-                    return ToText(valueType, value, propertyName, IsStructuredProperty(propertyName, valueType));
+                    return ToText(valueType, value, propertyName, IsStructuredProperty(propertyName, valueType), conversion);
                 case JcardNodeKind.Number when isExtensionType || valueType == VcardValueType.Integer || valueType == VcardValueType.Float:
-                    return isExtensionType ? value.Text : ToText(valueType, value, propertyName, false);
+                    return isExtensionType ? value.Text : ToText(valueType, value, propertyName, false, conversion);
                 case JcardNodeKind.True when isExtensionType || valueType == VcardValueType.Boolean:
                 case JcardNodeKind.False when isExtensionType || valueType == VcardValueType.Boolean:
                     return isExtensionType ? DescribeLiteral(value.Kind) : FormatBoolean(value.Kind == JcardNodeKind.True);
-                case JcardNodeKind.Array when !isUnknownType && !isExtensionType:
-                    return ReadStructuredValue(value, propertyName, valueType);
+                case JcardNodeKind.Array when !isUnknownType && !isExtensionType &&
+                                              (IsStructuredProperty(propertyName, valueType) || !VcardValueTypeRegistry.IsKnownProperty(propertyName.AsSpan())):
+                    // ref. RFC 7095 §3.3.1.3: a structured value is an array.  RFC 6350 structures N, ADR, ORG, GENDER and CLIENTPIDMAP alone, and "extensions may define
+                    // structured" values, so an array is taken for those and for a property whose type isn't known.
+                    return ReadStructuredValue(value, propertyName, valueType, conversion);
                 default:
                     throw BuildException(value, propertyName,
                         Format("A value of the {0} property with the type {1} cannot be {2}.", propertyName, GetTypeIdentifier(valueType, isExtensionType), DescribeKind(value.Kind)));
             }
         }
 
-        private static string ReadStructuredValue(JcardNode structure, string propertyName, VcardValueType valueType)
+        private static string ReadStructuredValue(JcardNode structure, string propertyName, VcardValueType valueType, Conversion conversion)
         {
             // ref. RFC 7095 §3.3.1.3: an array with an element for each component, and an array for a component that has more than one value.  "the array element values MUST
             // have the primitive type that matches the jCard type identifier".
@@ -263,7 +271,7 @@ namespace DataStandardizer.File.vCard
                 var component = structure.Items[index];
                 if (component.Kind != JcardNodeKind.Array)
                 {
-                    builder.Append(ReadComponentItem(component, propertyName, valueType));
+                    builder.Append(ReadComponentItem(component, propertyName, valueType, conversion));
                     continue;
                 }
 
@@ -274,21 +282,21 @@ namespace DataStandardizer.File.vCard
                         builder.Append(',');
                     }
 
-                    builder.Append(ReadComponentItem(component.Items[itemIndex], propertyName, valueType));
+                    builder.Append(ReadComponentItem(component.Items[itemIndex], propertyName, valueType, conversion));
                 }
             }
 
             return builder.ToString();
         }
 
-        private static string ReadComponentItem(JcardNode item, string propertyName, VcardValueType valueType)
+        private static string ReadComponentItem(JcardNode item, string propertyName, VcardValueType valueType, Conversion conversion)
         {
             switch (item.Kind)
             {
                 case JcardNodeKind.String:
-                    return ToText(valueType, item, propertyName, true);
+                    return ToText(valueType, item, propertyName, true, conversion);
                 case JcardNodeKind.Number when valueType == VcardValueType.Integer || valueType == VcardValueType.Float:
-                    return ToText(valueType, item, propertyName, true);
+                    return ToText(valueType, item, propertyName, true, conversion);
                 case JcardNodeKind.True when valueType == VcardValueType.Boolean:
                 case JcardNodeKind.False when valueType == VcardValueType.Boolean:
                     return FormatBoolean(item.Kind == JcardNodeKind.True);
@@ -305,10 +313,33 @@ namespace DataStandardizer.File.vCard
         /// <param name="node">The string or number.</param>
         /// <param name="propertyName">The name of the property, for a message.</param>
         /// <param name="isComponent"><c>true</c> if the text is a component of a structured value, where a semicolon has to be escaped.</param>
+        /// <param name="conversion">Records a value that isn't in the form jCard gives its type.</param>
+        private static string ToText(VcardValueType valueType, JcardNode node, string propertyName, bool isComponent, Conversion conversion)
+        {
+            var text = ToText(valueType, node, propertyName, isComponent);
+            if (text is null)
+            {
+                conversion.IsValueNotInJcardForm = true;
+                return node.Text;
+            }
+
+            return text;
+        }
+
+        /// <summary>
+        /// Converts the text of a JSON string or number to the text form of a content line.
+        /// </summary>
+        /// <returns>The text; or <c>null</c> if the value isn't in the form jCard gives its type (RFC 7095 §3.5): a string for a BOOLEAN, INTEGER or FLOAT, which are JSON literals
+        /// and numbers, or a date, time or offset that isn't in the extended format.</returns>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private static string? ToText(VcardValueType valueType, JcardNode node, string propertyName, bool isComponent)
+#else
         private static string ToText(VcardValueType valueType, JcardNode node, string propertyName, bool isComponent)
+#endif
         {
             var json = node.Text;
             var value = json.AsSpan();
+            var isNumber = node.Kind == JcardNodeKind.Number;
             switch (valueType)
             {
                 case VcardValueType.Text:
@@ -325,38 +356,45 @@ namespace DataStandardizer.File.vCard
                     // ref. RFC 6350 §3.4 and its errata 3845 and 3846: a comma in a URI value "MUST be escaped".
                     return VcardValue.EscapeUri(json);
                 case VcardValueType.Boolean:
-                    bool flag;
-                    return VcardValue.TryParseBoolean(value, VcardValueFormat.Json, out flag) ? FormatBoolean(flag) : json;
+                    // ref. RFC 7095 §3.5.8: "The value element is a JSON boolean value", which ReadValue takes; so a string isn't one.
+                    return null;
                 case VcardValueType.Integer:
                     // ref. RFC 7095 §3.5.9: "any decimals and exponents MUST be eliminated".  The digits are kept where vCard allows them.
                     long integer;
+                    if (!isNumber) return null;
                     if (VcardValue.TryParseInteger(value, VcardValueFormat.Text, out integer)) return json;
 
-                    return VcardValue.TryParseJsonInteger(value, out integer) ? integer.ToString(CultureInfo.InvariantCulture) : json;
+                    return VcardValue.TryParseJsonInteger(value, out integer) ? integer.ToString(CultureInfo.InvariantCulture) : null;
                 case VcardValueType.Float:
-                    // ref. RFC 7095 §3.5.10: "any exponents MUST be eliminated".  The digits are kept where vCard allows them.
+                    // ref. RFC 7095 §3.5.10: "any exponents MUST be eliminated".  The digits are kept, moved by the exponent in the text, not through a double.
                     double number;
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+                    string? expanded;
+#else
+                    string expanded;
+#endif
+                    if (!isNumber) return null;
                     if (VcardValue.TryParseFloat(value, VcardValueFormat.Text, out number)) return json;
 
-                    return VcardValue.TryParseJsonFloat(value, out number) ? VcardValue.FormatFloatText(number) : json;
+                    return VcardValue.TryExpandJsonFloat(value, out expanded) ? expanded : null;
                 case VcardValueType.Date:
                     VcardDate date;
-                    return VcardDate.TryParse(value, VcardValueFormat.Json, out date) ? date.ToString(VcardValueFormat.Text) : json;
+                    return VcardDate.TryParse(value, VcardValueFormat.Json, out date) ? date.ToString(VcardValueFormat.Text) : null;
                 case VcardValueType.Time:
                     VcardTime time;
-                    return VcardTime.TryParse(value, VcardValueFormat.Json, out time) ? time.ToString(VcardValueFormat.Text) : json;
+                    return VcardTime.TryParse(value, VcardValueFormat.Json, out time) ? time.ToString(VcardValueFormat.Text) : null;
                 case VcardValueType.DateTime:
                     VcardDateTime dateTime;
-                    return VcardDateTime.TryParse(value, VcardValueFormat.Json, out dateTime) ? dateTime.ToString(VcardValueFormat.Text) : json;
+                    return VcardDateTime.TryParse(value, VcardValueFormat.Json, out dateTime) ? dateTime.ToString(VcardValueFormat.Text) : null;
                 case VcardValueType.DateAndOrTime:
                     VcardDateAndOrTime dateAndOrTime;
-                    return VcardDateAndOrTime.TryParse(value, VcardValueFormat.Json, out dateAndOrTime) ? dateAndOrTime.ToString(VcardValueFormat.Text) : json;
+                    return VcardDateAndOrTime.TryParse(value, VcardValueFormat.Json, out dateAndOrTime) ? dateAndOrTime.ToString(VcardValueFormat.Text) : null;
                 case VcardValueType.Timestamp:
                     VcardTimestamp timestamp;
-                    return VcardTimestamp.TryParse(value, VcardValueFormat.Json, out timestamp) ? timestamp.ToString(VcardValueFormat.Text) : json;
+                    return VcardTimestamp.TryParse(value, VcardValueFormat.Json, out timestamp) ? timestamp.ToString(VcardValueFormat.Text) : null;
                 case VcardValueType.UtcOffset:
                     VcardUtcOffset offset;
-                    return VcardUtcOffset.TryParse(value, VcardValueFormat.Json, out offset) ? offset.ToString(VcardValueFormat.Text) : json;
+                    return VcardUtcOffset.TryParse(value, VcardValueFormat.Json, out offset) ? offset.ToString(VcardValueFormat.Text) : null;
                 default:
                     // A LANGUAGE-TAG is the same in both forms.
                     return json;
@@ -389,6 +427,11 @@ namespace DataStandardizer.File.vCard
                 throw BuildWriteException(Format("The group {0} cannot be written in jCard, since it is not one or more letters, digits and hyphens: RFC 7095 §7.1.", group), property);
 
             // ref. RFC 7095 §3.4.1: the type is the VALUE parameter's, or the property's default, or unknown.  ref. §5.1: a value whose type isn't known is written as it is.
+            if (CountParameters(property, VcardParameterNames.Value) > 1)
+                throw BuildWriteException(
+                    Format("The VALUE parameter appears more than once in the {0} property, which jCard can't hold, since the type identifier is one value.",
+                        property.Name.ToUpperInvariant()), property);
+
             var valueParameter = VcardPropertyParameterReader.GetValue(property, VcardParameterNames.Value);
             VcardValueType valueType;
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
@@ -547,7 +590,8 @@ namespace DataStandardizer.File.vCard
             var value = property.Value;
             if (IsStructuredProperty(name, valueType))
             {
-                var structure = TryConvertStructuredValue(value, AllowsLists(name));
+                var structure = IsName(name, VcardPropertyNames.Gender) ? TryConvertGender(value) :
+                    IsName(name, VcardPropertyNames.ClientPidMap) ? TryConvertClientPidMap(value) : TryConvertStructuredValue(value, AllowsLists(name));
                 return structure is null ? null : new List<JcardNode> { structure };
             }
 
@@ -681,6 +725,64 @@ namespace DataStandardizer.File.vCard
             }
 
             return node;
+        }
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private static JcardNode? TryConvertGender(string value)
+#else
+        private static JcardNode TryConvertGender(string value)
+#endif
+        {
+            // ref. RFC 6350 §6.2.7: GENDER-value = sex [";" text], where the text is the rest of the value and may hold a semicolon.
+            VcardSex sex;
+            ReadOnlySpan<char> identity;
+            if (!VcardGender.TryParseParts(value.AsSpan(), VcardValueFormat.Text, out sex, out identity)) return null;
+
+            var delimiterIndex = value.IndexOf(';');
+            if (delimiterIndex < 0) return new JcardNode(JcardNodeKind.String, value);
+
+            return ToPairNode(value.Substring(0, delimiterIndex), VcardText.Unescape(identity, VcardVersion.V4_0));
+        }
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private static JcardNode? TryConvertClientPidMap(string value)
+#else
+        private static JcardNode TryConvertClientPidMap(string value)
+#endif
+        {
+            // ref. RFC 6350 §6.7.7: CLIENTPIDMAP-value = 1*DIGIT ";" URI, where the URI is the rest of the value and may hold a semicolon.
+            long sourceId;
+            ReadOnlySpan<char> uriPart;
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            string? uri;
+#else
+            string uri;
+#endif
+            if (!VcardClientPidMap.TryParseParts(value.AsSpan(), VcardValueFormat.Text, out sourceId, out uriPart) || !VcardValue.TryGetUriText(uriPart.ToString(), out uri)) return null;
+
+            return ToPairNode(value.Substring(0, value.IndexOf(';')), uri);
+        }
+
+        private static JcardNode ToPairNode(string first, string second)
+        {
+            var node = new JcardNode(JcardNodeKind.Array, string.Empty);
+            node.Add(new JcardNode(JcardNodeKind.String, first));
+            node.Add(new JcardNode(JcardNodeKind.String, second));
+            return node;
+        }
+
+        private static int CountParameters(VcardContentLine property, string name)
+        {
+            var count = 0;
+            foreach (var parameter in property.ParameterArray)
+            {
+                if (IsName(parameter.Name, name))
+                {
+                    count++;
+                }
+            }
+
+            return count;
         }
 
         private static JcardNode ToComponentNode(IReadOnlyList<string> items)
@@ -865,6 +967,17 @@ namespace DataStandardizer.File.vCard
                 default:
                     return "an object";
             }
+        }
+
+        /// <summary>
+        /// What was found while converting the values of a property.
+        /// </summary>
+        private sealed class Conversion
+        {
+            /// <summary>
+            /// Gets or sets whether a value isn't in the form jCard gives its type.
+            /// </summary>
+            internal bool IsValueNotInJcardForm { get; set; }
         }
 
         private static bool IsName(string name, string expected)

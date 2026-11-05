@@ -31,7 +31,8 @@ gradually or must remain on older frameworks indefinitely.
 Modern .NET (`net10.0`) is the primary target, giving access to the
 latest runtime features — including nullable reference types, which are enabled
 on that build and on the `netstandard2.1` builds of **DataStandardizer.File.CSV**,
-**DataStandardizer.File.iCal** and **DataStandardizer.File.InternetMessage**.
+**DataStandardizer.File.iCal**, **DataStandardizer.File.InternetMessage** and
+**DataStandardizer.File.vCard**.
 Alongside these, `netstandard2.0` covers the broad middle ground of the .NET
 ecosystem, and `netstandard1.0` or `netstandard1.1` extends reach to the oldest
 supported frameworks.
@@ -41,7 +42,8 @@ supported frameworks.
 From v2.0 onwards, the packages have no `net8.0` build, because .NET 8 reaches the end
 of support on 10 November 2026. An application on .NET 8 or .NET 9 can still use
 them: NuGet gives it the `netstandard2.1` build of **DataStandardizer.File.CSV**,
-**DataStandardizer.File.iCal** and **DataStandardizer.File.InternetMessage**, and the
+**DataStandardizer.File.iCal**, **DataStandardizer.File.InternetMessage** and
+**DataStandardizer.File.vCard**, and the
 `netstandard2.0` build of the other packages.
 It doesn't get the APIs that only the `net10.0` build has, such as the `DateOnly`
 and `TimeOnly` support in **DataStandardizer.Chronology**. To use those, move the
@@ -62,7 +64,7 @@ and 1.1 are the same, so this costs no reach.
 reader and writer rely on stream and component-model APIs that are not available
 on earlier versions.
 
-The three file packages are also the only ones with a `netstandard2.1` target,
+The four file packages are also the only ones with a `netstandard2.1` target,
 which gives .NET Standard 2.1 platforms (Mono and Unity, for example) the in-box
 span types and span-based BCL overloads with no extra package dependencies. The
 `netstandard1.3` and `netstandard2.0` builds of **DataStandardizer.File.CSV** get

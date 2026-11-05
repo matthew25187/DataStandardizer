@@ -32,7 +32,10 @@ namespace DataStandardizer.File.vCard
     /// <item><description>An INTEGER that is a JSON number with a fraction or an exponent is taken without them, its fraction rounded toward zero, and a FLOAT without its exponent, as
     /// RFC 7095 §3.5.9 and §3.5.10 say they "MUST be eliminated".</description></item>
     /// <item><description>A string is accepted as the value of any type, so that a value that does not follow its type is kept.  A number is accepted only for INTEGER and FLOAT,
-    /// <c>true</c> and <c>false</c> only for BOOLEAN, and an array only for a structured value.</description></item>
+    /// <c>true</c> and <c>false</c> only for BOOLEAN, and an array only for a structured value: that of N, ADR, ORG, GENDER or CLIENTPIDMAP, or of a property whose type isn't
+    /// known.</description></item>
+    /// <item><description>A value that isn't in the form jCard gives its type, such as a string for an INTEGER or BOOLEAN, or a date in the basic format of ISO 8601, is kept as it
+    /// is and reported as <see cref="VcardDiagnosticKind.InvalidValue"/>, even where its text is a valid value of vCard.</description></item>
     /// </list>
     /// <para>
     /// A document that is not valid JSON, or does not follow the structure of jCard, throws <see cref="VcardFileException"/>.  Its data holds the 0-based offset of the JSON token in
@@ -465,7 +468,17 @@ namespace DataStandardizer.File.vCard
             if (!_isEndOfData) return ReadResult.NeedData;
 
             _isFinished = true;
-            _builder.Complete();
+            try
+            {
+                _builder.Complete();
+            }
+            catch (VcardFileException exception)
+            {
+                // The data held no card, which is found at its end.
+                exception.Data[VcardFileException.DataItemName.BytePosition] = _bufferPosition;
+                throw;
+            }
+
             return ReadResult.End;
         }
 
@@ -552,6 +565,9 @@ namespace DataStandardizer.File.vCard
         {
             var card = result == ReadResult.Card ? _card : null;
             _card = null;
+
+            // The reader may have been disposed while the card was being read or checked, and then a read in progress completes with ObjectDisposedException.
+            ThrowIfDisposed();
             return card;
         }
 

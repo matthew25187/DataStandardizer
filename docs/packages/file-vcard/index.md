@@ -19,7 +19,7 @@ written, and xCard is still to come. See
 | --- | --- |
 | **RFC 6350** | *vCard Format Specification*: the content-line syntax, including groups, line folding and TEXT escaping; the typed values of §4; and the properties and parameters of §5 and §6, with their conformance rules. |
 | **RFC 6868** | *Parameter Value Encoding in iCalendar and vCard*: caret encoding of double quotes and line breaks in parameter values. |
-| **RFC 7095** | *jCard: The JSON Format for vCard*: reading and writing cards as JSON, and the jCard form of the typed values. Not on `netstandard1.1`. See [Read and write jCard](how-to/read-write-jcard.md). |
+| **RFC 7095** | *jCard: The JSON Format for vCard*: reading and writing cards as JSON with `JcardReader` and `JcardWriter`, which aren't on `netstandard1.1`, and the jCard form of the typed values, `VcardValueFormat.Json`, which is on every target. See [Read and write jCard](how-to/read-write-jcard.md). |
 | **vCard 2.1** | *The Electronic Business Card*: vCard 2.1 cards, including quoted-printable, `BASE64`, `CHARSET`, parameters with no name and the card an `AGENT` holds. See [Legacy syntax and character sets](legacy-syntax.md) and [Converting between versions](version-conversion.md). |
 | **RFC 2425, RFC 2426** | *vCard MIME Directory Profile*: vCard 3.0 cards, with their errata. See [Converting between versions](version-conversion.md). |
 | **RFC 2739** | *Calendar Attributes for vCard and LDAP*: `FBURL`, `CALADRURI`, `CAPURI` and `CALURI` in vCard 3.0. |

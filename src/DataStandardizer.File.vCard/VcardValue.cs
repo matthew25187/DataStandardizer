@@ -545,19 +545,40 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         internal static bool TryParseJsonInteger(ReadOnlySpan<char> value, out long result)
         {
+            // The digits are taken from the text, since a decimal or a double would round a long fraction up across a whole number.
             result = 0;
-            decimal number;
-            if (!VcardValueFormatting.IsJsonNumber(value) ||
-                !decimal.TryParse(value.ToString(), NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent, CultureInfo.InvariantCulture,
-                    out number))
+            bool isNegative;
+            string integerDigits, fractionDigits;
+            if (!VcardValueFormatting.TryExpandJsonNumber(value, out isNegative, out integerDigits, out fractionDigits)) return false;
+            if (integerDigits.Length == 0) return true;
+
+            return TryParseInteger((isNegative ? "-" + integerDigits : integerDigits).AsSpan(), VcardValueFormat.Text, out result);
+        }
+
+        /// <summary>
+        /// Gets the text of a FLOAT of RFC 6350 §4.6 for a JSON number of jCard, whose exponent "MUST be eliminated" (RFC 7095 §3.5.10), keeping every digit.
+        /// </summary>
+        /// <returns><c>false</c> if the text isn't a JSON number, or its exponent is too large to expand.</returns>
+        internal static bool TryExpandJsonFloat(ReadOnlySpan<char> value, out string text)
+        {
+            bool isNegative;
+            string integerDigits, fractionDigits;
+            text = string.Empty;
+            if (!VcardValueFormatting.TryExpandJsonNumber(value, out isNegative, out integerDigits, out fractionDigits)) return false;
+
+            var builder = new StringBuilder();
+            if (isNegative)
             {
-                return false;
+                builder.Append('-');
             }
 
-            number = decimal.Truncate(number);
-            if (number < long.MinValue || number > long.MaxValue) return false;
+            builder.Append(integerDigits.Length == 0 ? "0" : integerDigits);
+            if (fractionDigits.Length != 0)
+            {
+                builder.Append('.').Append(fractionDigits);
+            }
 
-            result = (long)number;
+            text = builder.ToString();
             return true;
         }
 

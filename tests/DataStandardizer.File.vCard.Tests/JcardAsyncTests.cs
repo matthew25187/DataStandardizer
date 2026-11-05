@@ -178,6 +178,80 @@ namespace DataStandardizer.File.vCard.Tests
             }
         }
 
+        [Fact]
+        public async Task WriteCardAsync_AfterACanceledWrite_ThrowsInvalidOperation()
+        {
+            // arrange
+            var card = ReadVcards(MinimalVcard)[0];
+            var writer = new JcardWriter(new AsyncOnlyWriteStream());
+            using (var cancellation = new CancellationTokenSource())
+            {
+                cancellation.Cancel();
+                await WritePastCancellationAsync(writer, card, cancellation.Token);
+
+                // act
+                Func<Task> testAction = async () => await writer.WriteCardAsync(card);
+
+                // assert
+                await testAction.Should().ThrowAsync<InvalidOperationException>();
+            }
+        }
+
+        [Fact]
+        public async Task WriteCardAsync_DisposedWhileTheCardIsBeingWritten_ThrowsObjectDisposed()
+        {
+            // arrange: the first card is held, and the second writes both to the stream, which waits at its gate.
+            var cards = ReadVcards(MinimalVcard + MinimalVcard);
+            var stream = new GatedWriteStream();
+            var writer = new JcardWriter(stream);
+            await writer.WriteCardAsync(cards[0]);
+            var pending = writer.WriteCardAsync(cards[1]).AsTask();
+            await stream.OperationStarted;
+            writer.Dispose();
+            stream.OpenGate();
+
+            // act
+            Func<Task> testAction = async () => await pending;
+
+            // assert
+            await testAction.Should().ThrowAsync<ObjectDisposedException>();
+        }
+
+        [Fact]
+        public async Task FlushAsync_DisposedWhileTheStreamIsBeingFlushed_ThrowsObjectDisposed()
+        {
+            // arrange
+            var stream = new GatedWriteStream();
+            var writer = new JcardWriter(stream);
+            var pending = writer.FlushAsync();
+            await stream.OperationStarted;
+            writer.Dispose();
+            stream.OpenGate();
+
+            // act
+            Func<Task> testAction = async () => await pending;
+
+            // assert
+            await testAction.Should().ThrowAsync<ObjectDisposedException>();
+        }
+
+        /// <summary>
+        /// Writes a card with a canceled token, and leaves the cancellation for the test to go on from.
+        /// </summary>
+        private static async Task WritePastCancellationAsync(JcardWriter writer, VcardCard card, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await writer.WriteCardAsync(card, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
+            Assert.Fail("The write was expected to be canceled.");
+        }
+
         /// <summary>
         /// Reads a card with a canceled token, and leaves the cancellation for the test to go on from.
         /// </summary>
@@ -193,6 +267,81 @@ namespace DataStandardizer.File.vCard.Tests
             }
 
             Assert.Fail("The read was expected to be canceled.");
+        }
+
+        /// <summary>
+        /// A stream whose asynchronous writes and flushes wait until the test opens a gate, so an operation can be held in progress.  Its synchronous members throw.
+        /// </summary>
+        private sealed class GatedWriteStream : Stream
+        {
+            private readonly MemoryStream _data = new MemoryStream();
+            private readonly TaskCompletionSource<bool> _gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            private readonly TaskCompletionSource<bool> _operationStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            /// <summary>
+            /// Gets a task that completes when a write or a flush starts waiting at the gate.
+            /// </summary>
+            public Task OperationStarted => _operationStarted.Task;
+
+            public override bool CanRead => false;
+
+            public override bool CanSeek => false;
+
+            public override bool CanWrite => true;
+
+            public override long Length => throw new NotSupportedException();
+
+            public override long Position
+            {
+                get => throw new NotSupportedException();
+                set => throw new NotSupportedException();
+            }
+
+            /// <summary>
+            /// Lets waiting and later operations through.
+            /// </summary>
+            public void OpenGate()
+            {
+                _gate.TrySetResult(true);
+            }
+
+            public override void Flush()
+            {
+                throw new InvalidOperationException(AsyncPathMessages.SynchronousFlush);
+            }
+
+            public override async Task FlushAsync(CancellationToken cancellationToken)
+            {
+                _operationStarted.TrySetResult(true);
+                await TestTasks.WaitAsync(_gate.Task, cancellationToken);
+            }
+
+            public override int Read(byte[] buffer, int offset, int count)
+            {
+                throw new NotSupportedException();
+            }
+
+            public override long Seek(long offset, SeekOrigin origin)
+            {
+                throw new NotSupportedException();
+            }
+
+            public override void SetLength(long value)
+            {
+                throw new NotSupportedException();
+            }
+
+            public override void Write(byte[] buffer, int offset, int count)
+            {
+                throw new InvalidOperationException(AsyncPathMessages.SynchronousWrite);
+            }
+
+            public override async Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+            {
+                _operationStarted.TrySetResult(true);
+                await TestTasks.WaitAsync(_gate.Task, cancellationToken);
+                _data.Write(buffer, offset, count);
+            }
         }
 
         /// <summary>

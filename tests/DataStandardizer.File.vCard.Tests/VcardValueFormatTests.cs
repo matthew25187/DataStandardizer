@@ -77,6 +77,10 @@ namespace DataStandardizer.File.vCard.Tests
                 format => VcardGender.TryParse(default(ReadOnlySpan<char>), format, out _),
                 format => new VcardGender(VcardSex.Male, null).TryFormat(destination, out _, format),
                 format => VcardClientPidMap.TryParse(default(ReadOnlySpan<char>), format, out _),
+                format => new VcardAddress(new string[0], new string[0], new[] { "123 Main Street" }, new[] { "Any Town" }, new string[0], new string[0], new string[0])
+                    .TryFormat(destination, out _, format),
+                format => new VcardOrganization("ABC, Inc.", new[] { "Marketing" }).TryFormat(destination, out _, format),
+                format => new VcardClientPidMap(1, new Uri("urn:uuid:3df403f4-5924-4bb7-b077-3c711d9eb34b")).TryFormat(destination, out _, format),
             };
         }
 

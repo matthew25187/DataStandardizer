@@ -34,6 +34,10 @@ namespace DataStandardizer.File.vCard.Tests
             { "BEGIN:VCARD\r\nVERSION:4.0\r\nFN:A\r\nCLIENTPIDMAP:1;urn:uuid:3df403f4-5924-4bb7-b077-3c711d9eb34b\r\nEND:VCARD\r\n",
                 "[\"clientpidmap\",{},\"text\",[\"1\",\"urn:uuid:3df403f4-5924-4bb7-b077-3c711d9eb34b\"]]" },
 
+            // ref. RFC 6350 §6.2.7 and §6.7.7: the identity of GENDER and the URI of CLIENTPIDMAP are the rest of the value, which may hold a semicolon.
+            { "BEGIN:VCARD\r\nVERSION:4.0\r\nFN:A\r\nGENDER:M;alpha;beta\r\nEND:VCARD\r\n", "[\"gender\",{},\"text\",[\"M\",\"alpha;beta\"]]" },
+            { "BEGIN:VCARD\r\nVERSION:4.0\r\nFN:A\r\nCLIENTPIDMAP:1;http://example.com/a;b\r\nEND:VCARD\r\n", "[\"clientpidmap\",{},\"text\",[\"1\",\"http://example.com/a;b\"]]" },
+
             // ref. RFC 9554 §2.2 and §2.3: N has seven components with the new ones, and ADR eighteen; without them, five and seven, as in the text form.
             { "BEGIN:VCARD\r\nVERSION:4.0\r\nFN:A\r\nN:Doe;Jane;;;;Smith;III\r\nEND:VCARD\r\n", "[\"n\",{},\"text\",[\"Doe\",\"Jane\",\"\",\"\",\"\",\"Smith\",\"III\"]]" },
             { "BEGIN:VCARD\r\nVERSION:4.0\r\nFN:A\r\nN:Doe;Jane;;;\r\nEND:VCARD\r\n", "[\"n\",{},\"text\",[\"Doe\",\"Jane\",\"\",\"\",\"\"]]" },
@@ -208,6 +212,9 @@ namespace DataStandardizer.File.vCard.Tests
             // ref. RFC 7095 §3.4: a parameter is a key of an object, which can't be repeated, unless it is a list.
             new VcardContentLine("NOTE", new[] { new VcardContentLineParameter("LANGUAGE", "en"), new VcardContentLineParameter("LANGUAGE", "fr") }, "a"),
 
+            // ref. RFC 7095 §3.4.1: the type identifier is one value, so it can't hold two VALUE parameters.
+            new VcardContentLine("X-A", new[] { new VcardContentLineParameter("VALUE", "text"), new VcardContentLineParameter("VALUE", "uri") }, "a"),
+
             // ref. RFC 7095 §7.1: GROUP "MUST NOT be used in plain vCard".
             new VcardContentLine("NOTE", new[] { new VcardContentLineParameter("GROUP", "a") }, "a"),
 
@@ -310,6 +317,39 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Fact]
+        public void WriteCard_AfterAWriteToTheStreamFailed_ThrowsInvalidOperation()
+        {
+            // arrange: the first card is held, and the second writes it to the stream, which fails.
+            var cards = ReadVcards(MinimalVcard + MinimalVcard + MinimalVcard);
+            var writer = new JcardWriter(new FailingWriteStream());
+            writer.WriteCard(cards[0]);
+            WritePastIOFailure(writer, cards[1]);
+
+            // act
+            Action testAction = () => writer.WriteCard(cards[2]);
+
+            // assert
+            testAction.Should().Throw<InvalidOperationException>();
+        }
+
+        [Fact]
+        public void Dispose_AfterAWriteToTheStreamFailed_WritesNothingMore()
+        {
+            // arrange
+            var cards = ReadVcards(MinimalVcard + MinimalVcard);
+            var stream = new FailingWriteStream();
+            var writer = new JcardWriter(stream);
+            writer.WriteCard(cards[0]);
+            WritePastIOFailure(writer, cards[1]);
+
+            // act
+            writer.Dispose();
+
+            // assert
+            stream.WriteCount.Should().Be(1);
+        }
+
+        [Fact]
         public void Flush_OneCard_HoldsItUntilDisposed()
         {
             // arrange
@@ -322,6 +362,40 @@ namespace DataStandardizer.File.vCard.Tests
 
             // assert
             output.ToArray().Should().BeEmpty();
+        }
+
+        /// <summary>
+        /// Writes a card, and leaves the <see cref="IOException"/> of the stream for the test to go on from.
+        /// </summary>
+        private static void WritePastIOFailure(JcardWriter writer, VcardCard card)
+        {
+            try
+            {
+                writer.WriteCard(card);
+            }
+            catch (IOException)
+            {
+                return;
+            }
+
+            Assert.Fail("The write was expected to fail.");
+        }
+
+        /// <summary>
+        /// A stream whose every write fails, and counts the writes it was asked for.
+        /// </summary>
+        private sealed class FailingWriteStream : MemoryStream
+        {
+            /// <summary>
+            /// Gets the number of writes the stream was asked for.
+            /// </summary>
+            public int WriteCount { get; private set; }
+
+            public override void Write(byte[] buffer, int offset, int count)
+            {
+                WriteCount++;
+                throw new IOException("The test stream fails every write.");
+            }
         }
 
         /// <summary>

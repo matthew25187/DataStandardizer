@@ -40,6 +40,7 @@ namespace DataStandardizer.File.vCard
         private readonly VcardCardBuilder _builder;
         private int _cardIndex = -1;
         private readonly List<Frame> _frames = new List<Frame>();
+        private List<VcardDiagnostic> _valueDiagnostics = new List<VcardDiagnostic>();
         private bool _isRootStarted;
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private string? _memberName;
@@ -114,11 +115,14 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Gets the problems found in the <c>VERSION</c> of the last card.
+        /// Gets the problems found in the <c>VERSION</c> of the last card, then the values found not to be in the form jCard gives their type.
         /// </summary>
         internal List<VcardDiagnostic> TakeStructureDiagnostics()
         {
-            return _builder.TakeStructureDiagnostics();
+            var diagnostics = _builder.TakeStructureDiagnostics();
+            diagnostics.AddRange(_valueDiagnostics);
+            _valueDiagnostics = new List<VcardDiagnostic>();
+            return diagnostics;
         }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
@@ -244,7 +248,15 @@ namespace DataStandardizer.File.vCard
                     return AddLine(VcardContentLine.FromConversion(null, VcardPropertyNames.End, new VcardContentLineParameter[0], VcardCardBuilder.CardValue, _cardIndex),
                         frame.Node);
                 case FrameKind.Property:
-                    var line = JcardConverter.ToContentLine(frame.Node, _cardIndex);
+                    bool isValueNotInJcardForm;
+                    var line = JcardConverter.ToContentLine(frame.Node, _cardIndex, out isValueNotInJcardForm);
+                    if (isValueNotInJcardForm)
+                    {
+                        // ref. RFC 7095 §3.5: each type has its form in jCard.  The value is kept, and reported as a value that isn't valid, as AllowInvalidValues can accept.
+                        _valueDiagnostics.Add(new VcardDiagnostic(VcardDiagnosticKind.InvalidValue,
+                            Format("A value of the {0} property isn't in the form RFC 7095 §3.5 gives its type in jCard.", line.Name), line.Name, line.Group, 0, _cardIndex));
+                    }
+
                     if (string.Equals(line.Name, VcardPropertyNames.Version, StringComparison.Ordinal))
                     {
                         CheckVersion(line, frame.Node);

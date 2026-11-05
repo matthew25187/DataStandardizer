@@ -69,6 +69,9 @@ namespace DataStandardizer.File.vCard.Tests
         private const string IntegerWithExponent = "2e10";
         private const string FloatWithExponent = "2e10";
 
+        // A fraction longer than a decimal holds, which would round up to 2 if it were taken through one.
+        private const string IntegerWithALongFraction = "1.99999999999999999999999999999999999999";
+
         // ref. RFC 7095 Appendix B.1.2: a GEO URI, with no escaping of its comma.
         private const string GeoUri = "geo:46.772673,-71.282945";
 
@@ -425,6 +428,9 @@ namespace DataStandardizer.File.vCard.Tests
         [InlineData("-3.99", -3L)]
         [InlineData(IntegerWithExponent, 20000000000L)]
         [InlineData("-0", 0L)]
+        [InlineData(IntegerWithALongFraction, 1L)]
+        [InlineData("-1.5e1", -15L)]
+        [InlineData("25e-1", 2L)]
         [InlineData("9223372036854775807", long.MaxValue)]
         public void TryParseInteger_JsonNumber_GivesItWithoutDecimalsOrExponent(string value, long expected)
         {

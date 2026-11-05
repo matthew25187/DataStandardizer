@@ -73,6 +73,16 @@ namespace DataStandardizer.File.vCard.Tests
             { "[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"A\"],[\"x-coffee-data\", {}, \"unknown\", \"Stenophylla;Guinea\\\\,Africa\"]]]", "X-COFFEE-DATA:Stenophylla;Guinea\\,Africa" },
             { "[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"A\"],[\"gender\", { \"x-probability\": \"0.8\" }, \"text\", \"M\"]]]", "GENDER;X-PROBABILITY=0.8:M" },
 
+            // ref. RFC 7095 §3.3.1.3: "extensions may define structured" values, so an array is taken for a property whose type isn't known.
+            { "[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"A\"],[\"x-a\", {}, \"text\", [\"a\", \"b;c\"]]]]", "X-A;VALUE=text:a;b\\;c" },
+
+            // ref. RFC 7095 §3.5.10: the exponent of a FLOAT is eliminated in the text, so no digit is lost, as it would be through a double.
+            { "[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"A\"],[\"x-grade\", {}, \"float\", 9007199254740993e0]]]", "X-GRADE;VALUE=float:9007199254740993" },
+            { "[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"A\"],[\"x-grade\", {}, \"float\", 1.5e-3]]]", "X-GRADE;VALUE=float:0.0015" },
+
+            // ref. RFC 7095 §3.5.9: the decimals of an INTEGER are eliminated in the text, so a long fraction isn't rounded up.
+            { "[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"A\"],[\"x-karma-points\", {}, \"integer\", 1.99999999999999999999999999999999999999]]]", "X-KARMA-POINTS;VALUE=integer:1" },
+
             // A type identifier that RFC 6350 doesn't define is an extension value type, whose value is kept as it is.
             { "[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"A\"],[\"x-a\", {}, \"x-mytype\", \"a\\\\b\"]]]", "X-A;VALUE=x-mytype:a\\b" },
 
@@ -204,6 +214,10 @@ namespace DataStandardizer.File.vCard.Tests
             { "[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",{}]]]", "$[1][1][3]" },
             { "[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"A\"],[\"x-a\",{},\"unknown\",[\"A\"]]]]", "$[1][2][3]" },
 
+            // ref. RFC 7095 §3.3.1.3: a structured value is an array, and RFC 6350 structures N, ADR, ORG, GENDER and CLIENTPIDMAP alone.
+            { "[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",[\"A\"]]]]", "$[1][1][3]" },
+            { "[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"A\"],[\"note\",{},\"text\",[\"A\",\"B\"]]]]", "$[1][2][3]" },
+
             // ref. RFC 7095 §3.4: "The name of the parameter MUST be in lowercase", and its value is a string or an array of strings.
             { "[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{\"Language\":\"en\"},\"text\",\"A\"]]]", "$[1][1][1]['Language']" },
             { "[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{\"language\":\"en\",\"language\":\"fr\"},\"text\",\"A\"]]]", "$[1][1][1]['language']" },
@@ -311,6 +325,32 @@ namespace DataStandardizer.File.vCard.Tests
             testAction.Should().Throw<VcardFileException>();
         }
 
+        [Fact]
+        public void ReadCards_EmptyArray_GivesTheBytePositionOfTheEndOfTheData()
+        {
+            // arrange: the data is the two bytes "[]".
+            const long expected = 2;
+
+            // act
+            Action testAction = () => ReadJcard("[]");
+
+            // assert
+            testAction.Should().Throw<VcardFileException>().Which.Data[VcardFileException.DataItemName.BytePosition].Should().Be(expected);
+        }
+
+        [Fact]
+        public void ReadCard_BirthdayInBasicFormatAllowed_KeepsTheValueAsItIs()
+        {
+            // arrange
+            var options = new VcardOptions { AllowInvalidValues = true };
+
+            // act
+            var testResult = ReadLastProperty(BirthdayInBasicFormat, options);
+
+            // assert
+            testResult.Should().Be("BDAY:19850412");
+        }
+
         // ref. RFC 6350 §6.2.1: FN is required.
         private const string NoFormattedName = "[\"vcard\",[[\"version\",{},\"text\",\"4.0\"]]]";
 
@@ -324,6 +364,12 @@ namespace DataStandardizer.File.vCard.Tests
         // ref. RFC 6350 §6.2.5: BDAY is a DATE-AND-OR-TIME or TEXT, so the example of RFC 7095 §3.5.3 that gives it the type date isn't valid.
         private const string BirthdayAsDate = "[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"A\"],[\"bday\", {}, \"date\", \"1985-04-12\"]]]";
 
+        // ref. RFC 7095 §3.5.3: a date is in the extended format, so the basic format, though a valid value of vCard, isn't one of jCard.
+        private const string BirthdayInBasicFormat = "[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"A\"],[\"bday\",{},\"date-and-or-time\",\"19850412\"]]]";
+
+        // ref. RFC 7095 §3.5.9: an INTEGER is a JSON number, so a string isn't one.
+        private const string IntegerAsString = "[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"A\"],[\"x-karma-points\",{},\"integer\",\"42\"]]]";
+
         // ref. RFC 6350 §6.1.4: KIND has at most one instance.
         private const string TwoKinds = "[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"A\"],[\"kind\",{},\"text\",\"individual\"],[\"kind\",{},\"text\",\"org\"]]]";
 
@@ -334,6 +380,8 @@ namespace DataStandardizer.File.vCard.Tests
             { VersionNotFirst, VcardDiagnosticKind.InvalidStructure },
             { InvalidBirthday, VcardDiagnosticKind.InvalidValue },
             { BirthdayAsDate, VcardDiagnosticKind.InvalidValue },
+            { BirthdayInBasicFormat, VcardDiagnosticKind.InvalidValue },
+            { IntegerAsString, VcardDiagnosticKind.InvalidValue },
             { TwoKinds, VcardDiagnosticKind.CardinalityViolation },
         };
 
@@ -355,6 +403,8 @@ namespace DataStandardizer.File.vCard.Tests
             { VersionNotFirst, new VcardOptions { AllowVersionNotFirst = true } },
             { InvalidBirthday, new VcardOptions { AllowInvalidValues = true } },
             { BirthdayAsDate, new VcardOptions { AllowInvalidValues = true } },
+            { BirthdayInBasicFormat, new VcardOptions { AllowInvalidValues = true } },
+            { IntegerAsString, new VcardOptions { AllowInvalidValues = true } },
             { TwoKinds, new VcardOptions { AllowCardinalityViolations = true } },
         };
 

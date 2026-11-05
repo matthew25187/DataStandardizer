@@ -72,8 +72,10 @@ using (var writer = new JcardWriter("contacts.json"))
 }
 ```
 
-A round trip keeps every property, parameter and value. It doesn't keep JSON
-formatting or the order of an object's keys. A few things can come back spelled
+A round trip of a vCard 4.0 card keeps every property, parameter and value. A card
+of vCard 3.0 or 2.1 comes back as vCard 4.0, with `VERSION:4.0`, in the canonical
+form it has in the model. A round trip doesn't keep JSON formatting or the order of
+an object's keys. A few things can come back spelled
 differently but with the same meaning:
 
 - **Names:** property and parameter names come back in upper case, and a group in
@@ -117,6 +119,9 @@ When reading, the reader also accepts:
 
 - **A string for any type:** a string as the value of any type, so that a value that
   doesn't follow its type reaches the conformance check rather than failing the read.
+  A value that isn't in the form jCard gives its type, such as a string for an
+  INTEGER or a date in the basic format of ISO 8601, such as `"19850412"`, is reported
+  as `InvalidValue` even where its text is valid in `.vcf`.
 - **A structured value as one string:** a single string where a structured value is
   expected, which is its one component.
 - **Numbers with decimals or exponents:** an INTEGER with a fraction or an exponent,
@@ -156,7 +161,8 @@ The checks are on by default, as they are for `.vcf`:
   allow, so they need `AllowInvalidValues`.
 - **Invalid values:** a value that isn't valid for its type is kept, and the check
   reports it unless `AllowInvalidValues` is set. When writing, such a value is
-  written as a string with its own type identifier, which reads back the same. A
+  written as a string with its own type identifier, which reads back the same, as a
+  value that `AllowInvalidValues` accepts. A
   TEXT, URI or structured value that isn't valid is written with the type `unknown`
   instead, so that its escaping isn't changed.
 - **The structure of jCard:** JSON that isn't valid, or doesn't follow the structure
