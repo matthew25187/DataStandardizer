@@ -53,6 +53,8 @@ namespace DataStandardizer.File.ContentLine
         private readonly int _bufferSize;
         private readonly IContentLineErrorFactory _errorFactory;
         private readonly int _maxLineLength;
+        private readonly bool _rejectByteOrderMark;
+        private readonly bool _requireFinalLineBreak;
 
         private char[] _buffer = EmptyCharacters;
         private int _bufferEnd;
@@ -63,6 +65,7 @@ namespace DataStandardizer.File.ContentLine
         private int _groupLength;
         private int _lineEnd;
         private bool _lineInProgress;
+        private bool _lineLacksLineBreak;
         private long _lineNumber;
         private long _linesRead;
         private int _lineStart;
@@ -93,6 +96,8 @@ namespace DataStandardizer.File.ContentLine
             _allowGroupPrefix = settings.AllowGroupPrefix;
             _errorFactory = errorFactory;
             _maxLineLength = settings.MaxLineLength;
+            _rejectByteOrderMark = settings.RejectByteOrderMark;
+            _requireFinalLineBreak = settings.RequireFinalLineBreak;
         }
 
         /// <summary>
@@ -141,7 +146,7 @@ namespace DataStandardizer.File.ContentLine
             if (!_started)
             {
                 if (!HasAvailable(1) && !_endOfInput) return RequestInput(1);
-                if (HasAvailable(1) && _buffer[_position] == ByteOrderMark) _position++;
+                if (!_rejectByteOrderMark && HasAvailable(1) && _buffer[_position] == ByteOrderMark) _position++;
                 _started = true;
             }
 
@@ -164,7 +169,8 @@ namespace DataStandardizer.File.ContentLine
                 {
                     if (!_endOfInput) return RequestInput(1);
 
-                    // ref. RFC 5545§3.1: content lines are delimited by a line break, so the last one need not end with one.
+                    // The input has ended inside a line.  ParseLine reports this if the settings require a line break.
+                    _lineLacksLineBreak = true;
                     _physicalLinesRead++;
                     return CompleteLine();
                 }
@@ -368,6 +374,12 @@ namespace DataStandardizer.File.ContentLine
 
             _valueOffset = _lineStart + index;
             _valueLength = line.Length - index;
+
+            // ref. RFC 6350§3.3: contentline = [group "."] name *(";" param) ":" value CRLF
+            if (_requireFinalLineBreak && _lineLacksLineBreak)
+            {
+                throw BuildError(ContentLineErrorKind.MissingLineBreak, line.Length);
+            }
         }
 
         /// <summary>
@@ -534,7 +546,8 @@ namespace DataStandardizer.File.ContentLine
         {
             var physicalLineNumber = GetPhysicalLineNumber(_physicalLineNumber, _foldOffsets, _foldCount, offsetInLine);
             var propertyName = _nameLength > 0 ? new string(_buffer, _nameOffset, _nameLength) : null;
-            return _errorFactory.CreateException(new ContentLineError(kind, _lineNumber, physicalLineNumber, propertyName, character: character));
+            var group = _groupLength > 0 ? new string(_buffer, _lineStart, _groupLength) : null;
+            return _errorFactory.CreateException(new ContentLineError(kind, _lineNumber, physicalLineNumber, propertyName, character: character, group: group));
         }
 
         /// <summary>

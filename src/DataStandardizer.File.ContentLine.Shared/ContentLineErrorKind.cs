@@ -55,6 +55,9 @@
         /// <summary>A line is too long to fit in a buffer to write it.</summary>
         LineTooLongToWrite,
 
+        /// <summary>The last line of the data ends without a line break, which is not accepted.</summary>
+        MissingLineBreak,
+
         /// <summary>The line ends before the ':' and the value.</summary>
         MissingValue,
 

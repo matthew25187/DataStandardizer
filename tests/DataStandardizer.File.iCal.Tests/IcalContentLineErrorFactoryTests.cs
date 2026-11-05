@@ -39,6 +39,7 @@ namespace DataStandardizer.File.iCal.Tests
                 { ReadError(ContentLineErrorKind.InvalidTextEscape), "Found a backslash that does not start a valid TEXT escape sequence." },
                 { ReadError(ContentLineErrorKind.InvalidValueCharacter), InvalidValueCharacterMessage },
                 { ReadError(ContentLineErrorKind.LineTooLong), "The content line is longer than the maximum of 75 characters." },
+                { ReadError(ContentLineErrorKind.MissingLineBreak), "Expected a CRLF line break at the end of the last content line." },
                 { ReadError(ContentLineErrorKind.MissingValue), "Expected ':' and a property value." },
                 { ReadError(ContentLineErrorKind.UnterminatedQuotedString), "Expected a closing '\"' for the quoted parameter value." },
                 { WriteError(ContentLineErrorKind.InvalidParameterNameToWrite), "The parameter name \"X Y\" is not valid.  A name has one or more letters, digits or '-'." },
