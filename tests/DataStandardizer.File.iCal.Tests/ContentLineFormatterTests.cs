@@ -34,6 +34,48 @@ namespace DataStandardizer.File.iCal.Tests
         private const string UnfoldedShortLine = "TEL:abcdefghijkl\r\n";
 
         [Fact]
+        public void Format_AlwaysQuotedParameter_QuotesAValueThatDoesNotNeedIt()
+        {
+            // arrange
+            var formatter = CreateFormatter();
+            var line = new TestLine(null, Name, "x", ParameterName, "Ab");
+
+            // act
+            var length = formatter.Format(line, 1, ContentLineCaretMode.Encode, ContentLineFoldMode.Fold, name => name == ParameterName);
+
+            // assert
+            new string(formatter.Buffer, 0, length).Should().Be("TEL;P=\"Ab\":x\r\n");
+        }
+
+        [Fact]
+        public void Format_AlwaysQuotedParameterHoldingAComma_QuotesItOnce()
+        {
+            // arrange
+            var formatter = CreateFormatter();
+            var line = new TestLine(null, Name, "x", ParameterName, "a,b");
+
+            // act
+            var length = formatter.Format(line, 1, ContentLineCaretMode.Encode, ContentLineFoldMode.Fold, name => name == ParameterName);
+
+            // assert
+            new string(formatter.Buffer, 0, length).Should().Be("TEL;P=\"a,b\":x\r\n");
+        }
+
+        [Fact]
+        public void Format_OtherParameter_QuotesAValueOnlyIfItHasTo()
+        {
+            // arrange
+            var formatter = CreateFormatter();
+            var line = new TestLine(null, Name, "x", ParameterName, "Ab");
+
+            // act
+            var length = formatter.Format(line, 1, ContentLineCaretMode.Encode, ContentLineFoldMode.Fold, name => name == "OTHER");
+
+            // assert
+            new string(formatter.Buffer, 0, length).Should().Be("TEL;P=Ab:x\r\n");
+        }
+
+        [Fact]
         public void Format_Group_IsWrittenBeforeTheName()
         {
             // arrange
