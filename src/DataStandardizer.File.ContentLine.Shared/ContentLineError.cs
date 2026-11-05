@@ -12,12 +12,14 @@
         /// <param name="subjectName">The name that <paramref name="kind"/> is about, if it is about one.</param>
         /// <param name="character">The character that <paramref name="kind"/> is about, if it is about one.</param>
         /// <param name="maximumLineLength">The limit that <paramref name="kind"/> is about, if it is about one.</param>
+        /// <param name="group">The group of the line; or <c>null</c> if it has none or has not been read.</param>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         internal ContentLineError(ContentLineErrorKind kind, long lineNumber, long? physicalLineNumber, string? propertyName, string? subjectName = null,
+            int character = 0, int maximumLineLength = 0, string? group = null)
 #else
         internal ContentLineError(ContentLineErrorKind kind, long lineNumber, long? physicalLineNumber, string propertyName, string subjectName = null,
+            int character = 0, int maximumLineLength = 0, string group = null)
 #endif
-            int character = 0, int maximumLineLength = 0)
         {
             Kind = kind;
             LineNumber = lineNumber;
@@ -26,6 +28,7 @@
             SubjectName = subjectName;
             Character = character;
             MaximumLineLength = maximumLineLength;
+            Group = group;
         }
 
         /// <summary>
@@ -55,6 +58,11 @@
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         /// <summary>
+        /// Gets the group of the line; or <c>null</c> if it has none or has not been read.
+        /// </summary>
+        internal string? Group { get; }
+
+        /// <summary>
         /// Gets the name of the property on the line; or <c>null</c> if it has not been read or is not valid.
         /// </summary>
         internal string? PropertyName { get; }
@@ -64,6 +72,11 @@
         /// </summary>
         internal string? SubjectName { get; }
 #else
+        /// <summary>
+        /// Gets the group of the line; or <c>null</c> if it has none or has not been read.
+        /// </summary>
+        internal string Group { get; }
+
         /// <summary>
         /// Gets the name of the property on the line; or <c>null</c> if it has not been read or is not valid.
         /// </summary>

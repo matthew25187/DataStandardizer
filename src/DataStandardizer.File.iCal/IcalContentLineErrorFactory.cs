@@ -25,6 +25,7 @@ namespace DataStandardizer.File.iCal
             internal const string InvalidValueCharacterTemplate = "Found an invalid character U+{0:X4} in the property value.";
             internal const string LineTooLongTemplate = "The content line is longer than the maximum of {0} characters.";
             internal const string LineTooLongToWrite = "The content line is too long to write.";
+            internal const string MissingLineBreak = "Expected a CRLF line break at the end of the last content line.";
             internal const string MissingValue = "Expected ':' and a property value.";
             internal const string UnterminatedQuotedString = "Expected a closing '\"' for the quoted parameter value.";
         }
@@ -115,6 +116,8 @@ namespace DataStandardizer.File.iCal
                     return string.Format(ErrorMessage.LineTooLongTemplate, error.MaximumLineLength);
                 case ContentLineErrorKind.LineTooLongToWrite:
                     return ErrorMessage.LineTooLongToWrite;
+                case ContentLineErrorKind.MissingLineBreak:
+                    return ErrorMessage.MissingLineBreak;
                 case ContentLineErrorKind.MissingValue:
                     return ErrorMessage.MissingValue;
                 case ContentLineErrorKind.UnterminatedQuotedString:
