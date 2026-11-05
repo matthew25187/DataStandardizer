@@ -7,9 +7,9 @@ has_children: true
 
 # DataStandardizer.File.vCard
 
-Reading of vCard data at the level of its content lines. The package is a preview
-under development: the card object model, writing, the older vCard versions, jCard and
-xCard are still to come.
+Reading and writing of vCard data at the level of its content lines. The package is a
+preview under development: the card object model, the legacy syntax of the older vCard
+versions, jCard and xCard are still to come.
 
 ## Standards
 
@@ -20,10 +20,11 @@ xCard are still to come.
 
 ## Standards compliance
 
-By default the reader accepts only what RFC 6350 allows. Each accommodation for common
-non-compliant input is a separate option on [VcardOptions](reference/VcardOptions.md),
-off by default. So a file that other software reads without complaint may need one, for
-example `AcceptByteOrderMark` for a file saved with a byte order mark.
+By default the reader accepts only what RFC 6350 allows, and the writer writes only what
+it allows. Each accommodation for common non-compliant input or output is a separate
+option on [VcardOptions](reference/VcardOptions.md), off by default. So a file that other
+software reads without complaint may need one, for example `AcceptByteOrderMark` for a
+file saved with a byte order mark.
 
 ## Reference
 

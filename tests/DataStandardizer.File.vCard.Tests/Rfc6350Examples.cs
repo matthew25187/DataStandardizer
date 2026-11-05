@@ -1,4 +1,4 @@
-namespace DataStandardizer.File.vCard.Tests
+﻿namespace DataStandardizer.File.vCard.Tests
 {
     /// <summary>
     /// Examples from RFC 6350 at the lexical level, with the lines the reader should give for them, worked out by hand.
@@ -61,6 +61,35 @@ namespace DataStandardizer.File.vCard.Tests
             "18/20 URL;TYPE=home:http://nomis80.org",
             "19/21 END:VCARD"
         };
+
+        /// <summary>
+        /// The number of logical lines in <see cref="Example"/>.
+        /// </summary>
+        public const long ExampleLogicalLineCount = 19;
+
+        /// <summary>
+        /// <see cref="Example"/> as a writer writes it: the lines that the RFC folds fit in 75 octets, and a value with a comma is quoted, as printed in the RFC.
+        /// </summary>
+        public const string ExampleWritten =
+            "BEGIN:VCARD\r\n" +
+            "VERSION:4.0\r\n" +
+            "FN:Simon Perreault\r\n" +
+            "N:Perreault;Simon;;;ing. jr,M.Sc.\r\n" +
+            "BDAY:--0203\r\n" +
+            "ANNIVERSARY:20090808T1430-0500\r\n" +
+            "GENDER:M\r\n" +
+            "LANG;PREF=1:fr\r\n" +
+            "LANG;PREF=2:en\r\n" +
+            "ORG;TYPE=work:Viagenie\r\n" +
+            "ADR;TYPE=work:;Suite D2-630;2875 Laurier;Quebec;QC;G1V 2M2;Canada\r\n" +
+            "TEL;VALUE=uri;TYPE=\"work,voice\";PREF=1:tel:+1-418-656-9254;ext=102\r\n" +
+            "TEL;VALUE=uri;TYPE=\"work,cell,voice,video,text\":tel:+1-418-262-6501\r\n" +
+            "EMAIL;TYPE=work:simon.perreault@viagenie.ca\r\n" +
+            "GEO;TYPE=work:geo:46.772673,-71.282945\r\n" +
+            "KEY;TYPE=work;VALUE=uri:http://www.viagenie.ca/simon.perreault/simon.asc\r\n" +
+            "TZ:-0500\r\n" +
+            "URL;TYPE=home:http://nomis80.org\r\n" +
+            "END:VCARD\r\n";
 
         /// <summary>
         /// ref. RFC 6350 §3.2: the same NOTE, unfolded and in the first of its folded forms.  The fold's white space is the one after the line break.

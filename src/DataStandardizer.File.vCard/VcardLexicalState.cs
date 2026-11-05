@@ -4,8 +4,8 @@ using DataStandardizer.File.ContentLine;
 namespace DataStandardizer.File.vCard
 {
     /// <summary>
-    /// Tracks, from the lines read, which card a line is in and whether that card is vCard 4.0.  It decides only whether RFC 6868 caret encoding is
-    /// decoded and what an exception reports.  Whether the lines make a conforming card is checked elsewhere.
+    /// Tracks, from the lines read or written, which card a line is in and which of vCard 4.0 or 2.1 that card is.  It decides only how RFC 6868 caret
+    /// encoding and folding apply, and what an exception reports.  Whether the lines make a conforming card is checked elsewhere.
     /// </summary>
     /// <remarks>
     /// The names match with or without a group, since RFC 2426 §4 allows a group on the <c>BEGIN</c>, <c>VERSION</c> and <c>END</c> lines of a
@@ -17,6 +17,7 @@ namespace DataStandardizer.File.vCard
         private const string BeginName = "BEGIN";
         private const string CardValue = "VCARD";
         private const string EndName = "END";
+        private const string Version21 = "2.1";
         private const string Version40 = "4.0";
         private const string VersionName = "VERSION";
 
@@ -30,9 +31,26 @@ namespace DataStandardizer.File.vCard
         internal int CardIndexOfLine => _isInCard ? _cardIndex : -1;
 
         /// <summary>
+        /// Gets a flag indicating if the current line is in a card that has said it is vCard 2.1.
+        /// </summary>
+        internal bool IsVersion21 { get; private set; }
+
+        /// <summary>
         /// Gets a flag indicating if the current line is in a card that has said it is vCard 4.0.
         /// </summary>
         internal bool IsVersion40 { get; private set; }
+
+        /// <summary>
+        /// Takes the state of another instance.
+        /// </summary>
+        internal void CopyFrom(VcardLexicalState other)
+        {
+            _cardIndex = other._cardIndex;
+            _hasEnded = other._hasEnded;
+            _isInCard = other._isInCard;
+            IsVersion21 = other.IsVersion21;
+            IsVersion40 = other.IsVersion40;
+        }
 
         /// <summary>
         /// Moves on from a line.  The <c>END:VCARD</c> line is the last line of its card, so the card is left here and not when that line is read.
@@ -43,6 +61,7 @@ namespace DataStandardizer.File.vCard
 
             _hasEnded = false;
             _isInCard = false;
+            IsVersion21 = false;
             IsVersion40 = false;
         }
 
@@ -51,23 +70,32 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         internal void ObserveLine(ContentLineScanner scanner)
         {
-            var name = scanner.Name.Span;
+            ObserveLine(scanner.Name.Span, scanner.RawValue.Span);
+        }
+
+        /// <summary>
+        /// Takes note of a line, from its name and its value as it appears in the content line.
+        /// </summary>
+        internal void ObserveLine(ReadOnlySpan<char> name, ReadOnlySpan<char> value)
+        {
             if (EqualsIgnoreCase(name, BeginName))
             {
-                if (EqualsIgnoreCase(scanner.RawValue.Span, CardValue))
+                if (EqualsIgnoreCase(value, CardValue))
                 {
                     _cardIndex++;
                     _isInCard = true;
+                    IsVersion21 = false;
                     IsVersion40 = false;
                 }
             }
             else if (EqualsIgnoreCase(name, VersionName))
             {
-                IsVersion40 = _isInCard && scanner.RawValue.Span.SequenceEqual(Version40.AsSpan());
+                IsVersion21 = _isInCard && value.SequenceEqual(Version21.AsSpan());
+                IsVersion40 = _isInCard && value.SequenceEqual(Version40.AsSpan());
             }
             else if (EqualsIgnoreCase(name, EndName))
             {
-                _hasEnded = _isInCard && EqualsIgnoreCase(scanner.RawValue.Span, CardValue);
+                _hasEnded = _isInCard && EqualsIgnoreCase(value, CardValue);
             }
         }
 
