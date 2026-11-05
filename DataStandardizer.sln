@@ -83,11 +83,14 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "DataStandardizer.File.Conte
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataStandardizer.File.vCard", "src\DataStandardizer.File.vCard\DataStandardizer.File.vCard.csproj", "{4BA6E30D-6FAF-425F-A23E-E9BE3172788F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataStandardizer.File.vCard.IntegrationTests", "tests\DataStandardizer.File.vCard.IntegrationTests\DataStandardizer.File.vCard.IntegrationTests.csproj", "{7C2F0E5A-3B41-4D86-9E27-A1D4C86B5F30}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataStandardizer.File.vCard.Tests", "tests\DataStandardizer.File.vCard.Tests\DataStandardizer.File.vCard.Tests.csproj", "{14BD0E34-4799-4809-83C9-3FD0A636B791}"
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		src\DataStandardizer.File.ContentLine.Shared\DataStandardizer.File.ContentLine.Shared.projitems*{85d73f2e-bc03-420f-b8ff-c51a97e06fb3}*SharedItemsImports = 5
+		src\DataStandardizer.File.ContentLine.Shared\DataStandardizer.File.ContentLine.Shared.projitems*{4ba6e30d-6faf-425f-a23e-e9be3172788f}*SharedItemsImports = 5
 		src\DataStandardizer.File.ContentLine.Shared\DataStandardizer.File.ContentLine.Shared.projitems*{8b0efd27-1fc7-4cbc-95be-f4696d059dff}*SharedItemsImports = 13
 		src\DataStandardizer.CodeAnalysis.Shared\DataStandardizer.CodeAnalysis.Shared.projitems*{1fff72b8-1fda-49bd-a4fb-860c28cabd0d}*SharedItemsImports = 5
 		src\DataStandardizer.CodeAnalysis.Shared\DataStandardizer.CodeAnalysis.Shared.projitems*{4ba6e30d-6faf-425f-a23e-e9be3172788f}*SharedItemsImports = 5
@@ -243,6 +246,10 @@ Global
 		{4BA6E30D-6FAF-425F-A23E-E9BE3172788F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4BA6E30D-6FAF-425F-A23E-E9BE3172788F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4BA6E30D-6FAF-425F-A23E-E9BE3172788F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7C2F0E5A-3B41-4D86-9E27-A1D4C86B5F30}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7C2F0E5A-3B41-4D86-9E27-A1D4C86B5F30}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7C2F0E5A-3B41-4D86-9E27-A1D4C86B5F30}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7C2F0E5A-3B41-4D86-9E27-A1D4C86B5F30}.Release|Any CPU.Build.0 = Release|Any CPU
 		{14BD0E34-4799-4809-83C9-3FD0A636B791}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{14BD0E34-4799-4809-83C9-3FD0A636B791}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{14BD0E34-4799-4809-83C9-3FD0A636B791}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -288,6 +295,7 @@ Global
 		{69F32671-EE93-4642-A327-43C747FF7273} = {B9FDB3AD-0254-49E2-B2B8-20BC6B0AB93B}
 		{294C74B2-0472-4361-B18D-8C7D35A05E69} = {B9FDB3AD-0254-49E2-B2B8-20BC6B0AB93B}
 		{4BA6E30D-6FAF-425F-A23E-E9BE3172788F} = {944A45A5-E3FA-4C1D-B5EC-76FAE6974F21}
+		{7C2F0E5A-3B41-4D86-9E27-A1D4C86B5F30} = {B9FDB3AD-0254-49E2-B2B8-20BC6B0AB93B}
 		{14BD0E34-4799-4809-83C9-3FD0A636B791} = {B9FDB3AD-0254-49E2-B2B8-20BC6B0AB93B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
