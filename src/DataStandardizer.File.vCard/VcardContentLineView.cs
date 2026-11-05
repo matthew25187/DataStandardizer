@@ -57,6 +57,31 @@ namespace DataStandardizer.File.vCard
         public ReadOnlyMemory<char> RawLineMemory => GetScanner().RawLine;
 
         /// <summary>
+        /// Gets the lexical features of vCard 2.1 that the line uses.
+        /// </summary>
+        /// <exception cref="ObjectDisposedException">The reader has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">The reader has moved on to another line.</exception>
+        public VcardLegacySyntax LegacySyntax
+        {
+            get
+            {
+                var scanner = GetScanner();
+                var syntax = VcardLegacySyntax.None;
+                for (var parameterIndex = 0; parameterIndex < scanner.ParameterCount; parameterIndex++)
+                {
+                    if (scanner.IsParameterValueless(parameterIndex))
+                    {
+                        syntax |= VcardLegacySyntax.ValuelessParameter;
+                    }
+
+                    syntax |= VcardLegacyTokens.GetParameterSyntax(GetParameterName(parameterIndex), scanner.GetRawParameterValue(parameterIndex, 0).Span);
+                }
+
+                return syntax;
+            }
+        }
+
+        /// <summary>
         /// Gets the group (RFC 6350 §3.3), as written and without its '.'; empty if the line has none.  Groups are case-insensitive; use
         /// <see cref="GroupEquals"/> to compare them.
         /// </summary>
@@ -117,7 +142,8 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Gets the name of a parameter, as written.
+        /// Gets the name of a parameter, as written; or, for a parameter with no name, as in <c>TEL;HOME:</c>, the name it belongs to: <c>ENCODING</c>, <c>VALUE</c>,
+        /// <c>CHARSET</c> or <c>TYPE</c>.
         /// </summary>
         /// <param name="parameterIndex">The 0-based index of the parameter.</param>
         /// <exception cref="ObjectDisposedException">The reader has been disposed.</exception>
@@ -125,13 +151,15 @@ namespace DataStandardizer.File.vCard
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="parameterIndex"/> is not a valid index.</exception>
         public ReadOnlySpan<char> GetParameterName(int parameterIndex)
         {
-            return GetScanner().GetParameterName(parameterIndex).Span;
+            return GetParameterNameMemory(parameterIndex).Span;
         }
 
         /// <inheritdoc cref="GetParameterName"/>
         public ReadOnlyMemory<char> GetParameterNameMemory(int parameterIndex)
         {
-            return GetScanner().GetParameterName(parameterIndex);
+            var scanner = GetScanner();
+            var name = scanner.GetParameterName(parameterIndex);
+            return scanner.IsParameterValueless(parameterIndex) ? VcardLegacyTokens.GetValuelessParameterName(name.Span).AsMemory() : name;
         }
 
         /// <summary>
@@ -146,7 +174,7 @@ namespace DataStandardizer.File.vCard
             var scanner = GetScanner();
             for (var parameterIndex = 0; parameterIndex < scanner.ParameterCount; parameterIndex++)
             {
-                if (EqualsIgnoreCase(scanner.GetParameterName(parameterIndex).Span, name)) return parameterIndex;
+                if (EqualsIgnoreCase(GetParameterName(parameterIndex), name)) return parameterIndex;
             }
 
             return -1;
@@ -227,19 +255,48 @@ namespace DataStandardizer.File.vCard
         /// <remarks>
         /// Use this only for properties whose value type is TEXT.  A list of TEXT values must be split on unescaped commas, and a compound value on
         /// unescaped semicolons, before unescaping, so for those use <see cref="RawValue"/> instead.
+        /// <para>
+        /// On a line of a vCard 2.1 card, the value is returned as it is, since a backslash escapes only a semicolon in a compound value there (vCard 2.1 §2.1.3).
+        /// <see cref="VcardOptions.AcceptLegacySyntax"/> accepts any other backslash.
+        /// </para>
         /// </remarks>
         /// <exception cref="ObjectDisposedException">The reader has been disposed.</exception>
         /// <exception cref="InvalidOperationException">The reader has moved on to another line.</exception>
         /// <exception cref="VcardFileException">The value contains a backslash that does not start a valid escape sequence.</exception>
         public ReadOnlySpan<char> GetTextValue()
         {
-            return GetScanner().GetTextValue().Span;
+            return GetTextValueMemory().Span;
         }
 
         /// <inheritdoc cref="GetTextValue"/>
         public ReadOnlyMemory<char> GetTextValueMemory()
         {
-            return GetScanner().GetTextValue();
+            var scanner = GetScanner();
+            return _reader.IsVersion21Line ? scanner.RawValue : scanner.GetTextValue(_reader.ValueDecoder.AcceptsOtherTextEscapes);
+        }
+
+        /// <inheritdoc cref="VcardContentLine.GetDecodedValue"/>
+        /// <exception cref="ObjectDisposedException">The reader has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">The reader has moved on to another line.</exception>
+        public byte[] GetDecodedValue()
+        {
+            return ToContentLine().GetDecodedValue();
+        }
+
+        /// <inheritdoc cref="VcardContentLine.GetDecodedText()"/>
+        /// <exception cref="ObjectDisposedException">The reader has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">The reader has moved on to another line.</exception>
+        public string GetDecodedText()
+        {
+            return ToContentLine().GetDecodedText();
+        }
+
+        /// <inheritdoc cref="VcardContentLine.GetDecodedText(out bool)"/>
+        /// <exception cref="ObjectDisposedException">The reader has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">The reader has moved on to another line.</exception>
+        public string GetDecodedText(out bool usedCharsetFallback)
+        {
+            return ToContentLine().GetDecodedText(out usedCharsetFallback);
         }
 
         /// <summary>
@@ -250,7 +307,7 @@ namespace DataStandardizer.File.vCard
         public VcardContentLine ToContentLine()
         {
             var scanner = GetScanner();
-            return VcardContentLine.FromScanner(scanner, _reader.DecodesCaretEncoding, _reader.CardIndexOfLine);
+            return VcardContentLine.FromScanner(scanner, _reader.DecodesCaretEncoding, _reader.CardIndexOfLine, _reader.ValueDecoder, _reader.LineVersion);
         }
 
         private ContentLineScanner GetScanner()

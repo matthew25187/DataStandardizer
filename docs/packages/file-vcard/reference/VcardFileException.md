@@ -28,7 +28,7 @@ public sealed class VcardFileException : Exception
 | `DiagnosticKind` | | The kind of conformance problem. The content line reader finds no conformance problems, so it never sets this item. |
 | `Group` | `string` | The group of the line, without its `.`. Present only when the line has one and it has been read. |
 | `LineNumber` | `long` | The 1-based number of the logical line; for a line that can't be written, the number it would have had in the output. Not present when the data could not be decoded. For a value that `VcardContentLine.GetTextValue` can't read, it is 0 for a line not read from data. |
-| `PhysicalLineNumber` | `long` | The 1-based number of the physical line. Not present for a line that can't be written, or when the data could not be decoded. For a value that `VcardContentLine.GetTextValue` can't read, it is 0 for a line not read from data. |
+| `PhysicalLineNumber` | `long` | The 1-based number of the physical line. Not present for a line that can't be written, or when the data could not be decoded. For a value that `VcardContentLine.GetTextValue` can't read, it is 0 for a line not read from data. For a value that `GetDecodedValue` or `GetDecodedText` can't decode, it is the line on which the content line starts. |
 | `PropertyName` | `string` | The name of the property. Present only once the name has been read. |
 
 When the data could not be decoded, `InnerException` is the decoder's

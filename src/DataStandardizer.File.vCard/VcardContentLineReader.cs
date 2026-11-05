@@ -29,6 +29,14 @@ namespace DataStandardizer.File.vCard
     /// decodes it on every line.
     /// </para>
     /// <para>
+    /// The lines of a vCard 2.1 card, from its <c>VERSION:2.1</c> line up to and including its <c>END:VCARD</c> line, follow the vCard 2.1 specification.  A parameter may have
+    /// no name, as in <c>TEL;HOME;VOICE:</c>; it is given as the value of the parameter it belongs to, such as <c>TYPE</c>, and <see cref="VcardContentLine.LegacySyntax"/>
+    /// says so.  A quoted-printable value is joined across its soft line breaks, and a <c>BASE64</c> value across its lines, up to the empty line that ends it.  A fold
+    /// keeps the white space after its line break (§2.1.3), unless <see cref="VcardOptions.AcceptRfc6350FoldsInVersion21"/> is set.  A nested card, as in an <c>AGENT</c>
+    /// property, is part of the card around it.  <see cref="VcardOptions.AcceptLegacySyntax"/> gives every line these forms, other than the folds.  A value isn't decoded unless
+    /// asked for; see <see cref="VcardContentLine.GetDecodedText()"/>.
+    /// </para>
+    /// <para>
     /// Every content line ends with a CRLF line break, including the last (RFC 6350 §3.3).  A bare line feed is accepted only with
     /// <see cref="VcardOptions.AcceptBareLineFeed"/>, a last line without a line break only with <see cref="VcardOptions.AcceptMissingFinalLineBreak"/>,
     /// and a bare carriage return is never a line break.  Line breaks never depend on <see cref="Environment.NewLine"/>.
@@ -86,9 +94,13 @@ namespace DataStandardizer.File.vCard
 #else
         private static readonly Func<VcardContentLineReader, bool, VcardContentLine> LineResult =
 #endif
-            (reader, lineRead) => lineRead ? VcardContentLine.FromScanner(reader._scanner, reader.DecodesCaretEncoding, reader._state.CardIndexOfLine) : null;
+            (reader, lineRead) => lineRead
+                ? VcardContentLine.FromScanner(reader._scanner, reader.DecodesCaretEncoding, reader._state.CardIndexOfLine, reader.ValueDecoder, reader.LineVersion)
+                : null;
 
         private readonly bool _acceptCaretEncodingInAllVersions;
+        private readonly bool _acceptLegacySyntax;
+        private readonly bool _acceptRfc6350FoldsInVersion21;
         private bool _hasCurrentLine;
         private bool _isSourceFaulted;
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
@@ -203,10 +215,14 @@ namespace DataStandardizer.File.vCard
             _reader = reader;
             _isInternalReader = isInternalReader;
             _acceptCaretEncodingInAllVersions = options.AcceptCaretEncodingInAllVersions;
+            _acceptLegacySyntax = options.AcceptLegacySyntax;
+            _acceptRfc6350FoldsInVersion21 = options.AcceptRfc6350FoldsInVersion21;
+            ValueDecoder = new VcardValueDecoder(options);
 
             // ref. RFC 6350 §3.3: contentline = [group "."] name *(";" param) ":" value CRLF
             var settings = new ContentLineScannerSettings(options.AcceptBareLineFeed, options.MaxLineLength ?? int.MaxValue, allowGroupPrefix: true,
-                rejectByteOrderMark: !options.AcceptByteOrderMark, requireFinalLineBreak: !options.AcceptMissingFinalLineBreak);
+                rejectByteOrderMark: !options.AcceptByteOrderMark, requireFinalLineBreak: !options.AcceptMissingFinalLineBreak,
+                continuation: new VcardLineContinuation(_state, options.AcceptLegacySyntax));
             _scanner = new ContentLineScanner(bufferSize, settings, new VcardContentLineErrorFactory(_state));
         }
 
@@ -425,6 +441,22 @@ namespace DataStandardizer.File.vCard
         /// Gets a flag indicating if RFC 6868 caret encoding is decoded on the current line.
         /// </summary>
         internal bool DecodesCaretEncoding => _acceptCaretEncodingInAllVersions || _state.IsVersion40;
+
+        /// <summary>
+        /// Gets a flag indicating if the current line is in a card that has said it is vCard 2.1.
+        /// </summary>
+        internal bool IsVersion21Line => _state.IsVersion21;
+
+        /// <summary>
+        /// Gets the version of the card the current line is in, as far as a line's value depends on it.
+        /// </summary>
+        internal VcardLineVersion LineVersion =>
+            _state.IsVersion21 ? VcardLineVersion.Version21 : _state.IsVersion40 ? VcardLineVersion.Version40 : VcardLineVersion.Other;
+
+        /// <summary>
+        /// Gets what decodes the values of the lines read.
+        /// </summary>
+        internal VcardValueDecoder ValueDecoder { get; }
 
         /// <summary>
         /// Gets the 0-based index of the card the current line is in, or -1 if it is outside a card.
@@ -672,6 +704,10 @@ namespace DataStandardizer.File.vCard
 
             _hasCurrentLine = false;
             _state.MoveToNextLine();
+
+            // ref. vCard 2.1 §2.1.3 and §2.9.  The version can only change on a line that is read as the one before it says.
+            _scanner.AllowValuelessParameters = _state.IsVersion21 || _acceptLegacySyntax;
+            _scanner.KeepFoldWhitespace = _state.IsVersion21 && !_acceptRfc6350FoldsInVersion21;
         }
 
         /// <summary>
@@ -694,9 +730,27 @@ namespace DataStandardizer.File.vCard
             if (status != ContentLineScanner.ScanStatus.LineRead) return false;
 
             _scanner.ParseLine();
+            CheckValuelessParameters();
             _state.ObserveLine(_scanner);
             _hasCurrentLine = true;
             return true;
+        }
+
+        /// <summary>
+        /// Rejects a parameter with no name that vCard 2.1 doesn't allow, unless <see cref="VcardOptions.AcceptLegacySyntax"/> accepts it.
+        /// </summary>
+        private void CheckValuelessParameters()
+        {
+            if (_acceptLegacySyntax) return;
+
+            for (var parameterIndex = 0; parameterIndex < _scanner.ParameterCount; parameterIndex++)
+            {
+                if (_scanner.IsParameterValueless(parameterIndex) &&
+                    !VcardLegacyTokens.IsValuelessAllowedInVersion21(_scanner.GetParameterName(parameterIndex).Span))
+                {
+                    throw _scanner.BuildValuelessParameterError(parameterIndex);
+                }
+            }
         }
 
         /// <summary>
