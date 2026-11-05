@@ -191,6 +191,36 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
+        public void Scan_FoldsUpToMaxLineLength_ReadsLine()
+        {
+            // arrange
+            const int maxLineLength = 3;
+            var settings = new ContentLineScannerSettings(false, maxLineLength);
+
+            // act
+            var scanner = ReadLastLine("A:1\r\n \r\n \r\n \r\n", settings, DefaultBufferSize);
+
+            // assert
+            scanner.RawValue.ToString().Should().Be("1");
+        }
+
+        [Theory]
+        [InlineData(DefaultBufferSize)]
+        [InlineData(SmallestBufferSize)]
+        public void Scan_MoreFoldsThanMaxLineLength_ReportsLineTooLong(int bufferSize)
+        {
+            // arrange
+            const int maxLineLength = 3;
+            var settings = new ContentLineScannerSettings(false, maxLineLength);
+
+            // act
+            Action testAction = () => ReadLastLine("A:1\r\n \r\n \r\n \r\n \r\n", settings, bufferSize);
+
+            // assert
+            testAction.Should().Throw<RecordedErrorException>().Which.Error.Kind.Should().Be(ContentLineErrorKind.LineTooLong);
+        }
+
+        [Fact]
         public void ParseLine_ErrorAfterGroup_ReportsGroup()
         {
             // arrange

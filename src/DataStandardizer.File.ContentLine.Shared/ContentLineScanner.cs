@@ -206,6 +206,14 @@ namespace DataStandardizer.File.ContentLine
                 {
                     // ref. RFC 5545§3.1: unfold by removing the line break and the single white space character after it.
                     _position += lineBreakLength + 1;
+
+                    // A fold adds nothing to the line's length, but its offset is kept, so the limit applies to the folds too.  A line within the
+                    // limit never reaches this by folding between its characters, as it has too few of them.
+                    if (_foldCount == _maxLineLength)
+                    {
+                        throw Fault(ContentLineErrorKind.LineTooLong, _maxLineLength);
+                    }
+
                     AddFoldOffset(_lineEnd - _lineStart);
                     continue;
                 }

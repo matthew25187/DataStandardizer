@@ -223,7 +223,8 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <remarks>
         /// RFC 5545 sets no limit, so the default is <c>null</c>, meaning no limit.  The reader keeps each logical line in memory, so setting a
-        /// limit is recommended when reading untrusted data.  A longer line causes an <see cref="IcalFileException"/>.
+        /// limit is recommended when reading untrusted data.  A longer line causes an <see cref="IcalFileException"/>, and so does a line with more
+        /// folds than this, since the reader also keeps track of where each fold was.
         /// </remarks>
         public int? MaxLineLength
         {
