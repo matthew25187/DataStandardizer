@@ -288,6 +288,36 @@ namespace DataStandardizer.File.vCard.Tests
             testAction.Should().Throw<VcardFileException>();
         }
 
+        [Theory]
+        [InlineData("ADR;ALTID=1:a", "ADR;ALTID=1;PHONETIC=ipa:;;b;;;;")]
+        [InlineData("N;ALTID=1:a", "N;ALTID=1;PHONETIC=ipa:b;;;;")]
+        public void Validate_OnlyRelatedPropertyUnparseable_ReportsOnlyItsValue(string related, string phonetic)
+        {
+            // arrange
+            var card = VcardCardTestData.Read(VcardCardTestData.Card(related, phonetic), new VcardOptions { AllowInvalidValues = true });
+
+            // act
+            var testResult = card.Validate();
+
+            // assert
+            VcardCardTestData.KindsOf(testResult).Should().Equal(VcardDiagnosticKind.InvalidValue);
+        }
+
+        [Fact]
+        public void Validate_OtherRelatedPropertyLacksAComponent_ReportsItAsWell()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(
+                VcardCardTestData.Card("ADR;ALTID=1:a", "ADR;ALTID=1:;;b;;;;", "ADR;ALTID=1;PHONETIC=ipa:;;c;d;;;"),
+                new VcardOptions { AllowInvalidValues = true });
+
+            // act
+            var testResult = card.Validate();
+
+            // assert
+            VcardCardTestData.KindsOf(testResult).Should().Equal(VcardDiagnosticKind.InvalidValue, VcardDiagnosticKind.InvalidParameter);
+        }
+
         public static TheoryData<string[]> ConformingPropertiesData()
         {
             return new TheoryData<string[]>

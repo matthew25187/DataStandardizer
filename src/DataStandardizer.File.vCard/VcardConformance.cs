@@ -740,7 +740,7 @@ namespace DataStandardizer.File.vCard
         private static bool IsCoveredByARelatedProperty(VcardContentLine phonetic, List<VcardComponentList> related)
         {
             VcardComponentList phoneticComponents;
-            if (!TryGetComponents(phonetic, out phoneticComponents)) return true;
+            if (!TryGetComponents(phonetic, out phoneticComponents) || related.Count == 0) return true;
 
             foreach (var relatedComponents in related)
             {
