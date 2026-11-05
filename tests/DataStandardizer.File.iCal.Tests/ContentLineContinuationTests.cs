@@ -20,7 +20,10 @@ namespace DataStandardizer.File.iCal.Tests
         private const string JoinedLinesKeepingWhitespace = "A:b>\r\n c\r\n";
         private const string JoinedLinesThenNext = "A:b>\r\nc\r\nD:e\r\n";
         private const string JoinUntilEndLines = "A:b+\r\nc+\r\n\r\nD:e\r\n";
+        private const string JoinUntilEndOnly = "A:b+\r\nc+\r\n\r\n";
         private const string JoinUntilEndThenEndOfData = "A:b+\r\nc+\r\n";
+        private const string JoinUntilEndThenJoinThenNone = "A:b+\r\nc>\r\nd\r\n";
+        private const string JoinUntilEndThenNone = "A:b+\r\nc\r\n";
         private const string LinesWithInvalidLine = "A:b!\r\nD:e\r\n";
 
         private static ContentLineScannerSettings ScriptedSettings(int maxLineLength = int.MaxValue)
@@ -97,6 +100,62 @@ namespace DataStandardizer.File.iCal.Tests
             scanner.PhysicalLineNumber.Should().Be(4);
         }
 
+        [Theory]
+        [InlineData(DefaultBufferSize)]
+        [InlineData(SmallestBufferSize)]
+        public void Scan_JoinUntilEndThenEnd_KeepsTheJoinedValue(int bufferSize)
+        {
+            // arrange
+            var settings = ScriptedSettings();
+
+            // act
+            var scanner = ReadLastLine(JoinUntilEndOnly, settings, bufferSize);
+
+            // assert
+            scanner.RawValue.ToString().Should().Be("bc");
+        }
+
+        [Theory]
+        [InlineData(JoinUntilEndThenJoinThenNone)]
+        [InlineData(JoinUntilEndThenNone)]
+        public void ParseLine_JoinUntilEndThenLineEndsWithoutEnd_ReportsMissingContinuationEnd(string text)
+        {
+            // arrange
+            var settings = ScriptedSettings();
+
+            // act
+            Action testAction = () => ReadLastLine(text, settings, DefaultBufferSize);
+
+            // assert
+            testAction.Should().Throw<RecordedErrorException>().Which.Error.Kind.Should().Be(ContentLineErrorKind.MissingContinuationEnd);
+        }
+
+        [Fact]
+        public void ParseLine_JoinThenEndOfDataWithAnError_ReportsThePhysicalLineThatWasRead()
+        {
+            // arrange
+            var settings = ScriptedSettings();
+
+            // act
+            Action testAction = () => ReadLastLine("A>\r\n", settings, DefaultBufferSize);
+
+            // assert
+            testAction.Should().Throw<RecordedErrorException>().Which.Error.PhysicalLineNumber.Should().Be(1);
+        }
+
+        [Fact]
+        public void ParseLine_JoinUntilEndThenEndOfData_ReportsTheLastPhysicalLineRead()
+        {
+            // arrange
+            var settings = ScriptedSettings();
+
+            // act
+            Action testAction = () => ReadLastLine(JoinUntilEndThenEndOfData, settings, DefaultBufferSize);
+
+            // assert
+            testAction.Should().Throw<RecordedErrorException>().Which.Error.PhysicalLineNumber.Should().Be(2);
+        }
+
         [Fact]
         public void ParseLine_JoinUntilEndThenEndOfData_ReportsMissingContinuationEnd()
         {
@@ -111,7 +170,7 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public void Scan_Invalid_ReportsItAndFaultsTheScanner()
+        public void Scan_Invalid_ReportsIt()
         {
             // arrange
             var settings = ScriptedSettings();
@@ -121,6 +180,19 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             testAction.Should().Throw<RecordedErrorException>().Which.Error.Kind.Should().Be(ContentLineErrorKind.InvalidContinuationLine);
+        }
+
+        [Fact]
+        public void IsFaulted_AfterInvalid_IsTrue()
+        {
+            // arrange
+            var scanner = new ContentLineScanner(DefaultBufferSize, ScriptedSettings(), new RecordingErrorFactory());
+
+            // act
+            ReadIgnoringErrors(LinesWithInvalidLine, scanner);
+
+            // assert
+            scanner.IsFaulted.Should().BeTrue();
         }
 
         [Fact]
@@ -221,9 +293,10 @@ namespace DataStandardizer.File.iCal.Tests
             var destination = new char[source.Length];
 
             // act
-            ContentLineEscaping.TryUnescapeText(source.AsSpan(), destination, out var written, out _, acceptOtherEscapes: true);
+            var testResult = ContentLineEscaping.TryUnescapeText(source.AsSpan(), destination, out var written, out _, acceptOtherEscapes: true);
 
             // assert
+            testResult.Should().BeTrue();
             new string(destination, 0, written).Should().Be(expected);
         }
 
@@ -251,6 +324,26 @@ namespace DataStandardizer.File.iCal.Tests
                 AllowValuelessParameters = allowValuelessParameters
             };
 
+            return ReadAll(text, scanner);
+        }
+
+        /// <summary>
+        /// Reads a text that is expected to fail, so that a test can see what state that leaves the scanner in.
+        /// </summary>
+        private static void ReadIgnoringErrors(string text, ContentLineScanner scanner)
+        {
+            try
+            {
+                ReadAll(text, scanner);
+            }
+            catch (RecordedErrorException)
+            {
+                // That is what the test is expecting.
+            }
+        }
+
+        private static ContentLineScanner ReadAll(string text, ContentLineScanner scanner)
+        {
             using (var reader = new StringReader(text))
             {
                 while (true)

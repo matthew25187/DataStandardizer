@@ -17,6 +17,9 @@ namespace DataStandardizer.File.iCal.Tests
         private const string ParameterName = "P";
         private const int DefaultFoldLength = 75;
         private const int ShortFoldLength = 10;
+        private const string Name73Characters = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+        private const string Name74Characters = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+        private const string Name75Characters = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
         // ref. RFC 6350 §3.3: contentline = [group "."] name *(";" param) ":" value CRLF
         private const string GroupedLine = "item1.TEL:x\r\n";
@@ -236,6 +239,41 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             testResult.Should().Be(expected);
+        }
+
+        [Theory]
+        // With its ':', the name makes 74 characters, and the character or '=' after it the 75th, the longest line.
+        [InlineData(Name73Characters, "a", Name73Characters + ":a\r\n")]
+        [InlineData(Name73Characters, "ab", Name73Characters + ":=\r\nab\r\n")]
+        // With its ':', the name makes 75 characters, which leaves room only if there is no value.
+        [InlineData(Name74Characters, "", Name74Characters + ":\r\n")]
+        public void Format_QuotedPrintableSoftBreakWithLongName_WritesWhatFits(string name, string value, string expected)
+        {
+            // arrange
+            var formatter = CreateFormatter();
+            var line = new TestLine(null, name, value);
+
+            // act
+            var testResult = Format(formatter, line, foldMode: ContentLineFoldMode.QuotedPrintableSoftBreak);
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Theory]
+        [InlineData(Name74Characters, "a")]
+        [InlineData(Name75Characters, "")]
+        public void Format_QuotedPrintableSoftBreakWithNoRoomOnTheFirstLine_ReportsLineTooLongToWrite(string name, string value)
+        {
+            // arrange
+            var formatter = CreateFormatter();
+            var line = new TestLine(null, name, value);
+
+            // act
+            Action testAction = () => Format(formatter, line, foldMode: ContentLineFoldMode.QuotedPrintableSoftBreak);
+
+            // assert
+            testAction.Should().Throw<RecordedErrorException>().Which.Error.Kind.Should().Be(ContentLineErrorKind.LineTooLongToWrite);
         }
 
         [Theory]

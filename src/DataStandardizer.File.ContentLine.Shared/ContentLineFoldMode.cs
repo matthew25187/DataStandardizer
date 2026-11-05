@@ -12,7 +12,8 @@
         None,
 
         /// <summary>The value is quoted-printable, and is broken with soft line breaks (RFC 2045 §6.7 rule 5), so that no physical line reaches 76
-        /// characters, as the vCard 2.1 specification §2.1.3 requires.  A <c>=</c> and the two digits after it stay together.</summary>
+        /// characters, as the vCard 2.1 specification §2.1.3 requires.  A <c>=</c> and the two digits after it stay together.  A soft line break can only be in the value,
+        /// so a line whose group, name and parameters leave no room on its first physical line can't be written.</summary>
         QuotedPrintableSoftBreak,
 
         /// <summary>The value is base64, and is written as the examples of the vCard 2.1 specification have it: on the lines after the property's own, indented,

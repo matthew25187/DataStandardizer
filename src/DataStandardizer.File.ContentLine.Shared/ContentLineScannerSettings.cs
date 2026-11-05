@@ -51,6 +51,10 @@
         /// <summary>
         /// Gets the maximum length of a logical line, or <see cref="int.MaxValue"/> for no limit.
         /// </summary>
+        /// <remarks>
+        /// It is checked as the text is read, so that the limit also bounds the memory a line takes.  What <see cref="Continuation"/> then removes from the end of a
+        /// physical line has already counted.
+        /// </remarks>
         internal int MaxLineLength { get; }
 
         /// <summary>

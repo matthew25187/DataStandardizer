@@ -13,8 +13,8 @@ namespace DataStandardizer.File.ContentLine
         /// <summary>The next physical line continues this one, whatever it starts with, and all of it is kept.  The data may end here.</summary>
         Join,
 
-        /// <summary>As <see cref="Join"/>, but the logical line isn't complete until a later physical line gives <see cref="End"/>.  The data may not
-        /// end before that; if it does, the line is reported as <see cref="ContentLineErrorKind.MissingContinuationEnd"/>.</summary>
+        /// <summary>As <see cref="Join"/>, but the logical line isn't complete until a later physical line gives <see cref="End"/>.  If the line ends any
+        /// other way first, including at the end of the data, it is reported as <see cref="ContentLineErrorKind.MissingContinuationEnd"/>.</summary>
         JoinUntilEnd,
 
         /// <summary>The logical line ends here.  The next physical line starts a new one, even if it starts with white space.</summary>

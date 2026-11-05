@@ -202,7 +202,11 @@ namespace DataStandardizer.File.ContentLine
                     _lineLacksEnd = _lineAwaitsEnd;
 
                     // A physical line that was joined on and never started isn't a line, and the line before it has its line break.
-                    if (_isJoined && _lineEnd - _lineStart == _physicalLineStart) return CompleteLine();
+                    if (_isJoined && _lineEnd - _lineStart == _physicalLineStart)
+                    {
+                        _foldCount--;
+                        return CompleteLine();
+                    }
 
                     // The input has ended inside a line.  ParseLine reports this if the settings require a line break.
                     _lineLacksLineBreak = true;
@@ -255,7 +259,7 @@ namespace DataStandardizer.File.ContentLine
                         _physicalLinesRead++;
                         _position += lineBreakLength;
                         _lineEnd = _lineStart + dataLength;
-                        _lineAwaitsEnd = continuation == ContentLineContinuationKind.JoinUntilEnd;
+                        _lineAwaitsEnd |= continuation == ContentLineContinuationKind.JoinUntilEnd;
                         _isJoined = true;
                         StartPhysicalLine();
                         continue;
@@ -277,6 +281,7 @@ namespace DataStandardizer.File.ContentLine
                 }
 
                 _position += lineBreakLength;
+                _lineLacksEnd = _lineAwaitsEnd;
                 return CompleteLine();
             }
         }

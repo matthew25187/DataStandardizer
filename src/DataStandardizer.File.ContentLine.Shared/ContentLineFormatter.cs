@@ -81,6 +81,11 @@ namespace DataStandardizer.File.ContentLine
             where TLine : IContentLineData
         {
             var logicalLength = Measure(line, lineNumber, caretMode);
+            if (foldMode == ContentLineFoldMode.QuotedPrintableSoftBreak)
+            {
+                CheckQuotedPrintablePrefix(logicalLength, line.Value.Length, lineNumber, line.Name, line.Group);
+            }
+
             var start = EnsureCapacity(logicalLength, foldMode, lineNumber, line.Name, line.Group);
 
             var position = start;
@@ -199,6 +204,22 @@ namespace DataStandardizer.File.ContentLine
             }
 
             return length;
+        }
+
+        /// <summary>
+        /// Checks that the first physical line of a quoted-printable line has room for what must be on it: the text before the value and, if there is a value, either
+        /// its only character or a <c>=</c>.
+        /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private void CheckQuotedPrintablePrefix(long logicalLength, int valueLength, long lineNumber, string name, string? group)
+#else
+        private void CheckQuotedPrintablePrefix(long logicalLength, int valueLength, long lineNumber, string name, string group)
+#endif
+        {
+            if (logicalLength - valueLength + Math.Min(valueLength, 1) > MaxQuotedPrintableLineLength)
+            {
+                throw _errorFactory.CreateException(new ContentLineError(ContentLineErrorKind.LineTooLongToWrite, lineNumber, null, name, group: group));
+            }
         }
 
         /// <summary>
