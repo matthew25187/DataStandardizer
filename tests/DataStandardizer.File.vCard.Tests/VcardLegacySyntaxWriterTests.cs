@@ -132,16 +132,22 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Fact]
-        public void WriteLines_NameLongerThanLineLimit_BreaksBeforeTheValue()
+        public void WriteLine_NameLeavingNoRoomOnTheFirstLine_Throws()
         {
             // arrange
-            var line = new VcardContentLine(LongName, new[] { new VcardContentLineParameter(EncodingParameter, QuotedPrintable) }, "b");
+            // ref. vCard 2.1 §2.1.3: a quoted-printable line is limited to less than 76 characters, and only the value can be broken.
+            using (var text = new StringWriter())
+            using (var writer = new VcardContentLineWriter(text))
+            {
+                writer.WriteLines(new[] { Begin, Version21 });
+                var line = new VcardContentLine(LongName, new[] { new VcardContentLineParameter(EncodingParameter, QuotedPrintable) }, "b");
 
-            // act
-            var testResult = Write(Begin, Version21, line);
+                // act
+                Action testAction = () => writer.WriteLine(line);
 
-            // assert
-            testResult.Should().Be(CardStart + LongName + ";ENCODING=QUOTED-PRINTABLE:=\r\nb\r\n");
+                // assert
+                testAction.Should().Throw<VcardFileException>().WithMessage("The content line is too long to write.");
+            }
         }
 
         [Theory]

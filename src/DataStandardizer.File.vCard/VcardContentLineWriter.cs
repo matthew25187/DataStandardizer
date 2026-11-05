@@ -37,7 +37,7 @@ namespace DataStandardizer.File.vCard
     /// is set.</item>
     /// <item>On the lines of a vCard 2.1 card, from its <c>VERSION:2.1</c> line up to and including its <c>END:VCARD</c> line, lines are never folded,
     /// because vCard 2.1 and later versions unfold them differently, so no fold is read the same way by every reader.  A value with
-    /// <c>ENCODING=QUOTED-PRINTABLE</c> is broken with soft line breaks so that no line reaches 76 characters (vCard 2.1 §2.1.3).  A value with <c>ENCODING=BASE64</c> is
+    /// <c>ENCODING=QUOTED-PRINTABLE</c> is broken with soft line breaks so that no line reaches 76 characters (vCard 2.1 §2.1.3); a line whose group, name and parameters leave no room for that on its first line can't be written.  A value with <c>ENCODING=BASE64</c> is
     /// written on the lines after the property's own, indented, with the empty line that ends it (vCard 2.1 §2.9).  The value must already be in the encoding, or the line
     /// can't be written.  A parameter is written with its name, which vCard 2.1 §2.9 allows for all of them.</item>
     /// </list>

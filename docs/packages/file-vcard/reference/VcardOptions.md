@@ -46,7 +46,7 @@ that are only for writing, and a writer ignores those that are only for reading.
 | `AcceptRfc6350FoldsInVersion21` | `bool` | `false` | Unfolds a 2.1 card as RFC 6350 §3.2 does, removing one white space character. vCard 2.1 §2.1.3 keeps it. |
 | `AllowUnknownCharsetAsLatin1` | `bool` | `false` | Decodes a value in a character set that can't be resolved as ISO-8859-1. `GetDecodedText(out bool)` says it did. |
 | `CharsetResolver` | `IMimeCharsetResolver?` | `null` | Resolves the character sets that the built-in encodings and the runtime don't. |
-| `MaxLineLength` | `int?` | `null` | The longest logical line allowed, in characters, not counting its line break. `null` means no limit, since RFC 6350 sets none. The reader keeps each logical line in memory, so a limit is recommended for untrusted data. A line with more folds than the limit is rejected too. It must be at least 1. |
+| `MaxLineLength` | `int?` | `null` | The longest logical line allowed, in characters, not counting its line break. `null` means no limit, since RFC 6350 sets none. The reader keeps each logical line in memory, so a limit is recommended for untrusted data. A line with more folds than the limit is rejected too. It is checked as each line is read, so the `=` of a quoted-printable soft line break counts until it is removed. It must be at least 1. |
 
 ### Writing
 

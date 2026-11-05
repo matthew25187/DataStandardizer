@@ -136,7 +136,7 @@ those. It doesn't affect soft line breaks or `BASE64` values.
 In a vCard 2.1 card, `VcardContentLineWriter`:
 
 - never folds a line, since no fold is read the same way by every reader
-- breaks a value with `ENCODING=QUOTED-PRINTABLE` with soft line breaks, so that no line reaches 76 characters (vCard 2.1 §2.1.3)
+- breaks a value with `ENCODING=QUOTED-PRINTABLE` with soft line breaks, so that no line reaches 76 characters (vCard 2.1 §2.1.3); a line whose group, name and parameters leave no room for that on its first line can't be written
 - writes a value with `ENCODING=BASE64` on indented lines after the property's own, with the empty line that ends it
 - writes every parameter with its name (`TYPE=HOME`), which vCard 2.1 §2.9 allows for all of them
 
