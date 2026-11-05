@@ -190,6 +190,21 @@ namespace DataStandardizer.File.vCard
         IVcard40PropertyList<Uri> ContactUris { get; }
 
         /// <summary>
+        /// Gets the <c>GRAMGENDER</c> properties (RFC 9554 §3.2), each the grammatical gender to use in a language.  Several have to differ in their <c>LANGUAGE</c> parameter.
+        /// </summary>
+        IVcard40PropertyList<string> GrammaticalGenders { get; }
+
+        /// <summary>
+        /// Gets the <c>PRONOUNS</c> properties (RFC 9554 §3.4).
+        /// </summary>
+        IVcard40PropertyList<string> Pronouns { get; }
+
+        /// <summary>
+        /// Gets the <c>SOCIALPROFILE</c> properties (RFC 9554 §3.5), each a URI or a username.  A username has to have a <see cref="VcardPropertyParameters.ServiceType"/>.
+        /// </summary>
+        IVcard40PropertyList<VcardTypedValue> SocialProfiles { get; }
+
+        /// <summary>
         /// Gets the properties that RFC 6350 and its extensions don't define, including <c>X-</c> properties, in the order they appear.  Each value is as it appears in the content line, since what its
         /// escaping means is not known.
         /// </summary>
@@ -250,6 +265,17 @@ namespace DataStandardizer.File.vCard
         /// Gets the <c>DEATHDATE</c> property (RFC 6474 §2.3), a date-and-or-time or text; or <c>null</c> if the card has none with a valid value.
         /// </summary>
         IVcard40Property<VcardTypedValue>? DeathDate { get; }
+
+        /// <summary>
+        /// Gets the <c>CREATED</c> property (RFC 9554 §3.1), when the card was created; or <c>null</c> if the card has none with a valid value.
+        /// </summary>
+        IVcard40Property<VcardTimestamp>? Created { get; }
+
+        /// <summary>
+        /// Gets the <c>LANGUAGE</c> property (RFC 9554 §3.3), the language that the text values of the card are assumed to be written in, unless a <c>LANGUAGE</c> parameter says otherwise; or
+        /// <c>null</c> if the card has none with a valid value.
+        /// </summary>
+        IVcard40Property<Bcp47LanguageTag>? DefaultLanguage { get; }
 #else
         /// <summary>
         /// Gets the value of the <c>KIND</c> property (RFC 6350 §6.1.4) as written; or <c>null</c> if the card has none.
@@ -305,6 +331,17 @@ namespace DataStandardizer.File.vCard
         /// Gets the <c>DEATHDATE</c> property (RFC 6474 §2.3), a date-and-or-time or text; or <c>null</c> if the card has none with a valid value.
         /// </summary>
         IVcard40Property<VcardTypedValue> DeathDate { get; }
+
+        /// <summary>
+        /// Gets the <c>CREATED</c> property (RFC 9554 §3.1), when the card was created; or <c>null</c> if the card has none with a valid value.
+        /// </summary>
+        IVcard40Property<VcardTimestamp> Created { get; }
+
+        /// <summary>
+        /// Gets the <c>LANGUAGE</c> property (RFC 9554 §3.3), the language that the text values of the card are assumed to be written in, unless a <c>LANGUAGE</c> parameter says otherwise; or
+        /// <c>null</c> if the card has none with a valid value.
+        /// </summary>
+        IVcard40Property<Bcp47LanguageTag> DefaultLanguage { get; }
 #endif
 
         /// <summary>
@@ -312,6 +349,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="kind">The kind.</param>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="kind"/> is <see cref="VcardKind.Other"/>, which has no text, or not a <see cref="VcardKind"/> member.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         void SetKind(VcardKind kind);
 
         /// <summary>
@@ -319,6 +357,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="kind">The value, which RFC 6350 §6.1.4 allows to be an <c>iana-token</c> or <c>x-name</c>.</param>
         /// <exception cref="ArgumentNullException"><paramref name="kind"/> is <c>null</c>.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         void SetKind(string kind);
 
         /// <summary>
@@ -326,6 +365,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="value">The value.</param>
         /// <exception cref="ArgumentException"><paramref name="value"/> is not initialised.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         void SetName(VcardName value);
 
         /// <summary>
@@ -335,6 +375,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="parameters">The group and parameters.</param>
         /// <exception cref="ArgumentNullException"><paramref name="parameters"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="value"/> is not initialised.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         void SetName(VcardName value, VcardPropertyParameters parameters);
 
         /// <summary>
@@ -342,6 +383,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="value">The value, a date-and-or-time or text.</param>
         /// <exception cref="ArgumentException"><paramref name="value"/> is of a type the property doesn't allow, or can't be written.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         void SetBirthday(VcardTypedValue value);
 
         /// <summary>
@@ -351,6 +393,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="parameters">The group and parameters.</param>
         /// <exception cref="ArgumentNullException"><paramref name="parameters"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="value"/> is of a type the property doesn't allow, or can't be written.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         void SetBirthday(VcardTypedValue value, VcardPropertyParameters parameters);
 
         /// <summary>
@@ -358,6 +401,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="value">The value, a date-and-or-time or text.</param>
         /// <exception cref="ArgumentException"><paramref name="value"/> is of a type the property doesn't allow, or can't be written.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         void SetAnniversary(VcardTypedValue value);
 
         /// <summary>
@@ -367,6 +411,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="parameters">The group and parameters.</param>
         /// <exception cref="ArgumentNullException"><paramref name="parameters"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="value"/> is of a type the property doesn't allow, or can't be written.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         void SetAnniversary(VcardTypedValue value, VcardPropertyParameters parameters);
 
         /// <summary>
@@ -374,6 +419,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="value">The value.</param>
         /// <exception cref="ArgumentException"><paramref name="value"/> is not initialised.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         void SetGender(VcardGender value);
 
         /// <summary>
@@ -383,6 +429,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="parameters">The group and parameters.</param>
         /// <exception cref="ArgumentNullException"><paramref name="parameters"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="value"/> is not initialised.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         void SetGender(VcardGender value, VcardPropertyParameters parameters);
 
         /// <summary>
@@ -391,6 +438,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="value">The text.</param>
         /// <exception cref="ArgumentNullException"><paramref name="value"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="value"/> holds a character a TEXT value can't.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         void SetProductId(string value);
 
         /// <summary>
@@ -398,6 +446,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="value">The value.</param>
         /// <exception cref="ArgumentException"><paramref name="value"/> is not initialised.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         void SetRevision(VcardTimestamp value);
 
         /// <summary>
@@ -405,6 +454,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="value">The value, a URI or text.</param>
         /// <exception cref="ArgumentException"><paramref name="value"/> is of a type the property doesn't allow, or can't be written.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         void SetUid(VcardTypedValue value);
 
         /// <summary>
@@ -412,6 +462,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="value">The value, text or a URI.</param>
         /// <exception cref="ArgumentException"><paramref name="value"/> is of a type the property doesn't allow, or can't be written.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         void SetBirthPlace(VcardTypedValue value);
 
         /// <summary>
@@ -421,6 +472,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="parameters">The group and parameters.</param>
         /// <exception cref="ArgumentNullException"><paramref name="parameters"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="value"/> is of a type the property doesn't allow, or can't be written.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         void SetBirthPlace(VcardTypedValue value, VcardPropertyParameters parameters);
 
         /// <summary>
@@ -428,6 +480,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="value">The value, text or a URI.</param>
         /// <exception cref="ArgumentException"><paramref name="value"/> is of a type the property doesn't allow, or can't be written.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         void SetDeathPlace(VcardTypedValue value);
 
         /// <summary>
@@ -437,6 +490,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="parameters">The group and parameters.</param>
         /// <exception cref="ArgumentNullException"><paramref name="parameters"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="value"/> is of a type the property doesn't allow, or can't be written.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         void SetDeathPlace(VcardTypedValue value, VcardPropertyParameters parameters);
 
         /// <summary>
@@ -444,6 +498,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="value">The value, a date-and-or-time or text.</param>
         /// <exception cref="ArgumentException"><paramref name="value"/> is of a type the property doesn't allow, or can't be written.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         void SetDeathDate(VcardTypedValue value);
 
         /// <summary>
@@ -453,7 +508,24 @@ namespace DataStandardizer.File.vCard
         /// <param name="parameters">The group and parameters.</param>
         /// <exception cref="ArgumentNullException"><paramref name="parameters"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="value"/> is of a type the property doesn't allow, or can't be written.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         void SetDeathDate(VcardTypedValue value, VcardPropertyParameters parameters);
+
+        /// <summary>
+        /// Sets the <c>CREATED</c> property, replacing any there are.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is not initialised.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
+        void SetCreated(VcardTimestamp value);
+
+        /// <summary>
+        /// Sets the <c>LANGUAGE</c> property, replacing any there are.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is not initialised.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
+        void SetDefaultLanguage(Bcp47LanguageTag value);
 
         /// <summary>
         /// Adds a property that RFC 6350 and its extensions don't define.

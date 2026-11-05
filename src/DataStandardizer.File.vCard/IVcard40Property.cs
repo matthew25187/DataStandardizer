@@ -32,6 +32,22 @@ namespace DataStandardizer.File.vCard
         Iso3166Part1Alpha2Country? CountryCode { get; }
 
         /// <summary>
+        /// Gets the <c>CREATED</c> (RFC 9554 §4.3), when the property was created in the card; or <c>null</c> if the property doesn't have a valid one.
+        /// </summary>
+        VcardTimestamp? Created { get; }
+
+        /// <summary>
+        /// Gets a flag indicating if the value is derived from other properties of the card: the <c>DERIVED</c> (RFC 9554 §4.4) is <c>true</c>.  It is <c>false</c> by default.
+        /// </summary>
+        bool IsDerived { get; }
+
+        /// <summary>
+        /// Gets the <c>PHONETIC</c> (RFC 9554 §4.6), which says that the value is the phonetic representation of the instance of this property with the same <c>ALTID</c> and no
+        /// <c>PHONETIC</c>, and in which system; or <c>null</c> if the property doesn't have a valid one, or doesn't allow it.
+        /// </summary>
+        VcardPhoneticSystem? Phonetic { get; }
+
+        /// <summary>
         /// Gets the parameters of the property that RFC 6350 and its extensions don't define, in the order they appear.
         /// </summary>
         IReadOnlyList<VcardContentLineParameter> ExtensionParameters { get; }
@@ -78,6 +94,36 @@ namespace DataStandardizer.File.vCard
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         /// <summary>
+        /// Gets the <c>AUTHOR</c> (RFC 9554 §4.1), the author of the value; or <c>null</c> if the property doesn't have a valid one.
+        /// </summary>
+        Uri? Author { get; }
+
+        /// <summary>
+        /// Gets the <c>AUTHOR-NAME</c> (RFC 9554 §4.2); or <c>null</c> if the property doesn't have one.
+        /// </summary>
+        string? AuthorName { get; }
+
+        /// <summary>
+        /// Gets the <c>PROP-ID</c> (RFC 9554 §4.7); or <c>null</c> if the property doesn't have a valid one.
+        /// </summary>
+        string? PropertyId { get; }
+
+        /// <summary>
+        /// Gets the <c>SCRIPT</c> (RFC 9554 §4.8), the script the value is written in; or <c>null</c> if the property doesn't have a valid one.
+        /// </summary>
+        string? Script { get; }
+
+        /// <summary>
+        /// Gets the <c>SERVICE-TYPE</c> (RFC 9554 §4.9), the name of the online service, with its case as written; or <c>null</c> if the property doesn't have one, or doesn't allow it.
+        /// </summary>
+        string? ServiceType { get; }
+
+        /// <summary>
+        /// Gets the <c>USERNAME</c> (RFC 9554 §4.10), with its case as written; or <c>null</c> if the property doesn't have one, or doesn't allow it.
+        /// </summary>
+        string? Username { get; }
+
+        /// <summary>
         /// Gets the <c>ALTID</c> (RFC 6350 §5.4); or <c>null</c> if the property doesn't have one.
         /// </summary>
         string? AltId { get; }
@@ -98,7 +144,7 @@ namespace DataStandardizer.File.vCard
         string? Group { get; }
 
         /// <summary>
-        /// Gets the <c>LABEL</c> (RFC 6350 §6.3.1); or <c>null</c> if the property doesn't have one.
+        /// Gets the <c>LABEL</c> (RFC 6350 §6.3.1, RFC 9554 §4.5); or <c>null</c> if the property doesn't have one.
         /// </summary>
         string? Label { get; }
 
@@ -107,6 +153,36 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         string? TimeZone { get; }
 #else
+        /// <summary>
+        /// Gets the <c>AUTHOR</c> (RFC 9554 §4.1), the author of the value; or <c>null</c> if the property doesn't have a valid one.
+        /// </summary>
+        Uri Author { get; }
+
+        /// <summary>
+        /// Gets the <c>AUTHOR-NAME</c> (RFC 9554 §4.2); or <c>null</c> if the property doesn't have one.
+        /// </summary>
+        string AuthorName { get; }
+
+        /// <summary>
+        /// Gets the <c>PROP-ID</c> (RFC 9554 §4.7); or <c>null</c> if the property doesn't have a valid one.
+        /// </summary>
+        string PropertyId { get; }
+
+        /// <summary>
+        /// Gets the <c>SCRIPT</c> (RFC 9554 §4.8), the script the value is written in; or <c>null</c> if the property doesn't have a valid one.
+        /// </summary>
+        string Script { get; }
+
+        /// <summary>
+        /// Gets the <c>SERVICE-TYPE</c> (RFC 9554 §4.9), the name of the online service, with its case as written; or <c>null</c> if the property doesn't have one, or doesn't allow it.
+        /// </summary>
+        string ServiceType { get; }
+
+        /// <summary>
+        /// Gets the <c>USERNAME</c> (RFC 9554 §4.10), with its case as written; or <c>null</c> if the property doesn't have one, or doesn't allow it.
+        /// </summary>
+        string Username { get; }
+
         /// <summary>
         /// Gets the <c>ALTID</c> (RFC 6350 §5.4); or <c>null</c> if the property doesn't have one.
         /// </summary>
@@ -128,7 +204,7 @@ namespace DataStandardizer.File.vCard
         string Group { get; }
 
         /// <summary>
-        /// Gets the <c>LABEL</c> (RFC 6350 §6.3.1); or <c>null</c> if the property doesn't have one.
+        /// Gets the <c>LABEL</c> (RFC 6350 §6.3.1, RFC 9554 §4.5); or <c>null</c> if the property doesn't have one.
         /// </summary>
         string Label { get; }
 

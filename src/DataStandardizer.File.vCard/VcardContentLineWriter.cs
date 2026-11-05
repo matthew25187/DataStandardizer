@@ -72,6 +72,8 @@ namespace DataStandardizer.File.vCard
         private static readonly Encoding DefaultEncoding = new UTF8Encoding(false, true);
 
         private readonly bool _allowLossyVersionConversion;
+        private static readonly Func<string, bool> IsAlwaysQuoted = VcardPropertyParameterReader.IsAlwaysQuoted;
+
         private readonly ContentLineFormatter _formatter;
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
         private bool _isCanceled;
@@ -531,7 +533,8 @@ namespace DataStandardizer.File.vCard
             }
 
             var foldMode = _lineState.IsVersion21 ? GetVersion21FoldMode(line) : ContentLineFoldMode.Fold;
-            return _formatter.Format(new VcardContentLineData(line), _linesWritten + 1, caretMode, foldMode);
+            // ref. RFC 6350 §5: the case of a value that isn't quoted is not significant.  The rule is of vCard 4.0, and vCard 2.1 has no quoted strings.
+            return _formatter.Format(new VcardContentLineData(line), _linesWritten + 1, caretMode, foldMode, _lineState.IsVersion40 ? IsAlwaysQuoted : null);
         }
 
         /// <summary>

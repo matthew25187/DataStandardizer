@@ -20,7 +20,7 @@ vCard 3.0 and 2.1 cards, jCard and xCard are still to come. See
 | **RFC 6868** | *Parameter Value Encoding in iCalendar and vCard*: caret encoding of double quotes and line breaks in parameter values. |
 | **vCard 2.1** | *The Electronic Business Card*: the lexical syntax, including quoted-printable, `BASE64`, `CHARSET` and parameters with no name. See [Legacy syntax and character sets](legacy-syntax.md). |
 | **RFC 2425, RFC 2426** | *vCard MIME Directory Profile*: the typed values of vCard 3.0. |
-| **RFC 9554** | *vCard Format Extensions for JSContact*: the added components of N and ADR. |
+| **RFC 9554** | *vCard Format Extensions for JSContact*: `CREATED`, `GRAMGENDER`, `LANGUAGE`, `PRONOUNS` and `SOCIALPROFILE`; the parameters `AUTHOR`, `AUTHOR-NAME`, `CREATED`, `DERIVED`, `LABEL`, `PHONETIC`, `PROP-ID`, `SCRIPT`, `SERVICE-TYPE` and `USERNAME`; the `TYPE` values `billing` and `delivery`; and the added components of N and ADR. |
 | **RFC 6473, RFC 6869** | *vCard KIND:application* and *vCard KIND:device*: two more kinds of card. |
 | **RFC 6474** | *vCard Format Extensions: Place of Birth, Place and Date of Death*: `BIRTHPLACE`, `DEATHPLACE` and `DEATHDATE`. |
 | **RFC 6715** | *vCard Format Extensions: Representing vCard Extensions Defined by the Open Mobile Alliance (OMA) Converged Address Book (CAB) Group*: `EXPERTISE`, `HOBBY`, `INTEREST`, `ORG-DIRECTORY`, `LEVEL` and `INDEX`. |

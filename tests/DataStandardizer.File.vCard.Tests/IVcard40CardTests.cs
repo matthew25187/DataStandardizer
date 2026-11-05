@@ -119,6 +119,11 @@ namespace DataStandardizer.File.vCard.Tests
                 { "INTEREST", card => card.Interests.Add("a"), "0/0 INTEREST:a" },
                 { "ORG-DIRECTORY", card => card.OrganizationDirectories.Add(ExampleUri), "0/0 ORG-DIRECTORY:http://example.com/" },
                 { "CONTACT-URI", card => card.ContactUris.Add(ExampleUri), "0/0 CONTACT-URI:http://example.com/" },
+                { "CREATED", card => card.SetCreated(VcardTimestamp.Parse("19951031T222710Z".AsSpan(), VcardValueFormat.Text)), "0/0 CREATED:19951031T222710Z" },
+                { "LANGUAGE", card => card.SetDefaultLanguage(EnglishTag), "0/0 LANGUAGE:en" },
+                { "GRAMGENDER", card => card.GrammaticalGenders.Add("common"), "0/0 GRAMGENDER:common" },
+                { "PRONOUNS", card => card.Pronouns.Add("a"), "0/0 PRONOUNS:a" },
+                { "SOCIALPROFILE", card => card.SocialProfiles.Add(new VcardTypedValue(ExampleUri)), "0/0 SOCIALPROFILE:http://example.com/" },
                 { "X-A", card => card.AddExtensionProperty("X-A", "a"), "0/0 X-A:a" },
                 { "X-A", card => card.AddExtensionProperty("X-A", "a", new VcardPropertyParameters { Group = "b" }), "0/0 b.X-A:a" }
             };
@@ -190,6 +195,19 @@ namespace DataStandardizer.File.vCard.Tests
                 { "ADR;CC=US:;;;;;;", card => card.Addresses[0].CountryCode, Iso3166Part1Alpha2Country.US },
                 { "KIND:application", card => card.Kind, VcardKind.Application },
                 { "KIND:device", card => card.Kind, VcardKind.Device },
+                { "CREATED:19951031T222710Z", card => card.Created.Value.ToString(VcardValueFormat.Text), "19951031T222710Z" },
+                { "LANGUAGE:en", card => card.DefaultLanguage.Value.ToString(), "en" },
+                { "GRAMGENDER:common", card => card.GrammaticalGenders[0].Value, "common" },
+                { "PRONOUNS:a", card => card.Pronouns[0].Value, "a" },
+                { "SOCIALPROFILE;VALUE=text;SERVICE-TYPE=a:b", card => card.SocialProfiles[0].ServiceType, "a" },
+                { "SOCIALPROFILE;USERNAME=a:urn:b", card => card.SocialProfiles[0].Username, "a" },
+                { "NOTE;AUTHOR=\"urn:a\":b", card => card.Notes[0].Author.OriginalString, "urn:a" },
+                { "NOTE;AUTHOR-NAME=a:b", card => card.Notes[0].AuthorName, "a" },
+                { "NOTE;CREATED=19951031T222710Z:b", card => card.Notes[0].Created.Value.ToString(VcardValueFormat.Text), "19951031T222710Z" },
+                { "NOTE;DERIVED=true:b", card => card.Notes[0].IsDerived, true },
+                { "NOTE;PROP-ID=a:b", card => card.Notes[0].PropertyId, "a" },
+                { "NOTE;SCRIPT=Latn:b", card => card.Notes[0].Script, "Latn" },
+                { "ADR;ALTID=1:;;a;;;;\r\nADR;ALTID=1;PHONETIC=ipa:;;b;;;;", card => card.Addresses[1].Phonetic, VcardPhoneticSystem.Ipa },
                 { "X-A:a", card => card.ExtensionProperties[0].Value, "a" }
             };
         }
@@ -400,6 +418,24 @@ namespace DataStandardizer.File.vCard.Tests
             public string Value => "a";
 
             public Iso3166Part1Alpha2Country? CountryCode => null;
+
+            public VcardTimestamp? Created => null;
+
+            public bool IsDerived => false;
+
+            public VcardPhoneticSystem? Phonetic => null;
+
+            public Uri Author => null;
+
+            public string AuthorName => null;
+
+            public string PropertyId => null;
+
+            public string Script => null;
+
+            public string ServiceType => null;
+
+            public string Username => null;
 
             public IReadOnlyList<VcardContentLineParameter> ExtensionParameters => new VcardContentLineParameter[0];
 

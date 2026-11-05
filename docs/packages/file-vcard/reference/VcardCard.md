@@ -51,8 +51,12 @@ Each is `null` if the card has none with a valid value. The setters replace ever
 | `BirthPlace` | `BIRTHPLACE` (RFC 6474 §2.1) | `VcardTypedValue` (text or URI) | `SetBirthPlace(value)`, `SetBirthPlace(value, parameters)` |
 | `DeathPlace` | `DEATHPLACE` (RFC 6474 §2.2) | `VcardTypedValue` (text or URI) | `SetDeathPlace(value)`, `SetDeathPlace(value, parameters)` |
 | `DeathDate` | `DEATHDATE` (RFC 6474 §2.3) | `VcardTypedValue` (date-and-or-time or text) | `SetDeathDate(value)`, `SetDeathDate(value, parameters)` |
+| `Created` | `CREATED` (RFC 9554 §3.1) | `VcardTimestamp` | `SetCreated(value)` |
+| `DefaultLanguage` | `LANGUAGE` (RFC 9554 §3.3) | `Bcp47LanguageTag` | `SetDefaultLanguage(value)` |
 
 `SetKind` takes a `VcardKind`, or the text of a value that RFC 6350 and its extensions don't define. A value that isn't initialised throws `ArgumentException`, and leaves the card as it was.
+
+A setter throws `InvalidOperationException` if an instance has `DERIVED=true`, since RFC 9554 §4.4 says a client "MUST NOT update the property". Remove it first to work the value out again. `SetName` also puts the components of RFC 9554 in the older components, as `Addresses.Add` does; see [The card object model](../card-model.md). `Name` leaves an instance with `PHONETIC` for last.
 
 ### Properties with any number of instances
 
@@ -92,6 +96,9 @@ Each is a [VcardPropertyList](VcardPropertyList.md), a live view of `Properties`
 | `Interests` | `INTEREST` (RFC 6715 §2.3) | `string` |
 | `OrganizationDirectories` | `ORG-DIRECTORY` (RFC 6715 §2.4) | `Uri` |
 | `ContactUris` | `CONTACT-URI` (RFC 8605 §2.1) | `Uri` |
+| `GrammaticalGenders` | `GRAMGENDER` (RFC 9554 §3.2) | `string`: `animate`, `common`, `feminine`, `inanimate`, `masculine`, `neuter`, or a token |
+| `Pronouns` | `PRONOUNS` (RFC 9554 §3.4) | `string` |
+| `SocialProfiles` | `SOCIALPROFILE` (RFC 9554 §3.5) | `VcardTypedValue` (URI or text) |
 
 The typed members leave out a property whose value isn't valid, which `AllowInvalidValues` lets a reader accept, and one with a `CALSCALE` other than `gregorian`, which RFC 6350 §5.8 says to ignore. Both stay in `Properties`.
 
@@ -103,6 +110,7 @@ The typed members leave out a property whose value isn't valid, which `AllowInva
 | `GetProperties(string name)` | The instances of a property, whether or not their values are valid. |
 | `GetPreferred(string name)` | The first instance with the lowest `PREF`; an instance without it is least preferred (RFC 6350 §5.3). `null` if there are none. |
 | `GetAlternatives(string name)` | The instances grouped by `ALTID`, in the order each group first appears (RFC 6350 §5.4). An instance without it is a group of its own. |
+| `GetDuplicatePropertyIds()` | The instances that have the same `PROP-ID` as another of the same name, as groups. RFC 9554 §4.7 leaves what to do about them to the application, so `Validate()` doesn't report them. |
 | `RemoveProperties(string name)` | Removes every instance, and gives how many. |
 | `AddExtensionProperty(string name, string value)` | Adds a property that RFC 6350 and its extensions don't define. There is an overload with parameters. |
 | `ResolveMembers(IEnumerable<VcardCard> cards)` | The cards of a set that the `MEMBER` properties link to by `UID`. One that doesn't resolve, such as a `mailto` URI, is left out. |

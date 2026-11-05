@@ -24,6 +24,14 @@ namespace DataStandardizer.File.vCard
     /// A setter of a property of which a card may have only one replaces every instance, including alternatives with the same <c>ALTID</c>, in the place of the first.  Instances of
     /// other properties go through a <see cref="VcardPropertyList{TValue}"/>.  The class is not safe for use by several threads while it is being changed.
     /// </para>
+    /// <para>
+    /// Such a setter throws <see cref="InvalidOperationException"/> if an instance has <c>DERIVED=true</c>, since RFC 9554 §4.4 says that a client "MUST NOT update the property".  A client
+    /// that works out the value again removes the instance first, with <see cref="RemoveProperties"/>.
+    /// </para>
+    /// <para>
+    /// <see cref="SetName(VcardName)"/> and <see cref="Addresses"/> also put the components of RFC 9554 in the older components, as its §2.1 and §2.2 say to; see
+    /// <see cref="VcardName.WithBackwardCompatibleComponents"/> and <see cref="VcardAddress.WithBackwardCompatibleComponents"/>.  A line added to <see cref="Properties"/> is left as it is.
+    /// </para>
     /// </remarks>
     public sealed class VcardCard : IVcard40Card
     {
@@ -33,7 +41,9 @@ namespace DataStandardizer.File.vCard
         private static readonly VcardPropertyCodec<VcardTypedValue> AnniversaryCodec = VcardPropertyCodecs.Typed(VcardPropertyNames.Anniversary);
         private static readonly VcardPropertyCodec<VcardGender> GenderCodec = VcardPropertyCodecs.Gender();
         private static readonly VcardPropertyCodec<string> ProductIdCodec = VcardPropertyCodecs.Text(VcardPropertyNames.ProductId);
-        private static readonly VcardPropertyCodec<VcardTimestamp> RevisionCodec = VcardPropertyCodecs.Timestamp();
+        private static readonly VcardPropertyCodec<VcardTimestamp> RevisionCodec = VcardPropertyCodecs.Timestamp(VcardPropertyNames.Revision);
+        private static readonly VcardPropertyCodec<VcardTimestamp> CreatedCodec = VcardPropertyCodecs.Timestamp(VcardPropertyNames.Created);
+        private static readonly VcardPropertyCodec<Bcp47LanguageTag> DefaultLanguageCodec = VcardPropertyCodecs.LanguageTag(VcardPropertyNames.DefaultLanguage);
         private static readonly VcardPropertyCodec<VcardTypedValue> UidCodec = VcardPropertyCodecs.Typed(VcardPropertyNames.Uid);
 
         private static readonly VcardPropertyCodec<VcardTypedValue> BirthPlaceCodec = VcardPropertyCodecs.Typed(VcardPropertyNames.BirthPlace);
@@ -49,7 +59,7 @@ namespace DataStandardizer.File.vCard
         private static readonly VcardPropertyCodec<VcardTypedValue> TelephonesCodec = VcardPropertyCodecs.Typed(VcardPropertyNames.Telephone);
         private static readonly VcardPropertyCodec<string> EmailsCodec = VcardPropertyCodecs.Text(VcardPropertyNames.Email);
         private static readonly VcardPropertyCodec<Uri> InstantMessagingCodec = VcardPropertyCodecs.Uri(VcardPropertyNames.InstantMessaging);
-        private static readonly VcardPropertyCodec<Bcp47LanguageTag> LanguagesCodec = VcardPropertyCodecs.LanguageTag();
+        private static readonly VcardPropertyCodec<Bcp47LanguageTag> LanguagesCodec = VcardPropertyCodecs.LanguageTag(VcardPropertyNames.Language);
         private static readonly VcardPropertyCodec<VcardTypedValue> TimeZonesCodec = VcardPropertyCodecs.Typed(VcardPropertyNames.TimeZone);
         private static readonly VcardPropertyCodec<Uri> GeoLocationsCodec = VcardPropertyCodecs.Uri(VcardPropertyNames.Geo);
         private static readonly VcardPropertyCodec<string> TitlesCodec = VcardPropertyCodecs.Text(VcardPropertyNames.Title);
@@ -72,6 +82,9 @@ namespace DataStandardizer.File.vCard
         private static readonly VcardPropertyCodec<string> InterestsCodec = VcardPropertyCodecs.Text(VcardPropertyNames.Interest);
         private static readonly VcardPropertyCodec<Uri> OrganizationDirectoriesCodec = VcardPropertyCodecs.Uri(VcardPropertyNames.OrganizationDirectory);
         private static readonly VcardPropertyCodec<Uri> ContactUrisCodec = VcardPropertyCodecs.Uri(VcardPropertyNames.ContactUri);
+        private static readonly VcardPropertyCodec<string> GrammaticalGendersCodec = VcardPropertyCodecs.Text(VcardPropertyNames.GrammaticalGender);
+        private static readonly VcardPropertyCodec<string> PronounsCodec = VcardPropertyCodecs.Text(VcardPropertyNames.Pronouns);
+        private static readonly VcardPropertyCodec<VcardTypedValue> SocialProfilesCodec = VcardPropertyCodecs.Typed(VcardPropertyNames.SocialProfile);
 
         private const string IndividualText = "individual";
         private const string GroupText = "group";
@@ -124,6 +137,9 @@ namespace DataStandardizer.File.vCard
             Interests = new VcardPropertyList<string>(this, InterestsCodec);
             OrganizationDirectories = new VcardPropertyList<Uri>(this, OrganizationDirectoriesCodec);
             ContactUris = new VcardPropertyList<Uri>(this, ContactUrisCodec);
+            GrammaticalGenders = new VcardPropertyList<string>(this, GrammaticalGendersCodec);
+            Pronouns = new VcardPropertyList<string>(this, PronounsCodec);
+            SocialProfiles = new VcardPropertyList<VcardTypedValue>(this, SocialProfilesCodec);
         }
 
         /// <summary>
@@ -331,6 +347,22 @@ namespace DataStandardizer.File.vCard
         public VcardPropertyList<Uri> ContactUris { get; }
 
         /// <summary>
+        /// Gets the <c>GRAMGENDER</c> properties (RFC 9554 §3.2), each the grammatical gender to use in a language: <c>animate</c>, <c>common</c>, <c>feminine</c>, <c>inanimate</c>,
+        /// <c>masculine</c>, <c>neuter</c>, or an <c>iana-token</c> or <c>x-name</c>.  Several have to differ in their <c>LANGUAGE</c> parameter.
+        /// </summary>
+        public VcardPropertyList<string> GrammaticalGenders { get; }
+
+        /// <summary>
+        /// Gets the <c>PRONOUNS</c> properties (RFC 9554 §3.4).
+        /// </summary>
+        public VcardPropertyList<string> Pronouns { get; }
+
+        /// <summary>
+        /// Gets the <c>SOCIALPROFILE</c> properties (RFC 9554 §3.5), each a URI or a username.  A username has to have a <see cref="VcardPropertyParameters.ServiceType"/>.
+        /// </summary>
+        public VcardPropertyList<VcardTypedValue> SocialProfiles { get; }
+
+        /// <summary>
         /// Gets the properties that RFC 6350 and its extensions don't define, including <c>X-</c> properties, in the order they appear.  Each value is as it appears in the content line, since what its
         /// escaping means is not known.
         /// </summary>
@@ -358,7 +390,7 @@ namespace DataStandardizer.File.vCard
         public string? KindText => GetSingle(KindCodec)?.Value;
 
         /// <summary>
-        /// Gets the <c>N</c> property (RFC 6350 §6.2.2); or <c>null</c> if the card has none with a valid value.
+        /// Gets the <c>N</c> property (RFC 6350 §6.2.2), leaving one with a <c>PHONETIC</c> parameter for last; or <c>null</c> if the card has none with a valid value.
         /// </summary>
         public VcardProperty<VcardName>? Name => GetSingle(NameCodec);
 
@@ -407,6 +439,17 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         public VcardProperty<VcardTypedValue>? DeathDate => GetSingle(DeathDateCodec);
 
+        /// <summary>
+        /// Gets the <c>CREATED</c> property (RFC 9554 §3.1), when the card was created; or <c>null</c> if the card has none with a valid value.
+        /// </summary>
+        public VcardProperty<VcardTimestamp>? Created => GetSingle(CreatedCodec);
+
+        /// <summary>
+        /// Gets the <c>LANGUAGE</c> property (RFC 9554 §3.3), the language that the text values of the card are assumed to be written in, unless a <c>LANGUAGE</c> parameter says otherwise; or
+        /// <c>null</c> if the card has none with a valid value.
+        /// </summary>
+        public VcardProperty<Bcp47LanguageTag>? DefaultLanguage => GetSingle(DefaultLanguageCodec);
+
         string? IVcard40Card.KindText => KindText;
 
         IVcard40Property<VcardName>? IVcard40Card.Name => Name;
@@ -428,6 +471,10 @@ namespace DataStandardizer.File.vCard
         IVcard40Property<VcardTypedValue>? IVcard40Card.DeathPlace => DeathPlace;
 
         IVcard40Property<VcardTypedValue>? IVcard40Card.DeathDate => DeathDate;
+
+        IVcard40Property<VcardTimestamp>? IVcard40Card.Created => Created;
+
+        IVcard40Property<Bcp47LanguageTag>? IVcard40Card.DefaultLanguage => DefaultLanguage;
 #else
         /// <summary>
         /// Gets the value of the <c>KIND</c> property (RFC 6350 §6.1.4) as written; or <c>null</c> if the card has none with a valid value.
@@ -435,7 +482,7 @@ namespace DataStandardizer.File.vCard
         public string KindText => GetSingle(KindCodec)?.Value;
 
         /// <summary>
-        /// Gets the <c>N</c> property (RFC 6350 §6.2.2); or <c>null</c> if the card has none with a valid value.
+        /// Gets the <c>N</c> property (RFC 6350 §6.2.2), leaving one with a <c>PHONETIC</c> parameter for last; or <c>null</c> if the card has none with a valid value.
         /// </summary>
         public VcardProperty<VcardName> Name => GetSingle(NameCodec);
 
@@ -484,6 +531,17 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         public VcardProperty<VcardTypedValue> DeathDate => GetSingle(DeathDateCodec);
 
+        /// <summary>
+        /// Gets the <c>CREATED</c> property (RFC 9554 §3.1), when the card was created; or <c>null</c> if the card has none with a valid value.
+        /// </summary>
+        public VcardProperty<VcardTimestamp> Created => GetSingle(CreatedCodec);
+
+        /// <summary>
+        /// Gets the <c>LANGUAGE</c> property (RFC 9554 §3.3), the language that the text values of the card are assumed to be written in, unless a <c>LANGUAGE</c> parameter says otherwise; or
+        /// <c>null</c> if the card has none with a valid value.
+        /// </summary>
+        public VcardProperty<Bcp47LanguageTag> DefaultLanguage => GetSingle(DefaultLanguageCodec);
+
         string IVcard40Card.KindText => KindText;
 
         IVcard40Property<VcardName> IVcard40Card.Name => Name;
@@ -505,6 +563,10 @@ namespace DataStandardizer.File.vCard
         IVcard40Property<VcardTypedValue> IVcard40Card.DeathPlace => DeathPlace;
 
         IVcard40Property<VcardTypedValue> IVcard40Card.DeathDate => DeathDate;
+
+        IVcard40Property<VcardTimestamp> IVcard40Card.Created => Created;
+
+        IVcard40Property<Bcp47LanguageTag> IVcard40Card.DefaultLanguage => DefaultLanguage;
 #endif
 
         VcardKind IVcard40Card.Kind => Kind;
@@ -573,6 +635,12 @@ namespace DataStandardizer.File.vCard
 
         IVcard40PropertyList<Uri> IVcard40Card.ContactUris => ContactUris.Version40;
 
+        IVcard40PropertyList<string> IVcard40Card.GrammaticalGenders => GrammaticalGenders.Version40;
+
+        IVcard40PropertyList<string> IVcard40Card.Pronouns => Pronouns.Version40;
+
+        IVcard40PropertyList<VcardTypedValue> IVcard40Card.SocialProfiles => SocialProfiles.Version40;
+
         IReadOnlyList<IVcard40Property<string>> IVcard40Card.ExtensionProperties => ExtensionProperties;
 
         /// <summary>
@@ -638,6 +706,47 @@ namespace DataStandardizer.File.vCard
             foreach (var group in groups)
             {
                 result.Add(new ReadOnlyCollection<VcardContentLine>(group));
+            }
+
+            return new ReadOnlyCollection<IReadOnlyList<VcardContentLine>>(result);
+        }
+
+        /// <summary>
+        /// Gets the instances that have the same <c>PROP-ID</c> as another of the same name, as groups in the order each first appears.
+        /// </summary>
+        /// <remarks>
+        /// ref. RFC 9554 §4.7: an application "SHOULD assign a unique identifier to each sibling property of the same name", and "Resolving duplicate identifier conflicts is specific to the
+        /// application".  So a duplicate isn't an error that <see cref="Validate"/> reports, and this is how to find one.  The same value on a property of another name isn't a duplicate.
+        /// Values are compared without regard to case, since a <c>PROP-ID</c> isn't quoted (RFC 6350 §5).
+        /// </remarks>
+        /// <returns>The groups, each of two or more instances.</returns>
+        public IReadOnlyList<IReadOnlyList<VcardContentLine>> GetDuplicatePropertyIds()
+        {
+            var groups = new List<List<VcardContentLine>>();
+            var groupsByKey = new Dictionary<string, List<VcardContentLine>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var line in Properties)
+            {
+                var propertyId = VcardPropertyParameterReader.GetValue(line, VcardParameterNames.PropertyId);
+                if (propertyId is null) continue;
+
+                var key = line.Name + "\0" + propertyId;
+                if (!groupsByKey.ContainsKey(key))
+                {
+                    var group = new List<VcardContentLine>();
+                    groupsByKey.Add(key, group);
+                    groups.Add(group);
+                }
+
+                groupsByKey[key].Add(line);
+            }
+
+            var result = new List<IReadOnlyList<VcardContentLine>>();
+            foreach (var group in groups)
+            {
+                if (group.Count > 1)
+                {
+                    result.Add(new ReadOnlyCollection<VcardContentLine>(group));
+                }
             }
 
             return new ReadOnlyCollection<IReadOnlyList<VcardContentLine>>(result);
@@ -761,6 +870,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="kind">The kind.</param>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="kind"/> is <see cref="VcardKind.Other"/>, which has no text, or not a <see cref="VcardKind"/> member.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         public void SetKind(VcardKind kind)
         {
             switch (kind)
@@ -793,6 +903,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="kind">The value, which RFC 6350 §6.1.4 allows to be an <c>iana-token</c> or <c>x-name</c>.</param>
         /// <exception cref="ArgumentNullException"><paramref name="kind"/> is <c>null</c>.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         public void SetKind(string kind)
         {
             SetSingle(KindCodec, kind, null);
@@ -803,6 +914,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="value">The value.</param>
         /// <exception cref="ArgumentException"><paramref name="value"/> is not initialised.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         public void SetName(VcardName value)
         {
             SetSingle(NameCodec, value, null);
@@ -815,6 +927,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="parameters">The group and parameters.</param>
         /// <exception cref="ArgumentNullException"><paramref name="parameters"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="value"/> is not initialised.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         public void SetName(VcardName value, VcardPropertyParameters parameters)
         {
             SetSingle(NameCodec, value, CheckParameters(parameters));
@@ -825,6 +938,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="value">The value, a date-and-or-time or text.</param>
         /// <exception cref="ArgumentException"><paramref name="value"/> is of a type the property doesn't allow, or can't be written.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         public void SetBirthday(VcardTypedValue value)
         {
             SetSingle(BirthdayCodec, value, null);
@@ -837,6 +951,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="parameters">The group and parameters.</param>
         /// <exception cref="ArgumentNullException"><paramref name="parameters"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="value"/> is of a type the property doesn't allow, or can't be written.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         public void SetBirthday(VcardTypedValue value, VcardPropertyParameters parameters)
         {
             SetSingle(BirthdayCodec, value, CheckParameters(parameters));
@@ -847,6 +962,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="value">The value, a date-and-or-time or text.</param>
         /// <exception cref="ArgumentException"><paramref name="value"/> is of a type the property doesn't allow, or can't be written.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         public void SetAnniversary(VcardTypedValue value)
         {
             SetSingle(AnniversaryCodec, value, null);
@@ -859,6 +975,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="parameters">The group and parameters.</param>
         /// <exception cref="ArgumentNullException"><paramref name="parameters"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="value"/> is of a type the property doesn't allow, or can't be written.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         public void SetAnniversary(VcardTypedValue value, VcardPropertyParameters parameters)
         {
             SetSingle(AnniversaryCodec, value, CheckParameters(parameters));
@@ -869,6 +986,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="value">The value.</param>
         /// <exception cref="ArgumentException"><paramref name="value"/> is not initialised.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         public void SetGender(VcardGender value)
         {
             SetSingle(GenderCodec, value, null);
@@ -881,6 +999,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="parameters">The group and parameters.</param>
         /// <exception cref="ArgumentNullException"><paramref name="parameters"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="value"/> is not initialised.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         public void SetGender(VcardGender value, VcardPropertyParameters parameters)
         {
             SetSingle(GenderCodec, value, CheckParameters(parameters));
@@ -892,6 +1011,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="value">The text.</param>
         /// <exception cref="ArgumentNullException"><paramref name="value"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="value"/> holds a character a TEXT value can't.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         public void SetProductId(string value)
         {
             SetSingle(ProductIdCodec, value, null);
@@ -902,6 +1022,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="value">The value.</param>
         /// <exception cref="ArgumentException"><paramref name="value"/> is not initialised.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         public void SetRevision(VcardTimestamp value)
         {
             SetSingle(RevisionCodec, value, null);
@@ -912,6 +1033,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="value">The value, a URI or text.</param>
         /// <exception cref="ArgumentException"><paramref name="value"/> is of a type the property doesn't allow, or can't be written.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         public void SetUid(VcardTypedValue value)
         {
             SetSingle(UidCodec, value, null);
@@ -922,6 +1044,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="value">The value, text or a URI.</param>
         /// <exception cref="ArgumentException"><paramref name="value"/> is of a type the property doesn't allow, or can't be written.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         public void SetBirthPlace(VcardTypedValue value)
         {
             SetSingle(BirthPlaceCodec, value, null);
@@ -934,6 +1057,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="parameters">The group and parameters.</param>
         /// <exception cref="ArgumentNullException"><paramref name="parameters"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="value"/> is of a type the property doesn't allow, or can't be written.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         public void SetBirthPlace(VcardTypedValue value, VcardPropertyParameters parameters)
         {
             SetSingle(BirthPlaceCodec, value, CheckParameters(parameters));
@@ -944,6 +1068,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="value">The value, text or a URI.</param>
         /// <exception cref="ArgumentException"><paramref name="value"/> is of a type the property doesn't allow, or can't be written.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         public void SetDeathPlace(VcardTypedValue value)
         {
             SetSingle(DeathPlaceCodec, value, null);
@@ -956,6 +1081,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="parameters">The group and parameters.</param>
         /// <exception cref="ArgumentNullException"><paramref name="parameters"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="value"/> is of a type the property doesn't allow, or can't be written.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         public void SetDeathPlace(VcardTypedValue value, VcardPropertyParameters parameters)
         {
             SetSingle(DeathPlaceCodec, value, CheckParameters(parameters));
@@ -966,6 +1092,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="value">The value, a date-and-or-time or text.</param>
         /// <exception cref="ArgumentException"><paramref name="value"/> is of a type the property doesn't allow, or can't be written.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         public void SetDeathDate(VcardTypedValue value)
         {
             SetSingle(DeathDateCodec, value, null);
@@ -978,9 +1105,32 @@ namespace DataStandardizer.File.vCard
         /// <param name="parameters">The group and parameters.</param>
         /// <exception cref="ArgumentNullException"><paramref name="parameters"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="value"/> is of a type the property doesn't allow, or can't be written.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
         public void SetDeathDate(VcardTypedValue value, VcardPropertyParameters parameters)
         {
             SetSingle(DeathDateCodec, value, CheckParameters(parameters));
+        }
+
+        /// <summary>
+        /// Sets the <c>CREATED</c> property, replacing any there are.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is not initialised.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
+        public void SetCreated(VcardTimestamp value)
+        {
+            SetSingle(CreatedCodec, value, null);
+        }
+
+        /// <summary>
+        /// Sets the <c>LANGUAGE</c> property, replacing any there are.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is not initialised.</exception>
+        /// <exception cref="InvalidOperationException">An instance of the property has <c>DERIVED=true</c> (RFC 9554 §4.4).</exception>
+        public void SetDefaultLanguage(Bcp47LanguageTag value)
+        {
+            SetSingle(DefaultLanguageCodec, value, null);
         }
 
         /// <summary>
@@ -1126,6 +1276,16 @@ namespace DataStandardizer.File.vCard
             SetDeathDate(value, parameters);
         }
 
+        void IVcard40Card.SetCreated(VcardTimestamp value)
+        {
+            SetCreated(value);
+        }
+
+        void IVcard40Card.SetDefaultLanguage(Bcp47LanguageTag value)
+        {
+            SetDefaultLanguage(value);
+        }
+
         IVcard40Property<string> IVcard40Card.AddExtensionProperty(string name, string value)
         {
             return AddExtensionProperty(name, value);
@@ -1186,6 +1346,12 @@ namespace DataStandardizer.File.vCard
         private VcardProperty<TValue> GetSingle<TValue>(VcardPropertyCodec<TValue> codec)
 #endif
         {
+            // ref. RFC 9554 §4.6: a property with PHONETIC is how to pronounce another of the same name, so it is not the value unless there's nothing else.
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            VcardProperty<TValue>? phonetic = null;
+#else
+            VcardProperty<TValue> phonetic = null;
+#endif
             foreach (var line in Properties)
             {
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
@@ -1193,10 +1359,18 @@ namespace DataStandardizer.File.vCard
 #else
                 VcardProperty<TValue> property;
 #endif
-                if (string.Equals(line.Name, codec.Name, StringComparison.OrdinalIgnoreCase) && codec.TryCreateProperty(line, out property)) return property;
+                if (string.Equals(line.Name, codec.Name, StringComparison.OrdinalIgnoreCase) && codec.TryCreateProperty(line, out property))
+                {
+                    if (VcardPropertyParameterReader.GetValue(line, VcardParameterNames.Phonetic) is null) return property;
+
+                    if (phonetic is null)
+                    {
+                        phonetic = property;
+                    }
+                }
             }
 
-            return null;
+            return phonetic;
         }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
@@ -1212,8 +1386,14 @@ namespace DataStandardizer.File.vCard
             {
                 if (string.Equals(Properties[index].Name, codec.Name, StringComparison.OrdinalIgnoreCase))
                 {
-                    position = index;
-                    break;
+                    // ref. RFC 9554 §4.4: 'When present with a value of "true", clients MUST NOT update the property.'
+                    if (VcardPropertyParameterReader.IsDerived(Properties[index]))
+                        throw new InvalidOperationException("The property " + codec.Name + " has DERIVED=true, which RFC 9554 §4.4 says a client must not update.  Remove it first to work it out again.");
+
+                    if (position < 0)
+                    {
+                        position = index;
+                    }
                 }
             }
 

@@ -44,6 +44,19 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
+        /// Gets the <c>CREATED</c> (RFC 9554 §4.3), when the property was created in the card; or <c>null</c> if the property doesn't have a valid one.
+        /// </summary>
+        public VcardTimestamp? Created
+        {
+            get
+            {
+                var text = VcardPropertyParameterReader.GetValue(Line, VcardParameterNames.Created);
+                VcardTimestamp result;
+                return text != null && VcardTimestamp.TryParse(text.AsSpan(), VcardValueFormat.Text, out result) ? result : (VcardTimestamp?)null;
+            }
+        }
+
+        /// <summary>
         /// Gets the parameters of the property that RFC 6350 and its extensions don't define, in the order they appear.
         /// </summary>
         public IReadOnlyList<VcardContentLineParameter> ExtensionParameters
@@ -78,6 +91,12 @@ namespace DataStandardizer.File.vCard
                     : (long?)null;
             }
         }
+
+        /// <summary>
+        /// Gets a flag indicating if the value is derived from other properties of the card: the <c>DERIVED</c> (RFC 9554 §4.4) is <c>true</c>.  It is <c>false</c> by default.  A client
+        /// "MUST NOT update the property", so a setter of <see cref="VcardCard"/> won't replace one.
+        /// </summary>
+        public bool IsDerived => VcardPropertyParameterReader.IsDerived(Line);
 
         /// <summary>
         /// Gets the <c>LANGUAGE</c> (RFC 6350 §5.1); or <c>null</c> if the property doesn't have a valid one.
@@ -131,6 +150,22 @@ namespace DataStandardizer.File.vCard
         public string Name => Line.Name;
 
         /// <summary>
+        /// Gets the <c>PHONETIC</c> (RFC 9554 §4.6), which says that the value is the phonetic representation of the instance of this property with the same <c>ALTID</c> and no
+        /// <c>PHONETIC</c>, and in which system; or <c>null</c> if the property doesn't have a valid one, or doesn't allow it.
+        /// </summary>
+        public VcardPhoneticSystem? Phonetic
+        {
+            get
+            {
+                var text = VcardPropertyParameterReader.GetValue(Line, VcardParameterNames.Phonetic);
+                VcardPhoneticSystem result;
+                return text != null && VcardPropertyParameterReader.IsAllowedOnProperty(VcardParameterSet.Phonetic, Line.Name) && VcardPropertyParameterReader.TryParsePhonetic(text, out result)
+                    ? result
+                    : (VcardPhoneticSystem?)null;
+            }
+        }
+
+        /// <summary>
         /// Gets the <c>PID</c> values (RFC 6350 §5.5) that are valid.
         /// </summary>
         public IReadOnlyList<VcardPid> Pid
@@ -180,6 +215,60 @@ namespace DataStandardizer.File.vCard
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         /// <summary>
+        /// Gets the <c>AUTHOR</c> (RFC 9554 §4.1), the author of the value; or <c>null</c> if the property doesn't have a valid one.
+        /// </summary>
+        public Uri? Author
+        {
+            get
+            {
+                var text = VcardPropertyParameterReader.GetValue(Line, VcardParameterNames.Author);
+                Uri? result;
+                return text != null && VcardValue.TryParseUriText(text.AsSpan(), out result) ? result : null;
+            }
+        }
+
+        /// <summary>
+        /// Gets the <c>AUTHOR-NAME</c> (RFC 9554 §4.2); or <c>null</c> if the property doesn't have one.
+        /// </summary>
+        public string? AuthorName => VcardPropertyParameterReader.GetValue(Line, VcardParameterNames.AuthorName);
+
+        /// <summary>
+        /// Gets the <c>PROP-ID</c> (RFC 9554 §4.7); or <c>null</c> if the property doesn't have a valid one.  See <see cref="VcardCard.GetDuplicatePropertyIds"/>.
+        /// </summary>
+        public string? PropertyId
+        {
+            get
+            {
+                var text = VcardPropertyParameterReader.GetValue(Line, VcardParameterNames.PropertyId);
+                return text != null && VcardPropertyParameterReader.IsPropertyId(text) ? text : null;
+            }
+        }
+
+        /// <summary>
+        /// Gets the <c>SCRIPT</c> (RFC 9554 §4.8), the script the value is written in; or <c>null</c> if the property doesn't have a valid one.  With <see cref="Phonetic"/>, RFC 9554 §4.6 says
+        /// to ignore a script subtag in <see cref="Language"/> in favour of this.
+        /// </summary>
+        public string? Script
+        {
+            get
+            {
+                var text = VcardPropertyParameterReader.GetValue(Line, VcardParameterNames.Script);
+                return text != null && VcardPropertyParameterReader.IsScript(text) ? text : null;
+            }
+        }
+
+        /// <summary>
+        /// Gets the <c>SERVICE-TYPE</c> (RFC 9554 §4.9), the name of the online service, with its case as written; or <c>null</c> if the property doesn't have one, or doesn't allow it.  Two
+        /// names are equal if they match case-insensitively (RFC 9554 §3.5).
+        /// </summary>
+        public string? ServiceType => VcardPropertyParameterReader.IsAllowedOnProperty(VcardParameterSet.ServiceType, Line.Name) ? VcardPropertyParameterReader.GetValue(Line, VcardParameterNames.ServiceType) : null;
+
+        /// <summary>
+        /// Gets the <c>USERNAME</c> (RFC 9554 §4.10), with its case as written; or <c>null</c> if the property doesn't have one, or doesn't allow it.
+        /// </summary>
+        public string? Username => VcardPropertyParameterReader.IsAllowedOnProperty(VcardParameterSet.Username, Line.Name) ? VcardPropertyParameterReader.GetValue(Line, VcardParameterNames.Username) : null;
+
+        /// <summary>
         /// Gets the <c>ALTID</c> (RFC 6350 §5.4); or <c>null</c> if the property doesn't have one.
         /// </summary>
         public string? AltId => VcardPropertyParameterReader.GetValue(Line, VcardParameterNames.AlternativeId);
@@ -208,7 +297,7 @@ namespace DataStandardizer.File.vCard
         public string? Group => Line.Group;
 
         /// <summary>
-        /// Gets the <c>LABEL</c> (RFC 6350 §6.3.1); or <c>null</c> if the property doesn't have one.
+        /// Gets the <c>LABEL</c> (RFC 6350 §6.3.1, RFC 9554 §4.5); or <c>null</c> if the property doesn't have one.
         /// </summary>
         public string? Label => VcardPropertyParameterReader.GetValue(Line, VcardParameterNames.Label);
 
@@ -216,6 +305,18 @@ namespace DataStandardizer.File.vCard
         /// Gets the <c>TZ</c> (RFC 6350 §5.11); or <c>null</c> if the property doesn't have one.
         /// </summary>
         public string? TimeZone => VcardPropertyParameterReader.GetValue(Line, VcardParameterNames.TimeZone);
+
+        Uri? IVcard40Property<TValue>.Author => Author;
+
+        string? IVcard40Property<TValue>.AuthorName => AuthorName;
+
+        string? IVcard40Property<TValue>.PropertyId => PropertyId;
+
+        string? IVcard40Property<TValue>.Script => Script;
+
+        string? IVcard40Property<TValue>.ServiceType => ServiceType;
+
+        string? IVcard40Property<TValue>.Username => Username;
 
         string? IVcard40Property<TValue>.AltId => AltId;
 
@@ -229,6 +330,60 @@ namespace DataStandardizer.File.vCard
 
         string? IVcard40Property<TValue>.TimeZone => TimeZone;
 #else
+        /// <summary>
+        /// Gets the <c>AUTHOR</c> (RFC 9554 §4.1), the author of the value; or <c>null</c> if the property doesn't have a valid one.
+        /// </summary>
+        public Uri Author
+        {
+            get
+            {
+                var text = VcardPropertyParameterReader.GetValue(Line, VcardParameterNames.Author);
+                Uri result;
+                return text != null && VcardValue.TryParseUriText(text.AsSpan(), out result) ? result : null;
+            }
+        }
+
+        /// <summary>
+        /// Gets the <c>AUTHOR-NAME</c> (RFC 9554 §4.2); or <c>null</c> if the property doesn't have one.
+        /// </summary>
+        public string AuthorName => VcardPropertyParameterReader.GetValue(Line, VcardParameterNames.AuthorName);
+
+        /// <summary>
+        /// Gets the <c>PROP-ID</c> (RFC 9554 §4.7); or <c>null</c> if the property doesn't have a valid one.  See <see cref="VcardCard.GetDuplicatePropertyIds"/>.
+        /// </summary>
+        public string PropertyId
+        {
+            get
+            {
+                var text = VcardPropertyParameterReader.GetValue(Line, VcardParameterNames.PropertyId);
+                return text != null && VcardPropertyParameterReader.IsPropertyId(text) ? text : null;
+            }
+        }
+
+        /// <summary>
+        /// Gets the <c>SCRIPT</c> (RFC 9554 §4.8), the script the value is written in; or <c>null</c> if the property doesn't have a valid one.  With <see cref="Phonetic"/>, RFC 9554 §4.6 says
+        /// to ignore a script subtag in <see cref="Language"/> in favour of this.
+        /// </summary>
+        public string Script
+        {
+            get
+            {
+                var text = VcardPropertyParameterReader.GetValue(Line, VcardParameterNames.Script);
+                return text != null && VcardPropertyParameterReader.IsScript(text) ? text : null;
+            }
+        }
+
+        /// <summary>
+        /// Gets the <c>SERVICE-TYPE</c> (RFC 9554 §4.9), the name of the online service, with its case as written; or <c>null</c> if the property doesn't have one, or doesn't allow it.  Two
+        /// names are equal if they match case-insensitively (RFC 9554 §3.5).
+        /// </summary>
+        public string ServiceType => VcardPropertyParameterReader.IsAllowedOnProperty(VcardParameterSet.ServiceType, Line.Name) ? VcardPropertyParameterReader.GetValue(Line, VcardParameterNames.ServiceType) : null;
+
+        /// <summary>
+        /// Gets the <c>USERNAME</c> (RFC 9554 §4.10), with its case as written; or <c>null</c> if the property doesn't have one, or doesn't allow it.
+        /// </summary>
+        public string Username => VcardPropertyParameterReader.IsAllowedOnProperty(VcardParameterSet.Username, Line.Name) ? VcardPropertyParameterReader.GetValue(Line, VcardParameterNames.Username) : null;
+
         /// <summary>
         /// Gets the <c>ALTID</c> (RFC 6350 §5.4); or <c>null</c> if the property doesn't have one.
         /// </summary>
@@ -258,7 +413,7 @@ namespace DataStandardizer.File.vCard
         public string Group => Line.Group;
 
         /// <summary>
-        /// Gets the <c>LABEL</c> (RFC 6350 §6.3.1); or <c>null</c> if the property doesn't have one.
+        /// Gets the <c>LABEL</c> (RFC 6350 §6.3.1, RFC 9554 §4.5); or <c>null</c> if the property doesn't have one.
         /// </summary>
         public string Label => VcardPropertyParameterReader.GetValue(Line, VcardParameterNames.Label);
 
@@ -266,6 +421,18 @@ namespace DataStandardizer.File.vCard
         /// Gets the <c>TZ</c> (RFC 6350 §5.11); or <c>null</c> if the property doesn't have one.
         /// </summary>
         public string TimeZone => VcardPropertyParameterReader.GetValue(Line, VcardParameterNames.TimeZone);
+
+        Uri IVcard40Property<TValue>.Author => Author;
+
+        string IVcard40Property<TValue>.AuthorName => AuthorName;
+
+        string IVcard40Property<TValue>.PropertyId => PropertyId;
+
+        string IVcard40Property<TValue>.Script => Script;
+
+        string IVcard40Property<TValue>.ServiceType => ServiceType;
+
+        string IVcard40Property<TValue>.Username => Username;
 
         string IVcard40Property<TValue>.AltId => AltId;
 
@@ -281,6 +448,12 @@ namespace DataStandardizer.File.vCard
 #endif
 
         Iso3166Part1Alpha2Country? IVcard40Property<TValue>.CountryCode => CountryCode;
+
+        VcardTimestamp? IVcard40Property<TValue>.Created => Created;
+
+        bool IVcard40Property<TValue>.IsDerived => IsDerived;
+
+        VcardPhoneticSystem? IVcard40Property<TValue>.Phonetic => Phonetic;
 
         IReadOnlyList<VcardContentLineParameter> IVcard40Property<TValue>.ExtensionParameters => ExtensionParameters;
 

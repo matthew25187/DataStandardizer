@@ -111,7 +111,7 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Gets the wrapper of a line just created from a value, which keeps a copy of a value the caller could go on to change.
+        /// Gets the wrapper of a line just created from a value, which keeps a copy of a value the caller could go on to change, or the form of it that the line holds.
         /// </summary>
         internal VcardProperty<TValue> CreateProperty(VcardContentLine line, TValue value)
         {
@@ -152,13 +152,15 @@ namespace DataStandardizer.File.vCard
         internal static VcardPropertyCodec<VcardName> Name()
         {
             return new VcardPropertyCodec<VcardName>(VcardPropertyNames.Name, (string text, VcardValueType valueType, out VcardName value) =>
-                VcardName.TryParse(text.AsSpan(), VcardValueFormat.Text, out value), value => value.ToString(VcardValueFormat.Text), value => VcardValueType.Text);
+                VcardName.TryParse(text.AsSpan(), VcardValueFormat.Text, out value), value => value.WithBackwardCompatibleComponents().ToString(VcardValueFormat.Text),
+                value => VcardValueType.Text, value => value.WithBackwardCompatibleComponents());
         }
 
         internal static VcardPropertyCodec<VcardAddress> Address()
         {
             return new VcardPropertyCodec<VcardAddress>(VcardPropertyNames.Address, (string text, VcardValueType valueType, out VcardAddress value) =>
-                VcardAddress.TryParse(text.AsSpan(), VcardValueFormat.Text, out value), value => value.ToString(VcardValueFormat.Text), value => VcardValueType.Text);
+                VcardAddress.TryParse(text.AsSpan(), VcardValueFormat.Text, out value), value => value.WithBackwardCompatibleComponents().ToString(VcardValueFormat.Text),
+                value => VcardValueType.Text, value => value.WithBackwardCompatibleComponents());
         }
 
         internal static VcardPropertyCodec<VcardOrganization> Organization()
@@ -179,15 +181,15 @@ namespace DataStandardizer.File.vCard
                 VcardClientPidMap.TryParse(text.AsSpan(), VcardValueFormat.Text, out value), value => value.ToString(), value => VcardValueType.Text);
         }
 
-        internal static VcardPropertyCodec<VcardTimestamp> Timestamp()
+        internal static VcardPropertyCodec<VcardTimestamp> Timestamp(string name)
         {
-            return new VcardPropertyCodec<VcardTimestamp>(VcardPropertyNames.Revision, (string text, VcardValueType valueType, out VcardTimestamp value) =>
+            return new VcardPropertyCodec<VcardTimestamp>(name, (string text, VcardValueType valueType, out VcardTimestamp value) =>
                 VcardTimestamp.TryParse(text.AsSpan(), VcardValueFormat.Text, out value), value => value.ToString(VcardValueFormat.Text), value => VcardValueType.Timestamp);
         }
 
-        internal static VcardPropertyCodec<Bcp47LanguageTag> LanguageTag()
+        internal static VcardPropertyCodec<Bcp47LanguageTag> LanguageTag(string name)
         {
-            return new VcardPropertyCodec<Bcp47LanguageTag>(VcardPropertyNames.Language, (string text, VcardValueType valueType, out Bcp47LanguageTag value) =>
+            return new VcardPropertyCodec<Bcp47LanguageTag>(name, (string text, VcardValueType valueType, out Bcp47LanguageTag value) =>
                 VcardValue.TryParseLanguageTag(text.AsSpan(), VcardValueFormat.Text, out value), value => value.ToString(), value => VcardValueType.LanguageTag);
         }
 

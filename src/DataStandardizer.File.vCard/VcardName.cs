@@ -151,6 +151,40 @@ namespace DataStandardizer.File.vCard
         public IReadOnlyList<string> Generations => GetComponents()[GenerationComponent];
 
         /// <summary>
+        /// Gets the family names without any that are also a secondary surname.  ref. RFC 9554 §2.2: a reader "SHOULD ignore any value in the backwards-compatible component if an
+        /// equal value is set in the new component".
+        /// </summary>
+        /// <exception cref="InvalidOperationException">The instance is not initialised.</exception>
+        public IReadOnlyList<string> FamilyNamesExcludingSecondarySurnames => GetComponents().GetItemsNotIn(FamilyNamesComponent, SecondarySurnamesComponent);
+
+        /// <summary>
+        /// Gets the honorific suffixes without any that are also a generation.  ref. RFC 9554 §2.2: 'a "Jr." that occurs in both honorific suffixes and generation should only be handled
+        /// as a generational marker.'
+        /// </summary>
+        /// <exception cref="InvalidOperationException">The instance is not initialised.</exception>
+        public IReadOnlyList<string> HonorificSuffixesExcludingGenerations => GetComponents().GetItemsNotIn(HonorificSuffixesComponent, GenerationComponent);
+
+        /// <summary>
+        /// Gets the components, for use within the package; or <c>null</c> if the instance is not initialised.
+        /// </summary>
+        internal VcardComponentList Components => _components;
+
+        /// <summary>
+        /// Gets this name with its secondary surnames also in the family names, and its generations also in the honorific suffixes, each after what is there unless it is there already.
+        /// A consumer that doesn't know RFC 9554 can then read them.  ref. RFC 9554 §2.2: "implementations SHOULD add such values to both the newly defined components and their
+        /// backwards-compatible counterpart".
+        /// </summary>
+        /// <remarks>
+        /// <see cref="VcardCard.SetName(VcardName)"/> applies this.  To write a name without it, add a <see cref="VcardContentLine"/> to <see cref="VcardCard.Properties"/>.
+        /// </remarks>
+        /// <returns>The name.</returns>
+        /// <exception cref="InvalidOperationException">The instance is not initialised.</exception>
+        public VcardName WithBackwardCompatibleComponents()
+        {
+            return new VcardName(GetComponents().WithItemsOf(FamilyNamesComponent, SecondarySurnamesComponent).WithItemsOf(HonorificSuffixesComponent, GenerationComponent));
+        }
+
+        /// <summary>
         /// Gets a flag indicating if a version can write this name.  vCard 3.0 and vCard 2.1 have no RFC 9554 components.  vCard 2.1 has one item in a component, and can't end one
         /// with a backslash.
         /// </summary>

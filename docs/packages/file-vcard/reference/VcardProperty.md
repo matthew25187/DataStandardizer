@@ -37,10 +37,19 @@ public sealed class VcardProperty<TValue> : IVcard40Property<TValue>
 | `SortAs` | `IReadOnlyList<string>` | The `SORT-AS` strings (§5.9). |
 | `GeoLocation` | `Uri?` | `GEO` (§5.10), or `null` if there is no valid one. |
 | `TimeZone` | `string?` | `TZ` (§5.11). |
-| `Label` | `string?` | `LABEL` (§6.3.1). |
+| `Label` | `string?` | `LABEL` (§6.3.1, RFC 9554 §4.5). |
 | `Level` | `VcardLevel?` | `LEVEL` (RFC 6715 §3.2), or `null` if there is none that is valid for the property. |
 | `Index` | `long?` | `INDEX` (RFC 6715 §3.1), or `null` if there is no valid one or the property doesn't allow it. See `VcardPropertyList<TValue>.GetOrderedByIndex()`. |
 | `CountryCode` | `Iso3166Part1Alpha2Country?` | `CC` (RFC 8605 §3.1), or `null` if there is no valid one or the property doesn't allow it. |
+| `Author` | `Uri?` | `AUTHOR` (RFC 9554 §4.1), or `null` if there is no valid one. |
+| `AuthorName` | `string?` | `AUTHOR-NAME` (RFC 9554 §4.2). |
+| `Created` | `VcardTimestamp?` | `CREATED` (RFC 9554 §4.3), or `null` if there is no valid one. |
+| `IsDerived` | `bool` | `true` if `DERIVED` (RFC 9554 §4.4) is `true`. |
+| `Phonetic` | `VcardPhoneticSystem?` | `PHONETIC` (RFC 9554 §4.6), or `null` if there is no valid one or the property doesn't allow it. |
+| `PropertyId` | `string?` | `PROP-ID` (RFC 9554 §4.7), or `null` if there is no valid one. |
+| `Script` | `string?` | `SCRIPT` (RFC 9554 §4.8), or `null` if there is no valid one. With `Phonetic`, a script subtag in `Language` is to be ignored in favour of this. |
+| `ServiceType` | `string?` | `SERVICE-TYPE` (RFC 9554 §4.9), with its case as written, or `null` if the property doesn't allow it. Two names are equal if they match case-insensitively (§3.5). |
+| `Username` | `string?` | `USERNAME` (RFC 9554 §4.10), with its case as written, or `null` if the property doesn't allow it. |
 | `ExtensionParameters` | `IReadOnlyList<VcardContentLineParameter>` | The parameters RFC 6350 and its extensions don't define. |
 
 ## Applies to

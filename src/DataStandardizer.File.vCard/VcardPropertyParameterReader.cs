@@ -24,6 +24,19 @@ namespace DataStandardizer.File.vCard
         // ref. RFC 8605 §3.1: CC-param = "CC=" 2ALPHA
         private const int CountryCodeLength = 2;
 
+        // ref. RFC 9554 §4.6 and §7.4: the values in the IANA registry, in the order of VcardPhoneticSystem.
+        private static readonly string[] PhoneticTexts = { "ipa", "jyut", "piny", "script" };
+
+        // ref. RFC 9554 §4.7: prop-id-param = "PROP-ID" "=" 1*255(ALPHA / DIGIT / "-"/ "_")
+        private const int MaxPropertyIdLength = 255;
+
+        // ref. RFC 9554 §4.8: script-param = 4ALPHA, a script subtag of RFC 5646 §2.2.3.
+        private const int ScriptLength = 4;
+
+        // ref. RFC 9554 §4.4: derived-param = "DERIVED" "=" ("true" / "false")
+        private const string TrueText = "true";
+        private const string FalseText = "false";
+
         /// <summary>
         /// Gets the text of an integer.
         /// </summary>
@@ -110,6 +123,108 @@ namespace DataStandardizer.File.vCard
             }
 
             return Enum.TryParse(value.ToUpperInvariant(), false, out result);
+        }
+
+        /// <summary>
+        /// Gets the text of a phonetic system.
+        /// </summary>
+        internal static string FormatPhonetic(VcardPhoneticSystem system)
+        {
+            return PhoneticTexts[(int)system];
+        }
+
+        /// <summary>
+        /// Gets the text of a <c>DERIVED</c> parameter.
+        /// </summary>
+        internal static string FormatDerived(bool value)
+        {
+            return value ? TrueText : FalseText;
+        }
+
+        /// <summary>
+        /// Gets whether a value is a member of <see cref="VcardPhoneticSystem"/>.
+        /// </summary>
+        internal static bool IsDefinedPhonetic(VcardPhoneticSystem system)
+        {
+            return system >= VcardPhoneticSystem.Ipa && system <= VcardPhoneticSystem.Script;
+        }
+
+        /// <summary>
+        /// Parses the value of a <c>PHONETIC</c> parameter, which RFC 6350 §5 makes case-insensitive.  ref. RFC 9554 §4.6: it "MUST be one of the values enumerated in the IANA 'vCard
+        /// Parameter Values' registry", which holds these four, although its ABNF also has <c>iana-token</c> and <c>x-name</c>.
+        /// </summary>
+        internal static bool TryParsePhonetic(string value, out VcardPhoneticSystem result)
+        {
+            for (var index = 0; index < PhoneticTexts.Length; index++)
+            {
+                if (string.Equals(value, PhoneticTexts[index], StringComparison.OrdinalIgnoreCase))
+                {
+                    result = (VcardPhoneticSystem)index;
+                    return true;
+                }
+            }
+
+            result = VcardPhoneticSystem.Ipa;
+            return false;
+        }
+
+        /// <summary>
+        /// Parses the value of a <c>DERIVED</c> parameter (RFC 9554 §4.4), whose ABNF strings RFC 5234 §2.3 makes case-insensitive, as its example <c>DERIVED=TRUE</c> shows.
+        /// </summary>
+        internal static bool TryParseDerived(string value, out bool result)
+        {
+            result = string.Equals(value, TrueText, StringComparison.OrdinalIgnoreCase);
+            return result || string.Equals(value, FalseText, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Gets whether a line has <c>DERIVED=true</c> (RFC 9554 §4.4).
+        /// </summary>
+        internal static bool IsDerived(VcardContentLine line)
+        {
+            var text = GetValue(line, VcardParameterNames.Derived);
+            bool result;
+            return text != null && TryParseDerived(text, out result) && result;
+        }
+
+        /// <summary>
+        /// Gets whether text is a valid <c>PROP-ID</c> (RFC 9554 §4.7).
+        /// </summary>
+        internal static bool IsPropertyId(string value)
+        {
+            if (value.Length == 0 || value.Length > MaxPropertyIdLength) return false;
+
+            foreach (var character in value)
+            {
+                if (!(IsLetter(character) || VcardValueFormatting.IsDigit(character) || character == '-' || character == '_')) return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Gets whether text is a valid <c>SCRIPT</c> (RFC 9554 §4.8).
+        /// </summary>
+        internal static bool IsScript(string value)
+        {
+            if (value.Length != ScriptLength) return false;
+
+            foreach (var character in value)
+            {
+                if (!IsLetter(character)) return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Gets whether a parameter is written in quotes whatever its value holds.  ref. RFC 9554 §4.9 and §4.10: the case of <c>SERVICE-TYPE</c> and <c>USERNAME</c> is significant and
+        /// "MUST be preserved", and RFC 6350 §5 says that a value not in quotes is case-insensitive.  Erratum 8652 of RFC 9554 quotes the value in the example.
+        /// </summary>
+        internal static bool IsAlwaysQuoted(string name)
+        {
+            return string.Equals(name, VcardParameterNames.ServiceType, StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(name, VcardParameterNames.Username, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
@@ -202,6 +317,11 @@ namespace DataStandardizer.File.vCard
             }
 
             return groups;
+        }
+
+        private static bool IsLetter(char character)
+        {
+            return (character >= 'A' && character <= 'Z') || (character >= 'a' && character <= 'z');
         }
 
         private static bool IsLevelOfProperty(VcardLevel level, string propertyName)

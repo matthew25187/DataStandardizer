@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace DataStandardizer.File.vCard
 {
@@ -86,6 +87,13 @@ namespace DataStandardizer.File.vCard
 
         // ref. RFC 9554 §2.1: ADR-value has eighteen components.
         private const int Rfc9554ComponentCount = 18;
+
+        // The order of the street address made from the components of RFC 9554, which leaves it as "123 Main Street" in the example of RFC 9554 §2.1.
+        private static readonly int[] StreetAddressParts =
+        {
+            StreetNumberComponent, StreetNameComponent, DirectionComponent, BuildingComponent, BlockComponent, FloorComponent, ApartmentComponent, RoomComponent, LandmarkComponent,
+            SubdistrictComponent, DistrictComponent
+        };
 
         private readonly VcardComponentList _components;
 
@@ -259,6 +267,57 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <exception cref="InvalidOperationException">The instance is not initialised.</exception>
         public IReadOnlyList<string> Direction => GetComponents()[DirectionComponent];
+
+        /// <summary>
+        /// Gets a flag indicating if the address has a value in one of the components of RFC 9554.  ref. RFC 9554 §2.1: if so, a reader "SHOULD ignore the street component", which is then
+        /// there for backwards compatibility.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">The instance is not initialised.</exception>
+        public bool HasDetailedComponents => !GetComponents().AreEmptyFrom(Rfc6350ComponentCount);
+
+        /// <summary>
+        /// Gets the components, for use within the package; or <c>null</c> if the instance is not initialised.
+        /// </summary>
+        internal VcardComponentList Components => _components;
+
+        /// <summary>
+        /// Gets this address with its street address made from the components of RFC 9554, if it has none, so that a consumer that doesn't know RFC 9554 can read them.  ref. RFC 9554 §2.1:
+        /// "Implementations SHOULD write a combined value of these components in the street address component for backwards compatibility".
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The RFC doesn't say how to combine them, and what reads best depends on the country.  This joins them with a space: the street number, street name, direction, building, block,
+        /// floor, apartment, room, landmark, subdistrict and district.  To say otherwise, give the address a street address, which this leaves as it is.
+        /// </para>
+        /// <para>
+        /// <see cref="VcardCard.Addresses"/> applies this when it adds an address.  To write an address without it, add a <see cref="VcardContentLine"/> to <see cref="VcardCard.Properties"/>.
+        /// </para>
+        /// </remarks>
+        /// <returns>The address.</returns>
+        /// <exception cref="InvalidOperationException">The instance is not initialised.</exception>
+        public VcardAddress WithBackwardCompatibleComponents()
+        {
+            var components = GetComponents();
+            if (components[StreetAddressComponent].Count != 0) return this;
+
+            var street = new StringBuilder();
+            foreach (var part in StreetAddressParts)
+            {
+                foreach (var item in components[part])
+                {
+                    if (item.Length == 0) continue;
+
+                    if (street.Length != 0)
+                    {
+                        street.Append(' ');
+                    }
+
+                    street.Append(item);
+                }
+            }
+
+            return street.Length == 0 ? this : new VcardAddress(components.WithItems(StreetAddressComponent, new[] { street.ToString() }));
+        }
 
         /// <summary>
         /// Gets a flag indicating if a version can write this address.  vCard 3.0 and vCard 2.1 have no RFC 9554 components and one item in a component, and vCard 2.1 can't end one

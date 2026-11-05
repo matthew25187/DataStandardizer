@@ -1,7 +1,7 @@
 namespace DataStandardizer.File.vCard
 {
     /// <summary>
-    /// The names of the properties of vCard 4.0: those RFC 6350 §6 defines, and those of the extensions RFC 6474, RFC 6715 and RFC 8605.
+    /// The names of the properties of vCard 4.0: those RFC 6350 §6 defines, and those of the extensions RFC 6474, RFC 6715, RFC 8605 and RFC 9554.
     /// </summary>
     /// <remarks>
     /// Property names are case-insensitive; these are in the upper case the RFC uses.  Use them with <see cref="VcardCard.GetProperties"/>, or to
@@ -60,6 +60,11 @@ namespace DataStandardizer.File.vCard
         public const string ContactUri = "CONTACT-URI";
 
         /// <summary>
+        /// <c>CREATED</c> (RFC 9554 §3.1): when the card was created.
+        /// </summary>
+        public const string Created = "CREATED";
+
+        /// <summary>
         /// <c>DEATHDATE</c> (RFC 6474 §2.3): the date of death.
         /// </summary>
         public const string DeathDate = "DEATHDATE";
@@ -68,6 +73,11 @@ namespace DataStandardizer.File.vCard
         /// <c>DEATHPLACE</c> (RFC 6474 §2.2): the place of death.
         /// </summary>
         public const string DeathPlace = "DEATHPLACE";
+
+        /// <summary>
+        /// <c>LANGUAGE</c> (RFC 9554 §3.3): the language that the text values of the card are assumed to be written in.  It is not <see cref="Language"/>, which is <c>LANG</c>.
+        /// </summary>
+        public const string DefaultLanguage = "LANGUAGE";
 
         /// <summary>
         /// <c>EMAIL</c> (RFC 6350 §6.4.2): an electronic mail address.
@@ -103,6 +113,11 @@ namespace DataStandardizer.File.vCard
         /// <c>GEO</c> (RFC 6350 §6.5.2): a global position.
         /// </summary>
         public const string Geo = "GEO";
+
+        /// <summary>
+        /// <c>GRAMGENDER</c> (RFC 9554 §3.2): the grammatical gender to use in salutations and other grammatical constructs.
+        /// </summary>
+        public const string GrammaticalGender = "GRAMGENDER";
 
         /// <summary>
         /// <c>HOBBY</c> (RFC 6715 §2.2): an activity one actively engages in.
@@ -181,6 +196,11 @@ namespace DataStandardizer.File.vCard
         public const string ProductId = "PRODID";
 
         /// <summary>
+        /// <c>PRONOUNS</c> (RFC 9554 §3.4): the pronouns to use for the entity.
+        /// </summary>
+        public const string Pronouns = "PRONOUNS";
+
+        /// <summary>
         /// <c>RELATED</c> (RFC 6350 §6.6.6): a relationship with another entity.
         /// </summary>
         public const string Related = "RELATED";
@@ -194,6 +214,11 @@ namespace DataStandardizer.File.vCard
         /// <c>ROLE</c> (RFC 6350 §6.6.2): a function or part played.
         /// </summary>
         public const string Role = "ROLE";
+
+        /// <summary>
+        /// <c>SOCIALPROFILE</c> (RFC 9554 §3.5): a social media profile, as a URI or a username.
+        /// </summary>
+        public const string SocialProfile = "SOCIALPROFILE";
 
         /// <summary>
         /// <c>SOUND</c> (RFC 6350 §6.7.5): a digital sound, often the pronunciation of the name.

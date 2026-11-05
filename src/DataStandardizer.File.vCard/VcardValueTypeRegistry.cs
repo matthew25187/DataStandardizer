@@ -106,7 +106,14 @@ namespace DataStandardizer.File.vCard
             new Entry("ORG-DIRECTORY", VcardValueType.Uri),
 
             // ref. RFC 8605 §2.1.
-            new Entry("CONTACT-URI", VcardValueType.Uri)
+            new Entry("CONTACT-URI", VcardValueType.Uri),
+
+            // ref. RFC 9554 §3.
+            new Entry("CREATED", VcardValueType.Timestamp),
+            new Entry("GRAMGENDER", VcardValueType.Text),
+            new Entry("LANGUAGE", VcardValueType.LanguageTag),
+            new Entry("PRONOUNS", VcardValueType.Text),
+            new Entry("SOCIALPROFILE", VcardValueType.Uri, VcardValueType.Text)
         };
 
         /// <summary>
