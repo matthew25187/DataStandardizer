@@ -7,14 +7,16 @@ has_children: true
 
 # DataStandardizer.File.vCard
 
-Reading and writing of vCard data at the level of its content lines. The package is a
-preview under development: the card object model, jCard and xCard are still to come.
+Reading and writing of vCard data, either as cards or at the level of its content lines. The
+package is a preview under development: only vCard 4.0 cards can be read and written so far, and
+vCard 3.0 and 2.1 cards, jCard and xCard are still to come. See
+[The card object model](card-model.md).
 
 ## Standards
 
 | Standard | What it provides |
 | --- | --- |
-| **RFC 6350** | *vCard Format Specification*: the content-line syntax, including groups, line folding and TEXT escaping, and the typed values of §4. |
+| **RFC 6350** | *vCard Format Specification*: the content-line syntax, including groups, line folding and TEXT escaping; the typed values of §4; and the properties and parameters of §5 and §6, with their conformance rules. |
 | **RFC 6868** | *Parameter Value Encoding in iCalendar and vCard*: caret encoding of double quotes and line breaks in parameter values. |
 | **vCard 2.1** | *The Electronic Business Card*: the lexical syntax, including quoted-printable, `BASE64`, `CHARSET` and parameters with no name. See [Legacy syntax and character sets](legacy-syntax.md). |
 | **RFC 2425, RFC 2426** | *vCard MIME Directory Profile*: the typed values of vCard 3.0. |

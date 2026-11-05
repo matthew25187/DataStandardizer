@@ -23,7 +23,8 @@ namespace DataStandardizer.File.vCard
             public const string CardIndex = "CardIndex";
 
             /// <summary>
-            /// The kind of conformance problem.  The content line reader finds no conformance problems, so it never sets this item.
+            /// The kind of conformance problem, as a <see cref="VcardDiagnosticKind"/>.  <see cref="VcardReader"/> and <see cref="VcardWriter"/> set it.  The content line reader and
+            /// writer find no conformance problems, so they never do.
             /// </summary>
             public const string DiagnosticKind = "DiagnosticKind";
 

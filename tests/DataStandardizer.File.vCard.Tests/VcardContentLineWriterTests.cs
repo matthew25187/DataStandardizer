@@ -877,7 +877,7 @@ namespace DataStandardizer.File.vCard.Tests
             var testResult = progress.ToString();
 
             // assert
-            testResult.Should().Be("LinesWritten = 3");
+            testResult.Should().Be("LinesWritten = 3, CardsWritten = 0");
         }
 
         [Fact]

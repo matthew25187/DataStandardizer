@@ -25,7 +25,7 @@ public sealed class VcardFileException : Exception
 | Key | Type | Notes |
 | --- | --- | --- |
 | `CardIndex` | `int` | The 0-based index of the card, counting each `BEGIN:VCARD` line. Present only when the line is in a card, up to and including its `END:VCARD` line. |
-| `DiagnosticKind` | | The kind of conformance problem. The content line reader finds no conformance problems, so it never sets this item. |
+| `DiagnosticKind` | `VcardDiagnosticKind` | The kind of conformance problem. `VcardReader` and `VcardWriter` set it. The content line reader and writer find no conformance problems, so they never do. |
 | `Group` | `string` | The group of the line, without its `.`. Present only when the line has one and it has been read. |
 | `LineNumber` | `long` | The 1-based number of the logical line; for a line that can't be written, the number it would have had in the output. Not present when the data could not be decoded. For a value that `VcardContentLine.GetTextValue` can't read, it is 0 for a line not read from data. |
 | `PhysicalLineNumber` | `long` | The 1-based number of the physical line. Not present for a line that can't be written, or when the data could not be decoded. For a value that `VcardContentLine.GetTextValue` can't read, it is 0 for a line not read from data. For a value that `GetDecodedValue` or `GetDecodedText` can't decode, it is the line on which the content line starts. |
@@ -50,3 +50,5 @@ Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 
 - [VcardContentLineReader](VcardContentLineReader.md)
 - [VcardContentLineWriter](VcardContentLineWriter.md)
+- [VcardReader](VcardReader.md)
+- [VcardWriter](VcardWriter.md)

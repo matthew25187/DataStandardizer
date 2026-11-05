@@ -113,6 +113,10 @@ namespace DataStandardizer.File.vCard
         /// <para>
         /// Ignored by a writer, which writes the forms of vCard 2.1 only in a vCard 2.1 card.
         /// </para>
+        /// <para>
+        /// <see cref="VcardReader"/> checks that a vCard 4.0 card has no <c>ENCODING</c> or <c>CHARSET</c> parameter, which RFC 6350 removed.  When <c>true</c>, it accepts them, and the
+        /// typed members of <see cref="VcardCard"/> decode the value.  <see cref="VcardWriter"/> refuses to write such a card, so remove them first.
+        /// </para>
         /// </remarks>
         public bool AcceptLegacySyntax
         {
@@ -161,6 +165,49 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
+        /// Gets a flag indicating if a card may break the cardinality rules of RFC 6350 §6.
+        /// </summary>
+        /// <remarks>
+        /// RFC 6350 §6 says how many instances of each property a card may have, and §6.6.5 allows a <c>MEMBER</c> property only if the <c>KIND</c> property is <c>group</c>.  When
+        /// <c>false</c> (the default), <see cref="VcardReader"/> and <see cref="VcardWriter"/> throw <see cref="VcardFileException"/> for a card that breaks those rules.  With
+        /// <c>true</c> they keep and write every instance, and read two <c>VERSION</c> lines as one.  The content line reader and writer ignore this.
+        /// </remarks>
+        public bool AllowCardinalityViolations
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
+        /// Gets a flag indicating if a value or parameter may break the rules of RFC 6350.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// RFC 6350 §4 and §6 give the syntax of each value, and §5 and §6 the parameters each property allows and what they may hold.  This covers a <c>VALUE</c> parameter that names
+        /// a type the property doesn't allow; a parameter on a property that doesn't allow it, such as a <c>PID</c> on a property that may have only one instance (§5.5); a <c>PREF</c>
+        /// outside 1 to 100 (§5.3); and a <c>PID</c> source with no <c>CLIENTPIDMAP</c> (§6.7.7).
+        /// </para>
+        /// <para>
+        /// When <c>false</c> (the default), <see cref="VcardReader"/> and <see cref="VcardWriter"/> throw <see cref="VcardFileException"/> for such a card.  With <c>true</c> the line is
+        /// kept and written as it is, and the typed members of <see cref="VcardCard"/> leave out a property whose value isn't valid, though it stays in
+        /// <see cref="VcardCard.Properties"/>.  A value with a character that can't be written at all still can't be.  The content line reader and writer ignore this.
+        /// </para>
+        /// </remarks>
+        public bool AllowInvalidValues
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
         /// Gets a flag indicating if a writer may lose data that the version of the card it is writing can't hold.
         /// </summary>
         /// <remarks>
@@ -185,6 +232,25 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
+        /// Gets a flag indicating if a card may leave out a property that is required.
+        /// </summary>
+        /// <remarks>
+        /// RFC 6350 §6.2.1 requires at least one <c>FN</c> property, and §6.7.9 a <c>VERSION</c> property.  When <c>false</c> (the default), <see cref="VcardReader"/> and
+        /// <see cref="VcardWriter"/> throw <see cref="VcardFileException"/> for a card without them.  With <c>true</c> a card with no <c>VERSION</c> is read as vCard 4.0, and its
+        /// <see cref="VcardCard.SourceVersion"/> is <c>null</c>, but RFC 6868 caret encoding isn't decoded in it unless <see cref="AcceptCaretEncodingInAllVersions"/> is set, since the
+        /// content line reader doesn't know its version.  A writer always writes <c>VERSION</c>.  The content line reader and writer ignore this.
+        /// </remarks>
+        public bool AllowMissingRequiredProperties
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
         /// Gets a flag indicating if a value in a character set that can't be resolved is decoded as ISO-8859-1.
         /// </summary>
         /// <remarks>
@@ -193,6 +259,25 @@ namespace DataStandardizer.File.vCard
         /// never fails but may give the wrong characters, and <see cref="VcardContentLine.GetDecodedText(out bool)"/> says it did.  Ignored by a writer.
         /// </remarks>
         public bool AllowUnknownCharsetAsLatin1
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
+        /// Gets a flag indicating if the <c>VERSION</c> property may be somewhere other than immediately after <c>BEGIN:VCARD</c>.
+        /// </summary>
+        /// <remarks>
+        /// RFC 6350 §6.7.9 says it "must appear immediately after BEGIN:VCARD".  When <c>false</c> (the default), <see cref="VcardReader"/> throws <see cref="VcardFileException"/> for a
+        /// card with it anywhere else.  With <c>true</c> the card is read, but RFC 6868 caret encoding isn't decoded on the lines before <c>VERSION</c> unless
+        /// <see cref="AcceptCaretEncodingInAllVersions"/> is set, since the content line reader doesn't know the version until then.  Ignored by a writer, which always writes it first.
+        /// The content line reader ignores this.
+        /// </remarks>
+        public bool AllowVersionNotFirst
         {
             get;
 #if NET5_0_OR_GREATER
