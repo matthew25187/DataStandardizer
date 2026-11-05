@@ -33,7 +33,7 @@ The identifier must be strictly positive (§6.7.7).
 
 | Constructor | Notes |
 | --- | --- |
-| `VcardClientPidMap(long sourceId, Uri uri)` | The URI must be absolute. |
+| `VcardClientPidMap(long sourceId, Uri uri)` | The URI must be absolute, and must not have been given with characters a URI value can't hold, such as a space. |
 
 ## Properties
 

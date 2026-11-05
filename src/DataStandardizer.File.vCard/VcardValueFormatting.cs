@@ -111,6 +111,16 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
+        /// Gets the index of the <c>T</c> between a date and a time; or -1 if there is none.
+        /// </summary>
+        internal static int IndexOfTimeDesignator(ReadOnlySpan<char> value, VcardVersion version)
+        {
+            // ref. RFC 6350 §4: time-designator = %x54, which is only upper case.
+            // ref. RFC 2425 §5.8.4: date-time-list = date "T" time; an ABNF string is case-insensitive (RFC 2234 §2.3).
+            return version == VcardVersion.V3_0 ? value.IndexOfAny('T', 't') : value.IndexOf('T');
+        }
+
+        /// <summary>
         /// Compares text with an upper-case ASCII keyword, ignoring the case of ASCII letters (RFC 5234 §2.3).
         /// </summary>
         internal static bool EqualsKeyword(ReadOnlySpan<char> value, string keyword)

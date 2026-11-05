@@ -34,16 +34,15 @@ namespace DataStandardizer.File.vCard
         /// <param name="uri">The URI, which must be absolute.</param>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="sourceId"/> is not positive.</exception>
         /// <exception cref="ArgumentNullException"><paramref name="uri"/> is <c>null</c>.</exception>
-        /// <exception cref="ArgumentException"><paramref name="uri"/> is not absolute.</exception>
+        /// <exception cref="ArgumentException"><paramref name="uri"/> is not absolute, or was given with characters a URI value can't hold, such as a space.</exception>
         public VcardClientPidMap(long sourceId, Uri uri)
         {
             if (sourceId <= 0)
                 throw new ArgumentOutOfRangeException(nameof(sourceId), sourceId, "The source identifier must be positive.");
             if (uri is null)
                 throw new ArgumentNullException(nameof(uri));
-            if (!uri.IsAbsoluteUri)
-                throw new ArgumentException("The URI must be absolute.", nameof(uri));
 
+            VcardValue.CheckUri(uri, nameof(uri));
             _sourceId = sourceId;
             _uri = uri;
         }

@@ -292,22 +292,22 @@ namespace DataStandardizer.File.vCard
         {
             if (_hoursPlusOne == 0) return typeof(VcardUtcOffset).FullName ?? nameof(VcardUtcOffset);
 
-            return ToString(VcardValueFormat.Text, IsDefinedIn(VcardVersion.V4_0) ? VcardVersion.V4_0 : VcardVersion.V2_1);
+            return ToString(VcardValueFormat.Text, DefaultVersion);
         }
 
 #if NET6_0_OR_GREATER
         /// <inheritdoc />
         /// <remarks>The format is empty or <c>T</c> for <see cref="VcardValueFormat.Text"/>, <c>J</c> for <see cref="VcardValueFormat.Json"/> or <c>X</c> for
-        /// <see cref="VcardValueFormat.Xml"/>.  The provider is ignored.</remarks>
+        /// <see cref="VcardValueFormat.Xml"/>.  The value is written as <see cref="ToString()"/> writes it.  The provider is ignored.</remarks>
         bool ISpanFormattable.TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
         {
-            return TryFormat(destination, out charsWritten, VcardValueFormatting.ParseFormatString(format));
+            return TryFormat(destination, out charsWritten, VcardValueFormatting.ParseFormatString(format), DefaultVersion);
         }
 
         /// <inheritdoc />
         string IFormattable.ToString(string? format, IFormatProvider? formatProvider)
         {
-            return ToString(VcardValueFormatting.ParseFormatString(format));
+            return ToString(VcardValueFormatting.ParseFormatString(format), DefaultVersion);
         }
 #endif
 
@@ -355,6 +355,8 @@ namespace DataStandardizer.File.vCard
         /// Gets whether this instance has been initialised.
         /// </summary>
         internal bool IsInitialized => _hoursPlusOne != 0;
+
+        private VcardVersion DefaultVersion => _hoursPlusOne - 1 <= MaxHours ? VcardVersion.V4_0 : VcardVersion.V2_1;
 
         /// <summary>
         /// Parses a whole value in the forms allowed.

@@ -183,9 +183,10 @@ namespace DataStandardizer.File.vCard.Tests
 
             // act
             int charsWritten;
-            pid.TryFormat(destination, out charsWritten, VcardValueFormat.Text);
+            var testResult = pid.TryFormat(destination, out charsWritten, VcardValueFormat.Text);
 
             // assert
+            testResult.Should().BeTrue();
             new string(destination, 0, charsWritten).Should().Be("3");
         }
 
@@ -260,6 +261,7 @@ namespace DataStandardizer.File.vCard.Tests
                 { () => new VcardClientPidMap(0, new Uri(VcardValueExamples.ClientPidMapUri)), typeof(ArgumentOutOfRangeException) },
                 { () => new VcardClientPidMap(1, null), typeof(ArgumentNullException) },
                 { () => new VcardClientPidMap(1, new Uri("a/b", UriKind.Relative)), typeof(ArgumentException) },
+                { () => new VcardClientPidMap(1, new Uri("https://example.com/a b")), typeof(ArgumentException) },
             };
         }
 
@@ -499,6 +501,7 @@ namespace DataStandardizer.File.vCard.Tests
         [InlineData("PCM", "audio", "basic")]
         [InlineData("BASIC", "audio", "basic")]
         [InlineData("MPEG2", "video", "mpeg")]
+        [InlineData("AVI", "video", "vnd.avi")]
         [InlineData("X509", "application", "pkix-cert")]
         [InlineData("PGP", "application", "pgp-keys")]
         public void TryGetMediaType_KnownToken_GivesItsMediaType(string token, string type, string subtype)

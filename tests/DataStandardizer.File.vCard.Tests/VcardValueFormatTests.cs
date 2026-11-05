@@ -45,6 +45,11 @@ namespace DataStandardizer.File.vCard.Tests
                 format => VcardGeo.TryParse(default(ReadOnlySpan<char>), format, out _),
                 format => VcardValue.TryParseText(default(ReadOnlySpan<char>), format, destination, out _),
                 format => VcardValue.TryFormatText(default(ReadOnlySpan<char>), destination, out _, format),
+                format => VcardValue.TryFormatBoolean(true, destination, out _, format),
+                format => VcardValue.TryFormatInteger(0, destination, out _, format),
+                format => VcardValue.TryFormatFloat(0, destination, out _, format),
+                format => VcardValue.TryFormatUri(new Uri(VcardValueExamples.UriHttp), destination, out _, format),
+                format => VcardValue.TryFormatLanguageTag(default(DataStandardizer.LanguageTag.Bcp47LanguageTag), destination, out _, format),
                 format => VcardValue.EnumerateList(default(ReadOnlySpan<char>), format),
                 format => VcardValue.TryParseBoolean(default(ReadOnlySpan<char>), format, out _),
                 format => VcardValue.TryParseInteger(default(ReadOnlySpan<char>), format, out _),
@@ -151,6 +156,45 @@ namespace DataStandardizer.File.vCard.Tests
 
             // act
             value.TryFormat(destination, out var charsWritten, "T".AsSpan(), null);
+
+            // assert
+            new string(destination, 0, charsWritten).Should().Be(expected);
+        }
+
+        public static TheoryData<ISpanFormattable, string> OlderVersionFormattables()
+        {
+            var fraction = VcardTime.Parse("10:22:00,5".AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0);
+            var date = new VcardDate(1996, 10, 22);
+            return new TheoryData<ISpanFormattable, string>
+            {
+                { fraction, "10:22:00,5" },
+                { new VcardDateTime(date, fraction), "1996-10-22T10:22:00,5" },
+                { new VcardTimestamp(date, fraction), "1996-10-22T10:22:00,5" },
+                { new VcardDateAndOrTime(new VcardDateTime(date, fraction)), "1996-10-22T10:22:00,5" },
+                { VcardUtcOffset.Parse("+2400".AsSpan(), VcardValueFormat.Text, VcardVersion.V2_1), "+24:00" },
+            };
+        }
+
+        [Theory]
+        [MemberData(nameof(OlderVersionFormattables))]
+        public void ToString_FormattableOnlyAnOlderVersionHas_WritesAsParameterlessToStringDoes(ISpanFormattable value, string expected)
+        {
+            // act
+            var testResult = value.ToString(string.Empty, null);
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Theory]
+        [MemberData(nameof(OlderVersionFormattables))]
+        public void TryFormat_SpanFormattableOnlyAnOlderVersionHas_WritesAsParameterlessToStringDoes(ISpanFormattable value, string expected)
+        {
+            // arrange
+            var destination = new char[64];
+
+            // act
+            value.TryFormat(destination, out var charsWritten, string.Empty.AsSpan(), null);
 
             // assert
             new string(destination, 0, charsWritten).Should().Be(expected);

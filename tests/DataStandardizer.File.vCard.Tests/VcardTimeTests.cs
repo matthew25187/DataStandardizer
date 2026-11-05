@@ -145,6 +145,104 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Theory]
+        [InlineData("10:22:00-05:00", VcardVersion.V3_0)]
+        [InlineData("102200-0500", VcardVersion.V3_0)]
+        [InlineData("10:22:00-05:00", VcardVersion.V2_1)]
+        [InlineData("102200-0500", VcardVersion.V2_1)]
+        public void TryParse_LegacyVersion_KeepsTheUtcOffset(string value, VcardVersion version)
+        {
+            // arrange
+            var expected = new VcardUtcOffset(true, 5, 0);
+
+            // act
+            VcardTime result;
+            var testResult = VcardTime.TryParse(value.AsSpan(), VcardValueFormat.Text, version, out result);
+
+            // assert
+            testResult.Should().BeTrue();
+            result.UtcOffset.Should().Be(expected);
+        }
+
+        [Fact]
+        public void TryParse_Version30LowerCaseUtcDesignator_IsUtcAndWritesUpperCase()
+        {
+            // act
+            var testResult = VcardTime.Parse("10:22:00z".AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0);
+
+            // assert
+            testResult.IsUtc.Should().BeTrue();
+            testResult.ToString(VcardValueFormat.Text, VcardVersion.V3_0).Should().Be("10:22:00Z");
+        }
+
+        [Theory]
+        [InlineData("10:22:00z", VcardVersion.V2_1)]
+        [InlineData("102200z", VcardVersion.V4_0)]
+        public void TryParse_LowerCaseUtcDesignatorOutsideVersion30_ReturnsFalse(string value, VcardVersion version)
+        {
+            // act
+            var testResult = VcardTime.TryParse(value.AsSpan(), VcardValueFormat.Text, version, out _);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Theory]
+        [InlineData("24:00:00")]
+        [InlineData("240000")]
+        public void TryParse_EndOfDayInVersion21_HasAnHourOf24(string value)
+        {
+            // act
+            VcardTime result;
+            var testResult = VcardTime.TryParse(value.AsSpan(), VcardValueFormat.Text, VcardVersion.V2_1, out result);
+
+            // assert
+            testResult.Should().BeTrue();
+            result.Hour.Should().Be(24);
+        }
+
+        [Theory]
+        [InlineData("24:00:01")]
+        [InlineData("24:01:00")]
+        [InlineData("25:00:00")]
+        public void TryParse_Hour24OtherThanTheEndOfDayInVersion21_ReturnsFalse(string value)
+        {
+            // act
+            var testResult = VcardTime.TryParse(value.AsSpan(), VcardValueFormat.Text, VcardVersion.V2_1, out _);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Theory]
+        [InlineData(VcardVersion.V4_0, false)]
+        [InlineData(VcardVersion.V3_0, false)]
+        [InlineData(VcardVersion.V2_1, true)]
+        public void IsDefinedIn_EndOfDay_IsOnlyInVersion21(VcardVersion version, bool expected)
+        {
+            // arrange
+            var time = VcardTime.Parse("24:00:00".AsSpan(), VcardValueFormat.Text, VcardVersion.V2_1);
+
+            // act
+            var testResult = time.IsDefinedIn(version);
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Fact]
+        public void ToString_EndOfDay_WritesTheVersion21Form()
+        {
+            // arrange
+            var time = VcardTime.Parse("240000".AsSpan(), VcardValueFormat.Text, VcardVersion.V2_1);
+
+            // act
+            var testResult = time.ToString();
+
+            // assert
+            testResult.Should().Be("24:00:00");
+        }
+
+        [Theory]
         [InlineData("10", VcardVersion.V3_0)]
         [InlineData("1022", VcardVersion.V3_0)]
         [InlineData("10:22", VcardVersion.V3_0)]
@@ -157,6 +255,8 @@ namespace DataStandardizer.File.vCard.Tests
         [InlineData("10:22:00,5", VcardVersion.V2_1)]
         [InlineData("102200-05:00", VcardVersion.V2_1)]
         [InlineData("10:22:00-0500", VcardVersion.V2_1)]
+        [InlineData("10:22:00+24:00", VcardVersion.V2_1)]
+        [InlineData("102200+2400", VcardVersion.V2_1)]
         public void TryParse_LegacyVersion_RejectsWhatItsGrammarDoesNotAllow(string value, VcardVersion version)
         {
             // act
@@ -312,6 +412,7 @@ namespace DataStandardizer.File.vCard.Tests
                 () => new VcardTime(null, null, null),
                 () => new VcardTime(10, null, 0),
                 () => new VcardTime(10, 22, 0, default(VcardUtcOffset)),
+                () => new VcardTime(10, 22, 0, VcardUtcOffset.Parse("+2400".AsSpan(), VcardValueFormat.Text, VcardVersion.V2_1)),
             };
         }
 

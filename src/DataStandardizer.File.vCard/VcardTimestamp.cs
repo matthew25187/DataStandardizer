@@ -212,8 +212,8 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Formats the value in <see cref="VcardValueFormat.Text"/> form, as vCard 4.0 writes it or, for a fraction only vCard 3.0 has, as vCard 3.0 writes it; or gives the type
-        /// name if the instance is not initialised.
+        /// Formats the value in <see cref="VcardValueFormat.Text"/> form, as the first of vCard 4.0, vCard 3.0 and vCard 2.1 that can write it; or gives the type name if the instance
+        /// is not initialised.
         /// </summary>
         public override string ToString()
         {
@@ -223,16 +223,16 @@ namespace DataStandardizer.File.vCard
 #if NET6_0_OR_GREATER
         /// <inheritdoc />
         /// <remarks>The format is empty or <c>T</c> for <see cref="VcardValueFormat.Text"/>, <c>J</c> for <see cref="VcardValueFormat.Json"/> or <c>X</c> for
-        /// <see cref="VcardValueFormat.Xml"/>.  The provider is ignored.</remarks>
+        /// <see cref="VcardValueFormat.Xml"/>.  The value is written as <see cref="ToString()"/> writes it.  The provider is ignored.</remarks>
         bool ISpanFormattable.TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
         {
-            return TryFormat(destination, out charsWritten, VcardValueFormatting.ParseFormatString(format));
+            return TryFormat(destination, out charsWritten, VcardValueFormatting.ParseFormatString(format), DefaultVersion);
         }
 
         /// <inheritdoc />
         string IFormattable.ToString(string? format, IFormatProvider? formatProvider)
         {
-            return ToString(VcardValueFormatting.ParseFormatString(format));
+            return ToString(VcardValueFormatting.ParseFormatString(format), DefaultVersion);
         }
 #endif
 
@@ -275,6 +275,8 @@ namespace DataStandardizer.File.vCard
         {
             return !left.Equals(right);
         }
+
+        private VcardVersion DefaultVersion => _value.DefaultVersion;
 
         private void CheckInitialized()
         {

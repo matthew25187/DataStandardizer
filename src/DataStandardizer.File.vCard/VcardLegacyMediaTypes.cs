@@ -9,8 +9,8 @@ namespace DataStandardizer.File.vCard
     /// </summary>
     /// <remarks>
     /// <para>
-    /// A token is mapped only where a media type stands for that format.  The other formats of vCard 2.1 §2.9 (<c>MET</c>, <c>PMB</c>, <c>DIB</c>, <c>PICT</c>, <c>AVI</c> and
-    /// <c>AIFF</c>) have no media type in the IANA registry, so they have no mapping here.
+    /// A token is mapped only where the IANA registry or RFC 2361 gives a media type for that format.  The other formats of vCard 2.1 §2.9 (<c>MET</c>, <c>PMB</c>, <c>DIB</c>,
+    /// <c>PICT</c> and <c>AIFF</c>) have none, so they have no mapping here.
     /// </para>
     /// <para>
     /// Tokens are compared case-insensitively.  So are media types, which are compared by their type and subtype alone.
@@ -53,6 +53,9 @@ namespace DataStandardizer.File.vCard
             new Entry("QTIME", "video", "quicktime", true),
             new Entry("MPEG", "video", "mpeg", true),
             new Entry("MPEG2", "video", "mpeg", true),
+
+            // ref. RFC 2361: video/vnd.avi.
+            new Entry("AVI", "video", "vnd.avi", true),
 
             // ref. RFC 2361: audio/vnd.wave.  "audio/wav" is what software commonly writes, and is taken for the same format.
             new Entry("WAVE", "audio", "vnd.wave", true),

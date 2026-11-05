@@ -193,6 +193,32 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Theory]
+        [InlineData("http://[::1]/a")]
+        [InlineData("geo:1,2;a=[b]")]
+        public void TryParseUri_BracketsWhereTheirStandardAllowsThem_IsValid(string value)
+        {
+            // act
+            var testResult = VcardValue.TryParseUri(value.AsSpan(), VcardValueFormat.Text, out _);
+
+            // assert
+            testResult.Should().BeTrue();
+        }
+
+        [Fact]
+        public void TryFormatUri_UriGivenWithASpace_Throws()
+        {
+            // arrange
+            var uri = new Uri("https://example.com/a b");
+            var destination = new char[DestinationLength];
+
+            // act
+            Action testAction = () => VcardValue.TryFormatUri(uri, destination, out _, VcardValueFormat.Text);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>();
+        }
+
+        [Theory]
         [InlineData("")]
         [InlineData("not a uri")]
         [InlineData("/relative/path")]
@@ -201,6 +227,10 @@ namespace DataStandardizer.File.vCard.Tests
         [InlineData("http://example.com/%2")]
         [InlineData("http://example.com/a b")]
         [InlineData("http://example.com/<a>")]
+        [InlineData("https://example.com/a[b]")]
+        [InlineData("https://example.com/?a=[b]")]
+        [InlineData("https://example.com/#[b]")]
+        [InlineData("urn:a[b]")]
         public void TryParseUri_InvalidValue_ReturnsFalse(string value)
         {
             // act

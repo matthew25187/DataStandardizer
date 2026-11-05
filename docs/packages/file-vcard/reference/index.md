@@ -32,6 +32,7 @@ The public types of **DataStandardizer.File.vCard**. All types are in the
 | [VcardWriteProgress](VcardWriteProgress.md) | The progress of a writer. |
 | [VcardAddress](VcardAddress.md) | The structured value of ADR. |
 | [VcardClientPidMap](VcardClientPidMap.md) | The structured value of CLIENTPIDMAP. |
+| [VcardComponentEnumerator](VcardComponentEnumerator.md) | Enumerates the components of a structured value in one pass. |
 | [VcardComponentView](VcardComponentView.md) | A zero-copy view of one component of a structured value. |
 | [VcardDate](VcardDate.md) | A DATE value, which may be reduced or truncated. |
 | [VcardDateAndOrTime](VcardDateAndOrTime.md) | A DATE-AND-OR-TIME value. |

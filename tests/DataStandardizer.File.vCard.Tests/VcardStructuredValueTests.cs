@@ -351,6 +351,36 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Fact]
+        public void GetEnumerator_Organization_GivesEachComponentInOrder()
+        {
+            // act
+            var testResult = RawComponentsOfOrganization(VcardValueExamples.Organization);
+
+            // assert
+            testResult.Should().Equal("ABC\\, Inc.", "North American Division", "Marketing");
+        }
+
+        [Fact]
+        public void GetEnumerator_EmptyComponents_GivesThemToo()
+        {
+            // act
+            var testResult = RawComponentsOfOrganization(";a;");
+
+            // assert
+            testResult.Should().Equal("", "a", "");
+        }
+
+        [Fact]
+        public void GetEnumerator_DefaultView_GivesNothing()
+        {
+            // act
+            var testResult = RawComponentsOfDefaultView();
+
+            // assert
+            testResult.Should().BeEmpty();
+        }
+
+        [Fact]
         public void GetComponent_ComponentTheValueDoesNotHave_IsEmpty()
         {
             // arrange
@@ -432,45 +462,46 @@ namespace DataStandardizer.File.vCard.Tests
             testResult.Direction.Should().BeEmpty();
         }
 
-        public static TheoryData<Func<VcardAddress, IReadOnlyList<string>>, int> AddressComponents()
+        // ref. RFC 9554 §2.1: the order of the components of ADR-value.
+        public static TheoryData<Func<VcardAddress, IReadOnlyList<string>>, int, string> AddressComponents()
         {
-            return new TheoryData<Func<VcardAddress, IReadOnlyList<string>>, int>
+            return new TheoryData<Func<VcardAddress, IReadOnlyList<string>>, int, string>
             {
-                { address => address.PostOfficeBox, VcardAddress.PostOfficeBoxComponent },
-                { address => address.ExtendedAddress, VcardAddress.ExtendedAddressComponent },
-                { address => address.StreetAddress, VcardAddress.StreetAddressComponent },
-                { address => address.Locality, VcardAddress.LocalityComponent },
-                { address => address.Region, VcardAddress.RegionComponent },
-                { address => address.PostalCode, VcardAddress.PostalCodeComponent },
-                { address => address.CountryName, VcardAddress.CountryNameComponent },
-                { address => address.Room, VcardAddress.RoomComponent },
-                { address => address.Apartment, VcardAddress.ApartmentComponent },
-                { address => address.Floor, VcardAddress.FloorComponent },
-                { address => address.StreetNumber, VcardAddress.StreetNumberComponent },
-                { address => address.StreetName, VcardAddress.StreetNameComponent },
-                { address => address.Building, VcardAddress.BuildingComponent },
-                { address => address.Block, VcardAddress.BlockComponent },
-                { address => address.Subdistrict, VcardAddress.SubdistrictComponent },
-                { address => address.District, VcardAddress.DistrictComponent },
-                { address => address.Landmark, VcardAddress.LandmarkComponent },
-                { address => address.Direction, VcardAddress.DirectionComponent },
+                { address => address.PostOfficeBox, VcardAddress.PostOfficeBoxComponent, "pobox" },
+                { address => address.ExtendedAddress, VcardAddress.ExtendedAddressComponent, "ext" },
+                { address => address.StreetAddress, VcardAddress.StreetAddressComponent, "street" },
+                { address => address.Locality, VcardAddress.LocalityComponent, "locality" },
+                { address => address.Region, VcardAddress.RegionComponent, "region" },
+                { address => address.PostalCode, VcardAddress.PostalCodeComponent, "code" },
+                { address => address.CountryName, VcardAddress.CountryNameComponent, "country" },
+                { address => address.Room, VcardAddress.RoomComponent, "room" },
+                { address => address.Apartment, VcardAddress.ApartmentComponent, "apartment" },
+                { address => address.Floor, VcardAddress.FloorComponent, "floor" },
+                { address => address.StreetNumber, VcardAddress.StreetNumberComponent, "streetnumber" },
+                { address => address.StreetName, VcardAddress.StreetNameComponent, "streetname" },
+                { address => address.Building, VcardAddress.BuildingComponent, "building" },
+                { address => address.Block, VcardAddress.BlockComponent, "block" },
+                { address => address.Subdistrict, VcardAddress.SubdistrictComponent, "subdistrict" },
+                { address => address.District, VcardAddress.DistrictComponent, "district" },
+                { address => address.Landmark, VcardAddress.LandmarkComponent, "landmark" },
+                { address => address.Direction, VcardAddress.DirectionComponent, "direction" },
             };
         }
 
         [Theory]
         [MemberData(nameof(AddressComponents), DisableDiscoveryEnumeration = true)]
-        public void Component_EveryPosition_GivesTheItemsInThatPosition(Func<VcardAddress, IReadOnlyList<string>> member, int position)
+        public void Component_EveryPosition_GivesTheItemsInThatPosition(Func<VcardAddress, IReadOnlyList<string>> member, int position, string expected)
         {
             // arrange
-            const string value = "a0;a1;a2;a3;a4;a5;a6;a7;a8;a9;a10;a11;a12;a13;a14;a15;a16;a17";
+            const string value = "pobox;ext;street;locality;region;code;country;room;apartment;floor;streetnumber;streetname;building;block;subdistrict;district;landmark;direction";
             var address = VcardAddress.Parse(value.AsSpan(), VcardValueFormat.Text);
 
             // act
             var testResult = member(address);
 
             // assert
-            testResult.Should().BeEquivalentTo(address.GetComponent(position));
-            testResult.Should().ContainSingle();
+            testResult.Should().Equal(expected);
+            address.GetComponent(position).Should().Equal(expected);
         }
 
         [Theory]
@@ -737,6 +768,32 @@ namespace DataStandardizer.File.vCard.Tests
 
             // assert
             testResult.Should().BeTrue();
+        }
+
+        /// <summary>
+        /// Copies the text of each component, since they are spans that can't leave the method.
+        /// </summary>
+        private static List<string> RawComponentsOfOrganization(string value)
+        {
+            VcardOrganization.TryParseView(value.AsSpan(), VcardValueFormat.Text, out var view);
+            var components = new List<string>();
+            foreach (var component in view)
+            {
+                components.Add(component.RawValue.ToString());
+            }
+
+            return components;
+        }
+
+        private static List<string> RawComponentsOfDefaultView()
+        {
+            var components = new List<string>();
+            foreach (var component in default(VcardStructuredValueView))
+            {
+                components.Add(component.RawValue.ToString());
+            }
+
+            return components;
         }
 
         // A view can't be captured by a delegate, so these get one and make the call that is under test.

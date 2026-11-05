@@ -32,13 +32,16 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="date">The date, which may be truncated but not reduced: it has a day, and if it has a year it has a month.</param>
         /// <param name="time">The time, which may be reduced but not truncated: it has an hour.</param>
-        /// <exception cref="ArgumentException"><paramref name="date"/> or <paramref name="time"/> is not initialised or doesn't have that form.</exception>
+        /// <exception cref="ArgumentException"><paramref name="date"/> or <paramref name="time"/> is not initialised or doesn't have that form, or no version can write them together:
+        /// a time only an older version has, with a date that isn't complete.</exception>
         public VcardDateTime(VcardDate date, VcardTime time)
         {
             if (!date.IsNotReduced)
                 throw new ArgumentException("The date must have a day, and a month if it has a year.", nameof(date));
             if (!time.IsNotTruncated)
                 throw new ArgumentException("The time must have an hour.", nameof(time));
+            if (!time.IsDefinedIn(VcardVersion.V4_0) && !date.IsComplete)
+                throw new ArgumentException("Only a complete date can go with a time that vCard 4.0 can't write.", nameof(date));
 
             _date = date;
             _time = time;
@@ -222,29 +225,29 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Formats the value in <see cref="VcardValueFormat.Text"/> form, as vCard 4.0 writes it or, for a fraction only vCard 3.0 has, as vCard 3.0 writes it; or gives the type
-        /// name if the instance is not initialised.
+        /// Formats the value in <see cref="VcardValueFormat.Text"/> form, as the first of vCard 4.0, vCard 3.0 and vCard 2.1 that can write it; or gives the type name if the instance
+        /// is not initialised.
         /// </summary>
         public override string ToString()
         {
             if (!_date.IsInitialized) return typeof(VcardDateTime).FullName ?? nameof(VcardDateTime);
 
-            return ToString(VcardValueFormat.Text, _time.IsDefinedIn(VcardVersion.V4_0) ? VcardVersion.V4_0 : VcardVersion.V3_0);
+            return ToString(VcardValueFormat.Text, DefaultVersion);
         }
 
 #if NET6_0_OR_GREATER
         /// <inheritdoc />
         /// <remarks>The format is empty or <c>T</c> for <see cref="VcardValueFormat.Text"/>, <c>J</c> for <see cref="VcardValueFormat.Json"/> or <c>X</c> for
-        /// <see cref="VcardValueFormat.Xml"/>.  The provider is ignored.</remarks>
+        /// <see cref="VcardValueFormat.Xml"/>.  The value is written as <see cref="ToString()"/> writes it.  The provider is ignored.</remarks>
         bool ISpanFormattable.TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
         {
-            return TryFormat(destination, out charsWritten, VcardValueFormatting.ParseFormatString(format));
+            return TryFormat(destination, out charsWritten, VcardValueFormatting.ParseFormatString(format), DefaultVersion);
         }
 
         /// <inheritdoc />
         string IFormattable.ToString(string? format, IFormatProvider? formatProvider)
         {
-            return ToString(VcardValueFormatting.ParseFormatString(format));
+            return ToString(VcardValueFormatting.ParseFormatString(format), DefaultVersion);
         }
 #endif
 
@@ -294,6 +297,11 @@ namespace DataStandardizer.File.vCard
         internal bool IsInitialized => _date.IsInitialized;
 
         /// <summary>
+        /// Gets the first of vCard 4.0, vCard 3.0 and vCard 2.1 that can write this value.
+        /// </summary>
+        internal VcardVersion DefaultVersion => _time.DefaultVersion;
+
+        /// <summary>
         /// Parses the whole value as a date and time of a version.
         /// </summary>
         internal static bool TryParseCore(ReadOnlySpan<char> value, VcardVersion version, out VcardDateTime result)
@@ -301,7 +309,7 @@ namespace DataStandardizer.File.vCard
             // ref. RFC 6350 §4: date-time = date-noreduc time-designator time-notrunc; time-designator = %x54
             // ref. RFC 2425 §5.8.4: date-time-list = date "T" time *("," date "T" time)
             result = default(VcardDateTime);
-            var designatorIndex = value.IndexOf('T');
+            var designatorIndex = VcardValueFormatting.IndexOfTimeDesignator(value, version);
             if (designatorIndex < 0) return false;
 
             var datePart = value.Slice(0, designatorIndex);

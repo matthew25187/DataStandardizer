@@ -15,6 +15,7 @@ namespace DataStandardizer.File.vCard
     {
         private const string TrueText = "TRUE";
         private const string FalseText = "FALSE";
+        private const string GeoScheme = "GEO";
 
         #region TEXT
 
@@ -124,7 +125,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <remarks>
         /// In vCard 4.0 a backslash and a comma are escaped and each line break (CRLF, LF or a lone CR) is written <c>\n</c>.  vCard 3.0 escapes a semicolon as well.  vCard 2.1 has
-        /// no escaping outside a compound value, so its text is written as it is.
+        /// no escaping outside a compound value, so its text is written as it is.  <paramref name="destination"/> must not overlap <paramref name="value"/>.
         /// </remarks>
         /// <param name="value">The text.</param>
         /// <param name="destination">The span to write to.</param>
@@ -343,6 +344,10 @@ namespace DataStandardizer.File.vCard
         /// <summary>
         /// Parses a URI value (RFC 6350 §4.2): an absolute URI, which starts with a scheme.
         /// </summary>
+        /// <remarks>
+        /// This allocates the <see cref="Uri"/>.  Characters RFC 3986 doesn't allow are rejected, including <c>[</c> and <c>]</c> outside the host (§3.2.2), except in a <c>geo</c> URI,
+        /// whose parameter values RFC 5870 §3.3 lets hold them.
+        /// </remarks>
         /// <param name="value">The value, such as <c>http://www.example.com/my/picture.jpg</c>.</param>
         /// <param name="format">The lexical form of the value.</param>
         /// <param name="result">The URI, if the value is valid.</param>
@@ -370,16 +375,15 @@ namespace DataStandardizer.File.vCard
         /// <param name="format">The lexical form to write.</param>
         /// <returns><c>true</c> if the value was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="value"/> is <c>null</c>.</exception>
-        /// <exception cref="ArgumentException"><paramref name="value"/> is not absolute.</exception>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is not absolute, or was given with characters a URI value can't hold, such as a space, which
+        /// <see cref="Uri"/> accepts and <see cref="TryParseUri"/> doesn't.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not a <see cref="VcardValueFormat"/> member.</exception>
         /// <exception cref="NotSupportedException"><paramref name="format"/> is not <see cref="VcardValueFormat.Text"/>.</exception>
         public static bool TryFormatUri(Uri value, Span<char> destination, out int charsWritten, VcardValueFormat format)
         {
             if (value is null)
                 throw new ArgumentNullException(nameof(value));
-            if (!value.IsAbsoluteUri)
-                throw new ArgumentException("The URI must be absolute.", nameof(value));
-
+            CheckUri(value, nameof(value));
             VcardValueFormatting.CheckFormat(format);
 
             var writer = new VcardSpanWriter(destination);
@@ -395,8 +399,7 @@ namespace DataStandardizer.File.vCard
         /// Parses a LANGUAGE-TAG value (RFC 6350 §4.8), which RFC 6350 §4 defines as a well-formed tag of RFC 5646 §2.1.
         /// </summary>
         /// <remarks>
-        /// <see cref="Bcp47LanguageTag"/> decides which tags are well-formed.  The check itself allocates nothing, but a tag that passes it is copied to the one string it holds, so
-        /// this is the one value parsed from a span that allocates.
+        /// <see cref="Bcp47LanguageTag"/> decides which tags are well-formed.  The check itself allocates nothing, but a tag that passes it is copied to the one string it holds.
         /// </remarks>
         /// <param name="value">The value, such as <c>fr-CA</c>.</param>
         /// <param name="format">The lexical form of the value.</param>
@@ -518,6 +521,18 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
+        /// Checks that a URI is one a URI value can hold.
+        /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="uri"/> is not absolute, or its text is not that of a URI value.</exception>
+        internal static void CheckUri(Uri uri, string parameterName)
+        {
+            if (!uri.IsAbsoluteUri)
+                throw new ArgumentException("The URI must be absolute.", parameterName);
+            if (!IsUriText(uri.OriginalString.AsSpan()))
+                throw new ArgumentException("The URI was given with characters that a URI value can't hold.", parameterName);
+        }
+
+        /// <summary>
         /// Gets whether text has the characters and the scheme of a URI (RFC 3986 §2, §3).  It stops a path being taken as a file URI.
         /// </summary>
         internal static bool IsUriText(ReadOnlySpan<char> value)
@@ -554,7 +569,7 @@ namespace DataStandardizer.File.vCard
             for (var index = 1; index < value.Length; index++)
             {
                 var character = value[index];
-                if (character == ':') return true;
+                if (character == ':') return AreBracketsAllowed(value, index);
                 if (!IsAsciiLetter(character) && !VcardValueFormatting.IsDigit(character) && character != '+' && character != '-' && character != '.')
                 {
                     return false;
@@ -562,6 +577,23 @@ namespace DataStandardizer.File.vCard
             }
 
             return false;
+        }
+
+        private static bool AreBracketsAllowed(ReadOnlySpan<char> value, int colonIndex)
+        {
+            // ref. RFC 5870 §3.3: p-unreserved = "[" / "]" / ":" / "&" / "+" / "$"
+            if (VcardValueFormatting.EqualsKeyword(value.Slice(0, colonIndex), GeoScheme)) return true;
+
+            // ref. RFC 3986 §3.2.2: IP-literal = "[" ( IPv6address / IPvFuture ) "]".  No other part of a URI has a bracket.
+            var rest = value.Slice(colonIndex + 1);
+            if (rest.Length >= 2 && rest[0] == '/' && rest[1] == '/')
+            {
+                rest = rest.Slice(2);
+                var authorityEnd = rest.IndexOfAny('/', '?', '#');
+                rest = authorityEnd < 0 ? default(ReadOnlySpan<char>) : rest.Slice(authorityEnd);
+            }
+
+            return rest.IndexOfAny('[', ']') < 0;
         }
 
         private static bool IsAsciiLetter(char character)

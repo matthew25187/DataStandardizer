@@ -24,10 +24,10 @@ public readonly struct VcardTime : IEquatable<VcardTime>, ISpanFormattable
 | Version | Forms | Standard |
 | --- | --- | --- |
 | 4.0 | `102200`, `1022`, `10`, `-2200`, `-22`, `--00`, each with nothing, `Z` or an offset such as `-0800` | RFC 6350 §4.3.2 |
-| 3.0 | `10:22:00`, `102200`, with single colons allowed, an optional fraction `10:22:00,5`, and an optional zone | RFC 2425 §5.8.4 |
+| 3.0 | `10:22:00`, `102200`, with single colons allowed, an optional fraction `10:22:00,5`, and an optional zone, whose `Z` may be in either case | RFC 2425 §5.8.4 |
 | 2.1 | `10:22:00` or `102200`, with a zone in the same format | vCard 2.1 §2.6.2, §2.4.5 |
 
-A second of 60 is accepted at any time of day, since the value doesn't say whether a leap second falls there. An hour of 24 is rejected: RFC 6350 §4.3.2 says midnight is always 00.
+A second of 60 is accepted at any time of day, since the value doesn't say whether a leap second falls there. An hour of 24 is rejected: RFC 6350 §4.3.2 says midnight is always 00, and RFC 2425 §5.8.4 gives hours up to 23. vCard 2.1 follows ISO 8601, so `24:00:00`, the end of a day, is valid there alone. An offset's hour of 24 belongs to the TZ property of vCard 2.1 (§2.4.5), so a time rejects it.
 
 Two times are equal if they say the same thing the same way, not if they are the same instant: `10Z` and `10+00` differ. A fraction of more than 18 digits keeps its first 18.
 

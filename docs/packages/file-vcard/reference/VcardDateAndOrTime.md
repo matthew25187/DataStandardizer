@@ -39,7 +39,7 @@ On the `net10.0` build the type implements `ISpanFormattable`. An empty format s
 
 | Constructor | Notes |
 | --- | --- |
-| `VcardDateAndOrTime(VcardDate)`, `VcardDateAndOrTime(VcardTime)`, `VcardDateAndOrTime(VcardDateTime)` | Throws `ArgumentException` if the argument isn't initialised. |
+| `VcardDateAndOrTime(VcardDate)`, `VcardDateAndOrTime(VcardTime)`, `VcardDateAndOrTime(VcardDateTime)` | Throws `ArgumentException` if the argument isn't initialised, or if it is a time that vCard 4.0, the only version with a time alone, can't write. |
 
 ## Properties
 

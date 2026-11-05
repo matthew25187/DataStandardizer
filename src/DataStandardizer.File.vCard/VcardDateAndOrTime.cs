@@ -43,11 +43,13 @@ namespace DataStandardizer.File.vCard
         /// Creates a value holding a time alone.
         /// </summary>
         /// <param name="time">The time.</param>
-        /// <exception cref="ArgumentException"><paramref name="time"/> is not initialised.</exception>
+        /// <exception cref="ArgumentException"><paramref name="time"/> is not initialised, or vCard 4.0, the only version with a time alone, can't write it.</exception>
         public VcardDateAndOrTime(VcardTime time)
         {
             if (!time.IsInitialized)
                 throw new ArgumentException("The time is not initialised.", nameof(time));
+            if (!time.IsDefinedIn(VcardVersion.V4_0))
+                throw new ArgumentException("Only vCard 4.0 has a time alone, and it can't write this time.", nameof(time));
 
             _date = default(VcardDate);
             _time = time;
@@ -155,7 +157,7 @@ namespace DataStandardizer.File.vCard
 
             // ref. RFC 6350 §4: date-and-or-time = date-time / date / time-designator time
             result = default(VcardDateAndOrTime);
-            var designatorIndex = value.IndexOf('T');
+            var designatorIndex = VcardValueFormatting.IndexOfTimeDesignator(value, version);
             if (designatorIndex < 0)
             {
                 VcardDate date;
@@ -297,29 +299,29 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Formats the value in <see cref="VcardValueFormat.Text"/> form, as vCard 4.0 writes it or, for a fraction only vCard 3.0 has, as vCard 3.0 writes it; or gives the type
-        /// name if the instance is not initialised.
+        /// Formats the value in <see cref="VcardValueFormat.Text"/> form, as the first of vCard 4.0, vCard 3.0 and vCard 2.1 that can write it; or gives the type name if the instance
+        /// is not initialised.
         /// </summary>
         public override string ToString()
         {
             if (!IsInitialized) return typeof(VcardDateAndOrTime).FullName ?? nameof(VcardDateAndOrTime);
 
-            return ToString(VcardValueFormat.Text, IsDefinedIn(VcardVersion.V4_0) ? VcardVersion.V4_0 : VcardVersion.V3_0);
+            return ToString(VcardValueFormat.Text, DefaultVersion);
         }
 
 #if NET6_0_OR_GREATER
         /// <inheritdoc />
         /// <remarks>The format is empty or <c>T</c> for <see cref="VcardValueFormat.Text"/>, <c>J</c> for <see cref="VcardValueFormat.Json"/> or <c>X</c> for
-        /// <see cref="VcardValueFormat.Xml"/>.  The provider is ignored.</remarks>
+        /// <see cref="VcardValueFormat.Xml"/>.  The value is written as <see cref="ToString()"/> writes it.  The provider is ignored.</remarks>
         bool ISpanFormattable.TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
         {
-            return TryFormat(destination, out charsWritten, VcardValueFormatting.ParseFormatString(format));
+            return TryFormat(destination, out charsWritten, VcardValueFormatting.ParseFormatString(format), DefaultVersion);
         }
 
         /// <inheritdoc />
         string IFormattable.ToString(string? format, IFormatProvider? formatProvider)
         {
-            return ToString(VcardValueFormatting.ParseFormatString(format));
+            return ToString(VcardValueFormatting.ParseFormatString(format), DefaultVersion);
         }
 #endif
 
@@ -364,6 +366,8 @@ namespace DataStandardizer.File.vCard
         }
 
         private bool IsInitialized => _date.IsInitialized || _time.IsInitialized;
+
+        private VcardVersion DefaultVersion => _time.IsInitialized ? _time.DefaultVersion : VcardVersion.V4_0;
 
         private void CheckInitialized()
         {

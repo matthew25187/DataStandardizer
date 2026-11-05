@@ -9,11 +9,13 @@ namespace DataStandardizer.File.vCard
     /// <para>
     /// vCard 4.0 allows <c>102200</c>, <c>1022</c> and <c>10</c>, and the truncated forms <c>-2200</c>, <c>-22</c> and <c>--00</c>, each followed by nothing, <c>Z</c> or a UTC
     /// offset, all in the basic format of ISO 8601.  It forbids a decimal fraction.  RFC 2425 §5.8.4 gives vCard 3.0 the complete time alone, with optional colons, an optional
-    /// fraction of a second such as <c>10:22:00,5</c>, and an optional zone.  vCard 2.1 uses a complete time in either the basic or the extended format of ISO 8601.
+    /// fraction of a second such as <c>10:22:00,5</c>, and an optional zone, with a <c>Z</c> in either case since an ABNF string is case-insensitive.  vCard 2.1 uses a complete
+    /// time in either the basic or the extended format of ISO 8601.
     /// </para>
     /// <para>
     /// A second of 60 is accepted at any time of day, since whether a leap second falls at a given local time can't be told from the value.  An hour of 24 is not: RFC 6350
-    /// §4.3.2 says midnight is always 00.
+    /// §4.3.2 says midnight is always 00, and RFC 2425 §5.8.4 gives hours up to 23.  vCard 2.1 follows ISO 8601, which has <c>24:00:00</c> for the end of a day, so only it reads
+    /// and writes that one time.  An offset's hour of 24 belongs to the TZ property of vCard 2.1 (§2.4.5), not to a time.
     /// </para>
     /// <para>
     /// Two times are equal if they say the same thing the same way, not if they are the same instant: <c>10Z</c> and <c>10+00</c> differ.  A fraction of more than 18 digits
@@ -31,6 +33,7 @@ namespace DataStandardizer.File.vCard
     {
         private const string UninitializedMessage = "The VcardTime instance is not initialised.";
         private const int MaxHour = 23;
+        private const int EndOfDayHour = 24;
         private const int MaxMinute = 59;
         private const int MaxSecond = 60;
         private const int MaxFractionDigits = 18;
@@ -69,12 +72,14 @@ namespace DataStandardizer.File.vCard
         /// <param name="second">The second, from 0 to 60; or <c>null</c> to leave it out.</param>
         /// <param name="offset">The offset.</param>
         /// <exception cref="ArgumentOutOfRangeException">The hour, minute or second is out of range.</exception>
-        /// <exception cref="ArgumentException">RFC 6350 §4 has no form for that combination, or <paramref name="offset"/> is not initialised.</exception>
+        /// <exception cref="ArgumentException">RFC 6350 §4 has no form for that combination, or <paramref name="offset"/> is not initialised or has an hour of 24.</exception>
         public VcardTime(int? hour, int? minute, int? second, VcardUtcOffset offset)
             : this(hour, minute, second, false)
         {
             if (!offset.IsInitialized)
                 throw new ArgumentException("The offset is not initialised.", nameof(offset));
+            if (!offset.IsDefinedIn(VcardVersion.V4_0))
+                throw new ArgumentException("An offset with an hour of 24 belongs to the TZ property of vCard 2.1, not to a time.", nameof(offset));
 
             _offset = offset;
         }
@@ -198,7 +203,8 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Gets a flag indicating if a version can write this time.  vCard 4.0 and vCard 2.1 have no fraction, and vCard 3.0 and vCard 2.1 have only complete times.
+        /// Gets a flag indicating if a version can write this time.  vCard 4.0 and vCard 2.1 have no fraction, vCard 3.0 and vCard 2.1 have only complete times, and only vCard 2.1
+        /// has an hour of 24.
         /// </summary>
         /// <param name="version">The version.</param>
         /// <exception cref="InvalidOperationException">The instance is not initialised.</exception>
@@ -211,11 +217,11 @@ namespace DataStandardizer.File.vCard
             switch (version)
             {
                 case VcardVersion.V3_0:
-                    return IsComplete;
+                    return IsComplete && !IsEndOfDay;
                 case VcardVersion.V2_1:
                     return IsComplete && _fractionDigitCount == 0;
                 default:
-                    return _fractionDigitCount == 0;
+                    return _fractionDigitCount == 0 && !IsEndOfDay;
             }
         }
 
@@ -357,29 +363,29 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Formats the time in <see cref="VcardValueFormat.Text"/> form, as vCard 4.0 writes it or, for a fraction only vCard 3.0 has, as vCard 3.0 writes it; or gives the type
-        /// name if the instance is not initialised.
+        /// Formats the time in <see cref="VcardValueFormat.Text"/> form, as the first of vCard 4.0, vCard 3.0 and vCard 2.1 that can write it; or gives the type name if the instance
+        /// is not initialised.
         /// </summary>
         public override string ToString()
         {
             if (!IsInitialized) return typeof(VcardTime).FullName ?? nameof(VcardTime);
 
-            return ToString(VcardValueFormat.Text, _fractionDigitCount == 0 ? VcardVersion.V4_0 : VcardVersion.V3_0);
+            return ToString(VcardValueFormat.Text, DefaultVersion);
         }
 
 #if NET6_0_OR_GREATER
         /// <inheritdoc />
         /// <remarks>The format is empty or <c>T</c> for <see cref="VcardValueFormat.Text"/>, <c>J</c> for <see cref="VcardValueFormat.Json"/> or <c>X</c> for
-        /// <see cref="VcardValueFormat.Xml"/>.  The provider is ignored.</remarks>
+        /// <see cref="VcardValueFormat.Xml"/>.  The value is written as <see cref="ToString()"/> writes it.  The provider is ignored.</remarks>
         bool ISpanFormattable.TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
         {
-            return TryFormat(destination, out charsWritten, VcardValueFormatting.ParseFormatString(format));
+            return TryFormat(destination, out charsWritten, VcardValueFormatting.ParseFormatString(format), DefaultVersion);
         }
 
         /// <inheritdoc />
         string IFormattable.ToString(string? format, IFormatProvider? formatProvider)
         {
-            return ToString(VcardValueFormatting.ParseFormatString(format));
+            return ToString(VcardValueFormatting.ParseFormatString(format), DefaultVersion);
         }
 #endif
 
@@ -438,6 +444,21 @@ namespace DataStandardizer.File.vCard
         /// Gets whether the time has an hour, a minute and a second: the form <c>time-complete</c> (RFC 6350 §4).
         /// </summary>
         internal bool IsComplete => _hourPlusOne != 0 && _minutePlusOne != 0 && _secondPlusOne != 0;
+
+        /// <summary>
+        /// Gets the first of vCard 4.0, vCard 3.0 and vCard 2.1 that can write this time.
+        /// </summary>
+        internal VcardVersion DefaultVersion
+        {
+            get
+            {
+                if (_fractionDigitCount != 0) return VcardVersion.V3_0;
+
+                return IsEndOfDay ? VcardVersion.V2_1 : VcardVersion.V4_0;
+            }
+        }
+
+        private bool IsEndOfDay => _hourPlusOne - 1 > MaxHour;
 
         /// <summary>
         /// Parses the whole value as a vCard 4.0 <c>time</c>.
@@ -516,7 +537,10 @@ namespace DataStandardizer.File.vCard
 
             if (version == VcardVersion.V2_1 && hasFirstColon != hasSecondColon) return false;
             if (!TryReadPart(value, ref index, out second)) return false;
-            if (hour > MaxHour || minute > MaxMinute || second > MaxSecond) return false;
+            if (minute > MaxMinute || second > MaxSecond) return false;
+
+            // ref. ISO 8601: 24:00:00 is the end of a day.  RFC 2425 §5.8.4: time-hour = 2 DIGIT ;00-23
+            if (hour > MaxHour && (version != VcardVersion.V2_1 || hour != EndOfDayHour || minute != 0 || second != 0)) return false;
 
             long fraction = 0;
             var fractionDigitCount = 0;
@@ -540,7 +564,9 @@ namespace DataStandardizer.File.vCard
             var isUtc = false;
             var offset = default(VcardUtcOffset);
             var zone = value.Slice(index);
-            if (zone.Length == 1 && zone[0] == 'Z')
+
+            // ref. RFC 2425 §5.8.4: time-zone = "Z"; an ABNF string is case-insensitive (RFC 2234 §2.3).
+            if (zone.Length == 1 && (zone[0] == 'Z' || (version == VcardVersion.V3_0 && zone[0] == 'z')))
             {
                 isUtc = true;
             }

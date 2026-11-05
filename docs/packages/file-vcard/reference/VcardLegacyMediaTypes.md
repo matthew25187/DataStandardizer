@@ -30,12 +30,13 @@ Use it with `MimeDataUri` from `DataStandardizer.Communication.Mime`, which take
 | `PS` | `application/postscript` |
 | `QTIME` | `video/quicktime` |
 | `MPEG`, `MPEG2` | `video/mpeg` |
+| `AVI` | `video/vnd.avi` |
 | `WAVE` | `audio/vnd.wave`; `audio/wav` maps back to it too |
 | `BASIC`, `PCM` | `audio/basic` |
 | `X509` | `application/pkix-cert` |
 | `PGP` | `application/pgp-keys` |
 
-The other formats of vCard 2.1 §2.9 (`MET`, `PMB`, `DIB`, `PICT`, `AVI` and `AIFF`) have no media type in the IANA registry, so they have no mapping. vCard 2.1 writes only the tokens of its §2.9, so it has `PCM` for `audio/basic` where vCard 3.0 has `BASIC`, and no token for `image/png`.
+A token is mapped where the IANA registry or RFC 2361 gives a media type. The other formats of vCard 2.1 §2.9 (`MET`, `PMB`, `DIB`, `PICT` and `AIFF`) have none, so they have no mapping. vCard 2.1 writes only the tokens of its §2.9, so it has `PCM` for `audio/basic` where vCard 3.0 has `BASIC`, and no token for `image/png`.
 
 ## Methods
 

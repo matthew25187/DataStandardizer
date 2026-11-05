@@ -95,6 +95,78 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Fact]
+        public void TryParse_Version30LowerCaseDesignators_IsValidAndWritesUpperCase()
+        {
+            // arrange
+            const string value = "1953-10-15t23:10:00z";
+
+            // act
+            var testResult = VcardDateTime.Parse(value.AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0);
+
+            // assert
+            testResult.ToString(VcardValueFormat.Text, VcardVersion.V3_0).Should().Be(VcardValueExamples.Version30DateTimeUtc);
+        }
+
+        [Theory]
+        [InlineData("1953-10-15t23:10:00Z", VcardVersion.V2_1)]
+        [InlineData("19531015t231000", VcardVersion.V4_0)]
+        public void TryParse_LowerCaseDesignatorOutsideVersion30_ReturnsFalse(string value, VcardVersion version)
+        {
+            // act
+            var testResult = VcardDateTime.TryParse(value.AsSpan(), VcardValueFormat.Text, version, out _);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
+        public void TryParse_Version30LowerCaseDesignatorOfATimestamp_IsValid()
+        {
+            // act
+            var testResult = VcardTimestamp.TryParse("1995-10-31t22:27:10Z".AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0, out _);
+
+            // assert
+            testResult.Should().BeTrue();
+        }
+
+        [Fact]
+        public void TryParse_Version30LowerCaseDesignatorOfADateAndOrTime_IsADateTime()
+        {
+            // act
+            VcardDateAndOrTime result;
+            var testResult = VcardDateAndOrTime.TryParse("1953-10-15t23:10:00Z".AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0, out result);
+
+            // assert
+            testResult.Should().BeTrue();
+            result.Kind.Should().Be(VcardDateAndOrTimeKind.DateTime);
+        }
+
+        public static TheoryData<Func<string>, string> OlderVersionToString()
+        {
+            var fraction = VcardTime.Parse("10:22:00,5".AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0);
+            var endOfDay = VcardTime.Parse("24:00:00".AsSpan(), VcardValueFormat.Text, VcardVersion.V2_1);
+            var date = new VcardDate(1996, 10, 22);
+            return new TheoryData<Func<string>, string>
+            {
+                { () => new VcardDateTime(date, fraction).ToString(), "1996-10-22T10:22:00,5" },
+                { () => new VcardDateTime(date, endOfDay).ToString(), "1996-10-22T24:00:00" },
+                { () => new VcardTimestamp(date, endOfDay).ToString(), "1996-10-22T24:00:00" },
+                { () => new VcardDateAndOrTime(new VcardDateTime(date, endOfDay)).ToString(), "1996-10-22T24:00:00" },
+            };
+        }
+
+        [Theory]
+        [MemberData(nameof(OlderVersionToString), DisableDiscoveryEnumeration = true)]
+        public void ToString_TimeOnlyAnOlderVersionHas_WritesTheFormOfThatVersion(Func<string> toStringCall, string expected)
+        {
+            // act
+            var testResult = toStringCall();
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Fact]
         public void ToString_Version21DateTimeInVersion40_WritesTheBasicFormat()
         {
             // arrange
@@ -153,6 +225,10 @@ namespace DataStandardizer.File.vCard.Tests
                 () => new VcardDateAndOrTime(default(VcardDate)),
                 () => new VcardDateAndOrTime(default(VcardTime)),
                 () => new VcardDateAndOrTime(default(VcardDateTime)),
+                () => new VcardDateAndOrTime(VcardTime.Parse("10:22:00,5".AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0)),
+                () => new VcardDateAndOrTime(VcardTime.Parse("24:00:00".AsSpan(), VcardValueFormat.Text, VcardVersion.V2_1)),
+                () => new VcardDateTime(VcardDate.FromMonthAndDay(10, 22), VcardTime.Parse("10:22:00,5".AsSpan(), VcardValueFormat.Text, VcardVersion.V3_0)),
+                () => new VcardDateTime(VcardDate.FromDay(22), VcardTime.Parse("24:00:00".AsSpan(), VcardValueFormat.Text, VcardVersion.V2_1)),
             };
         }
 
