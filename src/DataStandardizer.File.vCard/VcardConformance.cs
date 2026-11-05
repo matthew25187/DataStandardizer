@@ -66,6 +66,8 @@ namespace DataStandardizer.File.vCard
                     return !isWriting && options.AcceptLegacySyntax;
                 case VcardDiagnosticKind.Lossy:
                     return options.AllowLossyVersionConversion;
+                case VcardDiagnosticKind.VersionConversion:
+                    return true;
                 default:
                     return false;
             }
@@ -851,8 +853,7 @@ namespace DataStandardizer.File.vCard
                 case VcardValueType.Text:
                     return IsValidTextValue(text, name);
                 case VcardValueType.Uri:
-                    Uri uri;
-                    return VcardValue.TryParseUri(value, VcardValueFormat.Text, out uri);
+                    return VcardValue.IsValidUriValue(value);
                 case VcardValueType.DateAndOrTime:
                     VcardDateAndOrTime dateAndOrTime;
                     return VcardDateAndOrTime.TryParse(value, VcardValueFormat.Text, out dateAndOrTime);

@@ -26,11 +26,25 @@ namespace DataStandardizer.File.vCard
         private VcardCard _card;
         private VcardVersionMapping _mapping;
 #endif
+        private readonly VcardVersionMapping _defaultMapping;
+        private readonly int _depth;
         private List<VcardDiagnostic> _structureDiagnostics = new List<VcardDiagnostic>();
 
-        internal VcardCardBuilder(VcardOptions options)
+        internal VcardCardBuilder(VcardOptions options) : this(options, VcardVersionMapping.Canonical, 0)
+        {
+        }
+
+        /// <summary>
+        /// Creates a builder.
+        /// </summary>
+        /// <param name="options">The options.</param>
+        /// <param name="defaultMapping">The mapping of a card with no <c>VERSION</c>.</param>
+        /// <param name="depth">How many cards the cards are nested in.</param>
+        internal VcardCardBuilder(VcardOptions options, VcardVersionMapping defaultMapping, int depth)
         {
             _options = options;
+            _defaultMapping = defaultMapping;
+            _depth = depth;
         }
 
         /// <summary>
@@ -115,6 +129,15 @@ namespace DataStandardizer.File.vCard
                 line = line.WithNameAndValue(VcardPropertyNames.OrganizationDirectory, line.Value);
             }
 
+            return line;
+        }
+
+        /// <summary>
+        /// Gives a line of a vCard 4.0 card the form it has under the option that accepts a comma with no backslash.  It waits for the end of the card, since a <c>VERSION</c> needn't come first
+        /// under <see cref="VcardOptions.AllowVersionNotFirst"/>, and the rule isn't one of other versions.
+        /// </summary>
+        private VcardContentLine ApplyCommaAccommodation(VcardContentLine line)
+        {
             if (_options.AcceptUnescapedCommasInUris && !VcardConformance.HasEncodingParameter(line) &&
                 (IsName(line, VcardPropertyNames.ClientPidMap) || VcardValueTypeRegistry.GetValueType(line) == VcardValueType.Uri))
             {
@@ -176,22 +199,31 @@ namespace DataStandardizer.File.vCard
             if (!IsCardValue(line))
                 throw BuildStructureException(Format("Found END:{0}, but the BEGIN:VCARD on line {1} is not closed; expected END:VCARD.", line.Value, beginLine.LineNumber), line);
 
-            // ref. RFC 6350 §3.3: vcard = "BEGIN:VCARD" CRLF "VERSION:4.0" CRLF 1*contentline "END:VCARD" CRLF.  So neither has a group or a parameter.
-            CheckDelimiterLine(beginLine, card);
-            CheckDelimiterLine(line, card);
-
             var mapping = _mapping;
             if (mapping is null)
             {
-                _structureDiagnostics.Add(new VcardDiagnostic(VcardDiagnosticKind.MissingRequiredProperty, "RFC 6350 §6.7.9 requires a VERSION property.", VcardPropertyNames.Version, null,
+                _structureDiagnostics.Add(new VcardDiagnostic(VcardDiagnosticKind.MissingRequiredProperty, "A card requires a VERSION property: RFC 6350 §6.7.9, RFC 2426 §5.", VcardPropertyNames.Version, null,
                     beginLine.LineNumber, card.CardIndex));
-                mapping = VcardVersionMapping.Canonical;
+                mapping = _defaultMapping;
             }
 
-            for (var index = 0; index < card.Properties.Count; index++)
+            CheckDelimiterLine(beginLine, card, mapping);
+            CheckDelimiterLine(line, card, mapping);
+
+            if (mapping.Version == VcardVersion.V4_0)
             {
-                card.Properties[index] = mapping.ToCanonical(card.Properties[index]);
+                for (var index = 0; index < card.Properties.Count; index++)
+                {
+                    card.Properties[index] = ApplyCommaAccommodation(card.Properties[index]);
+                }
             }
+            else
+            {
+                // A vCard 4.0 card is checked in canonical form, as it is.  Any other is checked in its own form before it stops being in that form.
+                mapping.Validate(card.Properties, card, _options, _depth, _structureDiagnostics);
+            }
+
+            mapping.ToCanonical(card, _options, _depth);
 
             _card = null;
             _beginLine = null;
@@ -200,12 +232,14 @@ namespace DataStandardizer.File.vCard
             return card;
         }
 
-        private void CheckDelimiterLine(VcardContentLine line, VcardCard card)
+        private void CheckDelimiterLine(VcardContentLine line, VcardCard card, VcardVersionMapping mapping)
         {
-            if (line.Group != null || line.ParameterArray.Length != 0)
+            // ref. RFC 6350 §3.3: vcard = "BEGIN:VCARD" CRLF "VERSION:4.0" CRLF 1*contentline "END:VCARD" CRLF.  So neither has a group or a parameter.
+            // ref. RFC 2426 §4: vcard = [group "."] "BEGIN" ":" "VCARD" 1*CRLF 1*(contentline) [group "."] "END" ":" "VCARD" 1*CRLF.  So they may have a group.
+            if ((mapping.Version == VcardVersion.V4_0 && line.Group != null) || line.ParameterArray.Length != 0)
             {
                 _structureDiagnostics.Add(new VcardDiagnostic(VcardDiagnosticKind.InvalidStructure,
-                    Format("RFC 6350 §3.3 doesn't allow a group or parameters on a {0} line.", line.Name.ToUpperInvariant()), line.Name, line.Group, line.LineNumber, card.CardIndex));
+                    Format("A {0} line of this version can't have that group or parameters: RFC 6350 §3.3, RFC 2426 §4.", line.Name.ToUpperInvariant()), line.Name, line.Group, line.LineNumber, card.CardIndex));
             }
         }
 
@@ -216,27 +250,34 @@ namespace DataStandardizer.File.vCard
             if (mapping is null)
             {
                 throw VcardConformance.BuildException(new VcardDiagnostic(VcardDiagnosticKind.UnsupportedVersion,
-                    Format("The card has VERSION:{0}.  Only vCard 4.0 can be read so far.", line.Value), line.Name, line.Group, line.LineNumber, card.CardIndex));
+                    Format("The card has VERSION:{0}.  Only vCard 4.0 and 3.0 can be read so far.", line.Value), line.Name, line.Group, line.LineNumber, card.CardIndex));
             }
 
-            VcardConformance.ValidateVersionLine(line, card, _structureDiagnostics);
-
-            // ref. RFC 6350 §3.3 has no group here, though §6.7.9 does allow the VALUE=text and any-param that a line can have.
-            if (line.Group != null)
+            if (mapping.Version == VcardVersion.V4_0)
             {
-                _structureDiagnostics.Add(new VcardDiagnostic(VcardDiagnosticKind.InvalidStructure, "RFC 6350 §3.3 doesn't allow a group on a VERSION line.", line.Name, line.Group,
-                    line.LineNumber, card.CardIndex));
+                VcardConformance.ValidateVersionLine(line, card, _structureDiagnostics);
+
+                // ref. RFC 6350 §3.3 has no group here, though §6.7.9 does allow the VALUE=text and any-param that a line can have.
+                if (line.Group != null)
+                {
+                    _structureDiagnostics.Add(new VcardDiagnostic(VcardDiagnosticKind.InvalidStructure, "RFC 6350 §3.3 doesn't allow a group on a VERSION line.", line.Name, line.Group,
+                        line.LineNumber, card.CardIndex));
+                }
+            }
+            else
+            {
+                Vcard30Conformance.ValidateVersionLine(line, card, _structureDiagnostics);
             }
 
             if (_mapping != null)
             {
-                _structureDiagnostics.Add(new VcardDiagnostic(VcardDiagnosticKind.CardinalityViolation, "RFC 6350 §6.7.9 allows exactly one VERSION property.", line.Name, line.Group,
+                _structureDiagnostics.Add(new VcardDiagnostic(VcardDiagnosticKind.CardinalityViolation, "A card has exactly one VERSION property: RFC 6350 §6.7.9, RFC 2426 §5.", line.Name, line.Group,
                     line.LineNumber, card.CardIndex));
                 return;
             }
 
-            // ref. RFC 6350 §6.7.9: it "must appear immediately after BEGIN:VCARD".
-            if (card.Properties.Count != 0 && !_options.AllowVersionNotFirst)
+            // ref. RFC 6350 §6.7.9: it "must appear immediately after BEGIN:VCARD".  RFC 2426 has no such rule, since §4 has it as one contentline among others.
+            if (mapping.Version == VcardVersion.V4_0 && card.Properties.Count != 0 && !_options.AllowVersionNotFirst)
             {
                 _structureDiagnostics.Add(new VcardDiagnostic(VcardDiagnosticKind.InvalidStructure, "RFC 6350 §6.7.9 requires the VERSION property immediately after BEGIN:VCARD.",
                     line.Name, line.Group, line.LineNumber, card.CardIndex));

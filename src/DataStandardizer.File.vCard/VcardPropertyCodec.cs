@@ -46,6 +46,11 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
+        /// Gets a flag indicating if the property is one that only older versions define, so that the registry of vCard 4.0 doesn't know its value type, and a line has no <c>VALUE</c> to read.
+        /// </summary>
+        internal bool IsLegacy { get; set; }
+
+        /// <summary>
         /// Gets the name of the property.
         /// </summary>
         internal string Name { get; }
@@ -62,10 +67,14 @@ namespace DataStandardizer.File.vCard
 #endif
         {
             property = null;
-            var valueType = VcardValueTypeRegistry.GetValueType(line);
             string text;
-            if (!VcardValueTypeRegistry.IsAllowedValueType(line.Name.AsSpan(), valueType) || !VcardConformance.IsUnderstoodCalendarScale(line) ||
-                !VcardConformance.TryGetValueText(line, out text))
+            var valueType = VcardValueTypeRegistry.GetValueType(line);
+            if (IsLegacy)
+            {
+                if (!VcardConformance.TryGetValueText(line, out text)) return false;
+            }
+            else if (!VcardValueTypeRegistry.IsAllowedValueType(line.Name.AsSpan(), valueType) || !VcardConformance.IsUnderstoodCalendarScale(line) ||
+                     !VcardConformance.TryGetValueText(line, out text))
             {
                 return false;
             }
@@ -107,10 +116,10 @@ namespace DataStandardizer.File.vCard
             }
 
             var valueType = _getValueType(value);
-            if (!VcardValueTypeRegistry.IsAllowedValueType(Name.AsSpan(), valueType))
+            if (!IsLegacy && !VcardValueTypeRegistry.IsAllowedValueType(Name.AsSpan(), valueType))
                 throw new ArgumentException("The property " + Name + " doesn't allow a value of type " + valueType + ".", nameof(value));
 
-            var valueParameter = valueType == _defaultValueType ? string.Empty : VcardValueTypeRegistry.GetValueTypeName(valueType);
+            var valueParameter = IsLegacy || valueType == _defaultValueType ? string.Empty : VcardValueTypeRegistry.GetValueTypeName(valueType);
             var contentLineParameters = (parameters ?? new VcardPropertyParameters()).ToContentLineParameters(valueParameter);
             var isPhonetic = contentLineParameters.Exists(parameter => string.Equals(parameter.Name, VcardParameterNames.Phonetic, StringComparison.OrdinalIgnoreCase));
             return new VcardContentLine(parameters?.Group, Name, contentLineParameters, _format(GetFormToWrite(isPhonetic, value)));
@@ -143,6 +152,30 @@ namespace DataStandardizer.File.vCard
         internal static VcardPropertyCodec<string> Text(string name)
         {
             return new VcardPropertyCodec<string>(name, ParseText, FormatText, GetTextType);
+        }
+
+        /// <summary>
+        /// Gets the codec of a text property that only older versions define.
+        /// </summary>
+        internal static VcardPropertyCodec<string> LegacyText(string name)
+        {
+            return new VcardPropertyCodec<string>(name, ParseText, FormatText, GetTextType) { IsLegacy = true };
+        }
+
+        /// <summary>
+        /// Gets the codec of a URI property that only older versions define.
+        /// </summary>
+        internal static VcardPropertyCodec<Uri> LegacyUri(string name)
+        {
+            return new VcardPropertyCodec<Uri>(name, ParseUri, FormatUri, value => VcardValueType.Uri) { IsLegacy = true };
+        }
+
+        /// <summary>
+        /// Parses the text of a value in canonical form.
+        /// </summary>
+        internal static bool TryParseText(string text, out string value)
+        {
+            return ParseText(text, VcardValueType.Text, out value);
         }
 
         internal static VcardPropertyCodec<string> Token(string name)

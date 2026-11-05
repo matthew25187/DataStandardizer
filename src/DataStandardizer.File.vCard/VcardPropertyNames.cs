@@ -1,7 +1,8 @@
 namespace DataStandardizer.File.vCard
 {
     /// <summary>
-    /// The names of the properties of vCard 4.0: those RFC 6350 §6 defines, and those of the extensions RFC 6474, RFC 6715, RFC 8605 and RFC 9554.
+    /// The names of the properties of vCard 4.0: those RFC 6350 §6 defines, and those of the extensions RFC 6474, RFC 6715, RFC 8605 and RFC 9554.  It also has those that only vCard 3.0
+    /// defines.
     /// </summary>
     /// <remarks>
     /// Property names are case-insensitive; these are in the upper case the RFC uses.  Use them with <see cref="VcardCard.GetProperties"/>, or to
@@ -9,6 +10,48 @@ namespace DataStandardizer.File.vCard
     /// </remarks>
     public static class VcardPropertyNames
     {
+        /// <summary>
+        /// <c>AGENT</c> (RFC 2426 §3.5.4): who acts for the entity.  vCard 4.0 doesn't have it, and a reader of vCard 3.0 gives it as a <see cref="Related"/> with <c>TYPE=agent</c>.
+        /// </summary>
+        public const string Agent = "AGENT";
+
+        /// <summary>
+        /// <c>CAPURI</c> (RFC 2739 §2.3.3): where to access a calendar.  vCard 4.0 doesn't have it.
+        /// </summary>
+        public const string CalendarAccessUri = "CAPURI";
+
+        /// <summary>
+        /// <c>CLASS</c> (RFC 2426 §3.7.1): the access classification of the card.  vCard 4.0 doesn't have it.
+        /// </summary>
+        public const string Classification = "CLASS";
+
+        /// <summary>
+        /// <c>MAILER</c> (RFC 2426 §3.3.3): the electronic mail software the entity uses.  vCard 4.0 doesn't have it.
+        /// </summary>
+        public const string Mailer = "MAILER";
+
+        /// <summary>
+        /// <c>LABEL</c> (RFC 2426 §3.2.2): the text of a delivery address.  vCard 4.0 doesn't have it, and a reader of vCard 3.0 gives it as the <see cref="VcardParameterNames.Label"/> of its
+        /// <see cref="Address"/> if it can tell which that is.
+        /// </summary>
+        public const string PostalLabel = "LABEL";
+
+        /// <summary>
+        /// <c>PROFILE</c> (RFC 2425 §6.1.2, RFC 2426 §5): the profile of the directory entity, <c>VCARD</c>.  vCard 4.0 doesn't have it.
+        /// </summary>
+        public const string Profile = "PROFILE";
+
+        /// <summary>
+        /// <c>SORT-STRING</c> (RFC 2426 §3.6.5): the text to sort a name by.  vCard 4.0 doesn't have it, and a reader of vCard 3.0 gives it as the <see cref="VcardParameterNames.SortAs"/> of
+        /// <see cref="Name"/> or <see cref="Organization"/>.
+        /// </summary>
+        public const string SortString = "SORT-STRING";
+
+        /// <summary>
+        /// <c>NAME</c> (RFC 2425 §6.1.1, RFC 2426 §5): the display name of the directory entity the data comes from.  vCard 4.0 doesn't have it.
+        /// </summary>
+        public const string SourceName = "NAME";
+
         /// <summary>
         /// <c>ADR</c> (RFC 6350 §6.3.1): a delivery address.
         /// </summary>

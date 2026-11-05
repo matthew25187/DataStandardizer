@@ -9,19 +9,20 @@ using System.Threading.Tasks;
 namespace DataStandardizer.File.vCard
 {
     /// <summary>
-    /// Represents a writer of the card object model as vCard data (RFC 6350).
+    /// Represents a writer of the card object model as vCard data (RFC 6350, or RFC 2426 with <see cref="VcardOptions.WriteVersion"/>).
     /// </summary>
     /// <remarks>
     /// <para>
     /// Each card is written as content lines by a <see cref="VcardContentLineWriter"/>, so the same options and rules apply to its lines: folding, line breaks, and the encoding of
-    /// parameter values.  The card is written as <c>BEGIN:VCARD</c>, then <c>VERSION:4.0</c>, then its properties in order, then <c>END:VCARD</c>.  A property read by
-    /// <see cref="VcardReader"/> keeps its group and parameters exactly as they were read.
+    /// parameter values.  The card is written as <c>BEGIN:VCARD</c>, then a <c>VERSION</c> line, then its properties in order, then <c>END:VCARD</c>.  In vCard 4.0, a property read by
+    /// <see cref="VcardReader"/> keeps its group and parameters as they are in the model, and in vCard 3.0 they are converted from the canonical form of the model.
     /// </para>
     /// <para>
-    /// Before a card is written, it is checked as <see cref="VcardCard.Validate"/> does.  If it breaks a rule of RFC 6350 that the options do not accept,
+    /// Before a card is written, it is checked as <see cref="VcardCard.Validate(VcardVersion)"/> does for that version.  If it breaks a rule that the options do not accept,
     /// <see cref="VcardFileException"/> is thrown, carrying the property in its data, and nothing of that card is written.  The accommodations are
-    /// <see cref="VcardOptions.AllowMissingRequiredProperties"/>, <see cref="VcardOptions.AllowCardinalityViolations"/> and <see cref="VcardOptions.AllowInvalidValues"/>, all off by
-    /// default.  The forms of vCard 2.1 are never written in a vCard 4.0 card, whatever <see cref="VcardOptions.AcceptLegacySyntax"/> says.
+    /// <see cref="VcardOptions.AllowMissingRequiredProperties"/>, <see cref="VcardOptions.AllowCardinalityViolations"/>, <see cref="VcardOptions.AllowInvalidValues"/> and
+    /// <see cref="VcardOptions.AllowLossyVersionConversion"/>, all off by default.  The forms of vCard 2.1 are never written in a vCard 4.0 or 3.0 card, whatever
+    /// <see cref="VcardOptions.AcceptLegacySyntax"/> says.
     /// </para>
     /// <para>
     /// Only one operation may be in progress at a time.  Synchronous and asynchronous calls may follow one another, but a call made while another is in progress throws
@@ -37,6 +38,7 @@ namespace DataStandardizer.File.vCard
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
         private bool _isCanceled;
 #endif
+        private readonly VcardVersionMapping _mapping;
         private readonly VcardOptions _options;
         private readonly VcardContentLineWriter _writer;
 
@@ -63,8 +65,10 @@ namespace DataStandardizer.File.vCard
         /// <exception cref="ArgumentException"><paramref name="vcardStream"/> does not support writing.
         /// -or-
         /// <see cref="VcardOptions.FoldLength"/>, <see cref="VcardOptions.FoldWhitespace"/> or <see cref="VcardOptions.LineBreak"/> is not
-        /// valid.</exception>
-        public VcardWriter(Stream vcardStream, VcardOptions options) : this(new VcardContentLineWriter(vcardStream, options), options)
+        /// valid.
+        /// -or-
+        /// <see cref="VcardOptions.WriteVersion"/> is one that can't be written yet.</exception>
+        public VcardWriter(Stream vcardStream, VcardOptions options) : this(new VcardContentLineWriter(vcardStream, CheckWriteVersion(options)), options)
         {
         }
 
@@ -86,7 +90,7 @@ namespace DataStandardizer.File.vCard
         /// <exception cref="ArgumentNullException"><paramref name="vcardFilePath"/> or <paramref name="options"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><see cref="VcardOptions.FoldLength"/>, <see cref="VcardOptions.FoldWhitespace"/> or
         /// <see cref="VcardOptions.LineBreak"/> is not valid.</exception>
-        public VcardWriter(string vcardFilePath, VcardOptions options) : this(new VcardContentLineWriter(vcardFilePath, options), options)
+        public VcardWriter(string vcardFilePath, VcardOptions options) : this(new VcardContentLineWriter(vcardFilePath, CheckWriteVersion(options)), options)
         {
         }
 #endif
@@ -111,14 +115,37 @@ namespace DataStandardizer.File.vCard
         /// -or-
         /// <see cref="VcardOptions.FoldLength"/>, <see cref="VcardOptions.FoldWhitespace"/> or <see cref="VcardOptions.LineBreak"/> is not
         /// valid.</exception>
-        public VcardWriter(TextWriter writer, VcardOptions options) : this(new VcardContentLineWriter(writer, options), options)
+        public VcardWriter(TextWriter writer, VcardOptions options) : this(new VcardContentLineWriter(writer, CheckWriteVersion(options)), options)
         {
+        }
+
+        /// <summary>
+        /// Checks the version to write before anything is created from the options, since a constructor from a file path would otherwise overwrite the file first.  Null options are left for the
+        /// content-line writer to refuse.
+        /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private static VcardOptions CheckWriteVersion(VcardOptions? options)
+#else
+        private static VcardOptions CheckWriteVersion(VcardOptions options)
+#endif
+        {
+            if (options != null)
+            {
+                VcardVersionMapping.For(options.WriteVersion, nameof(options));
+            }
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            return options!;
+#else
+            return options;
+#endif
         }
 
         private VcardWriter(VcardContentLineWriter writer, VcardOptions options)
         {
             _writer = writer;
             _options = options;
+            _mapping = VcardVersionMapping.For(options.WriteVersion, nameof(options));
         }
 
         /// <summary>
@@ -543,24 +570,20 @@ namespace DataStandardizer.File.vCard
         /// <exception cref="VcardFileException">The card breaks a rule of RFC 6350 that the options do not accept.</exception>
         private List<VcardContentLine> PrepareCard(VcardCard card)
         {
+            // Gather the lines first, so that a card changed by another thread cannot fail part way through for that reason.
             var diagnostics = new List<VcardDiagnostic>();
-            VcardConformance.Validate(card, diagnostics);
+            var properties = _mapping.FromCanonical(card, _options, diagnostics);
+            _mapping.Validate(properties, card, _options, 0, diagnostics);
             foreach (var diagnostic in diagnostics)
             {
                 if (!VcardConformance.IsAccepted(diagnostic.Kind, _options, true))
                     throw VcardConformance.BuildException(diagnostic);
             }
 
-            // Gather the lines first, so that a card changed by another thread cannot fail part way through for that reason.
-            var mapping = VcardVersionMapping.Canonical;
-            var lines = new List<VcardContentLine>(card.Properties.Count + 3);
+            var lines = new List<VcardContentLine>(properties.Count + 3);
             lines.Add(new VcardContentLine(VcardPropertyNames.Begin, VcardCardBuilder.CardValue));
-            lines.Add(new VcardContentLine(VcardPropertyNames.Version, mapping.VersionText));
-            foreach (var property in card.Properties)
-            {
-                lines.Add(mapping.FromCanonical(property));
-            }
-
+            lines.Add(new VcardContentLine(VcardPropertyNames.Version, _mapping.VersionText));
+            lines.AddRange(properties);
             lines.Add(new VcardContentLine(VcardPropertyNames.End, VcardCardBuilder.CardValue));
             return lines;
         }

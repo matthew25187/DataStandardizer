@@ -19,8 +19,8 @@ using (var reader = new VcardReader("contacts.vcf"))
 }
 ```
 
-Only vCard 4.0 can be read and written so far. vCard 3.0 and 2.1 are still to come, and the model is
-designed for them, as this page describes.
+vCard 4.0 and 3.0 can be read and written so far. vCard 2.1 is still to come, and the model is
+designed for it, as this page describes. See [Converting between versions](version-conversion.md).
 
 ## Common and versioned members
 
@@ -53,7 +53,8 @@ The rules of a versioned interface, which each version follows:
   version, including one read from another version.
 
 Property wrappers and lists have versioned interfaces in the same way: `IVcard40Property<TValue>` and
-`IVcard40PropertyList<TValue>`.
+`IVcard40PropertyList<TValue>`, and `IVcard30Property<TValue>` and `IVcard30PropertyList<TValue>`. `AsVersion30()` gives
+the [IVcard30Card](reference/IVcard30Card.md) view.
 
 ## The open list of properties
 
@@ -121,7 +122,7 @@ foreach (var alternatives in card.Addresses.GetAlternatives())
 
 ### Writing to an older version
 
-None of this exists in vCard 3.0 or 2.1, and `VcardPropertyInfo.IsDefinedIn` says so. Writing an older version, which arrives with those versions, reports it as `Lossy`.
+None of this exists in vCard 3.0 or 2.1, and `VcardPropertyInfo.IsDefinedIn` says so. Writing vCard 3.0 reports it as `Lossy`; see [Converting between versions](version-conversion.md).
 
 ## Commas in URI values
 
@@ -153,7 +154,7 @@ var members = group.ResolveMembers(cards);
 ## Conformance
 
 By default a reader rejects what RFC 6350 and its extensions don't allow, with their errata applied, and a writer refuses to write it. `Validate()`
-returns every problem in a card as a `VcardDiagnostic`, without throwing.
+returns every problem in a card as a `VcardDiagnostic`, without throwing. These are the rules of vCard 4.0. [Converting between versions](version-conversion.md) has those of vCard 3.0, and `Validate(version)` checks a card by the rules of a version.
 
 | Rule | Reference | Accepted with |
 | --- | --- | --- |
@@ -180,6 +181,8 @@ caught, and reading goes on with the next card.
 
 - [VcardCard](reference/VcardCard.md)
 - [IVcard40Card](reference/IVcard40Card.md)
+- [IVcard30Card](reference/IVcard30Card.md)
+- [Converting between versions](version-conversion.md)
 - [VcardReader](reference/VcardReader.md)
 - [VcardWriter](reference/VcardWriter.md)
 - [VcardOptions](reference/VcardOptions.md)

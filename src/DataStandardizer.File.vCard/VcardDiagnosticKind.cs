@@ -36,19 +36,19 @@ namespace DataStandardizer.File.vCard
         UnsupportedVersion = 5,
 
         /// <summary>
-        /// A value had to be adapted to convert it to another version.  No conversion reports this yet: it arrives with reading and writing vCard 3.0.
+        /// A property of an older version has no equivalent in vCard 4.0, such as a <c>LABEL</c> that goes with no <c>ADR</c>, and is kept as a property that vCard 4.0 doesn't define.  Nothing is
+        /// lost, so it is always accepted.  <see cref="VcardVersionConverter.Analyze"/> reports it.
         /// </summary>
         VersionConversion = 6,
 
         /// <summary>
-        /// A card holds data that the version being written can't hold.  Accepted with <see cref="VcardOptions.AllowLossyVersionConversion"/>.  No conversion reports this
-        /// yet: it arrives with reading and writing vCard 3.0.
+        /// A card holds data that the version being written can't hold.  Accepted with <see cref="VcardOptions.AllowLossyVersionConversion"/>, and the data is then left out.
         /// </summary>
         Lossy = 7,
 
         /// <summary>
-        /// A vCard 4.0 card has a form of vCard 2.1: a parameter with no name, or an <c>ENCODING</c> or <c>CHARSET</c> parameter.  A reader accepts it with
-        /// <see cref="VcardOptions.AcceptLegacySyntax"/>.  A writer never does.
+        /// A vCard 4.0 or 3.0 card has a form of vCard 2.1: a parameter with no name, a <c>CHARSET</c> parameter, or an <c>ENCODING</c> parameter, other than the <c>b</c> of vCard 3.0.  A reader
+        /// accepts it with <see cref="VcardOptions.AcceptLegacySyntax"/>.  A writer never does.
         /// </summary>
         LegacySyntax = 8,
 

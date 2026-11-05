@@ -34,7 +34,7 @@ namespace DataStandardizer.File.vCard
     /// so is a value with a <c>PHONETIC</c> parameter, because RFC 9554 §4.6 needs its related property to have a value in each of its components.
     /// </para>
     /// </remarks>
-    public sealed class VcardCard : IVcard40Card
+    public sealed partial class VcardCard : IVcard40Card, IVcard30Card
     {
         private static readonly VcardPropertyCodec<string> KindCodec = VcardPropertyCodecs.Text(VcardPropertyNames.Kind);
         private static readonly VcardPropertyCodec<VcardName> NameCodec = VcardPropertyCodecs.Name();
@@ -141,6 +141,7 @@ namespace DataStandardizer.File.vCard
             GrammaticalGenders = new VcardPropertyList<string>(this, GrammaticalGendersCodec);
             Pronouns = new VcardPropertyList<string>(this, PronounsCodec);
             SocialProfiles = new VcardPropertyList<VcardTypedValue>(this, SocialProfilesCodec);
+            _calendarAccessUris = new VcardPropertyList<Uri>(this, CalendarAccessUrisCodec);
         }
 
         /// <summary>
@@ -210,6 +211,10 @@ namespace DataStandardizer.File.vCard
         /// <summary>
         /// Gets the <c>PHOTO</c> properties (RFC 6350 §6.2.4).
         /// </summary>
+        /// <remarks>
+        /// <see cref="Uri"/> on .NET Framework can't hold more than 65519 characters, so an inline photo longer than that isn't here on that runtime.  It stays in <see cref="Properties"/>, and is read and written
+        /// as usual.
+        /// </remarks>
         public VcardPropertyList<Uri> Photos { get; }
 
         /// <summary>
@@ -451,6 +456,26 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         public VcardProperty<Bcp47LanguageTag>? DefaultLanguage => GetSingle(DefaultLanguageCodec);
 
+        /// <summary>
+        /// Gets the <c>MAILER</c> property (RFC 2426 §3.3.3), which vCard 4.0 doesn't define; or <c>null</c> if the card has none with a valid value.
+        /// </summary>
+        public VcardProperty<string>? Mailer => GetSingle(MailerCodec);
+
+        /// <summary>
+        /// Gets the <c>CLASS</c> property (RFC 2426 §3.7.1), which vCard 4.0 doesn't define; or <c>null</c> if the card has none with a valid value.
+        /// </summary>
+        public VcardProperty<string>? Classification => GetSingle(ClassificationCodec);
+
+        /// <summary>
+        /// Gets the <c>NAME</c> property (RFC 2425 §6.1, RFC 2426 §5), which vCard 4.0 doesn't define; or <c>null</c> if the card has none with a valid value.
+        /// </summary>
+        public VcardProperty<string>? SourceName => GetSingle(SourceNameCodec);
+
+        /// <summary>
+        /// Gets the <c>PROFILE</c> property (RFC 2425 §6.2, RFC 2426 §5), which vCard 4.0 doesn't define; or <c>null</c> if the card has none with a valid value.
+        /// </summary>
+        public VcardProperty<string>? Profile => GetSingle(ProfileCodec);
+
         string? IVcard40Card.KindText => KindText;
 
         IVcard40Property<VcardName>? IVcard40Card.Name => Name;
@@ -542,6 +567,26 @@ namespace DataStandardizer.File.vCard
         /// <c>null</c> if the card has none with a valid value.
         /// </summary>
         public VcardProperty<Bcp47LanguageTag> DefaultLanguage => GetSingle(DefaultLanguageCodec);
+
+        /// <summary>
+        /// Gets the <c>MAILER</c> property (RFC 2426 §3.3.3), which vCard 4.0 doesn't define; or <c>null</c> if the card has none with a valid value.
+        /// </summary>
+        public VcardProperty<string> Mailer => GetSingle(MailerCodec);
+
+        /// <summary>
+        /// Gets the <c>CLASS</c> property (RFC 2426 §3.7.1), which vCard 4.0 doesn't define; or <c>null</c> if the card has none with a valid value.
+        /// </summary>
+        public VcardProperty<string> Classification => GetSingle(ClassificationCodec);
+
+        /// <summary>
+        /// Gets the <c>NAME</c> property (RFC 2425 §6.1, RFC 2426 §5), which vCard 4.0 doesn't define; or <c>null</c> if the card has none with a valid value.
+        /// </summary>
+        public VcardProperty<string> SourceName => GetSingle(SourceNameCodec);
+
+        /// <summary>
+        /// Gets the <c>PROFILE</c> property (RFC 2425 §6.2, RFC 2426 §5), which vCard 4.0 doesn't define; or <c>null</c> if the card has none with a valid value.
+        /// </summary>
+        public VcardProperty<string> Profile => GetSingle(ProfileCodec);
 
         string IVcard40Card.KindText => KindText;
 
