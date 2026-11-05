@@ -4,9 +4,11 @@
     <TargetFrameworks>netstandard1.1;netstandard2.0;netstandard2.1;net10.0</TargetFrameworks>
     <Description>Data Standardizer provides implementations of various internationally recognised standards in data processing, covering topics ranging from languages to currencies and geographical entities. With strongly-typed enumerations for each standard (where applicable) or other targeted data types, you can represent these elements in your code such that errors with invalid values are minimised.
 
-Provides types supporting the reading and writing of vCard files.</Description>
+Provides types supporting the reading and writing of vCard files.  Includes:
+- vCard Format Specification, RFC 6350 (content lines)
+- Parameter Value Encoding in iCalendar and vCard, RFC 6868</Description>
     <Copyright>Copyright © 2026, Matthew25187. All rights reserved.</Copyright>
-    <PackageTags>data;standard;vcard;contact;file</PackageTags>
+    <PackageTags>data;standard;vcard;vcf;contact;rfc 6350;rfc 6868;file</PackageTags>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
   </PropertyGroup>
 
@@ -24,6 +26,8 @@ Provides types supporting the reading and writing of vCard files.</Description>
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'netstandard2.1'">
     <PackageReference Include="System.Text.Json" />
   </ItemGroup>
+
+  <Import Project="..\DataStandardizer.File.ContentLine.Shared\DataStandardizer.File.ContentLine.Shared.projitems" Label="Shared" />
 
   <ItemGroup>
     <ProjectReference Include="..\DataStandardizer.Core\DataStandardizer.Core.csproj" />
