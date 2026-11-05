@@ -14,9 +14,11 @@ preview under development: the card object model, jCard and xCard are still to c
 
 | Standard | What it provides |
 | --- | --- |
-| **RFC 6350** | *vCard Format Specification*: the content-line syntax, including groups, line folding and TEXT escaping. |
+| **RFC 6350** | *vCard Format Specification*: the content-line syntax, including groups, line folding and TEXT escaping, and the typed values of §4. |
 | **RFC 6868** | *Parameter Value Encoding in iCalendar and vCard*: caret encoding of double quotes and line breaks in parameter values. |
 | **vCard 2.1** | *The Electronic Business Card*: the lexical syntax, including quoted-printable, `BASE64`, `CHARSET` and parameters with no name. See [Legacy syntax and character sets](legacy-syntax.md). |
+| **RFC 2425, RFC 2426** | *vCard MIME Directory Profile*: the typed values of vCard 3.0. |
+| **RFC 9554** | *vCard Format Extensions for JSContact*: the added components of N and ADR. |
 
 ## Standards compliance
 
