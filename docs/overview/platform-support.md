@@ -126,8 +126,11 @@ jCard (the JSON form of vCard, RFC 7095): `JcardReader` and `JcardWriter` use
 System.Text.Json, so they are not available on its `netstandard1.1` build, and the
 `netstandard2.0` and `netstandard2.1` builds get System.Text.Json from its NuGet
 package. The jCard lexical form of single values, `VcardValueFormat.Json`, needs no
-JSON library, so the value types support it on every target. That build also has no
-async API and no file-path constructors, as for **DataStandardizer.File.iCal**.
+JSON library, so the value types support it on every target. xCard (the XML form of
+vCard, RFC 6351) uses the XML reader and writer that every target has, so
+`XcardReader` and `XcardWriter` are on the `netstandard1.1` build too. That build
+also has no async API and no file-path constructors, as for
+**DataStandardizer.File.iCal**.
 
 The `netstandard1.1` build of **DataStandardizer.File.InternetMessage** is limited
 in two of the same ways: it has no async API, such as `ImfReader.ReadMessageAsync`

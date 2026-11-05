@@ -11,38 +11,41 @@ namespace DataStandardizer.File.vCard
         /// Checks that a value format is one that can be parsed and formatted.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not a <see cref="VcardValueFormat"/> member.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is a form that isn't implemented yet.</exception>
         internal static void CheckFormat(VcardValueFormat format)
         {
             switch (format)
             {
                 case VcardValueFormat.Text:
                 case VcardValueFormat.Json:
-                    return;
                 case VcardValueFormat.Xml:
-                    throw new NotSupportedException("The xCard form of a vCard value is not implemented yet.");
+                    return;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(format), format, "The value format is not recognised.");
             }
         }
 
         /// <summary>
-        /// Checks that a value format and a version can be used together.  jCard (RFC 7095) represents vCard 4.0 (RFC 6350) alone, so the JSON form has no other version.
+        /// Checks that a value format and a version can be used together.  jCard (RFC 7095) and xCard (RFC 6351) represent vCard 4.0 (RFC 6350) alone, so the JSON and XML forms
+        /// have no other version.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> or <paramref name="version"/> is not a member of its type.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is a form that isn't implemented yet.</exception>
-        /// <exception cref="ArgumentException"><paramref name="format"/> is <see cref="VcardValueFormat.Json"/> and <paramref name="version"/> isn't vCard 4.0.</exception>
+        /// <exception cref="ArgumentException"><paramref name="format"/> is <see cref="VcardValueFormat.Json"/> or <see cref="VcardValueFormat.Xml"/>, and <paramref name="version"/>
+        /// isn't vCard 4.0.</exception>
         internal static void CheckFormat(VcardValueFormat format, VcardVersion version)
         {
             CheckFormat(format);
             CheckVersion(version);
             if (format == VcardValueFormat.Json && version != VcardVersion.V4_0)
                 throw new ArgumentException("jCard (RFC 7095) represents vCard 4.0 alone, so a value in the JSON form is a value of vCard 4.0.", nameof(version));
+
+            // ref. RFC 6351 §5.1: the namespace "includes the version number", that of vCard 4.0.
+            if (format == VcardValueFormat.Xml && version != VcardVersion.V4_0)
+                throw new ArgumentException("xCard (RFC 6351) represents vCard 4.0 alone, so a value in the XML form is a value of vCard 4.0.", nameof(version));
         }
 
         /// <summary>
         /// Checks that a value format is one that a structured value can be parsed from and formatted in.  In jCard a structured value is a JSON array with an element for each
-        /// component (RFC 7095 §3.3.1.3), not a single string, so it has no form of its own there.
+        /// component (RFC 7095 §3.3.1.3), and in xCard an XML element for each (RFC 6351 §5), not a single string, so it has no form of its own there.
         /// </summary>
         /// <param name="format">The format.</param>
         /// <param name="valueName">The name of the value, such as <c>An N value</c>, for the message.</param>
@@ -54,14 +57,20 @@ namespace DataStandardizer.File.vCard
             if (format == VcardValueFormat.Json)
                 throw new NotSupportedException(valueName + " has no single lexical form in jCard (RFC 7095 §3.3.1.3), where a structured value is a JSON array with an element for " +
                                                 "each component.  JcardReader and JcardWriter read and write that array.");
+
+            // ref. RFC 6351 §5: "Properties having structured values (e.g., the "N" property) are expressed by XML element trees."
+            if (format == VcardValueFormat.Xml)
+                throw new NotSupportedException(valueName + " has no single lexical form in xCard (RFC 6351 §5), where a structured value is a tree of XML elements, one for each " +
+                                                "component.  XcardReader and XcardWriter read and write those elements.");
         }
 
         /// <summary>
-        /// Gets the version that a value formatted by a .NET format string is written in: vCard 4.0 for the JSON form, which has no other, and otherwise the value's own default.
+        /// Gets the version that a value formatted by a .NET format string is written in: vCard 4.0 for the JSON and XML forms, which have no other, and otherwise the value's own
+        /// default.
         /// </summary>
         internal static VcardVersion GetFormattingVersion(VcardValueFormat format, VcardVersion defaultVersion)
         {
-            return format == VcardValueFormat.Json ? VcardVersion.V4_0 : defaultVersion;
+            return format == VcardValueFormat.Text ? defaultVersion : VcardVersion.V4_0;
         }
 
         /// <summary>
@@ -82,11 +91,87 @@ namespace DataStandardizer.File.vCard
             isNegative = false;
             integerDigits = string.Empty;
             fractionDigits = string.Empty;
-            if (!IsJsonNumber(value)) return false;
+            return IsJsonNumber(value) && TryExpandNumber(value, out isNegative, out integerDigits, out fractionDigits);
+        }
 
+        /// <summary>
+        /// Rewrites the numeral of an <c>xsd:float</c> (XML Schema Part 2 §3.2.4.1) with no exponent, moving its decimal point in the text so that every digit is kept.
+        /// </summary>
+        /// <param name="value">The numeral, with no white space around it.</param>
+        /// <param name="isNegative"><c>true</c> if it has a minus sign.</param>
+        /// <param name="integerDigits">The digits before the decimal point, with no leading zeros; empty for a number below 1.</param>
+        /// <param name="fractionDigits">The digits after the decimal point, as written; empty if there are none.</param>
+        /// <returns><c>false</c> if the text isn't such a numeral, which <c>INF</c>, <c>-INF</c> and <c>NaN</c> are not, or its exponent would move the point more than
+        /// <see cref="MaxJsonExponentShift"/> places.</returns>
+        internal static bool TryExpandXmlFloat(ReadOnlySpan<char> value, out bool isNegative, out string integerDigits, out string fractionDigits)
+        {
+            isNegative = false;
+            integerDigits = string.Empty;
+            fractionDigits = string.Empty;
+            return IsXmlFloatNumeral(value) && TryExpandNumber(value, out isNegative, out integerDigits, out fractionDigits);
+        }
+
+        /// <summary>
+        /// Gets whether text is a numeral of <c>xsd:float</c> (XML Schema Part 2 §3.2.4.1), with no white space around it: an optional sign, a decimal numeral that has digits on
+        /// at least one side of its point, and an optional exponent.  <c>INF</c>, <c>-INF</c> and <c>NaN</c> are not numerals.
+        /// </summary>
+        internal static bool IsXmlFloatNumeral(ReadOnlySpan<char> value)
+        {
+            var index = 0;
+            if (index < value.Length && (value[index] == '+' || value[index] == '-'))
+            {
+                index++;
+            }
+
+            var digitCount = 0;
+            while (index < value.Length && IsDigit(value[index]))
+            {
+                index++;
+                digitCount++;
+            }
+
+            if (index < value.Length && value[index] == '.')
+            {
+                index++;
+                while (index < value.Length && IsDigit(value[index]))
+                {
+                    index++;
+                    digitCount++;
+                }
+            }
+
+            if (digitCount == 0) return false;
+
+            if (index < value.Length && (value[index] == 'e' || value[index] == 'E'))
+            {
+                index++;
+                if (index < value.Length && (value[index] == '+' || value[index] == '-'))
+                {
+                    index++;
+                }
+
+                var exponentStart = index;
+                while (index < value.Length && IsDigit(value[index]))
+                {
+                    index++;
+                }
+
+                if (index == exponentStart) return false;
+            }
+
+            return index == value.Length;
+        }
+
+        /// <summary>
+        /// Rewrites a number whose grammar the caller has checked: an optional sign, digits with an optional point, and an optional exponent.
+        /// </summary>
+        private static bool TryExpandNumber(ReadOnlySpan<char> value, out bool isNegative, out string integerDigits, out string fractionDigits)
+        {
+            integerDigits = string.Empty;
+            fractionDigits = string.Empty;
             var index = 0;
             isNegative = value[0] == '-';
-            if (isNegative)
+            if (isNegative || value[0] == '+')
             {
                 index++;
             }
@@ -113,7 +198,7 @@ namespace DataStandardizer.File.vCard
             var shift = 0;
             if (index < value.Length)
             {
-                // The exponent: "e" or "E", an optional sign and its digits, which IsJsonNumber has checked.
+                // The exponent: "e" or "E", an optional sign and its digits, which the caller has checked.
                 index++;
                 var isExponentNegative = value[index] == '-';
                 if (value[index] == '-' || value[index] == '+')
@@ -202,6 +287,62 @@ namespace DataStandardizer.File.vCard
             }
 
             return index == value.Length;
+        }
+
+        /// <summary>
+        /// Gets whether a character is XML white space (XML 1.0 §2.3): a space, tab, carriage return or line feed.
+        /// </summary>
+        internal static bool IsXmlWhitespace(char character)
+        {
+            return character == ' ' || character == '\t' || character == '\r' || character == '\n';
+        }
+
+        /// <summary>
+        /// Removes leading and trailing XML white space, as XML Schema does for the types whose white space is collapsed, such as <c>xsd:integer</c>.
+        /// </summary>
+        internal static ReadOnlySpan<char> TrimXmlWhitespace(ReadOnlySpan<char> value)
+        {
+            var start = 0;
+            while (start < value.Length && IsXmlWhitespace(value[start]))
+            {
+                start++;
+            }
+
+            var end = value.Length;
+            while (end > start && IsXmlWhitespace(value[end - 1]))
+            {
+                end--;
+            }
+
+            return value.Slice(start, end - start);
+        }
+
+        /// <summary>
+        /// Gets whether text holds only characters an XML 1.0 document can hold (XML 1.0 §2.2): tab, line feed, carriage return, and the characters from U+0020 up, other than
+        /// U+FFFE, U+FFFF and unpaired surrogates.
+        /// </summary>
+        internal static bool IsXmlText(ReadOnlySpan<char> value)
+        {
+            for (var index = 0; index < value.Length; index++)
+            {
+                var character = value[index];
+                if (character < ' ')
+                {
+                    if (character != '\t' && character != '\n' && character != '\r') return false;
+                }
+                else if (char.IsHighSurrogate(character))
+                {
+                    if (index + 1 == value.Length || !char.IsLowSurrogate(value[index + 1])) return false;
+
+                    index++;
+                }
+                else if (char.IsLowSurrogate(character) || character == '\uFFFE' || character == '\uFFFF')
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>

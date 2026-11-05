@@ -51,13 +51,14 @@ namespace DataStandardizer.File.vCard
             /// The 1-based number of the logical (unfolded) content line, as a <see cref="long"/>.  Not present when the data could not be decoded,
             /// since decoding works on whole blocks, ahead of the lines that have been returned.  For a value that
             /// <see cref="VcardContentLine.GetTextValue"/> cannot read, it is <see cref="VcardContentLine.LineNumber"/>, which is 0 for a line not
-            /// read from data.  For data that <c>JcardReader</c> finds is not valid JSON, it is the 1-based number of the line of the JSON document.
+            /// read from data.  For data that <c>JcardReader</c> finds is not valid JSON, it is the 1-based number of the line of the JSON document, and for a problem that
+            /// <see cref="XcardReader"/> finds, the 1-based line of the XML document.
             /// </summary>
             public const string LineNumber = "LineNumber";
 
             /// <summary>
             /// The 1-based position in bytes on the line of the JSON document at which the problem was found, as a <see cref="long"/>.  Present only for data that <c>JcardReader</c>
-            /// finds is not valid JSON.
+            /// finds is not valid JSON, and for a problem that <see cref="XcardReader"/> finds, where it is the 1-based position on the line of the XML document.
             /// </summary>
             public const string LinePosition = "LinePosition";
 
