@@ -16,7 +16,7 @@ A vCard: an open list of properties, with typed accessors that don't depend on t
 **Syntax**
 
 ```csharp
-public sealed class VcardCard : IVcard40Card
+public sealed partial class VcardCard : IVcard40Card, IVcard30Card
 ```
 
 ## Constructors

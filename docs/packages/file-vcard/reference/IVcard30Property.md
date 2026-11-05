@@ -25,7 +25,7 @@ public interface IVcard30Property<out TValue>
 | --- | --- | --- |
 | `Name` | `string` | The name in vCard 3.0. |
 | `Value` | `TValue` | The value. |
-| `IsPreferred` | `bool` | Whether its `TYPE` has `pref` in vCard 3.0, which the model holds as the lowest `PREF` among the instances of the property. |
+| `IsPreferred` | `bool` | Whether its `TYPE` has `pref` in vCard 3.0, which the model holds as the lowest `PREF` among the instances of the property. It is `false` on a type that can't say so in vCard 3.0, such as `URL` or `PHOTO`. |
 | `Types` | `IReadOnlyList<string>` | The `TYPE` values as written, other than `pref`. |
 | `Group` | `string?` | The group, without its `.`. |
 | `Language` | `string?` | The `LANGUAGE` as written. RFC 2426 §4 cites RFC 1766, so it isn't always a tag that `Bcp47LanguageTag` holds. |

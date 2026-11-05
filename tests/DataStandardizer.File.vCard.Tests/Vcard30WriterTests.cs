@@ -186,85 +186,88 @@ namespace DataStandardizer.File.vCard.Tests
             testResult.Validate().Should().BeEmpty();
         }
 
-        public static TheoryData<string, string> LossyLineData()
+        public static TheoryData<string, string, string> LossyLineData()
         {
-            return new TheoryData<string, string>
+            return new TheoryData<string, string, string>
             {
                 // ref. #309: the properties 3.0 can't hold.
-                { "KIND:group", VcardPropertyNames.Kind },
-                { "KIND:application", VcardPropertyNames.Kind },
-                { "KIND:device", VcardPropertyNames.Kind },
-                { "GENDER:M", VcardPropertyNames.Gender },
-                { "ANNIVERSARY:19960415", VcardPropertyNames.Anniversary },
-                { "MEMBER:urn:uuid:f81d4fae-7dec-11d0-a765-00a0c91e6bf6", VcardPropertyNames.Member },
-                { "RELATED;TYPE=friend:http://example.com", VcardPropertyNames.Related },
-                { "CLIENTPIDMAP:1;urn:uuid:f81d4fae-7dec-11d0-a765-00a0c91e6bf6", VcardPropertyNames.ClientPidMap },
-                { "LANG:fr", VcardPropertyNames.Language },
-                { "XML:<a xmlns=\"urn:x\"/>", VcardPropertyNames.Xml },
+                { "KIND:group", VcardPropertyNames.Kind, "KIND" },
+                { "KIND:application", VcardPropertyNames.Kind, "KIND" },
+                { "KIND:device", VcardPropertyNames.Kind, "KIND" },
+                { "GENDER:M", VcardPropertyNames.Gender, "GENDER" },
+                { "ANNIVERSARY:19960415", VcardPropertyNames.Anniversary, "ANNIVERSARY" },
+                { "MEMBER:urn:uuid:f81d4fae-7dec-11d0-a765-00a0c91e6bf6", VcardPropertyNames.Member, "MEMBER" },
+                { "RELATED;TYPE=friend:http://example.com", VcardPropertyNames.Related, "RELATED" },
+                { "CLIENTPIDMAP:1;urn:uuid:f81d4fae-7dec-11d0-a765-00a0c91e6bf6", VcardPropertyNames.ClientPidMap, "CLIENTPIDMAP" },
+                { "LANG:fr", VcardPropertyNames.Language, "LANG" },
+                { "XML:<a xmlns=\"urn:x\"/>", VcardPropertyNames.Xml, "XML" },
 
                 // ref. RFC 6474, RFC 6715 and RFC 8605.
-                { "BIRTHPLACE:Town", VcardPropertyNames.BirthPlace },
-                { "DEATHPLACE:Town", VcardPropertyNames.DeathPlace },
-                { "DEATHDATE:19960415", VcardPropertyNames.DeathDate },
-                { "EXPERTISE:chemistry", VcardPropertyNames.Expertise },
-                { "HOBBY:reading", VcardPropertyNames.Hobby },
-                { "INTEREST:rock", VcardPropertyNames.Interest },
-                { "ORG-DIRECTORY:http://example.com", VcardPropertyNames.OrganizationDirectory },
-                { "CONTACT-URI:mailto:a@example.com", VcardPropertyNames.ContactUri },
+                { "BIRTHPLACE:Town", VcardPropertyNames.BirthPlace, "BIRTHPLACE" },
+                { "DEATHPLACE:Town", VcardPropertyNames.DeathPlace, "DEATHPLACE" },
+                { "DEATHDATE:19960415", VcardPropertyNames.DeathDate, "DEATHDATE" },
+                { "EXPERTISE:chemistry", VcardPropertyNames.Expertise, "EXPERTISE" },
+                { "HOBBY:reading", VcardPropertyNames.Hobby, "HOBBY" },
+                { "INTEREST:rock", VcardPropertyNames.Interest, "INTEREST" },
+                { "ORG-DIRECTORY:http://example.com", VcardPropertyNames.OrganizationDirectory, "ORG-DIRECTORY" },
+                { "CONTACT-URI:mailto:a@example.com", VcardPropertyNames.ContactUri, "CONTACT-URI" },
 
                 // ref. RFC 9554.
-                { "CREATED:20220705T093412Z", VcardPropertyNames.Created },
-                { "GRAMGENDER:feminine", VcardPropertyNames.GrammaticalGender },
-                { "LANGUAGE:de-AT", VcardPropertyNames.DefaultLanguage },
-                { "PRONOUNS:they/them", VcardPropertyNames.Pronouns },
-                { "SOCIALPROFILE:https://example.com/ietf", VcardPropertyNames.SocialProfile },
+                { "CREATED:20220705T093412Z", VcardPropertyNames.Created, "CREATED" },
+                { "GRAMGENDER:feminine", VcardPropertyNames.GrammaticalGender, "GRAMGENDER" },
+                { "LANGUAGE:de-AT", VcardPropertyNames.DefaultLanguage, "LANGUAGE" },
+                { "PRONOUNS:they/them", VcardPropertyNames.Pronouns, "PRONOUNS" },
+                { "SOCIALPROFILE:https://example.com/ietf", VcardPropertyNames.SocialProfile, "SOCIALPROFILE" },
 
                 // ref. RFC 6350: the parameters and values that RFC 2426 has none of.
-                { "NOTE;PID=1:a", VcardPropertyNames.Note },
-                { "NOTE;ALTID=1:a", VcardPropertyNames.Note },
-                { "BDAY;CALSCALE=gregorian:19960415", VcardPropertyNames.Birthday },
-                { "ADR;GEO=\"geo:1,2\":;;;;;;", VcardPropertyNames.Address },
-                { "ADR;TZ=a:;;;;;;", VcardPropertyNames.Address },
-                { "URL;PREF=1:http://example.com", VcardPropertyNames.Url },
-                { "NOTE;TYPE=work:a", VcardPropertyNames.Note },
-                { "PHOTO;TYPE=work:http://example.com", VcardPropertyNames.Photo },
-                { "NOTE;LANGUAGE=es-419:a", VcardPropertyNames.Note },
-                { "BDAY:--0415", VcardPropertyNames.Birthday },
-                { "BDAY;VALUE=text:circa 1800", VcardPropertyNames.Birthday },
-                { "TZ;VALUE=uri:http://example.com", VcardPropertyNames.TimeZone },
-                { "GEO:geo:1\\,2;u=35", VcardPropertyNames.Geo },
-                { "GEO:http://example.com", VcardPropertyNames.Geo },
-                { "TEL;VALUE=uri:sip:a@example.com", VcardPropertyNames.Telephone },
-                { "TEL;VALUE=uri:tel:+1-555;ext=5", VcardPropertyNames.Telephone },
-                { "KEY:http://example.com/key", VcardPropertyNames.Key },
-                { "ADR:a,b;;;;;;", VcardPropertyNames.Address },
-                { "NOTE;X-A=\"a^'b\":a", VcardPropertyNames.Note },
+                { "NOTE;PID=1:a", VcardPropertyNames.Note, "PID" },
+                { "NOTE;ALTID=1:a", VcardPropertyNames.Note, "ALTID" },
+                { "BDAY;CALSCALE=gregorian:19960415", VcardPropertyNames.Birthday, "CALSCALE" },
+                { "ADR;GEO=\"geo:1,2\":;;;;;;", VcardPropertyNames.Address, "GEO" },
+                { "ADR;TZ=a:;;;;;;", VcardPropertyNames.Address, "TZ=" },
+                { "URL;PREF=1:http://example.com", VcardPropertyNames.Url, "URL;" },
+                { "NOTE;TYPE=work:a", VcardPropertyNames.Note, "work" },
+                { "PHOTO;TYPE=work:http://example.com", VcardPropertyNames.Photo, "work" },
+                { "NOTE;LANGUAGE=es-419:a", VcardPropertyNames.Note, "es-419" },
+                { "BDAY:--0415", VcardPropertyNames.Birthday, "BDAY" },
+                { "BDAY;VALUE=text:circa 1800", VcardPropertyNames.Birthday, "BDAY" },
+                { "TZ;VALUE=uri:http://example.com", VcardPropertyNames.TimeZone, "TZ" },
+                { "GEO:geo:1\\,2;u=35", VcardPropertyNames.Geo, "GEO" },
+                { "GEO:http://example.com", VcardPropertyNames.Geo, "GEO" },
+                { "TEL;VALUE=uri:sip:a@example.com", VcardPropertyNames.Telephone, "sip:" },
+                { "TEL;VALUE=uri:tel:+1-555;ext=5", VcardPropertyNames.Telephone, "ext=5" },
+                { "KEY:http://example.com/key", VcardPropertyNames.Key, "KEY" },
+                { "ADR:a,b;;;;;;", VcardPropertyNames.Address, "a,b" },
+                { "NOTE;X-A=\"a^'b\":a", VcardPropertyNames.Note, "a^" },
 
                 // ref. RFC 6715 §3 and RFC 8605 §3.1.
-                { "EXPERTISE;LEVEL=expert:a", VcardPropertyNames.Expertise },
-                { "NOTE;LEVEL=expert:a", VcardPropertyNames.Note },
-                { "NOTE;INDEX=1:a", VcardPropertyNames.Note },
-                { "ADR;CC=US:;;;;;;", VcardPropertyNames.Address },
+                { "EXPERTISE;LEVEL=expert:a", VcardPropertyNames.Expertise, "EXPERTISE" },
+                { "NOTE;LEVEL=expert:a", VcardPropertyNames.Note, "LEVEL" },
+                { "NOTE;INDEX=1:a", VcardPropertyNames.Note, "INDEX" },
+                { "ADR;CC=US:;;;;;;", VcardPropertyNames.Address, "CC=" },
 
                 // ref. RFC 9554 §4 and §5, and its components of §2.
-                { "NOTE;AUTHOR=\"mailto:a@example.com\":a", VcardPropertyNames.Note },
-                { "NOTE;AUTHOR-NAME=a:a", VcardPropertyNames.Note },
-                { "NOTE;CREATED=20220705T093412Z:a", VcardPropertyNames.Note },
-                { "NOTE;DERIVED=true:a", VcardPropertyNames.Note },
-                { "NOTE;PROP-ID=a:a", VcardPropertyNames.Note },
-                { "NOTE;SCRIPT=Latn:a", VcardPropertyNames.Note },
-                { "IMPP;SERVICE-TYPE=a:im:a@example.com", VcardPropertyNames.InstantMessaging },
-                { "IMPP;USERNAME=a:im:a@example.com", VcardPropertyNames.InstantMessaging },
-                { "ADR;TYPE=billing:;;;;;;", VcardPropertyNames.Address },
-                { "ADR;TYPE=delivery:;;;;;;", VcardPropertyNames.Address },
-                { "ADR:;;;;;;;Room 1;;;;;;;;;;", VcardPropertyNames.Address },
-                { "ADR;ALTID=1;PHONETIC=ipa:;;a;;;;", VcardPropertyNames.Address }
+                { "NOTE;AUTHOR=\"mailto:a@example.com\":a", VcardPropertyNames.Note, "AUTHOR" },
+                { "NOTE;AUTHOR-NAME=a:a", VcardPropertyNames.Note, "AUTHOR-NAME" },
+                { "NOTE;CREATED=20220705T093412Z:a", VcardPropertyNames.Note, "CREATED" },
+                { "NOTE;DERIVED=true:a", VcardPropertyNames.Note, "DERIVED" },
+                { "NOTE;PROP-ID=a:a", VcardPropertyNames.Note, "PROP-ID" },
+                { "NOTE;SCRIPT=Latn:a", VcardPropertyNames.Note, "SCRIPT" },
+                { "IMPP;SERVICE-TYPE=a:im:a@example.com", VcardPropertyNames.InstantMessaging, "SERVICE-TYPE" },
+                { "IMPP;USERNAME=a:im:a@example.com", VcardPropertyNames.InstantMessaging, "USERNAME" },
+                { "ADR;TYPE=billing:;;;;;;", VcardPropertyNames.Address, "billing" },
+                { "ADR;TYPE=delivery:;;;;;;", VcardPropertyNames.Address, "delivery" },
+                { "ADR:;;;;;;;Room 1;;;;;;;;;;", VcardPropertyNames.Address, ";;;;;;;Room 1" },
+                { "ADR;ALTID=1;PHONETIC=ipa:;;a;;;;", VcardPropertyNames.Address, "PHONETIC" },
+
+                // ref. RFC 2426 §4: agent-refer-param is the only parameter of AGENT.
+                { "RELATED;TYPE=agent;PREF=1:http://example.com", VcardPropertyNames.Related, ";PREF" }
             };
         }
 
         [Theory]
         [MemberData(nameof(LossyLineData))]
-        public void Analyze_DataVersion30CanNotHold_ReportsItAsLossy(string line, string expectedProperty)
+        public void Analyze_DataVersion30CanNotHold_ReportsItAsLossy(string line, string expectedProperty, string removedText)
         {
             // arrange
             var card = VcardCardTestData.Read(VcardCardTestData.Card(MinimalVersion40Name, line), AcceptEverything);
@@ -275,12 +278,12 @@ namespace DataStandardizer.File.vCard.Tests
             // assert
             testResult.Should().NotBeEmpty();
             testResult.Should().OnlyContain(diagnostic => diagnostic.Kind == VcardDiagnosticKind.Lossy);
-            testResult.Should().Contain(diagnostic => diagnostic.PropertyName == expectedProperty);
+            testResult.Should().Contain(diagnostic => diagnostic.PropertyName == expectedProperty, removedText);
         }
 
         [Theory]
         [MemberData(nameof(LossyLineData))]
-        public void WriteCard_DataVersion30CanNotHold_ThrowsAndWritesNothing(string line, string expectedProperty)
+        public void WriteCard_DataVersion30CanNotHold_ThrowsAndWritesNothing(string line, string expectedProperty, string removedText)
         {
             // arrange
             var card = VcardCardTestData.Read(VcardCardTestData.Card(MinimalVersion40Name, line), AcceptEverything);
@@ -291,14 +294,14 @@ namespace DataStandardizer.File.vCard.Tests
                 Action testAction = () => writer.WriteCard(card);
 
                 // assert
-                testAction.Should().Throw<VcardFileException>(expectedProperty).Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.Lossy);
+                testAction.Should().Throw<VcardFileException>(expectedProperty + removedText).Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.Lossy);
                 output.ToString().Should().BeEmpty();
             }
         }
 
         [Theory]
         [MemberData(nameof(LossyLineData))]
-        public void WriteCard_DataVersion30CanNotHoldUnderAllowLossyVersionConversion_WritesAConformingCard(string line, string expectedProperty)
+        public void WriteCard_DataVersion30CanNotHoldUnderAllowLossyVersionConversion_WritesAConformingCardWithoutIt(string line, string expectedProperty, string removedText)
         {
             // arrange
             var card = VcardCardTestData.Read(VcardCardTestData.Card(MinimalVersion40Name, line), AcceptEverything);
@@ -309,6 +312,7 @@ namespace DataStandardizer.File.vCard.Tests
 
             // assert
             testResult.SourceVersion.Should().Be(VcardVersion.V3_0, expectedProperty);
+            written.Should().NotContain(removedText);
         }
 
         public static TheoryData<string, string> Version40DownConversionData()
@@ -450,6 +454,37 @@ namespace DataStandardizer.File.vCard.Tests
 
             // assert
             output.ToString().Should().NotContain(Vcard30TestData.LargeVersion30PhotoLine);
+            Vcard30TestData.Unfold(output.ToString()).Should().Contain(Vcard30TestData.LargeVersion30PhotoLine);
+        }
+
+        [Fact]
+        public void NestedAgentLine_OneLevel_EscapesACardOnce()
+        {
+            // act
+            var testResult = Vcard30TestData.NestedAgentLine(1);
+
+            // assert
+            testResult.Should().Be("AGENT:BEGIN:VCARD\\nVERSION:3.0\\nFN:a\\nN:a\\;\\;\\;\\;\\nEND:VCARD\\n");
+        }
+
+        [Fact]
+        public void NestedAgentLine_TwoLevels_EscapesTheInnerCardTwice()
+        {
+            // act
+            var testResult = Vcard30TestData.NestedAgentLine(2);
+
+            // assert
+            testResult.Should().Be("AGENT:BEGIN:VCARD\\nVERSION:3.0\\nFN:a\\nN:a\\;\\;\\;\\;\\nAGENT:BEGIN:VCARD\\\\nVERSION:3.0\\\\nFN:a\\\\nN:a\\\\\\;\\\\\\;\\\\\\;\\\\\\;\\\\nEND:VCARD\\\\n\\nEND:VCARD\\n");
+        }
+
+        [Fact]
+        public void Unfold_FoldedLine_GivesItWhole()
+        {
+            // act
+            var testResult = Vcard30TestData.Unfold("ab\r\n cd\r\nef");
+
+            // assert
+            testResult.Should().Be("abcd\r\nef");
         }
 
         public static TheoryData<VcardVersion> UnwritableVersionData()

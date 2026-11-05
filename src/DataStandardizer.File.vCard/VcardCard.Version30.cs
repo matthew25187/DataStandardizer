@@ -50,7 +50,7 @@ namespace DataStandardizer.File.vCard
                     }
 
                     VcardCard card;
-                    result.Add(VcardNestedCards.TryRead(related.Value.Text, VcardVersionMapping.Canonical, 0, out card)
+                    result.Add(VcardNestedCards.TryReadHeld(related.Value.Text, out card)
                         ? new VcardAgent(null, card, null)
                         : new VcardAgent(null, null, related.Value.Text));
                 }
@@ -180,7 +180,7 @@ namespace DataStandardizer.File.vCard
             var mapping = VcardVersionMapping.For(version, nameof(version));
             var diagnostics = new List<VcardDiagnostic>();
             var lines = mapping.FromCanonical(this, new VcardOptions(), diagnostics);
-            mapping.Validate(lines, this, diagnostics);
+            mapping.Validate(lines, this, new VcardOptions(), 0, diagnostics);
             return new ReadOnlyCollection<VcardDiagnostic>(diagnostics);
         }
 
@@ -291,13 +291,25 @@ namespace DataStandardizer.File.vCard
             if (data is null)
                 throw new ArgumentException("Only a key can have text.", nameof(value));
 
-            MimeMediaType mediaType;
-            if (value.TypeToken is null || !VcardVersion30Mapping.TryGetMediaType(value.TypeToken, name, out mediaType))
+            var mediaType = value.TypeToken is null ? MimeMediaType.Parse("application/octet-stream".AsSpan()) : GetMediaTypeOfToken(value.TypeToken, name);
+            try
             {
-                mediaType = MimeMediaType.Parse("application/octet-stream".AsSpan());
+                return new Uri(DataUriText(mediaType, data));
             }
+            catch (FormatException exception)
+            {
+                // ref. #619: Uri on .NET Framework holds no more than 65519 characters.
+                throw new ArgumentException("The data is too long for a Uri on this runtime.  Add a line to VcardCard.Properties instead.", nameof(value), exception);
+            }
+        }
 
-            return new Uri(DataUriText(mediaType, data));
+        private static MimeMediaType GetMediaTypeOfToken(string token, string name)
+        {
+            MimeMediaType mediaType;
+            if (!VcardVersion30Mapping.TryGetMediaType(token, name, out mediaType))
+                throw new ArgumentException("The token \"" + token + "\" can't name a media type.", nameof(token));
+
+            return mediaType;
         }
 
         private static string DataUriText(MimeMediaType mediaType, byte[] data)
@@ -307,10 +319,9 @@ namespace DataStandardizer.File.vCard
 
         private static void PrepareMediaParameters(VcardMediaValue value, VcardPropertyParameters parameters, string name)
         {
-            MimeMediaType mediaType;
-            if (value.Uri != null && value.TypeToken != null && VcardVersion30Mapping.TryGetMediaType(value.TypeToken, name, out mediaType))
+            if (value.Uri != null && value.TypeToken != null)
             {
-                parameters.MediaType = mediaType;
+                parameters.MediaType = GetMediaTypeOfToken(value.TypeToken, name);
             }
         }
 

@@ -32,6 +32,9 @@ namespace DataStandardizer.File.vCard
         /// <summary>
         /// Gets the <c>PHOTO</c> properties (RFC 2426 §3.1.4), each inline data or a URI.
         /// </summary>
+        /// <remarks>
+        /// As with <see cref="VcardCard.Photos"/>, inline data too long for a <see cref="Uri"/> on .NET Framework isn't here on that runtime, and adding it there throws <see cref="ArgumentException"/>.
+        /// </remarks>
         IVcard30PropertyList<VcardMediaValue> Photos { get; }
 
         /// <summary>
@@ -406,7 +409,8 @@ namespace DataStandardizer.File.vCard
         TValue Value { get; }
 
         /// <summary>
-        /// Gets a flag indicating if the property is preferred: its <c>TYPE</c> has <c>pref</c> in vCard 3.0, which the model holds as the lowest <c>PREF</c> among the instances of the property.
+        /// Gets a flag indicating if the property is preferred: its <c>TYPE</c> has <c>pref</c> in vCard 3.0, which the model holds as the lowest <c>PREF</c> among the instances of the property.  It is
+        /// <c>false</c> on a type that can't say so in vCard 3.0, such as <c>URL</c> or <c>PHOTO</c>.
         /// </summary>
         bool IsPreferred { get; }
 
@@ -455,7 +459,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="value">The value.</param>
         /// <returns>The new instance.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="value"/> is <c>null</c>.</exception>
-        /// <exception cref="ArgumentException"><paramref name="value"/> can't be written.</exception>
+        /// <exception cref="ArgumentException"><paramref name="value"/> can't be written, or a media value has a <c>TYPE</c> that can't name a media type.</exception>
         IVcard30Property<TValue> Add(TValue value);
 
         /// <summary>
@@ -465,7 +469,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="parameters">The group and parameters.</param>
         /// <returns>The new instance.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="value"/> or <paramref name="parameters"/> is <c>null</c>.</exception>
-        /// <exception cref="ArgumentException"><paramref name="value"/> can't be written.</exception>
+        /// <exception cref="ArgumentException"><paramref name="value"/> can't be written, or a media value has a <c>TYPE</c> that can't name a media type.</exception>
         IVcard30Property<TValue> Add(TValue value, Vcard30PropertyParameters parameters);
 
         /// <summary>

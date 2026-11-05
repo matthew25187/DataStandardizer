@@ -23,6 +23,23 @@ namespace DataStandardizer.File.vCard.IntegrationTests
         };
 
         [Fact]
+        public void Constructor_FilePathAndVersionThatCanNotBeWritten_LeavesTheFileAsItWas()
+        {
+            // arrange
+            using (var file = TemporaryFile.Create(MinimalCard))
+            {
+                var options = new VcardOptions { WriteVersion = VcardVersion.V2_1 };
+
+                // act
+                Action testAction = () => new VcardWriter(file.Path, options);
+
+                // assert
+                testAction.Should().Throw<ArgumentException>();
+                System.IO.File.ReadAllBytes(file.Path).Should().Equal(MinimalCard);
+            }
+        }
+
+        [Fact]
         public void ReadCard_File_ReadsTheCard()
         {
             // arrange

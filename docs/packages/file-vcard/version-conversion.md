@@ -42,7 +42,7 @@ A stream can hold cards of different versions, and `SourceVersion` says which ea
 | `N` and `ADR` with fewer components | All their components |
 | `MAILER`, `CLASS`, `NAME`, `PROFILE`, `CAPURI` | Kept as they are, with `Mailer`, `Classification`, `SourceName`, `Profile` and `CalendarAccessUris` |
 
-**Labels.** A `LABEL` goes with an `ADR` that has the same group. Failing that, it goes with one with no group and the same `TYPE` values, where having none means RFC 2426's default of `intl,postal,parcel,work`. A label with a parameter the address doesn't have stays a property of its own, and so does one that matches no address.
+**Labels.** A `LABEL` goes with an `ADR` that has the same group, if it has no `TYPE` or the same `TYPE` values. Failing that, it goes with one with no group and the same `TYPE` values, where having none means RFC 2426's default of `intl,postal,parcel,work`. A label with a parameter the address doesn't have stays a property of its own, and so does one that matches no address.
 
 **Dates in `REV`.** A `REV` of vCard 4.0 has a time, so RFC 2426's `REV:1997-11-15` becomes the first moment of that day in UTC, and is written back as `1997-11-15T00:00:00Z`.
 
@@ -57,7 +57,7 @@ foreach (var agent in card.Agents)
 }
 ```
 
-RFC 2426 §4 says the value "MUST be a valid vCard object", but its own example has no `VERSION` or `N`, and has a parameter with no name. So a nested card is read with those accepted, and one with no `VERSION` is taken to be of the version of the card around it.
+RFC 2426 §4 says the value "MUST be a valid vCard object", so a nested card is held to the same rules as the card around it, under the same options, when it is read and when it is written. The RFC's own example in §3.5.4 has no `VERSION` or `N`, and has a parameter with no name, so reading that form takes `AllowMissingRequiredProperties` and `AcceptLegacySyntax`. With them, a nested card with no `VERSION` is taken to be vCard 3.0. Writing a nested card with no `N` or `FN` as vCard 3.0 takes `AllowMissingRequiredProperties`. A `\n` is a line break in the nested card whatever the options, since RFC 2426 §5 says it stands for a CRLF. Nesting is limited to 8 levels.
 
 **Language tags.** RFC 2426 cites RFC 1766, so a tag is one to eight letters per part. That holds `i-klingon` and not `es-419`, whose digits came with RFC 4646. The tag is kept as it was written. `Language` on a property gives it if `Bcp47LanguageTag` can hold it too, as it can a grandfathered tag such as `i-klingon`.
 

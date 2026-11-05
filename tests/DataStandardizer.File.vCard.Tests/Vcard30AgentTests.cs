@@ -10,14 +10,14 @@ namespace DataStandardizer.File.vCard.Tests
     /// </summary>
     public class Vcard30AgentTests
     {
-        // ref. RFC 2426 §3.5.4: the second example.
+        // ref. RFC 2426 §3.5.4: the second example, whose card has no VERSION or N and a parameter with no name, which §4 and §5 don't allow.
         private const string Rfc2426Agent = "AGENT:BEGIN:VCARD\\nFN:Susan Thomas\\nTEL:+1-919-555-1234\\nEMAIL\\;INTERNET:sthomas@host.com\\nEND:VCARD\\n";
 
-        // The same card in canonical form: its text, escaped once.
-        private const string CanonicalAgent = "BEGIN:VCARD\\nVERSION:4.0\\nFN:Susan Thomas\\nTEL:+1-919-555-1234\\nEMAIL;TYPE=INTERNET:sthomas@host.com\\nEND:VCARD\\n";
+        // The same agent, with a card that follows RFC 2426 §4 and §5.  It is also what a writer of vCard 3.0 gives for it.
+        private const string ValidAgent = "AGENT:BEGIN:VCARD\\nVERSION:3.0\\nFN:Susan Thomas\\nN:Thomas\\;Susan\\;\\;\\;\\nTEL:+1-919-555-1234\\nEMAIL\\;TYPE=INTERNET:sthomas@host.com\\nEND:VCARD\\n";
 
-        // The same card written back as vCard 3.0.  The RFC's example has no VERSION, and this has it.
-        private const string WrittenAgent = "AGENT:BEGIN:VCARD\\nVERSION:3.0\\nFN:Susan Thomas\\nTEL:+1-919-555-1234\\nEMAIL\\;TYPE=INTERNET:sthomas@host.com\\nEND:VCARD\\n";
+        // The same card in canonical form: its text, escaped once.
+        private const string CanonicalAgent = "BEGIN:VCARD\\nVERSION:4.0\\nFN:Susan Thomas\\nN:Thomas;Susan;;;\\nTEL:+1-919-555-1234\\nEMAIL;TYPE=INTERNET:sthomas@host.com\\nEND:VCARD\\n";
 
         private const string CanonicalAgentLine = "RELATED;VALUE=text;TYPE=agent:" + CanonicalAgent;
 
@@ -25,11 +25,18 @@ namespace DataStandardizer.File.vCard.Tests
 
         private const string AgentUriLine = "AGENT;VALUE=uri:" + AgentUri;
 
+        // An AGENT whose card has a comma that isn't escaped in a TEXT value, once its own escaping is removed.
+        private const string AgentWithInvalidValue = "AGENT:BEGIN:VCARD\\nVERSION:3.0\\nFN:a\\nN:a\\;\\;\\;\\;\\nNOTE:a\\,b\\nEND:VCARD\\n";
+
+        private const int MaxNestingLevels = 8;
+
+        private static readonly VcardOptions AcceptRfc2426Example = new VcardOptions { AllowMissingRequiredProperties = true, AcceptLegacySyntax = true };
+
         [Fact]
         public void ReadCard_EscapedNestedCard_ReadsIntoANestedCard()
         {
             // arrange
-            var text = Vcard30TestData.Card(Rfc2426Agent);
+            var text = Vcard30TestData.Card(ValidAgent);
 
             // act
             var testResult = VcardCardTestData.Read(text).Agents.Single().Card;
@@ -44,7 +51,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void ReadCard_EscapedNestedCard_HoldsItAsRelatedWithTypeAgent()
         {
             // arrange
-            var text = Vcard30TestData.Card(Rfc2426Agent);
+            var text = Vcard30TestData.Card(ValidAgent);
 
             // act
             var testResult = VcardCardTestData.Read(text).GetProperties(VcardPropertyNames.Related).Single();
@@ -55,10 +62,64 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Fact]
+        public void ReadCard_Rfc2426ExampleByDefault_ThrowsInvalidValue()
+        {
+            // arrange
+            var text = Vcard30TestData.Card(Rfc2426Agent);
+
+            // act
+            Action testAction = () => VcardCardTestData.Read(text);
+
+            // assert
+            testAction.Should().Throw<VcardFileException>().Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.InvalidValue);
+        }
+
+        [Fact]
+        public void ReadCard_Rfc2426ExampleUnderItsOptions_ReadsIntoANestedCard()
+        {
+            // arrange
+            var text = Vcard30TestData.Card(Rfc2426Agent);
+
+            // act
+            var testResult = VcardCardTestData.Read(text, AcceptRfc2426Example).Agents.Single().Card;
+
+            // assert
+            testResult.FormattedNames.Single().Value.Should().Be("Susan Thomas");
+            testResult.Emails.Single().Types.Should().Equal("INTERNET");
+        }
+
+        [Fact]
+        public void ReadCard_NestedCardWithAnInvalidValueByDefault_ThrowsInvalidValue()
+        {
+            // arrange
+            var text = Vcard30TestData.Card(AgentWithInvalidValue);
+
+            // act
+            Action testAction = () => VcardCardTestData.Read(text);
+
+            // assert
+            testAction.Should().Throw<VcardFileException>().Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.InvalidValue);
+        }
+
+        [Fact]
+        public void ReadCard_NestedCardWithAnInvalidValueUnderAllowInvalidValues_IsRead()
+        {
+            // arrange
+            var text = Vcard30TestData.Card(AgentWithInvalidValue);
+            var options = new VcardOptions { AllowInvalidValues = true };
+
+            // act
+            var testResult = VcardCardTestData.Read(text, options).Agents;
+
+            // assert
+            testResult.Single().Card.Should().NotBeNull();
+        }
+
+        [Fact]
         public void WriteCard_NestedCardAsVersion40_WritesRelatedWithTypeAgent()
         {
             // arrange
-            var card = VcardCardTestData.Read(Vcard30TestData.Card(Rfc2426Agent));
+            var card = VcardCardTestData.Read(Vcard30TestData.Card(ValidAgent));
 
             // act
             var testResult = Vcard30TestData.Write(card, VcardVersion.V4_0);
@@ -71,24 +132,49 @@ namespace DataStandardizer.File.vCard.Tests
         public void WriteCard_NestedCardAsVersion30_WritesAgentAgain()
         {
             // arrange
-            var card = VcardCardTestData.Read(Vcard30TestData.Card(Rfc2426Agent));
+            var card = VcardCardTestData.Read(Vcard30TestData.Card(ValidAgent));
 
             // act
             var testResult = Vcard30TestData.Write(card, VcardVersion.V3_0);
 
             // assert
-            testResult.Should().Be(Vcard30TestData.Card(WrittenAgent));
+            testResult.Should().Be(Vcard30TestData.Card(ValidAgent));
+        }
+
+        [Fact]
+        public void WriteCard_NestedCardWithNoNameByDefault_ThrowsMissingRequiredProperty()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(Vcard30TestData.Card(Rfc2426Agent), AcceptRfc2426Example);
+
+            // act
+            Action testAction = () => Vcard30TestData.Write(card, VcardVersion.V3_0);
+
+            // assert
+            testAction.Should().Throw<VcardFileException>().Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.MissingRequiredProperty);
+        }
+
+        [Fact]
+        public void WriteCard_NestedCardWithNoNameUnderAllowMissingRequiredProperties_WritesIt()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(Vcard30TestData.Card(Rfc2426Agent), AcceptRfc2426Example);
+
+            // act
+            var testResult = Vcard30TestData.Write(card, VcardVersion.V3_0, false, true);
+
+            // assert
+            testResult.Should().Be(Vcard30TestData.Card("AGENT:BEGIN:VCARD\\nVERSION:3.0\\nFN:Susan Thomas\\nTEL:+1-919-555-1234\\nEMAIL\\;TYPE=INTERNET:sthomas@host.com\\nEND:VCARD\\n"));
         }
 
         [Fact]
         public void ReadCard_RelatedWithTypeAgentOfVersion40_GivesTheNestedCard()
         {
             // arrange
-            var card = VcardCardTestData.Read(Vcard30TestData.Card(Rfc2426Agent));
-            var version40 = Vcard30TestData.Write(card, VcardVersion.V4_0);
+            var text = VcardCardTestData.Card(CanonicalAgentLine);
 
             // act
-            var testResult = VcardCardTestData.Read(version40).Agents.Single().Card;
+            var testResult = VcardCardTestData.Read(text).Agents.Single().Card;
 
             // assert
             testResult.FormattedNames.Single().Value.Should().Be("Susan Thomas");
@@ -126,35 +212,61 @@ namespace DataStandardizer.File.vCard.Tests
         [Fact]
         public void ReadCard_NestedCardInANestedCard_ReadsEachLevel()
         {
-            // arrange: each level of escaping is on top of the one inside it.
-            var text = Vcard30TestData.Card("AGENT:BEGIN:VCARD\\nFN:Inner\\nAGENT:BEGIN:VCARD\\\\nFN:Innermost\\\\nEND:VCARD\\\\n\\nEND:VCARD\\n");
+            // arrange
+            var text = Vcard30TestData.Card(Vcard30TestData.NestedAgentLine(2));
 
             // act
             var testResult = VcardCardTestData.Read(text).Agents.Single().Card.Agents.Single().Card;
 
             // assert
-            testResult.FormattedNames.Single().Value.Should().Be("Innermost");
+            testResult.FormattedNames.Single().Value.Should().Be("a");
         }
 
         [Fact]
         public void WriteCard_NestedCardInANestedCard_RoundTripsThroughVersion30()
         {
             // arrange
-            var first = VcardCardTestData.Read(Vcard30TestData.Card("AGENT:BEGIN:VCARD\\nFN:Inner\\nAGENT:BEGIN:VCARD\\\\nFN:Innermost\\\\nEND:VCARD\\\\n\\nEND:VCARD\\n"));
-            var written = Vcard30TestData.Write(first, VcardVersion.V3_0);
+            var line = Vcard30TestData.NestedAgentLine(2);
+            var card = VcardCardTestData.Read(Vcard30TestData.Card(line));
 
             // act
-            var testResult = VcardCardTestData.Read(written).Agents.Single().Card.Agents.Single().Card;
+            var testResult = Vcard30TestData.Write(card, VcardVersion.V3_0);
 
             // assert
-            testResult.FormattedNames.Single().Value.Should().Be("Innermost");
+            testResult.Should().Be(Vcard30TestData.Card(line));
+        }
+
+        [Fact]
+        public void ReadCard_NestingAtTheLimit_IsAccepted()
+        {
+            // arrange
+            var text = Vcard30TestData.Card(Vcard30TestData.NestedAgentLine(MaxNestingLevels));
+
+            // act
+            var testResult = VcardCardTestData.Read(text);
+
+            // assert
+            testResult.Agents.Should().ContainSingle();
+        }
+
+        [Fact]
+        public void ReadCard_NestingPastTheLimit_ThrowsInvalidValue()
+        {
+            // arrange
+            var text = Vcard30TestData.Card(Vcard30TestData.NestedAgentLine(MaxNestingLevels + 1));
+
+            // act
+            Action testAction = () => VcardCardTestData.Read(text);
+
+            // assert
+            testAction.Should().Throw<VcardFileException>().Which.Data[VcardFileException.DataItemName.DiagnosticKind].Should().Be(VcardDiagnosticKind.InvalidValue);
         }
 
         [Fact]
         public void ReadCard_TwoCardsInAnAgent_ThrowsInvalidValue()
         {
             // arrange
-            var text = Vcard30TestData.Card("AGENT:BEGIN:VCARD\\nFN:a\\nEND:VCARD\\nBEGIN:VCARD\\nFN:b\\nEND:VCARD\\n");
+            var text = Vcard30TestData.Card("AGENT:BEGIN:VCARD\\nVERSION:3.0\\nFN:a\\nN:a\\;\\;\\;\\;\\nEND:VCARD\\nBEGIN:VCARD\\nVERSION:3.0\\nFN:b\\nN:b\\;\\;\\;\\;\\nEND:VCARD\\n");
 
             // act
             Action testAction = () => VcardCardTestData.Read(text);

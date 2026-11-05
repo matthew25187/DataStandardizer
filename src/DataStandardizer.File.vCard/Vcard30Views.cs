@@ -110,7 +110,7 @@ namespace DataStandardizer.File.vCard
                 throw new ArgumentException("vCard 3.0 can't hold this value.", nameof(value));
             }
 
-            return new Vcard30Property<TValue>(added.Line, added.Name, shown, parameters.IsPreferred);
+            return new Vcard30Property<TValue>(added.Line, added.Name, shown, Vcard30Views.IsPreferred(_card, added.Line));
         }
 
         public void Clear()
@@ -124,7 +124,7 @@ namespace DataStandardizer.File.vCard
                 throw new ArgumentNullException(nameof(property));
 
             var instance = property as Vcard30Property<TValue>;
-            return instance != null && _card.Properties.Remove(instance.Line);
+            return instance != null && string.Equals(instance.Line.Name, _list.PropertyName, StringComparison.OrdinalIgnoreCase) && _card.Properties.Remove(instance.Line);
         }
 
         public IEnumerator<IVcard30Property<TValue>> GetEnumerator()
@@ -184,10 +184,10 @@ namespace DataStandardizer.File.vCard
             var canonical = parameters.ToCanonical();
             var line = new VcardContentLine(canonical.Group, VcardPropertyNames.PostalLabel, canonical.ToContentLineParameters(string.Empty), VcardValue.FormatText(value, VcardValueFormat.Text, VcardVersion.V4_0));
             _card.Properties.Add(line);
-            VcardVersion30Mapping.TryAttachLabel(_card, _card.Properties.Count - 1);
 
-            var instances = GetInstances();
-            return instances[instances.Count - 1];
+            VcardContentLine address;
+            var holder = VcardVersion30Mapping.TryAttachLabel(_card, _card.Properties.Count - 1, out address) ? address : line;
+            return new Vcard30Property<string>(holder, VcardPropertyNames.PostalLabel, value, Vcard30Views.IsPreferred(_card, holder));
         }
 
         public void Clear()
@@ -201,7 +201,7 @@ namespace DataStandardizer.File.vCard
                 throw new ArgumentNullException(nameof(property));
 
             var instance = property as Vcard30Property<string>;
-            if (instance is null) return false;
+            if (instance is null || !string.Equals(instance.Name, VcardPropertyNames.PostalLabel, StringComparison.OrdinalIgnoreCase)) return false;
 
             var index = _card.Properties.IndexOf(instance.Line);
             if (index < 0) return false;
@@ -279,12 +279,13 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Gets whether a line is what vCard 3.0 writes as preferred.
+        /// Gets whether a line is what vCard 3.0 writes as preferred.  A type with no <c>TYPE</c> that can say so, or one whose <c>TYPE</c> says its format, has no preference there.
         /// </summary>
         internal static bool IsPreferred(VcardCard card, VcardContentLine line)
         {
             var preference = VcardPropertyParameterReader.GetPreferenceOrLeast(line);
-            return preference <= VcardPropertyParameterReader.MaxPreference && preference == VcardVersion30Mapping.GetLowestPreference(card.Properties, line.Name);
+            return Vcard30Conformance.AllowsPreference(line.Name) && preference <= VcardPropertyParameterReader.MaxPreference &&
+                   preference == VcardVersion30Mapping.GetLowestPreference(card.Properties, line.Name);
         }
 
         /// <summary>

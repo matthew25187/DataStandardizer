@@ -49,7 +49,7 @@ namespace DataStandardizer.File.vCard
         /// <summary>
         /// Checks the lines of a card.
         /// </summary>
-        internal static void Validate(IList<VcardContentLine> lines, VcardCard card, List<VcardDiagnostic> found)
+        internal static void Validate(IList<VcardContentLine> lines, VcardCard card, VcardOptions options, int depth, List<VcardDiagnostic> found)
         {
             var hasName = false;
             var hasFormattedName = false;
@@ -75,7 +75,7 @@ namespace DataStandardizer.File.vCard
                 if (!Rules.TryGetValue(line.Name, out rule)) continue;
 
                 CheckParameters(line, rule, card, found);
-                CheckValue(line, card, found);
+                CheckValue(line, card, options, depth, found);
             }
 
             // ref. RFC 2426 §5: "The VERSION, N and FN types MUST be specified in a vCard."
@@ -298,12 +298,12 @@ namespace DataStandardizer.File.vCard
             return string.Equals(actual, expected, StringComparison.OrdinalIgnoreCase);
         }
 
-        private static void CheckValue(VcardContentLine line, VcardCard card, List<VcardDiagnostic> found)
+        private static void CheckValue(VcardContentLine line, VcardCard card, VcardOptions options, int depth, List<VcardDiagnostic> found)
         {
             bool isValid;
             try
             {
-                isValid = IsValidValue(line);
+                isValid = IsValidValue(line, options, depth);
             }
             catch (VcardFileException)
             {
@@ -316,7 +316,7 @@ namespace DataStandardizer.File.vCard
             }
         }
 
-        private static bool IsValidValue(VcardContentLine line)
+        private static bool IsValidValue(VcardContentLine line, VcardOptions options, int depth)
         {
             var valueType = GetValueType(line);
             if (IsMediaProperty(line.Name)) return IsValidMedia(line, valueType);
@@ -361,14 +361,14 @@ namespace DataStandardizer.File.vCard
                 case VcardPropertyNames.CalendarAddressUri:
                 case VcardPropertyNames.CalendarAccessUri:
                 case VcardPropertyNames.CalendarUri:
-                    return VcardValue.IsUriText(value);
+                    return VcardValue.IsValidUriText(value);
                 case VcardPropertyNames.Profile:
                     // ref. RFC 2426 §4: 'Value MUST be the case insensitive value "VCARD"'.
                     return string.Equals(text, VcardCardBuilder.CardValue, StringComparison.OrdinalIgnoreCase);
                 case VcardPropertyNames.Classification:
                     return VcardConformance.IsToken(text);
                 case VcardPropertyNames.Agent:
-                    return IsValidAgent(text, valueType);
+                    return IsValidAgent(text, valueType, options, depth);
                 default:
                     return VcardText.IsValidText(value, VcardVersion.V3_0);
             }
@@ -396,15 +396,15 @@ namespace DataStandardizer.File.vCard
             return (isTimestamp && valueType is null) || VcardDate.TryParse(value, VcardValueFormat.Text, VcardVersion.V3_0, out date);
         }
 
-        private static bool IsValidAgent(string text, string valueType)
+        private static bool IsValidAgent(string text, string valueType, VcardOptions options, int depth)
         {
-            if (IsValueType(valueType, UriValueName)) return VcardValue.IsUriText(text.AsSpan());
+            if (IsValueType(valueType, UriValueName)) return VcardValue.IsValidUriText(text.AsSpan());
             if (!VcardText.IsValidText(text.AsSpan(), VcardVersion.V3_0)) return false;
             if (valueType != null) return true;
 
             // ref. RFC 2426 §4: "Value MUST be a valid vCard object".
             VcardCard nested;
-            return VcardNestedCards.TryRead(VcardText.Unescape(text.AsSpan(), VcardVersion.V3_0), VcardVersionMapping.Version30, 0, out nested);
+            return VcardNestedCards.TryRead(VcardText.Unescape(text.AsSpan(), VcardVersion.V3_0), options, depth, out nested);
         }
 
         private static bool IsMediaProperty(string name)
@@ -426,7 +426,7 @@ namespace DataStandardizer.File.vCard
                 return true;
             }
 
-            if (IsValueType(valueType, UriValueName)) return VcardValue.IsUriText(line.Value.AsSpan());
+            if (IsValueType(valueType, UriValueName)) return VcardValue.IsValidUriText(line.Value.AsSpan());
 
             // ref. RFC 2426 §4: only a key has a value that isn't binary or a URI: key-txt-param = "TYPE" "=" keytype.
             return string.Equals(line.Name, VcardPropertyNames.Key, StringComparison.OrdinalIgnoreCase) && !IsValueType(valueType, BinaryValueName) &&

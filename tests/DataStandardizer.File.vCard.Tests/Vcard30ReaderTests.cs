@@ -21,9 +21,6 @@ namespace DataStandardizer.File.vCard.Tests
         private const string Rfc2426Label = "LABEL;TYPE=dom,home,postal,parcel:Mr.John Q. Public\\, Esq.\\nMail Drop: TNE QB\\n123 Main Street\\nAny Town\\, CA  91921-1234\\nU.S.A.";
         private const string Rfc2426Address = "ADR;TYPE=dom,home,postal,parcel:;;123 Main Street;Any Town;CA;91921-1234";
 
-        // ref. RFC 2426 §3.5.4: the second example.
-        private const string Rfc2426Agent = "AGENT:BEGIN:VCARD\\nFN:Susan Thomas\\nTEL:+1-919-555-1234\\nEMAIL\\;INTERNET:sthomas@host.com\\nEND:VCARD\\n";
-
         // ref. RFC 2426 §7 as erratum 872 corrects it, with the N it adds, and the fold of the RFC.
         private static readonly string Rfc2426Authors = VcardTestData.Crlf(
             "BEGIN:vCard",
@@ -90,7 +87,6 @@ namespace DataStandardizer.File.vCard.Tests
                 "LOGO;VALUE=uri:http://www.abc.com/pub/logos/abccorp.jpg",
                 "LOGO;ENCODING=b;TYPE=JPEG:" + ExampleBase64,
                 "AGENT;VALUE=uri:CID:JQPUBLIC.part3.960129T083020.xyzMail@host3.com",
-                Rfc2426Agent,
                 "ORG:ABC\\, Inc.;North American Division;Marketing",
 
                 // ref. RFC 2426 §3.6.
@@ -281,7 +277,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void ReadCard_LabelWithTheGroupOfAnAddress_GoesOnThatAddress()
         {
             // arrange
-            var text = Vcard30TestData.Card("a.ADR:;;1 First St;;;;", "b.ADR:;;2 Second St;;;;", "B.LABEL;TYPE=home:Second");
+            var text = Vcard30TestData.Card("a.ADR:;;1 First St;;;;", "b.ADR;TYPE=home:;;2 Second St;;;;", "B.LABEL:Second");
 
             // act
             var testResult = VcardCardTestData.Read(text).Addresses;
@@ -312,7 +308,8 @@ namespace DataStandardizer.File.vCard.Tests
                 new[] { "ADR;TYPE=home:;;1 First St;;;;", "LABEL;TYPE=work:Other" },
                 new[] { "ADR;TYPE=home:;;1 First St;;;;", "LABEL;TYPE=home;LANGUAGE=en:Other" },
                 new[] { "ADR;TYPE=home:;;1 First St;;;;", "LABEL;TYPE=home;X-A=1:Other" },
-                new[] { "ADR;TYPE=home:;;1 First St;;;;", "LABEL;TYPE=home,pref:Other" }
+                new[] { "ADR;TYPE=home:;;1 First St;;;;", "LABEL;TYPE=home,pref:Other" },
+                new[] { "a.ADR;TYPE=home:;;1 First St;;;;", "a.LABEL;TYPE=work:Other" }
             };
         }
 
@@ -441,6 +438,7 @@ namespace DataStandardizer.File.vCard.Tests
                 { "a b value that isn't base64", new[] { Vcard30TestData.FormattedName, Vcard30TestData.Name, "PHOTO;ENCODING=b:!" }, VcardDiagnosticKind.InvalidValue },
                 { "an escaped comma in a URI", new[] { Vcard30TestData.FormattedName, Vcard30TestData.Name, "URL:http://example.com/a\\,b" }, VcardDiagnosticKind.InvalidValue },
                 { "an AGENT that isn't a card", new[] { Vcard30TestData.FormattedName, Vcard30TestData.Name, "AGENT:Jim" }, VcardDiagnosticKind.InvalidValue },
+                { "a URI that a Uri can't hold", new[] { Vcard30TestData.FormattedName, Vcard30TestData.Name, "URL:http://[bad]" }, VcardDiagnosticKind.InvalidValue },
 
                 // ref. RFC 2426 §4: the parameters of each type.
                 { "a parameter of vCard 4.0", new[] { Vcard30TestData.FormattedName, Vcard30TestData.Name, "TEL;PREF=1:+1" }, VcardDiagnosticKind.InvalidParameter },

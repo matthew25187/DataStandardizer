@@ -220,10 +220,10 @@ namespace DataStandardizer.File.vCard
             else
             {
                 // A vCard 4.0 card is checked in canonical form, as it is.  Any other is checked in its own form before it stops being in that form.
-                mapping.Validate(card.Properties, card, _structureDiagnostics);
+                mapping.Validate(card.Properties, card, _options, _depth, _structureDiagnostics);
             }
 
-            mapping.ToCanonical(card, _depth);
+            mapping.ToCanonical(card, _options, _depth);
 
             _card = null;
             _beginLine = null;

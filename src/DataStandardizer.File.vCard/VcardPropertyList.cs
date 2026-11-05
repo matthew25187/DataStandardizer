@@ -28,6 +28,11 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
+        /// Gets the name of the property.
+        /// </summary>
+        internal string PropertyName => _codec.Name;
+
+        /// <summary>
         /// Gets the number of instances.
         /// </summary>
         public int Count => GetInstances().Count;

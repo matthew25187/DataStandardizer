@@ -56,16 +56,16 @@ namespace DataStandardizer.File.vCard
 
         internal override VcardVersion Version => VcardVersion.V3_0;
 
-        internal override void Validate(IList<VcardContentLine> lines, VcardCard card, List<VcardDiagnostic> found)
+        internal override void Validate(IList<VcardContentLine> lines, VcardCard card, VcardOptions options, int depth, List<VcardDiagnostic> found)
         {
-            Vcard30Conformance.Validate(lines, card, found);
+            Vcard30Conformance.Validate(lines, card, options, depth, found);
         }
 
-        internal override void ToCanonical(VcardCard card, int depth)
+        internal override void ToCanonical(VcardCard card, VcardOptions options, int depth)
         {
             for (var index = 0; index < card.Properties.Count; index++)
             {
-                card.Properties[index] = ToCanonicalLine(card.Properties[index], depth);
+                card.Properties[index] = ToCanonicalLine(card.Properties[index], options, depth);
             }
 
             AttachLabels(card);
@@ -78,11 +78,15 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Puts a <c>LABEL</c> line on the <c>ADR</c> it goes with, if there is one, and gets the instance that holds it.
+        /// Puts a <c>LABEL</c> line on the <c>ADR</c> it goes with, if there is one.
         /// </summary>
+        /// <param name="card">The card.</param>
+        /// <param name="labelIndex">The index of the line.</param>
+        /// <param name="address">The line of the address that now holds it.</param>
         /// <returns><c>true</c> if the line was attached to an address.</returns>
-        internal static bool TryAttachLabel(VcardCard card, int labelIndex)
+        internal static bool TryAttachLabel(VcardCard card, int labelIndex, out VcardContentLine address)
         {
+            address = null;
             var label = card.Properties[labelIndex];
             string text;
             if (!HasOnlyLabelParameters(label) || !TryUnescape(label.Value, out text)) return false;
@@ -90,9 +94,10 @@ namespace DataStandardizer.File.vCard
             var addressIndex = FindAddressOfLabel(card, label);
             if (addressIndex < 0) return false;
 
-            var address = card.Properties[addressIndex];
-            var parameters = new List<VcardContentLineParameter>(address.ParameterArray) { new VcardContentLineParameter(VcardParameterNames.Label, text) };
-            card.Properties[addressIndex] = address.With(address.Name, parameters.ToArray(), address.Value);
+            var line = card.Properties[addressIndex];
+            var parameters = new List<VcardContentLineParameter>(line.ParameterArray) { new VcardContentLineParameter(VcardParameterNames.Label, text) };
+            address = line.With(line.Name, parameters.ToArray(), line.Value);
+            card.Properties[addressIndex] = address;
             card.Properties.RemoveAt(labelIndex);
             return true;
         }
@@ -268,7 +273,7 @@ namespace DataStandardizer.File.vCard
             return true;
         }
 
-        private static VcardContentLine ToCanonicalLine(VcardContentLine line, int depth)
+        private static VcardContentLine ToCanonicalLine(VcardContentLine line, VcardOptions options, int depth)
         {
             var parameters = new List<VcardContentLineParameter>(line.ParameterArray);
             var value = line.Value;
@@ -351,7 +356,7 @@ namespace DataStandardizer.File.vCard
 
                     break;
                 case VcardPropertyNames.Agent:
-                    return AgentToCanonical(line, parameters, value, depth);
+                    return AgentToCanonical(line, parameters, value, options, depth);
             }
 
             return line.With(line.Name, parameters.ToArray(), value);
@@ -473,7 +478,7 @@ namespace DataStandardizer.File.vCard
             return true;
         }
 
-        private static VcardContentLine AgentToCanonical(VcardContentLine line, List<VcardContentLineParameter> parameters, string value, int depth)
+        private static VcardContentLine AgentToCanonical(VcardContentLine line, List<VcardContentLineParameter> parameters, string value, VcardOptions options, int depth)
         {
             var valueType = Find(parameters, VcardParameterNames.Value);
             var isUri = string.Equals(valueType, Vcard30Conformance.UriValueName, StringComparison.OrdinalIgnoreCase);
@@ -486,7 +491,7 @@ namespace DataStandardizer.File.vCard
                 if (valueType != null || !VcardText.IsValidText(value.AsSpan(), VcardVersion.V3_0)) return line;
 
                 text = VcardText.Unescape(value.AsSpan(), VcardVersion.V3_0);
-                if (!VcardNestedCards.TryRead(text, VcardVersionMapping.Version30, depth, out nested)) return line;
+                if (!VcardNestedCards.TryRead(text, options, depth, out nested)) return line;
 
                 value = VcardValue.FormatText(VcardNestedCards.Write(nested, VcardVersion.V4_0), VcardValueFormat.Text, VcardVersion.V4_0);
                 isText = true;
@@ -511,7 +516,8 @@ namespace DataStandardizer.File.vCard
         {
             for (var index = 0; index < card.Properties.Count; index++)
             {
-                if (IsName(card.Properties[index], VcardPropertyNames.PostalLabel) && TryAttachLabel(card, index))
+                VcardContentLine address;
+                if (IsName(card.Properties[index], VcardPropertyNames.PostalLabel) && TryAttachLabel(card, index, out address))
                 {
                     index--;
                 }
@@ -538,7 +544,7 @@ namespace DataStandardizer.File.vCard
                 for (var index = 0; index < card.Properties.Count; index++)
                 {
                     var line = card.Properties[index];
-                    if (IsName(line, VcardPropertyNames.Address) && string.Equals(line.Group, label.Group, StringComparison.OrdinalIgnoreCase) && CanHoldLabel(line, label)) return index;
+                    if (IsName(line, VcardPropertyNames.Address) && string.Equals(line.Group, label.Group, StringComparison.OrdinalIgnoreCase) && CanHoldLabel(line, label) && HasNoOtherTypes(line, label)) return index;
                 }
             }
 
@@ -558,6 +564,14 @@ namespace DataStandardizer.File.vCard
             return address.GetParameter(VcardParameterNames.Label) is null &&
                    string.Equals(VcardPropertyParameterReader.GetValue(address, VcardParameterNames.Language), labelLanguage, StringComparison.OrdinalIgnoreCase) &&
                    (label.GetParameter(VcardParameterNames.Preference) is null || address.GetParameter(VcardParameterNames.Preference) != null);
+        }
+
+        /// <summary>
+        /// Gets whether a label in the group of an address says nothing about its types that would be lost.  With no <c>TYPE</c> of its own, the group alone ties it to the address.
+        /// </summary>
+        private static bool HasNoOtherTypes(VcardContentLine address, VcardContentLine label)
+        {
+            return VcardPropertyParameterReader.GetListValues(label, VcardParameterNames.Type).Count == 0 || HaveSameTypes(address, label);
         }
 
         private static bool HaveSameTypes(VcardContentLine address, VcardContentLine label)
@@ -1038,8 +1052,8 @@ namespace DataStandardizer.File.vCard
 
                 Remove(parameters, VcardParameterNames.Type);
                 Remove(parameters, VcardParameterNames.Value);
-                Remove(parameters, VcardParameterNames.Preference);
                 RemoveVersion40Parameters(line, parameters);
+                ConvertPreference(line, parameters);
                 var value = line.Value;
                 if (valueType == VcardValueType.Text)
                 {
@@ -1064,10 +1078,14 @@ namespace DataStandardizer.File.vCard
             {
                 string text;
                 VcardCard nested;
-                if (TryUnescape(value, out text) && VcardNestedCards.TryRead(text, VcardVersionMapping.Canonical, 0, out nested))
+                if (TryUnescape(value, out text) && VcardNestedCards.TryReadHeld(text, out nested))
                 {
+                    // ref. RFC 2426 §4: "Value MUST be a valid vCard object", and §5: "The VERSION, N and FN types MUST be specified in a vCard."
                     var nestedFound = new List<VcardDiagnostic>();
-                    VcardVersionMapping.Version30.FromCanonical(nested, _options, nestedFound);
+                    var nestedLines = VcardVersionMapping.Version30.FromCanonical(nested, _options, nestedFound);
+                    var nestedChecks = new List<VcardDiagnostic>();
+                    Vcard30Conformance.Validate(nestedLines, nested, VcardNestedCards.HeldCardOptions, 0, nestedChecks);
+                    nestedFound.AddRange(nestedChecks.FindAll(diagnostic => diagnostic.Kind == VcardDiagnosticKind.MissingRequiredProperty));
                     foreach (var diagnostic in nestedFound)
                     {
                         _found.Add(new VcardDiagnostic(diagnostic.Kind, "In the card of an AGENT: " + diagnostic.Message, diagnostic.PropertyName, diagnostic.Group, line.LineNumber, _card.CardIndex));

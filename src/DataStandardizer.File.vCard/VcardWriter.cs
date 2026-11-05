@@ -68,7 +68,7 @@ namespace DataStandardizer.File.vCard
         /// valid.
         /// -or-
         /// <see cref="VcardOptions.WriteVersion"/> is one that can't be written yet.</exception>
-        public VcardWriter(Stream vcardStream, VcardOptions options) : this(new VcardContentLineWriter(vcardStream, options), options)
+        public VcardWriter(Stream vcardStream, VcardOptions options) : this(new VcardContentLineWriter(vcardStream, CheckWriteVersion(options)), options)
         {
         }
 
@@ -90,7 +90,7 @@ namespace DataStandardizer.File.vCard
         /// <exception cref="ArgumentNullException"><paramref name="vcardFilePath"/> or <paramref name="options"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><see cref="VcardOptions.FoldLength"/>, <see cref="VcardOptions.FoldWhitespace"/> or
         /// <see cref="VcardOptions.LineBreak"/> is not valid.</exception>
-        public VcardWriter(string vcardFilePath, VcardOptions options) : this(new VcardContentLineWriter(vcardFilePath, options), options)
+        public VcardWriter(string vcardFilePath, VcardOptions options) : this(new VcardContentLineWriter(vcardFilePath, CheckWriteVersion(options)), options)
         {
         }
 #endif
@@ -115,8 +115,30 @@ namespace DataStandardizer.File.vCard
         /// -or-
         /// <see cref="VcardOptions.FoldLength"/>, <see cref="VcardOptions.FoldWhitespace"/> or <see cref="VcardOptions.LineBreak"/> is not
         /// valid.</exception>
-        public VcardWriter(TextWriter writer, VcardOptions options) : this(new VcardContentLineWriter(writer, options), options)
+        public VcardWriter(TextWriter writer, VcardOptions options) : this(new VcardContentLineWriter(writer, CheckWriteVersion(options)), options)
         {
+        }
+
+        /// <summary>
+        /// Checks the version to write before anything is created from the options, since a constructor from a file path would otherwise overwrite the file first.  Null options are left for the
+        /// content-line writer to refuse.
+        /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private static VcardOptions CheckWriteVersion(VcardOptions? options)
+#else
+        private static VcardOptions CheckWriteVersion(VcardOptions options)
+#endif
+        {
+            if (options != null)
+            {
+                VcardVersionMapping.For(options.WriteVersion, nameof(options));
+            }
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            return options!;
+#else
+            return options;
+#endif
         }
 
         private VcardWriter(VcardContentLineWriter writer, VcardOptions options)
@@ -551,7 +573,7 @@ namespace DataStandardizer.File.vCard
             // Gather the lines first, so that a card changed by another thread cannot fail part way through for that reason.
             var diagnostics = new List<VcardDiagnostic>();
             var properties = _mapping.FromCanonical(card, _options, diagnostics);
-            _mapping.Validate(properties, card, diagnostics);
+            _mapping.Validate(properties, card, _options, 0, diagnostics);
             foreach (var diagnostic in diagnostics)
             {
                 if (!VcardConformance.IsAccepted(diagnostic.Kind, _options, true))

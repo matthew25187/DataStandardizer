@@ -78,22 +78,25 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="lines">The lines, in the form of this version.</param>
         /// <param name="card">The card they are of.</param>
+        /// <param name="options">The options, which also apply to a card that a line holds.</param>
+        /// <param name="depth">How many cards this one is nested in.</param>
         /// <param name="found">Receives the problems found.</param>
-        internal abstract void Validate(IList<VcardContentLine> lines, VcardCard card, List<VcardDiagnostic> found);
+        internal abstract void Validate(IList<VcardContentLine> lines, VcardCard card, VcardOptions options, int depth, List<VcardDiagnostic> found);
 
         /// <summary>
         /// Changes the properties of a card, which are in the form of this version, to their canonical form.  A line that isn't valid is left as it is.
         /// </summary>
         /// <param name="card">The card.</param>
+        /// <param name="options">The options, which also apply to a card that a line holds.</param>
         /// <param name="depth">How many cards this one is nested in.</param>
-        internal abstract void ToCanonical(VcardCard card, int depth);
+        internal abstract void ToCanonical(VcardCard card, VcardOptions options, int depth);
 
         /// <summary>
         /// Gets the lines of this version for the properties of a card, which are in canonical form.
         /// </summary>
         /// <param name="card">The card, which isn't changed.</param>
         /// <param name="options">The options.</param>
-        /// <param name="found">Receives what the version can't hold, each as a <see cref="VcardDiagnosticKind.Lossy"/> diagnostic.</param>
+        /// <param name="found">Receives what the version can't hold, each as a <see cref="VcardDiagnosticKind.Lossy"/> diagnostic, and what a card held by a line lacks.</param>
         /// <returns>The lines, without what the version can't hold.</returns>
         internal abstract List<VcardContentLine> FromCanonical(VcardCard card, VcardOptions options, List<VcardDiagnostic> found);
 
@@ -107,12 +110,12 @@ namespace DataStandardizer.File.vCard
 
             internal override VcardVersion Version => VcardVersion.V4_0;
 
-            internal override void Validate(IList<VcardContentLine> lines, VcardCard card, List<VcardDiagnostic> found)
+            internal override void Validate(IList<VcardContentLine> lines, VcardCard card, VcardOptions options, int depth, List<VcardDiagnostic> found)
             {
                 VcardConformance.Validate(card, found);
             }
 
-            internal override void ToCanonical(VcardCard card, int depth)
+            internal override void ToCanonical(VcardCard card, VcardOptions options, int depth)
             {
             }
 

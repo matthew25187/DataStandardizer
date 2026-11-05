@@ -583,6 +583,108 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Fact]
+        public void Remove_InstanceOfAnotherList_LeavesItAndReturnsFalse()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(Vcard30TestData.Card("EMAIL:a@example.com")).AsVersion30();
+            var formattedName = card.FormattedNames.Single();
+
+            // act
+            var testResult = card.Emails.Remove(formattedName);
+
+            // assert
+            testResult.Should().BeFalse();
+            card.FormattedNames.Should().ContainSingle();
+        }
+
+        [Fact]
+        public void Labels_RemoveInstanceOfAnotherList_LeavesItAndReturnsFalse()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(Vcard30TestData.Card("EMAIL:a@example.com")).AsVersion30();
+            var email = card.Emails.Single();
+
+            // act
+            var testResult = card.Labels.Remove(email);
+
+            // assert
+            testResult.Should().BeFalse();
+            card.Emails.Should().ContainSingle();
+        }
+
+        [Fact]
+        public void Labels_AddBesideALabelOfItsOwn_GivesTheNewLabel()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(Vcard30TestData.Card("LABEL:Nowhere", "ADR;TYPE=home:;;1 First St;;;;"));
+
+            // act
+            var testResult = card.AsVersion30().Labels.Add("First", new Vcard30PropertyParameters { Types = { "home" } });
+
+            // assert
+            testResult.Value.Should().Be("First");
+            testResult.Types.Should().Equal("home");
+        }
+
+        public static TheoryData<string> PreferenceVersion30CanNotSayData()
+        {
+            return new TheoryData<string> { "PHOTO;PREF=1:http://example.com/a.jpg" };
+        }
+
+        [Theory]
+        [MemberData(nameof(PreferenceVersion30CanNotSayData))]
+        public void IsPreferred_TypeWhoseTypeSaysItsFormat_IsFalse(string line)
+        {
+            // arrange
+            var card = VcardCardTestData.Read(VcardCardTestData.Card(line)).AsVersion30();
+
+            // act
+            var testResult = card.Photos.Single();
+
+            // assert
+            testResult.IsPreferred.Should().BeFalse();
+        }
+
+        public static TheoryData<VcardMediaValue> UnnamableTokenData()
+        {
+            return new TheoryData<VcardMediaValue>
+            {
+                VcardMediaValue.FromData(Data, "JPEG 2000"),
+                VcardMediaValue.FromUri(new Uri("http://example.com/a.jpg"), "JPEG 2000")
+            };
+        }
+
+        [Theory]
+        [MemberData(nameof(UnnamableTokenData))]
+        public void Photos_AddTokenThatCanNotNameAMediaType_ThrowsArgumentException(VcardMediaValue value)
+        {
+            // arrange
+            IVcard30Card card = VcardCardTestData.NewCard();
+
+            // act
+            Action testAction = () => card.Photos.Add(value);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>();
+        }
+
+#if NETFRAMEWORK
+        [Fact]
+        public void Photos_AddDataTooLongForAUriOnNetFramework_ThrowsArgumentException()
+        {
+            // arrange: ref. #619.
+            IVcard30Card card = VcardCardTestData.NewCard();
+            var value = VcardMediaValue.FromData(new byte[60000]);
+
+            // act
+            Action testAction = () => card.Photos.Add(value);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>();
+        }
+#endif
+
+        [Fact]
         public void Clear_List_RemovesEveryInstance()
         {
             // arrange
@@ -599,7 +701,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void Agent_NestedCard_GivesAView()
         {
             // act
-            var testResult = View("AGENT:BEGIN:VCARD\\nFN:Susan Thomas\\nEND:VCARD\\n").Agent;
+            var testResult = View("AGENT:BEGIN:VCARD\\nVERSION:3.0\\nFN:Susan Thomas\\nN:Thomas\\;Susan\\;\\;\\;\\nEND:VCARD\\n").Agent;
 
             // assert
             testResult.FormattedNames.Single().Value.Should().Be("Susan Thomas");
@@ -634,7 +736,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void SetAgent_Uri_ReplacesTheAgent()
         {
             // arrange
-            var card = VcardCardTestData.Read(Vcard30TestData.Card("AGENT:BEGIN:VCARD\\nFN:a\\nEND:VCARD\\n"));
+            var card = VcardCardTestData.Read(Vcard30TestData.Card(Vcard30TestData.NestedAgentLine(1)));
 
             // act
             card.AsVersion30().SetAgent(ExampleUri);

@@ -35,6 +35,9 @@ namespace DataStandardizer.File.vCard
             var mapping = VcardVersionMapping.For(version, nameof(version));
             var found = new List<VcardDiagnostic>();
             mapping.FromCanonical(card, new VcardOptions(), found);
+
+            // What a card held by a line lacks isn't data that is lost, and Validate gives it.
+            found.RemoveAll(diagnostic => diagnostic.Kind != VcardDiagnosticKind.Lossy);
             if (version == VcardVersion.V4_0)
             {
                 AddPropertiesKeptInVersion40(card, found);
@@ -81,7 +84,7 @@ namespace DataStandardizer.File.vCard
             var lines = mapping.FromCanonical(card, options, found);
             foreach (var diagnostic in found)
             {
-                if (!VcardConformance.IsAccepted(diagnostic.Kind, options, true))
+                if (diagnostic.Kind == VcardDiagnosticKind.Lossy && !VcardConformance.IsAccepted(diagnostic.Kind, options, true))
                     throw VcardConformance.BuildException(diagnostic);
             }
 
@@ -91,7 +94,8 @@ namespace DataStandardizer.File.vCard
                 result.Properties.Add(line);
             }
 
-            mapping.ToCanonical(result, 0);
+            // The lines came from a card that already holds them, so a card one of them holds is taken as it is.
+            mapping.ToCanonical(result, VcardNestedCards.HeldCardOptions, 0);
             return result;
         }
 

@@ -635,6 +635,21 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
+        /// Gets whether text with no escaping of a content line is a URI, with the same answer on every runtime, as <see cref="IsValidUriValue"/> does for a value of vCard 4.0.
+        /// </summary>
+        internal static bool IsValidUriText(ReadOnlySpan<char> text)
+        {
+            if (text.Length > MaxUriLengthOnEveryRuntime) return IsUriText(text);
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            Uri? uri;
+#else
+            Uri uri;
+#endif
+            return TryParseUriText(text, out uri);
+        }
+
+        /// <summary>
         /// Gets the text of a URI value as it appears in a content line of vCard 4.0, with its escaping removed, without making a <see cref="Uri"/>, which can't hold a long one on every runtime.
         /// </summary>
         /// <returns><c>false</c> if the value isn't valid.</returns>

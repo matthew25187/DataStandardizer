@@ -15,6 +15,10 @@ namespace DataStandardizer.File.vCard.Tests
         public const string FormattedName = "FN:Jane Doe";
         public const string Name = "N:Doe;Jane;;;";
 
+        // A nested card of vCard 3.0 that follows the rules of a card, with its line breaks and the semicolons of its N as they are before it is escaped as a value.
+        private const string NestedCardStart = "BEGIN:VCARD\nVERSION:3.0\nFN:a\nN:a;;;;\n";
+        private const string NestedCardEnd = "END:VCARD\n";
+
         // A longer limit than any test's line, so that a test's text has no folds.
         private const int NoFolding = 100000;
 
@@ -53,6 +57,28 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         /// <summary>
+        /// Gets an <c>AGENT</c> line that holds a card that holds another, to the given number of <c>AGENT</c> properties, with each level escaped as a TEXT value (RFC 2426 §4).
+        /// </summary>
+        public static string NestedAgentLine(int levels)
+        {
+            var text = NestedCardStart + NestedCardEnd;
+            for (var level = 1; level < levels; level++)
+            {
+                text = NestedCardStart + "AGENT:" + EscapeText(text) + "\n" + NestedCardEnd;
+            }
+
+            return "AGENT:" + EscapeText(text);
+        }
+
+        /// <summary>
+        /// Removes the folds of a writer that folds with a space.
+        /// </summary>
+        public static string Unfold(string text)
+        {
+            return text.Replace("\r\n ", string.Empty);
+        }
+
+        /// <summary>
         /// Gets the parameters of a line in the form <c>NAME=a,b</c>, in order.
         /// </summary>
         public static List<string> ParametersOf(VcardContentLine line)
@@ -63,9 +89,9 @@ namespace DataStandardizer.File.vCard.Tests
         /// <summary>
         /// Writes a card in a version, with no folds.
         /// </summary>
-        public static string Write(VcardCard card, VcardVersion version, bool allowLossy = false)
+        public static string Write(VcardCard card, VcardVersion version, bool allowLossy = false, bool allowMissingRequired = false)
         {
-            var options = new VcardOptions { WriteVersion = version, FoldLength = NoFolding, AllowLossyVersionConversion = allowLossy };
+            var options = new VcardOptions { WriteVersion = version, FoldLength = NoFolding, AllowLossyVersionConversion = allowLossy, AllowMissingRequiredProperties = allowMissingRequired };
             var output = new StringWriter();
             using (var writer = new VcardWriter(output, options))
             {
@@ -73,6 +99,11 @@ namespace DataStandardizer.File.vCard.Tests
             }
 
             return output.ToString();
+        }
+
+        private static string EscapeText(string text)
+        {
+            return text.Replace("\\", "\\\\").Replace(";", "\\;").Replace(",", "\\,").Replace("\n", "\\n");
         }
     }
 }
