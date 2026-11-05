@@ -16,6 +16,12 @@ namespace DataStandardizer.File.vCard
     /// has no other version.
     /// </para>
     /// <para>
+    /// xCard (RFC 6351 Appendix A), the <see cref="VcardValueFormat.Xml"/> form, has no element of its own for this type: a value is the content of a <c>date</c>, <c>date-time</c>
+    /// or <c>time</c> element, in the form of <see cref="VcardDate"/>, <see cref="VcardDateTime"/> or <see cref="VcardTime"/>, with no <c>T</c> before a time alone, such as
+    /// <c>--0203</c> or <c>1230</c>.  Parsing that form tries a date first, so <c>--12</c> is the month of December, not the twelfth second.  A date of a year alone has no form
+    /// there.  xCard represents vCard 4.0 alone, so that form has no other version.
+    /// </para>
+    /// <para>
     /// A default instance is not initialised: <see cref="Kind"/>, <see cref="Date"/>, <see cref="Time"/> and <see cref="IsDefinedIn"/> throw
     /// <see cref="InvalidOperationException"/>, <see cref="TryFormat(Span{char}, out int, VcardValueFormat)"/> writes nothing, and <see cref="ToString()"/> gives the type name.
     /// </para>
@@ -139,7 +145,6 @@ namespace DataStandardizer.File.vCard
         /// <param name="result">The value, if it is valid.</param>
         /// <returns><c>true</c> if the value is valid; otherwise <c>false</c>.</returns>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not a <see cref="VcardValueFormat"/> member.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
         public static bool TryParse(ReadOnlySpan<char> value, VcardValueFormat format, out VcardDateAndOrTime result)
         {
             return TryParse(value, format, VcardVersion.V4_0, out result);
@@ -154,14 +159,15 @@ namespace DataStandardizer.File.vCard
         /// <param name="result">The value, if it is valid.</param>
         /// <returns><c>true</c> if the value is valid; otherwise <c>false</c>.</returns>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> or <paramref name="version"/> is not a member of its type.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
-        /// <exception cref="ArgumentException"><paramref name="format"/> is <see cref="VcardValueFormat.Json"/>, which represents vCard 4.0 alone, and <paramref name="version"/> isn't vCard 4.0.</exception>
+        /// <exception cref="ArgumentException"><paramref name="format"/> is <see cref="VcardValueFormat.Json"/> or <see cref="VcardValueFormat.Xml"/>, which represent vCard 4.0 alone, and <paramref name="version"/> isn't vCard 4.0.</exception>
         public static bool TryParse(ReadOnlySpan<char> value, VcardValueFormat format, VcardVersion version, out VcardDateAndOrTime result)
         {
             VcardValueFormatting.CheckFormat(format, version);
 
             // ref. RFC 6350 §4: date-and-or-time = date-time / date / time-designator time.  ref. RFC 7095 §3.5.6: the same, in the forms of jCard.
             result = default(VcardDateAndOrTime);
+            if (format == VcardValueFormat.Xml) return TryParseXml(value, out result);
+
             var designatorIndex = VcardValueFormatting.IndexOfTimeDesignator(value, version);
             if (designatorIndex < 0)
             {
@@ -192,6 +198,38 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
+        /// Parses the content of the <c>date</c>, <c>date-time</c> or <c>time</c> element of xCard that holds a value (RFC 6351 Appendix A).
+        /// </summary>
+        private static bool TryParseXml(ReadOnlySpan<char> value, out VcardDateAndOrTime result)
+        {
+            result = default(VcardDateAndOrTime);
+            var designatorIndex = value.IndexOf('T');
+            if (designatorIndex == 0) return false;
+
+            if (designatorIndex > 0)
+            {
+                VcardDateTime dateTime;
+                if (!VcardDateTime.TryParseCore(value, VcardVersion.V4_0, out dateTime)) return false;
+
+                result = new VcardDateAndOrTime(dateTime);
+                return true;
+            }
+
+            VcardDate date;
+            if (VcardDate.TryParse(value, VcardValueFormat.Xml, out date))
+            {
+                result = new VcardDateAndOrTime(date);
+                return true;
+            }
+
+            VcardTime time;
+            if (!VcardTime.TryParseVersion40(value, out time)) return false;
+
+            result = new VcardDateAndOrTime(time);
+            return true;
+        }
+
+        /// <summary>
         /// Parses a vCard 4.0 value.
         /// </summary>
         /// <param name="value">The value.</param>
@@ -199,7 +237,6 @@ namespace DataStandardizer.File.vCard
         /// <returns>The value.</returns>
         /// <exception cref="FormatException">The value is not valid.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not a <see cref="VcardValueFormat"/> member.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
         public static VcardDateAndOrTime Parse(ReadOnlySpan<char> value, VcardValueFormat format)
         {
             return Parse(value, format, VcardVersion.V4_0);
@@ -214,8 +251,7 @@ namespace DataStandardizer.File.vCard
         /// <returns>The value.</returns>
         /// <exception cref="FormatException">The value is not valid.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> or <paramref name="version"/> is not a member of its type.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
-        /// <exception cref="ArgumentException"><paramref name="format"/> is <see cref="VcardValueFormat.Json"/>, which represents vCard 4.0 alone, and <paramref name="version"/> isn't vCard 4.0.</exception>
+        /// <exception cref="ArgumentException"><paramref name="format"/> is <see cref="VcardValueFormat.Json"/> or <see cref="VcardValueFormat.Xml"/>, which represent vCard 4.0 alone, and <paramref name="version"/> isn't vCard 4.0.</exception>
         public static VcardDateAndOrTime Parse(ReadOnlySpan<char> value, VcardValueFormat format, VcardVersion version)
         {
             VcardDateAndOrTime result;
@@ -233,7 +269,6 @@ namespace DataStandardizer.File.vCard
         /// <param name="format">The lexical form to write.</param>
         /// <returns><c>true</c> if the value was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not a <see cref="VcardValueFormat"/> member.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
         /// <exception cref="InvalidOperationException">vCard 4.0 has no form for this value; see <see cref="IsDefinedIn"/>.</exception>
         public bool TryFormat(Span<char> destination, out int charsWritten, VcardValueFormat format)
         {
@@ -249,8 +284,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="version">The version whose grammar applies.</param>
         /// <returns><c>true</c> if the value was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> or <paramref name="version"/> is not a member of its type.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
-        /// <exception cref="ArgumentException"><paramref name="format"/> is <see cref="VcardValueFormat.Json"/>, which represents vCard 4.0 alone, and <paramref name="version"/> isn't vCard 4.0.</exception>
+        /// <exception cref="ArgumentException"><paramref name="format"/> is <see cref="VcardValueFormat.Json"/> or <see cref="VcardValueFormat.Xml"/>, which represent vCard 4.0 alone, and <paramref name="version"/> isn't vCard 4.0.</exception>
         /// <exception cref="InvalidOperationException"><paramref name="version"/> has no form for this value; see <see cref="IsDefinedIn"/>.</exception>
         public bool TryFormat(Span<char> destination, out int charsWritten, VcardValueFormat format, VcardVersion version)
         {
@@ -264,6 +298,10 @@ namespace DataStandardizer.File.vCard
 
             if (!IsDefinedIn(version))
                 throw VcardValueFormatting.BuildNotDefinedException("DATE-AND-OR-TIME", version);
+
+            // ref. RFC 6351 Appendix A: value-date-and-or-time = value-date | value-date-time | value-time, whose patterns have no year alone and no "T" before a time alone.
+            if (format == VcardValueFormat.Xml && _date.IsInitialized && _date.IsYearAlone)
+                throw new InvalidOperationException("xCard has no form for a DATE of a year alone, since its pattern has none: RFC 6351 Appendix A.");
 
             var writer = new VcardSpanWriter(destination);
             var isJson = format == VcardValueFormat.Json;
@@ -281,7 +319,11 @@ namespace DataStandardizer.File.vCard
 
             if (_time.IsInitialized)
             {
-                writer.Append('T');
+                if (format != VcardValueFormat.Xml || _date.IsInitialized)
+                {
+                    writer.Append('T');
+                }
+
                 if (isJson)
                 {
                     _time.AppendJson(ref writer);
@@ -300,7 +342,6 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="format">The lexical form to write.</param>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not a <see cref="VcardValueFormat"/> member.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
         /// <exception cref="InvalidOperationException">vCard 4.0 has no form for this value; see <see cref="IsDefinedIn"/>.</exception>
         public string ToString(VcardValueFormat format)
         {
@@ -313,8 +354,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="format">The lexical form to write.</param>
         /// <param name="version">The version whose grammar applies.</param>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> or <paramref name="version"/> is not a member of its type.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
-        /// <exception cref="ArgumentException"><paramref name="format"/> is <see cref="VcardValueFormat.Json"/>, which represents vCard 4.0 alone, and <paramref name="version"/> isn't vCard 4.0.</exception>
+        /// <exception cref="ArgumentException"><paramref name="format"/> is <see cref="VcardValueFormat.Json"/> or <see cref="VcardValueFormat.Xml"/>, which represent vCard 4.0 alone, and <paramref name="version"/> isn't vCard 4.0.</exception>
         /// <exception cref="InvalidOperationException"><paramref name="version"/> has no form for this value; see <see cref="IsDefinedIn"/>.</exception>
         public string ToString(VcardValueFormat format, VcardVersion version)
         {

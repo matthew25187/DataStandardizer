@@ -60,7 +60,7 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         /// <summary>
-        /// The calls of the structured values, which have no single form in jCard (RFC 7095 §3.3.1.3).
+        /// The calls of the structured values, which have no single form in jCard (RFC 7095 §3.3.1.3) or in xCard (RFC 6351 §5).
         /// </summary>
         public static TheoryData<Action<VcardValueFormat>> StructuredParseAndFormatCalls()
         {
@@ -135,14 +135,53 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Theory]
-        [MemberData(nameof(ParseAndFormatCalls), DisableDiscoveryEnumeration = true)]
-        public void Call_XmlForm_ThrowsNotSupported(Action<VcardValueFormat> call)
+        [MemberData(nameof(StructuredParseAndFormatCalls), DisableDiscoveryEnumeration = true)]
+        public void Call_StructuredValueInXmlForm_ThrowsNotSupported(Action<VcardValueFormat> call)
         {
             // act
             Action testAction = () => call(VcardValueFormat.Xml);
 
             // assert
             testAction.Should().Throw<NotSupportedException>();
+        }
+
+        /// <summary>
+        /// The calls that take a version, which in the XML form must be vCard 4.0, since xCard represents no other (RFC 6351 §5.1).
+        /// </summary>
+        public static TheoryData<Action<VcardVersion>> XmlCallsWithAVersion()
+        {
+            var date = new VcardDate(1985, 4, 12);
+            var time = new VcardTime(10, 22, 0);
+            var destination = new char[64];
+            return new TheoryData<Action<VcardVersion>>
+            {
+                version => VcardDate.TryParse(default(ReadOnlySpan<char>), VcardValueFormat.Xml, version, out _),
+                version => date.TryFormat(destination, out _, VcardValueFormat.Xml, version),
+                version => VcardTime.TryParse(default(ReadOnlySpan<char>), VcardValueFormat.Xml, version, out _),
+                version => time.TryFormat(destination, out _, VcardValueFormat.Xml, version),
+                version => VcardDateTime.TryParse(default(ReadOnlySpan<char>), VcardValueFormat.Xml, version, out _),
+                version => new VcardDateTime(date, time).TryFormat(destination, out _, VcardValueFormat.Xml, version),
+                version => VcardTimestamp.TryParse(default(ReadOnlySpan<char>), VcardValueFormat.Xml, version, out _),
+                version => new VcardTimestamp(date, time).TryFormat(destination, out _, VcardValueFormat.Xml, version),
+                version => VcardDateAndOrTime.TryParse(default(ReadOnlySpan<char>), VcardValueFormat.Xml, version, out _),
+                version => new VcardDateAndOrTime(date).TryFormat(destination, out _, VcardValueFormat.Xml, version),
+                version => VcardUtcOffset.TryParse(default(ReadOnlySpan<char>), VcardValueFormat.Xml, version, out _),
+                version => new VcardUtcOffset(false, 1, null).TryFormat(destination, out _, VcardValueFormat.Xml, version),
+                version => VcardGeo.TryParse(default(ReadOnlySpan<char>), VcardValueFormat.Xml, version, out _),
+                version => VcardValue.TryParseText(default(ReadOnlySpan<char>), VcardValueFormat.Xml, version, destination, out _),
+                version => VcardValue.TryFormatText(default(ReadOnlySpan<char>), destination, out _, VcardValueFormat.Xml, version),
+            };
+        }
+
+        [Theory]
+        [MemberData(nameof(XmlCallsWithAVersion), DisableDiscoveryEnumeration = true)]
+        public void Call_XmlFormWithVersion30_ThrowsArgumentException(Action<VcardVersion> call)
+        {
+            // act
+            Action testAction = () => call(VcardVersion.V3_0);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>().Which.ParamName.Should().Be("version");
         }
 
         [Theory]

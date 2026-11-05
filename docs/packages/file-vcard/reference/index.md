@@ -16,6 +16,8 @@ The public types of **DataStandardizer.File.vCard**. All types are in the
 | --- | --- |
 | [JcardReader](JcardReader.md) | Reads jCard (RFC 7095) into cards, sync and async. Not on `netstandard1.1`. |
 | [JcardWriter](JcardWriter.md) | Writes cards as jCard (RFC 7095), sync and async, with progress. Not on `netstandard1.1`. |
+| [XcardReader](XcardReader.md) | Reads xCard (RFC 6351) into cards, sync and async. |
+| [XcardWriter](XcardWriter.md) | Writes cards as xCard (RFC 6351), sync and async, with progress. |
 | [Vcard30PropertyParameters](Vcard30PropertyParameters.md) | The group and parameters of a property being added in the shape of vCard 3.0. |
 | [Vcard21PropertyParameters](Vcard21PropertyParameters.md) | The group and parameters of a property being added in the shape of vCard 2.1. |
 | [VcardAgent](VcardAgent.md) | Who acts for the entity of a card. |

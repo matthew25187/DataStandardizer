@@ -17,6 +17,8 @@ namespace DataStandardizer.File.vCard
     /// <para>
     /// In jCard (RFC 7095 §3.3.1.3) the value is a JSON array with an element for each component, not a single string, so it has no <see cref="VcardValueFormat.Json"/> form of
     /// its own, and parsing or formatting in that form throws <see cref="NotSupportedException"/>.  <c>JcardReader</c> and <c>JcardWriter</c> map the array to and from the text form.
+    /// Likewise in xCard (RFC 6351 §5) the value is a tree of XML elements, one for each component, so it has no <see cref="VcardValueFormat.Xml"/> form of its own either, and
+    /// <c>XcardReader</c> and <c>XcardWriter</c> map the elements.
     /// </para>
     /// </remarks>
     public readonly struct VcardGender : IEquatable<VcardGender>

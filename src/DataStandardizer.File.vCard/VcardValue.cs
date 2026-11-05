@@ -18,6 +18,12 @@ namespace DataStandardizer.File.vCard
     /// literal.  TEXT has no escaping of vCard in that form, and the items of a list are separate JSON strings, so a value is one item.  BOOLEAN is <c>true</c> or <c>false</c>.  INTEGER
     /// and FLOAT are JSON numbers.  A URI has no escaping of its commas.  A LANGUAGE-TAG is as it is in the text form.  jCard represents vCard 4.0 alone, so that form has no other version.
     /// </para>
+    /// <para>
+    /// A value in the <see cref="VcardValueFormat.Xml"/> form is the content of a value element of xCard (RFC 6351 Appendix A), with its XML escaping removed.  TEXT has no escaping
+    /// of vCard in that form, and can hold only the characters of XML 1.0, and the items of a list are separate elements, so a value is one item.  BOOLEAN is an <c>xsd:boolean</c>,
+    /// INTEGER an <c>xsd:integer</c>, FLOAT an <c>xsd:float</c> and URI an <c>xsd:anyURI</c>, each of which may have XML white space around it.  A URI has no escaping of its
+    /// commas.  A LANGUAGE-TAG is as it is in the text form.  xCard represents vCard 4.0 alone, so that form has no other version.
+    /// </para>
     /// </remarks>
     public static class VcardValue
     {
@@ -44,7 +50,6 @@ namespace DataStandardizer.File.vCard
         /// <returns><c>true</c> if the value is valid; otherwise <c>false</c>.</returns>
         /// <exception cref="ArgumentException"><paramref name="destination"/> is shorter than <paramref name="value"/>.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not a <see cref="VcardValueFormat"/> member.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
         public static bool TryParseText(ReadOnlySpan<char> value, VcardValueFormat format, Span<char> destination, out int charsWritten)
         {
             return TryParseText(value, format, VcardVersion.V4_0, destination, out charsWritten);
@@ -70,8 +75,7 @@ namespace DataStandardizer.File.vCard
         /// <returns><c>true</c> if the value is valid; otherwise <c>false</c>.</returns>
         /// <exception cref="ArgumentException"><paramref name="destination"/> is shorter than <paramref name="value"/>.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> or <paramref name="version"/> is not a member of its type.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
-        /// <exception cref="ArgumentException"><paramref name="format"/> is <see cref="VcardValueFormat.Json"/>, which represents vCard 4.0 alone, and <paramref name="version"/> isn't vCard 4.0.</exception>
+        /// <exception cref="ArgumentException"><paramref name="format"/> is <see cref="VcardValueFormat.Json"/> or <see cref="VcardValueFormat.Xml"/>, which represent vCard 4.0 alone, and <paramref name="version"/> isn't vCard 4.0.</exception>
         public static bool TryParseText(ReadOnlySpan<char> value, VcardValueFormat format, VcardVersion version, Span<char> destination, out int charsWritten)
         {
             VcardValueFormatting.CheckFormat(format, version);
@@ -80,9 +84,11 @@ namespace DataStandardizer.File.vCard
 
             charsWritten = 0;
 
-            // ref. RFC 7095 §3.1: in jCard "any vCard escaping MUST be unescaped", so the text is copied as it is.
-            var isUnescaped = format == VcardValueFormat.Json || version == VcardVersion.V2_1;
+            // ref. RFC 7095 §3.1: in jCard "any vCard escaping MUST be unescaped", so the text is copied as it is.  ref. RFC 6351 §6: in xCard "Property value escaping is undone"
+            // too, and the text is the content of an element, which holds only the characters of XML 1.0.
+            var isUnescaped = format != VcardValueFormat.Text || version == VcardVersion.V2_1;
             if (!(isUnescaped ? VcardText.IsValidUnescapedText(value) : VcardText.IsValidText(value, version))) return false;
+            if (format == VcardValueFormat.Xml && !VcardValueFormatting.IsXmlText(value)) return false;
 
             if (isUnescaped)
             {
@@ -103,7 +109,6 @@ namespace DataStandardizer.File.vCard
         /// <param name="result">The text, if the value is valid.</param>
         /// <returns><c>true</c> if the value is valid; otherwise <c>false</c>.</returns>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not a <see cref="VcardValueFormat"/> member.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public static bool TryParseText(ReadOnlySpan<char> value, VcardValueFormat format, [NotNullWhen(true)] out string? result)
 #else
@@ -132,7 +137,6 @@ namespace DataStandardizer.File.vCard
         /// <returns><c>true</c> if the value was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
         /// <exception cref="ArgumentException"><paramref name="value"/> holds a control character other than a tab or a line break, or a lone surrogate.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not a <see cref="VcardValueFormat"/> member.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
         public static bool TryFormatText(ReadOnlySpan<char> value, Span<char> destination, out int charsWritten, VcardValueFormat format)
         {
             return TryFormatText(value, destination, out charsWritten, format, VcardVersion.V4_0);
@@ -143,7 +147,8 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <remarks>
         /// In vCard 4.0 a backslash and a comma are escaped and each line break (CRLF, LF or a lone CR) is written <c>\n</c>.  vCard 3.0 escapes a semicolon as well.  vCard 2.1 has
-        /// no escaping outside a compound value, so its text is written as it is.  <paramref name="destination"/> must not overlap <paramref name="value"/>.
+        /// no escaping outside a compound value, so its text is written as it is.  In the <see cref="VcardValueFormat.Json"/> and <see cref="VcardValueFormat.Xml"/> forms the
+        /// text is written as it is too.  <paramref name="destination"/> must not overlap <paramref name="value"/>.
         /// </remarks>
         /// <param name="value">The text.</param>
         /// <param name="destination">The span to write to.</param>
@@ -151,17 +156,19 @@ namespace DataStandardizer.File.vCard
         /// <param name="format">The lexical form to write.</param>
         /// <param name="version">The version whose grammar applies.</param>
         /// <returns><c>true</c> if the value was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
-        /// <exception cref="ArgumentException"><paramref name="value"/> holds a control character other than a tab or a line break, or a lone surrogate.</exception>
+        /// <exception cref="ArgumentException"><paramref name="value"/> holds a control character other than a tab or a line break, or a lone surrogate; or, in the
+        /// <see cref="VcardValueFormat.Xml"/> form, a character that XML cannot hold, such as U+FFFE.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> or <paramref name="version"/> is not a member of its type.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
-        /// <exception cref="ArgumentException"><paramref name="format"/> is <see cref="VcardValueFormat.Json"/>, which represents vCard 4.0 alone, and <paramref name="version"/> isn't vCard 4.0.</exception>
+        /// <exception cref="ArgumentException"><paramref name="format"/> is <see cref="VcardValueFormat.Json"/> or <see cref="VcardValueFormat.Xml"/>, which represent vCard 4.0 alone, and <paramref name="version"/> isn't vCard 4.0.</exception>
         public static bool TryFormatText(ReadOnlySpan<char> value, Span<char> destination, out int charsWritten, VcardValueFormat format, VcardVersion version)
         {
             VcardValueFormatting.CheckFormat(format, version);
             VcardText.CheckCharacters(value, nameof(value));
+            if (format == VcardValueFormat.Xml && !VcardValueFormatting.IsXmlText(value))
+                throw new ArgumentException("The text holds a character that XML cannot hold, so it has no xCard form.", nameof(value));
 
             var writer = new VcardSpanWriter(destination);
-            if (format == VcardValueFormat.Json || version == VcardVersion.V2_1)
+            if (format != VcardValueFormat.Text || version == VcardVersion.V2_1)
             {
                 writer.Append(value);
             }
@@ -183,8 +190,7 @@ namespace DataStandardizer.File.vCard
         /// <exception cref="ArgumentNullException"><paramref name="value"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="value"/> holds a control character other than a tab or a line break, or a lone surrogate.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> or <paramref name="version"/> is not a member of its type.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
-        /// <exception cref="ArgumentException"><paramref name="format"/> is <see cref="VcardValueFormat.Json"/>, which represents vCard 4.0 alone, and <paramref name="version"/> isn't vCard 4.0.</exception>
+        /// <exception cref="ArgumentException"><paramref name="format"/> is <see cref="VcardValueFormat.Json"/> or <see cref="VcardValueFormat.Xml"/>, which represent vCard 4.0 alone, and <paramref name="version"/> isn't vCard 4.0.</exception>
         public static string FormatText(string value, VcardValueFormat format, VcardVersion version)
         {
             if (value is null)
@@ -201,14 +207,14 @@ namespace DataStandardizer.File.vCard
         /// <param name="value">The value as it appears in the content line.</param>
         /// <param name="format">The lexical form of the value.</param>
         /// <returns>An enumerator of the items, with their escaping in place.  It yields one empty item for an empty value, which RFC 6350 §4 allows in a <c>text-list</c>.  In the
-        /// <see cref="VcardValueFormat.Json"/> form, where each item of a list is a JSON string of its own (RFC 7095 §3.3), it yields the value as one item.</returns>
+        /// <see cref="VcardValueFormat.Json"/> form, where each item of a list is a JSON string of its own (RFC 7095 §3.3), and in the <see cref="VcardValueFormat.Xml"/> form, where
+        /// each is an element of its own (RFC 6351 Appendix A), it yields the value as one item.</returns>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not a <see cref="VcardValueFormat"/> member.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
         public static VcardListEnumerator EnumerateList(ReadOnlySpan<char> value, VcardValueFormat format)
         {
             VcardValueFormatting.CheckFormat(format);
 
-            return new VcardListEnumerator(value, format == VcardValueFormat.Json, false);
+            return new VcardListEnumerator(value, format != VcardValueFormat.Text, false);
         }
 
         #endregion
@@ -218,12 +224,15 @@ namespace DataStandardizer.File.vCard
         /// <summary>
         /// Parses a BOOLEAN value (RFC 6350 §4.4): <c>TRUE</c> or <c>FALSE</c>, in any case.
         /// </summary>
+        /// <remarks>
+        /// In the <see cref="VcardValueFormat.Json"/> form the value is a JSON literal, <c>true</c> or <c>false</c> in lower case.  In the <see cref="VcardValueFormat.Xml"/> form it
+        /// is an <c>xsd:boolean</c> (RFC 6351 Appendix A): <c>true</c>, <c>false</c>, <c>1</c> or <c>0</c>, with any XML white space around it.
+        /// </remarks>
         /// <param name="value">The value.</param>
         /// <param name="format">The lexical form of the value.</param>
         /// <param name="result">The Boolean, if the value is valid.</param>
         /// <returns><c>true</c> if the value is valid; otherwise <c>false</c>.</returns>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not a <see cref="VcardValueFormat"/> member.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
         public static bool TryParseBoolean(ReadOnlySpan<char> value, VcardValueFormat format, out bool result)
         {
             VcardValueFormatting.CheckFormat(format);
@@ -235,12 +244,21 @@ namespace DataStandardizer.File.vCard
                 return result || value.SequenceEqual(JsonFalseText.AsSpan());
             }
 
+            if (format == VcardValueFormat.Xml)
+            {
+                // ref. XML Schema Part 2 §3.2.2.1: the literals of xsd:boolean are "true", "false", "1" and "0", and its white space is collapsed.
+                var trimmed = VcardValueFormatting.TrimXmlWhitespace(value);
+                result = trimmed.SequenceEqual(JsonTrueText.AsSpan()) || trimmed.SequenceEqual("1".AsSpan());
+                return result || trimmed.SequenceEqual(JsonFalseText.AsSpan()) || trimmed.SequenceEqual("0".AsSpan());
+            }
+
             result = VcardValueFormatting.EqualsKeyword(value, TrueText);
             return result || VcardValueFormatting.EqualsKeyword(value, FalseText);
         }
 
         /// <summary>
-        /// Formats a BOOLEAN value (RFC 6350 §4.4) as <c>TRUE</c> or <c>FALSE</c>.
+        /// Formats a BOOLEAN value (RFC 6350 §4.4) as <c>TRUE</c> or <c>FALSE</c>; or, in the <see cref="VcardValueFormat.Json"/> and <see cref="VcardValueFormat.Xml"/> forms,
+        /// <c>true</c> or <c>false</c>.
         /// </summary>
         /// <param name="value">The Boolean.</param>
         /// <param name="destination">The span to write to.</param>
@@ -248,13 +266,12 @@ namespace DataStandardizer.File.vCard
         /// <param name="format">The lexical form to write.</param>
         /// <returns><c>true</c> if the value was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not a <see cref="VcardValueFormat"/> member.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
         public static bool TryFormatBoolean(bool value, Span<char> destination, out int charsWritten, VcardValueFormat format)
         {
             VcardValueFormatting.CheckFormat(format);
 
             var writer = new VcardSpanWriter(destination);
-            if (format == VcardValueFormat.Json)
+            if (format != VcardValueFormat.Text)
             {
                 writer.Append((value ? JsonTrueText : JsonFalseText).AsSpan());
             }
@@ -273,17 +290,25 @@ namespace DataStandardizer.File.vCard
         /// <summary>
         /// Parses an INTEGER value (RFC 6350 §4.5), from -9223372036854775808 to 9223372036854775807, with an optional sign.
         /// </summary>
+        /// <remarks>
+        /// In the <see cref="VcardValueFormat.Xml"/> form the value is an <c>xsd:integer</c> (RFC 6351 Appendix A), which may have XML white space around it, in the same range.
+        /// </remarks>
         /// <param name="value">The value.</param>
         /// <param name="format">The lexical form of the value.</param>
         /// <param name="result">The integer, if the value is valid.</param>
         /// <returns><c>true</c> if the value is valid; otherwise <c>false</c>.</returns>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not a <see cref="VcardValueFormat"/> member.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
         public static bool TryParseInteger(ReadOnlySpan<char> value, VcardValueFormat format, out long result)
         {
             VcardValueFormatting.CheckFormat(format);
 
             if (format == VcardValueFormat.Json) return TryParseJsonInteger(value, out result);
+
+            // ref. XML Schema Part 2 §3.3.13.1: xsd:integer is an optional sign and digits, and its white space is collapsed.
+            if (format == VcardValueFormat.Xml)
+            {
+                value = VcardValueFormatting.TrimXmlWhitespace(value);
+            }
 
             // ref. RFC 6350 §4: integer = [sign] 1*DIGIT
             result = 0;
@@ -325,7 +350,6 @@ namespace DataStandardizer.File.vCard
         /// <param name="format">The lexical form to write.</param>
         /// <returns><c>true</c> if the value was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not a <see cref="VcardValueFormat"/> member.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
         public static bool TryFormatInteger(long value, Span<char> destination, out int charsWritten, VcardValueFormat format)
         {
             VcardValueFormatting.CheckFormat(format);
@@ -342,17 +366,21 @@ namespace DataStandardizer.File.vCard
         /// <summary>
         /// Parses a FLOAT value (RFC 6350 §4.6): an optional sign, digits and an optional fraction, with no exponent.
         /// </summary>
+        /// <remarks>
+        /// In the <see cref="VcardValueFormat.Xml"/> form the value is an <c>xsd:float</c> (RFC 6351 Appendix A), which may also have an exponent, such as <c>1.5E3</c>, a decimal point
+        /// with digits on only one side, and XML white space around it.  <c>INF</c>, <c>-INF</c> and <c>NaN</c> are not valid, since a FLOAT value can't hold them.
+        /// </remarks>
         /// <param name="value">The value.</param>
         /// <param name="format">The lexical form of the value.</param>
         /// <param name="result">The number, if the value is valid.</param>
         /// <returns><c>true</c> if the value is valid; otherwise <c>false</c>.</returns>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not a <see cref="VcardValueFormat"/> member.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
         public static bool TryParseFloat(ReadOnlySpan<char> value, VcardValueFormat format, out double result)
         {
             VcardValueFormatting.CheckFormat(format);
 
             if (format == VcardValueFormat.Json) return TryParseJsonFloat(value, out result);
+            if (format == VcardValueFormat.Xml) return TryParseXmlFloat(VcardValueFormatting.TrimXmlWhitespace(value), out result);
 
             return TryParseFloatCore(value, true, out result);
         }
@@ -366,7 +394,6 @@ namespace DataStandardizer.File.vCard
         /// <param name="format">The lexical form to write.</param>
         /// <returns><c>true</c> if the value was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not a <see cref="VcardValueFormat"/> member, or <paramref name="value"/> is NaN or infinite.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
         public static bool TryFormatFloat(double value, Span<char> destination, out int charsWritten, VcardValueFormat format)
         {
             VcardValueFormatting.CheckFormat(format);
@@ -393,13 +420,16 @@ namespace DataStandardizer.File.vCard
         /// backslash is rejected; see <see cref="VcardOptions.AcceptUnescapedCommasInUris"/>.  A semicolon "MAY be escaped".  The <see cref="Uri"/> has the text with its escaping
         /// removed.
         /// </para>
+        /// <para>
+        /// In the <see cref="VcardValueFormat.Json"/> form the value has no escaping of vCard.  In the <see cref="VcardValueFormat.Xml"/> form it is an <c>xsd:anyURI</c>
+        /// (RFC 6351 Appendix A), which has no escaping of vCard either, and may have XML white space around it.
+        /// </para>
         /// </remarks>
         /// <param name="value">The value, such as <c>http://www.example.com/my/picture.jpg</c>.</param>
         /// <param name="format">The lexical form of the value.</param>
         /// <param name="result">The URI, if the value is valid.</param>
         /// <returns><c>true</c> if the value is valid; otherwise <c>false</c>.</returns>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not a <see cref="VcardValueFormat"/> member.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public static bool TryParseUri(ReadOnlySpan<char> value, VcardValueFormat format, [NotNullWhen(true)] out Uri? result)
 #else
@@ -411,7 +441,10 @@ namespace DataStandardizer.File.vCard
             result = null;
 
             // ref. RFC 7095 §3.5.2: in jCard a URI is a JSON string, which has no escaping of vCard.
-            if (format == VcardValueFormat.Json || (value.IndexOf('\\') < 0 && value.IndexOf(',') < 0)) return TryParseUriText(value, out result);
+            if (format == VcardValueFormat.Json || (format == VcardValueFormat.Text && value.IndexOf('\\') < 0 && value.IndexOf(',') < 0)) return TryParseUriText(value, out result);
+
+            // ref. RFC 6351 §6: in xCard "Property value escaping is undone".  ref. XML Schema Part 2 §3.2.17: the white space of xsd:anyURI is collapsed.
+            if (format == VcardValueFormat.Xml) return TryParseUriText(VcardValueFormatting.TrimXmlWhitespace(value), out result);
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             string? text;
@@ -434,7 +467,6 @@ namespace DataStandardizer.File.vCard
         /// <exception cref="ArgumentException"><paramref name="value"/> is not absolute, or was given with characters a URI value can't hold, such as a space, which
         /// <see cref="Uri"/> accepts and <see cref="TryParseUri"/> doesn't.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not a <see cref="VcardValueFormat"/> member.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
         public static bool TryFormatUri(Uri value, Span<char> destination, out int charsWritten, VcardValueFormat format)
         {
             if (value is null)
@@ -443,7 +475,7 @@ namespace DataStandardizer.File.vCard
             VcardValueFormatting.CheckFormat(format);
 
             var writer = new VcardSpanWriter(destination);
-            writer.Append((format == VcardValueFormat.Json ? value.OriginalString : EscapeUri(value.OriginalString)).AsSpan());
+            writer.Append((format != VcardValueFormat.Text ? value.OriginalString : EscapeUri(value.OriginalString)).AsSpan());
             return writer.TryComplete(out charsWritten);
         }
 
@@ -462,7 +494,6 @@ namespace DataStandardizer.File.vCard
         /// <param name="result">The tag, if the value is valid.</param>
         /// <returns><c>true</c> if the value is valid; otherwise <c>false</c>.</returns>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not a <see cref="VcardValueFormat"/> member.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
         public static bool TryParseLanguageTag(ReadOnlySpan<char> value, VcardValueFormat format, out Bcp47LanguageTag result)
         {
             VcardValueFormatting.CheckFormat(format);
@@ -480,7 +511,6 @@ namespace DataStandardizer.File.vCard
         /// <returns><c>true</c> if the value was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
         /// <exception cref="ArgumentException"><paramref name="value"/> is not initialised.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not a <see cref="VcardValueFormat"/> member.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
         public static bool TryFormatLanguageTag(Bcp47LanguageTag value, Span<char> destination, out int charsWritten, VcardValueFormat format)
         {
             VcardValueFormatting.CheckFormat(format);
@@ -566,6 +596,45 @@ namespace DataStandardizer.File.vCard
             text = string.Empty;
             if (!VcardValueFormatting.TryExpandJsonNumber(value, out isNegative, out integerDigits, out fractionDigits)) return false;
 
+            text = FormatDigits(isNegative, integerDigits, fractionDigits);
+            return true;
+        }
+
+        /// <summary>
+        /// Parses the numeral of an <c>xsd:float</c>, with its white space removed, as a FLOAT of xCard (RFC 6351 Appendix A), which may have an exponent.  <c>INF</c>, <c>-INF</c> and
+        /// <c>NaN</c> are not numerals.
+        /// </summary>
+        internal static bool TryParseXmlFloat(ReadOnlySpan<char> value, out double result)
+        {
+            result = 0;
+            if (!VcardValueFormatting.IsXmlFloatNumeral(value)) return false;
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP2_1_OR_GREATER
+            if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out result)) return false;
+#else
+            if (!double.TryParse(value.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out result)) return false;
+#endif
+
+            return !double.IsInfinity(result);
+        }
+
+        /// <summary>
+        /// Gets the text of a FLOAT of RFC 6350 §4.6 for an <c>xsd:float</c> of xCard, whose exponent and white space vCard doesn't allow, keeping every digit.
+        /// </summary>
+        /// <returns><c>false</c> if the text isn't a numeral of <c>xsd:float</c>, or its exponent is too large to expand.</returns>
+        internal static bool TryExpandXmlFloat(ReadOnlySpan<char> value, out string text)
+        {
+            bool isNegative;
+            string integerDigits, fractionDigits;
+            text = string.Empty;
+            if (!VcardValueFormatting.TryExpandXmlFloat(VcardValueFormatting.TrimXmlWhitespace(value), out isNegative, out integerDigits, out fractionDigits)) return false;
+
+            text = FormatDigits(isNegative, integerDigits, fractionDigits);
+            return true;
+        }
+
+        private static string FormatDigits(bool isNegative, string integerDigits, string fractionDigits)
+        {
             var builder = new StringBuilder();
             if (isNegative)
             {
@@ -578,8 +647,7 @@ namespace DataStandardizer.File.vCard
                 builder.Append('.').Append(fractionDigits);
             }
 
-            text = builder.ToString();
-            return true;
+            return builder.ToString();
         }
 
         /// <summary>
