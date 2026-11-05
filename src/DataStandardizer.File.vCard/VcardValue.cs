@@ -371,6 +371,8 @@ namespace DataStandardizer.File.vCard
             VcardValueFormatting.CheckFormat(format);
 
             result = null;
+            if (value.IndexOf('\\') < 0 && value.IndexOf(',') < 0) return TryParseUriText(value, out result);
+
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             string? text;
 #else

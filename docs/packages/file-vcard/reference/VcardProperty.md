@@ -39,8 +39,8 @@ public sealed class VcardProperty<TValue> : IVcard40Property<TValue>
 | `TimeZone` | `string?` | `TZ` (§5.11). |
 | `Label` | `string?` | `LABEL` (§6.3.1). |
 | `Level` | `VcardLevel?` | `LEVEL` (RFC 6715 §3.2), or `null` if there is none that is valid for the property. |
-| `Index` | `long?` | `INDEX` (RFC 6715 §3.1), or `null` if there is no valid one. See `VcardPropertyList<TValue>.GetOrderedByIndex()`. |
-| `CountryCode` | `Iso3166Part1Alpha2Country?` | `CC` (RFC 8605 §3.1), or `null` if there is no valid one. |
+| `Index` | `long?` | `INDEX` (RFC 6715 §3.1), or `null` if there is no valid one or the property doesn't allow it. See `VcardPropertyList<TValue>.GetOrderedByIndex()`. |
+| `CountryCode` | `Iso3166Part1Alpha2Country?` | `CC` (RFC 8605 §3.1), or `null` if there is no valid one or the property doesn't allow it. |
 | `ExtensionParameters` | `IReadOnlyList<VcardContentLineParameter>` | The parameters RFC 6350 and its extensions don't define. |
 
 ## Applies to

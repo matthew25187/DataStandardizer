@@ -27,7 +27,7 @@ namespace DataStandardizer.File.vCard
         TValue Value { get; }
 
         /// <summary>
-        /// Gets the <c>CC</c> (RFC 8605 §3.1), the country code of the country name of an address; or <c>null</c> if the property doesn't have a valid one.
+        /// Gets the <c>CC</c> (RFC 8605 §3.1), the country code of the country name of an address; or <c>null</c> if the property doesn't have a valid one, or doesn't allow it.
         /// </summary>
         Iso3166Part1Alpha2Country? CountryCode { get; }
 
@@ -37,7 +37,7 @@ namespace DataStandardizer.File.vCard
         IReadOnlyList<VcardContentLineParameter> ExtensionParameters { get; }
 
         /// <summary>
-        /// Gets the <c>INDEX</c> (RFC 6715 §3.1), the position of the value among the instances of the property; or <c>null</c> if the property doesn't have a valid one.
+        /// Gets the <c>INDEX</c> (RFC 6715 §3.1), the position of the value among the instances of the property; or <c>null</c> if the property doesn't have a valid one, or doesn't allow it.
         /// </summary>
         long? Index { get; }
 

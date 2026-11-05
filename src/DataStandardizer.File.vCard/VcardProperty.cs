@@ -29,7 +29,7 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Gets the <c>CC</c> (RFC 8605 §3.1), the country code of the country name of an address; or <c>null</c> if the property doesn't have a valid one.
+        /// Gets the <c>CC</c> (RFC 8605 §3.1), the country code of the country name of an address; or <c>null</c> if the property doesn't have a valid one, or doesn't allow it.
         /// </summary>
         public Iso3166Part1Alpha2Country? CountryCode
         {
@@ -37,7 +37,9 @@ namespace DataStandardizer.File.vCard
             {
                 var text = VcardPropertyParameterReader.GetValue(Line, VcardParameterNames.CountryCode);
                 Iso3166Part1Alpha2Country result;
-                return text != null && VcardPropertyParameterReader.TryParseCountryCode(text, out result) ? result : (Iso3166Part1Alpha2Country?)null;
+                return text != null && VcardPropertyParameterReader.IsAllowedOnProperty(VcardParameterSet.CountryCode, Line.Name) && VcardPropertyParameterReader.TryParseCountryCode(text, out result)
+                    ? result
+                    : (Iso3166Part1Alpha2Country?)null;
             }
         }
 
@@ -62,7 +64,7 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Gets the <c>INDEX</c> (RFC 6715 §3.1), the position of the value among the instances of the property; or <c>null</c> if the property doesn't have a valid one.  See
+        /// Gets the <c>INDEX</c> (RFC 6715 §3.1), the position of the value among the instances of the property; or <c>null</c> if the property doesn't have a valid one, or doesn't allow it.  See
         /// <see cref="VcardPropertyList{TValue}.GetOrderedByIndex"/>.
         /// </summary>
         public long? Index
@@ -71,7 +73,9 @@ namespace DataStandardizer.File.vCard
             {
                 var text = VcardPropertyParameterReader.GetValue(Line, VcardParameterNames.Index);
                 long result;
-                return text != null && VcardPropertyParameterReader.TryParseIndex(text, out result) ? result : (long?)null;
+                return text != null && VcardPropertyParameterReader.IsAllowedOnProperty(VcardParameterSet.Index, Line.Name) && VcardPropertyParameterReader.TryParseIndex(text, out result)
+                    ? result
+                    : (long?)null;
             }
         }
 
@@ -97,7 +101,9 @@ namespace DataStandardizer.File.vCard
             {
                 var text = VcardPropertyParameterReader.GetValue(Line, VcardParameterNames.Level);
                 VcardLevel result;
-                return text != null && VcardPropertyParameterReader.TryParseLevel(text, Line.Name, out result) ? result : (VcardLevel?)null;
+                return text != null && VcardPropertyParameterReader.IsAllowedOnProperty(VcardParameterSet.Level, Line.Name) && VcardPropertyParameterReader.TryParseLevel(text, Line.Name, out result)
+                    ? result
+                    : (VcardLevel?)null;
             }
         }
 

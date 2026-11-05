@@ -41,6 +41,15 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
+        /// Gets whether a property may have a parameter of an extension.  A property vCard 4.0 doesn't define may have any, by the <c>any-param</c> of RFC 6350 §3.3.
+        /// </summary>
+        internal static bool IsAllowedOnProperty(VcardParameterSet parameter, string propertyName)
+        {
+            var info = VcardPropertyInfo.Find(propertyName);
+            return info is null || !info.IsDefinedIn(VcardVersion.V4_0) || (info.Parameters & parameter) != 0;
+        }
+
+        /// <summary>
         /// Gets the text of a level.
         /// </summary>
         internal static string FormatLevel(VcardLevel level)

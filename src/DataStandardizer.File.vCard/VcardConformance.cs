@@ -522,8 +522,9 @@ namespace DataStandardizer.File.vCard
             if (flag == VcardParameterSet.CalendarScale && (isDateOfBirthOrDeath || info.Name == VcardPropertyNames.Anniversary))
             {
                 VcardDateAndOrTime dateAndOrTime;
+                string text;
                 isMismatch |= valueType != VcardValueType.DateAndOrTime ||
-                              (VcardDateAndOrTime.TryParse(line.Value.AsSpan(), VcardValueFormat.Text, out dateAndOrTime) && dateAndOrTime.Kind == VcardDateAndOrTimeKind.Time);
+                              (TryGetValueText(line, out text) && VcardDateAndOrTime.TryParse(text.AsSpan(), VcardValueFormat.Text, out dateAndOrTime) && dateAndOrTime.Kind == VcardDateAndOrTimeKind.Time);
             }
 
             if (isMismatch)
@@ -543,7 +544,7 @@ namespace DataStandardizer.File.vCard
             {
                 string text;
                 Uri uri;
-                hasRequiredScheme |= TryGetValueText(line, out text) && VcardValue.TryParseUri(text.AsSpan(), VcardValueFormat.Text, out uri) && ContainsIgnoringCase(ContactUriSchemes, uri.Scheme);
+                hasRequiredScheme |= VcardValueTypeRegistry.GetValueType(line) == VcardValueType.Uri && TryGetValueText(line, out text) && VcardValue.TryParseUri(text.AsSpan(), VcardValueFormat.Text, out uri) && ContainsIgnoringCase(ContactUriSchemes, uri.Scheme);
                 hasPreference |= VcardPropertyParameterReader.GetPreferenceOrLeast(line) <= VcardPropertyParameterReader.MaxPreference;
             }
 

@@ -8,7 +8,7 @@ namespace DataStandardizer.File.vCard
     /// </summary>
     /// <remarks>
     /// <para>
-    /// This type holds the URI.  To read a value without allocating, use <see cref="TryParseParts(ReadOnlySpan{char}, VcardValueFormat, out long, out ReadOnlySpan{char})"/>, which
+    /// This type holds the URI.  To read a value without allocating, unless its URI has an escape, use <see cref="TryParseParts(ReadOnlySpan{char}, VcardValueFormat, out long, out ReadOnlySpan{char})"/>, which
     /// checks the URI's characters and scheme (RFC 3986) but leaves <see cref="Uri"/> to go further.
     /// </para>
     /// <para>
@@ -94,7 +94,7 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Parses a value without allocating.
+        /// Parses a value without allocating, unless its URI has an escape.
         /// </summary>
         /// <param name="value">The value.</param>
         /// <param name="format">The lexical form of the value.</param>

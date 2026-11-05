@@ -46,6 +46,6 @@ The identifier must be strictly positive (§6.7.7).
 | Method | Notes |
 | --- | --- |
 | `TryParse`, `Parse`, `TryFormat`, `ToString` | As for the other values, with no version. |
-| `TryParseParts(value, format, out sourceId, out uri)` | Parses without allocating. |
+| `TryParseParts(value, format, out sourceId, out uri)` | Parses without allocating, unless the URI has an escape. |
 
 See the [API reference](index.md).

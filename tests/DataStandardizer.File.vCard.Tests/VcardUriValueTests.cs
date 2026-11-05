@@ -81,9 +81,10 @@ namespace DataStandardizer.File.vCard.Tests
 
             // act
             int charsWritten;
-            VcardValue.TryFormatUri(uri, destination, out charsWritten, VcardValueFormat.Text);
+            var testResult = VcardValue.TryFormatUri(uri, destination, out charsWritten, VcardValueFormat.Text);
 
             // assert
+            testResult.Should().BeTrue();
             new string(destination, 0, charsWritten).Should().Be(Expected);
         }
 
@@ -123,9 +124,10 @@ namespace DataStandardizer.File.vCard.Tests
 
             // act
             int charsWritten;
-            map.TryFormat(destination, out charsWritten, VcardValueFormat.Text);
+            var testResult = map.TryFormat(destination, out charsWritten, VcardValueFormat.Text);
 
             // assert
+            testResult.Should().BeTrue();
             new string(destination, 0, charsWritten).Should().Be(Expected);
         }
 

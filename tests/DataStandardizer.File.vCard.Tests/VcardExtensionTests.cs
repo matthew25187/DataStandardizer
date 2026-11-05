@@ -413,6 +413,38 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Fact]
+        public void Validate_ContactUriOfRequiredSchemeAsText_ReportsMissingRequiredProperty()
+        {
+            // arrange
+            // ref. RFC 8605 §2.1: the requirement is of a URI value, and this is text, which the property doesn't allow.
+            var options = new VcardOptions { AllowInvalidValues = true, AllowMissingRequiredProperties = true };
+            var card = VcardCardTestData.Read(VcardCardTestData.Card("CONTACT-URI;VALUE=text:https://example.com/"), options);
+
+            // act
+            var testResult = card.Validate();
+
+            // assert
+            VcardCardTestData.KindsOf(testResult).Should().Equal(VcardDiagnosticKind.InvalidValue, VcardDiagnosticKind.MissingRequiredProperty);
+        }
+
+        [Theory]
+        [InlineData("DEATHDATE;ENCODING=QUOTED-PRINTABLE;CALSCALE=gregorian:=541200")]
+        [InlineData("BDAY;ENCODING=QUOTED-PRINTABLE;CALSCALE=gregorian:=541200")]
+        public void Validate_CalendarScaleOnAnEncodedTime_ReportsInvalidParameter(string property)
+        {
+            // arrange
+            // ref. RFC 6474 §2.3 and RFC 6350 §6.2.5: CALSCALE only with a date or date-time, and =54 is the T of the time T1200.
+            var options = new VcardOptions { AcceptLegacySyntax = true, AllowInvalidValues = true };
+            var card = VcardCardTestData.Read(VcardCardTestData.Card(property), options);
+
+            // act
+            var testResult = card.Validate();
+
+            // assert
+            VcardCardTestData.KindsOf(testResult).Should().Equal(VcardDiagnosticKind.LegacySyntax, VcardDiagnosticKind.InvalidParameter);
+        }
+
+        [Fact]
         public void ReadCard_SeveralContactUrisWithoutPrefByDefault_Throws()
         {
             // arrange
@@ -476,6 +508,12 @@ namespace DataStandardizer.File.vCard.Tests
                 { "HOBBY;LEVEL=x:a", card => card.Hobbies[0].Level },
                 { "HOBBY;INDEX=0:a", card => card.Hobbies[0].Index },
                 { "ADR;CC=ZZ:;;;;;;", card => card.Addresses[0].CountryCode },
+
+                // ref. RFC 6715 §2, §3 and RFC 8605 §3.1: valid values, on a property that doesn't allow the parameter.
+                { "NOTE;LEVEL=high:a", card => card.Notes[0].Level },
+                { "NOTE;INDEX=1:a", card => card.Notes[0].Index },
+                { "NOTE;CC=US:a", card => card.Notes[0].CountryCode },
+
                 { "HOBBY:a", card => card.Hobbies[0].Level },
                 { "HOBBY:a", card => card.Hobbies[0].Index },
                 { "ADR:;;;;;;", card => card.Addresses[0].CountryCode }
@@ -494,6 +532,31 @@ namespace DataStandardizer.File.vCard.Tests
 
             // assert
             testResult.Should().BeNull();
+        }
+
+        public static TheoryData<Func<VcardCard, object>, object> UnknownPropertyParameterData()
+        {
+            // ref. RFC 6350 §3.3: any-param lets a property vCard 4.0 doesn't define have them.
+            return new TheoryData<Func<VcardCard, object>, object>
+            {
+                { card => card.ExtensionProperties[0].Level, VcardLevel.High },
+                { card => card.ExtensionProperties[0].Index, 1L },
+                { card => card.ExtensionProperties[0].CountryCode, Iso3166Part1Alpha2Country.US }
+            };
+        }
+
+        [Theory]
+        [MemberData(nameof(UnknownPropertyParameterData))]
+        public void Member_ParameterOnAnUnknownProperty_GivesIt(Func<VcardCard, object> member, object expected)
+        {
+            // arrange
+            var card = VcardCardTestData.Read(VcardCardTestData.Card("X-A;LEVEL=high;INDEX=1;CC=US:a"));
+
+            // act
+            var testResult = member(card);
+
+            // assert
+            testResult.Should().Be(expected);
         }
 
         public static TheoryData<Func<VcardCard, object>> AbsentPropertyData()
@@ -676,6 +739,20 @@ namespace DataStandardizer.File.vCard.Tests
 
             // assert
             testResult.Select(property => property.Value).Should().Equal("hockey", "baseball", "art", "music");
+        }
+
+        [Fact]
+        public void GetOrderedByIndex_NoIndexBeforeTheLargestIndex_PutsItAfter()
+        {
+            // arrange
+            // ref. RFC 6350 §4.5: the largest integer.  ref. RFC 6715 erratum 3342: an instance with no INDEX goes at the end.
+            var card = VcardCardTestData.Read(VcardCardTestData.Card("INTEREST:a", "INTEREST;INDEX=9223372036854775807:b"));
+
+            // act
+            var testResult = card.Interests.GetOrderedByIndex();
+
+            // assert
+            testResult.Select(property => property.Value).Should().Equal("b", "a");
         }
 
         [Fact]

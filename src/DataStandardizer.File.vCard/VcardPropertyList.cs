@@ -109,7 +109,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         public IReadOnlyList<VcardProperty<TValue>> GetOrderedByIndex()
         {
-            return new ReadOnlyCollection<VcardProperty<TValue>>(GetInstances().OrderBy(instance => instance.Index ?? long.MaxValue).ToList());
+            return new ReadOnlyCollection<VcardProperty<TValue>>(GetInstances().OrderBy(instance => instance.Index.HasValue ? 0 : 1).ThenBy(instance => instance.Index ?? 0).ToList());
         }
 
         /// <summary>
