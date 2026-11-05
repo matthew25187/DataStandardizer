@@ -19,8 +19,7 @@ using (var reader = new VcardReader("contacts.vcf"))
 }
 ```
 
-vCard 4.0 and 3.0 can be read and written so far. vCard 2.1 is still to come, and the model is
-designed for it, as this page describes. See [Converting between versions](version-conversion.md).
+vCard 4.0, 3.0 and 2.1 can be read and written. See [Converting between versions](version-conversion.md).
 
 ## Common and versioned members
 
@@ -53,8 +52,9 @@ The rules of a versioned interface, which each version follows:
   version, including one read from another version.
 
 Property wrappers and lists have versioned interfaces in the same way: `IVcard40Property<TValue>` and
-`IVcard40PropertyList<TValue>`, and `IVcard30Property<TValue>` and `IVcard30PropertyList<TValue>`. `AsVersion30()` gives
-the [IVcard30Card](reference/IVcard30Card.md) view.
+`IVcard40PropertyList<TValue>`, `IVcard30Property<TValue>` and `IVcard30PropertyList<TValue>`, and `IVcard21Property<TValue>` and
+`IVcard21PropertyList<TValue>`. `AsVersion30()` gives the [IVcard30Card](reference/IVcard30Card.md) view, and `AsVersion21()` the
+[IVcard21Card](reference/IVcard21Card.md) view.
 
 ## The open list of properties
 
@@ -182,6 +182,7 @@ caught, and reading goes on with the next card.
 - [VcardCard](reference/VcardCard.md)
 - [IVcard40Card](reference/IVcard40Card.md)
 - [IVcard30Card](reference/IVcard30Card.md)
+- [IVcard21Card](reference/IVcard21Card.md)
 - [Converting between versions](version-conversion.md)
 - [VcardReader](reference/VcardReader.md)
 - [VcardWriter](reference/VcardWriter.md)

@@ -17,7 +17,7 @@ namespace DataStandardizer.File.vCard
         /// Lists what a card can't keep in a version, without changing or writing anything.
         /// </summary>
         /// <remarks>
-        /// For vCard 3.0, each item is <see cref="VcardDiagnosticKind.Lossy"/>: data that <see cref="VcardWriter"/> refuses to write unless <see cref="VcardOptions.AllowLossyVersionConversion"/> is set.
+        /// For vCard 3.0 and 2.1, each item is <see cref="VcardDiagnosticKind.Lossy"/>: data that <see cref="VcardWriter"/> refuses to write unless <see cref="VcardOptions.AllowLossyVersionConversion"/> is set.
         /// vCard 4.0 is the form of the model, so nothing is lost, and each item is <see cref="VcardDiagnosticKind.VersionConversion"/>: a property of an older version, such as a <c>MAILER</c>
         /// or a <c>LABEL</c> that goes with no <c>ADR</c>, which stays as a property that vCard 4.0 doesn't define.
         /// </remarks>
@@ -26,7 +26,6 @@ namespace DataStandardizer.File.vCard
         /// <returns>The items, in the order of the properties.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="card"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="version"/> is not a <see cref="VcardVersion"/> member.</exception>
-        /// <exception cref="ArgumentException">Cards of <paramref name="version"/> can't be written yet.</exception>
         public static IReadOnlyList<VcardDiagnostic> Analyze(VcardCard card, VcardVersion version)
         {
             if (card is null)
@@ -54,7 +53,6 @@ namespace DataStandardizer.File.vCard
         /// <returns>The copy.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="card"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="version"/> is not a <see cref="VcardVersion"/> member.</exception>
-        /// <exception cref="ArgumentException">Cards of <paramref name="version"/> can't be written yet.</exception>
         /// <exception cref="VcardFileException"><see cref="Analyze"/> gives a <see cref="VcardDiagnosticKind.Lossy"/> item for the card.</exception>
         public static VcardCard Convert(VcardCard card, VcardVersion version)
         {
@@ -70,7 +68,6 @@ namespace DataStandardizer.File.vCard
         /// <returns>The copy.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="card"/> or <paramref name="options"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="version"/> is not a <see cref="VcardVersion"/> member.</exception>
-        /// <exception cref="ArgumentException">Cards of <paramref name="version"/> can't be written yet.</exception>
         /// <exception cref="VcardFileException"><see cref="Analyze"/> gives a <see cref="VcardDiagnosticKind.Lossy"/> item for the card, which the options don't accept.</exception>
         public static VcardCard Convert(VcardCard card, VcardVersion version, VcardOptions options)
         {

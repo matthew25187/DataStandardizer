@@ -138,11 +138,12 @@ In a vCard 2.1 card, `VcardContentLineWriter`:
 - never folds a line, since no fold is read the same way by every reader
 - breaks a value with `ENCODING=QUOTED-PRINTABLE` with soft line breaks, so that no line reaches 76 characters (vCard 2.1 §2.1.3); a line whose group, name and parameters leave no room for that on its first line can't be written
 - writes a value with `ENCODING=BASE64` on indented lines after the property's own, with the empty line that ends it
-- writes every parameter with its name (`TYPE=HOME`), which vCard 2.1 §2.9 allows for all of them
+- writes a `TYPE` whose one value is a `knowntype` of vCard 2.1 §2.9 as that value alone (`TEL;HOME:`), as every example in the specification does, unless `WriteNamedTypesInVersion21` is set, and every other parameter with its name
 
 The value must already be in its encoding, and the line can't be written if it isn't. Use
 `MimeQuotedPrintable` or `MimeBase64` from `DataStandardizer.Communication` to encode it. The
-writer doesn't produce these forms outside a vCard 2.1 card.
+writer doesn't produce these forms outside a vCard 2.1 card. `VcardWriter` does this for a whole card
+written as vCard 2.1; see [Converting between versions](version-conversion.md#writing-vcard-21).
 
 ## Cards that break the rules
 

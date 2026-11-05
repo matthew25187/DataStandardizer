@@ -34,7 +34,7 @@ namespace DataStandardizer.File.vCard
     /// so is a value with a <c>PHONETIC</c> parameter, because RFC 9554 §4.6 needs its related property to have a value in each of its components.
     /// </para>
     /// </remarks>
-    public sealed partial class VcardCard : IVcard40Card, IVcard30Card
+    public sealed partial class VcardCard : IVcard40Card, IVcard30Card, IVcard21Card
     {
         private static readonly VcardPropertyCodec<string> KindCodec = VcardPropertyCodecs.Text(VcardPropertyNames.Kind);
         private static readonly VcardPropertyCodec<VcardName> NameCodec = VcardPropertyCodecs.Name();

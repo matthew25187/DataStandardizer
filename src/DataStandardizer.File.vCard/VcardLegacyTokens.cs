@@ -68,6 +68,65 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
+        /// Gets whether a token is a <c>knowntype</c> of vCard 2.1 §2.9.
+        /// </summary>
+        internal static bool IsKnownType(ReadOnlySpan<char> token)
+        {
+            return EqualsAny(token, KnownTypes);
+        }
+
+        /// <summary>
+        /// Gets whether a token is a value location of vCard 2.1 §2.9 (<c>pvalueval</c>), other than an <c>X-</c> one.
+        /// </summary>
+        internal static bool IsValueLocation(ReadOnlySpan<char> token)
+        {
+            return EqualsAny(token, ValueLocations);
+        }
+
+        /// <summary>
+        /// Gets whether a token is an encoding of vCard 2.1 §2.9 (<c>pencodingval</c>), other than an <c>X-</c> one.
+        /// </summary>
+        internal static bool IsEncodingName(ReadOnlySpan<char> token)
+        {
+            return IsEncoding(token);
+        }
+
+        /// <summary>
+        /// Gets whether text is a <c>word</c> of vCard 2.1 §2.9: "any printable 7bit us-ascii except []=:., ".  A semicolon, which delimits a parameter, isn't one either.
+        /// </summary>
+        internal static bool IsWord(string text)
+        {
+            if (text.Length == 0) return false;
+
+            foreach (var character in text)
+            {
+                if (character <= ' ' || character >= '\x7F') return false;
+
+                switch (character)
+                {
+                    case '[':
+                    case ']':
+                    case '=':
+                    case ':':
+                    case '.':
+                    case ',':
+                    case ';':
+                        return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Gets whether text is an <c>X-</c> word of vCard 2.1 §2.9, as an extension's name or a parameter's value is.
+        /// </summary>
+        internal static bool IsExtensionWord(string text)
+        {
+            return text.Length > 2 && (text[0] == 'X' || text[0] == 'x') && text[1] == '-' && IsWord(text);
+        }
+
+        /// <summary>
         /// Gets the features of vCard 2.1 that a parameter uses.
         /// </summary>
         /// <param name="name">The name of the parameter.</param>

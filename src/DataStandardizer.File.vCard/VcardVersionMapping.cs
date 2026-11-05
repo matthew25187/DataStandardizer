@@ -14,6 +14,7 @@ namespace DataStandardizer.File.vCard
     {
         private static readonly VcardVersionMapping Version40Mapping = new Version40();
         private static readonly VcardVersionMapping Version30Mapping = new VcardVersion30Mapping();
+        private static readonly VcardVersionMapping Version21Mapping = new VcardVersion21Mapping();
 
         /// <summary>
         /// Gets the mapping of vCard 4.0.
@@ -24,6 +25,11 @@ namespace DataStandardizer.File.vCard
         /// Gets the mapping of vCard 3.0.
         /// </summary>
         internal static VcardVersionMapping Version30 => Version30Mapping;
+
+        /// <summary>
+        /// Gets the mapping of vCard 2.1.
+        /// </summary>
+        internal static VcardVersionMapping Version21 => Version21Mapping;
 
         /// <summary>
         /// Gets the version.
@@ -48,7 +54,9 @@ namespace DataStandardizer.File.vCard
         {
             if (string.Equals(versionText, Version40Mapping.VersionText, StringComparison.Ordinal)) return Version40Mapping;
 
-            return string.Equals(versionText, Version30Mapping.VersionText, StringComparison.Ordinal) ? Version30Mapping : null;
+            if (string.Equals(versionText, Version30Mapping.VersionText, StringComparison.Ordinal)) return Version30Mapping;
+
+            return string.Equals(versionText, Version21Mapping.VersionText, StringComparison.Ordinal) ? Version21Mapping : null;
         }
 
         /// <summary>
@@ -57,7 +65,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="version">The version.</param>
         /// <param name="parameterName">The name of the parameter that gave the version.</param>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="version"/> is not a <see cref="VcardVersion"/> member.</exception>
-        /// <exception cref="ArgumentException">Cards of the version can't be read or written yet.</exception>
+
         internal static VcardVersionMapping For(VcardVersion version, string parameterName)
         {
             switch (version)
@@ -67,7 +75,7 @@ namespace DataStandardizer.File.vCard
                 case VcardVersion.V3_0:
                     return Version30Mapping;
                 case VcardVersion.V2_1:
-                    throw new ArgumentException("Cards of vCard 2.1 can't be written yet.", parameterName);
+                    return Version21Mapping;
                 default:
                     throw new ArgumentOutOfRangeException(parameterName, version, "The version is not recognised.");
             }

@@ -3,7 +3,8 @@ using System;
 namespace DataStandardizer.File.vCard
 {
     /// <summary>
-    /// The value of a <c>PHOTO</c>, <c>LOGO</c>, <c>SOUND</c> or <c>KEY</c> in the shape of vCard 3.0: inline data with a <c>TYPE</c> that says its format, a URI, or for a key, text.
+    /// The value of a <c>PHOTO</c>, <c>LOGO</c>, <c>SOUND</c> or <c>KEY</c> in the shape of vCard 3.0 or 2.1: inline data with a <c>TYPE</c> that says its format, a URI, or for a key, and a
+    /// sound in vCard 2.1 (§2.6.3), text.
     /// </summary>
     /// <remarks>
     /// The canonical form of inline data is an RFC 2397 <c>data:</c> URI, which <see cref="VcardCard.Photos"/> gives.

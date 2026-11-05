@@ -22,8 +22,10 @@ namespace DataStandardizer.File.vCard
     /// parameters.
     /// </para>
     /// <para>
-    /// vCard 4.0 and vCard 3.0 are read.  A vCard 3.0 card is checked by the rules of its version (RFC 2426, RFC 2739 and RFC 4770), and each property is then converted to the canonical form of the model; see
-    /// <see cref="VcardCard.SourceVersion"/>.  <see cref="VcardOptions.AcceptLegacySyntax"/> accepts the quoted-printable that some software writes in one, which RFC 2426 §5 eliminated.  Any
+    /// vCard 4.0, vCard 3.0 and vCard 2.1 are read.  A vCard 3.0 card is checked by the rules of its version (RFC 2426, RFC 2739 and RFC 4770), and a vCard 2.1 card by the specification of
+    /// 1996, and each property is then converted to the canonical form of the model; see <see cref="VcardCard.SourceVersion"/>.  The card an <c>AGENT</c> of a vCard 2.1 card holds, on the
+    /// lines after it (§2.5.4), is read with it, under the same options.  <see cref="VcardOptions.AcceptLegacySyntax"/> accepts the quoted-printable that some software writes in a vCard 3.0
+    /// card, which RFC 2426 §5 eliminated.  Any
     /// other <c>VERSION</c> throws <see cref="VcardFileException"/> as soon as it is read, and the reader can't continue.  To read the content lines of such data, use
     /// <see cref="VcardContentLineReader"/>, which does not check <c>VERSION</c>.
     /// </para>
@@ -447,7 +449,7 @@ namespace DataStandardizer.File.vCard
             try
             {
                 // A card of another version was checked by its own rules before it was converted, and the rules of vCard 4.0 aren't its rules.
-                if (_card.SourceVersion != VcardVersion.V3_0)
+                if (_card.SourceVersion == VcardVersion.V4_0)
                 {
                     VcardConformance.Validate(_card, conformance);
                 }

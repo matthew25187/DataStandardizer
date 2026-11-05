@@ -19,7 +19,7 @@ Writes the card object model as vCard data (RFC 6350).
 public sealed class VcardWriter : IDisposable, IAsyncDisposable
 ```
 
-Each card is written by a [VcardContentLineWriter](VcardContentLineWriter.md), as `BEGIN:VCARD`, a `VERSION` line, its properties in order, and `END:VCARD`. `VcardOptions.WriteVersion` says which version: vCard 4.0 by default, or 3.0, to which the card is converted from the canonical form of the model. See [Converting between versions](../version-conversion.md). The constructors throw `ArgumentException` for vCard 2.1, which can't be written yet. On `netstandard1.1` there are no asynchronous members, no file-path constructors, and the class doesn't implement `IAsyncDisposable`.
+Each card is written by a [VcardContentLineWriter](VcardContentLineWriter.md), as `BEGIN:VCARD`, a `VERSION` line, its properties in order, and `END:VCARD`. `VcardOptions.WriteVersion` says which version: vCard 4.0 by default, or 3.0 or 2.1, to which the card is converted from the canonical form of the model. See [Converting between versions](../version-conversion.md). In vCard 2.1 the card an agent holds is written after its `AGENT` line. On `netstandard1.1` there are no asynchronous members, no file-path constructors, and the class doesn't implement `IAsyncDisposable`.
 
 ## Constructors
 

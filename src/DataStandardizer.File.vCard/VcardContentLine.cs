@@ -121,6 +121,15 @@ namespace DataStandardizer.File.vCard
         internal int CardIndex => _cardIndex;
 
         /// <summary>
+        /// Gets the card an <c>AGENT</c> of vCard 2.1 holds, which follows its line in the data (vCard 2.1 §2.5.4); or <c>null</c>.
+        /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal VcardCard? HeldCard { get; private set; }
+#else
+        internal VcardCard HeldCard { get; private set; }
+#endif
+
+        /// <summary>
         /// Gets the group (RFC 6350 §3.3), as written and without its '.'; or <c>null</c> if the line has none.  Groups are case-insensitive.
         /// </summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
@@ -336,6 +345,17 @@ namespace DataStandardizer.File.vCard
         /// <summary>
         /// Gets a line that a version mapping made from this one.  It is reported at the same place, and its parameters mean what they say, as on a line built in code.
         /// </summary>
+        /// <summary>
+        /// Gets a copy of the line that holds a card, as an <c>AGENT</c> of vCard 2.1 does.
+        /// </summary>
+        internal VcardContentLine WithHeldCard(VcardCard card)
+        {
+            return new VcardContentLine(Group, Name, _parameters, Value, LineNumber, PhysicalLineNumber, _foldOffsets, _valueOffset, _cardIndex, _hasValuelessParameter, _decoder, _version)
+            {
+                HeldCard = card
+            };
+        }
+
         internal VcardContentLine With(string name, VcardContentLineParameter[] parameters, string value)
         {
             return new VcardContentLine(Group, name, parameters, value, LineNumber, PhysicalLineNumber, null, 0, _cardIndex, false, VcardValueDecoder.Default, VcardLineVersion.NotRead);

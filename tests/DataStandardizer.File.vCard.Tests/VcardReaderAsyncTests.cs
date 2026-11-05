@@ -30,6 +30,40 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Fact]
+        public async Task ReadCardAsync_Version21CardWithAnAgent_GivesItInCanonicalFormAsAReadDoes()
+        {
+            // arrange
+            var text = Vcard21TestData.Card("TEL;PREF;CELL:+1", "AGENT:", "BEGIN:VCARD", "VERSION:2.1", "N:Friday;Fred", "END:VCARD");
+            using (var reader = new VcardReader(new StringReader(text)))
+            {
+                // act
+                var testResult = await reader.ReadCardAsync();
+
+                // assert
+                testResult.SourceVersion.Should().Be(VcardVersion.V2_1);
+                testResult.Telephones.Single().Pref.Should().Be(1);
+                testResult.Agents.Single().Card.Name.Value.FamilyNames.Should().Equal("Friday");
+            }
+        }
+
+        [Fact]
+        public async Task WriteCardAsync_WriteVersion21_WritesWhatAWriteDoes()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(Vcard21TestData.Card("TEL;PREF;CELL:+1", "AGENT:BEGIN:VCARD", "VERSION:2.1", "N:Friday;Fred", "END:VCARD"));
+            var output = new StringWriter();
+            using (var writer = new VcardWriter(output, new VcardOptions { WriteVersion = VcardVersion.V2_1 }))
+            {
+                // act
+                await writer.WriteCardAsync(card);
+
+                // assert
+                output.ToString().Should().Be(Vcard21TestData.WrittenCardStart + "TEL;CELL;PREF:+1\r\nAGENT:BEGIN:VCARD\r\nVERSION:2.1\r\nN:Friday;Fred;;;\r\nEND:VCARD\r\n" +
+                                              Vcard21TestData.WrittenCardEnd);
+            }
+        }
+
+        [Fact]
         public async Task WriteCardAsync_WriteVersion30_WritesWhatAWriteDoes()
         {
             // arrange
