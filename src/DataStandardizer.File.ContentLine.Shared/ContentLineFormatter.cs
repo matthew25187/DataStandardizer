@@ -21,6 +21,14 @@ namespace DataStandardizer.File.ContentLine
     /// </remarks>
     internal sealed class ContentLineFormatter
     {
+        private const string Base64Indent = "    ";
+
+        // ref. vCard 2.1 §2.2.3 (PHOTO): the example of an inline image has an indent of 4 characters and 64 characters of base64 on a line.
+        private const int Base64LineLength = 64;
+
+        // ref. vCard 2.1 §2.1.3: "Quoted-Printable lines of text must also be limited to less than 76 characters", not counting the line break.
+        private const int MaxQuotedPrintableLineLength = 75;
+
         private const int MinimumBufferSize = 256;
         private const char Quote = '"';
 
@@ -73,7 +81,7 @@ namespace DataStandardizer.File.ContentLine
             where TLine : IContentLineData
         {
             var logicalLength = Measure(line, lineNumber, caretMode);
-            var start = EnsureCapacity(logicalLength, lineNumber, line.Name, line.Group);
+            var start = EnsureCapacity(logicalLength, foldMode, lineNumber, line.Name, line.Group);
 
             var position = start;
             var group = line.Group;
@@ -97,7 +105,17 @@ namespace DataStandardizer.File.ContentLine
             _buffer[position++] = ':';
             Append(line.Value, position);
 
-            return foldMode == ContentLineFoldMode.Fold ? Fold(start) : MoveUnfolded(start);
+            switch (foldMode)
+            {
+                case ContentLineFoldMode.Fold:
+                    return Fold(start);
+                case ContentLineFoldMode.QuotedPrintableSoftBreak:
+                    return BreakQuotedPrintable(start, line.Value.Length);
+                case ContentLineFoldMode.Base64Lines:
+                    return BreakBase64(start, line.Value.Length);
+                default:
+                    return MoveUnfolded(start);
+            }
         }
 
         /// <summary>
@@ -188,15 +206,26 @@ namespace DataStandardizer.File.ContentLine
         /// </summary>
         /// <returns>The index at which to format the logical line, so that it ends at the end of the buffer.</returns>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        private int EnsureCapacity(long logicalLength, long lineNumber, string name, string? group)
+        private int EnsureCapacity(long logicalLength, ContentLineFoldMode foldMode, long lineNumber, string name, string? group)
 #else
-        private int EnsureCapacity(long logicalLength, long lineNumber, string name, string group)
+        private int EnsureCapacity(long logicalLength, ContentLineFoldMode foldMode, long lineNumber, string name, string group)
 #endif
         {
             // Every physical line but the last holds at least one character, and at least FoldLength - 4 octets once that is positive, since a
             // character is at most 4 octets.  A character is also at most 3 octets per UTF-16 code unit.
             var maxFolds = Math.Min(logicalLength, 3 * logicalLength / Math.Max(1, _foldLength - 4) + 1);
             var capacity = logicalLength + maxFolds * (_lineBreak.Length + 1) + _lineBreak.Length;
+            if (foldMode == ContentLineFoldMode.QuotedPrintableSoftBreak)
+            {
+                // A soft line break is a '=' and a line break, after at least MaxQuotedPrintableLineLength - 3 characters of whole tokens.
+                capacity = logicalLength + (logicalLength / (MaxQuotedPrintableLineLength - 3) + 2) * (_lineBreak.Length + 1) + _lineBreak.Length;
+            }
+            else if (foldMode == ContentLineFoldMode.Base64Lines)
+            {
+                // Every line of the value has an indent and a line break, and the property's own line and the empty line have a line break each.
+                capacity = logicalLength + (logicalLength / Base64LineLength + 1) * (Base64Indent.Length + _lineBreak.Length) + 2 * _lineBreak.Length;
+            }
+
             if (capacity > int.MaxValue)
             {
                 throw _errorFactory.CreateException(new ContentLineError(ContentLineErrorKind.LineTooLongToWrite, lineNumber, null, name, group: group));
@@ -274,6 +303,86 @@ namespace DataStandardizer.File.ContentLine
             var length = _buffer.Length - start;
             Array.Copy(_buffer, start, _buffer, 0, length);
             return AppendLineBreak(length);
+        }
+
+        /// <summary>
+        /// Breaks the logical line, which runs from <paramref name="start"/> to the end of the buffer, into the head of the buffer, with soft line breaks in its
+        /// quoted-printable value, and ends it with a line break.  The value has been checked, so a <c>=</c> always has two digits after it.
+        /// </summary>
+        /// <returns>The length of the broken line.</returns>
+        private int BreakQuotedPrintable(int start, int valueLength)
+        {
+            var buffer = _buffer;
+            var end = buffer.Length;
+            var read = end - valueLength;
+            var prefixLength = read - start;
+            Array.Copy(buffer, start, buffer, 0, prefixLength);
+
+            var write = prefixLength;
+            var lineLength = prefixLength;
+            while (read < end)
+            {
+                var tokenLength = buffer[read] == '=' ? 3 : 1;
+
+                // Every physical line but the last needs room for its '='.
+                var limit = read + tokenLength == end ? MaxQuotedPrintableLineLength : MaxQuotedPrintableLineLength - 1;
+                if (lineLength + tokenLength > limit)
+                {
+                    buffer[write++] = '=';
+                    write = AppendLineBreak(write);
+                    lineLength = 0;
+                }
+
+                for (var index = 0; index < tokenLength; index++)
+                {
+                    buffer[write++] = buffer[read++];
+                }
+
+                lineLength += tokenLength;
+            }
+
+            return AppendLineBreak(write);
+        }
+
+        /// <summary>
+        /// Lays out the logical line, which runs from <paramref name="start"/> to the end of the buffer, into the head of the buffer, with its base64 value on the
+        /// lines after the property's own and an empty line after them.
+        /// </summary>
+        /// <returns>The length of the lines.</returns>
+        private int BreakBase64(int start, int valueLength)
+        {
+            var buffer = _buffer;
+            var end = buffer.Length;
+            var read = end - valueLength;
+            var prefixLength = read - start;
+            Array.Copy(buffer, start, buffer, 0, prefixLength);
+
+            var write = AppendLineBreak(prefixLength);
+            var lineLength = 0;
+            for (; read < end; read++)
+            {
+                var character = buffer[read];
+                if (character == ' ' || character == '\t') continue;
+
+                if (lineLength == 0)
+                {
+                    write = Append(Base64Indent, write);
+                }
+
+                buffer[write++] = character;
+                if (++lineLength == Base64LineLength)
+                {
+                    write = AppendLineBreak(write);
+                    lineLength = 0;
+                }
+            }
+
+            if (lineLength > 0)
+            {
+                write = AppendLineBreak(write);
+            }
+
+            return AppendLineBreak(write);
         }
 
         private int Append(string text, int position)

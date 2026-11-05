@@ -216,6 +216,49 @@ namespace DataStandardizer.File.iCal.Tests
             testResult.Should().Be(UnfoldedShortLine);
         }
 
+        [Theory]
+        [InlineData("short", "TEL:short\r\n")]
+        [InlineData("", "TEL:\r\n")]
+        // 71 characters, which with "TEL:" make 75, the longest last line.
+        [InlineData("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrs", "TEL:abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrs\r\n")]
+        // One more: 70 characters and a '=' are the longest line before a soft line break.
+        [InlineData("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrst", "TEL:abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqr=\r\nst\r\n")]
+        // =0D stays whole, moving to the next line.
+        [InlineData("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopq=0Dz", "TEL:abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopq=\r\n=0Dz\r\n")]
+        public void Format_QuotedPrintableSoftBreak_BreaksTheValueBelow76Characters(string value, string expected)
+        {
+            // arrange
+            var formatter = CreateFormatter();
+            var line = new TestLine(null, Name, value);
+
+            // act
+            var testResult = Format(formatter, line, foldMode: ContentLineFoldMode.QuotedPrintableSoftBreak);
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Theory]
+        [InlineData("", "TEL:\r\n\r\n")]
+        [InlineData("SGVsbG8=", "TEL:\r\n    SGVsbG8=\r\n\r\n")]
+        [InlineData("  SGVs\tbG8=", "TEL:\r\n    SGVsbG8=\r\n\r\n")]
+        // 65 characters: 64 on a line, the longest, and one more.
+        [InlineData("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "TEL:\r\n    AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\r\n    A\r\n\r\n")]
+        // 64 characters, which fill their line.
+        [InlineData("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "TEL:\r\n    AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\r\n\r\n")]
+        public void Format_Base64Lines_LaysOutTheValueAndAnEmptyLine(string value, string expected)
+        {
+            // arrange
+            var formatter = CreateFormatter();
+            var line = new TestLine(null, Name, value);
+
+            // act
+            var testResult = Format(formatter, line, foldMode: ContentLineFoldMode.Base64Lines);
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
         private static ContentLineFormatter CreateFormatter(int foldLength = DefaultFoldLength)
         {
             return new ContentLineFormatter(foldLength, ' ', CrLf, new RecordingErrorFactory());

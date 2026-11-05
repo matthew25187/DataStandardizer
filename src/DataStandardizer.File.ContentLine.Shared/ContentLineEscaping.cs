@@ -60,8 +60,10 @@ namespace DataStandardizer.File.ContentLine
         /// <param name="destination">Receives the unescaped value.</param>
         /// <param name="written">The number of characters written to <paramref name="destination"/>.</param>
         /// <param name="errorIndex">The index in <paramref name="source"/> of a backslash that does not start a valid escape; otherwise -1.</param>
+        /// <param name="acceptOtherEscapes"><c>true</c> to accept a backslash that doesn't start a valid escape: a backslash before any other character gives that
+        /// character, and one at the end of the value stays.  Only a format that allows it as an opt-in sets this.</param>
         /// <returns><c>true</c> if the value was unescaped; <c>false</c> if it contains an invalid escape.</returns>
-        internal static bool TryUnescapeText(ReadOnlySpan<char> source, Span<char> destination, out int written, out int errorIndex)
+        internal static bool TryUnescapeText(ReadOnlySpan<char> source, Span<char> destination, out int written, out int errorIndex, bool acceptOtherEscapes = false)
         {
             written = 0;
             var index = 0;
@@ -82,8 +84,14 @@ namespace DataStandardizer.File.ContentLine
                 var unescaped = index + 1 < source.Length ? UnescapeTextCharacter(source[index + 1]) : '\0';
                 if (unescaped == '\0')
                 {
-                    errorIndex = index;
-                    return false;
+                    if (!acceptOtherEscapes)
+                    {
+                        errorIndex = index;
+                        return false;
+                    }
+
+                    // A backslash at the end of the value has no character to give.
+                    unescaped = index + 1 < source.Length ? source[index + 1] : '\\';
                 }
 
                 destination[written++] = unescaped;

@@ -50,6 +50,11 @@ namespace DataStandardizer.File.ContentLine
 
         private readonly bool _acceptBareLineFeed;
         private readonly bool _allowGroupPrefix;
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private readonly IContentLineContinuation? _continuation;
+#else
+        private readonly IContentLineContinuation _continuation;
+#endif
         private readonly int _bufferSize;
         private readonly IContentLineErrorFactory _errorFactory;
         private readonly int _maxLineLength;
@@ -63,8 +68,11 @@ namespace DataStandardizer.File.ContentLine
         private int[] _foldOffsets = new int[4];
         private int _foldCount;
         private int _groupLength;
+        private bool _isJoined;
+        private bool _lineAwaitsEnd;
         private int _lineEnd;
         private bool _lineInProgress;
+        private bool _lineLacksEnd;
         private bool _lineLacksLineBreak;
         private long _lineNumber;
         private long _linesRead;
@@ -76,6 +84,7 @@ namespace DataStandardizer.File.ContentLine
         private ValueSlice[] _parameterValues = new ValueSlice[4];
         private int _parameterValueCount;
         private long _physicalLineNumber;
+        private int _physicalLineStart;
         private long _physicalLinesRead;
         private int _position;
         private int _requiredCount;
@@ -94,11 +103,28 @@ namespace DataStandardizer.File.ContentLine
             _bufferSize = bufferSize;
             _acceptBareLineFeed = settings.AcceptBareLineFeed;
             _allowGroupPrefix = settings.AllowGroupPrefix;
+            _continuation = settings.Continuation;
             _errorFactory = errorFactory;
             _maxLineLength = settings.MaxLineLength;
             _rejectByteOrderMark = settings.RejectByteOrderMark;
             _requireFinalLineBreak = settings.RequireFinalLineBreak;
         }
+
+        /// <summary>
+        /// Gets or sets whether a parameter may be a name alone, with no <c>=</c> and no value, as in <c>TEL;HOME;VOICE:</c>.  It may change between lines, and
+        /// applies to the next call of <see cref="ParseLine"/>.  It is off unless a format turns it on.
+        /// </summary>
+        /// <remarks>
+        /// The name is then given as the parameter's one value as well: see <see cref="IsParameterValueless"/>.
+        /// </remarks>
+        internal bool AllowValuelessParameters { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether a fold keeps the white space after its line break, so that only the line break is removed.  It may change between lines, and
+        /// applies from the next line started.  It is off unless a format turns it on, so a fold removes its one white space character (RFC 5545 §3.1,
+        /// RFC 6350 §3.2).
+        /// </summary>
+        internal bool KeepFoldWhitespace { get; set; }
 
         /// <summary>
         /// Gets the block a driver reads input into, at the position given by <see cref="PrepareRefill"/>.
@@ -156,6 +182,10 @@ namespace DataStandardizer.File.ContentLine
 
                 _lineStart = _lineEnd = _position;
                 _foldCount = 0;
+                _isJoined = false;
+                _lineAwaitsEnd = false;
+                _lineLacksEnd = false;
+                _physicalLineStart = 0;
                 _physicalLineNumber = _physicalLinesRead + 1;
                 _lineInProgress = true;
             }
@@ -168,6 +198,11 @@ namespace DataStandardizer.File.ContentLine
                 if (breakIndex < 0)
                 {
                     if (!_endOfInput) return RequestInput(1);
+
+                    _lineLacksEnd = _lineAwaitsEnd;
+
+                    // A physical line that was joined on and never started isn't a line, and the line before it has its line break.
+                    if (_isJoined && _lineEnd - _lineStart == _physicalLineStart) return CompleteLine();
 
                     // The input has ended inside a line.  ParseLine reports this if the settings require a line break.
                     _lineLacksLineBreak = true;
@@ -198,23 +233,46 @@ namespace DataStandardizer.File.ContentLine
                     lineBreakLength = 1;
                 }
 
+                if (_continuation != null)
+                {
+                    int dataLength;
+                    var line = new ReadOnlySpan<char>(_buffer, _lineStart, _lineEnd - _lineStart);
+                    var continuation = _continuation.GetContinuation(line, _physicalLineStart, out dataLength);
+                    if (continuation == ContentLineContinuationKind.Invalid)
+                    {
+                        throw Fault(ContentLineErrorKind.InvalidContinuationLine);
+                    }
+
+                    if (continuation == ContentLineContinuationKind.End)
+                    {
+                        _physicalLinesRead++;
+                        _position += lineBreakLength;
+                        return CompleteLine();
+                    }
+
+                    if (continuation != ContentLineContinuationKind.None)
+                    {
+                        _physicalLinesRead++;
+                        _position += lineBreakLength;
+                        _lineEnd = _lineStart + dataLength;
+                        _lineAwaitsEnd = continuation == ContentLineContinuationKind.JoinUntilEnd;
+                        _isJoined = true;
+                        StartPhysicalLine();
+                        continue;
+                    }
+                }
+
                 // Look past the line break for the white space that makes it a fold.
                 if (!HasAvailable(lineBreakLength + 1) && !_endOfInput) return RequestInput(lineBreakLength + 1);
 
                 _physicalLinesRead++;
                 if (HasAvailable(lineBreakLength + 1) && IsFoldWhiteSpace(_buffer[_position + lineBreakLength]))
                 {
-                    // ref. RFC 5545§3.1: unfold by removing the line break and the single white space character after it.
-                    _position += lineBreakLength + 1;
-
-                    // A fold adds nothing to the line's length, but its offset is kept, so the limit applies to the folds too.  A line within the
-                    // limit never reaches this by folding between its characters, as it has too few of them.
-                    if (_foldCount == _maxLineLength)
-                    {
-                        throw Fault(ContentLineErrorKind.LineTooLong, _maxLineLength);
-                    }
-
-                    AddFoldOffset(_lineEnd - _lineStart);
+                    // ref. RFC 5545§3.1: unfold by removing the line break and the single white space character after it.  Under KeepFoldWhitespace, only
+                    // the line break goes, and the white space is read as part of the next physical line.
+                    _position += KeepFoldWhitespace ? lineBreakLength : lineBreakLength + 1;
+                    _isJoined = false;
+                    StartPhysicalLine();
                     continue;
                 }
 
@@ -347,6 +405,20 @@ namespace DataStandardizer.File.ContentLine
                     throw BuildError(ContentLineErrorKind.ExpectedParameterName, index);
                 }
 
+                if (AllowValuelessParameters && index < line.Length && (line[index] == ';' || line[index] == ':'))
+                {
+                    AddParameterValue(parameterNameStart, index - parameterNameStart, false);
+                    AddParameter(new ParameterSlice
+                    {
+                        NameOffset = _lineStart + parameterNameStart,
+                        NameLength = index - parameterNameStart,
+                        FirstValue = _parameterValueCount - 1,
+                        ValueCount = 1,
+                        IsValueless = true
+                    });
+                    continue;
+                }
+
                 if (index == line.Length || line[index] != '=')
                 {
                     throw BuildError(ContentLineErrorKind.ExpectedParameterEquals, index);
@@ -384,6 +456,11 @@ namespace DataStandardizer.File.ContentLine
             _valueLength = line.Length - index;
 
             // ref. RFC 6350§3.3: contentline = [group "."] name *(";" param) ":" value CRLF
+            if (_lineLacksEnd)
+            {
+                throw BuildError(ContentLineErrorKind.MissingContinuationEnd, line.Length);
+            }
+
             if (_requireFinalLineBreak && _lineLacksLineBreak)
             {
                 throw BuildError(ContentLineErrorKind.MissingLineBreak, line.Length);
@@ -439,6 +516,24 @@ namespace DataStandardizer.File.ContentLine
             return new ReadOnlyMemory<char>(_buffer, value.Offset, value.Length);
         }
 
+        /// <summary>
+        /// Gets whether a parameter was a name alone, under <see cref="AllowValuelessParameters"/>.  Its name and its one value are then the same text.
+        /// </summary>
+        internal bool IsParameterValueless(int parameterIndex)
+        {
+            return GetParameter(parameterIndex).IsValueless;
+        }
+
+        /// <summary>
+        /// Builds the exception for a parameter that was a name alone, which the format doesn't accept in that place, as if the name were one that needs a value.
+        /// The line has been consumed, so the next line can still be read.
+        /// </summary>
+        internal Exception BuildValuelessParameterError(int parameterIndex)
+        {
+            var parameter = GetParameter(parameterIndex);
+            return BuildError(ContentLineErrorKind.ExpectedParameterEquals, parameter.NameOffset + parameter.NameLength - _lineStart);
+        }
+
         internal bool IsParameterValueQuoted(int parameterIndex, int valueIndex)
         {
             return _parameterValues[GetParameterValueIndex(parameterIndex, valueIndex)].IsQuoted;
@@ -472,9 +567,11 @@ namespace DataStandardizer.File.ContentLine
         /// <summary>
         /// Gets the value with RFC 5545 §3.3.11 TEXT escaping removed.  The value is unescaped once per line and kept.
         /// </summary>
+        /// <param name="acceptOtherEscapes"><c>true</c> to accept a backslash that doesn't start a valid escape sequence; see
+        /// <see cref="ContentLineEscaping.TryUnescapeText"/>.  It must be the same for every call for one line.</param>
         /// <exception cref="Exception">What the error factory builds: the value contains a backslash that does not start a valid escape
         /// sequence.</exception>
-        internal ReadOnlyMemory<char> GetTextValue()
+        internal ReadOnlyMemory<char> GetTextValue(bool acceptOtherEscapes = false)
         {
             if (_textValue.Source == DecodedNone)
             {
@@ -487,7 +584,7 @@ namespace DataStandardizer.File.ContentLine
                 {
                     var scratch = GetScratch();
                     int unescapedLength, errorIndex;
-                    if (!ContentLineEscaping.TryUnescapeText(raw, scratch, out unescapedLength, out errorIndex))
+                    if (!ContentLineEscaping.TryUnescapeText(raw, scratch, out unescapedLength, out errorIndex, acceptOtherEscapes))
                     {
                         throw BuildError(ContentLineErrorKind.InvalidTextEscape, _valueOffset - _lineStart + errorIndex);
                     }
@@ -568,6 +665,21 @@ namespace DataStandardizer.File.ContentLine
 
             // The line has not been counted yet.
             return _errorFactory.CreateException(new ContentLineError(kind, _linesRead + 1, _physicalLinesRead + 1, null, maximumLineLength: maximumLineLength));
+        }
+
+        /// <summary>
+        /// Notes that a new physical line continues the logical line, which adds nothing to the line's length.  Its offset is kept, so the limit applies to the
+        /// folds too.  A line within the limit never reaches this by folding between its characters, as it has too few of them.
+        /// </summary>
+        private void StartPhysicalLine()
+        {
+            if (_foldCount == _maxLineLength)
+            {
+                throw Fault(ContentLineErrorKind.LineTooLong, _maxLineLength);
+            }
+
+            _physicalLineStart = _lineEnd - _lineStart;
+            AddFoldOffset(_physicalLineStart);
         }
 
         private void AddFoldOffset(int offset)
@@ -862,6 +974,7 @@ namespace DataStandardizer.File.ContentLine
             internal int NameLength;
             internal int FirstValue;
             internal int ValueCount;
+            internal bool IsValueless;
         }
 
         private struct ValueSlice

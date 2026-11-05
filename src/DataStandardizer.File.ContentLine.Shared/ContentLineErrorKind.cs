@@ -40,6 +40,9 @@
         /// <see cref="ContentLineError.SubjectName"/>.</summary>
         InvalidParameterValueCharacterToWrite,
 
+        /// <summary>A physical line can't be part of the value it continues.</summary>
+        InvalidContinuationLine,
+
         /// <summary>The parameter name to write is not valid: <see cref="ContentLineError.SubjectName"/>.</summary>
         InvalidParameterNameToWrite,
 
@@ -57,6 +60,9 @@
 
         /// <summary>A line is too long to fit in a buffer to write it.</summary>
         LineTooLongToWrite,
+
+        /// <summary>The data ends inside a value that continues on later lines, before the line that ends it.</summary>
+        MissingContinuationEnd,
 
         /// <summary>The last line of the data ends without a line break, which is not accepted.</summary>
         MissingLineBreak,

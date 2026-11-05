@@ -17,6 +17,7 @@ namespace DataStandardizer.File.iCal
             internal const string ExpectedParameterName = "Expected a parameter name after ';'.";
             internal const string ExpectedParameterValueEnd = "Expected ',', ';' or ':' after the parameter value.";
             internal const string ExpectedPropertyName = "Expected a property name at the start of the content line.";
+            internal const string InvalidContinuationLine = "Found a line that can't be part of the value it continues.";
             internal const string InvalidGroupToWriteTemplate = "The group \"{0}\" is not valid.  A group has one or more letters, digits or '-'.";
             internal const string InvalidParameterNameToWriteTemplate = "The parameter name \"{0}\" is not valid.  A name has one or more letters, digits or '-'.";
             internal const string InvalidParameterValueCharacterTemplate = "Found an invalid character U+{0:X4} in a parameter value.";
@@ -26,6 +27,7 @@ namespace DataStandardizer.File.iCal
             internal const string InvalidValueCharacterTemplate = "Found an invalid character U+{0:X4} in the property value.";
             internal const string LineTooLongTemplate = "The content line is longer than the maximum of {0} characters.";
             internal const string LineTooLongToWrite = "The content line is too long to write.";
+            internal const string MissingContinuationEnd = "The data ends inside a value that continues on later lines.";
             internal const string MissingLineBreak = "Expected a CRLF line break at the end of the last content line.";
             internal const string MissingValue = "Expected ':' and a property value.";
             internal const string ParameterValueNeedsCaretEncodingTemplate = "The character U+{0:X4} in a value of parameter {1} can only be written with RFC 6868 caret encoding.";
@@ -102,6 +104,8 @@ namespace DataStandardizer.File.iCal
                     return ErrorMessage.ExpectedParameterValueEnd;
                 case ContentLineErrorKind.ExpectedPropertyName:
                     return ErrorMessage.ExpectedPropertyName;
+                case ContentLineErrorKind.InvalidContinuationLine:
+                    return ErrorMessage.InvalidContinuationLine;
                 case ContentLineErrorKind.InvalidGroupToWrite:
                     return string.Format(ErrorMessage.InvalidGroupToWriteTemplate, error.SubjectName);
                 case ContentLineErrorKind.InvalidParameterNameToWrite:
@@ -120,6 +124,8 @@ namespace DataStandardizer.File.iCal
                     return string.Format(ErrorMessage.LineTooLongTemplate, error.MaximumLineLength);
                 case ContentLineErrorKind.LineTooLongToWrite:
                     return ErrorMessage.LineTooLongToWrite;
+                case ContentLineErrorKind.MissingContinuationEnd:
+                    return ErrorMessage.MissingContinuationEnd;
                 case ContentLineErrorKind.MissingLineBreak:
                     return ErrorMessage.MissingLineBreak;
                 case ContentLineErrorKind.MissingValue:

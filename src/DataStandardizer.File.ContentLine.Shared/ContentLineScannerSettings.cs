@@ -10,14 +10,21 @@
         /// <param name="allowGroupPrefix"><c>true</c> to accept a group before the name; see <see cref="AllowGroupPrefix"/>.</param>
         /// <param name="rejectByteOrderMark"><c>true</c> to treat a byte order mark like any other character; see <see cref="RejectByteOrderMark"/>.</param>
         /// <param name="requireFinalLineBreak"><c>true</c> to reject a last line with no line break; see <see cref="RequireFinalLineBreak"/>.</param>
+        /// <param name="continuation">Decides whether a line continues past the end of a physical line, other than by folding; see <see cref="Continuation"/>.</param>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         internal ContentLineScannerSettings(bool acceptBareLineFeed, int maxLineLength, bool allowGroupPrefix = false, bool rejectByteOrderMark = false,
-            bool requireFinalLineBreak = false)
+            bool requireFinalLineBreak = false, IContentLineContinuation? continuation = null)
+#else
+        internal ContentLineScannerSettings(bool acceptBareLineFeed, int maxLineLength, bool allowGroupPrefix = false, bool rejectByteOrderMark = false,
+            bool requireFinalLineBreak = false, IContentLineContinuation continuation = null)
+#endif
         {
             AcceptBareLineFeed = acceptBareLineFeed;
             MaxLineLength = maxLineLength;
             AllowGroupPrefix = allowGroupPrefix;
             RejectByteOrderMark = rejectByteOrderMark;
             RequireFinalLineBreak = requireFinalLineBreak;
+            Continuation = continuation;
         }
 
         /// <summary>
@@ -30,6 +37,16 @@
         /// available from <see cref="ContentLineScanner.Group"/>.  RFC 5545 §3.1 has no groups, so a format that follows it leaves this off.
         /// </summary>
         internal bool AllowGroupPrefix { get; }
+
+        /// <summary>
+        /// Gets what decides whether a line continues past the end of a physical line, other than by folding; or <c>null</c> if nothing does, as for a format
+        /// that follows RFC 5545 §3.1 or RFC 6350 §3.3.
+        /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal IContentLineContinuation? Continuation { get; }
+#else
+        internal IContentLineContinuation Continuation { get; }
+#endif
 
         /// <summary>
         /// Gets the maximum length of a logical line, or <see cref="int.MaxValue"/> for no limit.
