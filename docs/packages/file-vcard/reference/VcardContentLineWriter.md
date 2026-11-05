@@ -149,7 +149,7 @@ an operation is canceled, the writer cannot continue.
 | `WriteLinesAsync(IEnumerable<VcardContentLine> lines, IProgress<VcardWriteProgress>? progress = null, CancellationToken cancellationToken = default)` | `Task` | As `WriteLines`. |
 | `WriteLinesAsync(IAsyncEnumerable<VcardContentLine> lines, IProgress<VcardWriteProgress>? progress = null, CancellationToken cancellationToken = default)` | `Task` | As `WriteLines`, for an asynchronous sequence. `cancellationToken` is passed to its enumerator. |
 | `FlushAsync(CancellationToken cancellationToken = default)` | `Task` | As `Flush`. The token is passed to the text writer on `net10.0`; on .NET Standard it is checked before the flush. |
-| `DisposeAsync()` | `ValueTask` | As `Dispose`, flushing asynchronously. Completes once the writer has been flushed and released. |
+| `DisposeAsync()` | `ValueTask` | As `Dispose`, flushing asynchronously. Completes once the writer has been flushed and released. If an operation is in progress, it completes immediately, and the writer is flushed and released once that operation has finished. |
 
 ## Applies to
 

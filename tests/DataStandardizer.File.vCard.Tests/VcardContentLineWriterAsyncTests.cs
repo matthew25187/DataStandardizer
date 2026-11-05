@@ -42,6 +42,16 @@ namespace DataStandardizer.File.vCard.Tests
         // Eighty octets, which a fold at 75 octets would break.
         private const string LongValueOfEightyOctets = "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzab";
 
+        // ref. RFC 6350 §3.2: the line "X-A:" and LongValueOfEightyOctets, folded at 75 octets by the default options.
+        private const string LongLineFoldedAt75Octets = "X-A:abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrs\r\n tuvwxyzab\r\n";
+
+        // The size of a stream writer's buffer that is smaller than one line, so that writing the line reaches the stream.  A stream writer's buffer is at least
+        // 128 characters, and LongLineWrittenThrough is longer.
+        private const int StreamBufferSmallerThanALine = 1;
+
+        // A line that reaches the stream as it is written, whatever the fold: 200 characters of value and no parameters.
+        private static readonly VcardContentLine LongLineWrittenThrough = new VcardContentLine("X-A", new string('a', 200));
+
         // ref. RFC 6868 §3: a caret is encoded only in the vCard 4.0 card; and vCard 2.1 output is never folded.
         private const string CardsOfEachVersionWritten =
             "BEGIN:VCARD\r\nVERSION:4.0\r\nX-A;X-P=a^^b:x\r\nEND:VCARD\r\n" +
@@ -74,7 +84,7 @@ namespace DataStandardizer.File.vCard.Tests
 
         [Theory]
         [MemberData(nameof(ParityData))]
-        public async Task Write_RfcExampleToStream_WritesItsLinesFoldedAt75Octets(AsyncWriteMode mode, int streamBufferSize)
+        public async Task Write_RfcExampleToStream_WritesItsLines(AsyncWriteMode mode, int streamBufferSize)
         {
             // arrange
             var lines = ReadAll(CreateReader(Rfc6350Examples.Example));
@@ -108,6 +118,27 @@ namespace DataStandardizer.File.vCard.Tests
                 // assert
                 writer.LinesWritten.Should().Be(Rfc6350Examples.ExampleLogicalLineCount);
             });
+        }
+
+        [Theory]
+        [InlineData(AsyncWriteMode.WriteLineAsync)]
+        [InlineData(AsyncWriteMode.WriteLinesAsync)]
+        [InlineData(AsyncWriteMode.WriteLinesAsyncFromAsyncEnumerable)]
+        public async Task Write_LongLineToStreamWithDefaultOptions_FoldsAt75Octets(AsyncWriteMode mode)
+        {
+            // arrange
+            var lines = new List<VcardContentLine> { new VcardContentLine("X-A", LongValueOfEightyOctets) };
+            var stream = new AsyncOnlyWriteStream();
+            var writer = new VcardContentLineWriter(stream, new VcardOptions());
+
+            // act
+            await AsyncDisposal.UsingAsync(writer, async () =>
+            {
+                await WriteAsync(writer, lines, mode);
+            });
+
+            // assert
+            stream.ToArray().Should().Equal(Encoding.ASCII.GetBytes(LongLineFoldedAt75Octets));
         }
 
         [Theory]
@@ -513,6 +544,28 @@ namespace DataStandardizer.File.vCard.Tests
             await testAction.Should().ThrowAsync<OperationCanceledException>();
         }
 
+        // Each overload given no lines to write.
+        public static TheoryData<Func<VcardContentLineWriter, CancellationToken, Task>> WritesOfNoLines => new TheoryData<Func<VcardContentLineWriter, CancellationToken, Task>>
+        {
+            (writer, token) => writer.WriteLinesAsync(new VcardContentLine[0], cancellationToken: token),
+            (writer, token) => writer.WriteLinesAsync(ToAsyncEnumerable(new VcardContentLine[0]), cancellationToken: token),
+        };
+
+        [Theory]
+        [MemberData(nameof(WritesOfNoLines), DisableDiscoveryEnumeration = true)]
+        public async Task WriteLinesAsync_NoLinesAndCanceledToken_Cancels(Func<VcardContentLineWriter, CancellationToken, Task> write)
+        {
+            // arrange
+            var writer = new VcardContentLineWriter(new AsyncOnlyTextWriter());
+            var canceledToken = new CancellationToken(true);
+
+            // act
+            Func<Task> testAction = () => write(writer, canceledToken);
+
+            // assert
+            await testAction.Should().ThrowAsync<OperationCanceledException>();
+        }
+
         [Fact]
         public async Task FlushAsync_CanceledToken_CancelsWithoutFlushing()
         {
@@ -695,6 +748,38 @@ namespace DataStandardizer.File.vCard.Tests
             // assert
             await testAction.Should().ThrowAsync<ObjectDisposedException>();
             text.IsDisposed.Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task Dispose_DuringWriteThatDoesNotWait_CompletesWriteWithObjectDisposed()
+        {
+            // arrange
+            var text = new CallbackOnWriteTextWriter();
+            var writer = new VcardContentLineWriter(text);
+            text.OnWrite = writer.Dispose;
+
+            // act
+            var task = writer.WriteLineAsync(LineA);
+            Func<Task> testAction = async () => await task;
+
+            // assert
+            await testAction.Should().ThrowAsync<ObjectDisposedException>();
+            text.ToString().Should().Be(LineAWithCrlf);
+        }
+
+        [Fact]
+        public async Task Dispose_DuringWriteThatDoesNotWaitOnOwnedWriter_FlushesWithoutSynchronousIo()
+        {
+            // arrange: the stream's synchronous members throw, so a synchronous flush would escape from the call and not from the task.
+            var stream = new CallbackOnWriteStream();
+            var writer = new VcardContentLineWriter(stream, new VcardOptions(), StreamBufferSmallerThanALine);
+            stream.OnWrite = writer.Dispose;
+
+            // act
+            Func<Task> testAction = () => writer.WriteLineAsync(LongLineWrittenThrough).AsTask();
+
+            // assert
+            await testAction.Should().ThrowAsync<ObjectDisposedException>();
         }
 
         [Fact]
