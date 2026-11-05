@@ -14,16 +14,6 @@ namespace DataStandardizer.File.vCard.Tests
         public const string Name = "N:Doe;Jane";
 
         /// <summary>
-        /// The text of a vCard 2.1 card that holds only <see cref="Name"/>, as a writer writes it.
-        /// </summary>
-        public const string WrittenCardStart = "BEGIN:VCARD\r\nVERSION:2.1\r\nN:Doe;Jane;;;\r\n";
-
-        /// <summary>
-        /// The end of a card, as a writer writes it.
-        /// </summary>
-        public const string WrittenCardEnd = "END:VCARD\r\n";
-
-        /// <summary>
         /// A vCard 2.1 card with the given properties and nothing else.
         /// </summary>
         public static string BareCard(params string[] properties)

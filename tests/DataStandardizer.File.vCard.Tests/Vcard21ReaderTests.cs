@@ -62,8 +62,6 @@ namespace DataStandardizer.File.vCard.Tests
             "",
             "END:VCARD");
 
-        private const string Version21PhotoBase64 = "R0lGODdhfgA4AOYAAAAAAK+vr62trVIxa6WlpZ+fnzEpCEpzlAha/0Kc74+PjyGMSuecKRhrtX9/fzExORBSjCEYCGtra2NjYyF7nDGE50JrhAg51qWtOTl7vee1MWu1";
-
         public static TheoryData<string> Version21ExampleData()
         {
             return new TheoryData<string>
@@ -158,7 +156,7 @@ namespace DataStandardizer.File.vCard.Tests
             var testResult = VcardCardTestData.Read(text).Properties.Last().Value;
 
             // assert
-            testResult.Should().Be("data:image/gif;base64\\," + Version21PhotoBase64);
+            testResult.Should().Be("data:image/gif;base64\\,R0lGODdhfgA4AOYAAAAAAK+vr62trVIxa6WlpZ+fnzEpCEpzlAha/0Kc74+PjyGMSuecKRhrtX9/fzExORBSjCEYCGtra2NjYyF7nDGE50JrhAg51qWtOTl7vee1MWu1");
         }
 
         public static TheoryData<string, string[], string> CanonicalLineData()
@@ -196,17 +194,25 @@ namespace DataStandardizer.File.vCard.Tests
                 { "PHOTO;VALUE=URL;TYPE=GIF:http://example.com/a.gif", new[] { "MEDIATYPE=image/gif" }, "http://example.com/a.gif" },
                 { "SOUND;VALUE=CONTENT-ID:<jsmith.part3@host1.com>", NoParameters, "cid:jsmith.part3@host1.com" },
                 { "SOUND;VALUE=CID:<a b@host1.com>", NoParameters, "cid:a%20b@host1.com" },
+                { "SOUND;VALUE=CID:<a#b?c@host1.com>", NoParameters, "cid:a%23b%3Fc@host1.com" },
 
                 // Binary, ending at an empty line (§2.9), and text where vCard 2.1 allows it (§2.6.3, §2.7.1).
                 { "SOUND;WAVE;BASE64:AQID\r\n", NoParameters, "data:audio/vnd.wave;base64\\,AQID" },
                 { "KEY;ENCODING=BASE64:AQID\r\n", NoParameters, "data:application/octet-stream;base64\\,AQID" },
                 { "PHOTO;ENCODING=BASE64;TYPE=PICT:AQID\r\n", new[] { "TYPE=pict" }, "data:application/octet-stream;base64\\,AQID" },
+
+                // Quoted-printable is binary where a TYPE names a format (§2.1.9), whether or not it has a media type, and otherwise text.
+                { "PHOTO;ENCODING=QUOTED-PRINTABLE;TYPE=PICT:=01=02=03", new[] { "TYPE=pict" }, "data:application/octet-stream;base64\\,AQID" },
+                { "SOUND;WORK;ENCODING=QUOTED-PRINTABLE:JON", new[] { "VALUE=text", "TYPE=work" }, "JON" },
                 { "SOUND:JON Q PUBLIK", new[] { "VALUE=text" }, "JON Q PUBLIK" },
                 { "KEY;PGP:abc", new[] { "VALUE=text", "TYPE=pgp" }, "abc" },
 
                 // UID: RFC 6350 §6.7.6, whose default is a URI.
                 { Version21Uid, new[] { "VALUE=text" }, "19950401-080045-40000F192713-0052" },
                 { "UID:urn:uuid:f81d4fae-7dec-11d0-a765-00a0c91e6bf6", NoParameters, "urn:uuid:f81d4fae-7dec-11d0-a765-00a0c91e6bf6" },
+
+                // An X- location (§2.9, pvalueval) says nothing vCard 4.0 can, so the line stays as it is.
+                { "UID;VALUE=X-REF:a1", new[] { "VALUE=X-REF" }, "a1" },
 
                 // An extension is kept as it was.
                 { "X-ABC-VIDEO;MPEG2:http://lonestar.bubbas.org/billibob.mpg", new[] { "TYPE=mpeg2" }, "http://lonestar.bubbas.org/billibob.mpg" },
@@ -260,22 +266,22 @@ namespace DataStandardizer.File.vCard.Tests
             testResult.Addresses.Single().Value.Locality.Should().Equal("NC");
         }
 
-        public static TheoryData<string> LanguageTagData()
+        public static TheoryData<string, string> LanguageTagData()
         {
-            return new TheoryData<string>
+            return new TheoryData<string, string>
             {
                 // ref. vCard 2.1 §2.1.7: its example, and an RFC 1766 tag that RFC 5646 keeps only as grandfathered (#240).
-                "fr-CA",
-                "i-klingon"
+                { "NOTE;LANGUAGE=fr-CA:a", "fr-CA" },
+                { "NOTE;LANGUAGE=i-klingon:a", "i-klingon" }
             };
         }
 
         [Theory]
         [MemberData(nameof(LanguageTagData))]
-        public void ReadCard_LanguageTagOfRfc1766_IsKept(string tag)
+        public void ReadCard_LanguageTagOfRfc1766_IsKept(string line, string tag)
         {
             // arrange
-            var text = Vcard21TestData.Card("NOTE;LANGUAGE=" + tag + ":a");
+            var text = Vcard21TestData.Card(line);
 
             // act
             var testResult = VcardCardTestData.Read(text).Notes.Single().Language;

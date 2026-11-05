@@ -121,7 +121,8 @@ namespace DataStandardizer.File.vCard
             foreach (var octet in Encoding.UTF8.GetBytes(id))
             {
                 var character = (char)octet;
-                if (octet > ' ' && octet < 0x7F && "\"%<>\\^`{|}".IndexOf(character) < 0)
+                // A '#' or '?' would start the fragment or query of the URI (RFC 3986 §3), so it is encoded too.
+                if (octet > ' ' && octet < 0x7F && "\"#%<>?\\^`{|}".IndexOf(character) < 0)
                 {
                     builder.Append(character);
                 }
@@ -239,7 +240,8 @@ namespace DataStandardizer.File.vCard
             {
                 if (Vcard21Conformance.IsUrl(location)) return VcardValue.IsValidUriText(text.AsSpan()) ? VcardValue.EscapeUri(text) : null;
 
-                return ContentIdToUri(text);
+                // An X- location says nothing vCard 4.0 can say, so the line stays as it is.
+                return Vcard21Conformance.IsContentId(location) ? ContentIdToUri(text) : null;
             }
 
             // ref. vCard 2.1 §2.6.5: "a unique character string"; RFC 6350 §6.7.6: 'The default is a single URI value.  It can also be reset to free-form text'.
@@ -880,8 +882,10 @@ namespace DataStandardizer.File.vCard
                 }
 
                 ConvertParameters(agent, parameters);
-                var converted = Encode(agent, parameters, value, false);
-                _lines.Add(held is null ? converted : converted.WithHeldCard(held));
+
+                // The value that starts a held card is never encoded, since a reader looks for it as it is, and it is printable US-ASCII whatever the length of its line.
+                var converted = held is null ? Encode(agent, parameters, value, false) : agent.With(agent.Name, parameters.ToArray(), value).WithHeldCard(held);
+                _lines.Add(converted);
             }
 
             /// <summary>

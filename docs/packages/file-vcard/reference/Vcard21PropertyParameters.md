@@ -24,7 +24,7 @@ public sealed class Vcard21PropertyParameters
 | Property | Type | Notes |
 | --- | --- | --- |
 | `Group` | `string?` | The group, without its `.`. |
-| `Types` | `IList<string>` | The `TYPE` values, other than `PREF`: each a `knowntype` of vCard 2.1 §2.9, such as `WORK`, in any case, or one that starts with `X-`. Any other makes `Add` throw `ArgumentException`. |
+| `Types` | `IList<string>` | The `TYPE` values: each a `knowntype` of vCard 2.1 §2.9, such as `WORK`, in any case, or one that starts with `X-`. `PREF` isn't one of them, since `IsPreferred` says it. Any other makes `Add` throw `ArgumentException`. |
 | `IsPreferred` | `bool` | Whether the property is preferred, which is `PREF` in vCard 2.1. |
 | `Language` | `string?` | The `LANGUAGE`, a tag of RFC 1766, which vCard 2.1 §2.1.7 cites. Any other makes `Add` throw `ArgumentException`. |
 | `AdditionalParameters` | `IList<VcardContentLineParameter>` | Parameters whose names start with `X-`, each with one value that is a `word` of §2.9, to go after the others. Any other makes `Add` throw `ArgumentException`. |

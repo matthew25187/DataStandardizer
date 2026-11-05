@@ -36,6 +36,16 @@ namespace DataStandardizer.File.vCard
             "X509", "PGP"
         };
 
+        // ref. vCard 2.1 §2.9: the knowntype values that name a format, of a picture (§2.2.3.1), a sound (§2.6.3.1) or a key (§2.7.2).
+        private static readonly string[] FormatTypes =
+        {
+            "GIF", "CGM", "WMF", "BMP", "MET", "PMB", "DIB",
+            "PICT", "TIFF", "PDF", "PS", "JPEG", "QTIME",
+            "MPEG", "MPEG2", "AVI",
+            "WAVE", "AIFF", "PCM",
+            "X509", "PGP"
+        };
+
         // ref. vCard 2.1 §2.9: pvalueval.
         private static readonly string[] ValueLocations = { "INLINE", "URL", "CONTENT-ID", "CID" };
 
@@ -73,6 +83,14 @@ namespace DataStandardizer.File.vCard
         internal static bool IsKnownType(ReadOnlySpan<char> token)
         {
             return EqualsAny(token, KnownTypes);
+        }
+
+        /// <summary>
+        /// Gets whether a token is a <c>knowntype</c> of vCard 2.1 §2.9 that names a format, such as <c>GIF</c>, rather than a use, such as <c>WORK</c>.
+        /// </summary>
+        internal static bool IsFormatType(ReadOnlySpan<char> token)
+        {
+            return EqualsAny(token, FormatTypes);
         }
 
         /// <summary>

@@ -58,8 +58,7 @@ namespace DataStandardizer.File.vCard.Tests
                 await writer.WriteCardAsync(card);
 
                 // assert
-                output.ToString().Should().Be(Vcard21TestData.WrittenCardStart + "TEL;CELL;PREF:+1\r\nAGENT:BEGIN:VCARD\r\nVERSION:2.1\r\nN:Friday;Fred;;;\r\nEND:VCARD\r\n" +
-                                              Vcard21TestData.WrittenCardEnd);
+                output.ToString().Should().Be("BEGIN:VCARD\r\nVERSION:2.1\r\nN:Doe;Jane;;;\r\nTEL;CELL;PREF:+1\r\nAGENT:BEGIN:VCARD\r\nVERSION:2.1\r\nN:Friday;Fred;;;\r\nEND:VCARD\r\nEND:VCARD\r\n");
             }
         }
 

@@ -30,7 +30,7 @@ Each is an [IVcard21PropertyList](IVcard21PropertyList.md), a live view of the c
 | Property | Name | Value type | Notes |
 | --- | --- | --- | --- |
 | `FormattedNames` | `FN` | `string` | |
-| `Photos`, `Logos` | `PHOTO`, `LOGO` | [VcardMediaValue](VcardMediaValue.md) | Inline data with the `knowntype` of its format, such as `GIF`, or a URL. Data of a format with no `knowntype`, such as PNG, has no token. Adding a token that isn't a `knowntype` with a media type throws `ArgumentException`, and so does text. |
+| `Photos`, `Logos` | `PHOTO`, `LOGO` | [VcardMediaValue](VcardMediaValue.md) | Inline data with the `knowntype` of its format, such as `GIF`, or a URL. A format with no media type, such as `PICT`, is held as a `TYPE`. Data of a format with no `knowntype`, such as PNG, has no token. Adding a token that isn't a format of §2.9 throws `ArgumentException`, and so does text. |
 | `Addresses` | `ADR` | `VcardAddress` | Without the components of RFC 9554. One with several items in a component, a component that ends with a backslash, or `PHONETIC`, is hidden. |
 | `Labels` | `LABEL` | `string` | Held on the `ADR` it goes with, where there is one. |
 | `Telephones` | `TEL` | `string` | A `tel` URI gives its number, and another URI is hidden. |

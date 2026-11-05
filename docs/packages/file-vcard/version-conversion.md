@@ -118,7 +118,7 @@ A vCard 2.1 value is decoded by its `ENCODING` and `CHARSET` as it is read (see 
 | `N` and `ADR` with fewer components | All their components |
 | `MAILER`, and an `X-` property | Kept as they are |
 
-**Media types.** A `knowntype` becomes a media type through [VcardLegacyMediaTypes](reference/VcardLegacyMediaTypes.md). A format with no media type, such as `PICT`, stays a `TYPE`, with `application/octet-stream` data. Quoted-printable is how vCard 2.1 writes text, so a `PHOTO`, `LOGO`, `SOUND` or `KEY` in quoted-printable is binary only where a `TYPE` names its format (§2.1.9).
+**Media types.** A `knowntype` becomes a media type through [VcardLegacyMediaTypes](reference/VcardLegacyMediaTypes.md). A format with no media type, such as `PICT`, stays a `TYPE`, with `application/octet-stream` data. Quoted-printable is how vCard 2.1 writes text, so a `PHOTO`, `LOGO`, `SOUND` or `KEY` in quoted-printable is binary only where a `TYPE` names its format (§2.1.9), such as `GIF` or `PICT`, and not where it says what it is for, such as `WORK`.
 
 **Agents.** The card of an `AGENT` follows its line, up to its own `END:VCARD` (§2.5.4). The example of §2.5.4 has it on the next line, and the grammar of §2.9 starts it on the `AGENT` line, as `AGENT:BEGIN:VCARD`. A reader takes both. The card is read under the options of the card around it, and is vCard 2.1 unless its `VERSION` says otherwise. Nesting is limited to 8 levels. A `BEGIN:VCARD` inside a card with no `AGENT` before it, as in the distribution list of §2.8.1, isn't allowed by the grammar, and throws `InvalidStructure`.
 

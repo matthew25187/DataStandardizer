@@ -61,6 +61,8 @@ namespace DataStandardizer.File.vCard
             {
                 if (type is null)
                     throw new ArgumentException("A TYPE value can't be null.", parameterName);
+                if (Vcard21Views.IsPreferredType(type))
+                    throw new ArgumentException("PREF isn't one of the Types; set IsPreferred instead.", parameterName);
 
                 // ref. vCard 2.1 §2.9: ptypeval = knowntype / "X-" word.  A knowntype is held as RFC 6350 writes its values, in lower case.
                 if (VcardLegacyTokens.IsKnownType(type.AsSpan()))

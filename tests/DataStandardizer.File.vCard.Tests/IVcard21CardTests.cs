@@ -10,7 +10,6 @@ namespace DataStandardizer.File.vCard.Tests
     /// </summary>
     public class IVcard21CardTests
     {
-        private const string Base64 = "AQID";
         private static readonly byte[] Data = { 1, 2, 3 };
         private static readonly Uri ExampleUri = new Uri("http://example.com/a,b");
 
@@ -141,6 +140,7 @@ namespace DataStandardizer.File.vCard.Tests
             {
                 // ref. vCard 2.1 §2.9: ptypeval = knowntype / "X-" word, and an extension parameter is "X-" word "=" word.
                 new Vcard21PropertyParameters { Types = { "iphone" } },
+                new Vcard21PropertyParameters { Types = { "PREF" } },
                 new Vcard21PropertyParameters { Language = "es-419" },
                 new Vcard21PropertyParameters { AdditionalParameters = { new VcardContentLineParameter("FOO", "a") } },
                 new Vcard21PropertyParameters { AdditionalParameters = { new VcardContentLineParameter("X-FOO", "a b") } }
@@ -201,7 +201,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void Photos_InlineData_GivesATokenAndBytes()
         {
             // act
-            var testResult = View("PHOTO;ENCODING=BASE64;TYPE=GIF:" + Base64 + "\r\n").Photos.Single().Value;
+            var testResult = View("PHOTO;ENCODING=BASE64;TYPE=GIF:AQID\r\n").Photos.Single().Value;
 
             // assert
             testResult.TypeToken.Should().Be("GIF");
@@ -212,7 +212,7 @@ namespace DataStandardizer.File.vCard.Tests
         public void Photos_DataOfAFormatWithNoKnownType_GivesNoToken()
         {
             // arrange
-            var card = VcardCardTestData.Read(VcardCardTestData.Card("PHOTO:data:image/png;base64\\," + Base64)).AsVersion21();
+            var card = VcardCardTestData.Read(VcardCardTestData.Card("PHOTO:data:image/png;base64\\,AQID")).AsVersion21();
 
             // act
             var testResult = card.Photos.Single().Value;
@@ -232,7 +232,7 @@ namespace DataStandardizer.File.vCard.Tests
             card.AsVersion21().Photos.Add(VcardMediaValue.FromData(Data, "GIF"));
 
             // assert
-            card.GetProperties(VcardPropertyNames.Photo).Single().Value.Should().Be("data:image/gif;base64\\," + Base64);
+            card.GetProperties(VcardPropertyNames.Photo).Single().Value.Should().Be("data:image/gif;base64\\,AQID");
         }
 
         [Fact]
@@ -252,9 +252,9 @@ namespace DataStandardizer.File.vCard.Tests
         {
             return new TheoryData<VcardMediaValue>
             {
-                // ref. vCard 2.1 §2.9: PNG isn't a knowntype, and PICT has no media type; and a picture is never text.
+                // ref. vCard 2.1 §2.9: PNG isn't a knowntype, and HOME isn't a format; and a picture is never text.
                 VcardMediaValue.FromData(Data, "PNG"),
-                VcardMediaValue.FromData(Data, "PICT"),
+                VcardMediaValue.FromData(Data, "HOME"),
                 VcardMediaValue.FromText("a")
             };
         }
@@ -271,6 +271,31 @@ namespace DataStandardizer.File.vCard.Tests
 
             // assert
             testAction.Should().Throw<ArgumentException>();
+        }
+
+        public static TheoryData<VcardMediaValue> FormatWithNoMediaTypeData()
+        {
+            return new TheoryData<VcardMediaValue>
+            {
+                // ref. vCard 2.1 §2.2.3.1: PICT is a format, which has no media type.
+                VcardMediaValue.FromData(Data, "PICT"),
+                VcardMediaValue.FromUri(new Uri("http://example.com/a.pict"), "PICT")
+            };
+        }
+
+        [Theory]
+        [MemberData(nameof(FormatWithNoMediaTypeData))]
+        public void Photos_AddFormatWithNoMediaType_KeepsItsToken(VcardMediaValue value)
+        {
+            // arrange
+            var card = VcardCardTestData.NewCard().AsVersion21();
+
+            // act
+            var testResult = card.Photos.Add(value, new Vcard21PropertyParameters { Types = { "HOME" } });
+
+            // assert
+            testResult.Value.TypeToken.Should().Be("PICT");
+            testResult.Types.Should().Equal("HOME", "PICT");
         }
 
         [Fact]
@@ -426,7 +451,7 @@ namespace DataStandardizer.File.vCard.Tests
             card.AsVersion21().SetAgent(agent);
 
             // assert
-            Vcard21TestData.Write(card).Should().Be(Vcard21TestData.WrittenCardStart + "AGENT:BEGIN:VCARD\r\nVERSION:2.1\r\nN:Friday;Fred;;;\r\nEND:VCARD\r\n" + Vcard21TestData.WrittenCardEnd);
+            Vcard21TestData.Write(card).Should().Be("BEGIN:VCARD\r\nVERSION:2.1\r\nN:Doe;Jane;;;\r\nAGENT:BEGIN:VCARD\r\nVERSION:2.1\r\nN:Friday;Fred;;;\r\nEND:VCARD\r\nEND:VCARD\r\n");
         }
 
         [Fact]

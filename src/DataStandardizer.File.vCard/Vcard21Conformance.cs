@@ -156,8 +156,8 @@ namespace DataStandardizer.File.vCard
 
             foreach (var type in VcardPropertyParameterReader.GetListValues(line, VcardParameterNames.Type))
             {
-                Communication.Mime.MimeMediaType mediaType;
-                if (VcardLegacyMediaTypes.TryGetMediaType(type.AsSpan(), out mediaType)) return true;
+                // A format with no media type, such as PICT, still says that the value is data.
+                if (VcardLegacyTokens.IsFormatType(type.AsSpan())) return true;
             }
 
             return false;

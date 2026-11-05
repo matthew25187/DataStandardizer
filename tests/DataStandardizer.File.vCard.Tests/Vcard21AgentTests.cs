@@ -111,7 +111,7 @@ namespace DataStandardizer.File.vCard.Tests
             var testResult = Vcard30TestData.Unfold(VcardCardTestData.Write(card));
 
             // assert
-            testResult.Should().Contain("\r\nRELATED;VALUE=text;TYPE=agent:" + CanonicalAgent + "\r\n");
+            testResult.Should().Contain("\r\nRELATED;VALUE=text;TYPE=agent:BEGIN:VCARD\\nVERSION:4.0\\nN:Friday;Fred;;;\\nTEL;TYPE=work\\,voice:+1-213-555-1234\\nTEL;TYPE=work\\,fax:+1-213-555-5678\\nEND:VCARD\\n\r\n");
         }
 
         [Fact]
@@ -208,14 +208,18 @@ namespace DataStandardizer.File.vCard.Tests
             testResult.Should().Be(new Uri(expectedUri));
         }
 
-        public static TheoryData<string> AgentElsewhereLineData()
+        public static TheoryData<string, string> AgentElsewhereLineData()
         {
-            return new TheoryData<string> { AgentUrlLine, AgentContentIdLine };
+            return new TheoryData<string, string>
+            {
+                { AgentUrlLine, "BEGIN:VCARD\r\nVERSION:2.1\r\nN:Doe;Jane;;;\r\nAGENT;VALUE=URL:http://example.com/fred.vcf\r\nEND:VCARD\r\n" },
+                { AgentContentIdLine, "BEGIN:VCARD\r\nVERSION:2.1\r\nN:Doe;Jane;;;\r\nAGENT;VALUE=CONTENT-ID:<fred@host1.com>\r\nEND:VCARD\r\n" }
+            };
         }
 
         [Theory]
         [MemberData(nameof(AgentElsewhereLineData))]
-        public void WriteCard_AgentElsewhere_WritesItsLocation(string line)
+        public void WriteCard_AgentElsewhere_WritesItsLocation(string line, string expected)
         {
             // arrange
             var card = VcardCardTestData.Read(Vcard21TestData.Card(line));
@@ -224,7 +228,7 @@ namespace DataStandardizer.File.vCard.Tests
             var testResult = Vcard21TestData.Write(card);
 
             // assert
-            testResult.Should().Be(Vcard21TestData.WrittenCardStart + line + "\r\n" + Vcard21TestData.WrittenCardEnd);
+            testResult.Should().Be(expected);
         }
 
         [Fact]
@@ -251,7 +255,36 @@ namespace DataStandardizer.File.vCard.Tests
             var testResult = Vcard21TestData.Write(card);
 
             // assert
-            testResult.Should().Be(Vcard21TestData.WrittenCardStart + "AGENT;VALUE=URL;PREF:http://example.com/fred.vcf\r\n" + Vcard21TestData.WrittenCardEnd);
+            testResult.Should().Be("BEGIN:VCARD\r\nVERSION:2.1\r\nN:Doe;Jane;;;\r\nAGENT;VALUE=URL;PREF:http://example.com/fred.vcf\r\nEND:VCARD\r\n");
+        }
+
+        [Fact]
+        public void ReadCard_AgentWithAGroup_ReadsItsCard()
+        {
+            // arrange
+            // ref. vCard 2.1 §2.9: the group is on the AGENT item, and the vcard of its value has none.
+            var text = Vcard21TestData.Card("a.AGENT:BEGIN:VCARD", "VERSION:2.1", "N:Friday;Fred", "END:VCARD");
+
+            // act
+            var testResult = VcardCardTestData.Read(text).GetProperties(VcardPropertyNames.Related).Single();
+
+            // assert
+            testResult.Group.Should().Be("a");
+            testResult.Value.Should().Be("BEGIN:VCARD\\nVERSION:4.0\\nN:Friday;Fred;;;\\nEND:VCARD\\n");
+        }
+
+        [Fact]
+        public void WriteCard_AgentLineLongerThanAPlainLine_WritesItsValueAsItIs()
+        {
+            // arrange
+            // The value that starts the card is never quoted-printable, since a reader looks for it as it is.
+            var card = VcardCardTestData.Read(Vcard21TestData.Card("AGENT;X-ABCDEFGHIJKLMNOPQRSTUVWXYZ=ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ:BEGIN:VCARD", "VERSION:2.1", "N:b", "END:VCARD"));
+
+            // act
+            var testResult = Vcard21TestData.Write(card);
+
+            // assert
+            testResult.Should().Be("BEGIN:VCARD\r\nVERSION:2.1\r\nN:Doe;Jane;;;\r\nAGENT;X-ABCDEFGHIJKLMNOPQRSTUVWXYZ=ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ:BEGIN:VCARD\r\nVERSION:2.1\r\nN:b;;;;\r\nEND:VCARD\r\nEND:VCARD\r\n");
         }
 
         [Fact]
@@ -278,9 +311,7 @@ namespace DataStandardizer.File.vCard.Tests
             var testResult = Vcard21TestData.Write(card);
 
             // assert
-            testResult.Should().Be(Vcard21TestData.WrittenCardStart +
-                                   "AGENT:BEGIN:VCARD\r\nVERSION:2.1\r\nN:b;;;;\r\nAGENT:BEGIN:VCARD\r\nVERSION:2.1\r\nN:c;;;;\r\nEND:VCARD\r\nEND:VCARD\r\n" +
-                                   Vcard21TestData.WrittenCardEnd);
+            testResult.Should().Be("BEGIN:VCARD\r\nVERSION:2.1\r\nN:Doe;Jane;;;\r\nAGENT:BEGIN:VCARD\r\nVERSION:2.1\r\nN:b;;;;\r\nAGENT:BEGIN:VCARD\r\nVERSION:2.1\r\nN:c;;;;\r\nEND:VCARD\r\nEND:VCARD\r\nEND:VCARD\r\n");
         }
 
         [Fact]

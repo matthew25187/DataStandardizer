@@ -30,9 +30,6 @@ namespace DataStandardizer.File.vCard.Tests
             "ADR;WORK;PARCEL;POSTAL;DOM:Suite 101;1 Central St.;Any Town;NC;27654;;",
             "END:VCARD");
 
-        // 76 characters, so that a line with it is longer than one that needs no soft line break.
-        private const string LongText = "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwx";
-
         [Fact]
         public void WriteCard_Version21Card_WritesItBack()
         {
@@ -56,7 +53,7 @@ namespace DataStandardizer.File.vCard.Tests
             var testResult = Vcard21TestData.Write(card, writeNamedTypes: true);
 
             // assert
-            testResult.Should().Be(Vcard21TestData.WrittenCardStart + "TEL;TYPE=WORK;TYPE=VOICE:1\r\n" + Vcard21TestData.WrittenCardEnd);
+            testResult.Should().Be("BEGIN:VCARD\r\nVERSION:2.1\r\nN:Doe;Jane;;;\r\nTEL;TYPE=WORK;TYPE=VOICE:1\r\nEND:VCARD\r\n");
         }
 
         public static TheoryData<string, string> WrittenLineData()
@@ -64,40 +61,40 @@ namespace DataStandardizer.File.vCard.Tests
             return new TheoryData<string, string>
             {
                 // ref. vCard 2.1 §2.1.3 and §2.1.6: text outside US-ASCII in quoted-printable, with its character set.
-                { "NOTE:Caf\x00E9", "NOTE;ENCODING=QUOTED-PRINTABLE;CHARSET=UTF-8:Caf=C3=A9\r\n" },
+                { "NOTE:Caf\x00E9", "BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Jane Doe\r\nN:Doe;Jane;;;\r\nNOTE;ENCODING=QUOTED-PRINTABLE;CHARSET=UTF-8:Caf=C3=A9\r\nEND:VCARD\r\n" },
 
                 // A line break as =0D=0A, as in the example of §2.1.3, and a comma or a backslash as it is.
-                { "NOTE:a\\nb", "NOTE;ENCODING=QUOTED-PRINTABLE:a=0D=0Ab\r\n" },
-                { "NOTE:a\\,b\\\\c", "NOTE:a,b\\c\r\n" },
+                { "NOTE:a\\nb", "BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Jane Doe\r\nN:Doe;Jane;;;\r\nNOTE;ENCODING=QUOTED-PRINTABLE:a=0D=0Ab\r\nEND:VCARD\r\n" },
+                { "NOTE:a\\,b\\\\c", "BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Jane Doe\r\nN:Doe;Jane;;;\r\nNOTE:a,b\\c\r\nEND:VCARD\r\n" },
 
-                // A long value broken with soft line breaks, which are read the same way by any reader, and never folded.
-                { "NOTE:" + LongText, "NOTE;ENCODING=QUOTED-PRINTABLE:abcdefghijklmnopqrstuvwxyzabcdefghijklmnopq=\r\nrstuvwxyzabcdefghijklmnopqrstuvwx\r\n" },
+                // A value of 76 characters, whose line is too long to write plainly, broken with soft line breaks, which are read the same way by any reader, and never folded.
+                { "NOTE:abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwx", "BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Jane Doe\r\nN:Doe;Jane;;;\r\nNOTE;ENCODING=QUOTED-PRINTABLE:abcdefghijklmnopqrstuvwxyzabcdefghijklmnopq=\r\nrstuvwxyzabcdefghijklmnopqrstuvwx\r\nEND:VCARD\r\n" },
 
                 // A preference as the knowntype PREF (§2.4.1), and every TYPE value as a parameter of its own (§2.9).
-                { "TEL;TYPE=work,voice;PREF=1:+1-555", "TEL;WORK;VOICE;PREF:+1-555\r\n" },
-                { "EMAIL;TYPE=internet,x-custom:a@example.com", "EMAIL;INTERNET;TYPE=x-custom:a@example.com\r\n" },
-                { "TEL;VALUE=uri:tel:+1-555-555-5555", "TEL:+1-555-555-5555\r\n" },
+                { "TEL;TYPE=work,voice;PREF=1:+1-555", "BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Jane Doe\r\nN:Doe;Jane;;;\r\nTEL;WORK;VOICE;PREF:+1-555\r\nEND:VCARD\r\n" },
+                { "EMAIL;TYPE=internet,x-custom:a@example.com", "BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Jane Doe\r\nN:Doe;Jane;;;\r\nEMAIL;INTERNET;TYPE=x-custom:a@example.com\r\nEND:VCARD\r\n" },
+                { "TEL;VALUE=uri:tel:+1-555-555-5555", "BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Jane Doe\r\nN:Doe;Jane;;;\r\nTEL:+1-555-555-5555\r\nEND:VCARD\r\n" },
 
                 // Values in the forms of vCard 2.1.
-                { "BDAY:19950415", "BDAY:1995-04-15\r\n" },
-                { "REV:19951031T222710Z", "REV:1995-10-31T22:27:10Z\r\n" },
-                { "TZ;VALUE=utc-offset:-0500", "TZ:-05:00\r\n" },
-                { "GEO:geo:37.24\\,-17.87", "GEO:37.24,-17.87\r\n" },
-                { "URL:http://example.com/a\\,b", "URL:http://example.com/a,b\r\n" },
-                { "UID;VALUE=text:a\\,b", "UID:a,b\r\n" },
-                { "ORG:ABC\\, Inc.;Marketing", "ORG:ABC, Inc.;Marketing\r\n" },
-                { "MAILER:ccMail 2.2", "MAILER:ccMail 2.2\r\n" },
+                { "BDAY:19950415", "BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Jane Doe\r\nN:Doe;Jane;;;\r\nBDAY:1995-04-15\r\nEND:VCARD\r\n" },
+                { "REV:19951031T222710Z", "BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Jane Doe\r\nN:Doe;Jane;;;\r\nREV:1995-10-31T22:27:10Z\r\nEND:VCARD\r\n" },
+                { "TZ;VALUE=utc-offset:-0500", "BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Jane Doe\r\nN:Doe;Jane;;;\r\nTZ:-05:00\r\nEND:VCARD\r\n" },
+                { "GEO:geo:37.24\\,-17.87", "BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Jane Doe\r\nN:Doe;Jane;;;\r\nGEO:37.24,-17.87\r\nEND:VCARD\r\n" },
+                { "URL:http://example.com/a\\,b", "BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Jane Doe\r\nN:Doe;Jane;;;\r\nURL:http://example.com/a,b\r\nEND:VCARD\r\n" },
+                { "UID;VALUE=text:a\\,b", "BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Jane Doe\r\nN:Doe;Jane;;;\r\nUID:a,b\r\nEND:VCARD\r\n" },
+                { "ORG:ABC\\, Inc.;Marketing", "BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Jane Doe\r\nN:Doe;Jane;;;\r\nORG:ABC, Inc.;Marketing\r\nEND:VCARD\r\n" },
+                { "MAILER:ccMail 2.2", "BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Jane Doe\r\nN:Doe;Jane;;;\r\nMAILER:ccMail 2.2\r\nEND:VCARD\r\n" },
 
                 // Media: binary in BASE64 with the empty line that ends it, a URL, and a Content-ID (RFC 2392 §2).
-                { "PHOTO:data:image/gif;base64\\,AQID", "PHOTO;GIF;ENCODING=BASE64:\r\n    AQID\r\n\r\n" },
-                { "PHOTO;MEDIATYPE=image/jpeg:http://example.com/a.jpg", "PHOTO;VALUE=URL;JPEG:http://example.com/a.jpg\r\n" },
-                { "SOUND:cid:a%20b@host1.com", "SOUND;VALUE=CONTENT-ID:<a b@host1.com>\r\n" },
+                { "PHOTO:data:image/gif;base64\\,AQID", "BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Jane Doe\r\nN:Doe;Jane;;;\r\nPHOTO;GIF;ENCODING=BASE64:\r\n    AQID\r\n\r\nEND:VCARD\r\n" },
+                { "PHOTO;MEDIATYPE=image/jpeg:http://example.com/a.jpg", "BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Jane Doe\r\nN:Doe;Jane;;;\r\nPHOTO;VALUE=URL;JPEG:http://example.com/a.jpg\r\nEND:VCARD\r\n" },
+                { "SOUND:cid:a%20b@host1.com", "BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Jane Doe\r\nN:Doe;Jane;;;\r\nSOUND;VALUE=CONTENT-ID:<a b@host1.com>\r\nEND:VCARD\r\n" },
 
-                { "KEY;VALUE=text;TYPE=pgp:abc", "KEY;PGP:abc\r\n" },
+                { "KEY;VALUE=text;TYPE=pgp:abc", "BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Jane Doe\r\nN:Doe;Jane;;;\r\nKEY;PGP:abc\r\nEND:VCARD\r\n" },
 
                 // A group, and an extension as it is.
-                { "a.NOTE:b", "a.NOTE:b\r\n" },
-                { "X-A;X-B=c:a\\,b", "X-A;X-B=c:a\\,b\r\n" }
+                { "a.NOTE:b", "BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Jane Doe\r\nN:Doe;Jane;;;\r\na.NOTE:b\r\nEND:VCARD\r\n" },
+                { "X-A;X-B=c:a\\,b", "BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Jane Doe\r\nN:Doe;Jane;;;\r\nX-A;X-B=c:a\\,b\r\nEND:VCARD\r\n" }
             };
         }
 
@@ -112,7 +109,7 @@ namespace DataStandardizer.File.vCard.Tests
             var testResult = Vcard21TestData.Write(card);
 
             // assert
-            testResult.Should().Be("BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Jane Doe\r\nN:Doe;Jane;;;\r\n" + expected + Vcard21TestData.WrittenCardEnd);
+            testResult.Should().Be(expected);
         }
 
         [Fact]
@@ -126,7 +123,7 @@ namespace DataStandardizer.File.vCard.Tests
             var testResult = Vcard21TestData.Write(card);
 
             // assert
-            testResult.Should().Be(Vcard21TestData.WrittenCardStart + "SOUND:JON Q PUBLIK\r\n" + Vcard21TestData.WrittenCardEnd);
+            testResult.Should().Be("BEGIN:VCARD\r\nVERSION:2.1\r\nN:Doe;Jane;;;\r\nSOUND:JON Q PUBLIK\r\nEND:VCARD\r\n");
         }
 
         [Fact]
@@ -139,8 +136,7 @@ namespace DataStandardizer.File.vCard.Tests
             var testResult = Vcard21TestData.Write(card);
 
             // assert
-            testResult.Should().Be("BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Jane Doe\r\nN:Doe;Jane;;;\r\nADR;HOME:;;1 Main St;Town;;;\r\nLABEL;HOME;ENCODING=QUOTED-PRINTABLE:1 Main St=0D=0ATown\r\n" +
-                                   Vcard21TestData.WrittenCardEnd);
+            testResult.Should().Be("BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Jane Doe\r\nN:Doe;Jane;;;\r\nADR;HOME:;;1 Main St;Town;;;\r\nLABEL;HOME;ENCODING=QUOTED-PRINTABLE:1 Main St=0D=0ATown\r\nEND:VCARD\r\n");
         }
 
         public static TheoryData<string> LossyLineData()
@@ -209,7 +205,7 @@ namespace DataStandardizer.File.vCard.Tests
             var testResult = Vcard21TestData.Write(card, allowLossy: true);
 
             // assert
-            testResult.Should().Be("BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Jane Doe\r\nN:Doe;Jane;;;\r\nPHOTO;ENCODING=BASE64:\r\n    AQID\r\n\r\n" + Vcard21TestData.WrittenCardEnd);
+            testResult.Should().Be("BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Jane Doe\r\nN:Doe;Jane;;;\r\nPHOTO;ENCODING=BASE64:\r\n    AQID\r\n\r\nEND:VCARD\r\n");
         }
 
         [Fact]
@@ -236,7 +232,7 @@ namespace DataStandardizer.File.vCard.Tests
             var testResult = Vcard21TestData.Write(card, allowMissingRequired: true);
 
             // assert
-            testResult.Should().Be("BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Jane Doe\r\n" + Vcard21TestData.WrittenCardEnd);
+            testResult.Should().Be("BEGIN:VCARD\r\nVERSION:2.1\r\nFN:Jane Doe\r\nEND:VCARD\r\n");
         }
 
         public static TheoryData<string> RoundTripData()

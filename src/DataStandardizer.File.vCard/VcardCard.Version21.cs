@@ -68,11 +68,11 @@ namespace DataStandardizer.File.vCard
             MimeDataUri data;
             if (MimeDataUri.TryParse(property.Value.OriginalString, out data))
             {
-                value = VcardMediaValue.FromData(data.GetData(), GetVersion21Token(data.MediaType));
+                value = VcardMediaValue.FromData(data.GetData(), GetVersion21DataToken(data.MediaType, property.Types));
                 return true;
             }
 
-            value = VcardMediaValue.FromUri(property.Value, property.MediaType.HasValue ? GetVersion21Token(property.MediaType.Value) : null);
+            value = VcardMediaValue.FromUri(property.Value, GetVersion21UriToken(property.MediaType, property.Types));
             return true;
         }
 
@@ -83,23 +83,13 @@ namespace DataStandardizer.File.vCard
             {
                 case VcardValueType.Text:
                     // ref. vCard 2.1 §2.6.3 and §2.7.1: a sound can be "a string representation", and a key's "default format is clear-text".  Its TYPE says the format.
-                    string token = null;
-                    foreach (var type in property.Types)
-                    {
-                        if (VcardLegacyTokens.IsKnownType(type.AsSpan()))
-                        {
-                            token = type.ToUpperInvariant();
-                            break;
-                        }
-                    }
-
-                    value = VcardMediaValue.FromText(property.Value.Text, token);
+                    value = VcardMediaValue.FromText(property.Value.Text, GetFormatToken(property.Types));
                     return true;
                 case VcardValueType.Uri:
                     MimeDataUri data;
                     value = MimeDataUri.TryParse(property.Value.Uri.OriginalString, out data)
-                        ? VcardMediaValue.FromData(data.GetData(), GetVersion21Token(data.MediaType))
-                        : VcardMediaValue.FromUri(property.Value.Uri, property.MediaType.HasValue ? GetVersion21Token(property.MediaType.Value) : null);
+                        ? VcardMediaValue.FromData(data.GetData(), GetVersion21DataToken(data.MediaType, property.Types))
+                        : VcardMediaValue.FromUri(property.Value.Uri, GetVersion21UriToken(property.MediaType, property.Types));
                     return true;
                 default:
                     return false;
@@ -112,6 +102,41 @@ namespace DataStandardizer.File.vCard
             return VcardLegacyMediaTypes.TryGetToken(mediaType, VcardVersion.V2_1, out token) ? token : null;
         }
 
+        /// <summary>
+        /// Gets the token of the format of data: that of its media type, or for data with none, a format that has no media type, such as <c>PICT</c>, which stays a <c>TYPE</c>.
+        /// </summary>
+        private static string GetVersion21DataToken(MimeMediaType mediaType, IReadOnlyList<string> types)
+        {
+            return VcardVersion30Mapping.IsUntyped(mediaType) ? GetFormatToken(types) : GetVersion21Token(mediaType);
+        }
+
+        private static string GetVersion21UriToken(MimeMediaType? mediaType, IReadOnlyList<string> types)
+        {
+            return mediaType.HasValue ? GetVersion21Token(mediaType.Value) : GetFormatToken(types);
+        }
+
+        /// <summary>
+        /// Gets the first <c>TYPE</c> that names a format (vCard 2.1 §2.9), in upper case, and not one such as <c>HOME</c> that says what the value is for.
+        /// </summary>
+        private static string GetFormatToken(IReadOnlyList<string> types)
+        {
+            foreach (var type in types)
+            {
+                if (VcardLegacyTokens.IsFormatType(type.AsSpan())) return type.ToUpperInvariant();
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Gets whether a token names a format of vCard 2.1 that has no media type, such as <c>PICT</c>.
+        /// </summary>
+        private static bool IsFormatWithoutMediaType(string token)
+        {
+            MimeMediaType mediaType;
+            return VcardLegacyTokens.IsFormatType(token.AsSpan()) && !VcardLegacyMediaTypes.TryGetMediaType(token.AsSpan(), out mediaType);
+        }
+
         private static Uri Version21MediaToUri(VcardMediaValue value)
         {
             if (value.Uri != null) return value.Uri;
@@ -120,7 +145,8 @@ namespace DataStandardizer.File.vCard
             if (data is null)
                 throw new ArgumentException("Only a sound or a key can be text.", nameof(value));
 
-            var mediaType = value.TypeToken is null ? MimeMediaType.Parse("application/octet-stream".AsSpan()) : GetVersion21MediaType(value.TypeToken);
+            var isUntyped = value.TypeToken is null || IsFormatWithoutMediaType(value.TypeToken);
+            var mediaType = isUntyped ? MimeMediaType.Parse("application/octet-stream".AsSpan()) : GetVersion21MediaType(value.TypeToken);
             try
             {
                 return new Uri(DataUriText(mediaType, data));
@@ -141,7 +167,7 @@ namespace DataStandardizer.File.vCard
         {
             // ref. vCard 2.1 §2.9: the formats of knowntype.  Those that have no media type can't name the format of data.
             MimeMediaType mediaType;
-            if (!VcardLegacyTokens.IsKnownType(token.AsSpan()) || !VcardLegacyMediaTypes.TryGetMediaType(token.AsSpan(), out mediaType))
+            if (!VcardLegacyTokens.IsFormatType(token.AsSpan()) || !VcardLegacyMediaTypes.TryGetMediaType(token.AsSpan(), out mediaType))
                 throw new ArgumentException("The token \"" + token + "\" names no media type of vCard 2.1.", nameof(token));
 
             return mediaType;
@@ -151,12 +177,13 @@ namespace DataStandardizer.File.vCard
         {
             if (value.TypeToken is null) return;
 
-            if (value.Text != null)
-            {
-                // ref. RFC 6350 §6.8.1: mediatype-param is only with a URI, so the TYPE of text stays.
-                if (!VcardLegacyTokens.IsKnownType(value.TypeToken.AsSpan()))
-                    throw new ArgumentException("vCard 2.1 has no TYPE " + value.TypeToken + ".", nameof(value));
+            // ref. vCard 2.1 §2.9: the format of a value is a knowntype that names one.
+            if (!VcardLegacyTokens.IsFormatType(value.TypeToken.AsSpan()))
+                throw new ArgumentException("vCard 2.1 has no format " + value.TypeToken + ".", nameof(value));
 
+            // ref. RFC 6350 §6.8.1: mediatype-param is only with a URI, so the TYPE of text stays, and so does a format that has no media type.
+            if (value.Text != null || IsFormatWithoutMediaType(value.TypeToken))
+            {
                 parameters.Types.Add(value.TypeToken.ToLowerInvariant());
             }
             else if (value.Uri != null)

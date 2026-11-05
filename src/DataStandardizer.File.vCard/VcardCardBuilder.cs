@@ -110,7 +110,8 @@ namespace DataStandardizer.File.vCard
                 if (IsInlineAgent(line, VcardLegacyTokens.EqualsIgnoreCase(line.Value.AsSpan(), InlineCardValue)))
                 {
                     // The value starts the card, so the line that begins it is this one.
-                    StartHeldCard(line.With(VcardPropertyNames.Begin, new VcardContentLineParameter[0], CardValue));
+                    // vCard 2.1 §2.9: a group is on the AGENT item, and the vcard of its value has none.
+                    StartHeldCard(line.With(null, VcardPropertyNames.Begin, new VcardContentLineParameter[0], CardValue));
                 }
             }
 

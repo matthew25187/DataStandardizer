@@ -312,8 +312,8 @@ namespace DataStandardizer.File.vCard
             var canonical = parameters.ToCanonical(nameof(parameters));
             if (value.TypeToken != null)
             {
-                if (!VcardLegacyTokens.IsKnownType(value.TypeToken.AsSpan()))
-                    throw new ArgumentException("vCard 2.1 has no TYPE " + value.TypeToken + ".", nameof(value));
+                if (!VcardLegacyTokens.IsFormatType(value.TypeToken.AsSpan()))
+                    throw new ArgumentException("vCard 2.1 has no format " + value.TypeToken + ".", nameof(value));
 
                 canonical.Types.Insert(0, value.TypeToken.ToLowerInvariant());
             }
@@ -381,7 +381,7 @@ namespace DataStandardizer.File.vCard
         {
             foreach (var type in VcardPropertyParameterReader.GetListValues(line, VcardParameterNames.Type))
             {
-                if (VcardLegacyTokens.IsKnownType(type.AsSpan())) return type.ToUpperInvariant();
+                if (VcardLegacyTokens.IsFormatType(type.AsSpan())) return type.ToUpperInvariant();
             }
 
             return null;

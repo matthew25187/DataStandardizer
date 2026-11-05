@@ -358,7 +358,19 @@ namespace DataStandardizer.File.vCard
 
         internal VcardContentLine With(string name, VcardContentLineParameter[] parameters, string value)
         {
-            return new VcardContentLine(Group, name, parameters, value, LineNumber, PhysicalLineNumber, null, 0, _cardIndex, false, VcardValueDecoder.Default, VcardLineVersion.NotRead);
+            return With(Group, name, parameters, value);
+        }
+
+        /// <summary>
+        /// Gets a line with another group, name, parameters and value, at the place of this one in the data.
+        /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal VcardContentLine With(string? group, string name, VcardContentLineParameter[] parameters, string value)
+#else
+        internal VcardContentLine With(string group, string name, VcardContentLineParameter[] parameters, string value)
+#endif
+        {
+            return new VcardContentLine(group, name, parameters, value, LineNumber, PhysicalLineNumber, null, 0, _cardIndex, false, VcardValueDecoder.Default, VcardLineVersion.NotRead);
         }
 
         /// <summary>
