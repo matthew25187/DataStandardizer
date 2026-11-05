@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Threading.Tasks;
 using DataStandardizer.File.ContentLine;
@@ -8,7 +8,7 @@ using Xunit;
 namespace DataStandardizer.File.vCard.IntegrationTests
 {
     /// <summary>
-    /// Tests of the file-path constructors of <see cref="VcardContentLineReader"/>.
+    /// Tests of the file-path constructors of <see cref="VcardContentLineReader"/> and <see cref="VcardContentLineWriter"/>.
     /// </summary>
     public class VcardContentLineFileTests
     {
@@ -22,6 +22,12 @@ namespace DataStandardizer.File.vCard.IntegrationTests
 
         // "A:1" and a line break, after a UTF-8 byte order mark, EF BB BF.
         private static readonly byte[] ByteOrderMarkLine = { 0xEF, 0xBB, 0xBF, 0x41, 0x3A, 0x31, 0x0D, 0x0A };
+
+        // "A:" and the euro sign in UTF-8, E2 82 AC, and a line break, with no byte order mark.
+        private static readonly byte[] EuroSignLine = { 0x41, 0x3A, 0xE2, 0x82, 0xAC, 0x0D, 0x0A };
+
+        // More bytes than the line the writer writes, so that any left over would show.
+        private static readonly byte[] ThousandBytes = new byte[1000];
 
         // "A:" and the byte FF, which never appears in UTF-8 (RFC 3629 §1), and a line break.
         private static readonly byte[] InvalidUtf8Line = { 0x41, 0x3A, 0xFF, 0x0D, 0x0A };
@@ -202,6 +208,109 @@ namespace DataStandardizer.File.vCard.IntegrationTests
 
                 // assert
                 testAction.Should().Throw<FileNotFoundException>();
+            }
+        }
+
+        [Fact]
+        public void WriteLine_FilePath_WritesUtf8WithoutByteOrderMark()
+        {
+            // arrange
+            using (var file = TemporaryFile.Create())
+            {
+                // act
+                using (var writer = new VcardContentLineWriter(file.Path))
+                {
+                    writer.WriteLine(new VcardContentLine("A", EuroSign));
+                }
+
+                // assert
+                file.ReadAllBytes().Should().Equal(EuroSignLine);
+            }
+        }
+
+        [Fact]
+        public async Task WriteLineAsync_FilePath_WritesTheLine()
+        {
+            // arrange
+            using (var file = TemporaryFile.Create())
+            {
+                var writer = new VcardContentLineWriter(file.Path);
+
+                // act
+                await writer.WriteLineAsync(new VcardContentLine("A", "1"));
+                await writer.DisposeAsync();
+
+                // assert
+                file.ReadAllBytes().Should().Equal(SimpleLine);
+            }
+        }
+
+        [Fact]
+        public void Constructor_WriterOverExistingFile_OverwritesIt()
+        {
+            // arrange
+            using (var file = TemporaryFile.Create(ThousandBytes))
+            {
+                // act
+                using (var writer = new VcardContentLineWriter(file.Path))
+                {
+                    writer.WriteLine(new VcardContentLine("A", "1"));
+                }
+
+                // assert
+                file.ReadAllBytes().Should().Equal(SimpleLine);
+            }
+        }
+
+        // ref. #268: a file-path constructor opens the file for asynchronous I/O.
+        [Fact]
+        public void Constructor_WriterOverFilePath_OpensFileForAsynchronousIo()
+        {
+            // arrange
+            using (var file = TemporaryFile.Create())
+            using (var writer = new VcardContentLineWriter(file.Path))
+            {
+                // act
+                var testResult = (FileStream)((StreamWriter)writer.UnderlyingWriter).BaseStream;
+
+                // assert
+                testResult.IsAsync.Should().BeTrue();
+            }
+        }
+
+        [Fact]
+        public void Dispose_WriterOverFilePath_ClosesFile()
+        {
+            // arrange
+            using (var file = TemporaryFile.Create())
+            {
+                var writer = new VcardContentLineWriter(file.Path);
+                writer.WriteLine(new VcardContentLine("A", "1"));
+
+                // act
+                writer.Dispose();
+
+                // assert
+                Action openExclusively = file.OpenExclusively;
+                openExclusively.Should().NotThrow();
+            }
+        }
+
+        [Fact]
+        public async Task DisposeAsync_WriterOverFilePath_ClosesFile()
+        {
+            // arrange
+            using (var file = TemporaryFile.Create())
+            {
+                var writer = new VcardContentLineWriter(file.Path);
+                await writer.WriteLineAsync(new VcardContentLine("A", "1"));
+
+                // act
+                await writer.DisposeAsync();
+
+                // assert
+                Action openExclusively = file.OpenExclusively;
+                openExclusively.Should().NotThrow();
             }
         }
     }

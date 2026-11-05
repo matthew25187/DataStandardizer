@@ -251,6 +251,64 @@ namespace DataStandardizer.File.vCard.Tests
 
             return items;
         }
+
+        /// <summary>
+        /// Gives the items as an asynchronous sequence that yields before each one, as an async iterator that awaits <c>Task.Yield()</c>
+        /// before each <c>yield return</c> would.
+        /// </summary>
+        /// <param name="items">The items.</param>
+        /// <param name="onEnumerate">Called with the token given to <c>GetAsyncEnumerator</c>.</param>
+        public static IAsyncEnumerable<T> Yielding<T>(IEnumerable<T> items, Action<CancellationToken> onEnumerate = null)
+        {
+            return new YieldingAsyncEnumerable<T>(items, onEnumerate);
+        }
+
+        private sealed class YieldingAsyncEnumerable<T> : IAsyncEnumerable<T>
+        {
+            private readonly IEnumerable<T> _items;
+            private readonly Action<CancellationToken> _onEnumerate;
+
+            public YieldingAsyncEnumerable(IEnumerable<T> items, Action<CancellationToken> onEnumerate)
+            {
+                _items = items;
+                _onEnumerate = onEnumerate;
+            }
+
+            public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+            {
+                _onEnumerate?.Invoke(cancellationToken);
+                return new Enumerator(_items.GetEnumerator());
+            }
+
+            private sealed class Enumerator : IAsyncEnumerator<T>
+            {
+                private readonly IEnumerator<T> _items;
+
+                public Enumerator(IEnumerator<T> items)
+                {
+                    _items = items;
+                }
+
+                public T Current => _items.Current;
+
+                public async ValueTask<bool> MoveNextAsync()
+                {
+                    if (!_items.MoveNext())
+                    {
+                        return false;
+                    }
+
+                    await Task.Yield();
+                    return true;
+                }
+
+                public ValueTask DisposeAsync()
+                {
+                    _items.Dispose();
+                    return default;
+                }
+            }
+        }
     }
 
     internal static class TestTasks

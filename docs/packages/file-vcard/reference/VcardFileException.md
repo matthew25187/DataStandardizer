@@ -11,7 +11,7 @@ nav_exclude: true
 
 Namespace: `DataStandardizer.File.vCard`
 
-The exception for a problem in vCard data. Details of where the problem was found are in
+The exception for a problem in vCard data, read or to be written. Details of where the problem was found are in
 `Exception.Data`, under the keys in `VcardFileException.DataItemName`.
 
 **Syntax**
@@ -27,8 +27,8 @@ public sealed class VcardFileException : Exception
 | `CardIndex` | `int` | The 0-based index of the card, counting each `BEGIN:VCARD` line. Present only when the line is in a card, up to and including its `END:VCARD` line. |
 | `DiagnosticKind` | | The kind of conformance problem. The content line reader finds no conformance problems, so it never sets this item. |
 | `Group` | `string` | The group of the line, without its `.`. Present only when the line has one and it has been read. |
-| `LineNumber` | `long` | The 1-based number of the logical line. Not present when the data could not be decoded. For a value that `VcardContentLine.GetTextValue` can't read, it is 0 for a line not read from data. |
-| `PhysicalLineNumber` | `long` | The 1-based number of the physical line. Not present when the data could not be decoded. For a value that `VcardContentLine.GetTextValue` can't read, it is 0 for a line not read from data. |
+| `LineNumber` | `long` | The 1-based number of the logical line; for a line that can't be written, the number it would have had in the output. Not present when the data could not be decoded. For a value that `VcardContentLine.GetTextValue` can't read, it is 0 for a line not read from data. |
+| `PhysicalLineNumber` | `long` | The 1-based number of the physical line. Not present for a line that can't be written, or when the data could not be decoded. For a value that `VcardContentLine.GetTextValue` can't read, it is 0 for a line not read from data. |
 | `PropertyName` | `string` | The name of the property. Present only once the name has been read. |
 
 When the data could not be decoded, `InnerException` is the decoder's
@@ -49,3 +49,4 @@ Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 ## See also
 
 - [VcardContentLineReader](VcardContentLineReader.md)
+- [VcardContentLineWriter](VcardContentLineWriter.md)

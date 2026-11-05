@@ -159,3 +159,4 @@ Targets `netstandard1.1` (synchronous, without the file-path constructors),
 - [VcardContentLine](VcardContentLine.md)
 - [VcardOptions](VcardOptions.md)
 - [VcardFileException](VcardFileException.md)
+- [VcardContentLineWriter](VcardContentLineWriter.md)
