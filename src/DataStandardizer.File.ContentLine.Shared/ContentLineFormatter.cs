@@ -73,14 +73,21 @@ namespace DataStandardizer.File.ContentLine
         /// <param name="caretMode">What to do with the characters of a parameter value that only caret encoding can represent.  It doesn't apply to
         /// <see cref="IContentLineData.RawParameters"/>, which are written as they are.</param>
         /// <param name="foldMode">How to break the line if it is long.</param>
+        /// <param name="isAlwaysQuoted">Says, from its name, whether a parameter's values are quoted whatever they hold, because the case of an unquoted value isn't significant
+        /// (RFC 6350 §5); or <c>null</c> to quote a value only if it has to be.  It doesn't apply to <see cref="IContentLineData.RawParameters"/>.</param>
         /// <returns>The number of characters of <see cref="Buffer"/> that hold the formatted line.</returns>
         /// <exception cref="Exception">What the error factory builds: the line cannot be written, because the group or a name is not valid, or a
         /// parameter value or the value holds a character that is not allowed.</exception>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         internal int Format<TLine>(TLine line, long lineNumber, ContentLineCaretMode caretMode = ContentLineCaretMode.Encode,
-            ContentLineFoldMode foldMode = ContentLineFoldMode.Fold)
+            ContentLineFoldMode foldMode = ContentLineFoldMode.Fold, Func<string, bool>? isAlwaysQuoted = null)
+#else
+        internal int Format<TLine>(TLine line, long lineNumber, ContentLineCaretMode caretMode = ContentLineCaretMode.Encode,
+            ContentLineFoldMode foldMode = ContentLineFoldMode.Fold, Func<string, bool> isAlwaysQuoted = null)
+#endif
             where TLine : IContentLineData
         {
-            var logicalLength = Measure(line, lineNumber, caretMode);
+            var logicalLength = Measure(line, lineNumber, caretMode, isAlwaysQuoted);
             if (foldMode == ContentLineFoldMode.QuotedPrintableSoftBreak)
             {
                 CheckQuotedPrintablePrefix(logicalLength, line.Value.Length, lineNumber, line.Name, line.Group);
@@ -104,7 +111,7 @@ namespace DataStandardizer.File.ContentLine
             }
             else
             {
-                position = AppendParameters(line, position, caretMode);
+                position = AppendParameters(line, position, caretMode, isAlwaysQuoted);
             }
 
             _buffer[position++] = ':';
@@ -138,7 +145,11 @@ namespace DataStandardizer.File.ContentLine
         /// <summary>
         /// Checks that a line can be written, and measures its logical (unfolded) length.
         /// </summary>
-        private long Measure<TLine>(TLine line, long lineNumber, ContentLineCaretMode caretMode)
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private long Measure<TLine>(TLine line, long lineNumber, ContentLineCaretMode caretMode, Func<string, bool>? isAlwaysQuoted)
+#else
+        private long Measure<TLine>(TLine line, long lineNumber, ContentLineCaretMode caretMode, Func<string, bool> isAlwaysQuoted)
+#endif
             where TLine : IContentLineData
         {
             // ref. RFC 6350 §3.3: contentline = [group "."] name *(";" param) ":" value CRLF; group = 1*(ALPHA / DIGIT / "-")
@@ -186,11 +197,12 @@ namespace DataStandardizer.File.ContentLine
                 }
 
                 length += 1 + parameterName.Length + 1;
+                var isParameterQuoted = isAlwaysQuoted != null && isAlwaysQuoted(parameterName);
                 var valueCount = line.GetParameterValueCount(parameterIndex);
                 for (var valueIndex = 0; valueIndex < valueCount; valueIndex++)
                 {
                     int invalidCharacter;
-                    var valueLength = MeasureParameterValue(line.GetParameterValue(parameterIndex, valueIndex), caretMode, out invalidCharacter);
+                    var valueLength = MeasureParameterValue(line.GetParameterValue(parameterIndex, valueIndex), caretMode, isParameterQuoted, out invalidCharacter);
                     if (valueLength < 0)
                     {
                         var kind = invalidCharacter == Quote || invalidCharacter == '\r' || invalidCharacter == '\n'
@@ -422,7 +434,11 @@ namespace DataStandardizer.File.ContentLine
             return position;
         }
 
-        private int AppendParameters<TLine>(TLine line, int position, ContentLineCaretMode caretMode)
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private int AppendParameters<TLine>(TLine line, int position, ContentLineCaretMode caretMode, Func<string, bool>? isAlwaysQuoted)
+#else
+        private int AppendParameters<TLine>(TLine line, int position, ContentLineCaretMode caretMode, Func<string, bool> isAlwaysQuoted)
+#endif
             where TLine : IContentLineData
         {
             var buffer = _buffer;
@@ -430,9 +446,11 @@ namespace DataStandardizer.File.ContentLine
             for (var parameterIndex = 0; parameterIndex < parameterCount; parameterIndex++)
             {
                 buffer[position++] = ';';
-                position = Append(line.GetParameterName(parameterIndex), position);
+                var parameterName = line.GetParameterName(parameterIndex);
+                position = Append(parameterName, position);
                 buffer[position++] = '=';
 
+                var isParameterQuoted = isAlwaysQuoted != null && isAlwaysQuoted(parameterName);
                 var valueCount = line.GetParameterValueCount(parameterIndex);
                 for (var valueIndex = 0; valueIndex < valueCount; valueIndex++)
                 {
@@ -441,7 +459,7 @@ namespace DataStandardizer.File.ContentLine
                         buffer[position++] = ',';
                     }
 
-                    position = AppendParameterValue(line.GetParameterValue(parameterIndex, valueIndex), position, caretMode);
+                    position = AppendParameterValue(line.GetParameterValue(parameterIndex, valueIndex), position, caretMode, isParameterQuoted);
                 }
             }
 
@@ -449,13 +467,13 @@ namespace DataStandardizer.File.ContentLine
         }
 
         /// <summary>
-        /// Appends a parameter value as <paramref name="caretMode"/> says, quoted if it holds a ':', ';' or ','.  The value has been checked by
-        /// <see cref="MeasureParameterValue"/>.
+        /// Appends a parameter value as <paramref name="caretMode"/> says, quoted if it holds a ':', ';' or ',' or <paramref name="isAlwaysQuoted"/> says to.  The value has been
+        /// checked by <see cref="MeasureParameterValue"/>.
         /// </summary>
-        private int AppendParameterValue(string value, int position, ContentLineCaretMode caretMode)
+        private int AppendParameterValue(string value, int position, ContentLineCaretMode caretMode, bool isAlwaysQuoted)
         {
             var buffer = _buffer;
-            var isQuoted = NeedsQuotes(value);
+            var isQuoted = isAlwaysQuoted || NeedsQuotes(value);
             if (isQuoted)
             {
                 buffer[position++] = Quote;
@@ -576,12 +594,12 @@ namespace DataStandardizer.File.ContentLine
         /// <param name="invalidCharacter">The first character that cannot be written, if any.</param>
         /// <returns>The length; or -1 if the value holds a control character other than a tab or line break, or a lone surrogate, or, under
         /// <see cref="ContentLineCaretMode.Reject"/>, a double quote or a line break.</returns>
-        private static int MeasureParameterValue(string value, ContentLineCaretMode caretMode, out int invalidCharacter)
+        private static int MeasureParameterValue(string value, ContentLineCaretMode caretMode, bool isAlwaysQuoted, out int invalidCharacter)
         {
             invalidCharacter = 0;
             var length = value.Length;
             var index = IndexOfParameterValueSpecialCharacter(value, 0);
-            var isQuoted = false;
+            var isQuoted = isAlwaysQuoted;
             while (index >= 0)
             {
                 var character = value[index];
