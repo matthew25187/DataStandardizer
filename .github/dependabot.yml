@@ -30,6 +30,7 @@ updates:
           - BenchmarkDotNet
           - coverlet.collector
           - CsvHelper
+          - FolkerKinzel.VCards
           - Ical.Net
           - Microsoft.NET.Test.Sdk
           - MimeKit
