@@ -17,6 +17,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)ContentLineFormatter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ContentLineScanner.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ContentLineScannerSettings.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)IContentLineContinuation.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)IContentLineData.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)IContentLineErrorFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utf8FoldRealigningStream.cs" />

@@ -178,6 +178,19 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
+        public void Constructor_ContinuationNotSpecified_HasNone()
+        {
+            // arrange
+            const int maxLineLength = 1;
+
+            // act
+            var settings = new ContentLineScannerSettings(false, maxLineLength);
+
+            // assert
+            settings.Continuation.Should().BeNull();
+        }
+
+        [Fact]
         public void Constructor_NewRulesNotSpecified_LeavesThemOff()
         {
             // arrange

@@ -17,6 +17,9 @@ namespace DataStandardizer.File.iCal.Tests
         private const string ParameterName = "P";
         private const int DefaultFoldLength = 75;
         private const int ShortFoldLength = 10;
+        private const string Name73Characters = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+        private const string Name74Characters = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+        private const string Name75Characters = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
         // ref. RFC 6350 §3.3: contentline = [group "."] name *(";" param) ":" value CRLF
         private const string GroupedLine = "item1.TEL:x\r\n";
@@ -214,6 +217,84 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             testResult.Should().Be(UnfoldedShortLine);
+        }
+
+        [Theory]
+        [InlineData("short", "TEL:short\r\n")]
+        [InlineData("", "TEL:\r\n")]
+        // 71 characters, which with "TEL:" make 75, the longest last line.
+        [InlineData("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrs", "TEL:abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrs\r\n")]
+        // One more: 70 characters and a '=' are the longest line before a soft line break.
+        [InlineData("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrst", "TEL:abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqr=\r\nst\r\n")]
+        // =0D stays whole, moving to the next line.
+        [InlineData("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopq=0Dz", "TEL:abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopq=\r\n=0Dz\r\n")]
+        public void Format_QuotedPrintableSoftBreak_BreaksTheValueBelow76Characters(string value, string expected)
+        {
+            // arrange
+            var formatter = CreateFormatter();
+            var line = new TestLine(null, Name, value);
+
+            // act
+            var testResult = Format(formatter, line, foldMode: ContentLineFoldMode.QuotedPrintableSoftBreak);
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Theory]
+        // With its ':', the name makes 74 characters, and the character or '=' after it the 75th, the longest line.
+        [InlineData(Name73Characters, "a", Name73Characters + ":a\r\n")]
+        [InlineData(Name73Characters, "ab", Name73Characters + ":=\r\nab\r\n")]
+        // With its ':', the name makes 75 characters, which leaves room only if there is no value.
+        [InlineData(Name74Characters, "", Name74Characters + ":\r\n")]
+        public void Format_QuotedPrintableSoftBreakWithLongName_WritesWhatFits(string name, string value, string expected)
+        {
+            // arrange
+            var formatter = CreateFormatter();
+            var line = new TestLine(null, name, value);
+
+            // act
+            var testResult = Format(formatter, line, foldMode: ContentLineFoldMode.QuotedPrintableSoftBreak);
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
+        [Theory]
+        [InlineData(Name74Characters, "a")]
+        [InlineData(Name75Characters, "")]
+        public void Format_QuotedPrintableSoftBreakWithNoRoomOnTheFirstLine_ReportsLineTooLongToWrite(string name, string value)
+        {
+            // arrange
+            var formatter = CreateFormatter();
+            var line = new TestLine(null, name, value);
+
+            // act
+            Action testAction = () => Format(formatter, line, foldMode: ContentLineFoldMode.QuotedPrintableSoftBreak);
+
+            // assert
+            testAction.Should().Throw<RecordedErrorException>().Which.Error.Kind.Should().Be(ContentLineErrorKind.LineTooLongToWrite);
+        }
+
+        [Theory]
+        [InlineData("", "TEL:\r\n\r\n")]
+        [InlineData("SGVsbG8=", "TEL:\r\n    SGVsbG8=\r\n\r\n")]
+        [InlineData("  SGVs\tbG8=", "TEL:\r\n    SGVsbG8=\r\n\r\n")]
+        // 65 characters: 64 on a line, the longest, and one more.
+        [InlineData("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "TEL:\r\n    AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\r\n    A\r\n\r\n")]
+        // 64 characters, which fill their line.
+        [InlineData("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "TEL:\r\n    AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\r\n\r\n")]
+        public void Format_Base64Lines_LaysOutTheValueAndAnEmptyLine(string value, string expected)
+        {
+            // arrange
+            var formatter = CreateFormatter();
+            var line = new TestLine(null, Name, value);
+
+            // act
+            var testResult = Format(formatter, line, foldMode: ContentLineFoldMode.Base64Lines);
+
+            // assert
+            testResult.Should().Be(expected);
         }
 
         private static ContentLineFormatter CreateFormatter(int foldLength = DefaultFoldLength)
