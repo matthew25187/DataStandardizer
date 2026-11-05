@@ -334,6 +334,14 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
+        /// Gets a line that a version mapping made from this one.  It is reported at the same place, and its parameters mean what they say, as on a line built in code.
+        /// </summary>
+        internal VcardContentLine With(string name, VcardContentLineParameter[] parameters, string value)
+        {
+            return new VcardContentLine(Group, name, parameters, value, LineNumber, PhysicalLineNumber, null, 0, _cardIndex, false, VcardValueDecoder.Default, VcardLineVersion.NotRead);
+        }
+
+        /// <summary>
         /// Creates a content line from the reader's current line.
         /// </summary>
         /// <param name="scanner">The scanner holding the line.</param>

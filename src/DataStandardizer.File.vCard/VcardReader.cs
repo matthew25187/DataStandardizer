@@ -13,17 +13,19 @@ using System.Runtime.CompilerServices;
 namespace DataStandardizer.File.vCard
 {
     /// <summary>
-    /// Represents a reader of vCard data (RFC 6350) into the card object model: a sequence of <see cref="VcardCard"/> objects.
+    /// Represents a reader of vCard data (RFC 6350 and RFC 2426) into the card object model: a sequence of <see cref="VcardCard"/> objects.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The data is read with a <see cref="VcardContentLineReader"/>, so the same options and rules apply to its content lines.  A stream can hold many cards.  Each
+    /// The data is read with a <see cref="VcardContentLineReader"/>, so the same options and rules apply to its content lines.  A stream can hold many cards, of different versions.  Each
     /// <c>BEGIN:VCARD</c> line must be paired with an <c>END:VCARD</c> line, and a card can't hold another.  Unknown and <c>X-</c> properties are kept, in order, with their
     /// parameters.
     /// </para>
     /// <para>
-    /// Only vCard 4.0 is read.  Any other <c>VERSION</c> throws <see cref="VcardFileException"/> as soon as it is read, and the reader can't continue.  To read the content lines of
-    /// such data, use <see cref="VcardContentLineReader"/>, which does not check <c>VERSION</c>.
+    /// vCard 4.0 and vCard 3.0 are read.  A vCard 3.0 card is checked by the rules of its version (RFC 2426, RFC 2739 and RFC 4770), and each property is then converted to the canonical form of the model; see
+    /// <see cref="VcardCard.SourceVersion"/>.  <see cref="VcardOptions.AcceptLegacySyntax"/> accepts the quoted-printable that some software writes in one, which RFC 2426 §5 eliminated.  Any
+    /// other <c>VERSION</c> throws <see cref="VcardFileException"/> as soon as it is read, and the reader can't continue.  To read the content lines of such data, use
+    /// <see cref="VcardContentLineReader"/>, which does not check <c>VERSION</c>.
     /// </para>
     /// <para>
     /// Each card is checked once its <c>END:VCARD</c> has been read, as <see cref="VcardCard.Validate"/> does, and for the structure of its <c>BEGIN</c>, <c>VERSION</c> and
@@ -134,11 +136,22 @@ namespace DataStandardizer.File.vCard
         {
         }
 
-        private VcardReader(VcardContentLineReader reader, VcardOptions options)
+        /// <summary>
+        /// Creates a reader of a nested card, which has a version it is taken to be of, and a depth.
+        /// </summary>
+        internal VcardReader(TextReader reader, VcardOptions options, VcardVersionMapping defaultMapping, int depth) : this(new VcardContentLineReader(reader, options), options, defaultMapping, depth)
+        {
+        }
+
+        private VcardReader(VcardContentLineReader reader, VcardOptions options) : this(reader, options, VcardVersionMapping.Canonical, 0)
+        {
+        }
+
+        private VcardReader(VcardContentLineReader reader, VcardOptions options, VcardVersionMapping defaultMapping, int depth)
         {
             _reader = reader;
             _options = options;
-            _builder = new VcardCardBuilder(options);
+            _builder = new VcardCardBuilder(options, defaultMapping, depth);
         }
 
         /// <summary>
@@ -215,7 +228,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <returns>The card; or <c>null</c> if the end of the data has been reached.</returns>
         /// <exception cref="VcardFileException">The data is not valid iCard: a content line is not valid, a <c>BEGIN</c> or <c>END</c> is not
-        /// paired, the <c>VERSION</c> is not 4.0, or the data holds no card.
+        /// paired, the <c>VERSION</c> is not 4.0 or 3.0, or the data holds no card.
         /// -or-
         /// The card breaks a rule of RFC 6350 that the options do not accept.  The card has been read, and reading can continue.</exception>
         /// <exception cref="ObjectDisposedException">The reader has been disposed.</exception>
@@ -433,7 +446,11 @@ namespace DataStandardizer.File.vCard
             var conformance = new List<VcardDiagnostic>();
             try
             {
-                VcardConformance.Validate(_card, conformance);
+                // A card of another version was checked by its own rules before it was converted, and the rules of vCard 4.0 aren't its rules.
+                if (_card.SourceVersion != VcardVersion.V3_0)
+                {
+                    VcardConformance.Validate(_card, conformance);
+                }
             }
             catch
             {

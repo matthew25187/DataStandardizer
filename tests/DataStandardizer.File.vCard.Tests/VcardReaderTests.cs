@@ -354,9 +354,22 @@ namespace DataStandardizer.File.vCard.Tests
             }
         }
 
+        [Fact]
+        public void ReadCard_Version40UriLongerThanUriHoldsOnNetFramework_IsAccepted()
+        {
+            // arrange
+            var text = VcardCardTestData.Card(Vcard30TestData.LargeVersion40PhotoLine);
+
+            // act
+            var testResult = VcardCardTestData.Read(text);
+
+            // assert
+            testResult.GetProperties(VcardPropertyNames.Photo).Should().ContainSingle();
+        }
+
         public static TheoryData<string> UnsupportedVersionData()
         {
-            return new TheoryData<string> { "VERSION:3.0", "VERSION:2.1", "VERSION:5.0", "VERSION:4" };
+            return new TheoryData<string> { "VERSION:2.1", "VERSION:5.0", "VERSION:4" };
         }
 
         [Theory]

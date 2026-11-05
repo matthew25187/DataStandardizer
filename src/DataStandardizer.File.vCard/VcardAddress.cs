@@ -320,6 +320,22 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
+        /// Gets this address with nothing in the components of RFC 9554, for a version that has none of them.
+        /// </summary>
+        internal VcardAddress WithoutRfc9554Components()
+        {
+            return new VcardAddress(GetComponents().WithoutItemsFrom(Rfc6350ComponentCount));
+        }
+
+        /// <summary>
+        /// Gets this address with one item in each component, for a version that has no more.
+        /// </summary>
+        internal VcardAddress WithSingleItems()
+        {
+            return new VcardAddress(GetComponents().WithSingleItems());
+        }
+
+        /// <summary>
         /// Gets a flag indicating if a version can write this address.  vCard 3.0 and vCard 2.1 have no RFC 9554 components and one item in a component, and vCard 2.1 can't end one
         /// with a backslash.
         /// </summary>

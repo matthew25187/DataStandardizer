@@ -260,6 +260,11 @@ namespace DataStandardizer.File.vCard
         /// When <c>true</c>, the line is written without those characters: a double quote is left out, and a line break, including a CRLF, becomes one space.  The line
         /// still follows the grammar of its version, but reading it back gives a different value.  Ignored by a reader.
         /// </para>
+        /// <para>
+        /// <see cref="VcardWriter"/> applies the same choice to a whole card.  A card written as another <see cref="WriteVersion"/> may hold data that version doesn't define, such as a <c>KIND</c> or a
+        /// <c>PID</c> in vCard 3.0.  When <c>false</c> (the default), that causes a <see cref="VcardFileException"/> and nothing of the card is written.  When <c>true</c>, the data is left out.
+        /// <see cref="VcardVersionConverter.Analyze"/> lists it without writing anything.
+        /// </para>
         /// </remarks>
         public bool AllowLossyVersionConversion
         {
@@ -434,6 +439,24 @@ namespace DataStandardizer.File.vCard
             set;
 #endif
         } = "\r\n";
+
+        /// <summary>
+        /// Gets the version that <see cref="VcardWriter"/> writes.
+        /// </summary>
+        /// <remarks>
+        /// The default is <see cref="VcardVersion.V4_0"/>, whatever version a card was read from.  <see cref="VcardVersion.V3_0"/> converts a card from the canonical form of the model; see
+        /// <see cref="AllowLossyVersionConversion"/> for what it can't hold.  <see cref="VcardVersion.V2_1"/> can't be written yet, so a writer's constructor throws
+        /// <see cref="System.ArgumentException"/> for it.  Ignored by a reader and by <see cref="VcardContentLineWriter"/>, which writes the <c>VERSION</c> line it is given.
+        /// </remarks>
+        public VcardVersion WriteVersion
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        } = VcardVersion.V4_0;
 
         /// <summary>
         /// Gets the maximum length, in characters, of a logical (unfolded) content line, not counting its line break.

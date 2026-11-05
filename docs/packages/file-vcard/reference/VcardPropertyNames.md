@@ -26,6 +26,14 @@ Each is a `const string`.
 | Field | Value | Notes |
 | --- | --- | --- |
 | `Address` | `ADR` | RFC 6350 §6.3.1: a delivery address. |
+| `Agent` | `AGENT` | RFC 2426 §3.5.4: who acts for the entity. vCard 4.0 doesn't have it, and a reader of vCard 3.0 gives it as `RELATED;TYPE=agent`. |
+| `CalendarAccessUri` | `CAPURI` | RFC 2739 §2.3.3: where to access a calendar. vCard 4.0 doesn't have it. |
+| `Classification` | `CLASS` | RFC 2426 §3.7.1: the access classification of the card. vCard 4.0 doesn't have it. |
+| `Mailer` | `MAILER` | RFC 2426 §3.3.3: the electronic mail software the entity uses. vCard 4.0 doesn't have it. |
+| `PostalLabel` | `LABEL` | RFC 2426 §3.2.2: the text of a delivery address. vCard 4.0 doesn't have it, and a reader of vCard 3.0 gives it as the `LABEL` of its `ADR` if it can tell which that is. |
+| `Profile` | `PROFILE` | RFC 2426 §5: the profile of the directory entity. vCard 4.0 doesn't have it. |
+| `SortString` | `SORT-STRING` | RFC 2426 §3.6.5: the text to sort a name by. vCard 4.0 doesn't have it, and a reader of vCard 3.0 gives it as the `SORT-AS` of `N` or `ORG`. |
+| `SourceName` | `NAME` | RFC 2426 §5: the display name of the directory entity the data comes from. vCard 4.0 doesn't have it. |
 | `Anniversary` | `ANNIVERSARY` | RFC 6350 §6.2.6: the date of marriage, or equivalent. |
 | `Begin` | `BEGIN` | RFC 6350 §6.1.1: the start of a card.  A reader or writer deals with it, so it is not in `VcardCard.Properties`. |
 | `Birthday` | `BDAY` | RFC 6350 §6.2.5: the date of birth. |

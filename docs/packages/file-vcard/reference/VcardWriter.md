@@ -19,7 +19,7 @@ Writes the card object model as vCard data (RFC 6350).
 public sealed class VcardWriter : IDisposable, IAsyncDisposable
 ```
 
-Each card is written by a [VcardContentLineWriter](VcardContentLineWriter.md), as `BEGIN:VCARD`, `VERSION:4.0`, its properties in order, and `END:VCARD`. On `netstandard1.1` there are no asynchronous members, no file-path constructors, and the class doesn't implement `IAsyncDisposable`.
+Each card is written by a [VcardContentLineWriter](VcardContentLineWriter.md), as `BEGIN:VCARD`, a `VERSION` line, its properties in order, and `END:VCARD`. `VcardOptions.WriteVersion` says which version: vCard 4.0 by default, or 3.0, to which the card is converted from the canonical form of the model. See [Converting between versions](../version-conversion.md). The constructors throw `ArgumentException` for vCard 2.1, which can't be written yet. On `netstandard1.1` there are no asynchronous members, no file-path constructors, and the class doesn't implement `IAsyncDisposable`.
 
 ## Constructors
 
@@ -54,7 +54,7 @@ Each throws `ObjectDisposedException` once the writer is disposed.
 
 ## Errors
 
-A card is checked as `VcardCard.Validate` does before it is written. If it breaks a rule the options don't accept, `VcardFileException` is thrown and nothing of that card is written. The accommodations are `AllowMissingRequiredProperties`, `AllowCardinalityViolations` and `AllowInvalidValues` on [VcardOptions](VcardOptions.md). The forms of vCard 2.1 are never written in a vCard 4.0 card, and neither is a `BEGIN`, `VERSION` or `END` line added to `Properties`.
+A card is checked as `VcardCard.Validate(version)` does before it is written. If it breaks a rule the options don't accept, `VcardFileException` is thrown and nothing of that card is written. The accommodations are `AllowMissingRequiredProperties`, `AllowCardinalityViolations`, `AllowInvalidValues` and `AllowLossyVersionConversion` on [VcardOptions](VcardOptions.md). The forms of vCard 2.1 are never written in a vCard 4.0 or 3.0 card, and neither is a `BEGIN`, `VERSION` or `END` line added to `Properties`.
 
 A check doesn't see every character of a line. A line that can't be written, such as one with a group that isn't valid, throws `VcardFileException` when it is reached, and the lines before it have been written.
 

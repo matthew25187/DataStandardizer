@@ -14,6 +14,8 @@ The public types of **DataStandardizer.File.vCard**. All types are in the
 
 | Type | Description |
 | --- | --- |
+| [Vcard30PropertyParameters](Vcard30PropertyParameters.md) | The group and parameters of a property being added in the shape of vCard 3.0. |
+| [VcardAgent](VcardAgent.md) | Who acts for the entity of a card. |
 | [VcardCard](VcardCard.md) | A vCard: an open list of properties, with typed accessors. |
 | [VcardContentLine](VcardContentLine.md) | A content line (RFC 6350 §3.3): group, property name, parameters and value. |
 | [VcardContentLineParameter](VcardContentLineParameter.md) | A parameter of a content line, with its values. |
@@ -21,6 +23,7 @@ The public types of **DataStandardizer.File.vCard**. All types are in the
 | [VcardContentLineWriter](VcardContentLineWriter.md) | Writes content lines, folding them and treating each as its card's version says, with async and progress options. |
 | [VcardDiagnostic](VcardDiagnostic.md) | A conformance problem. |
 | [VcardFileException](VcardFileException.md) | The exception for a problem in vCard data, with where it was found. |
+| [VcardMediaValue](VcardMediaValue.md) | A binary, URI or text media value in the shape of vCard 3.0. |
 | [VcardOptions](VcardOptions.md) | Options for a reader or writer; the defaults follow RFC 6350 and its extensions. |
 | [VcardLegacyMediaTypes](VcardLegacyMediaTypes.md) | Maps the TYPE tokens of older versions to media types. |
 | [VcardParameterNames](VcardParameterNames.md) | The names of the parameters of vCard 4.0. |
@@ -32,12 +35,16 @@ The public types of **DataStandardizer.File.vCard**. All types are in the
 | [VcardReader](VcardReader.md) | Reads vCard data into cards, sync and async. |
 | [VcardValue](VcardValue.md) | TEXT, BOOLEAN, INTEGER, FLOAT, URI and LANGUAGE-TAG values. |
 | [VcardValueTypeRegistry](VcardValueTypeRegistry.md) | The value type of each property, and `VALUE` overrides. |
+| [VcardVersionConverter](VcardVersionConverter.md) | Says what happens to a card in another version, and converts it. |
 | [VcardWriter](VcardWriter.md) | Writes cards, sync and async, with progress. |
 
 ## Interfaces
 
 | Type | Description |
 | --- | --- |
+| [IVcard30Card](IVcard30Card.md) | A card in the shape of vCard 3.0. |
+| [IVcard30Property](IVcard30Property.md) | A property in the shape of vCard 3.0. |
+| [IVcard30PropertyList](IVcard30PropertyList.md) | The instances of one property in the shape of vCard 3.0. |
 | [IVcard40Card](IVcard40Card.md) | A card in the shape of vCard 4.0. |
 | [IVcard40Property](IVcard40Property.md) | A property in the shape of vCard 4.0. |
 | [IVcard40PropertyList](IVcard40PropertyList.md) | The instances of one property in the shape of vCard 4.0. |

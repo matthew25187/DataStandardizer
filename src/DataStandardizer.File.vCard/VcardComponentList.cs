@@ -98,6 +98,37 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
+        /// Gets a list with nothing in the components from a position on.
+        /// </summary>
+        internal VcardComponentList WithoutItemsFrom(int start)
+        {
+            var components = (ReadOnlyCollection<string>[])_components.Clone();
+            for (var index = start; index < components.Length; index++)
+            {
+                components[index] = NoItems;
+            }
+
+            return new VcardComponentList(components);
+        }
+
+        /// <summary>
+        /// Gets a list with the items of each component joined with a space into one item.
+        /// </summary>
+        internal VcardComponentList WithSingleItems()
+        {
+            var components = (ReadOnlyCollection<string>[])_components.Clone();
+            for (var index = 0; index < components.Length; index++)
+            {
+                if (components[index].Count > 1)
+                {
+                    components[index] = new ReadOnlyCollection<string>(new[] { string.Join(" ", components[index]) });
+                }
+            }
+
+            return new VcardComponentList(components);
+        }
+
+        /// <summary>
         /// Creates a list from the components a caller gave.
         /// </summary>
         /// <exception cref="ArgumentNullException">A component or one of its items is <c>null</c>.</exception>

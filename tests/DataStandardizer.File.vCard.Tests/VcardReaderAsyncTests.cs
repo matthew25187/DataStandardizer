@@ -14,6 +14,38 @@ namespace DataStandardizer.File.vCard.Tests
         private static readonly string TwoCards = VcardCardTestData.Stream(VcardCardTestData.Card("NOTE:first"), VcardCardTestData.Card("NOTE:second"));
 
         [Fact]
+        public async Task ReadCardAsync_Version30Card_GivesItInCanonicalFormAsAReadDoes()
+        {
+            // arrange
+            var text = Vcard30TestData.Card("TEL;TYPE=pref:+1");
+            using (var reader = new VcardReader(new StringReader(text)))
+            {
+                // act
+                var testResult = await reader.ReadCardAsync();
+
+                // assert
+                testResult.SourceVersion.Should().Be(VcardVersion.V3_0);
+                testResult.Telephones.Single().Pref.Should().Be(1);
+            }
+        }
+
+        [Fact]
+        public async Task WriteCardAsync_WriteVersion30_WritesWhatAWriteDoes()
+        {
+            // arrange
+            var card = VcardCardTestData.Read(Vcard30TestData.Card("TEL;TYPE=pref:+1"));
+            var output = new StringWriter();
+            using (var writer = new VcardWriter(output, new VcardOptions { WriteVersion = VcardVersion.V3_0 }))
+            {
+                // act
+                await writer.WriteCardAsync(card);
+
+                // assert
+                output.ToString().Should().Be(Vcard30TestData.Card("TEL;TYPE=pref:+1"));
+            }
+        }
+
+        [Fact]
         public async Task ReadCardAsync_AsyncOnlyStream_ReadsTheCardWithNoSynchronousRead()
         {
             // arrange

@@ -34,6 +34,7 @@ public sealed class VcardCard : IVcard40Card
 | `Kind` | `VcardKind` | What the card represents. With no `KIND` it is `Individual`, as RFC 6350 §6.1.4 says. RFC 6473 adds `Application` and RFC 6869 adds `Device`. |
 | `KindText` | `string?` | The value of `KIND` as written, which holds any value that RFC 6350 and its extensions don't define. |
 | `ExtensionProperties` | `IReadOnlyList<VcardProperty<string>>` | The properties RFC 6350 and its extensions don't define. Each value is as it appears in the content line. |
+| `Agents` | `IReadOnlyList<VcardAgent>` | The `RELATED` properties with `TYPE=agent`, each a card, a URI or text. See [VcardAgent](VcardAgent.md). |
 
 ### Properties with at most one instance
 
@@ -53,6 +54,10 @@ Each is `null` if the card has none with a valid value. The setters replace ever
 | `DeathDate` | `DEATHDATE` (RFC 6474 §2.3) | `VcardTypedValue` (date-and-or-time or text) | `SetDeathDate(value)`, `SetDeathDate(value, parameters)` |
 | `Created` | `CREATED` (RFC 9554 §3.1) | `VcardTimestamp` | `SetCreated(value)` |
 | `DefaultLanguage` | `LANGUAGE` (RFC 9554 §3.3) | `Bcp47LanguageTag` | `SetDefaultLanguage(value)` |
+| `Mailer` | `MAILER` (RFC 2426 §3.3.3) | `string` | `SetMailer(value)` |
+| `Classification` | `CLASS` (RFC 2426 §3.7.1) | `string` | `SetClassification(value)` |
+| `SourceName` | `NAME` (RFC 2426 §5) | `string` | `SetSourceName(value)` |
+| `Profile` | `PROFILE` (RFC 2426 §5) | `string` | `SetProfile(value)` |
 
 `SetKind` takes a `VcardKind`, or the text of a value that RFC 6350 and its extensions don't define. A value that isn't initialised throws `ArgumentException`, and leaves the card as it was.
 
@@ -64,6 +69,7 @@ Each is a [VcardPropertyList](VcardPropertyList.md), a live view of `Properties`
 
 | Property | Name | Value type |
 | --- | --- | --- |
+| `CalendarAccessUris` | `CAPURI` (RFC 2739 §2.3.3) | `Uri` |
 | `Sources` | `SOURCE` | `Uri` |
 | `Xml` | `XML` | `string` |
 | `FormattedNames` | `FN` | `string` |
@@ -106,6 +112,9 @@ The typed members leave out a property whose value isn't valid, which `AllowInva
 
 | Method | Notes |
 | --- | --- |
+| `AddAgent(card)`, `AddAgent(uri)` | Adds a `RELATED` with `TYPE=agent`. A card is held as a copy, in the text of the property. |
+| `RemoveAgents()` | Removes every `RELATED` with `TYPE=agent`, and gives how many there were. |
+| `AsVersion30()` | The card as an [IVcard30Card](IVcard30Card.md). It is this object, so a change through either is a change to both. |
 | `AsVersion40()` | The card as an [IVcard40Card](IVcard40Card.md). It is this object, so a change through either is a change to both. |
 | `GetProperties(string name)` | The instances of a property, whether or not their values are valid. |
 | `GetPreferred(string name)` | The first instance with the lowest `PREF`; an instance without it is least preferred (RFC 6350 §5.3). `null` if there are none. |
@@ -116,6 +125,7 @@ The typed members leave out a property whose value isn't valid, which `AllowInva
 | `ResolveMembers(IEnumerable<VcardCard> cards)` | The cards of a set that the `MEMBER` properties link to by `UID`. One that doesn't resolve, such as a `mailto` URI, is left out. |
 | `FindByUid(IEnumerable<VcardCard> cards, string uid)` | Static. The first card with a `UID`, compared as RFC 6350 §7.1.1 says. `null` if there is none. |
 | `Validate()` | Every [VcardDiagnostic](VcardDiagnostic.md), without throwing for a problem in the card. An exception from a `CharsetResolver` of the caller's isn't caught. |
+| `Validate(version)` | What `VcardWriter` checks for that `WriteVersion`, including what the version can't hold, as `Lossy` items. |
 
 ## Applies to
 

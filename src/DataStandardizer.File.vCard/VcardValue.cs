@@ -18,6 +18,9 @@ namespace DataStandardizer.File.vCard
         private const string FalseText = "FALSE";
         private const string GeoScheme = "GEO";
 
+        // The longest text that Uri holds on .NET Framework.
+        private const int MaxUriLengthOnEveryRuntime = 65519;
+
         #region TEXT
 
         /// <summary>
@@ -613,6 +616,44 @@ namespace DataStandardizer.File.vCard
             string text;
 #endif
             return TryUnescapeUri(value, out text) && IsUriText(text.AsSpan());
+        }
+
+        /// <summary>
+        /// Gets whether a URI value, as it appears in a content line of vCard 4.0, is valid, with the same answer on every runtime.  <see cref="Uri"/> on .NET Framework can't hold a long one, such
+        /// as the <c>data:</c> URI of a photo, and neither RFC 6350 nor RFC 3986 sets a limit, so a long one is checked without it.
+        /// </summary>
+        internal static bool IsValidUriValue(ReadOnlySpan<char> value)
+        {
+            if (value.Length > MaxUriLengthOnEveryRuntime) return IsUriValue(value);
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            Uri? uri;
+#else
+            Uri uri;
+#endif
+            return TryParseUri(value, VcardValueFormat.Text, out uri);
+        }
+
+        /// <summary>
+        /// Gets the text of a URI value as it appears in a content line of vCard 4.0, with its escaping removed, without making a <see cref="Uri"/>, which can't hold a long one on every runtime.
+        /// </summary>
+        /// <returns><c>false</c> if the value isn't valid.</returns>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal static bool TryGetUriText(string value, [NotNullWhen(true)] out string? text)
+#else
+        internal static bool TryGetUriText(string value, [MaybeNullWhen(false)] out string text)
+#endif
+        {
+            text = null;
+            if (!IsValidUriValue(value.AsSpan())) return false;
+
+            if (value.IndexOf('\\') < 0)
+            {
+                text = value;
+                return true;
+            }
+
+            return TryUnescapeUri(value.AsSpan(), out text);
         }
 
         /// <summary>

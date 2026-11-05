@@ -54,7 +54,7 @@ Each throws `ObjectDisposedException` once the reader is disposed.
 
 ## Errors
 
-Only vCard 4.0 is read so far. Any other `VERSION` throws `VcardFileException` as soon as it is read.
+vCard 4.0 and 3.0 are read, and one stream can hold both. A vCard 3.0 card is checked by the rules of its version, then converted to the canonical form of the model; see [Converting between versions](../version-conversion.md). Any other `VERSION` throws `VcardFileException` as soon as it is read.
 
 | Problem | What happens |
 | --- | --- |

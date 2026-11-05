@@ -185,6 +185,14 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
+        /// Gets this name with nothing in the components of RFC 9554, for a version that has none of them.
+        /// </summary>
+        internal VcardName WithoutRfc9554Components()
+        {
+            return new VcardName(GetComponents().WithoutItemsFrom(Rfc6350ComponentCount));
+        }
+
+        /// <summary>
         /// Gets a flag indicating if a version can write this name.  vCard 3.0 and vCard 2.1 have no RFC 9554 components.  vCard 2.1 has one item in a component, and can't end one
         /// with a backslash.
         /// </summary>

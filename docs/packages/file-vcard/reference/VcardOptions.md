@@ -55,7 +55,8 @@ that are only for writing, and a writer ignores those that are only for reading.
 
 | Property | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `AllowLossyVersionConversion` | `bool` | `false` | Writes a parameter value that needs RFC 6868 caret encoding outside a 4.0 card without those characters: a double quote is left out, and a line break becomes one space. RFC 6868 updates RFC 6350 only, and the `param-value` rule of RFC 2426 §4 can't hold them. The default throws `VcardFileException`. |
+| `AllowLossyVersionConversion` | `bool` | `false` | Writes a parameter value that needs RFC 6868 caret encoding outside a 4.0 card without those characters: a double quote is left out, and a line break becomes one space. RFC 6868 updates RFC 6350 only, and the `param-value` rule of RFC 2426 §4 can't hold them. The default throws `VcardFileException`. `VcardWriter` applies the same choice to a whole card: data that `WriteVersion` can't hold throws by default, and with this is left out. |
+| `WriteVersion` | `VcardVersion` | `V4_0` | The version `VcardWriter` writes. `V3_0` converts a card from the canonical form of the model. `V2_1` can't be written yet, so a writer's constructor throws `ArgumentException`. Ignored by a reader and by `VcardContentLineWriter`. |
 | `FoldLength` | `int` | `75` | The length, in octets of the UTF-8 encoding and not counting the line break, at which lines are folded. RFC 6350 §3.2 says lines should be folded to 75, so a longer length relaxes that. A fold never splits a character. The minimum is 4. The lines of a 2.1 card are never folded. |
 | `FoldWhitespace` | `char` | `' '` | The white space at the start of each continuation line: a space or a horizontal tab, the two that RFC 6350 §3.2 allows. |
 | `LineBreak` | `string` | `"\r\n"` | The line break at the end of each physical line. RFC 6350 §3.2 and §3.3 require CRLF. A bare line feed, `"\n"`, relaxes that, and no other value is accepted. |
