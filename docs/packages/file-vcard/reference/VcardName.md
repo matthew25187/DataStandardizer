@@ -27,7 +27,7 @@ public readonly struct VcardName : IEquatable<VcardName>
 | 3.0 | 1 to 5 | a comma separates them | RFC 2426 §4 |
 | 2.1 | 1 to 5 | one; a comma is ordinary text | vCard 2.1 §2.9 |
 
-This type writes five components unless one of the two RFC 9554 components has a value, so seven with both empty comes back as five. An empty component has no items, and the empty items of a list such as `a,,b` are kept. RFC 9554's rules on what else a writer puts in the older components belong to the card model.
+This type writes five components unless one of the two RFC 9554 components has a value, so seven with both empty comes back as five. An empty component has no items, and the empty items of a list such as `a,,b` are kept. RFC 9554's rules on what else a writer puts in the older components are `WithBackwardCompatibleComponents`, which [VcardCard](VcardCard.md) applies, and those on reading them are `FamilyNamesExcludingSecondarySurnames` and `HonorificSuffixesExcludingGenerations`.
 
 **Versions.** Every parse and format method has an overload taking a [VcardVersion](VcardVersion.md). The overload without one uses vCard 4.0. `IsDefinedIn` says whether a version can write the value, and formatting one it can't throws `InvalidOperationException`.
 
@@ -48,6 +48,7 @@ This type writes five components unless one of the two RFC 9554 components has a
 | Property | Notes |
 | --- | --- |
 | `FamilyNames`, `GivenNames`, `AdditionalNames`, `HonorificPrefixes`, `HonorificSuffixes`, `SecondarySurnames`, `Generations` | Read-only lists. |
+| `FamilyNamesExcludingSecondarySurnames`, `HonorificSuffixesExcludingGenerations` | The older component without any value that is also in the new one, which RFC 9554 §2.2 says a reader should ignore. |
 
 ## Fields
 
@@ -65,6 +66,7 @@ This type writes five components unless one of the two RFC 9554 components has a
 | `TryFormat(destination, out charsWritten, format)`, `TryFormat(destination, out charsWritten, format, version)` | Writes the value. Returns `false` if the destination is too short. |
 | `ToString(format)`, `ToString(format, version)` | Formats the value as a string. |
 | `IsDefinedIn(version)` | Whether a version can write this value. |
+| `WithBackwardCompatibleComponents()` | This name with its secondary surnames also in the family names and its generations also in the honorific suffixes, as RFC 9554 §2.2 says to write them. |
 | `TryParseView(value, format, out result)`, `TryParseView(value, format, version, out result)` | Parses a value into a view of its components, without allocating. |
 
 See the [API reference](index.md).

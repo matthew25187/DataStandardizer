@@ -9,7 +9,7 @@ namespace DataStandardizer.File.vCard.Tests
     {
         public static TheoryData<string, VcardVersion, bool> DefinedData()
         {
-            // ref. RFC 6350, RFC 2426, RFC 2739, RFC 4770, vCard 2.1: the versions are not additive.  The extensions of RFC 6474, RFC 6715 and RFC 8605 are of vCard 4.0 alone.
+            // ref. RFC 6350, RFC 2426, RFC 2739, RFC 4770, vCard 2.1: the versions are not additive.  The extensions of RFC 6474, RFC 6715, RFC 8605 and RFC 9554 are of vCard 4.0 alone.
             return new TheoryData<string, VcardVersion, bool>
             {
                 { "FN", VcardVersion.V4_0, true },

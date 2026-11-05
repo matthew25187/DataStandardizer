@@ -27,7 +27,7 @@ public readonly struct VcardAddress : IEquatable<VcardAddress>
 | 3.0 | 1 to 7 | one; a comma has to be escaped | RFC 2426 §4 |
 | 2.1 | 1 to 7 | one; a comma is ordinary text | vCard 2.1 §2.9 |
 
-This type writes seven components unless one of the eleven RFC 9554 components has a value. RFC 9554's rules on combining them into the street component belong to the card model.
+This type writes seven components unless one of the eleven RFC 9554 components has a value. RFC 9554's rule on combining them into the street component is `WithBackwardCompatibleComponents`, which [VcardCard](VcardCard.md) applies, and its rule on reading is `HasDetailedComponents`.
 
 **Versions.** Every parse and format method has an overload taking a [VcardVersion](VcardVersion.md). The overload without one uses vCard 4.0. `IsDefinedIn` says whether a version can write the value, and formatting one it can't throws `InvalidOperationException`.
 
@@ -50,6 +50,8 @@ This type writes seven components unless one of the eleven RFC 9554 components h
 | --- | --- |
 | `PostOfficeBox`, `ExtendedAddress`, `StreetAddress`, `Locality`, `Region`, `PostalCode`, `CountryName`, `Room`, `Apartment`, `Floor`, `StreetNumber`, `StreetName`, `Building`, `Block`, `Subdistrict`, `District`, `Landmark`, `Direction` | Read-only lists. |
 
+`HasDetailedComponents` is `true` if one of the components of RFC 9554 has a value, in which case RFC 9554 §2.1 says a reader should ignore `StreetAddress`.
+
 ## Fields
 
 | Field | Notes |
@@ -66,6 +68,7 @@ This type writes seven components unless one of the eleven RFC 9554 components h
 | `TryFormat(destination, out charsWritten, format)`, `TryFormat(destination, out charsWritten, format, version)` | Writes the value. Returns `false` if the destination is too short. |
 | `ToString(format)`, `ToString(format, version)` | Formats the value as a string. |
 | `IsDefinedIn(version)` | Whether a version can write this value. |
+| `WithBackwardCompatibleComponents()` | This address with its street address made from the components of RFC 9554, if it has none, as RFC 9554 §2.1 says to write it. The parts are joined with a space: the street number, street name, direction, building, block, floor, apartment, room, landmark, subdistrict and district. |
 | `TryParseView(value, format, out result)`, `TryParseView(value, format, version, out result)` | Parses a value into a view of its components, without allocating. |
 | `GetComponent(index)` | The items of the component at a position. |
 

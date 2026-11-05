@@ -33,6 +33,12 @@ namespace DataStandardizer.File.vCard
         // ref. RFC 8605 §2.1: 'At least one "mailto", "http", or "https" URI value MUST be provided.'
         private static readonly string[] ContactUriSchemes = { "mailto", "http", "https" };
 
+        // ref. RFC 9554 §5 and §7.4: "This value can be used with the TYPE parameter applied on the ADR property."
+        private static readonly string[] AddressTypes = { "billing", "delivery" };
+
+        // ref. RFC 9554 §4.6: "denotes the unknown phonetic system.  The SCRIPT parameter MUST be set in addition to the PHONETIC parameter."
+        private const string ScriptPhoneticSystem = "script";
+
         private static readonly string[] RelatedTypes =
         {
             "contact", "acquaintance", "friend", "met", "co-worker", "colleague", "co-resident", "neighbor", "child", "parent", "sibling", "spouse", "kin", "muse", "crush", "date",
@@ -171,6 +177,7 @@ namespace DataStandardizer.File.vCard
                     }
 
                     CheckCardinality(line, info, altIds, instanceCounts, card, found);
+                    CheckSocialProfile(line, info, card, found);
                     if (!isGroup && string.Equals(line.Name, VcardPropertyNames.Member, StringComparison.OrdinalIgnoreCase))
                     {
                         Add(found, VcardDiagnosticKind.CardinalityViolation, "RFC 6350 §6.6.5 allows a MEMBER property only if the KIND property is \"group\".", line, card);
@@ -179,6 +186,9 @@ namespace DataStandardizer.File.vCard
             }
 
             CheckContactUris(card, found);
+            CheckGrammaticalGenders(card, found);
+            CheckPhonetics(VcardPropertyNames.Name, card, found);
+            CheckPhonetics(VcardPropertyNames.Address, card, found);
 
             int formattedNames;
             if (!instanceCounts.TryGetValue(VcardPropertyNames.FormattedName, out formattedNames))
@@ -382,6 +392,24 @@ namespace DataStandardizer.File.vCard
                     return VcardParameterSet.Level;
                 case VcardParameterNames.CountryCode:
                     return VcardParameterSet.CountryCode;
+                case VcardParameterNames.Author:
+                    return VcardParameterSet.Author;
+                case VcardParameterNames.AuthorName:
+                    return VcardParameterSet.AuthorName;
+                case VcardParameterNames.Created:
+                    return VcardParameterSet.Created;
+                case VcardParameterNames.Derived:
+                    return VcardParameterSet.Derived;
+                case VcardParameterNames.Phonetic:
+                    return VcardParameterSet.Phonetic;
+                case VcardParameterNames.PropertyId:
+                    return VcardParameterSet.PropertyId;
+                case VcardParameterNames.Script:
+                    return VcardParameterSet.Script;
+                case VcardParameterNames.ServiceType:
+                    return VcardParameterSet.ServiceType;
+                case VcardParameterNames.Username:
+                    return VcardParameterSet.Username;
                 default:
                     return VcardParameterSet.None;
             }
@@ -436,6 +464,7 @@ namespace DataStandardizer.File.vCard
         private static bool IsTypeOfAnotherProperty(string type, string propertyName)
         {
             if (!string.Equals(propertyName, VcardPropertyNames.Telephone, StringComparison.Ordinal) && ContainsIgnoringCase(TelephoneTypes, type)) return true;
+            if (!string.Equals(propertyName, VcardPropertyNames.Address, StringComparison.Ordinal) && ContainsIgnoringCase(AddressTypes, type)) return true;
 
             return !string.Equals(propertyName, VcardPropertyNames.Related, StringComparison.Ordinal) && ContainsIgnoringCase(RelatedTypes, type);
         }
@@ -487,6 +516,33 @@ namespace DataStandardizer.File.vCard
                     Iso3166Part1Alpha2Country countryCode;
                     isValid = VcardPropertyParameterReader.TryParseCountryCode(value, out countryCode);
                     break;
+                case VcardParameterSet.Author:
+                    // ref. RFC 9554 §4.1: author-param = "AUTHOR" "=" DQUOTE URI DQUOTE.  A URI holds a colon, so one that isn't quoted doesn't get here whole.
+                    isValid = VcardValue.IsUriText(value.AsSpan());
+                    break;
+                case VcardParameterSet.AuthorName:
+                    // ref. RFC 9554 §4.2: "The parameter value MUST NOT be empty."
+                    isValid = value.Length != 0;
+                    break;
+                case VcardParameterSet.Created:
+                    // ref. RFC 9554 §4.3: "The value MUST be a valid TIMESTAMP value".
+                    VcardTimestamp created;
+                    isValid = VcardTimestamp.TryParse(value.AsSpan(), VcardValueFormat.Text, out created);
+                    break;
+                case VcardParameterSet.Derived:
+                    bool derived;
+                    isValid = VcardPropertyParameterReader.TryParseDerived(value, out derived);
+                    break;
+                case VcardParameterSet.Phonetic:
+                    VcardPhoneticSystem phonetic;
+                    isValid = VcardPropertyParameterReader.TryParsePhonetic(value, out phonetic);
+                    break;
+                case VcardParameterSet.PropertyId:
+                    isValid = VcardPropertyParameterReader.IsPropertyId(value);
+                    break;
+                case VcardParameterSet.Script:
+                    isValid = VcardPropertyParameterReader.IsScript(value);
+                    break;
             }
 
             if (!isValid)
@@ -517,6 +573,9 @@ namespace DataStandardizer.File.vCard
 
             // ref. RFC 6350 §6.2.5 and §6.6.6, and RFC 6474 §2.3: language-param is only with text.
             isMismatch |= flag == VcardParameterSet.Language && (isDateOfBirthOrDeath || info.Name == VcardPropertyNames.Related) && valueType != VcardValueType.Text;
+
+            // ref. RFC 9554 §4.10: "The IMPP or SOCIALPROFILE value type MUST be URI."
+            isMismatch |= flag == VcardParameterSet.Username && (info.Parameters & flag) != 0 && valueType != VcardValueType.Uri;
 
             // ref. RFC 6350 §6.2.5 and §6.2.6, and RFC 6474 §2.3: "calscale-param can only be present when BDAY-value is date-and-or-time and actually contains a date or date-time."
             if (flag == VcardParameterSet.CalendarScale && (isDateOfBirthOrDeath || info.Name == VcardPropertyNames.Anniversary))
@@ -558,6 +617,165 @@ namespace DataStandardizer.File.vCard
             {
                 Add(found, VcardDiagnosticKind.InvalidParameter, "RFC 8605 §2.1 requires a PREF parameter where a card has several CONTACT-URI properties.", instances[0], card);
             }
+        }
+
+        private static void CheckSocialProfile(VcardContentLine line, VcardPropertyInfo info, VcardCard card, List<VcardDiagnostic> found)
+        {
+            // ref. RFC 9554 §3.5: "The SERVICE-TYPE parameter MUST be assigned to this property if the value type is TEXT", and "the service name MUST be provided".
+            if (info.Name != VcardPropertyNames.SocialProfile || VcardValueTypeRegistry.GetValueType(line) != VcardValueType.Text) return;
+
+            if (string.IsNullOrEmpty(VcardPropertyParameterReader.GetValue(line, VcardParameterNames.ServiceType)))
+            {
+                Add(found, VcardDiagnosticKind.InvalidParameter, "RFC 9554 §3.5 requires a SERVICE-TYPE parameter on a SOCIALPROFILE whose value is text.", line, card);
+            }
+        }
+
+        private static void CheckGrammaticalGenders(VcardCard card, List<VcardDiagnostic> found)
+        {
+            // ref. RFC 9554 §3.2: "Multiple occurrences of this property MUST be distinguished by the LANGUAGE parameter."  Language tags are case-insensitive (RFC 5646 §2.1.1), and
+            // having no LANGUAGE tells an instance apart from those that have one.
+            var languages = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var line in card.GetProperties(VcardPropertyNames.GrammaticalGender))
+            {
+                if (!languages.Add(VcardPropertyParameterReader.GetValue(line, VcardParameterNames.Language) ?? string.Empty))
+                {
+                    Add(found, VcardDiagnosticKind.InvalidParameter, "RFC 9554 §3.2 requires each GRAMGENDER property to have a LANGUAGE parameter that the others don't.", line, card);
+                }
+            }
+        }
+
+        private static void CheckPhonetics(string name, VcardCard card, List<VcardDiagnostic> found)
+        {
+            var instances = card.GetProperties(name);
+            var languagesByAltId = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+            Dictionary<string, List<VcardComponentList>> relatedByAltId = null;
+            foreach (var line in instances)
+            {
+                var phonetic = VcardPropertyParameterReader.GetValue(line, VcardParameterNames.Phonetic);
+                if (phonetic is null) continue;
+
+                if (string.Equals(phonetic, ScriptPhoneticSystem, StringComparison.OrdinalIgnoreCase) && VcardPropertyParameterReader.GetValue(line, VcardParameterNames.Script) is null)
+                {
+                    Add(found, VcardDiagnosticKind.InvalidParameter, "RFC 9554 §4.6 requires a SCRIPT parameter with PHONETIC=script.", line, card);
+                }
+
+                // ref. RFC 9554 §4.6: "The ALTID parameter MUST be set with equal values on both the related property and the property having the PHONETIC parameter set."
+                var altId = VcardPropertyParameterReader.GetValue(line, VcardParameterNames.AlternativeId);
+                if (altId is null)
+                {
+                    Add(found, VcardDiagnosticKind.InvalidParameter, "RFC 9554 §4.6 requires an ALTID parameter with PHONETIC.", line, card);
+                    continue;
+                }
+
+                CheckPhoneticLanguage(line, altId, languagesByAltId, card, found);
+
+                if (relatedByAltId is null)
+                {
+                    relatedByAltId = GetRelatedComponents(instances);
+                }
+
+                List<VcardComponentList> related;
+                if (!relatedByAltId.TryGetValue(altId, out related))
+                {
+                    Add(found, VcardDiagnosticKind.InvalidParameter, Format("RFC 9554 §4.6 requires a {0} property without PHONETIC and with the same ALTID.", name), line, card);
+                }
+                else if (!IsCoveredByARelatedProperty(line, related))
+                {
+                    // ref. RFC 9554 §4.6: "If a component value is set in the property on which the PHONETIC parameter is set, then a component value also MUST be set at that same
+                    // position in the related property."
+                    Add(found, VcardDiagnosticKind.InvalidParameter, "RFC 9554 §4.6 requires the related property to have a value in each component that the PHONETIC property has one.", line, card);
+                }
+            }
+        }
+
+        private static void CheckPhoneticLanguage(VcardContentLine line, string altId, Dictionary<string, HashSet<string>> languagesByAltId, VcardCard card, List<VcardDiagnostic> found)
+        {
+            // ref. RFC 9554 §4.6: "at most, one of these properties MAY not have the LANGUAGE parameter set, and all others MUST have the LANGUAGE parameter set.  The LANGUAGE parameters
+            // MUST NOT have equal values."  Language tags are case-insensitive (RFC 5646 §2.1.1).
+            HashSet<string> languages;
+            if (!languagesByAltId.TryGetValue(altId, out languages))
+            {
+                languages = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                languagesByAltId.Add(altId, languages);
+            }
+
+            if (!languages.Add(VcardPropertyParameterReader.GetValue(line, VcardParameterNames.Language) ?? string.Empty))
+            {
+                Add(found, VcardDiagnosticKind.InvalidParameter, "RFC 9554 §4.6 requires PHONETIC properties with the same ALTID to have different LANGUAGE parameters.", line, card);
+            }
+        }
+
+        /// <summary>
+        /// Gets the components of the instances without <c>PHONETIC</c>, by their <c>ALTID</c>, once for the whole card.  An instance whose value can't be parsed is reported anyway, so it
+        /// makes an entry with no components of its own.
+        /// </summary>
+        private static Dictionary<string, List<VcardComponentList>> GetRelatedComponents(IReadOnlyList<VcardContentLine> instances)
+        {
+            var result = new Dictionary<string, List<VcardComponentList>>(StringComparer.Ordinal);
+            foreach (var line in instances)
+            {
+                var altId = VcardPropertyParameterReader.GetValue(line, VcardParameterNames.AlternativeId);
+                if (altId is null || VcardPropertyParameterReader.GetValue(line, VcardParameterNames.Phonetic) != null) continue;
+
+                List<VcardComponentList> group;
+                if (!result.TryGetValue(altId, out group))
+                {
+                    group = new List<VcardComponentList>();
+                    result.Add(altId, group);
+                }
+
+                VcardComponentList components;
+                if (TryGetComponents(line, out components))
+                {
+                    group.Add(components);
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Gets whether a related property has a value in each component that a phonetic representation of it has one.  A value that can't be parsed is reported anyway, so it is passed over.
+        /// </summary>
+        private static bool IsCoveredByARelatedProperty(VcardContentLine phonetic, List<VcardComponentList> related)
+        {
+            VcardComponentList phoneticComponents;
+            if (!TryGetComponents(phonetic, out phoneticComponents) || related.Count == 0) return true;
+
+            foreach (var relatedComponents in related)
+            {
+                var isCovered = true;
+                for (var index = 0; index < phoneticComponents.Count && isCovered; index++)
+                {
+                    isCovered = !phoneticComponents.HasValueAt(index) || relatedComponents.HasValueAt(index);
+                }
+
+                if (isCovered) return true;
+            }
+
+            return false;
+        }
+
+        private static bool TryGetComponents(VcardContentLine line, out VcardComponentList components)
+        {
+            components = null;
+            string text;
+            if (!TryGetValueText(line, out text)) return false;
+
+            if (string.Equals(line.Name, VcardPropertyNames.Name, StringComparison.OrdinalIgnoreCase))
+            {
+                VcardName name;
+                if (!VcardName.TryParse(text.AsSpan(), VcardValueFormat.Text, out name)) return false;
+
+                components = name.Components;
+                return true;
+            }
+
+            VcardAddress address;
+            if (!VcardAddress.TryParse(text.AsSpan(), VcardValueFormat.Text, out address)) return false;
+
+            components = address.Components;
+            return true;
         }
 
         private static void CheckSortAs(VcardContentLine line, VcardContentLineParameter parameter, VcardCard card, List<VcardDiagnostic> found)
@@ -618,6 +836,8 @@ namespace DataStandardizer.File.vCard
                     return "XML element in a namespace other than that of vCard 4.0";
                 case VcardPropertyNames.Kind:
                     return "kind";
+                case VcardPropertyNames.GrammaticalGender:
+                    return "grammatical gender";
                 default:
                     return VcardValueTypeRegistry.GetValueTypeName(valueType);
             }
@@ -679,6 +899,9 @@ namespace DataStandardizer.File.vCard
                 case VcardPropertyNames.Kind:
                     // ref. RFC 6350 §6.1.4: KIND-value is one of the values given, an iana-token or an x-name.
                     return IsToken(text);
+                case VcardPropertyNames.GrammaticalGender:
+                    // ref. RFC 9554 §3.2: gramgender-value is one of the values given, an iana-token or an x-name.
+                    return IsToken(text);
                 case VcardPropertyNames.Xml:
                     return IsValidText(value) && IsValidXmlProperty(text);
                 default:
@@ -734,7 +957,7 @@ namespace DataStandardizer.File.vCard
         /// <summary>
         /// Gets whether text is an <c>iana-token</c> or <c>x-name</c> of RFC 6350 §3.3: one or more letters, digits or '-'.
         /// </summary>
-        private static bool IsToken(string text)
+        internal static bool IsToken(string text)
         {
             if (text.Length == 0) return false;
 

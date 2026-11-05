@@ -21,6 +21,83 @@ namespace DataStandardizer.File.vCard
         internal IReadOnlyList<string> this[int index] => _components[index];
 
         /// <summary>
+        /// Gets the number of components.
+        /// </summary>
+        internal int Count => _components.Length;
+
+        /// <summary>
+        /// Gets whether a component has an item with text in it.
+        /// </summary>
+        internal bool HasValueAt(int index)
+        {
+            foreach (var item in _components[index])
+            {
+                if (item.Length != 0) return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Gets whether a component from a position on has an item with text in it.
+        /// </summary>
+        internal bool HasValueFrom(int start)
+        {
+            for (var index = start; index < _components.Length; index++)
+            {
+                if (HasValueAt(index)) return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Gets the items of a component that aren't in another, compared ordinally.
+        /// </summary>
+        internal IReadOnlyList<string> GetItemsNotIn(int index, int otherIndex)
+        {
+            var result = new List<string>();
+            foreach (var item in _components[index])
+            {
+                if (!_components[otherIndex].Contains(item))
+                {
+                    result.Add(item);
+                }
+            }
+
+            return new ReadOnlyCollection<string>(result);
+        }
+
+        /// <summary>
+        /// Gets a list in which a component also has the items of another that it doesn't have already.  A list that wouldn't change is returned as it is.
+        /// </summary>
+        internal VcardComponentList WithItemsOf(int index, int sourceIndex)
+        {
+            var items = new List<string>(_components[index]);
+            var isChanged = false;
+            foreach (var item in _components[sourceIndex])
+            {
+                if (item.Length != 0 && !items.Contains(item))
+                {
+                    items.Add(item);
+                    isChanged = true;
+                }
+            }
+
+            return isChanged ? WithItems(index, items) : this;
+        }
+
+        /// <summary>
+        /// Gets a list in which a component has the given items, which have been checked.
+        /// </summary>
+        internal VcardComponentList WithItems(int index, IList<string> items)
+        {
+            var components = (ReadOnlyCollection<string>[])_components.Clone();
+            components[index] = new ReadOnlyCollection<string>(items);
+            return new VcardComponentList(components);
+        }
+
+        /// <summary>
         /// Creates a list from the components a caller gave.
         /// </summary>
         /// <exception cref="ArgumentNullException">A component or one of its items is <c>null</c>.</exception>

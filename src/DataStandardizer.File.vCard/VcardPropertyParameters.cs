@@ -11,12 +11,13 @@ namespace DataStandardizer.File.vCard
     /// </summary>
     /// <remarks>
     /// <c>VALUE</c> isn't here, since it comes from the value that is added.  Nothing here is checked until the card is validated or written, except the range of <see cref="Pref"/>,
-    /// <see cref="Index"/> and <see cref="Level"/>, which is checked when each is set.
+    /// <see cref="Index"/>, <see cref="Level"/> and <see cref="Phonetic"/>, which is checked when each is set.
     /// </remarks>
     public sealed class VcardPropertyParameters
     {
         private long? _index;
         private VcardLevel? _level;
+        private VcardPhoneticSystem? _phonetic;
         private int? _pref;
 
         /// <summary>
@@ -44,6 +45,16 @@ namespace DataStandardizer.File.vCard
         /// Gets or sets the <c>CC</c> (RFC 8605 §3.1), which only <c>ADR</c> allows.
         /// </summary>
         public Iso3166Part1Alpha2Country? CountryCode { get; set; }
+
+        /// <summary>
+        /// Gets or sets the <c>CREATED</c> (RFC 9554 §4.3).
+        /// </summary>
+        public VcardTimestamp? Created { get; set; }
+
+        /// <summary>
+        /// Gets or sets the <c>DERIVED</c> (RFC 9554 §4.4).
+        /// </summary>
+        public bool? Derived { get; set; }
 
         /// <summary>
         /// Gets or sets the <c>INDEX</c> (RFC 6715 §3.1), which is strictly positive.
@@ -88,6 +99,22 @@ namespace DataStandardizer.File.vCard
         public MimeMediaType? MediaType { get; set; }
 
         /// <summary>
+        /// Gets or sets the <c>PHONETIC</c> (RFC 9554 §4.6), which only <c>N</c> and <c>ADR</c> allow.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">The value is not a <see cref="VcardPhoneticSystem"/> member.</exception>
+        public VcardPhoneticSystem? Phonetic
+        {
+            get => _phonetic;
+            set
+            {
+                if (value.HasValue && !VcardPropertyParameterReader.IsDefinedPhonetic(value.Value))
+                    throw new ArgumentOutOfRangeException(nameof(value), value, "The phonetic system is not recognised.");
+
+                _phonetic = value;
+            }
+        }
+
+        /// <summary>
         /// Gets or sets the <c>PREF</c> (RFC 6350 §5.3), from 1 (most preferred) to 100.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">The value is less than 1 or more than 100.</exception>
@@ -104,6 +131,36 @@ namespace DataStandardizer.File.vCard
         }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        /// <summary>
+        /// Gets or sets the <c>AUTHOR-NAME</c> (RFC 9554 §4.2).
+        /// </summary>
+        public string? AuthorName { get; set; }
+
+        /// <summary>
+        /// Gets or sets the <c>AUTHOR</c> (RFC 9554 §4.1).
+        /// </summary>
+        public Uri? Author { get; set; }
+
+        /// <summary>
+        /// Gets or sets the <c>PROP-ID</c> (RFC 9554 §4.7).
+        /// </summary>
+        public string? PropertyId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the <c>SCRIPT</c> (RFC 9554 §4.8).
+        /// </summary>
+        public string? Script { get; set; }
+
+        /// <summary>
+        /// Gets or sets the <c>SERVICE-TYPE</c> (RFC 9554 §4.9), which only <c>IMPP</c> and <c>SOCIALPROFILE</c> allow.  It is written in quotes, so that its case stays significant.
+        /// </summary>
+        public string? ServiceType { get; set; }
+
+        /// <summary>
+        /// Gets or sets the <c>USERNAME</c> (RFC 9554 §4.10), which only <c>IMPP</c> and <c>SOCIALPROFILE</c> allow, with a URI.  It is written in quotes, so that its case stays significant.
+        /// </summary>
+        public string? Username { get; set; }
+
         /// <summary>
         /// Gets or sets the <c>ALTID</c> (RFC 6350 §5.4).
         /// </summary>
@@ -134,6 +191,36 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         public string? TimeZone { get; set; }
 #else
+        /// <summary>
+        /// Gets or sets the <c>AUTHOR-NAME</c> (RFC 9554 §4.2).
+        /// </summary>
+        public string AuthorName { get; set; }
+
+        /// <summary>
+        /// Gets or sets the <c>AUTHOR</c> (RFC 9554 §4.1).
+        /// </summary>
+        public Uri Author { get; set; }
+
+        /// <summary>
+        /// Gets or sets the <c>PROP-ID</c> (RFC 9554 §4.7).
+        /// </summary>
+        public string PropertyId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the <c>SCRIPT</c> (RFC 9554 §4.8).
+        /// </summary>
+        public string Script { get; set; }
+
+        /// <summary>
+        /// Gets or sets the <c>SERVICE-TYPE</c> (RFC 9554 §4.9), which only <c>IMPP</c> and <c>SOCIALPROFILE</c> allow.  It is written in quotes, so that its case stays significant.
+        /// </summary>
+        public string ServiceType { get; set; }
+
+        /// <summary>
+        /// Gets or sets the <c>USERNAME</c> (RFC 9554 §4.10), which only <c>IMPP</c> and <c>SOCIALPROFILE</c> allow, with a URI.  It is written in quotes, so that its case stays significant.
+        /// </summary>
+        public string Username { get; set; }
+
         /// <summary>
         /// Gets or sets the <c>ALTID</c> (RFC 6350 §5.4).
         /// </summary>
@@ -205,6 +292,15 @@ namespace DataStandardizer.File.vCard
             AddParameter(parameters, VcardParameterNames.Level, _level.HasValue ? VcardPropertyParameterReader.FormatLevel(_level.Value) : null);
             AddParameter(parameters, VcardParameterNames.Index, _index.HasValue ? VcardPropertyParameterReader.FormatInteger(_index.Value) : null);
             AddParameter(parameters, VcardParameterNames.CountryCode, CountryCode?.ToString());
+            AddParameter(parameters, VcardParameterNames.Phonetic, _phonetic.HasValue ? VcardPropertyParameterReader.FormatPhonetic(_phonetic.Value) : null);
+            AddParameter(parameters, VcardParameterNames.Script, Script);
+            AddParameter(parameters, VcardParameterNames.ServiceType, ServiceType);
+            AddParameter(parameters, VcardParameterNames.Username, Username);
+            AddParameter(parameters, VcardParameterNames.Author, Author?.OriginalString);
+            AddParameter(parameters, VcardParameterNames.AuthorName, AuthorName);
+            AddParameter(parameters, VcardParameterNames.Created, Created?.ToString(VcardValueFormat.Text));
+            AddParameter(parameters, VcardParameterNames.Derived, Derived.HasValue ? VcardPropertyParameterReader.FormatDerived(Derived.Value) : null);
+            AddParameter(parameters, VcardParameterNames.PropertyId, PropertyId);
             parameters.AddRange(AdditionalParameters);
             return parameters;
         }

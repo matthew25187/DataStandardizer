@@ -76,6 +76,7 @@ The public types of **DataStandardizer.File.vCard**. All types are in the
 | [VcardKind](VcardKind.md) | The kind of object a card represents. |
 | [VcardLegacySyntax](VcardLegacySyntax.md) | The lexical features of vCard 2.1 that a line uses. |
 | [VcardLevel](VcardLevel.md) | The level of an expertise, hobby or interest. |
+| [VcardPhoneticSystem](VcardPhoneticSystem.md) | The phonetic system of a value. |
 | [VcardDateAndOrTimeKind](VcardDateAndOrTimeKind.md) | What a date-and-or-time holds. |
 | [VcardSex](VcardSex.md) | The sex component of GENDER. |
 | [VcardValueFormat](VcardValueFormat.md) | The lexical form of a value. |

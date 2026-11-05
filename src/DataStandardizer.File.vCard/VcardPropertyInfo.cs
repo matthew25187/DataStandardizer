@@ -24,7 +24,19 @@ namespace DataStandardizer.File.vCard
         Label = 1 << 10,
         Index = 1 << 11,
         Level = 1 << 12,
-        CountryCode = 1 << 13
+        CountryCode = 1 << 13,
+        Author = 1 << 14,
+        AuthorName = 1 << 15,
+        Created = 1 << 16,
+        Derived = 1 << 17,
+        Phonetic = 1 << 18,
+        PropertyId = 1 << 19,
+        Script = 1 << 20,
+        ServiceType = 1 << 21,
+        Username = 1 << 22,
+
+        // ref. RFC 9554 §4.1 to §4.4, §4.7 and §4.8: these are for "any property", or have no limit stated, so a property has them whatever its own ABNF lists.
+        AnyProperty = Author | AuthorName | Created | Derived | PropertyId | Script
     }
 
     /// <summary>
@@ -70,7 +82,7 @@ namespace DataStandardizer.File.vCard
             // ref. RFC 6350 §6.2: identification properties.
             new VcardPropertyInfo(VcardPropertyNames.FormattedName, Versions.All, VcardCardinality.AtLeastOne, LanguageText),
             new VcardPropertyInfo(VcardPropertyNames.Name, Versions.All, VcardCardinality.AtMostOne,
-                VcardParameterSet.SortAs | VcardParameterSet.Language | VcardParameterSet.AlternativeId),
+                VcardParameterSet.SortAs | VcardParameterSet.Language | VcardParameterSet.AlternativeId | VcardParameterSet.Phonetic),
             new VcardPropertyInfo(VcardPropertyNames.Nickname, Versions.From30, VcardCardinality.Any, LanguageText),
             new VcardPropertyInfo(VcardPropertyNames.Photo, Versions.All, VcardCardinality.Any, TypedUri),
             new VcardPropertyInfo(VcardPropertyNames.Birthday, Versions.All, VcardCardinality.AtMostOne,
@@ -80,12 +92,12 @@ namespace DataStandardizer.File.vCard
 
             // ref. RFC 6350 §6.3: delivery addressing properties.
             new VcardPropertyInfo(VcardPropertyNames.Address, Versions.All, VcardCardinality.Any,
-                LanguageText | VcardParameterSet.Label | VcardParameterSet.Geo | VcardParameterSet.TimeZone | VcardParameterSet.CountryCode),
+                LanguageText | VcardParameterSet.Label | VcardParameterSet.Geo | VcardParameterSet.TimeZone | VcardParameterSet.CountryCode | VcardParameterSet.Phonetic),
 
             // ref. RFC 6350 §6.4: communications properties.
             new VcardPropertyInfo(VcardPropertyNames.Telephone, Versions.All, VcardCardinality.Any, TypedUri),
             new VcardPropertyInfo(VcardPropertyNames.Email, Versions.All, VcardCardinality.Any, TypedText),
-            new VcardPropertyInfo(VcardPropertyNames.InstantMessaging, Versions.From30, VcardCardinality.Any, TypedUri),
+            new VcardPropertyInfo(VcardPropertyNames.InstantMessaging, Versions.From30, VcardCardinality.Any, TypedUri | VcardParameterSet.ServiceType | VcardParameterSet.Username),
             new VcardPropertyInfo(VcardPropertyNames.Language, Versions.V4, VcardCardinality.Any, TypedText),
 
             // ref. RFC 6350 §6.5: geographical properties.
@@ -135,6 +147,14 @@ namespace DataStandardizer.File.vCard
             // ref. RFC 8605 §2.1: CONTACT-URI-param = "VALUE=uri" / pref-param, which has no any-param.
             new VcardPropertyInfo(VcardPropertyNames.ContactUri, Versions.V4, VcardCardinality.Any, VcardParameterSet.Preference, false),
 
+            // ref. RFC 9554 §3.1 to §3.5.  LANGUAGE has no VALUE in its ABNF, and "The LANGUAGE parameter MUST NOT be assigned to this property."
+            new VcardPropertyInfo(VcardPropertyNames.Created, Versions.V4, VcardCardinality.AtMostOne, VcardParameterSet.None),
+            new VcardPropertyInfo(VcardPropertyNames.GrammaticalGender, Versions.V4, VcardCardinality.Any, VcardParameterSet.Language, true, false),
+            new VcardPropertyInfo(VcardPropertyNames.DefaultLanguage, Versions.V4, VcardCardinality.AtMostOne, VcardParameterSet.None, true, false),
+            new VcardPropertyInfo(VcardPropertyNames.Pronouns, Versions.V4, VcardCardinality.Any,
+                VcardParameterSet.Language | VcardParameterSet.Preference | VcardParameterSet.Type | VcardParameterSet.AlternativeId, true, false),
+            new VcardPropertyInfo(VcardPropertyNames.SocialProfile, Versions.V4, VcardCardinality.Any, VcardParameterSet.ServiceType | VcardParameterSet.Username),
+
             // ref. RFC 6350 Appendix A: the properties vCard 4.0 removed, from RFC 2426, RFC 2739 and vCard 2.1.  To vCard 4.0 they are unknown properties.
             new VcardPropertyInfo("AGENT", Versions.Before40, VcardCardinality.Any, VcardParameterSet.None),
             new VcardPropertyInfo("CAPURI", Versions.V3, VcardCardinality.Any, VcardParameterSet.None),
@@ -158,7 +178,7 @@ namespace DataStandardizer.File.vCard
             Name = name;
             _versions = versions;
             Cardinality = cardinality;
-            Parameters = parameters;
+            Parameters = parameters | VcardParameterSet.AnyProperty;
             AllowsOtherParameters = allowsOtherParameters;
             AllowsValueParameter = allowsValueParameter;
         }

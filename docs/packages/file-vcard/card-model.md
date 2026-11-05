@@ -76,12 +76,52 @@ The extensions of vCard 4.0 have members of their own, and aren't in `ExtensionP
 | RFC 6474 | `BIRTHPLACE`, `DEATHPLACE`, `DEATHDATE` | `BirthPlace`, `DeathPlace`, `DeathDate` |
 | RFC 6715 | `EXPERTISE`, `HOBBY`, `INTEREST`, `ORG-DIRECTORY`, and the parameters `LEVEL` and `INDEX` | `Expertise`, `Hobbies`, `Interests`, `OrganizationDirectories`, and `Level` and `Index` on a property |
 | RFC 8605 | `CONTACT-URI`, and the parameter `CC` on `ADR` | `ContactUris`, and `CountryCode` on a property |
+| RFC 9554 | `CREATED`, `GRAMGENDER`, `LANGUAGE`, `PRONOUNS`, `SOCIALPROFILE`, and ten parameters | `Created`, `GrammaticalGenders`, `DefaultLanguage`, `Pronouns`, `SocialProfiles`, and members on a property such as `ServiceType` and `Phonetic` |
 
 ```csharp
 var hobbies = card.Hobbies.GetOrderedByIndex();
 VcardLevel? level = hobbies[0].Level;
 Iso3166Part1Alpha2Country? country = card.Addresses[0].CountryCode;
 ```
+
+The `LANGUAGE` property of RFC 9554 is `DefaultLanguage`, because `Languages` is `LANG`, the languages that may be used for contact. JSContact itself (RFC 9553) isn't implemented, and the `JSPROP` property and the `JSPTR` and `JSCOMPS` parameters of RFC 9555 are kept and written back like any unknown property or parameter.
+
+### The components of N and ADR
+
+RFC 9554 adds components to `N` and `ADR`, and says what to do so that software that doesn't know them can still read a card.
+
+| | `N` (§2.2) | `ADR` (§2.1) |
+| --- | --- | --- |
+| **Writing** | A secondary surname also goes in the family names, and a generation in the honorific suffixes. | The new components are combined in the street address. |
+| **Reading** | Ignore a value in those older components that is also in the new one: `FamilyNamesExcludingSecondarySurnames`, `HonorificSuffixesExcludingGenerations`. | Ignore the street address if `HasDetailedComponents` is `true`. |
+
+`SetName` and `Addresses.Add` do the writing half, and `WithBackwardCompatibleComponents` does it for a value of your own. The RFC doesn't say how to combine the components of an address, so give the address a street address if the order matters: one it already has is left alone. A line added to `Properties` is written as it is, and so is a value with a `PHONETIC` parameter, because §4.6 needs its related property to have a value in each of its components. A card that was read keeps its values as they were.
+
+```csharp
+var name = VcardName.Parse("Doe;John;;;;Smith;Jr.".AsSpan(), VcardValueFormat.Text);
+card.SetName(name); // N:Doe,Smith;John;;;Jr.;Smith;Jr.
+```
+
+### Phonetic values
+
+A `PHONETIC` property says how to pronounce another of the same name, which has the same `ALTID` and no `PHONETIC` (§4.6). `Name` gives the one without it, whichever comes first. `SetName` replaces every `N`, so to write a pair, add both lines to `Properties`.
+
+```csharp
+foreach (var alternatives in card.Addresses.GetAlternatives())
+{
+    var phonetic = alternatives.FirstOrDefault(address => address.Phonetic != null);
+}
+```
+
+### Derived values and identifiers
+
+`DERIVED=true` says that a value is worked out from other properties, and RFC 9554 §4.4 says a client "MUST NOT update the property". So a setter such as `SetName` throws `InvalidOperationException` on one. Software that works the value out again removes the instance first, with `RemoveProperties`.
+
+`PROP-ID` identifies a property among those of the same name. An application "SHOULD assign a unique identifier", and resolving a duplicate is "specific to the application" (§4.7), so `Validate()` doesn't report one. `GetDuplicatePropertyIds()` finds them.
+
+### Writing to an older version
+
+None of this exists in vCard 3.0 or 2.1, and `VcardPropertyInfo.IsDefinedIn` says so. Writing an older version, which arrives with those versions, reports it as `Lossy`.
 
 ## Commas in URI values
 
@@ -125,6 +165,9 @@ returns every problem in a card as a `VcardDiagnostic`, without throwing.
 | A comma in a URI value escaped with a backslash | §3.4 and errata 3845 and 3846 | `AcceptUnescapedCommasInUris`, reading only |
 | Parameters only on the properties that allow them, `PREF` from 1 to 100, and a `CLIENTPIDMAP` for each `PID` source | §5, §6, §6.7.7 | `AllowInvalidValues` |
 | `LEVEL` by property, `INDEX` strictly positive, `CC` an ISO 3166 code on `ADR`, and a `PREF` among several `CONTACT-URI` properties | RFC 6715 §3, RFC 8605 | `AllowInvalidValues` |
+| `SERVICE-TYPE` on a `SOCIALPROFILE` whose value is text, and `USERNAME` only with a URI | RFC 9554 §3.5, §4.10 | `AllowInvalidValues` |
+| `GRAMGENDER` instances that differ in `LANGUAGE`, and the `TYPE` values `billing` and `delivery` only on `ADR` | RFC 9554 §3.2, §5 | `AllowInvalidValues` |
+| `PHONETIC` only on `N` and `ADR`, with a registered value, an `ALTID` and a related property that has its components; `SCRIPT` with `PHONETIC=script`; and different `LANGUAGE` values among those with the same `ALTID` | RFC 9554 §4.6 | `AllowInvalidValues` |
 | No forms of vCard 2.1 or 3.0: a parameter with no name, `ENCODING` or `CHARSET` | §5, Appendix A | `AcceptLegacySyntax`, reading only |
 
 Each option is separate, and off by default. Nothing accepts a `BEGIN` or `END` that isn't paired, a

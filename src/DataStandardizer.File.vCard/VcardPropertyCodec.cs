@@ -18,8 +18,10 @@ namespace DataStandardizer.File.vCard
     {
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private readonly Func<TValue, TValue>? _copy;
+        private readonly Func<TValue, TValue>? _withBackwardCompatibleComponents;
 #else
         private readonly Func<TValue, TValue> _copy;
+        private readonly Func<TValue, TValue> _withBackwardCompatibleComponents;
 #endif
         private readonly VcardValueType _defaultValueType;
         private readonly Func<TValue, string> _format;
@@ -27,13 +29,16 @@ namespace DataStandardizer.File.vCard
         private readonly VcardValueParser<TValue> _parse;
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        internal VcardPropertyCodec(string name, VcardValueParser<TValue> parse, Func<TValue, string> format, Func<TValue, VcardValueType> getValueType, Func<TValue, TValue>? copy = null)
+        internal VcardPropertyCodec(string name, VcardValueParser<TValue> parse, Func<TValue, string> format, Func<TValue, VcardValueType> getValueType, Func<TValue, TValue>? copy = null,
+            Func<TValue, TValue>? withBackwardCompatibleComponents = null)
 #else
-        internal VcardPropertyCodec(string name, VcardValueParser<TValue> parse, Func<TValue, string> format, Func<TValue, VcardValueType> getValueType, Func<TValue, TValue> copy = null)
+        internal VcardPropertyCodec(string name, VcardValueParser<TValue> parse, Func<TValue, string> format, Func<TValue, VcardValueType> getValueType, Func<TValue, TValue> copy = null,
+            Func<TValue, TValue> withBackwardCompatibleComponents = null)
 #endif
         {
             Name = name;
             _copy = copy;
+            _withBackwardCompatibleComponents = withBackwardCompatibleComponents;
             _parse = parse;
             _format = format;
             _getValueType = getValueType;
@@ -106,16 +111,27 @@ namespace DataStandardizer.File.vCard
                 throw new ArgumentException("The property " + Name + " doesn't allow a value of type " + valueType + ".", nameof(value));
 
             var valueParameter = valueType == _defaultValueType ? string.Empty : VcardValueTypeRegistry.GetValueTypeName(valueType);
-            var text = _format(value);
-            return new VcardContentLine(parameters?.Group, Name, (parameters ?? new VcardPropertyParameters()).ToContentLineParameters(valueParameter), text);
+            var contentLineParameters = (parameters ?? new VcardPropertyParameters()).ToContentLineParameters(valueParameter);
+            var isPhonetic = contentLineParameters.Exists(parameter => string.Equals(parameter.Name, VcardParameterNames.Phonetic, StringComparison.OrdinalIgnoreCase));
+            return new VcardContentLine(parameters?.Group, Name, contentLineParameters, _format(GetFormToWrite(isPhonetic, value)));
         }
 
         /// <summary>
-        /// Gets the wrapper of a line just created from a value, which keeps a copy of a value the caller could go on to change.
+        /// Gets the wrapper of a line just created from a value, which keeps the form of it that the line holds, or a copy of a value the caller could go on to change.
         /// </summary>
         internal VcardProperty<TValue> CreateProperty(VcardContentLine line, TValue value)
         {
-            return new VcardProperty<TValue>(line, _copy is null ? value : _copy(value));
+            var form = GetFormToWrite(line.GetParameter(VcardParameterNames.Phonetic) != null, value);
+            return new VcardProperty<TValue>(line, _copy is null ? form : _copy(form));
+        }
+
+        /// <summary>
+        /// Gets the form of a value to write on a line.  ref. RFC 9554 §4.6: a component set on a line with PHONETIC "MUST be set at that same position in the related property", which is
+        /// not this line, so that outranks the SHOULD of §2.1 and §2.2 to also fill in the older components.
+        /// </summary>
+        private TValue GetFormToWrite(bool isPhonetic, TValue value)
+        {
+            return _withBackwardCompatibleComponents is null || isPhonetic ? value : _withBackwardCompatibleComponents(value);
         }
     }
 
@@ -127,6 +143,11 @@ namespace DataStandardizer.File.vCard
         internal static VcardPropertyCodec<string> Text(string name)
         {
             return new VcardPropertyCodec<string>(name, ParseText, FormatText, GetTextType);
+        }
+
+        internal static VcardPropertyCodec<string> Token(string name)
+        {
+            return new VcardPropertyCodec<string>(name, ParseToken, FormatText, GetTextType);
         }
 
         internal static VcardPropertyCodec<IReadOnlyList<string>> TextList(string name)
@@ -152,13 +173,15 @@ namespace DataStandardizer.File.vCard
         internal static VcardPropertyCodec<VcardName> Name()
         {
             return new VcardPropertyCodec<VcardName>(VcardPropertyNames.Name, (string text, VcardValueType valueType, out VcardName value) =>
-                VcardName.TryParse(text.AsSpan(), VcardValueFormat.Text, out value), value => value.ToString(VcardValueFormat.Text), value => VcardValueType.Text);
+                VcardName.TryParse(text.AsSpan(), VcardValueFormat.Text, out value), value => value.ToString(VcardValueFormat.Text),
+                value => VcardValueType.Text, null, value => value.WithBackwardCompatibleComponents());
         }
 
         internal static VcardPropertyCodec<VcardAddress> Address()
         {
             return new VcardPropertyCodec<VcardAddress>(VcardPropertyNames.Address, (string text, VcardValueType valueType, out VcardAddress value) =>
-                VcardAddress.TryParse(text.AsSpan(), VcardValueFormat.Text, out value), value => value.ToString(VcardValueFormat.Text), value => VcardValueType.Text);
+                VcardAddress.TryParse(text.AsSpan(), VcardValueFormat.Text, out value), value => value.ToString(VcardValueFormat.Text),
+                value => VcardValueType.Text, null, value => value.WithBackwardCompatibleComponents());
         }
 
         internal static VcardPropertyCodec<VcardOrganization> Organization()
@@ -179,15 +202,15 @@ namespace DataStandardizer.File.vCard
                 VcardClientPidMap.TryParse(text.AsSpan(), VcardValueFormat.Text, out value), value => value.ToString(), value => VcardValueType.Text);
         }
 
-        internal static VcardPropertyCodec<VcardTimestamp> Timestamp()
+        internal static VcardPropertyCodec<VcardTimestamp> Timestamp(string name)
         {
-            return new VcardPropertyCodec<VcardTimestamp>(VcardPropertyNames.Revision, (string text, VcardValueType valueType, out VcardTimestamp value) =>
+            return new VcardPropertyCodec<VcardTimestamp>(name, (string text, VcardValueType valueType, out VcardTimestamp value) =>
                 VcardTimestamp.TryParse(text.AsSpan(), VcardValueFormat.Text, out value), value => value.ToString(VcardValueFormat.Text), value => VcardValueType.Timestamp);
         }
 
-        internal static VcardPropertyCodec<Bcp47LanguageTag> LanguageTag()
+        internal static VcardPropertyCodec<Bcp47LanguageTag> LanguageTag(string name)
         {
-            return new VcardPropertyCodec<Bcp47LanguageTag>(VcardPropertyNames.Language, (string text, VcardValueType valueType, out Bcp47LanguageTag value) =>
+            return new VcardPropertyCodec<Bcp47LanguageTag>(name, (string text, VcardValueType valueType, out Bcp47LanguageTag value) =>
                 VcardValue.TryParseLanguageTag(text.AsSpan(), VcardValueFormat.Text, out value), value => value.ToString(), value => VcardValueType.LanguageTag);
         }
 
@@ -206,6 +229,12 @@ namespace DataStandardizer.File.vCard
 #else
             return VcardValue.TryParseText(text.AsSpan(), VcardValueFormat.Text, out value);
 #endif
+        }
+
+        private static bool ParseToken(string text, VcardValueType valueType, out string value)
+        {
+            value = text;
+            return VcardConformance.IsToken(text);
         }
 
         private static string FormatText(string value)
