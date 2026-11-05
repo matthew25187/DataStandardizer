@@ -15,6 +15,10 @@ namespace DataStandardizer.File.vCard
     /// A default instance is not initialised: <see cref="SourceId"/> and <see cref="Uri"/> throw <see cref="InvalidOperationException"/>,
     /// <see cref="TryFormat(Span{char}, out int, VcardValueFormat)"/> writes nothing, and <see cref="ToString()"/> gives the type name.
     /// </para>
+    /// <para>
+    /// In jCard (RFC 7095 §3.3.1.3) the value is a JSON array with an element for each component, not a single string, so it has no <see cref="VcardValueFormat.Json"/> form of
+    /// its own, and parsing or formatting in that form throws <see cref="NotSupportedException"/>.  <c>JcardReader</c> and <c>JcardWriter</c> map the array to and from the text form.
+    /// </para>
     /// </remarks>
     public readonly struct VcardClientPidMap : IEquatable<VcardClientPidMap>
     {
@@ -105,7 +109,7 @@ namespace DataStandardizer.File.vCard
         /// <exception cref="NotSupportedException"><paramref name="format"/> is not <see cref="VcardValueFormat.Text"/>.</exception>
         public static bool TryParseParts(ReadOnlySpan<char> value, VcardValueFormat format, out long sourceId, out ReadOnlySpan<char> uri)
         {
-            VcardValueFormatting.CheckFormat(format);
+            VcardValueFormatting.CheckStructuredFormat(format, "A CLIENTPIDMAP value");
 
             // ref. RFC 6350 §6.7.7: CLIENTPIDMAP-value = 1*DIGIT ";" URI
             sourceId = 0;
@@ -151,7 +155,7 @@ namespace DataStandardizer.File.vCard
         /// <exception cref="NotSupportedException"><paramref name="format"/> is not <see cref="VcardValueFormat.Text"/>.</exception>
         public bool TryFormat(Span<char> destination, out int charsWritten, VcardValueFormat format)
         {
-            VcardValueFormatting.CheckFormat(format);
+            VcardValueFormatting.CheckStructuredFormat(format, "A CLIENTPIDMAP value");
 
             var writer = new VcardSpanWriter(destination);
             if (_uri != null)

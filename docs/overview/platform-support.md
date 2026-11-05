@@ -19,6 +19,7 @@ gradually or must remain on older frameworks indefinitely.
 | **DataStandardizer.File.CSV** | `netstandard1.3`, `netstandard2.0`, `netstandard2.1`, `net10.0` |
 | **DataStandardizer.File.iCal** | `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, `net10.0` |
 | **DataStandardizer.File.InternetMessage** | `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, `net10.0` |
+| **DataStandardizer.File.vCard** | `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, `net10.0` |
 | **DataStandardizer.Geography** | `netstandard1.0`, `netstandard2.0`, `net10.0` |
 | **DataStandardizer.Language** | `netstandard1.0`, `netstandard2.0`, `net10.0` |
 | **DataStandardizer.LanguageTag** | `netstandard1.1`, `netstandard2.0`, `net10.0` |
@@ -30,7 +31,8 @@ gradually or must remain on older frameworks indefinitely.
 Modern .NET (`net10.0`) is the primary target, giving access to the
 latest runtime features — including nullable reference types, which are enabled
 on that build and on the `netstandard2.1` builds of **DataStandardizer.File.CSV**,
-**DataStandardizer.File.iCal** and **DataStandardizer.File.InternetMessage**.
+**DataStandardizer.File.iCal**, **DataStandardizer.File.InternetMessage** and
+**DataStandardizer.File.vCard**.
 Alongside these, `netstandard2.0` covers the broad middle ground of the .NET
 ecosystem, and `netstandard1.0` or `netstandard1.1` extends reach to the oldest
 supported frameworks.
@@ -40,7 +42,8 @@ supported frameworks.
 From v2.0 onwards, the packages have no `net8.0` build, because .NET 8 reaches the end
 of support on 10 November 2026. An application on .NET 8 or .NET 9 can still use
 them: NuGet gives it the `netstandard2.1` build of **DataStandardizer.File.CSV**,
-**DataStandardizer.File.iCal** and **DataStandardizer.File.InternetMessage**, and the
+**DataStandardizer.File.iCal**, **DataStandardizer.File.InternetMessage** and
+**DataStandardizer.File.vCard**, and the
 `netstandard2.0` build of the other packages.
 It doesn't get the APIs that only the `net10.0` build has, such as the `DateOnly`
 and `TimeOnly` support in **DataStandardizer.Chronology**. To use those, move the
@@ -61,7 +64,7 @@ and 1.1 are the same, so this costs no reach.
 reader and writer rely on stream and component-model APIs that are not available
 on earlier versions.
 
-The three file packages are also the only ones with a `netstandard2.1` target,
+The four file packages are also the only ones with a `netstandard2.1` target,
 which gives .NET Standard 2.1 platforms (Mono and Unity, for example) the in-box
 span types and span-based BCL overloads with no extra package dependencies. The
 `netstandard1.3` and `netstandard2.0` builds of **DataStandardizer.File.CSV** get
@@ -117,6 +120,14 @@ System.Text.Json from its NuGet package, which NuGet installs automatically; on
 `net10.0` it is part of the framework. The jCal lexical form of
 single values, `IcalValueFormat.Json`, needs no JSON library, so the value types
 support it on every target, `netstandard1.1` included.
+
+In the same way, **DataStandardizer.File.vCard** needs `netstandard2.0` or later for
+jCard (the JSON form of vCard, RFC 7095): `JcardReader` and `JcardWriter` use
+System.Text.Json, so they are not available on its `netstandard1.1` build, and the
+`netstandard2.0` and `netstandard2.1` builds get System.Text.Json from its NuGet
+package. The jCard lexical form of single values, `VcardValueFormat.Json`, needs no
+JSON library, so the value types support it on every target. That build also has no
+async API and no file-path constructors, as for **DataStandardizer.File.iCal**.
 
 The `netstandard1.1` build of **DataStandardizer.File.InternetMessage** is limited
 in two of the same ways: it has no async API, such as `ImfReader.ReadMessageAsync`

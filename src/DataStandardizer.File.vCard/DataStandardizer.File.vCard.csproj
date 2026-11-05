@@ -7,6 +7,7 @@
 Provides types supporting the reading and writing of vCard files.  Includes:
 - vCard Format Specification, RFC 6350 (content lines, value types, the card object model, and reading and writing cards with conformance checks)
 - Parameter Value Encoding in iCalendar and vCard, RFC 6868
+- jCard: The JSON Format for vCard, RFC 7095 (reading and writing cards as JSON, on .NET Standard 2.0 and later)
 - vCard 2.1 (reading and writing vCard 2.1 cards, with quoted-printable, BASE64, CHARSET, parameters with no name and the card an AGENT holds)
 - vCard MIME Directory Profile, RFC 2426, and MIME Content-Type for Directory Information, RFC 2425 (reading and writing vCard 3.0 cards, and converting between versions)
 - Calendar Attributes for vCard and LDAP, RFC 2739
@@ -17,7 +18,7 @@ Provides types supporting the reading and writing of vCard files.  Includes:
 - vCard Format Extensions: Representing vCard Extensions Defined by the Open Mobile Alliance (OMA) Converged Address Book (CAB) Group, RFC 6715
 - vCard Format Extensions: ICANN Extensions for the Registration Data Access Protocol, RFC 8605</Description>
     <Copyright>Copyright © 2026, Matthew25187. All rights reserved.</Copyright>
-    <PackageTags>data;standard;vcard;vcf;contact;rfc 6350;rfc 6868;rfc 2425;rfc 2426;rfc 2739;rfc 4770;rfc 9554;rfc 6473;rfc 6474;rfc 6715;rfc 6869;rfc 8605;vcard 2.1;vcard 3.0;vcard 4.0;quoted-printable;file</PackageTags>
+    <PackageTags>data;standard;vcard;vcf;contact;rfc 6350;rfc 6868;jcard;rfc 7095;rfc 2425;rfc 2426;rfc 2739;rfc 4770;rfc 9554;rfc 6473;rfc 6474;rfc 6715;rfc 6869;rfc 8605;vcard 2.1;vcard 3.0;vcard 4.0;quoted-printable;file</PackageTags>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
   </PropertyGroup>
 

@@ -13,6 +13,11 @@ namespace DataStandardizer.File.vCard
     /// time in either the basic or the extended format of ISO 8601.
     /// </para>
     /// <para>
+    /// In jCard (RFC 7095 §3.5.4), the <see cref="VcardValueFormat.Json"/> form, a vCard 4.0 time is in the extended format where it applies: <c>10:22:00</c>, <c>10:22</c>,
+    /// <c>10</c>, <c>-22:00</c>, <c>-22</c> and <c>--00</c>, each followed by nothing, <c>Z</c>, or an offset such as <c>-08:00</c> or <c>-08</c>.  jCard represents vCard 4.0
+    /// alone, so that form has no other version.
+    /// </para>
+    /// <para>
     /// A second of 60 is accepted at any time of day, since whether a leap second falls at a given local time can't be told from the value.  An hour of 24 is not: RFC 6350
     /// §4.3.2 says midnight is always 00, and RFC 2425 §5.8.4 gives hours up to 23.  vCard 2.1 follows ISO 8601, which has <c>24:00:00</c> for the end of a day, so only it reads
     /// and writes that one time.  An offset's hour of 24 belongs to the TZ property of vCard 2.1 (§2.4.5), not to a time.
@@ -233,7 +238,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="result">The time, if the value is valid.</param>
         /// <returns><c>true</c> if the value is a valid time; otherwise <c>false</c>.</returns>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not a <see cref="VcardValueFormat"/> member.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is not <see cref="VcardValueFormat.Text"/>.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
         public static bool TryParse(ReadOnlySpan<char> value, VcardValueFormat format, out VcardTime result)
         {
             return TryParse(value, format, VcardVersion.V4_0, out result);
@@ -248,11 +253,13 @@ namespace DataStandardizer.File.vCard
         /// <param name="result">The time, if the value is valid.</param>
         /// <returns><c>true</c> if the value is a valid time; otherwise <c>false</c>.</returns>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> or <paramref name="version"/> is not a member of its type.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is not <see cref="VcardValueFormat.Text"/>.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
+        /// <exception cref="ArgumentException"><paramref name="format"/> is <see cref="VcardValueFormat.Json"/>, which represents vCard 4.0 alone, and <paramref name="version"/> isn't vCard 4.0.</exception>
         public static bool TryParse(ReadOnlySpan<char> value, VcardValueFormat format, VcardVersion version, out VcardTime result)
         {
-            VcardValueFormatting.CheckFormat(format);
-            VcardValueFormatting.CheckVersion(version);
+            VcardValueFormatting.CheckFormat(format, version);
+
+            if (format == VcardValueFormat.Json) return TryParseJson(value, out result);
 
             return version == VcardVersion.V4_0 ? TryParseVersion40(value, out result) : TryParseLegacy(value, version, out result);
         }
@@ -265,7 +272,7 @@ namespace DataStandardizer.File.vCard
         /// <returns>The time.</returns>
         /// <exception cref="FormatException">The value is not a valid time.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not a <see cref="VcardValueFormat"/> member.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is not <see cref="VcardValueFormat.Text"/>.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
         public static VcardTime Parse(ReadOnlySpan<char> value, VcardValueFormat format)
         {
             return Parse(value, format, VcardVersion.V4_0);
@@ -280,7 +287,8 @@ namespace DataStandardizer.File.vCard
         /// <returns>The time.</returns>
         /// <exception cref="FormatException">The value is not a valid time.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> or <paramref name="version"/> is not a member of its type.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is not <see cref="VcardValueFormat.Text"/>.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
+        /// <exception cref="ArgumentException"><paramref name="format"/> is <see cref="VcardValueFormat.Json"/>, which represents vCard 4.0 alone, and <paramref name="version"/> isn't vCard 4.0.</exception>
         public static VcardTime Parse(ReadOnlySpan<char> value, VcardValueFormat format, VcardVersion version)
         {
             VcardTime result;
@@ -298,7 +306,7 @@ namespace DataStandardizer.File.vCard
         /// <param name="format">The lexical form to write.</param>
         /// <returns><c>true</c> if the time was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not a <see cref="VcardValueFormat"/> member.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is not <see cref="VcardValueFormat.Text"/>.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
         /// <exception cref="InvalidOperationException">vCard 4.0 has no form for this time; see <see cref="IsDefinedIn"/>.</exception>
         public bool TryFormat(Span<char> destination, out int charsWritten, VcardValueFormat format)
         {
@@ -314,12 +322,12 @@ namespace DataStandardizer.File.vCard
         /// <param name="version">The version whose grammar applies.</param>
         /// <returns><c>true</c> if the time was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> or <paramref name="version"/> is not a member of its type.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is not <see cref="VcardValueFormat.Text"/>.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
+        /// <exception cref="ArgumentException"><paramref name="format"/> is <see cref="VcardValueFormat.Json"/>, which represents vCard 4.0 alone, and <paramref name="version"/> isn't vCard 4.0.</exception>
         /// <exception cref="InvalidOperationException"><paramref name="version"/> has no form for this time; see <see cref="IsDefinedIn"/>.</exception>
         public bool TryFormat(Span<char> destination, out int charsWritten, VcardValueFormat format, VcardVersion version)
         {
-            VcardValueFormatting.CheckFormat(format);
-            VcardValueFormatting.CheckVersion(version);
+            VcardValueFormatting.CheckFormat(format, version);
 
             if (!IsInitialized)
             {
@@ -331,7 +339,15 @@ namespace DataStandardizer.File.vCard
                 throw VcardValueFormatting.BuildNotDefinedException("TIME", version);
 
             var writer = new VcardSpanWriter(destination);
-            Append(ref writer, version);
+            if (format == VcardValueFormat.Json)
+            {
+                AppendJson(ref writer);
+            }
+            else
+            {
+                Append(ref writer, version);
+            }
+
             return writer.TryComplete(out charsWritten);
         }
 
@@ -340,7 +356,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="format">The lexical form to write.</param>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not a <see cref="VcardValueFormat"/> member.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is not <see cref="VcardValueFormat.Text"/>.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
         /// <exception cref="InvalidOperationException">vCard 4.0 has no form for this time; see <see cref="IsDefinedIn"/>.</exception>
         public string ToString(VcardValueFormat format)
         {
@@ -353,7 +369,8 @@ namespace DataStandardizer.File.vCard
         /// <param name="format">The lexical form to write.</param>
         /// <param name="version">The version whose grammar applies.</param>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> or <paramref name="version"/> is not a member of its type.</exception>
-        /// <exception cref="NotSupportedException"><paramref name="format"/> is not <see cref="VcardValueFormat.Text"/>.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="format"/> is <see cref="VcardValueFormat.Xml"/>, which isn't implemented yet.</exception>
+        /// <exception cref="ArgumentException"><paramref name="format"/> is <see cref="VcardValueFormat.Json"/>, which represents vCard 4.0 alone, and <paramref name="version"/> isn't vCard 4.0.</exception>
         /// <exception cref="InvalidOperationException"><paramref name="version"/> has no form for this time; see <see cref="IsDefinedIn"/>.</exception>
         public string ToString(VcardValueFormat format, VcardVersion version)
         {
@@ -379,13 +396,15 @@ namespace DataStandardizer.File.vCard
         /// <see cref="VcardValueFormat.Xml"/>.  The value is written as <see cref="ToString()"/> writes it.  The provider is ignored.</remarks>
         bool ISpanFormattable.TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
         {
-            return TryFormat(destination, out charsWritten, VcardValueFormatting.ParseFormatString(format), DefaultVersion);
+            var valueFormat = VcardValueFormatting.ParseFormatString(format);
+            return TryFormat(destination, out charsWritten, valueFormat, VcardValueFormatting.GetFormattingVersion(valueFormat, DefaultVersion));
         }
 
         /// <inheritdoc />
         string IFormattable.ToString(string? format, IFormatProvider? formatProvider)
         {
-            return ToString(VcardValueFormatting.ParseFormatString(format), DefaultVersion);
+            var valueFormat = VcardValueFormatting.ParseFormatString(format);
+            return ToString(valueFormat, VcardValueFormatting.GetFormattingVersion(valueFormat, DefaultVersion));
         }
 #endif
 
@@ -501,6 +520,56 @@ namespace DataStandardizer.File.vCard
                 isUtc = true;
             }
             else if (zone.Length != 0 && !VcardUtcOffset.TryParseForm(zone, true, true, false, VcardUtcOffset.MaxHours, out offset))
+            {
+                return false;
+            }
+
+            result = new VcardTime(hour, minute, second, 0, 0, isUtc, offset);
+            return true;
+        }
+
+        /// <summary>
+        /// Parses the whole value as a jCard <c>time</c> (RFC 7095 §3.5.4).
+        /// </summary>
+        internal static bool TryParseJson(ReadOnlySpan<char> value, out VcardTime result)
+        {
+            // ref. RFC 7095 §3.5.4: time-notrunc = hour [":" minute [":" second]] [zone]
+            // time = time-notrunc / "-" minute ":" second [zone] / "-" minute [zone] / "--" second [zone]
+            result = default(VcardTime);
+            int hour = None, minute = None, second = None;
+            var index = 0;
+            if (value.Length >= 2 && value[0] == '-' && value[1] == '-')
+            {
+                index = 2;
+                if (!TryReadPart(value, ref index, out second)) return false;
+            }
+            else
+            {
+                if (value.Length >= 1 && value[0] == '-')
+                {
+                    index = 1;
+                    if (!TryReadPart(value, ref index, out minute)) return false;
+                }
+                else
+                {
+                    if (!TryReadPart(value, ref index, out hour)) return false;
+                    if (IsColonAt(value, index) && !TryReadPartAfterColon(value, ref index, out minute)) return false;
+                }
+
+                if (minute != None && IsColonAt(value, index) && !TryReadPartAfterColon(value, ref index, out second)) return false;
+            }
+
+            if (hour > MaxHour || minute > MaxMinute || second > MaxSecond) return false;
+
+            // ref. RFC 7095 §3.5.4: "UTC offsets are permitted within a time value", in the extended format of ISO 8601, so -08:00 or -08.
+            var isUtc = false;
+            var offset = default(VcardUtcOffset);
+            var zone = value.Slice(index);
+            if (zone.Length == 1 && zone[0] == 'Z')
+            {
+                isUtc = true;
+            }
+            else if (zone.Length != 0 && !VcardUtcOffset.TryParseJson(zone, out offset))
             {
                 return false;
             }
@@ -631,6 +700,64 @@ namespace DataStandardizer.File.vCard
             {
                 _offset.Append(ref writer, version);
             }
+        }
+
+        /// <summary>
+        /// Appends the time in the form of jCard (RFC 7095 §3.5.4): the extended format of ISO 8601 where it applies, and otherwise the basic format.  The caller has checked that
+        /// vCard 4.0 can write it.
+        /// </summary>
+        internal void AppendJson(ref VcardSpanWriter writer)
+        {
+            if (_hourPlusOne != 0)
+            {
+                writer.AppendDigits(_hourPlusOne - 1, 2);
+                if (_minutePlusOne != 0)
+                {
+                    writer.Append(':');
+                }
+            }
+            else
+            {
+                writer.Append('-');
+                if (_minutePlusOne == 0)
+                {
+                    writer.Append('-');
+                }
+            }
+
+            if (_minutePlusOne != 0)
+            {
+                writer.AppendDigits(_minutePlusOne - 1, 2);
+                if (_secondPlusOne != 0)
+                {
+                    writer.Append(':');
+                }
+            }
+
+            if (_secondPlusOne != 0)
+            {
+                writer.AppendDigits(_secondPlusOne - 1, 2);
+            }
+
+            if (_isUtc)
+            {
+                writer.Append('Z');
+            }
+            else if (_offset.IsInitialized)
+            {
+                _offset.AppendJson(ref writer);
+            }
+        }
+
+        private static bool IsColonAt(ReadOnlySpan<char> value, int index)
+        {
+            return index < value.Length && value[index] == ':';
+        }
+
+        private static bool TryReadPartAfterColon(ReadOnlySpan<char> value, ref int index, out int part)
+        {
+            index++;
+            return TryReadPart(value, ref index, out part);
         }
 
         private static bool TryParseLegacyZone(ReadOnlySpan<char> zone, VcardVersion version, bool isExtended, out VcardUtcOffset offset)
