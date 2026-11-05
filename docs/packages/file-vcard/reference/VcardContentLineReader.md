@@ -91,6 +91,7 @@ that some older software writes, throws `VcardFileException`.
 | --- | --- |
 | A line breaks the content line syntax, or the last line has no line break | `VcardFileException`. The line has been consumed, so reading can continue. |
 | A bare line feed, a line longer than `MaxLineLength`, or data that can't be decoded | `VcardFileException`. Later reads throw `InvalidOperationException`. |
+| The source throws an exception | That exception. Later reads throw `InvalidOperationException`, as characters may have been lost. |
 | A read is canceled | `OperationCanceledException`. Later reads throw `InvalidOperationException`. |
 
 ### Concurrency

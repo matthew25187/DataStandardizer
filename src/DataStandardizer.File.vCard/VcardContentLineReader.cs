@@ -46,7 +46,8 @@ namespace DataStandardizer.File.vCard
     /// <para>
     /// If a line does not follow the content line syntax, a <see cref="VcardFileException"/> is thrown after the line has been consumed, so
     /// reading can continue with the next line.  If the line break or line length is at fault, where the line ends is unknown, and if the data
-    /// can't be decoded, the place to resume from is unknown, so later reads throw <see cref="InvalidOperationException"/>.
+    /// can't be decoded or the source throws an exception, the place to resume from is unknown, so later reads throw
+    /// <see cref="InvalidOperationException"/>.
     /// </para>
     /// <para>
     /// Only one read may be in progress at a time.  Synchronous and asynchronous reads may follow one another, but a read started while
@@ -89,7 +90,7 @@ namespace DataStandardizer.File.vCard
 
         private readonly bool _acceptCaretEncodingInAllVersions;
         private bool _hasCurrentLine;
-        private bool _isDecodingFaulted;
+        private bool _isSourceFaulted;
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
         private bool _isCanceled;
 #endif
@@ -300,7 +301,8 @@ namespace DataStandardizer.File.vCard
         /// <exception cref="ObjectDisposedException">The reader has been disposed.</exception>
         /// <exception cref="InvalidOperationException">Another read is in progress.
         /// -or-
-        /// An earlier read found a line break, line length or decoding error, or was canceled, so the reader cannot continue.</exception>
+        /// An earlier read found a line break, line length or decoding error, its source threw an exception, or it was canceled, so the reader cannot
+        /// continue.</exception>
         public bool ReadContentLine()
         {
             return Read(LineReadResult);
@@ -315,7 +317,8 @@ namespace DataStandardizer.File.vCard
         /// <exception cref="ObjectDisposedException">The reader has been disposed.</exception>
         /// <exception cref="InvalidOperationException">Another read is in progress.
         /// -or-
-        /// An earlier read found a line break, line length or decoding error, or was canceled, so the reader cannot continue.</exception>
+        /// An earlier read found a line break, line length or decoding error, its source threw an exception, or it was canceled, so the reader cannot
+        /// continue.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public VcardContentLine? ReadLine()
 #else
@@ -356,7 +359,8 @@ namespace DataStandardizer.File.vCard
         /// while the read is in progress.</exception>
         /// <exception cref="InvalidOperationException">Another read is in progress.
         /// -or-
-        /// An earlier read found a line break, line length or decoding error, or was canceled, so the reader cannot continue.</exception>
+        /// An earlier read found a line break, line length or decoding error, its source threw an exception, or it was canceled, so the reader cannot
+        /// continue.</exception>
         /// <exception cref="VcardFileException">By the task: the line does not follow the content line syntax of RFC 6350 §3.3, has a line break
         /// that is not accepted, or is longer than <see cref="VcardOptions.MaxLineLength"/>.</exception>
         /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.</exception>
@@ -378,7 +382,8 @@ namespace DataStandardizer.File.vCard
         /// while the read is in progress.</exception>
         /// <exception cref="InvalidOperationException">Another read is in progress.
         /// -or-
-        /// An earlier read found a line break, line length or decoding error, or was canceled, so the reader cannot continue.</exception>
+        /// An earlier read found a line break, line length or decoding error, its source threw an exception, or it was canceled, so the reader cannot
+        /// continue.</exception>
         /// <exception cref="VcardFileException">By the task: the line does not follow the content line syntax of RFC 6350 §3.3, has a line break
         /// that is not accepted, or is longer than <see cref="VcardOptions.MaxLineLength"/>.</exception>
         /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.</exception>
@@ -495,6 +500,12 @@ namespace DataStandardizer.File.vCard
                     {
                         throw FaultDecoding(exception);
                     }
+                    catch (Exception)
+                    {
+                        // Characters may have been lost, so a later read could join what follows them onto this line.
+                        _isSourceFaulted = true;
+                        throw;
+                    }
 
                     ThrowIfDisposed();
                     _scanner.CompleteRefill(charactersRead);
@@ -566,13 +577,24 @@ namespace DataStandardizer.File.vCard
                 {
                     int offset, count;
                     _scanner.PrepareRefill(out offset, out count);
+                    int charactersRead;
+                    try
+                    {
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-                    var charactersRead = await _reader.ReadAsync(new Memory<char>(_scanner.Buffer, offset, count), cancellationToken).ConfigureAwait(false);
+                        charactersRead = await _reader.ReadAsync(new Memory<char>(_scanner.Buffer, offset, count), cancellationToken).ConfigureAwait(false);
 #else
-                    // This overload takes no cancellation token, so check before each read instead.
-                    cancellationToken.ThrowIfCancellationRequested();
-                    var charactersRead = await _reader.ReadAsync(_scanner.Buffer, offset, count).ConfigureAwait(false);
+                        // This overload takes no cancellation token, so check before each read instead.
+                        cancellationToken.ThrowIfCancellationRequested();
+                        charactersRead = await _reader.ReadAsync(_scanner.Buffer, offset, count).ConfigureAwait(false);
 #endif
+                    }
+                    catch (Exception exception) when (!(exception is OperationCanceledException) && !(exception is DecoderFallbackException && _isInternalReader))
+                    {
+                        // Characters may have been lost, so a later read could join what follows them onto this line.
+                        _isSourceFaulted = true;
+                        throw;
+                    }
+
                     ThrowIfDisposed();
                     _scanner.CompleteRefill(charactersRead);
                     status = _scanner.Scan();
@@ -629,13 +651,14 @@ namespace DataStandardizer.File.vCard
         /// <summary>
         /// Checks that the reader can continue, and moves on from the current line.
         /// </summary>
-        /// <exception cref="InvalidOperationException">An earlier read found a line break, line length or decoding error, or was canceled.</exception>
+        /// <exception cref="InvalidOperationException">An earlier read found a line break, line length or decoding error, its source threw an
+        /// exception, or it was canceled.</exception>
         private void StartLine()
         {
             if (_scanner.IsFaulted)
                 throw new InvalidOperationException("The reader cannot continue after a line break or line length error.");
-            if (_isDecodingFaulted)
-                throw new InvalidOperationException("The reader cannot continue after data that could not be decoded.");
+            if (_isSourceFaulted)
+                throw new InvalidOperationException("The reader cannot continue after a failure reading or decoding its source.");
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
             if (_isCanceled)
                 throw new InvalidOperationException("The reader cannot continue after a read was canceled.");
@@ -656,7 +679,7 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         private VcardFileException FaultDecoding(DecoderFallbackException exception)
         {
-            _isDecodingFaulted = true;
+            _isSourceFaulted = true;
             return VcardContentLineErrorFactory.BuildDecodingException(exception);
         }
 
@@ -664,8 +687,10 @@ namespace DataStandardizer.File.vCard
         /// Parses the line found by the scanner, if any, and makes it current.
         /// </summary>
         /// <returns><c>true</c> if a line was read; <c>false</c> if the end of the data has been reached.</returns>
-        private bool CompleteLine(ContentLineScanner.ScanStatus status)
+        /// <exception cref="ObjectDisposedException">The reader was disposed during the read, which needed no refill to get this far.</exception>
+        internal bool CompleteLine(ContentLineScanner.ScanStatus status)
         {
+            ThrowIfDisposed();
             if (status != ContentLineScanner.ScanStatus.LineRead) return false;
 
             _scanner.ParseLine();

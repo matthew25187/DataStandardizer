@@ -275,6 +275,23 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Fact]
+        public async Task ReadLineAsync_AfterSourceThrew_CannotContinue()
+        {
+            // arrange
+            var reader = new VcardContentLineReader(new FailingTextReader());
+            await AsyncDisposal.UsingAsync(reader, async () =>
+            {
+                await Record.ExceptionAsync(() => reader.ReadLineAsync().AsTask());
+
+                // act
+                Func<object> testAction = () => reader.ReadLineAsync();
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>();
+            });
+        }
+
+        [Fact]
         public async Task ReadLineAsync_AlreadyCanceled_CancelsTask()
         {
             // arrange

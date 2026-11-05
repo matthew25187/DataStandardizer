@@ -38,7 +38,7 @@ Each property is `init` on .NET and `set` on .NET Standard.
 | `AcceptCaretEncodingInAllVersions` | `bool` | `false` | Decodes RFC 6868 caret encoding on every line. RFC 6868 updates RFC 6350, and not RFC 2426 or vCard 2.1, where a caret is an ordinary character. |
 | `AcceptMissingFinalLineBreak` | `bool` | `false` | Accepts a last line with no line break. The `contentline` rule of RFC 6350 §3.3 ends with CRLF. |
 | `Encoding` | `Encoding?` | `null` | Applies to a stream or file. `null` means strict UTF-8, as RFC 6350 §3.1 requires. Setting another encoding relaxes that rule, and the encoding is used as it is: `Encoding.UTF8` replaces invalid data instead of rejecting it, and an encoding with a preamble has it removed from the start of the data. Must be `null` with a `TextReader`. |
-| `MaxLineLength` | `int?` | `null` | The longest logical line allowed, in characters, not counting its line break. `null` means no limit, since RFC 6350 sets none. The reader keeps each logical line in memory, so a limit is recommended for untrusted data. It must be at least 1. |
+| `MaxLineLength` | `int?` | `null` | The longest logical line allowed, in characters, not counting its line break. `null` means no limit, since RFC 6350 sets none. The reader keeps each logical line in memory, so a limit is recommended for untrusted data. A line with more folds than the limit is rejected too. It must be at least 1. |
 
 ## Applies to
 

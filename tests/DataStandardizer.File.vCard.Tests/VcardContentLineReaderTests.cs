@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text;
+using DataStandardizer.File.ContentLine;
 using FluentAssertions;
 using Xunit;
 using static DataStandardizer.File.vCard.Tests.VcardTestData;
@@ -1261,6 +1262,55 @@ namespace DataStandardizer.File.vCard.Tests
             }
         }
 
+        [Fact]
+        public void ReadLine_SourceThrows_PassesOnTheException()
+        {
+            // arrange
+            var failure = new IOException();
+            using (var reader = new VcardContentLineReader(new ThrowingTextReader(failure)))
+            {
+                // act
+                Action testAction = () => reader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<IOException>();
+            }
+        }
+
+        [Fact]
+        public void ReadLine_AfterSourceThrew_CannotContinue()
+        {
+            // arrange
+            var failure = new IOException();
+            using (var reader = new VcardContentLineReader(new ThrowingTextReader(failure)))
+            {
+                Record.Exception(() => reader.ReadLine());
+
+                // act
+                Action testAction = () => reader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>();
+            }
+        }
+
+        [Fact]
+        public void ReadLine_AfterDecoderFailureFromCallersTextReader_CannotContinue()
+        {
+            // arrange
+            var failure = new DecoderFallbackException();
+            using (var reader = new VcardContentLineReader(new ThrowingTextReader(failure)))
+            {
+                Record.Exception(() => reader.ReadLine());
+
+                // act
+                Action testAction = () => reader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>();
+            }
+        }
+
         #endregion
 
         #region Constructors
@@ -1631,6 +1681,21 @@ namespace DataStandardizer.File.vCard.Tests
 
             // act
             Action testAction = () => member(reader);
+
+            // assert
+            testAction.Should().Throw<ObjectDisposedException>();
+        }
+
+        // A read that needs no refill has nothing for a test to hold it at, so this goes straight to the step where such a read checks.
+        [Fact]
+        public void CompleteLine_ReaderDisposed_Throws()
+        {
+            // arrange
+            var reader = CreateReader(Crlf(LineA));
+            reader.Dispose();
+
+            // act
+            Action testAction = () => reader.CompleteLine(ContentLineScanner.ScanStatus.LineRead);
 
             // assert
             testAction.Should().Throw<ObjectDisposedException>();
