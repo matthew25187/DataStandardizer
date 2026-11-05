@@ -7,6 +7,15 @@
     internal interface IContentLineData
     {
         /// <summary>
+        /// Gets the group, without its '.'; or <c>null</c> if the line has none.
+        /// </summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        string? Group { get; }
+#else
+        string Group { get; }
+#endif
+
+        /// <summary>
         /// Gets the property name.
         /// </summary>
         string Name { get; }

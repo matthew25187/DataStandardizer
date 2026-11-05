@@ -36,6 +36,8 @@ namespace DataStandardizer.File.vCard.Tests
                 { Error(ContentLineErrorKind.ExpectedPropertyName), "Expected a property name at the start of the content line." },
                 { Error(ContentLineErrorKind.InvalidParameterValueCharacter), "Found an invalid character U+0001 in a parameter value." },
                 { Error(ContentLineErrorKind.InvalidParameterValueCharacterToWrite), "Found an invalid character U+0001 in a value of parameter X Y." },
+                { Error(ContentLineErrorKind.InvalidGroupToWrite), "The group \"X Y\" is not valid.  A group has one or more letters, digits or '-'." },
+                { Error(ContentLineErrorKind.ParameterValueNeedsCaretEncoding), "The character U+0001 in a value of parameter X Y can only be written with RFC 6868 caret encoding, which only a vCard 4.0 card has." },
                 { Error(ContentLineErrorKind.InvalidParameterNameToWrite), "The parameter name \"X Y\" is not valid.  A name has one or more letters, digits or '-'." },
                 { Error(ContentLineErrorKind.InvalidPropertyNameToWrite), "The property name \"X Y\" is not valid.  A name has one or more letters, digits or '-'." },
                 { Error(ContentLineErrorKind.InvalidTextEscape), "Found a backslash that does not start a valid TEXT escape sequence." },

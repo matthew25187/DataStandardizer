@@ -30,6 +30,9 @@
         /// <summary>The line, or the part of it after a group's '.', does not start with a property name.</summary>
         ExpectedPropertyName,
 
+        /// <summary>The group to write is not valid: <see cref="ContentLineError.SubjectName"/>.</summary>
+        InvalidGroupToWrite,
+
         /// <summary>A parameter value read holds a character that is not allowed: <see cref="ContentLineError.Character"/>.</summary>
         InvalidParameterValueCharacter,
 
@@ -60,6 +63,10 @@
 
         /// <summary>The line ends before the ':' and the value.</summary>
         MissingValue,
+
+        /// <summary>A parameter value to write holds a character that only caret encoding can represent, where caret encoding doesn't apply:
+        /// <see cref="ContentLineError.Character"/>, in the parameter <see cref="ContentLineError.SubjectName"/>.</summary>
+        ParameterValueNeedsCaretEncoding,
 
         /// <summary>A quoted parameter value has no closing quote.</summary>
         UnterminatedQuotedString

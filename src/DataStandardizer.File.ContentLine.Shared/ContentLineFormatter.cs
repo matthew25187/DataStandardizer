@@ -62,16 +62,27 @@ namespace DataStandardizer.File.ContentLine
         /// <typeparam name="TLine">The type of the line, a struct wherever possible so that its members are called directly.</typeparam>
         /// <param name="line">The line.</param>
         /// <param name="lineNumber">The 1-based number the line will have once written, for error reports.</param>
+        /// <param name="caretMode">What to do with the characters of a parameter value that only caret encoding can represent.  It doesn't apply to
+        /// <see cref="IContentLineData.RawParameters"/>, which are written as they are.</param>
+        /// <param name="foldMode">How to break the line if it is long.</param>
         /// <returns>The number of characters of <see cref="Buffer"/> that hold the formatted line.</returns>
-        /// <exception cref="Exception">What the error factory builds: the line cannot be written, because a name is not valid, or a parameter value
-        /// or the value holds a character that is not allowed.</exception>
-        internal int Format<TLine>(TLine line, long lineNumber)
+        /// <exception cref="Exception">What the error factory builds: the line cannot be written, because the group or a name is not valid, or a
+        /// parameter value or the value holds a character that is not allowed.</exception>
+        internal int Format<TLine>(TLine line, long lineNumber, ContentLineCaretMode caretMode = ContentLineCaretMode.Encode,
+            ContentLineFoldMode foldMode = ContentLineFoldMode.Fold)
             where TLine : IContentLineData
         {
-            var logicalLength = Measure(line, lineNumber);
-            var start = EnsureCapacity(logicalLength, lineNumber, line.Name);
+            var logicalLength = Measure(line, lineNumber, caretMode);
+            var start = EnsureCapacity(logicalLength, lineNumber, line.Name, line.Group);
 
             var position = start;
+            var group = line.Group;
+            if (group != null)
+            {
+                position = Append(group, position);
+                _buffer[position++] = '.';
+            }
+
             position = Append(line.Name, position);
             var rawParameters = line.RawParameters;
             if (rawParameters != null)
@@ -80,13 +91,13 @@ namespace DataStandardizer.File.ContentLine
             }
             else
             {
-                position = AppendParameters(line, position);
+                position = AppendParameters(line, position, caretMode);
             }
 
             _buffer[position++] = ':';
             Append(line.Value, position);
 
-            return Fold(start);
+            return foldMode == ContentLineFoldMode.Fold ? Fold(start) : MoveUnfolded(start);
         }
 
         /// <summary>
@@ -104,23 +115,30 @@ namespace DataStandardizer.File.ContentLine
         /// <summary>
         /// Checks that a line can be written, and measures its logical (unfolded) length.
         /// </summary>
-        private long Measure<TLine>(TLine line, long lineNumber)
+        private long Measure<TLine>(TLine line, long lineNumber, ContentLineCaretMode caretMode)
             where TLine : IContentLineData
         {
+            // ref. RFC 6350 §3.3: contentline = [group "."] name *(";" param) ":" value CRLF; group = 1*(ALPHA / DIGIT / "-")
+            var group = line.Group;
+            if (group != null && !IsName(group))
+            {
+                throw _errorFactory.CreateException(new ContentLineError(ContentLineErrorKind.InvalidGroupToWrite, lineNumber, null, null, group));
+            }
+
             // ref. RFC 5545§3.1: contentline = name *(";" param ) ":" value CRLF
             var name = line.Name;
             if (!IsName(name))
             {
-                throw _errorFactory.CreateException(new ContentLineError(ContentLineErrorKind.InvalidPropertyNameToWrite, lineNumber, null, null, name));
+                throw _errorFactory.CreateException(new ContentLineError(ContentLineErrorKind.InvalidPropertyNameToWrite, lineNumber, null, null, name, group: group));
             }
 
             var invalidIndex = IndexOfInvalidValueCharacter(line.Value);
             if (invalidIndex >= 0)
             {
-                throw BuildInvalidValueCharacterError(line.Value[invalidIndex], lineNumber, name);
+                throw BuildInvalidValueCharacterError(line.Value[invalidIndex], lineNumber, name, group);
             }
 
-            long length = name.Length + 1 + line.Value.Length;
+            long length = (group is null ? 0 : group.Length + 1) + name.Length + 1 + line.Value.Length;
             var rawParameters = line.RawParameters;
             if (rawParameters != null)
             {
@@ -128,7 +146,7 @@ namespace DataStandardizer.File.ContentLine
                 invalidIndex = IndexOfInvalidValueCharacter(rawParameters);
                 if (invalidIndex >= 0)
                 {
-                    throw BuildInvalidValueCharacterError(rawParameters[invalidIndex], lineNumber, name);
+                    throw BuildInvalidValueCharacterError(rawParameters[invalidIndex], lineNumber, name, group);
                 }
 
                 return length + rawParameters.Length;
@@ -141,7 +159,7 @@ namespace DataStandardizer.File.ContentLine
                 var parameterName = line.GetParameterName(parameterIndex);
                 if (!IsName(parameterName))
                 {
-                    throw _errorFactory.CreateException(new ContentLineError(ContentLineErrorKind.InvalidParameterNameToWrite, lineNumber, null, name, parameterName));
+                    throw _errorFactory.CreateException(new ContentLineError(ContentLineErrorKind.InvalidParameterNameToWrite, lineNumber, null, name, parameterName, group: group));
                 }
 
                 length += 1 + parameterName.Length + 1;
@@ -149,11 +167,13 @@ namespace DataStandardizer.File.ContentLine
                 for (var valueIndex = 0; valueIndex < valueCount; valueIndex++)
                 {
                     int invalidCharacter;
-                    var valueLength = MeasureParameterValue(line.GetParameterValue(parameterIndex, valueIndex), out invalidCharacter);
+                    var valueLength = MeasureParameterValue(line.GetParameterValue(parameterIndex, valueIndex), caretMode, out invalidCharacter);
                     if (valueLength < 0)
                     {
-                        throw _errorFactory.CreateException(new ContentLineError(ContentLineErrorKind.InvalidParameterValueCharacterToWrite, lineNumber, null, name,
-                            parameterName, invalidCharacter));
+                        var kind = invalidCharacter == Quote || invalidCharacter == '\r' || invalidCharacter == '\n'
+                            ? ContentLineErrorKind.ParameterValueNeedsCaretEncoding
+                            : ContentLineErrorKind.InvalidParameterValueCharacterToWrite;
+                        throw _errorFactory.CreateException(new ContentLineError(kind, lineNumber, null, name, parameterName, invalidCharacter, group: group));
                     }
 
                     length += valueLength + (valueIndex > 0 ? 1 : 0);
@@ -167,7 +187,11 @@ namespace DataStandardizer.File.ContentLine
         /// Makes the buffer large enough to hold the logical line and to fold it in place.
         /// </summary>
         /// <returns>The index at which to format the logical line, so that it ends at the end of the buffer.</returns>
-        private int EnsureCapacity(long logicalLength, long lineNumber, string name)
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private int EnsureCapacity(long logicalLength, long lineNumber, string name, string? group)
+#else
+        private int EnsureCapacity(long logicalLength, long lineNumber, string name, string group)
+#endif
         {
             // Every physical line but the last holds at least one character, and at least FoldLength - 4 octets once that is positive, since a
             // character is at most 4 octets.  A character is also at most 3 octets per UTF-16 code unit.
@@ -175,7 +199,7 @@ namespace DataStandardizer.File.ContentLine
             var capacity = logicalLength + maxFolds * (_lineBreak.Length + 1) + _lineBreak.Length;
             if (capacity > int.MaxValue)
             {
-                throw _errorFactory.CreateException(new ContentLineError(ContentLineErrorKind.LineTooLongToWrite, lineNumber, null, name));
+                throw _errorFactory.CreateException(new ContentLineError(ContentLineErrorKind.LineTooLongToWrite, lineNumber, null, name, group: group));
             }
 
             if (_buffer.Length < capacity)
@@ -240,6 +264,18 @@ namespace DataStandardizer.File.ContentLine
             return AppendLineBreak(write);
         }
 
+        /// <summary>
+        /// Moves the logical line, which runs from <paramref name="start"/> to the end of the buffer, to the head of the buffer, and ends it with a
+        /// line break.
+        /// </summary>
+        /// <returns>The length of the line.</returns>
+        private int MoveUnfolded(int start)
+        {
+            var length = _buffer.Length - start;
+            Array.Copy(_buffer, start, _buffer, 0, length);
+            return AppendLineBreak(length);
+        }
+
         private int Append(string text, int position)
         {
             text.CopyTo(0, _buffer, position, text.Length);
@@ -256,7 +292,7 @@ namespace DataStandardizer.File.ContentLine
             return position;
         }
 
-        private int AppendParameters<TLine>(TLine line, int position)
+        private int AppendParameters<TLine>(TLine line, int position, ContentLineCaretMode caretMode)
             where TLine : IContentLineData
         {
             var buffer = _buffer;
@@ -275,7 +311,7 @@ namespace DataStandardizer.File.ContentLine
                         buffer[position++] = ',';
                     }
 
-                    position = AppendParameterValue(line.GetParameterValue(parameterIndex, valueIndex), position);
+                    position = AppendParameterValue(line.GetParameterValue(parameterIndex, valueIndex), position, caretMode);
                 }
             }
 
@@ -283,10 +319,10 @@ namespace DataStandardizer.File.ContentLine
         }
 
         /// <summary>
-        /// Appends a parameter value with RFC 6868 caret encoding, quoted if it holds a ':', ';' or ','.  The value has been checked by
+        /// Appends a parameter value as <paramref name="caretMode"/> says, quoted if it holds a ':', ';' or ','.  The value has been checked by
         /// <see cref="MeasureParameterValue"/>.
         /// </summary>
-        private int AppendParameterValue(string value, int position)
+        private int AppendParameterValue(string value, int position, ContentLineCaretMode caretMode)
         {
             var buffer = _buffer;
             var isQuoted = NeedsQuotes(value);
@@ -306,16 +342,25 @@ namespace DataStandardizer.File.ContentLine
                 if (specialIndex < 0) break;
 
                 // ref. RFC 6868§3: ^ becomes ^^, a newline ^n and a double quote ^'.
+                var isCaretEncoded = caretMode == ContentLineCaretMode.Encode;
                 var character = value[index++];
                 switch (character)
                 {
                     case '^':
                         buffer[position++] = '^';
-                        buffer[position++] = '^';
+                        if (isCaretEncoded)
+                        {
+                            buffer[position++] = '^';
+                        }
+
                         break;
                     case Quote:
-                        buffer[position++] = '^';
-                        buffer[position++] = '\'';
+                        if (isCaretEncoded)
+                        {
+                            buffer[position++] = '^';
+                            buffer[position++] = '\'';
+                        }
+
                         break;
                     case '\r':
                     case '\n':
@@ -324,8 +369,16 @@ namespace DataStandardizer.File.ContentLine
                             index++;
                         }
 
-                        buffer[position++] = '^';
-                        buffer[position++] = 'n';
+                        if (isCaretEncoded)
+                        {
+                            buffer[position++] = '^';
+                            buffer[position++] = 'n';
+                        }
+                        else
+                        {
+                            buffer[position++] = ' ';
+                        }
+
                         break;
                     default:
                         // A delimiter, a tab or a surrogate, which is written as it is.
@@ -342,9 +395,13 @@ namespace DataStandardizer.File.ContentLine
             return position;
         }
 
-        private Exception BuildInvalidValueCharacterError(int character, long lineNumber, string propertyName)
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private Exception BuildInvalidValueCharacterError(int character, long lineNumber, string propertyName, string? group)
+#else
+        private Exception BuildInvalidValueCharacterError(int character, long lineNumber, string propertyName, string group)
+#endif
         {
-            return _errorFactory.CreateException(new ContentLineError(ContentLineErrorKind.InvalidValueCharacter, lineNumber, null, propertyName, character: character));
+            return _errorFactory.CreateException(new ContentLineError(ContentLineErrorKind.InvalidValueCharacter, lineNumber, null, propertyName, character: character, group: group));
         }
 
         /// <summary>
@@ -382,12 +439,14 @@ namespace DataStandardizer.File.ContentLine
         }
 
         /// <summary>
-        /// Measures a parameter value once caret encoded and, if need be, quoted.
+        /// Measures a parameter value once written as <paramref name="caretMode"/> says and, if need be, quoted.
         /// </summary>
         /// <param name="value">The value.</param>
+        /// <param name="caretMode">What to do with the characters that only caret encoding can represent.</param>
         /// <param name="invalidCharacter">The first character that cannot be written, if any.</param>
-        /// <returns>The length; or -1 if the value holds a control character other than a tab or line break, or a lone surrogate.</returns>
-        private static int MeasureParameterValue(string value, out int invalidCharacter)
+        /// <returns>The length; or -1 if the value holds a control character other than a tab or line break, or a lone surrogate, or, under
+        /// <see cref="ContentLineCaretMode.Reject"/>, a double quote or a line break.</returns>
+        private static int MeasureParameterValue(string value, ContentLineCaretMode caretMode, out int invalidCharacter)
         {
             invalidCharacter = 0;
             var length = value.Length;
@@ -399,22 +458,37 @@ namespace DataStandardizer.File.ContentLine
                 switch (character)
                 {
                     case '^':
-                    case Quote:
-                        length++;
-                        break;
-                    case '\r':
-                        if (index + 1 < value.Length && value[index + 1] == '\n')
-                        {
-                            index++;
-                        }
-                        else
+                        if (caretMode == ContentLineCaretMode.Encode)
                         {
                             length++;
                         }
 
                         break;
+                    case Quote:
+                        if (caretMode == ContentLineCaretMode.Reject)
+                        {
+                            invalidCharacter = character;
+                            return -1;
+                        }
+
+                        length += caretMode == ContentLineCaretMode.Encode ? 1 : -1;
+                        break;
+                    case '\r':
                     case '\n':
-                        length++;
+                        if (caretMode == ContentLineCaretMode.Reject)
+                        {
+                            invalidCharacter = character;
+                            return -1;
+                        }
+
+                        // A line break becomes "^n" or a space, whether it was CRLF or one character.
+                        var isCrlf = character == '\r' && index + 1 < value.Length && value[index + 1] == '\n';
+                        length += (caretMode == ContentLineCaretMode.Encode ? 2 : 1) - (isCrlf ? 2 : 1);
+                        if (isCrlf)
+                        {
+                            index++;
+                        }
+
                         break;
                     case ':':
                     case ';':
