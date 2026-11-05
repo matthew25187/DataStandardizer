@@ -43,7 +43,8 @@ namespace DataStandardizer.File.vCard
 
             /// <summary>
             /// The 1-based number of the physical line on which the problem was found, as a <see cref="long"/>.  Not present when the data could not
-            /// be decoded.  For a value that <see cref="VcardContentLine.GetTextValue"/> cannot read, it is 0 for a line not read from data.
+            /// be decoded.  For a value that <see cref="VcardContentLine.GetTextValue"/> cannot read, it is 0 for a line not read from data.  For a value that
+            /// <see cref="VcardContentLine.GetDecodedValue"/> or <see cref="VcardContentLine.GetDecodedText()"/> cannot decode, it is the line on which the content line starts.
             /// </summary>
             public const string PhysicalLineNumber = "PhysicalLineNumber";
 

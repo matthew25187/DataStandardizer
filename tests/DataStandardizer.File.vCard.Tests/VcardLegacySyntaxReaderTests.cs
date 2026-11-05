@@ -250,6 +250,7 @@ namespace DataStandardizer.File.vCard.Tests
         [InlineData("PHOTO;content-id:a", "VALUE", "content-id")]
         [InlineData("PHOTO;INLINE:a", "VALUE", "INLINE")]
         [InlineData("PHOTO;UTF-8:a", "CHARSET", "UTF-8")]
+        [InlineData("PHOTO;latin1:a", "CHARSET", "latin1")]
         [InlineData("PHOTO;ISO-8859-1:a", "CHARSET", "ISO-8859-1")]
         [InlineData("PHOTO;us-ascii:a", "CHARSET", "us-ascii")]
         [InlineData("PHOTO;QUOTED-PRINTABLE:a", "ENCODING", "QUOTED-PRINTABLE")]
@@ -323,6 +324,8 @@ namespace DataStandardizer.File.vCard.Tests
         [InlineData("NOTE;QUOTED-PRINTABLE:a=", "3/3 NOTE;ENCODING=QUOTED-PRINTABLE:ab")]
         [InlineData("NOTE;encoding=quoted-printable:a=", "3/3 NOTE;encoding=quoted-printable:ab")]
         [InlineData("NOTE;X-P=\"x:y\";ENCODING=QUOTED-PRINTABLE:a=", "3/3 NOTE;X-P=x:y;ENCODING=QUOTED-PRINTABLE:ab")]
+        [InlineData("NOTE;ENCODING=\"QUOTED-PRINTABLE\":a=", "3/3 NOTE;ENCODING=QUOTED-PRINTABLE:ab")]
+        [InlineData("NOTE;ENCODING=QUOTED-PRINTABLE,8BIT:a=", "3/3 NOTE;ENCODING=QUOTED-PRINTABLE|8BIT:ab")]
         public void ReadLast_FormsOfSoftLineBreak_JoinsThem(string firstLine, string expected)
         {
             // arrange
@@ -399,6 +402,9 @@ namespace DataStandardizer.File.vCard.Tests
         [InlineData("NOTE;ENCODING=8BIT:a=")]
         [InlineData("NOTE;X-P=QUOTED-PRINTABLE:a=")]
         [InlineData("NOTE;X-P=\"ENCODING=QUOTED-PRINTABLE\":a=")]
+        [InlineData("NOTE;ENCODING=8BIT;ENCODING=QUOTED-PRINTABLE:a=")]
+        [InlineData("NOTE;8BIT;QUOTED-PRINTABLE:a=")]
+        [InlineData("NOTE;ENCODING=7BIT,QUOTED-PRINTABLE:a=")]
         public void ReadLines_EqualsAtEndOfOtherValueInVersion21Card_IsNotASoftLineBreak(string line)
         {
             // arrange
@@ -851,6 +857,65 @@ namespace DataStandardizer.File.vCard.Tests
 
                 // assert
                 testAction.Should().Throw<VcardFileException>();
+            }
+        }
+
+        [Fact]
+        public void ReadLast_NewCardInsideANestedCardOfLaterVersion_EndsTheNesting()
+        {
+            // arrange
+            using (var reader = CreateReader(Crlf(BeginCard, Version21, "AGENT:", BeginCard, Version40, BeginCard, EndCard, BareTypesLine)))
+            {
+                // act
+                Action testAction = () => ReadLast(reader);
+
+                // assert
+                testAction.Should().Throw<VcardFileException>();
+            }
+        }
+
+        [Theory]
+        [InlineData("AGENT;VALUE=URL:BEGIN:VCARD")]
+        [InlineData("AGENT;VALUE=CID:BEGIN:VCARD")]
+        public void ReadLast_AgentValueThatIsNotInline_DoesNotNest(string agentLine)
+        {
+            // arrange
+            // So END:VCARD ends the card, and the line after it isn't in vCard 2.1.
+            using (var reader = CreateReader(Crlf(BeginCard, Version21, agentLine, EndCard, BareTypesLine)))
+            {
+                // act
+                Action testAction = () => ReadLast(reader);
+
+                // assert
+                testAction.Should().Throw<VcardFileException>();
+            }
+        }
+
+        [Fact]
+        public void ReadLast_AgentValueLocationWithNoName_DoesNotNest()
+        {
+            // arrange
+            using (var reader = CreateReader(Crlf(BeginCard, Version21, "AGENT;URL:BEGIN:VCARD", EndCard, BareTypesLine), AcceptLegacy))
+            {
+                // act
+                var testResult = ReadLast(reader).CardIndex;
+
+                // assert
+                testResult.Should().Be(-1);
+            }
+        }
+
+        [Fact]
+        public void ReadLast_AgentValueSaidToBeInline_Nests()
+        {
+            // arrange
+            using (var reader = CreateReader(Crlf(BeginCard, Version21, "AGENT;VALUE=INLINE:BEGIN:VCARD", EndCard, "TEL;HOME:2")))
+            {
+                // act
+                var testResult = LineDescription.Of(ReadLast(reader));
+
+                // assert
+                testResult.Should().Be("5/5 TEL;TYPE=HOME:2");
             }
         }
 

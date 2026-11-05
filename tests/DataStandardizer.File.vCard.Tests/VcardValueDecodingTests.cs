@@ -266,6 +266,50 @@ namespace DataStandardizer.File.vCard.Tests
             testResult.Should().Be(expected);
         }
 
+        [Theory]
+        // Lone surrogates (RFC 2781 §2.2), in both byte orders.
+        [InlineData("NOTE;QUOTED-PRINTABLE;CHARSET=UTF-16LE:=00=D8", "UTF-16LE")]
+        [InlineData("NOTE;QUOTED-PRINTABLE;CHARSET=UTF-16LE:=00=DC", "UTF-16LE")]
+        [InlineData("NOTE;QUOTED-PRINTABLE;CHARSET=UTF-16BE:=D8=00", "UTF-16BE")]
+        // Half of a code unit.
+        [InlineData("NOTE;QUOTED-PRINTABLE;CHARSET=UTF-16LE:=41", "UTF-16LE")]
+        // A value above U+10FFFF, and a surrogate.
+        [InlineData("NOTE;QUOTED-PRINTABLE;CHARSET=UTF-32LE:=00=00=11=00", "UTF-32LE")]
+        [InlineData("NOTE;QUOTED-PRINTABLE;CHARSET=UTF-32BE:=00=00=D8=00", "UTF-32BE")]
+        // Part of a code unit.
+        [InlineData("NOTE;QUOTED-PRINTABLE;CHARSET=UTF-32LE:=41=00", "UTF-32LE")]
+        public void GetDecodedText_MalformedUnicode_Throws(string line, string charset)
+        {
+            // arrange
+            var subject = ReadVersion21Line(line);
+
+            // act
+            Action testAction = () => subject.GetDecodedText();
+
+            // assert
+            testAction.Should().Throw<VcardFileException>().Which.Message.Should().Contain(charset);
+        }
+
+        [Theory]
+        // The replacement character itself, U+FFFD, which valid data can hold, alone and with a surrogate pair for U+1F600.
+        [InlineData("NOTE;QUOTED-PRINTABLE;CHARSET=UTF-16LE:=FD=FF", "\xFFFD")]
+        [InlineData("NOTE;QUOTED-PRINTABLE;CHARSET=UTF-16BE:=FF=FD", "\xFFFD")]
+        [InlineData("NOTE;QUOTED-PRINTABLE;CHARSET=UTF-16LE:=FD=FF=3D=D8=00=DE", "\xFFFD\xD83D\xDE00")]
+        [InlineData("NOTE;QUOTED-PRINTABLE;CHARSET=UTF-16:=FF=FE=FD=FF", "\xFFFD")]
+        [InlineData("NOTE;QUOTED-PRINTABLE;CHARSET=UTF-32LE:=FD=FF=00=00", "\xFFFD")]
+        [InlineData("NOTE;QUOTED-PRINTABLE;CHARSET=UTF-32BE:=00=00=FF=FD", "\xFFFD")]
+        public void GetDecodedText_ReplacementCharacterInUnicode_GivesIt(string line, string expected)
+        {
+            // arrange
+            var subject = ReadVersion21Line(line);
+
+            // act
+            var testResult = subject.GetDecodedText();
+
+            // assert
+            testResult.Should().Be(expected);
+        }
+
 #if !NETFRAMEWORK
         [Theory]
         [InlineData("NOTE;QUOTED-PRINTABLE;CHARSET=windows-1252:=80", "The character set \"windows-1252\" is not known.")]

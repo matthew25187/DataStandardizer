@@ -62,11 +62,11 @@ Properties with a `Memory` form return `ReadOnlyMemory<char>`, for use across an
 | --- | --- | --- |
 | `GetDecodedText` | `string GetDecodedText()`, `string GetDecodedText(out bool usedCharsetFallback)` | As on [VcardContentLine](VcardContentLine.md). These allocate. |
 | `GetDecodedValue` | `byte[] GetDecodedValue()` | As on [VcardContentLine](VcardContentLine.md). It allocates. |
-| `GetParameterName`, `GetParameterNameMemory` | `ReadOnlySpan<char> GetParameterName(int parameterIndex)` | The parameter name, as written. |
+| `GetParameterName`, `GetParameterNameMemory` | `ReadOnlySpan<char> GetParameterName(int parameterIndex)` | The parameter name, as written; or, for a parameter with no name, the name it belongs to: `ENCODING`, `VALUE`, `CHARSET` or `TYPE`. |
 | `GetParameterValue`, `GetParameterValueMemory` | `ReadOnlySpan<char> GetParameterValue(int parameterIndex, int valueIndex)` | A value without enclosing double quotes. RFC 6868 caret encoding is decoded where [the reader](VcardContentLineReader.md#caret-encoding) says it is. |
 | `GetParameterValueCount` | `int GetParameterValueCount(int parameterIndex)` | The number of values. Always at least one. |
 | `GetRawParameterValue`, `GetRawParameterValueMemory` | `ReadOnlySpan<char> GetRawParameterValue(int parameterIndex, int valueIndex)` | A value without enclosing double quotes, and with any caret encoding in place. |
-| `GetTextValue`, `GetTextValueMemory` | `ReadOnlySpan<char> GetTextValue()` | The value with RFC 6350 §3.4 TEXT escaping removed. Any other backslash throws `VcardFileException`. Use it only for a single TEXT value. |
+| `GetTextValue`, `GetTextValueMemory` | `ReadOnlySpan<char> GetTextValue()` | The value with RFC 6350 §3.4 TEXT escaping removed. Any other backslash throws `VcardFileException`, unless `AcceptLegacySyntax` is set; then it gives the next character. A vCard 2.1 line returns its value unchanged. Use it only for a single TEXT value. |
 | `GroupEquals` | `bool GroupEquals(ReadOnlySpan<char> group)` | Compares the group case-insensitively. |
 | `IndexOfParameter` | `int IndexOfParameter(ReadOnlySpan<char> name)` | The index of the first parameter with the name, compared case-insensitively; or -1. |
 | `IsParameterValueQuoted` | `bool IsParameterValueQuoted(int parameterIndex, int valueIndex)` | Whether the value was in double quotes. |

@@ -65,7 +65,7 @@ constructor throws `ArgumentNullException` for a `null` name, parameters or valu
 | `TryGetCharset` | `bool TryGetCharset(out MimeCharset charset)` | The `CHARSET`, if it applies to the line and its name is valid. |
 | `TryGetTransferEncoding` | `bool TryGetTransferEncoding(out MimeTransferEncoding encoding)` | The `ENCODING`, if it applies to the line and its name is valid. `b` gives `base64`. |
 | `GetParameter` | `VcardContentLineParameter? GetParameter(string name)` | The first parameter with the name, compared case-insensitively; or `null`. |
-| `GetTextValue` | `string GetTextValue()` | The value with RFC 6350 §3.4 TEXT escaping removed: `\\`, `\;` and `\,` become the escaped character, and `\n` or `\N` a line feed. Any other backslash throws `VcardFileException`. Use it only for a single TEXT value: split a list on unescaped commas, or a compound value on unescaped semicolons, before unescaping. |
+| `GetTextValue` | `string GetTextValue()` | The value with RFC 6350 §3.4 TEXT escaping removed: `\\`, `\;` and `\,` become the escaped character, and `\n` or `\N` a line feed. Any other backslash throws `VcardFileException`, unless `AcceptLegacySyntax` is set; then it gives the next character. A vCard 2.1 line returns its value unchanged. Use it only for a single TEXT value: split a list on unescaped commas, or a compound value on unescaped semicolons, before unescaping. |
 
 ## Applies to
 

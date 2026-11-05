@@ -88,13 +88,26 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         internal void ObserveLine(ContentLineScanner scanner)
         {
-            ObserveLine(scanner.Name.Span, scanner.RawValue.Span);
+            var name = scanner.Name.Span;
+            ObserveLine(name, scanner.RawValue.Span, EqualsIgnoreCase(name, AgentName) && IsValueElsewhere(scanner));
+        }
+
+        /// <summary>
+        /// Takes note of a line that is about to be written.
+        /// </summary>
+        internal void ObserveLine(VcardContentLine line)
+        {
+            var name = line.Name.AsSpan();
+            ObserveLine(name, line.Value.AsSpan(), EqualsIgnoreCase(name, AgentName) && IsValueElsewhere(line));
         }
 
         /// <summary>
         /// Takes note of a line, from its name and its value as it appears in the content line.
         /// </summary>
-        internal void ObserveLine(ReadOnlySpan<char> name, ReadOnlySpan<char> value)
+        /// <param name="name">The name.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="isValueElsewhere"><c>true</c> if a <c>VALUE</c> parameter says the value is not inline (vCard 2.1 §2.1.8), so that it can't be a nested card.</param>
+        private void ObserveLine(ReadOnlySpan<char> name, ReadOnlySpan<char> value, bool isValueElsewhere)
         {
             if (EqualsIgnoreCase(name, BeginName))
             {
@@ -106,13 +119,15 @@ namespace DataStandardizer.File.vCard
                         return;
                     }
 
+                    // A nested card that said it is of another version, and has not ended, is left behind.
+                    _nestingDepth = 0;
                     _cardIndex++;
                     _isInCard = true;
                     IsVersion21 = false;
                     IsVersion40 = false;
                 }
             }
-            else if (IsVersion21 && EqualsIgnoreCase(name, AgentName) && EqualsIgnoreCase(value, InlineCardValue))
+            else if (IsVersion21 && !isValueElsewhere && EqualsIgnoreCase(name, AgentName) && EqualsIgnoreCase(value, InlineCardValue))
             {
                 _nestingDepth++;
             }
@@ -125,6 +140,26 @@ namespace DataStandardizer.File.vCard
             {
                 _hasEnded = _isInCard && EqualsIgnoreCase(value, CardValue);
             }
+        }
+
+        private static bool IsValueElsewhere(ContentLineScanner scanner)
+        {
+            for (var parameterIndex = 0; parameterIndex < scanner.ParameterCount; parameterIndex++)
+            {
+                var parameterName = scanner.GetParameterName(parameterIndex).Span;
+                var isValue = scanner.IsParameterValueless(parameterIndex)
+                    ? VcardLegacyTokens.GetValuelessParameterName(parameterName) == VcardLegacyTokens.ValueName
+                    : VcardLegacyTokens.EqualsIgnoreCase(parameterName, VcardLegacyTokens.ValueName);
+                if (isValue) return !VcardLegacyTokens.EqualsIgnoreCase(scanner.GetRawParameterValue(parameterIndex, 0).Span, VcardLegacyTokens.InlineValue);
+            }
+
+            return false;
+        }
+
+        private static bool IsValueElsewhere(VcardContentLine line)
+        {
+            var parameter = line.GetParameter(VcardLegacyTokens.ValueName);
+            return parameter != null && !VcardLegacyTokens.EqualsIgnoreCase(parameter.ValueArray[0].AsSpan(), VcardLegacyTokens.InlineValue);
         }
 
         private static bool EqualsIgnoreCase(ReadOnlySpan<char> text, string expected)

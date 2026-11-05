@@ -355,6 +355,22 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Fact]
+        public void WriteLines_AgentValueThatIsNotInline_DoesNotNest()
+        {
+            // arrange
+            // So END:VCARD ends the card, and the line after it is folded, as it is outside vCard 2.1.
+            var agent = new VcardContentLine("AGENT", new[] { new VcardContentLineParameter("VALUE", "URL") }, "BEGIN:VCARD");
+            var end = new VcardContentLine("END", "VCARD");
+            var line = new VcardContentLine("X-A", LongName);
+
+            // act
+            var testResult = Write(Begin, Version21, agent, end, line);
+
+            // assert
+            testResult.Should().EndWith("\r\n AAAAAAAAA\r\n");
+        }
+
+        [Fact]
         public void WriteLines_LineReadWithValuelessParameters_WritesThemWithTheirNames()
         {
             // arrange

@@ -10,7 +10,8 @@ namespace DataStandardizer.File.vCard
         internal const string CharsetName = "CHARSET";
         internal const string EncodingName = "ENCODING";
         private const string TypeName = "TYPE";
-        private const string ValueName = "VALUE";
+        internal const string InlineValue = "INLINE";
+        internal const string ValueName = "VALUE";
 
         // ref. vCard 2.1 §2.1.5 and §2.9: pencodingval.  "b" is RFC 2426 §4.
         internal const string Base64 = "BASE64";
@@ -40,7 +41,7 @@ namespace DataStandardizer.File.vCard
 
         // The character sets a bare token is taken for, a fixed list so that the answer doesn't depend on the encodings a runtime has.
         private static readonly string[] CharsetPrefixes = { "ISO-8859-", "ISO-2022-", "KOI8-", "EUC-", "WINDOWS-", "UTF-" };
-        private static readonly string[] CharsetNames = { "US-ASCII", "BIG5", "GB2312", "GBK", "GB18030" };
+        private static readonly string[] CharsetNames = { "US-ASCII", "LATIN1", "BIG5", "GB2312", "GBK", "GB18030" };
 
         /// <summary>
         /// Gets the parameter a value with no name belongs to: an encoding, a value location or a character set is that parameter, and anything else is a type.

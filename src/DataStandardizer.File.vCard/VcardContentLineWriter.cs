@@ -518,7 +518,7 @@ namespace DataStandardizer.File.vCard
         {
             _lineState.CopyFrom(_writtenState);
             _lineState.MoveToNextLine();
-            _lineState.ObserveLine(line.Name.AsSpan(), line.Value.AsSpan());
+            _lineState.ObserveLine(line);
 
             ContentLineCaretMode caretMode;
             if (_lineState.IsVersion40)

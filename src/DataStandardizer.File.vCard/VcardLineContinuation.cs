@@ -99,7 +99,7 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Finds the encoding from the first parameter that gives one.
+        /// Finds the encoding from the first parameter that gives one, which is the one <see cref="VcardValueDecoder"/> uses.
         /// </summary>
         /// <param name="nameAndParameters">The line before the ':' that starts its value.</param>
         private static ValueKind GetKind(ReadOnlySpan<char> nameAndParameters)
@@ -119,7 +119,7 @@ namespace DataStandardizer.File.vCard
                 if (parameterStart >= 0)
                 {
                     var kind = GetParameterKind(nameAndParameters.Slice(parameterStart, index - parameterStart));
-                    if (kind != ValueKind.Other) return kind;
+                    if (kind != ValueKind.NotFound) return kind;
                 }
 
                 parameterStart = index + 1;
@@ -128,20 +128,45 @@ namespace DataStandardizer.File.vCard
             return ValueKind.Other;
         }
 
+        /// <summary>
+        /// Gets the kind of value a parameter gives.
+        /// </summary>
+        /// <returns>The kind; or <see cref="ValueKind.NotFound"/> if the parameter isn't an encoding.</returns>
         private static ValueKind GetParameterKind(ReadOnlySpan<char> parameter)
         {
+            var encoding = parameter;
             var equalsIndex = parameter.IndexOf('=');
             if (equalsIndex >= 0)
             {
-                if (!VcardLegacyTokens.EqualsIgnoreCase(parameter.Slice(0, equalsIndex), VcardLegacyTokens.EncodingName)) return ValueKind.Other;
+                if (!VcardLegacyTokens.EqualsIgnoreCase(parameter.Slice(0, equalsIndex), VcardLegacyTokens.EncodingName)) return ValueKind.NotFound;
 
-                parameter = parameter.Slice(equalsIndex + 1);
+                encoding = GetFirstValue(parameter.Slice(equalsIndex + 1));
+            }
+            else if (VcardLegacyTokens.GetValuelessParameterName(parameter) != VcardLegacyTokens.EncodingName)
+            {
+                return ValueKind.NotFound;
             }
 
-            if (VcardLegacyTokens.EqualsIgnoreCase(parameter, VcardLegacyTokens.QuotedPrintable)) return ValueKind.QuotedPrintable;
-            if (VcardLegacyTokens.EqualsIgnoreCase(parameter, VcardLegacyTokens.Base64)) return ValueKind.Base64;
+            if (VcardLegacyTokens.EqualsIgnoreCase(encoding, VcardLegacyTokens.QuotedPrintable)) return ValueKind.QuotedPrintable;
+            if (VcardLegacyTokens.EqualsIgnoreCase(encoding, VcardLegacyTokens.Base64)) return ValueKind.Base64;
 
             return ValueKind.Other;
+        }
+
+        /// <summary>
+        /// Gets the first value of a parameter's values, without any enclosing double quotes.
+        /// </summary>
+        private static ReadOnlySpan<char> GetFirstValue(ReadOnlySpan<char> values)
+        {
+            if (values.Length > 0 && values[0] == '"')
+            {
+                var quoted = values.Slice(1);
+                var closingQuote = quoted.IndexOf('"');
+                return closingQuote < 0 ? quoted : quoted.Slice(0, closingQuote);
+            }
+
+            var comma = values.IndexOf(',');
+            return comma < 0 ? values : values.Slice(0, comma);
         }
 
         /// <summary>

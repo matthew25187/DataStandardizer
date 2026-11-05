@@ -215,13 +215,89 @@ namespace DataStandardizer.File.vCard
             }
 
             // Nor do the other built-in encodings, which read invalid data as U+FFFD.  A single-byte or legacy character set has no such character to read, but
-            // UTF-16 and UTF-32 do, and take more than one octet for "A".
-            if (!isUtf8 && text.IndexOf('\xFFFD') >= 0 && encoding.GetByteCount("A") == 1)
+            // UTF-16 and UTF-32 do, so for those the octets show whether it was really there.
+            if (!isUtf8 && text.IndexOf('\xFFFD') >= 0 && !IsValidUnicodeScheme(encoding, bytes))
             {
                 throw VcardContentLineErrorFactory.BuildValueException(string.Format(ErrorMessage.InvalidForCharsetTemplate, charsetName), line);
             }
 
             return text;
+        }
+
+        /// <summary>
+        /// Gets whether octets are valid in an encoding that takes two or four octets for "A", as UTF-16 and UTF-32 do, written by hand since netstandard1.1 can't
+        /// ask an encoding to throw.  A byte order mark says the byte order, as RFC 2781 §4.3 has it for UTF-16.
+        /// </summary>
+        /// <returns><c>true</c> if the encoding takes two or four octets and the octets are valid.  Any other encoding gives <c>false</c>, as it has no way to hold U+FFFD
+        /// that this can check.</returns>
+        private static bool IsValidUnicodeScheme(Encoding encoding, byte[] bytes)
+        {
+            var sample = encoding.GetBytes("A");
+            if (sample.Length == 2) return IsValidUtf16(bytes, sample[0] == 0);
+            if (sample.Length == 4) return IsValidUtf32(bytes, sample[0] == 0);
+
+            return false;
+        }
+
+        private static bool IsValidUtf16(byte[] bytes, bool isBigEndian)
+        {
+            if (bytes.Length % 2 != 0) return false;
+
+            var index = 0;
+            if (bytes.Length >= 2 && (bytes[0] == 0xFE && bytes[1] == 0xFF || bytes[0] == 0xFF && bytes[1] == 0xFE))
+            {
+                isBigEndian = bytes[0] == 0xFE;
+                index = 2;
+            }
+
+            while (index < bytes.Length)
+            {
+                var unit = isBigEndian ? (bytes[index] << 8) | bytes[index + 1] : (bytes[index + 1] << 8) | bytes[index];
+                index += 2;
+                if (unit < 0xD800 || unit > 0xDFFF) continue;
+
+                // A high surrogate needs a low one straight after it, and a low one can't come first (RFC 2781 §2.2).
+                if (unit > 0xDBFF || index == bytes.Length) return false;
+
+                var next = isBigEndian ? (bytes[index] << 8) | bytes[index + 1] : (bytes[index + 1] << 8) | bytes[index];
+                if (next < 0xDC00 || next > 0xDFFF) return false;
+
+                index += 2;
+            }
+
+            return true;
+        }
+
+        private static bool IsValidUtf32(byte[] bytes, bool isBigEndian)
+        {
+            if (bytes.Length % 4 != 0) return false;
+
+            var index = 0;
+            if (bytes.Length >= 4)
+            {
+                if (bytes[0] == 0 && bytes[1] == 0 && bytes[2] == 0xFE && bytes[3] == 0xFF)
+                {
+                    isBigEndian = true;
+                    index = 4;
+                }
+                else if (bytes[0] == 0xFF && bytes[1] == 0xFE && bytes[2] == 0 && bytes[3] == 0)
+                {
+                    isBigEndian = false;
+                    index = 4;
+                }
+            }
+
+            for (; index < bytes.Length; index += 4)
+            {
+                var value = isBigEndian
+                    ? ((long)bytes[index] << 24) | ((long)bytes[index + 1] << 16) | ((long)bytes[index + 2] << 8) | bytes[index + 3]
+                    : ((long)bytes[index + 3] << 24) | ((long)bytes[index + 2] << 16) | ((long)bytes[index + 1] << 8) | bytes[index];
+
+                // The Unicode Standard §3.9, D76: a scalar value is at most U+10FFFF, and not a surrogate.
+                if (value > 0x10FFFF || (value >= 0xD800 && value <= 0xDFFF)) return false;
+            }
+
+            return true;
         }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
