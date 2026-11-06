@@ -721,7 +721,8 @@ namespace DataStandardizer.File.CSV
         /// Ends the current field, whether a delimiter or the end of the record ends it, and adds its value to the record.
         /// </summary>
         /// <remarks>
-        /// A value that failed validation is added as an empty value, wherever it is in the record.  The bad value handler is given its raw text.
+        /// A value that failed validation is added as an empty value, wherever it is in the record, and its text is discarded.  This method doesn't
+        /// report the value: <see cref="AddInvalidFieldValue"/> records what the bad value handler is given, as each violation is found.
         /// </remarks>
         private void AddFieldValue(List<string> fieldValues, bool isInvalidValue)
         {

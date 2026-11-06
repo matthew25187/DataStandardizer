@@ -78,6 +78,10 @@ namespace DataStandardizer.File.CSV.Tests
         // A record whose last field has text before its opening quote, which RFC 4180 section 2 paragraph 5 doesn't allow.
         private const string InvalidLastFieldLine = "One,x\"Two\"";
         private const string InvalidLastFieldMappedLine = "1,x\"One\"";
+        private const string EmptyAndInvalidLastFieldLine = ",x\"Two\"";
+
+        private const string DuplicateFieldNameMessage = "Found 1 duplicate field names.";
+        private const string FieldNamesDataItem = "FieldNames";
         private const string FirstLongRecordLine = "1,One,This is the first";
         private const string TwoRecordsFile = "1,One,First\r\n2,Two,Second";
         private const string ThreeRecordsWithHeaderFile = "Id,Name,Description\r\n1,One,First\r\n2,Two,Second\r\n3,Three,Third";
@@ -402,6 +406,49 @@ namespace DataStandardizer.File.CSV.Tests
                 testResult.Should().NotBeNull();
                 testResult.Id.Should().Be(1);
                 testResult.Name.Should().BeEmpty();
+            }
+        }
+
+        [Fact]
+        public void ReadLine_HeaderLineWithInvalidLastFieldNameAndBadValueHandler_ReadsEmptyFieldName()
+        {
+            // arrange
+            var options = new CsvFileOptions
+            {
+                HeaderHandling = CsvFileHeaderHandling.Use,
+                BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(_ => { })
+            };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(InvalidLastFieldLine), options))
+            {
+
+                // act
+                var testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Should().BeOfType<CsvFileHeaderLine>();
+                testResult.Keys.Should().Equal(FirstName, string.Empty);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_HeaderLineWithEmptyAndInvalidLastFieldNamesAndBadValueHandler_ThrowsCsvFileException()
+        {
+            // arrange
+            // Both field names are read as empty, so they are duplicates.
+            var options = new CsvFileOptions
+            {
+                HeaderHandling = CsvFileHeaderHandling.Use,
+                BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(_ => { })
+            };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(EmptyAndInvalidLastFieldLine), options))
+            {
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(DuplicateFieldNameMessage)
+                    .Which.Data[FieldNamesDataItem].Should().BeEquivalentTo(new[] { string.Empty });
             }
         }
 

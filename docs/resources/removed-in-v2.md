@@ -670,8 +670,18 @@ bound to the last field got that text, and its converter could store it or throw
 its own exception.
 
 In version 2.0, the last field is read as an empty value too, as every other
-field already was, and so is the last field of a header line. The handler is
-still called with the same `RawFieldValue` and `FieldIndex`, the same number of
-times and in the same order, and a reader with no handler still throws a
-`CsvFileException`. If your handler or your code relied on the raw text of the
-last field, take it from the context's `RawFieldValue` in the handler.
+field already was. The handler is still called with the same `RawFieldValue` and
+`FieldIndex`, the same number of times and in the same order, and a reader with
+no handler still throws a `CsvFileException`.
+
+The text that version 1.x returned for the last field can't be recovered. The
+handler's `RawFieldValue` holds only the text read up to each violation, such as
+`x` for `a,x"b"`, not the whole field. If your files have such fields and you need
+their contents, correct the files, or read them without a bad-value handler and
+deal with the `CsvFileException`.
+
+The same applies to a header line read with `CsvFileHeaderHandling.Use`. An
+invalid last field name is now an empty name, where version 1.x used its text, so
+`Id,x"Name"` gives the field names `Id` and an empty name. If the header already
+has an empty name, such as `,x"Name"`, the two names are duplicates and the reader
+throws a `CsvFileException` for the duplicate field names.
