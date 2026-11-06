@@ -23,7 +23,7 @@ public readonly struct VcardPid : IEquatable<VcardPid>
 
 The second integer is the source identifier, which a [VcardClientPidMap](VcardClientPidMap.md) gives a meaning to. Neither can be zero (RFC 6350 §5.5, §6.7.7). An integer too large for a `long` is rejected. Leading zeros are accepted, and not written.
 
-**Forms.** Only `VcardValueFormat.Text` is implemented. `Json` and `Xml` throw `NotSupportedException` until the jCard and xCard work adds them.
+**Forms.** In jCard a parameter value is a JSON string with "the original case of the parameter value" (RFC 7095 §3.4), and in xCard the content of a `text` element whose pattern is that of the text form (RFC 6351 Appendix A), so the `Json` and `Xml` forms are the same as `Text`.
 
 **Allocation.** `TryParse` from a span and `TryFormat` into one do not allocate (covered by `VcardValueAllocationTests`).
 

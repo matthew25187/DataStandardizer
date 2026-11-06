@@ -218,8 +218,8 @@ opened.
 
 ## See also
 
-- [The card object model](../card-model.md)
-- [Converting between versions](../version-conversion.md)
+- [The common model and the versioned interfaces](../concepts/common-model.md)
+- [Versions and canonical forms](../concepts/versions-and-canonical-forms.md)
 - [Read and write jCard](read-write-jcard.md)
 - [XcardReader](../reference/XcardReader.md)
 - [XcardWriter](../reference/XcardWriter.md)

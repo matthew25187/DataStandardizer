@@ -30,6 +30,7 @@ applications and gradually-upgraded legacy codebases alike.
 | [**File.CSV**](packages/file-csv/index.md) | RFC 4180 (CSV files) |
 | [**File.iCal**](packages/file-ical/index.md) | RFC 5545 · RFC 6868 · RFC 7986 · RFC 7265 · RFC 6321 (iCalendar, jCal and xCal) |
 | [**File.InternetMessage**](packages/file-internet-message/index.md) | RFC 5322 · RFC 6532 · RFC 6854 · RFC 2045 · RFC 2046 · RFC 2047 · RFC 2183 · RFC 2231 · RFC 2387 · RFC 2392 · RFC 2557 · RFC 3282 · RFC 4155 (EML, MHTML and mbox), and Apple Mail EMLX |
+| [**File.vCard**](packages/file-vcard/index.md) | RFC 6350 · RFC 6868 · RFC 7095 · RFC 6351 · vCard 2.1 · RFC 2425 · RFC 2426 · RFC 2739 · RFC 4770 · RFC 9554 · RFC 6473 · RFC 6869 · RFC 6474 · RFC 6715 · RFC 8605 (vCard 4.0, 3.0 and 2.1, jCard and xCard) |
 | [**Geography**](packages/geography/index.md) | ISO 3166-1 · ISO 3166-2 · UN M49 |
 | [**Language**](packages/language/index.md) | ISO 639 (Parts 1, 2, 3, 5) · ISO 15924 |
 | [**LanguageTag**](packages/language-tag/index.md) | BCP 47 (IETF language tags) |

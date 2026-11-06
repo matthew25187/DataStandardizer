@@ -29,7 +29,7 @@ public static class VcardValue
 
 **LANGUAGE-TAG** is a `Bcp47LanguageTag`, which decides which tags are well-formed (RFC 5646 §2.1). The check allocates nothing, but a tag that passes is copied to the one string it holds. A tag it rejects is an invalid value.
 
-**Forms.** Only `VcardValueFormat.Text` is implemented. `Json` and `Xml` throw `NotSupportedException` until the jCard and xCard work adds them.
+**Forms.** In `Json`, a value is the content of a JSON string of jCard (RFC 7095 §3.5), with its JSON escaping removed, or the text of a JSON number or literal. In `Xml`, it is the content of a value element of xCard (RFC 6351 Appendix A), with its XML escaping removed and any XML white space around a BOOLEAN, INTEGER, FLOAT or URI allowed. In both, TEXT has no vCard escaping and is one item of a list, a URI has no escaping of its commas, and a LANGUAGE-TAG is as it is in the text form. XML text can hold only the characters of XML 1.0. jCard and xCard represent vCard 4.0 alone, so those forms have no other version.
 
 ## Methods
 

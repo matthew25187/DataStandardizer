@@ -25,7 +25,7 @@ public readonly struct VcardGender : IEquatable<VcardGender>
 
 **Allocation.** This type holds a copy of the identity. `TryParseParts` gives the sex and the identity's text without allocating.
 
-**Forms.** Only `VcardValueFormat.Text` is implemented. `Json` and `Xml` throw `NotSupportedException` until the jCard and xCard work adds them.
+**Forms.** Only `VcardValueFormat.Text` has a form of its own. In jCard (RFC 7095 §3.3.1.3) the value is a JSON array with an element for each component, and in xCard (RFC 6351 §5) a tree of XML elements, one for each component, so `Json` and `Xml` throw `NotSupportedException`. `JcardReader`, `JcardWriter`, `XcardReader` and `XcardWriter` map them to and from the text form.
 
 **Uninitialised instance.** A default instance throws `InvalidOperationException` from `Sex` and `Identity`. `TryFormat` writes nothing and returns `true`, `ToString()` gives the type name, and two default instances are equal.
 

@@ -11,7 +11,7 @@ nav_exclude: true
 
 Namespace: `DataStandardizer.File.vCard`
 
-A card in the shape of vCard 2.1, the versit specification of 1996. Get one from `VcardCard.AsVersion21()`. See [Converting between versions](../version-conversion.md).
+A card in the shape of vCard 2.1, the versit specification of 1996. Get one from `VcardCard.AsVersion21()`. See [Versions and canonical forms](../concepts/versions-and-canonical-forms.md).
 
 **Syntax**
 

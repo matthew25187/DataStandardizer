@@ -213,7 +213,7 @@ and between cards when writing, so a canceled write never leaves part of a card.
 
 ## See also
 
-- [The card object model](../card-model.md)
-- [Converting between versions](../version-conversion.md)
+- [The common model and the versioned interfaces](../concepts/common-model.md)
+- [Versions and canonical forms](../concepts/versions-and-canonical-forms.md)
 - [JcardReader](../reference/JcardReader.md)
 - [JcardWriter](../reference/JcardWriter.md)

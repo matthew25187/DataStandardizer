@@ -54,9 +54,10 @@ application to .NET 10.
 **DataStandardizer.Chronology**, **DataStandardizer.Core**,
 **DataStandardizer.Geography** and **DataStandardizer.Language** start at
 `netstandard1.0`. **DataStandardizer.LanguageTag**,
-**DataStandardizer.File.iCal** and **DataStandardizer.File.InternetMessage** start
-at `netstandard1.1`, because the `System.Memory` package they use for their
-span-based parsing starts at `netstandard1.1`. **DataStandardizer.Communication** and
+**DataStandardizer.File.iCal**, **DataStandardizer.File.InternetMessage** and
+**DataStandardizer.File.vCard** start at `netstandard1.1`, because the
+`System.Memory` package they use for their span-based parsing starts at
+`netstandard1.1`. **DataStandardizer.Communication** and
 **DataStandardizer.Money** start at `netstandard1.1` too, because they depend on
 **DataStandardizer.LanguageTag**. The supported platforms for .NET Standard 1.0
 and 1.1 are the same, so this costs no reach.
@@ -73,8 +74,9 @@ automatically; the `netstandard2.1` and `net10.0` builds have no extra
 dependency. Likewise, the `netstandard1.1` and `netstandard2.0` builds of
 **DataStandardizer.File.iCal** get the span types from `System.Memory`, and the
 `netstandard2.0` build gets `IAsyncEnumerable<T>` and `IAsyncDisposable` from
-`Microsoft.Bcl.AsyncInterfaces`. **DataStandardizer.File.InternetMessage** gets them
-from the same packages, on the same targets. Both packages depend on
+`Microsoft.Bcl.AsyncInterfaces`. **DataStandardizer.File.InternetMessage** and
+**DataStandardizer.File.vCard** get them from the same packages, on the same
+targets. All three packages depend on
 **DataStandardizer.Communication**, which has no `netstandard2.1` target, so their
 `netstandard2.1` builds get `System.Memory` through it.
 

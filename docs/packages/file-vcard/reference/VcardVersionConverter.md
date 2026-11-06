@@ -11,7 +11,7 @@ nav_exclude: true
 
 Namespace: `DataStandardizer.File.vCard`
 
-Says what happens to a card in another version of vCard, and converts it. A card doesn't have to be converted to write it as another version: set `VcardOptions.WriteVersion`. See [Converting between versions](../version-conversion.md).
+Says what happens to a card in another version of vCard, and converts it. A card doesn't have to be converted to write it as another version: set `VcardOptions.WriteVersion`. See [Versions and canonical forms](../concepts/versions-and-canonical-forms.md).
 
 **Syntax**
 

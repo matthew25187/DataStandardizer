@@ -11,7 +11,7 @@ nav_exclude: true
 
 Namespace: `DataStandardizer.File.vCard`
 
-Who acts for the entity of a card: a `RELATED` property with `TYPE=agent` (RFC 6350 §6.6.6), which is the `AGENT` of older versions. Get one from `VcardCard.Agents`. See [Converting between versions](../version-conversion.md).
+Who acts for the entity of a card: a `RELATED` property with `TYPE=agent` (RFC 6350 §6.6.6), which is the `AGENT` of older versions. Get one from `VcardCard.Agents`. See [Versions and canonical forms](../concepts/versions-and-canonical-forms.md).
 
 **Syntax**
 

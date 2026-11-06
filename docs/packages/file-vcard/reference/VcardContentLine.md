@@ -59,7 +59,7 @@ constructor throws `ArgumentNullException` for a `null` name, parameters or valu
 
 | Method | Signature | Notes |
 | --- | --- | --- |
-| `GetDecodedText` | `string GetDecodedText()` | The text of the value, by its `ENCODING` and `CHARSET`. See [Legacy syntax and character sets](../legacy-syntax.md). Throws `VcardFileException` if either can't be resolved or the value isn't valid in them. |
+| `GetDecodedText` | `string GetDecodedText()` | The text of the value, by its `ENCODING` and `CHARSET`. See [Handle legacy character sets](../how-to/handle-legacy-character-sets.md). Throws `VcardFileException` if either can't be resolved or the value isn't valid in them. |
 | `GetDecodedText` | `string GetDecodedText(out bool usedCharsetFallback)` | The same, and whether `AllowUnknownCharsetAsLatin1` was needed. |
 | `GetDecodedValue` | `byte[] GetDecodedValue()` | The octets of the value, by its `ENCODING`. Throws `VcardFileException` if it can't be resolved or the value isn't valid in it. |
 | `TryGetCharset` | `bool TryGetCharset(out MimeCharset charset)` | The `CHARSET`, if it applies to the line and its name is valid. |

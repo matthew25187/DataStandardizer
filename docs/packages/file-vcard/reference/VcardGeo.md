@@ -33,7 +33,7 @@ The digits are kept as they were written when one form becomes another, apart fr
 
 **Versions.** Every parse and format method has an overload taking a [VcardVersion](VcardVersion.md). The overload without one uses vCard 4.0. `IsDefinedIn` says whether a version can write the value, and formatting one it can't throws `InvalidOperationException`.
 
-**Forms.** Only `VcardValueFormat.Text` is implemented. `Json` and `Xml` throw `NotSupportedException` until the jCard and xCard work adds them.
+**Forms.** In `Json`, the form of jCard (RFC 7095 §3.5.2), and in `Xml`, the content of an xCard `uri` element (RFC 6351), a value is the URI with no escaping of its commas, such as `geo:37.386013,-122.082932`. The XML form may have XML white space around it. jCard and xCard represent vCard 4.0 alone, so those forms have no other version.
 
 **Allocation.** Parsing allocates, since the URI is held as a string.
 

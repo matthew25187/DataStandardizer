@@ -11,7 +11,7 @@ nav_exclude: true
 
 Namespace: `DataStandardizer.File.vCard`
 
-A vCard: an open list of properties, with typed accessors that don't depend on the version the card was read from. See [The card object model](../card-model.md).
+A vCard: an open list of properties, with typed accessors that don't depend on the version the card was read from. See [The common model and the versioned interfaces](../concepts/common-model.md).
 
 **Syntax**
 
@@ -61,7 +61,7 @@ Each is `null` if the card has none with a valid value. The setters replace ever
 
 `SetKind` takes a `VcardKind`, or the text of a value that RFC 6350 and its extensions don't define. A value that isn't initialised throws `ArgumentException`, and leaves the card as it was.
 
-A setter throws `InvalidOperationException` if an instance has `DERIVED=true`, since RFC 9554 §4.4 says a client "MUST NOT update the property". Remove it first to work the value out again. `SetName` also puts the components of RFC 9554 in the older components, as `Addresses.Add` does; see [The card object model](../card-model.md). `Name` leaves an instance with `PHONETIC` for last.
+A setter throws `InvalidOperationException` if an instance has `DERIVED=true`, since RFC 9554 §4.4 says a client "MUST NOT update the property". Remove it first to work the value out again. `SetName` also puts the components of RFC 9554 in the older components, as `Addresses.Add` does; see [The common model and the versioned interfaces](../concepts/common-model.md). `Name` leaves an instance with `PHONETIC` for last.
 
 ### Properties with any number of instances
 
@@ -137,4 +137,4 @@ Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 - [IVcard40Card](IVcard40Card.md)
 - [VcardReader](VcardReader.md)
 - [VcardWriter](VcardWriter.md)
-- [The card object model](../card-model.md)
+- [The common model and the versioned interfaces](../concepts/common-model.md)

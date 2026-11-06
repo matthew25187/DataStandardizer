@@ -54,7 +54,7 @@ Each throws `ObjectDisposedException` once the reader is disposed.
 
 ## Errors
 
-vCard 4.0, 3.0 and 2.1 are read, and one stream can hold any of them. A vCard 3.0 or 2.1 card is checked by the rules of its version, then converted to the canonical form of the model; see [Converting between versions](../version-conversion.md). The card an `AGENT` of a 2.1 card holds, on the lines after it, is read with it. Any other `VERSION` throws `VcardFileException` as soon as it is read.
+vCard 4.0, 3.0 and 2.1 are read, and one stream can hold any of them. A vCard 3.0 or 2.1 card is checked by the rules of its version, then converted to the canonical form of the model; see [Versions and canonical forms](../concepts/versions-and-canonical-forms.md). The card an `AGENT` of a 2.1 card holds, on the lines after it, is read with it. Any other `VERSION` throws `VcardFileException` as soon as it is read.
 
 | Problem | What happens |
 | --- | --- |
