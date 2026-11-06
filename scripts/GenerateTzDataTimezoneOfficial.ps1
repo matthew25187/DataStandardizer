@@ -754,34 +754,7 @@ function Out-SourceCode {
         $declarationMembers | Select-Object -Last 1 | ForEach-Object { [void]$_.EndDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::End, [string]::Empty)) }
         $structType.Members.AddRange($declarationMembers)
             
-        Write-Progress -Activity $activity -CurrentOperation 'Declaring constructor' -PercentComplete -1
-    
-        $structConstructor = [System.CodeDom.CodeConstructor]::new()
-        $structConstructor.Attributes = ($structConstructor.Attributes -band -bnot [System.CodeDom.MemberAttributes]::AccessMask) -bor [System.CodeDom.MemberAttributes]::Private
-        [void]$structConstructor.Parameters.Add([System.CodeDom.CodeParameterDeclarationExpression]::new([string], 'value'))
-        $argumentCheckStatement = [System.CodeDom.CodeConditionStatement]::new(
-            [System.CodeDom.CodeBinaryOperatorExpression]::new(
-                [System.CodeDom.CodeArgumentReferenceExpression]::new('value'),
-                [System.CodeDom.CodeBinaryOperatorType]::ValueEquality,
-                [System.CodeDom.CodePrimitiveExpression]::new($null)),
-            @([System.CodeDom.CodeThrowExceptionStatement]::new([System.CodeDom.CodeObjectCreateExpression]::new([System.CodeDom.CodeTypeReference]::new([System.ArgumentNullException]), @([System.CodeDom.CodeSnippetExpression]::new('nameof(value)'))))))
-        $valueAssignmentStatement = [System.CodeDom.CodeAssignStatement]::new(
-            [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), '_value'),
-            [System.CodeDom.CodeArgumentReferenceExpression]::new('value'))
-        # Every field of a struct must be assigned by its constructors, and the zone lines, link target and location of
-        # a timezone created by explicit cast are found by its identifier instead.
-        $noZoneLinesAssignmentStatement = [System.CodeDom.CodeAssignStatement]::new(
-            [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), '_zoneLines'),
-            [System.CodeDom.CodePrimitiveExpression]::new($null))
-        $noLinkTargetAssignmentStatement = [System.CodeDom.CodeAssignStatement]::new(
-            [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), '_linkTarget'),
-            [System.CodeDom.CodePrimitiveExpression]::new($null))
-        $noLocationAssignmentStatement = [System.CodeDom.CodeAssignStatement]::new(
-            [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), '_location'),
-            [System.CodeDom.CodePrimitiveExpression]::new($null))
-        $structConstructor.Statements.AddRange(@($argumentCheckStatement, $valueAssignmentStatement, $noZoneLinesAssignmentStatement, $noLinkTargetAssignmentStatement, $noLocationAssignmentStatement))
-        [void]$structConstructor.StartDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::Start, 'Constructors'))
-        [void]$structType.Members.Add($structConstructor)
+        Write-Progress -Activity $activity -CurrentOperation 'Declaring constructors' -PercentComplete -1
 
         # The comment parameter of the constructors used by the timezone and link fields is nullable, so they are
         # declared once for each nullable context.
@@ -793,18 +766,32 @@ function Out-SourceCode {
             (Get-DataConstructorDeclaration),
             (Get-DataConstructorDeclaration -Link),
             [System.CodeDom.CodeSnippetTypeMember]::new('#endif'))
+        $dataConstructorMembers | Select-Object -First 1 | ForEach-Object { [void]$_.StartDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::Start, 'Constructors')) }
         $dataConstructorMembers | Select-Object -Last 1 | ForEach-Object { [void]$_.EndDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::End, [string]::Empty)) }
         $structType.Members.AddRange($dataConstructorMembers)
     
         Write-Progress -Activity $activity -CurrentOperation 'Declaring operators' -PercentComplete -1
     
-        $stringToStructConversionOperatorSnippet = "#if NETCOREAPP3_0_OR_GREATER
+        # The conversion finds the timezone field through the same lookup as Parse, so that every instance but the
+        # default value carries its zone lines and location.
+        $stringToStructConversionOperatorSnippet = "            /// <summary>
+            /// Converts a TZ Database identifier to the timezone with that identifier.
+            /// </summary>
+            /// <param name=`"value`">
+            /// The identifier, such as <c>Europe/Zurich</c>, or a deprecated name, such as <c>Asia/Calcutta</c>, which converts to the canonical
+            /// timezone it refers to. Identifiers are case-sensitive.
+            /// </param>
+            /// <returns>The predefined timezone with the identifier, which carries its zone lines and location.</returns>
+            /// <exception cref=`"System.InvalidCastException`">
+            /// <paramref name=`"value`"/> is <see langword=`"null`"/>, or is not the identifier of a known timezone.
+            /// </exception>
+#if NETCOREAPP3_0_OR_GREATER
             public static explicit operator DataStandardizer.Chronology.$TypeName(string value)
     #else
             public static explicit operator DataStandardizer.Chronology.$TypeName([System.Diagnostics.CodeAnalysis.DisallowNullAttribute] string value)
     #endif
             {
-                return new DataStandardizer.Chronology.$TypeName(value);
+                return DataStandardizer.Chronology.$TypeName.ConvertFromIdentifier(value);
             }"
         $stringToStructConversionOperatorSnippetMember = [System.CodeDom.CodeSnippetTypeMember]::new($stringToStructConversionOperatorSnippet)
         [void]$stringToStructConversionOperatorSnippetMember.StartDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::Start, 'Operators'))

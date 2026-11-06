@@ -16,8 +16,6 @@ public class TzDataExtensionsOffsetTests
     private const string LetterFormat = "%s";
     private const string LondonFormat = "GMT/BST";
 
-    private static readonly TzDataTimezone UnknownTimezone = (TzDataTimezone)"Nowhere/Nothing";
-
     // An instant away from any transition.
     private static readonly DateTime July2025 = new(2025, 7, 1, 12, 0, 0, DateTimeKind.Utc);
 
@@ -663,7 +661,7 @@ public class TzDataExtensionsOffsetTests
     }
 
     [Fact]
-    public void GetOffsetInfo_CastInstance_ReturnsOffsetInForce()
+    public void GetOffsetInfo_ConvertedIdentifier_ReturnsOffsetInForce()
     {
         // arrange
         var testTimezone = (TzDataTimezone)"Europe/London";
@@ -739,17 +737,6 @@ public class TzDataExtensionsOffsetTests
     }
 
     [Theory]
-    [MemberData(nameof(OffsetMethod_TestCases))]
-    public void OffsetMethod_UnknownTimezone_ThrowsInvalidOperationException(string testMethod, Action<TzDataTimezone, DateTime> testMethodAction)
-    {
-        // act
-        Action testAction = () => testMethodAction(UnknownTimezone, July2025);
-
-        // assert
-        testAction.Should().Throw<InvalidOperationException>("{0} needs a known timezone", testMethod);
-    }
-
-    [Theory]
     [MemberData(nameof(OffsetMethodWithDateTimeOffset_TestCases))]
     public void OffsetMethodWithDateTimeOffset_DefaultTimezone_ThrowsInvalidOperationException(string testMethod, Action<TzDataTimezone, DateTimeOffset> testMethodAction)
     {
@@ -761,20 +748,6 @@ public class TzDataExtensionsOffsetTests
 
         // assert
         testAction.Should().Throw<InvalidOperationException>("{0} needs a timezone with an identifier", testMethod);
-    }
-
-    [Theory]
-    [MemberData(nameof(OffsetMethodWithDateTimeOffset_TestCases))]
-    public void OffsetMethodWithDateTimeOffset_UnknownTimezone_ThrowsInvalidOperationException(string testMethod, Action<TzDataTimezone, DateTimeOffset> testMethodAction)
-    {
-        // arrange
-        var testInstant = new DateTimeOffset(July2025);
-
-        // act
-        Action testAction = () => testMethodAction(UnknownTimezone, testInstant);
-
-        // assert
-        testAction.Should().Throw<InvalidOperationException>("{0} needs a known timezone", testMethod);
     }
 
     [Fact]

@@ -58,18 +58,6 @@ namespace DataStandardizer.Chronology
         #endregion
         
         #region Constructors
-        private TzDataTimezone(string value)
-        {
-            if ((value == null))
-            {
-                throw new System.ArgumentNullException(nameof(value));
-            }
-            this._value = value;
-            this._zoneLines = null;
-            this._linkTarget = null;
-            this._location = null;
-        }
-        
 #if NETCOREAPP3_0_OR_GREATER
         
         private TzDataTimezone(string value, DataStandardizer.Chronology.TzDataZoneLine[] zoneLines, double latitude, double longitude, string[] isoCountryCodes, string? comment)
@@ -166,13 +154,24 @@ namespace DataStandardizer.Chronology
         #endregion
         
         #region Operators
+            /// <summary>
+            /// Converts a TZ Database identifier to the timezone with that identifier.
+            /// </summary>
+            /// <param name="value">
+            /// The identifier, such as <c>Europe/Zurich</c>, or a deprecated name, such as <c>Asia/Calcutta</c>, which converts to the canonical
+            /// timezone it refers to. Identifiers are case-sensitive.
+            /// </param>
+            /// <returns>The predefined timezone with the identifier, which carries its zone lines and location.</returns>
+            /// <exception cref="System.InvalidCastException">
+            /// <paramref name="value"/> is <see langword="null"/>, or is not the identifier of a known timezone.
+            /// </exception>
 #if NETCOREAPP3_0_OR_GREATER
             public static explicit operator DataStandardizer.Chronology.TzDataTimezone(string value)
     #else
             public static explicit operator DataStandardizer.Chronology.TzDataTimezone([System.Diagnostics.CodeAnalysis.DisallowNullAttribute] string value)
     #endif
             {
-                return new DataStandardizer.Chronology.TzDataTimezone(value);
+                return DataStandardizer.Chronology.TzDataTimezone.ConvertFromIdentifier(value);
             }
         
 #if NETCOREAPP3_0_OR_GREATER

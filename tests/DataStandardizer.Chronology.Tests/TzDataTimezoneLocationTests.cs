@@ -4,7 +4,6 @@ namespace DataStandardizer.Chronology.Tests;
 
 public class TzDataTimezoneLocationTests
 {
-    private const string UnknownIdentifier = "Europe/Atlantis";
 
     // The precision to which a coordinate in degrees and minutes is compared, after conversion to decimal degrees.
     private const double CoordinateTolerance = 1e-9;
@@ -67,11 +66,11 @@ public class TzDataTimezoneLocationTests
         { TzDataTimezone.America.Argentina.Buenos_Aires, BuenosAiresLongitude },
     };
 
-    // Europe/Zurich as its field, and as an instance created by explicit cast, which finds the location of the field.
+    // Europe/Zurich as its field, and as converted from its identifier, which returns the field.
     public static TheoryData<string, TzDataTimezone> Zurich_TestCases => new()
     {
         { "field", TzDataTimezone.Europe.Zurich },
-        { "cast instance", (TzDataTimezone)ZurichIdentifier },
+        { "converted identifier", (TzDataTimezone)ZurichIdentifier },
     };
 
     [Theory]
@@ -203,19 +202,5 @@ public class TzDataTimezoneLocationTests
 
         // assert
         testAction.Should().Throw<InvalidOperationException>("the default instance has no identifier, so {0} cannot be found", testMemberName);
-    }
-
-    [Theory]
-    [MemberData(nameof(Member_TestCases))]
-    public void Member_UnknownIdentifier_ThrowsInvalidOperationException(string testMemberName, Func<TzDataTimezone, object?> testMember)
-    {
-        // arrange
-        var testTimezone = (TzDataTimezone)UnknownIdentifier;
-
-        // act
-        Action testAction = () => testMember(testTimezone);
-
-        // assert
-        testAction.Should().Throw<InvalidOperationException>("no timezone field has the identifier, so {0} cannot be found", testMemberName);
     }
 }

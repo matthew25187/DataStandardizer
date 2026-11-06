@@ -359,10 +359,8 @@ The properties differ from the removed methods in two ways:
 
 - `IsoCountryCodes` returns a read-only `IReadOnlyList<string>` rather than a
   `string[]`.
-- The properties throw `InvalidOperationException` for `default(TzDataTimezone)` and
-  for an instance whose identifier is not that of a known time zone, where the
-  removed methods returned `null`, `0` or an empty array. Use `TryParse` to get a
-  time zone from a string that may not be an identifier.
+- The properties throw `InvalidOperationException` for `default(TzDataTimezone)`,
+  where the removed methods returned `null`, `0` or an empty array.
 
 ```csharp
 // Before
@@ -375,6 +373,40 @@ IReadOnlyList<string> countryCodes = TzDataTimezone.Europe.Zurich.IsoCountryCode
 double latitude = TzDataTimezone.Europe.Zurich.Latitude;
 string? comment = TzDataTimezone.Europe.Zurich.Comment;
 ```
+
+## Chronology conversion from string
+
+In version 1.x, the explicit conversion from `string` to `TzDataTimezone`
+accepted any string. `(TzDataTimezone)"Not/AZone"` returned an instance that
+matched no time zone field and had no zone lines or metadata.
+
+In version 2.0, the conversion finds the time zone through the same lookup as
+`TzDataTimezone.Parse`:
+
+| String | Version 1.x | Version 2.0 |
+| --- | --- | --- |
+| The identifier of a time zone field, such as `Europe/Oslo` | A new instance with that identifier | The field, such as `TzDataTimezone.Europe.Oslo` |
+| A deprecated name in the TZ Database's `backward` file, such as `Asia/Calcutta` | A new instance with that name, which matched no time zone field | The canonical field, such as `TzDataTimezone.Asia.Kolkata` |
+| Any other string | A new instance with that string, which matched no time zone field | Throws `InvalidCastException` |
+| `null` | Throws `ArgumentNullException` | Throws `InvalidCastException` |
+
+Code that casts identifiers it knows exist keeps working. Code that casts a string
+that may not be an identifier, such as user input, should call `TryParse` instead:
+
+```csharp
+// Before
+var timezone = (TzDataTimezone)input;
+
+// After
+if (!TzDataTimezone.TryParse(input, out var timezone))
+{
+    // input is not the identifier of a known time zone
+}
+```
+
+A cast from a deprecated name now returns the canonical time zone, so its
+identifier is the canonical one: `(string)(TzDataTimezone)"Asia/Calcutta"` is
+`"Asia/Kolkata"`, where in version 1.x it was `"Asia/Calcutta"`.
 
 ## File.CSV line model
 

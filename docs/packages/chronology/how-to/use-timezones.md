@@ -53,9 +53,16 @@ Identifiers are case-sensitive, as they are in the TZ Database, so
 On the `net10.0` build, `TzDataTimezone` implements `IParsable<TzDataTimezone>`, so
 it can be used wherever a parsable type is expected.
 
-Prefer `Parse` and `TryParse` to the explicit cast from `string`. The cast
-accepts any string, including identifiers that don't exist, and the resulting
-instance throws `InvalidOperationException` when its metadata is read.
+The explicit cast from `string` returns the same predefined instance as `Parse`,
+and throws `InvalidCastException` for an identifier that doesn't exist:
+
+```csharp
+var zurich = (TzDataTimezone)"Europe/Zurich";   // TzDataTimezone.Europe.Zurich
+```
+
+Version 1.x accepted any string in the cast, and returned an instance that
+matched no time zone field. See
+[Removed in v2.0](../../../resources/removed-in-v2.md#chronology-conversion-from-string).
 
 ## Work with links and deprecated names
 
