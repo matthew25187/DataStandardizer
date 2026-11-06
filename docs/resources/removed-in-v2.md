@@ -333,6 +333,49 @@ This matters only if your own code uses the JetBrains attributes and you got the
 package through DataStandardizer. Add a reference to `JetBrains.Annotations` to
 your project.
 
+## Chronology time zone metadata
+
+In version 1.x, the location metadata of a `TzDataTimezone` was read through
+extension methods on `TzDataExtensions`, which read a `TzDataTimezoneAttribute`
+applied to each time zone field. Version 1.x added properties of `TzDataTimezone`
+that return the same metadata, and marked the extension methods and the attribute
+`[Obsolete]`. Version 2.0 removes them:
+
+| Removed | Use instead |
+| --- | --- |
+| `TzDataExtensions.GetComment(TzDataTimezone)` | `TzDataTimezone.Comment` |
+| `TzDataExtensions.GetIsoCountryCodes(TzDataTimezone)` | `TzDataTimezone.IsoCountryCodes` |
+| `TzDataExtensions.GetLatitude(TzDataTimezone)` | `TzDataTimezone.Latitude` |
+| `TzDataExtensions.GetLongitude(TzDataTimezone)` | `TzDataTimezone.Longitude` |
+| `TzDataTimezoneAttribute`, read from a field by reflection | The four properties above, read from the field's value |
+| `TzDataTimezoneAttribute.Comment`, `IsoCountryCodes`, `Latitude` and `Longitude` | The property of `TzDataTimezone` with the same name |
+
+Code that names the attribute type, such as
+`field.GetCustomAttribute<TzDataTimezoneAttribute>()`, no longer compiles. The
+time zone fields no longer carry any attribute, so code that finds it without
+naming the type, such as through `field.CustomAttributes`, finds nothing.
+
+The properties differ from the removed methods in two ways:
+
+- `IsoCountryCodes` returns a read-only `IReadOnlyList<string>` rather than a
+  `string[]`.
+- The properties throw `InvalidOperationException` for `default(TzDataTimezone)` and
+  for an instance whose identifier is not that of a known time zone, where the
+  removed methods returned `null`, `0` or an empty array. Use `TryParse` to get a
+  time zone from a string that may not be an identifier.
+
+```csharp
+// Before
+string[] countryCodes = TzDataTimezone.Europe.Zurich.GetIsoCountryCodes();
+double latitude = TzDataTimezone.Europe.Zurich.GetLatitude();
+string? comment = TzDataTimezone.Europe.Zurich.GetComment();
+
+// After
+IReadOnlyList<string> countryCodes = TzDataTimezone.Europe.Zurich.IsoCountryCodes;
+double latitude = TzDataTimezone.Europe.Zurich.Latitude;
+string? comment = TzDataTimezone.Europe.Zurich.Comment;
+```
+
 ## File.CSV line model
 
 In version 1.x, `ICsvFileLine` is the non-generic `IOrderedDictionary`: its keys

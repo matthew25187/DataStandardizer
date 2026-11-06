@@ -266,9 +266,9 @@ namespace DataStandardizer.Chronology
         }
 
         /// <summary>
-        /// Finds the timezone field with the same identifier as the timezone.
+        /// Finds the registry entry of the timezone field with the same identifier as the timezone.
         /// </summary>
-        /// <param name="entry">The field and its zone lines, if found.</param>
+        /// <param name="entry">The timezone of the field, with its zone lines, link target and location, if found.</param>
         /// <returns><see langword="true"/> if the field was found; otherwise, <see langword="false"/>, including for the default value.</returns>
 #if NETCOREAPP3_0_OR_GREATER
         internal bool TryGetRegistryEntry([System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out RegistryEntry? entry)
@@ -391,24 +391,21 @@ namespace DataStandardizer.Chronology
         }
 
         /// <summary>
-        /// A timezone field, with its value, zone lines, link target and location.
+        /// The timezone of a timezone field, with its zone lines, link target and location.
         /// </summary>
         internal sealed class RegistryEntry
         {
 #if NETCOREAPP3_0_OR_GREATER
-            internal RegistryEntry(FieldInfo field, TzDataTimezone timezone, TzDataZoneLine[] zoneLines, string? linkTarget, Location location)
+            internal RegistryEntry(TzDataTimezone timezone, TzDataZoneLine[] zoneLines, string? linkTarget, Location location)
 #else
-            internal RegistryEntry(FieldInfo field, TzDataTimezone timezone, TzDataZoneLine[] zoneLines, [AllowNull] string linkTarget, Location location)
+            internal RegistryEntry(TzDataTimezone timezone, TzDataZoneLine[] zoneLines, [AllowNull] string linkTarget, Location location)
 #endif
             {
-                Field = field;
                 Timezone = timezone;
                 ZoneLines = zoneLines;
                 LinkTarget = linkTarget;
                 Location = location;
             }
-
-            internal FieldInfo Field { get; }
 
             internal TzDataTimezone Timezone { get; }
 
@@ -475,7 +472,7 @@ namespace DataStandardizer.Chronology
                 foreach (var entry in entries.Values)
                 {
                     if (entry.LinkTarget != null && !IsCanonicalEntry(entries, entry.LinkTarget))
-                        throw new InvalidOperationException($"Link field {entry.Field.Name} refers to '{entry.LinkTarget}', which is not a canonical timezone field.");
+                        throw new InvalidOperationException($"Link timezone '{entry.Timezone._value}' refers to '{entry.LinkTarget}', which is not a canonical timezone field.");
                 }
 
                 var deprecatedLinks = new Dictionary<string, RegistryEntry>(StringComparer.Ordinal);
@@ -505,7 +502,7 @@ namespace DataStandardizer.Chronology
                     if (!(field.GetValue(null) is TzDataTimezone timezone) || timezone._value is null || timezone._zoneLines is null || timezone._location is null)
                         throw new InvalidOperationException($"Timezone field {hostType.Name}.{field.Name} has no identifier, zone lines or location.");
 
-                    entries.Add(timezone._value, new RegistryEntry(field, timezone, timezone._zoneLines, timezone._linkTarget, timezone._location));
+                    entries.Add(timezone._value, new RegistryEntry(timezone, timezone._zoneLines, timezone._linkTarget, timezone._location));
                 }
 
                 foreach (var nestedType in hostType.DeclaredNestedTypes)

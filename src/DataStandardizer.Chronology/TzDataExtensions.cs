@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Reflection;
 #if NETSTANDARD
 using System.Diagnostics.CodeAnalysis;
 #endif
@@ -10,65 +9,6 @@ namespace DataStandardizer.Chronology
     public static class TzDataExtensions
     {
         private static readonly TimeSpan MaximumDateTimeOffsetOffset = TimeSpan.FromHours(14);
-
-        /// <summary>
-        /// Get the comment on a timezone.
-        /// </summary>
-        /// <param name="timezone">A TzData timezone.</param>
-        /// <returns>Comment for the timezone, if available; otherwise, <c>null</c>.</returns>
-        [Obsolete("Use TzDataTimezone.Comment instead.")]
-#if NETCOREAPP3_0_OR_GREATER
-        public static string? GetComment(this TzDataTimezone timezone)
-#else
-        [return: MaybeNull]
-        public static string GetComment(this TzDataTimezone timezone)
-#endif
-        {
-            var timezoneAttribute = GetTimezoneAttribute(timezone);
-            return timezoneAttribute?.Comment;
-        }
-
-        /// <summary>
-        /// Get the ISO country codes for the countries covered by a timezone.
-        /// </summary>
-        /// <param name="timezone">A TzData timezone.</param>
-        /// <returns>A collection of ISO country codes related to the timezone.</returns>
-        [Obsolete("Use TzDataTimezone.IsoCountryCodes instead.")]
-        public static string[] GetIsoCountryCodes(this TzDataTimezone timezone)
-        {
-            var timezoneAttribute = GetTimezoneAttribute(timezone);
-#if NET8_0_OR_GREATER
-            return timezoneAttribute?.IsoCountryCodes ?? [];
-#elif NETSTANDARD1_3_OR_GREATER || NET
-            return timezoneAttribute?.IsoCountryCodes ?? Array.Empty<string>();
-#else
-            return timezoneAttribute?.IsoCountryCodes ?? new string[] { };
-#endif
-        }
-
-        /// <summary>
-        /// Get the latitude of the principal location within a timezone.
-        /// </summary>
-        /// <param name="timezone">A TzData timezone.</param>
-        /// <returns>Latitude of the timezone.</returns>
-        [Obsolete("Use TzDataTimezone.Latitude instead.")]
-        public static double GetLatitude(this TzDataTimezone timezone)
-        {
-            var timezoneAttribute = GetTimezoneAttribute(timezone);
-            return timezoneAttribute?.Latitude ?? 0;
-        }
-
-        /// <summary>
-        /// Get the longitude of the principal location within a timezone.
-        /// </summary>
-        /// <param name="timezone">A TzData timezone.</param>
-        /// <returns>Longitude of the timezone.</returns>
-        [Obsolete("Use TzDataTimezone.Longitude instead.")]
-        public static double GetLongitude(this TzDataTimezone timezone)
-        {
-            var timezoneAttribute = GetTimezoneAttribute(timezone);
-            return timezoneAttribute?.Longitude ?? 0;
-        }
 
         /// <summary>
         /// Get the zone line of a timezone in force at an instant.
@@ -493,21 +433,5 @@ namespace DataStandardizer.Chronology
 
             return new DateTimeOffset(new DateTime(localTicks, DateTimeKind.Unspecified), utcOffset);
         }
-
-        // The obsolete accessors keep reading the obsolete attribute, so that their behaviour is unchanged until they are removed.
-#pragma warning disable CS0618 // TzDataTimezoneAttribute is obsolete
-#if NETCOREAPP3_0_OR_GREATER
-        private static TzDataTimezoneAttribute? GetTimezoneAttribute(TzDataTimezone timezone)
-#else
-        [return: MaybeNull]
-        private static TzDataTimezoneAttribute GetTimezoneAttribute(TzDataTimezone timezone)
-#endif
-        {
-            if (!timezone.TryGetRegistryEntry(out var entry))
-                return null;
-
-            return entry.Field.GetCustomAttribute<TzDataTimezoneAttribute>();
-        }
-#pragma warning restore CS0618
     }
 }

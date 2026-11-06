@@ -34,9 +34,7 @@ time zone each refers to: `Parse("Asia/Calcutta")` returns
 
 Per-zone location metadata (latitude, longitude, ISO country codes, comment) is
 read through the `Latitude`, `Longitude`, `IsoCountryCodes` and `Comment`
-properties. These replace the `GetLatitude`, `GetLongitude`,
-`GetIsoCountryCodes` and `GetComment` extension methods on
-[TzDataExtensions](TzDataExtensions.md), which are deprecated. See
+properties. See
 [Access time zone metadata](../how-to/access-timezone-metadata.md).
 
 Each time zone carries its full history from the TZ Database, read through the
@@ -63,8 +61,6 @@ the properties (including `ZoneLines`, `IsLink` and `Canonical`) and the
 calculation methods of [TzDataExtensions](TzDataExtensions.md) throw
 `InvalidOperationException`. Equality uses only the identifier, so an instance
 cast from an unknown identifier is equal to another cast from the same string.
-The deprecated metadata accessors on `TzDataExtensions` return `null`, `0` or an
-empty array instead of throwing.
 
 ### Links and canonical time zones
 

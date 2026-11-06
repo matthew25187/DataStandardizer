@@ -64,24 +64,9 @@ identifier. The properties throw `InvalidOperationException` for the `default`
 value and for an identifier that is not that of a predefined instance, so prefer
 `Parse` or `TryParse`.
 
-## Migrating from the deprecated APIs
+## Upgrading from version 1.x
 
-The `GetIsoCountryCodes`, `GetLatitude`, `GetLongitude` and `GetComment`
-extension methods, and the `TzDataTimezoneAttribute` they read, are deprecated
-and will be removed in version 2.0. Replace each call with the matching
-property:
-
-| Deprecated | Replacement |
-| --- | --- |
-| `timezone.GetIsoCountryCodes()` | `timezone.IsoCountryCodes` |
-| `timezone.GetLatitude()` | `timezone.Latitude` |
-| `timezone.GetLongitude()` | `timezone.Longitude` |
-| `timezone.GetComment()` | `timezone.Comment` |
-| `TzDataTimezoneAttribute`, read by reflection | The properties above |
-
-The properties differ from the deprecated methods in two ways:
-
-- `IsoCountryCodes` returns a read-only `IReadOnlyList<string>` rather than a
-  `string[]`.
-- The properties throw `InvalidOperationException` for an unknown time zone,
-  where the deprecated methods return `null`, `0` or an empty array.
+Version 2.0 removes the extension methods that version 1.x provided for this
+metadata. See
+[Removed in v2.0](../../../resources/removed-in-v2.md#chronology-time-zone-metadata)
+for the property that replaces each one.
