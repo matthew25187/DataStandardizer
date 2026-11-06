@@ -10,7 +10,8 @@ namespace DataStandardizer.File.iCal
     {
         private static class ErrorMessage
         {
-            internal const string BareLineFeed = "Found a line feed without a carriage return.  RFC 5545 requires a CRLF line break.";
+            internal const string DecodingFailed = "The data could not be decoded with the encoding it is read as, UTF-8 unless the options set another.";
+            internal const string BareLineFeed ="Found a line feed without a carriage return.  RFC 5545 requires a CRLF line break.";
             internal const string EmptyLine = "Found an empty content line.";
             internal const string ExpectedNameEnd = "Expected ';' or ':' after the property name.";
             internal const string ExpectedParameterEquals = "Expected '=' after the parameter name.";
@@ -79,6 +80,14 @@ namespace DataStandardizer.File.iCal
             }
 
             return exception;
+        }
+
+        /// <summary>
+        /// Builds the exception for data that the encoding it is read as can't decode.
+        /// </summary>
+        internal static IcalFileException BuildDecodingException(Exception innerException)
+        {
+            return new IcalFileException(ErrorMessage.DecodingFailed, innerException);
         }
 
         internal static IcalFileException BuildInvalidTextEscapeException(long lineNumber, long physicalLineNumber, string propertyName)

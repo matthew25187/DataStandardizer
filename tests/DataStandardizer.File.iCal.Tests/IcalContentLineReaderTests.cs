@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using DataStandardizer.File.ContentLine;
 using FluentAssertions;
 using Xunit;
@@ -43,6 +44,24 @@ namespace DataStandardizer.File.iCal.Tests
 
         // A content line read after U+FEFF ZERO WIDTH NO-BREAK SPACE, which is the byte order mark as a character.
         private const string ByteOrderMarkThenBegin = "\xFEFFBEGIN:VCALENDAR\r\n";
+
+        private const string NameOfLineA = "A";
+
+        // LineA and its line break in UTF-8 after its byte order mark, EF BB BF.
+        private static readonly byte[] Utf8ByteOrderMarkLineA = { 0xEF, 0xBB, 0xBF, 0x41, 0x3A, 0x31, 0x0D, 0x0A };
+
+        // LineA and its line break in UTF-16 LE after its byte order mark, FF FE.
+        private static readonly byte[] Utf16ByteOrderMarkLineA = { 0xFF, 0xFE, 0x41, 0x00, 0x3A, 0x00, 0x31, 0x00, 0x0D, 0x00, 0x0A, 0x00 };
+
+        // "A:" and the byte FF, which never appears in UTF-8 (RFC 3629 §1), and a line break.
+        private static readonly byte[] InvalidUtf8Line = { 0x41, 0x3A, 0xFF, 0x0D, 0x0A };
+        private const string ReplacementCharacter = "\xFFFD";
+
+        // A line folded twice, the second time at the very end of the data, so that it has no final line break.
+        private const string FoldAtEndOfInput = "SUMMARY:a\r\n b\r\n ";
+
+        // The message for a last line with no line break (RFC 5545 §3.1).
+        private const string MissingLineBreakMessage = "Expected a CRLF line break at the end of the last content line.";
 
         // ref. RFC 3629 §3: "\x20AC" (the euro sign) is E2 82 AC and "\xD83D\xDE00" (a grinning face) is F0 9F 98 80 in UTF-8.  The SUMMARY is folded
         // after the first octet of one and inside the other twice, and the line after it holds e-acute.
@@ -184,10 +203,25 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public void ReadLine_LeadingByteOrderMarkCharacter_IsSkipped()
+        public void ReadLine_LeadingByteOrderMarkCharacter_Throws()
         {
             // arrange
             using (var reader = CreateReader(ByteOrderMarkThenBegin))
+            {
+                // act
+                Action testAction = () => reader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<IcalFileException>();
+            }
+        }
+
+        [Fact]
+        public void ReadLine_LeadingByteOrderMarkCharacterAccepted_IsSkipped()
+        {
+            // arrange
+            var options = new IcalOptions { AcceptByteOrderMark = true };
+            using (var reader = CreateReader(ByteOrderMarkThenBegin, options))
             {
                 // act
                 var testResult = reader.ReadLine();
@@ -846,10 +880,25 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public void ReadLine_FoldAtEndOfInput_IsUnfolded()
+        public void ReadLine_FoldAtEndOfInput_Throws()
         {
             // arrange
-            using (var reader = CreateReader("SUMMARY:a\r\n b\r\n "))
+            using (var reader = CreateReader(FoldAtEndOfInput))
+            {
+                // act
+                Action testAction = () => reader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<IcalFileException>().WithMessage(MissingLineBreakMessage);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_FoldAtEndOfInputWithMissingFinalLineBreakAccepted_IsUnfolded()
+        {
+            // arrange
+            var options = new IcalOptions { AcceptMissingFinalLineBreak = true };
+            using (var reader = CreateReader(FoldAtEndOfInput, options))
             {
                 // act
                 var testResult = reader.ReadLine();
@@ -860,10 +909,11 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public void ReadLine_AfterFoldAtEndOfInput_ReturnsNull()
+        public void ReadLine_AfterFoldAtEndOfInputWithMissingFinalLineBreakAccepted_ReturnsNull()
         {
             // arrange
-            using (var reader = CreateReader("SUMMARY:a\r\n b\r\n "))
+            var options = new IcalOptions { AcceptMissingFinalLineBreak = true };
+            using (var reader = CreateReader(FoldAtEndOfInput, options))
             {
                 reader.ReadLine();
 
@@ -942,32 +992,119 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public void ReadLine_Utf16StreamWithByteOrderMark_IsDecoded()
+        public void ReadLine_Utf16StreamWithByteOrderMark_Throws()
         {
             // arrange
-            var data = Encoding.Unicode.GetPreamble().Concat(Encoding.Unicode.GetBytes(Crlf("SUMMARY:caf", " \xE9 \x2615"))).ToArray();
-            using (var reader = CreateStreamReader(data))
+            using (var reader = CreateStreamReader(Utf16ByteOrderMarkLineA))
             {
                 // act
-                var testResult = reader.ReadLine();
+                Action testAction = () => reader.ReadLine();
 
                 // assert
-                testResult.Value.Should().Be("caf\xE9 \x2615");
+                testAction.Should().Throw<IcalFileException>();
             }
         }
 
         [Fact]
-        public void ReadLine_Utf8StreamWithByteOrderMark_SkipsByteOrderMark()
+        public void ReadLine_Utf16StreamWithByteOrderMarkAndUtf16Encoding_IsDecoded()
         {
             // arrange
-            var data = Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(Crlf("BEGIN:VCALENDAR"))).ToArray();
-            using (var reader = CreateStreamReader(data))
+            var options = new IcalOptions { Encoding = Encoding.Unicode };
+            using (var reader = CreateStreamReader(Utf16ByteOrderMarkLineA, options))
             {
                 // act
                 var testResult = reader.ReadLine();
 
                 // assert
-                testResult.Name.Should().Be("BEGIN");
+                testResult.Name.Should().Be(NameOfLineA);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_Utf8StreamWithByteOrderMark_Throws()
+        {
+            // arrange
+            using (var reader = CreateStreamReader(Utf8ByteOrderMarkLineA))
+            {
+                // act
+                Action testAction = () => reader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<IcalFileException>();
+            }
+        }
+
+        [Fact]
+        public void ReadLine_Utf8StreamWithByteOrderMarkAccepted_SkipsByteOrderMark()
+        {
+            // arrange
+            var options = new IcalOptions { AcceptByteOrderMark = true };
+            using (var reader = CreateStreamReader(Utf8ByteOrderMarkLineA, options))
+            {
+                // act
+                var testResult = reader.ReadLine();
+
+                // assert
+                testResult.Name.Should().Be(NameOfLineA);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_InvalidUtf8FromStream_Throws()
+        {
+            // arrange
+            using (var reader = CreateStreamReader(InvalidUtf8Line))
+            {
+                // act
+                Action testAction = () => reader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<IcalFileException>().WithInnerException<DecoderFallbackException>();
+            }
+        }
+
+        [Fact]
+        public async Task ReadLineAsync_InvalidUtf8FromStream_Throws()
+        {
+            // arrange
+            using (var reader = CreateStreamReader(InvalidUtf8Line))
+            {
+                // act
+                Func<Task> testAction = async () => await reader.ReadLineAsync();
+
+                // assert
+                (await testAction.Should().ThrowAsync<IcalFileException>()).WithInnerException<DecoderFallbackException>();
+            }
+        }
+
+        [Fact]
+        public void ReadLine_AfterInvalidUtf8_CannotContinue()
+        {
+            // arrange
+            using (var reader = CreateStreamReader(InvalidUtf8Line))
+            {
+                Record.Exception(() => reader.ReadLine());
+
+                // act
+                Action testAction = () => reader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>();
+            }
+        }
+
+        [Fact]
+        public void ReadLine_InvalidUtf8WithReplacingUtf8Encoding_ReplacesInvalidData()
+        {
+            // arrange
+            var options = new IcalOptions { Encoding = Encoding.UTF8 };
+            using (var reader = CreateStreamReader(InvalidUtf8Line, options))
+            {
+                // act
+                var testResult = reader.ReadLine();
+
+                // assert
+                testResult.Value.Should().Be(ReplacementCharacter);
             }
         }
 
@@ -1135,10 +1272,42 @@ namespace DataStandardizer.File.iCal.Tests
 
         [Theory]
         [MemberData(nameof(BufferSizeData), MemberType = typeof(IcalTestData))]
-        public void ReadLine_LastLineWithoutLineBreak_IsRead(int bufferSize)
+        public void ReadLine_LastLineWithoutLineBreak_Throws(int bufferSize)
         {
             // arrange
-            using (var reader = CreateReader("BEGIN:VCALENDAR\r\nEND:VCALENDAR", bufferSize: bufferSize))
+            using (var reader = CreateReader(LineA, bufferSize: bufferSize))
+            {
+                // act
+                Action testAction = () => reader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<IcalFileException>().WithMessage(MissingLineBreakMessage);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_AfterMissingFinalLineBreak_ReachesTheEnd()
+        {
+            // arrange
+            using (var reader = CreateReader(LineA))
+            {
+                Record.Exception(() => reader.ReadLine());
+
+                // act
+                var testResult = reader.ReadLine();
+
+                // assert
+                testResult.Should().BeNull();
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(BufferSizeData), MemberType = typeof(IcalTestData))]
+        public void ReadLine_LastLineWithoutLineBreakAccepted_IsRead(int bufferSize)
+        {
+            // arrange
+            var options = new IcalOptions { AcceptMissingFinalLineBreak = true };
+            using (var reader = CreateReader("BEGIN:VCALENDAR\r\nEND:VCALENDAR", options, bufferSize))
             {
                 // act
                 var testResult = ReadAll(reader);

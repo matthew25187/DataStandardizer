@@ -62,7 +62,7 @@ namespace DataStandardizer.File.iCal
         private int _isReadInProgress;
 
         /// <summary>
-        /// Creates a reader for iCalendar data in a stream, read as UTF-8 unless the stream starts with a byte order mark.
+        /// Creates a reader for iCalendar data in a stream, read as UTF-8.
         /// </summary>
         /// <param name="icalStream">The stream.  It is left open when the reader is disposed.</param>
         /// <exception cref="ArgumentNullException"><paramref name="icalStream"/> is <c>null</c>.</exception>
@@ -86,7 +86,7 @@ namespace DataStandardizer.File.iCal
 
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
         /// <summary>
-        /// Creates a reader for an iCalendar file, read as UTF-8 unless the file starts with a byte order mark.
+        /// Creates a reader for an iCalendar file, read as UTF-8.
         /// </summary>
         /// <param name="icalFilePath">The path of the file.</param>
         /// <exception cref="ArgumentNullException"><paramref name="icalFilePath"/> is <c>null</c>.</exception>

@@ -24,8 +24,14 @@ namespace DataStandardizer.File.iCal
     /// </para>
     /// <para>
     /// A content line ends with a CRLF line break.  A bare line feed is accepted only with <see cref="IcalOptions.AcceptBareLineFeed"/>, and a bare
-    /// carriage return is never a line break.  The last line need not end with a line break.  Line breaks never depend on
-    /// <see cref="Environment.NewLine"/>.
+    /// carriage return is never a line break.  The last line ends with one too, unless <see cref="IcalOptions.AcceptMissingFinalLineBreak"/> is
+    /// set.  Line breaks never depend on <see cref="Environment.NewLine"/>.
+    /// </para>
+    /// <para>
+    /// A byte order mark at the start of the data is rejected unless <see cref="IcalOptions.AcceptByteOrderMark"/> is set, and never selects the
+    /// encoding.  Data read from a <see cref="Stream"/> or file is strict UTF-8 unless <see cref="IcalOptions.Encoding"/> says otherwise, so a
+    /// byte sequence that is not valid UTF-8 causes an <see cref="IcalFileException"/>, after which later reads throw
+    /// <see cref="InvalidOperationException"/>.
     /// </para>
     /// <para>
     /// When the data is read from a <see cref="Stream"/> or file as UTF-8, a fold that splits a multi-octet UTF-8 sequence is repaired before
@@ -55,9 +61,10 @@ namespace DataStandardizer.File.iCal
         internal const int StreamBufferSize = 16 * 1024;
 
         /// <summary>
-        /// Encoding used when none is specified: UTF-8, the default charset of RFC 5545 §3.1.4.
+        /// Encoding used when none is specified: UTF-8, the default charset of RFC 5545 §3.1.4.  It throws on invalid data, as the data then
+        /// breaks the grammar, and has no preamble, so that a <see cref="StreamReader"/> leaves a byte order mark for the scanner to judge.
         /// </summary>
-        private static readonly Encoding DefaultEncoding = Encoding.UTF8;
+        private static readonly Encoding DefaultEncoding = new UTF8Encoding(false, true);
 
         /// <summary>
         /// Gives the result of <see cref="ReadContentLine"/>: whether a line was read.
@@ -75,6 +82,7 @@ namespace DataStandardizer.File.iCal
             (reader, lineRead) => lineRead ? IcalContentLine.FromScanner(reader._scanner) : null;
 
         private bool _hasCurrentLine;
+        private bool _isDecodingFaulted;
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
         private bool _isCanceled;
 #endif
@@ -101,7 +109,7 @@ namespace DataStandardizer.File.iCal
         internal ContentLineScanner Scanner => _scanner;
 
         /// <summary>
-        /// Creates a reader for iCalendar data in a stream, read as UTF-8 unless the stream starts with a byte order mark.
+        /// Creates a reader for iCalendar data in a stream, read as UTF-8.
         /// </summary>
         /// <param name="icalStream">The stream.  It is left open when the reader is disposed.</param>
         /// <exception cref="ArgumentNullException"><paramref name="icalStream"/> is <c>null</c>.</exception>
@@ -125,7 +133,7 @@ namespace DataStandardizer.File.iCal
 
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
         /// <summary>
-        /// Creates a reader for an iCalendar file, read as UTF-8 unless the file starts with a byte order mark.
+        /// Creates a reader for an iCalendar file, read as UTF-8.
         /// </summary>
         /// <param name="icalFilePath">The path of the file.</param>
         /// <exception cref="ArgumentNullException"><paramref name="icalFilePath"/> is <c>null</c>.</exception>
@@ -190,8 +198,11 @@ namespace DataStandardizer.File.iCal
 
             _reader = reader;
             _isInternalReader = isInternalReader;
-            _scanner = new ContentLineScanner(bufferSize, new ContentLineScannerSettings(options.AcceptBareLineFeed, options.MaxLineLength ?? int.MaxValue),
-                IcalContentLineErrorFactory.Instance);
+
+            // ref. RFC 5545 §3.1: contentline = name *(";" param ) ":" value CRLF
+            var settings = new ContentLineScannerSettings(options.AcceptBareLineFeed, options.MaxLineLength ?? int.MaxValue,
+                rejectByteOrderMark: !options.AcceptByteOrderMark, requireFinalLineBreak: !options.AcceptMissingFinalLineBreak);
+            _scanner = new ContentLineScanner(bufferSize, settings, IcalContentLineErrorFactory.Instance);
         }
 
         /// <summary>
@@ -281,11 +292,11 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <returns><c>true</c> if a line was read; <c>false</c> if the end of the data has been reached.</returns>
         /// <exception cref="IcalFileException">The line does not follow the content line syntax of RFC 5545 §3.1, has a line break that is not
-        /// accepted, or is longer than <see cref="IcalOptions.MaxLineLength"/>.</exception>
+        /// accepted, or is longer than <see cref="IcalOptions.MaxLineLength"/>; or the data can't be decoded.</exception>
         /// <exception cref="ObjectDisposedException">The reader has been disposed.</exception>
         /// <exception cref="InvalidOperationException">Another read is in progress.
         /// -or-
-        /// An earlier read found a line break or line length error, or was canceled, so the reader cannot continue.</exception>
+        /// An earlier read found a line break, line length or decoding error, or was canceled, so the reader cannot continue.</exception>
         public bool ReadContentLine()
         {
             return Read(LineReadResult);
@@ -296,11 +307,11 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <returns>The line; or <c>null</c> if the end of the data has been reached.</returns>
         /// <exception cref="IcalFileException">The line does not follow the content line syntax of RFC 5545 §3.1, has a line break that is not
-        /// accepted, or is longer than <see cref="IcalOptions.MaxLineLength"/>.</exception>
+        /// accepted, or is longer than <see cref="IcalOptions.MaxLineLength"/>; or the data can't be decoded.</exception>
         /// <exception cref="ObjectDisposedException">The reader has been disposed.</exception>
         /// <exception cref="InvalidOperationException">Another read is in progress.
         /// -or-
-        /// An earlier read found a line break or line length error, or was canceled, so the reader cannot continue.</exception>
+        /// An earlier read found a line break, line length or decoding error, or was canceled, so the reader cannot continue.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public IcalContentLine? ReadLine()
 #else
@@ -316,9 +327,9 @@ namespace DataStandardizer.File.iCal
         /// <returns>The lines, read as the sequence is enumerated.</returns>
         /// <exception cref="ObjectDisposedException">The reader has been disposed, either before this call or during enumeration.</exception>
         /// <exception cref="IcalFileException">During enumeration: a line does not follow the content line syntax, has a line break that is not
-        /// accepted, or is too long.</exception>
+        /// accepted, or is too long; or the data can't be decoded.</exception>
         /// <exception cref="InvalidOperationException">During enumeration: another read is in progress, or an earlier read found a line break or
-        /// line length error or was canceled.</exception>
+        /// line length or decoding error or was canceled.</exception>
         public IEnumerable<IcalContentLine> ReadLines()
         {
             // Check now, so the exception comes from this call and not from the first MoveNext.
@@ -341,9 +352,9 @@ namespace DataStandardizer.File.iCal
         /// while the read is in progress.</exception>
         /// <exception cref="InvalidOperationException">Another read is in progress.
         /// -or-
-        /// An earlier read found a line break or line length error, or was canceled, so the reader cannot continue.</exception>
+        /// An earlier read found a line break, line length or decoding error, or was canceled, so the reader cannot continue.</exception>
         /// <exception cref="IcalFileException">By the task: the line does not follow the content line syntax of RFC 5545 §3.1, has a line break
-        /// that is not accepted, or is longer than <see cref="IcalOptions.MaxLineLength"/>.</exception>
+        /// that is not accepted, or is longer than <see cref="IcalOptions.MaxLineLength"/>; or the data can't be decoded.</exception>
         /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.</exception>
         public ValueTask<bool> ReadContentLineAsync(CancellationToken cancellationToken = default)
         {
@@ -363,9 +374,9 @@ namespace DataStandardizer.File.iCal
         /// while the read is in progress.</exception>
         /// <exception cref="InvalidOperationException">Another read is in progress.
         /// -or-
-        /// An earlier read found a line break or line length error, or was canceled, so the reader cannot continue.</exception>
+        /// An earlier read found a line break, line length or decoding error, or was canceled, so the reader cannot continue.</exception>
         /// <exception cref="IcalFileException">By the task: the line does not follow the content line syntax of RFC 5545 §3.1, has a line break
-        /// that is not accepted, or is longer than <see cref="IcalOptions.MaxLineLength"/>.</exception>
+        /// that is not accepted, or is longer than <see cref="IcalOptions.MaxLineLength"/>; or the data can't be decoded.</exception>
         /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public ValueTask<IcalContentLine?> ReadLineAsync(CancellationToken cancellationToken = default)
@@ -384,9 +395,9 @@ namespace DataStandardizer.File.iCal
         /// <returns>The lines, read as the sequence is enumerated.</returns>
         /// <exception cref="ObjectDisposedException">The reader has been disposed, either before this call or during enumeration.</exception>
         /// <exception cref="IcalFileException">During enumeration: a line does not follow the content line syntax, has a line break that is not
-        /// accepted, or is too long.</exception>
+        /// accepted, or is too long; or the data can't be decoded.</exception>
         /// <exception cref="InvalidOperationException">During enumeration: another read is in progress, or an earlier read found a line break or
-        /// line length error or was canceled.</exception>
+        /// line length or decoding error or was canceled.</exception>
         /// <exception cref="OperationCanceledException">During enumeration: the read was canceled.</exception>
         public IAsyncEnumerable<IcalContentLine> ReadLinesAsync(CancellationToken cancellationToken = default)
         {
@@ -461,7 +472,16 @@ namespace DataStandardizer.File.iCal
 
                     int offset, count;
                     _scanner.PrepareRefill(out offset, out count);
-                    var charactersRead = _reader.Read(_scanner.Buffer, offset, count);
+                    int charactersRead;
+                    try
+                    {
+                        charactersRead = _reader.Read(_scanner.Buffer, offset, count);
+                    }
+                    catch (DecoderFallbackException exception) when (_isInternalReader)
+                    {
+                        throw FaultDecoding(exception);
+                    }
+
                     ThrowIfDisposed();
                     _scanner.CompleteRefill(charactersRead);
                 }
@@ -546,6 +566,10 @@ namespace DataStandardizer.File.iCal
 
                 return result(this, CompleteLine(status));
             }
+            catch (DecoderFallbackException exception) when (_isInternalReader)
+            {
+                throw FaultDecoding(exception);
+            }
             catch (OperationCanceledException)
             {
                 _isCanceled = true;
@@ -591,11 +615,13 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Checks that the reader can continue, and moves on from the current line.
         /// </summary>
-        /// <exception cref="InvalidOperationException">An earlier read found a line break or line length error, or was canceled.</exception>
+        /// <exception cref="InvalidOperationException">An earlier read found a line break, line length or decoding error, or was canceled.</exception>
         private void StartLine()
         {
             if (_scanner.IsFaulted)
                 throw new InvalidOperationException("The reader cannot continue after a line break or line length error.");
+            if (_isDecodingFaulted)
+                throw new InvalidOperationException("The reader cannot continue after a failure decoding its source.");
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
             if (_isCanceled)
                 throw new InvalidOperationException("The reader cannot continue after a read was canceled.");
@@ -608,6 +634,15 @@ namespace DataStandardizer.File.iCal
             }
 
             _hasCurrentLine = false;
+        }
+
+        /// <summary>
+        /// Builds the exception for data that can't be decoded, and faults the reader, since the place to resume from is unknown.
+        /// </summary>
+        private IcalFileException FaultDecoding(DecoderFallbackException exception)
+        {
+            _isDecodingFaulted = true;
+            return IcalContentLineErrorFactory.BuildDecodingException(exception);
         }
 
         /// <summary>
@@ -656,7 +691,7 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
-        /// Creates the stream reader, repairing folds inside UTF-8 sequences when the data is UTF-8.
+        /// Creates the stream reader, repairing folds inside UTF-8 sequences when the data is UTF-8.  A byte order mark never selects the encoding.
         /// </summary>
         /// <param name="stream">The stream.</param>
         /// <param name="ownsStream"><c>true</c> if disposing the stream reader should dispose <paramref name="stream"/>.</param>
@@ -667,10 +702,10 @@ namespace DataStandardizer.File.iCal
             if (encoding is UTF8Encoding)
             {
                 var foldRealigningStream = new Utf8FoldRealigningStream(stream, !ownsStream, bufferSize);
-                return new StreamReader(foldRealigningStream, encoding, true, bufferSize, false);
+                return new StreamReader(foldRealigningStream, encoding, false, bufferSize, false);
             }
 
-            return new StreamReader(stream, encoding, true, bufferSize, !ownsStream);
+            return new StreamReader(stream, encoding, false, bufferSize, !ownsStream);
         }
 
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
