@@ -46,6 +46,7 @@ Except in the `File*` classes, reads come from a `MemoryStream` and writes go to
 |-------|-----------|------------------|
 | `ReadBenchmarks` | `Read_Raw` | `CsvFileReader<CsvFileRecordLine>` with `HeaderHandling = Use` (baseline). |
 | | `Read_Mapped` | `CsvFileReader<PersonLine>` with the imperative `PersonLineMapper` (`Int32Converter`, `DecimalConverter`). |
+| | `Read_Mapped_BuiltInParse` | As `Read_Mapped`, with `PersonLineParsedMapper`, which has no converters, so `Id` and `Amount` use the reader's built-in parse. |
 | | `Read_CsvHelper_Records` | CsvHelper `GetRecords<Person>()`. |
 | | `Read_CsvHelper_Raw` | CsvHelper `Read()` and `GetString(i)` for each field. |
 | `WriteBenchmarks` | `Write_Raw` | `CsvFileWriter<CsvFileRecordLine>` with pre-built string fields (baseline). |

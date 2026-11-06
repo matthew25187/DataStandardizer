@@ -57,11 +57,15 @@ rather than on separate pages:
 
 ### The step methods (explicit on `CsvFieldMappingBuilder<TModel, T>`)
 
+`ConvertUsing` is optional for reading the types the reader parses itself, such as
+the numeric, date, time, `bool`, `Guid` and enum types. See
+[converting field values](../concepts/field-mapping.md#converting-field-values).
+
 | Step method | Returns | Notes |
 | --- | --- | --- |
-| `ConvertUsing(CsvFieldConvertFromString<TModel, T> converter)` | `ICsvFieldMappingTransformationNextBuilder<TModel>` | Sets the deserialization converter (reading). |
+| `ConvertUsing(CsvFieldConvertFromString<TModel, T> converter)` | `ICsvFieldMappingTransformationNextBuilder<TModel>` | Sets the deserialization converter (reading). It takes precedence over a `TypeConverter` and the reader's built-in parse. |
 | `ConvertUsing(CsvFieldConvertToString<TModel> converter)` | `ICsvFieldMappingTransformationNextBuilder<TModel>` | Sets the serialization converter (writing). |
-| `ConvertUsing(Type typeConverterType)` | `ICsvFieldMappingTransformationNextBuilder<TModel>` | Sets a `TypeConverter` type. Throws `ArgumentException` if it is not a `TypeConverter`. |
+| `ConvertUsing(Type typeConverterType)` | `ICsvFieldMappingTransformationNextBuilder<TModel>` | Sets a `TypeConverter` type. Throws `ArgumentException` if it is not a `TypeConverter`. When reading, it takes precedence over the reader's built-in parse. |
 | `ConvertUsing<TConverter>() where TConverter : TypeConverter` | `ICsvFieldMappingTransformationNextBuilder<TModel>` | Sets a `TypeConverter` type by type argument. |
 | `HasConstantValue(T value)` | `void` | Sets a constant field value. |
 | `HasFieldIndex(int fieldIndex)` | `ICsvFieldMappingIdentityNextBuilder<TModel, T>` | Maps to a field by index. Throws `ArgumentOutOfRangeException` if negative. |

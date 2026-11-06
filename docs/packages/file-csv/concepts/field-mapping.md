@@ -73,7 +73,7 @@ fields on `CsvFieldMapping` as follows:
 | Builder step | Configures |
 | --- | --- |
 | `HasFieldName(string)` / `HasFieldIndex(int)` | The target CSV field by name or position. |
-| `ConvertUsing(...)` | A converter: a `Type` of `TypeConverter`, a generic `<TConverter>`, or a `CsvFieldConvertFromString` / `CsvFieldConvertToString` delegate. |
+| `ConvertUsing(...)` | A converter: a `Type` of `TypeConverter`, a generic `<TConverter>`, or a `CsvFieldConvertFromString` / `CsvFieldConvertToString` delegate. Optional for the types the reader parses itself; see [Converting field values](#converting-field-values). |
 | `ValidateUsing(CsvFieldValidate<TModel>)` | A delegate that returns `false` for invalid incoming values. |
 | `IsOptional()` | Marks the field optional, so a missing field does not error. |
 | `HasConstantValue(T)` | A fixed value for the field (terminal). |
@@ -88,8 +88,7 @@ public class PersonRecordLineMapper : CsvFileMapperBase<PersonRecordLine>
     {
         this.Map()
             .Property(x => x.Id)
-            .HasFieldName("person_id")
-            .ConvertUsing(typeof(Int32Converter));
+            .HasFieldName("person_id");
         this.Map()
             .Property(x => x.Description)
             .HasFieldName("person_description")
@@ -116,6 +115,65 @@ The converters, validators, and generators run as each field is read or written;
 on a validation failure the value is routed to the configured bad-value handler
 or, if none, surfaces as a `CsvFileException`. An exception thrown by a converter
 or generator delegate propagates unchanged.
+
+## Converting field values
+
+When a reader maps a field to a property, it converts the field's text to the
+property type. The first of these that applies to the mapping is used:
+
+1. A `CsvFieldConvertFromString` delegate, set with `ConvertUsing(delegate)`.
+2. A `TypeConverter`, set with `ConvertUsing(Type)`, `ConvertUsing<TConverter>()`
+   or a `[TypeConverter]` attribute on the property.
+3. The reader's built-in parse for the property type, described below.
+4. Otherwise the property gets the default value of its type.
+
+A value that is already of the property type, such as a string for a `string`
+property, a constant value of the property type, or a generated value, is used as
+it is.
+
+So a numeric, date, time, `Guid`, `bool` or enum property needs no converter. The
+built-in parse handles these types, and their `Nullable<T>` forms, in the same way
+on every target:
+
+| Property type | Parsed with |
+| --- | --- |
+| `int`, `long`, `short`, `sbyte`, `uint`, `ulong`, `ushort`, `byte` | `TryParse` with `NumberStyles.Integer` |
+| `decimal` | `TryParse` with `NumberStyles.Number` |
+| `double`, `float` | `TryParse` with `NumberStyles.Float \| NumberStyles.AllowThousands` |
+| `DateTime`, `DateTimeOffset` | `TryParse` with `DateTimeStyles.None` |
+| `TimeSpan` | `TryParse` |
+| `bool`, `char`, `Guid` | `TryParse`, which doesn't depend on the culture |
+| An enum | `Enum.TryParse`, case-sensitive: a member name, a comma-separated list of names, or a number, which needn't be a defined value. |
+
+These are the styles the types' own `IParsable<T>` implementations use on .NET 7
+and later. On the `net10.0` build, any other type that implements
+`ISpanParsable<T>` or `IParsable<T>` is parsed with it. On every build, a type
+that has none of these is parsed with the `TypeConverter` that
+`TypeDescriptor.GetConverter` returns for it, if that converter converts from a
+string, such as a type with a `[TypeConverter]` attribute on its declaration.
+
+The culture is the reader's `CsvFileOptions.Culture`, or the invariant culture
+if it isn't set, as it is for a configured `TypeConverter`. The current culture
+is never used.
+
+An empty field gives the default value of the property type: `null` for a
+`Nullable<T>` or reference type, and `0`, `false` or the type's other default for
+a value type. Only an empty field does: a field of white space is parsed like any
+other value.
+
+### Values that fail to convert
+
+A field the built-in parse rejects, such as `abc` or `1.5` for an `int`, is a bad
+value. So is a field a `TypeConverter` throws for, whether it's configured on the
+mapping or found by `TypeDescriptor`. If `CsvFileOptions.BadValueHandler` is set,
+the reader calls it, with the field's text in `RawFieldValue`, and carries on with
+the property left at its default value. Otherwise it throws a `CsvFileException`
+whose `Data` holds the `Property` and `FieldValue`, and the `FieldName` when the
+mapping names one. When a `TypeConverter` threw, its exception is the
+`InnerException`.
+
+An exception thrown by a `CsvFieldConvertFromString` delegate still propagates
+unchanged.
 
 ## Related
 

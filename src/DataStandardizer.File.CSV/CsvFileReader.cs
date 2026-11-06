@@ -447,18 +447,7 @@ namespace DataStandardizer.File.CSV
                         }
 
                         var rawFieldValue = csvLine[fieldKey] is string stringFieldValue ? stringFieldValue : string.Empty;
-                        var message = $"Encountered invalid value '{rawFieldValue}' in CSV field {string.Join(",", fieldMapping.Value.FieldName)}.";
-                        var dataItems = new Dictionary<string, object>
-                        {
-                            { DataItemName.PropertyName, fieldMapping.Key },
-                            { DataItemName.FieldValue, rawFieldValue }
-                        };
-                        if (!string.IsNullOrWhiteSpace(fieldMapping.Value.FieldName))
-                        {
-                            dataItems.Add(DataItemName.FieldName, fieldMapping.Value.FieldName);
-                        }
-
-                        throw BuildException(message, dataItems);
+                        throw BuildInvalidMappedValueException(fieldMapping, rawFieldValue, null);
                     }
                 }
 
@@ -473,8 +462,49 @@ namespace DataStandardizer.File.CSV
                     fieldValue = fieldMappingPlan.Accessor.Generate(fieldMapping.Value.VariableValueGenerator);
                 }
 
-                csvLine[fieldKey] = fieldMappingPlan.Accessor.Deserialize(_headerLine, recordLine, options, fieldMapping, fieldValue);
+                if (!fieldMappingPlan.Accessor.TryDeserialize(_headerLine, recordLine, options, fieldMapping, fieldValue, out var propertyValue, out var error))
+                {
+                    // Only a string is converted, so a value that fails to convert is always one.
+                    var rawFieldValue = fieldValue as string ?? string.Empty;
+                    if (_options.BadValueHandler is CsvFieldBadValue<TRecordLine> badValueHandler)
+                    {
+                        var fieldContext = new CsvFieldContext<TRecordLine>(_options)
+                        {
+                            Model = recordLine,
+                            FieldIndex = fieldMappingPlan.FieldIndex,
+                            FieldName = mappedFieldName,
+                            HeaderLine = _headerLine,
+                            RawFieldValue = rawFieldValue
+                        };
+                        badValueHandler(fieldContext);
+                        continue;
+                    }
+
+                    throw BuildInvalidMappedValueException(fieldMapping, rawFieldValue, error);
+                }
+
+                csvLine[fieldKey] = propertyValue;
             }
+        }
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private static CsvFileException BuildInvalidMappedValueException(KeyValuePair<string, CsvFieldMapping> fieldMapping, string rawFieldValue, Exception? innerException)
+#else
+        private static CsvFileException BuildInvalidMappedValueException(KeyValuePair<string, CsvFieldMapping> fieldMapping, string rawFieldValue, [AllowNull] Exception innerException)
+#endif
+        {
+            var message = $"Encountered invalid value '{rawFieldValue}' in CSV field {string.Join(",", fieldMapping.Value.FieldName)}.";
+            var dataItems = new Dictionary<string, object>
+            {
+                { DataItemName.PropertyName, fieldMapping.Key },
+                { DataItemName.FieldValue, rawFieldValue }
+            };
+            if (!string.IsNullOrWhiteSpace(fieldMapping.Value.FieldName))
+            {
+                dataItems.Add(DataItemName.FieldName, fieldMapping.Value.FieldName);
+            }
+
+            return BuildException(message, dataItems, innerException);
         }
 
         /// <summary>

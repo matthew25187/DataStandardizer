@@ -55,6 +55,12 @@ and the `protected` members of `CsvFileIoBase<TRecordLine>` and
 cached mappers built from attributes. See
 [File.CSV mapper registration](removed-in-v2.md#filecsv-mapper-registration).
 
+A File.CSV reader now parses a mapped numeric, date, time, `bool`, `Guid` or enum
+property that has no converter, instead of leaving it at its default value, and a
+field that fails to convert, with or without a converter, goes to the bad-value
+handler or raises a `CsvFileException`. See
+[File.CSV conversion of mapped properties](removed-in-v2.md#filecsv-conversion-of-mapped-properties).
+
 `SubtagRegistry` moves to the `DataStandardizer.LanguageTag` namespace, and the
 types of its records move to `DataStandardizer.LanguageTag.Registry`. See
 [where the registry types live](removed-in-v2.md#where-the-registry-types-live).
