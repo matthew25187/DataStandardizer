@@ -31,6 +31,8 @@ A reader calls it for a field it can't read, such as an unquoted field that hold
 quote, for a field a mapping's validator rejects, and for a field it can't convert
 to the mapped property's type. See
 [converting field values](../concepts/field-mapping.md#converting-field-values).
+An exception thrown by a [CsvFieldConvertFromString](CsvFieldConvertFromString.md)
+delegate isn't a bad value: it propagates unchanged, and the handler isn't called.
 
 ## Applies to
 

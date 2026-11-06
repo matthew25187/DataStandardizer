@@ -47,6 +47,16 @@ namespace DataStandardizer.File.CSV.Tests
 
         private const decimal OneAndAHalf = 1.5m;
 
+        /// <summary>
+        /// A file whose header puts the <c>Amount</c> field second, after a field that no mapping names.
+        /// </summary>
+        private const string AmountSecondFile = "Other,Amount\r\nx,abc\r\n";
+
+        /// <summary>
+        /// The position of the <c>Amount</c> field in the lines of <see cref="AmountSecondFile"/>.
+        /// </summary>
+        private const int AmountFieldPosition = 1;
+
         public static TheoryData<string, Func<string, object>, string, object> ParsedValueCases => new TheoryData<string, Func<string, object>, string, object>
         {
             { "int", ReadValue<int>, "-42", -42 },
@@ -61,6 +71,10 @@ namespace DataStandardizer.File.CSV.Tests
             { "decimal with thousands separator", ReadValue<decimal>, "\"1,234.5\"", 1234.5m },
             { "double", ReadValue<double>, "0.25", 0.25d },
             { "float", ReadValue<float>, "0.5", 0.5f },
+            { "double, positive infinity symbol", ReadValue<double>, "Infinity", double.PositiveInfinity },
+            { "double, negative infinity symbol", ReadValue<double>, "-Infinity", double.NegativeInfinity },
+            { "double, NaN symbol", ReadValue<double>, "NaN", double.NaN },
+            { "float, positive infinity symbol", ReadValue<float>, "Infinity", float.PositiveInfinity },
             { "bool", ReadValue<bool>, "True", true },
             { "char", ReadValue<char>, "x", 'x' },
             { "DateTime", ReadValue<DateTime>, "2026-11-06T13:45:00", new DateTime(2026, 11, 6, 13, 45, 0) },
@@ -107,6 +121,11 @@ namespace DataStandardizer.File.CSV.Tests
             { "int, white space only", ReadValue<int>, " " },
             { "nullable int, not a number", ReadValue<int?>, MalformedInteger },
             { "decimal, not a number", ReadValue<decimal>, "1.2.3" },
+            { "double, too large", ReadValue<double>, "1e999" },
+            { "double, too large and negative", ReadValue<double>, "-1e999" },
+            { "double, infinity symbol in other case", ReadValue<double>, "infinity" },
+            { "double, NaN symbol in other case", ReadValue<double>, "nan" },
+            { "float, too large", ReadValue<float>, "1e39" },
             { "bool, not a Boolean", ReadValue<bool>, "yes" },
             { "char, two characters", ReadValue<char>, "xy" },
             { "DateTime, not a date", ReadValue<DateTime>, "2026-13-45" },
@@ -229,6 +248,78 @@ namespace DataStandardizer.File.CSV.Tests
 
                 // assert
                 testResult.Should().Be(OneAndAHalf);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_TypeConverterOfTypeReturnsNull_ReadsNull()
+        {
+            // act
+            var testResult = ReadValue<NullConvertedCode>("abc");
+
+            // assert
+            testResult.Should().BeNull();
+        }
+
+        [Fact]
+        public void ReadLine_FromStringConverterConfiguredForTypeWhoseConverterCantBeCreated_ReadsConvertedValue()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.None };
+            using (var csvReader = new CsvFileReader<UncreatableConverterLine>(new StringReader("abc"), options))
+            {
+                csvReader.RegisterMapper<UncreatableConverterLineMapper>();
+
+                // act
+                var testResult = (UncreatableConverterLine)csvReader.ReadLine();
+
+                // assert
+                testResult.Value.Should().BeSameAs(UncreatableConverterLineMapper.ConvertedValue);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_MalformedValueAfterUnmappedField_CallsHandlerWithFieldPosition()
+        {
+            // arrange
+            var fieldIndexes = new List<int?>();
+            var options = new CsvFileOptions
+            {
+                HeaderHandling = CsvFileHeaderHandling.Use,
+                BadValueHandler = new CsvFieldBadValue<AmountLine>(context => fieldIndexes.Add(context.FieldIndex))
+            };
+            using (var csvReader = new CsvFileReader<AmountLine>(new StringReader(AmountSecondFile), options))
+            {
+                _ = csvReader.ReadLine();
+
+                // act
+                _ = csvReader.ReadLine();
+
+                // assert
+                fieldIndexes.Should().Equal(AmountFieldPosition);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_ValidatorRejectsValueAfterUnmappedField_CallsHandlerWithFieldPosition()
+        {
+            // arrange
+            var fieldIndexes = new List<int?>();
+            var options = new CsvFileOptions
+            {
+                HeaderHandling = CsvFileHeaderHandling.Use,
+                BadValueHandler = new CsvFieldBadValue<ValidatedAmountLine>(context => fieldIndexes.Add(context.FieldIndex))
+            };
+            using (var csvReader = new CsvFileReader<ValidatedAmountLine>(new StringReader(AmountSecondFile), options))
+            {
+                csvReader.RegisterMapper<ValidatedAmountLineMapper>();
+                _ = csvReader.ReadLine();
+
+                // act
+                _ = csvReader.ReadLine();
+
+                // assert
+                fieldIndexes.Should().Equal(AmountFieldPosition);
             }
         }
 
@@ -378,6 +469,59 @@ namespace DataStandardizer.File.CSV.Tests
             }
         }
 
+        private sealed class AmountLine : CsvFileRecordLine
+        {
+            [CsvFieldMapping("Amount")]
+            public int Amount
+            {
+                get => GetPropertyValue<int>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class ValidatedAmountLine : CsvFileRecordLine
+        {
+            public string Amount
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class ValidatedAmountLineMapper : CsvFileMapperBase<ValidatedAmountLine>
+        {
+            public ValidatedAmountLineMapper()
+            {
+                this.Map()
+                    .Property(x => x.Amount)
+                    .HasFieldName("Amount")
+                    .ConvertUsing(typeof(StringConverter))
+                    .ValidateUsing(_ => false);
+            }
+        }
+
+        private sealed class UncreatableConverterLine : CsvFileRecordLine
+        {
+            public UncreatableConverterCode Value
+            {
+                get => GetPropertyValue<UncreatableConverterCode>();
+                set => SetPropertyValue(value);
+            }
+        }
+
+        private sealed class UncreatableConverterLineMapper : CsvFileMapperBase<UncreatableConverterLine>
+        {
+            public static readonly UncreatableConverterCode ConvertedValue = new UncreatableConverterCode();
+
+            public UncreatableConverterLineMapper()
+            {
+                this.Map()
+                    .Property(x => x.Value)
+                    .HasFieldIndex(0)
+                    .ConvertUsing(new CsvFieldConvertFromString<UncreatableConverterLine, UncreatableConverterCode>(_ => ConvertedValue));
+            }
+        }
+
         private sealed class DelegateConvertedLine : CsvFileRecordLine
         {
             public int Value
@@ -435,6 +579,37 @@ namespace DataStandardizer.File.CSV.Tests
             public override int GetHashCode() => Text.GetHashCode();
         }
 
+        /// <summary>
+        /// A type whose <see cref="TypeConverter"/> converts every string to <c>null</c>.
+        /// </summary>
+        [TypeConverter(typeof(NullConverter))]
+        public sealed class NullConvertedCode
+        {
+        }
+
+        public sealed class NullConverter : TypeConverter
+        {
+            public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType) => sourceType == typeof(string);
+
+            public override object ConvertFrom(ITypeDescriptorContext context, CultureInfo culture, object value) => null;
+        }
+
+        /// <summary>
+        /// A type whose <see cref="TypeConverter"/> throws when it is created.
+        /// </summary>
+        [TypeConverter(typeof(UncreatableConverter))]
+        public sealed class UncreatableConverterCode
+        {
+        }
+
+        public sealed class UncreatableConverter : TypeConverter
+        {
+            public UncreatableConverter()
+            {
+                throw new NotSupportedException();
+            }
+        }
+
         public sealed class CodeConverter : TypeConverter
         {
             public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType) => sourceType == typeof(string);
@@ -445,11 +620,16 @@ namespace DataStandardizer.File.CSV.Tests
 #if NET7_0_OR_GREATER
         public readonly record struct SpanParsableCode(string Text) : ISpanParsable<SpanParsableCode>
         {
-            public static SpanParsableCode Parse(string s, IFormatProvider provider) => new SpanParsableCode(s);
+            public const string StringOverloadText = "string overload";
 
+            public static SpanParsableCode Parse(string s, IFormatProvider provider) => new SpanParsableCode(StringOverloadText);
+
+            /// <summary>
+            /// Gives a value that a test expecting the <see cref="ReadOnlySpan{T}"/> overload's result fails on, so that it shows the reader uses that overload.
+            /// </summary>
             public static bool TryParse(string s, IFormatProvider provider, out SpanParsableCode result)
             {
-                result = new SpanParsableCode(s);
+                result = new SpanParsableCode(StringOverloadText);
                 return true;
             }
 

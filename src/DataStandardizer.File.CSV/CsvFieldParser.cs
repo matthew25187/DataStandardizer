@@ -110,8 +110,8 @@ namespace DataStandardizer.File.CSV
             if (type == typeof(ushort)) return new DelegateParser<ushort>((string value, CultureInfo culture, out ushort result) => ushort.TryParse(value, IntegerStyles, culture, out result));
             if (type == typeof(byte)) return new DelegateParser<byte>((string value, CultureInfo culture, out byte result) => byte.TryParse(value, IntegerStyles, culture, out result));
             if (type == typeof(decimal)) return new DelegateParser<decimal>((string value, CultureInfo culture, out decimal result) => decimal.TryParse(value, DecimalStyles, culture, out result));
-            if (type == typeof(double)) return new DelegateParser<double>((string value, CultureInfo culture, out double result) => double.TryParse(value, FloatingPointStyles, culture, out result));
-            if (type == typeof(float)) return new DelegateParser<float>((string value, CultureInfo culture, out float result) => float.TryParse(value, FloatingPointStyles, culture, out result));
+            if (type == typeof(double)) return new DelegateParser<double>(TryParseDouble);
+            if (type == typeof(float)) return new DelegateParser<float>(TryParseSingle);
             if (type == typeof(bool)) return new DelegateParser<bool>((string value, CultureInfo culture, out bool result) => bool.TryParse(value, out result));
             if (type == typeof(char)) return new DelegateParser<char>((string value, CultureInfo culture, out char result) => char.TryParse(value, out result));
             if (type == typeof(DateTime)) return new DelegateParser<DateTime>((string value, CultureInfo culture, out DateTime result) => DateTime.TryParse(value, culture, DateTimeStyles.None, out result));
@@ -148,6 +148,29 @@ namespace DataStandardizer.File.CSV
             return parsableParserType;
         }
 #endif
+
+        // .NET Core 3.0 and later parse a number too large for the type as infinity, where .NET Framework fails, and they match the infinity and NaN
+        // symbols without regard to case, where .NET Framework doesn't.  Accepting infinity or NaN only for the culture's own symbol, as written,
+        // gives the same result on every runtime.
+        private static bool TryParseDouble(string value, CultureInfo culture, out double result)
+        {
+            return double.TryParse(value, FloatingPointStyles, culture, out result)
+                   && ((!double.IsInfinity(result) && !double.IsNaN(result)) || IsSpecialValueSymbol(value, culture.NumberFormat));
+        }
+
+        private static bool TryParseSingle(string value, CultureInfo culture, out float result)
+        {
+            return float.TryParse(value, FloatingPointStyles, culture, out result)
+                   && ((!float.IsInfinity(result) && !float.IsNaN(result)) || IsSpecialValueSymbol(value, culture.NumberFormat));
+        }
+
+        private static bool IsSpecialValueSymbol(string value, NumberFormatInfo numberFormat)
+        {
+            var trimmedValue = value.Trim();
+            return string.Equals(trimmedValue, numberFormat.PositiveInfinitySymbol, StringComparison.Ordinal)
+                   || string.Equals(trimmedValue, numberFormat.NegativeInfinitySymbol, StringComparison.Ordinal)
+                   || string.Equals(trimmedValue, numberFormat.NaNSymbol, StringComparison.Ordinal);
+        }
 
         private delegate bool TryParseFunc<T>(string value, CultureInfo culture, out T result);
 
@@ -230,7 +253,9 @@ namespace DataStandardizer.File.CSV
 #else
                 result = default;
 #endif
-                return false;
+
+                // Null is a converted value for a type that can hold it, as it is for a converter configured on the mapping.
+                return convertedValue is null && default(T) == null;
             }
         }
     }

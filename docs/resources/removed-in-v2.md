@@ -500,6 +500,9 @@ You can remove `Int32Converter`, `DecimalConverter`, `DateTimeConverter`,
 converters did. It doesn't accept everything those converters did, though: for
 example, `Int32Converter` accepts a hexadecimal value such as `0x1F`, and
 `EnumConverter` ignores case. Keep the converter where your files rely on that.
+A `double` or `float` field that is too large for the type is now a bad value, and
+infinity and NaN are accepted only as the culture's symbols, written in the same
+case, on every target.
 
 ```csharp
 // Before
@@ -513,3 +516,9 @@ this.Map()
     .Property(x => x.Id)
     .HasFieldName("person_id");
 ```
+
+The `FieldIndex` of the `CsvFieldContext` that a validator and the bad-value
+handler get for a mapped field is now the field's position in the line. In
+version 1.x it was the field's position in a list of the mapper's field names
+followed by the line's other field names, which differs from the line when the
+header puts the fields in another order, or puts an unmapped field first.

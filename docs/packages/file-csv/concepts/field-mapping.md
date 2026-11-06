@@ -139,7 +139,7 @@ on every target:
 | --- | --- |
 | `int`, `long`, `short`, `sbyte`, `uint`, `ulong`, `ushort`, `byte` | `TryParse` with `NumberStyles.Integer` |
 | `decimal` | `TryParse` with `NumberStyles.Number` |
-| `double`, `float` | `TryParse` with `NumberStyles.Float \| NumberStyles.AllowThousands` |
+| `double`, `float` | `TryParse` with `NumberStyles.Float \| NumberStyles.AllowThousands`. Infinity and NaN only as the culture's symbols, such as `Infinity`, `-Infinity` and `NaN`, written in the same case. A number too large for the type is a bad value. |
 | `DateTime`, `DateTimeOffset` | `TryParse` with `DateTimeStyles.None` |
 | `TimeSpan` | `TryParse` |
 | `bool`, `char`, `Guid` | `TryParse`, which doesn't depend on the culture |
@@ -156,24 +156,30 @@ The culture is the reader's `CsvFileOptions.Culture`, or the invariant culture
 if it isn't set, as it is for a configured `TypeConverter`. The current culture
 is never used.
 
-An empty field gives the default value of the property type: `null` for a
+When the reader parses a field itself, because no converter is configured, an
+empty field gives the default value of the property type: `null` for a
 `Nullable<T>` or reference type, and `0`, `false` or the type's other default for
 a value type. Only an empty field does: a field of white space is parsed like any
-other value.
+other value. A configured converter gets an empty field like any other, and
+decides what it gives.
 
 ### Values that fail to convert
 
 A field the built-in parse rejects, such as `abc` or `1.5` for an `int`, is a bad
 value. So is a field a `TypeConverter` throws for, whether it's configured on the
 mapping or found by `TypeDescriptor`. If `CsvFileOptions.BadValueHandler` is set,
-the reader calls it, with the field's text in `RawFieldValue`, and carries on with
-the property left at its default value. Otherwise it throws a `CsvFileException`
+the reader calls it, with the field's text in `RawFieldValue` and its position in
+the line in `FieldIndex`, and carries on with the property left at its default
+value. `FieldIndex` is `null` for a constant or generated value, which has no
+field. Otherwise it throws a `CsvFileException`
 whose `Data` holds the `Property` and `FieldValue`, and the `FieldName` when the
 mapping names one. When a `TypeConverter` threw, its exception is the
 `InnerException`.
 
 An exception thrown by a `CsvFieldConvertFromString` delegate still propagates
-unchanged.
+unchanged, without a call to the bad-value handler. So does an exception from
+creating a configured `TypeConverter`, which is a fault in the mapping rather than
+in the field.
 
 ## Related
 

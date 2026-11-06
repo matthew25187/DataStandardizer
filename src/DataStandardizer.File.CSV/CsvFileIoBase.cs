@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Threading;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -242,14 +243,43 @@ namespace DataStandardizer.File.CSV
 
         private sealed class FieldValueAccessor<T> : FieldValueAccessor
         {
-            // The parser for a value with no converter configured.  Worked out once, when the accessor is created.
+            // Stands for "the type has no parser" in _parser, so that null can mean "not worked out yet".
+            private static readonly object NoParser = new object();
+
+            // The parser for a value with no converter configured, or NoParser.  Worked out the first time it is needed, so that a mapping with a
+            // converter, or a writer, never depends on it.  Parsers hold no state, so if two threads race, each works out an equivalent parser.
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-            private readonly CsvFieldParser<T>? _parser = CsvFieldParser.For<T>();
+            private object? _parser;
+
+            private CsvFieldParser<T>? GetParser()
+            {
+                var parser = Volatile.Read(ref _parser);
+                if (parser is null)
+                {
+                    parser = (object?)CsvFieldParser.For<T>() ?? NoParser;
+                    Volatile.Write(ref _parser, parser);
+                }
+
+                return parser as CsvFieldParser<T>;
+            }
 
             internal override bool TryDeserialize(CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
                 object? fieldValue, out object? value, out Exception? error)
 #else
-            [MaybeNull] private readonly CsvFieldParser<T> _parser = CsvFieldParser.For<T>();
+            [MaybeNull] private object _parser;
+
+            [return: MaybeNull]
+            private CsvFieldParser<T> GetParser()
+            {
+                var parser = Volatile.Read(ref _parser);
+                if (parser is null)
+                {
+                    parser = (object)CsvFieldParser.For<T>() ?? NoParser;
+                    Volatile.Write(ref _parser, parser);
+                }
+
+                return parser as CsvFieldParser<T>;
+            }
 
             internal override bool TryDeserialize(CsvFileHeaderLine headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
                 object fieldValue, out object value, out Exception error)
@@ -319,7 +349,14 @@ namespace DataStandardizer.File.CSV
                 }
 
                 // With no converter configured, an empty field is the default value of the property type, and any other value is parsed.
-                if (serializedFieldValue.Length == 0 || _parser is null)
+                if (serializedFieldValue.Length == 0)
+                {
+                    value = default(T);
+                    return true;
+                }
+
+                var parser = GetParser();
+                if (parser is null)
                 {
                     value = default(T);
                     return true;
@@ -327,7 +364,7 @@ namespace DataStandardizer.File.CSV
 
                 try
                 {
-                    if (_parser.TryParse(serializedFieldValue, culture, out var parsedValue))
+                    if (parser.TryParse(serializedFieldValue, culture, out var parsedValue))
                     {
                         value = parsedValue;
                         return true;
