@@ -138,10 +138,13 @@ foreach (var item in VcardValue.EnumerateList(line.RawValue, VcardValueFormat.Te
 }
 ```
 
-This unescapes by the rules of vCard 4.0. For a line of a vCard 3.0 card, pass
-`VcardVersion.V3_0` to the overload of `TryParseText` that takes a version. vCard 2.1
-defines no property that holds a list, and has no TEXT escaping: pass
-`VcardVersion.V2_1` for a list in an extension property, and `\N` is kept as written.
+`EnumerateList` splits by the rules of vCard 3.0 and 4.0, where `\,` is an escaped
+comma, not a separator, and this unescapes by the rules of vCard 4.0. For a line of
+a vCard 3.0 card, pass `VcardVersion.V3_0` to the overload of `TryParseText` that
+takes a version. vCard 2.1 defines no property that holds a list, and has no TEXT
+escaping. So a list in a vCard 2.1 extension property is split by that extension's
+own syntax, not with `EnumerateList`. Each item is then given to `TryParseText` with
+`VcardVersion.V2_1`, which keeps `\N` as written.
 
 ### Structured values
 
@@ -196,12 +199,16 @@ So copy anything that must outlive the line: call `ToString()` on a span, or
 
 ```csharp
 var emails = new List<string>();
+var isVersion21 = false;
 while (reader.ReadContentLine())
 {
     var line = reader.CurrentLine;
-    if (line.NameEquals("EMAIL"))
+    if (line.NameEquals("VERSION"))
     {
-        // isVersion21 is followed from each VERSION line, as in the first example.
+        isVersion21 = line.RawValue.SequenceEqual("2.1".AsSpan());
+    }
+    else if (line.NameEquals("EMAIL"))
+    {
         emails.Add(isVersion21 ? line.GetDecodedText() : line.GetTextValue().ToString());
     }
 }
