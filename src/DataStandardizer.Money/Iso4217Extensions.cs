@@ -209,6 +209,9 @@ namespace DataStandardizer.Money
         /// </summary>
         /// <param name="currencyCode">Code of the currency.</param>
         /// <returns><c>true</c> if the code represents a national currency or <c>false</c> if not.</returns>
+        /// <remarks>
+        /// A funds code, such as <see cref="Iso4217CurrencyCurrent.CLF"/> or <see cref="Iso4217CurrencyCurrent.USN"/>, is not a national currency.
+        /// </remarks>
         public static bool IsNationalCurrency(this Iso4217CurrencyCurrent currencyCode)
         {
             if (!CurrentNames.TryGetValue(currencyCode, out var currencyCodeName) || !CurrentAttributes.TryGetValue(currencyCode, out var currencyCodeAttribute))
@@ -216,7 +219,7 @@ namespace DataStandardizer.Money
                 return false;
             }
 
-            return !currencyCodeName.StartsWith("X") && currencyCodeAttribute.MinorUnits.HasValue;
+            return !IsSupranationalOrSpecialCodeName(currencyCodeName) && currencyCodeAttribute.MinorUnits.HasValue && !currencyCodeAttribute.IsFundsCode;
         }
 
         /// <summary>
@@ -231,7 +234,13 @@ namespace DataStandardizer.Money
                 return false;
             }
 
-            return currencyCodeName.StartsWith("X") && currencyCodeAttribute.MinorUnits.HasValue;
+            return IsSupranationalOrSpecialCodeName(currencyCodeName) && currencyCodeAttribute.MinorUnits.HasValue;
+        }
+
+        // ISO 4217 reserves codes beginning with X for supranational currencies, precious metals and special codes.
+        private static bool IsSupranationalOrSpecialCodeName(string currencyCodeName)
+        {
+            return currencyCodeName.Length != 0 && currencyCodeName[0] == 'X';
         }
     }
 }

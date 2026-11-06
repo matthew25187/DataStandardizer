@@ -37,7 +37,7 @@ and returns the requested metadata, or `null` when it is unavailable.
 | `GetCurrencySymbol(CurrencySymbolKind)` | `Iso4217CurrencyHistoric` | `string?` | Currency symbol for a historic code in the requested form, or `null`. |
 | `GetMinorUnits()` | `Iso4217CurrencyCurrent` | `byte?` | Number of minor-unit digits, or `null`. |
 | `IsFundCode()` | `Iso4217CurrencyCurrent` | `bool` | `true` if the code is a funds code. |
-| `IsNationalCurrency()` | `Iso4217CurrencyCurrent` | `bool` | `true` for a national currency code. |
+| `IsNationalCurrency()` | `Iso4217CurrencyCurrent` | `bool` | `true` for a national currency code; `false` for a funds code. |
 | `IsSupranationalCurrency()` | `Iso4217CurrencyCurrent` | `bool` | `true` for a supranational currency code. |
 
 ## Currency symbols

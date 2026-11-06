@@ -120,6 +120,21 @@ public class Iso4217ExtensionsTests
         testResult.Should().Be(expectedResult);
     }
 
+    // Funds codes from ISO 4217 List One.
+    [Theory]
+    [InlineData(Iso4217CurrencyCurrent.USN)]
+    [InlineData(Iso4217CurrencyCurrent.CHE)]
+    [InlineData(Iso4217CurrencyCurrent.CLF)]
+    [InlineData(Iso4217CurrencyCurrent.BOV)]
+    public void IsNationalCurrency_OnFundCode_ReturnsFalse(Iso4217CurrencyCurrent testCode)
+    {
+        // act
+        var testResult = testCode.IsNationalCurrency();
+
+        // assert
+        testResult.Should().BeFalse("ISO 4217 lists {0} as a funds code, not a currency", testCode);
+    }
+
     #endregion
 
     #region Test: IsSupranationalCurrency_OnIso4217CurrentCurrencyCode
