@@ -37,6 +37,13 @@
         /// <summary>
         /// The <c>VERSION</c> property does not include iCalendar 2.0.  Never accepted.
         /// </summary>
-        UnsupportedVersion = 6
+        UnsupportedVersion = 6,
+
+        /// <summary>
+        /// A parameter whose grammar in RFC 5545 §3.2 or RFC 7986 §6 has no quoted form has a value in double quotes, such as
+        /// <c>FMTTYPE="audio/basic"</c>, or, on a line not read from .ics, a value that a writer would have to quote.  Accepted with
+        /// <see cref="IcalOptions.AllowQuotedParameterValues"/>.
+        /// </summary>
+        QuotedParameterValue = 7
     }
 }

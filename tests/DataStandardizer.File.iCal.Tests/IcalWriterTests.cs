@@ -323,6 +323,35 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
+        public void WriteCalendar_CodeBuiltValueThatNeedsQuotesWithDefaults_Throws()
+        {
+            // arrange
+            var calendar = CalendarWithCodeBuiltLanguage(LanguageThatNeedsQuotes);
+            using (var writer = new IcalWriter(new StringWriter()))
+            {
+                // act
+                Action testAction = () => writer.WriteCalendar(calendar);
+
+                // assert
+                testAction.Should().Throw<IcalFileException>().Which.Data[IcalFileException.DataItemName.DiagnosticKind].Should()
+                    .Be(IcalDiagnosticKind.QuotedParameterValue);
+            }
+        }
+
+        [Fact]
+        public void WriteCalendars_CodeBuiltValueThatNeedsQuotesWithOption_QuotesTheValue()
+        {
+            // arrange
+            var calendar = CalendarWithCodeBuiltLanguage(LanguageThatNeedsQuotes);
+
+            // act
+            var testResult = WriteCalendars(new[] { calendar }, new IcalOptions { AllowQuotedParameterValues = true });
+
+            // assert
+            testResult.Should().Contain(QuotedCodeBuiltLanguageLine);
+        }
+
+        [Fact]
         public void WriteCalendars_ModelBuiltInCode_IsChecked()
         {
             // arrange

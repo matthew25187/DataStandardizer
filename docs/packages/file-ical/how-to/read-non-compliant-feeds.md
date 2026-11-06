@@ -48,6 +48,7 @@ For a broken RFC 5545 rule, `Data` holds a `DiagnosticKind`, an
 | `CardinalityViolation` | `AllowCardinalityViolations` |
 | `UndefinedTimeZone` | `AllowUndefinedTimeZones` |
 | `InvalidValue` | `AllowInvalidValues` |
+| `QuotedParameterValue` | `AllowQuotedParameterValues` |
 | `InvalidComponentNesting` | Never accepted |
 | `UnsupportedVersion` | Never accepted |
 
@@ -64,6 +65,7 @@ A problem in the line syntax itself, such as a bare line feed, has no
 | --- | --- | --- | --- |
 | `AcceptBareLineFeed` | Yes | No (see `LineBreak`) | `.ics` |
 | `AllowInvalidValues` | Yes | Yes | All |
+| `AllowQuotedParameterValues` | Yes | Yes (`.ics`) | All |
 | `AllowCardinalityViolations` | Yes | Yes | All |
 | `AllowMissingRequiredProperties` | Yes | Yes | All |
 | `AllowUndefinedTimeZones` | Yes | Yes | All |
@@ -120,7 +122,8 @@ its property:
 - A DATE-TIME that must be in UTC.
 - Date-times that must have the same value type as the component's `DTSTART`.
 - A `FMTTYPE` parameter that appears twice, has two values, or isn't a type and
-  subtype, such as `FMTTYPE="text/html; charset=utf-8"` (RFC 5545 §3.2.8).
+  subtype, such as `FMTTYPE="text/html; charset=utf-8"` (RFC 5545 §3.2.8). Its quotes
+  are a second problem, which needs `AllowQuotedParameterValues`.
 - A parameter that RFC 5545 or RFC 7986 defines with one value and that has more, such
   as `CN=Doe, John`, whose comma must be in a quoted string.
 - A parameter repeated on a property those RFCs define, such as
@@ -135,6 +138,40 @@ accessor uses the first value.
 
 When the xCal or jCal writer writes such a value, it writes it as an unknown type
 with its `VALUE` parameter.
+
+### AllowQuotedParameterValues
+
+RFC 5545 §3.1 lets a parameter value be in double quotes in general, but the rule
+for each parameter can narrow that. Some leave the quotes out, so a value of theirs
+in quotes doesn't follow the standard:
+
+```text
+ATTACH;FMTTYPE="audio/basic":http://example.com/a
+```
+
+Without the option:
+
+```text
+IcalFileException: The FMTTYPE parameter of the ATTACH property has a value in double quotes, which the grammar of the parameter does not allow.
+    ComponentPath = VCALENDAR/VEVENT[1]
+    DiagnosticKind = QuotedParameterValue
+    LineNumber = 7
+    PropertyName = ATTACH
+```
+
+The parameters checked are `FMTTYPE` (RFC 5545 §3.2.8), `CUTYPE`, `ENCODING`,
+`FBTYPE`, `LANGUAGE`, `PARTSTAT`, `RANGE`, `RELATED`, `RELTYPE`, `ROLE`, `RSVP`,
+`TZID` and `VALUE` (RFC 5545 §3.2), and `DISPLAY` and `FEATURE` (RFC 7986 §6), on
+any property. `ALTREP`, `DELEGATED-FROM`, `DELEGATED-TO`, `DIR`, `MEMBER` and
+`SENT-BY` are always quoted, and `CN`, `EMAIL`, `LABEL` and extension parameters may
+be.
+
+With `AllowQuotedParameterValues`, the value is read without its quotes, so
+`GetFormatType()` gives `audio/basic`. The .ics writer writes the parameter back as it
+was read, with the quotes, so it needs the option too. It also needs it for a line
+built in code whose value it would have to quote, one with a `:`, `;` or `,`, such as
+`LANGUAGE` with the value `en,de`. The xCal and jCal readers and writers have no
+quotes, and accept the value whatever the option is.
 
 ### AllowCardinalityViolations
 

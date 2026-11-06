@@ -178,7 +178,9 @@ namespace DataStandardizer.File.iCal
         /// <remarks>
         /// The value must be a type and subtype whose names follow RFC 4288 §4.2, as RFC 5545 §3.2.8 requires, so it can't have media type
         /// parameters.  A reader or writer accepts a value that doesn't follow this only with <see cref="IcalOptions.AllowInvalidValues"/>.  To read
-        /// such a value, use <see cref="GetParameter"/> with <see cref="IcalParameterNames.FormatType"/>.  A non-standard property may repeat the
+        /// such a value, use <see cref="GetParameter"/> with <see cref="IcalParameterNames.FormatType"/>.  RFC 5545 §3.2.8 has no quoted form
+        /// either, which a reader or writer accepts only with <see cref="IcalOptions.AllowQuotedParameterValues"/>; the quotes don't change the
+        /// media type, so this method gives it for a quoted value.  A non-standard property may repeat the
         /// parameter (RFC 5545 §3.8.8.2), which readers and writers accept; this method throws for it, as it can't tell which media type applies.
         /// </remarks>
         /// <returns>The media type; or <c>null</c> if the line has no <c>FMTTYPE</c> parameter.</returns>
@@ -256,12 +258,15 @@ namespace DataStandardizer.File.iCal
             for (var parameterIndex = 0; parameterIndex < parameterCount; parameterIndex++)
             {
                 var values = new string[scanner.GetParameterValueCount(parameterIndex)];
+                var hasQuotedValue = false;
                 for (var valueIndex = 0; valueIndex < values.Length; valueIndex++)
                 {
                     values[valueIndex] = scanner.GetParameterValue(parameterIndex, valueIndex).Span.ToString();
+                    hasQuotedValue |= scanner.IsParameterValueQuoted(parameterIndex, valueIndex);
                 }
 
-                parameters[parameterIndex] = IcalContentLineParameter.FromReader(scanner.GetParameterName(parameterIndex).Span.ToString(), values);
+                parameters[parameterIndex] = IcalContentLineParameter.FromReader(scanner.GetParameterName(parameterIndex).Span.ToString(), values,
+                    hasQuotedValue);
             }
 
             var name = scanner.Name.Span;

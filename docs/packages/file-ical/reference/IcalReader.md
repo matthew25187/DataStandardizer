@@ -64,7 +64,8 @@ the content lines of such data, use `IcalContentLineReader`, which does not chec
 and `DiagnosticKind`, plus `LineNumber` and `PropertyName` where they apply. Reading
 can then continue with the next calendar. The accommodations are
 `IcalOptions.AllowMissingRequiredProperties`, `AllowCardinalityViolations`,
-`AllowUndefinedTimeZones` and `AllowInvalidValues`, all off by default.
+`AllowUndefinedTimeZones`, `AllowInvalidValues` and `AllowQuotedParameterValues`, all
+off by default.
 `InvalidComponentNesting` and `UnsupportedVersion` problems are never accepted. See
 [IcalDiagnosticKind](IcalDiagnosticKind.md).
 

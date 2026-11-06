@@ -444,6 +444,9 @@ namespace DataStandardizer.File.iCal
 #endif
             foreach (var diagnostic in diagnostics)
             {
+                // jCal has no quoting, so a value is never quoted where it was read.
+                if (diagnostic.Kind == IcalDiagnosticKind.QuotedParameterValue) continue;
+
                 if (!IcalConformance.IsAccepted(diagnostic.Kind, _options))
                 {
                     _calendar = null;

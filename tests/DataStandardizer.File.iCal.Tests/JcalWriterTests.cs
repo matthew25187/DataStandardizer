@@ -267,6 +267,56 @@ namespace DataStandardizer.File.iCal.Tests
             testResult["x-count"].Should().Be("[\"x-count\",{\"value\":\"INTEGER\"},\"unknown\",\"many\"]");
         }
 
+        public static TheoryData<string, string> QuotedParameterValueCases => new TheoryData<string, string>
+        {
+            { ConformanceCases.QuotedFormatTypeCase, "\"fmttype\":\"audio/basic\"" },
+            { ConformanceCases.QuotedTimeZoneIdCase, "\"tzid\":\"Zone\"" },
+            { ConformanceCases.QuotedLanguageOnExtensionPropertyCase, "\"language\":\"en\"" },
+            { ConformanceCases.QuotedSecondFeatureCase, "\"feature\":[\"AUDIO\",\"VIDEO\"]" },
+        };
+
+        // jCal has no quoting, so a value quoted in the iCalendar it was read from is written as it is in any other value.
+        [Theory]
+        [MemberData(nameof(QuotedParameterValueCases))]
+        public void WriteCalendar_QuotedParameterValueReadWithOption_IsWrittenWithDefaults(string caseName, string expectedParameter)
+        {
+            // arrange
+            var calendar = ReadCalendar(ConformanceCases.All[caseName].Text, new IcalOptions { AllowQuotedParameterValues = true });
+
+            // act
+            var testResult = WriteJcal(new[] { calendar });
+
+            // assert
+            testResult.Should().Contain(expectedParameter);
+        }
+
+        [Fact]
+        public void WriteCalendar_CodeBuiltValueThatIcsWouldQuote_IsWrittenWithDefaults()
+        {
+            // arrange
+            var calendar = CalendarWithCodeBuiltLanguage(LanguageThatNeedsQuotes);
+
+            // act
+            var testResult = WriteJcal(new[] { calendar });
+
+            // assert
+            testResult.Should().Contain("\"language\":\"en,de\"");
+        }
+
+        [Fact]
+        public void ReadJcal_ValueThatIcsWouldQuote_IsReadWithDefaults()
+        {
+            // arrange
+            var jcal = WriteJcal(new[] { CalendarWithCodeBuiltLanguage(LanguageThatNeedsQuotes) });
+
+            // act
+            var testResult = ReadJcal(jcal);
+
+            // assert
+            testResult.Single().Events.Single().GetProperty("X-ABC").GetParameter(IcalParameterNames.Language).Values.Should()
+                .Equal(LanguageThatNeedsQuotes);
+        }
+
         [Fact]
         public void WriteCalendar_Version_IsAlways20AndFirstIfMissing()
         {

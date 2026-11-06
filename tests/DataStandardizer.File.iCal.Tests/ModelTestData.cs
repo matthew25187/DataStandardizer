@@ -13,6 +13,29 @@ namespace DataStandardizer.File.iCal.Tests
     /// </summary>
     internal static class ModelTestData
     {
+        /// <summary>
+        /// A <c>LANGUAGE</c> value whose ',' a writer must quote, though RFC 5545 §3.2.10 has no quoted form.
+        /// </summary>
+        public const string LanguageThatNeedsQuotes = "en,de";
+
+        /// <summary>
+        /// The <c>X-ABC</c> line <see cref="CalendarWithCodeBuiltLanguage"/> adds, as <see cref="IcalWriter"/> writes it with the value
+        /// <see cref="LanguageThatNeedsQuotes"/>.
+        /// </summary>
+        public const string QuotedCodeBuiltLanguageLine = "X-ABC;LANGUAGE=\"en,de\":x";
+
+        /// <summary>
+        /// Reads a calendar of one event, and adds to the event an <c>X-ABC</c> property built in code with a <c>LANGUAGE</c> parameter, which a
+        /// writer formats afresh.
+        /// </summary>
+        public static IcalCalendar CalendarWithCodeBuiltLanguage(string language)
+        {
+            var calendar = ReadCalendar(EventCalendar());
+            calendar.Events.Single().Properties.Add(new IcalContentLine("X-ABC",
+                new[] { new IcalContentLineParameter(IcalParameterNames.Language, language) }, "x"));
+            return calendar;
+        }
+
         public static IcalReader CreateCalendarReader(string text, IcalOptions options = null, int bufferSize = 16 * 1024)
         {
             return new IcalReader(new StringReader(text), options ?? new IcalOptions(), bufferSize);

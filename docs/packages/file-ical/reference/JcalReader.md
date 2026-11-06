@@ -79,7 +79,9 @@ since a jCal document has no content lines; their component path gives the place
 The first problem the options don't accept throws `IcalFileException`, and reading
 can then continue with the next calendar. A value that doesn't follow its type is
 kept as it is, so the check reports it unless `IcalOptions.AllowInvalidValues` is
-set. See [Standards compliance](../concepts/standards-compliance.md).
+set. jCal has no quoting, so a `QuotedParameterValue` problem is never reported; a
+value that `IcalWriter` would have to quote is reported when the calendar is written
+as .ics. See [Standards compliance](../concepts/standards-compliance.md).
 
 **Disposal.** `Dispose` and `DisposeAsync` may be called more than once and share
 their state. They return the pooled buffer and close a file the reader opened. A

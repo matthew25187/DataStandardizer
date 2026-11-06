@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using FluentAssertions;
 using Xunit;
@@ -41,6 +42,24 @@ namespace DataStandardizer.File.iCal.Tests
 
                 // ref. RFC 5545 §3.8.8.2: this includes FMTTYPE.
                 "X-ABC;FMTTYPE=audio/basic;FMTTYPE=image/png:x",
+
+                // ref. RFC 5545 §3.2.1: altrepparam = "ALTREP" "=" DQUOTE uri DQUOTE
+                "DESCRIPTION;ALTREP=\"http://example.com/a\":x",
+
+                // ref. RFC 5545 §3.2.2: cnparam = "CN" "=" param-value, which may be a quoted-string with nothing that needs quoting.
+                "ATTENDEE;CN=\"Doe\":mailto:a@example.com",
+
+                // ref. RFC 5545 §3.2.18: sentbyparam = "SENT-BY" "=" DQUOTE cal-address DQUOTE
+                "ORGANIZER;SENT-BY=\"mailto:a@example.com\":mailto:b@example.com",
+
+                // ref. RFC 7986 §6.2: emailparam = "EMAIL" "=" param-value
+                "ATTENDEE;EMAIL=\"a@example.com\":mailto:b@example.com",
+
+                // ref. RFC 7986 §6.4: labelparam = "LABEL" "=" param-value
+                "CONFERENCE;VALUE=URI;LABEL=\"Room\":https://example.com/a",
+
+                // ref. RFC 5545 §3.2: other-param = (iana-param / x-param), whose values are param-value.
+                "SUMMARY;X-PARAM=\"a\":x",
             };
         }
 
@@ -65,6 +84,105 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             testResult.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void Validate_QuotedFormatTypeWithMediaTypeParameter_ReportsBothProblems()
+        {
+            // arrange: the media type parameter needs the quotes for its ';', and RFC 5545 §3.2.8 allows neither.
+            var options = new IcalOptions { AllowInvalidValues = true, AllowQuotedParameterValues = true };
+            var calendar = ReadCalendar(EventCalendar("ATTACH;FMTTYPE=\"text/html; charset=utf-8\":http://example.com/a"), options);
+
+            // act
+            var testResult = calendar.Validate();
+
+            // assert
+            testResult.Select(diagnostic => diagnostic.Kind).Should().Equal(IcalDiagnosticKind.InvalidValue, IcalDiagnosticKind.QuotedParameterValue);
+        }
+
+        [Fact]
+        public void ReadCalendar_QuotedFormatTypeWithMediaTypeParameterReadWithDefaults_ThrowsForTheInvalidValue()
+        {
+            // act
+            Action testAction = () => ReadCalendar(EventCalendar("ATTACH;FMTTYPE=\"text/html; charset=utf-8\":http://example.com/a"), new IcalOptions());
+
+            // assert
+            testAction.Should().Throw<IcalFileException>().Which.Data[IcalFileException.DataItemName.DiagnosticKind].Should()
+                .Be(IcalDiagnosticKind.InvalidValue);
+        }
+
+        // ref. RFC 5545 §3.1: paramtext excludes ':', ';' and ',', so a writer quotes a value with one, and RFC 5545 §3.2.10 has no quoted form.
+        [Theory]
+        [InlineData(LanguageThatNeedsQuotes)]
+        [InlineData("en;de")]
+        [InlineData("en:de")]
+        public void Validate_CodeBuiltValueThatNeedsQuotes_ReportsQuotedParameterValue(string language)
+        {
+            // arrange
+            var calendar = CalendarWithCodeBuiltLanguage(language);
+
+            // act
+            var testResult = calendar.Validate();
+
+            // assert
+            testResult.Should().ContainSingle().Which.Kind.Should().Be(IcalDiagnosticKind.QuotedParameterValue);
+        }
+
+        [Fact]
+        public void Validate_CodeBuiltValueThatNeedsNoQuotes_ReportsNothing()
+        {
+            // arrange
+            var calendar = CalendarWithCodeBuiltLanguage("en");
+
+            // act
+            var testResult = calendar.Validate();
+
+            // assert
+            testResult.Should().BeEmpty();
+        }
+
+        // ref. RFC 5545 §3.2: other-param takes param-value, which may be a quoted-string.
+        [Fact]
+        public void Validate_CodeBuiltExtensionParameterThatNeedsQuotes_ReportsNothing()
+        {
+            // arrange
+            var calendar = ReadCalendar(EventCalendar());
+            calendar.Events.Single().Properties.Add(new IcalContentLine("X-ABC", new[] { new IcalContentLineParameter("X-PARAM", "a,b") }, "x"));
+
+            // act
+            var testResult = calendar.Validate();
+
+            // assert
+            testResult.Should().BeEmpty();
+        }
+
+        // A typed setter keeps the parameter on a new line, which a writer formats afresh, quoting only what needs it.
+        [Fact]
+        public void Validate_QuotedParameterKeptByTypedSetter_ReportsNothing()
+        {
+            // arrange
+            var calendar = ReadCalendar(EventCalendar("SUMMARY;LANGUAGE=\"en\":x"), new IcalOptions { AllowQuotedParameterValues = true });
+            calendar.Events.Single().Summary = "y";
+
+            // act
+            var testResult = calendar.Validate();
+
+            // assert
+            testResult.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void DtStart_QuotedTimeZoneIdReadWithOption_UsesTheValueWithoutQuotes()
+        {
+            // arrange
+            var options = new IcalOptions { AllowQuotedParameterValues = true, AllowUndefinedTimeZones = true };
+            var calendarEvent = ReadCalendar(EventCalendar("DTSTART;TZID=\"Zone\":20260101T090000"), options).Events.Single();
+
+            // act
+            var testResult = calendarEvent.DtStart;
+
+            // assert
+            testResult.Value.DateTime.TimeZoneId.Should().Be("Zone");
         }
 
         [Theory]
