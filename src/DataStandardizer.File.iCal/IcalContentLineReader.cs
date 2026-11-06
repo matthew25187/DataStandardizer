@@ -667,8 +667,10 @@ namespace DataStandardizer.File.iCal
         /// Parses the line found by the scanner, if any, and makes it current.
         /// </summary>
         /// <returns><c>true</c> if a line was read; <c>false</c> if the end of the data has been reached.</returns>
-        private bool CompleteLine(ContentLineScanner.ScanStatus status)
+        /// <exception cref="ObjectDisposedException">The reader was disposed during the read, which needed no refill to get this far.</exception>
+        internal bool CompleteLine(ContentLineScanner.ScanStatus status)
         {
+            ThrowIfDisposed();
             if (status != ContentLineScanner.ScanStatus.LineRead) return false;
 
             _scanner.ParseLine();

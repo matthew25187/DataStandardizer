@@ -2000,6 +2000,21 @@ namespace DataStandardizer.File.iCal.Tests
             }
         }
 
+        // A read that needs no refill has nothing for a test to hold it at, so this goes straight to the step where such a read checks.
+        [Fact]
+        public void CompleteLine_ReaderDisposed_Throws()
+        {
+            // arrange
+            var reader = CreateReader(Crlf(LineA));
+            reader.Dispose();
+
+            // act
+            Action testAction = () => reader.CompleteLine(ContentLineScanner.ScanStatus.LineRead);
+
+            // assert
+            testAction.Should().Throw<ObjectDisposedException>();
+        }
+
         [Fact]
         public void Dispose_CalledTwice_DoesNotThrow()
         {
