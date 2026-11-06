@@ -56,6 +56,9 @@ public class TzDataExtensionsLocalTimeTests
         (TzDataTimezone.Asia.Kolkata, MidJanuary2026, UtcPlus0530, Ist),
         (TzDataTimezone.Asia.Kolkata, MidJuly2026, UtcPlus0530, Ist),
         (TzDataTimezone.America.New_York, NewYorkFarFutureSummer, UtcMinus0400, Edt),
+        // The default timezone, which is Etc/UTC: a single zone line with an offset of 0 and the format UTC.
+        (default(TzDataTimezone), MidJanuary2026, UtcZero, TzAbbreviations.Utc),
+        (default(TzDataTimezone), MidJuly2026, UtcZero, TzAbbreviations.Utc),
     ];
 
     // The time, and the time to which the RFC 5545 policy moves it, with the offset in effect after the gap.
@@ -545,13 +548,13 @@ public class TzDataExtensionsLocalTimeTests
 
     [Theory]
     [MemberData(nameof(LocalTimeMethod_TestCases))]
-    public void LocalTimeMethod_DefaultTimezone_ThrowsInvalidOperationException(string testMethod, Action<TzDataTimezone, DateTime> testMethodAction)
+    public void LocalTimeMethod_DefaultTimezone_DoesNotThrow(string testMethod, Action<TzDataTimezone, DateTime> testMethodAction)
     {
         // act
         Action testAction = () => testMethodAction(default, July2026);
 
         // assert
-        testAction.Should().Throw<InvalidOperationException>("{0} needs a timezone with an identifier", testMethod);
+        testAction.Should().NotThrow("{0} treats the default timezone as Etc/UTC", testMethod);
     }
 
     public static TheoryData<TzDataTimezone, DateTimeOffset, TimeSpan> ToOffset_TestCases => new()
@@ -583,16 +586,17 @@ public class TzDataExtensionsLocalTimeTests
     }
 
     [Fact]
-    public void ToOffset_DefaultTimezone_ThrowsInvalidOperationException()
+    public void ToOffset_DefaultTimezone_ReturnsSameInstantInUniversalTime()
     {
         // arrange
-        var testInstant = new DateTimeOffset(July2026, UtcZero);
+        var testInstant = new DateTimeOffset(July2026, UtcPlus0530);
 
         // act
-        Action testAction = () => testInstant.ToOffset(default(TzDataTimezone));
+        var testResult = testInstant.ToOffset(default(TzDataTimezone));
 
         // assert
-        testAction.Should().Throw<InvalidOperationException>();
+        testResult.UtcDateTime.Should().Be(testInstant.UtcDateTime);
+        testResult.Offset.Should().Be(UtcZero, "the default timezone is Etc/UTC, whose offset is 0");
     }
 
     [Fact]

@@ -25,6 +25,11 @@
     such as the deprecated names in backward, have no fields; those that refer to a canonical timezone are
     generated into the link data partial source file, so that they can be parsed to it.
 
+    Etc/UTC, which is defined in etcetera rather than listed in zone1970.tab, is given a field after the canonical
+    timezones, with no countries, no comment and coordinates of 0, as the default value of the type stands for it.
+    The generated members that compare, convert or format a timezone work on its identifier, which is Etc/UTC for
+    the default value; the Identifier property that supplies it is hand-written, in <SourceCodeTypeName>.Members.cs.
+
     The following files of the TZ Database source (tzdata) are required in the source folder:
 
     - zone1970.tab, which lists the canonical timezones to generate;
@@ -32,14 +37,14 @@
     - iso3166.tab, which names the countries each timezone is used in;
     - africa, antarctica, asia, australasia, europe, northamerica and southamerica, the main-format region files,
       which hold the Rule and Zone lines of every timezone listed in zone1970.tab;
-    - etcetera, which holds the Zone lines of the Etc timezones that some links refer to;
+    - etcetera, which holds the Zone lines of Etc/UTC and of the other Etc timezones that some links refer to;
     - backward, which holds the Link lines of the deprecated names.
 
     The file version, which identifies the release, is optional.
 
-    Generation fails, rather than emitting bad data, where a timezone listed in zone1970.tab has no Zone, a zone
-    line references a rule set that does not exist, any zone line but the last has no UNTIL, the UNTIL values of a
-    zone do not strictly increase, a timezone listed in zone.tab is neither listed in zone1970.tab nor a Link to a
+    Generation fails, rather than emitting bad data, where a timezone listed in zone1970.tab, or Etc/UTC, has no
+    Zone, a zone line references a rule set that does not exist, any zone line but the last has no UNTIL, the UNTIL
+    values of a zone do not strictly increase, a timezone listed in zone.tab is neither listed in zone1970.tab nor a Link to a
     timezone that is, a chain of links has a cycle or does not end at a Zone, or any line of the source cannot be
     parsed.
 
@@ -177,63 +182,192 @@ function Get-MemberFieldDeclaredFieldsPredicateMethodDefinition {
     return $method
 }
 
-function Get-SpecialToStringMethodDefinition {
-    [OutputType([System.CodeDom.CodeMemberMethod])]
+function Get-ToStringSnippet {
+    <#
+        .SYNOPSIS
+        Declares ToString, which returns the name of the timezone field with the identifier of the timezone, found in
+        the region classes nested directly in the type, or else the identifier.  For the default value, whose
+        identifier is Etc/UTC, it is the name of the Etc.UTC field.
+    #>
+    [OutputType([System.CodeDom.CodeSnippetTypeMember])]
+    param ()
+
+    return [System.CodeDom.CodeSnippetTypeMember]::new("        /// <summary>
+        /// Returns the name of the timezone's field in its region, such as <c>Oslo</c> for <see cref=`"$TypeName.Europe.Oslo`"/>, or, for a
+        /// field in a nested region, the identifier. The default value gives <c>UTC</c>, as <see cref=`"$TypeName.Etc.UTC`"/> does.
+        /// </summary>
+        /// <returns>The name of the field, or the identifier.</returns>
+        public override string ToString()
+        {
+            var memberField = this.GetType().GetTypeInfo().DeclaredNestedTypes.SelectMany(this.MemberFieldDeclaredFieldsPredicate).FirstOrDefault(this.MemberFieldPredicate);
+            return memberField != null ? memberField.Name : this.Identifier;
+        }")
+}
+
+function Get-IdentifierMethodsSnippet {
+    <#
+        .SYNOPSIS
+        Declares the equality, hash code and comparison members, which work on the identifier of the timezone, so that
+        the default value, whose identifier is Etc/UTC, is equal to TzDataTimezone.Etc.UTC.
+    #>
+    [OutputType([System.CodeDom.CodeSnippetTypeMember])]
+    param (
+        [Parameter(Mandatory)]
+        [string]    $TypeName
+    )
+
+    return [System.CodeDom.CodeSnippetTypeMember]::new("        /// <summary>
+        /// Determines whether the timezone has the same identifier as another. The default value is equal to <see cref=`"$TypeName.Etc.UTC`"/>.
+        /// </summary>
+        /// <param name=`"other`">The timezone to compare with.</param>
+        /// <returns><see langword=`"true`"/> if the identifiers are equal; otherwise, <see langword=`"false`"/>.</returns>
+        public bool Equals(DataStandardizer.Chronology.$TypeName other)
+        {
+            return string.Equals(this.Identifier, other.Identifier);
+        }
+
+        /// <summary>
+        /// Returns the hash code of the identifier, which for the default value is that of <see cref=`"$TypeName.Etc.UTC`"/>.
+        /// </summary>
+        /// <returns>The hash code.</returns>
+        public override int GetHashCode()
+        {
+            return this.Identifier.GetHashCode();
+        }
+
+        /// <summary>
+        /// Compares the timezone with another, by the ordinal order of their identifiers.
+        /// </summary>
+        /// <param name=`"obj`">The timezone to compare with.</param>
+        /// <returns>
+        /// A negative number if the identifier of the timezone comes before that of <paramref name=`"obj`"/>; zero if they are equal; otherwise,
+        /// a positive number.
+        /// </returns>
+        /// <exception cref=`"System.ArgumentNullException`"><paramref name=`"obj`"/> is <see langword=`"null`"/>.</exception>
+        /// <exception cref=`"System.ArgumentException`"><paramref name=`"obj`"/> is not a <see cref=`"$TypeName`"/>.</exception>
+#if NETCOREAPP3_0_OR_GREATER
+        public int CompareTo(object? obj)
+#else
+        public int CompareTo(object obj)
+#endif
+        {
+            if (obj == null)
+            {
+                throw new System.ArgumentNullException(nameof(obj));
+            }
+            if (!(obj is DataStandardizer.Chronology.$TypeName other))
+            {
+                throw new System.ArgumentException(`$`"{nameof(obj)} and this instance are not the same type.`", nameof(obj));
+            }
+            return string.CompareOrdinal(this.Identifier, other.Identifier);
+        }
+
+        /// <summary>
+        /// Determines whether an object is a timezone with the same identifier as this one.
+        /// </summary>
+        /// <param name=`"obj`">The object to compare with.</param>
+        /// <returns><see langword=`"true`"/> if <paramref name=`"obj`"/> is a timezone with the same identifier; otherwise, <see langword=`"false`"/>.</returns>
+#if NETCOREAPP3_0_OR_GREATER
+        public override bool Equals(object? obj)
+#else
+        public override bool Equals(object obj)
+#endif
+        {
+            return obj is DataStandardizer.Chronology.$TypeName other && this.Equals(other);
+        }")
+}
+
+function Get-ConvertibleMethodsSnippet {
+    <#
+        .SYNOPSIS
+        Declares the IConvertible members, which convert the identifier of the timezone.
+    #>
+    [OutputType([System.CodeDom.CodeSnippetTypeMember])]
     param (
         [Parameter()]
         [switch]    $UseNullableReferenceTypes
     )
-    
-    $methodName = 'ToString'
-    $memberFieldVariableName = 'memberField'
-    $resultVariableName = 'result'
 
-    # Declare method.
-    $method = [System.CodeDom.CodeMemberMethod]::new()
-    $method.Name = $methodName
-    $method.Attributes = ($method.Attributes -band -bnot [System.CodeDom.MemberAttributes]::AccessMask) -bor [System.CodeDom.MemberAttributes]::Public
-    $method.Attributes = ($method.Attributes -band -bnot [System.CodeDom.MemberAttributes]::ScopeMask) -bor [System.CodeDom.MemberAttributes]::Override
-    $method.ReturnType = [System.CodeDom.CodeTypeReference]::new([string])
+    $providerType = $UseNullableReferenceTypes ? 'System.IFormatProvider?' : 'System.IFormatProvider'
+    $conversions = [ordered]@{
+        ToBoolean  = 'bool'
+        ToByte     = 'byte'
+        ToChar     = 'char'
+        ToDateTime = 'System.DateTime'
+        ToDecimal  = 'decimal'
+        ToDouble   = 'double'
+        ToInt16    = 'short'
+        ToInt32    = 'int'
+        ToInt64    = 'long'
+        ToSByte    = 'sbyte'
+        ToSingle   = 'float'
+        ToString   = $null
+        ToType     = $null
+        ToUInt16   = 'ushort'
+        ToUInt32   = 'uint'
+        ToUInt64   = 'ulong'
+    }
 
-    # Define method statements.
-    $nestedTypesVariableDeclarationStatement = [System.CodeDom.CodeVariableDeclarationStatement]::new([System.Collections.Generic.IEnumerable[System.Reflection.TypeInfo]], 'nestedTypes', [System.CodeDom.CodePropertyReferenceExpression]::new([System.CodeDom.CodeMethodInvokeExpression]::new([System.CodeDom.CodeMethodInvokeExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), 'GetType', @()), 'GetTypeInfo', @()), 'DeclaredNestedTypes'))
-    $memberFieldVariableDeclarationStatement = [System.CodeDom.CodeVariableDeclarationStatement]::new('var', 'memberField', [System.CodeDom.CodeMethodInvokeExpression]::new([System.CodeDom.CodeMethodInvokeExpression]::new([System.CodeDom.CodeVariableReferenceExpression]::new('nestedTypes'), 'SelectMany', @([System.CodeDom.CodeMethodReferenceExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), 'MemberFieldDeclaredFieldsPredicate'))), 'FirstOrDefault', @([System.CodeDom.CodeMethodReferenceExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), 'MemberFieldPredicate'))))
-    $result1Statement = [System.CodeDom.CodeVariableDeclarationStatement]::new(($PSBoundParameters.ContainsKey('UseNullableReferenceTypes')? [System.CodeDom.CodeTypeReference]::new('string?'):[System.CodeDom.CodeTypeReference]::new([string])), $resultVariableName, [System.CodeDom.CodePrimitiveExpression]::new($null))
-    $result2Statement = [System.CodeDom.CodeConditionStatement]::new(
-        [System.CodeDom.CodeBinaryOperatorExpression]::new(
-            [System.CodeDom.CodeVariableReferenceExpression]::new($memberFieldVariableName),
-            [System.CodeDom.CodeBinaryOperatorType]::IdentityInequality,
-            [System.CodeDom.CodePrimitiveExpression]::new($null)),
-        @([System.CodeDom.CodeAssignStatement]::new([System.CodeDom.CodeVariableReferenceExpression]::new($resultVariableName), [System.CodeDom.CodePropertyReferenceExpression]::new([System.CodeDom.CodeVariableReferenceExpression]::new($memberFieldVariableName), 'Name'))))
-    $result3Statement = [System.CodeDom.CodeConditionStatement]::new(
-        [System.CodeDom.CodeBinaryOperatorExpression]::new(
-            [System.CodeDom.CodeVariableReferenceExpression]::new($resultVariableName),
-            [System.CodeDom.CodeBinaryOperatorType]::ValueEquality,
-            [System.CodeDom.CodePrimitiveExpression]::new($null)),
-        @([System.CodeDom.CodeAssignStatement]::new([System.CodeDom.CodeVariableReferenceExpression]::new($resultVariableName), [System.CodeDom.CodeFieldReferenceExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), '_value'))))
-    $result4Statement = [System.CodeDom.CodeConditionStatement]::new(
-        [System.CodeDom.CodeBinaryOperatorExpression]::new(
-            [System.CodeDom.CodeVariableReferenceExpression]::new($resultVariableName),
-            [System.CodeDom.CodeBinaryOperatorType]::ValueEquality,
-            [System.CodeDom.CodePrimitiveExpression]::new($null)),
-        @([System.CodeDom.CodeAssignStatement]::new([System.CodeDom.CodeVariableReferenceExpression]::new($resultVariableName), [System.CodeDom.CodeMethodInvokeExpression]::new([System.CodeDom.CodeBaseReferenceExpression]::new(), $methodName, @()))))
-    $result5Statement = [System.CodeDom.CodeConditionStatement]::new(
-        [System.CodeDom.CodeBinaryOperatorExpression]::new(
-            [System.CodeDom.CodeVariableReferenceExpression]::new($resultVariableName),
-            [System.CodeDom.CodeBinaryOperatorType]::ValueEquality,
-            [System.CodeDom.CodePrimitiveExpression]::new($null)),
-        @([System.CodeDom.CodeAssignStatement]::new([System.CodeDom.CodeVariableReferenceExpression]::new($resultVariableName), [System.CodeDom.CodePropertyReferenceExpression]::new([System.CodeDom.CodeMethodInvokeExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), 'GetType', @()), 'FullName'))))
-    $result6Statement = [System.CodeDom.CodeConditionStatement]::new(
-        [System.CodeDom.CodeBinaryOperatorExpression]::new(
-            [System.CodeDom.CodeVariableReferenceExpression]::new($resultVariableName),
-            [System.CodeDom.CodeBinaryOperatorType]::ValueEquality,
-            [System.CodeDom.CodePrimitiveExpression]::new($null)),
-        @([System.CodeDom.CodeAssignStatement]::new([System.CodeDom.CodeVariableReferenceExpression]::new($resultVariableName), [System.CodeDom.CodePropertyReferenceExpression]::new([System.CodeDom.CodeMethodInvokeExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), 'GetType'), 'Name'))))
-    $returnStatement = [System.CodeDom.CodeMethodReturnStatement]::new([System.CodeDom.CodeVariableReferenceExpression]::new($resultVariableName))
-    [System.CodeDom.CodeStatement[]]$methodStatements = @($nestedTypesVariableDeclarationStatement, $memberFieldVariableDeclarationStatement, $result1Statement, $result2Statement, $result3Statement, $result4Statement, $result5Statement, $result6Statement, $returnStatement)
-    $method.Statements.AddRange($methodStatements)
+    $snippetBuilder = [System.Text.StringBuilder]::new()
+    [void]$snippetBuilder.Append("        /// <summary>
+        /// Returns the type code of the identifier.
+        /// </summary>
+        /// <returns><see cref=`"System.TypeCode.String`"/>.</returns>
+        public System.TypeCode GetTypeCode()
+        {
+            return this.Identifier.GetTypeCode();
+        }")
+    foreach ($conversion in $conversions.GetEnumerator()) {
+        [void]$snippetBuilder.Append("
 
-    return $method
+")
+        switch ($conversion.Key) {
+            'ToString' {
+                [void]$snippetBuilder.Append("        /// <summary>
+        /// Returns the identifier of the timezone.
+        /// </summary>
+        /// <param name=`"provider`">Ignored.</param>
+        /// <returns>The identifier, which is <c>Etc/UTC</c> for the default value.</returns>
+        [System.ObsoleteAttribute(`"The provider argument is not used. Please use `" + nameof(ToString) + `"().`")]
+        public string ToString($providerType provider)
+        {
+            return ((System.IConvertible)this.Identifier).ToString(provider);
+        }")
+            }
+            'ToType' {
+                [void]$snippetBuilder.Append("        object System.IConvertible.ToType(System.Type conversionType, $providerType provider)
+        {
+            return ((System.IConvertible)this.Identifier).ToType(conversionType, provider);
+        }")
+            }
+            default {
+                [void]$snippetBuilder.Append("        $($conversion.Value) System.IConvertible.$($conversion.Key)($providerType provider)
+        {
+            return ((System.IConvertible)this.Identifier).$($conversion.Key)(provider);
+        }")
+            }
+        }
+    }
+
+    return [System.CodeDom.CodeSnippetTypeMember]::new($snippetBuilder.ToString())
+}
+
+function Get-MemberFieldPredicateSnippet {
+    <#
+        .SYNOPSIS
+        Declares the predicate that finds the timezone field with the identifier of the timezone, which for the default
+        value is the field of Etc/UTC.
+    #>
+    [OutputType([System.CodeDom.CodeSnippetTypeMember])]
+    param (
+        [Parameter(Mandatory)]
+        [string]    $TypeName
+    )
+
+    return [System.CodeDom.CodeSnippetTypeMember]::new("        private bool MemberFieldPredicate(System.Reflection.FieldInfo field)
+        {
+            return field.IsPublic && field.IsStatic && field.GetValue(null) is DataStandardizer.Chronology.$TypeName memberValue && memberValue._value == this.Identifier;
+        }")
 }
 
 function Get-ZoneLinesFieldDeclaration {
@@ -681,7 +815,10 @@ function Out-SourceCode {
         [string]        $SourceCodePart,
 
         [Parameter()]
-        [System.Collections.Generic.IDictionary[string, string]]    $DeprecatedLinks
+        [System.Collections.Generic.IDictionary[string, string]]    $DeprecatedLinks,
+
+        [Parameter(Mandatory)]
+        [string]    $DefaultIdentifier
     )
 
     begin {
@@ -797,24 +934,37 @@ function Out-SourceCode {
         [void]$stringToStructConversionOperatorSnippetMember.StartDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::Start, 'Operators'))
         [void]$structType.Members.Add($stringToStructConversionOperatorSnippetMember)
     
-        $structToStringConversionOperatorSnippet = "#if NETCOREAPP3_0_OR_GREATER
-            public static implicit operator string?(DataStandardizer.Chronology.$TypeName value)
-    #else
-            [return: System.Diagnostics.CodeAnalysis.MaybeNullAttribute]
+        # The default value converts to Etc/UTC, the identifier it stands for, so the conversion never returns null.
+        $structToStringConversionOperatorSnippet = "            /// <summary>
+            /// Converts a timezone to its TZ Database identifier.
+            /// </summary>
+            /// <param name=`"value`">The timezone.</param>
+            /// <returns>The identifier of the timezone, which is <c>Etc/UTC</c> for the default value.</returns>
             public static implicit operator string(DataStandardizer.Chronology.$TypeName value)
-    #endif
             {
-                return value._value;
+                return value.Identifier;
             }"
         [void]$structType.Members.Add([System.CodeDom.CodeSnippetTypeMember]::new($structToStringConversionOperatorSnippet))
     
-        $equalityOperatorSnippet = "        public static bool operator ==(DataStandardizer.Chronology.$TypeName left, DataStandardizer.Chronology.$TypeName right)
+        $equalityOperatorSnippet = "        /// <summary>
+        /// Determines whether two timezones have the same identifier.
+        /// </summary>
+        /// <param name=`"left`">The first timezone.</param>
+        /// <param name=`"right`">The second timezone.</param>
+        /// <returns><see langword=`"true`"/> if the identifiers are equal; otherwise, <see langword=`"false`"/>.</returns>
+        public static bool operator ==(DataStandardizer.Chronology.$TypeName left, DataStandardizer.Chronology.$TypeName right)
             {
                 return left.Equals(right);
             }"
         [void]$structType.Members.Add([System.CodeDom.CodeSnippetTypeMember]::new($equalityOperatorSnippet))
     
-        $inequalityOperatorSnippet = "        public static bool operator !=(DataStandardizer.Chronology.$TypeName left, DataStandardizer.Chronology.$TypeName right)
+        $inequalityOperatorSnippet = "        /// <summary>
+        /// Determines whether two timezones have different identifiers.
+        /// </summary>
+        /// <param name=`"left`">The first timezone.</param>
+        /// <param name=`"right`">The second timezone.</param>
+        /// <returns><see langword=`"true`"/> if the identifiers differ; otherwise, <see langword=`"false`"/>.</returns>
+        public static bool operator !=(DataStandardizer.Chronology.$TypeName left, DataStandardizer.Chronology.$TypeName right)
             {
                 return !left.Equals(right);
             }"
@@ -921,7 +1071,8 @@ function Out-SourceCode {
         if ($coordinateLongitudeDMS.StartsWith('-')) {
             $coordinateLongitude *= -1
         }
-        $countryCodes = $_.'country-codes' -split ','
+        # Etc/UTC is used in no country, so it has none.
+        [string[]]$countryCodes = [string]::IsNullOrEmpty($_.'country-codes') ? @() : @($_.'country-codes' -split ',')
         $comment = $null
         if (-not [string]::IsNullOrWhiteSpace($_.comments)) {
             $comment = $_.comments
@@ -929,7 +1080,7 @@ function Out-SourceCode {
 
         # The location metadata is passed by named argument, so that the field initialiser reads clearly. The array of
         # country codes is written on one line, which CodeDom would break after each element.
-        $countryCodesText = 'new string[] { ' + (($countryCodes | ForEach-Object { Format-CodeExpression -Expression ([System.CodeDom.CodePrimitiveExpression]::new($_)) -Provider $provider }) -join ', ') + ' }'
+        $countryCodesText = $countryCodes.Length -eq 0 ? 'new string[0]' : 'new string[] { ' + (($countryCodes | ForEach-Object { Format-CodeExpression -Expression ([System.CodeDom.CodePrimitiveExpression]::new($_)) -Provider $provider }) -join ', ') + ' }'
         [System.CodeDom.CodeExpression[]]$constructorArguments = @([System.CodeDom.CodePrimitiveExpression]::new($_.TZ))
         if ($null -ne $linkTarget) {
             $constructorArguments += New-NamedArgumentExpression -Name 'linkTarget' -ExpressionText (Format-CodeExpression -Expression ([System.CodeDom.CodePrimitiveExpression]::new($linkTarget)) -Provider $provider)
@@ -949,21 +1100,27 @@ function Out-SourceCode {
 
         [System.CodeDom.CodeComment[]]$remarksComments = @()
         $remarksComments += [System.CodeDom.CodeComment]::new('<remarks>', $true)
-        $remarksComments += [System.CodeDom.CodeComment]::new('Used in the following countries:', $true)
-        $remarksComments += [System.CodeDom.CodeComment]::new("`t<list type=""bullet"">", $true)
-        $remarksComments += [System.CodeDom.CodeComment]::new("`t`t<listheader>", $true)
-        $remarksComments += [System.CodeDom.CodeComment]::new("`t`t`t<term>Code</term>", $true)
-        $remarksComments += [System.CodeDom.CodeComment]::new("`t`t`t<description>Country Name</description>", $true)
-        $remarksComments += [System.CodeDom.CodeComment]::new("`t`t</listheader>", $true)
-        $countryCodes | ForEach-Object {
-            $countryName = $CountryCodeTable[$_]
-
-            $remarksComments += [System.CodeDom.CodeComment]::new("`t`t<item>", $true)
-            $remarksComments += [System.CodeDom.CodeComment]::new("`t`t`t<term>$_</term>", $true)
-            $remarksComments += [System.CodeDom.CodeComment]::new("`t`t`t<description>$countryName</description>", $true)
-            $remarksComments += [System.CodeDom.CodeComment]::new("`t`t</item>", $true)
+        if ($_.TZ -eq $DefaultIdentifier) {
+            $remarksComments += [System.CodeDom.CodeComment]::new('Coordinated Universal Time, which is used in no country, and so has no location: its latitude and longitude are 0.', $true)
+            $remarksComments += [System.CodeDom.CodeComment]::new("<para>The default value of <see cref=""$TypeName""/> is equal to this timezone.</para>", $true)
         }
-        $remarksComments += [System.CodeDom.CodeComment]::new("`t</list>", $true)
+        else {
+            $remarksComments += [System.CodeDom.CodeComment]::new('Used in the following countries:', $true)
+            $remarksComments += [System.CodeDom.CodeComment]::new("`t<list type=""bullet"">", $true)
+            $remarksComments += [System.CodeDom.CodeComment]::new("`t`t<listheader>", $true)
+            $remarksComments += [System.CodeDom.CodeComment]::new("`t`t`t<term>Code</term>", $true)
+            $remarksComments += [System.CodeDom.CodeComment]::new("`t`t`t<description>Country Name</description>", $true)
+            $remarksComments += [System.CodeDom.CodeComment]::new("`t`t</listheader>", $true)
+            $countryCodes | ForEach-Object {
+                $countryName = $CountryCodeTable[$_]
+
+                $remarksComments += [System.CodeDom.CodeComment]::new("`t`t<item>", $true)
+                $remarksComments += [System.CodeDom.CodeComment]::new("`t`t`t<term>$_</term>", $true)
+                $remarksComments += [System.CodeDom.CodeComment]::new("`t`t`t<description>$countryName</description>", $true)
+                $remarksComments += [System.CodeDom.CodeComment]::new("`t`t</item>", $true)
+            }
+            $remarksComments += [System.CodeDom.CodeComment]::new("`t</list>", $true)
+        }
         if ($null -ne $linkTarget) {
             $remarksComments += [System.CodeDom.CodeComment]::new("<para>A link to <see cref=""$TypeName.$($fieldPaths[$linkTarget])""/>, whose zone lines it shares, including those before 1970.</para>", $true)
         }
@@ -998,54 +1155,14 @@ function Out-SourceCode {
         # Declare public methods.
         Write-Progress -Activity $activity -CurrentOperation 'Declaring public methods' -PercentComplete -1
 
+        # Every member works on the identifier, which is Etc/UTC for the default value, rather than on the value field.
         [System.CodeDom.CodeTypeMember[]]$publicMethods = @(
-            (Get-EqualsMethodDefinition -TypeNamespace 'DataStandardizer.Chronology' -TypeName $TypeName),
-            (Get-GetHashCodeMethodDefinition),
+            (Get-IdentifierMethodsSnippet -TypeName $TypeName),
+            (Get-ToStringSnippet),
             [System.CodeDom.CodeSnippetTypeMember]::new('#if NETCOREAPP3_0_OR_GREATER'),
-            (Get-CompareToMethodDefinition -UseNullableReferenceTypes),
-            (Get-InheritedEqualsMethodDefinition -TypeNamespace 'DataStandardizer.Chronology' -TypeName $TypeName -UseNullableReferenceTypes),
-            (Get-SpecialToStringMethodDefinition -UseNullableReferenceTypes),
-            [System.CodeDom.CodeSnippetTypeMember]::new('#else'),
-            (Get-CompareToMethodDefinition),
-            (Get-InheritedEqualsMethodDefinition -TypeNamespace 'DataStandardizer.Chronology' -TypeName $TypeName),
-            (Get-SpecialToStringMethodDefinition),
-            [System.CodeDom.CodeSnippetTypeMember]::new('#endif')
-            [System.CodeDom.CodeSnippetTypeMember]::new('#if NETCOREAPP3_0_OR_GREATER'),
-            (Get-GetTypeCodeMethodDefinition),
-            (Get-ToBooleanMethodDefinition -UseNullableReferenceTypes),
-            (Get-ToByteMethodDefinition -UseNullableReferenceTypes),
-            (Get-ToCharMethodDefinition -UseNullableReferenceTypes),
-            (Get-ToDateTimeMethodDefinition -UseNullableReferenceTypes),
-            (Get-ToDecimalMethodDefinition -UseNullableReferenceTypes),
-            (Get-ToDoubleMethodDefinition -UseNullableReferenceTypes),
-            (Get-ToInt16MethodDefinition -UseNullableReferenceTypes),
-            (Get-ToInt32MethodDefinition -UseNullableReferenceTypes),
-            (Get-ToInt64MethodDefinition -UseNullableReferenceTypes),
-            (Get-ToSByteMethodDefinition -UseNullableReferenceTypes),
-            (Get-ToSingleMethodDefinition -UseNullableReferenceTypes),
-            (Get-ToStringMethodDefinition -UseNullableReferenceTypes),
-            (Get-ToTypeMethodDefinition -UseNullableReferenceTypes),
-            (Get-ToUInt16MethodDefinition -UseNullableReferenceTypes),
-            (Get-ToUInt32MethodDefinition -UseNullableReferenceTypes),
-            (Get-ToUInt64MethodDefinition -UseNullableReferenceTypes),
+            (Get-ConvertibleMethodsSnippet -UseNullableReferenceTypes),
             [System.CodeDom.CodeSnippetTypeMember]::new('#elif NETSTANDARD1_3_OR_GREATER||NET'),
-            (Get-GetTypeCodeMethodDefinition),
-            (Get-ToBooleanMethodDefinition),
-            (Get-ToByteMethodDefinition),
-            (Get-ToCharMethodDefinition),
-            (Get-ToDateTimeMethodDefinition),
-            (Get-ToDecimalMethodDefinition),
-            (Get-ToDoubleMethodDefinition),
-            (Get-ToInt16MethodDefinition),
-            (Get-ToInt32MethodDefinition),
-            (Get-ToInt64MethodDefinition),
-            (Get-ToSByteMethodDefinition),
-            (Get-ToSingleMethodDefinition),
-            (Get-ToStringMethodDefinition),
-            (Get-ToTypeMethodDefinition),
-            (Get-ToUInt16MethodDefinition),
-            (Get-ToUInt32MethodDefinition),
-            (Get-ToUInt64MethodDefinition),
+            (Get-ConvertibleMethodsSnippet),
             [System.CodeDom.CodeSnippetTypeMember]::new('#endif')
         )
         $publicMethods | Select-Object -First 1 | ForEach-Object { [void]$_.StartDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::Start, 'Public Methods')) }
@@ -1057,7 +1174,7 @@ function Out-SourceCode {
         Write-Progress -Activity $activity -CurrentOperation 'Declaring private methods' -PercentComplete -1
     
         [System.CodeDom.CodeTypeMember[]]$privateMethods = @(
-            (Get-MemberFieldPredicateMethodDefinition -TypeNamespace 'DataStandardizer.Chronology' -TypeName $TypeName -GenerateLanguage $GenerateLanguage),
+            (Get-MemberFieldPredicateSnippet -TypeName $TypeName),
             (Get-MemberFieldDeclaredFieldsPredicateMethodDefinition)
         )
         $privateMethods | Select-Object -First 1 | ForEach-Object { [void]$_.StartDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::Start, 'Private Methods')) }
@@ -1109,6 +1226,9 @@ function Out-SourceCode {
         }
     }
 }
+
+# The identifier of the timezone that the default value of the type stands for.
+$DefaultIdentifier = 'Etc/UTC'
 
 # Validate parameters.
 if (-not (Test-Path -Path $SourceFolderPath -PathType Container)) {
@@ -1182,6 +1302,19 @@ try {
     $zonesFileHeaderFieldNames = Get-HeaderFieldNames $zonesFileLines
     $timezoneLines = $zonesFileLines | Select-Object -Skip $zonesFileHeaderLineCount | Where-Object { -not $_.StartsWith('#') }
     [pscustomobject[]]$timezones = @($timezoneLines | ConvertFrom-Csv -Delimiter "`t" -Header $zonesFileHeaderFieldNames)
+
+    # Etc/UTC, which the default value of the type stands for, is defined in etcetera rather than listed in
+    # zone1970.tab, so it is added after the timezones of zone1970.tab, with no countries and no coordinates.
+    if (-not $tzDataSource.Zones.Contains($DefaultIdentifier)) {
+        throw "No Zone is defined for $DefaultIdentifier, which the default value stands for."
+    }
+    $timezones += [pscustomobject]@{
+        'country-codes' = $null
+        coordinates     = '+0000+00000'
+        TZ              = $DefaultIdentifier
+        comments        = $null
+        LinkTarget      = $null
+    }
     $canonicalIdentifiers = [System.Collections.Generic.HashSet[string]]::new([string[]]@($timezones | ForEach-Object TZ), [System.StringComparer]::Ordinal)
 
     # Every link is resolved to the canonical timezone at the end of its chain.  The links listed in zone.tab, which
@@ -1228,7 +1361,7 @@ try {
         $deprecatedLinks[$linkTarget.Key] = $linkTarget.Value
     }
 
-    $timezones | Out-SourceCode -CodeCount $timezones.Length -CountryCodeTable $countryCodeTable -TypeName $SourceCodeTypeName -TypeComment $SourceCodeTypeComment -GenerateLanguage $SourceCodeLanguage -TzDataVersion $tzDataVersion -TzDataSource $tzDataSource -SourceCodePart $SourceCodePart -DeprecatedLinks $deprecatedLinks
+    $timezones | Out-SourceCode -CodeCount $timezones.Length -CountryCodeTable $countryCodeTable -TypeName $SourceCodeTypeName -TypeComment $SourceCodeTypeComment -GenerateLanguage $SourceCodeLanguage -TzDataVersion $tzDataVersion -TzDataSource $tzDataSource -SourceCodePart $SourceCodePart -DeprecatedLinks $deprecatedLinks -DefaultIdentifier $DefaultIdentifier
 }
 finally {
     Remove-Module TzDataParser

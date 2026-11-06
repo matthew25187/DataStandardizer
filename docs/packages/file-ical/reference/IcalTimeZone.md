@@ -89,7 +89,7 @@ documented on [IcalComponent](IcalComponent.md).
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `FromTzData(TzDataTimezone timezone, DateTimeOffset from, DateTimeOffset to)` | `IcalTimeZone` | Builds a VTIMEZONE from the TZ Database over a period, as described under Remarks. `timezone` is the [TzDataTimezone](../../chronology/reference/TzDataTimezone.md); its identifier becomes the `TZID`. `from` is the start of the period, which is included; `to` is the end, which is excluded. Throws `ArgumentOutOfRangeException` if `to` precedes `from`, or `InvalidOperationException` if `timezone` is the default value or its identifier is not that of a known time zone. |
+| `FromTzData(TzDataTimezone timezone, DateTimeOffset from, DateTimeOffset to)` | `IcalTimeZone` | Builds a VTIMEZONE from the TZ Database over a period, as described under Remarks. `timezone` is the [TzDataTimezone](../../chronology/reference/TzDataTimezone.md); its identifier becomes the `TZID`. `from` is the start of the period, which is included; `to` is the end, which is excluded. Throws `ArgumentOutOfRangeException` if `to` precedes `from`. For `default(TzDataTimezone)`, which stands for `Etc/UTC`, the `TZID` is `Etc/UTC` and there is a single observance with an offset of 0. |
 
 ## Applies to
 

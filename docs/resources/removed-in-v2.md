@@ -359,8 +359,10 @@ The properties differ from the removed methods in two ways:
 
 - `IsoCountryCodes` returns a read-only `IReadOnlyList<string>` rather than a
   `string[]`.
-- The properties throw `InvalidOperationException` for `default(TzDataTimezone)`,
-  where the removed methods returned `null`, `0` or an empty array.
+- For `default(TzDataTimezone)`, the properties return the metadata of `Etc/UTC`,
+  the time zone that the default instance stands for: no countries, no comment,
+  and a latitude and longitude of 0. See
+  [Chronology default time zone](#chronology-default-time-zone).
 
 ```csharp
 // Before
@@ -407,6 +409,63 @@ if (!TzDataTimezone.TryParse(input, out var timezone))
 A cast from a deprecated name now returns the canonical time zone, so its
 identifier is the canonical one: `(string)(TzDataTimezone)"Asia/Calcutta"` is
 `"Asia/Kolkata"`, where in version 1.x it was `"Asia/Calcutta"`.
+
+## Chronology default time zone
+
+In version 1.x, `default(TzDataTimezone)` was an instance with no identifier. Its
+conversion to `string` returned `null`, `ToString` returned the name of the type,
+and the members added in version 1.x for zone lines, location metadata and offset
+calculations threw `InvalidOperationException`.
+
+In version 2.0, `default(TzDataTimezone)` is Coordinated Universal Time,
+`Etc/UTC`, in the same way that `default(TimeSpan)` is `TimeSpan.Zero`. It is
+equal to the new field `TzDataTimezone.Etc.UTC`, and no member throws because a
+time zone is the default value. A member still throws for an invalid argument,
+as `CompareTo(null)` throws `ArgumentNullException`:
+
+| Member | Version 1.x | Version 2.0 |
+| --- | --- | --- |
+| Implicit conversion to `string` | `null` | `"Etc/UTC"` |
+| `ToString()` | `"DataStandardizer.Chronology.TzDataTimezone"` | `"UTC"`, as for `TzDataTimezone.Etc.UTC` |
+| `==` and `Equals` with `TzDataTimezone.Etc.UTC` | No such field | `true`, with equal hash codes |
+| `CompareTo` | Throws `NullReferenceException` | Compares `"Etc/UTC"` with the other identifier in ordinal order |
+| `GetTypeCode()` | Throws `InvalidOperationException` | `TypeCode.String` |
+| `ZoneLines`, `IsLink` and `Canonical` | Throw `InvalidOperationException` | The single zone line of `Etc/UTC`, `false`, and `Etc/UTC` |
+| `Latitude`, `Longitude`, `IsoCountryCodes` and `Comment` | Throw `InvalidOperationException` | `0`, `0`, empty, and `null` |
+| `TzDataExtensions` methods, `ToDateTimeOffset` and `ToOffset` | Throw `InvalidOperationException` | An offset of 0, no daylight saving time, the abbreviation `UTC` and no transitions |
+
+The implicit conversion to `string` is now declared as returning `string`, not
+`string?`, as it never returns `null`. Code that tested its result for `null` to
+find a time zone that was never set should keep the time zone in a
+`TzDataTimezone?` instead:
+
+```csharp
+// Before
+TzDataTimezone timezone = default;
+string? identifier = timezone;
+if (identifier is null)
+{
+    // no time zone
+}
+
+// After
+TzDataTimezone? timezone = null;
+if (timezone is null)
+{
+    // no time zone
+}
+```
+
+`TryParse` still sets its `result` to `default` when it returns `false`, which is
+now `Etc/UTC`, so test its return value rather than `result`.
+
+`CompareTo` also works for any two time zones, ordering them by identifier. In
+version 1.x it threw `ArgumentException` for every pair, so `List<T>.Sort()` and
+`OrderBy` over time zones failed.
+
+`Parse`, `TryParse` and the explicit conversion return `TzDataTimezone.Etc.UTC`
+for `Etc/UTC` and for the names that the TZ Database's `backward` file links to
+it, such as `UTC`, `Zulu` and `Etc/Universal`.
 
 ## File.CSV line model
 

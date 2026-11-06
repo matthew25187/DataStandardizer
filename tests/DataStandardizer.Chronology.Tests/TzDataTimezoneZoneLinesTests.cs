@@ -139,19 +139,6 @@ public class TzDataTimezoneZoneLinesTests
     }
 
     [Fact]
-    public void ZoneLines_DefaultInstance_ThrowsInvalidOperationException()
-    {
-        // arrange
-        var testTimezone = default(TzDataTimezone);
-
-        // act
-        Func<IReadOnlyList<TzDataZoneLine>> testAction = () => testTimezone.ZoneLines;
-
-        // assert
-        testAction.Should().Throw<InvalidOperationException>("the default instance has no identifier");
-    }
-
-    [Fact]
     public void ZoneLines_EuropeLondon_IsNotWritableArray()
     {
         // act

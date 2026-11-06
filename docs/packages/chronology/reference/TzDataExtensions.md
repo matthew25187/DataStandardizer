@@ -34,7 +34,8 @@ takes a `DateTimeOffset`.
 - `GetOffsetInfosForLocal` is the exception: its `DateTime` argument is a time
   on the local clock of the time zone, and must be of kind `Unspecified`. One of
   kind `Utc` or `Local` throws `ArgumentException`.
-- Every method throws `InvalidOperationException` for `default(TzDataTimezone)`.
+- `default(TzDataTimezone)` is `Etc/UTC`: an offset of 0, no daylight saving
+  time, the abbreviation `UTC` and no transitions.
 
 The calculations follow the TZ Database's reference compiler, `zic`. Rules that
 continue indefinitely are applied to any future year. Leap seconds are ignored.

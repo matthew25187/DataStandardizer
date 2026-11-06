@@ -97,8 +97,9 @@ from several threads at once, as `IIcalTimeZoneResolver` requires.
 DataStandardizer.Chronology.
 
 - A `TZID` resolves when `TzDataTimezone.TryParse` recognises it, such as
-  `America/New_York` or the alias `US/Eastern`. Windows names such as
-  `Eastern Standard Time` do not resolve.
+  `America/New_York` or the alias `US/Eastern`. That includes `Etc/UTC` and the
+  aliases the TZ Database links to it, such as `UTC` and `Zulu`, which resolve to
+  an offset of 0. Windows names such as `Eastern Standard Time` do not resolve.
 - A `TZID` that starts with a solidus is globally unique (RFC 5545 §3.8.3.1). Vendors
   give such a `TZID` by prefixing a path, as in
   `/mozilla.org/20050126_1/America/New_York`. If the whole `TZID` is not recognised,

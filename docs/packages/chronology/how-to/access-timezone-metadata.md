@@ -60,8 +60,8 @@ var timezoneComment = timezone.Comment;
 
 The explicit cast from an identifier returns the predefined instance, so it
 returns the same metadata. The cast throws `InvalidCastException` for an
-identifier that is not that of a predefined instance. The properties throw
-`InvalidOperationException` for the `default` value.
+identifier that is not that of a predefined instance. The `default` value is
+`Etc/UTC`, which has no countries, no comment, and a latitude and longitude of 0.
 
 ## Upgrading from version 1.x
 

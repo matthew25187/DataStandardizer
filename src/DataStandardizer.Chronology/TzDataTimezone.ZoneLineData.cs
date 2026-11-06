@@ -3522,6 +3522,12 @@ namespace DataStandardizer.Chronology
                     new TzDataZoneLine(new System.TimeSpan(1, 52, 0), TzDataZoneRuleKind.None, null, null, "LMT", new TzDataUntil(1892, 2, TzDataDayKind.DayOfMonth, 8, null, System.TimeSpan.Zero, TzDataTimeReference.Wall)),
                     new TzDataZoneLine(new System.TimeSpan(1, 30, 0), TzDataZoneRuleKind.None, null, null, "SAST", new TzDataUntil(1903, 3, TzDataDayKind.DayOfMonth, 1, null, System.TimeSpan.Zero, TzDataTimeReference.Wall)),
                     new TzDataZoneLine(new System.TimeSpan(2, 0, 0), TzDataZoneRuleKind.RuleSet, null, RuleSets.SA, "SAST", null)};
+            
+            /// <summary>
+            /// Etc/UTC
+            /// </summary>
+            internal static readonly TzDataZoneLine[] Etc_UTC = new TzDataZoneLine[] {
+                    new TzDataZoneLine(System.TimeSpan.Zero, TzDataZoneRuleKind.None, null, null, "UTC", null)};
         }
     }
 }

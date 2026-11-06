@@ -324,8 +324,9 @@ offset it can't hold, such as New York's local mean time of -04:56:02 before
   for the local times passed to `GetOffsetInfosForLocal` and
   `ToDateTimeOffset`. See
   [Pass instants in universal time](#pass-instants-in-universal-time).
-- **Default instance.** The methods throw `InvalidOperationException` for
-  `default(TzDataTimezone)`. Get time zones from the predefined fields, with
+- **Default instance.** `default(TzDataTimezone)` is `Etc/UTC`, so the methods
+  return an offset of 0, no daylight saving time, the abbreviation `UTC` and no
+  transitions for it. Get other time zones from the predefined fields, with
   `Parse` or `TryParse`, or by explicit cast from an identifier.
 
 ## Next steps

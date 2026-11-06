@@ -16,6 +16,10 @@ public class TzDataExtensionsOffsetTests
     private const string LetterFormat = "%s";
     private const string LondonFormat = "GMT/BST";
 
+    // The earliest and latest instants that DateTime can hold, as universal times.
+    private static readonly DateTime EarliestUtc = new(DateTime.MinValue.Ticks, DateTimeKind.Utc);
+    private static readonly DateTime LatestUtc = new(DateTime.MaxValue.Ticks, DateTimeKind.Utc);
+
     // An instant away from any transition.
     private static readonly DateTime July2025 = new(2025, 7, 1, 12, 0, 0, DateTimeKind.Utc);
 
@@ -318,6 +322,23 @@ public class TzDataExtensionsOffsetTests
 
     public static TheoryData<TzDataTimezone> EveryTimezone_TestCases => TimezoneFieldCatalog.CreateTimezoneTestCases();
 
+    // Every timezone but Etc/UTC, which has a single zone line and no rules, and so no transitions; GetTransitions_EtcUtc_ReturnsNone
+    // covers it.
+    public static TheoryData<TzDataTimezone> EveryTimezoneWithTransitions_TestCases
+    {
+        get
+        {
+            var testCases = new TheoryData<TzDataTimezone>();
+            foreach (var timezone in TimezoneFieldCatalog.Timezones.Values)
+            {
+                if (timezone != TzDataTimezone.Etc.UTC)
+                    testCases.Add(timezone);
+            }
+
+            return testCases;
+        }
+    }
+
     [Theory]
     [MemberData(nameof(EveryTimezone_TestCases), DisableDiscoveryEnumeration = true)]
     public void GetTransitions_WholeRange_EachTransitionStartsFromOffsetThePreviousOneEndedWith(TzDataTimezone testTimezone)
@@ -330,7 +351,7 @@ public class TzDataExtensionsOffsetTests
     }
 
     [Theory]
-    [MemberData(nameof(EveryTimezone_TestCases), DisableDiscoveryEnumeration = true)]
+    [MemberData(nameof(EveryTimezoneWithTransitions_TestCases), DisableDiscoveryEnumeration = true)]
     public void GetTransitions_WholeRange_EachTransitionEndsOneOffsetAndStartsTheNext(TzDataTimezone testTimezone)
     {
         // act
@@ -727,18 +748,18 @@ public class TzDataExtensionsOffsetTests
 
     [Theory]
     [MemberData(nameof(OffsetMethod_TestCases))]
-    public void OffsetMethod_DefaultTimezone_ThrowsInvalidOperationException(string testMethod, Action<TzDataTimezone, DateTime> testMethodAction)
+    public void OffsetMethod_DefaultTimezone_DoesNotThrow(string testMethod, Action<TzDataTimezone, DateTime> testMethodAction)
     {
         // act
         Action testAction = () => testMethodAction(default, July2025);
 
         // assert
-        testAction.Should().Throw<InvalidOperationException>("{0} needs a timezone with an identifier", testMethod);
+        testAction.Should().NotThrow("{0} treats the default timezone as Etc/UTC", testMethod);
     }
 
     [Theory]
     [MemberData(nameof(OffsetMethodWithDateTimeOffset_TestCases))]
-    public void OffsetMethodWithDateTimeOffset_DefaultTimezone_ThrowsInvalidOperationException(string testMethod, Action<TzDataTimezone, DateTimeOffset> testMethodAction)
+    public void OffsetMethodWithDateTimeOffset_DefaultTimezone_DoesNotThrow(string testMethod, Action<TzDataTimezone, DateTimeOffset> testMethodAction)
     {
         // arrange
         var testInstant = new DateTimeOffset(July2025);
@@ -747,7 +768,64 @@ public class TzDataExtensionsOffsetTests
         Action testAction = () => testMethodAction(default, testInstant);
 
         // assert
-        testAction.Should().Throw<InvalidOperationException>("{0} needs a timezone with an identifier", testMethod);
+        testAction.Should().NotThrow("{0} treats the default timezone as Etc/UTC", testMethod);
+    }
+
+    // Instants across the range of DateTime. Etc/UTC has a single zone line, with an offset of 0, no rules and the format UTC, so it
+    // gives the same offset at each of them.
+    public static TheoryData<DateTime> EtcUtcInstant_TestCases => new()
+    {
+        EarliestUtc,
+        NewYorkStandardTimeStart,
+        StartOf1970,
+        July2025,
+        LatestUtc,
+    };
+
+    [Theory]
+    [MemberData(nameof(EtcUtcInstant_TestCases))]
+    public void GetUtcOffset_DefaultTimezone_ReturnsZero(DateTime testUtc)
+    {
+        // act
+        var testResult = default(TzDataTimezone).GetUtcOffset(testUtc);
+
+        // assert
+        testResult.Should().Be(UtcZero, "the default timezone is Etc/UTC, whose offset is 0");
+    }
+
+    [Theory]
+    [MemberData(nameof(EtcUtcInstant_TestCases))]
+    public void IsDaylightSavingTime_DefaultTimezone_ReturnsFalse(DateTime testUtc)
+    {
+        // act
+        var testResult = default(TzDataTimezone).IsDaylightSavingTime(testUtc);
+
+        // assert
+        testResult.Should().BeFalse("the default timezone is Etc/UTC, which has no rules");
+    }
+
+    [Theory]
+    [MemberData(nameof(EtcUtcInstant_TestCases))]
+    public void GetAbbreviation_DefaultTimezone_ReturnsUtc(DateTime testUtc)
+    {
+        // act
+        var testResult = default(TzDataTimezone).GetAbbreviation(testUtc);
+
+        // assert
+        testResult.Should().Be(Utc, "the default timezone is Etc/UTC, whose format is UTC");
+    }
+
+    public static TheoryData<string, TzDataTimezone> EtcUtc_TestCases => TimezoneFieldCatalog.CreateEtcUtcTestCases();
+
+    [Theory]
+    [MemberData(nameof(EtcUtc_TestCases))]
+    public void GetTransitions_EtcUtc_ReturnsNone(string testInstance, TzDataTimezone testTimezone)
+    {
+        // act
+        var testResult = testTimezone.GetTransitions(EarliestUtc, LatestUtc);
+
+        // assert
+        testResult.Should().BeEmpty("Etc/UTC, the {0}, has a single zone line and no rules", testInstance);
     }
 
     [Fact]
