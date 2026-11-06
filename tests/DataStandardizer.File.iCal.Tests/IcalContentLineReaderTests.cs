@@ -1006,10 +1006,40 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public void ReadLine_Utf16StreamWithByteOrderMarkAndUtf16Encoding_IsDecoded()
+        public void ReadLine_Utf16StreamWithByteOrderMarkAndUtf16Encoding_Throws()
         {
             // arrange
             var options = new IcalOptions { Encoding = Encoding.Unicode };
+            using (var reader = CreateStreamReader(Utf16ByteOrderMarkLineA, options))
+            {
+                // act
+                Action testAction = () => reader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<IcalFileException>();
+            }
+        }
+
+        [Fact]
+        public void ReadLine_Utf8StreamWithByteOrderMarkAndUtf8EncodingWithPreamble_Throws()
+        {
+            // arrange
+            var options = new IcalOptions { Encoding = Encoding.UTF8 };
+            using (var reader = CreateStreamReader(Utf8ByteOrderMarkLineA, options))
+            {
+                // act
+                Action testAction = () => reader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<IcalFileException>();
+            }
+        }
+
+        [Fact]
+        public void ReadLine_Utf16StreamWithByteOrderMarkAcceptedAndUtf16Encoding_IsDecoded()
+        {
+            // arrange
+            var options = new IcalOptions { Encoding = Encoding.Unicode, AcceptByteOrderMark = true };
             using (var reader = CreateStreamReader(Utf16ByteOrderMarkLineA, options))
             {
                 // act
@@ -1090,6 +1120,68 @@ namespace DataStandardizer.File.iCal.Tests
 
                 // assert
                 testAction.Should().Throw<InvalidOperationException>();
+            }
+        }
+
+        [Fact]
+        public void ReadLine_DecoderFailureFromCallersTextReader_IsNotConverted()
+        {
+            // arrange
+            using (var reader = new IcalContentLineReader(new ThrowingTextReader(new DecoderFallbackException())))
+            {
+                // act
+                Action testAction = () => reader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<DecoderFallbackException>();
+            }
+        }
+
+        [Fact]
+        public void ReadLine_AfterDecoderFailureFromCallersTextReader_CannotContinue()
+        {
+            // arrange
+            using (var reader = new IcalContentLineReader(new ThrowingTextReader(new DecoderFallbackException())))
+            {
+                Record.Exception(() => reader.ReadLine());
+
+                // act
+                Action testAction = () => reader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>();
+            }
+        }
+
+        [Fact]
+        public void ReadLine_AfterSourceThrew_CannotContinue()
+        {
+            // arrange
+            using (var reader = new IcalContentLineReader(new ThrowingTextReader(new IOException())))
+            {
+                Record.Exception(() => reader.ReadLine());
+
+                // act
+                Action testAction = () => reader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>();
+            }
+        }
+
+        [Fact]
+        public async Task ReadLineAsync_AfterSourceThrew_CannotContinue()
+        {
+            // arrange
+            using (var reader = new IcalContentLineReader(new ThrowingTextReader(new IOException())))
+            {
+                await Record.ExceptionAsync(async () => await reader.ReadLineAsync());
+
+                // act
+                Func<Task> testAction = async () => await reader.ReadLineAsync();
+
+                // assert
+                await testAction.Should().ThrowAsync<InvalidOperationException>();
             }
         }
 
@@ -2145,6 +2237,24 @@ namespace DataStandardizer.File.iCal.Tests
         private static byte[] Concat(params byte[][] parts)
         {
             return parts.SelectMany(part => part).ToArray();
+        }
+
+        /// <summary>
+        /// A text reader whose every read throws the exception it was given.
+        /// </summary>
+        private sealed class ThrowingTextReader : TextReader
+        {
+            private readonly Exception _exception;
+
+            internal ThrowingTextReader(Exception exception)
+            {
+                _exception = exception;
+            }
+
+            public override int Read(char[] buffer, int index, int count)
+            {
+                throw _exception;
+            }
         }
     }
 }

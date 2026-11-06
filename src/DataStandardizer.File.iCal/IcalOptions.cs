@@ -194,10 +194,10 @@ namespace DataStandardizer.File.iCal
         /// writes strict UTF-8 with no byte order mark.
         /// </para>
         /// <para>
-        /// Another encoding is used as it is: <see cref="System.Text.Encoding.UTF8"/> replaces invalid data instead of rejecting it, and an
-        /// encoding with a preamble has it removed from the start of the data, whatever <see cref="AcceptByteOrderMark"/> says.  A decoder that
-        /// throws <see cref="DecoderFallbackException"/> gives an <see cref="IcalFileException"/>.  A writer writes the encoding's preamble, if it
-        /// has one, at the start of the data.
+        /// Another encoding is used with its own fallback: <see cref="System.Text.Encoding.UTF8"/> replaces invalid data instead of rejecting it.
+        /// A reader never removes the encoding's preamble, so a byte order mark is still accepted only by <see cref="AcceptByteOrderMark"/>.  A
+        /// decoder that throws <see cref="DecoderFallbackException"/> gives an <see cref="IcalFileException"/>.  A writer writes the encoding's
+        /// preamble, if it has one, at the start of the data.
         /// </para>
         /// <para>
         /// The exception is <see cref="XcalReader"/>, which, when this is <c>null</c>, takes the encoding from the XML document itself: from its
