@@ -13,31 +13,56 @@ point for your own strongly-typed record models.
 
 All public types here are in the `DataStandardizer.File.CSV` namespace.
 
-## A line is an ordered dictionary of fields
+## A line is an ordered collection of named fields
 
-Every CSV line implements the `ICsvFileLine` interface, which is simply an
-`IOrderedDictionary` — an ordered map from field name (key) to field value:
+Every CSV line implements the `ICsvFileLine` interface: an ordered collection of
+fields, each with a `string` name and an `object?` value. Enumerating a line gives
+its fields in order, as `KeyValuePair<string, object?>` items:
 
 ```text
-ICsvFileLine : IOrderedDictionary        // ordered name → value field bag
-└── CsvFileLineBase (abstract)           // holds the field bag
+ICsvFileLine                             // ordered name → value fields
+└── CsvFileLineBase (abstract)           // holds the fields
     ├── CsvFileHeaderLine (sealed)       // a header line; values are the field names
     └── CsvFileRecordLine                // a data record; base for custom models
 ```
 
-Because a line *is* an ordered dictionary, you can index into it by field name
-to read a raw value, and the field order is preserved — which is what lets the
-reader and writer line columns up consistently:
+You can read or set a field by name or by position, and the order of the fields
+is kept, which is what lets the reader and writer line columns up consistently:
 
 ```csharp
 ICsvFileLine line = /* read from a file */;
-var name = line["person_name"] as string;
+var name = line["person_name"] as string;   // by name; null if the line has no such field
+var first = line[0];                        // by position: the value of the first field
+var position = line.IndexOf("person_name"); // -1 if the line has no such field
+
+foreach (var field in line)
+{
+    Console.WriteLine($"{field.Key} = {field.Value}");
+}
 ```
 
-`CsvFileLineBase` holds the actual fields in a private, ordered, name-keyed
-"field bag" and provides the protected `GetFieldValue` / `SetFieldValue`
-helpers, the `Add(key, value)` method, and the full `IOrderedDictionary`
-surface.
+The field at position *N* is always the *N*th field of the line. `Insert` puts a
+field at a position and moves the fields after it up by one; `RemoveAt` and
+`Remove` take a field out and move the fields after it down by one. `Keys` and
+`Values` are read-only lists of the names and values, in the same order. Field
+names are compared by ordinal, so they are case-sensitive, and a line can't hold
+two fields with the same name.
+
+A value is an `object?`, because the fields of one line can hold values of
+different types: the raw `string` that the reader read, or the typed value that a
+mapping converted it to. Use a pattern or a cast to read a value as its type.
+
+`CsvFileLineBase` holds the fields and provides the protected `GetFieldValue` /
+`SetFieldValue` helpers and the public `Add(fieldName, value)` method. It
+implements the other members of `ICsvFileLine` explicitly, so they don't clash
+with the properties of your own record model; reach them through an
+`ICsvFileLine` reference.
+
+> **Applies to:** on the `net10.0` build, the fields are stored in the generic
+> `OrderedDictionary<string, object?>`. On the `netstandard1.3`,
+> `netstandard2.0` and `netstandard2.1` builds, they are stored in an ordered
+> store of the package's own with the same layout. The two behave the same on
+> every target: the same positions, the same order and the same exceptions.
 
 ## Header lines
 
@@ -60,9 +85,9 @@ How the header is treated is governed by the `CsvFileHeaderHandling` enum:
 ## Record lines
 
 `CsvFileRecordLine` is the base type for data records. Used directly, it carries
-raw field values you access by name through the dictionary indexer. Its real
-purpose, though, is to be subclassed so individual fields can be exposed as
-strongly-typed properties.
+raw field values you access by name or position through the `ICsvFileLine`
+indexers. Its real purpose, though, is to be subclassed so individual fields can
+be exposed as strongly-typed properties.
 
 A custom record model derives from `CsvFileRecordLine` and implements each
 property in terms of the protected `GetPropertyValue<T>` /

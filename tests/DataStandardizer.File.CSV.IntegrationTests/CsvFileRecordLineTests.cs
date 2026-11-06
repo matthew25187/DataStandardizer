@@ -30,10 +30,7 @@ public class CsvFileRecordLineTests
     private static (int Number, string? Text, string[] FieldKeys) ReadBack(ConcurrentLine testLine)
     {
         ICsvFileLine csvLine = testLine;
-        var fieldKeys = new string[csvLine.Keys.Count];
-        csvLine.Keys.CopyTo(fieldKeys, 0);
-
-        return (testLine.Number, testLine.Text, fieldKeys);
+        return (testLine.Number, testLine.Text, csvLine.Keys.ToArray());
     }
 
     private sealed class ConcurrentLine : CsvFileRecordLine

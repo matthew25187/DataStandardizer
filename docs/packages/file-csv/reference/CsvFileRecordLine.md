@@ -31,8 +31,13 @@ writes the field bag inherited from [CsvFileLineBase](CsvFileLineBase.md). The
 resolved field name is cached per line type and property name, so the reflection
 happens only on first access. These
 helpers are `protected` and therefore not part of the public surface; the public
-`Add` and the explicit `IOrderedDictionary` members are inherited from
+`Add` and the explicit `ICsvFileLine` members are inherited from
 `CsvFileLineBase`.
+
+A value set through `SetPropertyValue<T>` is stored as an `object`, so a value-type
+property, such as an `int` or a `decimal`, is boxed when it is set.
+`GetPropertyValue<T>` returns the default of `T` if the field is missing or holds a
+value of another type.
 
 `CsvFileReader<TRecordLine>` requires a `CsvFileRecordLine`-derived type with a
 public parameterless constructor; `CsvFileWriter<TRecordLine>` does not.

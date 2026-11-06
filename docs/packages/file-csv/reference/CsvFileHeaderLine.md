@@ -31,7 +31,7 @@ Populate it with the public `Add` method inherited from
 
 | Property | Signature | Notes |
 | --- | --- | --- |
-| `FieldNames` | `IReadOnlyList<string> FieldNames { get; }` | The field names, in order. |
+| `FieldNames` | `IReadOnlyList<string> FieldNames { get; }` | The field names, in order: the values of the line's fields. A value that isn't a string gives an empty name. |
 
 ## Applies to
 

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
@@ -194,24 +193,23 @@ namespace DataStandardizer.File.CSV
             // Extract field names from the header line.
             var fieldValues = GetFieldValueBuffer(csvLine.Count);
             var fieldValueCount = 0;
-            var fieldIndex = 0;
-            foreach (DictionaryEntry field in csvLine)
+            for (var fieldIndex = 0; fieldIndex < csvLine.Count; fieldIndex++)
             {
                 // If the remaining field values are empty, stop here.
-                if (lastFieldIndex > -1 && fieldIndex++ > lastFieldIndex)
+                if (lastFieldIndex > -1 && fieldIndex > lastFieldIndex)
                 {
                     break;
                 }
 
-                // Convert the field value to a string.
-                var rawFieldValue = field.Value as string;
-                if (string.IsNullOrWhiteSpace(rawFieldValue))
+                // The field value is the field name, so must be a string.
+                var fieldValue = csvLine[fieldIndex];
+                if (!(fieldValue is string rawFieldValue) || string.IsNullOrWhiteSpace(rawFieldValue))
                 {
-                    var message = $"Field value '{field.Value}' is not a field name.";
+                    var message = $"Field value '{fieldValue}' is not a field name.";
                     var dataItems = new Dictionary<string, object>();
-                    if (field.Value != null)
+                    if (fieldValue != null)
                     {
-                        dataItems.Add(DataItemName.FieldValue, field.Value);
+                        dataItems.Add(DataItemName.FieldValue, fieldValue);
                     }
 
                     throw BuildException(message, dataItems);
@@ -296,9 +294,10 @@ namespace DataStandardizer.File.CSV
         {
             var fieldNames = new List<string>(_fieldNames);
             var knownFieldNames = new HashSet<string>(_fieldNames);
-            foreach (var key in csvLine.Keys)
+            var lineFieldNames = csvLine.Keys;
+            for (var fieldIndex = 0; fieldIndex < lineFieldNames.Count; fieldIndex++)
             {
-                var fieldName = (string)key;
+                var fieldName = lineFieldNames[fieldIndex];
                 if (knownFieldNames.Add(fieldName))
                 {
                     fieldNames.Add(fieldName);
@@ -342,7 +341,7 @@ namespace DataStandardizer.File.CSV
             if (!field.IsMapped)
             {
                 var fieldValue = csvLine[field.FieldName];
-                return fieldValue is null ? null : fieldValue as string ?? FormatFieldValue(fieldValue, _options);
+                return fieldValue is null ? null : fieldValue is string stringFieldValue ? stringFieldValue : FormatFieldValue(fieldValue, _options);
             }
 
             // Get the mapped field value.  The line has a field with the mapped field name, so the value is read by that name.
