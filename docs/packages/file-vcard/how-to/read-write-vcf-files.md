@@ -18,7 +18,8 @@ using DataStandardizer.File.vCard;
 using var reader = new VcardReader("contacts.vcf");
 foreach (var card in reader.ReadCards())
 {
-    var name = card.FormattedNames[0].Value;
+    // FN is required from vCard 3.0, but a vCard 2.1 card can have N alone.
+    var name = card.FormattedNames.GetPreferred()?.Value ?? "(no name)";
     var email = card.Emails.GetPreferred()?.Value;
     Console.WriteLine($"{name} <{email}>");
 }

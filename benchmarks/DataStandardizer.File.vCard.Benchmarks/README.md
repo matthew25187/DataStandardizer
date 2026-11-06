@@ -9,15 +9,15 @@ This project is not packed and is not part of the CI test run.
 Benchmarks must be run in Release, from this folder:
 
 ```
-dotnet run -c Release -- --filter *
+dotnet run -c Release -- --filter "*"
 ```
 
 Run a subset by filtering on class or method name, for example:
 
 ```
-dotnet run -c Release -- --filter *ReadBenchmarks*
-dotnet run -c Release -- --filter *Read_View*
-dotnet run -c Release -- --filter *.Version21Benchmarks.* *.ConvertVersionBenchmarks.*
+dotnet run -c Release -- --filter "*ReadBenchmarks*"
+dotnet run -c Release -- --filter "*Read_View*"
+dotnet run -c Release -- --filter "*.Version21Benchmarks.*" "*.ConvertVersionBenchmarks.*"
 ```
 
 Filters match the full name, including the namespace, so `*vCard*` selects every benchmark. `*Read_View*` also selects `Read_View_Async` and `Read_View_Decoded`.
@@ -25,7 +25,7 @@ Filters match the full name, including the namespace, so `*vCard*` selects every
 To check that every benchmark runs without waiting for a full measurement, use the dry job:
 
 ```
-dotnet run -c Release -- --filter * --job Dry
+dotnet run -c Release -- --filter "*" --job Dry
 ```
 
 Results are written to `BenchmarkDotNet.Artifacts/results/` (ignored by git).
@@ -38,7 +38,7 @@ Each benchmark class generates its input in memory in `[GlobalSetup]` from a fix
   - Every card has `FN`, `N`, `KIND`, `ORG`, `TITLE`, a `TEL` with `TYPE` and `PREF`, an `EMAIL`, an `ADR` with a `LABEL` parameter in RFC 6868 caret encoding, `URL`, `NOTE`, `LANG`, `TZ`, `GEO`, `CATEGORIES`, `UID`, `REV` and an `X-` property. Most have a `BDAY`, some a second `TEL`, a second `LANG`, a `NICKNAME`, or an `EMAIL` and an `X-ABLABEL` in a group, and 1 in 10 has a `PHOTO` as a `data:` URI of about 1.6 KB.
   - Text values contain escaped commas, semicolons, backslashes and line breaks, and many non-ASCII characters. Most notes and addresses are long enough to be folded, at 75 octets.
   - Every card is valid by RFC 6350, so it is read and written with the default options.
-- The vCard 2.1 corpus, used by `Version21Benchmarks`: about 5.3 MB and about 88,900 content lines, about 26,700 of them in quoted-printable. It has the forms that phones export: parameters with no name (`TEL;WORK;VOICE;PREF:`), `ENCODING=QUOTED-PRINTABLE;CHARSET=UTF-8` with soft line breaks on every `NOTE` and `LABEL` and on about half of the `N`, `FN`, `ORG`, `TITLE` and `ADR` values, and, on 1 in 10 cards, a `PHOTO` in `BASE64` on indented lines that end with an empty line.
+- The vCard 2.1 corpus, used by `Version21Benchmarks`: about 5.1 MB and about 83,900 content lines, about 26,800 of them in quoted-printable. It has the forms that phones export: parameters with no name (`TEL;WORK;VOICE;PREF:`), `ENCODING=QUOTED-PRINTABLE;CHARSET=UTF-8` with soft line breaks on every `NOTE` and `LABEL` and on about half of the `N`, `FN`, `ORG`, `TITLE` and `ADR` values, and, on 1 in 10 cards, a `PHOTO` in `BASE64` on indented lines that end with an empty line. It has no `GEO`, since FolkerKinzel.VCards drops the vCard 2.1 form (`GEO:lat,lon`), and the readers would not then do the same work.
 
 The format benchmarks write the vCard 4.0 corpus in each format in `[GlobalSetup]`: about 4.9 MB of `.vcf`, 6.8 MB of jCard and 13.6 MB of xCard.
 

@@ -14,7 +14,8 @@ using (var reader = new VcardReader("contacts.vcf"))
 {
     foreach (var card in reader.ReadCards())
     {
-        Console.WriteLine(card.FormattedNames[0].Value);
+        // FN is required from vCard 3.0, but a vCard 2.1 card can have N alone.
+        Console.WriteLine(card.FormattedNames.GetPreferred()?.Value ?? "(no name)");
     }
 }
 ```
@@ -145,7 +146,7 @@ var members = group.ResolveMembers(cards);
 
 ## Conformance
 
-`Validate()` returns every problem in a card as a `VcardDiagnostic`, without throwing, and `Validate(version)` checks a card by the rules of a version. The rules, and the options that accept a card that breaks one, are in [Standards compliance by default](standards-compliance.md).
+`Validate()` returns every problem in a card as a `VcardDiagnostic`. A problem in the card never throws, but an exception from a `CharsetResolver` of your own, which can be asked to resolve a `CHARSET` as the card is checked, isn't caught, and `Validate(version)` checks a card by the rules of a version. The rules, and the options that accept a card that breaks one, are in [Standards compliance by default](standards-compliance.md).
 
 ## See also
 

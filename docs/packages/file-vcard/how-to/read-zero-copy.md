@@ -23,16 +23,29 @@ allocations down. For everything else, `VcardReader` is simpler. See
 using DataStandardizer.File.vCard;
 
 using var reader = new VcardContentLineReader("contacts.vcf");
+var isVersion21 = false;
 while (reader.ReadContentLine())
 {
     var line = reader.CurrentLine;
+    if (line.NameEquals("VERSION"))
+    {
+        isVersion21 = line.RawValue.SequenceEqual("2.1".AsSpan());
+        continue;
+    }
+
     if (!line.NameEquals("EMAIL")) continue;
 
     var typeIndex = line.IndexOfParameter("TYPE");
     var type = typeIndex < 0 ? "" : line.GetParameterValue(typeIndex, 0).ToString();
-    Console.WriteLine($"{line.LineNumber}: {type} {line.GetTextValue().ToString()}");
+    var email = isVersion21 ? line.GetDecodedText() : line.GetTextValue().ToString();
+    Console.WriteLine($"{line.LineNumber}: {type} {email}");
 }
 ```
+
+A vCard 2.1 value can be in quoted-printable, such as `alice=40example.com`, and has
+no TEXT escaping, so it is decoded with `GetDecodedText()`, which allocates. A value of
+a later version is unescaped with `GetTextValue()`. The view doesn't give the version
+of the card a line belongs to, so the example follows it from each `VERSION` line.
 
 `ReadContentLine` returns `false` at the end of the data. Each line is unfolded, and
 its structure (an optional group, a name, any parameters and a value) is checked
@@ -113,16 +126,22 @@ the commas that aren't escaped before the escaping is removed. Split `RawValue` 
 `VcardValue.EnumerateList`, then unescape each item with `VcardValue.TryParseText`:
 
 ```csharp
-Span<char> buffer = stackalloc char[256];
+Span<char> stackBuffer = stackalloc char[256];
 foreach (var item in VcardValue.EnumerateList(line.RawValue, VcardValueFormat.Text))
 {
-    if (item.Length <= buffer.Length
-        && VcardValue.TryParseText(item, VcardValueFormat.Text, buffer, out var length))
+    // The unescaped text is never longer than the item, so an item that doesn't fit gets an array of its own.
+    Span<char> buffer = item.Length <= stackBuffer.Length ? stackBuffer : new char[item.Length];
+    if (VcardValue.TryParseText(item, VcardValueFormat.Text, buffer, out var length))
     {
         Console.WriteLine(buffer.Slice(0, length).ToString());
     }
 }
 ```
+
+This unescapes by the rules of vCard 4.0. For a line of a vCard 3.0 card, pass
+`VcardVersion.V3_0` to the overload of `TryParseText` that takes a version. vCard 2.1
+defines no property that holds a list, and has no TEXT escaping: pass
+`VcardVersion.V2_1` for a list in an extension property, and `\N` is kept as written.
 
 ### Structured values
 
@@ -182,7 +201,8 @@ while (reader.ReadContentLine())
     var line = reader.CurrentLine;
     if (line.NameEquals("EMAIL"))
     {
-        emails.Add(line.GetTextValue().ToString());
+        // isVersion21 is followed from each VERSION line, as in the first example.
+        emails.Add(isVersion21 ? line.GetDecodedText() : line.GetTextValue().ToString());
     }
 }
 ```

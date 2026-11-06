@@ -223,7 +223,9 @@ public static class BenchmarkData
         if (random.Next(3) != 0)
         {
             var birthday = new DateTime(1950, 1, 1).AddDays(random.Next(0, 18_000));
-            AppendLine(builder, random.Next(5) == 0 ? $"BDAY:--{birthday:MMdd}" : $"BDAY:{birthday:yyyyMMdd}");
+            AppendLine(builder, random.Next(5) == 0
+                ? string.Create(CultureInfo.InvariantCulture, $"BDAY:--{birthday:MMdd}")
+                : string.Create(CultureInfo.InvariantCulture, $"BDAY:{birthday:yyyyMMdd}"));
         }
 
         AppendLine(builder, $"LANG;PREF=1:{LanguageTags[random.Next(LanguageTags.Length)]}");
@@ -270,12 +272,12 @@ public static class BenchmarkData
         AppendQuotedPrintableLine(builder, "NOTE", Note(random).Replace("\n", "\r\n"), alwaysEncode: true);
         if (random.Next(3) != 0)
         {
-            AppendLine(builder, $"BDAY:{new DateTime(1950, 1, 1).AddDays(random.Next(0, 18_000)):yyyy-MM-dd}");
+            AppendLine(builder, string.Create(CultureInfo.InvariantCulture,
+                $"BDAY:{new DateTime(1950, 1, 1).AddDays(random.Next(0, 18_000)):yyyy-MM-dd}"));
         }
 
+        // No GEO: FolkerKinzel.VCards 8.2.0 drops the comma form vCard 2.1 gives it (GEO:lat,lon), so the readers wouldn't do the same work.
         AppendLine(builder, "URL:https://example.com/people/" + index.ToString(CultureInfo.InvariantCulture));
-        AppendLine(builder, string.Create(CultureInfo.InvariantCulture,
-            $"GEO:{-36.8 - random.NextDouble():F4},{174.7 + random.NextDouble():F4}"));
         if (random.Next(10) == 0)
         {
             AppendBase64Line(builder, "PHOTO;ENCODING=BASE64;TYPE=JPEG", Bytes(random, 1_200));

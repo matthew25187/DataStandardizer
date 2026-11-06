@@ -43,15 +43,19 @@ name, including one with no typed member, and gives the content line.
 outside 1 to 100. A card read with such a value is rejected with an
 `InvalidParameter` diagnostic, unless `AllowInvalidValues` is set.
 
-RFC 8605 §2.1 says a card with several `CONTACT-URI` properties gives them a
-`PREF`, so a card that doesn't is rejected in the same way.
+RFC 8605 §2.1 says a card with several `CONTACT-URI` properties uses `PREF` to
+mark the most preferred. A valid `PREF` on one of them is enough, and a card where
+none has one is rejected in the same way.
 
 ### PREF in vCard 3.0 and 2.1
 
 vCard 3.0 says an instance is preferred with `TYPE=pref` (RFC 2426 §3.3.1), and
 vCard 2.1 with the parameter `PREF` (§2.4.1). Neither has an order. So:
 
-- Reading, `TYPE=pref` and `PREF` become `PREF=1`.
+- Reading, `TYPE=pref` and `PREF` become `PREF=1`. Where that can't be done, the
+  preference stays as `TYPE=pref`: in vCard 2.1 on a property that has no `PREF` in
+  vCard 4.0, and in vCard 3.0 on `PHOTO`, `LOGO`, `SOUND` and `KEY`, whose `TYPE` is
+  a media type, and on a property vCard 3.0 doesn't define.
 - Writing, the instances with the lowest `PREF` of their property get `TYPE=pref` or
   `PREF`, and the order among the others is lost. That is a `Lossy` diagnostic, so
   by default the writer throws, and `AllowLossyVersionConversion` leaves the order

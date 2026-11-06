@@ -41,7 +41,7 @@ This page says how each version maps to the model, and what each can't hold. To 
 ```csharp
 foreach (var agent in card.Agents)
 {
-    Console.WriteLine(agent.Card?.FormattedNames[0].Value ?? agent.Uri?.ToString() ?? agent.Text);
+    Console.WriteLine(agent.Card?.FormattedNames.GetPreferred()?.Value ?? agent.Uri?.ToString() ?? agent.Text);
 }
 ```
 

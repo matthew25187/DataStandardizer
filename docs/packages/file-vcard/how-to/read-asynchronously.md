@@ -25,7 +25,7 @@ using DataStandardizer.File.vCard;
 await using var reader = new VcardReader("contacts.vcf");
 await foreach (var card in reader.ReadCardsAsync(cancellationToken))
 {
-    Console.WriteLine(card.FormattedNames[0].Value);
+    Console.WriteLine(card.FormattedNames.GetPreferred()?.Value ?? "(no name)");
 }
 ```
 

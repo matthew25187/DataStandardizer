@@ -53,7 +53,8 @@ more. It knows nothing of cards or properties, so a line may appear outside a ca
   [Read with zero copies](../how-to/read-zero-copy.md).
 - `ReadLine` and `ReadLines` give a `VcardContentLine` for each line, a copy that
   stays valid after the reader moves on.
-- `VcardContentLineWriter` writes lines, folding them at 75 octets.
+- `VcardContentLineWriter` writes lines, folding them at `FoldLength` octets, 75
+  by default. The lines of a vCard 2.1 card aren't folded.
 
 Layer 1 follows the version of each card from its `VERSION` line, because the
 versions differ even at this level. RFC 6868 caret encoding applies only in a
