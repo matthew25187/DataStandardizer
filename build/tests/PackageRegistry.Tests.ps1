@@ -101,6 +101,12 @@ Describe 'PackageRegistry' {
             Save-BuildProvenance -PackagePath $script:PackagePath -Repository 'owner/repo' -AllowMissing | Should -BeNullOrEmpty
         }
 
+        It 'leaves no failed exit code behind for a missing attestation that is allowed' {
+            Mock -ModuleName PackageRegistry gh { $global:LASTEXITCODE = 1; 'Error: HTTP 404: Not Found' }
+            Save-BuildProvenance -PackagePath $script:PackagePath -Repository 'owner/repo' -AllowMissing | Out-Null
+            $global:LASTEXITCODE | Should -Be 0
+        }
+
         It 'throws for an attestation that fails to verify, even when a missing one is allowed' {
             Mock -ModuleName PackageRegistry gh { $global:LASTEXITCODE = 1; 'Error: verifying with issuer "sigstore.dev": certificate identity mismatch' }
             { Save-BuildProvenance -PackagePath $script:PackagePath -Repository 'owner/repo' -AllowMissing } | Should -Throw '*certificate identity mismatch*'

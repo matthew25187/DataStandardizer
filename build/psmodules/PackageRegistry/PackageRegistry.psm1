@@ -125,6 +125,9 @@ function Save-BuildProvenance {
     if ($LASTEXITCODE) {
         $message = $output -join [System.Environment]::NewLine
         if ($AllowMissing -and $message -match 'HTTP 404|no attestations found') {
+            # gh's failure is handled, so don't leave its exit code behind: a GitHub Actions pwsh step exits with the last
+            # $LASTEXITCODE, and would fail after every check had passed.
+            $global:LASTEXITCODE = 0
             return $null
         }
         throw "The build provenance of $(Split-Path $PackagePath -Leaf) did not verify: $message"
