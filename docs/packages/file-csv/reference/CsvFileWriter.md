@@ -77,9 +77,9 @@ documented on [CsvFileIoBase](CsvFileIoBase.md).
 
 ## Applies to
 
-Targets `netstandard1.3`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
+Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 The `string` file-path constructors are available on `netstandard2.0`,
-`netstandard2.1`, and the .NET targets only; on `netstandard1.3` construct the
+`netstandard2.1`, and the .NET targets only; on `netstandard1.1` construct the
 writer from a `Stream` or `TextWriter`.
 
 ## See also

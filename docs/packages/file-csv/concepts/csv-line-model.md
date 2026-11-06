@@ -59,7 +59,7 @@ with the properties of your own record model; reach them through an
 `ICsvFileLine` reference.
 
 > **Applies to:** on the `net10.0` build, the fields are stored in the generic
-> `OrderedDictionary<string, object?>`. On the `netstandard1.3`,
+> `OrderedDictionary<string, object?>`. On the `netstandard1.1`,
 > `netstandard2.0` and `netstandard2.1` builds, they are stored in an ordered
 > store of the package's own with the same layout. The two behave the same on
 > every target: the same positions, the same order and the same exceptions.

@@ -36,6 +36,10 @@ namespace DataStandardizer.File.CSV
         /// </summary>
         private static readonly Encoding DefaultEncoding = new UTF8Encoding(false, true);
         private static readonly char[] LineBreakCharacters = { '\r', '\n' };
+#if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP2_1_OR_GREATER
+        private static readonly char[] NoCharacters = new char[0];
+#endif
+        private static readonly string[] NoFieldNames = new string[0];
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private FieldPlan? _fieldPlan;
@@ -55,11 +59,11 @@ namespace DataStandardizer.File.CSV
 #endif
         private char _quoteSearchDelimiter;
 #if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP2_1_OR_GREATER
-        private char[] _fieldValueCharacters = Array.Empty<char>();
+        private char[] _fieldValueCharacters = NoCharacters;
 #endif
-        private string[] _fieldNames = Array.Empty<string>();
-        private string[] _fieldValues = Array.Empty<string>();
-        private string[] _headerLineFieldNames = Array.Empty<string>();
+        private string[] _fieldNames = NoFieldNames;
+        private string[] _fieldValues = NoFieldNames;
+        private string[] _headerLineFieldNames = NoFieldNames;
         private readonly bool _isInternalWriter;
         private readonly CsvFileOptions _options = new CsvFileOptions();
         private int _previousLineFieldCount;

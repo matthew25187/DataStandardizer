@@ -50,9 +50,9 @@ publicly read-only.
 
 ## Applies to
 
-Targets `netstandard1.3`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
+Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 `CsvFieldContext<TModel>` is a `record` on the `net10.0` build and a
-plain `class` on the `netstandard1.3`, `netstandard2.0`, and `netstandard2.1`
+plain `class` on the `netstandard1.1`, `netstandard2.0`, and `netstandard2.1`
 builds. The nullable reference annotations apply to the
 `netstandard2.1` and `net10.0` builds.
 

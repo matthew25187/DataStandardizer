@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard1.3;netstandard2.0;netstandard2.1;net10.0</TargetFrameworks>
+    <TargetFrameworks>netstandard1.1;netstandard2.0;netstandard2.1;net10.0</TargetFrameworks>
     <Description>Data Standardizer provides implementations of various internationally recognised standards in data processing, covering topics ranging from languages to currencies and geographical entities. With strongly-typed enumerations for each standard (where applicable) or other targeted data types, you can represent these elements in your code such that errors with invalid values are minimised.
 
 Provides types supporting the reading and writing of files in standard formats.  Includes:
@@ -10,13 +10,13 @@ Provides types supporting the reading and writing of files in standard formats. 
     <PackageTags>data;standard;csv;csv-parser;csv-reader;csv-export;csv-import;rfc 4180;file;comma-separated value;flat file;delimited text</PackageTags>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.3'">
-    <PackageReference Include="System.Collections.Specialized" />
+  <!-- System.Net.Http is not used; the reference lifts the vulnerable version NETStandard.Library brings in (see Directory.Packages.props). -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.1'">
     <PackageReference Include="System.ComponentModel.TypeConverter" />
     <PackageReference Include="System.Net.Http" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.3'">
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.1'">
     <PackageReference Include="System.Memory" />
   </ItemGroup>
 
