@@ -646,6 +646,21 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Fact]
+        public void TryGetValue_PresentKeyWithNullValue_ReturnsTrueAndNull()
+        {
+            // arrange
+            var testLine = CreateLine();
+            testLine.Add(NewKey, null);
+
+            // act
+            var testResult = testLine.TryGetValue(NewKey, out var value);
+
+            // assert
+            testResult.Should().BeTrue();
+            value.Should().BeNull();
+        }
+
+        [Fact]
         public void TryGetValue_MissingKey_ReturnsFalseAndNull()
         {
             // arrange
@@ -713,6 +728,73 @@ namespace DataStandardizer.File.CSV.Tests
 
             // assert
             testAction.Should().Throw<InvalidOperationException>();
+        }
+
+        [Theory]
+        [MemberData(nameof(Enumerations), DisableDiscoveryEnumeration = true)]
+        public void MoveNext_FieldAddedBeforeFirstMoveNext_ThrowsInvalidOperationException(LineEnumeration enumeration)
+        {
+            // arrange
+            var testLine = CreateLine();
+            var enumerator = enumeration.Start(testLine);
+            testLine.Add(NewKey, NewValue);
+
+            // act
+            Action testAction = () => enumerator.MoveNext();
+
+            // assert
+            testAction.Should().Throw<InvalidOperationException>();
+        }
+
+        [Theory]
+        [MemberData(nameof(Enumerations), DisableDiscoveryEnumeration = true)]
+        public void MoveNext_FieldAddedAfterEnumerationEnded_ThrowsInvalidOperationException(LineEnumeration enumeration)
+        {
+            // arrange
+            var testLine = CreateLine();
+            var enumerator = enumeration.Start(testLine);
+            _ = RemainingItems(enumerator);
+            testLine.Add(NewKey, NewValue);
+
+            // act
+            Action testAction = () => enumerator.MoveNext();
+
+            // assert
+            testAction.Should().Throw<InvalidOperationException>();
+        }
+
+        [Theory]
+        [MemberData(nameof(Enumerations), DisableDiscoveryEnumeration = true)]
+        public void Reset_AfterFieldAdded_ThrowsInvalidOperationException(LineEnumeration enumeration)
+        {
+            // arrange
+            var testLine = CreateLine();
+            var enumerator = enumeration.Start(testLine);
+            enumerator.MoveNext();
+            testLine.Add(NewKey, NewValue);
+
+            // act
+            Action testAction = () => enumerator.Reset();
+
+            // assert
+            testAction.Should().Throw<InvalidOperationException>();
+        }
+
+        [Theory]
+        [MemberData(nameof(Enumerations), DisableDiscoveryEnumeration = true)]
+        public void Reset_ValueReplacedAfterEnumerationEnded_DoesNotThrow(LineEnumeration enumeration)
+        {
+            // arrange
+            var testLine = CreateLine();
+            var enumerator = enumeration.Start(testLine);
+            _ = RemainingItems(enumerator);
+            testLine[KeyA] = ReplacementValue;
+
+            // act
+            Action testAction = () => enumerator.Reset();
+
+            // assert
+            testAction.Should().NotThrow();
         }
 
         [Theory]
@@ -999,6 +1081,11 @@ namespace DataStandardizer.File.CSV.Tests
             new List<KeyValuePair<string, object>>(new EntrySequence(enumerator));
 
         /// <summary>
+        /// Gets the items that remain in an enumerator of a line, its field names or its values.
+        /// </summary>
+        private static List<object> RemainingItems(IEnumerator enumerator) => new List<object>(new ItemSequence(enumerator));
+
+        /// <summary>
         /// A call to a member of a line.
         /// </summary>
         public sealed class LineOperation
@@ -1034,6 +1121,43 @@ namespace DataStandardizer.File.CSV.Tests
             public IEnumerator Start(ICsvFileLine line) => _start(line);
 
             public override string ToString() => _name;
+        }
+
+        /// <summary>
+        /// The items that remain in an enumerator, whatever their type.
+        /// </summary>
+        private sealed class ItemSequence : IEnumerable<object>
+        {
+            private readonly IEnumerator _enumerator;
+
+            public ItemSequence(IEnumerator enumerator)
+            {
+                _enumerator = enumerator;
+            }
+
+            public IEnumerator<object> GetEnumerator() => new ItemEnumerator(_enumerator);
+
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        }
+
+        private sealed class ItemEnumerator : IEnumerator<object>
+        {
+            private readonly IEnumerator _enumerator;
+
+            public ItemEnumerator(IEnumerator enumerator)
+            {
+                _enumerator = enumerator;
+            }
+
+            public object Current => _enumerator.Current;
+
+            public bool MoveNext() => _enumerator.MoveNext();
+
+            public void Reset() => _enumerator.Reset();
+
+            public void Dispose()
+            {
+            }
         }
 
         /// <summary>

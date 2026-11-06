@@ -311,6 +311,62 @@ namespace DataStandardizer.File.CSV
         }
 
         /// <summary>
+        /// Enumerates the field names in position order.  It wraps an <see cref="Enumerator"/>, so it takes the store's version when
+        /// it is created and checks it on every <c>MoveNext</c> and <c>Reset</c>, as the field enumerator does.
+        /// </summary>
+        private sealed class KeyEnumerator : IEnumerator<string>
+        {
+            private Enumerator _entries;
+
+            internal KeyEnumerator(CsvFieldStore<TValue> store)
+            {
+                _entries = new Enumerator(store);
+            }
+
+            public string Current => _entries.Current.Key;
+
+            object IEnumerator.Current => Current;
+
+            public bool MoveNext() => _entries.MoveNext();
+
+            public void Reset() => _entries.Reset();
+
+            public void Dispose()
+            {
+            }
+        }
+
+        /// <summary>
+        /// Enumerates the field values in position order, in the same way as <see cref="KeyEnumerator"/>.
+        /// </summary>
+        private sealed class ValueEnumerator : IEnumerator<TValue>
+        {
+            private Enumerator _entries;
+
+            internal ValueEnumerator(CsvFieldStore<TValue> store)
+            {
+                _entries = new Enumerator(store);
+            }
+
+            public TValue Current => _entries.Current.Value;
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            // A field value can be null, as it can through the field enumerator, which IEnumerator doesn't annotate.
+            object IEnumerator.Current => Current!;
+#else
+            object IEnumerator.Current => Current;
+#endif
+
+            public bool MoveNext() => _entries.MoveNext();
+
+            public void Reset() => _entries.Reset();
+
+            public void Dispose()
+            {
+            }
+        }
+
+        /// <summary>
         /// The field names, in position order.
         /// </summary>
         private sealed class KeyCollection : IReadOnlyList<string>
@@ -333,17 +389,7 @@ namespace DataStandardizer.File.CSV
                 }
             }
 
-            public IEnumerator<string> GetEnumerator()
-            {
-                var version = _store._version;
-                for (var index = 0; index < _store._count; index++)
-                {
-                    CheckVersion(_store, version);
-                    yield return _store._entries[index].Key;
-                }
-
-                CheckVersion(_store, version);
-            }
+            public IEnumerator<string> GetEnumerator() => new KeyEnumerator(_store);
 
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
         }
@@ -371,17 +417,7 @@ namespace DataStandardizer.File.CSV
                 }
             }
 
-            public IEnumerator<TValue> GetEnumerator()
-            {
-                var version = _store._version;
-                for (var index = 0; index < _store._count; index++)
-                {
-                    CheckVersion(_store, version);
-                    yield return _store._entries[index].Value;
-                }
-
-                CheckVersion(_store, version);
-            }
+            public IEnumerator<TValue> GetEnumerator() => new ValueEnumerator(_store);
 
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
         }
