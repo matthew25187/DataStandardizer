@@ -168,8 +168,10 @@ be.
 
 With `AllowQuotedParameterValues`, the value is read without its quotes, so
 `GetFormatType()` gives `audio/basic`. The .ics writer writes the parameter back as it
-was read, with the quotes, so it needs the option too. The xCal and jCal writers have
-no quotes to write, and write the value whatever the option is.
+was read, with the quotes, so it needs the option too. It also needs it for a line
+built in code whose value it would have to quote, one with a `:`, `;` or `,`, such as
+`LANGUAGE` with the value `en,de`. The xCal and jCal readers and writers have no
+quotes, and accept the value whatever the option is.
 
 ### AllowCardinalityViolations
 

@@ -45,7 +45,7 @@ kind.
 | `InvalidValue` | 4 | A property value does not follow the syntax of its value type (RFC 5545 §3.3), or breaks a rule that ties it to its property; or a parameter that RFC 5545 or RFC 7986 defines is repeated or has too many values, or a `FMTTYPE` parameter does not follow RFC 5545 §3.2.8. Accepted with `IcalOptions.AllowInvalidValues`. |
 | `InvalidComponentNesting` | 5 | A component is inside a component where RFC 5545 does not allow it, such as a VEVENT inside a VTODO. Never accepted. |
 | `UnsupportedVersion` | 6 | The `VERSION` property does not include iCalendar 2.0 (RFC 5545 §3.7.4). Never accepted. The readers throw it as soon as they read the `VERSION`, and cannot continue afterwards. |
-| `QuotedParameterValue` | 7 | A parameter whose grammar in RFC 5545 §3.2 or RFC 7986 §6 has no quoted form has a value in double quotes, such as `FMTTYPE="audio/basic"` (RFC 5545 §3.2.8). Accepted with `IcalOptions.AllowQuotedParameterValues`. `JcalWriter` and `XcalWriter` don't report it, since jCal and xCal have no quoting. |
+| `QuotedParameterValue` | 7 | A parameter whose grammar in RFC 5545 §3.2 or RFC 7986 §6 has no quoted form has a value in double quotes, such as `FMTTYPE="audio/basic"` (RFC 5545 §3.2.8); or, on a line not read from .ics, a value with a `:`, `;` or `,`, which a writer would have to quote. Accepted with `IcalOptions.AllowQuotedParameterValues`. The jCal and xCal readers and writers don't report it, since those formats have no quoting. |
 
 ## Applies to
 

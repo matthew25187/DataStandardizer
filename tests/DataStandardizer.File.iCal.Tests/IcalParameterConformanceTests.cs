@@ -111,6 +111,51 @@ namespace DataStandardizer.File.iCal.Tests
                 .Be(IcalDiagnosticKind.InvalidValue);
         }
 
+        // ref. RFC 5545 §3.1: paramtext excludes ':', ';' and ',', so a writer quotes a value with one, and RFC 5545 §3.2.10 has no quoted form.
+        [Theory]
+        [InlineData(LanguageThatNeedsQuotes)]
+        [InlineData("en;de")]
+        [InlineData("en:de")]
+        public void Validate_CodeBuiltValueThatNeedsQuotes_ReportsQuotedParameterValue(string language)
+        {
+            // arrange
+            var calendar = CalendarWithCodeBuiltLanguage(language);
+
+            // act
+            var testResult = calendar.Validate();
+
+            // assert
+            testResult.Should().ContainSingle().Which.Kind.Should().Be(IcalDiagnosticKind.QuotedParameterValue);
+        }
+
+        [Fact]
+        public void Validate_CodeBuiltValueThatNeedsNoQuotes_ReportsNothing()
+        {
+            // arrange
+            var calendar = CalendarWithCodeBuiltLanguage("en");
+
+            // act
+            var testResult = calendar.Validate();
+
+            // assert
+            testResult.Should().BeEmpty();
+        }
+
+        // ref. RFC 5545 §3.2: other-param takes param-value, which may be a quoted-string.
+        [Fact]
+        public void Validate_CodeBuiltExtensionParameterThatNeedsQuotes_ReportsNothing()
+        {
+            // arrange
+            var calendar = ReadCalendar(EventCalendar());
+            calendar.Events.Single().Properties.Add(new IcalContentLine("X-ABC", new[] { new IcalContentLineParameter("X-PARAM", "a,b") }, "x"));
+
+            // act
+            var testResult = calendar.Validate();
+
+            // assert
+            testResult.Should().BeEmpty();
+        }
+
         // A typed setter keeps the parameter on a new line, which a writer formats afresh, quoting only what needs it.
         [Fact]
         public void Validate_QuotedParameterKeptByTypedSetter_ReportsNothing()

@@ -43,9 +43,9 @@ mapping.
 - A value that isn't valid for its type, which `IcalOptions.AllowInvalidValues` lets
   a calendar hold, is written as it is in an `unknown` element, keeping any `VALUE`
   parameter.
-- A parameter value read in double quotes with `IcalOptions.AllowQuotedParameterValues`
-  is written like any other, since xCal has no quoting, so this writer doesn't need the
-  option.
+- A parameter value read in double quotes with `IcalOptions.AllowQuotedParameterValues`,
+  or one with a `:`, `;` or `,` that the .ics writer would have to quote, is written like
+  any other, since xCal has no quoting, so this writer doesn't need the option.
 - The calendar's `VERSION` is always written as 2.0, in the place of the calendar's
   own `VERSION`, or first if it has none.
 

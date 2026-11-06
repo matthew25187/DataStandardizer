@@ -15,6 +15,7 @@ namespace DataStandardizer.File.iCal.Tests
     public class XcalWriterTests
     {
         private const string PropertiesElement = "properties";
+        private const string ParametersElement = "parameters";
         private const string VcalendarElement = "vcalendar";
 
         // The octets of "<?xml", which an XML declaration starts with.
@@ -171,19 +172,56 @@ namespace DataStandardizer.File.iCal.Tests
                 .Should().Be("<parameters><value><text>DATE</text></value></parameters><unknown>2026-01-02</unknown>");
         }
 
+        public static TheoryData<string, string, string[]> QuotedParameterValueCases => new TheoryData<string, string, string[]>
+        {
+            { ConformanceCases.QuotedFormatTypeCase, "fmttype", new[] { "audio/basic" } },
+            { ConformanceCases.QuotedTimeZoneIdCase, "tzid", new[] { "Zone" } },
+            { ConformanceCases.QuotedLanguageOnExtensionPropertyCase, "language", new[] { "en" } },
+            { ConformanceCases.QuotedSecondFeatureCase, "feature", new[] { "AUDIO", "VIDEO" } },
+        };
+
         // xCal has no quoting, so a value quoted in the iCalendar it was read from is written as it is in any other value.
-        [Fact]
-        public void WriteCalendar_QuotedParameterValueReadWithOption_IsWrittenWithDefaults()
+        [Theory]
+        [MemberData(nameof(QuotedParameterValueCases))]
+        public void WriteCalendar_QuotedParameterValueReadWithOption_IsWrittenWithDefaults(string caseName, string parameterElement,
+            string[] expectedValues)
         {
             // arrange
-            var calendar = ReadCalendar(ConformanceCases.All[ConformanceCases.QuotedFormatTypeCase].Text,
-                new IcalOptions { AllowQuotedParameterValues = true });
+            var calendar = ReadCalendar(ConformanceCases.All[caseName].Text, new IcalOptions { AllowQuotedParameterValues = true });
 
             // act
             var testResult = XDocument.Parse(WriteXcal(new[] { calendar }));
 
             // assert
-            testResult.Descendants(Ns + "fmttype").Single().Value.Should().Be("audio/basic");
+            testResult.Descendants(Ns + ParametersElement).Elements(Ns + parameterElement).Single().Elements().Select(element => element.Value)
+                .Should().Equal(expectedValues);
+        }
+
+        [Fact]
+        public void WriteCalendar_CodeBuiltValueThatIcsWouldQuote_IsWrittenWithDefaults()
+        {
+            // arrange
+            var calendar = CalendarWithCodeBuiltLanguage(LanguageThatNeedsQuotes);
+
+            // act
+            var testResult = XDocument.Parse(WriteXcal(new[] { calendar }));
+
+            // assert
+            testResult.Descendants(Ns + ParametersElement).Elements(Ns + "language").Single().Value.Should().Be(LanguageThatNeedsQuotes);
+        }
+
+        [Fact]
+        public void ReadXcal_ValueThatIcsWouldQuote_IsReadWithDefaults()
+        {
+            // arrange
+            var xcal = WriteXcal(new[] { CalendarWithCodeBuiltLanguage(LanguageThatNeedsQuotes) });
+
+            // act
+            var testResult = ReadXcal(xcal);
+
+            // assert
+            testResult.Single().Events.Single().GetProperty("X-ABC").GetParameter(IcalParameterNames.Language).Values.Should()
+                .Equal(LanguageThatNeedsQuotes);
         }
 
         [Fact]

@@ -127,6 +127,11 @@ namespace DataStandardizer.File.iCal
             IcalParameterNames.Feature
         };
 
+        /// <summary>
+        /// The characters other than DQUOTE that <c>paramtext</c> excludes (RFC 5545 §3.1), so that a value with one must be quoted.
+        /// </summary>
+        private static readonly char[] ParamtextExcludedCharacters = { ':', ';', ',' };
+
         private static readonly Dictionary<string, ComponentRule> Rules = new Dictionary<string, ComponentRule>(StringComparer.OrdinalIgnoreCase)
         {
             // ref. RFC 5545§3.6 and RFC 7986§5.
@@ -928,23 +933,41 @@ namespace DataStandardizer.File.iCal
         /// do not define: the grammar of a parameter is the same wherever it appears.
         /// </summary>
         /// <remarks>
-        /// Only a line that keeps the parameters as they were read can have one, since <see cref="IcalWriter"/> writes them as read.  When a
-        /// parameter is kept on a new line, such as by a typed property setter, the writer quotes its values only where they need it.
+        /// A line that keeps its parameters as they were read is written as read, so its values are quoted where they were.  Any other line,
+        /// such as one built in code, or one a typed property setter made from a kept parameter, is formatted afresh, and
+        /// <see cref="IcalWriter"/> quotes a value of it that has a character <c>paramtext</c> excludes.
         /// </remarks>
         private static void ValidateParameterQuoting(IcalContentLine property, string path, Context context)
         {
-            if (property.RawParameters is null) return;
-
+            var isAsRead = property.RawParameters != null;
             foreach (var parameter in property.ParameterArray)
             {
-                if (!parameter.HasQuotedValue || !UnquotedParameters.Contains(parameter.Name, StringComparer.OrdinalIgnoreCase)) continue;
+                var isQuoted = isAsRead ? parameter.HasQuotedValue : NeedsQuotes(parameter.ValueArray);
+                if (!isQuoted || !UnquotedParameters.Contains(parameter.Name, StringComparer.OrdinalIgnoreCase)) continue;
 
+                var message = isAsRead
+                    ? "The {0} parameter of the {1} property has a value in double quotes, which the grammar of the parameter does not allow."
+                    : "The {0} parameter of the {1} property has a value with a ':', ';' or ',', which would have to be written in double quotes, " +
+                      "and the grammar of the parameter does not allow them.";
                 context.Add(IcalDiagnosticKind.QuotedParameterValue,
-                    string.Format(CultureInfo.InvariantCulture,
-                        "The {0} parameter of the {1} property has a value in double quotes, which the grammar of the parameter does not allow.",
-                        parameter.Name.ToUpperInvariant(), property.Name.ToUpperInvariant()),
+                    string.Format(CultureInfo.InvariantCulture, message, parameter.Name.ToUpperInvariant(), property.Name.ToUpperInvariant()),
                     path, property.Name, property.LineNumber);
             }
+        }
+
+        /// <summary>
+        /// Indicates whether a writer formatting the values afresh would quote any of them.  This must match the rule of
+        /// <c>ContentLineFormatter</c>, which quotes a value with a character that <c>paramtext</c> excludes.
+        /// </summary>
+        private static bool NeedsQuotes(string[] values)
+        {
+            foreach (var value in values)
+            {
+                // ref. RFC 5545§3.1: paramtext = *SAFE-CHAR, which excludes DQUOTE, ";", ":" and ","; caret encoding replaces any DQUOTE.
+                if (value.IndexOfAny(ParamtextExcludedCharacters) >= 0) return true;
+            }
+
+            return false;
         }
 
         /// <summary>

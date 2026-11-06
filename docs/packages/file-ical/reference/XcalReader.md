@@ -71,7 +71,9 @@ as `IcalComponent.Validate` does, against the same rules and
 those of the XML document. The first problem the options don't accept throws
 `IcalFileException`, and reading can then continue with the next calendar. A value
 that isn't valid for its value element is kept as it is, so the check reports it
-unless `IcalOptions.AllowInvalidValues` is set. See
+unless `IcalOptions.AllowInvalidValues` is set. xCal has no quoting, so a
+`QuotedParameterValue` problem is never reported; a value that `IcalWriter` would have
+to quote is reported when the calendar is written as .ics. See
 [Standards compliance](../concepts/standards-compliance.md).
 
 **Disposal.** `Dispose` and `DisposeAsync` may be called more than once and share

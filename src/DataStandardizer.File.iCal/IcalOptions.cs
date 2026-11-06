@@ -75,9 +75,11 @@ namespace DataStandardizer.File.iCal
         /// </para>
         /// <para>
         /// When <c>false</c> (the default), <see cref="IcalReader"/> rejects a calendar with such a value, and <see cref="IcalWriter"/> refuses to
-        /// write one, with an <see cref="IcalFileException"/>.  When <c>true</c>, the value is read without its quotes, and
-        /// <see cref="IcalWriter"/> writes the parameter back as it was read, with them.  <c>JcalWriter</c> and <see cref="XcalWriter"/>
-        /// have no quoting to keep, so they write such a value whatever this option is.
+        /// write one, with an <see cref="IcalFileException"/>.  The writer also refuses a value it would have to quote, one with a <c>:</c>,
+        /// <c>;</c> or <c>,</c>, on a line built in code.  When <c>true</c>, the value is read without its quotes, and <see cref="IcalWriter"/>
+        /// writes the parameter back as it was read, with them, and quotes a value built in code that needs it.  jCal and xCal have no quoting,
+        /// so <c>JcalReader</c>, <c>JcalWriter</c>, <see cref="XcalReader"/> and <see cref="XcalWriter"/> accept such a value whatever this
+        /// option is.
         /// </para>
         /// </remarks>
         public bool AllowQuotedParameterValues
