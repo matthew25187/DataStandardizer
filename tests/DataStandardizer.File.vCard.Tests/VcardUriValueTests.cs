@@ -55,6 +55,19 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Fact]
+        public void TryParseUri_LongerThanAUriHoldsOnNetFramework_ReturnsFalse()
+        {
+            // arrange: ref. #619.
+            var value = Vcard30TestData.LargeUri;
+
+            // act
+            var testResult = VcardValue.TryParseUri(value.AsSpan(), VcardValueFormat.Text, out _);
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Fact]
         public void TryFormatUri_UriWithComma_EscapesIt()
         {
             // arrange

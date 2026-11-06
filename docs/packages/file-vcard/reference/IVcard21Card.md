@@ -41,7 +41,7 @@ Each is an [IVcard21PropertyList](IVcard21PropertyList.md), a live view of the c
 | `Organizations` | `ORG` | `VcardOrganization` | One with a component that ends with a backslash is hidden. |
 | `Sounds` | `SOUND` | [VcardMediaValue](VcardMediaValue.md) | Inline data, a URL, or text: "a string representation" of how the name is said (§2.6.3). |
 | `Urls` | `URL` | `Uri` | |
-| `Keys` | `KEY` | [VcardMediaValue](VcardMediaValue.md) | Inline data, a URL, or text, whose "default format is clear-text" (§2.7.1), with its `TYPE` such as `PGP`. |
+| `Keys` | `KEY` | [VcardMediaValue](VcardMediaValue.md) | Inline data, a URL, or text, whose "default format is clear-text" (§2.7.1), with its `TYPE` such as `PGP`. Adding inline data whose `data:` URI has more than 65519 characters throws `ArgumentException`, since the canonical `KEY` holds a `Uri`. |
 
 ## Single properties
 

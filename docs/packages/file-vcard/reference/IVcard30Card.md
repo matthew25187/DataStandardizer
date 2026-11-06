@@ -29,7 +29,7 @@ Each is an [IVcard30PropertyList](IVcard30PropertyList.md), a live view of the c
 | --- | --- | --- | --- |
 | `FormattedNames` | `FN` | `string` | |
 | `Nicknames` | `NICKNAME` | `IReadOnlyList<string>` | |
-| `Photos`, `Logos`, `Sounds` | `PHOTO`, `LOGO`, `SOUND` | [VcardMediaValue](VcardMediaValue.md) | Inline data or a URI. On .NET Framework, inline data too long for a `Uri` isn't here, and adding it throws `ArgumentException`. Adding a `TYPE` that can't name a media type throws too. |
+| `Photos`, `Logos`, `Sounds` | `PHOTO`, `LOGO`, `SOUND` | [VcardMediaValue](VcardMediaValue.md) | Inline data or a URI. Inline data of any length is here, and can be added. Adding a `TYPE` that can't name a media type throws too. |
 | `Addresses` | `ADR` | `VcardAddress` | Without the components of RFC 9554. One with several items in a component, or with `PHONETIC`, is hidden. |
 | `Labels` | `LABEL` | `string` | Held on the `ADR` it goes with, where there is one. |
 | `Telephones` | `TEL` | `string` | A `tel` URI gives its number, and another URI is hidden. |
@@ -40,7 +40,7 @@ Each is an [IVcard30PropertyList](IVcard30PropertyList.md), a live view of the c
 | `Organizations` | `ORG` | `VcardOrganization` | |
 | `Categories` | `CATEGORIES` | `IReadOnlyList<string>` | |
 | `Urls`, `Sources` | `URL`, `SOURCE` | `Uri` | |
-| `Keys` | `KEY` | [VcardMediaValue](VcardMediaValue.md) | Inline data or text. A URI is hidden. |
+| `Keys` | `KEY` | [VcardMediaValue](VcardMediaValue.md) | Inline data or text. A URI is hidden. Adding inline data whose `data:` URI has more than 65519 characters throws `ArgumentException`, since the canonical `KEY` holds a `Uri`. |
 | `InstantMessaging` | `IMPP` (RFC 4770) | `Uri` | |
 | `FreeBusyUrls`, `CalendarAddressUris`, `CalendarAccessUris`, `CalendarUris` | `FBURL`, `CALADRURI`, `CAPURI`, `CALURI` (RFC 2739) | `Uri` | |
 

@@ -36,6 +36,29 @@ namespace DataStandardizer.File.vCard.Tests
         public static readonly string LargeVersion40PhotoLine = "PHOTO:data:image/jpeg;base64\\," + LargeBase64;
 
         /// <summary>
+        /// A <c>URL</c> line of vCard 4.0 with a URI longer than <see cref="System.Uri"/> holds on .NET Framework.
+        /// </summary>
+        public static readonly string LargeVersion40UrlLine = "URL:http://example.com/" + LargeBase64;
+
+        /// <summary>
+        /// The text of a URI longer than <see cref="System.Uri"/> holds on .NET Framework.
+        /// </summary>
+        public static readonly string LargeUri = "http://example.com/" + LargeBase64;
+
+        /// <summary>
+        /// Data whose base64 is <see cref="LargeBase64"/>: 60000 zero bytes are 80000 base64 characters, all <c>A</c>.
+        /// </summary>
+        public static byte[] LargeData()
+        {
+            return new byte[60000];
+        }
+
+        /// <summary>
+        /// The value of the <c>PHOTO</c> line of vCard 4.0 that holds <see cref="LargeData"/> with no format.
+        /// </summary>
+        public static readonly string LargeDataVersion40PhotoValue = "data:application/octet-stream;base64\\," + LargeBase64;
+
+        /// <summary>
         /// A vCard 3.0 card with the given properties and nothing else.
         /// </summary>
         public static string BareCard(params string[] properties)

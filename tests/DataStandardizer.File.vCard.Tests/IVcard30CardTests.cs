@@ -668,21 +668,47 @@ namespace DataStandardizer.File.vCard.Tests
             testAction.Should().Throw<ArgumentException>();
         }
 
-#if NETFRAMEWORK
         [Fact]
-        public void Photos_AddDataTooLongForAUriOnNetFramework_ThrowsArgumentException()
+        public void Photos_AddDataLongerThanAUriHoldsOnNetFramework_HoldsADataUri()
         {
             // arrange: ref. #619.
-            IVcard30Card card = VcardCardTestData.NewCard();
-            var value = VcardMediaValue.FromData(new byte[60000]);
+            var card = VcardCardTestData.NewCard();
+            var value = VcardMediaValue.FromData(Vcard30TestData.LargeData());
 
             // act
-            Action testAction = () => card.Photos.Add(value);
+            card.AsVersion30().Photos.Add(value);
+
+            // assert
+            card.GetProperties(VcardPropertyNames.Photo).Single().Value.Should().Be(Vcard30TestData.LargeDataVersion40PhotoValue);
+        }
+
+        [Fact]
+        public void Photos_DataLongerThanAUriHoldsOnNetFramework_GivesTheData()
+        {
+            // arrange: ref. #619.
+            var card = View(Vcard30TestData.LargeVersion30PhotoLine);
+
+            // act
+            var testResult = card.Photos.Single().Value;
+
+            // assert
+            testResult.GetData().Should().Equal(Vcard30TestData.LargeData());
+            testResult.TypeToken.Should().Be("JPEG");
+        }
+
+        [Fact]
+        public void Keys_AddDataLongerThanAUriHoldsOnNetFramework_ThrowsArgumentException()
+        {
+            // arrange: ref. #619.  A KEY's canonical value is a VcardTypedValue, which holds a Uri.
+            IVcard30Card card = VcardCardTestData.NewCard();
+            var value = VcardMediaValue.FromData(Vcard30TestData.LargeData());
+
+            // act
+            Action testAction = () => card.Keys.Add(value);
 
             // assert
             testAction.Should().Throw<ArgumentException>();
         }
-#endif
 
         [Fact]
         public void Clear_List_RemovesEveryInstance()

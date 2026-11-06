@@ -28,6 +28,7 @@ The public types of **DataStandardizer.File.vCard**. All types are in the
 | [VcardContentLineWriter](VcardContentLineWriter.md) | Writes content lines, folding them and treating each as its card's version says, with async and progress options. |
 | [VcardDiagnostic](VcardDiagnostic.md) | A conformance problem. |
 | [VcardFileException](VcardFileException.md) | The exception for a problem in vCard data, with where it was found. |
+| [VcardMediaUri](VcardMediaUri.md) | The URI of a photo, logo or sound in vCard 4.0, of any length, often a `data:` URI. |
 | [VcardMediaValue](VcardMediaValue.md) | A binary, URI or text media value in the shape of vCard 3.0 or 2.1. |
 | [VcardOptions](VcardOptions.md) | Options for a reader or writer; the defaults follow RFC 6350 and its extensions. |
 | [VcardLegacyMediaTypes](VcardLegacyMediaTypes.md) | Maps the TYPE tokens of older versions to media types. |

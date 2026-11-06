@@ -236,6 +236,20 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Fact]
+        public void Photos_AddDataLongerThanAUriHoldsOnNetFramework_HoldsADataUri()
+        {
+            // arrange: ref. #619.
+            var card = VcardCardTestData.NewCard();
+            var value = VcardMediaValue.FromData(Vcard30TestData.LargeData());
+
+            // act
+            card.AsVersion21().Photos.Add(value);
+
+            // assert
+            card.GetProperties(VcardPropertyNames.Photo).Single().Value.Should().Be(Vcard30TestData.LargeDataVersion40PhotoValue);
+        }
+
+        [Fact]
         public void Photos_AddUri_HoldsAMediaType()
         {
             // arrange
