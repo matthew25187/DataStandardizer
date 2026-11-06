@@ -16,7 +16,7 @@ gradually or must remain on older frameworks indefinitely.
 | --- | --- |
 | **DataStandardizer.Chronology** | `netstandard1.0`, `netstandard2.0`, `net10.0` |
 | **DataStandardizer.Communication** | `netstandard1.1`, `netstandard2.0`, `net10.0` |
-| **DataStandardizer.File.CSV** | `netstandard1.3`, `netstandard2.0`, `netstandard2.1`, `net10.0` |
+| **DataStandardizer.File.CSV** | `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, `net10.0` |
 | **DataStandardizer.File.iCal** | `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, `net10.0` |
 | **DataStandardizer.File.InternetMessage** | `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, `net10.0` |
 | **DataStandardizer.File.vCard** | `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, `net10.0` |
@@ -53,22 +53,20 @@ application to .NET 10.
 
 **DataStandardizer.Chronology**, **DataStandardizer.Core**,
 **DataStandardizer.Geography** and **DataStandardizer.Language** start at
-`netstandard1.0`. **DataStandardizer.LanguageTag**,
+`netstandard1.0`. **DataStandardizer.LanguageTag**, **DataStandardizer.File.CSV**,
 **DataStandardizer.File.iCal**, **DataStandardizer.File.InternetMessage** and
 **DataStandardizer.File.vCard** start at `netstandard1.1`, because the
 `System.Memory` package they use for their span-based parsing starts at
-`netstandard1.1`. **DataStandardizer.Communication** and
+`netstandard1.1`; so does the `System.Collections.Concurrent` package behind the
+caches in **DataStandardizer.File.CSV**. **DataStandardizer.Communication** and
 **DataStandardizer.Money** start at `netstandard1.1` too, because they depend on
 **DataStandardizer.LanguageTag**. The supported platforms for .NET Standard 1.0
 and 1.1 are the same, so this costs no reach.
-**DataStandardizer.File.CSV**'s lowest target is `netstandard1.3`: the CSV
-reader and writer rely on stream and component-model APIs that are not available
-on earlier versions.
 
 The four file packages are also the only ones with a `netstandard2.1` target,
 which gives .NET Standard 2.1 platforms (Mono and Unity, for example) the in-box
 span types and span-based BCL overloads with no extra package dependencies. The
-`netstandard1.3` and `netstandard2.0` builds of **DataStandardizer.File.CSV** get
+`netstandard1.1` and `netstandard2.0` builds of **DataStandardizer.File.CSV** get
 those span types from the `System.Memory` package instead, which NuGet installs
 automatically; the `netstandard2.1` and `net10.0` builds have no extra
 dependency. Likewise, the `netstandard1.1` and `netstandard2.0` builds of

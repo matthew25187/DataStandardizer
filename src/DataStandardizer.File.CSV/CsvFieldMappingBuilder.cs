@@ -1,6 +1,5 @@
 ﻿using System;
 using System.ComponentModel;
-using System.Linq;
 using System.Reflection;
 
 namespace DataStandardizer.File.CSV
@@ -170,7 +169,7 @@ namespace DataStandardizer.File.CSV
             {
                 throw new ArgumentNullException(nameof(fieldName));
             }
-            else if (fieldName.All(char.IsWhiteSpace))
+            else if (string.IsNullOrWhiteSpace(fieldName))
             {
                 throw new ArgumentException("Expected a field name.", nameof(fieldName));
             }

@@ -35,7 +35,7 @@ its own buffering. Pass one when you need a buffer size, encoding or sharing mod
 of your own.
 
 > **Applies to:** the file-path constructors require .NET Standard 2.0 or later,
-> or a .NET Core / modern .NET target. On .NET Standard 1.3, construct the reader
+> or a .NET Core / modern .NET target. On .NET Standard 1.1, construct the reader
 > or writer from a `Stream`.
 
 ## Read or write a whole file with one instance
@@ -102,7 +102,7 @@ field bag as an `object`, so a value-type property, such as an `int` or a
 `decimal`, adds one boxed value per field.
 
 > **Applies to:** on the `net10.0` build, the field bag is the generic
-> `OrderedDictionary<string, object?>`. On the `netstandard1.3`,
+> `OrderedDictionary<string, object?>`. On the `netstandard1.1`,
 > `netstandard2.0` and `netstandard2.1` builds, it is an ordered store of the
 > package's own. Both store each field inline, with no entry object per field,
 > and the fields and their order are the same on every target.

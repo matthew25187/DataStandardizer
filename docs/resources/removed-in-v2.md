@@ -395,7 +395,7 @@ one. Copy its fields into the collection that API needs, for example with
 call them through an `ICsvFileLine` reference as before. On every target, a line
 now behaves as the generic `OrderedDictionary<string, object?>` does: replacing the
 value of a field that is present no longer invalidates an enumerator of the line on
-the `netstandard1.3`, `netstandard2.0` and `netstandard2.1` builds, as it already
+the `netstandard1.1`, `netstandard2.0` and `netstandard2.1` builds, as it already
 didn't on the `net10.0` build.
 
 ## File.CSV mapper registration

@@ -44,6 +44,9 @@ namespace DataStandardizer.File.CSV
         /// </summary>
         private static readonly Encoding DefaultEncoding = Encoding.UTF8;
 
+        private static readonly char[] NoCharacters = new char[0];
+        private static readonly string[] NoFieldNames = new string[0];
+
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private CsvContext? _context;
         private FieldPlan? _fieldPlan;
@@ -64,7 +67,7 @@ namespace DataStandardizer.File.CSV
         private char _unquotedStopDelimiter;
         private char _unquotedStopTerminatorStart;
 #endif
-        private char[] _buffer = Array.Empty<char>();
+        private char[] _buffer = NoCharacters;
         private int _bufferEnd;
         private int _bufferLength;
         private int _bufferPosition;
@@ -193,7 +196,7 @@ namespace DataStandardizer.File.CSV
             if (_bufferLength > 0)
             {
                 ArrayPool<char>.Shared.Return(_buffer);
-                _buffer = Array.Empty<char>();
+                _buffer = NoCharacters;
                 _bufferLength = 0;
             }
         }
@@ -366,7 +369,7 @@ namespace DataStandardizer.File.CSV
 #if NET8_0_OR_GREATER
                 return [];
 #else
-                return Array.Empty<string>();
+                return NoFieldNames;
 #endif
             }
 
@@ -903,11 +906,13 @@ namespace DataStandardizer.File.CSV
         /// </remarks>
         private sealed class FieldPlan
         {
+            private static readonly FieldMappingPlan[] NoMappings = new FieldMappingPlan[0];
+
             private readonly string[] _headerFieldNames;
             private readonly string[] _mapperFieldNames;
-            private string[] _fieldNames = Array.Empty<string>();
+            private string[] _fieldNames = NoFieldNames;
             private int _mappedFieldCount = -1;
-            private FieldMappingPlan[] _mappings = Array.Empty<FieldMappingPlan>();
+            private FieldMappingPlan[] _mappings = NoMappings;
             private bool _mappingsAreStatic;
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
@@ -919,8 +924,8 @@ namespace DataStandardizer.File.CSV
                 MapperVersion = mapperVersion;
                 Mapper = mapper;
                 HeaderFieldNames = headerFieldNames;
-                _headerFieldNames = headerFieldNames?.ToArray() ?? Array.Empty<string>();
-                _mapperFieldNames = mapper.Count > 0 ? CsvMappingService.GetSortedFieldNamesFromMapper(mapper) : Array.Empty<string>();
+                _headerFieldNames = headerFieldNames?.ToArray() ?? NoFieldNames;
+                _mapperFieldNames = mapper.Count > 0 ? CsvMappingService.GetSortedFieldNamesFromMapper(mapper) : NoFieldNames;
             }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER

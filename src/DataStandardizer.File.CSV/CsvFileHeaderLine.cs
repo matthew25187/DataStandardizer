@@ -8,7 +8,9 @@ namespace DataStandardizer.File.CSV
     /// </summary>
     public sealed class CsvFileHeaderLine : CsvFileLineBase
     {
-        private string[] _fieldNames = Array.Empty<string>();
+        private static readonly string[] NoFieldNames = new string[0];
+
+        private string[] _fieldNames = NoFieldNames;
 
         /// <summary>
         /// Gets the names of the fields on the line.
