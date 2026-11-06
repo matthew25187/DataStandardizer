@@ -25,6 +25,8 @@ namespace DataStandardizer.File.iCal.Tests
 
         private static readonly IcalContentLine LineA = new IcalContentLine("A", "1");
 
+        private static readonly IcalContentLine[] NoLines = new IcalContentLine[0];
+
         // The stream of a writer that owns its stream writer is flushed once, when the writer is disposed.
         private const int OneFlush = 1;
 
@@ -453,8 +455,8 @@ namespace DataStandardizer.File.iCal.Tests
         // Each overload given no lines to write.
         public static TheoryData<Func<IcalContentLineWriter, CancellationToken, Task>> WritesOfNoLines => new TheoryData<Func<IcalContentLineWriter, CancellationToken, Task>>
         {
-            (writer, token) => writer.WriteLinesAsync(new IcalContentLine[0], cancellationToken: token),
-            (writer, token) => writer.WriteLinesAsync(ToAsyncEnumerable(new IcalContentLine[0]), cancellationToken: token),
+            (writer, token) => writer.WriteLinesAsync(NoLines, cancellationToken: token),
+            (writer, token) => writer.WriteLinesAsync(ToAsyncEnumerable(NoLines), cancellationToken: token),
         };
 
         [Theory]
@@ -660,7 +662,7 @@ namespace DataStandardizer.File.iCal.Tests
         public async Task Dispose_DuringWriteThatDoesNotWait_CompletesWriteWithObjectDisposed()
         {
             // arrange
-            var text = new CallbackOnWriteTextWriter();
+            var text = new AsyncOnlyTextWriter(completeSynchronously: true);
             var writer = new IcalContentLineWriter(text);
             text.OnWrite = writer.Dispose;
 
@@ -678,7 +680,7 @@ namespace DataStandardizer.File.iCal.Tests
         public void WriteLineAsync_OwnedWriterOverStreamThatDoesNotWait_WritesThroughAndCompletesSynchronously()
         {
             // arrange
-            var stream = new CallbackOnWriteStream();
+            var stream = new AsyncOnlyWriteStream(completeSynchronously: true);
             var writer = new IcalContentLineWriter(stream, new IcalOptions(), StreamBufferSmallerThanALine);
             var wroteThrough = false;
             stream.OnWrite = () => wroteThrough = true;
@@ -695,7 +697,7 @@ namespace DataStandardizer.File.iCal.Tests
         public async Task Dispose_DuringWriteThatDoesNotWaitOnOwnedWriter_FlushesWithoutSynchronousIo()
         {
             // arrange: the stream's synchronous members throw, so a synchronous flush would escape from the call and not from the task.
-            var stream = new CallbackOnWriteStream();
+            var stream = new AsyncOnlyWriteStream(completeSynchronously: true);
             var writer = new IcalContentLineWriter(stream, new IcalOptions(), StreamBufferSmallerThanALine);
             stream.OnWrite = writer.Dispose;
 

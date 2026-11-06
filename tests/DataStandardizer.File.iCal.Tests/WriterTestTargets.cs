@@ -14,6 +14,18 @@ namespace DataStandardizer.File.iCal.Tests
     internal sealed class AsyncOnlyWriteStream : Stream
     {
         private readonly MemoryStream _data = new MemoryStream();
+        private readonly bool _completeSynchronously;
+
+        /// <param name="completeSynchronously">Whether a write completes synchronously, rather than after yielding.</param>
+        public AsyncOnlyWriteStream(bool completeSynchronously = false)
+        {
+            _completeSynchronously = completeSynchronously;
+        }
+
+        /// <summary>
+        /// Gets or sets a callback that each write runs first.  A test uses it to dispose of the writer during a write.
+        /// </summary>
+        public Action OnWrite { get; set; }
 
         public override bool CanRead => false;
 
@@ -87,7 +99,12 @@ namespace DataStandardizer.File.iCal.Tests
         public async ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
 #endif
         {
-            await Task.Yield();
+            OnWrite?.Invoke();
+            if (!_completeSynchronously)
+            {
+                await Task.Yield();
+            }
+
             cancellationToken.ThrowIfCancellationRequested();
             _data.Write(buffer.ToArray(), 0, buffer.Length);
         }
@@ -106,6 +123,18 @@ namespace DataStandardizer.File.iCal.Tests
     internal sealed class AsyncOnlyTextWriter : TextWriter
     {
         private readonly StringBuilder _text = new StringBuilder();
+        private readonly bool _completeSynchronously;
+
+        /// <param name="completeSynchronously">Whether a write completes synchronously, rather than after yielding.</param>
+        public AsyncOnlyTextWriter(bool completeSynchronously = false)
+        {
+            _completeSynchronously = completeSynchronously;
+        }
+
+        /// <summary>
+        /// Gets or sets a callback that each write runs first.  A test uses it to dispose of the writer during a write.
+        /// </summary>
+        public Action OnWrite { get; set; }
 
         public override Encoding Encoding => new UTF8Encoding(false);
 
@@ -161,7 +190,12 @@ namespace DataStandardizer.File.iCal.Tests
         public async Task WriteAsync(ReadOnlyMemory<char> buffer, CancellationToken cancellationToken = default)
 #endif
         {
-            await Task.Yield();
+            OnWrite?.Invoke();
+            if (!_completeSynchronously)
+            {
+                await Task.Yield();
+            }
+
             cancellationToken.ThrowIfCancellationRequested();
             _text.Append(buffer.ToString());
         }
@@ -268,133 +302,6 @@ namespace DataStandardizer.File.iCal.Tests
         public override Task WriteAsync(ReadOnlyMemory<char> buffer, CancellationToken cancellationToken = default)
         {
             throw _createException();
-        }
-#endif
-    }
-
-    /// <summary>
-    /// A stream that can only be written asynchronously, whose first write runs a callback and then completes synchronously.  A test uses the callback to
-    /// dispose of the writer during a write that doesn't wait.
-    /// </summary>
-    internal sealed class CallbackOnWriteStream : Stream
-    {
-        private readonly MemoryStream _data = new MemoryStream();
-
-        /// <summary>
-        /// Gets or sets the callback for the first write.
-        /// </summary>
-        public Action OnWrite { get; set; }
-
-        public override bool CanRead => false;
-
-        public override bool CanSeek => false;
-
-        public override bool CanWrite => true;
-
-        public override long Length => throw new NotSupportedException();
-
-        public override long Position
-        {
-            get => throw new NotSupportedException();
-            set => throw new NotSupportedException();
-        }
-
-        public override void Flush()
-        {
-            throw new InvalidOperationException(AsyncPathMessages.SynchronousFlush);
-        }
-
-        public override Task FlushAsync(CancellationToken cancellationToken)
-        {
-            return Task.CompletedTask;
-        }
-
-        public override int Read(byte[] buffer, int offset, int count)
-        {
-            throw new NotSupportedException();
-        }
-
-        public override long Seek(long offset, SeekOrigin origin)
-        {
-            throw new NotSupportedException();
-        }
-
-        public override void SetLength(long value)
-        {
-            throw new NotSupportedException();
-        }
-
-        public override void Write(byte[] buffer, int offset, int count)
-        {
-            throw new InvalidOperationException(AsyncPathMessages.SynchronousWrite);
-        }
-
-#if NETCOREAPP2_1_OR_GREATER
-        public override void Write(ReadOnlySpan<byte> buffer)
-        {
-            throw new InvalidOperationException(AsyncPathMessages.SynchronousWrite);
-        }
-#endif
-
-        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
-        {
-            RunCallback();
-            _data.Write(buffer, offset, count);
-            return Task.CompletedTask;
-        }
-
-#if NETCOREAPP2_1_OR_GREATER
-        public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
-        {
-            RunCallback();
-            _data.Write(buffer.ToArray(), 0, buffer.Length);
-            return default;
-        }
-#endif
-
-        private void RunCallback()
-        {
-            var onWrite = OnWrite;
-            OnWrite = null;
-            onWrite?.Invoke();
-        }
-    }
-
-    /// <summary>
-    /// A text writer that can only be written asynchronously, whose write runs a callback and then completes synchronously.  A test uses the callback to
-    /// dispose of the writer during a write that doesn't wait.
-    /// </summary>
-    internal sealed class CallbackOnWriteTextWriter : TextWriter
-    {
-        private readonly StringBuilder _text = new StringBuilder();
-
-        /// <summary>
-        /// Gets or sets the callback for each write.
-        /// </summary>
-        public Action OnWrite { get; set; }
-
-        public override Encoding Encoding => new UTF8Encoding(false);
-
-        public override string ToString() => _text.ToString();
-
-        public override void Write(char value)
-        {
-            throw new InvalidOperationException(AsyncPathMessages.SynchronousWrite);
-        }
-
-        public override Task WriteAsync(char[] buffer, int index, int count)
-        {
-            OnWrite?.Invoke();
-            _text.Append(buffer, index, count);
-            return Task.CompletedTask;
-        }
-
-#if NETCOREAPP2_1_OR_GREATER
-        public override Task WriteAsync(ReadOnlyMemory<char> buffer, CancellationToken cancellationToken = default)
-        {
-            OnWrite?.Invoke();
-            _text.Append(buffer.ToString());
-            return Task.CompletedTask;
         }
 #endif
     }

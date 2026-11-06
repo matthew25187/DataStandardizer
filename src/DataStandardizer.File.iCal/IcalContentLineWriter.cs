@@ -198,8 +198,7 @@ namespace DataStandardizer.File.iCal
         /// <see cref="ObjectDisposedException"/>, and the writer is flushed and released once that operation has finished.  The writer is
         /// disposed even if the flush throws.
         /// </remarks>
-        /// <returns>A task that completes once the writer has been flushed and released.  If an operation is in progress, the task completes immediately,
-        /// and the writer is flushed and released once that operation has finished.</returns>
+        /// <returns>A task that completes once the writer has been flushed and released, or immediately if an operation is in progress.</returns>
         public ValueTask DisposeAsync()
         {
             if (Interlocked.Exchange(ref _isDisposed, 1) != 0) return default(ValueTask);
