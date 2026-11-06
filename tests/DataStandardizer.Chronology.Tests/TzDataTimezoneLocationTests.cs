@@ -185,11 +185,7 @@ public class TzDataTimezoneLocationTests
         testResult.Should().NotBeAssignableTo<string[]>("the country codes are shared, and must not be modified");
     }
 
-    public static TheoryData<string, TzDataTimezone> EtcUtc_TestCases => new()
-    {
-        { "field", TzDataTimezone.Etc.UTC },
-        { "default instance", default },
-    };
+    public static TheoryData<string, TzDataTimezone> EtcUtc_TestCases => TimezoneFieldCatalog.CreateEtcUtcTestCases();
 
     [Theory]
     [MemberData(nameof(EtcUtc_TestCases))]

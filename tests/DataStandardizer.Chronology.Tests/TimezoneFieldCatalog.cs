@@ -43,6 +43,18 @@ internal static class TimezoneFieldCatalog
         return testCases;
     }
 
+    /// <summary>
+    /// Gets a test case for each instance that is Etc/UTC: its field, and the default instance, which stands for it.
+    /// </summary>
+    internal static TheoryData<string, TzDataTimezone> CreateEtcUtcTestCases()
+    {
+        return new TheoryData<string, TzDataTimezone>
+        {
+            { "field", TzDataTimezone.Etc.UTC },
+            { "default instance", default },
+        };
+    }
+
     private static string GetIdentifier(FieldInfo field)
     {
         string? identifier = (TzDataTimezone)field.GetValue(null)!;

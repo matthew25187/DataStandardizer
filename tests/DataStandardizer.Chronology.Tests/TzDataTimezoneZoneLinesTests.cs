@@ -139,20 +139,6 @@ public class TzDataTimezoneZoneLinesTests
     }
 
     [Fact]
-    public void ZoneLines_DefaultInstance_AreThoseOfEtcUtc()
-    {
-        // arrange
-        var testTimezone = default(TzDataTimezone);
-        var expectedResult = TzDataTimezone.Etc.UTC.ZoneLines;
-
-        // act
-        var testResult = testTimezone.ZoneLines;
-
-        // assert
-        testResult.Should().Equal(expectedResult, (defaultZoneLine, fieldZoneLine) => ReferenceEquals(defaultZoneLine, fieldZoneLine), "the default instance stands for Etc/UTC");
-    }
-
-    [Fact]
     public void ZoneLines_EuropeLondon_IsNotWritableArray()
     {
         // act

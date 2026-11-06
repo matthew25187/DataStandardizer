@@ -15,11 +15,7 @@ public class TzDataTimezoneDefaultTests
     private static readonly TimeSpan EtcUtcStandardOffset = TimeSpan.Zero;
     private const string EtcUtcFormat = "UTC";
 
-    public static TheoryData<string, TzDataTimezone> EtcUtc_TestCases => new()
-    {
-        { "field", TzDataTimezone.Etc.UTC },
-        { "default instance", default },
-    };
+    public static TheoryData<string, TzDataTimezone> EtcUtc_TestCases => TimezoneFieldCatalog.CreateEtcUtcTestCases();
 
     public static TheoryData<string, Func<TzDataTimezone, object?>> Member_TestCases => new()
     {
@@ -173,7 +169,7 @@ public class TzDataTimezoneDefaultTests
     public void CompareTo_Null_ThrowsArgumentNullException()
     {
         // act
-        Func<int> testAction = () => TzDataTimezone.Europe.Zurich.CompareTo(null);
+        Action testAction = () => TzDataTimezone.Europe.Zurich.CompareTo(null);
 
         // assert
         testAction.Should().Throw<ArgumentNullException>().WithParameterName("obj");
@@ -183,7 +179,7 @@ public class TzDataTimezoneDefaultTests
     public void CompareTo_OtherType_ThrowsArgumentException()
     {
         // act
-        Func<int> testAction = () => TzDataTimezone.Europe.Zurich.CompareTo(EtcUtcIdentifier);
+        Action testAction = () => TzDataTimezone.Europe.Zurich.CompareTo(EtcUtcIdentifier);
 
         // assert
         testAction.Should().Throw<ArgumentException>().WithParameterName("obj");

@@ -182,46 +182,21 @@ function Get-MemberFieldDeclaredFieldsPredicateMethodDefinition {
     return $method
 }
 
-function Get-SpecialToStringMethodDefinition {
-    [OutputType([System.CodeDom.CodeMemberMethod])]
-    param (
-        [Parameter()]
-        [switch]    $UseNullableReferenceTypes
-    )
-    
-    $methodName = 'ToString'
-    $memberFieldVariableName = 'memberField'
-    $resultVariableName = 'result'
+function Get-ToStringSnippet {
+    <#
+        .SYNOPSIS
+        Declares ToString, which returns the name of the timezone field with the identifier of the timezone, found in
+        the region classes nested directly in the type, or else the identifier.  For the default value, whose
+        identifier is Etc/UTC, it is the name of the Etc.UTC field.
+    #>
+    [OutputType([System.CodeDom.CodeSnippetTypeMember])]
+    param ()
 
-    # Declare method.
-    $method = [System.CodeDom.CodeMemberMethod]::new()
-    $method.Name = $methodName
-    $method.Attributes = ($method.Attributes -band -bnot [System.CodeDom.MemberAttributes]::AccessMask) -bor [System.CodeDom.MemberAttributes]::Public
-    $method.Attributes = ($method.Attributes -band -bnot [System.CodeDom.MemberAttributes]::ScopeMask) -bor [System.CodeDom.MemberAttributes]::Override
-    $method.ReturnType = [System.CodeDom.CodeTypeReference]::new([string])
-
-    # Define method statements.
-    $nestedTypesVariableDeclarationStatement = [System.CodeDom.CodeVariableDeclarationStatement]::new([System.Collections.Generic.IEnumerable[System.Reflection.TypeInfo]], 'nestedTypes', [System.CodeDom.CodePropertyReferenceExpression]::new([System.CodeDom.CodeMethodInvokeExpression]::new([System.CodeDom.CodeMethodInvokeExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), 'GetType', @()), 'GetTypeInfo', @()), 'DeclaredNestedTypes'))
-    $memberFieldVariableDeclarationStatement = [System.CodeDom.CodeVariableDeclarationStatement]::new('var', 'memberField', [System.CodeDom.CodeMethodInvokeExpression]::new([System.CodeDom.CodeMethodInvokeExpression]::new([System.CodeDom.CodeVariableReferenceExpression]::new('nestedTypes'), 'SelectMany', @([System.CodeDom.CodeMethodReferenceExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), 'MemberFieldDeclaredFieldsPredicate'))), 'FirstOrDefault', @([System.CodeDom.CodeMethodReferenceExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), 'MemberFieldPredicate'))))
-    $result1Statement = [System.CodeDom.CodeVariableDeclarationStatement]::new(($PSBoundParameters.ContainsKey('UseNullableReferenceTypes')? [System.CodeDom.CodeTypeReference]::new('string?'):[System.CodeDom.CodeTypeReference]::new([string])), $resultVariableName, [System.CodeDom.CodePrimitiveExpression]::new($null))
-    $result2Statement = [System.CodeDom.CodeConditionStatement]::new(
-        [System.CodeDom.CodeBinaryOperatorExpression]::new(
-            [System.CodeDom.CodeVariableReferenceExpression]::new($memberFieldVariableName),
-            [System.CodeDom.CodeBinaryOperatorType]::IdentityInequality,
-            [System.CodeDom.CodePrimitiveExpression]::new($null)),
-        @([System.CodeDom.CodeAssignStatement]::new([System.CodeDom.CodeVariableReferenceExpression]::new($resultVariableName), [System.CodeDom.CodePropertyReferenceExpression]::new([System.CodeDom.CodeVariableReferenceExpression]::new($memberFieldVariableName), 'Name'))))
-    $result3Statement = [System.CodeDom.CodeConditionStatement]::new(
-        [System.CodeDom.CodeBinaryOperatorExpression]::new(
-            [System.CodeDom.CodeVariableReferenceExpression]::new($resultVariableName),
-            [System.CodeDom.CodeBinaryOperatorType]::ValueEquality,
-            [System.CodeDom.CodePrimitiveExpression]::new($null)),
-        @([System.CodeDom.CodeAssignStatement]::new([System.CodeDom.CodeVariableReferenceExpression]::new($resultVariableName), [System.CodeDom.CodePropertyReferenceExpression]::new([System.CodeDom.CodeThisReferenceExpression]::new(), 'Identifier'))))
-    # The identifier is never null, as the default value is Etc/UTC, so no further fallback is needed.
-    $returnStatement = [System.CodeDom.CodeMethodReturnStatement]::new([System.CodeDom.CodeVariableReferenceExpression]::new($resultVariableName))
-    [System.CodeDom.CodeStatement[]]$methodStatements = @($nestedTypesVariableDeclarationStatement, $memberFieldVariableDeclarationStatement, $result1Statement, $result2Statement, $result3Statement, $returnStatement)
-    $method.Statements.AddRange($methodStatements)
-
-    return $method
+    return [System.CodeDom.CodeSnippetTypeMember]::new("        public override string ToString()
+        {
+            var memberField = this.GetType().GetTypeInfo().DeclaredNestedTypes.SelectMany(this.MemberFieldDeclaredFieldsPredicate).FirstOrDefault(this.MemberFieldPredicate);
+            return memberField != null ? memberField.Name : this.Identifier;
+        }")
 }
 
 function Get-IdentifierMethodsSnippet {
@@ -812,7 +787,10 @@ function Out-SourceCode {
         [string]        $SourceCodePart,
 
         [Parameter()]
-        [System.Collections.Generic.IDictionary[string, string]]    $DeprecatedLinks
+        [System.Collections.Generic.IDictionary[string, string]]    $DeprecatedLinks,
+
+        [Parameter(Mandatory)]
+        [string]    $DefaultIdentifier
     )
 
     begin {
@@ -1140,11 +1118,7 @@ function Out-SourceCode {
         # Every member works on the identifier, which is Etc/UTC for the default value, rather than on the value field.
         [System.CodeDom.CodeTypeMember[]]$publicMethods = @(
             (Get-IdentifierMethodsSnippet -TypeName $TypeName),
-            [System.CodeDom.CodeSnippetTypeMember]::new('#if NETCOREAPP3_0_OR_GREATER'),
-            (Get-SpecialToStringMethodDefinition -UseNullableReferenceTypes),
-            [System.CodeDom.CodeSnippetTypeMember]::new('#else'),
-            (Get-SpecialToStringMethodDefinition),
-            [System.CodeDom.CodeSnippetTypeMember]::new('#endif')
+            (Get-ToStringSnippet),
             [System.CodeDom.CodeSnippetTypeMember]::new('#if NETCOREAPP3_0_OR_GREATER'),
             (Get-ConvertibleMethodsSnippet -UseNullableReferenceTypes),
             [System.CodeDom.CodeSnippetTypeMember]::new('#elif NETSTANDARD1_3_OR_GREATER||NET'),
@@ -1347,7 +1321,7 @@ try {
         $deprecatedLinks[$linkTarget.Key] = $linkTarget.Value
     }
 
-    $timezones | Out-SourceCode -CodeCount $timezones.Length -CountryCodeTable $countryCodeTable -TypeName $SourceCodeTypeName -TypeComment $SourceCodeTypeComment -GenerateLanguage $SourceCodeLanguage -TzDataVersion $tzDataVersion -TzDataSource $tzDataSource -SourceCodePart $SourceCodePart -DeprecatedLinks $deprecatedLinks
+    $timezones | Out-SourceCode -CodeCount $timezones.Length -CountryCodeTable $countryCodeTable -TypeName $SourceCodeTypeName -TypeComment $SourceCodeTypeComment -GenerateLanguage $SourceCodeLanguage -TzDataVersion $tzDataVersion -TzDataSource $tzDataSource -SourceCodePart $SourceCodePart -DeprecatedLinks $deprecatedLinks -DefaultIdentifier $DefaultIdentifier
 }
 finally {
     Remove-Module TzDataParser

@@ -16,10 +16,21 @@ namespace DataStandardizer.Chronology
         private static readonly TzDataZoneCalculator.Cache DefaultCalculatorCache = new TzDataZoneCalculator.Cache();
 
         /// <summary>
-        /// The identifier of the timezone that the default value stands for: Coordinated Universal Time, defined in the etcetera file of the
-        /// TZ Database, with an offset of 0, the abbreviation <c>UTC</c> and no daylight saving time.
+        /// Gets the timezone field that the timezone stands for: the timezone itself, or, for the default value,
+        /// <see cref="Etc.UTC"/>, Coordinated Universal Time, which the etcetera file of the TZ Database defines with an offset of 0, the
+        /// abbreviation <c>UTC</c> and no daylight saving time.
         /// </summary>
-        private const string DefaultIdentifier = "Etc/UTC";
+        /// <remarks>
+        /// This is the only place that gives the default value its meaning. Every member that reads the identifier, zone lines, link target or
+        /// location reads them from this field.
+        /// </remarks>
+        private TzDataTimezone Effective
+        {
+            get
+            {
+                return _value is null ? Etc.UTC : this;
+            }
+        }
 
         /// <summary>
         /// Gets the identifier of the timezone, which is <c>Etc/UTC</c> for the default value.
@@ -28,7 +39,8 @@ namespace DataStandardizer.Chronology
         {
             get
             {
-                return _value ?? DefaultIdentifier;
+                GetFieldData(out var identifier, out _, out _);
+                return identifier;
             }
         }
 
@@ -307,15 +319,32 @@ namespace DataStandardizer.Chronology
         /// <returns>The zone lines, in chronological order.</returns>
         private TzDataZoneLine[] GetZoneLineArray(out string identifier)
         {
-            // Only the default value has no identifier; it has the zone lines of Etc/UTC. Every other instance is a timezone field,
-            // which has its zone lines.
-            var value = _value;
-            var zoneLines = _zoneLines;
-            if (value is null || zoneLines is null)
-                return Etc.UTC.GetZoneLineArray(out identifier);
-
-            identifier = value;
+            GetFieldData(out identifier, out var zoneLines, out _);
             return zoneLines;
+        }
+
+        /// <summary>
+        /// Gets the identifier, zone lines and location of the timezone field that the timezone stands for, which for the default value is
+        /// <see cref="Etc.UTC"/>.
+        /// </summary>
+        /// <param name="identifier">The identifier of the timezone.</param>
+        /// <param name="zoneLines">The zone lines, as the array shared with the field.</param>
+        /// <param name="location">The location metadata.</param>
+        private void GetFieldData(out string identifier, out TzDataZoneLine[] zoneLines, out Location location)
+        {
+            var field = Effective;
+            var fieldValue = field._value;
+            var fieldZoneLines = field._zoneLines;
+            var fieldLocation = field._location;
+
+            // Every timezone field has all three, as the generated constructors require them, so this throws only if the generated
+            // source is broken.
+            if (fieldValue is null || fieldZoneLines is null || fieldLocation is null)
+                throw new InvalidOperationException("The timezone field has no identifier, zone lines or location.");
+
+            identifier = fieldValue;
+            zoneLines = fieldZoneLines;
+            location = fieldLocation;
         }
 
         /// <summary>
@@ -329,9 +358,7 @@ namespace DataStandardizer.Chronology
         private bool GetLinkTarget([MaybeNullWhen(false)] out string linkTarget)
 #endif
         {
-            // Only the default value has no zone lines; it is Etc/UTC, which is not a link. Every other instance is a timezone field,
-            // which has its link target, if any.
-            linkTarget = _linkTarget;
+            linkTarget = Effective._linkTarget;
             return linkTarget != null;
         }
 
@@ -344,12 +371,7 @@ namespace DataStandardizer.Chronology
 #endif
         private Location GetLocation()
         {
-            // Only the default value has no location; it has the location of Etc/UTC. Every other instance is a timezone field, which has
-            // its location.
-            var location = _location;
-            if (location is null)
-                return Etc.UTC.GetLocation();
-
+            GetFieldData(out _, out _, out var location);
             return location;
         }
 

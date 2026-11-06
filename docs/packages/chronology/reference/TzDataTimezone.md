@@ -130,8 +130,8 @@ produces four source files:
 The zone line data, rule sets and link data are private. They are reached
 through `ZoneLines` and the methods of [TzDataExtensions](TzDataExtensions.md).
 The properties and parsing methods are hand-written, in
-`TzDataTimezone.Members.cs`, as is the `Etc/UTC` identifier that the generated
-members use for the default instance.
+`TzDataTimezone.Members.cs`, as is the identifier that the generated members
+use, which for the default instance is read from the `Etc.UTC` field.
 
 The generated files need no manual edits. The script's comment-based help
 (`Get-Help ./scripts/GenerateTzDataTimezoneOfficial.ps1 -Full`) lists the tzdata

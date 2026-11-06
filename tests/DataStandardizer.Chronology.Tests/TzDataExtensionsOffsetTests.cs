@@ -815,11 +815,7 @@ public class TzDataExtensionsOffsetTests
         testResult.Should().Be(Utc, "the default timezone is Etc/UTC, whose format is UTC");
     }
 
-    public static TheoryData<string, TzDataTimezone> EtcUtc_TestCases => new()
-    {
-        { "field", TzDataTimezone.Etc.UTC },
-        { "default instance", default },
-    };
+    public static TheoryData<string, TzDataTimezone> EtcUtc_TestCases => TimezoneFieldCatalog.CreateEtcUtcTestCases();
 
     [Theory]
     [MemberData(nameof(EtcUtc_TestCases))]

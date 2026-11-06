@@ -11,7 +11,7 @@ Predefined time zones under `TzDataTimezone.Etc`, members of [TzDataTimezone](Tz
 
 `TzDataTimezone.Etc` holds `Etc/UTC`, Coordinated Universal Time, from the TZ Database's `etcetera` file. It isn't listed in `zone1970.tab` or `zone.tab`, as it is used in no country. `default(TzDataTimezone)` is equal to it. See [The default instance](TzDataTimezone.md#the-default-instance).
 
-## Time zones
+## Fields
 
 | Field | Identifier | Country codes | Latitude | Longitude |
 | --- | --- | --- | --- | --- |

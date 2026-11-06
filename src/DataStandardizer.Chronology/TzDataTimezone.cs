@@ -8387,43 +8387,11 @@ namespace DataStandardizer.Chronology
             return obj is DataStandardizer.Chronology.TzDataTimezone other && this.Equals(other);
         }
         
-#if NETCOREAPP3_0_OR_GREATER
-        
         public override string ToString()
         {
-            System.Collections.Generic.IEnumerable<System.Reflection.TypeInfo> nestedTypes = this.GetType().GetTypeInfo().DeclaredNestedTypes;
-            var memberField = nestedTypes.SelectMany(this.MemberFieldDeclaredFieldsPredicate).FirstOrDefault(this.MemberFieldPredicate);
-            string? result = null;
-            if ((memberField != null))
-            {
-                result = memberField.Name;
-            }
-            if ((result == null))
-            {
-                result = this.Identifier;
-            }
-            return result;
+            var memberField = this.GetType().GetTypeInfo().DeclaredNestedTypes.SelectMany(this.MemberFieldDeclaredFieldsPredicate).FirstOrDefault(this.MemberFieldPredicate);
+            return memberField != null ? memberField.Name : this.Identifier;
         }
-        
-#else
-        
-        public override string ToString()
-        {
-            System.Collections.Generic.IEnumerable<System.Reflection.TypeInfo> nestedTypes = this.GetType().GetTypeInfo().DeclaredNestedTypes;
-            var memberField = nestedTypes.SelectMany(this.MemberFieldDeclaredFieldsPredicate).FirstOrDefault(this.MemberFieldPredicate);
-            string result = null;
-            if ((memberField != null))
-            {
-                result = memberField.Name;
-            }
-            if ((result == null))
-            {
-                result = this.Identifier;
-            }
-            return result;
-        }
-        
-#endif
         
 #if NETCOREAPP3_0_OR_GREATER
         
