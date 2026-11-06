@@ -62,6 +62,35 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
+        /// Gets a flag indicating if a parameter whose grammar has no quoted form may have a value in double quotes, such as
+        /// <c>FMTTYPE="audio/basic"</c>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// RFC 5545 §3.1 allows a parameter value to be a <c>quoted-string</c> in general, but the rule for each parameter narrows that.  Some
+        /// rules leave the quoted form out: <c>fmttypeparam = "FMTTYPE" "=" type-name "/" subtype-name</c> in RFC 5545 §3.2.8 is one.  The others
+        /// are <c>CUTYPE</c>, <c>ENCODING</c>, <c>FBTYPE</c>, <c>LANGUAGE</c>, <c>PARTSTAT</c>, <c>RANGE</c>, <c>RELATED</c>, <c>RELTYPE</c>,
+        /// <c>ROLE</c>, <c>RSVP</c>, <c>TZID</c> and <c>VALUE</c> in RFC 5545 §3.2, and <c>DISPLAY</c> and <c>FEATURE</c> in RFC 7986 §6.  These
+        /// parameters are checked on every property, including a non-standard one.
+        /// </para>
+        /// <para>
+        /// When <c>false</c> (the default), <see cref="IcalReader"/> rejects a calendar with such a value, and <see cref="IcalWriter"/> refuses to
+        /// write one, with an <see cref="IcalFileException"/>.  When <c>true</c>, the value is read without its quotes, and
+        /// <see cref="IcalWriter"/> writes the parameter back as it was read, with them.  <c>JcalWriter</c> and <see cref="XcalWriter"/>
+        /// have no quoting to keep, so they write such a value whatever this option is.
+        /// </para>
+        /// </remarks>
+        public bool AllowQuotedParameterValues
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
         /// Gets a flag indicating if a property is accepted where RFC 5545 allows it at most once but it appears more than once, or where two
         /// properties that exclude each other both appear, such as <c>DTEND</c> and <c>DURATION</c> in a VEVENT.
         /// </summary>

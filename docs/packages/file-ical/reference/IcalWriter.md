@@ -51,8 +51,9 @@ RFC 5545 that the options do not accept, `IcalFileException` is thrown and nothi
 that calendar is written. Its `Data` holds `ComponentPath` and `DiagnosticKind`, plus
 `LineNumber` (the line the property was read from, if any) and `PropertyName` where they
 apply. The accommodations are `IcalOptions.AllowMissingRequiredProperties`,
-`AllowCardinalityViolations`, `AllowUndefinedTimeZones` and `AllowInvalidValues`, all
-off by default. `InvalidComponentNesting` and `UnsupportedVersion` problems are never
+`AllowCardinalityViolations`, `AllowUndefinedTimeZones`, `AllowInvalidValues` and
+`AllowQuotedParameterValues`, all off by default. A parameter read with
+`AllowQuotedParameterValues` is written as it was read, with its quotes. `InvalidComponentNesting` and `UnsupportedVersion` problems are never
 accepted.
 
 **Content line errors.** A property that cannot be written as a content line (a name

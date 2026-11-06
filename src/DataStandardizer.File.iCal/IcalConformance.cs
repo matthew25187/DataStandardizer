@@ -74,6 +74,59 @@ namespace DataStandardizer.File.iCal
             IcalParameterNames.Feature
         };
 
+        /// <summary>
+        /// The parameters RFC 5545 §3.2 and RFC 7986 §6 define with a grammar that has no <c>quoted-string</c>.  The others are <c>ALTREP</c>,
+        /// <c>DELEGATED-FROM</c>, <c>DELEGATED-TO</c>, <c>DIR</c>, <c>MEMBER</c> and <c>SENT-BY</c>, whose grammar has <c>DQUOTE</c>, and
+        /// <c>CN</c>, <c>EMAIL</c> and <c>LABEL</c>, whose value is a <c>param-value</c>.
+        /// </summary>
+        private static readonly string[] UnquotedParameters =
+        {
+            // ref. RFC 5545§3.2.3: cutypeparam = "CUTYPE" "=" ("INDIVIDUAL" / "GROUP" / "RESOURCE" / "ROOM" / "UNKNOWN" / x-name / iana-token)
+            IcalParameterNames.CalendarUserType,
+
+            // ref. RFC 5545§3.2.7: encodingparam = "ENCODING" "=" ( "8BIT" / "BASE64" )
+            IcalParameterNames.Encoding,
+
+            // ref. RFC 5545§3.2.8: fmttypeparam = "FMTTYPE" "=" type-name "/" subtype-name
+            IcalParameterNames.FormatType,
+
+            // ref. RFC 5545§3.2.9: fbtypeparam = "FBTYPE" "=" ("FREE" / "BUSY" / "BUSY-UNAVAILABLE" / "BUSY-TENTATIVE" / x-name / iana-token)
+            IcalParameterNames.FreeBusyType,
+
+            // ref. RFC 5545§3.2.10: languageparam = "LANGUAGE" "=" language
+            IcalParameterNames.Language,
+
+            // ref. RFC 5545§3.2.12: partstatparam = "PARTSTAT" "=" (partstat-event / partstat-todo / partstat-jour)
+            IcalParameterNames.ParticipationStatus,
+
+            // ref. RFC 5545§3.2.13: rangeparam = "RANGE" "=" "THISANDFUTURE"
+            IcalParameterNames.Range,
+
+            // ref. RFC 5545§3.2.14: trigrelparam = "RELATED" "=" ( "START" / "END" )
+            IcalParameterNames.Related,
+
+            // ref. RFC 5545§3.2.15: reltypeparam = "RELTYPE" "=" ("PARENT" / "CHILD" / "SIBLING" / iana-token / x-name)
+            IcalParameterNames.RelationshipType,
+
+            // ref. RFC 5545§3.2.16: roleparam = "ROLE" "=" ("CHAIR" / "REQ-PARTICIPANT" / "OPT-PARTICIPANT" / "NON-PARTICIPANT" / x-name / iana-token)
+            IcalParameterNames.Role,
+
+            // ref. RFC 5545§3.2.17: rsvpparam = "RSVP" "=" ("TRUE" / "FALSE")
+            IcalParameterNames.Rsvp,
+
+            // ref. RFC 5545§3.2.19: tzidparam = "TZID" "=" [tzidprefix] paramtext
+            IcalParameterNames.TimeZoneId,
+
+            // ref. RFC 5545§3.2.20: valuetypeparam = "VALUE" "=" valuetype
+            IcalParameterNames.Value,
+
+            // ref. RFC 7986§6.1: displayparam = "DISPLAY" "=" displayval *("," displayval)
+            IcalParameterNames.Display,
+
+            // ref. RFC 7986§6.3: featureparam = "FEATURE" "=" featuretext *("," featuretext)
+            IcalParameterNames.Feature
+        };
+
         private static readonly Dictionary<string, ComponentRule> Rules = new Dictionary<string, ComponentRule>(StringComparer.OrdinalIgnoreCase)
         {
             // ref. RFC 5545§3.6 and RFC 7986§5.
@@ -224,6 +277,8 @@ namespace DataStandardizer.File.iCal
                     return options.AllowUndefinedTimeZones;
                 case IcalDiagnosticKind.InvalidValue:
                     return options.AllowInvalidValues;
+                case IcalDiagnosticKind.QuotedParameterValue:
+                    return options.AllowQuotedParameterValues;
                 default:
                     return false;
             }
@@ -322,6 +377,7 @@ namespace DataStandardizer.File.iCal
                 ValidateValue(property, path, context);
                 ValidateFormatType(property, path, context);
                 ValidateParameters(property, path, context);
+                ValidateParameterQuoting(property, path, context);
                 if (context.IsCalendar)
                 {
                     ValidateTimeZoneReference(property, path, context);
@@ -864,6 +920,30 @@ namespace DataStandardizer.File.iCal
                         string.Format(CultureInfo.InvariantCulture, "The {0} parameter appears more than once in the {1} property.",
                             parameter.Name.ToUpperInvariant(), property.Name.ToUpperInvariant()), context);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Checks that no parameter in <see cref="UnquotedParameters"/> has a quoted value, on any property, including one RFC 5545 and RFC 7986
+        /// do not define: the grammar of a parameter is the same wherever it appears.
+        /// </summary>
+        /// <remarks>
+        /// Only a line that keeps the parameters as they were read can have one, since <see cref="IcalWriter"/> writes them as read.  When a
+        /// parameter is kept on a new line, such as by a typed property setter, the writer quotes its values only where they need it.
+        /// </remarks>
+        private static void ValidateParameterQuoting(IcalContentLine property, string path, Context context)
+        {
+            if (property.RawParameters is null) return;
+
+            foreach (var parameter in property.ParameterArray)
+            {
+                if (!parameter.HasQuotedValue || !UnquotedParameters.Contains(parameter.Name, StringComparer.OrdinalIgnoreCase)) continue;
+
+                context.Add(IcalDiagnosticKind.QuotedParameterValue,
+                    string.Format(CultureInfo.InvariantCulture,
+                        "The {0} parameter of the {1} property has a value in double quotes, which the grammar of the parameter does not allow.",
+                        parameter.Name.ToUpperInvariant(), property.Name.ToUpperInvariant()),
+                    path, property.Name, property.LineNumber);
             }
         }
 

@@ -21,6 +21,10 @@ namespace DataStandardizer.File.iCal.Tests
         public const string TwoEncodingsCase = "TwoEncodings";
         public const string TwoValueParametersCase = "TwoValueParameters";
         public const string ValueParameterWithTwoValuesCase = "ValueParameterWithTwoValues";
+        public const string QuotedFormatTypeCase = "QuotedFormatType";
+        public const string QuotedTimeZoneIdCase = "QuotedTimeZoneId";
+        public const string QuotedLanguageOnExtensionPropertyCase = "QuotedLanguageOnExtensionProperty";
+        public const string QuotedSecondFeatureCase = "QuotedSecondFeature";
 
         private const string Attachment = "ATTACH";
         private const string DtStart = "DTSTART";
@@ -51,14 +55,16 @@ namespace DataStandardizer.File.iCal.Tests
                     AllowMissingRequiredProperties = kind == IcalDiagnosticKind.MissingRequiredProperty,
                     AllowCardinalityViolations = kind == IcalDiagnosticKind.CardinalityViolation,
                     AllowUndefinedTimeZones = kind == IcalDiagnosticKind.UndefinedTimeZone,
-                    AllowInvalidValues = kind == IcalDiagnosticKind.InvalidValue
+                    AllowInvalidValues = kind == IcalDiagnosticKind.InvalidValue,
+                    AllowQuotedParameterValues = kind == IcalDiagnosticKind.QuotedParameterValue
                 };
                 AcceptingAllButOptions = new IcalOptions
                 {
                     AllowMissingRequiredProperties = kind != IcalDiagnosticKind.MissingRequiredProperty,
                     AllowCardinalityViolations = kind != IcalDiagnosticKind.CardinalityViolation,
                     AllowUndefinedTimeZones = kind != IcalDiagnosticKind.UndefinedTimeZone,
-                    AllowInvalidValues = kind != IcalDiagnosticKind.InvalidValue
+                    AllowInvalidValues = kind != IcalDiagnosticKind.InvalidValue,
+                    AllowQuotedParameterValues = kind != IcalDiagnosticKind.QuotedParameterValue
                 };
             }
 
@@ -148,8 +154,6 @@ namespace DataStandardizer.File.iCal.Tests
                 IcalDiagnosticKind.InvalidValue, Attachment, EventPath),
             [TwoFormatTypesCase] = new Case(EventCalendar("ATTACH;FMTTYPE=audio/basic;FMTTYPE=image/png:http://example.com/a"),
                 IcalDiagnosticKind.InvalidValue, Attachment, EventPath),
-            ["FormatTypeWithMediaTypeParameter"] = new Case(EventCalendar("ATTACH;FMTTYPE=\"text/html; charset=utf-8\":http://example.com/a"),
-                IcalDiagnosticKind.InvalidValue, Attachment, EventPath),
             ["FormatTypeOnImage"] = new Case(EventCalendar("IMAGE;VALUE=URI;FMTTYPE=png:http://example.com/a.png"), IcalDiagnosticKind.InvalidValue,
                 "IMAGE", EventPath),
             ["FormatTypeOnExtensionProperty"] = new Case(EventCalendar("X-ABC-MMSUBJ;VALUE=URI;FMTTYPE=audio:http://www.example.org/mysubj.au"),
@@ -166,7 +170,19 @@ namespace DataStandardizer.File.iCal.Tests
             ["CommonNameWithUnquotedComma"] = new Case(EventCalendar("ATTENDEE;CN=Doe, John:mailto:a@example.com"), IcalDiagnosticKind.InvalidValue,
                 "ATTENDEE", EventPath),
             ["LanguageWithTwoValuesOnExtensionProperty"] = new Case(EventCalendar("X-ABC;LANGUAGE=en,de:x"), IcalDiagnosticKind.InvalidValue, "X-ABC",
-                EventPath)
+                EventPath),
+
+            // Quoted values of parameters whose grammar in RFC 5545 §3.2 or RFC 7986 §6 has no quoted-string.
+            [QuotedFormatTypeCase] = new Case(EventCalendar("ATTACH;FMTTYPE=\"audio/basic\":http://example.com/a"),
+                IcalDiagnosticKind.QuotedParameterValue, Attachment, EventPath),
+            [QuotedTimeZoneIdCase] = new Case(Calendar(BeginTimeZone, TimeZoneId, BeginStandard, "DTSTART:19700101T000000", ZeroOffsetFrom,
+                    ZeroOffsetTo, EndStandard, EndTimeZone, BeginEvent, OtherEventUid, NewYearStamp, "DTSTART;TZID=\"Zone\":20260101T090000",
+                    EndEvent),
+                IcalDiagnosticKind.QuotedParameterValue, DtStart, EventPath),
+            [QuotedLanguageOnExtensionPropertyCase] = new Case(EventCalendar("X-ABC;LANGUAGE=\"en\":x"), IcalDiagnosticKind.QuotedParameterValue,
+                "X-ABC", EventPath),
+            [QuotedSecondFeatureCase] = new Case(EventCalendar("CONFERENCE;VALUE=URI;FEATURE=AUDIO,\"VIDEO\":https://example.com/a"),
+                IcalDiagnosticKind.QuotedParameterValue, "CONFERENCE", EventPath)
         };
 
         /// <summary>
@@ -220,7 +236,8 @@ namespace DataStandardizer.File.iCal.Tests
         /// <summary>
         /// The cases that xCal can hold.  Five cannot be written in it: the writer always writes VERSION, the value element of REFRESH-INTERVAL
         /// gives it the VALUE parameter it lacked, a binary value gives its property the ENCODING parameter it lacked, and the value element of
-        /// a property takes the place of its VALUE parameters, however many there are or however many values they have.
+        /// a property takes the place of its VALUE parameters, however many there are or however many values they have.  Nor can a quoted
+        /// parameter value, since xCal has no quoting.
         /// </summary>
         public static TheoryData<string> XcalCases()
         {
@@ -228,7 +245,7 @@ namespace DataStandardizer.File.iCal.Tests
             foreach (var name in All.Keys)
             {
                 if (name != MissingVersionCase && name != RefreshIntervalWithoutValueCase && name != BinaryWithoutEncodingCase &&
-                    name != TwoValueParametersCase && name != ValueParameterWithTwoValuesCase)
+                    name != TwoValueParametersCase && name != ValueParameterWithTwoValuesCase && !IsQuotedParameterValueCase(name))
                 {
                     data.Add(name);
                 }
@@ -248,13 +265,19 @@ namespace DataStandardizer.File.iCal.Tests
             {
                 if (name != MissingVersionCase && name != RefreshIntervalWithoutValueCase && name != BinaryWithoutEncodingCase &&
                     name != TwoValueParametersCase && name != ValueParameterWithTwoValuesCase && name != TwoFormatTypesCase &&
-                    name != TwoLanguagesCase && name != TwoEncodingsCase)
+                    name != TwoLanguagesCase && name != TwoEncodingsCase && !IsQuotedParameterValueCase(name))
                 {
                     data.Add(name);
                 }
             }
 
             return data;
+        }
+
+        private static bool IsQuotedParameterValueCase(string name)
+        {
+            return name == QuotedFormatTypeCase || name == QuotedTimeZoneIdCase || name == QuotedLanguageOnExtensionPropertyCase ||
+                   name == QuotedSecondFeatureCase;
         }
     }
 }

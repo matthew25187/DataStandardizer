@@ -204,7 +204,9 @@ namespace DataStandardizer.File.iCal
         /// <remarks>
         /// <para>
         /// The value must be a type and subtype whose names follow RFC 4288 §4.2, as RFC 5545 §3.2.8 requires, so it can't have media type
-        /// parameters.  To read a value that doesn't follow this, use <see cref="IndexOfParameter"/> and <see cref="GetParameterValue"/>.
+        /// parameters.  To read a value that doesn't follow this, use <see cref="IndexOfParameter"/> and <see cref="GetParameterValue"/>.  RFC 5545
+        /// §3.2.8 has no quoted form either, but the quotes don't change the media type, so this method gives it for a quoted value; use
+        /// <see cref="IsParameterValueQuoted"/> to find one.
         /// </para>
         /// <para>
         /// Unlike the other members, this allocates: the media type holds its names as strings.

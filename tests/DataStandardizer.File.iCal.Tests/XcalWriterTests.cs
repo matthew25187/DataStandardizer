@@ -171,6 +171,21 @@ namespace DataStandardizer.File.iCal.Tests
                 .Should().Be("<parameters><value><text>DATE</text></value></parameters><unknown>2026-01-02</unknown>");
         }
 
+        // xCal has no quoting, so a value quoted in the iCalendar it was read from is written as it is in any other value.
+        [Fact]
+        public void WriteCalendar_QuotedParameterValueReadWithOption_IsWrittenWithDefaults()
+        {
+            // arrange
+            var calendar = ReadCalendar(ConformanceCases.All[ConformanceCases.QuotedFormatTypeCase].Text,
+                new IcalOptions { AllowQuotedParameterValues = true });
+
+            // act
+            var testResult = XDocument.Parse(WriteXcal(new[] { calendar }));
+
+            // assert
+            testResult.Descendants(Ns + "fmttype").Single().Value.Should().Be("audio/basic");
+        }
+
         [Fact]
         public void WriteCalendar_Version_IsAlways20AndFirstIfMissing()
         {

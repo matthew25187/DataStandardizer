@@ -56,6 +56,9 @@ the JSON value of its type, converted from the text form of RFC 5545 (RFC 7265 Â
 - A value that isn't valid for its type, which `IcalOptions.AllowInvalidValues` lets
   a calendar hold, is written as it is with the `unknown` type, keeping any `VALUE`
   parameter.
+- A parameter value read in double quotes with `IcalOptions.AllowQuotedParameterValues`
+  is written like any other, since jCal has no quoting, so this writer doesn't need the
+  option.
 - The calendar's `VERSION` is always written as 2.0, in the place of the calendar's
   own `VERSION`, or first if it has none.
 

@@ -12,6 +12,9 @@ namespace DataStandardizer.File.iCal.Tests
         private const string Uri = "http://example.com/a";
         private const string LineWithInvalidFormatType = "ATTACH;FMTTYPE=audio:http://example.com/a";
         private const string NamesThatStartWithSymbols = "!a/.b";
+        private const string QuotedFormatTypeLine = "ATTACH;FMTTYPE=\"audio/basic\":http://example.com/a";
+        private const string Audio = "audio";
+        private const string Basic = "basic";
 
         // ref. RFC 5545 §3.2.8: the example on the ATTACH property.
         private const string Rfc5545Example = "ATTACH;FMTTYPE=application/msword:ftp://example.com/pub/docs/agenda.doc";
@@ -50,11 +53,21 @@ namespace DataStandardizer.File.iCal.Tests
                 data.Add(accessor, Rfc5545Example, Application, MsWord);
                 data.Add(accessor, "ATTACH;VALUE=URI;FMTTYPE=audio/basic:" + Uri, "audio", "basic");
                 data.Add(accessor, "ATTACH;fmttype=audio/basic:" + Uri, "audio", "basic");
-                data.Add(accessor, "ATTACH;FMTTYPE=\"audio/basic\":" + Uri, "audio", "basic");
                 data.Add(accessor, "ATTACH;FMTTYPE=IMAGE/SVG+XML:" + Uri, "IMAGE", "SVG+XML");
                 data.Add(accessor, "ATTACH;FMTTYPE=a0!#$&.+-^^_/z9!#$&.+-^^_:" + Uri, "a0!#$&.+-^_", "z9!#$&.+-^_");
                 data.Add(accessor, "ATTACH;FMTTYPE=!a/.b:" + Uri, "!a", ".b");
                 data.Add(accessor, "ATTACH;FMTTYPE=" + LongestName + "/" + LongestName + ":" + Uri, LongestName, LongestName);
+            }
+
+            return data;
+        }
+
+        public static TheoryData<Func<string, MimeMediaType?>> AccessorCases()
+        {
+            var data = new TheoryData<Func<string, MimeMediaType?>>();
+            foreach (var accessor in Accessors)
+            {
+                data.Add(accessor);
             }
 
             return data;
@@ -108,6 +121,19 @@ namespace DataStandardizer.File.iCal.Tests
             testResult.Value.Type.Should().Be(expectedType);
             testResult.Value.Subtype.Should().Be(expectedSubtype);
             testResult.Value.Parameters.Should().BeEmpty();
+        }
+
+        // RFC 5545 §3.2.8 has no quoted form, which IcalReader and IcalWriter check.  The quotes don't change the media type, so the accessors
+        // give it, as they do for a line read with IcalOptions.AllowQuotedParameterValues.
+        [Theory]
+        [MemberData(nameof(AccessorCases))]
+        public void GetFormatType_QuotedValue_GivesTypeAndSubtype(Func<string, MimeMediaType?> accessor)
+        {
+            // act
+            var testResult = accessor(QuotedFormatTypeLine);
+
+            // assert
+            testResult.Should().Be(new MimeMediaType(Audio, Basic));
         }
 
         [Theory]

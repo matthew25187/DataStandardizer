@@ -267,6 +267,21 @@ namespace DataStandardizer.File.iCal.Tests
             testResult["x-count"].Should().Be("[\"x-count\",{\"value\":\"INTEGER\"},\"unknown\",\"many\"]");
         }
 
+        // jCal has no quoting, so a value quoted in the iCalendar it was read from is written as it is in any other value.
+        [Fact]
+        public void WriteCalendar_QuotedParameterValueReadWithOption_IsWrittenWithDefaults()
+        {
+            // arrange
+            var calendar = ReadCalendar(ConformanceCases.All[ConformanceCases.QuotedFormatTypeCase].Text,
+                new IcalOptions { AllowQuotedParameterValues = true });
+
+            // act
+            var testResult = WriteJcal(new[] { calendar });
+
+            // assert
+            testResult.Should().Contain("\"fmttype\":\"audio/basic\"");
+        }
+
         [Fact]
         public void WriteCalendar_Version_IsAlways20AndFirstIfMissing()
         {
