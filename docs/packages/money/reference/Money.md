@@ -108,7 +108,9 @@ See [Format money values](../how-to/format-money-values.md) and
 
 `Money` implements `IConvertible` explicitly; each member delegates to the
 underlying `decimal` and is callable only through an `IConvertible` reference.
-*(netstandard2.0+/.NET)*
+The integer members, and `Convert.ToInt64` and its siblings, give the decimal
+amount converted to that type, not the amount in minor units that the integer
+casts give. *(netstandard2.0+/.NET)*
 
 | Method | Returns | Notes |
 | --- | --- | --- |
@@ -136,9 +138,45 @@ underlying `decimal` and is callable only through an `IConvertible` reference.
 | --- | --- | --- |
 | Implicit | `implicit operator decimal(Money)` | Applies any configured rounding. |
 | Implicit | `implicit operator Money(decimal)` | Wraps a `decimal` (no currency). |
+| Explicit | `explicit operator long(Money)`, `int`, `short`, `sbyte` | The amount in ISO 4217 minor units, e.g. 12.34 USD → `1234`. See [Conversion to integers](#conversion-to-integers). |
+| Explicit | `explicit operator ulong(Money)`, `uint`, `ushort`, `byte` | Obsolete with `error: true`: a cast to an unsigned integer doesn't compile (CS0619). |
+| Explicit | `explicit operator double(Money)`, `float` | The rounded amount, as `(double)(decimal)money` gives it. |
 | Arithmetic | `operator +`, `-`, `*`, `/` `(Money, decimal)` | Carry currency and rounding into the result. |
 | Equality | `operator ==`, `!=` `(Money, Money)` | Throw `InvalidOperationException` if currencies differ. |
 | Comparison | `operator <`, `>`, `<=`, `>=` `(Money, Money)` | Throw `InvalidOperationException` if currencies differ. |
+
+### Conversion to integers
+
+A cast to `long`, `int`, `short` or `sbyte` gives the amount in the minor units
+of the currency: the amount multiplied by ten to the power of the number of
+minor-unit digits ISO 4217 gives the currency (`CurrencyMinorUnits`). For
+example 12.34 USD → `1234`, 500 JPY → `500` and 1.234 BHD → `1234`.
+
+The amount converted is the rounded amount, `(decimal)money`, with the value's
+`RoundingPrecision` and `RoundingMethod` applied. The cast doesn't allocate.
+
+| Case | Result |
+| --- | --- |
+| The currency has no minor units: `XXX` (including `default(Money)` and a value created without a currency) or `XTS` | `InvalidCastException` |
+| The amount isn't a whole number of minor units, e.g. 1.005 USD | `InvalidCastException`. The amount is never truncated or rounded to fit. |
+| The amount in minor units is outside the range of the target type | `OverflowException`, as the built-in numeric casts throw |
+
+The other conversions give the amount itself, not minor units: `decimal d = money`,
+`(decimal)money`, `(double)money`, `(float)money` and the `IConvertible` members,
+such as `Convert.ToInt64(money)`. To truncate the amount to an integer, convert
+through `decimal`, as in `(long)(decimal)money` or `(uint)(decimal)money`.
+
+There's no conversion from an integer to `Money`, because a cast can't carry the
+currency that sets the scale. Create the value from a `decimal` instead.
+
+{: .warning }
+> In earlier versions `(long)money` and the other integer casts converted
+> through `decimal` and truncated the amount, so 12.34 USD gave `12`. The same
+> code recompiled now gives `1234`. A cast to an unsigned integer, or to `char`
+> or `nuint`, no longer compiles, and `(nint)money` gives the amount in minor
+> units through the `int` conversion. Code compiled against an earlier version
+> keeps the old behaviour until it's rebuilt. See
+> [Amounts in minor units](../how-to/use-money-datatype.md#amounts-in-minor-units).
 
 ## Applies to
 

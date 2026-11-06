@@ -18,6 +18,74 @@ namespace DataStandardizer.Money
             internal const string DifferentCurrenciesComparisonTemplate = "Unable to compare {0} values having different currencies.";
             internal const string ExpectedCurrencyCodeTemplate = "Expected a member of {0}.";
             internal const string ExpectedNationalCurrencyCode = "Expected a national currency code.";
+            internal const string NoMinorUnitsTemplate = "The currency {0} has no minor units, so the value cannot be converted to {1}.";
+            internal const string FractionalMinorUnitsTemplate = "The amount is not a whole number of minor units of {0}, so it cannot be converted to {1}.";
+            internal const string MinorUnitsOverflowTemplate = "The amount in minor units of {0} is too large or too small for {1}.";
+            internal const string UnsignedConversion = "Money converts only to signed integer types, which give the amount in ISO 4217 minor units. To truncate the amount to an unsigned integer, convert through decimal, e.g. (uint)(decimal)money.";
+        }
+
+        /// <summary>
+        /// The outcome of scaling an amount to the minor units of its currency.
+        /// </summary>
+        private enum MinorUnitsScaling
+        {
+            Success,
+            NoMinorUnits,
+            Fractional,
+            Overflow
+        }
+
+        /// <summary>
+        /// Powers of ten, and the bounds of each integer type that an amount is scaled to, indexed by the
+        /// number of digits in the minor unit of a currency.
+        /// </summary>
+        /// <remarks>
+        /// Each bound is the limit of the integer type divided by the power of ten, so an amount within it
+        /// scales to a value within the range of the type. They are built from the integer limit and the
+        /// scale, so they are exact.
+        /// </remarks>
+        private static class MinorUnitsScale
+        {
+            /// <summary>
+            /// The most digits a <see cref="decimal"/> can hold after its decimal point.
+            /// </summary>
+            internal const int MaxDigits = 28;
+
+            internal static readonly decimal[] PowersOfTen = CreatePowersOfTen();
+
+            internal static readonly decimal[] Int64Minimum = CreateBounds(9223372036854775808UL, true);
+            internal static readonly decimal[] Int64Maximum = CreateBounds((ulong)long.MaxValue, false);
+            internal static readonly decimal[] Int32Minimum = CreateBounds(2147483648UL, true);
+            internal static readonly decimal[] Int32Maximum = CreateBounds((ulong)int.MaxValue, false);
+            internal static readonly decimal[] Int16Minimum = CreateBounds(32768UL, true);
+            internal static readonly decimal[] Int16Maximum = CreateBounds((ulong)short.MaxValue, false);
+            internal static readonly decimal[] SByteMinimum = CreateBounds(128UL, true);
+            internal static readonly decimal[] SByteMaximum = CreateBounds((ulong)sbyte.MaxValue, false);
+
+            private static decimal[] CreatePowersOfTen()
+            {
+                var result = new decimal[MaxDigits + 1];
+                result[0] = 1m;
+                for (var digits = 1; digits <= MaxDigits; digits++)
+                {
+                    result[digits] = result[digits - 1] * 10m;
+                }
+
+                return result;
+            }
+
+            private static decimal[] CreateBounds(ulong magnitude, bool isNegative)
+            {
+                var low = unchecked((int)(uint)magnitude);
+                var middle = unchecked((int)(uint)(magnitude >> 32));
+                var result = new decimal[MaxDigits + 1];
+                for (var digits = 0; digits <= MaxDigits; digits++)
+                {
+                    result[digits] = new decimal(low, middle, 0, isNegative, (byte)digits);
+                }
+
+                return result;
+            }
         }
 
         private const Iso4217CurrencyCurrent DefaultCurrency = Iso4217CurrencyCurrent.XXX;
@@ -88,6 +156,301 @@ namespace DataStandardizer.Money
         public static implicit operator Money(decimal value)
         {
             return new Money(value);
+        }
+
+        /// <summary>
+        /// Converts a monetary value to its amount in the minor units of its currency, as a 64-bit signed integer.
+        /// </summary>
+        /// <param name="value">The monetary value to convert.</param>
+        /// <returns>
+        /// The amount of <paramref name="value"/> multiplied by ten to the power of the number of minor-unit
+        /// digits ISO 4217 gives its currency. For example 12.34 USD gives 1234, 500 JPY gives 500 and 1.234 BHD
+        /// gives 1234.
+        /// </returns>
+        /// <remarks>
+        /// <para>
+        /// The amount converted is the rounded amount, <c>(decimal)value</c>, with the
+        /// <see cref="RoundingPrecision"/> and <see cref="RoundingMethod"/> of <paramref name="value"/> applied.
+        /// The amount is never truncated or rounded to make it a whole number of minor units.
+        /// </para>
+        /// <para>
+        /// This differs from the other numeric conversions, which give the amount itself: <c>(decimal)value</c>,
+        /// <c>(double)value</c>, <c>(float)value</c> and the <see cref="IConvertible"/> members, such as
+        /// <see cref="Convert.ToInt64(object)"/>. To truncate the amount to an integer, convert through
+        /// <see cref="decimal"/>, as in <c>(long)(decimal)value</c>.
+        /// </para>
+        /// </remarks>
+        /// <exception cref="InvalidCastException">
+        /// The currency of <paramref name="value"/> has no minor units in ISO 4217, such as <c>XXX</c> (including
+        /// <c>default(Money)</c>) or <c>XTS</c>.
+        /// -or-
+        /// The amount of <paramref name="value"/> is not a whole number of minor units, such as 1.005 USD.
+        /// </exception>
+        /// <exception cref="OverflowException">The amount in minor units is less than <see cref="long.MinValue"/> or greater than <see cref="long.MaxValue"/>.</exception>
+        public static explicit operator long(Money value)
+        {
+            return ConvertToMinorUnits(value, MinorUnitsScale.Int64Minimum, MinorUnitsScale.Int64Maximum, nameof(Int64));
+        }
+
+        /// <summary>
+        /// Converts a monetary value to its amount in the minor units of its currency, as a 32-bit signed integer.
+        /// </summary>
+        /// <param name="value">The monetary value to convert.</param>
+        /// <returns>
+        /// The amount of <paramref name="value"/> multiplied by ten to the power of the number of minor-unit
+        /// digits ISO 4217 gives its currency. For example 12.34 USD gives 1234, 500 JPY gives 500 and 1.234 BHD
+        /// gives 1234.
+        /// </returns>
+        /// <remarks>
+        /// <para>
+        /// The amount converted is the rounded amount, <c>(decimal)value</c>, with the
+        /// <see cref="RoundingPrecision"/> and <see cref="RoundingMethod"/> of <paramref name="value"/> applied.
+        /// The amount is never truncated or rounded to make it a whole number of minor units.
+        /// </para>
+        /// <para>
+        /// This differs from the other numeric conversions, which give the amount itself: <c>(decimal)value</c>,
+        /// <c>(double)value</c>, <c>(float)value</c> and the <see cref="IConvertible"/> members, such as
+        /// <see cref="Convert.ToInt32(object)"/>. To truncate the amount to an integer, convert through
+        /// <see cref="decimal"/>, as in <c>(int)(decimal)value</c>.
+        /// </para>
+        /// </remarks>
+        /// <exception cref="InvalidCastException">
+        /// The currency of <paramref name="value"/> has no minor units in ISO 4217, such as <c>XXX</c> (including
+        /// <c>default(Money)</c>) or <c>XTS</c>.
+        /// -or-
+        /// The amount of <paramref name="value"/> is not a whole number of minor units, such as 1.005 USD.
+        /// </exception>
+        /// <exception cref="OverflowException">The amount in minor units is less than <see cref="int.MinValue"/> or greater than <see cref="int.MaxValue"/>.</exception>
+        public static explicit operator int(Money value)
+        {
+            return (int)ConvertToMinorUnits(value, MinorUnitsScale.Int32Minimum, MinorUnitsScale.Int32Maximum, nameof(Int32));
+        }
+
+        /// <summary>
+        /// Converts a monetary value to its amount in the minor units of its currency, as a 16-bit signed integer.
+        /// </summary>
+        /// <param name="value">The monetary value to convert.</param>
+        /// <returns>
+        /// The amount of <paramref name="value"/> multiplied by ten to the power of the number of minor-unit
+        /// digits ISO 4217 gives its currency. For example 12.34 USD gives 1234, 500 JPY gives 500 and 1.234 BHD
+        /// gives 1234.
+        /// </returns>
+        /// <remarks>
+        /// <para>
+        /// The amount converted is the rounded amount, <c>(decimal)value</c>, with the
+        /// <see cref="RoundingPrecision"/> and <see cref="RoundingMethod"/> of <paramref name="value"/> applied.
+        /// The amount is never truncated or rounded to make it a whole number of minor units.
+        /// </para>
+        /// <para>
+        /// This differs from the other numeric conversions, which give the amount itself: <c>(decimal)value</c>,
+        /// <c>(double)value</c>, <c>(float)value</c> and the <see cref="IConvertible"/> members, such as
+        /// <see cref="Convert.ToInt16(object)"/>. To truncate the amount to an integer, convert through
+        /// <see cref="decimal"/>, as in <c>(short)(decimal)value</c>.
+        /// </para>
+        /// </remarks>
+        /// <exception cref="InvalidCastException">
+        /// The currency of <paramref name="value"/> has no minor units in ISO 4217, such as <c>XXX</c> (including
+        /// <c>default(Money)</c>) or <c>XTS</c>.
+        /// -or-
+        /// The amount of <paramref name="value"/> is not a whole number of minor units, such as 1.005 USD.
+        /// </exception>
+        /// <exception cref="OverflowException">The amount in minor units is less than <see cref="short.MinValue"/> or greater than <see cref="short.MaxValue"/>.</exception>
+        public static explicit operator short(Money value)
+        {
+            return (short)ConvertToMinorUnits(value, MinorUnitsScale.Int16Minimum, MinorUnitsScale.Int16Maximum, nameof(Int16));
+        }
+
+        /// <summary>
+        /// Converts a monetary value to its amount in the minor units of its currency, as an 8-bit signed integer.
+        /// </summary>
+        /// <param name="value">The monetary value to convert.</param>
+        /// <returns>
+        /// The amount of <paramref name="value"/> multiplied by ten to the power of the number of minor-unit
+        /// digits ISO 4217 gives its currency. For example 1.23 USD gives 123 and 100 JPY gives 100.
+        /// </returns>
+        /// <remarks>
+        /// <para>
+        /// The amount converted is the rounded amount, <c>(decimal)value</c>, with the
+        /// <see cref="RoundingPrecision"/> and <see cref="RoundingMethod"/> of <paramref name="value"/> applied.
+        /// The amount is never truncated or rounded to make it a whole number of minor units.
+        /// </para>
+        /// <para>
+        /// This differs from the other numeric conversions, which give the amount itself: <c>(decimal)value</c>,
+        /// <c>(double)value</c>, <c>(float)value</c> and the <see cref="IConvertible"/> members, such as
+        /// <see cref="Convert.ToSByte(object)"/>. To truncate the amount to an integer, convert through
+        /// <see cref="decimal"/>, as in <c>(sbyte)(decimal)value</c>.
+        /// </para>
+        /// </remarks>
+        /// <exception cref="InvalidCastException">
+        /// The currency of <paramref name="value"/> has no minor units in ISO 4217, such as <c>XXX</c> (including
+        /// <c>default(Money)</c>) or <c>XTS</c>.
+        /// -or-
+        /// The amount of <paramref name="value"/> is not a whole number of minor units, such as 1.005 USD.
+        /// </exception>
+        /// <exception cref="OverflowException">The amount in minor units is less than <see cref="sbyte.MinValue"/> or greater than <see cref="sbyte.MaxValue"/>.</exception>
+        public static explicit operator sbyte(Money value)
+        {
+            return (sbyte)ConvertToMinorUnits(value, MinorUnitsScale.SByteMinimum, MinorUnitsScale.SByteMaximum, nameof(SByte));
+        }
+
+        /// <summary>
+        /// A monetary value doesn't convert to an unsigned integer. Use <c>(ulong)(decimal)value</c> to truncate its amount.
+        /// </summary>
+        /// <param name="value">The monetary value.</param>
+        /// <returns>This conversion never returns.</returns>
+        /// <remarks>
+        /// This operator exists so that <c>(ulong)value</c> fails to compile, rather than truncating the amount
+        /// while the signed integer conversions give it in minor units.
+        /// </remarks>
+        /// <exception cref="InvalidCastException">Always thrown, when this operator is reached other than through compiled C#.</exception>
+        [Obsolete(ErrorMessage.UnsignedConversion, true)]
+        public static explicit operator ulong(Money value)
+        {
+            throw new InvalidCastException(ErrorMessage.UnsignedConversion);
+        }
+
+        /// <summary>
+        /// A monetary value doesn't convert to an unsigned integer. Use <c>(uint)(decimal)value</c> to truncate its amount.
+        /// </summary>
+        /// <param name="value">The monetary value.</param>
+        /// <returns>This conversion never returns.</returns>
+        /// <remarks>
+        /// This operator exists so that <c>(uint)value</c> fails to compile, rather than truncating the amount
+        /// while the signed integer conversions give it in minor units.
+        /// </remarks>
+        /// <exception cref="InvalidCastException">Always thrown, when this operator is reached other than through compiled C#.</exception>
+        [Obsolete(ErrorMessage.UnsignedConversion, true)]
+        public static explicit operator uint(Money value)
+        {
+            throw new InvalidCastException(ErrorMessage.UnsignedConversion);
+        }
+
+        /// <summary>
+        /// A monetary value doesn't convert to an unsigned integer. Use <c>(ushort)(decimal)value</c> to truncate its amount.
+        /// </summary>
+        /// <param name="value">The monetary value.</param>
+        /// <returns>This conversion never returns.</returns>
+        /// <remarks>
+        /// This operator exists so that <c>(ushort)value</c> fails to compile, rather than truncating the amount
+        /// while the signed integer conversions give it in minor units.
+        /// </remarks>
+        /// <exception cref="InvalidCastException">Always thrown, when this operator is reached other than through compiled C#.</exception>
+        [Obsolete(ErrorMessage.UnsignedConversion, true)]
+        public static explicit operator ushort(Money value)
+        {
+            throw new InvalidCastException(ErrorMessage.UnsignedConversion);
+        }
+
+        /// <summary>
+        /// A monetary value doesn't convert to an unsigned integer. Use <c>(byte)(decimal)value</c> to truncate its amount.
+        /// </summary>
+        /// <param name="value">The monetary value.</param>
+        /// <returns>This conversion never returns.</returns>
+        /// <remarks>
+        /// This operator exists so that <c>(byte)value</c> fails to compile, rather than truncating the amount
+        /// while the signed integer conversions give it in minor units.
+        /// </remarks>
+        /// <exception cref="InvalidCastException">Always thrown, when this operator is reached other than through compiled C#.</exception>
+        [Obsolete(ErrorMessage.UnsignedConversion, true)]
+        public static explicit operator byte(Money value)
+        {
+            throw new InvalidCastException(ErrorMessage.UnsignedConversion);
+        }
+
+        /// <summary>
+        /// Converts the amount of a monetary value to a double-precision floating-point number.
+        /// </summary>
+        /// <param name="value">The monetary value to convert.</param>
+        /// <returns>The rounded amount, <c>(decimal)value</c>, as a <see cref="double"/>.</returns>
+        /// <remarks>
+        /// This gives the amount itself, not the amount in minor units that the signed integer conversions
+        /// give. It's declared so that <c>(double)value</c> keeps converting through <see cref="decimal"/>.
+        /// </remarks>
+        public static explicit operator double(Money value)
+        {
+            return (double)(decimal)value;
+        }
+
+        /// <summary>
+        /// Converts the amount of a monetary value to a single-precision floating-point number.
+        /// </summary>
+        /// <param name="value">The monetary value to convert.</param>
+        /// <returns>The rounded amount, <c>(decimal)value</c>, as a <see cref="float"/>.</returns>
+        /// <remarks>
+        /// This gives the amount itself, not the amount in minor units that the signed integer conversions
+        /// give. It's declared so that <c>(float)value</c> keeps converting through <see cref="decimal"/>.
+        /// </remarks>
+        public static explicit operator float(Money value)
+        {
+            return (float)(decimal)value;
+        }
+
+        /// <summary>
+        /// Convert a monetary value to its amount in minor units, or throw the exception a cast throws.
+        /// </summary>
+        /// <param name="value">The monetary value to convert.</param>
+        /// <param name="minimum">The least amount, for each number of minor-unit digits, that is within range of the target type.</param>
+        /// <param name="maximum">The greatest amount, for each number of minor-unit digits, that is within range of the target type.</param>
+        /// <param name="targetTypeName">Name of the target type, for the exception message.</param>
+        /// <returns>The amount in minor units, which is within range of the target type.</returns>
+        private static long ConvertToMinorUnits(Money value, decimal[] minimum, decimal[] maximum, string targetTypeName)
+        {
+            switch (TryScale(value, value.CurrencyMinorUnits, minimum, maximum, out var result))
+            {
+                case MinorUnitsScaling.Success:
+                    return result;
+                case MinorUnitsScaling.NoMinorUnits:
+                    throw new InvalidCastException(string.Format(ErrorMessage.NoMinorUnitsTemplate, value.IsoCurrencyCode, targetTypeName));
+                case MinorUnitsScaling.Fractional:
+                    throw new InvalidCastException(string.Format(ErrorMessage.FractionalMinorUnitsTemplate, value.IsoCurrencyCode, targetTypeName));
+                default:
+                    throw new OverflowException(string.Format(ErrorMessage.MinorUnitsOverflowTemplate, value.IsoCurrencyCode, targetTypeName));
+            }
+        }
+
+        /// <summary>
+        /// Scale an amount to the minor units of its currency.
+        /// </summary>
+        /// <param name="amount">The amount to scale.</param>
+        /// <param name="digits">The number of minor-unit digits of the currency, or <c>null</c> if it has no minor units.</param>
+        /// <param name="minimum">The least amount, for each number of minor-unit digits, that is within range of the target type.</param>
+        /// <param name="maximum">The greatest amount, for each number of minor-unit digits, that is within range of the target type.</param>
+        /// <param name="result">When this method returns, the amount in minor units if it was scaled; otherwise zero.</param>
+        /// <returns>Whether the amount was scaled, or why it wasn't.</returns>
+        /// <remarks>
+        /// The range is checked before the amount is multiplied, so the multiplication can't overflow and is
+        /// exact, and the result is within range of the target type.
+        /// </remarks>
+        private static MinorUnitsScaling TryScale(decimal amount, byte? digits, decimal[] minimum, decimal[] maximum, out long result)
+        {
+            result = 0;
+
+            if (!digits.HasValue)
+            {
+                return MinorUnitsScaling.NoMinorUnits;
+            }
+
+            var useDigits = digits.Value;
+            if (useDigits > MinorUnitsScale.MaxDigits)
+            {
+                // A decimal can't hold the power of ten to scale by. No ISO 4217 currency has this many
+                // minor-unit digits.
+                return MinorUnitsScaling.Overflow;
+            }
+
+            if (amount < minimum[useDigits] || amount > maximum[useDigits])
+            {
+                return MinorUnitsScaling.Overflow;
+            }
+
+            var scaled = amount * MinorUnitsScale.PowersOfTen[useDigits];
+            if (decimal.Truncate(scaled) != scaled)
+            {
+                return MinorUnitsScaling.Fractional;
+            }
+
+            result = decimal.ToInt64(scaled);
+            return MinorUnitsScaling.Success;
         }
 
         public static Money operator +(Money moneyValue, decimal decimalValue)
