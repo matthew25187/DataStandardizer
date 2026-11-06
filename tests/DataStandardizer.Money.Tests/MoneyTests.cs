@@ -29,6 +29,10 @@ namespace DataStandardizer.Money.Tests
         private const string InputContainsMoneyValueReason = "the input contains the money value {0}";
         private const string ArgumentIsNotMoneyValueReason = "the argument is not a money value";
 
+        private const string DifferentCurrenciesNotEqualReason = "{0} treats money values in different currencies as not equal";
+        private const string DifferentCurrenciesNotComparableReason = "money values in different currencies can't be ordered";
+        private const decimal DifferentCurrenciesAmount = 1m;
+
         private const string NotAMoneyValue = "not a money value";
         private const decimal ObjectTestAmount = 1234m;
 
@@ -614,6 +618,35 @@ namespace DataStandardizer.Money.Tests
             testResult.Should().BeTrue(LeftNotEqualToRightReason, (decimal)testValueLeft, (decimal)testValueRight);
         }
 
+        #region Test: Equality_OperandCurrenciesDifferent
+
+        [Theory]
+        [MemberData(nameof(EqualityOperandCurrenciesDifferentTestCases))]
+        public void Equality_OperandCurrenciesDifferent_ReturnsSameAnswerAsEquals(string testOperation, Func<Money, Money, bool> testEquality, Money testValueLeft, Money testValueRight, bool expectedResult)
+        {
+            // arrange
+
+            // act
+            var testResult = testEquality(testValueLeft, testValueRight);
+
+            // assert
+            testResult.Should().Be(expectedResult, DifferentCurrenciesNotEqualReason, testOperation);
+        }
+
+        public static TheoryData<string, Func<Money, Money, bool>, Money, Money, bool> EqualityOperandCurrenciesDifferentTestCases => new()
+        {
+            { "==", (left, right) => left == right, Money.Create(DifferentCurrenciesAmount, Iso4217CurrencyCurrent.USD), Money.Create(DifferentCurrenciesAmount, Iso4217CurrencyCurrent.JPY), false },
+            { "!=", (left, right) => left != right, Money.Create(DifferentCurrenciesAmount, Iso4217CurrencyCurrent.USD), Money.Create(DifferentCurrenciesAmount, Iso4217CurrencyCurrent.JPY), true },
+            { "Equals(Money)", (left, right) => left.Equals(right), Money.Create(DifferentCurrenciesAmount, Iso4217CurrencyCurrent.USD), Money.Create(DifferentCurrenciesAmount, Iso4217CurrencyCurrent.JPY), false },
+            { "Equals(object)", (left, right) => left.Equals((object)right), Money.Create(DifferentCurrenciesAmount, Iso4217CurrencyCurrent.USD), Money.Create(DifferentCurrenciesAmount, Iso4217CurrencyCurrent.JPY), false },
+            { "==", (left, right) => left == right, default(Money), Money.Create(DifferentCurrenciesAmount, Iso4217CurrencyCurrent.USD), false },
+            { "!=", (left, right) => left != right, default(Money), Money.Create(DifferentCurrenciesAmount, Iso4217CurrencyCurrent.USD), true },
+            { "Equals(Money)", (left, right) => left.Equals(right), default(Money), Money.Create(DifferentCurrenciesAmount, Iso4217CurrencyCurrent.USD), false },
+            { "Equals(object)", (left, right) => left.Equals((object)right), default(Money), Money.Create(DifferentCurrenciesAmount, Iso4217CurrencyCurrent.USD), false },
+        };
+
+        #endregion
+
         [Fact]
         public void CurrencyMinorUnits_MoneyValueWithCurrency_ReturnsMinorUnitsOfCurrency()
         {
@@ -763,6 +796,26 @@ namespace DataStandardizer.Money.Tests
             // assert
             testResult.Should().Be(1, "the argument is less than the money value");
         }
+
+        [Theory]
+        [MemberData(nameof(CompareToCurrencyDifferentTestCases))]
+        public void CompareTo_ArgumentCurrencyDifferent_ThrowsArgumentException(Money testValue, Money testOther)
+        {
+            // arrange
+
+            // act
+            Action testAction = () => testValue.CompareTo(testOther);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>(DifferentCurrenciesNotComparableReason);
+        }
+
+        public static TheoryData<Money, Money> CompareToCurrencyDifferentTestCases => new()
+        {
+            { Money.Create(DifferentCurrenciesAmount, Iso4217CurrencyCurrent.JPY), Money.Create(DifferentCurrenciesAmount, Iso4217CurrencyCurrent.USD) },
+            { default(Money), Money.Create(DifferentCurrenciesAmount, Iso4217CurrencyCurrent.USD) },
+            { Money.Create(DifferentCurrenciesAmount, Iso4217CurrencyCurrent.USD), default(Money) },
+        };
 
         [Fact]
         public void Equals_ArgumentEqualToMoneyValue_ReturnsTrue()
@@ -1056,6 +1109,20 @@ namespace DataStandardizer.Money.Tests
 
             // assert
             testAction.Should().Throw<ArgumentException>(ArgumentIsNotMoneyValueReason);
+        }
+
+        [Fact]
+        public void CompareTo_ObjectArgumentCurrencyDifferent_ThrowsArgumentException()
+        {
+            // arrange
+            var testSubject = Money.Create(DifferentCurrenciesAmount, Iso4217CurrencyCurrent.USD);
+            object testValue = Money.Create(DifferentCurrenciesAmount, Iso4217CurrencyCurrent.JPY);
+
+            // act
+            Action testAction = () => testSubject.CompareTo(testValue);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>(DifferentCurrenciesNotComparableReason);
         }
 
         #endregion

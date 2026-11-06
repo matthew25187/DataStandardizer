@@ -549,28 +549,53 @@ namespace DataStandardizer.Money
             return new Money(result);
         }
 
+        /// <summary>
+        /// Determines whether two monetary values are equal.
+        /// </summary>
+        /// <param name="left">The first monetary value to compare.</param>
+        /// <param name="right">The second monetary value to compare.</param>
+        /// <returns>
+        /// <c>true</c> if <paramref name="left"/> and <paramref name="right"/> have the same amount and the same
+        /// currency; otherwise <c>false</c>. This is what <see cref="Equals(Money)"/> returns.
+        /// </returns>
+        /// <remarks>
+        /// Values in different currencies are not equal, so this operator returns <c>false</c> for them rather
+        /// than throwing, unlike the relational operators.
+        /// </remarks>
         public static bool operator ==(Money left, Money right)
         {
-            if (left.IsoCurrencyCode != right.IsoCurrencyCode)
-            {
-                var errorMessage = string.Format(ErrorMessage.DifferentCurrenciesComparisonTemplate, nameof(Money));
-                throw new InvalidOperationException(errorMessage);
-            }
-
             return left.Equals(right);
         }
 
+        /// <summary>
+        /// Determines whether two monetary values are not equal.
+        /// </summary>
+        /// <param name="left">The first monetary value to compare.</param>
+        /// <param name="right">The second monetary value to compare.</param>
+        /// <returns>
+        /// <c>true</c> if <paramref name="left"/> and <paramref name="right"/> differ in amount or currency;
+        /// otherwise <c>false</c>. This is the negation of what <see cref="Equals(Money)"/> returns.
+        /// </returns>
+        /// <remarks>
+        /// Values in different currencies are not equal, so this operator returns <c>true</c> for them rather
+        /// than throwing, unlike the relational operators.
+        /// </remarks>
         public static bool operator !=(Money left, Money right)
         {
-            if (left.IsoCurrencyCode != right.IsoCurrencyCode)
-            {
-                var errorMessage = string.Format(ErrorMessage.DifferentCurrenciesComparisonTemplate, nameof(Money));
-                throw new InvalidOperationException(errorMessage);
-            }
-
             return !left.Equals(right);
         }
 
+        /// <summary>
+        /// Determines whether one monetary value is less than another in the same currency.
+        /// </summary>
+        /// <param name="left">The first monetary value to compare.</param>
+        /// <param name="right">The second monetary value to compare.</param>
+        /// <returns><c>true</c> if the amount of <paramref name="left"/> is less than the amount of <paramref name="right"/>; otherwise <c>false</c>.</returns>
+        /// <exception cref="InvalidOperationException">
+        /// <paramref name="left"/> and <paramref name="right"/> have different currencies, as
+        /// <see cref="IsoCurrencyCode"/> reports them. A value with no currency, such as <c>default(Money)</c>,
+        /// has the currency <c>XXX</c>.
+        /// </exception>
         public static bool operator <(Money left, Money right)
         {
             if (left.IsoCurrencyCode != right.IsoCurrencyCode)
@@ -579,9 +604,20 @@ namespace DataStandardizer.Money
                 throw new InvalidOperationException(errorMessage);
             }
 
-            return left.CompareTo(right) < 0;
+            return left._amount.CompareTo(right._amount) < 0;
         }
 
+        /// <summary>
+        /// Determines whether one monetary value is greater than another in the same currency.
+        /// </summary>
+        /// <param name="left">The first monetary value to compare.</param>
+        /// <param name="right">The second monetary value to compare.</param>
+        /// <returns><c>true</c> if the amount of <paramref name="left"/> is greater than the amount of <paramref name="right"/>; otherwise <c>false</c>.</returns>
+        /// <exception cref="InvalidOperationException">
+        /// <paramref name="left"/> and <paramref name="right"/> have different currencies, as
+        /// <see cref="IsoCurrencyCode"/> reports them. A value with no currency, such as <c>default(Money)</c>,
+        /// has the currency <c>XXX</c>.
+        /// </exception>
         public static bool operator >(Money left, Money right)
         {
             if (left.IsoCurrencyCode != right.IsoCurrencyCode)
@@ -590,9 +626,20 @@ namespace DataStandardizer.Money
                 throw new InvalidOperationException(errorMessage);
             }
 
-            return left.CompareTo(right) > 0;
+            return left._amount.CompareTo(right._amount) > 0;
         }
 
+        /// <summary>
+        /// Determines whether one monetary value is less than or equal to another in the same currency.
+        /// </summary>
+        /// <param name="left">The first monetary value to compare.</param>
+        /// <param name="right">The second monetary value to compare.</param>
+        /// <returns><c>true</c> if the amount of <paramref name="left"/> is less than or equal to the amount of <paramref name="right"/>; otherwise <c>false</c>.</returns>
+        /// <exception cref="InvalidOperationException">
+        /// <paramref name="left"/> and <paramref name="right"/> have different currencies, as
+        /// <see cref="IsoCurrencyCode"/> reports them. A value with no currency, such as <c>default(Money)</c>,
+        /// has the currency <c>XXX</c>.
+        /// </exception>
         public static bool operator <=(Money left, Money right)
         {
             if (left.IsoCurrencyCode != right.IsoCurrencyCode)
@@ -601,9 +648,20 @@ namespace DataStandardizer.Money
                 throw new InvalidOperationException(errorMessage);
             }
 
-            return left.CompareTo(right) <= 0;
+            return left._amount.CompareTo(right._amount) <= 0;
         }
 
+        /// <summary>
+        /// Determines whether one monetary value is greater than or equal to another in the same currency.
+        /// </summary>
+        /// <param name="left">The first monetary value to compare.</param>
+        /// <param name="right">The second monetary value to compare.</param>
+        /// <returns><c>true</c> if the amount of <paramref name="left"/> is greater than or equal to the amount of <paramref name="right"/>; otherwise <c>false</c>.</returns>
+        /// <exception cref="InvalidOperationException">
+        /// <paramref name="left"/> and <paramref name="right"/> have different currencies, as
+        /// <see cref="IsoCurrencyCode"/> reports them. A value with no currency, such as <c>default(Money)</c>,
+        /// has the currency <c>XXX</c>.
+        /// </exception>
         public static bool operator >=(Money left, Money right)
         {
             if (left.IsoCurrencyCode != right.IsoCurrencyCode)
@@ -612,7 +670,7 @@ namespace DataStandardizer.Money
                 throw new InvalidOperationException(errorMessage);
             }
 
-            return left.CompareTo(right) >= 0;
+            return left._amount.CompareTo(right._amount) >= 0;
         }
 
         /// <summary>
@@ -635,6 +693,19 @@ namespace DataStandardizer.Money
         /// </summary>
         public int? RoundingPrecision { get; }
 #if NETCOREAPP3_0_OR_GREATER
+        /// <summary>
+        /// Compares this monetary value with an object, which must be a monetary value in the same currency.
+        /// </summary>
+        /// <param name="obj">The object to compare with this instance, or <c>null</c>.</param>
+        /// <returns>
+        /// A negative number if the amount of this instance is less than the amount of <paramref name="obj"/>,
+        /// zero if they are equal, or a positive number if it is greater or <paramref name="obj"/> is <c>null</c>.
+        /// </returns>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="obj"/> is not a <see cref="Money"/>.
+        /// -or-
+        /// <paramref name="obj"/> is a <see cref="Money"/> with a different currency from this instance.
+        /// </exception>
         public int CompareTo(object? obj)
         {
             if (obj is null)
@@ -644,13 +715,26 @@ namespace DataStandardizer.Money
 
             if (obj is Money other)
             {
-                return CompareTo(other);
+                return CompareTo(other, nameof(obj));
             }
 
             throw new ArgumentException($"{nameof(obj)} and this instance are not the same type.", nameof(obj));
         }
 
 #else
+        /// <summary>
+        /// Compares this monetary value with an object, which must be a monetary value in the same currency.
+        /// </summary>
+        /// <param name="obj">The object to compare with this instance, or <c>null</c>.</param>
+        /// <returns>
+        /// A negative number if the amount of this instance is less than the amount of <paramref name="obj"/>,
+        /// zero if they are equal, or a positive number if it is greater or <paramref name="obj"/> is <c>null</c>.
+        /// </returns>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="obj"/> is not a <see cref="Money"/>.
+        /// -or-
+        /// <paramref name="obj"/> is a <see cref="Money"/> with a different currency from this instance.
+        /// </exception>
         public int CompareTo(object obj)
         {
             if (obj is null)
@@ -660,15 +744,44 @@ namespace DataStandardizer.Money
 
             if (obj is Money other)
             {
-                return CompareTo(other);
+                return CompareTo(other, nameof(obj));
             }
 
             throw new ArgumentException($"{nameof(obj)} and this instance are not the same type.", nameof(obj));
         }
 #endif
 
+        /// <summary>
+        /// Compares this monetary value with another in the same currency.
+        /// </summary>
+        /// <param name="other">The monetary value to compare with this instance.</param>
+        /// <returns>
+        /// A negative number if the amount of this instance is less than the amount of <paramref name="other"/>,
+        /// zero if they are equal, or a positive number if it is greater.
+        /// </returns>
+        /// <remarks>
+        /// Amounts in different currencies have no order, so this method throws for them, as the relational
+        /// operators do. Sorting a collection that mixes currencies, for example with
+        /// <see cref="Array.Sort(Array)"/> or LINQ's <c>OrderBy</c>, therefore fails rather than ordering the
+        /// values by amount alone.
+        /// </remarks>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="other"/> has a different currency from this instance, as <see cref="IsoCurrencyCode"/>
+        /// reports them. A value with no currency, such as <c>default(Money)</c>, has the currency <c>XXX</c>.
+        /// </exception>
         public int CompareTo(Money other)
         {
+            return CompareTo(other, nameof(other));
+        }
+
+        private int CompareTo(Money other, string paramName)
+        {
+            if (IsoCurrencyCode != other.IsoCurrencyCode)
+            {
+                var errorMessage = string.Format(ErrorMessage.DifferentCurrenciesComparisonTemplate, nameof(Money));
+                throw new ArgumentException(errorMessage, paramName);
+            }
+
             return _amount.CompareTo(other._amount);
         }
 
