@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-#if !NET9_0_OR_GREATER
-using System.Linq;
-#endif
 
 namespace DataStandardizer.File.CSV
 {
@@ -17,27 +14,23 @@ namespace DataStandardizer.File.CSV
         /// <summary>
         /// Gets the names of the fields on the line.
         /// </summary>
+        /// <remarks>
+        /// The names are the values of the line's fields, in position order.  A value that isn't a string gives an empty name.
+        /// </remarks>
         public IReadOnlyList<string> FieldNames => DoGetFieldNames();
 
         private string[] DoGetFieldNames()
         {
             if (_fieldCount != GetFieldCount())
             {
-#if NET9_0_OR_GREATER
                 var fieldValues = FieldValues;
                 var fieldNames = new string[fieldValues.Count];
                 for (var fieldIndex = 0; fieldIndex < fieldNames.Length; fieldIndex++)
                 {
-                    fieldNames[fieldIndex] = fieldValues[fieldIndex] as string ?? string.Empty;
+                    fieldNames[fieldIndex] = fieldValues[fieldIndex] is string fieldName ? fieldName : string.Empty;
                 }
 
                 _fieldNames = fieldNames;
-#else
-                _fieldNames = ((ICsvFileLine)this).Values
-                    .Cast<object>()
-                    .Select(fieldValue => fieldValue as string ?? string.Empty)
-                    .ToArray();
-#endif
                 _fieldCount = _fieldNames.Length;
             }
 

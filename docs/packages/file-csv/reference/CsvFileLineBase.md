@@ -11,9 +11,8 @@ nav_exclude: true
 
 Namespace: `DataStandardizer.File.CSV`
 
-The abstract base of the CSV line types. It backs a line with an ordered,
-name-keyed field bag and implements the `IOrderedDictionary` surface required by
-[ICsvFileLine](ICsvFileLine.md).
+The abstract base of the CSV line types. It holds the fields of a line and
+implements [ICsvFileLine](ICsvFileLine.md).
 
 **Syntax**
 
@@ -23,10 +22,11 @@ public abstract class CsvFileLineBase : ICsvFileLine
 
 ## Remarks
 
-`CsvFileLineBase` exposes a single public `Add` method for populating a line; the
-rest of the `IOrderedDictionary` / `IDictionary` / `ICollection` / `IEnumerable`
-surface is implemented **explicitly**, so those members are reached only through an
-interface reference (typically `ICsvFileLine`). The field-access helpers
+`CsvFileLineBase` exposes a single public `Add` method for populating a line. The
+rest of the `ICsvFileLine` surface is implemented **explicitly**, so those members
+don't clash with the properties of a record model that derives from
+[CsvFileRecordLine](CsvFileRecordLine.md), such as one with a `Count` or `Values`
+column; reach them through an `ICsvFileLine` reference. The field-access helpers
 (`GetFieldValue`, `SetFieldValue`, `GetFieldCount`, `GetPropertyKey`) are `protected`
 and used by the derived line types. Concrete line types are
 [CsvFileRecordLine](CsvFileRecordLine.md) and [CsvFileHeaderLine](CsvFileHeaderLine.md).
@@ -37,47 +37,30 @@ and used by the derived line types. Concrete line types are
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `Add(object key, object? value)` | `void` | Appends a field. `value` is `object` (not nullable) on `netstandard1.3` / `netstandard2.0`. On `net10.0`, `key` must be a `string` (see [Field name keys](#field-name-keys)). |
+| `Add(string fieldName, object? value)` | `void` | Adds a field to the end of the line. Throws `ArgumentNullException` for a `null` name, and `ArgumentException` if the line already has a field with that name. |
 
 ### Explicit implementation
 
-`CsvFileLineBase` implements the ordered-dictionary surface explicitly; each member
-is callable only through the corresponding interface reference. *(All targets.)*
+Each member is callable only through an `ICsvFileLine` reference. See
+[ICsvFileLine](ICsvFileLine.md) for what each one does. *(All targets.)*
 
-| Member | Returns | Notes |
-| --- | --- | --- |
-| `ICollection.CopyTo(Array array, int index)` | `void` | Copies `DictionaryEntry` items in field order. |
-| `ICollection.Count` | `int` | |
-| `ICollection.IsSynchronized` | `bool` | |
-| `ICollection.SyncRoot` | `object` | |
-| `IDictionary.Clear()` | `void` | |
-| `IDictionary.Contains(object key)` | `bool` | |
-| `IDictionary.GetEnumerator()` | `IDictionaryEnumerator` | |
-| `IDictionary.IsFixedSize` | `bool` | |
-| `IDictionary.IsReadOnly` | `bool` | |
-| `IDictionary.Keys` | `ICollection` | |
-| `IDictionary.Remove(object key)` | `void` | |
-| `IDictionary.this[object key]` | `object?` | |
-| `IDictionary.Values` | `ICollection` | |
-| `IEnumerable.GetEnumerator()` | `IEnumerator` | |
-| `IOrderedDictionary.GetEnumerator()` | `IDictionaryEnumerator` | |
-| `IOrderedDictionary.Insert(int index, object key, object? value)` | `void` | |
-| `IOrderedDictionary.RemoveAt(int index)` | `void` | |
-| `IOrderedDictionary.this[int index]` | `object?` | |
-
-### Field name keys
-
-Field names are always strings. On `net10.0`, the members that take an `object key`
-accept only `string` keys:
-
-- `Add`, `Insert`, and setting `IDictionary.this[object key]` throw
-  `ArgumentException` for a key that is not a `string`.
-- `Contains` returns `false`, getting `IDictionary.this[object key]` returns
-  `null`, and `Remove` does nothing for a key that is not a `string`, because no
-  such key can be present.
-
-The other targets accept a key of any type. On every target, a `null` key throws
-`ArgumentNullException`.
+| Member | Returns |
+| --- | --- |
+| `ICsvFileLine.this[int index]` | `object?` |
+| `ICsvFileLine.this[string fieldName]` | `object?` |
+| `ICsvFileLine.Keys` | `IReadOnlyList<string>` |
+| `ICsvFileLine.Values` | `IReadOnlyList<object?>` |
+| `ICsvFileLine.GetAt(int index)` | `KeyValuePair<string, object?>` |
+| `ICsvFileLine.Contains(string fieldName)` | `bool` |
+| `ICsvFileLine.IndexOf(string fieldName)` | `int` |
+| `ICsvFileLine.TryGetValue(string fieldName, out object? value)` | `bool` |
+| `ICsvFileLine.Insert(int index, string fieldName, object? value)` | `void` |
+| `ICsvFileLine.Remove(string fieldName)` | `bool` |
+| `ICsvFileLine.RemoveAt(int index)` | `void` |
+| `ICsvFileLine.Clear()` | `void` |
+| `IReadOnlyCollection<KeyValuePair<string, object?>>.Count` | `int` |
+| `IEnumerable<KeyValuePair<string, object?>>.GetEnumerator()` | `IEnumerator<KeyValuePair<string, object?>>` |
+| `IEnumerable.GetEnumerator()` | `IEnumerator` |
 
 ## Applies to
 
@@ -85,10 +68,11 @@ Targets `netstandard1.3`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 The nullable annotations on the `object?` members apply to the `netstandard2.1` and `net10.0` builds.
 
 The `net10.0` build stores the fields in a generic
-`OrderedDictionary<string, object?>`; the other builds use the non-generic
-`System.Collections.Specialized.OrderedDictionary`. The two behave the same
-through the interfaces above, apart from the [field name keys](#field-name-keys)
-restriction.
+`OrderedDictionary<string, object?>`. The other builds store them in an ordered
+store of the package's own, which keeps the fields in an array in position order
+with a lookup from name to position beside it. The two behave the same: the same
+positions, the same order, the same exceptions, and the same rules for when an
+enumerator is invalidated.
 
 ## See also
 

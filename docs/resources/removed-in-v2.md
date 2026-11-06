@@ -104,7 +104,8 @@ code relies on, such as the
 [LanguageTag match timeouts](#languagetag-match-timeouts),
 [builder region overloads](#languagetag-builder-region-overloads),
 [what creating a language tag checks](#what-creating-a-language-tag-checks) and
-[where the registry types live](#where-the-registry-types-live) below.
+[where the registry types live](#where-the-registry-types-live) and the
+[File.CSV line model](#filecsv-line-model) below.
 
 ## LanguageTag match timeouts
 
@@ -328,3 +329,68 @@ from `System.Diagnostics.CodeAnalysis` instead, as internal types in each assemb
 This matters only if your own code uses the JetBrains attributes and you got the
 package through DataStandardizer. Add a reference to `JetBrains.Annotations` to
 your project.
+
+## File.CSV line model
+
+In version 1.x, `ICsvFileLine` is the non-generic `IOrderedDictionary`: its keys
+are `object`, enumerating it gives `DictionaryEntry` items, and `Keys` and `Values`
+are non-generic `ICollection`s. In version 2.0, `ICsvFileLine` is an ordered
+collection of `KeyValuePair<string, object?>` items with string field names, and
+none of the `IOrderedDictionary`, `IDictionary` or `ICollection` members remain.
+
+The fields keep their positions and order, so code that reads a field by position
+gets the same field as before, including after `Insert` or `RemoveAt`. Values are
+still `object?`, because the fields of one line can hold values of different types.
+
+| Version 1.x | Version 2.0 |
+| --- | --- |
+| `this[object key]` | `this[string fieldName]` |
+| `this[int index]` | `this[int index]`, unchanged |
+| `Add(object key, object? value)` | `Add(string fieldName, object? value)` |
+| `Insert(int index, object key, object? value)` | `Insert(int index, string fieldName, object? value)` |
+| `Contains(object key)` | `Contains(string fieldName)` |
+| `Remove(object key)` | `Remove(string fieldName)`, which returns `true` if it removed a field |
+| `Keys` (`ICollection`) | `Keys` (`IReadOnlyList<string>`) |
+| `Values` (`ICollection`) | `Values` (`IReadOnlyList<object?>`) |
+| Enumerating `DictionaryEntry` items | Enumerating `KeyValuePair<string, object?>` items |
+| `GetEnumerator()` returning `IDictionaryEnumerator` | `GetEnumerator()` returning `IEnumerator<KeyValuePair<string, object?>>` |
+| `CopyTo(Array, int)` | No replacement; use LINQ's `ToArray()` |
+| `IsFixedSize`, `IsReadOnly`, `IsSynchronized`, `SyncRoot` | No replacement |
+| No equivalent | `IndexOf(string)`, `TryGetValue(string, out object?)` and `GetAt(int)` |
+
+A call that passed a `string` key, which is every key the package itself uses,
+compiles unchanged. A key of any other type no longer compiles. The most common
+changes are these:
+
+```csharp
+// Before
+ICsvFileLine line = reader.ReadLine();
+foreach (DictionaryEntry entry in line)
+{
+    Console.WriteLine($"{entry.Key} = {entry.Value}");
+}
+
+var fieldNames = line.Keys.Cast<string>().ToList();
+var name = line["name"] as string;
+
+// After
+ICsvFileLine line = reader.ReadLine();
+foreach (var field in line)
+{
+    Console.WriteLine($"{field.Key} = {field.Value}");
+}
+
+var fieldNames = line.Keys;   // already an IReadOnlyList<string>
+var name = line["name"] as string;   // unchanged: a value is still an object?
+```
+
+A line is no longer an `IDictionary`, so it can't be passed to an API that takes
+one. Copy its fields into the collection that API needs, for example with
+`line.ToDictionary(field => field.Key, field => field.Value)`.
+
+`CsvFileLineBase` still implements the members explicitly, apart from `Add`, so
+call them through an `ICsvFileLine` reference as before. On every target, a line
+now behaves as the generic `OrderedDictionary<string, object?>` does: replacing the
+value of a field that is present no longer invalidates an enumerator of the line on
+the `netstandard1.3`, `netstandard2.0` and `netstandard2.1` builds, as it already
+didn't on the `net10.0` build.

@@ -1,5 +1,12 @@
+using System.Collections.Generic;
 using System.Collections;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System;
 using FluentAssertions;
+using Xunit;
 
 namespace DataStandardizer.File.CSV.Tests
 {
@@ -25,12 +32,12 @@ namespace DataStandardizer.File.CSV.Tests
 
         private const string FieldIndexDataItem = "FieldIndex";
 
-        private static readonly char[] Delimiters = [',', ';'];
-        private static readonly string[] Terminators = [CrLf, "\n", "\r"];
-        private static readonly int[] BufferSizes = [1, 2, 3, 5, DefaultBufferSize];
+        private static readonly char[] Delimiters = new char[] { ',', ';' };
+        private static readonly string[] Terminators = new string[] { CrLf, "\n", "\r" };
+        private static readonly int[] BufferSizes = new int[] { 1, 2, 3, 5, DefaultBufferSize };
 
         // Field values longer than the smaller buffers.  The quoted value has escaped quotes and terminators inside it.
-        private static readonly string LongUnquotedValue = new('u', 100);
+        private static readonly string LongUnquotedValue = new string('u', 100);
         private static readonly string LongQuotedValue = string.Concat(Enumerable.Repeat("q\"\"\nq ", 20));
         private static readonly string LongUnescapedQuotedValue = string.Concat(Enumerable.Repeat("q\"\nq ", 20));
 
@@ -52,60 +59,60 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         public static TheoryData<string, char, string, int, string[][]> TerminatorInsideQuotesCases =>
-            RecordCases("\"a\nb\",c\n\"\n\"\nd", ["a\nb", "c"], ["\n"], ["d"]);
+            RecordCases("\"a\nb\",c\n\"\n\"\nd", new[] { "a\nb", "c" }, new[] { "\n" }, new[] { "d" });
 
         public static TheoryData<string, char, string, int, string[][]> EscapedQuotesCases =>
-            RecordCases("\"\"\"a\",\"b\"\"c\",\"d\"\"\",\"\"\"\"\"\"\n", ["\"a", "b\"c", "d\"", "\"\""]);
+            RecordCases("\"\"\"a\",\"b\"\"c\",\"d\"\"\",\"\"\"\"\"\"\n", new[] { "\"a", "b\"c", "d\"", "\"\"" });
 
         public static TheoryData<string, char, string, int, string[][]> EmptyQuotedFieldsCases =>
-            RecordCases("\"\",x,\"\"\n\"\"", ["", "x", ""], [""]);
+            RecordCases("\"\",x,\"\"\n\"\"", new[] { "", "x", "" }, new[] { "" });
 
         public static TheoryData<string, char, string, int, string[][]> WhiteSpaceAroundQuotedValueCases =>
-            RecordCases(WhiteSpaceAroundQuotedValueInput, ["  a b  ", "\tc"], [" d "]);
+            RecordCases(WhiteSpaceAroundQuotedValueInput, new[] { "  a b  ", "\tc" }, new[] { " d " });
 
         public static TheoryData<string, char, string, int, string[][]> NonWhiteSpaceBeforeOpeningQuoteCases =>
-            RecordCases(NonWhiteSpaceBeforeOpeningQuoteInput, ["a", "", "c"]);
+            RecordCases(NonWhiteSpaceBeforeOpeningQuoteInput, new[] { "a", "", "c" });
 
         public static TheoryData<string, char, string, int, string[][]> NonWhiteSpaceAfterClosingQuoteCases =>
-            RecordCases(NonWhiteSpaceAfterClosingQuoteInput, ["", "d"]);
+            RecordCases(NonWhiteSpaceAfterClosingQuoteInput, new[] { "", "d" });
 
         public static TheoryData<string, char, string, int, string[][]> SecondQuotedSectionAfterQuotedValueCases =>
-            RecordCases(SecondQuotedSectionAfterQuotedValueInput, ["", "c"]);
+            RecordCases(SecondQuotedSectionAfterQuotedValueInput, new[] { "", "c" });
 
         public static TheoryData<string, char, string, int, string[][]> SecondQuotedSectionAfterEmptyQuotedValueCases =>
-            RecordCases(SecondQuotedSectionAfterEmptyQuotedValueInput, [" b", "c"]);
+            RecordCases(SecondQuotedSectionAfterEmptyQuotedValueInput, new[] { " b", "c" });
 
         public static TheoryData<string, char, string, int, string[][]> InvalidLastFieldValueCases =>
-            RecordCases(InvalidLastFieldValueInput, ["a", "xb"]);
+            RecordCases(InvalidLastFieldValueInput, new[] { "a", "xb" });
 
         public static TheoryData<string, char, string, int, string[][]> RecordAfterNonWhiteSpaceBeforeOpeningQuoteCases =>
-            RecordCases(UnhandledNonWhiteSpaceBeforeOpeningQuoteInput, ["d"]);
+            RecordCases(UnhandledNonWhiteSpaceBeforeOpeningQuoteInput, new[] { "d" });
 
         public static TheoryData<string, char, string, int, string[][]> RecordAfterNonWhiteSpaceAfterClosingQuoteCases =>
-            RecordCases(UnhandledNonWhiteSpaceAfterClosingQuoteInput, ["e"]);
+            RecordCases(UnhandledNonWhiteSpaceAfterClosingQuoteInput, new[] { "e" });
 
         public static TheoryData<string, char, string, int, string[][]> EmptyFieldsAndTrailingDelimiterCases =>
-            RecordCases(",a,,\n,\n", ["", "a", "", ""], ["", ""]);
+            RecordCases(",a,,\n,\n", new[] { "", "a", "", "" }, new[] { "", "" });
 
         public static TheoryData<string, char, string, int, string[][]> BlankLinesCases =>
-            RecordCases("a\n\n\nb\n", ["a"], [""], [""], ["b"]);
+            RecordCases("a\n\n\nb\n", new[] { "a" }, new[] { "" }, new[] { "" }, new[] { "b" });
 
         public static TheoryData<string, char, string, int, string[][]> FieldValuesLongerThanBufferCases =>
             RecordCases(LongUnquotedValue + ",\"" + LongQuotedValue + "\"," + LongUnquotedValue + "\n",
-                [LongUnquotedValue, LongUnescapedQuotedValue, LongUnquotedValue]);
+                new[] { LongUnquotedValue, LongUnescapedQuotedValue, LongUnquotedValue });
 
         public static TheoryData<string, char, string, int, string[][]> FinalRecordWithTerminatorCases =>
-            RecordCases("a,b\nc,\"d\"\n", ["a", "b"], ["c", "d"]);
+            RecordCases("a,b\nc,\"d\"\n", new[] { "a", "b" }, new[] { "c", "d" });
 
         public static TheoryData<string, char, string, int, string[][]> FinalRecordWithoutTerminatorCases =>
-            RecordCases("a,b\nc,\"d\"", ["a", "b"], ["c", "d"]);
+            RecordCases("a,b\nc,\"d\"", new[] { "a", "b" }, new[] { "c", "d" });
 
         public static TheoryData<string, char, string, int, string[][]> UnterminatedQuoteCases =>
-            RecordCases("a,b\nc,\"d\ne,f\n", ["a", "b"], ["c", "d\ne,f\n"]);
+            RecordCases("a,b\nc,\"d\ne,f\n", new[] { "a", "b" }, new[] { "c", "d\ne,f\n" });
 
         // With a two-character terminator, a lone first character is ordinary content, inside or after a quoted value.
         public static TheoryData<string, char, string, int, string[][]> CarriageReturnWithoutLineFeedCases =>
-            RecordCases([CrLf], "a\rb,\"c\"\r,\"d\" \ne\r", ["a\rb", "c\r", "d "], ["e\r"]);
+            RecordCases(new[] { CrLf }, "a\rb,\"c\"\r,\"d\" \ne\r", new[] { "a\rb", "c\r", "d " }, new[] { "e\r" });
 
         public static TheoryData<string, char, string, int, BadValue[]> WhiteSpaceAroundQuotedValueBadValueCases =>
             BadValueCases(WhiteSpaceAroundQuotedValueInput);
@@ -146,13 +153,15 @@ namespace DataStandardizer.File.CSV.Tests
         public void TryReadRecord_EmptyStream_ReturnsFalse(char delimiter, string terminator, int bufferSize)
         {
             // arrange
-            using var csvReader = CreateReader(string.Empty, delimiter, terminator, bufferSize);
+            using (var csvReader = CreateReader(string.Empty, delimiter, terminator, bufferSize))
+            {
 
-            // act
-            var testResult = csvReader.TryReadRecord(new List<string>());
+                // act
+                var testResult = csvReader.TryReadRecord(new List<string>());
 
-            // assert
-            testResult.Should().BeFalse();
+                // assert
+                testResult.Should().BeFalse();
+            }
         }
 
         [Theory]
@@ -160,13 +169,15 @@ namespace DataStandardizer.File.CSV.Tests
         public void TryReadRecord_TerminatorInsideQuotes_KeepsTerminatorInFieldValue(string input, char delimiter, string terminator, int bufferSize, string[][] expectedRecords)
         {
             // arrange
-            using var csvReader = CreateReader(input, delimiter, terminator, bufferSize);
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize))
+            {
 
-            // act
-            var testResult = ReadAllRecords(csvReader);
+                // act
+                var testResult = ReadAllRecords(csvReader);
 
-            // assert
-            testResult.Should().BeEquivalentTo(expectedRecords, options => options.WithStrictOrdering());
+                // assert
+                testResult.Should().BeEquivalentTo(expectedRecords, config => config.WithStrictOrdering());
+            }
         }
 
         [Theory]
@@ -174,13 +185,15 @@ namespace DataStandardizer.File.CSV.Tests
         public void TryReadRecord_EscapedQuotes_ReturnsSingleQuotes(string input, char delimiter, string terminator, int bufferSize, string[][] expectedRecords)
         {
             // arrange
-            using var csvReader = CreateReader(input, delimiter, terminator, bufferSize);
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize))
+            {
 
-            // act
-            var testResult = ReadAllRecords(csvReader);
+                // act
+                var testResult = ReadAllRecords(csvReader);
 
-            // assert
-            testResult.Should().BeEquivalentTo(expectedRecords, options => options.WithStrictOrdering());
+                // assert
+                testResult.Should().BeEquivalentTo(expectedRecords, config => config.WithStrictOrdering());
+            }
         }
 
         [Theory]
@@ -188,13 +201,15 @@ namespace DataStandardizer.File.CSV.Tests
         public void TryReadRecord_EmptyQuotedFields_ReturnsEmptyFieldValues(string input, char delimiter, string terminator, int bufferSize, string[][] expectedRecords)
         {
             // arrange
-            using var csvReader = CreateReader(input, delimiter, terminator, bufferSize);
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize))
+            {
 
-            // act
-            var testResult = ReadAllRecords(csvReader);
+                // act
+                var testResult = ReadAllRecords(csvReader);
 
-            // assert
-            testResult.Should().BeEquivalentTo(expectedRecords, options => options.WithStrictOrdering());
+                // assert
+                testResult.Should().BeEquivalentTo(expectedRecords, config => config.WithStrictOrdering());
+            }
         }
 
         [Theory]
@@ -202,13 +217,15 @@ namespace DataStandardizer.File.CSV.Tests
         public void TryReadRecord_WhiteSpaceAroundQuotedValue_KeepsWhiteSpace(string input, char delimiter, string terminator, int bufferSize, string[][] expectedRecords)
         {
             // arrange
-            using var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(new List<BadValue>()));
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(new List<BadValue>())))
+            {
 
-            // act
-            var testResult = ReadAllRecords(csvReader);
+                // act
+                var testResult = ReadAllRecords(csvReader);
 
-            // assert
-            testResult.Should().BeEquivalentTo(expectedRecords, options => options.WithStrictOrdering());
+                // assert
+                testResult.Should().BeEquivalentTo(expectedRecords, config => config.WithStrictOrdering());
+            }
         }
 
         [Theory]
@@ -217,13 +234,15 @@ namespace DataStandardizer.File.CSV.Tests
         {
             // arrange
             var badValues = new List<BadValue>();
-            using var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(badValues));
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(badValues)))
+            {
 
-            // act
-            _ = ReadAllRecords(csvReader);
+                // act
+                _ = ReadAllRecords(csvReader);
 
-            // assert
-            badValues.Should().Equal(expectedBadValues);
+                // assert
+                badValues.Should().Equal(expectedBadValues);
+            }
         }
 
         [Theory]
@@ -231,13 +250,15 @@ namespace DataStandardizer.File.CSV.Tests
         public void TryReadRecord_NonWhiteSpaceBeforeOpeningQuote_ReturnsEmptyFieldValue(string input, char delimiter, string terminator, int bufferSize, string[][] expectedRecords)
         {
             // arrange
-            using var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(new List<BadValue>()));
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(new List<BadValue>())))
+            {
 
-            // act
-            var testResult = ReadAllRecords(csvReader);
+                // act
+                var testResult = ReadAllRecords(csvReader);
 
-            // assert
-            testResult.Should().BeEquivalentTo(expectedRecords, options => options.WithStrictOrdering());
+                // assert
+                testResult.Should().BeEquivalentTo(expectedRecords, config => config.WithStrictOrdering());
+            }
         }
 
         [Theory]
@@ -246,13 +267,15 @@ namespace DataStandardizer.File.CSV.Tests
         {
             // arrange
             var badValues = new List<BadValue>();
-            using var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(badValues));
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(badValues)))
+            {
 
-            // act
-            _ = ReadAllRecords(csvReader);
+                // act
+                _ = ReadAllRecords(csvReader);
 
-            // assert
-            badValues.Should().Equal(expectedBadValues);
+                // assert
+                badValues.Should().Equal(expectedBadValues);
+            }
         }
 
         [Theory]
@@ -260,13 +283,15 @@ namespace DataStandardizer.File.CSV.Tests
         public void TryReadRecord_NonWhiteSpaceAfterClosingQuote_ReturnsEmptyFieldValue(string input, char delimiter, string terminator, int bufferSize, string[][] expectedRecords)
         {
             // arrange
-            using var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(new List<BadValue>()));
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(new List<BadValue>())))
+            {
 
-            // act
-            var testResult = ReadAllRecords(csvReader);
+                // act
+                var testResult = ReadAllRecords(csvReader);
 
-            // assert
-            testResult.Should().BeEquivalentTo(expectedRecords, options => options.WithStrictOrdering());
+                // assert
+                testResult.Should().BeEquivalentTo(expectedRecords, config => config.WithStrictOrdering());
+            }
         }
 
         [Theory]
@@ -275,13 +300,15 @@ namespace DataStandardizer.File.CSV.Tests
         {
             // arrange
             var badValues = new List<BadValue>();
-            using var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(badValues));
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(badValues)))
+            {
 
-            // act
-            _ = ReadAllRecords(csvReader);
+                // act
+                _ = ReadAllRecords(csvReader);
 
-            // assert
-            badValues.Should().Equal(expectedBadValues);
+                // assert
+                badValues.Should().Equal(expectedBadValues);
+            }
         }
 
         [Theory]
@@ -289,13 +316,15 @@ namespace DataStandardizer.File.CSV.Tests
         public void TryReadRecord_SecondQuotedSectionAfterQuotedValue_ReturnsEmptyFieldValue(string input, char delimiter, string terminator, int bufferSize, string[][] expectedRecords)
         {
             // arrange
-            using var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(new List<BadValue>()));
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(new List<BadValue>())))
+            {
 
-            // act
-            var testResult = ReadAllRecords(csvReader);
+                // act
+                var testResult = ReadAllRecords(csvReader);
 
-            // assert
-            testResult.Should().BeEquivalentTo(expectedRecords, options => options.WithStrictOrdering());
+                // assert
+                testResult.Should().BeEquivalentTo(expectedRecords, config => config.WithStrictOrdering());
+            }
         }
 
         [Theory]
@@ -304,13 +333,15 @@ namespace DataStandardizer.File.CSV.Tests
         {
             // arrange
             var badValues = new List<BadValue>();
-            using var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(badValues));
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(badValues)))
+            {
 
-            // act
-            _ = ReadAllRecords(csvReader);
+                // act
+                _ = ReadAllRecords(csvReader);
 
-            // assert
-            badValues.Should().Equal(expectedBadValues);
+                // assert
+                badValues.Should().Equal(expectedBadValues);
+            }
         }
 
         [Theory]
@@ -319,13 +350,15 @@ namespace DataStandardizer.File.CSV.Tests
         {
             // arrange
             // Only the field value accumulated so far is checked at an opening quote, and an empty quoted value leaves only whitespace.
-            using var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(new List<BadValue>()));
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(new List<BadValue>())))
+            {
 
-            // act
-            var testResult = ReadAllRecords(csvReader);
+                // act
+                var testResult = ReadAllRecords(csvReader);
 
-            // assert
-            testResult.Should().BeEquivalentTo(expectedRecords, options => options.WithStrictOrdering());
+                // assert
+                testResult.Should().BeEquivalentTo(expectedRecords, config => config.WithStrictOrdering());
+            }
         }
 
         [Theory]
@@ -334,13 +367,15 @@ namespace DataStandardizer.File.CSV.Tests
         {
             // arrange
             var badValues = new List<BadValue>();
-            using var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(badValues));
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(badValues)))
+            {
 
-            // act
-            _ = ReadAllRecords(csvReader);
+                // act
+                _ = ReadAllRecords(csvReader);
 
-            // assert
-            badValues.Should().Equal(expectedBadValues);
+                // assert
+                badValues.Should().Equal(expectedBadValues);
+            }
         }
 
         [Theory]
@@ -349,13 +384,15 @@ namespace DataStandardizer.File.CSV.Tests
         {
             // arrange
             // Unlike other fields, the last field of a record is not replaced with an empty value when it is invalid.
-            using var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(new List<BadValue>()));
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(new List<BadValue>())))
+            {
 
-            // act
-            var testResult = ReadAllRecords(csvReader);
+                // act
+                var testResult = ReadAllRecords(csvReader);
 
-            // assert
-            testResult.Should().BeEquivalentTo(expectedRecords, options => options.WithStrictOrdering());
+                // assert
+                testResult.Should().BeEquivalentTo(expectedRecords, config => config.WithStrictOrdering());
+            }
         }
 
         [Theory]
@@ -364,13 +401,15 @@ namespace DataStandardizer.File.CSV.Tests
         {
             // arrange
             var badValues = new List<BadValue>();
-            using var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(badValues));
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(badValues)))
+            {
 
-            // act
-            _ = ReadAllRecords(csvReader);
+                // act
+                _ = ReadAllRecords(csvReader);
 
-            // assert
-            badValues.Should().Equal(expectedBadValues);
+                // assert
+                badValues.Should().Equal(expectedBadValues);
+            }
         }
 
         [Theory]
@@ -378,16 +417,18 @@ namespace DataStandardizer.File.CSV.Tests
         public void TryReadRecord_NonWhiteSpaceBeforeOpeningQuoteWithoutBadValueHandler_ThrowsCsvFileException(string input, char delimiter, string terminator, int bufferSize)
         {
             // arrange
-            using var csvReader = CreateReader(input, delimiter, terminator, bufferSize);
-            var fieldValues = new List<string>();
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize))
+            {
+                var fieldValues = new List<string>();
 
-            // act
-            Action testAction = () => csvReader.TryReadRecord(fieldValues);
+                // act
+                Action testAction = () => csvReader.TryReadRecord(fieldValues);
 
-            // assert
-            testAction.Should().Throw<CsvFileException>()
-                .WithMessage("Encountered invalid value at field index 1.")
-                .Which.Data[FieldIndexDataItem].Should().Be(1);
+                // assert
+                testAction.Should().Throw<CsvFileException>()
+                    .WithMessage("Encountered invalid value at field index 1.")
+                    .Which.Data[FieldIndexDataItem].Should().Be(1);
+            }
         }
 
         [Theory]
@@ -395,14 +436,16 @@ namespace DataStandardizer.File.CSV.Tests
         public void TryReadRecord_NonWhiteSpaceBeforeOpeningQuoteWithoutBadValueHandler_SkipsRecord(string input, char delimiter, string terminator, int bufferSize, string[][] expectedRecords)
         {
             // arrange
-            using var csvReader = CreateReader(input, delimiter, terminator, bufferSize);
-            _ = Record.Exception(() => csvReader.TryReadRecord(new List<string>()));
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize))
+            {
+                _ = Record.Exception(() => csvReader.TryReadRecord(new List<string>()));
 
-            // act
-            var testResult = ReadAllRecords(csvReader);
+                // act
+                var testResult = ReadAllRecords(csvReader);
 
-            // assert
-            testResult.Should().BeEquivalentTo(expectedRecords, options => options.WithStrictOrdering());
+                // assert
+                testResult.Should().BeEquivalentTo(expectedRecords, config => config.WithStrictOrdering());
+            }
         }
 
         [Theory]
@@ -410,16 +453,18 @@ namespace DataStandardizer.File.CSV.Tests
         public void TryReadRecord_NonWhiteSpaceAfterClosingQuoteWithoutBadValueHandler_ThrowsCsvFileException(string input, char delimiter, string terminator, int bufferSize)
         {
             // arrange
-            using var csvReader = CreateReader(input, delimiter, terminator, bufferSize);
-            var fieldValues = new List<string>();
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize))
+            {
+                var fieldValues = new List<string>();
 
-            // act
-            Action testAction = () => csvReader.TryReadRecord(fieldValues);
+                // act
+                Action testAction = () => csvReader.TryReadRecord(fieldValues);
 
-            // assert
-            testAction.Should().Throw<CsvFileException>()
-                .WithMessage("Encountered invalid value at field index 2.")
-                .Which.Data[FieldIndexDataItem].Should().Be(2);
+                // assert
+                testAction.Should().Throw<CsvFileException>()
+                    .WithMessage("Encountered invalid value at field index 2.")
+                    .Which.Data[FieldIndexDataItem].Should().Be(2);
+            }
         }
 
         [Theory]
@@ -427,14 +472,16 @@ namespace DataStandardizer.File.CSV.Tests
         public void TryReadRecord_NonWhiteSpaceAfterClosingQuoteWithoutBadValueHandler_SkipsRecord(string input, char delimiter, string terminator, int bufferSize, string[][] expectedRecords)
         {
             // arrange
-            using var csvReader = CreateReader(input, delimiter, terminator, bufferSize);
-            _ = Record.Exception(() => csvReader.TryReadRecord(new List<string>()));
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize))
+            {
+                _ = Record.Exception(() => csvReader.TryReadRecord(new List<string>()));
 
-            // act
-            var testResult = ReadAllRecords(csvReader);
+                // act
+                var testResult = ReadAllRecords(csvReader);
 
-            // assert
-            testResult.Should().BeEquivalentTo(expectedRecords, options => options.WithStrictOrdering());
+                // assert
+                testResult.Should().BeEquivalentTo(expectedRecords, config => config.WithStrictOrdering());
+            }
         }
 
         [Theory]
@@ -442,13 +489,15 @@ namespace DataStandardizer.File.CSV.Tests
         public void TryReadRecord_EmptyFieldsAndTrailingDelimiter_ReturnsEmptyFieldValues(string input, char delimiter, string terminator, int bufferSize, string[][] expectedRecords)
         {
             // arrange
-            using var csvReader = CreateReader(input, delimiter, terminator, bufferSize);
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize))
+            {
 
-            // act
-            var testResult = ReadAllRecords(csvReader);
+                // act
+                var testResult = ReadAllRecords(csvReader);
 
-            // assert
-            testResult.Should().BeEquivalentTo(expectedRecords, options => options.WithStrictOrdering());
+                // assert
+                testResult.Should().BeEquivalentTo(expectedRecords, config => config.WithStrictOrdering());
+            }
         }
 
         [Theory]
@@ -456,13 +505,15 @@ namespace DataStandardizer.File.CSV.Tests
         public void TryReadRecord_BlankLines_ReturnsSingleEmptyFieldValue(string input, char delimiter, string terminator, int bufferSize, string[][] expectedRecords)
         {
             // arrange
-            using var csvReader = CreateReader(input, delimiter, terminator, bufferSize);
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize))
+            {
 
-            // act
-            var testResult = ReadAllRecords(csvReader);
+                // act
+                var testResult = ReadAllRecords(csvReader);
 
-            // assert
-            testResult.Should().BeEquivalentTo(expectedRecords, options => options.WithStrictOrdering());
+                // assert
+                testResult.Should().BeEquivalentTo(expectedRecords, config => config.WithStrictOrdering());
+            }
         }
 
         [Theory]
@@ -470,13 +521,15 @@ namespace DataStandardizer.File.CSV.Tests
         public void TryReadRecord_FieldValuesLongerThanBuffer_ReturnsWholeFieldValues(string input, char delimiter, string terminator, int bufferSize, string[][] expectedRecords)
         {
             // arrange
-            using var csvReader = CreateReader(input, delimiter, terminator, bufferSize);
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize))
+            {
 
-            // act
-            var testResult = ReadAllRecords(csvReader);
+                // act
+                var testResult = ReadAllRecords(csvReader);
 
-            // assert
-            testResult.Should().BeEquivalentTo(expectedRecords, options => options.WithStrictOrdering());
+                // assert
+                testResult.Should().BeEquivalentTo(expectedRecords, config => config.WithStrictOrdering());
+            }
         }
 
         [Theory]
@@ -484,13 +537,15 @@ namespace DataStandardizer.File.CSV.Tests
         public void TryReadRecord_FinalRecordWithTerminator_ReturnsNoFurtherRecord(string input, char delimiter, string terminator, int bufferSize, string[][] expectedRecords)
         {
             // arrange
-            using var csvReader = CreateReader(input, delimiter, terminator, bufferSize);
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize))
+            {
 
-            // act
-            var testResult = ReadAllRecords(csvReader);
+                // act
+                var testResult = ReadAllRecords(csvReader);
 
-            // assert
-            testResult.Should().BeEquivalentTo(expectedRecords, options => options.WithStrictOrdering());
+                // assert
+                testResult.Should().BeEquivalentTo(expectedRecords, config => config.WithStrictOrdering());
+            }
         }
 
         [Theory]
@@ -498,13 +553,15 @@ namespace DataStandardizer.File.CSV.Tests
         public void TryReadRecord_FinalRecordWithoutTerminator_ReturnsFinalRecord(string input, char delimiter, string terminator, int bufferSize, string[][] expectedRecords)
         {
             // arrange
-            using var csvReader = CreateReader(input, delimiter, terminator, bufferSize);
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize))
+            {
 
-            // act
-            var testResult = ReadAllRecords(csvReader);
+                // act
+                var testResult = ReadAllRecords(csvReader);
 
-            // assert
-            testResult.Should().BeEquivalentTo(expectedRecords, options => options.WithStrictOrdering());
+                // assert
+                testResult.Should().BeEquivalentTo(expectedRecords, config => config.WithStrictOrdering());
+            }
         }
 
         [Theory]
@@ -512,13 +569,15 @@ namespace DataStandardizer.File.CSV.Tests
         public void TryReadRecord_UnterminatedQuote_RunsToEndOfStream(string input, char delimiter, string terminator, int bufferSize, string[][] expectedRecords)
         {
             // arrange
-            using var csvReader = CreateReader(input, delimiter, terminator, bufferSize);
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize))
+            {
 
-            // act
-            var testResult = ReadAllRecords(csvReader);
+                // act
+                var testResult = ReadAllRecords(csvReader);
 
-            // assert
-            testResult.Should().BeEquivalentTo(expectedRecords, options => options.WithStrictOrdering());
+                // assert
+                testResult.Should().BeEquivalentTo(expectedRecords, config => config.WithStrictOrdering());
+            }
         }
 
         [Theory]
@@ -526,19 +585,40 @@ namespace DataStandardizer.File.CSV.Tests
         public void TryReadRecord_CarriageReturnWithoutLineFeed_KeepsCarriageReturnInFieldValue(string input, char delimiter, string terminator, int bufferSize, string[][] expectedRecords)
         {
             // arrange
-            using var csvReader = CreateReader(input, delimiter, terminator, bufferSize);
+            using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize))
+            {
 
-            // act
-            var testResult = ReadAllRecords(csvReader);
+                // act
+                var testResult = ReadAllRecords(csvReader);
 
-            // assert
-            testResult.Should().BeEquivalentTo(expectedRecords, options => options.WithStrictOrdering());
+                // assert
+                testResult.Should().BeEquivalentTo(expectedRecords, config => config.WithStrictOrdering());
+            }
         }
 
         /// <summary>
         /// A call to the bad value handler: the raw field value and field index it was given.
         /// </summary>
-        public sealed record BadValue(string? RawFieldValue, int? FieldIndex);
+        public sealed class BadValue : IEquatable<BadValue>
+        {
+            public BadValue(string rawFieldValue, int? fieldIndex)
+            {
+                RawFieldValue = rawFieldValue;
+                FieldIndex = fieldIndex;
+            }
+
+            public string RawFieldValue { get; }
+
+            public int? FieldIndex { get; }
+
+            public bool Equals(BadValue other) => other != null && RawFieldValue == other.RawFieldValue && FieldIndex == other.FieldIndex;
+
+            public override bool Equals(object obj) => Equals(obj as BadValue);
+
+            public override int GetHashCode() => ((RawFieldValue?.GetHashCode() ?? 0) * 397) ^ FieldIndex.GetHashCode();
+
+            public override string ToString() => $"BadValue {{ RawFieldValue = {RawFieldValue}, FieldIndex = {FieldIndex} }}";
+        }
 
         /// <summary>
         /// Makes one case for each delimiter, terminator and buffer size, from an input and the records expected from it.
@@ -614,7 +694,7 @@ namespace DataStandardizer.File.CSV.Tests
             context => badValues.Add(new BadValue(context.RawFieldValue, context.FieldIndex));
 
         private static CsvFileReader<CsvFileRecordLine> CreateReader(string input, char delimiter, string terminator, int bufferSize,
-            CsvFieldBadValue<CsvFileRecordLine>? badValueHandler = null)
+            CsvFieldBadValue<CsvFileRecordLine> badValueHandler = null)
         {
             var options = new CsvFileOptions
             {
@@ -629,29 +709,42 @@ namespace DataStandardizer.File.CSV.Tests
         /// <summary>
         /// Reads every remaining record.  The list constructor reads the records through <see cref="RecordSequence"/>, which reads one record per step.
         /// </summary>
-        private static List<string[]> ReadAllRecords(CsvFileReader<CsvFileRecordLine> csvReader) => new(new RecordSequence(csvReader));
+        private static List<string[]> ReadAllRecords(CsvFileReader<CsvFileRecordLine> csvReader) => new List<string[]>(new RecordSequence(csvReader));
 
         /// <summary>
         /// The records that remain in a reader, each read by one call to <see cref="CsvFileReader{TRecordLine}.TryReadRecord"/>.
         /// </summary>
-        private sealed class RecordSequence(CsvFileReader<CsvFileRecordLine> csvReader) : IEnumerable<string[]>
+        private sealed class RecordSequence : IEnumerable<string[]>
         {
-            public IEnumerator<string[]> GetEnumerator() => new RecordEnumerator(csvReader);
+            private readonly CsvFileReader<CsvFileRecordLine> _csvReader;
+
+            public RecordSequence(CsvFileReader<CsvFileRecordLine> csvReader)
+            {
+                _csvReader = csvReader;
+            }
+
+            public IEnumerator<string[]> GetEnumerator() => new RecordEnumerator(_csvReader);
 
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
         }
 
-        private sealed class RecordEnumerator(CsvFileReader<CsvFileRecordLine> csvReader) : IEnumerator<string[]>
+        private sealed class RecordEnumerator : IEnumerator<string[]>
         {
-            private readonly List<string> _fieldValues = new();
+            private readonly CsvFileReader<CsvFileRecordLine> _csvReader;
+            private readonly List<string> _fieldValues = new List<string>();
 
-            public string[] Current { get; private set; } = [];
+            public RecordEnumerator(CsvFileReader<CsvFileRecordLine> csvReader)
+            {
+                _csvReader = csvReader;
+            }
+
+            public string[] Current { get; private set; } = Array.Empty<string>();
 
             object IEnumerator.Current => Current;
 
             public bool MoveNext()
             {
-                var hasRecord = csvReader.TryReadRecord(_fieldValues);
+                var hasRecord = _csvReader.TryReadRecord(_fieldValues);
                 Current = _fieldValues.ToArray();
 
                 return hasRecord;

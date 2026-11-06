@@ -43,6 +43,11 @@ rejects three-letter codes such as `eng`. `Check*Subtag` and the builder's strin
 check only the shape of a subtag. See
 [what creating a language tag checks](removed-in-v2.md#what-creating-a-language-tag-checks).
 
+In `DataStandardizer.File.CSV`, `ICsvFileLine` is no longer an
+`IOrderedDictionary`. It is an ordered collection of fields with `string` names,
+enumerated as `KeyValuePair<string, object?>` items, with typed `Keys` and `Values`
+lists. See [the File.CSV line model](removed-in-v2.md#filecsv-line-model).
+
 `SubtagRegistry` moves to the `DataStandardizer.LanguageTag` namespace, and the
 types of its records move to `DataStandardizer.LanguageTag.Registry`. See
 [where the registry types live](removed-in-v2.md#where-the-registry-types-live).

@@ -57,8 +57,8 @@ Except in the `File*` classes, reads come from a `MemoryStream` and writes go to
 | | `Write_Raw_Stream` | As `Write_Raw`, constructed from a `FileStream` opened by the benchmark with default buffering. |
 | `ModelBenchmarks` | `Model_PropertyGet` | 6 typed property reads per row on a pre-built `List<PersonLine>`. |
 | | `Model_PropertySet` | 6 typed property writes per row on a pre-built `List<PersonLine>`. |
-| | `Model_IndexerGet` | 6 raw `IOrderedDictionary` indexer reads per row on the same lines (baseline for `Model_PropertyGet`). |
-| | `Model_IndexerSet` | 6 raw `IOrderedDictionary` indexer writes per row on the same lines (baseline for `Model_PropertySet`). |
+| | `Model_IndexerGet` | 6 raw `ICsvFileLine` indexer reads per row on the same lines (baseline for `Model_PropertyGet`). |
+| | `Model_IndexerSet` | 6 raw `ICsvFileLine` indexer writes per row on the same lines (baseline for `Model_PropertySet`). |
 
 Every class uses `[MemoryDiagnoser]`. Allocation is the main thing to watch.
 

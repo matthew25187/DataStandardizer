@@ -446,7 +446,7 @@ namespace DataStandardizer.File.CSV
                             continue;
                         }
 
-                        var rawFieldValue = csvLine[fieldKey] as string ?? string.Empty;
+                        var rawFieldValue = csvLine[fieldKey] is string stringFieldValue ? stringFieldValue : string.Empty;
                         var message = $"Encountered invalid value '{rawFieldValue}' in CSV field {string.Join(",", fieldMapping.Value.FieldName)}.";
                         var dataItems = new Dictionary<string, object>
                         {
