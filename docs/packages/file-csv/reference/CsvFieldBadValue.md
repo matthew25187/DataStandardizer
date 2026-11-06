@@ -34,6 +34,12 @@ to the mapped property's type. See
 An exception thrown by a [CsvFieldConvertFromString](CsvFieldConvertFromString.md)
 delegate isn't a bad value: it propagates unchanged, and the handler isn't called.
 
+For a field that breaks the quoting rules of RFC 4180 section 2, the context's
+`RawFieldValue` holds the field's raw text. Once the handler returns, the reader
+uses an empty value for the field, wherever it is in the record, so the line, and
+a mapped property bound to the field, gets an empty value rather than the raw
+text.
+
 ## Applies to
 
 Targets `netstandard1.1`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.

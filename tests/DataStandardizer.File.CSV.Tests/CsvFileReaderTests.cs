@@ -74,6 +74,10 @@ namespace DataStandardizer.File.CSV.Tests
         private const string ShortRecordAfterHeaderFile = "Field 1,Field 2,Field 3\r\n1,2";
         private const string ShortRecordAfterRecordFile = "1,2,3\r\n4,5";
         private const string EmbeddedQuoteLine = "One Two,Three\"Four,Five Six";
+
+        // A record whose last field has text before its opening quote, which RFC 4180 section 2 paragraph 5 doesn't allow.
+        private const string InvalidLastFieldLine = "One,x\"Two\"";
+        private const string InvalidLastFieldMappedLine = "1,x\"One\"";
         private const string FirstLongRecordLine = "1,One,This is the first";
         private const string TwoRecordsFile = "1,One,First\r\n2,Two,Second";
         private const string ThreeRecordsWithHeaderFile = "Id,Name,Description\r\n1,One,First\r\n2,Two,Second\r\n3,Three,Third";
@@ -356,6 +360,48 @@ namespace DataStandardizer.File.CSV.Tests
 
                 // assert
                 testAction.Should().Throw<CsvFileException>().WithMessage(BadValueMessage);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_RecordLineWithInvalidLastFieldValueAndBadValueHandler_ReadsEmptyFieldValue()
+        {
+            // arrange
+            var options = new CsvFileOptions
+            {
+                HeaderHandling = CsvFileHeaderHandling.None,
+                BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(_ => { })
+            };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(InvalidLastFieldLine), options))
+            {
+
+                // act
+                var testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Values.Should().Equal(FirstName, string.Empty);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_MappedLineWithInvalidLastFieldValueAndBadValueHandler_ReadsEmptyPropertyValue()
+        {
+            // arrange
+            var options = new CsvFileOptions
+            {
+                HeaderHandling = CsvFileHeaderHandling.None,
+                BadValueHandler = new CsvFieldBadValue<AttributeMappedLine>(_ => { })
+            };
+            using (var csvReader = new CsvFileReader<AttributeMappedLine>(new StringReader(InvalidLastFieldMappedLine), options))
+            {
+
+                // act
+                var testResult = csvReader.ReadLine() as AttributeMappedLine;
+
+                // assert
+                testResult.Should().NotBeNull();
+                testResult.Id.Should().Be(1);
+                testResult.Name.Should().BeEmpty();
             }
         }
 

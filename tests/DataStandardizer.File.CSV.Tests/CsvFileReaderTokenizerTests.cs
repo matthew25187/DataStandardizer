@@ -82,8 +82,21 @@ namespace DataStandardizer.File.CSV.Tests
         public static TheoryData<string, char, string, int, string[][]> SecondQuotedSectionAfterEmptyQuotedValueCases =>
             RecordCases(SecondQuotedSectionAfterEmptyQuotedValueInput, new[] { " b", "c" });
 
-        public static TheoryData<string, char, string, int, string[][]> InvalidLastFieldValueCases =>
-            RecordCases(InvalidLastFieldValueInput, new[] { "a", "xb" });
+        // One case for each way a record can end on an invalid field.
+        public static TheoryData<string, char, string, int, string[][]> UnterminatedQuoteInvalidLastFieldValueCases =>
+            RecordCases(UnterminatedQuoteInvalidLastFieldValueInput, new[] { "a", "" });
+
+        public static TheoryData<string, char, string, int, string[][]> ClosingQuoteAtEndInvalidLastFieldValueCases =>
+            RecordCases(ClosingQuoteAtEndInvalidLastFieldValueInput, new[] { "a", "" });
+
+        public static TheoryData<string, char, string, int, string[][]> ClosingQuoteBeforeTerminatorInvalidLastFieldValueCases =>
+            RecordCases(ClosingQuoteBeforeTerminatorInvalidLastFieldValueInput, new[] { "a", "" }, new[] { "d" });
+
+        public static TheoryData<string, char, string, int, string[][]> AfterClosingQuoteAtEndInvalidLastFieldValueCases =>
+            RecordCases(AfterClosingQuoteAtEndInvalidLastFieldValueInput, new[] { "a", "" });
+
+        public static TheoryData<string, char, string, int, string[][]> AfterClosingQuoteBeforeTerminatorInvalidLastFieldValueCases =>
+            RecordCases(AfterClosingQuoteBeforeTerminatorInvalidLastFieldValueInput, new[] { "a", "" }, new[] { "d" });
 
         public static TheoryData<string, char, string, int, string[][]> RecordAfterNonWhiteSpaceBeforeOpeningQuoteCases =>
             RecordCases(UnhandledNonWhiteSpaceBeforeOpeningQuoteInput, new[] { "d" });
@@ -129,8 +142,20 @@ namespace DataStandardizer.File.CSV.Tests
         public static TheoryData<string, char, string, int, BadValue[]> SecondQuotedSectionAfterEmptyQuotedValueBadValueCases =>
             BadValueCases(SecondQuotedSectionAfterEmptyQuotedValueInput);
 
-        public static TheoryData<string, char, string, int, BadValue[]> InvalidLastFieldValueBadValueCases =>
-            BadValueCases(InvalidLastFieldValueInput, new BadValue("x", 1));
+        public static TheoryData<string, char, string, int, BadValue[]> UnterminatedQuoteInvalidLastFieldValueBadValueCases =>
+            BadValueCases(UnterminatedQuoteInvalidLastFieldValueInput, new BadValue("x", 1));
+
+        public static TheoryData<string, char, string, int, BadValue[]> ClosingQuoteAtEndInvalidLastFieldValueBadValueCases =>
+            BadValueCases(ClosingQuoteAtEndInvalidLastFieldValueInput, new BadValue("x", 1));
+
+        public static TheoryData<string, char, string, int, BadValue[]> ClosingQuoteBeforeTerminatorInvalidLastFieldValueBadValueCases =>
+            BadValueCases(ClosingQuoteBeforeTerminatorInvalidLastFieldValueInput, new BadValue("x", 1));
+
+        public static TheoryData<string, char, string, int, BadValue[]> AfterClosingQuoteAtEndInvalidLastFieldValueBadValueCases =>
+            BadValueCases(AfterClosingQuoteAtEndInvalidLastFieldValueInput, new BadValue("bc", 1));
+
+        public static TheoryData<string, char, string, int, BadValue[]> AfterClosingQuoteBeforeTerminatorInvalidLastFieldValueBadValueCases =>
+            BadValueCases(AfterClosingQuoteBeforeTerminatorInvalidLastFieldValueInput, new BadValue("bc", 1));
 
         public static TheoryData<string, char, string, int> UnhandledNonWhiteSpaceBeforeOpeningQuoteCases =>
             InputCases(UnhandledNonWhiteSpaceBeforeOpeningQuoteInput);
@@ -144,7 +169,11 @@ namespace DataStandardizer.File.CSV.Tests
         private const string NonWhiteSpaceAfterClosingQuoteInput = "\"a\"bc ,d\n";
         private const string SecondQuotedSectionAfterQuotedValueInput = "\"a\" \"b\",c\n";
         private const string SecondQuotedSectionAfterEmptyQuotedValueInput = "\"\" \"b\",c\n";
-        private const string InvalidLastFieldValueInput = "a,x\"b\"\n";
+        private const string UnterminatedQuoteInvalidLastFieldValueInput = "a,x\"b";
+        private const string ClosingQuoteAtEndInvalidLastFieldValueInput = "a,x\"b\"";
+        private const string ClosingQuoteBeforeTerminatorInvalidLastFieldValueInput = "a,x\"b\"\nd";
+        private const string AfterClosingQuoteAtEndInvalidLastFieldValueInput = "a,\"b\"c";
+        private const string AfterClosingQuoteBeforeTerminatorInvalidLastFieldValueInput = "a,\"b\"c\nd";
         private const string UnhandledNonWhiteSpaceBeforeOpeningQuoteInput = "a,x\"b\n\",c\nd";
         private const string UnhandledNonWhiteSpaceAfterClosingQuoteInput = "a,b,\"c\"d\ne";
 
@@ -379,11 +408,15 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Theory]
-        [MemberData(nameof(InvalidLastFieldValueCases), DisableDiscoveryEnumeration = true)]
-        public void TryReadRecord_InvalidLastFieldValue_KeepsRawFieldValue(string input, char delimiter, string terminator, int bufferSize, string[][] expectedRecords)
+        [MemberData(nameof(UnterminatedQuoteInvalidLastFieldValueCases), DisableDiscoveryEnumeration = true)]
+        [MemberData(nameof(ClosingQuoteAtEndInvalidLastFieldValueCases), DisableDiscoveryEnumeration = true)]
+        [MemberData(nameof(ClosingQuoteBeforeTerminatorInvalidLastFieldValueCases), DisableDiscoveryEnumeration = true)]
+        [MemberData(nameof(AfterClosingQuoteAtEndInvalidLastFieldValueCases), DisableDiscoveryEnumeration = true)]
+        [MemberData(nameof(AfterClosingQuoteBeforeTerminatorInvalidLastFieldValueCases), DisableDiscoveryEnumeration = true)]
+        public void TryReadRecord_InvalidLastFieldValue_ReturnsEmptyFieldValue(string input, char delimiter, string terminator, int bufferSize, string[][] expectedRecords)
         {
             // arrange
-            // Unlike other fields, the last field of a record is not replaced with an empty value when it is invalid.
+            // Like every other field, the last field of a record is replaced with an empty value when it is invalid.
             using (var csvReader = CreateReader(input, delimiter, terminator, bufferSize, CollectBadValues(new List<BadValue>())))
             {
 
@@ -396,7 +429,11 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         [Theory]
-        [MemberData(nameof(InvalidLastFieldValueBadValueCases), DisableDiscoveryEnumeration = true)]
+        [MemberData(nameof(UnterminatedQuoteInvalidLastFieldValueBadValueCases), DisableDiscoveryEnumeration = true)]
+        [MemberData(nameof(ClosingQuoteAtEndInvalidLastFieldValueBadValueCases), DisableDiscoveryEnumeration = true)]
+        [MemberData(nameof(ClosingQuoteBeforeTerminatorInvalidLastFieldValueBadValueCases), DisableDiscoveryEnumeration = true)]
+        [MemberData(nameof(AfterClosingQuoteAtEndInvalidLastFieldValueBadValueCases), DisableDiscoveryEnumeration = true)]
+        [MemberData(nameof(AfterClosingQuoteBeforeTerminatorInvalidLastFieldValueBadValueCases), DisableDiscoveryEnumeration = true)]
         public void TryReadRecord_InvalidLastFieldValue_CallsBadValueHandler(string input, char delimiter, string terminator, int bufferSize, BadValue[] expectedBadValues)
         {
             // arrange
