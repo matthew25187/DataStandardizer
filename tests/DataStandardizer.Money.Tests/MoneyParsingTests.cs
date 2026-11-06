@@ -59,6 +59,21 @@ public class MoneyParsingTests
         ((decimal)result).Should().Be(expectedAmount);
     }
 
+    // Funds codes from ISO 4217 List One.
+    [Theory]
+    [InlineData("USN 1")]
+    [InlineData("CHE 1")]
+    [InlineData("CLF 1")]
+    [InlineData("BOV 1")]
+    public void TryParse_InputContainsFundCode_ReturnsFalse(string testValue)
+    {
+        // act
+        var testResult = Money.TryParse(testValue, MoneyStyles.Currency, MoneyInfoFor(NewZealandCulture), out _);
+
+        // assert
+        testResult.Should().BeFalse("ISO 4217 lists funds codes apart from currencies");
+    }
+
     [Fact]
     public void TryParse_InputContainsGroupSeparator_RetainsMinorUnits()
     {

@@ -35,6 +35,23 @@ namespace DataStandardizer.Money.Tests
         // ISO 4217 List One gives the US Dollar two minor units.
         private const int UsDollarMinorUnits = 2;
 
+        private const string FundCodeIsNotCurrencyReason = "ISO 4217 lists {0} as a funds code, not a currency";
+
+        // Funds codes from ISO 4217 List One.
+        [Theory]
+        [InlineData(Iso4217CurrencyCurrent.USN)]
+        [InlineData(Iso4217CurrencyCurrent.CHE)]
+        [InlineData(Iso4217CurrencyCurrent.CLF)]
+        [InlineData(Iso4217CurrencyCurrent.BOV)]
+        public void Create_CurrencyIsFundCode_ThrowsArgumentException(Iso4217CurrencyCurrent testCurrency)
+        {
+            // act
+            Action testAction = () => Money.Create(ObjectTestAmount, testCurrency);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>(FundCodeIsNotCurrencyReason, testCurrency);
+        }
+
         [Fact]
         public void AdditionOperator_MoneyValueWithAmount_ReturnsMoneyValueResult()
         {

@@ -691,7 +691,7 @@ namespace DataStandardizer.Money
         /// <exception cref="ArgumentException">
         /// <paramref name="currency"/> is not a currency code.
         /// -or-
-        /// <paramref name="currency"/> is not a national currency code or testing code.
+        /// <paramref name="currency"/> is not a national or supranational currency code, or the <see cref="Iso4217CurrencyCurrent.XTS"/> testing code. A funds code, such as <see cref="Iso4217CurrencyCurrent.CLF"/>, is not a currency code.
         /// </exception>
         public static Money Create(decimal amount, Iso4217CurrencyCurrent currency)
         {
@@ -714,7 +714,7 @@ namespace DataStandardizer.Money
         /// <exception cref="ArgumentException">
         /// <paramref name="currency"/> is not a currency code.
         /// -or-
-        /// <paramref name="currency"/> is not a national currency code or testing code.
+        /// <paramref name="currency"/> is not a national or supranational currency code, or the <see cref="Iso4217CurrencyCurrent.XTS"/> testing code. A funds code, such as <see cref="Iso4217CurrencyCurrent.CLF"/>, is not a currency code.
         /// </exception>
         public static Money Create(decimal amount, Iso4217CurrencyCurrent currency, int roundingPrecision)
         {
@@ -738,7 +738,7 @@ namespace DataStandardizer.Money
         /// <exception cref="ArgumentException">
         /// <paramref name="currency"/> is not a currency code.
         /// -or-
-        /// <paramref name="currency"/> is not a national currency code or testing code.
+        /// <paramref name="currency"/> is not a national or supranational currency code, or the <see cref="Iso4217CurrencyCurrent.XTS"/> testing code. A funds code, such as <see cref="Iso4217CurrencyCurrent.CLF"/>, is not a currency code.
         /// </exception>
         public static Money Create(decimal amount, Iso4217CurrencyCurrent currency, int roundingPrecision, MidpointRounding roundingMethod)
         {

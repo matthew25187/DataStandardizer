@@ -35,9 +35,9 @@ namespace DataStandardizer.Money.Tests
         private const decimal BahrainiDinarAmount = 1.234m;
         private const int BahrainiDinarAmountInFils = 1234;
 
-        // ISO 4217 List One gives the Unidad de Fomento four minor units.
-        private const decimal UnidadDeFomentoAmount = 1.2345m;
-        private const int UnidadDeFomentoAmountInMinorUnits = 12345;
+        // ISO 4217 List One gives the Unidad Previsional four minor units.
+        private const decimal UnidadPrevisionalAmount = 1.2345m;
+        private const int UnidadPrevisionalAmountInMinorUnits = 12345;
 
         private const decimal ZeroAmount = 0m;
         private const int ZeroMinorUnits = 0;
@@ -58,11 +58,11 @@ namespace DataStandardizer.Money.Tests
 
         public static TheoryData<decimal, Iso4217CurrencyCurrent, long> Int64ConversionTestCases => new()
         {
-            // ISO 4217 List One: JPY has 0 minor-unit digits, USD 2, BHD 3 and CLF 4.
+            // ISO 4217 List One: JPY has 0 minor-unit digits, USD 2, BHD 3 and UYW 4.
             { YenAmount, Iso4217CurrencyCurrent.JPY, YenAmountInMinorUnits },
             { UsDollarAmount, Iso4217CurrencyCurrent.USD, UsDollarAmountInCents },
             { BahrainiDinarAmount, Iso4217CurrencyCurrent.BHD, BahrainiDinarAmountInFils },
-            { UnidadDeFomentoAmount, Iso4217CurrencyCurrent.CLF, UnidadDeFomentoAmountInMinorUnits },
+            { UnidadPrevisionalAmount, Iso4217CurrencyCurrent.UYW, UnidadPrevisionalAmountInMinorUnits },
             { NegativeUsDollarAmount, Iso4217CurrencyCurrent.USD, NegativeUsDollarAmountInCents },
             { -500m, Iso4217CurrencyCurrent.JPY, -500L },
             { ZeroAmount, Iso4217CurrencyCurrent.USD, ZeroMinorUnits },
@@ -73,14 +73,14 @@ namespace DataStandardizer.Money.Tests
             { 1.2340m, Iso4217CurrencyCurrent.BHD, 1234L },
             // An amount with fewer decimal places than the currency's minor units.
             { 12m, Iso4217CurrencyCurrent.USD, 1200L },
-            { 1.2m, Iso4217CurrencyCurrent.CLF, 12000L },
+            { 1.2m, Iso4217CurrencyCurrent.UYW, 12000L },
             // The exact boundaries of the range of long.
             { 92233720368547758.07m, Iso4217CurrencyCurrent.USD, long.MaxValue },
             { -92233720368547758.08m, Iso4217CurrencyCurrent.USD, long.MinValue },
             { 9223372036854775807m, Iso4217CurrencyCurrent.JPY, long.MaxValue },
             { -9223372036854775808m, Iso4217CurrencyCurrent.JPY, long.MinValue },
-            { 922337203685477.5807m, Iso4217CurrencyCurrent.CLF, long.MaxValue },
-            { -922337203685477.5808m, Iso4217CurrencyCurrent.CLF, long.MinValue },
+            { 922337203685477.5807m, Iso4217CurrencyCurrent.UYW, long.MaxValue },
+            { -922337203685477.5808m, Iso4217CurrencyCurrent.UYW, long.MinValue },
         };
 
         [Theory]
@@ -102,7 +102,7 @@ namespace DataStandardizer.Money.Tests
             { YenAmount, Iso4217CurrencyCurrent.JPY, YenAmountInMinorUnits },
             { UsDollarAmount, Iso4217CurrencyCurrent.USD, UsDollarAmountInCents },
             { BahrainiDinarAmount, Iso4217CurrencyCurrent.BHD, BahrainiDinarAmountInFils },
-            { UnidadDeFomentoAmount, Iso4217CurrencyCurrent.CLF, UnidadDeFomentoAmountInMinorUnits },
+            { UnidadPrevisionalAmount, Iso4217CurrencyCurrent.UYW, UnidadPrevisionalAmountInMinorUnits },
             { NegativeUsDollarAmount, Iso4217CurrencyCurrent.USD, NegativeUsDollarAmountInCents },
             { ZeroAmount, Iso4217CurrencyCurrent.USD, ZeroMinorUnits },
             { UsDollarAmountWithTrailingZeros, Iso4217CurrencyCurrent.USD, UsDollarAmountInCents },
@@ -132,7 +132,7 @@ namespace DataStandardizer.Money.Tests
             { YenAmount, Iso4217CurrencyCurrent.JPY, YenAmountInMinorUnits },
             { UsDollarAmount, Iso4217CurrencyCurrent.USD, UsDollarAmountInCents },
             { BahrainiDinarAmount, Iso4217CurrencyCurrent.BHD, BahrainiDinarAmountInFils },
-            { UnidadDeFomentoAmount, Iso4217CurrencyCurrent.CLF, UnidadDeFomentoAmountInMinorUnits },
+            { UnidadPrevisionalAmount, Iso4217CurrencyCurrent.UYW, UnidadPrevisionalAmountInMinorUnits },
             { NegativeUsDollarAmount, Iso4217CurrencyCurrent.USD, NegativeUsDollarAmountInCents },
             { ZeroAmount, Iso4217CurrencyCurrent.USD, ZeroMinorUnits },
             { UsDollarAmountWithTrailingZeros, Iso4217CurrencyCurrent.USD, UsDollarAmountInCents },
@@ -162,7 +162,7 @@ namespace DataStandardizer.Money.Tests
             { 100m, Iso4217CurrencyCurrent.JPY, 100 },
             { 1.23m, Iso4217CurrencyCurrent.USD, 123 },
             { 0.123m, Iso4217CurrencyCurrent.BHD, 123 },
-            { 0.0123m, Iso4217CurrencyCurrent.CLF, 123 },
+            { 0.0123m, Iso4217CurrencyCurrent.UYW, 123 },
             { -1.23m, Iso4217CurrencyCurrent.USD, -123 },
             { ZeroAmount, Iso4217CurrencyCurrent.USD, ZeroMinorUnits },
             { 1.2300m, Iso4217CurrencyCurrent.USD, 123 },
@@ -254,7 +254,7 @@ namespace DataStandardizer.Money.Tests
             { NegativeFractionalUsDollarAmount, Iso4217CurrencyCurrent.USD },
             { 0.001m, Iso4217CurrencyCurrent.USD },
             { 1.2345m, Iso4217CurrencyCurrent.BHD },
-            { 1.23456m, Iso4217CurrencyCurrent.CLF },
+            { 1.23456m, Iso4217CurrencyCurrent.UYW },
             { 0.0000000000000000000000000001m, Iso4217CurrencyCurrent.USD },
         };
 
@@ -342,8 +342,8 @@ namespace DataStandardizer.Money.Tests
             { -92233720368547758.09m, Iso4217CurrencyCurrent.USD },
             { 9223372036854775808m, Iso4217CurrencyCurrent.JPY },
             { -9223372036854775809m, Iso4217CurrencyCurrent.JPY },
-            { 922337203685477.5808m, Iso4217CurrencyCurrent.CLF },
-            { -922337203685477.5809m, Iso4217CurrencyCurrent.CLF },
+            { 922337203685477.5808m, Iso4217CurrencyCurrent.UYW },
+            { -922337203685477.5809m, Iso4217CurrencyCurrent.UYW },
             { decimal.MaxValue, Iso4217CurrencyCurrent.USD },
             { decimal.MinValue, Iso4217CurrencyCurrent.USD },
         };
