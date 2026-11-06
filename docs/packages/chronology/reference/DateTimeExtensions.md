@@ -46,7 +46,7 @@ the instant.
 - `DateTimeOffset` holds offsets only in whole minutes of at most 14 hours. An
   offset it can't hold, such as some local mean time offsets before about 1900,
   throws `ArgumentOutOfRangeException`.
-- `default(TzDataTimezone)` throws `InvalidOperationException`.
+- `default(TzDataTimezone)` is `Etc/UTC`, so the result has an offset of 0.
 
 For example, in America/New_York:
 

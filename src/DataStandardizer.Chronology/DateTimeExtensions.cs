@@ -78,7 +78,6 @@ namespace DataStandardizer.Chronology
         /// 14 hours, as for some offsets of local mean time, and so cannot be held by a <see cref="DateTimeOffset"/>; or the result
         /// falls outside the range of <see cref="DateTime"/>.
         /// </exception>
-        /// <exception cref="InvalidOperationException">The timezone is the default value.</exception>
         public static DateTimeOffset ToDateTimeOffset(this DateTime local, TzDataTimezone timezone, TzDataLocalTimeResolution resolution)
         {
             var calculator = timezone.GetCalculator();

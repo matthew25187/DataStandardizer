@@ -174,14 +174,14 @@ namespace DataStandardizer.Chronology
                 return DataStandardizer.Chronology.TzDataTimezone.ConvertFromIdentifier(value);
             }
         
-#if NETCOREAPP3_0_OR_GREATER
-            public static implicit operator string?(DataStandardizer.Chronology.TzDataTimezone value)
-    #else
-            [return: System.Diagnostics.CodeAnalysis.MaybeNullAttribute]
+            /// <summary>
+            /// Converts a timezone to its TZ Database identifier.
+            /// </summary>
+            /// <param name="value">The timezone.</param>
+            /// <returns>The identifier of the timezone, which is <c>Etc/UTC</c> for the default value.</returns>
             public static implicit operator string(DataStandardizer.Chronology.TzDataTimezone value)
-    #endif
             {
-                return value._value;
+                return value.Identifier;
             }
         
         public static bool operator ==(DataStandardizer.Chronology.TzDataTimezone left, DataStandardizer.Chronology.TzDataTimezone right)
@@ -8303,6 +8303,19 @@ namespace DataStandardizer.Chronology
             public static readonly DataStandardizer.Chronology.TzDataTimezone Mayotte = new DataStandardizer.Chronology.TzDataTimezone("Indian/Mayotte", linkTarget: "Africa/Nairobi", TzDataTimezone.ZoneLineData.Africa_Nairobi, latitude: -12.783333333333333D, longitude: 45.233333333333334D, isoCountryCodes: new string[] { "YT" }, comment: null);
         }
         
+        public static class Etc
+        {
+            
+            /// <summary>
+            /// Etc/UTC
+            /// </summary>
+            /// <remarks>
+            /// Coordinated Universal Time, which is used in no country, and so has no location: its latitude and longitude are 0.
+            /// <para>The default value of <see cref="TzDataTimezone"/> is equal to this timezone.</para>
+            /// </remarks>
+            public static readonly DataStandardizer.Chronology.TzDataTimezone UTC = new DataStandardizer.Chronology.TzDataTimezone("Etc/UTC", TzDataTimezone.ZoneLineData.Etc_UTC, latitude: 0D, longitude: 0D, isoCountryCodes: new string[0], comment: null);
+        }
+        
         public static class Arctic
         {
             
@@ -8330,41 +8343,51 @@ namespace DataStandardizer.Chronology
         #region Public Methods
         public bool Equals(DataStandardizer.Chronology.TzDataTimezone other)
         {
-            return (this._value == other._value);
+            return string.Equals(this.Identifier, other.Identifier);
         }
-        
+
         public override int GetHashCode()
         {
-            if ((this._value == null))
-            {
-                return 0;
-            }
-            return this._value.GetHashCode();
+            return this.Identifier.GetHashCode();
         }
-        
+
+        /// <summary>
+        /// Compares the timezone with another, by the ordinal order of their identifiers.
+        /// </summary>
+        /// <param name="obj">The timezone to compare with.</param>
+        /// <returns>
+        /// A negative number if the identifier of the timezone comes before that of <paramref name="obj"/>; zero if they are equal; otherwise,
+        /// a positive number.
+        /// </returns>
+        /// <exception cref="System.ArgumentNullException"><paramref name="obj"/> is <see langword="null"/>.</exception>
+        /// <exception cref="System.ArgumentException"><paramref name="obj"/> is not a <see cref="TzDataTimezone"/>.</exception>
 #if NETCOREAPP3_0_OR_GREATER
-        
         public int CompareTo(object? obj)
+#else
+        public int CompareTo(object obj)
+#endif
         {
-            if ((obj == null))
+            if (obj == null)
             {
                 throw new System.ArgumentNullException(nameof(obj));
             }
-            if ((obj.GetType() != this.GetType()))
+            if (!(obj is DataStandardizer.Chronology.TzDataTimezone other))
             {
                 throw new System.ArgumentException($"{nameof(obj)} and this instance are not the same type.", nameof(obj));
             }
-            if ((this._value == null))
-            {
-                throw new System.NullReferenceException();
-            }
-            return this._value.CompareTo(obj);
+            return string.CompareOrdinal(this.Identifier, other.Identifier);
+        }
+
+#if NETCOREAPP3_0_OR_GREATER
+        public override bool Equals(object? obj)
+#else
+        public override bool Equals(object obj)
+#endif
+        {
+            return obj is DataStandardizer.Chronology.TzDataTimezone other && this.Equals(other);
         }
         
-        public override bool Equals(object? obj)
-        {
-            return (obj is DataStandardizer.Chronology.TzDataTimezone other && this.Equals(other));
-        }
+#if NETCOREAPP3_0_OR_GREATER
         
         public override string ToString()
         {
@@ -8377,46 +8400,12 @@ namespace DataStandardizer.Chronology
             }
             if ((result == null))
             {
-                result = this._value;
-            }
-            if ((result == null))
-            {
-                result = base.ToString();
-            }
-            if ((result == null))
-            {
-                result = this.GetType().FullName;
-            }
-            if ((result == null))
-            {
-                result = this.GetType().Name;
+                result = this.Identifier;
             }
             return result;
         }
         
 #else
-        
-        public int CompareTo(object obj)
-        {
-            if ((obj == null))
-            {
-                throw new System.ArgumentNullException(nameof(obj));
-            }
-            if ((obj.GetType() != this.GetType()))
-            {
-                throw new System.ArgumentException($"{nameof(obj)} and this instance are not the same type.", nameof(obj));
-            }
-            if ((this._value == null))
-            {
-                throw new System.NullReferenceException();
-            }
-            return ((System.IComparable)(this._value)).CompareTo(obj);
-        }
-        
-        public override bool Equals(object obj)
-        {
-            return (obj is DataStandardizer.Chronology.TzDataTimezone other && this.Equals(other));
-        }
         
         public override string ToString()
         {
@@ -8429,19 +8418,7 @@ namespace DataStandardizer.Chronology
             }
             if ((result == null))
             {
-                result = this._value;
-            }
-            if ((result == null))
-            {
-                result = base.ToString();
-            }
-            if ((result == null))
-            {
-                result = this.GetType().FullName;
-            }
-            if ((result == null))
-            {
-                result = this.GetType().Name;
+                result = this.Identifier;
             }
             return result;
         }
@@ -8452,314 +8429,176 @@ namespace DataStandardizer.Chronology
         
         public System.TypeCode GetTypeCode()
         {
-            if ((this._value == null))
-            {
-                throw new System.InvalidOperationException("The enumeration type is unknown.");
-            }
-            return this._value.GetTypeCode();
+            return this.Identifier.GetTypeCode();
         }
-        
+
         bool System.IConvertible.ToBoolean(System.IFormatProvider? provider)
         {
-            if ((this._value == null))
-            {
-                throw new System.InvalidCastException();
-            }
-            return ((System.IConvertible)(this._value)).ToBoolean(provider);
+            return ((System.IConvertible)this.Identifier).ToBoolean(provider);
         }
-        
+
         byte System.IConvertible.ToByte(System.IFormatProvider? provider)
         {
-            if ((this._value == null))
-            {
-                throw new System.InvalidCastException();
-            }
-            return ((System.IConvertible)(this._value)).ToByte(provider);
+            return ((System.IConvertible)this.Identifier).ToByte(provider);
         }
-        
+
         char System.IConvertible.ToChar(System.IFormatProvider? provider)
         {
-            if ((this._value == null))
-            {
-                throw new System.InvalidCastException();
-            }
-            return ((System.IConvertible)(this._value)).ToChar(provider);
+            return ((System.IConvertible)this.Identifier).ToChar(provider);
         }
-        
+
         System.DateTime System.IConvertible.ToDateTime(System.IFormatProvider? provider)
         {
-            if ((this._value == null))
-            {
-                throw new System.InvalidCastException();
-            }
-            return ((System.IConvertible)(this._value)).ToDateTime(provider);
+            return ((System.IConvertible)this.Identifier).ToDateTime(provider);
         }
-        
+
         decimal System.IConvertible.ToDecimal(System.IFormatProvider? provider)
         {
-            if ((this._value == null))
-            {
-                throw new System.InvalidCastException();
-            }
-            return ((System.IConvertible)(this._value)).ToDecimal(provider);
+            return ((System.IConvertible)this.Identifier).ToDecimal(provider);
         }
-        
+
         double System.IConvertible.ToDouble(System.IFormatProvider? provider)
         {
-            if ((this._value == null))
-            {
-                throw new System.InvalidCastException();
-            }
-            return ((System.IConvertible)(this._value)).ToDouble(provider);
+            return ((System.IConvertible)this.Identifier).ToDouble(provider);
         }
-        
+
         short System.IConvertible.ToInt16(System.IFormatProvider? provider)
         {
-            if ((this._value == null))
-            {
-                throw new System.InvalidCastException();
-            }
-            return ((System.IConvertible)(this._value)).ToInt16(provider);
+            return ((System.IConvertible)this.Identifier).ToInt16(provider);
         }
-        
+
         int System.IConvertible.ToInt32(System.IFormatProvider? provider)
         {
-            if ((this._value == null))
-            {
-                throw new System.InvalidCastException();
-            }
-            return ((System.IConvertible)(this._value)).ToInt32(provider);
+            return ((System.IConvertible)this.Identifier).ToInt32(provider);
         }
-        
+
         long System.IConvertible.ToInt64(System.IFormatProvider? provider)
         {
-            if ((this._value == null))
-            {
-                throw new System.InvalidCastException();
-            }
-            return ((System.IConvertible)(this._value)).ToInt64(provider);
+            return ((System.IConvertible)this.Identifier).ToInt64(provider);
         }
-        
+
         sbyte System.IConvertible.ToSByte(System.IFormatProvider? provider)
         {
-            if ((this._value == null))
-            {
-                throw new System.InvalidCastException();
-            }
-            return ((System.IConvertible)(this._value)).ToSByte(provider);
+            return ((System.IConvertible)this.Identifier).ToSByte(provider);
         }
-        
+
         float System.IConvertible.ToSingle(System.IFormatProvider? provider)
         {
-            if ((this._value == null))
-            {
-                throw new System.InvalidCastException();
-            }
-            return ((System.IConvertible)(this._value)).ToSingle(provider);
+            return ((System.IConvertible)this.Identifier).ToSingle(provider);
         }
-        
-        [System.ObsoleteAttribute(("The provider argument is not used. Please use " 
-                    + (nameof(ToString) + "().")))]
+
+        [System.ObsoleteAttribute("The provider argument is not used. Please use " + nameof(ToString) + "().")]
         public string ToString(System.IFormatProvider? provider)
         {
-            if ((this._value == null))
-            {
-                throw new System.InvalidCastException();
-            }
-            return ((System.IConvertible)(this._value)).ToString(provider);
+            return ((System.IConvertible)this.Identifier).ToString(provider);
         }
-        
+
         object System.IConvertible.ToType(System.Type conversionType, System.IFormatProvider? provider)
         {
-            if ((this._value == null))
-            {
-                throw new System.InvalidCastException();
-            }
-            return ((System.IConvertible)(this._value)).ToType(conversionType, provider);
+            return ((System.IConvertible)this.Identifier).ToType(conversionType, provider);
         }
-        
+
         ushort System.IConvertible.ToUInt16(System.IFormatProvider? provider)
         {
-            if ((this._value == null))
-            {
-                throw new System.InvalidCastException();
-            }
-            return ((System.IConvertible)(this._value)).ToUInt16(provider);
+            return ((System.IConvertible)this.Identifier).ToUInt16(provider);
         }
-        
+
         uint System.IConvertible.ToUInt32(System.IFormatProvider? provider)
         {
-            if ((this._value == null))
-            {
-                throw new System.InvalidCastException();
-            }
-            return ((System.IConvertible)(this._value)).ToUInt32(provider);
+            return ((System.IConvertible)this.Identifier).ToUInt32(provider);
         }
-        
+
         ulong System.IConvertible.ToUInt64(System.IFormatProvider? provider)
         {
-            if ((this._value == null))
-            {
-                throw new System.InvalidCastException();
-            }
-            return ((System.IConvertible)(this._value)).ToUInt64(provider);
+            return ((System.IConvertible)this.Identifier).ToUInt64(provider);
         }
         
 #elif NETSTANDARD1_3_OR_GREATER||NET
         
         public System.TypeCode GetTypeCode()
         {
-            if ((this._value == null))
-            {
-                throw new System.InvalidOperationException("The enumeration type is unknown.");
-            }
-            return this._value.GetTypeCode();
+            return this.Identifier.GetTypeCode();
         }
-        
+
         bool System.IConvertible.ToBoolean(System.IFormatProvider provider)
         {
-            if ((this._value == null))
-            {
-                throw new System.InvalidCastException();
-            }
-            return ((System.IConvertible)(this._value)).ToBoolean(provider);
+            return ((System.IConvertible)this.Identifier).ToBoolean(provider);
         }
-        
+
         byte System.IConvertible.ToByte(System.IFormatProvider provider)
         {
-            if ((this._value == null))
-            {
-                throw new System.InvalidCastException();
-            }
-            return ((System.IConvertible)(this._value)).ToByte(provider);
+            return ((System.IConvertible)this.Identifier).ToByte(provider);
         }
-        
+
         char System.IConvertible.ToChar(System.IFormatProvider provider)
         {
-            if ((this._value == null))
-            {
-                throw new System.InvalidCastException();
-            }
-            return ((System.IConvertible)(this._value)).ToChar(provider);
+            return ((System.IConvertible)this.Identifier).ToChar(provider);
         }
-        
+
         System.DateTime System.IConvertible.ToDateTime(System.IFormatProvider provider)
         {
-            if ((this._value == null))
-            {
-                throw new System.InvalidCastException();
-            }
-            return ((System.IConvertible)(this._value)).ToDateTime(provider);
+            return ((System.IConvertible)this.Identifier).ToDateTime(provider);
         }
-        
+
         decimal System.IConvertible.ToDecimal(System.IFormatProvider provider)
         {
-            if ((this._value == null))
-            {
-                throw new System.InvalidCastException();
-            }
-            return ((System.IConvertible)(this._value)).ToDecimal(provider);
+            return ((System.IConvertible)this.Identifier).ToDecimal(provider);
         }
-        
+
         double System.IConvertible.ToDouble(System.IFormatProvider provider)
         {
-            if ((this._value == null))
-            {
-                throw new System.InvalidCastException();
-            }
-            return ((System.IConvertible)(this._value)).ToDouble(provider);
+            return ((System.IConvertible)this.Identifier).ToDouble(provider);
         }
-        
+
         short System.IConvertible.ToInt16(System.IFormatProvider provider)
         {
-            if ((this._value == null))
-            {
-                throw new System.InvalidCastException();
-            }
-            return ((System.IConvertible)(this._value)).ToInt16(provider);
+            return ((System.IConvertible)this.Identifier).ToInt16(provider);
         }
-        
+
         int System.IConvertible.ToInt32(System.IFormatProvider provider)
         {
-            if ((this._value == null))
-            {
-                throw new System.InvalidCastException();
-            }
-            return ((System.IConvertible)(this._value)).ToInt32(provider);
+            return ((System.IConvertible)this.Identifier).ToInt32(provider);
         }
-        
+
         long System.IConvertible.ToInt64(System.IFormatProvider provider)
         {
-            if ((this._value == null))
-            {
-                throw new System.InvalidCastException();
-            }
-            return ((System.IConvertible)(this._value)).ToInt64(provider);
+            return ((System.IConvertible)this.Identifier).ToInt64(provider);
         }
-        
+
         sbyte System.IConvertible.ToSByte(System.IFormatProvider provider)
         {
-            if ((this._value == null))
-            {
-                throw new System.InvalidCastException();
-            }
-            return ((System.IConvertible)(this._value)).ToSByte(provider);
+            return ((System.IConvertible)this.Identifier).ToSByte(provider);
         }
-        
+
         float System.IConvertible.ToSingle(System.IFormatProvider provider)
         {
-            if ((this._value == null))
-            {
-                throw new System.InvalidCastException();
-            }
-            return ((System.IConvertible)(this._value)).ToSingle(provider);
+            return ((System.IConvertible)this.Identifier).ToSingle(provider);
         }
-        
-        [System.ObsoleteAttribute(("The provider argument is not used. Please use " 
-                    + (nameof(ToString) + "().")))]
+
+        [System.ObsoleteAttribute("The provider argument is not used. Please use " + nameof(ToString) + "().")]
         public string ToString(System.IFormatProvider provider)
         {
-            if ((this._value == null))
-            {
-                throw new System.InvalidCastException();
-            }
-            return ((System.IConvertible)(this._value)).ToString(provider);
+            return ((System.IConvertible)this.Identifier).ToString(provider);
         }
-        
+
         object System.IConvertible.ToType(System.Type conversionType, System.IFormatProvider provider)
         {
-            if ((this._value == null))
-            {
-                throw new System.InvalidCastException();
-            }
-            return ((System.IConvertible)(this._value)).ToType(conversionType, provider);
+            return ((System.IConvertible)this.Identifier).ToType(conversionType, provider);
         }
-        
+
         ushort System.IConvertible.ToUInt16(System.IFormatProvider provider)
         {
-            if ((this._value == null))
-            {
-                throw new System.InvalidCastException();
-            }
-            return ((System.IConvertible)(this._value)).ToUInt16(provider);
+            return ((System.IConvertible)this.Identifier).ToUInt16(provider);
         }
-        
+
         uint System.IConvertible.ToUInt32(System.IFormatProvider provider)
         {
-            if ((this._value == null))
-            {
-                throw new System.InvalidCastException();
-            }
-            return ((System.IConvertible)(this._value)).ToUInt32(provider);
+            return ((System.IConvertible)this.Identifier).ToUInt32(provider);
         }
-        
+
         ulong System.IConvertible.ToUInt64(System.IFormatProvider provider)
         {
-            if ((this._value == null))
-            {
-                throw new System.InvalidCastException();
-            }
-            return ((System.IConvertible)(this._value)).ToUInt64(provider);
+            return ((System.IConvertible)this.Identifier).ToUInt64(provider);
         }
         
 #endif
@@ -8768,10 +8607,7 @@ namespace DataStandardizer.Chronology
         #region Private Methods
         private bool MemberFieldPredicate(System.Reflection.FieldInfo field)
         {
-            return (field.IsPublic 
-                        && (field.IsStatic 
-                        && (field.GetValue(null) is DataStandardizer.Chronology.TzDataTimezone memberValue 
-                        && (memberValue._value == this._value))));
+            return field.IsPublic && field.IsStatic && field.GetValue(null) is DataStandardizer.Chronology.TzDataTimezone memberValue && memberValue._value == this.Identifier;
         }
         
         private System.Collections.Generic.IEnumerable<System.Reflection.FieldInfo> MemberFieldDeclaredFieldsPredicate(System.Reflection.TypeInfo type)

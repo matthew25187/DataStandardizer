@@ -139,16 +139,17 @@ public class TzDataTimezoneZoneLinesTests
     }
 
     [Fact]
-    public void ZoneLines_DefaultInstance_ThrowsInvalidOperationException()
+    public void ZoneLines_DefaultInstance_AreThoseOfEtcUtc()
     {
         // arrange
         var testTimezone = default(TzDataTimezone);
+        var expectedResult = TzDataTimezone.Etc.UTC.ZoneLines;
 
         // act
-        Func<IReadOnlyList<TzDataZoneLine>> testAction = () => testTimezone.ZoneLines;
+        var testResult = testTimezone.ZoneLines;
 
         // assert
-        testAction.Should().Throw<InvalidOperationException>("the default instance has no identifier");
+        testResult.Should().Equal(expectedResult, (defaultZoneLine, fieldZoneLine) => ReferenceEquals(defaultZoneLine, fieldZoneLine), "the default instance stands for Etc/UTC");
     }
 
     [Fact]

@@ -107,6 +107,9 @@ namespace DataStandardizer.Chronology
                     new System.Collections.Generic.KeyValuePair<string, string>("EST", "America/Panama"),
                     new System.Collections.Generic.KeyValuePair<string, string>("Egypt", "Africa/Cairo"),
                     new System.Collections.Generic.KeyValuePair<string, string>("Eire", "Europe/Dublin"),
+                    new System.Collections.Generic.KeyValuePair<string, string>("Etc/UCT", "Etc/UTC"),
+                    new System.Collections.Generic.KeyValuePair<string, string>("Etc/Universal", "Etc/UTC"),
+                    new System.Collections.Generic.KeyValuePair<string, string>("Etc/Zulu", "Etc/UTC"),
                     new System.Collections.Generic.KeyValuePair<string, string>("Europe/Belfast", "Europe/London"),
                     new System.Collections.Generic.KeyValuePair<string, string>("Europe/Kiev", "Europe/Kyiv"),
                     new System.Collections.Generic.KeyValuePair<string, string>("Europe/Nicosia", "Asia/Nicosia"),
@@ -145,6 +148,7 @@ namespace DataStandardizer.Chronology
                     new System.Collections.Generic.KeyValuePair<string, string>("ROK", "Asia/Seoul"),
                     new System.Collections.Generic.KeyValuePair<string, string>("Singapore", "Asia/Singapore"),
                     new System.Collections.Generic.KeyValuePair<string, string>("Turkey", "Europe/Istanbul"),
+                    new System.Collections.Generic.KeyValuePair<string, string>("UCT", "Etc/UTC"),
                     new System.Collections.Generic.KeyValuePair<string, string>("US/Alaska", "America/Anchorage"),
                     new System.Collections.Generic.KeyValuePair<string, string>("US/Aleutian", "America/Adak"),
                     new System.Collections.Generic.KeyValuePair<string, string>("US/Arizona", "America/Phoenix"),
@@ -157,8 +161,11 @@ namespace DataStandardizer.Chronology
                     new System.Collections.Generic.KeyValuePair<string, string>("US/Mountain", "America/Denver"),
                     new System.Collections.Generic.KeyValuePair<string, string>("US/Pacific", "America/Los_Angeles"),
                     new System.Collections.Generic.KeyValuePair<string, string>("US/Samoa", "Pacific/Pago_Pago"),
+                    new System.Collections.Generic.KeyValuePair<string, string>("UTC", "Etc/UTC"),
+                    new System.Collections.Generic.KeyValuePair<string, string>("Universal", "Etc/UTC"),
                     new System.Collections.Generic.KeyValuePair<string, string>("W-SU", "Europe/Moscow"),
-                    new System.Collections.Generic.KeyValuePair<string, string>("WET", "Europe/Lisbon")};
+                    new System.Collections.Generic.KeyValuePair<string, string>("WET", "Europe/Lisbon"),
+                    new System.Collections.Generic.KeyValuePair<string, string>("Zulu", "Etc/UTC")};
         }
     }
 }

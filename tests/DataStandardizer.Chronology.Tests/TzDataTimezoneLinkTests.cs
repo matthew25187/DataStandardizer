@@ -44,6 +44,11 @@ public class TzDataTimezoneLinkTests
     private const string IcelandName = "Iceland";
     private const string NewZealandName = "NZ";
 
+    // Deprecated names in the backward file of TZ Database 2026e that are links to Etc/UTC.
+    private const string UtcName = "UTC";
+    private const string ZuluName = "Zulu";
+    private const string EtcUniversalName = "Etc/Universal";
+
     // The identifier of Europe/Oslo, and the name that ToString gives it.
     private const string OsloIdentifier = "Europe/Oslo";
     private const string OsloName = "Oslo";
@@ -473,28 +478,41 @@ public class TzDataTimezoneLinkTests
     }
 
     [Fact]
-    public void IsLink_DefaultInstance_ThrowsInvalidOperationException()
+    public void IsLink_DefaultInstance_ReturnsFalse()
     {
         // arrange
         var testTimezone = default(TzDataTimezone);
 
         // act
-        Func<bool> testAction = () => testTimezone.IsLink;
+        var testResult = testTimezone.IsLink;
 
         // assert
-        testAction.Should().Throw<InvalidOperationException>();
+        testResult.Should().BeFalse("the default instance is Etc/UTC, which is a Zone in the etcetera file, not a link");
     }
 
     [Fact]
-    public void Canonical_DefaultInstance_ThrowsInvalidOperationException()
+    public void Canonical_DefaultInstance_ReturnsEtcUtc()
     {
         // arrange
         var testTimezone = default(TzDataTimezone);
 
         // act
-        Func<TzDataTimezone> testAction = () => testTimezone.Canonical;
+        var testResult = testTimezone.Canonical;
 
         // assert
-        testAction.Should().Throw<InvalidOperationException>();
+        testResult.Should().Be(TzDataTimezone.Etc.UTC, "the default instance is Etc/UTC, which is canonical");
+    }
+
+    [Theory]
+    [InlineData(UtcName)]
+    [InlineData(ZuluName)]
+    [InlineData(EtcUniversalName)]
+    public void Parse_DeprecatedNameOfEtcUtc_ReturnsEtcUtc(string testName)
+    {
+        // act
+        var testResult = TzDataTimezone.Parse(testName);
+
+        // assert
+        testResult.Should().Be(TzDataTimezone.Etc.UTC, "the backward file links {0} to Etc/UTC", testName);
     }
 }

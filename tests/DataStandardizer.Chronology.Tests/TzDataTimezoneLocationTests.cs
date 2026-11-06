@@ -36,6 +36,9 @@ public class TzDataTimezoneLocationTests
     private const double TallinnLongitude = 24.75D;
     private const double BuenosAiresLongitude = -58.45D;
 
+    // The latitude and longitude of Etc/UTC, which is defined in the etcetera file of TZ Database 2026e and has no location.
+    private const double NoLocationCoordinate = 0D;
+
     public static TheoryData<TzDataTimezone, string> Comment_TimezoneHasComment_TestCases => new()
     {
         { TzDataTimezone.Europe.Zurich, ZurichComment },
@@ -182,25 +185,53 @@ public class TzDataTimezoneLocationTests
         testResult.Should().NotBeAssignableTo<string[]>("the country codes are shared, and must not be modified");
     }
 
-    public static TheoryData<string, Func<TzDataTimezone, object?>> Member_TestCases => new()
+    public static TheoryData<string, TzDataTimezone> EtcUtc_TestCases => new()
     {
-        { nameof(TzDataTimezone.Latitude), timezone => timezone.Latitude },
-        { nameof(TzDataTimezone.Longitude), timezone => timezone.Longitude },
-        { nameof(TzDataTimezone.IsoCountryCodes), timezone => timezone.IsoCountryCodes },
-        { nameof(TzDataTimezone.Comment), timezone => timezone.Comment },
+        { "field", TzDataTimezone.Etc.UTC },
+        { "default instance", default },
     };
 
     [Theory]
-    [MemberData(nameof(Member_TestCases))]
-    public void Member_DefaultInstance_ThrowsInvalidOperationException(string testMemberName, Func<TzDataTimezone, object?> testMember)
+    [MemberData(nameof(EtcUtc_TestCases))]
+    public void Latitude_EtcUtc_ReturnsZero(string testInstance, TzDataTimezone testTimezone)
     {
-        // arrange
-        var testTimezone = default(TzDataTimezone);
-
         // act
-        Action testAction = () => testMember(testTimezone);
+        var testResult = testTimezone.Latitude;
 
         // assert
-        testAction.Should().Throw<InvalidOperationException>("the default instance has no identifier, so {0} cannot be found", testMemberName);
+        testResult.Should().Be(NoLocationCoordinate, "Etc/UTC, the {0}, has no location", testInstance);
+    }
+
+    [Theory]
+    [MemberData(nameof(EtcUtc_TestCases))]
+    public void Longitude_EtcUtc_ReturnsZero(string testInstance, TzDataTimezone testTimezone)
+    {
+        // act
+        var testResult = testTimezone.Longitude;
+
+        // assert
+        testResult.Should().Be(NoLocationCoordinate, "Etc/UTC, the {0}, has no location", testInstance);
+    }
+
+    [Theory]
+    [MemberData(nameof(EtcUtc_TestCases))]
+    public void IsoCountryCodes_EtcUtc_ReturnsEmpty(string testInstance, TzDataTimezone testTimezone)
+    {
+        // act
+        var testResult = testTimezone.IsoCountryCodes;
+
+        // assert
+        testResult.Should().BeEmpty("Etc/UTC, the {0}, is used in no country", testInstance);
+    }
+
+    [Theory]
+    [MemberData(nameof(EtcUtc_TestCases))]
+    public void Comment_EtcUtc_ReturnsNull(string testInstance, TzDataTimezone testTimezone)
+    {
+        // act
+        var testResult = testTimezone.Comment;
+
+        // assert
+        testResult.Should().BeNull("Etc/UTC, the {0}, is not listed in zone1970.tab, so has no comment", testInstance);
     }
 }

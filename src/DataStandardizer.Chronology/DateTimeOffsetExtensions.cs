@@ -20,7 +20,6 @@ namespace DataStandardizer.Chronology
         /// The offset in effect is not a whole number of minutes of at most 14 hours, as for some offsets of local mean time,
         /// and so cannot be held by a <see cref="DateTimeOffset"/>; or the result falls outside the range of <see cref="DateTime"/>.
         /// </exception>
-        /// <exception cref="InvalidOperationException">The timezone is the default value.</exception>
         public static DateTimeOffset ToOffset(this DateTimeOffset instant, TzDataTimezone timezone)
         {
             var utc = instant.UtcDateTime;

@@ -42,8 +42,6 @@ namespace DataStandardizer.File.iCal
         /// </para>
         /// </remarks>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="to"/> precedes <paramref name="from"/>.</exception>
-        /// <exception cref="InvalidOperationException"><paramref name="timezone"/> is the default value, or its identifier is not that of a
-        /// known time zone.</exception>
         public static IcalTimeZone FromTzData(TzDataTimezone timezone, DateTimeOffset from, DateTimeOffset to)
         {
             if (to < from)
@@ -53,13 +51,9 @@ namespace DataStandardizer.File.iCal
             fromUtc = new DateTime(fromUtc.Ticks - fromUtc.Ticks % TimeSpan.TicksPerSecond, DateTimeKind.Utc);
             var initial = timezone.GetOffsetInfo(fromUtc);
 
-            // The identifier is not null, as GetOffsetInfo has rejected the default value.
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-            string? timeZoneId = timezone;
-#else
+            // The default value converts to Etc/UTC, the timezone it stands for.
             string timeZoneId = timezone;
-#endif
-            var timeZone = new IcalTimeZone { TimeZoneId = timeZoneId ?? string.Empty };
+            var timeZone = new IcalTimeZone { TimeZoneId = timeZoneId };
             var initialOffset = new IcalUtcOffset(initial.UtcOffset);
             timeZone.Components.Add(CreateObservance(IcalTzDataTimeZoneRules.GetKind(initial), IcalTzDataTimeZoneRules.GetName(initial),
                 fromUtc + initial.UtcOffset, initialOffset, initialOffset));

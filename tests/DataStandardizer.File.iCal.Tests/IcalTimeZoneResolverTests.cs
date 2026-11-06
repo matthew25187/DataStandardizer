@@ -14,6 +14,7 @@ namespace DataStandardizer.File.iCal.Tests
         private const string London = "Europe/London";
         private const string Dublin = "Europe/Dublin";
         private const string Kolkata = "Asia/Kolkata";
+        private const string EtcUtcIdentifier = "Etc/UTC";
         private const string EasternStandardTime = "Eastern Standard Time";
         private const string NotAZone = "Not/A_Zone";
         private const string VendorPrefixOnly = "/example.com/";
@@ -1443,13 +1444,14 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
-        public void FromTzData_DefaultTimeZone_ThrowsInvalidOperation()
+        public void FromTzData_DefaultTimeZone_DefinesEtcUtc()
         {
             // act
-            Action testAction = () => IcalTimeZone.FromTzData(default, Utc(2020), Utc(2030));
+            var testResult = IcalTimeZone.FromTzData(default, Utc(2020), Utc(2030));
 
             // assert
-            testAction.Should().Throw<InvalidOperationException>();
+            testResult.TimeZoneId.Should().Be(EtcUtcIdentifier, "the default TzDataTimezone stands for Etc/UTC");
+            testResult.Components.Should().ContainSingle("Etc/UTC has no transitions");
         }
 
         #endregion

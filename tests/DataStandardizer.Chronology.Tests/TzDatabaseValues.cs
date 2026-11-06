@@ -19,6 +19,7 @@ internal static class TzAbbreviations
     internal const string Lmt = "LMT";
     internal const string Msd = "MSD";
     internal const string Msk = "MSK";
+    internal const string Utc = "UTC";
 
     // Numeric abbreviations, from the %z format of zic.
     internal const string Minus02 = "-02";

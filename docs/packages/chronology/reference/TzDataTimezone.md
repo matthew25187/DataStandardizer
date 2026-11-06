@@ -58,9 +58,29 @@ The cast throws `InvalidCastException` for a string that is not the identifier
 of a predefined instance or a deprecated name, and for `null`. Use `TryParse`
 when the string may not be an identifier.
 
-For `default(TzDataTimezone)`, the properties (including `ZoneLines`, `IsLink`
-and `Canonical`) and the calculation methods of
-[TzDataExtensions](TzDataExtensions.md) throw `InvalidOperationException`.
+### The default instance
+
+`default(TzDataTimezone)` is a valid time zone: Coordinated Universal Time,
+`Etc/UTC`, in the same way that `default(TimeSpan)` is `TimeSpan.Zero`. It is
+equal to `TzDataTimezone.Etc.UTC`, with the same hash code, and every member
+treats it as that time zone:
+
+```csharp
+var timezone = default(TzDataTimezone);
+bool same = timezone == TzDataTimezone.Etc.UTC;                   // true
+string identifier = timezone;                                     // "Etc/UTC"
+TimeSpan offset = timezone.GetUtcOffset(DateTime.UtcNow);         // TimeSpan.Zero
+string abbreviation = timezone.GetAbbreviation(DateTime.UtcNow);  // "UTC"
+```
+
+`Etc/UTC` is defined in the TZ Database's `etcetera` file, with an offset of 0,
+the abbreviation `UTC` and no daylight saving time, so it has no transitions. It
+is used in no country and has no location, so `IsoCountryCodes` is empty,
+`Comment` is `null`, and `Latitude` and `Longitude` are 0. It is not a link, so
+`IsLink` is `false` and `Canonical` is the time zone itself.
+
+`TryParse` sets `result` to `default` when it returns `false`, so check its
+return value rather than `result` to tell whether the string was an identifier.
 
 ### Links and canonical time zones
 
@@ -91,7 +111,8 @@ bool shared = oslo.Canonical == TzDataTimezone.Europe.Berlin.Canonical; // true
 
 The deprecated names in the TZ Database's `backward` file, such as
 `Asia/Calcutta` and `US/Eastern`, have no fields. `Parse` and `TryParse` return
-the canonical time zone for them.
+the canonical time zone for them. The names that `backward` links to `Etc/UTC`,
+such as `UTC` and `Zulu`, return `TzDataTimezone.Etc.UTC`.
 
 ### Generated source
 
@@ -101,7 +122,7 @@ produces four source files:
 
 | File | Contents |
 | --- | --- |
-| `TzDataTimezone.cs` | The struct, its identifier members, and a field for each time zone, nested by region. |
+| `TzDataTimezone.cs` | The struct, its identifier members, and a field for each time zone, nested by region, with `Etc.UTC` from the `etcetera` file. |
 | `TzDataTimezone.ZoneLineData.cs` | The zone lines of each canonical time zone, which the fields of the time zone and of its links share. |
 | `TzDataTimezone.RuleSets.cs` | The daylight saving rule sets referenced by the zone lines. |
 | `TzDataTimezone.LinkData.cs` | The deprecated names from the `backward` file, which `Parse` and `TryParse` accept. |
@@ -109,7 +130,8 @@ produces four source files:
 The zone line data, rule sets and link data are private. They are reached
 through `ZoneLines` and the methods of [TzDataExtensions](TzDataExtensions.md).
 The properties and parsing methods are hand-written, in
-`TzDataTimezone.Members.cs`.
+`TzDataTimezone.Members.cs`, as is the `Etc/UTC` identifier that the generated
+members use for the default instance.
 
 The generated files need no manual edits. The script's comment-based help
 (`Get-Help ./scripts/GenerateTzDataTimezoneOfficial.ps1 -Full`) lists the tzdata
@@ -130,6 +152,7 @@ The time zone instances are grouped by region:
 - [Asia](TzDataTimezone.Asia.md) — 74 time zones and 8 links
 - [Atlantic](TzDataTimezone.Atlantic.md) — 8 time zones and 2 links
 - [Australia](TzDataTimezone.Australia.md) — 11 time zones
+- [Etc](TzDataTimezone.Etc.md) — 1 time zone, which the default instance stands for
 - [Europe](TzDataTimezone.Europe.md) — 38 time zones and 20 links
 - [Indian](TzDataTimezone.Indian.md) — 3 time zones and 8 links
 - [Pacific](TzDataTimezone.Pacific.md) — 30 time zones and 8 links
@@ -141,9 +164,9 @@ The time zone instances are grouped by region:
 | `Canonical` | `TzDataTimezone Canonical { get; }` | The canonical time zone that a link refers to, or this time zone if it is canonical. |
 | `Comment` | `string? Comment { get; }` | The zone's comment from `zone1970.tab` (`zone.tab` for a link), or `null` if it has none. Declared as `string` (`[CanBeNull]`) on the .NET Standard targets. |
 | `IsLink` | `bool IsLink { get; }` | `true` if the time zone is a link to a canonical time zone; otherwise, `false`. |
-| `IsoCountryCodes` | `IReadOnlyList<string> IsoCountryCodes { get; }` | ISO 3166-1 Alpha-2 codes for the countries the zone covers, in `zone1970.tab` order (`zone.tab` for a link). |
-| `Latitude` | `double Latitude { get; }` | Latitude of the zone's principal location, in decimal degrees. |
-| `Longitude` | `double Longitude { get; }` | Longitude of the zone's principal location, in decimal degrees. |
+| `IsoCountryCodes` | `IReadOnlyList<string> IsoCountryCodes { get; }` | ISO 3166-1 Alpha-2 codes for the countries the zone covers, in `zone1970.tab` order (`zone.tab` for a link). Empty for `Etc/UTC`. |
+| `Latitude` | `double Latitude { get; }` | Latitude of the zone's principal location, in decimal degrees. 0 for `Etc/UTC`, which has no location. |
+| `Longitude` | `double Longitude { get; }` | Longitude of the zone's principal location, in decimal degrees. 0 for `Etc/UTC`, which has no location. |
 | `ZoneLines` | `IReadOnlyList<TzDataZoneLine> ZoneLines { get; }` | The zone's full history of offsets from universal time, as [TzDataZoneLine](TzDataZoneLine.md) instances in chronological order. Every line but the last has an `Until`. For a link, those of its canonical time zone. |
 
 ## Methods
@@ -154,18 +177,18 @@ The time zone instances are grouped by region:
 | --- | --- | --- |
 | `Parse(string s)` | `TzDataTimezone` | Returns the predefined instance with identifier `s`, or the canonical instance for a deprecated name. Throws `ArgumentNullException` if `s` is `null`, and `FormatException` if it is not a known identifier. |
 | `Parse(string s, IFormatProvider? provider)` | `TzDataTimezone` | `IParsable<TzDataTimezone>` implementation; `net10.0` only. `provider` is ignored. |
-| `TryParse(string? s, out TzDataTimezone result)` | `bool` | Returns `false`, with `result` set to `default`, if `s` is `null` or not a known identifier. |
+| `TryParse(string? s, out TzDataTimezone result)` | `bool` | Returns `false`, with `result` set to `default` (`Etc/UTC`), if `s` is `null` or not a known identifier. |
 | `TryParse(string? s, IFormatProvider? provider, out TzDataTimezone result)` | `bool` | `IParsable<TzDataTimezone>` implementation; `net10.0` only. `provider` is ignored. |
 
 ### Implicit implementation
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `CompareTo(object obj)` | `int` | |
-| `Equals(TzDataTimezone other)` | `bool` | |
+| `CompareTo(object obj)` | `int` | Compares the identifiers in ordinal order. Throws `ArgumentNullException` if `obj` is `null`, and `ArgumentException` if it is not a `TzDataTimezone`. |
+| `Equals(TzDataTimezone other)` | `bool` | Compares the identifiers, so `default` equals `Etc.UTC`. |
 | `Equals(object obj)` | `bool` | Override. |
 | `GetHashCode()` | `int` | Override. |
-| `ToString()` | `string` | Override. Returns the identifier. |
+| `ToString()` | `string` | Override. Returns the name of the time zone's field in its region, such as `Oslo` for `Europe.Oslo` and `UTC` for `Etc.UTC` and `default`; for a field in a nested region, such as `America.Argentina.Buenos_Aires`, the identifier. |
 | `ToString(IFormatProvider provider)` | `string` | |
 
 ## Operators
@@ -173,7 +196,7 @@ The time zone instances are grouped by region:
 | Operator | Signature | Notes |
 | --- | --- | --- |
 | Explicit | `explicit operator TzDataTimezone(string)` | Returns the predefined instance with the identifier, or the canonical instance for a deprecated name. Throws `InvalidCastException` for an unknown identifier or `null`. |
-| Implicit | `implicit operator string(TzDataTimezone)` | Unwraps to the identifier string. |
+| Implicit | `implicit operator string(TzDataTimezone)` | Unwraps to the identifier string, which is `"Etc/UTC"` for `default`. Never returns `null`. |
 | Equality | `operator ==`, `!=` `(TzDataTimezone, TzDataTimezone)` | |
 
 ## Applies to
