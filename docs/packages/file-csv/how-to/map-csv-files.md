@@ -118,7 +118,9 @@ public class MyRecordLineMapper : CsvFileMapperBase<MyRecordLine>
 ```
 
 To use the mapper when reading lines from a file, you would then register the
-mapper with the CSV reader (the same goes for using a mapper with a writer).
+mapper with the CSV reader (the same goes for using a mapper with a writer). A
+registered mapper applies only to the reader or writer you register it on, so
+register it on each one.
 
 ```csharp
 using (var streamReader = new StreamReader("file_name.csv"))

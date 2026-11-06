@@ -12,8 +12,8 @@ using Xunit;
 namespace DataStandardizer.File.CSV.Tests
 {
     /// <remarks>
-    /// Mappers are registered process-wide, by record-line type.  Each test that registers or unregisters a mapper
-    /// reads a record-line type of its own, so that no test sees another test's mapper.
+    /// Mappers built from attributes are cached process-wide, by record-line type, and <see cref="CsvMapperCache.Clear"/>
+    /// clears them.  Clearing never changes how a line is read, so tests that clear the cache can run alongside the others.
     /// </remarks>
     public class CsvFileReaderTests
     {
@@ -518,6 +518,172 @@ namespace DataStandardizer.File.CSV.Tests
                 // assert
                 csvReader.Context.Mappers.Should().ContainKey(typeof(FirstIndexLine))
                     .WhoseValue.Should().BeOfType<FirstIndexLineMapper>();
+            }
+        }
+
+        [Fact]
+        public void ReadLine_MapperRegisteredOnAnotherReader_ReadsFieldsWithoutMapping()
+        {
+            // arrange
+            using (var otherReader = new CsvFileReader<InstanceScopedLine>(new StringReader(string.Empty)))
+            using (var csvReader = new CsvFileReader<InstanceScopedLine>(new StringReader(FirstLongRecordLine)))
+            {
+                otherReader.RegisterMapper<InstanceScopedLineMapper>();
+
+                // act
+                var testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Should().NotBeNull();
+                testResult.Keys.Should().Equal(PositionalFieldName1, PositionalFieldName2, PositionalFieldName3);
+            }
+        }
+
+        [Fact]
+        public void Context_MapperRegisteredOnAnotherReader_HasNoMappers()
+        {
+            // arrange
+            using (var otherReader = new CsvFileReader<InstanceScopedLine>(new StringReader(string.Empty)))
+            using (var csvReader = new CsvFileReader<InstanceScopedLine>(new StringReader(string.Empty)))
+            {
+                otherReader.RegisterMapper<InstanceScopedLineMapper>();
+
+                // act
+                var testResult = csvReader.Context;
+
+                // assert
+                testResult.Mappers.Should().BeEmpty();
+            }
+        }
+
+        [Fact]
+        public void Context_MapperRegisteredAfterContextRead_ShowsMapper()
+        {
+            // arrange
+            using (var csvReader = new CsvFileReader<InstanceScopedLine>(new StringReader(string.Empty)))
+            {
+                var testResult = csvReader.Context;
+
+                // act
+                csvReader.RegisterMapper<InstanceScopedLineMapper>();
+
+                // assert
+                testResult.Mappers.Should().ContainSingle()
+                    .Which.Value.Should().BeOfType<InstanceScopedLineMapper>();
+            }
+        }
+
+        [Fact]
+        public void Context_MapperUnregistered_HasNoMappers()
+        {
+            // arrange
+            using (var csvReader = new CsvFileReader<InstanceScopedLine>(new StringReader(string.Empty)))
+            {
+                csvReader.RegisterMapper<InstanceScopedLineMapper>();
+                var testResult = csvReader.Context;
+
+                // act
+                csvReader.UnregisterMapper<InstanceScopedLineMapper>();
+
+                // assert
+                testResult.Mappers.Should().BeEmpty();
+            }
+        }
+
+        [Fact]
+        public void RegisterMapper_MapperOfAnotherTypeRegistered_ReplacesMapper()
+        {
+            // arrange
+            using (var csvReader = new CsvFileReader<InstanceScopedLine>(new StringReader(string.Empty)))
+            {
+                csvReader.RegisterMapper<InstanceScopedLineMapper>();
+                var testResult = csvReader.Context;
+
+                // act
+                csvReader.RegisterMapper<ReversedInstanceScopedLineMapper>();
+
+                // assert
+                testResult.Mappers.Should().ContainSingle()
+                    .Which.Value.Should().BeOfType<ReversedInstanceScopedLineMapper>();
+            }
+        }
+
+        [Fact]
+        public void ReadLine_MapperOfAnotherTypeRegistered_UsesLaterMapper()
+        {
+            // arrange
+            using (var csvReader = new CsvFileReader<InstanceScopedLine>(new StringReader(FirstLongRecordLine)))
+            {
+                csvReader.RegisterMapper<InstanceScopedLineMapper>();
+                csvReader.RegisterMapper<ReversedInstanceScopedLineMapper>();
+
+                // act
+                var testResult = csvReader.ReadLine() as InstanceScopedLine;
+
+                // assert
+                testResult.Should().NotBeNull();
+                testResult.Name.Should().Be(FirstLongDescription);
+                testResult.Description.Should().Be(FirstName);
+            }
+        }
+
+        [Fact]
+        public void UnregisterMapper_MapperOfAnotherTypeRegistered_KeepsRegisteredMapper()
+        {
+            // arrange
+            using (var csvReader = new CsvFileReader<InstanceScopedLine>(new StringReader(string.Empty)))
+            {
+                csvReader.RegisterMapper<InstanceScopedLineMapper>();
+                var testResult = csvReader.Context;
+
+                // act
+                csvReader.UnregisterMapper<ReversedInstanceScopedLineMapper>();
+
+                // assert
+                testResult.Mappers.Should().ContainSingle()
+                    .Which.Value.Should().BeOfType<InstanceScopedLineMapper>();
+            }
+        }
+
+        [Fact]
+        public void ReadLine_AfterMapperCacheCleared_MapsFieldsByAttributes()
+        {
+            // arrange
+            using (var otherReader = new CsvFileReader<AttributeMappedLine>(new StringReader(TwoRecordsFile)))
+            {
+                otherReader.ReadLine();
+            }
+
+            CsvMapperCache.Clear();
+
+            using (var csvReader = new CsvFileReader<AttributeMappedLine>(new StringReader(TwoRecordsFile)))
+            {
+                // act
+                var testResult = csvReader.ReadLine() as AttributeMappedLine;
+
+                // assert
+                testResult.Should().NotBeNull();
+                testResult.Id.Should().Be(1);
+                testResult.Name.Should().Be(FirstName);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_MapperCacheClearedPartWayThroughFile_MapsLaterLinesByAttributes()
+        {
+            // arrange
+            using (var csvReader = new CsvFileReader<AttributeMappedLine>(new StringReader(TwoRecordsFile)))
+            {
+                csvReader.ReadLine();
+                CsvMapperCache.Clear();
+
+                // act
+                var testResult = csvReader.ReadLine() as AttributeMappedLine;
+
+                // assert
+                testResult.Should().NotBeNull();
+                testResult.Id.Should().Be(2);
+                testResult.Name.Should().Be(SecondName);
             }
         }
 
@@ -1086,6 +1252,61 @@ namespace DataStandardizer.File.CSV.Tests
             /// property, so that it is not part of the line.
             /// </summary>
             public readonly List<string> ValidatedFieldNames = new List<string>();
+        }
+
+        private sealed class InstanceScopedLine : TestLine
+        {
+        }
+
+        private sealed class InstanceScopedLineMapper : CsvFileMapperBase<InstanceScopedLine>
+        {
+            public InstanceScopedLineMapper()
+            {
+                this.Map()
+                    .Property(x => x.Id)
+                    .HasFieldIndex(0)
+                    .ConvertUsing(typeof(Int32Converter));
+                this.Map().Property(x => x.Name);
+                this.Map().Property(x => x.Description);
+            }
+        }
+
+        /// <summary>
+        /// Maps the fields of an <see cref="InstanceScopedLine"/> in the opposite order to <see cref="InstanceScopedLineMapper"/>.
+        /// </summary>
+        private sealed class ReversedInstanceScopedLineMapper : CsvFileMapperBase<InstanceScopedLine>
+        {
+            public ReversedInstanceScopedLineMapper()
+            {
+                this.Map()
+                    .Property(x => x.Id)
+                    .HasFieldIndex(0)
+                    .ConvertUsing(typeof(Int32Converter));
+                this.Map()
+                    .Property(x => x.Description)
+                    .HasFieldIndex(1);
+                this.Map()
+                    .Property(x => x.Name)
+                    .HasFieldIndex(2);
+            }
+        }
+
+        private sealed class AttributeMappedLine : CsvFileRecordLine
+        {
+            [CsvFieldMapping(0)]
+            [TypeConverter(typeof(Int32Converter))]
+            public int Id
+            {
+                get => GetPropertyValue<int>();
+                set => SetPropertyValue(value);
+            }
+
+            [CsvFieldMapping(1)]
+            public string Name
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
         }
 
         private sealed class FirstIndexLineMapper : CsvFileMapperBase<FirstIndexLine>

@@ -104,8 +104,9 @@ code relies on, such as the
 [LanguageTag match timeouts](#languagetag-match-timeouts),
 [builder region overloads](#languagetag-builder-region-overloads),
 [what creating a language tag checks](#what-creating-a-language-tag-checks) and
-[where the registry types live](#where-the-registry-types-live) and the
-[File.CSV line model](#filecsv-line-model) below.
+[where the registry types live](#where-the-registry-types-live), the
+[File.CSV line model](#filecsv-line-model) and
+[File.CSV mapper registration](#filecsv-mapper-registration) below.
 
 ## LanguageTag match timeouts
 
@@ -394,3 +395,66 @@ now behaves as the generic `OrderedDictionary<string, object?>` does: replacing 
 value of a field that is present no longer invalidates an enumerator of the line on
 the `netstandard1.3`, `netstandard2.0` and `netstandard2.1` builds, as it already
 didn't on the `net10.0` build.
+
+## File.CSV mapper registration
+
+In version 1.x, a mapper registered with `RegisterMapper` on one reader or writer
+was registered for the whole process: every other reader and writer of the same
+record line type used it too, until any of them unregistered it. In version 2.0, a
+mapper registered with `RegisterMapper` applies only to the reader or writer you
+register it on. Register it on each reader and writer that should use it.
+A reader or writer has at most one registered mapper: registering a mapper of
+another type now replaces it, where version 1.x kept the first one, and
+`UnregisterMapper<TMapper>` removes the registered mapper only if it is a
+`TMapper`.
+
+```csharp
+// Before: registered once, used by every reader and writer of MyRecordLine
+using (var csvReader = new CsvFileReader<MyRecordLine>(inputReader))
+using (var csvWriter = new CsvFileWriter<MyRecordLine>(outputWriter))
+{
+    csvReader.RegisterMapper<MyRecordLineMapper>();
+    // ...
+}
+
+// After: registered on each reader and writer
+using (var csvReader = new CsvFileReader<MyRecordLine>(inputReader))
+using (var csvWriter = new CsvFileWriter<MyRecordLine>(outputWriter))
+{
+    csvReader.RegisterMapper<MyRecordLineMapper>();
+    csvWriter.RegisterMapper<MyRecordLineMapper>();
+    // ...
+}
+```
+
+`CsvFileReader<TRecordLine>.Context.Mappers` holds only the mapper registered on
+that reader, keyed by its record line type, instead of the mappers registered for
+every type in the process.
+
+Mappers built from `[CsvFieldMapping]` attributes are still shared by every reader
+and writer, in the new `CsvMapperCache` class, which also holds the other details
+the package works out once per record line type. Call `CsvMapperCache.Clear()` to
+empty that cache, for example before unloading a collectible
+`AssemblyLoadContext` that defines your record line types.
+
+`CsvFileIoBase<TRecordLine>`, the base of `CsvFileReader<TRecordLine>` and
+`CsvFileWriter<TRecordLine>`, no longer derives from `CsvFileCacheRepositoryBase`,
+and can no longer be derived from outside the package. The members below were
+`protected`, so only a class derived from one of these types could use them. They
+are removed, with no replacement:
+
+| Removed |
+| --- |
+| `CsvFileCacheRepositoryBase`, with its `DeclarativeMapperCache`, `ImperativeMapperCache` and `StandardLineBreaks` fields and its `GetTypeConverter` methods |
+| `CsvFileIoBase<TRecordLine>.BuildException` |
+| `CsvFileIoBase<TRecordLine>.DeserializeCsvLineFieldValue<T>` |
+| `CsvFileIoBase<TRecordLine>.DoesFieldValueRequireQuoting` |
+| `CsvFileIoBase<TRecordLine>.GetCsvLineMappedFieldValue` |
+| `CsvFileIoBase<TRecordLine>.GetMapper` |
+| `CsvFileIoBase<TRecordLine>.NormalizeFieldValueLineBreaks` |
+| `CsvFileIoBase<TRecordLine>.SerializeCsvLineFieldValue` |
+
+To clear the mapper caches, which version 1.x let a derived class do through the
+`DeclarativeMapperCache` and `ImperativeMapperCache` fields, call
+`CsvMapperCache.Clear()`, or unregister the mapper from the reader or writer it is
+registered on.
