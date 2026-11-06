@@ -74,6 +74,15 @@ namespace DataStandardizer.File.CSV.Tests
         private const string ShortRecordAfterHeaderFile = "Field 1,Field 2,Field 3\r\n1,2";
         private const string ShortRecordAfterRecordFile = "1,2,3\r\n4,5";
         private const string EmbeddedQuoteLine = "One Two,Three\"Four,Five Six";
+
+        // A record whose last field has text before its opening quote, which RFC 4180 section 2 paragraph 5 doesn't allow.
+        private const string InvalidLastFieldLine = "One,x\"Two\"";
+        private const string InvalidLastFieldMappedLine = "1,x\"One\"";
+        private const string EmptyAndInvalidLastFieldLine = ",x\"Two\"";
+        private const string InvalidConvertedFieldMappedLine = "x\"1\",One";
+
+        private const string DuplicateFieldNameMessage = "Found 1 duplicate field names.";
+        private const string FieldNamesDataItem = "FieldNames";
         private const string FirstLongRecordLine = "1,One,This is the first";
         private const string TwoRecordsFile = "1,One,First\r\n2,Two,Second";
         private const string ThreeRecordsWithHeaderFile = "Id,Name,Description\r\n1,One,First\r\n2,Two,Second\r\n3,Three,Third";
@@ -356,6 +365,113 @@ namespace DataStandardizer.File.CSV.Tests
 
                 // assert
                 testAction.Should().Throw<CsvFileException>().WithMessage(BadValueMessage);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_RecordLineWithInvalidLastFieldValueAndBadValueHandler_ReadsEmptyFieldValue()
+        {
+            // arrange
+            var options = new CsvFileOptions
+            {
+                HeaderHandling = CsvFileHeaderHandling.None,
+                BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(_ => { })
+            };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(InvalidLastFieldLine), options))
+            {
+
+                // act
+                var testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Values.Should().Equal(FirstName, string.Empty);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_MappedLineWithInvalidLastFieldValueAndBadValueHandler_ReadsEmptyPropertyValue()
+        {
+            // arrange
+            var options = new CsvFileOptions
+            {
+                HeaderHandling = CsvFileHeaderHandling.None,
+                BadValueHandler = new CsvFieldBadValue<AttributeMappedLine>(_ => { })
+            };
+            using (var csvReader = new CsvFileReader<AttributeMappedLine>(new StringReader(InvalidLastFieldMappedLine), options))
+            {
+
+                // act
+                var testResult = csvReader.ReadLine() as AttributeMappedLine;
+
+                // assert
+                testResult.Should().NotBeNull();
+                testResult.Id.Should().Be(1);
+                testResult.Name.Should().BeEmpty();
+            }
+        }
+
+        [Fact]
+        public void ReadLine_MappedLineWithInvalidConvertedFieldValueAndBadValueHandler_CallsHandlerAgainWithEmptyValue()
+        {
+            // arrange
+            // The field is read as empty, and Int32Converter rejects an empty value, so the handler is called a second time.
+            var badValues = new List<KeyValuePair<string, int?>>();
+            var options = new CsvFileOptions
+            {
+                HeaderHandling = CsvFileHeaderHandling.None,
+                BadValueHandler = new CsvFieldBadValue<AttributeMappedLine>(context => badValues.Add(new KeyValuePair<string, int?>(context.RawFieldValue, context.FieldIndex)))
+            };
+            using (var csvReader = new CsvFileReader<AttributeMappedLine>(new StringReader(InvalidConvertedFieldMappedLine), options))
+            {
+
+                // act
+                _ = csvReader.ReadLine();
+
+                // assert
+                badValues.Should().Equal(new KeyValuePair<string, int?>("x", 0), new KeyValuePair<string, int?>(string.Empty, 0));
+            }
+        }
+
+        [Fact]
+        public void ReadLine_HeaderLineWithInvalidLastFieldNameAndBadValueHandler_ReadsEmptyFieldName()
+        {
+            // arrange
+            var options = new CsvFileOptions
+            {
+                HeaderHandling = CsvFileHeaderHandling.Use,
+                BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(_ => { })
+            };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(InvalidLastFieldLine), options))
+            {
+
+                // act
+                var testResult = csvReader.ReadLine();
+
+                // assert
+                testResult.Should().BeOfType<CsvFileHeaderLine>();
+                testResult.Keys.Should().Equal(FirstName, string.Empty);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_HeaderLineWithEmptyAndInvalidLastFieldNamesAndBadValueHandler_ThrowsCsvFileException()
+        {
+            // arrange
+            // Both field names are read as empty, so they are duplicates.
+            var options = new CsvFileOptions
+            {
+                HeaderHandling = CsvFileHeaderHandling.Use,
+                BadValueHandler = new CsvFieldBadValue<CsvFileRecordLine>(_ => { })
+            };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(EmptyAndInvalidLastFieldLine), options))
+            {
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(DuplicateFieldNameMessage)
+                    .Which.Data[FieldNamesDataItem].Should().BeEquivalentTo(new[] { string.Empty });
             }
         }
 

@@ -64,6 +64,11 @@ a validator and the bad-value handler get is now the field's position in the lin
 See
 [File.CSV conversion of mapped properties](removed-in-v2.md#filecsv-conversion-of-mapped-properties).
 
+When a bad-value handler is set, a File.CSV reader now reads the last field of a
+record that breaks the quoting rules as an empty value, as it already did for
+every other field, instead of keeping its raw text. See
+[File.CSV invalid last field](removed-in-v2.md#filecsv-invalid-last-field).
+
 `SubtagRegistry` moves to the `DataStandardizer.LanguageTag` namespace, and the
 types of its records move to `DataStandardizer.LanguageTag.Registry`. See
 [where the registry types live](removed-in-v2.md#where-the-registry-types-live).

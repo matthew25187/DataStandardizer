@@ -568,7 +568,7 @@ namespace DataStandardizer.File.CSV
                         if (EnsureAvailable(1)) continue;
 
                         // An unterminated quote runs to the end of the stream.
-                        fieldValues.Add(TakeFieldValue());
+                        AddFieldValue(fieldValues, isInvalidValue);
                         break;
                     }
 
@@ -590,7 +590,7 @@ namespace DataStandardizer.File.CSV
                     inQuotes = false;
                     if (!hasNextCharacter)
                     {
-                        fieldValues.Add(TakeFieldValue());
+                        AddFieldValue(fieldValues, isInvalidValue);
                         _bufferPosition++;
                         break;
                     }
@@ -598,14 +598,14 @@ namespace DataStandardizer.File.CSV
                     var nextCharacter = buffer[_bufferPosition + 1];
                     if (nextCharacter == terminatorStart && IsTerminatorAt(1, terminator))
                     {
-                        fieldValues.Add(TakeFieldValue());
+                        AddFieldValue(fieldValues, isInvalidValue);
                         _bufferPosition += 1 + terminator.Length;
                         break;
                     }
 
                     if (nextCharacter == fieldDelimiter)
                     {
-                        AddDelimitedFieldValue(fieldValues, isInvalidValue);
+                        AddFieldValue(fieldValues, isInvalidValue);
                         fieldIndex++;
                         quotedValue = isInvalidValue = false;
                         _bufferPosition += 2;
@@ -633,7 +633,7 @@ namespace DataStandardizer.File.CSV
                         _bufferPosition = _bufferEnd;
                         if (EnsureAvailable(1)) continue;
 
-                        fieldValues.Add(TakeFieldValue());
+                        AddFieldValue(fieldValues, isInvalidValue);
                         break;
                     }
 
@@ -641,7 +641,7 @@ namespace DataStandardizer.File.CSV
                 }
                 else if (!EnsureAvailable(1))
                 {
-                    fieldValues.Add(TakeFieldValue());
+                    AddFieldValue(fieldValues, isInvalidValue);
                     break;
                 }
 
@@ -651,7 +651,7 @@ namespace DataStandardizer.File.CSV
                 // ref. RFC 4180§2¶1
                 if (character == terminatorStart && IsTerminatorAt(0, terminator))
                 {
-                    fieldValues.Add(TakeFieldValue());
+                    AddFieldValue(fieldValues, isInvalidValue);
                     _bufferPosition += terminator.Length;
                     break;
                 }
@@ -678,7 +678,7 @@ namespace DataStandardizer.File.CSV
 
                 if (character == fieldDelimiter)
                 {
-                    AddDelimitedFieldValue(fieldValues, isInvalidValue);
+                    AddFieldValue(fieldValues, isInvalidValue);
                     fieldIndex++;
                     quotedValue = isInvalidValue = false;
                     _bufferPosition++;
@@ -717,7 +717,14 @@ namespace DataStandardizer.File.CSV
             return true;
         }
 
-        private void AddDelimitedFieldValue(List<string> fieldValues, bool isInvalidValue)
+        /// <summary>
+        /// Ends the current field, whether a delimiter or the end of the record ends it, and adds its value to the record.
+        /// </summary>
+        /// <remarks>
+        /// A value that failed validation is added as an empty value, wherever it is in the record, and its text is discarded.  This method doesn't
+        /// report the value: <see cref="AddInvalidFieldValue"/> records what the bad value handler is given, as each violation is found.
+        /// </remarks>
+        private void AddFieldValue(List<string> fieldValues, bool isInvalidValue)
         {
             if (isInvalidValue)
             {

@@ -656,3 +656,32 @@ handler get for a mapped field is now the field's position in the line. In
 version 1.x it was the field's position in a list of the mapper's field names
 followed by the line's other field names, which differs from the line when the
 header puts the fields in another order, or puts an unmapped field first.
+
+## File.CSV invalid last field
+
+When `CsvFileOptions.BadValueHandler` is set and a field breaks the quoting rules
+of RFC 4180 section 2, such as `x"b"` or `"b"c`, a reader calls the handler with
+the field's raw text and then uses an empty value for the field.
+
+In version 1.x, it did this for every field except the last one in the record,
+which kept its raw text with the quotes removed: the record `a,x"b"` was read as
+`a` and `xb`, where `x"b",a` was read as an empty value and `a`. A mapped property
+bound to the last field got that text, and its converter could store it or throw
+its own exception.
+
+In version 2.0, the last field is read as an empty value too, as every other
+field already was. The handler is still called with the same `RawFieldValue` and
+`FieldIndex`, the same number of times and in the same order, and a reader with
+no handler still throws a `CsvFileException`.
+
+The text that version 1.x returned for the last field can't be recovered. The
+handler's `RawFieldValue` holds only the text read up to each violation, such as
+`x` for `a,x"b"`, not the whole field, and a reader with no handler throws without
+returning the record. If your files have such fields and you need their contents,
+correct the files before reading them.
+
+The same applies to a header line read with `CsvFileHeaderHandling.Use`. An
+invalid last field name is now an empty name, where version 1.x used its text, so
+`Id,x"Name"` gives the field names `Id` and an empty name. If the header already
+has an empty name, such as `,x"Name"`, the two names are duplicates and the reader
+throws a `CsvFileException` for the duplicate field names.
