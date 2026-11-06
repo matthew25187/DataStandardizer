@@ -40,7 +40,9 @@ calls. The context's `RawFieldValue` holds the field's text read up to that
 violation, with quotes removed, not the whole field: for `"a"bc` the handler is
 called with `ab` and then `abc`. Once the handler returns, the reader uses an
 empty value for the field, wherever it is in the record, so the line, and a mapped
-property bound to the field, gets an empty value.
+property bound to the field, gets an empty value. If the property's converter
+rejects an empty value, that is a second bad value, and the handler is called
+again for the field, with an empty `RawFieldValue`.
 
 ## Applies to
 

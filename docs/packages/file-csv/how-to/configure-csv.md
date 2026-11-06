@@ -39,9 +39,11 @@ calls the handler once for each violation it finds, so one field can lead to
 several calls. Each call's `RawFieldValue` holds the field's text read up to that
 violation, with quotes removed, not the whole field: for `"a"bc` the handler is
 called with `ab` and then `abc`. Once the handler returns, the reader uses an
-empty value for that field, wherever it is in the record. A mapped property bound
-to the field gets what it would get from an empty field, and a header field gets
-an empty name.
+empty value for that field, wherever it is in the record. A header field gets an
+empty name, and a mapped property bound to the field gets what it would get from
+an empty field. If the property's converter rejects an empty value, that is a
+second bad value, and the handler is called again for the field, with an empty
+`RawFieldValue`.
 
 ## Culture
 

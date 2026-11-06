@@ -79,6 +79,7 @@ namespace DataStandardizer.File.CSV.Tests
         private const string InvalidLastFieldLine = "One,x\"Two\"";
         private const string InvalidLastFieldMappedLine = "1,x\"One\"";
         private const string EmptyAndInvalidLastFieldLine = ",x\"Two\"";
+        private const string InvalidConvertedFieldMappedLine = "x\"1\",One";
 
         private const string DuplicateFieldNameMessage = "Found 1 duplicate field names.";
         private const string FieldNamesDataItem = "FieldNames";
@@ -406,6 +407,28 @@ namespace DataStandardizer.File.CSV.Tests
                 testResult.Should().NotBeNull();
                 testResult.Id.Should().Be(1);
                 testResult.Name.Should().BeEmpty();
+            }
+        }
+
+        [Fact]
+        public void ReadLine_MappedLineWithInvalidConvertedFieldValueAndBadValueHandler_CallsHandlerAgainWithEmptyValue()
+        {
+            // arrange
+            // The field is read as empty, and Int32Converter rejects an empty value, so the handler is called a second time.
+            var badValues = new List<KeyValuePair<string, int?>>();
+            var options = new CsvFileOptions
+            {
+                HeaderHandling = CsvFileHeaderHandling.None,
+                BadValueHandler = new CsvFieldBadValue<AttributeMappedLine>(context => badValues.Add(new KeyValuePair<string, int?>(context.RawFieldValue, context.FieldIndex)))
+            };
+            using (var csvReader = new CsvFileReader<AttributeMappedLine>(new StringReader(InvalidConvertedFieldMappedLine), options))
+            {
+
+                // act
+                _ = csvReader.ReadLine();
+
+                // assert
+                badValues.Should().Equal(new KeyValuePair<string, int?>("x", 0), new KeyValuePair<string, int?>(string.Empty, 0));
             }
         }
 

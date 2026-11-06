@@ -676,9 +676,9 @@ no handler still throws a `CsvFileException`.
 
 The text that version 1.x returned for the last field can't be recovered. The
 handler's `RawFieldValue` holds only the text read up to each violation, such as
-`x` for `a,x"b"`, not the whole field. If your files have such fields and you need
-their contents, correct the files, or read them without a bad-value handler and
-deal with the `CsvFileException`.
+`x` for `a,x"b"`, not the whole field, and a reader with no handler throws without
+returning the record. If your files have such fields and you need their contents,
+correct the files before reading them.
 
 The same applies to a header line read with `CsvFileHeaderHandling.Use`. An
 invalid last field name is now an empty name, where version 1.x used its text, so
