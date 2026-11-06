@@ -120,7 +120,7 @@ an operation is canceled, the writer cannot continue.
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `WriteLineAsync(IcalContentLine line, CancellationToken cancellationToken = default)` | `ValueTask` | As `WriteLine`. Completes synchronously when the underlying text writer takes the line without waiting, as a `StreamWriter` does while the line fits its buffer. |
+| `WriteLineAsync(IcalContentLine line, CancellationToken cancellationToken = default)` | `ValueTask` | As `WriteLine`. Completes synchronously when the underlying text writer takes the line without waiting, as a `StreamWriter` does while the line fits its buffer, unless the writer is disposed during the write; it then completes once the writer has been flushed and released. |
 | `WriteLinesAsync(IEnumerable<IcalContentLine> lines, IProgress<IcalWriteProgress>? progress = null, CancellationToken cancellationToken = default)` | `Task` | As `WriteLines`. |
 | `WriteLinesAsync(IAsyncEnumerable<IcalContentLine> lines, IProgress<IcalWriteProgress>? progress = null, CancellationToken cancellationToken = default)` | `Task` | As `WriteLines`, for an asynchronous sequence. `cancellationToken` is passed to its enumerator. |
 | `FlushAsync(CancellationToken cancellationToken = default)` | `Task` | As `Flush`. The token is passed to the text writer on `net10.0`; on .NET Standard it is checked before the flush. |

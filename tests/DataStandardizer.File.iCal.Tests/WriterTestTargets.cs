@@ -299,8 +299,6 @@ namespace DataStandardizer.File.iCal.Tests
             set => throw new NotSupportedException();
         }
 
-        public byte[] ToArray() => _data.ToArray();
-
         public override void Flush()
         {
             throw new InvalidOperationException(AsyncPathMessages.SynchronousFlush);
