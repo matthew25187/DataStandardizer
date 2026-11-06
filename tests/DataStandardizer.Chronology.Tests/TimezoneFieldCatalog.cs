@@ -15,11 +15,6 @@ internal static class TimezoneFieldCatalog
     private static readonly Lazy<IReadOnlyDictionary<string, TzDataTimezone>> LazyTimezones = new(() => LazyFields.Value.ToDictionary(GetIdentifier, field => (TzDataTimezone)field.GetValue(null)!, StringComparer.Ordinal));
 
     /// <summary>
-    /// Gets every timezone field.
-    /// </summary>
-    internal static IReadOnlyList<FieldInfo> Fields => LazyFields.Value;
-
-    /// <summary>
     /// Gets the timezone of every field, by its identifier.
     /// </summary>
     internal static IReadOnlyDictionary<string, TzDataTimezone> Timezones => LazyTimezones.Value;
@@ -48,7 +43,7 @@ internal static class TimezoneFieldCatalog
         return testCases;
     }
 
-    internal static string GetIdentifier(FieldInfo field)
+    private static string GetIdentifier(FieldInfo field)
     {
         string? identifier = (TzDataTimezone)field.GetValue(null)!;
         return identifier!;

@@ -17,9 +17,7 @@
     comment, and its full history of zone lines.  The zone lines, and the daylight saving rule sets they reference,
     are parsed from the main-format region files and generated into further partial source files.
 
-    The coordinates, countries and comment are passed to the constructor of each field.  They are also applied to
-    the field as the obsolete TzDataTimezoneAttribute, for callers that read it by reflection, with warning CS0618
-    suppressed around the fields.
+    The coordinates, countries and comment are passed to the constructor of each field.
 
     Each timezone listed in zone.tab but not in zone1970.tab is a Link to a canonical timezone, such as Europe/Oslo
     to Europe/Berlin.  It is given a field after the canonical timezones, with the coordinates, country and comment
@@ -936,18 +934,11 @@ function Out-SourceCode {
         if ($coordinateLongitudeDMS.StartsWith('-')) {
             $coordinateLongitude *= -1
         }
-        [System.CodeDom.CodeAttributeArgument[]]$enumFieldAttributeArguments = @([System.CodeDom.CodePrimitiveExpression]::new($coordinateLatitude), [System.CodeDom.CodePrimitiveExpression]::new($coordinateLongitude))
         $countryCodes = $_.'country-codes' -split ','
-        foreach ($countryCode in $countryCodes) {
-            $enumFieldAttributeArguments += [System.CodeDom.CodePrimitiveExpression]::new($countryCode)
-        }
         $comment = $null
         if (-not [string]::IsNullOrWhiteSpace($_.comments)) {
             $comment = $_.comments
-            $enumFieldAttributeArguments += [System.CodeDom.CodeAttributeArgument]::new('Comment', [System.CodeDom.CodePrimitiveExpression]::new($comment))
         }
-        $enumFieldAttribute = [System.CodeDom.CodeAttributeDeclaration]::new('DataStandardizer.Chronology.TzDataTimezoneAttribute', $enumFieldAttributeArguments)
-        [void]$enumField.CustomAttributes.Add($enumFieldAttribute)
 
         # The location metadata is passed by named argument, so that the field initialiser reads clearly. The array of
         # country codes is written on one line, which CodeDom would break after each element.
@@ -996,15 +987,13 @@ function Out-SourceCode {
     }
 
     end {
-        # Add member host types to struct. TzDataTimezoneAttribute is obsolete, but is still applied to the fields
-        # for callers that read it by reflection, so the warnings for its use are suppressed.
-        $obsoleteWarningDisableMember = [System.CodeDom.CodeSnippetTypeMember]::new('#pragma warning disable CS0618 // TzDataTimezoneAttribute is obsolete')
-        [void]$obsoleteWarningDisableMember.StartDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::Start, 'Public Fields'))
-        [void]$structType.Members.Add($obsoleteWarningDisableMember)
+        # Add member host types to struct.
+        $topLevelHostTypes = @()
         foreach ($hostType in $memberHostTypes.GetEnumerator()) {
             $hostIdentifierParts = $hostType.Key -split '/'
             if ($hostIdentifierParts.Length -lt 2) {
                 [void]$structType.Members.Add($hostType.Value)
+                $topLevelHostTypes += $hostType.Value
             }
             else {
                 [string[]]$parentIdentifierParts = [System.Linq.Enumerable]::ToArray([System.Linq.Enumerable]::Take($hostIdentifierParts, $hostIdentifierParts.Length - 1))
@@ -1016,9 +1005,8 @@ function Out-SourceCode {
                 }
             }
         }
-        $obsoleteWarningRestoreMember = [System.CodeDom.CodeSnippetTypeMember]::new('#pragma warning restore CS0618')
-        [void]$obsoleteWarningRestoreMember.EndDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::End, [string]::Empty))
-        [void]$structType.Members.Add($obsoleteWarningRestoreMember)
+        $topLevelHostTypes | Select-Object -First 1 | ForEach-Object { [void]$_.StartDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::Start, 'Public Fields')) }
+        $topLevelHostTypes | Select-Object -Last 1 | ForEach-Object { [void]$_.EndDirectives.Add([System.CodeDom.CodeRegionDirective]::new([System.CodeDom.CodeRegionMode]::End, [string]::Empty)) }
 
         # Declare public methods.
         Write-Progress -Activity $activity -CurrentOperation 'Declaring public methods' -PercentComplete -1
