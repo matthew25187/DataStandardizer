@@ -310,6 +310,12 @@ namespace DataStandardizer.Chronology
             return DefaultRegistry.GetEntries().TryGetValue(_value, out entry);
         }
 
+        /// <summary>
+        /// Gets the zone lines of the timezone, as the array shared with its field, and its identifier.
+        /// </summary>
+        /// <param name="identifier">The identifier of the timezone.</param>
+        /// <returns>The zone lines, in chronological order.</returns>
+        /// <exception cref="InvalidOperationException">The timezone is the default value.</exception>
         private TzDataZoneLine[] GetZoneLineArray(out string identifier)
         {
             // Only the default value has no identifier; every other instance is a timezone field, which has its zone lines.
@@ -344,6 +350,11 @@ namespace DataStandardizer.Chronology
             return linkTarget != null;
         }
 
+        /// <summary>
+        /// Gets the location metadata of the timezone, as listed in zone1970.tab, or in zone.tab for a link.
+        /// </summary>
+        /// <returns>The latitude, longitude, country codes and comment of the timezone.</returns>
+        /// <exception cref="InvalidOperationException">The timezone is the default value.</exception>
 #if NETSTANDARD
         [return: NotNull]
 #endif
