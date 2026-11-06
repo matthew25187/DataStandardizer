@@ -32,16 +32,29 @@ public sealed class IcalContentLineReader : IDisposable
 
 The reader is constructed over a `Stream`, a `TextReader`, or, on .NET Standard 2.0
 and later targets, a file path. When the reader creates the `StreamReader` itself,
-it uses 16 KB buffers, UTF-8 unless `IcalOptions.Encoding` says otherwise, and byte
-order mark detection. A file is opened for sequential reading with `FileShare.Read`.
+it uses 16 KB buffers and strict UTF-8 unless `IcalOptions.Encoding` says otherwise.
+A byte sequence that isn't valid UTF-8 throws `IcalFileException`, and the reader
+can't continue after it. A file is opened for sequential reading with `FileShare.Read`.
 A caller-supplied `Stream` or `TextReader` is left open when the reader is disposed.
 Supplying an `IcalOptions` whose `Encoding` is set together with a `TextReader` throws
-`ArgumentException`. A byte order mark at the start of the data is skipped.
+`ArgumentException`.
+
+**Byte order mark.** The `icalstream` rule of RFC 5545 §3.6 has no place for a byte
+order mark, so one at the start of the data throws `IcalFileException`. Set
+`IcalOptions.AcceptByteOrderMark` to skip it. A byte order mark never selects the
+encoding, and the reader doesn't remove one even when `IcalOptions.Encoding` has a
+preamble.
+
+**Source errors.** If the `TextReader` or `Stream` throws during a read, the exception
+is passed on and the reader can't continue, since characters may have been lost. A
+decoding error from a caller-supplied `TextReader` is passed on as it is.
 
 **Line breaks.** A content line ends with CRLF. A bare line feed is accepted only
 with `IcalOptions.AcceptBareLineFeed`; otherwise it throws `IcalFileException`. A bare
 carriage return is never a line break: it stays in the line, where parsing rejects
-it. The last line need not end with a line break. Line breaks never depend on
+it. The last line ends with a line break too, as the `contentline` rule of RFC 5545
+§3.1 requires; without one it throws `IcalFileException`, unless
+`IcalOptions.AcceptMissingFinalLineBreak` is set. Line breaks never depend on
 `Environment.NewLine`. A fold is a line break followed by one space or tab; both are
 removed.
 
@@ -91,9 +104,9 @@ complete synchronously when the buffer already holds the whole line.
 
 | Constructor | Notes |
 | --- | --- |
-| `IcalContentLineReader(Stream icalStream)` | Reads as UTF-8 unless the stream starts with a byte order mark. The stream is left open. Throws `ArgumentNullException` if `icalStream` is `null`, or `ArgumentException` if the stream cannot be read. |
+| `IcalContentLineReader(Stream icalStream)` | Reads as UTF-8. The stream is left open. Throws `ArgumentNullException` if `icalStream` is `null`, or `ArgumentException` if the stream cannot be read. |
 | `IcalContentLineReader(Stream icalStream, IcalOptions options)` | Honours `options.Encoding`. Throws `ArgumentNullException` if `icalStream` or `options` is `null`, or `ArgumentException` if the stream cannot be read or `options.MaxLineLength` is less than 1. |
-| `IcalContentLineReader(string icalFilePath)` | *(netstandard2.0+/.NET)* Opens the file for asynchronous, sequential reading with a 16 KB `FileStream` buffer and reads it as UTF-8 unless it starts with a byte order mark. Throws `ArgumentNullException` if `icalFilePath` is `null`. File system errors come from `FileStream`. |
+| `IcalContentLineReader(string icalFilePath)` | *(netstandard2.0+/.NET)* Opens the file for asynchronous, sequential reading with a 16 KB `FileStream` buffer and reads it as UTF-8. Throws `ArgumentNullException` if `icalFilePath` is `null`. File system errors come from `FileStream`. |
 | `IcalContentLineReader(string icalFilePath, IcalOptions options)` | *(netstandard2.0+/.NET)* Honours `options.Encoding`. Throws `ArgumentNullException` if `icalFilePath` or `options` is `null`, or `ArgumentException` if `options.MaxLineLength` is less than 1. |
 | `IcalContentLineReader(TextReader reader)` | The text reader is left open. Throws `ArgumentNullException` if `reader` is `null`. |
 | `IcalContentLineReader(TextReader reader, IcalOptions options)` | Throws `ArgumentNullException` if `reader` or `options` is `null`, or `ArgumentException` if `options.Encoding` is set or `options.MaxLineLength` is less than 1. |
@@ -112,7 +125,7 @@ complete synchronously when the buffer already holds the whole line.
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `ReadContentLine()` | `bool` | Reads the next line without allocation and makes it current. `false` at the end of the data. Throws `IcalFileException` for a line that is not valid, a bare line feed that is not accepted, or a line longer than `MaxLineLength`; `ObjectDisposedException` after `Dispose`; `InvalidOperationException` if another read is in progress, or an earlier read found a line break or line length error or was canceled. |
+| `ReadContentLine()` | `bool` | Reads the next line without allocation and makes it current. `false` at the end of the data. Throws `IcalFileException` for a line that is not valid, a bare line feed or missing final line break that is not accepted, a line longer than `MaxLineLength`, or data from a stream or file that can't be decoded; `ObjectDisposedException` after `Dispose`; `InvalidOperationException` if another read is in progress, or an earlier read found a line break, line length or decoding error, its source threw, or it was canceled. |
 | `ReadLine()` | `IcalContentLine?` | Reads the next line as an allocated `IcalContentLine`, or `null` at the end of the data. The line is also current. Throws as `ReadContentLine`. |
 | `ReadLines()` | `IEnumerable<IcalContentLine>` | The remaining lines, read as the sequence is enumerated. Throws `ObjectDisposedException` from the call itself if the reader is disposed; during enumeration, throws as `ReadLine`. |
 | `Dispose()` | `void` | Returns the pooled buffers and closes a stream or file the reader opened itself. Calling it again has no effect. |

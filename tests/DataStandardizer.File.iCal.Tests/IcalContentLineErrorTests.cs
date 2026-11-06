@@ -17,7 +17,7 @@ namespace DataStandardizer.File.iCal.Tests
         // ref. RFC 5545 §3.1: U+0001 is a CONTROL character, which no value may hold.
         private const string ControlCharacter = "\x01";
         private const string InvalidName = "A B";
-        private const string MalformedTextValue = "A:\\x";
+        private const string MalformedTextValue = "A:\\x\r\n";
 
         private const int MaxLineLength = 1;
         private const long FirstLine = 1L;

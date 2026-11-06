@@ -16,10 +16,10 @@ namespace DataStandardizer.File.iCal.IntegrationTests
         private const string CafeWithAcute = "Caf\xE9";
         private const string EuroSign = "\x20AC";
 
-        // ref. RFC 5545 §3.1: "SUMMARY:" and the euro sign in UTF-8, E2 82 AC, folded between its second and third octets.
+        // ref. RFC 5545 §3.1: "SUMMARY:" and the euro sign in UTF-8, E2 82 AC, folded between its second and third octets, and a line break.
         private static readonly byte[] FoldInsideEuroSign =
         {
-            0x53, 0x55, 0x4D, 0x4D, 0x41, 0x52, 0x59, 0x3A, 0xE2, 0x82, 0x0D, 0x0A, 0x20, 0xAC
+            0x53, 0x55, 0x4D, 0x4D, 0x41, 0x52, 0x59, 0x3A, 0xE2, 0x82, 0x0D, 0x0A, 0x20, 0xAC, 0x0D, 0x0A
         };
 
         // "SUMMARY:A" and a line break.

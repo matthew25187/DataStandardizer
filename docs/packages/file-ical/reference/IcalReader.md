@@ -31,8 +31,11 @@ public sealed class IcalReader : IDisposable
 
 The data is read with an [IcalContentLineReader](IcalContentLineReader.md), so the same
 constructors, encodings, options and content line rules apply: CRLF line breaks
-unless `IcalOptions.AcceptBareLineFeed` is set, unfolding, RFC 6868 caret decoding of
-parameter values, and `IcalOptions.MaxLineLength`. A caller-supplied `Stream` or
+unless `IcalOptions.AcceptBareLineFeed` is set, including after the last line unless
+`IcalOptions.AcceptMissingFinalLineBreak` is set; no byte order mark unless
+`IcalOptions.AcceptByteOrderMark` is set; strict UTF-8 unless `IcalOptions.Encoding`
+is set; unfolding, RFC 6868 caret decoding of parameter values, and
+`IcalOptions.MaxLineLength`. A caller-supplied `Stream` or
 `TextReader` is left open when the reader is disposed.
 
 **Structure.** Each `BEGIN` line must be matched by an `END` line, and components must
@@ -89,9 +92,9 @@ buffers already hold the whole calendar.
 
 | Constructor | Notes |
 | --- | --- |
-| `IcalReader(Stream icalStream)` | Reads as UTF-8 unless the stream starts with a byte order mark. The stream is left open. Throws `ArgumentNullException` if `icalStream` is `null`, or `ArgumentException` if the stream cannot be read. |
+| `IcalReader(Stream icalStream)` | Reads as UTF-8. The stream is left open. Throws `ArgumentNullException` if `icalStream` is `null`, or `ArgumentException` if the stream cannot be read. |
 | `IcalReader(Stream icalStream, IcalOptions options)` | Throws `ArgumentNullException` if `icalStream` or `options` is `null`, or `ArgumentException` if the stream cannot be read or `options.MaxLineLength` is less than 1. |
-| `IcalReader(string icalFilePath)` | *(netstandard2.0+/.NET)* Opens the file for asynchronous, sequential reading, and reads it as UTF-8 unless it starts with a byte order mark. Throws `ArgumentNullException` if `icalFilePath` is `null`. File system errors come from `FileStream`. |
+| `IcalReader(string icalFilePath)` | *(netstandard2.0+/.NET)* Opens the file for asynchronous, sequential reading, and reads it as UTF-8. Throws `ArgumentNullException` if `icalFilePath` is `null`. File system errors come from `FileStream`. |
 | `IcalReader(string icalFilePath, IcalOptions options)` | *(netstandard2.0+/.NET)* Throws `ArgumentNullException` if `icalFilePath` or `options` is `null`, or `ArgumentException` if `options.MaxLineLength` is less than 1. |
 | `IcalReader(TextReader reader)` | The text reader is left open. Throws `ArgumentNullException` if `reader` is `null`. |
 | `IcalReader(TextReader reader, IcalOptions options)` | Throws `ArgumentNullException` if `reader` or `options` is `null`, or `ArgumentException` if `options.Encoding` is set or `options.MaxLineLength` is less than 1. |

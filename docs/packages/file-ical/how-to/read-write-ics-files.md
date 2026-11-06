@@ -51,7 +51,15 @@ if (calendar is null)
 
 Each constructor has an overload that takes an `IcalOptions`. A file or stream is
 read as UTF-8, the default charset of RFC 5545, or in `IcalOptions.Encoding` if you
-set it. A byte order mark at the start of the data takes precedence over both.
+set it. Data that isn't valid UTF-8 throws `IcalFileException`; set
+`IcalOptions.Encoding` to `Encoding.UTF8` to replace it with U+FFFD instead.
+
+A byte order mark never selects the encoding. RFC 5545 has no place for one, so a
+byte order mark at the start of the data throws `IcalFileException` unless you set
+`IcalOptions.AcceptByteOrderMark`. To read a UTF-16 file, set both
+`IcalOptions.Encoding` to `Encoding.Unicode` and, if the file starts with one,
+`IcalOptions.AcceptByteOrderMark`. The last line must end with CRLF too; set
+`IcalOptions.AcceptMissingFinalLineBreak` to read a file whose last line doesn't.
 
 When the data comes from a file or stream as UTF-8, a fold that splits a multi-byte
 character is repaired before decoding. A `TextReader` has already decoded the data,

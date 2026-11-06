@@ -33,6 +33,43 @@ namespace DataStandardizer.File.iCal
         }
 
         /// <summary>
+        /// Gets a flag indicating if a byte order mark is accepted, and skipped, at the start of the data.
+        /// </summary>
+        /// <remarks>
+        /// The <c>icalstream</c> rule of RFC 5545 §3.6 starts with <c>BEGIN:VCALENDAR</c>, and RFC 3629 §6 says a protocol that mandates UTF-8 should
+        /// forbid the signature.  When <c>false</c> (the default), a byte order mark is a character in the first line, which causes an
+        /// <see cref="IcalFileException"/>.  A byte order mark never selects the encoding; see <see cref="Encoding"/>.  Ignored by a writer, which
+        /// doesn't write one unless <see cref="Encoding"/> has a preamble, and by <see cref="XcalReader"/> and <c>JcalReader</c>, whose formats
+        /// have their own rules.
+        /// </remarks>
+        public bool AcceptByteOrderMark
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
+        /// Gets a flag indicating if the last content line may end without a line break.
+        /// </summary>
+        /// <remarks>
+        /// The <c>contentline</c> rule of RFC 5545 §3.1 ends with CRLF, including on the last line.  When <c>false</c> (the default), a last line
+        /// without one causes an <see cref="IcalFileException"/>.  Ignored by a writer, which always ends the last line with a line break.
+        /// </remarks>
+        public bool AcceptMissingFinalLineBreak
+        {
+            get;
+#if NET5_0_OR_GREATER
+            init;
+#else
+            set;
+#endif
+        }
+
+        /// <summary>
         /// Gets a flag indicating if a property value that does not follow the syntax of its value type is accepted.
         /// </summary>
         /// <remarks>
@@ -150,11 +187,23 @@ namespace DataStandardizer.File.iCal
         /// Gets the encoding for the iCalendar data.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// Applies only when the reader or writer is created from a <see cref="System.IO.Stream"/> or file path.  When <c>null</c> (the default),
-        /// UTF-8 is used, which is the default charset of RFC 5545 §3.1.4.  A reader lets a byte order mark in the data take precedence.  A writer
-        /// writes UTF-8 without a byte order mark.  The exception is <see cref="XcalReader"/>, which, when this is <c>null</c>, takes the encoding
-        /// from the XML document itself: from its byte order mark or XML declaration, and otherwise UTF-8.  <c>JcalReader</c> and
-        /// <c>JcalWriter</c> accept only <c>null</c> or a UTF-8 encoding, since jCal is always UTF-8.
+        /// the data is strict UTF-8, the default charset of RFC 5545 §3.1.4.  A byte sequence that is not valid UTF-8 causes an
+        /// <see cref="IcalFileException"/>, and a byte order mark doesn't change the encoding; see <see cref="AcceptByteOrderMark"/>.  A writer
+        /// writes strict UTF-8 with no byte order mark.
+        /// </para>
+        /// <para>
+        /// Another encoding is used with its own fallback: <see cref="System.Text.Encoding.UTF8"/> replaces invalid data instead of rejecting it.
+        /// A reader never removes the encoding's preamble, so a byte order mark is still accepted only by <see cref="AcceptByteOrderMark"/>.  A
+        /// decoder that throws <see cref="DecoderFallbackException"/> gives an <see cref="IcalFileException"/>.  A writer writes the encoding's
+        /// preamble, if it has one, at the start of the data.
+        /// </para>
+        /// <para>
+        /// The exception is <see cref="XcalReader"/>, which, when this is <c>null</c>, takes the encoding from the XML document itself: from its
+        /// byte order mark or XML declaration, and otherwise UTF-8.  <c>JcalReader</c> and <c>JcalWriter</c> accept only <c>null</c> or a UTF-8
+        /// encoding, since jCal is always UTF-8.
+        /// </para>
         /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public Encoding? Encoding

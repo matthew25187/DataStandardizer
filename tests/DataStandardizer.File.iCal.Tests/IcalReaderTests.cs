@@ -41,6 +41,14 @@ namespace DataStandardizer.File.iCal.Tests
 
         private static readonly string GoogleExportWithBareLineFeeds = CalendarFixtures.GoogleExport.Replace("\r\n", "\n");
 
+        // ref. RFC 5545 §3.1 and §3.6: a calendar of one event whose last line, END:VCALENDAR, has no line break.
+        private const string CalendarWithoutFinalLineBreak = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Example//EN\r\nBEGIN:VEVENT\r\n" +
+            "UID:1@example.com\r\nDTSTAMP:20260101T000000Z\r\nDTSTART:20260101T000000Z\r\nEND:VEVENT\r\nEND:VCALENDAR";
+
+        // The same calendar with its final line break, after U+FEFF, the byte order mark as a character.
+        private const string CalendarAfterByteOrderMark = "\xFEFFBEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Example//EN\r\nBEGIN:VEVENT\r\n" +
+            "UID:1@example.com\r\nDTSTAMP:20260101T000000Z\r\nDTSTART:20260101T000000Z\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+
         // Three VEVENTs, each followed by a VTODO; the third VEVENT has two SUMMARY properties.
         private static readonly string SiblingComponents = Calendar(
             BeginEvent, "UID:1@example.com", NewYearStamp, NewYearStartUtc, "SUMMARY:Other", "COMMENT:-", EndEvent,
@@ -842,6 +850,46 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             testResult.Should().ContainSingle().Which.Events.Should().HaveCount(2);
+        }
+
+        [Fact]
+        public void ReadCalendar_NoFinalLineBreakByDefault_Throws()
+        {
+            // act
+            Action testAction = () => ReadCalendars(CalendarWithoutFinalLineBreak);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>();
+        }
+
+        [Fact]
+        public void ReadCalendar_NoFinalLineBreakAccepted_ReadsTheCalendar()
+        {
+            // act
+            var testResult = ReadCalendars(CalendarWithoutFinalLineBreak, new IcalOptions { AcceptMissingFinalLineBreak = true });
+
+            // assert
+            testResult.Should().ContainSingle().Which.Events.Should().ContainSingle();
+        }
+
+        [Fact]
+        public void ReadCalendar_ByteOrderMarkByDefault_Throws()
+        {
+            // act
+            Action testAction = () => ReadCalendars(CalendarAfterByteOrderMark);
+
+            // assert
+            testAction.Should().Throw<IcalFileException>();
+        }
+
+        [Fact]
+        public void ReadCalendar_ByteOrderMarkAccepted_ReadsTheCalendar()
+        {
+            // act
+            var testResult = ReadCalendars(CalendarAfterByteOrderMark, new IcalOptions { AcceptByteOrderMark = true });
+
+            // assert
+            testResult.Should().ContainSingle().Which.Events.Should().ContainSingle();
         }
 
         [Fact]
