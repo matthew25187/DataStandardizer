@@ -350,8 +350,10 @@ that return the same metadata, and marked the extension methods and the attribut
 | `TzDataTimezoneAttribute`, read from a field by reflection | The four properties above, read from the field's value |
 | `TzDataTimezoneAttribute.Comment`, `IsoCountryCodes`, `Latitude` and `Longitude` | The property of `TzDataTimezone` with the same name |
 
-The time zone fields no longer carry any attribute, so `GetCustomAttribute` returns
-`null` for them.
+Code that names the attribute type, such as
+`field.GetCustomAttribute<TzDataTimezoneAttribute>()`, no longer compiles. The
+time zone fields no longer carry any attribute, so code that finds it without
+naming the type, such as through `field.CustomAttributes`, finds nothing.
 
 The properties differ from the removed methods in two ways:
 

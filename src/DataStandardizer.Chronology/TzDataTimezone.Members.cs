@@ -266,9 +266,9 @@ namespace DataStandardizer.Chronology
         }
 
         /// <summary>
-        /// Finds the timezone field with the same identifier as the timezone.
+        /// Finds the registry entry of the timezone field with the same identifier as the timezone.
         /// </summary>
-        /// <param name="entry">The field and its zone lines, if found.</param>
+        /// <param name="entry">The timezone of the field, with its zone lines, link target and location, if found.</param>
         /// <returns><see langword="true"/> if the field was found; otherwise, <see langword="false"/>, including for the default value.</returns>
 #if NETCOREAPP3_0_OR_GREATER
         internal bool TryGetRegistryEntry([System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out RegistryEntry? entry)
@@ -391,7 +391,7 @@ namespace DataStandardizer.Chronology
         }
 
         /// <summary>
-        /// A timezone field, with its value, zone lines, link target and location.
+        /// The timezone of a timezone field, with its zone lines, link target and location.
         /// </summary>
         internal sealed class RegistryEntry
         {
