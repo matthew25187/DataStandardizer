@@ -53,14 +53,14 @@ namespace DataStandardizer.Money
 
             internal static readonly decimal[] PowersOfTen = CreatePowersOfTen();
 
-            internal static readonly decimal[] Int64Minimum = CreateBounds(9223372036854775808UL, true);
-            internal static readonly decimal[] Int64Maximum = CreateBounds((ulong)long.MaxValue, false);
-            internal static readonly decimal[] Int32Minimum = CreateBounds(2147483648UL, true);
-            internal static readonly decimal[] Int32Maximum = CreateBounds((ulong)int.MaxValue, false);
-            internal static readonly decimal[] Int16Minimum = CreateBounds(32768UL, true);
-            internal static readonly decimal[] Int16Maximum = CreateBounds((ulong)short.MaxValue, false);
-            internal static readonly decimal[] SByteMinimum = CreateBounds(128UL, true);
-            internal static readonly decimal[] SByteMaximum = CreateBounds((ulong)sbyte.MaxValue, false);
+            internal static readonly decimal[] Int64Minimum = CreateBounds(long.MinValue);
+            internal static readonly decimal[] Int64Maximum = CreateBounds(long.MaxValue);
+            internal static readonly decimal[] Int32Minimum = CreateBounds(int.MinValue);
+            internal static readonly decimal[] Int32Maximum = CreateBounds(int.MaxValue);
+            internal static readonly decimal[] Int16Minimum = CreateBounds(short.MinValue);
+            internal static readonly decimal[] Int16Maximum = CreateBounds(short.MaxValue);
+            internal static readonly decimal[] SByteMinimum = CreateBounds(sbyte.MinValue);
+            internal static readonly decimal[] SByteMaximum = CreateBounds(sbyte.MaxValue);
 
             private static decimal[] CreatePowersOfTen()
             {
@@ -74,8 +74,11 @@ namespace DataStandardizer.Money
                 return result;
             }
 
-            private static decimal[] CreateBounds(ulong magnitude, bool isNegative)
+            private static decimal[] CreateBounds(long limit)
             {
+                // The magnitude of long.MinValue isn't a long, so it is taken one less and incremented as a ulong.
+                var isNegative = limit < 0;
+                var magnitude = isNegative ? (ulong)(-(limit + 1)) + 1UL : (ulong)limit;
                 var low = unchecked((int)(uint)magnitude);
                 var middle = unchecked((int)(uint)(magnitude >> 32));
                 var result = new decimal[MaxDigits + 1];
@@ -174,10 +177,12 @@ namespace DataStandardizer.Money
         /// The amount is never truncated or rounded to make it a whole number of minor units.
         /// </para>
         /// <para>
-        /// This differs from the other numeric conversions, which give the amount itself: <c>(decimal)value</c>,
-        /// <c>(double)value</c>, <c>(float)value</c> and the <see cref="IConvertible"/> members, such as
-        /// <see cref="Convert.ToInt64(object)"/>. To truncate the amount to an integer, convert through
-        /// <see cref="decimal"/>, as in <c>(long)(decimal)value</c>.
+        /// This differs from the other numeric conversions, which don't scale the amount. <c>(decimal)value</c>,
+        /// <c>(double)value</c> and <c>(float)value</c> give the rounded amount. <c>Convert.ToInt64(value)</c> binds to
+        /// <see cref="Convert.ToInt64(decimal)"/> and converts the rounded amount, while the <see cref="IConvertible"/>
+        /// members, which <see cref="Convert.ToInt64(object)"/> calls, convert the amount before rounding. Both round
+        /// a fraction to the nearest integer, with ties to even. To truncate the rounded amount to an integer,
+        /// convert through <see cref="decimal"/>, as in <c>(long)(decimal)value</c>.
         /// </para>
         /// </remarks>
         /// <exception cref="InvalidCastException">
@@ -208,10 +213,12 @@ namespace DataStandardizer.Money
         /// The amount is never truncated or rounded to make it a whole number of minor units.
         /// </para>
         /// <para>
-        /// This differs from the other numeric conversions, which give the amount itself: <c>(decimal)value</c>,
-        /// <c>(double)value</c>, <c>(float)value</c> and the <see cref="IConvertible"/> members, such as
-        /// <see cref="Convert.ToInt32(object)"/>. To truncate the amount to an integer, convert through
-        /// <see cref="decimal"/>, as in <c>(int)(decimal)value</c>.
+        /// This differs from the other numeric conversions, which don't scale the amount. <c>(decimal)value</c>,
+        /// <c>(double)value</c> and <c>(float)value</c> give the rounded amount. <c>Convert.ToInt32(value)</c> binds to
+        /// <see cref="Convert.ToInt32(decimal)"/> and converts the rounded amount, while the <see cref="IConvertible"/>
+        /// members, which <see cref="Convert.ToInt32(object)"/> calls, convert the amount before rounding. Both round
+        /// a fraction to the nearest integer, with ties to even. To truncate the rounded amount to an integer,
+        /// convert through <see cref="decimal"/>, as in <c>(int)(decimal)value</c>.
         /// </para>
         /// </remarks>
         /// <exception cref="InvalidCastException">
@@ -242,10 +249,12 @@ namespace DataStandardizer.Money
         /// The amount is never truncated or rounded to make it a whole number of minor units.
         /// </para>
         /// <para>
-        /// This differs from the other numeric conversions, which give the amount itself: <c>(decimal)value</c>,
-        /// <c>(double)value</c>, <c>(float)value</c> and the <see cref="IConvertible"/> members, such as
-        /// <see cref="Convert.ToInt16(object)"/>. To truncate the amount to an integer, convert through
-        /// <see cref="decimal"/>, as in <c>(short)(decimal)value</c>.
+        /// This differs from the other numeric conversions, which don't scale the amount. <c>(decimal)value</c>,
+        /// <c>(double)value</c> and <c>(float)value</c> give the rounded amount. <c>Convert.ToInt16(value)</c> binds to
+        /// <see cref="Convert.ToInt16(decimal)"/> and converts the rounded amount, while the <see cref="IConvertible"/>
+        /// members, which <see cref="Convert.ToInt16(object)"/> calls, convert the amount before rounding. Both round
+        /// a fraction to the nearest integer, with ties to even. To truncate the rounded amount to an integer,
+        /// convert through <see cref="decimal"/>, as in <c>(short)(decimal)value</c>.
         /// </para>
         /// </remarks>
         /// <exception cref="InvalidCastException">
@@ -275,10 +284,12 @@ namespace DataStandardizer.Money
         /// The amount is never truncated or rounded to make it a whole number of minor units.
         /// </para>
         /// <para>
-        /// This differs from the other numeric conversions, which give the amount itself: <c>(decimal)value</c>,
-        /// <c>(double)value</c>, <c>(float)value</c> and the <see cref="IConvertible"/> members, such as
-        /// <see cref="Convert.ToSByte(object)"/>. To truncate the amount to an integer, convert through
-        /// <see cref="decimal"/>, as in <c>(sbyte)(decimal)value</c>.
+        /// This differs from the other numeric conversions, which don't scale the amount. <c>(decimal)value</c>,
+        /// <c>(double)value</c> and <c>(float)value</c> give the rounded amount. <c>Convert.ToSByte(value)</c> binds to
+        /// <see cref="Convert.ToSByte(decimal)"/> and converts the rounded amount, while the <see cref="IConvertible"/>
+        /// members, which <see cref="Convert.ToSByte(object)"/> calls, convert the amount before rounding. Both round
+        /// a fraction to the nearest integer, with ties to even. To truncate the rounded amount to an integer,
+        /// convert through <see cref="decimal"/>, as in <c>(sbyte)(decimal)value</c>.
         /// </para>
         /// </remarks>
         /// <exception cref="InvalidCastException">
@@ -395,7 +406,7 @@ namespace DataStandardizer.Money
         /// <returns>The amount in minor units, which is within range of the target type.</returns>
         private static long ConvertToMinorUnits(Money value, decimal[] minimum, decimal[] maximum, string targetTypeName)
         {
-            switch (TryScale(value, value.CurrencyMinorUnits, minimum, maximum, out var result))
+            switch (TryScale((decimal)value, value.CurrencyMinorUnits, minimum, maximum, out var result))
             {
                 case MinorUnitsScaling.Success:
                     return result;
@@ -411,17 +422,18 @@ namespace DataStandardizer.Money
         /// <summary>
         /// Scale an amount to the minor units of its currency.
         /// </summary>
-        /// <param name="amount">The amount to scale.</param>
+        /// <param name="roundedAmount">The amount to scale, with the rounding of the monetary value already applied, as <c>(decimal)value</c> gives it.</param>
         /// <param name="digits">The number of minor-unit digits of the currency, or <c>null</c> if it has no minor units.</param>
         /// <param name="minimum">The least amount, for each number of minor-unit digits, that is within range of the target type.</param>
         /// <param name="maximum">The greatest amount, for each number of minor-unit digits, that is within range of the target type.</param>
         /// <param name="result">When this method returns, the amount in minor units if it was scaled; otherwise zero.</param>
         /// <returns>Whether the amount was scaled, or why it wasn't.</returns>
         /// <remarks>
-        /// The range is checked before the amount is multiplied, so the multiplication can't overflow and is
-        /// exact, and the result is within range of the target type.
+        /// An amount that isn't a whole number of minor units is reported as fractional whatever its size, so
+        /// the outcome doesn't depend on the target type. The range is checked before the amount is multiplied,
+        /// so the multiplication can't overflow and is exact, and the result is within range of the target type.
         /// </remarks>
-        private static MinorUnitsScaling TryScale(decimal amount, byte? digits, decimal[] minimum, decimal[] maximum, out long result)
+        private static MinorUnitsScaling TryScale(decimal roundedAmount, byte? digits, decimal[] minimum, decimal[] maximum, out long result)
         {
             result = 0;
 
@@ -438,17 +450,17 @@ namespace DataStandardizer.Money
                 return MinorUnitsScaling.Overflow;
             }
 
-            if (amount < minimum[useDigits] || amount > maximum[useDigits])
-            {
-                return MinorUnitsScaling.Overflow;
-            }
-
-            var scaled = amount * MinorUnitsScale.PowersOfTen[useDigits];
-            if (decimal.Truncate(scaled) != scaled)
+            if (Math.Round(roundedAmount, useDigits) != roundedAmount)
             {
                 return MinorUnitsScaling.Fractional;
             }
 
+            if (roundedAmount < minimum[useDigits] || roundedAmount > maximum[useDigits])
+            {
+                return MinorUnitsScaling.Overflow;
+            }
+
+            var scaled = roundedAmount * MinorUnitsScale.PowersOfTen[useDigits];
             result = decimal.ToInt64(scaled);
             return MinorUnitsScaling.Success;
         }

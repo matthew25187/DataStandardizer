@@ -108,9 +108,10 @@ See [Format money values](../how-to/format-money-values.md) and
 
 `Money` implements `IConvertible` explicitly; each member delegates to the
 underlying `decimal` and is callable only through an `IConvertible` reference.
-The integer members, and `Convert.ToInt64` and its siblings, give the decimal
-amount converted to that type, not the amount in minor units that the integer
-casts give. *(netstandard2.0+/.NET)*
+The members convert the amount before any rounding the value carries, and the
+integer members round a fraction to the nearest integer, with ties to even.
+They don't give the amount in minor units that the integer casts give.
+*(netstandard2.0+/.NET)*
 
 | Method | Returns | Notes |
 | --- | --- | --- |
@@ -158,13 +159,20 @@ The amount converted is the rounded amount, `(decimal)money`, with the value's
 | Case | Result |
 | --- | --- |
 | The currency has no minor units: `XXX` (including `default(Money)` and a value created without a currency) or `XTS` | `InvalidCastException` |
-| The amount isn't a whole number of minor units, e.g. 1.005 USD | `InvalidCastException`. The amount is never truncated or rounded to fit. |
+| The amount isn't a whole number of minor units, e.g. 1.005 USD | `InvalidCastException`, whatever the size of the amount. The amount is never truncated or rounded to fit. |
 | The amount in minor units is outside the range of the target type | `OverflowException`, as the built-in numeric casts throw |
 
-The other conversions give the amount itself, not minor units: `decimal d = money`,
-`(decimal)money`, `(double)money`, `(float)money` and the `IConvertible` members,
-such as `Convert.ToInt64(money)`. To truncate the amount to an integer, convert
-through `decimal`, as in `(long)(decimal)money` or `(uint)(decimal)money`.
+The other conversions don't scale the amount:
+
+- `decimal d = money`, `(decimal)money`, `(double)money` and `(float)money` give
+  the rounded amount.
+- `Convert.ToInt64(money)` and its siblings bind to the `decimal` overloads, so
+  they convert the rounded amount. The `IConvertible` members, which
+  `Convert.ToInt64((object)money)` calls, convert the amount before rounding.
+  Both round a fraction to the nearest integer, with ties to even.
+
+To truncate the rounded amount to an integer, convert through `decimal`, as in
+`(long)(decimal)money` or `(uint)(decimal)money`.
 
 There's no conversion from an integer to `Money`, because a cast can't carry the
 currency that sets the scale. Create the value from a `decimal` instead.

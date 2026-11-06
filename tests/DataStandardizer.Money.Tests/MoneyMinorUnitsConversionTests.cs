@@ -14,9 +14,33 @@ namespace DataStandardizer.Money.Tests
 
         // ISO 4217 List One gives the US Dollar two minor units, so 1.005 USD is not a whole number of cents.
         private const decimal FractionalUsDollarAmount = 1.005m;
+        private const decimal NegativeFractionalUsDollarAmount = -1.005m;
 
         // An amount in US Dollars that converts to 1234 cents, and whose decimal value is 12.34.
         private const decimal UsDollarAmount = 12.34m;
+        private const decimal UsDollarAmountWithTrailingZeros = 12.3400m;
+        private const decimal NegativeUsDollarAmount = -12.34m;
+        private const double UsDollarAmountAsDouble = 12.34d;
+        private const int UsDollarAmountInCents = 1234;
+        private const int NegativeUsDollarAmountInCents = -1234;
+
+        // An amount in US Dollars midway between two cents, which rounding to two places resolves.
+        private const decimal MidpointUsDollarAmount = 12.345m;
+
+        // ISO 4217 List One gives the Yen no minor units, so an amount in Yen is its own amount in minor units.
+        private const decimal YenAmount = 500m;
+        private const int YenAmountInMinorUnits = 500;
+
+        // ISO 4217 List One gives the Bahraini Dinar three minor units (fils).
+        private const decimal BahrainiDinarAmount = 1.234m;
+        private const int BahrainiDinarAmountInFils = 1234;
+
+        // ISO 4217 List One gives the Unidad de Fomento four minor units.
+        private const decimal UnidadDeFomentoAmount = 1.2345m;
+        private const int UnidadDeFomentoAmountInMinorUnits = 12345;
+
+        private const decimal ZeroAmount = 0m;
+        private const int ZeroMinorUnits = 0;
 
         [Theory]
         [MemberData(nameof(Int64ConversionTestCases))]
@@ -35,16 +59,16 @@ namespace DataStandardizer.Money.Tests
         public static TheoryData<decimal, Iso4217CurrencyCurrent, long> Int64ConversionTestCases => new()
         {
             // ISO 4217 List One: JPY has 0 minor-unit digits, USD 2, BHD 3 and CLF 4.
-            { 500m, Iso4217CurrencyCurrent.JPY, 500L },
-            { 12.34m, Iso4217CurrencyCurrent.USD, 1234L },
-            { 1.234m, Iso4217CurrencyCurrent.BHD, 1234L },
-            { 1.2345m, Iso4217CurrencyCurrent.CLF, 12345L },
-            { -12.34m, Iso4217CurrencyCurrent.USD, -1234L },
+            { YenAmount, Iso4217CurrencyCurrent.JPY, YenAmountInMinorUnits },
+            { UsDollarAmount, Iso4217CurrencyCurrent.USD, UsDollarAmountInCents },
+            { BahrainiDinarAmount, Iso4217CurrencyCurrent.BHD, BahrainiDinarAmountInFils },
+            { UnidadDeFomentoAmount, Iso4217CurrencyCurrent.CLF, UnidadDeFomentoAmountInMinorUnits },
+            { NegativeUsDollarAmount, Iso4217CurrencyCurrent.USD, NegativeUsDollarAmountInCents },
             { -500m, Iso4217CurrencyCurrent.JPY, -500L },
-            { 0m, Iso4217CurrencyCurrent.USD, 0L },
-            { 0m, Iso4217CurrencyCurrent.JPY, 0L },
+            { ZeroAmount, Iso4217CurrencyCurrent.USD, ZeroMinorUnits },
+            { ZeroAmount, Iso4217CurrencyCurrent.JPY, ZeroMinorUnits },
             // Trailing zeros give the amount a larger scale than the currency's minor units.
-            { 12.3400m, Iso4217CurrencyCurrent.USD, 1234L },
+            { UsDollarAmountWithTrailingZeros, Iso4217CurrencyCurrent.USD, UsDollarAmountInCents },
             { 500.000m, Iso4217CurrencyCurrent.JPY, 500L },
             { 1.2340m, Iso4217CurrencyCurrent.BHD, 1234L },
             // An amount with fewer decimal places than the currency's minor units.
@@ -75,13 +99,13 @@ namespace DataStandardizer.Money.Tests
 
         public static TheoryData<decimal, Iso4217CurrencyCurrent, int> Int32ConversionTestCases => new()
         {
-            { 500m, Iso4217CurrencyCurrent.JPY, 500 },
-            { 12.34m, Iso4217CurrencyCurrent.USD, 1234 },
-            { 1.234m, Iso4217CurrencyCurrent.BHD, 1234 },
-            { 1.2345m, Iso4217CurrencyCurrent.CLF, 12345 },
-            { -12.34m, Iso4217CurrencyCurrent.USD, -1234 },
-            { 0m, Iso4217CurrencyCurrent.USD, 0 },
-            { 12.3400m, Iso4217CurrencyCurrent.USD, 1234 },
+            { YenAmount, Iso4217CurrencyCurrent.JPY, YenAmountInMinorUnits },
+            { UsDollarAmount, Iso4217CurrencyCurrent.USD, UsDollarAmountInCents },
+            { BahrainiDinarAmount, Iso4217CurrencyCurrent.BHD, BahrainiDinarAmountInFils },
+            { UnidadDeFomentoAmount, Iso4217CurrencyCurrent.CLF, UnidadDeFomentoAmountInMinorUnits },
+            { NegativeUsDollarAmount, Iso4217CurrencyCurrent.USD, NegativeUsDollarAmountInCents },
+            { ZeroAmount, Iso4217CurrencyCurrent.USD, ZeroMinorUnits },
+            { UsDollarAmountWithTrailingZeros, Iso4217CurrencyCurrent.USD, UsDollarAmountInCents },
             // The exact boundaries of the range of int.
             { 21474836.47m, Iso4217CurrencyCurrent.USD, int.MaxValue },
             { -21474836.48m, Iso4217CurrencyCurrent.USD, int.MinValue },
@@ -105,13 +129,13 @@ namespace DataStandardizer.Money.Tests
 
         public static TheoryData<decimal, Iso4217CurrencyCurrent, short> Int16ConversionTestCases => new()
         {
-            { 500m, Iso4217CurrencyCurrent.JPY, 500 },
-            { 12.34m, Iso4217CurrencyCurrent.USD, 1234 },
-            { 1.234m, Iso4217CurrencyCurrent.BHD, 1234 },
-            { 1.2345m, Iso4217CurrencyCurrent.CLF, 12345 },
-            { -12.34m, Iso4217CurrencyCurrent.USD, -1234 },
-            { 0m, Iso4217CurrencyCurrent.USD, 0 },
-            { 12.3400m, Iso4217CurrencyCurrent.USD, 1234 },
+            { YenAmount, Iso4217CurrencyCurrent.JPY, YenAmountInMinorUnits },
+            { UsDollarAmount, Iso4217CurrencyCurrent.USD, UsDollarAmountInCents },
+            { BahrainiDinarAmount, Iso4217CurrencyCurrent.BHD, BahrainiDinarAmountInFils },
+            { UnidadDeFomentoAmount, Iso4217CurrencyCurrent.CLF, UnidadDeFomentoAmountInMinorUnits },
+            { NegativeUsDollarAmount, Iso4217CurrencyCurrent.USD, NegativeUsDollarAmountInCents },
+            { ZeroAmount, Iso4217CurrencyCurrent.USD, ZeroMinorUnits },
+            { UsDollarAmountWithTrailingZeros, Iso4217CurrencyCurrent.USD, UsDollarAmountInCents },
             // The exact boundaries of the range of short.
             { 327.67m, Iso4217CurrencyCurrent.USD, short.MaxValue },
             { -327.68m, Iso4217CurrencyCurrent.USD, short.MinValue },
@@ -140,7 +164,7 @@ namespace DataStandardizer.Money.Tests
             { 0.123m, Iso4217CurrencyCurrent.BHD, 123 },
             { 0.0123m, Iso4217CurrencyCurrent.CLF, 123 },
             { -1.23m, Iso4217CurrencyCurrent.USD, -123 },
-            { 0m, Iso4217CurrencyCurrent.USD, 0 },
+            { ZeroAmount, Iso4217CurrencyCurrent.USD, ZeroMinorUnits },
             { 1.2300m, Iso4217CurrencyCurrent.USD, 123 },
             // The exact boundaries of the range of sbyte.
             { 1.27m, Iso4217CurrencyCurrent.USD, sbyte.MaxValue },
@@ -167,11 +191,11 @@ namespace DataStandardizer.Money.Tests
         {
             // Without a rounding method, the amount is rounded to the nearest even digit.
             { FractionalUsDollarAmount, Iso4217CurrencyCurrent.USD, 2, 100L },
-            { 12.345m, Iso4217CurrencyCurrent.USD, 2, 1234L },
+            { MidpointUsDollarAmount, Iso4217CurrencyCurrent.USD, 2, 1234L },
             { 499.6m, Iso4217CurrencyCurrent.JPY, 0, 500L },
             { 1.23456m, Iso4217CurrencyCurrent.BHD, 3, 1235L },
             // A precision smaller than the currency's minor units.
-            { 12.34m, Iso4217CurrencyCurrent.USD, 1, 1230L },
+            { UsDollarAmount, Iso4217CurrencyCurrent.USD, 1, 1230L },
         };
 
         [Theory]
@@ -192,7 +216,7 @@ namespace DataStandardizer.Money.Tests
         {
             { FractionalUsDollarAmount, Iso4217CurrencyCurrent.USD, 2, MidpointRounding.AwayFromZero, 101L },
             { FractionalUsDollarAmount, Iso4217CurrencyCurrent.USD, 2, MidpointRounding.ToEven, 100L },
-            { -1.005m, Iso4217CurrencyCurrent.USD, 2, MidpointRounding.AwayFromZero, -101L },
+            { NegativeFractionalUsDollarAmount, Iso4217CurrencyCurrent.USD, 2, MidpointRounding.AwayFromZero, -101L },
         };
 
         [Fact]
@@ -227,7 +251,7 @@ namespace DataStandardizer.Money.Tests
         {
             { 0.5m, Iso4217CurrencyCurrent.JPY },
             { FractionalUsDollarAmount, Iso4217CurrencyCurrent.USD },
-            { -1.005m, Iso4217CurrencyCurrent.USD },
+            { NegativeFractionalUsDollarAmount, Iso4217CurrencyCurrent.USD },
             { 0.001m, Iso4217CurrencyCurrent.USD },
             { 1.2345m, Iso4217CurrencyCurrent.BHD },
             { 1.23456m, Iso4217CurrencyCurrent.CLF },
@@ -391,6 +415,52 @@ namespace DataStandardizer.Money.Tests
         };
 
         [Theory]
+        [MemberData(nameof(FractionalOutsideRangeTestCases))]
+        public void ExplicitSignedOperator_AmountFractionalAndOutsideRange_ThrowsInvalidCastException(Action<Money> testConversion, decimal testAmount, Iso4217CurrencyCurrent testCurrency)
+        {
+            // arrange
+            var testValue = Money.Create(testAmount, testCurrency);
+
+            // act
+            Action testAction = () => testConversion(testValue);
+
+            // assert
+            testAction.Should().Throw<InvalidCastException>(FractionalMinorUnitsReason);
+        }
+
+        public static TheoryData<Action<Money>, decimal, Iso4217CurrencyCurrent> FractionalOutsideRangeTestCases => new()
+        {
+            // Each amount lies between the target's boundary and the next whole number of minor units beyond it.
+            { value => _ = (long)value, 92233720368547758.075m, Iso4217CurrencyCurrent.USD },
+            { value => _ = (long)value, -92233720368547758.085m, Iso4217CurrencyCurrent.USD },
+            { value => _ = (long)value, 9223372036854775807.5m, Iso4217CurrencyCurrent.JPY },
+            { value => _ = (int)value, 21474836.475m, Iso4217CurrencyCurrent.USD },
+            { value => _ = (int)value, -21474836.485m, Iso4217CurrencyCurrent.USD },
+            { value => _ = (short)value, 327.675m, Iso4217CurrencyCurrent.USD },
+            { value => _ = (short)value, -327.685m, Iso4217CurrencyCurrent.USD },
+            { value => _ = (sbyte)value, 1.275m, Iso4217CurrencyCurrent.USD },
+            { value => _ = (sbyte)value, -1.285m, Iso4217CurrencyCurrent.USD },
+            { value => _ = (sbyte)value, 127.5m, Iso4217CurrencyCurrent.JPY },
+            // Far outside every range.
+            { value => _ = (sbyte)value, decimal.MaxValue / 1000m, Iso4217CurrencyCurrent.USD },
+        };
+
+        [Fact]
+        public void ExplicitNativeIntegerConversion_AmountIsWholeNumberOfMinorUnits_ReturnsMinorUnits()
+        {
+            // arrange
+            // C# resolves (nint)money through the explicit conversion to int.
+            const nint expectedResult = UsDollarAmountInCents;
+            var testValue = Money.Create(UsDollarAmount, Iso4217CurrencyCurrent.USD);
+
+            // act
+            var testResult = (nint)testValue;
+
+            // assert
+            testResult.Should().Be(expectedResult, MinorUnitsResultReason, expectedResult);
+        }
+
+        [Theory]
         [MemberData(nameof(UnsignedConversionTestCases))]
         public void ExplicitUnsignedOperator_ReachedDynamically_ThrowsInvalidCastException(Action<object> testConversion)
         {
@@ -417,7 +487,7 @@ namespace DataStandardizer.Money.Tests
         public void ExplicitDoubleOperator_MoneyValue_ReturnsAmount()
         {
             // arrange
-            const double expectedResult = 12.34d;
+            const double expectedResult = UsDollarAmountAsDouble;
             var testValue = Money.Create(UsDollarAmount, Iso4217CurrencyCurrent.USD);
 
             // act
@@ -431,8 +501,8 @@ namespace DataStandardizer.Money.Tests
         public void ExplicitDoubleOperator_MoneyValueWithRoundingPrecision_ReturnsRoundedAmount()
         {
             // arrange
-            const double expectedResult = 12.34d;
-            var testValue = Money.Create(12.345m, Iso4217CurrencyCurrent.USD, 2);
+            const double expectedResult = UsDollarAmountAsDouble;
+            var testValue = Money.Create(MidpointUsDollarAmount, Iso4217CurrencyCurrent.USD, 2);
 
             // act
             var testResult = (double)testValue;
@@ -459,7 +529,7 @@ namespace DataStandardizer.Money.Tests
         public void ExplicitDoubleOperator_NoCurrency_ReturnsAmount()
         {
             // arrange
-            const double expectedResult = 12.34d;
+            const double expectedResult = UsDollarAmountAsDouble;
             var testValue = Money.Create(UsDollarAmount);
 
             // act
@@ -485,10 +555,24 @@ namespace DataStandardizer.Money.Tests
         }
 
         [Fact]
+        public void ConvertibleToDecimal_MoneyValueWithRoundingPrecision_ReturnsAmountBeforeRounding()
+        {
+            // arrange
+            const decimal expectedResult = MidpointUsDollarAmount;
+            IConvertible testValue = Money.Create(MidpointUsDollarAmount, Iso4217CurrencyCurrent.USD, 2);
+
+            // act
+            var testResult = testValue.ToDecimal(CultureInfo.InvariantCulture);
+
+            // assert
+            testResult.Should().Be(expectedResult, AmountResultReason, expectedResult);
+        }
+
+        [Fact]
         public void ImplicitDecimalOperator_MoneyValue_ReturnsAmount()
         {
             // arrange
-            const decimal expectedResult = 12.34m;
+            const decimal expectedResult = UsDollarAmount;
             var testValue = Money.Create(UsDollarAmount, Iso4217CurrencyCurrent.USD);
 
             // act

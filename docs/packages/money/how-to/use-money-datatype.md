@@ -165,7 +165,8 @@ exact answer:
 - `InvalidCastException` when the currency has no minor units. That's `XXX`,
   including a value created without a currency and `default(Money)`, and `XTS`.
 - `InvalidCastException` when the amount isn't a whole number of minor units,
-  such as 1.005 USD without rounding.
+  such as 1.005 USD without rounding. This is the exception whatever the size
+  of the amount.
 - `OverflowException` when the amount in minor units doesn't fit the target
   type, such as 21474836.48 USD cast to `int`.
 
@@ -201,6 +202,9 @@ fail the same way. Write `(uint)(decimal)money` to keep the old result.
 `(nint)money` now gives the amount in minor units, through the `int` cast.
 
 These conversions are unchanged: `decimal d = money`, `(decimal)money`,
-`(double)money`, `(float)money`, the arithmetic and comparison operators, and
-the `IConvertible` members such as `Convert.ToInt64(money)`, which give the
-amount itself.
+`(double)money`, `(float)money`, the arithmetic and comparison operators,
+`Convert.ToInt64(money)` and its siblings, and the `IConvertible` members. None
+of them scale the amount. `Convert.ToInt64(money)` and the `IConvertible`
+integer members round a fraction to the nearest integer, with ties to even,
+rather than truncating it as `(long)(decimal)money` does. The `IConvertible`
+members also convert the amount before any rounding the value carries.
