@@ -25,6 +25,8 @@ namespace DataStandardizer.File.iCal.Tests
 
         private static readonly IcalContentLine LineA = new IcalContentLine("A", "1");
 
+        private static readonly IcalContentLine[] NoLines = new IcalContentLine[0];
+
         // The stream of a writer that owns its stream writer is flushed once, when the writer is disposed.
         private const int OneFlush = 1;
 
@@ -37,6 +39,13 @@ namespace DataStandardizer.File.iCal.Tests
         private const string MultiOctetLinesFoldedAtSevenOctets =
             "DESCRIP\n\tTION:C\n\taf\xE9 \n\t\xD83D\xDE00 \n\t\x4F1A\x8B70\n\t Caf\xE9\n\t \xD83D\xDE00 \n\t\x4F1A\x8B70\n\t \n" +
             "ATTENDE\n\tE;CN=\"\n\tDoe, ^\n\t'Jane^\n\t'^n^^\"\n\t;X-P=a\n\t,\"b:c\"\n\t:mailt\n\to:x\n";
+
+        // The size of a stream writer's buffer that is smaller than one line, so that writing the line reaches the stream.  A stream writer's buffer is at least
+        // 128 characters, and LongLineWrittenThrough is longer.
+        private const int StreamBufferSmallerThanALine = 1;
+
+        // A line that reaches the stream as it is written, whatever the fold: 200 characters of value and no parameters.
+        private static readonly IcalContentLine LongLineWrittenThrough = new IcalContentLine("X-A", new string('a', 200));
 
         public enum AsyncWriteMode
         {
@@ -418,6 +427,19 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
+        public void WriteLineAsync_OperationCanceledWithoutCanceledTokenFromTextWriter_FaultsTask()
+        {
+            // arrange
+            var writer = new IcalContentLineWriter(new SynchronouslyThrowingTextWriter(() => new OperationCanceledException()));
+
+            // act
+            var write = writer.WriteLineAsync(LineA);
+
+            // assert
+            write.IsFaulted.Should().BeTrue();
+        }
+
+        [Fact]
         public async Task WriteLinesAsync_CanceledToken_Cancels()
         {
             // arrange
@@ -425,6 +447,28 @@ namespace DataStandardizer.File.iCal.Tests
 
             // act
             Func<Task> testAction = async () => await writer.WriteLinesAsync(new[] { LineA }, cancellationToken: new CancellationToken(true));
+
+            // assert
+            await testAction.Should().ThrowAsync<OperationCanceledException>();
+        }
+
+        // Each overload given no lines to write.
+        public static TheoryData<Func<IcalContentLineWriter, CancellationToken, Task>> WritesOfNoLines => new TheoryData<Func<IcalContentLineWriter, CancellationToken, Task>>
+        {
+            (writer, token) => writer.WriteLinesAsync(NoLines, cancellationToken: token),
+            (writer, token) => writer.WriteLinesAsync(ToAsyncEnumerable(NoLines), cancellationToken: token),
+        };
+
+        [Theory]
+        [MemberData(nameof(WritesOfNoLines), DisableDiscoveryEnumeration = true)]
+        public async Task WriteLinesAsync_NoLinesAndCanceledToken_Cancels(Func<IcalContentLineWriter, CancellationToken, Task> write)
+        {
+            // arrange
+            var writer = new IcalContentLineWriter(new AsyncOnlyTextWriter());
+            var canceledToken = new CancellationToken(true);
+
+            // act
+            Func<Task> testAction = () => write(writer, canceledToken);
 
             // assert
             await testAction.Should().ThrowAsync<OperationCanceledException>();
@@ -612,6 +656,56 @@ namespace DataStandardizer.File.iCal.Tests
             // assert
             await testAction.Should().ThrowAsync<ObjectDisposedException>();
             text.IsDisposed.Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task Dispose_DuringWriteThatDoesNotWait_CompletesWriteWithObjectDisposed()
+        {
+            // arrange
+            var text = new AsyncOnlyTextWriter(completeSynchronously: true);
+            var writer = new IcalContentLineWriter(text);
+            text.OnWrite = writer.Dispose;
+
+            // act
+            Func<Task> testAction = () => writer.WriteLineAsync(LineA).AsTask();
+
+            // assert
+            await testAction.Should().ThrowAsync<ObjectDisposedException>();
+            text.ToString().Should().Be(LineAWithCrlf);
+        }
+
+        // Shows that the next test disposes of the writer during a write that doesn't wait: the stream writer writes the line through to the stream
+        // within the call, and the write completes synchronously.
+        [Fact]
+        public void WriteLineAsync_OwnedWriterOverStreamThatDoesNotWait_WritesThroughAndCompletesSynchronously()
+        {
+            // arrange
+            var stream = new AsyncOnlyWriteStream(completeSynchronously: true);
+            var writer = new IcalContentLineWriter(stream, new IcalOptions(), StreamBufferSmallerThanALine);
+            var wroteThrough = false;
+            stream.OnWrite = () => wroteThrough = true;
+
+            // act
+            var write = writer.WriteLineAsync(LongLineWrittenThrough);
+
+            // assert
+            write.IsCompletedSuccessfully.Should().BeTrue();
+            wroteThrough.Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task Dispose_DuringWriteThatDoesNotWaitOnOwnedWriter_FlushesWithoutSynchronousIo()
+        {
+            // arrange: the stream's synchronous members throw, so a synchronous flush would escape from the call and not from the task.
+            var stream = new AsyncOnlyWriteStream(completeSynchronously: true);
+            var writer = new IcalContentLineWriter(stream, new IcalOptions(), StreamBufferSmallerThanALine);
+            stream.OnWrite = writer.Dispose;
+
+            // act
+            Func<Task> testAction = () => writer.WriteLineAsync(LongLineWrittenThrough).AsTask();
+
+            // assert
+            await testAction.Should().ThrowAsync<ObjectDisposedException>();
         }
 
         [Fact]

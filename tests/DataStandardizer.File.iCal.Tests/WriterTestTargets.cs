@@ -14,6 +14,18 @@ namespace DataStandardizer.File.iCal.Tests
     internal sealed class AsyncOnlyWriteStream : Stream
     {
         private readonly MemoryStream _data = new MemoryStream();
+        private readonly bool _completeSynchronously;
+
+        /// <param name="completeSynchronously">Whether a write completes synchronously, rather than after yielding.</param>
+        public AsyncOnlyWriteStream(bool completeSynchronously = false)
+        {
+            _completeSynchronously = completeSynchronously;
+        }
+
+        /// <summary>
+        /// Gets or sets a callback that each write runs first.  A test uses it to dispose of the writer during a write.
+        /// </summary>
+        public Action OnWrite { get; set; }
 
         public override bool CanRead => false;
 
@@ -87,7 +99,12 @@ namespace DataStandardizer.File.iCal.Tests
         public async ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
 #endif
         {
-            await Task.Yield();
+            OnWrite?.Invoke();
+            if (!_completeSynchronously)
+            {
+                await Task.Yield();
+            }
+
             cancellationToken.ThrowIfCancellationRequested();
             _data.Write(buffer.ToArray(), 0, buffer.Length);
         }
@@ -106,6 +123,18 @@ namespace DataStandardizer.File.iCal.Tests
     internal sealed class AsyncOnlyTextWriter : TextWriter
     {
         private readonly StringBuilder _text = new StringBuilder();
+        private readonly bool _completeSynchronously;
+
+        /// <param name="completeSynchronously">Whether a write completes synchronously, rather than after yielding.</param>
+        public AsyncOnlyTextWriter(bool completeSynchronously = false)
+        {
+            _completeSynchronously = completeSynchronously;
+        }
+
+        /// <summary>
+        /// Gets or sets a callback that each write runs first.  A test uses it to dispose of the writer during a write.
+        /// </summary>
+        public Action OnWrite { get; set; }
 
         public override Encoding Encoding => new UTF8Encoding(false);
 
@@ -161,7 +190,12 @@ namespace DataStandardizer.File.iCal.Tests
         public async Task WriteAsync(ReadOnlyMemory<char> buffer, CancellationToken cancellationToken = default)
 #endif
         {
-            await Task.Yield();
+            OnWrite?.Invoke();
+            if (!_completeSynchronously)
+            {
+                await Task.Yield();
+            }
+
             cancellationToken.ThrowIfCancellationRequested();
             _text.Append(buffer.ToString());
         }
