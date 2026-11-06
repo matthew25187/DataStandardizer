@@ -29,8 +29,10 @@ the reader and writer in this package derive from it. Use it as the type of a
 variable or parameter that takes either a reader or a writer.
 
 A mapper registered with `RegisterMapper` applies only to the reader or writer
-you register it on. To use the same mapper with another reader or writer,
-register it on that one too. Mappers built from
+you register it on, and each reader or writer has at most one. A mapper type
+is matched exactly: a mapper derived from `TMapper` counts as another type. To
+use the same mapper with another reader or writer, register it on that one too.
+Mappers built from
 [CsvFieldMappingAttribute](CsvFieldMappingAttribute.md) attributes are shared by
 every reader and writer, and are held in [CsvMapperCache](CsvMapperCache.md).
 
@@ -40,8 +42,8 @@ every reader and writer, and are held in [CsvMapperCache](CsvMapperCache.md).
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `RegisterMapper<TMapper>()` | `void` | `where TMapper : CsvFileMapperBase<TRecordLine>, new()`. Registers a mapper on this reader or writer, from the next record line it reads or writes. Does nothing if a mapper is already registered on it. Throws `ObjectDisposedException` if the reader or writer has been disposed. |
-| `UnregisterMapper<TMapper>()` | `void` | `where TMapper : CsvFileMapperBase<TRecordLine>, new()`. Removes the mapper registered on this reader or writer, from the next record line. Does nothing if none is registered. Throws `ObjectDisposedException` if the reader or writer has been disposed. |
+| `RegisterMapper<TMapper>()` | `void` | `where TMapper : CsvFileMapperBase<TRecordLine>, new()`. Registers a `TMapper` on this reader or writer, from the next record line it reads or writes. A reader or writer has at most one registered mapper, so this replaces a mapper of another type. Does nothing if a `TMapper` is already registered. Throws `ObjectDisposedException` if the reader or writer has been disposed. |
+| `UnregisterMapper<TMapper>()` | `void` | `where TMapper : CsvFileMapperBase<TRecordLine>, new()`. Removes the registered mapper if it is a `TMapper`, from the next record line. Does nothing if no mapper is registered, or the registered one is of another type. Throws `ObjectDisposedException` if the reader or writer has been disposed. |
 
 ## Applies to
 

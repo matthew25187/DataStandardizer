@@ -13,7 +13,9 @@ Namespace: `DataStandardizer.File.CSV`
 
 The process-wide cache of the mappers that readers and writers build from
 [CsvFieldMappingAttribute](CsvFieldMappingAttribute.md) attributes on record line
-types, and of the type converters those mappings name.
+types, of the type converters those mappings name, and of the other details the
+package works out once per record line and property type, such as the field
+names of a record line's properties.
 
 **Syntax**
 
@@ -40,7 +42,7 @@ including while readers and writers are in use.
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `Clear()` | `void` | Removes every cached mapper and type converter. Use it to release the memory they hold, or the types they refer to, for example before unloading a collectible `AssemblyLoadContext` that defines your record line types. A reader or writer that is already open keeps the mapper it has resolved. |
+| `Clear()` | `void` | Removes every cached entry. Use it to release the memory the entries hold, or the record line, property and type converter types they refer to, for example before unloading a collectible `AssemblyLoadContext` that defines them. A reader or writer that is already open keeps the mapper it has resolved, so dispose of your readers, writers and record lines of those types before you call it. |
 
 ## Applies to
 

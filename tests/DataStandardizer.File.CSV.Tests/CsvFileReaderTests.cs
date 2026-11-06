@@ -580,12 +580,68 @@ namespace DataStandardizer.File.CSV.Tests
             using (var csvReader = new CsvFileReader<InstanceScopedLine>(new StringReader(string.Empty)))
             {
                 csvReader.RegisterMapper<InstanceScopedLineMapper>();
+                var testResult = csvReader.Context;
 
                 // act
                 csvReader.UnregisterMapper<InstanceScopedLineMapper>();
 
                 // assert
-                csvReader.Context.Mappers.Should().BeEmpty();
+                testResult.Mappers.Should().BeEmpty();
+            }
+        }
+
+        [Fact]
+        public void RegisterMapper_MapperOfAnotherTypeRegistered_ReplacesMapper()
+        {
+            // arrange
+            using (var csvReader = new CsvFileReader<InstanceScopedLine>(new StringReader(string.Empty)))
+            {
+                csvReader.RegisterMapper<InstanceScopedLineMapper>();
+                var testResult = csvReader.Context;
+
+                // act
+                csvReader.RegisterMapper<ReversedInstanceScopedLineMapper>();
+
+                // assert
+                testResult.Mappers.Should().ContainSingle()
+                    .Which.Value.Should().BeOfType<ReversedInstanceScopedLineMapper>();
+            }
+        }
+
+        [Fact]
+        public void ReadLine_MapperOfAnotherTypeRegistered_UsesLaterMapper()
+        {
+            // arrange
+            using (var csvReader = new CsvFileReader<InstanceScopedLine>(new StringReader(FirstLongRecordLine)))
+            {
+                csvReader.RegisterMapper<InstanceScopedLineMapper>();
+                csvReader.RegisterMapper<ReversedInstanceScopedLineMapper>();
+
+                // act
+                var testResult = csvReader.ReadLine() as InstanceScopedLine;
+
+                // assert
+                testResult.Should().NotBeNull();
+                testResult.Name.Should().Be(FirstLongDescription);
+                testResult.Description.Should().Be(FirstName);
+            }
+        }
+
+        [Fact]
+        public void UnregisterMapper_MapperOfAnotherTypeRegistered_KeepsRegisteredMapper()
+        {
+            // arrange
+            using (var csvReader = new CsvFileReader<InstanceScopedLine>(new StringReader(string.Empty)))
+            {
+                csvReader.RegisterMapper<InstanceScopedLineMapper>();
+                var testResult = csvReader.Context;
+
+                // act
+                csvReader.UnregisterMapper<ReversedInstanceScopedLineMapper>();
+
+                // assert
+                testResult.Mappers.Should().ContainSingle()
+                    .Which.Value.Should().BeOfType<InstanceScopedLineMapper>();
             }
         }
 
@@ -1212,6 +1268,26 @@ namespace DataStandardizer.File.CSV.Tests
                     .ConvertUsing(typeof(Int32Converter));
                 this.Map().Property(x => x.Name);
                 this.Map().Property(x => x.Description);
+            }
+        }
+
+        /// <summary>
+        /// Maps the fields of an <see cref="InstanceScopedLine"/> in the opposite order to <see cref="InstanceScopedLineMapper"/>.
+        /// </summary>
+        private sealed class ReversedInstanceScopedLineMapper : CsvFileMapperBase<InstanceScopedLine>
+        {
+            public ReversedInstanceScopedLineMapper()
+            {
+                this.Map()
+                    .Property(x => x.Id)
+                    .HasFieldIndex(0)
+                    .ConvertUsing(typeof(Int32Converter));
+                this.Map()
+                    .Property(x => x.Description)
+                    .HasFieldIndex(1);
+                this.Map()
+                    .Property(x => x.Name)
+                    .HasFieldIndex(2);
             }
         }
 

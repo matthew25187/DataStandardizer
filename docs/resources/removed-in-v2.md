@@ -402,7 +402,11 @@ In version 1.x, a mapper registered with `RegisterMapper` on one reader or write
 was registered for the whole process: every other reader and writer of the same
 record line type used it too, until any of them unregistered it. In version 2.0, a
 mapper registered with `RegisterMapper` applies only to the reader or writer you
-register it on. Register it on each reader and writer that should use it:
+register it on. Register it on each reader and writer that should use it.
+A reader or writer has at most one registered mapper: registering a mapper of
+another type now replaces it, where version 1.x kept the first one, and
+`UnregisterMapper<TMapper>` removes the registered mapper only if it is a
+`TMapper`.
 
 ```csharp
 // Before: registered once, used by every reader and writer of MyRecordLine
@@ -428,9 +432,10 @@ that reader, keyed by its record line type, instead of the mappers registered fo
 every type in the process.
 
 Mappers built from `[CsvFieldMapping]` attributes are still shared by every reader
-and writer, in the new `CsvMapperCache` class. Call `CsvMapperCache.Clear()` to
+and writer, in the new `CsvMapperCache` class, which also holds the other details
+the package works out once per record line type. Call `CsvMapperCache.Clear()` to
 empty that cache, for example before unloading a collectible
-`AssemblyLoadContext`.
+`AssemblyLoadContext` that defines your record line types.
 
 `CsvFileIoBase<TRecordLine>`, the base of `CsvFileReader<TRecordLine>` and
 `CsvFileWriter<TRecordLine>`, no longer derives from `CsvFileCacheRepositoryBase`,

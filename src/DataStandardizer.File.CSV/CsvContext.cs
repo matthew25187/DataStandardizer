@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace DataStandardizer.File.CSV
 {
     /// <summary>
-    /// State of a CSV reader or writer.
+    /// State of a CSV reader.
     /// </summary>
     public sealed class CsvContext
     {
@@ -15,7 +15,7 @@ namespace DataStandardizer.File.CSV
         }
 
         /// <summary>
-        /// Gets the mapper registered on the reader or writer with <see cref="CsvFileIoBase{TRecordLine}.RegisterMapper{TMapper}"/>, keyed by its
+        /// Gets the mapper registered on the reader with <see cref="CsvFileIoBase{TRecordLine}.RegisterMapper{TMapper}"/>, keyed by its
         /// record-line type, or no entries if none is registered.
         /// </summary>
         /// <remarks>
@@ -25,7 +25,7 @@ namespace DataStandardizer.File.CSV
         public IReadOnlyDictionary<Type, ICsvFileMapper> Mappers { get; }
 
         /// <summary>
-        /// Gets the options used to configure the reader or writer.
+        /// Gets the options used to configure the reader.
         /// </summary>
         public ICsvFileOptions Options { get; }
     }

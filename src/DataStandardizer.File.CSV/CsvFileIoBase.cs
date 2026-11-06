@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 #if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP3_0_OR_GREATER
 using System.Diagnostics.CodeAnalysis;
@@ -39,15 +39,16 @@ namespace DataStandardizer.File.CSV
         /// </summary>
         /// <typeparam name="TMapper">Type of the mapper.</typeparam>
         /// <remarks>
-        /// The mapper applies to this reader or writer only, from the next record line it reads or writes.  If a mapper is already registered on it,
-        /// the call does nothing.
+        /// The mapper applies to this reader or writer only, from the next record line it reads or writes.  A reader or writer has at most one
+        /// registered mapper: registering a mapper of another type replaces it, and registering a <typeparamref name="TMapper"/> when one is already
+        /// registered does nothing.
         /// </remarks>
         /// <exception cref="ObjectDisposedException">The reader or writer has been disposed.</exception>
         public void RegisterMapper<TMapper>() where TMapper : CsvFileMapperBase<TRecordLine>, new()
         {
             ThrowIfDisposed();
 
-            if (_registeredMapper != null)
+            if (IsRegistered<TMapper>())
             {
                 return;
             }
@@ -57,19 +58,20 @@ namespace DataStandardizer.File.CSV
         }
 
         /// <summary>
-        /// Unregister the mapper registered on this reader or writer.
+        /// Unregister a mapper from this reader or writer.
         /// </summary>
         /// <typeparam name="TMapper">Type of the mapper.</typeparam>
         /// <remarks>
-        /// From the next record line, the reader or writer maps lines with the <see cref="CsvFieldMappingAttribute"/> attributes on their type, if any.
-        /// If no mapper is registered, the call does nothing.
+        /// If the mapper registered on this reader or writer is a <typeparamref name="TMapper"/>, it is removed, and from the next record line the
+        /// reader or writer maps lines with the <see cref="CsvFieldMappingAttribute"/> attributes on their type, if any.  If no mapper is registered,
+        /// or the registered mapper is of another type, the call does nothing.
         /// </remarks>
         /// <exception cref="ObjectDisposedException">The reader or writer has been disposed.</exception>
         public void UnregisterMapper<TMapper>() where TMapper : CsvFileMapperBase<TRecordLine>, new()
         {
             ThrowIfDisposed();
 
-            if (_registeredMapper is null)
+            if (!IsRegistered<TMapper>())
             {
                 return;
             }
@@ -77,6 +79,9 @@ namespace DataStandardizer.File.CSV
             _registeredMapper = null;
             _mapperVersion++;
         }
+
+        // The exact type, so a mapper derived from TMapper counts as a different mapper.
+        private bool IsRegistered<TMapper>() => _registeredMapper != null && _registeredMapper.GetType() == typeof(TMapper);
 
         /// <summary>
         /// Gets a number that changes whenever a mapper is registered on or unregistered from this reader or writer, so it knows to discard plans built
@@ -175,7 +180,7 @@ namespace DataStandardizer.File.CSV
             }
 
             isRegistered = false;
-            return CsvMapperCache.GetOrAddDeclarativeMapper(recordLine, out _);
+            return CsvMapperCache.GetOrAddDeclarativeMapper(recordLine);
         }
 
 #if NET5_0_OR_GREATER
@@ -253,29 +258,25 @@ namespace DataStandardizer.File.CSV
         /// Calls the generic field value members for a property type known only at run time, without reflection on each call.
         /// </summary>
         /// <remarks>
-        /// One accessor is created per property type and shared by every reader and writer.  Accessors hold no state, so sharing them is thread-safe.
+        /// One accessor is created per property type, held in <see cref="CsvMapperCache"/> and shared by every reader and writer.  Accessors hold no
+        /// state, so sharing them is thread-safe.
         /// </remarks>
         private protected abstract class FieldValueAccessor
         {
-            private static readonly ConcurrentDictionary<Type, FieldValueAccessor> AccessorCache = new ConcurrentDictionary<Type, FieldValueAccessor>();
+            private static readonly Func<Type, object> AccessorFactory = CreateAccessor;
 
             internal static FieldValueAccessor For(Type propertyType)
             {
-                if (AccessorCache.TryGetValue(propertyType, out var accessor))
-                {
-                    return accessor;
-                }
-
-                return AccessorCache.GetOrAdd(propertyType, CreateAccessor);
+                return (FieldValueAccessor)CsvMapperCache.GetOrAddFieldValueAccessor(typeof(TRecordLine), propertyType, AccessorFactory);
             }
 
-            private static FieldValueAccessor CreateAccessor(Type propertyType)
+            private static object CreateAccessor(Type propertyType)
             {
                 var accessorType = typeof(CsvFileIoBase<>.FieldValueAccessor<>).MakeGenericType(typeof(TRecordLine), propertyType);
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-                return (FieldValueAccessor)Activator.CreateInstance(accessorType)!;
+                return Activator.CreateInstance(accessorType)!;
 #else
-                return (FieldValueAccessor)Activator.CreateInstance(accessorType);
+                return Activator.CreateInstance(accessorType);
 #endif
             }
 
@@ -330,7 +331,7 @@ namespace DataStandardizer.File.CSV
                 _owner = owner;
             }
 
-            public int Count => _owner._registeredMapper is null ? 0 : 1;
+            public int Count => Snapshot().Count;
 
             public ICsvFileMapper this[Type key]
             {
@@ -345,34 +346,9 @@ namespace DataStandardizer.File.CSV
                 }
             }
 
-            public IEnumerable<Type> Keys
-            {
-                get
-                {
-                    var keys = new List<Type>(1);
-                    if (_owner._registeredMapper != null)
-                    {
-                        keys.Add(typeof(TRecordLine));
-                    }
+            public IEnumerable<Type> Keys => Snapshot().Select(entry => entry.Key);
 
-                    return keys;
-                }
-            }
-
-            public IEnumerable<ICsvFileMapper> Values
-            {
-                get
-                {
-                    var values = new List<ICsvFileMapper>(1);
-                    var registeredMapper = _owner._registeredMapper;
-                    if (registeredMapper != null)
-                    {
-                        values.Add(registeredMapper);
-                    }
-
-                    return values;
-                }
-            }
+            public IEnumerable<ICsvFileMapper> Values => Snapshot().Select(entry => entry.Value);
 
             public bool ContainsKey(Type key) => TryGetValue(key, out _);
 
@@ -385,11 +361,13 @@ namespace DataStandardizer.File.CSV
                 if (key is null)
                     throw new ArgumentNullException(nameof(key));
 
-                var registeredMapper = _owner._registeredMapper;
-                if (registeredMapper != null && key == typeof(TRecordLine))
+                foreach (var entry in Snapshot())
                 {
-                    value = registeredMapper;
-                    return true;
+                    if (entry.Key == key)
+                    {
+                        value = entry.Value;
+                        return true;
+                    }
                 }
 
 #if NETCOREAPP3_0_OR_GREATER
@@ -406,6 +384,7 @@ namespace DataStandardizer.File.CSV
 
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
+            // The view's one source of entries: the registered mapper, if any, keyed by the record-line type.
             private List<KeyValuePair<Type, ICsvFileMapper>> Snapshot()
             {
                 var snapshot = new List<KeyValuePair<Type, ICsvFileMapper>>(1);
