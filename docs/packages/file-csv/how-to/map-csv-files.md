@@ -32,7 +32,6 @@ a line model using attributes.
 public class MyRecordLine : CsvFileRecordLine
 {
     [CsvFieldMapping("person_id")]
-    [TypeConverter(typeof(Int32Converter))]
     public int Id
     {
         get => GetPropertyValue<int>();
@@ -54,6 +53,12 @@ public class MyRecordLine : CsvFileRecordLine
     }
 }
 ```
+
+The reader parses `Id` from the field's text itself, as it does for the other
+numeric, date, time, `bool`, `Guid` and enum types, so it needs no converter. Add a
+`[TypeConverter]` attribute to a property only to convert a value in some other
+way. See [converting field values](../concepts/field-mapping.md#converting-field-values)
+for the types parsed and what happens to a value that fails to parse.
 
 This approach to mapping keeps the mapping configuration together with the model
 so no separate object is required. However, the technical limitations of
@@ -104,8 +109,7 @@ public class MyRecordLineMapper : CsvFileMapperBase<MyRecordLine>
     {
         this.Map()
             .Property(x => x.Id)
-            .HasFieldName("person_id")
-            .ConvertUsing(typeof(Int32Converter));
+            .HasFieldName("person_id");
         this.Map()
             .Property(x => x.Name)
             .HasFieldName("person_name");

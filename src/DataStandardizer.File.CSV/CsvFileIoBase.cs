@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Threading;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -120,9 +122,13 @@ namespace DataStandardizer.File.CSV
                 throw new ObjectDisposedException(GetType().Name);
         }
 
-        private protected static CsvFileException BuildException(string message, IDictionary<string, object> dataItems)
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private protected static CsvFileException BuildException(string message, IDictionary<string, object> dataItems, Exception? innerException = null)
+#else
+        private protected static CsvFileException BuildException(string message, IDictionary<string, object> dataItems, [AllowNull] Exception innerException = null)
+#endif
         {
-            var exception = new CsvFileException(message);
+            var exception = innerException is null ? new CsvFileException(message) : new CsvFileException(message, innerException);
             foreach (var dataItem in dataItems)
             {
                 exception.Data.Add(dataItem.Key, dataItem.Value);
@@ -183,83 +189,12 @@ namespace DataStandardizer.File.CSV
             return CsvMapperCache.GetOrAddDeclarativeMapper(recordLine);
         }
 
-#if NET5_0_OR_GREATER
-        private static T? DeserializeFieldValue<T>(CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, object? fieldValue)
-#elif NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-        private static T DeserializeFieldValue<T>(CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, object? fieldValue)
-#else
-        [return: MaybeNull]
-        private static T DeserializeFieldValue<T>([AllowNull] CsvFileHeaderLine headerLine, [DisallowNull] TRecordLine recordLine, [DisallowNull] CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
-            [AllowNull] object fieldValue)
-#endif
-        {
-            if (fieldValue is null)
-            {
-                return default; // if there is no field value then there is nothing to deserialize
-            }
-            else if (fieldValue is T deserializedFieldValue)
-            {
-                return deserializedFieldValue; // if the field value is already of the target type then just return it
-            }
-
-            // Deserialize the field value to the field type.
-            var serializedFieldValue = fieldValue as string;
-            if (serializedFieldValue is null)
-            {
-                return default; // if the field value is not a string at this point then it can't be deserialized
-            }
-
-            // Attempt to convert the field value to the target data type.
-#if NET5_0_OR_GREATER
-            T? result = default;
-#elif NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-            T result = default!;
-#else
-            T result = default;
-#endif
-            if (propertyFieldMapping.Value.FromStringConverter != null)
-            {
-                var converter = (CsvFieldConvertFromString<TRecordLine, T>)propertyFieldMapping.Value.FromStringConverter;
-
-                var mappedFieldName = CsvMappingService.GetFieldNameFromMapping(propertyFieldMapping);
-                var context = new CsvFieldContext<TRecordLine>(options)
-                {
-                    HeaderLine = headerLine,
-                    Model = recordLine,
-                    FieldName = mappedFieldName,
-                    FieldIndex = propertyFieldMapping.Value.FieldIndex
-                };
-                result = converter(context);
-            }
-            else if (propertyFieldMapping.Value.TypeConverterType != null)
-            {
-                var typeConverter = CsvMapperCache.GetTypeConverter(propertyFieldMapping.Value.TypeConverterType);
-                if ((typeConverter?.CanConvertFrom(typeof(string))).GetValueOrDefault())
-                {
-                    result = options.Culture != null
-#if NET5_0_OR_GREATER
-                        ? (T?)typeConverter?.ConvertFromString(null, options.Culture, serializedFieldValue)
-                        : (T?)typeConverter?.ConvertFromInvariantString(serializedFieldValue);
-#elif NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-                        ? (T)typeConverter?.ConvertFromString(null, options.Culture, serializedFieldValue)!
-                        : (T)typeConverter?.ConvertFromInvariantString(serializedFieldValue)!;
-#else
-                        ? (T)typeConverter?.ConvertFromString(null, options.Culture, serializedFieldValue)
-                        : (T)typeConverter?.ConvertFromInvariantString(serializedFieldValue);
-#endif
-                }
-            }
-
-            return result;
-        }
-
         /// <summary>
         /// Calls the generic field value members for a property type known only at run time, without reflection on each call.
         /// </summary>
         /// <remarks>
         /// One accessor is created per property type, held in <see cref="CsvMapperCache"/> and shared by every reader and writer.  Accessors hold no
-        /// state, so sharing them is thread-safe.
+        /// state that changes, so sharing them is thread-safe.
         /// </remarks>
         private protected abstract class FieldValueAccessor
         {
@@ -281,13 +216,25 @@ namespace DataStandardizer.File.CSV
             }
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-            internal abstract object? Deserialize(CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, object? fieldValue);
+            /// <summary>
+            /// Converts a mapped field value to the property type.
+            /// </summary>
+            /// <param name="value">The converted value, or <c>null</c> if the conversion failed.</param>
+            /// <param name="error">The exception a type converter threw, if it failed by throwing; otherwise <c>null</c>.</param>
+            /// <returns><c>true</c> if the value was converted; <c>false</c> if it is not a valid value of the property type.</returns>
+            internal abstract bool TryDeserialize(CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
+                object? fieldValue, out object? value, out Exception? error);
 
             internal abstract object? Generate(Delegate generator);
 #else
-            [return: MaybeNull]
-            internal abstract object Deserialize([AllowNull] CsvFileHeaderLine headerLine, [DisallowNull] TRecordLine recordLine, [DisallowNull] CsvFileOptions options,
-                KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, [AllowNull] object fieldValue);
+            /// <summary>
+            /// Converts a mapped field value to the property type.
+            /// </summary>
+            /// <param name="value">The converted value, or <c>null</c> if the conversion failed.</param>
+            /// <param name="error">The exception a type converter threw, if it failed by throwing; otherwise <c>null</c>.</param>
+            /// <returns><c>true</c> if the value was converted; <c>false</c> if it is not a valid value of the property type.</returns>
+            internal abstract bool TryDeserialize([AllowNull] CsvFileHeaderLine headerLine, [DisallowNull] TRecordLine recordLine, [DisallowNull] CsvFileOptions options,
+                KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, [AllowNull] object fieldValue, [MaybeNull] out object value, [MaybeNull] out Exception error);
 
             [return: MaybeNull]
             internal abstract object Generate([DisallowNull] Delegate generator);
@@ -296,22 +243,148 @@ namespace DataStandardizer.File.CSV
 
         private sealed class FieldValueAccessor<T> : FieldValueAccessor
         {
+            // Stands for "the type has no parser" in _parser, so that null can mean "not worked out yet".
+            private static readonly object NoParser = new object();
+
+            // The parser for a value with no converter configured, or NoParser.  Worked out the first time it is needed, so that a mapping with a
+            // converter, or a writer, never depends on it.  Parsers hold no state, so if two threads race, each works out an equivalent parser.
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-            internal override object? Deserialize(CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, object? fieldValue)
+            private object? _parser;
+
+            private CsvFieldParser<T>? GetParser()
             {
-                return DeserializeFieldValue<T>(headerLine, recordLine, options, propertyFieldMapping, fieldValue);
+                var parser = Volatile.Read(ref _parser);
+                if (parser is null)
+                {
+                    parser = (object?)CsvFieldParser.For<T>() ?? NoParser;
+                    Volatile.Write(ref _parser, parser);
+                }
+
+                return parser as CsvFieldParser<T>;
             }
 
+            internal override bool TryDeserialize(CsvFileHeaderLine? headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
+                object? fieldValue, out object? value, out Exception? error)
+#else
+            [MaybeNull] private object _parser;
+
+            [return: MaybeNull]
+            private CsvFieldParser<T> GetParser()
+            {
+                var parser = Volatile.Read(ref _parser);
+                if (parser is null)
+                {
+                    parser = (object)CsvFieldParser.For<T>() ?? NoParser;
+                    Volatile.Write(ref _parser, parser);
+                }
+
+                return parser as CsvFieldParser<T>;
+            }
+
+            internal override bool TryDeserialize(CsvFileHeaderLine headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping,
+                object fieldValue, out object value, out Exception error)
+#endif
+            {
+                error = null;
+
+                // A value that is already of the property type needs no conversion.
+                if (fieldValue is T)
+                {
+                    value = fieldValue;
+                    return true;
+                }
+
+                // Only a string can be converted; there is nothing to convert from anything else.
+                var serializedFieldValue = fieldValue as string;
+                if (serializedFieldValue is null)
+                {
+                    value = default(T);
+                    return true;
+                }
+
+                var fieldMapping = propertyFieldMapping.Value;
+                if (fieldMapping.FromStringConverter != null)
+                {
+                    var converter = (CsvFieldConvertFromString<TRecordLine, T>)fieldMapping.FromStringConverter;
+                    var context = new CsvFieldContext<TRecordLine>(options)
+                    {
+                        HeaderLine = headerLine,
+                        Model = recordLine,
+                        FieldName = CsvMappingService.GetFieldNameFromMapping(propertyFieldMapping),
+                        FieldIndex = fieldMapping.FieldIndex
+                    };
+                    value = converter(context);
+                    return true;
+                }
+
+                var culture = options.Culture ?? CultureInfo.InvariantCulture;
+                if (fieldMapping.TypeConverterType != null)
+                {
+                    var typeConverter = CsvMapperCache.GetTypeConverter(fieldMapping.TypeConverterType);
+                    if (typeConverter is null || !typeConverter.CanConvertFrom(typeof(string)))
+                    {
+                        value = default(T);
+                        return true;
+                    }
+
+                    try
+                    {
+                        value = typeConverter.ConvertFromString(null, culture, serializedFieldValue);
+                    }
+                    catch (Exception exception)
+                    {
+                        value = null;
+                        error = exception;
+                        return false;
+                    }
+
+                    // A converter that gives a value of another type, or null for a property that can't hold it, has not converted the value.
+                    if (value is T || (value is null && default(T) == null))
+                    {
+                        return true;
+                    }
+
+                    value = null;
+                    return false;
+                }
+
+                // With no converter configured, an empty field is the default value of the property type, and any other value is parsed.
+                if (serializedFieldValue.Length == 0)
+                {
+                    value = default(T);
+                    return true;
+                }
+
+                var parser = GetParser();
+                if (parser is null)
+                {
+                    value = default(T);
+                    return true;
+                }
+
+                try
+                {
+                    if (parser.TryParse(serializedFieldValue, culture, out var parsedValue))
+                    {
+                        value = parsedValue;
+                        return true;
+                    }
+                }
+                catch (Exception exception)
+                {
+                    error = exception;
+                }
+
+                value = null;
+                return false;
+            }
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             internal override object? Generate(Delegate generator)
             {
                 return ((CsvFieldGenerate<T>)generator)();
             }
 #else
-            internal override object Deserialize(CsvFileHeaderLine headerLine, TRecordLine recordLine, CsvFileOptions options, KeyValuePair<string, CsvFieldMapping> propertyFieldMapping, object fieldValue)
-            {
-                return DeserializeFieldValue<T>(headerLine, recordLine, options, propertyFieldMapping, fieldValue);
-            }
-
             internal override object Generate(Delegate generator)
             {
                 return ((CsvFieldGenerate<T>)generator)();

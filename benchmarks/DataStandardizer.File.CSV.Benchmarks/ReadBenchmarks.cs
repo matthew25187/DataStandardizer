@@ -56,6 +56,25 @@ public class ReadBenchmarks
     }
 
     [Benchmark]
+    public int Read_Mapped_BuiltInParse()
+    {
+        var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use, Culture = CultureInfo.InvariantCulture };
+        using var stream = new MemoryStream(_csv, writable: false);
+        using var reader = new CsvFileReader<PersonLine>(stream, options);
+        reader.RegisterMapper<PersonLineParsedMapper>();
+
+        _ = reader.ReadLine(); // discard the header line
+
+        var count = 0;
+        while (reader.ReadLine() is not null)
+        {
+            count++;
+        }
+
+        return count;
+    }
+
+    [Benchmark]
     public int Read_CsvHelper_Records()
     {
         using var stream = new MemoryStream(_csv, writable: false);

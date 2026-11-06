@@ -27,6 +27,13 @@ Assigned to [CsvFileOptions.BadValueHandler](CsvFileOptions.md). The `context`
 carries the field's identity, raw value, and the model. See
 [CsvFieldContext](CsvFieldContext.md).
 
+A reader calls it for a field it can't read, such as an unquoted field that holds a
+quote, for a field a mapping's validator rejects, and for a field it can't convert
+to the mapped property's type. See
+[converting field values](../concepts/field-mapping.md#converting-field-values).
+An exception thrown by a [CsvFieldConvertFromString](CsvFieldConvertFromString.md)
+delegate isn't a bad value: it propagates unchanged, and the handler isn't called.
+
 ## Applies to
 
 Targets `netstandard1.3`, `netstandard2.0`, `netstandard2.1`, and `net10.0`.

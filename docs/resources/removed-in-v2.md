@@ -106,7 +106,9 @@ code relies on, such as the
 [what creating a language tag checks](#what-creating-a-language-tag-checks) and
 [where the registry types live](#where-the-registry-types-live), the
 [File.CSV line model](#filecsv-line-model) and
-[File.CSV mapper registration](#filecsv-mapper-registration) below.
+[File.CSV mapper registration](#filecsv-mapper-registration) and
+[File.CSV conversion of mapped properties](#filecsv-conversion-of-mapped-properties)
+below.
 
 ## LanguageTag match timeouts
 
@@ -458,3 +460,65 @@ To clear the mapper caches, which version 1.x let a derived class do through the
 `DeclarativeMapperCache` and `ImperativeMapperCache` fields, call
 `CsvMapperCache.Clear()`, or unregister the mapper from the reader or writer it is
 registered on.
+
+## File.CSV conversion of mapped properties
+
+In version 1.x, a reader converted a field to a mapped property only with a
+converter you configured: a `CsvFieldConvertFromString` delegate, or a
+`TypeConverter` from `ConvertUsing` or a `[TypeConverter]` attribute. A property
+that isn't a `string`, with no converter, silently got the default value of its
+type, such as `0` for an `int`, whatever the field held.
+
+In version 2.0, a reader with no converter configured parses the field itself, for
+the numeric, date, time, `bool`, `Guid` and enum types, their `Nullable<T>` forms,
+any other type with a `TypeConverter` that converts from a string, and, on the
+`net10.0` build, any type that implements `ISpanParsable<T>` or `IParsable<T>`. See
+[converting field values](../packages/file-csv/concepts/field-mapping.md#converting-field-values)
+for the details. A converter you configure still takes precedence.
+
+Two things change for code that reads mapped lines:
+
+- **A property with no converter now gets the field's value.** A property that
+  read as its default value now reads as the value in the file. An empty field
+  still gives the default value.
+- **A value that fails to convert is now a bad value.** A field the built-in parse
+  rejects, or that a `TypeConverter` throws for, goes to
+  `CsvFileOptions.BadValueHandler` if one is set. Otherwise the reader throws a
+  `CsvFileException`, with the property, the field value and, when the mapping
+  names one, the field name in its `Data`. In version 1.x, the value was silently
+  replaced by the default value when there was no converter, and the
+  `TypeConverter`'s own exception propagated when there was one. That exception is
+  now the `InnerException` of the `CsvFileException`.
+
+A `TypeConverter` that returns `null` for a value type, or a value of another type,
+also makes the value a bad value, where version 1.x threw a
+`NullReferenceException` or an `InvalidCastException`.
+
+You can remove `Int32Converter`, `DecimalConverter`, `DateTimeConverter`,
+`EnumConverter` and the like from your mappings. The built-in parse uses
+`CsvFileOptions.Culture`, or the invariant culture when that isn't set, as the
+converters did. It doesn't accept everything those converters did, though: for
+example, `Int32Converter` accepts a hexadecimal value such as `0x1F`, and
+`EnumConverter` ignores case. Keep the converter where your files rely on that.
+A `double` or `float` field that is too large for the type is now a bad value, and
+infinity and NaN are accepted only as the culture's symbols, written in the same
+case, on every target.
+
+```csharp
+// Before
+this.Map()
+    .Property(x => x.Id)
+    .HasFieldName("person_id")
+    .ConvertUsing(typeof(Int32Converter));
+
+// After
+this.Map()
+    .Property(x => x.Id)
+    .HasFieldName("person_id");
+```
+
+The `FieldIndex` of the `CsvFieldContext` that a validator and the bad-value
+handler get for a mapped field is now the field's position in the line. In
+version 1.x it was the field's position in a list of the mapper's field names
+followed by the line's other field names, which differs from the line when the
+header puts the fields in another order, or puts an unmapped field first.

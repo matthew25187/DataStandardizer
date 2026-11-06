@@ -23,8 +23,10 @@ public sealed class CsvFieldMappingAttribute : Attribute
 
 ## Remarks
 
-Combine with `[TypeConverter]` to attach a type converter to the field. For
-imperative configuration use [CsvFileMappingBuilder](CsvFileMappingBuilder.md)
+Combine with `[TypeConverter]` to attach a type converter to the field. A reader
+parses the numeric, date, time, `bool`, `Guid` and enum types without one; see
+[converting field values](../concepts/field-mapping.md#converting-field-values).
+For imperative configuration use [CsvFileMappingBuilder](CsvFileMappingBuilder.md)
 instead.
 
 ## Constructors
