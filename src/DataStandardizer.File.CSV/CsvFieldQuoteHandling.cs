@@ -11,7 +11,8 @@
         Always,
 
         /// <summary>
-        /// Surround field values in double-quotes when they are strings (i.e., non-numeric).
+        /// Surround field values in double-quotes when they are strings (i.e., non-numeric), or when they contain line breaks, double-quotes, or field
+        /// delimiters.
         /// </summary>
         Auto,
 

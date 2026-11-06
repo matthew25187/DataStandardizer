@@ -247,6 +247,31 @@ namespace DataStandardizer.File.CSV.Tests
             }
         }
 
+        [Theory]
+        [InlineData("1,000", "\"1,000\"\r\n")]
+        [InlineData("1\r\n", "\"1\r\n\"\r\n")]
+        public void WriteLine_QuoteHandlingAutoAndNumberWithCharacterRequiringQuotes_WritesValueQuoted(string fieldValue, string expectedLine)
+        {
+            // arrange
+            ICsvFileLine testLine = new CsvFileRecordLine();
+            testLine.Add(FieldName1, fieldValue);
+
+            var options = new CsvFileOptions { QuoteHandling = CsvFieldQuoteHandling.Auto };
+
+            var buffer = new StringBuilder();
+            using (new CurrentCultureScope(CultureInfo.InvariantCulture))
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<CsvFileRecordLine>(stringWriter, options))
+            {
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be(expectedLine);
+            }
+        }
+
         [Fact]
         public void WriteLine_RecordLineAndQuoteHandlingRequired_WritesRecordLineWithRequiredValuesQuoted()
         {
@@ -369,7 +394,9 @@ namespace DataStandardizer.File.CSV.Tests
             // arrange
             ICsvFileLine testLine = new UnmappedLine { Id = -47, Name = FirstName, Description = FirstDescription };
 
+            // A current culture with another negative sign, which the output must not use.
             var buffer = new StringBuilder();
+            using (new CurrentCultureScope(CreateCulture(TestNegativeSign, InvariantDecimalSeparator)))
             using (var stringWriter = new StringWriter(buffer))
             using (var csvWriter = new CsvFileWriter<UnmappedLine>(stringWriter))
             {

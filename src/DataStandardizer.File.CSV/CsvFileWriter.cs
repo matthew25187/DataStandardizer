@@ -4,6 +4,7 @@ using System.Buffers;
 #endif
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Text;
 #if !NETSTANDARD2_1_OR_GREATER && !NETCOREAPP3_0_OR_GREATER
@@ -454,7 +455,8 @@ namespace DataStandardizer.File.CSV
         }
 
         /// <summary>
-        /// Converts a field value to a string, with the <see cref="ICsvFileOptions.Culture"/> if one is set and the value is <see cref="IFormattable"/>.
+        /// Converts a field value to a string.  An <see cref="IFormattable"/> value is formatted with the <see cref="ICsvFileOptions.Culture"/>, or the
+        /// invariant culture if none is set, so the output never depends on the current culture.
         /// </summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private static string? FormatFieldValue(object fieldValue, ICsvFileOptions options)
@@ -463,8 +465,8 @@ namespace DataStandardizer.File.CSV
         private static string FormatFieldValue([DisallowNull] object fieldValue, [DisallowNull] ICsvFileOptions options)
 #endif
         {
-            return options.Culture != null && fieldValue is IFormattable formattableFieldValue
-                ? formattableFieldValue.ToString(null, options.Culture)
+            return fieldValue is IFormattable formattableFieldValue
+                ? formattableFieldValue.ToString(null, options.Culture ?? CultureInfo.InvariantCulture)
                 : fieldValue.ToString();
         }
 
@@ -477,8 +479,10 @@ namespace DataStandardizer.File.CSV
                     quotingRequired = true;
                     break;
                 case CsvFieldQuoteHandling.Auto:
-                    if (!string.IsNullOrWhiteSpace(rawFieldValue) && !long.TryParse(rawFieldValue, out _) && !decimal.TryParse(rawFieldValue, out _))
-                        quotingRequired = true;
+                    // A value that RFC 4180 requires to be quoted is quoted even when it reads as a number, such as 1,000 with a comma delimiter.
+                    // ref. RFC 4180§2¶6
+                    quotingRequired = ContainsCharacterRequiringQuotes(rawFieldValue, options)
+                                      || (!string.IsNullOrWhiteSpace(rawFieldValue) && !long.TryParse(rawFieldValue, out _) && !decimal.TryParse(rawFieldValue, out _));
                     break;
                 case CsvFieldQuoteHandling.Required:
                     // ref. RFC 4180§2¶6
