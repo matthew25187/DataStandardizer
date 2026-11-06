@@ -56,6 +56,9 @@ public class TzDataExtensionsLocalTimeTests
         (TzDataTimezone.Asia.Kolkata, MidJanuary2026, UtcPlus0530, Ist),
         (TzDataTimezone.Asia.Kolkata, MidJuly2026, UtcPlus0530, Ist),
         (TzDataTimezone.America.New_York, NewYorkFarFutureSummer, UtcMinus0400, Edt),
+        // The default timezone, which is Etc/UTC: a single zone line with an offset of 0 and the format UTC.
+        (default(TzDataTimezone), MidJanuary2026, UtcZero, TzAbbreviations.Utc),
+        (default(TzDataTimezone), MidJuly2026, UtcZero, TzAbbreviations.Utc),
     ];
 
     // The time, and the time to which the RFC 5545 policy moves it, with the offset in effect after the gap.

@@ -192,7 +192,12 @@ function Get-ToStringSnippet {
     [OutputType([System.CodeDom.CodeSnippetTypeMember])]
     param ()
 
-    return [System.CodeDom.CodeSnippetTypeMember]::new("        public override string ToString()
+    return [System.CodeDom.CodeSnippetTypeMember]::new("        /// <summary>
+        /// Returns the name of the timezone's field in its region, such as <c>Oslo</c> for <see cref=`"$TypeName.Europe.Oslo`"/>, or, for a
+        /// field in a nested region, the identifier. The default value gives <c>UTC</c>, as <see cref=`"$TypeName.Etc.UTC`"/> does.
+        /// </summary>
+        /// <returns>The name of the field, or the identifier.</returns>
+        public override string ToString()
         {
             var memberField = this.GetType().GetTypeInfo().DeclaredNestedTypes.SelectMany(this.MemberFieldDeclaredFieldsPredicate).FirstOrDefault(this.MemberFieldPredicate);
             return memberField != null ? memberField.Name : this.Identifier;
@@ -211,11 +216,20 @@ function Get-IdentifierMethodsSnippet {
         [string]    $TypeName
     )
 
-    return [System.CodeDom.CodeSnippetTypeMember]::new("        public bool Equals(DataStandardizer.Chronology.$TypeName other)
+    return [System.CodeDom.CodeSnippetTypeMember]::new("        /// <summary>
+        /// Determines whether the timezone has the same identifier as another. The default value is equal to <see cref=`"$TypeName.Etc.UTC`"/>.
+        /// </summary>
+        /// <param name=`"other`">The timezone to compare with.</param>
+        /// <returns><see langword=`"true`"/> if the identifiers are equal; otherwise, <see langword=`"false`"/>.</returns>
+        public bool Equals(DataStandardizer.Chronology.$TypeName other)
         {
             return string.Equals(this.Identifier, other.Identifier);
         }
 
+        /// <summary>
+        /// Returns the hash code of the identifier, which for the default value is that of <see cref=`"$TypeName.Etc.UTC`"/>.
+        /// </summary>
+        /// <returns>The hash code.</returns>
         public override int GetHashCode()
         {
             return this.Identifier.GetHashCode();
@@ -248,6 +262,11 @@ function Get-IdentifierMethodsSnippet {
             return string.CompareOrdinal(this.Identifier, other.Identifier);
         }
 
+        /// <summary>
+        /// Determines whether an object is a timezone with the same identifier as this one.
+        /// </summary>
+        /// <param name=`"obj`">The object to compare with.</param>
+        /// <returns><see langword=`"true`"/> if <paramref name=`"obj`"/> is a timezone with the same identifier; otherwise, <see langword=`"false`"/>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
         public override bool Equals(object? obj)
 #else
@@ -290,7 +309,11 @@ function Get-ConvertibleMethodsSnippet {
     }
 
     $snippetBuilder = [System.Text.StringBuilder]::new()
-    [void]$snippetBuilder.Append("        public System.TypeCode GetTypeCode()
+    [void]$snippetBuilder.Append("        /// <summary>
+        /// Returns the type code of the identifier.
+        /// </summary>
+        /// <returns><see cref=`"System.TypeCode.String`"/>.</returns>
+        public System.TypeCode GetTypeCode()
         {
             return this.Identifier.GetTypeCode();
         }")
@@ -300,7 +323,12 @@ function Get-ConvertibleMethodsSnippet {
 ")
         switch ($conversion.Key) {
             'ToString' {
-                [void]$snippetBuilder.Append("        [System.ObsoleteAttribute(`"The provider argument is not used. Please use `" + nameof(ToString) + `"().`")]
+                [void]$snippetBuilder.Append("        /// <summary>
+        /// Returns the identifier of the timezone.
+        /// </summary>
+        /// <param name=`"provider`">Ignored.</param>
+        /// <returns>The identifier, which is <c>Etc/UTC</c> for the default value.</returns>
+        [System.ObsoleteAttribute(`"The provider argument is not used. Please use `" + nameof(ToString) + `"().`")]
         public string ToString($providerType provider)
         {
             return ((System.IConvertible)this.Identifier).ToString(provider);
@@ -918,13 +946,25 @@ function Out-SourceCode {
             }"
         [void]$structType.Members.Add([System.CodeDom.CodeSnippetTypeMember]::new($structToStringConversionOperatorSnippet))
     
-        $equalityOperatorSnippet = "        public static bool operator ==(DataStandardizer.Chronology.$TypeName left, DataStandardizer.Chronology.$TypeName right)
+        $equalityOperatorSnippet = "        /// <summary>
+        /// Determines whether two timezones have the same identifier.
+        /// </summary>
+        /// <param name=`"left`">The first timezone.</param>
+        /// <param name=`"right`">The second timezone.</param>
+        /// <returns><see langword=`"true`"/> if the identifiers are equal; otherwise, <see langword=`"false`"/>.</returns>
+        public static bool operator ==(DataStandardizer.Chronology.$TypeName left, DataStandardizer.Chronology.$TypeName right)
             {
                 return left.Equals(right);
             }"
         [void]$structType.Members.Add([System.CodeDom.CodeSnippetTypeMember]::new($equalityOperatorSnippet))
     
-        $inequalityOperatorSnippet = "        public static bool operator !=(DataStandardizer.Chronology.$TypeName left, DataStandardizer.Chronology.$TypeName right)
+        $inequalityOperatorSnippet = "        /// <summary>
+        /// Determines whether two timezones have different identifiers.
+        /// </summary>
+        /// <param name=`"left`">The first timezone.</param>
+        /// <param name=`"right`">The second timezone.</param>
+        /// <returns><see langword=`"true`"/> if the identifiers differ; otherwise, <see langword=`"false`"/>.</returns>
+        public static bool operator !=(DataStandardizer.Chronology.$TypeName left, DataStandardizer.Chronology.$TypeName right)
             {
                 return !left.Equals(right);
             }"

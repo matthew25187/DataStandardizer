@@ -184,11 +184,23 @@ namespace DataStandardizer.Chronology
                 return value.Identifier;
             }
         
+        /// <summary>
+        /// Determines whether two timezones have the same identifier.
+        /// </summary>
+        /// <param name="left">The first timezone.</param>
+        /// <param name="right">The second timezone.</param>
+        /// <returns><see langword="true"/> if the identifiers are equal; otherwise, <see langword="false"/>.</returns>
         public static bool operator ==(DataStandardizer.Chronology.TzDataTimezone left, DataStandardizer.Chronology.TzDataTimezone right)
             {
                 return left.Equals(right);
             }
         
+        /// <summary>
+        /// Determines whether two timezones have different identifiers.
+        /// </summary>
+        /// <param name="left">The first timezone.</param>
+        /// <param name="right">The second timezone.</param>
+        /// <returns><see langword="true"/> if the identifiers differ; otherwise, <see langword="false"/>.</returns>
         public static bool operator !=(DataStandardizer.Chronology.TzDataTimezone left, DataStandardizer.Chronology.TzDataTimezone right)
             {
                 return !left.Equals(right);
@@ -8341,11 +8353,20 @@ namespace DataStandardizer.Chronology
         #endregion
         
         #region Public Methods
+        /// <summary>
+        /// Determines whether the timezone has the same identifier as another. The default value is equal to <see cref="TzDataTimezone.Etc.UTC"/>.
+        /// </summary>
+        /// <param name="other">The timezone to compare with.</param>
+        /// <returns><see langword="true"/> if the identifiers are equal; otherwise, <see langword="false"/>.</returns>
         public bool Equals(DataStandardizer.Chronology.TzDataTimezone other)
         {
             return string.Equals(this.Identifier, other.Identifier);
         }
 
+        /// <summary>
+        /// Returns the hash code of the identifier, which for the default value is that of <see cref="TzDataTimezone.Etc.UTC"/>.
+        /// </summary>
+        /// <returns>The hash code.</returns>
         public override int GetHashCode()
         {
             return this.Identifier.GetHashCode();
@@ -8378,6 +8399,11 @@ namespace DataStandardizer.Chronology
             return string.CompareOrdinal(this.Identifier, other.Identifier);
         }
 
+        /// <summary>
+        /// Determines whether an object is a timezone with the same identifier as this one.
+        /// </summary>
+        /// <param name="obj">The object to compare with.</param>
+        /// <returns><see langword="true"/> if <paramref name="obj"/> is a timezone with the same identifier; otherwise, <see langword="false"/>.</returns>
 #if NETCOREAPP3_0_OR_GREATER
         public override bool Equals(object? obj)
 #else
@@ -8387,6 +8413,11 @@ namespace DataStandardizer.Chronology
             return obj is DataStandardizer.Chronology.TzDataTimezone other && this.Equals(other);
         }
         
+        /// <summary>
+        /// Returns the name of the timezone's field in its region, such as <c>Oslo</c> for <see cref="TzDataTimezone.Europe.Oslo"/>, or, for a
+        /// field in a nested region, the identifier. The default value gives <c>UTC</c>, as <see cref="TzDataTimezone.Etc.UTC"/> does.
+        /// </summary>
+        /// <returns>The name of the field, or the identifier.</returns>
         public override string ToString()
         {
             var memberField = this.GetType().GetTypeInfo().DeclaredNestedTypes.SelectMany(this.MemberFieldDeclaredFieldsPredicate).FirstOrDefault(this.MemberFieldPredicate);
@@ -8395,6 +8426,10 @@ namespace DataStandardizer.Chronology
         
 #if NETCOREAPP3_0_OR_GREATER
         
+        /// <summary>
+        /// Returns the type code of the identifier.
+        /// </summary>
+        /// <returns><see cref="System.TypeCode.String"/>.</returns>
         public System.TypeCode GetTypeCode()
         {
             return this.Identifier.GetTypeCode();
@@ -8455,6 +8490,11 @@ namespace DataStandardizer.Chronology
             return ((System.IConvertible)this.Identifier).ToSingle(provider);
         }
 
+        /// <summary>
+        /// Returns the identifier of the timezone.
+        /// </summary>
+        /// <param name="provider">Ignored.</param>
+        /// <returns>The identifier, which is <c>Etc/UTC</c> for the default value.</returns>
         [System.ObsoleteAttribute("The provider argument is not used. Please use " + nameof(ToString) + "().")]
         public string ToString(System.IFormatProvider? provider)
         {
@@ -8483,6 +8523,10 @@ namespace DataStandardizer.Chronology
         
 #elif NETSTANDARD1_3_OR_GREATER||NET
         
+        /// <summary>
+        /// Returns the type code of the identifier.
+        /// </summary>
+        /// <returns><see cref="System.TypeCode.String"/>.</returns>
         public System.TypeCode GetTypeCode()
         {
             return this.Identifier.GetTypeCode();
@@ -8543,6 +8587,11 @@ namespace DataStandardizer.Chronology
             return ((System.IConvertible)this.Identifier).ToSingle(provider);
         }
 
+        /// <summary>
+        /// Returns the identifier of the timezone.
+        /// </summary>
+        /// <param name="provider">Ignored.</param>
+        /// <returns>The identifier, which is <c>Etc/UTC</c> for the default value.</returns>
         [System.ObsoleteAttribute("The provider argument is not used. Please use " + nameof(ToString) + "().")]
         public string ToString(System.IFormatProvider provider)
         {

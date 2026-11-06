@@ -419,7 +419,9 @@ calculations threw `InvalidOperationException`.
 
 In version 2.0, `default(TzDataTimezone)` is Coordinated Universal Time,
 `Etc/UTC`, in the same way that `default(TimeSpan)` is `TimeSpan.Zero`. It is
-equal to the new field `TzDataTimezone.Etc.UTC`, and no member throws for it:
+equal to the new field `TzDataTimezone.Etc.UTC`, and no member throws because a
+time zone is the default value. A member still throws for an invalid argument,
+as `CompareTo(null)` throws `ArgumentNullException`:
 
 | Member | Version 1.x | Version 2.0 |
 | --- | --- | --- |

@@ -15,6 +15,7 @@ namespace DataStandardizer.File.iCal.Tests
         private const string Dublin = "Europe/Dublin";
         private const string Kolkata = "Asia/Kolkata";
         private const string EtcUtcIdentifier = "Etc/UTC";
+        private const string EtcUtcAbbreviation = "UTC";
 
         // Deprecated names that the backward file of TZ Database 2026e links to Etc/UTC.
         private const string UtcName = "UTC";
@@ -1484,7 +1485,26 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             testResult.TimeZoneId.Should().Be(EtcUtcIdentifier, "the default TzDataTimezone stands for Etc/UTC");
-            testResult.Components.Should().ContainSingle("Etc/UTC has no transitions");
+            var observance = testResult.Observances.Should().ContainSingle("Etc/UTC has no transitions").Subject;
+            observance.Kind.Should().Be(IcalTimeZoneObservanceKind.Standard);
+            observance.DtStart.Should().Be(new IcalDateTime(new IcalDate(2020, 1, 1), new IcalTime(0, 0, 0)), "the observance starts at the start of the period");
+            observance.OffsetFrom.Value.Offset.Should().Be(TimeSpan.Zero);
+            observance.OffsetTo.Value.Offset.Should().Be(TimeSpan.Zero);
+            observance.TimeZoneName.Should().Be(EtcUtcAbbreviation);
+        }
+
+        [Fact]
+        public void GetUtcOffset_CalendarWrittenWithDefaultTzDataTimeZone_IsZero()
+        {
+            // arrange
+            var calendar = ModelTestData.ReadCalendar(WriteCalendar(IcalTimeZone.FromTzData(default, Utc(2020), Utc(2030))));
+            var rules = IcalTimeZoneResolver.Calendar.Resolve(EtcUtcIdentifier, calendar);
+
+            // act
+            var testResult = rules.GetUtcOffset(January2026Utc);
+
+            // assert
+            testResult.Offset.Should().Be(TimeSpan.Zero, "the VTIMEZONE written for the default TzDataTimezone is Etc/UTC");
         }
 
         #endregion
