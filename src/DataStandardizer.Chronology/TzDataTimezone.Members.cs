@@ -22,7 +22,7 @@ namespace DataStandardizer.Chronology
         /// The zone lines, in chronological order. Every line but the last has an <see cref="TzDataZoneLine.Until"/>.
         /// </value>
         /// <exception cref="InvalidOperationException">
-        /// The timezone is the default value, or its identifier is not that of a timezone field.
+        /// The timezone is the default value.
         /// </exception>
 #if NETSTANDARD
         [NotNull]
@@ -43,7 +43,7 @@ namespace DataStandardizer.Chronology
         /// The latitude, in decimal degrees, positive north of the equator.
         /// </value>
         /// <exception cref="InvalidOperationException">
-        /// The timezone is the default value, or its identifier is not that of a timezone field.
+        /// The timezone is the default value.
         /// </exception>
         public double Latitude
         {
@@ -60,7 +60,7 @@ namespace DataStandardizer.Chronology
         /// The longitude, in decimal degrees, positive east of Greenwich.
         /// </value>
         /// <exception cref="InvalidOperationException">
-        /// The timezone is the default value, or its identifier is not that of a timezone field.
+        /// The timezone is the default value.
         /// </exception>
         public double Longitude
         {
@@ -77,7 +77,7 @@ namespace DataStandardizer.Chronology
         /// The country codes, in the order given by zone1970.tab, which lists first the country of the principal location; for a link, the country code given by zone.tab.
         /// </value>
         /// <exception cref="InvalidOperationException">
-        /// The timezone is the default value, or its identifier is not that of a timezone field.
+        /// The timezone is the default value.
         /// </exception>
 #if NETSTANDARD
         [NotNull]
@@ -98,7 +98,7 @@ namespace DataStandardizer.Chronology
         /// The comment, if the timezone has one; otherwise, <see langword="null"/>.
         /// </value>
         /// <exception cref="InvalidOperationException">
-        /// The timezone is the default value, or its identifier is not that of a timezone field.
+        /// The timezone is the default value.
         /// </exception>
 #if NETCOREAPP3_0_OR_GREATER
         public string? Comment
@@ -121,7 +121,7 @@ namespace DataStandardizer.Chronology
         /// <see langword="true"/> if the timezone is a link; otherwise, <see langword="false"/>, for a canonical timezone.
         /// </value>
         /// <exception cref="InvalidOperationException">
-        /// The timezone is the default value, or its identifier is not that of a timezone field.
+        /// The timezone is the default value.
         /// </exception>
         public bool IsLink
         {
@@ -142,7 +142,7 @@ namespace DataStandardizer.Chronology
         /// share their zone lines, compare their canonical timezones.
         /// </remarks>
         /// <exception cref="InvalidOperationException">
-        /// The timezone is the default value, or its identifier is not that of a timezone field.
+        /// The timezone is the default value.
         /// </exception>
         public TzDataTimezone Canonical
         {
@@ -211,6 +211,31 @@ namespace DataStandardizer.Chronology
             return false;
         }
 
+        /// <summary>
+        /// Converts a TZ Database identifier to the timezone with that identifier, for the explicit conversion from <see cref="string"/>.
+        /// </summary>
+        /// <param name="value">
+        /// The identifier, or a deprecated name, which converts to the canonical timezone it refers to. Identifiers are case-sensitive.
+        /// </param>
+        /// <returns>The predefined timezone with the identifier, which carries its zone lines and location.</returns>
+        /// <exception cref="InvalidCastException">
+        /// <paramref name="value"/> is <see langword="null"/>, or is not the identifier of a known timezone.
+        /// </exception>
+#if NETCOREAPP3_0_OR_GREATER
+        private static TzDataTimezone ConvertFromIdentifier(string? value)
+#else
+        private static TzDataTimezone ConvertFromIdentifier([AllowNull] string value)
+#endif
+        {
+            if (value is null)
+                throw new InvalidCastException("A null identifier cannot be converted to a timezone.");
+
+            if (!TryParse(value, out var result))
+                throw new InvalidCastException($"'{value}' is not the identifier of a known timezone.");
+
+            return result;
+        }
+
 #if NET7_0_OR_GREATER
         /// <summary>
         /// Converts a TZ Database identifier to the timezone with that identifier.
@@ -254,7 +279,7 @@ namespace DataStandardizer.Chronology
         /// Gets the calculator of the timezone's offsets from universal time, building it on first use.
         /// </summary>
         /// <exception cref="InvalidOperationException">
-        /// The timezone is the default value, or its identifier is not that of a timezone field.
+        /// The timezone is the default value.
         /// </exception>
 #if NETSTANDARD
         [return: NotNull]
@@ -269,7 +294,7 @@ namespace DataStandardizer.Chronology
         /// Finds the registry entry of the timezone field with the same identifier as the timezone.
         /// </summary>
         /// <param name="entry">The timezone of the field, with its zone lines, link target and location, if found.</param>
-        /// <returns><see langword="true"/> if the field was found; otherwise, <see langword="false"/>, including for the default value.</returns>
+        /// <returns><see langword="true"/> if the field was found; otherwise, <see langword="false"/>, for the default value.</returns>
 #if NETCOREAPP3_0_OR_GREATER
         internal bool TryGetRegistryEntry([System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out RegistryEntry? entry)
 #else
@@ -285,23 +310,21 @@ namespace DataStandardizer.Chronology
             return DefaultRegistry.GetEntries().TryGetValue(_value, out entry);
         }
 
+        /// <summary>
+        /// Gets the zone lines of the timezone, as the array shared with its field, and its identifier.
+        /// </summary>
+        /// <param name="identifier">The identifier of the timezone.</param>
+        /// <returns>The zone lines, in chronological order.</returns>
+        /// <exception cref="InvalidOperationException">The timezone is the default value.</exception>
         private TzDataZoneLine[] GetZoneLineArray(out string identifier)
         {
-            if (_value is null)
+            // Only the default value has no identifier; every other instance is a timezone field, which has its zone lines.
+            var value = _value;
+            var zoneLines = _zoneLines;
+            if (value is null || zoneLines is null)
                 throw new InvalidOperationException("The timezone has no identifier.");
 
-            identifier = _value;
-
-            // An instance created by explicit cast has no zone lines of its own, so they are found by identifier.
-            var zoneLines = _zoneLines;
-            if (zoneLines is null)
-            {
-                if (!TryGetRegistryEntry(out var entry))
-                    throw new InvalidOperationException($"'{_value}' is not the identifier of a known timezone.");
-
-                zoneLines = entry.ZoneLines;
-            }
-
+            identifier = value;
             return zoneLines;
         }
 
@@ -311,7 +334,7 @@ namespace DataStandardizer.Chronology
         /// <param name="linkTarget">The identifier of the canonical timezone, if the timezone is a link.</param>
         /// <returns><see langword="true"/> if the timezone is a link; otherwise, <see langword="false"/>.</returns>
         /// <exception cref="InvalidOperationException">
-        /// The timezone is the default value, or its identifier is not that of a timezone field.
+        /// The timezone is the default value.
         /// </exception>
 #if NETCOREAPP3_0_OR_GREATER
         private bool GetLinkTarget([NotNullWhen(true)] out string? linkTarget)
@@ -319,42 +342,28 @@ namespace DataStandardizer.Chronology
         private bool GetLinkTarget([MaybeNullWhen(false)] out string linkTarget)
 #endif
         {
-            if (_value is null)
+            // Only the default value has no zone lines; every other instance is a timezone field, which has its link target, if any.
+            if (_zoneLines is null)
                 throw new InvalidOperationException("The timezone has no identifier.");
 
-            // An instance created by explicit cast has no zone lines or link target of its own, so they are found by identifier.
-            if (_zoneLines is null)
-            {
-                if (!TryGetRegistryEntry(out var entry))
-                    throw new InvalidOperationException($"'{_value}' is not the identifier of a known timezone.");
-
-                linkTarget = entry.LinkTarget;
-            }
-            else
-            {
-                linkTarget = _linkTarget;
-            }
-
+            linkTarget = _linkTarget;
             return linkTarget != null;
         }
 
+        /// <summary>
+        /// Gets the location metadata of the timezone, as listed in zone1970.tab, or in zone.tab for a link.
+        /// </summary>
+        /// <returns>The latitude, longitude, country codes and comment of the timezone.</returns>
+        /// <exception cref="InvalidOperationException">The timezone is the default value.</exception>
 #if NETSTANDARD
         [return: NotNull]
 #endif
         private Location GetLocation()
         {
-            if (_value is null)
-                throw new InvalidOperationException("The timezone has no identifier.");
-
-            // An instance created by explicit cast has no location of its own, so it is found by identifier.
+            // Only the default value has no location; every other instance is a timezone field, which has its location.
             var location = _location;
             if (location is null)
-            {
-                if (!TryGetRegistryEntry(out var entry))
-                    throw new InvalidOperationException($"'{_value}' is not the identifier of a known timezone.");
-
-                location = entry.Location;
-            }
+                throw new InvalidOperationException("The timezone has no identifier.");
 
             return location;
         }

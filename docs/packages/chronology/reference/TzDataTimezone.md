@@ -24,12 +24,12 @@ public readonly struct TzDataTimezone : IComparable, IEquatable<TzDataTimezone>,
 
 ## Remarks
 
-To get a time zone from its identifier string, use `Parse` or `TryParse`. They
-return the predefined instance with that identifier, and reject identifiers
-that are not those of a predefined instance. Identifiers are case-sensitive.
-Prefer them to the explicit cast, which accepts any string. They also accept the
-deprecated names in the TZ Database's `backward` file, and return the canonical
-time zone each refers to: `Parse("Asia/Calcutta")` returns
+To get a time zone from its identifier string, use `Parse`, `TryParse` or the
+explicit cast from `string`. They return the predefined instance with that
+identifier, and reject identifiers that are not those of a predefined instance.
+Identifiers are case-sensitive. They also accept the deprecated names in the TZ
+Database's `backward` file, and return the canonical time zone each refers to:
+`Parse("Asia/Calcutta")` and `(TzDataTimezone)"Asia/Calcutta"` both return
 `TzDataTimezone.Asia.Kolkata`.
 
 Per-zone location metadata (latitude, longitude, ISO country codes, comment) is
@@ -46,21 +46,21 @@ abbreviations at any instant. See
 
 ### Cast and default instances
 
-An instance created by explicit cast from a string has no data of its own. It
-finds its zone lines and metadata through the predefined instance with the same
-identifier, so it returns the same values as that instance:
+The explicit cast from a string returns the predefined instance with that
+identifier, so it carries the same zone lines and metadata:
 
 ```csharp
 var london = (TzDataTimezone)"Europe/London";
-bool same = london.ZoneLines[0] == TzDataTimezone.Europe.London.ZoneLines[0];   // true
+bool same = london == TzDataTimezone.Europe.London;   // true
 ```
 
-The cast doesn't validate the identifier. For `default(TzDataTimezone)`, and for
-an instance cast from an identifier that is not that of a predefined instance,
-the properties (including `ZoneLines`, `IsLink` and `Canonical`) and the
-calculation methods of [TzDataExtensions](TzDataExtensions.md) throw
-`InvalidOperationException`. Equality uses only the identifier, so an instance
-cast from an unknown identifier is equal to another cast from the same string.
+The cast throws `InvalidCastException` for a string that is not the identifier
+of a predefined instance or a deprecated name, and for `null`. Use `TryParse`
+when the string may not be an identifier.
+
+For `default(TzDataTimezone)`, the properties (including `ZoneLines`, `IsLink`
+and `Canonical`) and the calculation methods of
+[TzDataExtensions](TzDataExtensions.md) throw `InvalidOperationException`.
 
 ### Links and canonical time zones
 
@@ -172,7 +172,7 @@ The time zone instances are grouped by region:
 
 | Operator | Signature | Notes |
 | --- | --- | --- |
-| Explicit | `explicit operator TzDataTimezone(string)` | Wraps an identifier string without validating it. Prefer `Parse` or `TryParse`. |
+| Explicit | `explicit operator TzDataTimezone(string)` | Returns the predefined instance with the identifier, or the canonical instance for a deprecated name. Throws `InvalidCastException` for an unknown identifier or `null`. |
 | Implicit | `implicit operator string(TzDataTimezone)` | Unwraps to the identifier string. |
 | Equality | `operator ==`, `!=` `(TzDataTimezone, TzDataTimezone)` | |
 

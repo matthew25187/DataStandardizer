@@ -58,11 +58,10 @@ var timezone = TzDataTimezone.Parse("Europe/Berlin");
 var timezoneComment = timezone.Comment;
 ```
 
-A time zone created by explicit cast from its identifier also returns the same
-metadata as the predefined instance, but the cast doesn't validate the
-identifier. The properties throw `InvalidOperationException` for the `default`
-value and for an identifier that is not that of a predefined instance, so prefer
-`Parse` or `TryParse`.
+The explicit cast from an identifier returns the predefined instance, so it
+returns the same metadata. The cast throws `InvalidCastException` for an
+identifier that is not that of a predefined instance. The properties throw
+`InvalidOperationException` for the `default` value.
 
 ## Upgrading from version 1.x
 

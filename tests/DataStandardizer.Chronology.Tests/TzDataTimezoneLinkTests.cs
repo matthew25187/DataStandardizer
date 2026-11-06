@@ -88,33 +88,26 @@ public class TzDataTimezoneLinkTests
         }
     }
 
-    // A field and a cast instance of each link.
     public static TheoryData<TzDataTimezone> ZoneTabLink_TestCases
     {
         get
         {
             var testCases = new TheoryData<TzDataTimezone>();
             foreach (var testCase in ZoneTabLinkCases)
-            {
                 testCases.Add(testCase.Timezone);
-                testCases.Add((TzDataTimezone)(string)testCase.Timezone!);
-            }
 
             return testCases;
         }
     }
 
-    // A field and a cast instance of each link, with its canonical timezone.
+    // Each link, with its canonical timezone.
     public static TheoryData<TzDataTimezone, TzDataTimezone> ZoneTabLinkCanonical_TestCases
     {
         get
         {
             var testCases = new TheoryData<TzDataTimezone, TzDataTimezone>();
             foreach (var testCase in ZoneTabLinkCases)
-            {
                 testCases.Add(testCase.Timezone, testCase.Canonical);
-                testCases.Add((TzDataTimezone)(string)testCase.Timezone!, testCase.Canonical);
-            }
 
             return testCases;
         }
@@ -168,23 +161,19 @@ public class TzDataTimezoneLinkTests
         }
     }
 
-    // A field and a cast instance of each canonical timezone.
     public static TheoryData<TzDataTimezone> CanonicalTimezone_TestCases
     {
         get
         {
             var testCases = new TheoryData<TzDataTimezone>();
             foreach (var timezone in CanonicalTimezones)
-            {
                 testCases.Add(timezone);
-                testCases.Add((TzDataTimezone)(string)timezone!);
-            }
 
             return testCases;
         }
     }
 
-    // Deprecated names in backward, with the canonical timezone they parse to.
+    // Deprecated names in backward, with the canonical timezone they parse and convert to.
     public static TheoryData<string, TzDataTimezone> DeprecatedName_TestCases => new()
     {
         { CalcuttaName, TzDataTimezone.Asia.Kolkata },
@@ -203,13 +192,6 @@ public class TzDataTimezoneLinkTests
         BuenosAiresName,
         IcelandName,
         NewZealandName,
-    };
-
-    public static TheoryData<TzDataTimezone> InvalidInstance_TestCases => new()
-    {
-        default(TzDataTimezone),
-        (TzDataTimezone)"Europe/Atlantis",
-        (TzDataTimezone)CalcuttaName,
     };
 
     private static TzDataZoneLine[] GetZoneLineArray(TzDataTimezone timezone)
@@ -403,6 +385,17 @@ public class TzDataTimezoneLinkTests
     }
 
     [Theory]
+    [MemberData(nameof(DeprecatedName_TestCases))]
+    public void ExplicitConversion_DeprecatedName_ReturnsCanonicalField(string testName, TzDataTimezone expectedResult)
+    {
+        // act
+        var testResult = (TzDataTimezone)testName;
+
+        // assert
+        testResult.Should().Be(expectedResult, "{0} is a deprecated name for {1}", testName, (string?)expectedResult);
+    }
+
+    [Theory]
     [MemberData(nameof(DeprecatedNameOnly_TestCases))]
     public void IsLink_ParsedDeprecatedName_ReturnsFalse(string testName)
     {
@@ -479,10 +472,12 @@ public class TzDataTimezoneLinkTests
         testResult.Should().BeFalse("{0} parses to the canonical timezone at the end of its chain of links", testName);
     }
 
-    [Theory]
-    [MemberData(nameof(InvalidInstance_TestCases))]
-    public void IsLink_InvalidInstance_ThrowsInvalidOperationException(TzDataTimezone testTimezone)
+    [Fact]
+    public void IsLink_DefaultInstance_ThrowsInvalidOperationException()
     {
+        // arrange
+        var testTimezone = default(TzDataTimezone);
+
         // act
         Func<bool> testAction = () => testTimezone.IsLink;
 
@@ -490,10 +485,12 @@ public class TzDataTimezoneLinkTests
         testAction.Should().Throw<InvalidOperationException>();
     }
 
-    [Theory]
-    [MemberData(nameof(InvalidInstance_TestCases))]
-    public void Canonical_InvalidInstance_ThrowsInvalidOperationException(TzDataTimezone testTimezone)
+    [Fact]
+    public void Canonical_DefaultInstance_ThrowsInvalidOperationException()
     {
+        // arrange
+        var testTimezone = default(TzDataTimezone);
+
         // act
         Func<TzDataTimezone> testAction = () => testTimezone.Canonical;
 

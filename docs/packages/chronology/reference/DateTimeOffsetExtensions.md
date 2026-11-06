@@ -38,8 +38,7 @@ instant.ToOffset(TzDataTimezone.America.New_York);   // 2026-07-01 08:00:00 -04:
 
 `DateTimeOffset` holds offsets only in whole minutes of at most 14 hours. An
 offset it can't hold, such as some local mean time offsets before about 1900,
-throws `ArgumentOutOfRangeException`. `default(TzDataTimezone)`, or an instance
-whose identifier is not that of a known time zone, throws
+throws `ArgumentOutOfRangeException`. `default(TzDataTimezone)` throws
 `InvalidOperationException`.
 
 ## Methods

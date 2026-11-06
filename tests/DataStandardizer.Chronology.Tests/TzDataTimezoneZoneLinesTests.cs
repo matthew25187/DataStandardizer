@@ -125,7 +125,7 @@ public class TzDataTimezoneZoneLinesTests
     }
 
     [Fact]
-    public void ZoneLines_CastInstance_ReturnsSameZoneLinesAsField()
+    public void ZoneLines_ConvertedIdentifier_ReturnsSameZoneLinesAsField()
     {
         // arrange
         var testTimezone = (TzDataTimezone)"Europe/London";
@@ -135,7 +135,7 @@ public class TzDataTimezoneZoneLinesTests
         var testResult = testTimezone.ZoneLines;
 
         // assert
-        testResult.Should().Equal(expectedResult, (castZoneLine, fieldZoneLine) => ReferenceEquals(castZoneLine, fieldZoneLine), "a cast instance has the zone lines of the field with the same identifier");
+        testResult.Should().Equal(expectedResult, (convertedZoneLine, fieldZoneLine) => ReferenceEquals(convertedZoneLine, fieldZoneLine), "an identifier converts to the field with that identifier");
     }
 
     [Fact]
@@ -149,19 +149,6 @@ public class TzDataTimezoneZoneLinesTests
 
         // assert
         testAction.Should().Throw<InvalidOperationException>("the default instance has no identifier");
-    }
-
-    [Fact]
-    public void ZoneLines_UnknownIdentifier_ThrowsInvalidOperationException()
-    {
-        // arrange
-        var testTimezone = (TzDataTimezone)"Europe/Atlantis";
-
-        // act
-        Func<IReadOnlyList<TzDataZoneLine>> testAction = () => testTimezone.ZoneLines;
-
-        // assert
-        testAction.Should().Throw<InvalidOperationException>("no timezone field has the identifier");
     }
 
     [Fact]

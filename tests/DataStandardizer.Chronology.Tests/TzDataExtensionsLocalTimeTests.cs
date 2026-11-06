@@ -14,8 +14,6 @@ public class TzDataExtensionsLocalTimeTests
     // A value that is not a member of TzDataLocalTimeResolution.
     private const TzDataLocalTimeResolution UndefinedResolution = (TzDataLocalTimeResolution)99;
 
-    private static readonly TzDataTimezone UnknownTimezone = (TzDataTimezone)"Nowhere/Nothing";
-
     // Times away from any transition, in the northern winter and summer of 2026.
     private static readonly DateTime MidJanuary2026 = new(2026, 1, 15, 12, 0, 0);
     private static readonly DateTime MidJuly2026 = new(2026, 7, 15, 12, 0, 0);
@@ -556,17 +554,6 @@ public class TzDataExtensionsLocalTimeTests
         testAction.Should().Throw<InvalidOperationException>("{0} needs a timezone with an identifier", testMethod);
     }
 
-    [Theory]
-    [MemberData(nameof(LocalTimeMethod_TestCases))]
-    public void LocalTimeMethod_UnknownTimezone_ThrowsInvalidOperationException(string testMethod, Action<TzDataTimezone, DateTime> testMethodAction)
-    {
-        // act
-        Action testAction = () => testMethodAction(UnknownTimezone, July2026);
-
-        // assert
-        testAction.Should().Throw<InvalidOperationException>("{0} needs a known timezone", testMethod);
-    }
-
     public static TheoryData<TzDataTimezone, DateTimeOffset, TimeSpan> ToOffset_TestCases => new()
     {
         // America/New_York: either side of the start of daylight saving time, and either side of its end.
@@ -603,19 +590,6 @@ public class TzDataExtensionsLocalTimeTests
 
         // act
         Action testAction = () => testInstant.ToOffset(default(TzDataTimezone));
-
-        // assert
-        testAction.Should().Throw<InvalidOperationException>();
-    }
-
-    [Fact]
-    public void ToOffset_UnknownTimezone_ThrowsInvalidOperationException()
-    {
-        // arrange
-        var testInstant = new DateTimeOffset(July2026, UtcZero);
-
-        // act
-        Action testAction = () => testInstant.ToOffset(UnknownTimezone);
 
         // assert
         testAction.Should().Throw<InvalidOperationException>();
