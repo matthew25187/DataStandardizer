@@ -807,7 +807,7 @@ namespace DataStandardizer.Money.Tests
             Action testAction = () => testValue.CompareTo(testOther);
 
             // assert
-            testAction.Should().Throw<ArgumentException>(DifferentCurrenciesNotComparableReason);
+            testAction.Should().Throw<ArgumentException>(DifferentCurrenciesNotComparableReason).WithParameterName("other");
         }
 
         public static TheoryData<Money, Money> CompareToCurrencyDifferentTestCases => new()
@@ -1122,7 +1122,7 @@ namespace DataStandardizer.Money.Tests
             Action testAction = () => testSubject.CompareTo(testValue);
 
             // assert
-            testAction.Should().Throw<ArgumentException>(DifferentCurrenciesNotComparableReason);
+            testAction.Should().Throw<ArgumentException>(DifferentCurrenciesNotComparableReason).WithParameterName("obj");
         }
 
         #endregion

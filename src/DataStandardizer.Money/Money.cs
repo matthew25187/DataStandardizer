@@ -598,13 +598,9 @@ namespace DataStandardizer.Money
         /// </exception>
         public static bool operator <(Money left, Money right)
         {
-            if (left.IsoCurrencyCode != right.IsoCurrencyCode)
-            {
-                var errorMessage = string.Format(ErrorMessage.DifferentCurrenciesComparisonTemplate, nameof(Money));
-                throw new InvalidOperationException(errorMessage);
-            }
+            ThrowIfCurrenciesDiffer(left, right);
 
-            return left._amount.CompareTo(right._amount) < 0;
+            return left._amount < right._amount;
         }
 
         /// <summary>
@@ -620,13 +616,9 @@ namespace DataStandardizer.Money
         /// </exception>
         public static bool operator >(Money left, Money right)
         {
-            if (left.IsoCurrencyCode != right.IsoCurrencyCode)
-            {
-                var errorMessage = string.Format(ErrorMessage.DifferentCurrenciesComparisonTemplate, nameof(Money));
-                throw new InvalidOperationException(errorMessage);
-            }
+            ThrowIfCurrenciesDiffer(left, right);
 
-            return left._amount.CompareTo(right._amount) > 0;
+            return left._amount > right._amount;
         }
 
         /// <summary>
@@ -642,13 +634,9 @@ namespace DataStandardizer.Money
         /// </exception>
         public static bool operator <=(Money left, Money right)
         {
-            if (left.IsoCurrencyCode != right.IsoCurrencyCode)
-            {
-                var errorMessage = string.Format(ErrorMessage.DifferentCurrenciesComparisonTemplate, nameof(Money));
-                throw new InvalidOperationException(errorMessage);
-            }
+            ThrowIfCurrenciesDiffer(left, right);
 
-            return left._amount.CompareTo(right._amount) <= 0;
+            return left._amount <= right._amount;
         }
 
         /// <summary>
@@ -664,13 +652,9 @@ namespace DataStandardizer.Money
         /// </exception>
         public static bool operator >=(Money left, Money right)
         {
-            if (left.IsoCurrencyCode != right.IsoCurrencyCode)
-            {
-                var errorMessage = string.Format(ErrorMessage.DifferentCurrenciesComparisonTemplate, nameof(Money));
-                throw new InvalidOperationException(errorMessage);
-            }
+            ThrowIfCurrenciesDiffer(left, right);
 
-            return left._amount.CompareTo(right._amount) >= 0;
+            return left._amount >= right._amount;
         }
 
         /// <summary>
@@ -776,13 +760,46 @@ namespace DataStandardizer.Money
 
         private int CompareTo(Money other, string paramName)
         {
-            if (IsoCurrencyCode != other.IsoCurrencyCode)
+            if (!HaveSameCurrency(this, other))
             {
-                var errorMessage = string.Format(ErrorMessage.DifferentCurrenciesComparisonTemplate, nameof(Money));
-                throw new ArgumentException(errorMessage, paramName);
+                throw new ArgumentException(DifferentCurrenciesComparisonMessage, paramName);
             }
 
             return _amount.CompareTo(other._amount);
+        }
+
+        /// <summary>
+        /// The message of the exception thrown when monetary values in different currencies are ordered.
+        /// </summary>
+        private static string DifferentCurrenciesComparisonMessage =>
+            string.Format(ErrorMessage.DifferentCurrenciesComparisonTemplate, nameof(Money));
+
+        /// <summary>
+        /// Determine whether two monetary values have the same currency, counting a value with no currency as <c>XXX</c>.
+        /// </summary>
+        /// <param name="left">The first monetary value.</param>
+        /// <param name="right">The second monetary value.</param>
+        /// <returns><c>true</c> if <see cref="IsoCurrencyCode"/> is the same for both values; otherwise <c>false</c>.</returns>
+        /// <remarks>
+        /// Ordering and equality both use this rule, so they agree on which values share a currency.
+        /// </remarks>
+        private static bool HaveSameCurrency(Money left, Money right)
+        {
+            return left.IsoCurrencyCode == right.IsoCurrencyCode;
+        }
+
+        /// <summary>
+        /// Throw the exception the relational operators throw when two monetary values have different currencies.
+        /// </summary>
+        /// <param name="left">The left operand.</param>
+        /// <param name="right">The right operand.</param>
+        /// <exception cref="InvalidOperationException">The operands have different currencies.</exception>
+        private static void ThrowIfCurrenciesDiffer(Money left, Money right)
+        {
+            if (!HaveSameCurrency(left, right))
+            {
+                throw new InvalidOperationException(DifferentCurrenciesComparisonMessage);
+            }
         }
 
         /// <summary>
@@ -864,27 +881,70 @@ namespace DataStandardizer.Money
             return new Money(amount, currency, roundingPrecision, roundingMethod);
         }
 #if NETCOREAPP3_0_OR_GREATER
+        /// <summary>
+        /// Determines whether this monetary value is equal to an object.
+        /// </summary>
+        /// <param name="obj">The object to compare with this instance, or <c>null</c>.</param>
+        /// <returns>
+        /// <c>true</c> if <paramref name="obj"/> is a <see cref="Money"/> equal to this instance, as
+        /// <see cref="Equals(Money)"/> decides; otherwise <c>false</c>.
+        /// </returns>
         public override bool Equals([NotNullWhen(true)] object? obj)
         {
             return obj is Money other && Equals(other);
         }
 #else
+        /// <summary>
+        /// Determines whether this monetary value is equal to an object.
+        /// </summary>
+        /// <param name="obj">The object to compare with this instance, or <c>null</c>.</param>
+        /// <returns>
+        /// <c>true</c> if <paramref name="obj"/> is a <see cref="Money"/> equal to this instance, as
+        /// <see cref="Equals(Money)"/> decides; otherwise <c>false</c>.
+        /// </returns>
         public override bool Equals([NotNullWhen(true)] object obj)
         {
             return obj is Money other && Equals(other);
         }
 #endif
 
+        /// <summary>
+        /// Determines whether this monetary value is equal to another.
+        /// </summary>
+        /// <param name="other">The monetary value to compare with this instance.</param>
+        /// <returns>
+        /// <c>true</c> if <paramref name="other"/> has the same amount and the same currency as this instance;
+        /// otherwise <c>false</c>.
+        /// </returns>
+        /// <remarks>
+        /// <para>
+        /// Values in different currencies are not equal, and this method never throws for them. A value with no
+        /// currency, such as <c>default(Money)</c>, has the currency <c>XXX</c>, so it is not equal to a value in
+        /// any other currency. The <c>==</c> and <c>!=</c> operators give the same answer.
+        /// </para>
+        /// <para>
+        /// The amounts are compared before rounding, and <see cref="RoundingPrecision"/> and
+        /// <see cref="RoundingMethod"/> are ignored, so 1.004 USD rounded to two digits is not equal to 1.00 USD.
+        /// Amounts that differ only in trailing zeros, such as 1.0 and 1.00, are equal.
+        /// </para>
+        /// </remarks>
         public bool Equals(Money other)
         {
-            return decimal.Equals(_amount, other._amount) && Nullable.Equals(_currency, other._currency);
+            return _amount == other._amount && HaveSameCurrency(this, other);
         }
 
+        /// <summary>
+        /// Returns the hash code for this monetary value.
+        /// </summary>
+        /// <returns>
+        /// A hash code computed from the amount and the currency, so values that <see cref="Equals(Money)"/>
+        /// finds equal have the same hash code.
+        /// </returns>
         public override int GetHashCode()
         {
             unchecked
             {
-                return (_amount.GetHashCode() * 397) ^ _currency.GetHashCode();
+                return (_amount.GetHashCode() * 397) ^ IsoCurrencyCode.GetHashCode();
             }
         }
 

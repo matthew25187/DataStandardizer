@@ -37,12 +37,16 @@ carry through to the result. It also defines implicit conversions to and from
 
 Ordering enforces a key invariant: two `Money` values whose currencies differ
 have no order. The relational operators (`<`, `>`, `<=`, `>=`) throw an
-`InvalidOperationException` for them, and `CompareTo`, which `List<T>.Sort`,
-`Array.Sort`, `OrderBy`, `Min` and `Max` use, throws an `ArgumentException`. Two
-amounts in different currencies are effectively different types, and ordering
-them by amount alone would produce a misleading answer, so the type refuses
-rather than guessing. Sorting a collection that mixes currencies therefore fails;
-group or convert the values by currency first.
+`InvalidOperationException` for them, and `CompareTo` throws an
+`ArgumentException`. Two amounts in different currencies are effectively
+different types, and ordering them by amount alone would produce a misleading
+answer, so the type refuses rather than guessing.
+
+Anything that orders values through `CompareTo` therefore fails on a collection
+that mixes currencies. LINQ's `OrderBy`, `Min` and `Max` pass the
+`ArgumentException` on as it is. `List<T>.Sort` and `Array.Sort` wrap it in an
+`InvalidOperationException`, with the `ArgumentException` as its
+`InnerException`. Group or convert the values by currency first.
 
 Equality is different: it always has an answer. Values in different currencies
 are simply not equal, so `Equals`, `==` and `!=` agree and never throw.
