@@ -84,7 +84,7 @@ public class CsvFileWriterTests
     public void WriteLine_ConcurrentWritersRegisteringSameMapper_WriteEveryLine()
     {
         // arrange
-        // No other test writes ConcurrentLine, so the writers race to register its mapper.
+        // Each writer registers its own instance of the mapper.
         const string expectedLine = "1,,\r\n";
 
         // act

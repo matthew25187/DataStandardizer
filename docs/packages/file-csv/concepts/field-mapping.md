@@ -104,12 +104,13 @@ When the reader or writer processes a line it resolves the mapper for the model
 type in this order: an imperative mapper registered with
 `RegisterMapper<TMapper>()`, then a declarative mapper built from
 `[CsvFieldMapping]` attributes, otherwise no mapping (direct field access only).
-Resolved mappers are cached per model type, so reflection happens at most once.
+Declarative mappers are cached per model type, so reflection happens at most once.
+An imperative mapper belongs to the reader or writer it is registered on.
 Property-to-field key resolution is cached the same way, so typed property
 access on a line and conversions with `ToObject`/`ToCsvLine` reflect at most
 once per type.
 A reader works out the field names and how each mapping applies to them once, and
-reuses that for every line until a mapper is registered, unregistered or cleared.
+reuses that for every line until a mapper is registered on it or unregistered from it.
 A change takes effect from the next line read.
 The converters, validators, and generators run as each field is read or written;
 on a validation failure the value is routed to the configured bad-value handler

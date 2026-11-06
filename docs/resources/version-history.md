@@ -48,6 +48,13 @@ In `DataStandardizer.File.CSV`, `ICsvFileLine` is no longer an
 enumerated as `KeyValuePair<string, object?>` items, with typed `Keys` and `Values`
 lists. See [the File.CSV line model](removed-in-v2.md#filecsv-line-model).
 
+A File.CSV mapper registered with `RegisterMapper` now applies only to the reader
+or writer it is registered on, not to every reader and writer of the record type,
+and the `protected` members of `CsvFileIoBase<TRecordLine>` and
+`CsvFileCacheRepositoryBase` are removed. `CsvMapperCache.Clear()` clears the
+cached mappers built from attributes. See
+[File.CSV mapper registration](removed-in-v2.md#filecsv-mapper-registration).
+
 `SubtagRegistry` moves to the `DataStandardizer.LanguageTag` namespace, and the
 types of its records move to `DataStandardizer.LanguageTag.Registry`. See
 [where the registry types live](removed-in-v2.md#where-the-registry-types-live).

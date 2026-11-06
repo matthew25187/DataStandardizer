@@ -13,9 +13,8 @@ namespace DataStandardizer.File.CSV.Tests
 {
 
     /// <remarks>
-    /// Mappers are registered process-wide, by record-line type.  Each mapper here maps a record-line type of its own, and
-    /// the tests that write without a mapper use a type that no test registers a mapper for, so that no test sees another
-    /// test's mapper.
+    /// Mappers built from attributes are cached process-wide, by record-line type, and <see cref="CsvMapperCache.Clear"/>
+    /// clears them.  Clearing never changes how a line is written, so tests that clear the cache can run alongside the others.
     /// </remarks>
     public class CsvFileWriterTests
     {
@@ -315,6 +314,52 @@ namespace DataStandardizer.File.CSV.Tests
 
                 // assert
                 buffer.ToString().Should().Be("~100,,\r\n");
+            }
+        }
+
+        [Fact]
+        public void WriteLine_MapperRegisteredOnAnotherWriter_WritesFieldsInLineOrder()
+        {
+            // arrange
+            ICsvFileLine testLine = new InstanceScopedLine { Id = 1, Name = FirstName };
+
+            var buffer = new StringBuilder();
+            using (var otherWriter = new CsvFileWriter<InstanceScopedLine>(new StringWriter()))
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<InstanceScopedLine>(stringWriter))
+            {
+                otherWriter.RegisterMapper<InstanceScopedLineMapper>();
+
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be("1,One\r\n");
+            }
+        }
+
+        [Fact]
+        public void WriteLine_AfterMapperCacheCleared_WritesFieldsInAttributeOrder()
+        {
+            // arrange
+            using (var otherWriter = new CsvFileWriter<ClearedCacheLine>(new StringWriter()))
+            {
+                otherWriter.WriteLine(new ClearedCacheLine { First = FirstAttributeValue, Second = SecondAttributeValue });
+            }
+
+            CsvMapperCache.Clear();
+
+            ICsvFileLine testLine = new ClearedCacheLine { First = FirstAttributeValue, Second = SecondAttributeValue };
+
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<ClearedCacheLine>(stringWriter))
+            {
+                // act
+                csvWriter.WriteLine(testLine);
+
+                // assert
+                buffer.ToString().Should().Be("2nd,1st\r\n");
             }
         }
 
@@ -1200,9 +1245,7 @@ namespace DataStandardizer.File.CSV.Tests
         }
 
         /// <summary>
-        /// The record-line type of a writer that writes lines of several types.  Only one test uses it, because the writer
-        /// caches the mapping of an <see cref="AttributeMappedLine"/> process-wide under this type, not under the type of
-        /// the line.
+        /// The record-line type of a writer that writes lines of several types.
         /// </summary>
         private class MixedLine : CsvFileRecordLine
         {
@@ -1288,6 +1331,44 @@ namespace DataStandardizer.File.CSV.Tests
             /// part of the line.
             /// </summary>
             public readonly List<int> ConvertedIds = new List<int>();
+        }
+
+        private sealed class InstanceScopedLine : TestLine
+        {
+        }
+
+        private sealed class InstanceScopedLineMapper : CsvFileMapperBase<InstanceScopedLine>
+        {
+            public InstanceScopedLineMapper()
+            {
+                this.Map()
+                    .Property(x => x.Id)
+                    .HasFieldIndex(0)
+                    .ConvertUsing(typeof(Int32Converter));
+                this.Map()
+                    .Property(x => x.Name)
+                    .HasFieldIndex(1);
+                this.Map()
+                    .Property(x => x.Description)
+                    .HasFieldIndex(2);
+            }
+        }
+
+        private sealed class ClearedCacheLine : CsvFileRecordLine
+        {
+            [CsvFieldMapping(1)]
+            public string First
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
+
+            [CsvFieldMapping(0)]
+            public string Second
+            {
+                get => GetPropertyValue<string>();
+                set => SetPropertyValue(value);
+            }
         }
 
         private sealed class AllIndexedLineMapper : CsvFileMapperBase<AllIndexedLine>

@@ -39,9 +39,9 @@ disposed, `ReadLine`, `Context`, `RegisterMapper` and `UnregisterMapper` throw
 caller-supplied `TextReader`.
 
 **Thread safety.** A single reader instance is not thread-safe. Distinct instances
-may be used concurrently, including for the same record type. Mapper registration
-through `RegisterMapper` is process-wide per record type and visible to every reader
-and writer instance.
+may be used concurrently, including for the same record type. A mapper registered
+through `RegisterMapper` applies to this reader only; register it on each reader
+and writer that should use it.
 
 **Mapper changes.** The reader works out the field names and mappings once and
 reuses them for each line. If a mapper is registered or unregistered part way

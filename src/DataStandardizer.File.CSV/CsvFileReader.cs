@@ -353,7 +353,7 @@ namespace DataStandardizer.File.CSV
                 ThrowIfDisposed();
 
 #pragma warning disable IDE0074
-                return _context ?? (_context = new CsvContext(ImperativeMappers, _options));
+                return _context ?? (_context = new CsvContext(RegisteredMappers, _options));
 #pragma warning restore IDE0074
             }
         }
@@ -383,14 +383,14 @@ namespace DataStandardizer.File.CSV
         /// </summary>
         private FieldPlan GetFieldPlan(TRecordLine recordLine)
         {
-            var mapperCacheVersion = MapperCacheVersion;
+            var mapperVersion = MapperVersion;
             var fieldPlan = _fieldPlan;
-            if (fieldPlan != null && fieldPlan.MapperCacheVersion == mapperCacheVersion && ReferenceEquals(fieldPlan.HeaderFieldNames, _headerFieldNames))
+            if (fieldPlan != null && fieldPlan.MapperVersion == mapperVersion && ReferenceEquals(fieldPlan.HeaderFieldNames, _headerFieldNames))
             {
                 return fieldPlan;
             }
 
-            fieldPlan = new FieldPlan(mapperCacheVersion, GetMapper(recordLine), _headerFieldNames);
+            fieldPlan = new FieldPlan(mapperVersion, GetMapper(recordLine, out _), _headerFieldNames);
             _fieldPlan = fieldPlan;
             return fieldPlan;
         }
@@ -462,7 +462,7 @@ namespace DataStandardizer.File.CSV
                     }
                 }
 
-                // Get the mapped field value the same way as GetCsvLineMappedFieldValue, then deserialize it.
+                // Get the mapped field value, then deserialize it.
                 var fieldValue = csvLine[valueKey];
                 if (fieldMapping.Value.ConstantValue != null)
                 {
@@ -473,7 +473,7 @@ namespace DataStandardizer.File.CSV
                     fieldValue = fieldMappingPlan.Accessor.Generate(fieldMapping.Value.VariableValueGenerator);
                 }
 
-                csvLine[fieldKey] = fieldMappingPlan.Accessor.Deserialize(this, _headerLine, recordLine, options, fieldMapping, fieldValue);
+                csvLine[fieldKey] = fieldMappingPlan.Accessor.Deserialize(_headerLine, recordLine, options, fieldMapping, fieldValue);
             }
         }
 
@@ -858,7 +858,7 @@ namespace DataStandardizer.File.CSV
         /// Field names and per-mapping work for one mapper and set of header field names, worked out once rather than on every line.
         /// </summary>
         /// <remarks>
-        /// Mappers are shared by every reader and writer, so the plan only reads from the mapper and its field mappings and never writes to them.
+        /// A declarative mapper is shared by every reader and writer, so the plan only reads from the mapper and its field mappings and never writes to them.
         /// </remarks>
         private sealed class FieldPlan
         {
@@ -870,12 +870,12 @@ namespace DataStandardizer.File.CSV
             private bool _mappingsAreStatic;
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-            internal FieldPlan(int mapperCacheVersion, ICsvFileMapper mapper, IReadOnlyList<string>? headerFieldNames)
+            internal FieldPlan(int mapperVersion, ICsvFileMapper mapper, IReadOnlyList<string>? headerFieldNames)
 #else
-            internal FieldPlan(int mapperCacheVersion, [DisallowNull] ICsvFileMapper mapper, [AllowNull] IReadOnlyList<string> headerFieldNames)
+            internal FieldPlan(int mapperVersion, [DisallowNull] ICsvFileMapper mapper, [AllowNull] IReadOnlyList<string> headerFieldNames)
 #endif
             {
-                MapperCacheVersion = mapperCacheVersion;
+                MapperVersion = mapperVersion;
                 Mapper = mapper;
                 HeaderFieldNames = headerFieldNames;
                 _headerFieldNames = headerFieldNames?.ToArray() ?? Array.Empty<string>();
@@ -890,7 +890,7 @@ namespace DataStandardizer.File.CSV
 
             internal ICsvFileMapper Mapper { get; }
 
-            internal int MapperCacheVersion { get; }
+            internal int MapperVersion { get; }
 
             /// <summary>
             /// Gets the names of the fields on a line.  Each is the header name, then the mapper name by index, then <c>Field N</c> (1-based).

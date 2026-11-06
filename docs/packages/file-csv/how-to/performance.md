@@ -45,23 +45,25 @@ plan that maps fields to properties, the first time it reads or writes a record
 line. It keeps both for the rest of the file. Use one reader or writer for a whole
 file rather than creating a new one part-way through.
 
-## Register mappers once
-
-Mappers are held in a process-wide cache keyed by the record-line type.
+## Register mappers before the first line
 
 - **Declarative mappers**, built from `[CsvFieldMapping]` attributes on the
-  record line model, are created the first time the type is read or written, then
-  cached for the life of the process.
-- **Imperative mappers**, registered with `RegisterMapper<TMapper>()`, stay
-  registered until you unregister them. Register each one once, for example at
-  application start-up. Registering a mapper that is already registered does
-  nothing.
+  record line model, are created the first time any reader or writer reads or
+  writes the type, then held in a process-wide cache,
+  [CsvMapperCache](../reference/CsvMapperCache.md), for every other reader and
+  writer to use. The cache is safe to use from several threads at once.
+- **Imperative mappers**, registered with `RegisterMapper<TMapper>()`, belong to
+  the reader or writer you register them on. Register the mapper on each new
+  reader or writer, before it reads or writes its first line. Creating a mapper
+  is cheap: it's an object built by its own constructor.
 
-Registering or unregistering a mapper, for any type, makes every open reader and
-writer resolve its mapper and build its field plan again on its next record line.
-Don't register or unregister mappers in the middle of reading or writing a file.
+Registering or unregistering a mapper makes that reader or writer resolve its
+mapper and build its field plan again on its next record line. Don't register or
+unregister mappers in the middle of reading or writing a file.
 
-Both caches are safe to use from several threads at once.
+`CsvMapperCache.Clear()` empties the process-wide cache. It doesn't change how
+any line is read or written, but the next reader or writer of each type builds
+its mapper again, so don't call it on a hot path.
 
 See [Map CSV files](map-csv-files.md) for both kinds of mapper.
 
