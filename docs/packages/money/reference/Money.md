@@ -38,9 +38,10 @@ public readonly struct Money : IComparable, IComparable<Money>, IEquatable<Money
 
 The constructors are private; build a value with one of the `Create` overloads. A
 value created without a currency uses `XXX` ("no currency"). Arithmetic carries
-the currency and any rounding into the result, and the equality and comparison
-operators throw `InvalidOperationException` when the two operands have different
-currencies.
+the currency and any rounding into the result. Values in different currencies are
+never equal and have no order: `Equals`, `==` and `!=` treat them as not equal,
+`CompareTo` throws `ArgumentException`, and the relational operators throw
+`InvalidOperationException`. A value with no currency counts as the currency `XXX`.
 
 ## Properties
 
@@ -57,8 +58,8 @@ currencies.
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `CompareTo(Money other)` | `int` | |
-| `CompareTo(object obj)` | `int` | |
+| `CompareTo(Money other)` | `int` | Orders by amount. Throws `ArgumentException` if the currencies differ. |
+| `CompareTo(object obj)` | `int` | As `CompareTo(Money)`; `null` compares less. Throws `ArgumentException` if `obj` is not a `Money` or its currency differs. |
 | `Create(decimal amount)` | `Money` | Uses the default currency `XXX` ("no currency"). |
 | `Create(decimal amount, Iso4217CurrencyCurrent currency)` | `Money` | Throws `ArgumentException` if `currency` is undefined or is not a national/supranational/`XTS` code. |
 | `Create(decimal amount, Iso4217CurrencyCurrent currency, int roundingPrecision)` | `Money` | Adds rounding precision (IEEE 754 default method). |
@@ -143,7 +144,7 @@ They don't give the amount in minor units that the integer casts give.
 | Explicit | `explicit operator ulong(Money)`, `uint`, `ushort`, `byte` | Obsolete with `error: true`: a cast to an unsigned integer doesn't compile (CS0619). |
 | Explicit | `explicit operator double(Money)`, `float` | The rounded amount, as `(double)(decimal)money` gives it. |
 | Arithmetic | `operator +`, `-`, `*`, `/` `(Money, decimal)` | Carry currency and rounding into the result. |
-| Equality | `operator ==`, `!=` `(Money, Money)` | Throw `InvalidOperationException` if currencies differ. |
+| Equality | `operator ==`, `!=` `(Money, Money)` | Return what `Equals` returns: values in different currencies are not equal. |
 | Comparison | `operator <`, `>`, `<=`, `>=` `(Money, Money)` | Throw `InvalidOperationException` if currencies differ. |
 
 ### Conversion to integers
