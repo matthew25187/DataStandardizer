@@ -359,6 +359,21 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
+        public void WriteCalendar_AfterAFlushOfTheXmlWriterFailed_ThrowsInvalidOperation()
+        {
+            // arrange: the XML writer fails the flush, and could still be written to.
+            var calendar = ReadCalendar(Example1Ical);
+            var writer = new XcalWriter(new FailOnceXmlWriter());
+            Record.Exception(() => writer.Flush());
+
+            // act
+            Action testAction = () => writer.WriteCalendar(calendar);
+
+            // assert
+            testAction.Should().Throw<InvalidOperationException>().WithMessage(WriteFailedMessage);
+        }
+
+        [Fact]
         public void Dispose_AfterAWriteToTheXmlWriterFailed_EndsNoElement()
         {
             // arrange

@@ -58,8 +58,8 @@ namespace DataStandardizer.File.iCal
     /// </para>
     /// <para>
     /// Only one operation may be in progress at a time.  Synchronous and asynchronous calls may follow one another, but a call made while another
-    /// is in progress throws <see cref="InvalidOperationException"/>.  A write to the stream that fails leaves what reached it unknown, so later
-    /// calls throw <see cref="InvalidOperationException"/>, and disposal writes nothing more to the stream.  A calendar that is refused before
+    /// is in progress throws <see cref="InvalidOperationException"/>.  A write to the stream that fails, or a flush of it, leaves what reached
+    /// it unknown, so later calls throw <see cref="InvalidOperationException"/>, and disposal writes nothing more to the stream.  A calendar that is refused before
     /// any of it is written, such as one that breaks a rule of RFC 5545, leaves the writer able to continue.
     /// </para>
     /// <para>
@@ -234,7 +234,7 @@ namespace DataStandardizer.File.iCal
         /// <exception cref="ObjectDisposedException">The writer has been disposed.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, or a write to the stream failed, so the writer cannot continue.</exception>
+        /// An earlier asynchronous operation was canceled, or a write to the stream or a flush of it failed, so the writer cannot continue.</exception>
         public void Flush()
         {
             ThrowIfDisposed();
@@ -242,6 +242,12 @@ namespace DataStandardizer.File.iCal
             try
             {
                 _stream.Flush();
+            }
+            catch
+            {
+                // What reached the stream is now unknown.
+                _isFaulted = true;
+                throw;
             }
             finally
             {
@@ -262,7 +268,7 @@ namespace DataStandardizer.File.iCal
         /// jCal, and nothing has been written.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, or a write to the stream failed, so the writer cannot continue.</exception>
+        /// An earlier asynchronous operation was canceled, or a write to the stream or a flush of it failed, so the writer cannot continue.</exception>
         public void WriteCalendar(IcalCalendar calendar)
         {
             ThrowIfDisposed();
@@ -302,7 +308,7 @@ namespace DataStandardizer.File.iCal
         /// jCal.  The calendars before it have been written.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, or a write to the stream failed, so the writer cannot continue.</exception>
+        /// An earlier asynchronous operation was canceled, or a write to the stream or a flush of it failed, so the writer cannot continue.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public void WriteCalendars(IEnumerable<IcalCalendar> calendars, IProgress<IcalWriteProgress>? progress = null)
 #else
@@ -344,12 +350,12 @@ namespace DataStandardizer.File.iCal
         /// while the flush is in progress.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, or a write to the stream failed, so the writer cannot continue.</exception>
+        /// An earlier asynchronous operation was canceled, or a write to the stream or a flush of it failed, so the writer cannot continue.</exception>
         /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled before the call, or the
         /// flush failed with an <see cref="OperationCanceledException"/>, whatever token it carries, while <paramref name="cancellationToken"/>
         /// was canceled.  The task is canceled.  Any other exception faults the task even while <paramref name="cancellationToken"/> is canceled,
-        /// and an <see cref="OperationCanceledException"/> while it isn't faults the task too, as an I/O error does, and the writer can
-        /// continue.</exception>
+        /// and an <see cref="OperationCanceledException"/> while it isn't faults the task too, as an I/O error does.  Either way, the writer
+        /// then cannot continue.</exception>
         public Task FlushAsync(CancellationToken cancellationToken = default)
         {
             ThrowIfDisposed();
@@ -370,7 +376,7 @@ namespace DataStandardizer.File.iCal
         /// <exception cref="ArgumentNullException"><paramref name="calendar"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, or a write to the stream failed, so the writer cannot continue.</exception>
+        /// An earlier asynchronous operation was canceled, or a write to the stream or a flush of it failed, so the writer cannot continue.</exception>
         /// <exception cref="IcalFileException">By the task: the calendar breaks a rule of RFC 5545 that the options do not accept, or cannot be
         /// written in jCal, and nothing has been written.</exception>
         /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled before the call, or the
@@ -407,7 +413,7 @@ namespace DataStandardizer.File.iCal
         /// <exception cref="ArgumentNullException"><paramref name="calendars"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, or a write to the stream failed, so the writer cannot continue.</exception>
+        /// An earlier asynchronous operation was canceled, or a write to the stream or a flush of it failed, so the writer cannot continue.</exception>
         /// <exception cref="ArgumentException">By the task: <paramref name="calendars"/> contains <c>null</c>.  The calendars before it have
         /// been written.</exception>
         /// <exception cref="IcalFileException">By the task: a calendar breaks a rule of RFC 5545 that the options do not accept, or cannot be
@@ -451,7 +457,7 @@ namespace DataStandardizer.File.iCal
         /// <exception cref="ArgumentNullException"><paramref name="calendars"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, or a write to the stream failed, so the writer cannot continue.</exception>
+        /// An earlier asynchronous operation was canceled, or a write to the stream or a flush of it failed, so the writer cannot continue.</exception>
         /// <exception cref="ArgumentException">By the task: <paramref name="calendars"/> contains <c>null</c>.  The calendars before it have
         /// been written.</exception>
         /// <exception cref="IcalFileException">By the task: a calendar breaks a rule of RFC 5545 that the options do not accept, or cannot be
@@ -483,7 +489,17 @@ namespace DataStandardizer.File.iCal
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                await _stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    await _stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // What reached the stream is now unknown.
+                    _isFaulted = true;
+                    throw;
+                }
+
                 outcome = Task.CompletedTask;
             }
             catch (Exception exception)
@@ -830,7 +846,7 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Marks an operation as in progress.
         /// </summary>
-        /// <exception cref="InvalidOperationException">Another operation is in progress, or an earlier one was canceled or failed to write to the stream.</exception>
+        /// <exception cref="InvalidOperationException">Another operation is in progress, or an earlier one was canceled or failed to write to or flush the stream.</exception>
         /// <exception cref="ObjectDisposedException">The writer has been disposed.</exception>
         private void BeginOperation()
         {
@@ -865,7 +881,7 @@ namespace DataStandardizer.File.iCal
                     Release();
                 }
 
-                throw new InvalidOperationException("The writer cannot continue after a write to the stream failed.");
+                throw new InvalidOperationException("The writer cannot continue after a write to the stream or a flush of it failed.");
             }
         }
 

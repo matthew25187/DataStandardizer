@@ -452,6 +452,47 @@ namespace DataStandardizer.File.iCal.Tests
             writer.ToString().Should().Be(TextInElement);
         }
 
+        [Fact]
+        public void FailOnceXmlWriter_FirstFlush_ThrowsIOException()
+        {
+            // arrange
+            var writer = new FailOnceXmlWriter();
+
+            // act
+            Action testAction = () => writer.Flush();
+
+            // assert
+            testAction.Should().Throw<IOException>();
+        }
+
+        [Fact]
+        public async Task FailOnceXmlWriter_FirstFlushAsync_ThrowsIOException()
+        {
+            // arrange
+            var writer = new FailOnceXmlWriter();
+
+            // act
+            Func<Task> testAction = () => writer.FlushAsync();
+
+            // assert
+            await testAction.Should().ThrowAsync<IOException>();
+        }
+
+        [Fact]
+        public void FailOnceXmlWriter_WriteStringAfterAFailedFlush_WritesTheText()
+        {
+            // arrange
+            var writer = new FailOnceXmlWriter();
+            writer.WriteStartElement(ElementName);
+            Record.Exception(() => writer.Flush());
+
+            // act
+            writer.WriteString(Text);
+
+            // assert
+            writer.ToString().Should().Be(TextInElement);
+        }
+
         #endregion
 
         private static Exception RecordAndCreate(List<string> events)

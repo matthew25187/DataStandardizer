@@ -606,8 +606,9 @@ namespace DataStandardizer.File.iCal.Tests
     }
 
     /// <summary>
-    /// An XML writer, as a caller might supply one, whose first <see cref="WriteString"/> or <see cref="WriteStringAsync"/> fails with
-    /// <see cref="IOException"/> and writes nothing, and which can still be written to afterwards, unlike an XML writer that
+    /// An XML writer, as a caller might supply one, whose first call of <see cref="WriteString"/>, <see cref="WriteStringAsync"/>,
+    /// <see cref="Flush"/> or <see cref="FlushAsync"/>, whichever comes first, fails with <see cref="IOException"/> and does nothing, and
+    /// which can still be written to afterwards, unlike an XML writer that
     /// <see cref="XmlWriter.Create(TextWriter, XmlWriterSettings)"/> creates.  Every other member is passed to an XML writer of a fragment,
     /// which allows asynchronous writes.
     /// </summary>
@@ -635,9 +636,17 @@ namespace DataStandardizer.File.iCal.Tests
             return _text.ToString();
         }
 
-        public override void Flush() => _inner.Flush();
+        public override void Flush()
+        {
+            FailTheFirstTime();
+            _inner.Flush();
+        }
 
-        public override Task FlushAsync() => _inner.FlushAsync();
+        public override Task FlushAsync()
+        {
+            FailTheFirstTime();
+            return _inner.FlushAsync();
+        }
 
         public override string LookupPrefix(string ns) => _inner.LookupPrefix(ns);
 
@@ -712,7 +721,7 @@ namespace DataStandardizer.File.iCal.Tests
             if (_hasFailed) return;
 
             _hasFailed = true;
-            throw new IOException("The test XML writer fails its first write of text.");
+            throw new IOException("The test XML writer fails its first write of text or flush.");
         }
     }
 

@@ -80,7 +80,8 @@ unknown, so the writer can't continue: later calls throw `InvalidOperationExcept
 and disposal ends no element of its own. This matters for a caller-supplied
 `XmlWriter` that can still be written to after an error; one the writer creates
 itself can't. The failed call throws the `XmlWriter`'s exception, or its task faults
-with it.
+with it, except that an `OperationCanceledException` cancels the task when the
+caller's token is canceled.
 
 **Disposal.** `Dispose` and `DisposeAsync` may be called more than once and share
 their state. They end the `icalendar` element and any element left open. Then they

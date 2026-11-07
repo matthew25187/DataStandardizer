@@ -23,7 +23,7 @@ namespace DataStandardizer.File.iCal.Tests
         private const int OctetsPerRead = 7;
 
         private const string CanceledMessage = "*canceled*";
-        private const string WriteFailedMessage = "*write to the stream failed*";
+        private const string WriteFailedMessage = "*write to the stream or a flush of it failed*";
 
         // A document whose SUMMARY has a second value, with the JSONPath and byte position of that value.
         private const string SecondValueJsonPath = "$[2][0][1][2][4]";
@@ -502,6 +502,24 @@ namespace DataStandardizer.File.iCal.Tests
             {
                 await writer.WriteCalendarAsync(calendar);
                 await Record.ExceptionAsync(() => writer.WriteCalendarAsync(calendar).AsTask());
+
+                // act
+                Action testAction = () => writer.WriteCalendarAsync(calendar);
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>().WithMessage(WriteFailedMessage);
+            });
+        }
+
+        [Fact]
+        public async Task WriteCalendarAsync_AfterAFlushOfTheStreamFailed_ThrowsInvalidOperation()
+        {
+            // arrange
+            var calendar = ReadCalendar(Example1Ical);
+            var writer = new JcalWriter(new FailingStream(() => new IOException(), FailureTiming.AsFaultedTask));
+            await AsyncDisposal.UsingAsync(writer, async () =>
+            {
+                await Record.ExceptionAsync(() => writer.FlushAsync());
 
                 // act
                 Action testAction = () => writer.WriteCalendarAsync(calendar);

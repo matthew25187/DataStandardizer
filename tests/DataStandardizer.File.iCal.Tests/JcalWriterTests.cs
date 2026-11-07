@@ -27,7 +27,7 @@ namespace DataStandardizer.File.iCal.Tests
         private const long Example2LineCount = 40;
         private const long Example2AndExample1LineCount = 51;
 
-        private const string WriteFailedMessage = "*write to the stream failed*";
+        private const string WriteFailedMessage = "*write to the stream or a flush of it failed*";
 
         // The start of the array of calendars, ref. RFC 7265 §3.2.
         private static readonly byte[] ArrayStartOnly = { (byte)'[' };
@@ -456,6 +456,22 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
+        public void WriteCalendar_AfterAFlushOfTheStreamFailed_ThrowsInvalidOperation()
+        {
+            // arrange
+            var calendar = ReadCalendar(Example1Ical);
+            var writer = new JcalWriter(new FlushFailingStream());
+            writer.WriteCalendar(calendar);
+            Record.Exception(() => writer.Flush());
+
+            // act
+            Action testAction = () => writer.WriteCalendar(calendar);
+
+            // assert
+            testAction.Should().Throw<InvalidOperationException>().WithMessage(WriteFailedMessage);
+        }
+
+        [Fact]
         public void Dispose_AfterAWriteToTheStreamFailed_WritesNothingMore()
         {
             // arrange
@@ -617,6 +633,17 @@ namespace DataStandardizer.File.iCal.Tests
                     throw new IOException("The test stream fails its second write.");
 
                 base.Write(buffer, offset, count);
+            }
+        }
+
+        /// <summary>
+        /// A stream whose every flush fails with <see cref="IOException"/>; its writes succeed.
+        /// </summary>
+        private sealed class FlushFailingStream : MemoryStream
+        {
+            public override void Flush()
+            {
+                throw new IOException("The test stream fails every flush.");
             }
         }
 

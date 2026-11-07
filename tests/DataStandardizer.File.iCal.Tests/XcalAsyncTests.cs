@@ -546,6 +546,24 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
+        public async Task WriteCalendarAsync_AfterAFlushOfTheXmlWriterFailed_ThrowsInvalidOperation()
+        {
+            // arrange: the XML writer fails the flush, and could still be written to.
+            var calendar = ReadCalendar(Example1Ical);
+            var writer = new XcalWriter(new FailOnceXmlWriter());
+            await AsyncDisposal.UsingAsync(writer, async () =>
+            {
+                await Record.ExceptionAsync(() => writer.FlushAsync());
+
+                // act
+                Action testAction = () => writer.WriteCalendarAsync(calendar);
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>().WithMessage(WriteFailedMessage);
+            });
+        }
+
+        [Fact]
         public async Task WriteCalendarAsync_SyncOnlyXmlWriter_ThrowsInvalidOperation()
         {
             // arrange
