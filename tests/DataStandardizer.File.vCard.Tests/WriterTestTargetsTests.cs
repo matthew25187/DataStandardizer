@@ -309,6 +309,79 @@ namespace DataStandardizer.File.vCard.Tests
 
         #endregion
 
+        #region FailingReadStream
+
+        [Fact]
+        public void FailingReadStream_ReadAsyncFromCall_ThrowsFromTheCall()
+        {
+            // arrange
+            var stream = new FailingReadStream(() => new IOException(), FailureTiming.FromCall);
+
+            // act
+            Action testAction = () => stream.ReadAsync(new byte[1], 0, 1, CancellationToken.None);
+
+            // assert
+            testAction.Should().Throw<IOException>();
+        }
+
+        [Theory]
+        [MemberData(nameof(TaskFailures), DisableDiscoveryEnumeration = true)]
+        public async Task FailingReadStream_ReadAsyncByTask_EndsWithStatus(FailureTiming timing, Func<Exception> createException, TaskStatus expected)
+        {
+            // arrange
+            var stream = new FailingReadStream(createException, timing);
+
+            // act: wait for the read to finish without throwing, so that its status can be checked.
+            var read = stream.ReadAsync(new byte[1], 0, 1, CancellationToken.None);
+            await Task.WhenAny(read);
+
+            // assert
+            read.Status.Should().Be(expected);
+        }
+
+        [Fact]
+        public void FailingReadStream_SecondReadAsync_FailsAgain()
+        {
+            // arrange
+            var stream = new FailingReadStream(() => new IOException(), FailureTiming.AsFaultedTask);
+            _ = stream.ReadAsync(new byte[1], 0, 1, CancellationToken.None);
+
+            // act
+            var read = stream.ReadAsync(new byte[1], 0, 1, CancellationToken.None);
+
+            // assert
+            read.IsFaulted.Should().BeTrue();
+        }
+
+        [Fact]
+        public void FailingReadStream_ReadAsync_RunsOnFailureBeforeCreatingTheException()
+        {
+            // arrange
+            var events = new List<string>();
+            var stream = new FailingReadStream(() => RecordAndCreate(events), FailureTiming.AsFaultedTask) { OnFailure = () => events.Add(FailureCallback) };
+
+            // act
+            _ = stream.ReadAsync(new byte[1], 0, 1, CancellationToken.None);
+
+            // assert
+            events.Should().Equal(FailureCallback, ExceptionCreated);
+        }
+
+        [Fact]
+        public void FailingReadStream_SynchronousRead_Throws()
+        {
+            // arrange
+            var stream = new FailingReadStream(() => new IOException(), FailureTiming.AsFaultedTask);
+
+            // act
+            Action testAction = () => stream.ReadByte();
+
+            // assert
+            testAction.Should().Throw<InvalidOperationException>().WithMessage(AsyncPathMessages.SynchronousRead);
+        }
+
+        #endregion
+
         #region AsyncOnlyWriteStream
 
         [Fact]

@@ -63,6 +63,12 @@ vCard 4.0, 3.0 and 2.1 are read, and one stream can hold any of them. A vCard 3.
 
 Each card is checked as `VcardCard.Validate` does, and for the structure of its `BEGIN`, `VERSION` and `END` lines. The accommodations are `AllowVersionNotFirst`, `AllowMissingRequiredProperties`, `AllowCardinalityViolations`, `AllowInvalidValues` and `AcceptLegacySyntax` on [VcardOptions](VcardOptions.md).
 
+An asynchronous read is canceled only when the token passed to it is canceled, whatever token the `OperationCanceledException` carries, or if it carries
+none. The task is then canceled. An `OperationCanceledException` from the text reader or stream while that token isn't canceled faults the task, as any other failure of
+the source does. Either way, the reader can't continue: later reads throw `InvalidOperationException`. During `ReadCardsAsync`, awaiting `MoveNextAsync`
+throws either one, but its task is canceled for both on every target, as an async iterator's always is for an `OperationCanceledException`. Check the
+token to tell which it was.
+
 Only one read may be in progress at a time.
 
 ## Applies to
