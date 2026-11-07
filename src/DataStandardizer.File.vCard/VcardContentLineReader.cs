@@ -786,7 +786,8 @@ namespace DataStandardizer.File.vCard
         }
 
         /// <summary>
-        /// Creates the stream reader, repairing folds inside UTF-8 sequences when the data is UTF-8.  A byte order mark never selects the encoding.
+        /// Creates the stream reader, repairing folds inside UTF-8 sequences when the data is UTF-8.  A byte order mark never selects the encoding,
+        /// and the stream reader never removes one, so that only <see cref="VcardOptions.AcceptByteOrderMark"/> decides whether it is skipped.
         /// </summary>
         /// <param name="stream">The stream.</param>
         /// <param name="ownsStream"><c>true</c> if disposing the stream reader should dispose <paramref name="stream"/>.</param>
@@ -794,13 +795,15 @@ namespace DataStandardizer.File.vCard
         /// <param name="bufferSize">The buffer size, in bytes.</param>
         private static StreamReader CreateStreamReader(Stream stream, bool ownsStream, Encoding encoding, int bufferSize)
         {
+            // A StreamReader removes the encoding's preamble from the start of the data, whatever detectEncodingFromByteOrderMarks says.
+            var decodingEncoding = encoding.GetPreamble().Length == 0 ? encoding : new PreamblelessEncoding(encoding);
             if (encoding is UTF8Encoding)
             {
                 var foldRealigningStream = new Utf8FoldRealigningStream(stream, !ownsStream, bufferSize);
-                return new StreamReader(foldRealigningStream, encoding, false, bufferSize, false);
+                return new StreamReader(foldRealigningStream, decodingEncoding, false, bufferSize, false);
             }
 
-            return new StreamReader(stream, encoding, false, bufferSize, !ownsStream);
+            return new StreamReader(stream, decodingEncoding, false, bufferSize, !ownsStream);
         }
 
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
