@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Runtime.ExceptionServices;
 using System.Text;
 
 namespace DataStandardizer.File.CSV
@@ -50,6 +51,7 @@ namespace DataStandardizer.File.CSV
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         private CsvContext? _context;
         private FieldPlan? _fieldPlan;
+        private ExceptionDispatchInfo? _headerFailure;
         private IReadOnlyList<string>? _headerFieldNames;
         private CsvFileHeaderLine? _headerLine;
         private List<KeyValuePair<string, int>>? _invalidFieldValues;
@@ -57,6 +59,7 @@ namespace DataStandardizer.File.CSV
 #else
         [MaybeNull] private CsvContext _context;
         [MaybeNull] private FieldPlan _fieldPlan;
+        [MaybeNull] private ExceptionDispatchInfo _headerFailure;
         [MaybeNull] private IReadOnlyList<string> _headerFieldNames;
         [MaybeNull] private CsvFileHeaderLine _headerLine;
         [MaybeNull] private List<KeyValuePair<string, int>> _invalidFieldValues;
@@ -214,7 +217,15 @@ namespace DataStandardizer.File.CSV
         /// Duplicate field names were detected.
         /// </exception>
         /// <exception cref="ObjectDisposedException">The reader has been disposed.</exception>
-        /// <exception cref="InvalidOperationException">The terminator line break option is empty.</exception>
+        /// <exception cref="InvalidOperationException">The terminator line break option is empty.
+        /// -or-
+        /// The <see cref="CsvFileOptions.HeaderHandler"/> delegate returned <c>null</c>.
+        /// </exception>
+        /// <remarks>
+        /// Records can't be read without valid field names.  When reading the header line, or getting field names from the
+        /// <see cref="CsvFileOptions.HeaderHandler"/> delegate, throws an exception, every later call throws the same
+        /// exception and reads no further lines.
+        /// </remarks>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public ICsvFileLine? ReadLine()
 #else
@@ -224,125 +235,187 @@ namespace DataStandardizer.File.CSV
         {
             ThrowIfDisposed();
 
+            _headerFailure?.Throw();
+
+            // Read a header line from the CSV file.
+            // ref. RFC 4180§2¶3
+            if ((_options.HeaderHandling == CsvFileHeaderHandling.Use && _headerLine is null) ||
+                (_options.HeaderHandling == CsvFileHeaderHandling.Ignore && !_headerLineIgnored))
+            {
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+                CsvFileHeaderLine? headerLine;
+#else
+                CsvFileHeaderLine headerLine;
+#endif
+                try
+                {
+                    headerLine = ReadHeaderLine();
+                }
+                catch (Exception exception)
+                {
+                    _headerFailure = ExceptionDispatchInfo.Capture(exception);
+                    throw;
+                }
+
+                if (_options.HeaderHandling == CsvFileHeaderHandling.Use)
+                {
+                    return headerLine;
+                }
+            }
+
             var rawFieldValues = _rawFieldValues;
             while (TryReadRecord(rawFieldValues))
             {
-                if (rawFieldValues.Count == 0)
+                ThrowIfNoFields(rawFieldValues);
+
+                var recordLine = new TRecordLine();
+                recordLine.EnsureFieldCapacity(rawFieldValues.Count);
+                ICsvFileLine csvLine = recordLine;
+
+                if (_headerFieldNames is null)
                 {
-                    // ref. RFC 4180§2¶4
-                    var dataItems = new Dictionary<string, object> { { DataItemName.ActualFieldCount, rawFieldValues.Count } };
-                    throw BuildException("Expected one or more fields.", dataItems);
+                    try
+                    {
+                        _headerFieldNames = GetHeaderFieldNames();
+                    }
+                    catch (Exception exception)
+                    {
+                        _headerFailure = ExceptionDispatchInfo.Capture(exception);
+                        throw;
+                    }
                 }
 
-                ICsvFileLine csvLine;
-
-                // Read a header line from the CSV file.
-                // ref. RFC 4180§2¶3
-                switch (_options.HeaderHandling)
+                var fieldPlan = GetFieldPlan(recordLine);
+                var fieldNames = fieldPlan.GetFieldNames(rawFieldValues.Count);
+                for (var fieldIndex = 0; fieldIndex < rawFieldValues.Count; fieldIndex++)
                 {
-                    case CsvFileHeaderHandling.Use when _headerLine is null:
+                    csvLine.Add(fieldNames[fieldIndex], rawFieldValues[fieldIndex]);
+                }
+
+                if (_expectedFieldCount == 0)
+                {
+                    _expectedFieldCount = csvLine.Count;
+                }
+
+                if (csvLine.Count != _expectedFieldCount)
+                {
+                    if (_options.InconsistentFieldCountHandler is CsvFieldCount<TRecordLine> inconsistentFieldCountHandler)
                     {
-                        var headerLine = new CsvFileHeaderLine();
-                        headerLine.EnsureFieldCapacity(rawFieldValues.Count);
-                        csvLine = _headerLine = headerLine;
-
-                        // Make sure all field names are unique.
-                        var duplicateFieldNames = GetDuplicateFieldNames(rawFieldValues);
-                        if (duplicateFieldNames.Length > 0)
+                        var context = new CsvFieldContext<TRecordLine>(_options)
                         {
-                            var message = string.Format(ErrorMessage.DuplicateFieldNamesTemplate, duplicateFieldNames.Length);
-                            var dataItems = new Dictionary<string, object>
-                            {
-                                { DataItemName.FieldNames, duplicateFieldNames }
-                            };
-                            throw BuildException(message, dataItems);
-                        }
-
-                        // Add field names to the line.  Key and Value will be identical because the field name (key) is the value in this case.
-                        foreach (var fieldValue in rawFieldValues)
-                        {
-                            csvLine.Add(fieldValue, fieldValue);
-                        }
-
-                        _expectedFieldCount = csvLine.Count;
-                    }
-                        break;
-                    case CsvFileHeaderHandling.Ignore when !_headerLineIgnored:
-                        _headerLineIgnored = true;
+                            Model = recordLine,
+                            HeaderLine = _headerLine
+                        };
+                        inconsistentFieldCountHandler(context);
                         continue;
-
-                    default:
-                    {
-                        var recordLine = new TRecordLine();
-                        recordLine.EnsureFieldCapacity(rawFieldValues.Count);
-                        csvLine = recordLine;
-
-                        if (_headerFieldNames is null)
-                        {
-                            _headerFieldNames = _headerLine?.FieldNames;
-                            if (_headerFieldNames is null && _options.HeaderHandler is CsvFileHeader headerHandler)
-                            {
-                                _headerFieldNames = headerHandler(_headerLine);
-
-                                // Check for duplicate names.
-                                var duplicateFieldNames = GetDuplicateFieldNames(_headerFieldNames);
-                                if (duplicateFieldNames.Length > 0)
-                                {
-                                    var message = string.Format(ErrorMessage.DuplicateFieldNamesTemplate, duplicateFieldNames.Length);
-                                    var dataItems = new Dictionary<string, object> { { DataItemName.FieldNames, duplicateFieldNames } };
-                                    throw BuildException(message, dataItems);
-                                }
-                            }
-                        }
-
-                        var fieldPlan = GetFieldPlan((TRecordLine)csvLine);
-                        var fieldNames = fieldPlan.GetFieldNames(rawFieldValues.Count);
-                        for (var fieldIndex = 0; fieldIndex < rawFieldValues.Count; fieldIndex++)
-                        {
-                            csvLine.Add(fieldNames[fieldIndex], rawFieldValues[fieldIndex]);
-                        }
-
-                        if (_expectedFieldCount == 0)
-                        {
-                            _expectedFieldCount = csvLine.Count;
-                        }
-
-                        if (csvLine.Count != _expectedFieldCount)
-                        {
-                            if (_options.InconsistentFieldCountHandler is CsvFieldCount<TRecordLine> inconsistentFieldCountHandler)
-                            {
-                                var context = new CsvFieldContext<TRecordLine>(_options)
-                                {
-                                    Model = (TRecordLine)csvLine,
-                                    HeaderLine = _headerLine
-                                };
-                                inconsistentFieldCountHandler(context);
-                                continue;
-                            }
-
-                            var message = string.Format(ErrorMessage.FieldCountMismatchTemplate, csvLine.Count, _expectedFieldCount);
-                            var dataItems = new Dictionary<string, object>
-                            {
-                                { DataItemName.ExpectedFieldCount, _expectedFieldCount },
-                                { DataItemName.ActualFieldCount, csvLine.Count }
-                            };
-                            throw BuildException(message, dataItems);
-                        }
-
-                        // Map CSV fields to model properties.
-                        if (fieldPlan.Mapper.Count > 0)
-                        {
-                            MapCsvFieldsToProperties((TRecordLine)csvLine, fieldPlan);
-                        }
-
                     }
-                        break;
+
+                    var message = string.Format(ErrorMessage.FieldCountMismatchTemplate, csvLine.Count, _expectedFieldCount);
+                    var dataItems = new Dictionary<string, object>
+                    {
+                        { DataItemName.ExpectedFieldCount, _expectedFieldCount },
+                        { DataItemName.ActualFieldCount, csvLine.Count }
+                    };
+                    throw BuildException(message, dataItems);
                 }
 
-                return csvLine;
+                // Map CSV fields to model properties.
+                if (fieldPlan.Mapper.Count > 0)
+                {
+                    MapCsvFieldsToProperties(recordLine, fieldPlan);
+                }
+
+                return recordLine;
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Reads the first line of the file as the header line, and either keeps it or, when the header line is ignored, discards it.
+        /// </summary>
+        /// <returns>The header line, if it is used; <c>null</c> if it is ignored or the stream is empty.</returns>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private CsvFileHeaderLine? ReadHeaderLine()
+#else
+        [return: MaybeNull]
+        private CsvFileHeaderLine ReadHeaderLine()
+#endif
+        {
+            var rawFieldValues = _rawFieldValues;
+            if (!TryReadRecord(rawFieldValues)) return null;
+
+            ThrowIfNoFields(rawFieldValues);
+
+            if (_options.HeaderHandling == CsvFileHeaderHandling.Ignore)
+            {
+                _headerLineIgnored = true;
+                return null;
+            }
+
+            // Make sure all field names are unique.
+            ThrowIfDuplicateFieldNames(rawFieldValues);
+
+            var headerLine = new CsvFileHeaderLine();
+            headerLine.EnsureFieldCapacity(rawFieldValues.Count);
+
+            // Add field names to the line.  Key and Value will be identical because the field name (key) is the value in this case.
+            foreach (var fieldValue in rawFieldValues)
+            {
+                headerLine.Add(fieldValue, fieldValue);
+            }
+
+            _expectedFieldCount = rawFieldValues.Count;
+            _headerLine = headerLine;
+            return headerLine;
+        }
+
+        /// <summary>
+        /// Gets the field names that records are read with: those of the header line, if there is one, or else those the header handler gives.
+        /// </summary>
+        /// <returns>The field names; <c>null</c> if there is neither a header line nor a header handler.</returns>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        private IReadOnlyList<string>? GetHeaderFieldNames()
+#else
+        [return: MaybeNull]
+        private IReadOnlyList<string> GetHeaderFieldNames()
+#endif
+        {
+            var headerFieldNames = _headerLine?.FieldNames;
+            if (headerFieldNames is null && _options.HeaderHandler is CsvFileHeader headerHandler)
+            {
+                headerFieldNames = headerHandler(_headerLine);
+                if (headerFieldNames is null)
+                {
+                    throw new InvalidOperationException("The header handler returned null instead of a list of field names.");
+                }
+
+                // Check for duplicate names.
+                ThrowIfDuplicateFieldNames(headerFieldNames);
+            }
+
+            return headerFieldNames;
+        }
+
+        private static void ThrowIfNoFields(List<string> rawFieldValues)
+        {
+            if (rawFieldValues.Count == 0)
+            {
+                // ref. RFC 4180§2¶4
+                var dataItems = new Dictionary<string, object> { { DataItemName.ActualFieldCount, rawFieldValues.Count } };
+                throw BuildException("Expected one or more fields.", dataItems);
+            }
+        }
+
+        private void ThrowIfDuplicateFieldNames(IEnumerable<string> fieldNames)
+        {
+            var duplicateFieldNames = GetDuplicateFieldNames(fieldNames);
+            if (duplicateFieldNames.Length > 0)
+            {
+                var message = string.Format(ErrorMessage.DuplicateFieldNamesTemplate, duplicateFieldNames.Length);
+                var dataItems = new Dictionary<string, object> { { DataItemName.FieldNames, duplicateFieldNames } };
+                throw BuildException(message, dataItems);
+            }
         }
 
         /// <summary>

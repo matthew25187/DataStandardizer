@@ -83,6 +83,11 @@ namespace DataStandardizer.File.CSV.Tests
 
         private const string DuplicateFieldNameMessage = "Found 1 duplicate field names.";
         private const string FieldNamesDataItem = "FieldNames";
+        private const string DuplicateFieldName = "a";
+        private const string DuplicateFieldNamesHeaderFile = "a,a\r\n1,2";
+        private const string TwoShortRecordsFile = "1,2\r\n3,4";
+        private const string InvalidLastFieldHeaderFile = "One,x\"Two\"\r\n1,2";
+        private const string HeaderHandlerFailureMessage = "Header handler failed.";
         private const string FirstLongRecordLine = "1,One,This is the first";
         private const string TwoRecordsFile = "1,One,First\r\n2,Two,Second";
         private const string ThreeRecordsWithHeaderFile = "Id,Name,Description\r\n1,One,First\r\n2,Two,Second\r\n3,Three,Third";
@@ -472,6 +477,118 @@ namespace DataStandardizer.File.CSV.Tests
                 // assert
                 testAction.Should().Throw<CsvFileException>().WithMessage(DuplicateFieldNameMessage)
                     .Which.Data[FieldNamesDataItem].Should().BeEquivalentTo(new[] { string.Empty });
+            }
+        }
+
+        [Fact]
+        public void ReadLine_AfterHeaderLineWithDuplicateFieldNames_ThrowsCsvFileExceptionAgain()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(DuplicateFieldNamesHeaderFile), options))
+            {
+                _ = Record.Exception(() => csvReader.ReadLine());
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(DuplicateFieldNameMessage)
+                    .Which.Data[FieldNamesDataItem].Should().BeEquivalentTo(new[] { DuplicateFieldName });
+            }
+        }
+
+        [Fact]
+        public void ReadLine_AfterHeaderHandlerWithDuplicateFieldNames_ThrowsCsvFileExceptionAgain()
+        {
+            // arrange
+            var headerHandler = new CsvFileHeader(_ => new[] { DuplicateFieldName, DuplicateFieldName });
+            var options = new CsvFileOptions { HeaderHandler = headerHandler };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(TwoShortRecordsFile), options))
+            {
+                _ = Record.Exception(() => csvReader.ReadLine());
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(DuplicateFieldNameMessage)
+                    .Which.Data[FieldNamesDataItem].Should().BeEquivalentTo(new[] { DuplicateFieldName });
+            }
+        }
+
+        [Fact]
+        public void ReadLine_AfterHeaderLineWithInvalidValue_ThrowsCsvFileExceptionAgain()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Use };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(InvalidLastFieldHeaderFile), options))
+            {
+                _ = Record.Exception(() => csvReader.ReadLine());
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(BadValueMessage);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_AfterIgnoredHeaderLineWithInvalidValue_ThrowsCsvFileExceptionAgain()
+        {
+            // arrange
+            var options = new CsvFileOptions { HeaderHandling = CsvFileHeaderHandling.Ignore };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(InvalidLastFieldHeaderFile), options))
+            {
+                _ = Record.Exception(() => csvReader.ReadLine());
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<CsvFileException>().WithMessage(BadValueMessage);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_AfterHeaderHandlerThrows_ThrowsHeaderHandlerExceptionAgainWithoutCallingIt()
+        {
+            // arrange
+            var headerHandlerCalls = new List<CsvFileHeaderLine>();
+            var headerHandler = new CsvFileHeader(headerLine =>
+            {
+                headerHandlerCalls.Add(headerLine);
+                throw new InvalidOperationException(HeaderHandlerFailureMessage);
+            });
+            var options = new CsvFileOptions { HeaderHandler = headerHandler };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(TwoShortRecordsFile), options))
+            {
+                _ = Record.Exception(() => csvReader.ReadLine());
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>().WithMessage(HeaderHandlerFailureMessage);
+                headerHandlerCalls.Should().HaveCount(1);
+            }
+        }
+
+        [Fact]
+        public void ReadLine_HeaderHandlerReturnsNull_ThrowsInvalidOperationException()
+        {
+            // arrange
+            var headerHandler = new CsvFileHeader(_ => null);
+            var options = new CsvFileOptions { HeaderHandler = headerHandler };
+            using (var csvReader = new CsvFileReader<CsvFileRecordLine>(new StringReader(TwoShortRecordsFile), options))
+            {
+
+                // act
+                Action testAction = () => csvReader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>();
             }
         }
 
