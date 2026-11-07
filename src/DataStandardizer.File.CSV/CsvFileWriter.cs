@@ -170,7 +170,13 @@ namespace DataStandardizer.File.CSV
         /// <summary>
         /// Write a line to a CSV file.
         /// </summary>
-        /// <param name="csvLine">Line containing fields to be written.</param>
+        /// <param name="csvLine">
+        /// Line containing fields to be written: a <see cref="CsvFileHeaderLine"/>, or a record line of type <typeparamref name="TRecordLine"/>.
+        /// </param>
+        /// <exception cref="ArgumentNullException"><paramref name="csvLine"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="csvLine"/> is neither a <see cref="CsvFileHeaderLine"/> nor a <typeparamref name="TRecordLine"/>.  Nothing is written.
+        /// </exception>
         /// <exception cref="CsvFileException">
         /// Invalid field name detected.
         /// </exception>
@@ -178,6 +184,16 @@ namespace DataStandardizer.File.CSV
         public void WriteLine(ICsvFileLine csvLine)
         {
             ThrowIfDisposed();
+
+            if (csvLine is null)
+                throw new ArgumentNullException(nameof(csvLine));
+
+            // A line of any other type has no fields the writer can output, and writing it as an empty record would break the rule that a record has one or more fields.
+            // ref. RFC 4180§2
+            if (!(csvLine is CsvFileHeaderLine) && !(csvLine is TRecordLine))
+            {
+                throw new ArgumentException($"Expected a {nameof(CsvFileHeaderLine)} or a {typeof(TRecordLine).Name}; found a {csvLine.GetType().Name}.", nameof(csvLine));
+            }
 
             // Check the line for the last non-empty field value.
             var lastFieldIndex = -1;
@@ -188,16 +204,9 @@ namespace DataStandardizer.File.CSV
 
             // Extract the serialized field values that will comprise the CSV line.  All of them are extracted before any is
             // written, so a line that fails part way through writes nothing.
-            var fieldValueCount = 0;
-            switch (csvLine)
-            {
-                case CsvFileHeaderLine headerLine:
-                    fieldValueCount = GetHeaderLineFieldValues(headerLine, lastFieldIndex);
-                    break;
-                case TRecordLine recordLine:
-                    fieldValueCount = GetRecordLineFieldValues(recordLine, lastFieldIndex);
-                    break;
-            }
+            var fieldValueCount = csvLine is CsvFileHeaderLine headerLine
+                ? GetHeaderLineFieldValues(headerLine, lastFieldIndex)
+                : GetRecordLineFieldValues((TRecordLine)csvLine, lastFieldIndex);
 
             // Write line to CSV output.
             WriteFieldValues(fieldValueCount);

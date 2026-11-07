@@ -1203,6 +1203,71 @@ namespace DataStandardizer.File.CSV.Tests
             }
         }
 
+        /// <summary>
+        /// Lines that a <see cref="CsvFileWriter{TRecordLine}"/> of <see cref="AllIndexedLine"/> can't write: a plain record line, and a record line of a sibling type.
+        /// </summary>
+        public static TheoryData<ICsvFileLine> LinesOfAnotherRecordType()
+        {
+            ICsvFileLine plainLine = new CsvFileRecordLine();
+            plainLine.Add(FieldName1, TextValue);
+
+            return new TheoryData<ICsvFileLine>
+            {
+                plainLine,
+                new UnmappedLine { Id = 1, Name = FirstName, Description = FirstDescription }
+            };
+        }
+
+        [Theory]
+        [MemberData(nameof(LinesOfAnotherRecordType))]
+        public void WriteLine_LineOfAnotherRecordType_ThrowsArgumentException(ICsvFileLine testLine)
+        {
+            // arrange
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<AllIndexedLine>(stringWriter))
+            {
+                // act
+                Action testAction = () => csvWriter.WriteLine(testLine);
+
+                // assert
+                testAction.Should().Throw<ArgumentException>().WithParameterName("csvLine");
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(LinesOfAnotherRecordType))]
+        public void WriteLine_LineOfAnotherRecordType_WritesNothing(ICsvFileLine testLine)
+        {
+            // arrange
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<AllIndexedLine>(stringWriter))
+            {
+                // act
+                _ = Record.Exception(() => csvWriter.WriteLine(testLine));
+
+                // assert
+                buffer.ToString().Should().BeEmpty();
+            }
+        }
+
+        [Fact]
+        public void WriteLine_NullLine_ThrowsArgumentNullException()
+        {
+            // arrange
+            var buffer = new StringBuilder();
+            using (var stringWriter = new StringWriter(buffer))
+            using (var csvWriter = new CsvFileWriter<AllIndexedLine>(stringWriter))
+            {
+                // act
+                Action testAction = () => csvWriter.WriteLine(null);
+
+                // assert
+                testAction.Should().Throw<ArgumentNullException>().WithParameterName("csvLine");
+            }
+        }
+
         [Fact]
         public void WriteLine_RecordLineWithConstantAndVariableValueMappings_WritesMappedValues()
         {
