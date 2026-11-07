@@ -29,7 +29,7 @@ Each is an [IVcard30PropertyList](IVcard30PropertyList.md), a live view of the c
 | --- | --- | --- | --- |
 | `FormattedNames` | `FN` | `string` | |
 | `Nicknames` | `NICKNAME` | `IReadOnlyList<string>` | |
-| `Photos`, `Logos`, `Sounds` | `PHOTO`, `LOGO`, `SOUND` | [VcardMediaValue](VcardMediaValue.md) | Inline data or a URI. Inline data of any length is here, and can be added. Adding a `TYPE` that can't name a media type throws too. |
+| `Photos`, `Logos`, `Sounds` | `PHOTO`, `LOGO`, `SOUND` | [VcardMediaValue](VcardMediaValue.md) | Inline data or a URI. Inline data of any length is here, and can be added. A URI of another scheme with more than 65519 characters is left out on every runtime, since `VcardMediaValue.Uri` holds a `Uri`; it stays in `Properties`. Adding a `TYPE` that can't name a media type throws `ArgumentException`. |
 | `Addresses` | `ADR` | `VcardAddress` | Without the components of RFC 9554. One with several items in a component, or with `PHONETIC`, is hidden. |
 | `Labels` | `LABEL` | `string` | Held on the `ADR` it goes with, where there is one. |
 | `Telephones` | `TEL` | `string` | A `tel` URI gives its number, and another URI is hidden. |
