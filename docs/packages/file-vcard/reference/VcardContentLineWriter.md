@@ -91,7 +91,7 @@ valid, `Group` once the group is valid, and `CardIndex` when the line is in a ca
 **Disposal.** `Dispose` and `DisposeAsync` may be called more than once and share their
 state. They flush and close a stream writer or file the writer created itself, and
 return the pooled buffer. After disposal, every member throws `ObjectDisposedException`.
-If an operation is in progress on another thread, it completes with
+If an operation is in progress, whether or not it has to wait, it completes with
 `ObjectDisposedException`, and the writer is flushed and released once that operation
 has finished. `DisposeAsync` disposes the writer even if the flush throws.
 
@@ -140,16 +140,16 @@ Errors in how the writer is used (`ObjectDisposedException`, `ArgumentNullExcept
 `InvalidOperationException`) are thrown by the call. Errors in the lines
 (`VcardFileException`, and `ArgumentException` for a `null` item), I/O errors, and
 cancellation (`OperationCanceledException`) are thrown by the task. If the writer is
-disposed while an operation is pending, the task throws `ObjectDisposedException`. If
+disposed while an operation is in progress, whether or not it has to wait, the task throws `ObjectDisposedException`. If
 an operation is canceled, the writer cannot continue.
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `WriteLineAsync(VcardContentLine line, CancellationToken cancellationToken = default)` | `ValueTask` | As `WriteLine`. Completes synchronously when the underlying text writer takes the line without waiting, as a `StreamWriter` does while the line fits its buffer. |
+| `WriteLineAsync(VcardContentLine line, CancellationToken cancellationToken = default)` | `ValueTask` | As `WriteLine`. Completes synchronously when the underlying text writer takes the line without waiting, as a `StreamWriter` does while the line fits its buffer, unless the writer is disposed during the write; it then completes once the writer has been flushed and released. |
 | `WriteLinesAsync(IEnumerable<VcardContentLine> lines, IProgress<VcardWriteProgress>? progress = null, CancellationToken cancellationToken = default)` | `Task` | As `WriteLines`. |
 | `WriteLinesAsync(IAsyncEnumerable<VcardContentLine> lines, IProgress<VcardWriteProgress>? progress = null, CancellationToken cancellationToken = default)` | `Task` | As `WriteLines`, for an asynchronous sequence. `cancellationToken` is passed to its enumerator. |
 | `FlushAsync(CancellationToken cancellationToken = default)` | `Task` | As `Flush`. The token is passed to the text writer on `net10.0`; on .NET Standard it is checked before the flush. |
-| `DisposeAsync()` | `ValueTask` | As `Dispose`, flushing asynchronously. Completes once the writer has been flushed and released. If an operation is in progress, it completes immediately, and the writer is flushed and released once that operation has finished. |
+| `DisposeAsync()` | `ValueTask` | As `Dispose`, flushing asynchronously. Completes once the writer has been flushed and released, or immediately if an operation is in progress. |
 
 ## Applies to
 
