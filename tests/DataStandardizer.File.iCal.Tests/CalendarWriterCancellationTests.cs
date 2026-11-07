@@ -17,6 +17,9 @@ namespace DataStandardizer.File.iCal.Tests
     {
         private const string CanceledMessage = "*canceled*";
 
+        // The calendar of an operation whose progress callback failed, which was written before the callback was called, and the next one.
+        private const long TwoCalendars = 2;
+
         // A value long enough that writing it reaches the target of each writer as the calendar is written, rather than waiting in a buffer: it
         // is longer than the 16 KiB buffer of the content-line writer's stream writer, and the XML writer's buffer.
         private const int ValueLongerThanEveryBuffer = 64 * 1024;
@@ -26,11 +29,12 @@ namespace DataStandardizer.File.iCal.Tests
         /// </summary>
         public sealed class WriterOperation
         {
-            public WriterOperation(Func<CancellationToken, Task> run, Func<Task> writeCalendarAsync, Action writeCalendar)
+            public WriterOperation(Func<CancellationToken, Task> run, Func<Task> writeCalendarAsync, Action writeCalendar, Func<long> calendarsWritten)
             {
                 Run = run;
                 WriteCalendarAsync = writeCalendarAsync;
                 WriteCalendar = writeCalendar;
+                CalendarsWritten = calendarsWritten;
             }
 
             /// <summary>
@@ -47,6 +51,11 @@ namespace DataStandardizer.File.iCal.Tests
             /// Gets an action that writes another calendar to the same writer synchronously.
             /// </summary>
             public Action WriteCalendar { get; }
+
+            /// <summary>
+            /// Gets a function that gives the writer's <c>CalendarsWritten</c>.
+            /// </summary>
+            public Func<long> CalendarsWritten { get; }
         }
 
         #region The target fails
@@ -226,42 +235,42 @@ namespace DataStandardizer.File.iCal.Tests
                 var writer = new IcalWriter(new AsyncOnlyTextWriter());
                 var progress = CreateFailingProgress(onReport, createException);
                 return new WriterOperation(token => writer.WriteCalendarsAsync(new[] { CreateCalendar() }, progress, token),
-                    () => writer.WriteCalendarAsync(CreateCalendar()).AsTask(), () => writer.WriteCalendar(CreateCalendar()));
+                    () => writer.WriteCalendarAsync(CreateCalendar()).AsTask(), () => writer.WriteCalendar(CreateCalendar()), () => writer.CalendarsWritten);
             }),
             ("IcalWriter.WriteCalendarsAsync from an asynchronous sequence", (onReport, createException) =>
             {
                 var writer = new IcalWriter(new AsyncOnlyTextWriter());
                 var progress = CreateFailingProgress(onReport, createException);
                 return new WriterOperation(token => writer.WriteCalendarsAsync(AsyncEnumerables.Yielding(new[] { CreateCalendar() }), progress, token),
-                    () => writer.WriteCalendarAsync(CreateCalendar()).AsTask(), () => writer.WriteCalendar(CreateCalendar()));
+                    () => writer.WriteCalendarAsync(CreateCalendar()).AsTask(), () => writer.WriteCalendar(CreateCalendar()), () => writer.CalendarsWritten);
             }),
             ("JcalWriter.WriteCalendarsAsync", (onReport, createException) =>
             {
                 var writer = new JcalWriter(new AsyncOnlyWriteStream());
                 var progress = CreateFailingProgress(onReport, createException);
                 return new WriterOperation(token => writer.WriteCalendarsAsync(new[] { CreateCalendar() }, progress, token),
-                    () => writer.WriteCalendarAsync(CreateCalendar()).AsTask(), () => writer.WriteCalendar(CreateCalendar()));
+                    () => writer.WriteCalendarAsync(CreateCalendar()).AsTask(), () => writer.WriteCalendar(CreateCalendar()), () => writer.CalendarsWritten);
             }),
             ("JcalWriter.WriteCalendarsAsync from an asynchronous sequence", (onReport, createException) =>
             {
                 var writer = new JcalWriter(new AsyncOnlyWriteStream());
                 var progress = CreateFailingProgress(onReport, createException);
                 return new WriterOperation(token => writer.WriteCalendarsAsync(AsyncEnumerables.Yielding(new[] { CreateCalendar() }), progress, token),
-                    () => writer.WriteCalendarAsync(CreateCalendar()).AsTask(), () => writer.WriteCalendar(CreateCalendar()));
+                    () => writer.WriteCalendarAsync(CreateCalendar()).AsTask(), () => writer.WriteCalendar(CreateCalendar()), () => writer.CalendarsWritten);
             }),
             ("XcalWriter.WriteCalendarsAsync", (onReport, createException) =>
             {
                 var writer = new XcalWriter(new AsyncOnlyTextWriter());
                 var progress = CreateFailingProgress(onReport, createException);
                 return new WriterOperation(token => writer.WriteCalendarsAsync(new[] { CreateCalendar() }, progress, token),
-                    () => writer.WriteCalendarAsync(CreateCalendar()).AsTask(), () => writer.WriteCalendar(CreateCalendar()));
+                    () => writer.WriteCalendarAsync(CreateCalendar()).AsTask(), () => writer.WriteCalendar(CreateCalendar()), () => writer.CalendarsWritten);
             }),
             ("XcalWriter.WriteCalendarsAsync from an asynchronous sequence", (onReport, createException) =>
             {
                 var writer = new XcalWriter(new AsyncOnlyTextWriter());
                 var progress = CreateFailingProgress(onReport, createException);
                 return new WriterOperation(token => writer.WriteCalendarsAsync(AsyncEnumerables.Yielding(new[] { CreateCalendar() }), progress, token),
-                    () => writer.WriteCalendarAsync(CreateCalendar()).AsTask(), () => writer.WriteCalendar(CreateCalendar()));
+                    () => writer.WriteCalendarAsync(CreateCalendar()).AsTask(), () => writer.WriteCalendar(CreateCalendar()), () => writer.CalendarsWritten);
             }),
         };
 
@@ -306,10 +315,51 @@ namespace DataStandardizer.File.iCal.Tests
             await Record.ExceptionAsync(() => operation.Run(CancellationToken.None));
 
             // act
-            Func<Task> testAction = operation.WriteCalendarAsync;
+            await operation.WriteCalendarAsync();
 
             // assert
-            await testAction.Should().NotThrowAsync();
+            operation.CalendarsWritten().Should().Be(TwoCalendars);
+        }
+
+        [Theory]
+        [MemberData(nameof(ProgressFailures), DisableDiscoveryEnumeration = true)]
+        public async Task WriteCalendarsAsync_TokenCanceledAndProgressThrowsIOException_FaultsTask(string scenario,
+            Func<Action, Func<Exception>, WriterOperation> create)
+        {
+            // arrange
+            _ = scenario;
+            using (var cancellationTokenSource = new CancellationTokenSource())
+            {
+                var operation = create(cancellationTokenSource.Cancel, () => new IOException());
+
+                // act: wait for the operation to finish without throwing, so that its status can be checked.
+                var task = operation.Run(cancellationTokenSource.Token);
+                await Task.WhenAny(task);
+
+                // assert
+                task.IsFaulted.Should().BeTrue();
+                task.Exception.InnerException.Should().BeOfType<IOException>();
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(ProgressFailures), DisableDiscoveryEnumeration = true)]
+        public async Task WriteCalendarAsync_AfterTokenCanceledAndProgressThrowsIOException_WritesTheCalendar(string scenario,
+            Func<Action, Func<Exception>, WriterOperation> create)
+        {
+            // arrange
+            _ = scenario;
+            using (var cancellationTokenSource = new CancellationTokenSource())
+            {
+                var operation = create(cancellationTokenSource.Cancel, () => new IOException());
+                await Record.ExceptionAsync(() => operation.Run(cancellationTokenSource.Token));
+
+                // act
+                await operation.WriteCalendarAsync();
+
+                // assert
+                operation.CalendarsWritten().Should().Be(TwoCalendars);
+            }
         }
 
         [Theory]

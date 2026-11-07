@@ -100,7 +100,9 @@ one another, but a read started while another is in progress throws
 passed to it is canceled. That leaves the reader unable to continue, and later reads
 throw `InvalidOperationException`. An `OperationCanceledException` from the text reader
 while that token isn't canceled is a failure of the source, as any other exception from
-it is: the task faults with it, and the reader cannot continue. The asynchronous methods
+it is: the task faults with it, and the reader cannot continue. During `ReadLinesAsync`,
+the task of `MoveNextAsync` is canceled for either, on every target, as an async
+iterator's always is, so check the token to tell which it was. The asynchronous methods
 complete synchronously when the buffer already holds the whole line.
 
 ## Constructors
@@ -144,7 +146,8 @@ A read is canceled when its `cancellationToken` is canceled before the call, or 
 the read fails with an `OperationCanceledException` while that token is canceled,
 whatever token the exception carries, or if it carries none. The task is then canceled.
 An `OperationCanceledException` while the token isn't canceled faults the task. During
-`ReadLinesAsync`, either one is thrown by `MoveNextAsync`.
+`ReadLinesAsync`, awaiting `MoveNextAsync` throws either one, but its task is canceled
+for both, as an async iterator's always is for an `OperationCanceledException`.
 
 | Method | Returns | Notes |
 | --- | --- | --- |

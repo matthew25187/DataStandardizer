@@ -407,7 +407,8 @@ namespace DataStandardizer.File.iCal
         /// line length or decoding error or was canceled.</exception>
         /// <exception cref="OperationCanceledException">During enumeration: a read was canceled, which it is only if the token is canceled; or
         /// the source failed with one while the token isn't canceled, which leaves the reader unable to continue, as any other failure of the
-        /// source does.</exception>
+        /// source does.  On every target, the task of <see cref="IAsyncEnumerator{T}.MoveNextAsync"/> is canceled for either, as an async
+        /// iterator's always is for an <see cref="OperationCanceledException"/>, so check the token to tell which it was.</exception>
         public IAsyncEnumerable<IcalContentLine> ReadLinesAsync(CancellationToken cancellationToken = default)
         {
             // Check now, so the exception comes from this call and not from the first MoveNextAsync.
