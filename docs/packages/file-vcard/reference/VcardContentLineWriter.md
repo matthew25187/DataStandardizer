@@ -98,8 +98,12 @@ has finished. `DisposeAsync` disposes the writer even if the flush throws.
 **Thread safety and async rules.** A single writer instance is not thread-safe. Only
 one operation may be in progress at a time. Synchronous and asynchronous calls may
 follow one another, but a call made while another is in progress throws
-`InvalidOperationException`. A canceled asynchronous operation leaves the writer
-unable to continue, and later operations throw `InvalidOperationException`. In the bulk
+`InvalidOperationException`. An asynchronous operation is canceled only when the
+token passed to it is canceled. That leaves the writer unable to continue, and later
+operations throw `InvalidOperationException`. An `OperationCanceledException` while
+that token isn't canceled, whether from the underlying text writer, the lines being
+enumerated or the progress callback, is handled as an I/O error: the task faults with
+it, and the writer can continue. In the bulk
 methods, the whole call is one operation, so neither the lines being enumerated nor
 the progress callback may call the writer.
 
@@ -140,8 +144,18 @@ Errors in how the writer is used (`ObjectDisposedException`, `ArgumentNullExcept
 `InvalidOperationException`) are thrown by the call. Errors in the lines
 (`VcardFileException`, and `ArgumentException` for a `null` item), I/O errors, and
 cancellation (`OperationCanceledException`) are thrown by the task. If the writer is
-disposed while an operation is in progress, whether or not it has to wait, the task throws `ObjectDisposedException`, unless the operation fails for another reason. If
-an operation is canceled, the writer cannot continue.
+disposed while an operation is in progress, whether or not it has to wait, the task throws `ObjectDisposedException`, unless the operation fails for another reason.
+
+An operation is canceled when its `cancellationToken` is canceled before the call, or
+when the operation fails with an `OperationCanceledException` while that token is
+canceled, whatever token the exception carries, or if it carries none. The task is then
+canceled, and the writer cannot continue. Any other exception faults the task, even
+while the token is canceled. An `OperationCanceledException` while the token isn't
+canceled faults the task too, as an I/O error does, whether it comes from the
+underlying text writer, the lines being enumerated or the progress callback, and the
+writer can continue. If the writer is released at the end of
+an operation, or by `DisposeAsync`, and the release throws, the task faults with that
+exception, an `OperationCanceledException` included.
 
 | Method | Returns | Notes |
 | --- | --- | --- |
