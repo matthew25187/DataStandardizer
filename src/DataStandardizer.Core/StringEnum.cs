@@ -27,15 +27,9 @@ namespace DataStandardizer.Core
     public static class StringEnum
     {
 #if NETCOREAPP3_0_OR_GREATER
-        private static Dictionary<string, object>? _cacheFieldsByName;
-        private static List<KeyValuePair<string, object>>? _cacheMembers;
-        private static ILookup<object, string>? _cacheFieldsByValue;
-        private static Type? _cacheFieldsType;
+        private static MemberCache? _cache;
 #else
-        private static Dictionary<string, object> _cacheFieldsByName;
-        private static List<KeyValuePair<string, object>> _cacheMembers;
-        private static ILookup<object, string> _cacheFieldsByValue;
-        private static Type _cacheFieldsType;
+        private static MemberCache _cache;
 #endif
         private static readonly object SyncRoot = new object();
 
@@ -72,8 +66,7 @@ namespace DataStandardizer.Core
 
             lock (SyncRoot)
             {
-                var cachedFieldsByValue = GetCachedTypeFieldsByValue(enumType);
-                return cachedFieldsByValue[value].FirstOrDefault();
+                return GetCache(enumType).FieldsByValue[value].FirstOrDefault();
             }
         }
 
@@ -93,8 +86,7 @@ namespace DataStandardizer.Core
         {
             lock (SyncRoot)
             {
-                var cachedFieldsByValue = GetCachedTypeFieldsByValue(typeof(TEnum));
-                return cachedFieldsByValue[value].FirstOrDefault();
+                return GetCache(typeof(TEnum)).FieldsByValue[value].FirstOrDefault();
             }
         }
 
@@ -120,8 +112,7 @@ namespace DataStandardizer.Core
 
             lock (SyncRoot)
             {
-                var cachedFieldsByName = GetCachedTypeFieldsByName(enumType);
-                return cachedFieldsByName.Keys.ToArray();
+                return GetCache(enumType).Members.Select(member => member.Name).ToArray();
             }
         }
 
@@ -140,8 +131,7 @@ namespace DataStandardizer.Core
         {
             lock (SyncRoot)
             {
-                var cachedFieldsByName = GetCachedTypeFieldsByName(typeof(TEnum));
-                return cachedFieldsByName.Keys.ToArray();
+                return GetCache(typeof(TEnum)).Members.Select(member => member.Name).ToArray();
             }
         }
 
@@ -167,8 +157,7 @@ namespace DataStandardizer.Core
 
             lock (SyncRoot)
             {
-                var cachedFieldsByValue = GetCachedTypeFieldsByValue(enumType);
-                return cachedFieldsByValue.Select(grp => grp.Key).ToArray();
+                return GetCache(enumType).FieldsByValue.Select(grp => grp.Key).ToArray();
             }
         }
 
@@ -187,8 +176,7 @@ namespace DataStandardizer.Core
         {
             lock (SyncRoot)
             {
-                var cachedFieldsByValue = GetCachedTypeFieldsByValue(typeof(TEnum));
-                return cachedFieldsByValue.Select(grp => grp.Key).Cast<TEnum>().ToArray();
+                return GetCache(typeof(TEnum)).FieldsByValue.Select(grp => grp.Key).Cast<TEnum>().ToArray();
             }
         }
 
@@ -216,9 +204,7 @@ namespace DataStandardizer.Core
 
             lock (SyncRoot)
             {
-                var cachedFieldsByName = GetCachedTypeFieldsByName(enumType);
-                var cachedFieldsByValue = GetCachedTypeFieldsByValue(enumType);
-                return cachedFieldsByName.ContainsKey(value) || cachedFieldsByValue.Select(grp => Cast(grp.Key)).Contains(value);
+                return FindMemberByName(enumType, value, false) != null || FindMemberByValue(enumType, value, false) != null;
             }
         }
 
@@ -237,9 +223,7 @@ namespace DataStandardizer.Core
         {
             lock (SyncRoot)
             {
-                var cachedFieldsByName = GetCachedTypeFieldsByName(typeof(TEnum));
-                var cachedFieldsByValue = GetCachedTypeFieldsByValue(typeof(TEnum));
-                return cachedFieldsByName.ContainsKey(value) || cachedFieldsByValue.Select(grp => Cast(grp.Key)).Contains(value);
+                return FindMemberByName(typeof(TEnum), value, false) != null || FindMemberByValue(typeof(TEnum), value, false) != null;
             }
         }
 
@@ -276,14 +260,13 @@ namespace DataStandardizer.Core
 
             lock (SyncRoot)
             {
-                var cachedFieldsByName = GetCachedTypeFieldsByName(enumType);
-                if (cachedFieldsByName.TryGetValue(value, out var memberValueByNames))
+                var memberValueByNames = FindMemberByName(enumType, value, false);
+                if (memberValueByNames != null)
                 {
                     return memberValueByNames;
                 }
 
-                var cachedFieldsByValue = GetCachedTypeFieldsByValue(enumType);
-                var memberValueByValues = cachedFieldsByValue.Where(grp => string.Equals(Cast(grp.Key), value)).Select(grp => grp.Key).FirstOrDefault();
+                var memberValueByValues = FindMemberByValue(enumType, value, false);
                 if (memberValueByValues != null)
                 {
                     return memberValueByValues;
@@ -312,7 +295,7 @@ namespace DataStandardizer.Core
         /// <remarks>
         /// <paramref name="value"/> is compared with the members' names first, then with their values. When <paramref name="ignoreCase"/> is <c>true</c> and <paramref name="value"/> matches
         /// more than one name, or more than one value, ignoring case, the member whose name or value matches it exactly (ordinal comparison) wins. If none matches exactly, the first
-        /// matching member in declaration order is returned.
+        /// matching member is returned, in the order in which <see cref="GetNames(Type)"/> returns the members' names.
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static object Parse(Type enumType, string value, bool ignoreCase)
@@ -374,17 +357,14 @@ namespace DataStandardizer.Core
 
             lock (SyncRoot)
             {
-                var cachedFieldsByName = GetCachedTypeFieldsByName(typeof(TEnum));
-                if (cachedFieldsByName.TryGetValue(value, out var memberValueByNames) && memberValueByNames is TEnum)
+                if (FindMemberByName(typeof(TEnum), value, false) is TEnum resultByName)
                 {
-                    return (TEnum)memberValueByNames;
+                    return resultByName;
                 }
 
-                var cachedFieldsByValue = GetCachedTypeFieldsByValue(typeof(TEnum));
-                var memberValueByValues = cachedFieldsByValue.Where(grp => string.Equals(Cast(grp.Key), value)).Select(grp => grp.Key).FirstOrDefault();
-                if (memberValueByValues is TEnum)
+                if (FindMemberByValue(typeof(TEnum), value, false) is TEnum resultByValue)
                 {
-                    return (TEnum)memberValueByValues;
+                    return resultByValue;
                 }
             }
 
@@ -408,7 +388,7 @@ namespace DataStandardizer.Core
         /// <remarks>
         /// <paramref name="value"/> is compared with the members' names first, then with their values. When <paramref name="ignoreCase"/> is <c>true</c> and <paramref name="value"/> matches
         /// more than one name, or more than one value, ignoring case, the member whose name or value matches it exactly (ordinal comparison) wins. If none matches exactly, the first
-        /// matching member in declaration order is returned.
+        /// matching member is returned, in the order in which <see cref="GetNames(Type)"/> returns the members' names.
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static TEnum Parse<TEnum>(string value, bool ignoreCase) where TEnum : struct, IStringEnum
@@ -509,15 +489,14 @@ namespace DataStandardizer.Core
 
             lock (SyncRoot)
             {
-                var memberFieldsByName = GetCachedTypeFieldsByName(enumType);
-                if (value != null && memberFieldsByName.TryGetValue(value, out var memberValueByNames))
+                var memberValueByNames = value is null ? null : FindMemberByName(enumType, value, false);
+                if (memberValueByNames != null)
                 {
                     result = memberValueByNames;
                     return true;
                 }
 
-                var memberFieldsByValue = GetCachedTypeFieldsByValue(enumType);
-                var memberValueByValues = memberFieldsByValue.Where(grp => string.Equals(Cast(grp.Key), value)).Select(grp => grp.Key).FirstOrDefault();
+                var memberValueByValues = FindMemberByValue(enumType, value, false);
                 if (memberValueByValues != null)
                 {
                     result = memberValueByValues;
@@ -541,7 +520,7 @@ namespace DataStandardizer.Core
         /// <remarks>
         /// <paramref name="value"/> is compared with the members' names first, then with their values. When <paramref name="ignoreCase"/> is <c>true</c> and <paramref name="value"/> matches
         /// more than one name, or more than one value, ignoring case, the member whose name or value matches it exactly (ordinal comparison) wins. If none matches exactly, the first
-        /// matching member in declaration order is returned.
+        /// matching member is returned, in the order in which <see cref="GetNames(Type)"/> returns the members' names.
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryParse(Type enumType, string? value, bool ignoreCase, out object? result)
@@ -592,23 +571,16 @@ namespace DataStandardizer.Core
         {
             lock (SyncRoot)
             {
-                var memberFieldsByName = GetCachedTypeFieldsByName(typeof(TEnum));
+                if (value != null && FindMemberByName(typeof(TEnum), value, false) is TEnum resultByName)
                 {
-                    if (value != null && memberFieldsByName.TryGetValue(value, out var memberValueByNames) && memberValueByNames is TEnum memberValueResult)
-                    {
-                        result = memberValueResult;
-                        return true;
-                    }
+                    result = resultByName;
+                    return true;
                 }
 
-                var memberFieldsByValue = GetCachedTypeFieldsByValue(typeof(TEnum));
-                var memberValueByValues = memberFieldsByValue.Where(grp => string.Equals(Cast(grp.Key), value)).Select(grp => grp.Key).FirstOrDefault();
+                if (FindMemberByValue(typeof(TEnum), value, false) is TEnum resultByValue)
                 {
-                    if (memberValueByValues is TEnum memberValueResult)
-                    {
-                        result = memberValueResult;
-                        return true;
-                    }
+                    result = resultByValue;
+                    return true;
                 }
             }
 
@@ -628,7 +600,7 @@ namespace DataStandardizer.Core
         /// <remarks>
         /// <paramref name="value"/> is compared with the members' names first, then with their values. When <paramref name="ignoreCase"/> is <c>true</c> and <paramref name="value"/> matches
         /// more than one name, or more than one value, ignoring case, the member whose name or value matches it exactly (ordinal comparison) wins. If none matches exactly, the first
-        /// matching member in declaration order is returned.
+        /// matching member is returned, in the order in which <see cref="GetNames(Type)"/> returns the members' names.
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryParse<TEnum>(string? value, bool ignoreCase, out TEnum result) where TEnum : struct, IStringEnum
@@ -684,7 +656,7 @@ namespace DataStandardizer.Core
             return e(value);
         }
 
-        // An exact (ordinal) match wins. Otherwise, when ignoring case, the first member in declaration order whose name matches ignoring case.
+        // An exact (ordinal) match wins. Otherwise, when ignoring case, the first member in member order whose name matches ignoring case.
 #if NETCOREAPP3_0_OR_GREATER
         private static object? FindMemberByName(Type type, string value, bool ignoreCase)
 #else
@@ -692,21 +664,22 @@ namespace DataStandardizer.Core
         private static object FindMemberByName(Type type, string value, bool ignoreCase)
 #endif
         {
-            if (GetCachedTypeFieldsByName(type).TryGetValue(value, out var exactMatch))
+            var cache = GetCache(type);
+            if (cache.FieldsByName.TryGetValue(value, out var exactMatch))
                 return exactMatch;
             if (!ignoreCase)
                 return null;
 
-            foreach (var member in GetCachedTypeMembers(type))
+            foreach (var member in cache.Members)
             {
-                if (string.Equals(member.Key, value, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(member.Name, value, StringComparison.OrdinalIgnoreCase))
                     return member.Value;
             }
 
             return null;
         }
 
-        // An exact (ordinal) match wins. Otherwise, when ignoring case, the first member in declaration order whose value matches ignoring case.
+        // An exact (ordinal) match wins. Otherwise, when ignoring case, the first member in member order whose value matches ignoring case. A null value matches nothing.
 #if NETCOREAPP3_0_OR_GREATER
         private static object? FindMemberByValue(Type type, string? value, bool ignoreCase)
 #else
@@ -714,63 +687,36 @@ namespace DataStandardizer.Core
         private static object FindMemberByValue(Type type, [AllowNull] string value, bool ignoreCase)
 #endif
         {
+            if (value is null)
+                return null;
+
 #if NETCOREAPP3_0_OR_GREATER
             object? caseInsensitiveMatch = null;
 #else
             object caseInsensitiveMatch = null;
 #endif
-            foreach (var grp in GetCachedTypeFieldsByValue(type))
+            foreach (var member in GetCache(type).Members)
             {
-                var memberValue = Cast(grp.Key);
-                if (string.Equals(memberValue, value, StringComparison.Ordinal))
-                    return grp.Key;
-                if (ignoreCase && caseInsensitiveMatch is null && string.Equals(memberValue, value, StringComparison.OrdinalIgnoreCase))
-                    caseInsensitiveMatch = grp.Key;
+                if (string.Equals(member.StringValue, value, StringComparison.Ordinal))
+                    return member.Value;
+                if (ignoreCase && caseInsensitiveMatch is null && string.Equals(member.StringValue, value, StringComparison.OrdinalIgnoreCase))
+                    caseInsensitiveMatch = member.Value;
             }
 
             return caseInsensitiveMatch;
         }
 
-        private static IDictionary<string, object> GetCachedTypeFieldsByName(Type type)
+        // Callers hold SyncRoot.
+        private static MemberCache GetCache(Type type)
         {
-            if (type != _cacheFieldsType)
+            var cache = _cache;
+            if (cache is null || cache.Type != type)
             {
-                RefreshCachedTypeFields(type);
+                cache = BuildCache(type);
+                _cache = cache;
             }
 
-#if NETCOREAPP3_0_OR_GREATER
-            return _cacheFieldsByName!;
-#else
-            return _cacheFieldsByName;
-#endif
-        }
-
-        private static List<KeyValuePair<string, object>> GetCachedTypeMembers(Type type)
-        {
-            if (type != _cacheFieldsType)
-            {
-                RefreshCachedTypeFields(type);
-            }
-
-#if NETCOREAPP3_0_OR_GREATER
-            return _cacheMembers!;
-#else
-            return _cacheMembers;
-#endif
-        }
-
-        private static ILookup<object, string> GetCachedTypeFieldsByValue(Type type)
-        {
-            if (type != _cacheFieldsType)
-            {
-                RefreshCachedTypeFields(type);
-            }
-
-#if NETCOREAPP3_0_OR_GREATER
-            return _cacheFieldsByValue!;
-#else
-            return _cacheFieldsByValue;
-#endif
+            return cache;
         }
 
         private static List<FieldInfo> GetMemberFields(Type enumType)
@@ -797,10 +743,11 @@ namespace DataStandardizer.Core
             return candidateType.GetTypeInfo().IsValueType && candidateType.GetTypeInfo().ImplementedInterfaces.Any(type => type.Name == nameof(IStringEnum));
         }
 
-        private static void RefreshCachedTypeFields(Type type)
+        // Builds the whole cache before it's published, so that a failure leaves the previous cache in place.
+        private static MemberCache BuildCache(Type type)
         {
             var fieldsByName = new Dictionary<string, object>(StringComparer.Ordinal);
-            var members = new List<KeyValuePair<string, object>>();
+            var members = new List<Member>();
             foreach (var field in GetMemberFields(type))
             {
                 var fieldValue = field.GetValue(null);
@@ -810,15 +757,59 @@ namespace DataStandardizer.Core
                     throw new InvalidOperationException($"The string enumeration {type.FullName} has more than one member named {field.Name}.");
 
                 fieldsByName.Add(field.Name, fieldValue);
-                members.Add(new KeyValuePair<string, object>(field.Name, fieldValue));
+                members.Add(new Member(field.Name, fieldValue, Cast(fieldValue)));
             }
 
-            // Build everything before publishing any of it, so that a failure leaves the cache as it was.
-            var fieldsByValue = members.ToLookup(member => member.Value, member => member.Key);
-            _cacheFieldsByName = fieldsByName;
-            _cacheMembers = members;
-            _cacheFieldsByValue = fieldsByValue;
-            _cacheFieldsType = type;
+            var fieldsByValue = members.ToLookup(member => member.Value, member => member.Name);
+            return new MemberCache(type, fieldsByName, members, fieldsByValue);
+        }
+
+        #endregion
+
+        #region Nested Types
+
+        private sealed class MemberCache
+        {
+            public MemberCache(Type type, Dictionary<string, object> fieldsByName, List<Member> members, ILookup<object, string> fieldsByValue)
+            {
+                Type = type;
+                FieldsByName = fieldsByName;
+                Members = members;
+                FieldsByValue = fieldsByValue;
+            }
+
+            public Type Type { get; }
+
+            public Dictionary<string, object> FieldsByName { get; }
+
+            // The members in the order GetNames returns them.
+            public List<Member> Members { get; }
+
+            public ILookup<object, string> FieldsByValue { get; }
+        }
+
+        private readonly struct Member
+        {
+#if NETCOREAPP3_0_OR_GREATER
+            public Member(string name, object value, string? stringValue)
+#else
+            public Member(string name, object value, string stringValue)
+#endif
+            {
+                Name = name;
+                Value = value;
+                StringValue = stringValue;
+            }
+
+            public string Name { get; }
+
+            public object Value { get; }
+
+#if NETCOREAPP3_0_OR_GREATER
+            public string? StringValue { get; }
+#else
+            public string StringValue { get; }
+#endif
         }
 
         #endregion

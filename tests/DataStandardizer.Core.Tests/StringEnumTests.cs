@@ -79,6 +79,8 @@ namespace DataStandardizer.Core.Tests
         private const string LowerCaseValue = "xyz";
         private const string UpperCaseValue = "XYZ";
         private const string MixedCaseValue = "Xyz";
+        private const string GhiValue = "jkl";
+        private const string UvwValue = "ghi";
         private const string UnmatchedCaseVariantInput = "abd";
 
         [Fact]
@@ -1126,8 +1128,19 @@ namespace DataStandardizer.Core.Tests
         }
 
         [Theory]
-        [MemberData(nameof(ParseIgnoreCaseOverloadsOnCaseVariantNameEnumWithUnmatchedInput))]
-        public void ParseIgnoreCaseOverloads_OnEnumWithNamesDifferingOnlyByCaseWithUnmatchedInput_ThrowsArgumentException(Action parse)
+        [MemberData(nameof(ParseCaseSensitiveOverloadsOnCaseVariantNameEnum))]
+        public void ParseCaseSensitiveOverloads_OnEnumWithNamesDifferingOnlyByCase_ReturnsExactMatch(Func<string, object> parse, string value, CaseVariantNameEnum expectedResult)
+        {
+            // act
+            var testResult = parse(value);
+
+            // assert
+            testResult.Should().Be(expectedResult);
+        }
+
+        [Theory]
+        [MemberData(nameof(ParseOverloadsOnCaseVariantNameEnumWithUnmatchedInput))]
+        public void ParseOverloads_OnEnumWithNamesDifferingOnlyByCaseWithUnmatchedInput_ThrowsArgumentException(Action parse)
         {
             // act
             var testAction = parse;
@@ -1149,8 +1162,20 @@ namespace DataStandardizer.Core.Tests
         }
 
         [Theory]
-        [MemberData(nameof(TryParseIgnoreCaseOverloadsOnCaseVariantNameEnumWithUnmatchedInput))]
-        public void TryParseIgnoreCaseOverloads_OnEnumWithNamesDifferingOnlyByCaseWithUnmatchedInput_ReturnsFalse(Func<bool> tryParse)
+        [MemberData(nameof(TryParseCaseSensitiveOverloadsOnCaseVariantNameEnum))]
+        public void TryParseCaseSensitiveOverloads_OnEnumWithNamesDifferingOnlyByCase_ReturnsTrueAndExactMatch(Func<string, (bool Success, object? Result)> tryParse, string value, CaseVariantNameEnum expectedResult)
+        {
+            // act
+            var testResult = tryParse(value);
+
+            // assert
+            testResult.Success.Should().BeTrue();
+            testResult.Result.Should().Be(expectedResult);
+        }
+
+        [Theory]
+        [MemberData(nameof(TryParseOverloadsOnCaseVariantNameEnumWithUnmatchedInput))]
+        public void TryParseOverloads_OnEnumWithNamesDifferingOnlyByCaseWithUnmatchedInput_ReturnsFalse(Func<bool> tryParse)
         {
             // act
             var testResult = tryParse();
@@ -1161,8 +1186,8 @@ namespace DataStandardizer.Core.Tests
 
         #region Test Data
 
-        // Each input with the member it resolves to: an exact (ordinal) match wins, otherwise the first member in declaration order that matches ignoring case.
-        private static readonly (string Value, CaseVariantNameEnum ExpectedResult)[] CaseVariantNameEnumCases =
+        // Each input with the member it resolves to when ignoring case: names are compared before values, an exact (ordinal) match wins, otherwise the first member that matches ignoring case.
+        private static readonly (string Value, CaseVariantNameEnum ExpectedResult)[] CaseVariantNameEnumIgnoreCaseCases =
         {
             (MixedCaseName, CaseVariantNameEnum.Abc),
             (UpperCaseName, CaseVariantNameEnum.ABC),
@@ -1170,6 +1195,17 @@ namespace DataStandardizer.Core.Tests
             (LowerCaseValue, CaseVariantNameEnum.Abc),
             (UpperCaseValue, CaseVariantNameEnum.ABC),
             (MixedCaseValue, CaseVariantNameEnum.Abc),
+            (UvwValue, CaseVariantNameEnum.Ghi),
+        };
+
+        // Each input with the member it resolves to when case is regarded: only an exact (ordinal) name or value matches.
+        private static readonly (string Value, CaseVariantNameEnum ExpectedResult)[] CaseVariantNameEnumCaseSensitiveCases =
+        {
+            (MixedCaseName, CaseVariantNameEnum.Abc),
+            (UpperCaseName, CaseVariantNameEnum.ABC),
+            (LowerCaseValue, CaseVariantNameEnum.Abc),
+            (UpperCaseValue, CaseVariantNameEnum.ABC),
+            (UvwValue, CaseVariantNameEnum.Uvw),
         };
 
         public static TheoryData<Func<string, object>, string, CaseVariantNameEnum> ParseIgnoreCaseOverloadsOnCaseVariantNameEnum =>
@@ -1177,12 +1213,25 @@ namespace DataStandardizer.Core.Tests
             {
                 value => StringEnum.Parse(typeof(CaseVariantNameEnum), value, true),
                 value => StringEnum.Parse<CaseVariantNameEnum>(value, true),
-            });
+            }, CaseVariantNameEnumIgnoreCaseCases);
 
-        public static TheoryData<Action> ParseIgnoreCaseOverloadsOnCaseVariantNameEnumWithUnmatchedInput => new TheoryData<Action>
+        public static TheoryData<Func<string, object>, string, CaseVariantNameEnum> ParseCaseSensitiveOverloadsOnCaseVariantNameEnum =>
+            CombineOverloadsWithCases(new Func<string, object>[]
+            {
+                value => StringEnum.Parse(typeof(CaseVariantNameEnum), value),
+                value => StringEnum.Parse(typeof(CaseVariantNameEnum), value, false),
+                value => StringEnum.Parse<CaseVariantNameEnum>(value),
+                value => StringEnum.Parse<CaseVariantNameEnum>(value, false),
+            }, CaseVariantNameEnumCaseSensitiveCases);
+
+        public static TheoryData<Action> ParseOverloadsOnCaseVariantNameEnumWithUnmatchedInput => new TheoryData<Action>
         {
             () => StringEnum.Parse(typeof(CaseVariantNameEnum), UnmatchedCaseVariantInput, true),
             () => StringEnum.Parse<CaseVariantNameEnum>(UnmatchedCaseVariantInput, true),
+            () => StringEnum.Parse(typeof(CaseVariantNameEnum), LowerCaseName),
+            () => StringEnum.Parse(typeof(CaseVariantNameEnum), LowerCaseName, false),
+            () => StringEnum.Parse<CaseVariantNameEnum>(LowerCaseName),
+            () => StringEnum.Parse<CaseVariantNameEnum>(LowerCaseName, false),
         };
 
         public static TheoryData<Func<string, (bool Success, object? Result)>, string, CaseVariantNameEnum> TryParseIgnoreCaseOverloadsOnCaseVariantNameEnum =>
@@ -1190,20 +1239,37 @@ namespace DataStandardizer.Core.Tests
             {
                 value => (StringEnum.TryParse(typeof(CaseVariantNameEnum), value, true, out var result), result),
                 value => (StringEnum.TryParse<CaseVariantNameEnum>(value, true, out var result), result),
-            });
+            }, CaseVariantNameEnumIgnoreCaseCases);
 
-        public static TheoryData<Func<bool>> TryParseIgnoreCaseOverloadsOnCaseVariantNameEnumWithUnmatchedInput => new TheoryData<Func<bool>>
+        public static TheoryData<Func<string, (bool Success, object? Result)>, string, CaseVariantNameEnum> TryParseCaseSensitiveOverloadsOnCaseVariantNameEnum =>
+            CombineOverloadsWithCases(new Func<string, (bool Success, object? Result)>[]
+            {
+                value => (StringEnum.TryParse(typeof(CaseVariantNameEnum), value, out var result), result),
+                value => (StringEnum.TryParse(typeof(CaseVariantNameEnum), value, false, out var result), result),
+                value => (StringEnum.TryParse<CaseVariantNameEnum>(value, out var result), result),
+                value => (StringEnum.TryParse<CaseVariantNameEnum>(value, false, out var result), result),
+            }, CaseVariantNameEnumCaseSensitiveCases);
+
+        public static TheoryData<Func<bool>> TryParseOverloadsOnCaseVariantNameEnumWithUnmatchedInput => new TheoryData<Func<bool>>
         {
             () => StringEnum.TryParse(typeof(CaseVariantNameEnum), UnmatchedCaseVariantInput, true, out _),
             () => StringEnum.TryParse<CaseVariantNameEnum>(UnmatchedCaseVariantInput, true, out _),
+            () => StringEnum.TryParse(typeof(CaseVariantNameEnum), LowerCaseName, out _),
+            () => StringEnum.TryParse(typeof(CaseVariantNameEnum), LowerCaseName, false, out _),
+            () => StringEnum.TryParse<CaseVariantNameEnum>(LowerCaseName, out _),
+            () => StringEnum.TryParse<CaseVariantNameEnum>(LowerCaseName, false, out _),
+            () => StringEnum.TryParse(typeof(CaseVariantNameEnum), null, out _),
+            () => StringEnum.TryParse(typeof(CaseVariantNameEnum), null, true, out _),
+            () => StringEnum.TryParse<CaseVariantNameEnum>(null, out _),
+            () => StringEnum.TryParse<CaseVariantNameEnum>(null, true, out _),
         };
 
-        private static TheoryData<TOverload, string, CaseVariantNameEnum> CombineOverloadsWithCases<TOverload>(IEnumerable<TOverload> overloads)
+        private static TheoryData<TOverload, string, CaseVariantNameEnum> CombineOverloadsWithCases<TOverload>(IEnumerable<TOverload> overloads, IEnumerable<(string Value, CaseVariantNameEnum ExpectedResult)> testCases)
         {
             var theoryData = new TheoryData<TOverload, string, CaseVariantNameEnum>();
             foreach (var overload in overloads)
             {
-                foreach (var testCase in CaseVariantNameEnumCases)
+                foreach (var testCase in testCases)
                 {
                     theoryData.Add(overload, testCase.Value, testCase.ExpectedResult);
                 }
@@ -2339,7 +2405,7 @@ namespace DataStandardizer.Core.Tests
             ulong IConvertible.ToUInt64(IFormatProvider? provider) => ((IConvertible)_value).ToUInt64(provider);
         }
 
-        // Two member names, and two member values, differ only by case.
+        // Two member names, and two member values, differ only by case, and one member's value matches another member's name ignoring case.
         [SuppressMessage("ReSharper", "InconsistentNaming")]
         public readonly struct CaseVariantNameEnum : IStringEnum
         {
@@ -2357,6 +2423,11 @@ namespace DataStandardizer.Core.Tests
             public static readonly CaseVariantNameEnum Abc = new CaseVariantNameEnum(LowerCaseValue);
 
             public static readonly CaseVariantNameEnum ABC = new CaseVariantNameEnum(UpperCaseValue);
+
+            public static readonly CaseVariantNameEnum Ghi = new CaseVariantNameEnum(GhiValue);
+
+            // Its value matches the name Ghi ignoring case.
+            public static readonly CaseVariantNameEnum Uvw = new CaseVariantNameEnum(UvwValue);
 
             public override bool Equals(object? obj) => obj is CaseVariantNameEnum other && string.Equals(_value, other._value, StringComparison.Ordinal);
 
