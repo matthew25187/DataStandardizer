@@ -83,6 +83,21 @@ namespace DataStandardizer.Core.Tests
         private const string UvwValue = "ghi";
         private const string UnmatchedCaseVariantInput = "abd";
 
+        // Names and values of WhiteSpaceValueEnum, and inputs with white space around them.
+        private const string PlainValue = "pad";
+        private const string LeadingWhiteSpaceValue = " pad";
+        private const string NameWithSurroundingSpaces = " Plain ";
+        private const string NameWithSurroundingTabAndLineBreak = "\tPlain\r\n";
+        private const string PaddedNameWithSurroundingSpaces = " Padded ";
+        private const string ValueWithSurroundingSpaces = " pad ";
+        private const string ValueWithTrailingSpace = "pad ";
+        private const string UpperCaseLeadingWhiteSpaceValue = " PAD";
+        private const string UpperCaseValueWithSurroundingSpaces = " PAD ";
+        private const string MixedCaseLeadingWhiteSpaceValue = " Pad";
+        private const string ShoutedValue = "PAD";
+        // Also the name Plain with a space before it.
+        private const string ShadowingValue = " Plain";
+
         [Fact]
         public void GetNameNonGeneric_WithNullEnumType_ThrowsArgumentNullException()
         {
@@ -1238,6 +1253,63 @@ namespace DataStandardizer.Core.Tests
             testResult.Should().BeFalse();
         }
 
+        [Theory]
+        [MemberData(nameof(ParseOverloadsOnWhiteSpaceValueEnum))]
+        public void ParseOverloads_WithWhiteSpaceAroundNameOrValue_ReturnsMatchingMember(Func<string, object> parse, string value, WhiteSpaceValueEnum expectedResult)
+        {
+            // act
+            var testResult = parse(value);
+
+            // assert
+            testResult.Should().Be(expectedResult);
+        }
+
+        [Theory]
+        [MemberData(nameof(TryParseOverloadsOnWhiteSpaceValueEnum))]
+        public void TryParseOverloads_WithWhiteSpaceAroundNameOrValue_ReturnsTrueAndMatchingMember(Func<string, (bool Success, object? Result)> tryParse, string value, WhiteSpaceValueEnum expectedResult)
+        {
+            // act
+            var testResult = tryParse(value);
+
+            // assert
+            testResult.Success.Should().BeTrue();
+            testResult.Result.Should().Be(expectedResult);
+        }
+
+        [Theory]
+        [MemberData(nameof(TryParseOverloadsOnWhiteSpaceValueEnumWithOnlyWhiteSpace))]
+        public void TryParseOverloads_WithOnlyWhiteSpaceOnEnumWithEmptyValue_ReturnsFalse(Func<bool> tryParse)
+        {
+            // act
+            var testResult = tryParse();
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Theory]
+        [MemberData(nameof(ParseIgnoreCaseOverloadsOnWhiteSpaceValueEnum))]
+        public void ParseIgnoreCaseOverloads_WithValueMatchingAsGivenIgnoringCase_ReturnsThatMember(Func<string, object> parse, string value, WhiteSpaceValueEnum expectedResult)
+        {
+            // act
+            var testResult = parse(value);
+
+            // assert
+            testResult.Should().Be(expectedResult);
+        }
+
+        [Theory]
+        [MemberData(nameof(TryParseIgnoreCaseOverloadsOnWhiteSpaceValueEnum))]
+        public void TryParseIgnoreCaseOverloads_WithValueMatchingAsGivenIgnoringCase_ReturnsTrueAndThatMember(Func<string, (bool Success, object? Result)> tryParse, string value, WhiteSpaceValueEnum expectedResult)
+        {
+            // act
+            var testResult = tryParse(value);
+
+            // assert
+            testResult.Success.Should().BeTrue();
+            testResult.Result.Should().Be(expectedResult);
+        }
+
         #region Test Data
 
         // Each input with the member it resolves to when ignoring case: names are compared before values, an exact (ordinal) match wins, otherwise the first member that matches ignoring case.
@@ -1318,9 +1390,83 @@ namespace DataStandardizer.Core.Tests
             () => StringEnum.TryParse<CaseVariantNameEnum>(null, true, out _),
         };
 
-        private static TheoryData<TOverload, string, CaseVariantNameEnum> CombineOverloadsWithCases<TOverload>(IEnumerable<TOverload> overloads, IEnumerable<(string Value, CaseVariantNameEnum ExpectedResult)> testCases)
+        // Each input with the member it resolves to, whether or not case is ignored: names are compared before values, and white space around a name is ignored; a value is
+        // compared as given first, then without the white space around it, and an exact match wins over a match ignoring case.
+        private static readonly (string Value, WhiteSpaceValueEnum ExpectedResult)[] WhiteSpaceValueEnumCases =
         {
-            var theoryData = new TheoryData<TOverload, string, CaseVariantNameEnum>();
+            (NameWithSurroundingSpaces, WhiteSpaceValueEnum.Plain),
+            (NameWithSurroundingTabAndLineBreak, WhiteSpaceValueEnum.Plain),
+            (PaddedNameWithSurroundingSpaces, WhiteSpaceValueEnum.Padded),
+            (ShadowingValue, WhiteSpaceValueEnum.Plain),
+            (PlainValue, WhiteSpaceValueEnum.Plain),
+            (LeadingWhiteSpaceValue, WhiteSpaceValueEnum.Padded),
+            (ValueWithSurroundingSpaces, WhiteSpaceValueEnum.Plain),
+            (ValueWithTrailingSpace, WhiteSpaceValueEnum.Plain),
+            (UpperCaseLeadingWhiteSpaceValue, WhiteSpaceValueEnum.Shouted),
+            (UpperCaseValueWithSurroundingSpaces, WhiteSpaceValueEnum.Shouted),
+        };
+
+        // When no value matches exactly, as given or without white space, a match ignoring case on the value as given wins over one on the value without white space.
+        private static readonly (string Value, WhiteSpaceValueEnum ExpectedResult)[] WhiteSpaceValueEnumIgnoreCaseCases =
+        {
+            (MixedCaseLeadingWhiteSpaceValue, WhiteSpaceValueEnum.Padded),
+        };
+
+        public static TheoryData<Func<bool>> TryParseOverloadsOnWhiteSpaceValueEnumWithOnlyWhiteSpace => new TheoryData<Func<bool>>
+        {
+            () => StringEnum.TryParse(typeof(WhiteSpaceValueEnum), SpaceValue, out _),
+            () => StringEnum.TryParse(typeof(WhiteSpaceValueEnum), SpaceValue, false, out _),
+            () => StringEnum.TryParse(typeof(WhiteSpaceValueEnum), SpaceValue, true, out _),
+            () => StringEnum.TryParse<WhiteSpaceValueEnum>(SpaceValue, out _),
+            () => StringEnum.TryParse<WhiteSpaceValueEnum>(SpaceValue, false, out _),
+            () => StringEnum.TryParse<WhiteSpaceValueEnum>(SpaceValue, true, out _),
+            () => StringEnum.TryParse(typeof(WhiteSpaceValueEnum), TabValue, out _),
+            () => StringEnum.TryParse(typeof(WhiteSpaceValueEnum), TabValue, false, out _),
+            () => StringEnum.TryParse(typeof(WhiteSpaceValueEnum), TabValue, true, out _),
+            () => StringEnum.TryParse<WhiteSpaceValueEnum>(TabValue, out _),
+            () => StringEnum.TryParse<WhiteSpaceValueEnum>(TabValue, false, out _),
+            () => StringEnum.TryParse<WhiteSpaceValueEnum>(TabValue, true, out _),
+        };
+
+        public static TheoryData<Func<string, object>, string, WhiteSpaceValueEnum> ParseOverloadsOnWhiteSpaceValueEnum =>
+            CombineOverloadsWithCases(new Func<string, object>[]
+            {
+                value => StringEnum.Parse(typeof(WhiteSpaceValueEnum), value),
+                value => StringEnum.Parse(typeof(WhiteSpaceValueEnum), value, false),
+                value => StringEnum.Parse(typeof(WhiteSpaceValueEnum), value, true),
+                value => StringEnum.Parse<WhiteSpaceValueEnum>(value),
+                value => StringEnum.Parse<WhiteSpaceValueEnum>(value, false),
+                value => StringEnum.Parse<WhiteSpaceValueEnum>(value, true),
+            }, WhiteSpaceValueEnumCases);
+
+        public static TheoryData<Func<string, (bool Success, object? Result)>, string, WhiteSpaceValueEnum> TryParseOverloadsOnWhiteSpaceValueEnum =>
+            CombineOverloadsWithCases(new Func<string, (bool Success, object? Result)>[]
+            {
+                value => (StringEnum.TryParse(typeof(WhiteSpaceValueEnum), value, out var result), result),
+                value => (StringEnum.TryParse(typeof(WhiteSpaceValueEnum), value, false, out var result), result),
+                value => (StringEnum.TryParse(typeof(WhiteSpaceValueEnum), value, true, out var result), result),
+                value => (StringEnum.TryParse<WhiteSpaceValueEnum>(value, out var result), result),
+                value => (StringEnum.TryParse<WhiteSpaceValueEnum>(value, false, out var result), result),
+                value => (StringEnum.TryParse<WhiteSpaceValueEnum>(value, true, out var result), result),
+            }, WhiteSpaceValueEnumCases);
+
+        public static TheoryData<Func<string, object>, string, WhiteSpaceValueEnum> ParseIgnoreCaseOverloadsOnWhiteSpaceValueEnum =>
+            CombineOverloadsWithCases(new Func<string, object>[]
+            {
+                value => StringEnum.Parse(typeof(WhiteSpaceValueEnum), value, true),
+                value => StringEnum.Parse<WhiteSpaceValueEnum>(value, true),
+            }, WhiteSpaceValueEnumIgnoreCaseCases);
+
+        public static TheoryData<Func<string, (bool Success, object? Result)>, string, WhiteSpaceValueEnum> TryParseIgnoreCaseOverloadsOnWhiteSpaceValueEnum =>
+            CombineOverloadsWithCases(new Func<string, (bool Success, object? Result)>[]
+            {
+                value => (StringEnum.TryParse(typeof(WhiteSpaceValueEnum), value, true, out var result), result),
+                value => (StringEnum.TryParse<WhiteSpaceValueEnum>(value, true, out var result), result),
+            }, WhiteSpaceValueEnumIgnoreCaseCases);
+
+        private static TheoryData<TOverload, string, TExpected> CombineOverloadsWithCases<TOverload, TExpected>(IEnumerable<TOverload> overloads, IEnumerable<(string Value, TExpected ExpectedResult)> testCases)
+        {
+            var theoryData = new TheoryData<TOverload, string, TExpected>();
             foreach (var overload in overloads)
             {
                 foreach (var testCase in testCases)
@@ -2538,6 +2684,59 @@ namespace DataStandardizer.Core.Tests
             public static readonly CaseVariantNameEnum Uvw = new CaseVariantNameEnum(UvwValue);
 
             public override bool Equals(object? obj) => obj is CaseVariantNameEnum other && string.Equals(_value, other._value, StringComparison.Ordinal);
+
+            public override int GetHashCode() => _value.GetHashCode();
+
+            public override string ToString() => _value;
+
+            public int CompareTo(object? obj) => _value.CompareTo(obj);
+
+            public TypeCode GetTypeCode() => _value.GetTypeCode();
+
+            bool IConvertible.ToBoolean(IFormatProvider? provider) => ((IConvertible)_value).ToBoolean(provider);
+            byte IConvertible.ToByte(IFormatProvider? provider) => ((IConvertible)_value).ToByte(provider);
+            char IConvertible.ToChar(IFormatProvider? provider) => ((IConvertible)_value).ToChar(provider);
+            DateTime IConvertible.ToDateTime(IFormatProvider? provider) => ((IConvertible)_value).ToDateTime(provider);
+            decimal IConvertible.ToDecimal(IFormatProvider? provider) => ((IConvertible)_value).ToDecimal(provider);
+            double IConvertible.ToDouble(IFormatProvider? provider) => ((IConvertible)_value).ToDouble(provider);
+            short IConvertible.ToInt16(IFormatProvider? provider) => ((IConvertible)_value).ToInt16(provider);
+            int IConvertible.ToInt32(IFormatProvider? provider) => ((IConvertible)_value).ToInt32(provider);
+            long IConvertible.ToInt64(IFormatProvider? provider) => ((IConvertible)_value).ToInt64(provider);
+            sbyte IConvertible.ToSByte(IFormatProvider? provider) => ((IConvertible)_value).ToSByte(provider);
+            float IConvertible.ToSingle(IFormatProvider? provider) => ((IConvertible)_value).ToSingle(provider);
+            string IConvertible.ToString(IFormatProvider? provider) => _value.ToString(provider);
+            object IConvertible.ToType(Type conversionType, IFormatProvider? provider) => ((IConvertible)_value).ToType(conversionType, provider);
+            ushort IConvertible.ToUInt16(IFormatProvider? provider) => ((IConvertible)_value).ToUInt16(provider);
+            uint IConvertible.ToUInt32(IFormatProvider? provider) => ((IConvertible)_value).ToUInt32(provider);
+            ulong IConvertible.ToUInt64(IFormatProvider? provider) => ((IConvertible)_value).ToUInt64(provider);
+        }
+
+        // One member's value is another member's value with white space before it, one differs from that by case, one is another member's name with white space before it,
+        // and one is the empty string.
+        public readonly struct WhiteSpaceValueEnum : IStringEnum
+        {
+            private readonly string _value;
+
+            private WhiteSpaceValueEnum(string value)
+            {
+                _value = value;
+            }
+
+            public static explicit operator WhiteSpaceValueEnum(string value) => new WhiteSpaceValueEnum(value);
+
+            public static implicit operator string(WhiteSpaceValueEnum value) => value._value;
+
+            public static readonly WhiteSpaceValueEnum Plain = new WhiteSpaceValueEnum(PlainValue);
+
+            public static readonly WhiteSpaceValueEnum Padded = new WhiteSpaceValueEnum(LeadingWhiteSpaceValue);
+
+            public static readonly WhiteSpaceValueEnum Shouted = new WhiteSpaceValueEnum(ShoutedValue);
+
+            public static readonly WhiteSpaceValueEnum Shadowed = new WhiteSpaceValueEnum(ShadowingValue);
+
+            public static readonly WhiteSpaceValueEnum Blank = new WhiteSpaceValueEnum(EmptyValue);
+
+            public override bool Equals(object? obj) => obj is WhiteSpaceValueEnum other && string.Equals(_value, other._value, StringComparison.Ordinal);
 
             public override int GetHashCode() => _value.GetHashCode();
 
