@@ -175,8 +175,8 @@ namespace DataStandardizer.File.iCal
         /// writer is neither flushed nor closed, and a caller-supplied stream is left open.
         /// </summary>
         /// <remarks>
-        /// May be called more than once.  If an operation is in progress, it completes with <see cref="ObjectDisposedException"/>, and the writer
-        /// is flushed and released once that operation has finished.
+        /// May be called more than once.  If an operation is in progress, it completes with <see cref="ObjectDisposedException"/>, unless it fails
+        /// for another reason, and the writer is flushed and released once that operation has finished.
         /// </remarks>
         public void Dispose()
         {
@@ -195,7 +195,7 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <remarks>
         /// May be called more than once, and shares its state with <see cref="Dispose"/>.  If an operation is in progress, it completes with
-        /// <see cref="ObjectDisposedException"/>, and the writer is flushed and released once that operation has finished.  The writer is
+        /// <see cref="ObjectDisposedException"/>, unless it fails for another reason, and the writer is flushed and released once that operation has finished.  The writer is
         /// disposed even if the flush throws.
         /// </remarks>
         /// <returns>A task that completes once the writer has been flushed and released, or immediately if an operation is in progress.</returns>
@@ -583,16 +583,33 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Finishes a write that failed without waiting, during which the writer was disposed: releases the writer, then reports the failure.
         /// </summary>
-        private async ValueTask CompleteFailedOperationAsync(ValueTask write)
+        /// <remarks>
+        /// The failed write's own task is returned once the writer has been released, faulted or canceled as it is.  Rethrowing its exception from
+        /// an async method would cancel the task for any <see cref="OperationCanceledException"/>, even one whose token isn't canceled.  If the
+        /// release fails, that failure is reported instead.
+        /// </remarks>
+        private ValueTask CompleteFailedOperationAsync(ValueTask write)
+        {
+            return new ValueTask(ReleaseThenReportAsync(write.AsTask()).Unwrap());
+        }
+
+        /// <summary>
+        /// Releases the writer, then returns <paramref name="failed"/> for <see cref="CompleteFailedOperationAsync"/> to report.
+        /// </summary>
+        private async Task<Task> ReleaseThenReportAsync(Task failed)
         {
             try
             {
-                await write.ConfigureAwait(false);
-            }
-            finally
-            {
                 await ReleaseAsync().ConfigureAwait(false);
             }
+            catch
+            {
+                // The release failure is reported; observe the write's, so that it isn't reported as unobserved.
+                _ = failed.Exception;
+                throw;
+            }
+
+            return failed;
         }
 
         private async Task FlushCoreAsync(CancellationToken cancellationToken)

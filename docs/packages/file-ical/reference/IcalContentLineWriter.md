@@ -67,7 +67,7 @@ name is valid.
 state. They flush and close a stream writer or file the writer created itself, and
 return the pooled buffer. After disposal, every member throws `ObjectDisposedException`.
 If an operation is in progress, whether or not it has to wait, it completes with
-`ObjectDisposedException`, and the writer is flushed and released once that operation
+`ObjectDisposedException`, unless it fails for another reason, and the writer is flushed and released once that operation
 has finished. `DisposeAsync` disposes the writer even if the flush throws.
 
 **Thread safety and async rules.** A single writer instance is not thread-safe. Only
@@ -115,7 +115,7 @@ Errors in how the writer is used (`ObjectDisposedException`, `ArgumentNullExcept
 `InvalidOperationException`) are thrown by the call. Errors in the lines
 (`IcalFileException`, and `ArgumentException` for a `null` item), I/O errors, and
 cancellation (`OperationCanceledException`) are thrown by the task. If the writer is
-disposed while an operation is in progress, whether or not it has to wait, the task throws `ObjectDisposedException`. If
+disposed while an operation is in progress, whether or not it has to wait, the task throws `ObjectDisposedException`, unless the operation fails for another reason. If
 an operation is canceled, the writer cannot continue.
 
 | Method | Returns | Notes |

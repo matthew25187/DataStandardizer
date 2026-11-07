@@ -440,6 +440,22 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
+        public async Task Dispose_DuringOperationCanceledWithoutCanceledTokenFromTextWriter_FaultsTask()
+        {
+            // arrange
+            var text = new SynchronouslyThrowingTextWriter(() => new OperationCanceledException());
+            var writer = new IcalContentLineWriter(text);
+            text.OnWrite = writer.Dispose;
+
+            // act: wait for the write to finish without throwing, so that its status can be checked.
+            var write = writer.WriteLineAsync(LineA).AsTask();
+            await Task.WhenAny(write);
+
+            // assert
+            write.IsFaulted.Should().BeTrue();
+        }
+
+        [Fact]
         public async Task WriteLinesAsync_CanceledToken_Cancels()
         {
             // arrange
