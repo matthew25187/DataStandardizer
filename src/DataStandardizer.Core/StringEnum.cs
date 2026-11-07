@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 #if NETSTANDARD
 using System.Diagnostics.CodeAnalysis;
 #endif
@@ -13,7 +14,15 @@ namespace DataStandardizer.Core
     /// Extensions for string enumerations.
     /// </summary>
     /// <remarks>
+    /// <para>
+    /// The members of a string enumeration are its public static fields of its own type. They may be declared on the enumeration's struct, or on a public nested class at any
+    /// depth, where every class between the field and the struct is public. Instance fields, non-public fields, and fields of compiler-generated types, such as the closure classes
+    /// of lambdas, aren't members. A member is named by its field name alone, without the names of the classes that enclose it, so no two members may share a name. If two do,
+    /// every method that reads the members, including <c>TryParse</c>, throws an <see cref="InvalidOperationException"/>.
+    /// </para>
+    /// <para>
     /// Methods in this class should not be called from within a string enumeration.  Infinite recursion or stack overflow may result.
+    /// </para>
     /// </remarks>
     public static class StringEnum
     {
@@ -42,6 +51,7 @@ namespace DataStandardizer.Core
         /// -or-
         /// <paramref name="value"/> is neither of type <paramref name="enumType"/> nor does it have the same underlying type as <paramref name="enumType"/>.
         /// </exception>
+        /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetName(Type enumType, object value)
 #else
@@ -71,6 +81,7 @@ namespace DataStandardizer.Core
         /// <typeparam name="TEnum">A string enumeration type.</typeparam>
         /// <param name="value">The value of a particular enumerated constant in terms of its underlying type.</param>
         /// <returns>A string containing the name of the enumerated constant in <typeparamref name="TEnum"/> whose value is <paramref name="value"/>, or a <c>null</c> if no such constant is found.</returns>
+        /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetName<TEnum>(TEnum value) where TEnum : struct, IStringEnum
 #else
@@ -92,6 +103,7 @@ namespace DataStandardizer.Core
         /// <returns>A string array of the names of the constants in <paramref name="enumType"/>.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="enumType"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="enumType"/> is not a string enum.</exception>
+        /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static string[] GetNames(Type enumType)
 #else
@@ -116,6 +128,7 @@ namespace DataStandardizer.Core
         /// </summary>
         /// <typeparam name="TEnum">A string enumeration type.</typeparam>
         /// <returns>A string array of the names of the constants in <typeparamref name="TEnum"/>.</returns>
+        /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static string[] GetNames<TEnum>() where TEnum : struct, IStringEnum
 #else
@@ -137,6 +150,7 @@ namespace DataStandardizer.Core
         /// <returns>An array that contains the values of the constants in <paramref name="enumType"/>.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="enumType"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="enumType"/> is not a string enum.</exception>
+        /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static object[] GetValues(Type enumType)
 #else
@@ -161,6 +175,7 @@ namespace DataStandardizer.Core
         /// </summary>
         /// <typeparam name="TEnum">A string enumeration type.</typeparam>
         /// <returns>An array that contains the values of the constants in <typeparamref name="TEnum"/>.</returns>
+        /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static TEnum[] GetValues<TEnum>() where TEnum : struct, IStringEnum
 #else
@@ -183,6 +198,7 @@ namespace DataStandardizer.Core
         /// <returns><c>true</c> if a constant in <paramref name="enumType"/> has a value equal to <paramref name="value"/>; otherwise, <c>false</c>.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="enumType"/> or <paramref name="value"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="enumType"/> is not a string enum.</exception>
+        /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool IsDefined(Type enumType, string value)
 #else
@@ -210,6 +226,7 @@ namespace DataStandardizer.Core
         /// <typeparam name="TEnum">A string enumeration type.</typeparam>
         /// <param name="value">The value or name of a constant in <typeparamref name="TEnum"/>.</param>
         /// <returns><c>true</c> if a constant in <typeparamref name="TEnum"/> has a value equal to <paramref name="value"/>; otherwise, <c>false</c>.</returns>
+        /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool IsDefined<TEnum>(string value) where TEnum : struct, IStringEnum
 #else
@@ -238,6 +255,7 @@ namespace DataStandardizer.Core
         /// -or-
         /// <paramref name="value"/> is a name, but not one of the named constants defined for the enumeration.
         /// </exception>
+        /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static object Parse(Type enumType, string value)
 #else
@@ -288,6 +306,7 @@ namespace DataStandardizer.Core
         /// -or-
         /// <paramref name="value"/> is a name, but not one of the named constants defined for the enumeration.
         /// </exception>
+        /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static object Parse(Type enumType, string value, bool ignoreCase)
 #else
@@ -347,6 +366,7 @@ namespace DataStandardizer.Core
         /// -or-
         /// <paramref name="value"/> is a name, but not one of the named constants defined for the enumeration.
         /// </exception>
+        /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static TEnum Parse<TEnum>(string value) where TEnum : struct, IStringEnum
 #else
@@ -390,6 +410,7 @@ namespace DataStandardizer.Core
         /// -or-
         /// <paramref name="value"/> is a name, but not one of the named constants defined for the enumeration.
         /// </exception>
+        /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static TEnum Parse<TEnum>(string value, bool ignoreCase) where TEnum : struct, IStringEnum
 #else
@@ -509,6 +530,7 @@ namespace DataStandardizer.Core
         /// <param name="value">The string representation of the name or value of one or more enumerated constants.</param>
         /// <param name="result">When this method returns <c>true</c>, contains an enumeration constant that represents the parsed value.</param>
         /// <returns><c>true</c> if the conversion succeeded; <c>false</c> otherwise.</returns>
+        /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryParse(Type enumType, string? value, out object? result)
 #else
@@ -551,6 +573,7 @@ namespace DataStandardizer.Core
         /// <param name="ignoreCase"><c>true</c> to read <paramref name="value"/> in case-insensitive mode; <c>false</c> to read <paramref name="value"/> in case-sensitive mode.</param>
         /// <param name="result">When this method returns <c>true</c>, contains an enumeration constant that represents the parsed value.</param>
         /// <returns><c>true</c> if the conversion succeeded; <c>false</c> otherwise.</returns>
+        /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryParse(Type enumType, string? value, bool ignoreCase, out object? result)
 #else
@@ -594,6 +617,7 @@ namespace DataStandardizer.Core
         /// <param name="value">The string representation of the enumeration name or underlying value to convert.</param>
         /// <param name="result">When this method returns, contains an object of type <typeparamref name="TEnum"/> whose value is represented by <paramref name="value"/>. This parameter is passed uninitialized.</param>
         /// <returns><c>true</c> if the <paramref name="value"/> parameter was converted successfully; otherwise, <c>false</c>.</returns>
+        /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryParse<TEnum>(string? value, out TEnum result) where TEnum : struct, IStringEnum
 #else
@@ -634,6 +658,7 @@ namespace DataStandardizer.Core
         /// <param name="ignoreCase"><c>true</c> to ignore case; <c>false</c> to consider case.</param>
         /// <param name="result">When this method returns, contains an object of type <typeparamref name="TEnum"/> whose value is represented by <paramref name="value"/>. This parameter is passed uninitialized.</param>
         /// <returns><c>true</c> if the <paramref name="value"/> parameter was converted successfully; otherwise, <c>false</c>.</returns>
+        /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryParse<TEnum>(string? value, bool ignoreCase, out TEnum result) where TEnum : struct, IStringEnum
 #else
@@ -730,15 +755,23 @@ namespace DataStandardizer.Core
 #endif
         }
 
-        private static FieldInfo[] GetTypeFields(Type type)
+        private static List<FieldInfo> GetMemberFields(Type enumType)
         {
-            var nestedTypesQuery = type.GetTypeInfo().DeclaredNestedTypes
-                .Where(t => t.IsClass)
-                .Select(t => t.AsType());
-            return type.GetTypeInfo().DeclaredFields
-                .Where(field => field.IsPublic && field.IsStatic && field.FieldType.GetTypeInfo().IsValueType)
-                .Union(nestedTypesQuery.SelectMany(t => t.GetTypeInfo().DeclaredFields))
-                .ToArray();
+            var memberFields = new List<FieldInfo>();
+            AddMemberFields(enumType.GetTypeInfo(), enumType, memberFields);
+            return memberFields;
+        }
+
+        private static void AddMemberFields(TypeInfo declaringType, Type enumType, List<FieldInfo> memberFields)
+        {
+            memberFields.AddRange(declaringType.DeclaredFields.Where(field => field.IsPublic && field.IsStatic && field.FieldType == enumType));
+
+            var nestedTypes = declaringType.DeclaredNestedTypes
+                .Where(nestedType => nestedType.IsClass && nestedType.IsNestedPublic && !nestedType.IsDefined(typeof(CompilerGeneratedAttribute), false));
+            foreach (var nestedType in nestedTypes)
+            {
+                AddMemberFields(nestedType, enumType, memberFields);
+            }
         }
 
         private static bool IsStringEnumType(Type candidateType)
@@ -748,14 +781,22 @@ namespace DataStandardizer.Core
 
         private static void RefreshCachedTypeFields(Type type)
         {
-            var enumFields = GetTypeFields(type).Where(field => field.FieldType == type && field.GetValue(null) != null).ToArray();
-#if NETCOREAPP3_0_OR_GREATER
-            _cacheFieldsByName = enumFields.ToDictionary(field => field.Name, field => field.GetValue(null)!);
-            _cacheFieldsByValue = enumFields.ToLookup(field => field.GetValue(null)!, field => field.Name);
-#else
-            _cacheFieldsByName = enumFields.ToDictionary(field => field.Name, field => field.GetValue(null));
-            _cacheFieldsByValue = enumFields.ToLookup(field => field.GetValue(null), field => field.Name);
-#endif
+            var fieldsByName = new Dictionary<string, object>(StringComparer.Ordinal);
+            var members = new List<KeyValuePair<string, object>>();
+            foreach (var field in GetMemberFields(type))
+            {
+                var fieldValue = field.GetValue(null);
+                if (fieldValue is null)
+                    continue;
+                if (fieldsByName.ContainsKey(field.Name))
+                    throw new InvalidOperationException($"The string enumeration {type.FullName} has more than one member named {field.Name}.");
+
+                fieldsByName.Add(field.Name, fieldValue);
+                members.Add(new KeyValuePair<string, object>(field.Name, fieldValue));
+            }
+
+            _cacheFieldsByName = fieldsByName;
+            _cacheFieldsByValue = members.ToLookup(member => member.Value, member => member.Key);
             _cacheFieldsType = type;
         }
 
