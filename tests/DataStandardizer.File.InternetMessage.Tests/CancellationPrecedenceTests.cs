@@ -441,6 +441,107 @@ namespace DataStandardizer.File.InternetMessage.Tests
 
         #endregion
 
+        #region Single-read readers
+
+        // Each asynchronous read of a reader whose data can be read only once, over a source that fails with the given exception, at the given
+        // time, after running the given callback.  EmlxReader is read twice: once with its own stream failing, and once with the stream that
+        // the part resolver gives failing.
+        private static readonly (string Name, Func<Func<Exception>, FailureTiming, Action, Func<CancellationToken, Task>> Create)[] SingleReadOperations =
+        {
+            ("ImfReader.ReadMessageAsync", (createException, timing, onFailure) =>
+            {
+                var reader = new ImfReader(new TimedFailingReadStream(Octets.Of(Message), createException, timing) { OnFailure = onFailure });
+                return token => reader.ReadMessageAsync(token);
+            }),
+            ("EmlxReader.ReadEntryAsync", (createException, timing, onFailure) =>
+            {
+                var reader = new EmlxReader(new TimedFailingReadStream(Octets.Of(EmlxFiles.Plain), createException, timing) { OnFailure = onFailure });
+                return token => reader.ReadEntryAsync(null, token);
+            }),
+            ("EmlxReader.ReadEntryAsync, part stream", (createException, timing, onFailure) =>
+            {
+                var reader = new EmlxReader(new MemoryStream(Octets.Of(EmlxFiles.Partial)));
+                EmlxPartResolver resolver = part => new TimedFailingReadStream(Octets.Of(EmlxFiles.PartContent), createException, timing) { OnFailure = onFailure };
+                return token => reader.ReadEntryAsync(resolver, token);
+            }),
+        };
+
+        // Each single read, with each way the source can report a failure, each OperationCanceledException it can fail with while the caller's
+        // token isn't canceled, and the exception the task then faults with.
+        public static TheoryData<string, Func<Func<Exception>, FailureTiming, Action, Func<CancellationToken, Task>>, FailureTiming, Func<Exception>, Type> SingleReadCancellationFaults()
+        {
+            var data = new TheoryData<string, Func<Func<Exception>, FailureTiming, Action, Func<CancellationToken, Task>>, FailureTiming, Func<Exception>, Type>();
+            foreach (var (name, create) in SingleReadOperations)
+            {
+                foreach (var timing in FailureTimings)
+                {
+                    foreach (var (exceptionName, createException) in UnrequestedCancellations)
+                    {
+                        var expectedType = timing == FailureTiming.AsCanceledTask ? typeof(TaskCanceledException) : typeof(OperationCanceledException);
+                        data.Add(name + ", " + timing + ", " + exceptionName, create, timing, createException, expectedType);
+                    }
+                }
+            }
+
+            return data;
+        }
+
+        // Each single read, with each way the source can report a failure.
+        public static TheoryData<string, Func<Func<Exception>, FailureTiming, Action, Func<CancellationToken, Task>>, FailureTiming> SingleReadFailures()
+        {
+            var data = new TheoryData<string, Func<Func<Exception>, FailureTiming, Action, Func<CancellationToken, Task>>, FailureTiming>();
+            foreach (var (name, create) in SingleReadOperations)
+            {
+                foreach (var timing in FailureTimings)
+                {
+                    data.Add(name + ", " + timing, create, timing);
+                }
+            }
+
+            return data;
+        }
+
+        [Theory]
+        [MemberData(nameof(SingleReadCancellationFaults), DisableDiscoveryEnumeration = true)]
+        public async Task SingleRead_SourceFailsWithOperationCanceledWhileTokenIsNotCanceled_FaultsTask(string scenario,
+            Func<Func<Exception>, FailureTiming, Action, Func<CancellationToken, Task>> create, FailureTiming timing, Func<Exception> createException,
+            Type expectedExceptionType)
+        {
+            // arrange
+            _ = scenario;
+            var read = create(createException, timing, null);
+
+            // act: wait for the read to finish without throwing, so that its status can be checked.
+            var task = read(CancellationToken.None);
+            await Task.WhenAny(task);
+
+            // assert
+            task.IsFaulted.Should().BeTrue();
+            task.Exception.InnerException.Should().BeOfType(expectedExceptionType);
+        }
+
+        [Theory]
+        [MemberData(nameof(SingleReadFailures), DisableDiscoveryEnumeration = true)]
+        public async Task SingleRead_TokenCanceledAndSourceFailsWithCancellationOfAnotherToken_CancelsTask(string scenario,
+            Func<Func<Exception>, FailureTiming, Action, Func<CancellationToken, Task>> create, FailureTiming timing)
+        {
+            // arrange
+            _ = scenario;
+            using (var cancellationTokenSource = new CancellationTokenSource())
+            {
+                var read = create(() => new OperationCanceledException(new CancellationToken(true)), timing, cancellationTokenSource.Cancel);
+
+                // act: wait for the read to finish without throwing, so that its status can be checked.
+                var task = read(cancellationTokenSource.Token);
+                await Task.WhenAny(task);
+
+                // assert
+                task.IsCanceled.Should().BeTrue();
+            }
+        }
+
+        #endregion
+
         private static ImfHeaderReader CreateHeaderReader()
         {
             return new ImfHeaderReader(new MemoryStream(Octets.Of(HeaderSection)));
