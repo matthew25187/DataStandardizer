@@ -463,6 +463,9 @@ namespace DataStandardizer.Core
         /// <returns>An enumeration object whose value is <paramref name="value"/>.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="enumType"/> or <paramref name="value"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="enumType"/> is not a string enumeration.</exception>
+        /// <exception cref="InvalidOperationException"><paramref name="enumType"/> defines no conversion from <see cref="string"/>.</exception>
+        /// <exception cref="InvalidCastException">The enumeration's conversion from <see cref="string"/> rejects <paramref name="value"/>.
+        /// Any other exception that the conversion throws is also passed on to the caller unchanged.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static object ToObject(Type enumType, string value)
 #else
@@ -477,31 +480,7 @@ namespace DataStandardizer.Core
             if (!IsStringEnumType(enumType))
                 throw new ArgumentException($"{nameof(enumType)} is not a string enumeration.", nameof(enumType));
 
-            var castMethodDefinition = typeof(StringEnum).GetTypeInfo().DeclaredMethods.SingleOrDefault(method => method.Name == nameof(Cast) && method.IsGenericMethod)?.GetGenericMethodDefinition();
-            var castMethod = castMethodDefinition?.MakeGenericMethod(enumType);
-            var result = castMethod?.Invoke(null, new object[] { value });
-
-            if (result is null)
-            {
-                var oneParameterConstructor = enumType.GetTypeInfo().DeclaredConstructors
-                    .SingleOrDefault(constructor =>
-                    {
-                        var parameters = constructor.GetParameters();
-                        return parameters.Length == 1 && parameters[0].ParameterType == typeof(string);
-                    });
-                result = oneParameterConstructor?.Invoke(new object[] { value });
-            }
-
-            if (result is null)
-            {
-                result = Activator.CreateInstance(enumType);
-            }
-
-#if NETCOREAPP3_0_OR_GREATER
-            return result!;
-#else
-            return result;
-#endif
+            return Cast(enumType, value);
         }
 
         /// <summary>
@@ -511,6 +490,9 @@ namespace DataStandardizer.Core
         /// <param name="value">The value.</param>
         /// <returns>An enumeration object whose value is <paramref name="value"/>.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="value"/> is <c>null</c>.</exception>
+        /// <exception cref="InvalidOperationException"><typeparamref name="TEnum"/> defines no conversion from <see cref="string"/>.</exception>
+        /// <exception cref="InvalidCastException">The enumeration's conversion from <see cref="string"/> rejects <paramref name="value"/>.
+        /// Any other exception that the conversion throws is also passed on to the caller unchanged.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static TEnum ToObject<TEnum>(string value) where TEnum : struct, IStringEnum
 #else
@@ -724,6 +706,16 @@ namespace DataStandardizer.Core
             var c1 = Expression.Convert(p, value.GetType());
             var c2 = Expression.Convert(c1, typeof(T));
             var e = (Func<string, T>)Expression.Lambda(c2, p).Compile();
+            return e(value);
+        }
+
+        // Builds the conversion for the type itself rather than calling Cast<T> through reflection, so whatever the conversion throws reaches the caller unwrapped.
+        private static object Cast(Type enumType, string value)
+        {
+            var p = Expression.Parameter(typeof(string));
+            var c1 = Expression.Convert(p, enumType);
+            var c2 = Expression.Convert(c1, typeof(object));
+            var e = Expression.Lambda<Func<string, object>>(c2, p).Compile();
             return e(value);
         }
 

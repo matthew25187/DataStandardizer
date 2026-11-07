@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using FluentAssertions;
@@ -42,6 +42,7 @@ namespace DataStandardizer.Core.Tests
         private const string BirdValue = "bird";
         private const string CatValue = "cat";
         private const string DogValue = "dog";
+        private const string RejectedValue = "bad";
         private const string BlackValue = "black";
         private const string RedValue = "red";
         private const string GreenValue = "green";
@@ -775,6 +776,28 @@ namespace DataStandardizer.Core.Tests
         }
 
         [Theory]
+        [MemberData(nameof(ToObjectOverloadsWithValueTheOperatorRejects))]
+        public void ToObject_WithValueTheOperatorRejects_ThrowsInvalidCastException(Action toObject)
+        {
+            // act
+            var testAction = toObject;
+
+            // assert
+            testAction.Should().ThrowExactly<InvalidCastException>();
+        }
+
+        [Theory]
+        [MemberData(nameof(ToObjectOverloadsOnEnumWithoutOperator))]
+        public void ToObject_OnEnumWithoutOperator_ThrowsInvalidOperationException(Action toObject)
+        {
+            // act
+            var testAction = toObject;
+
+            // assert
+            testAction.Should().ThrowExactly<InvalidOperationException>();
+        }
+
+        [Theory]
         [InlineData(typeof(DayOfWeek), nameof(DayOfWeek.Sunday)), InlineData(typeof(UriBuilder), nameof(UriBuilder.Scheme))]
         public void TryParseNonGeneric_WithNonStringEnumType_ReturnsFalse(Type enumType, string value)
         {
@@ -1083,6 +1106,18 @@ namespace DataStandardizer.Core.Tests
         }
 
         #region Test Data
+
+        public static TheoryData<Action> ToObjectOverloadsWithValueTheOperatorRejects => new TheoryData<Action>
+        {
+            () => StringEnum.ToObject(typeof(RejectingEnum), RejectedValue),
+            () => StringEnum.ToObject<RejectingEnum>(RejectedValue),
+        };
+
+        public static TheoryData<Action> ToObjectOverloadsOnEnumWithoutOperator => new TheoryData<Action>
+        {
+            () => StringEnum.ToObject(typeof(NoOperatorEnum), RejectedValue),
+            () => StringEnum.ToObject<NoOperatorEnum>(RejectedValue),
+        };
 
         public static TheoryData<Action> MembersOfEnumWithRepeatedMemberName => new TheoryData<Action>
         {
@@ -2265,6 +2300,80 @@ namespace DataStandardizer.Core.Tests
             public override bool Equals(object? obj) => obj is HashThrowingEnum other && _value == other._value;
 
             public override int GetHashCode() => throw new NotSupportedException();
+
+            public int CompareTo(object? obj) => _value.CompareTo(obj);
+
+            public TypeCode GetTypeCode() => _value.GetTypeCode();
+
+            bool IConvertible.ToBoolean(IFormatProvider? provider) => ((IConvertible)_value).ToBoolean(provider);
+            byte IConvertible.ToByte(IFormatProvider? provider) => ((IConvertible)_value).ToByte(provider);
+            char IConvertible.ToChar(IFormatProvider? provider) => ((IConvertible)_value).ToChar(provider);
+            DateTime IConvertible.ToDateTime(IFormatProvider? provider) => ((IConvertible)_value).ToDateTime(provider);
+            decimal IConvertible.ToDecimal(IFormatProvider? provider) => ((IConvertible)_value).ToDecimal(provider);
+            double IConvertible.ToDouble(IFormatProvider? provider) => ((IConvertible)_value).ToDouble(provider);
+            short IConvertible.ToInt16(IFormatProvider? provider) => ((IConvertible)_value).ToInt16(provider);
+            int IConvertible.ToInt32(IFormatProvider? provider) => ((IConvertible)_value).ToInt32(provider);
+            long IConvertible.ToInt64(IFormatProvider? provider) => ((IConvertible)_value).ToInt64(provider);
+            sbyte IConvertible.ToSByte(IFormatProvider? provider) => ((IConvertible)_value).ToSByte(provider);
+            float IConvertible.ToSingle(IFormatProvider? provider) => ((IConvertible)_value).ToSingle(provider);
+            string IConvertible.ToString(IFormatProvider? provider) => _value.ToString(provider);
+            object IConvertible.ToType(Type conversionType, IFormatProvider? provider) => ((IConvertible)_value).ToType(conversionType, provider);
+            ushort IConvertible.ToUInt16(IFormatProvider? provider) => ((IConvertible)_value).ToUInt16(provider);
+            uint IConvertible.ToUInt32(IFormatProvider? provider) => ((IConvertible)_value).ToUInt32(provider);
+            ulong IConvertible.ToUInt64(IFormatProvider? provider) => ((IConvertible)_value).ToUInt64(provider);
+        }
+
+        // Its conversion from string rejects every value, as a conversion operator does for a value the enumeration doesn't accept.
+        public readonly struct RejectingEnum : IStringEnum
+        {
+            private readonly string _value;
+
+            private RejectingEnum(string value)
+            {
+                _value = value;
+            }
+
+            public static explicit operator RejectingEnum(string value) => throw new InvalidCastException();
+
+            public static implicit operator string(RejectingEnum value) => value._value;
+
+            public static readonly RejectingEnum A = new RejectingEnum(AValue);
+
+            public int CompareTo(object? obj) => _value.CompareTo(obj);
+
+            public TypeCode GetTypeCode() => _value.GetTypeCode();
+
+            bool IConvertible.ToBoolean(IFormatProvider? provider) => ((IConvertible)_value).ToBoolean(provider);
+            byte IConvertible.ToByte(IFormatProvider? provider) => ((IConvertible)_value).ToByte(provider);
+            char IConvertible.ToChar(IFormatProvider? provider) => ((IConvertible)_value).ToChar(provider);
+            DateTime IConvertible.ToDateTime(IFormatProvider? provider) => ((IConvertible)_value).ToDateTime(provider);
+            decimal IConvertible.ToDecimal(IFormatProvider? provider) => ((IConvertible)_value).ToDecimal(provider);
+            double IConvertible.ToDouble(IFormatProvider? provider) => ((IConvertible)_value).ToDouble(provider);
+            short IConvertible.ToInt16(IFormatProvider? provider) => ((IConvertible)_value).ToInt16(provider);
+            int IConvertible.ToInt32(IFormatProvider? provider) => ((IConvertible)_value).ToInt32(provider);
+            long IConvertible.ToInt64(IFormatProvider? provider) => ((IConvertible)_value).ToInt64(provider);
+            sbyte IConvertible.ToSByte(IFormatProvider? provider) => ((IConvertible)_value).ToSByte(provider);
+            float IConvertible.ToSingle(IFormatProvider? provider) => ((IConvertible)_value).ToSingle(provider);
+            string IConvertible.ToString(IFormatProvider? provider) => _value.ToString(provider);
+            object IConvertible.ToType(Type conversionType, IFormatProvider? provider) => ((IConvertible)_value).ToType(conversionType, provider);
+            ushort IConvertible.ToUInt16(IFormatProvider? provider) => ((IConvertible)_value).ToUInt16(provider);
+            uint IConvertible.ToUInt32(IFormatProvider? provider) => ((IConvertible)_value).ToUInt32(provider);
+            ulong IConvertible.ToUInt64(IFormatProvider? provider) => ((IConvertible)_value).ToUInt64(provider);
+        }
+
+        // It has a public constructor that takes a string, but no conversion from string.
+        public readonly struct NoOperatorEnum : IStringEnum
+        {
+            private readonly string _value;
+
+            public NoOperatorEnum(string value)
+            {
+                _value = value;
+            }
+
+            public static implicit operator string(NoOperatorEnum value) => value._value;
+
+            public static readonly NoOperatorEnum A = new NoOperatorEnum(AValue);
 
             public int CompareTo(object? obj) => _value.CompareTo(obj);
 
