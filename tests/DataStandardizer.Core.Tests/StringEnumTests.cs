@@ -18,6 +18,8 @@ namespace DataStandardizer.Core.Tests
         private const string NotNamedConstantMessage = "value is a name, but not one of the named constants defined for the enumeration.*";
         private const string NoEnumerationInformationMessage = "value does not contain enumeration information.*";
         private const string NeitherStringEnumNorStringMessage = "value is neither a string enumeration value nor a string.*";
+        private const string NoConversionToStringValueMessage = "value is of a string enumeration that defines no conversion to string.*";
+        private const string NoConversionToStringTypeMessage = "The string enumeration DataStandardizer.Core.Tests.StringEnumTests+NoStringConversionEnum defines no conversion to string.";
 
         // Reasons given in assertions.
         private const string IsNameOfEnumValueReason = "{0} is the name of enum value {1}";
@@ -159,17 +161,37 @@ namespace DataStandardizer.Core.Tests
         public void GetNameGeneric_WithValueSharedByTwoMembers_ReturnsFirstNameInGetNamesOrder()
         {
             // act
-            var testResult = StringEnum.GetName(UnorderedEnum.Alias);
+            var testResult = StringEnum.GetName(UnorderedEnum.Alpha);
 
             // assert
-            testResult.Should().Be(nameof(UnorderedEnum.Alpha));
+            testResult.Should().Be(nameof(UnorderedEnum.Alias));
+        }
+
+        [Fact]
+        public void GetNameNonGeneric_WithValueOfStringEnumWithoutConversionToString_ThrowsArgumentException()
+        {
+            // act
+            Action testAction = () => StringEnum.GetName(typeof(ComplexEnum), NoStringConversionEnum.A);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithMessage(NoConversionToStringValueMessage).WithParameterName(ValueParameterName);
+        }
+
+        [Fact]
+        public void GetNamesGeneric_OnStringEnumWithoutConversionToString_ThrowsInvalidOperationException()
+        {
+            // act
+            Action testAction = () => StringEnum.GetNames<NoStringConversionEnum>();
+
+            // assert
+            testAction.Should().Throw<InvalidOperationException>().WithMessage(NoConversionToStringTypeMessage);
         }
 
         [Fact]
         public void GetNamesGeneric_WithMembersDeclaredOutOfValueOrder_ReturnsNamesSortedByOrdinalValue()
         {
             // arrange
-            var expectedResult = new[] { nameof(UnorderedEnum.Bravo), nameof(UnorderedEnum.Alpha), nameof(UnorderedEnum.Alias), nameof(UnorderedEnum.Zulu) };
+            var expectedResult = new[] { nameof(UnorderedEnum.Bravo), nameof(UnorderedEnum.Alias), nameof(UnorderedEnum.Alpha), nameof(UnorderedEnum.Zulu) };
 
             // act
             var testResult = StringEnum.GetNames<UnorderedEnum>();
@@ -1187,7 +1209,7 @@ namespace DataStandardizer.Core.Tests
 
             // act
             var firstResult = StringEnum.GetNames<SimpleEnum>();
-            var failure = Record.Exception(() => StringEnum.GetNames<HashThrowingEnum>());
+            var failure = Record.Exception(() => StringEnum.GetNames<StringConversionThrowingEnum>());
             var testResult = StringEnum.GetNames<SimpleEnum>();
 
             // assert
@@ -1655,7 +1677,9 @@ namespace DataStandardizer.Core.Tests
             {
                 // A string is the underlying type of a string enumeration.
                 yield return new object?[] { typeof(ComplexEnum), CatValue, nameof(ComplexEnum.Animal.Cat) };
-                yield return new object?[] { typeof(UnorderedEnum), AlphaValue, nameof(UnorderedEnum.Alpha) };
+                yield return new object?[] { typeof(UnorderedEnum), AlphaValue, nameof(UnorderedEnum.Alias) };
+                // A value of the enumeration itself is looked up by its value too, so a member that shares its value with another may not get its own name.
+                yield return new object?[] { typeof(UnorderedEnum), UnorderedEnum.Alpha, nameof(UnorderedEnum.Alias) };
                 yield return new object?[] { typeof(ComplexEnum), RejectedValue, null };
                 // A value of another string enumeration is looked up by its value, as Enum.GetName looks up another enumeration's value.
                 yield return new object?[] { typeof(ComplexEnum), SimpleEnum.One, nameof(ComplexEnum.First) };
@@ -2850,7 +2874,7 @@ namespace DataStandardizer.Core.Tests
             ulong IConvertible.ToUInt64(IFormatProvider? provider) => ((IConvertible)_value).ToUInt64(provider);
         }
 
-        // Its members are declared out of value order, and two of them share a value.
+        // Its members are declared out of value order, and two of them share a value. Alpha is declared before Alias, but Alias sorts first by name.
         public readonly struct UnorderedEnum : IStringEnum
         {
             private readonly string _value;
@@ -2947,25 +2971,25 @@ namespace DataStandardizer.Core.Tests
             ulong IConvertible.ToUInt64(IFormatProvider? provider) => ((IConvertible)_value).ToUInt64(provider);
         }
 
-        // Its members can't be hashed, so StringEnum fails while it caches them.
-        public readonly struct HashThrowingEnum : IStringEnum
+        // Its conversion to string throws, so StringEnum fails while it caches its members.
+        public readonly struct StringConversionThrowingEnum : IStringEnum
         {
             private readonly string _value;
 
-            private HashThrowingEnum(string value)
+            private StringConversionThrowingEnum(string value)
             {
                 _value = value;
             }
 
-            public static explicit operator HashThrowingEnum(string value) => new HashThrowingEnum(value);
+            public static explicit operator StringConversionThrowingEnum(string value) => new StringConversionThrowingEnum(value);
 
-            public static implicit operator string(HashThrowingEnum value) => value._value;
+            public static implicit operator string(StringConversionThrowingEnum value) => throw new NotSupportedException();
 
-            public static readonly HashThrowingEnum A = new HashThrowingEnum(AValue);
+            public static readonly StringConversionThrowingEnum A = new StringConversionThrowingEnum(AValue);
 
-            public override bool Equals(object? obj) => obj is HashThrowingEnum other && _value == other._value;
+            public override bool Equals(object? obj) => obj is StringConversionThrowingEnum other && _value == other._value;
 
-            public override int GetHashCode() => throw new NotSupportedException();
+            public override int GetHashCode() => _value.GetHashCode();
 
             public int CompareTo(object? obj) => _value.CompareTo(obj);
 
@@ -3004,6 +3028,42 @@ namespace DataStandardizer.Core.Tests
             public static implicit operator string(RejectingEnum value) => value._value;
 
             public static readonly RejectingEnum A = new RejectingEnum(AValue);
+
+            public int CompareTo(object? obj) => _value.CompareTo(obj);
+
+            public TypeCode GetTypeCode() => _value.GetTypeCode();
+
+            bool IConvertible.ToBoolean(IFormatProvider? provider) => ((IConvertible)_value).ToBoolean(provider);
+            byte IConvertible.ToByte(IFormatProvider? provider) => ((IConvertible)_value).ToByte(provider);
+            char IConvertible.ToChar(IFormatProvider? provider) => ((IConvertible)_value).ToChar(provider);
+            DateTime IConvertible.ToDateTime(IFormatProvider? provider) => ((IConvertible)_value).ToDateTime(provider);
+            decimal IConvertible.ToDecimal(IFormatProvider? provider) => ((IConvertible)_value).ToDecimal(provider);
+            double IConvertible.ToDouble(IFormatProvider? provider) => ((IConvertible)_value).ToDouble(provider);
+            short IConvertible.ToInt16(IFormatProvider? provider) => ((IConvertible)_value).ToInt16(provider);
+            int IConvertible.ToInt32(IFormatProvider? provider) => ((IConvertible)_value).ToInt32(provider);
+            long IConvertible.ToInt64(IFormatProvider? provider) => ((IConvertible)_value).ToInt64(provider);
+            sbyte IConvertible.ToSByte(IFormatProvider? provider) => ((IConvertible)_value).ToSByte(provider);
+            float IConvertible.ToSingle(IFormatProvider? provider) => ((IConvertible)_value).ToSingle(provider);
+            string IConvertible.ToString(IFormatProvider? provider) => _value.ToString(provider);
+            object IConvertible.ToType(Type conversionType, IFormatProvider? provider) => ((IConvertible)_value).ToType(conversionType, provider);
+            ushort IConvertible.ToUInt16(IFormatProvider? provider) => ((IConvertible)_value).ToUInt16(provider);
+            uint IConvertible.ToUInt32(IFormatProvider? provider) => ((IConvertible)_value).ToUInt32(provider);
+            ulong IConvertible.ToUInt64(IFormatProvider? provider) => ((IConvertible)_value).ToUInt64(provider);
+        }
+
+        // It has a conversion from string, but no conversion to string.
+        public readonly struct NoStringConversionEnum : IStringEnum
+        {
+            private readonly string _value;
+
+            private NoStringConversionEnum(string value)
+            {
+                _value = value;
+            }
+
+            public static explicit operator NoStringConversionEnum(string value) => new NoStringConversionEnum(value);
+
+            public static readonly NoStringConversionEnum A = new NoStringConversionEnum(AValue);
 
             public int CompareTo(object? obj) => _value.CompareTo(obj);
 
