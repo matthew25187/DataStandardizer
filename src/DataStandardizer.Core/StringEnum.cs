@@ -464,8 +464,8 @@ namespace DataStandardizer.Core
         /// <exception cref="ArgumentNullException"><paramref name="enumType"/> or <paramref name="value"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="enumType"/> is not a string enumeration.</exception>
         /// <exception cref="InvalidOperationException"><paramref name="enumType"/> defines no conversion from <see cref="string"/>.</exception>
-        /// <exception cref="InvalidCastException">The enumeration's conversion from <see cref="string"/> rejects <paramref name="value"/>.
-        /// Any other exception that the conversion throws is also passed on to the caller unchanged.</exception>
+        /// <exception cref="InvalidCastException">The enumeration's conversion from <see cref="string"/> rejects <paramref name="value"/>.</exception>
+        /// <remarks>Any other exception that the enumeration's conversion from <see cref="string"/> throws is passed on to the caller unchanged.</remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static object ToObject(Type enumType, string value)
 #else
@@ -491,8 +491,8 @@ namespace DataStandardizer.Core
         /// <returns>An enumeration object whose value is <paramref name="value"/>.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="value"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException"><typeparamref name="TEnum"/> defines no conversion from <see cref="string"/>.</exception>
-        /// <exception cref="InvalidCastException">The enumeration's conversion from <see cref="string"/> rejects <paramref name="value"/>.
-        /// Any other exception that the conversion throws is also passed on to the caller unchanged.</exception>
+        /// <exception cref="InvalidCastException">The enumeration's conversion from <see cref="string"/> rejects <paramref name="value"/>.</exception>
+        /// <remarks>Any other exception that the enumeration's conversion from <see cref="string"/> throws is passed on to the caller unchanged.</remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static TEnum ToObject<TEnum>(string value) where TEnum : struct, IStringEnum
 #else
@@ -502,7 +502,7 @@ namespace DataStandardizer.Core
             if (value is null)
                 throw new ArgumentNullException(nameof(value));
 
-            return Cast<TEnum>(value);
+            return (TEnum)Cast(typeof(TEnum), value);
         }
 
         /// <summary>
@@ -694,22 +694,7 @@ namespace DataStandardizer.Core
             return e(value);
         }
 
-#if NETCOREAPP3_0_OR_GREATER
-        private static T? Cast<T>(string? value)
-#else
-        [return: MaybeNull]
-        private static T Cast<T>([AllowNull] string value)
-#endif
-        {
-            if (value is null) return default(T);
-            var p = Expression.Parameter(typeof(string));
-            var c1 = Expression.Convert(p, value.GetType());
-            var c2 = Expression.Convert(c1, typeof(T));
-            var e = (Func<string, T>)Expression.Lambda(c2, p).Compile();
-            return e(value);
-        }
-
-        // Builds the conversion for the type itself rather than calling Cast<T> through reflection, so whatever the conversion throws reaches the caller unwrapped.
+        // Builds the conversion for the type itself rather than going through reflection, so whatever the conversion throws reaches the caller unwrapped.
         private static object Cast(Type enumType, string value)
         {
             var p = Expression.Parameter(typeof(string));

@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using FluentAssertions;
@@ -1115,8 +1115,8 @@ namespace DataStandardizer.Core.Tests
 
         public static TheoryData<Action> ToObjectOverloadsOnEnumWithoutOperator => new TheoryData<Action>
         {
-            () => StringEnum.ToObject(typeof(NoOperatorEnum), RejectedValue),
-            () => StringEnum.ToObject<NoOperatorEnum>(RejectedValue),
+            () => StringEnum.ToObject(typeof(NoOperatorEnum), AValue),
+            () => StringEnum.ToObject<NoOperatorEnum>(AValue),
         };
 
         public static TheoryData<Action> MembersOfEnumWithRepeatedMemberName => new TheoryData<Action>
