@@ -243,8 +243,9 @@ namespace DataStandardizer.Core
         /// </exception>
         /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
         /// <remarks>
-        /// White space before or after <paramref name="value"/> is ignored when it is compared with the members' names, as <see cref="Enum"/> does. It is compared with the members' values
-        /// as given first, and then, if no value matches, with the white space removed, so a member whose value begins or ends with white space can still be parsed.
+        /// <paramref name="value"/> is compared with the members' names first, then with their values. White space before or after <paramref name="value"/> is ignored when it is compared
+        /// with the names, as <see cref="Enum"/> does. It is compared with the values as given, and then, if no value matches, with the white space removed, so a member whose value
+        /// begins or ends with white space can still be parsed. A <paramref name="value"/> that is only white space is never compared as an empty string.
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static object Parse(Type enumType, string value)
@@ -290,11 +291,13 @@ namespace DataStandardizer.Core
         /// </exception>
         /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
         /// <remarks>
-        /// White space before or after <paramref name="value"/> is ignored when it is compared with the members' names, as <see cref="Enum"/> does. It is compared with the members' values
-        /// as given first, and then, if no value matches, with the white space removed, so a member whose value begins or ends with white space can still be parsed.
-        /// <paramref name="value"/> is compared with the members' names first, then with their values. When <paramref name="ignoreCase"/> is <c>true</c> and <paramref name="value"/> matches
-        /// more than one name, or more than one value, ignoring case, the member whose name or value matches it exactly (ordinal comparison) wins. If none matches exactly, the first
-        /// matching member is returned, in the order in which <see cref="GetNames(Type)"/> returns the members' names.
+        /// <paramref name="value"/> is compared with the members' names first, then with their values. White space before or after <paramref name="value"/> is ignored when it is compared
+        /// with the names, as <see cref="Enum"/> does. It is compared with the values as given, and then with the white space removed, so a member whose value begins or ends with white
+        /// space can still be parsed. A <paramref name="value"/> that is only white space is never compared as an empty string.
+        /// When <paramref name="ignoreCase"/> is <c>true</c> and <paramref name="value"/> matches more than one name, or more than one value, ignoring case, the member whose name or value
+        /// matches it exactly (ordinal comparison) wins: for values, an exact match on <paramref name="value"/> as given, then an exact match with the white space removed. If none
+        /// matches exactly, a match on <paramref name="value"/> as given wins over one with the white space removed, and among those the first matching member is returned, in the order
+        /// in which <see cref="GetNames(Type)"/> returns the members' names.
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static object Parse(Type enumType, string value, bool ignoreCase)
@@ -337,8 +340,9 @@ namespace DataStandardizer.Core
         /// </exception>
         /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
         /// <remarks>
-        /// White space before or after <paramref name="value"/> is ignored when it is compared with the members' names, as <see cref="Enum"/> does. It is compared with the members' values
-        /// as given first, and then, if no value matches, with the white space removed, so a member whose value begins or ends with white space can still be parsed.
+        /// <paramref name="value"/> is compared with the members' names first, then with their values. White space before or after <paramref name="value"/> is ignored when it is compared
+        /// with the names, as <see cref="Enum"/> does. It is compared with the values as given, and then, if no value matches, with the white space removed, so a member whose value
+        /// begins or ends with white space can still be parsed. A <paramref name="value"/> that is only white space is never compared as an empty string.
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static TEnum Parse<TEnum>(string value) where TEnum : struct, IStringEnum
@@ -377,11 +381,13 @@ namespace DataStandardizer.Core
         /// </exception>
         /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
         /// <remarks>
-        /// White space before or after <paramref name="value"/> is ignored when it is compared with the members' names, as <see cref="Enum"/> does. It is compared with the members' values
-        /// as given first, and then, if no value matches, with the white space removed, so a member whose value begins or ends with white space can still be parsed.
-        /// <paramref name="value"/> is compared with the members' names first, then with their values. When <paramref name="ignoreCase"/> is <c>true</c> and <paramref name="value"/> matches
-        /// more than one name, or more than one value, ignoring case, the member whose name or value matches it exactly (ordinal comparison) wins. If none matches exactly, the first
-        /// matching member is returned, in the order in which <see cref="GetNames(Type)"/> returns the members' names.
+        /// <paramref name="value"/> is compared with the members' names first, then with their values. White space before or after <paramref name="value"/> is ignored when it is compared
+        /// with the names, as <see cref="Enum"/> does. It is compared with the values as given, and then with the white space removed, so a member whose value begins or ends with white
+        /// space can still be parsed. A <paramref name="value"/> that is only white space is never compared as an empty string.
+        /// When <paramref name="ignoreCase"/> is <c>true</c> and <paramref name="value"/> matches more than one name, or more than one value, ignoring case, the member whose name or value
+        /// matches it exactly (ordinal comparison) wins: for values, an exact match on <paramref name="value"/> as given, then an exact match with the white space removed. If none
+        /// matches exactly, a match on <paramref name="value"/> as given wins over one with the white space removed, and among those the first matching member is returned, in the order
+        /// in which <see cref="GetNames(Type)"/> returns the members' names.
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static TEnum Parse<TEnum>(string value, bool ignoreCase) where TEnum : struct, IStringEnum
@@ -465,8 +471,9 @@ namespace DataStandardizer.Core
         /// <exception cref="ArgumentException"><paramref name="enumType"/> is not a string enumeration and <paramref name="value"/> is not <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
         /// <remarks>
-        /// White space before or after <paramref name="value"/> is ignored when it is compared with the members' names, as <see cref="Enum"/> does. It is compared with the members' values
-        /// as given first, and then, if no value matches, with the white space removed, so a member whose value begins or ends with white space can still be parsed.
+        /// <paramref name="value"/> is compared with the members' names first, then with their values. White space before or after <paramref name="value"/> is ignored when it is compared
+        /// with the names, as <see cref="Enum"/> does. It is compared with the values as given, and then, if no value matches, with the white space removed, so a member whose value
+        /// begins or ends with white space can still be parsed. A <paramref name="value"/> that is only white space is never compared as an empty string.
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryParse(Type enumType, string? value, out object? result)
@@ -511,11 +518,13 @@ namespace DataStandardizer.Core
         /// <exception cref="ArgumentException"><paramref name="enumType"/> is not a string enumeration and <paramref name="value"/> is not <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
         /// <remarks>
-        /// White space before or after <paramref name="value"/> is ignored when it is compared with the members' names, as <see cref="Enum"/> does. It is compared with the members' values
-        /// as given first, and then, if no value matches, with the white space removed, so a member whose value begins or ends with white space can still be parsed.
-        /// <paramref name="value"/> is compared with the members' names first, then with their values. When <paramref name="ignoreCase"/> is <c>true</c> and <paramref name="value"/> matches
-        /// more than one name, or more than one value, ignoring case, the member whose name or value matches it exactly (ordinal comparison) wins. If none matches exactly, the first
-        /// matching member is returned, in the order in which <see cref="GetNames(Type)"/> returns the members' names.
+        /// <paramref name="value"/> is compared with the members' names first, then with their values. White space before or after <paramref name="value"/> is ignored when it is compared
+        /// with the names, as <see cref="Enum"/> does. It is compared with the values as given, and then with the white space removed, so a member whose value begins or ends with white
+        /// space can still be parsed. A <paramref name="value"/> that is only white space is never compared as an empty string.
+        /// When <paramref name="ignoreCase"/> is <c>true</c> and <paramref name="value"/> matches more than one name, or more than one value, ignoring case, the member whose name or value
+        /// matches it exactly (ordinal comparison) wins: for values, an exact match on <paramref name="value"/> as given, then an exact match with the white space removed. If none
+        /// matches exactly, a match on <paramref name="value"/> as given wins over one with the white space removed, and among those the first matching member is returned, in the order
+        /// in which <see cref="GetNames(Type)"/> returns the members' names.
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryParse(Type enumType, string? value, bool ignoreCase, out object? result)
@@ -557,8 +566,9 @@ namespace DataStandardizer.Core
         /// <returns><c>true</c> if the <paramref name="value"/> parameter was converted successfully; otherwise, <c>false</c>.</returns>
         /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
         /// <remarks>
-        /// White space before or after <paramref name="value"/> is ignored when it is compared with the members' names, as <see cref="Enum"/> does. It is compared with the members' values
-        /// as given first, and then, if no value matches, with the white space removed, so a member whose value begins or ends with white space can still be parsed.
+        /// <paramref name="value"/> is compared with the members' names first, then with their values. White space before or after <paramref name="value"/> is ignored when it is compared
+        /// with the names, as <see cref="Enum"/> does. It is compared with the values as given, and then, if no value matches, with the white space removed, so a member whose value
+        /// begins or ends with white space can still be parsed. A <paramref name="value"/> that is only white space is never compared as an empty string.
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryParse<TEnum>(string? value, out TEnum result) where TEnum : struct, IStringEnum
@@ -589,11 +599,13 @@ namespace DataStandardizer.Core
         /// <returns><c>true</c> if the <paramref name="value"/> parameter was converted successfully; otherwise, <c>false</c>.</returns>
         /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
         /// <remarks>
-        /// White space before or after <paramref name="value"/> is ignored when it is compared with the members' names, as <see cref="Enum"/> does. It is compared with the members' values
-        /// as given first, and then, if no value matches, with the white space removed, so a member whose value begins or ends with white space can still be parsed.
-        /// <paramref name="value"/> is compared with the members' names first, then with their values. When <paramref name="ignoreCase"/> is <c>true</c> and <paramref name="value"/> matches
-        /// more than one name, or more than one value, ignoring case, the member whose name or value matches it exactly (ordinal comparison) wins. If none matches exactly, the first
-        /// matching member is returned, in the order in which <see cref="GetNames(Type)"/> returns the members' names.
+        /// <paramref name="value"/> is compared with the members' names first, then with their values. White space before or after <paramref name="value"/> is ignored when it is compared
+        /// with the names, as <see cref="Enum"/> does. It is compared with the values as given, and then with the white space removed, so a member whose value begins or ends with white
+        /// space can still be parsed. A <paramref name="value"/> that is only white space is never compared as an empty string.
+        /// When <paramref name="ignoreCase"/> is <c>true</c> and <paramref name="value"/> matches more than one name, or more than one value, ignoring case, the member whose name or value
+        /// matches it exactly (ordinal comparison) wins: for values, an exact match on <paramref name="value"/> as given, then an exact match with the white space removed. If none
+        /// matches exactly, a match on <paramref name="value"/> as given wins over one with the white space removed, and among those the first matching member is returned, in the order
+        /// in which <see cref="GetNames(Type)"/> returns the members' names.
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryParse<TEnum>(string? value, bool ignoreCase, out TEnum result) where TEnum : struct, IStringEnum
@@ -643,8 +655,8 @@ namespace DataStandardizer.Core
             return e(value);
         }
 
-        // Like Enum.Parse, white space around a name is ignored. A member's value may itself begin or end with white space, so value is compared with the values as given
-        // first, and only then with the white space around it removed.
+        // Like Enum.Parse, white space around a name is ignored. A member's value may itself begin or end with white space, so value is compared with the values both as given
+        // and with the white space around it removed. A value that is only white space is never trimmed to the empty string.
 #if NETCOREAPP3_0_OR_GREATER
         private static object? FindMember(Type type, string value, bool ignoreCase)
 #else
@@ -653,11 +665,44 @@ namespace DataStandardizer.Core
 #endif
         {
             var trimmedValue = value.Trim();
-            var member = FindMemberByName(type, trimmedValue, ignoreCase) ?? FindMemberByValue(type, value, ignoreCase);
-            if (member != null || trimmedValue.Length == value.Length)
-                return member;
+            var hasTrimmedValue = trimmedValue.Length != 0 && trimmedValue.Length != value.Length;
 
-            return FindMemberByValue(type, trimmedValue, ignoreCase);
+            return FindMemberByName(type, trimmedValue, ignoreCase) ?? FindMemberByValue(type, value, hasTrimmedValue ? trimmedValue : null, ignoreCase);
+        }
+
+        // In one pass over the members, in member order: an exact (ordinal) match on value wins, then one on trimmedValue; then, when ignoring case, a match on value ignoring case,
+        // then one on trimmedValue ignoring case. A null trimmedValue matches nothing.
+#if NETCOREAPP3_0_OR_GREATER
+        private static object? FindMemberByValue(Type type, string value, string? trimmedValue, bool ignoreCase)
+#else
+        [return: MaybeNull]
+        private static object FindMemberByValue(Type type, string value, [AllowNull] string trimmedValue, bool ignoreCase)
+#endif
+        {
+#if NETCOREAPP3_0_OR_GREATER
+            object? trimmedMatch = null;
+            object? caseInsensitiveMatch = null;
+            object? trimmedCaseInsensitiveMatch = null;
+#else
+            object trimmedMatch = null;
+            object caseInsensitiveMatch = null;
+            object trimmedCaseInsensitiveMatch = null;
+#endif
+            foreach (var member in GetCache(type).Members)
+            {
+                if (string.Equals(member.StringValue, value, StringComparison.Ordinal))
+                    return member.Value;
+                if (trimmedValue != null && trimmedMatch is null && string.Equals(member.StringValue, trimmedValue, StringComparison.Ordinal))
+                    trimmedMatch = member.Value;
+                if (!ignoreCase)
+                    continue;
+                if (caseInsensitiveMatch is null && string.Equals(member.StringValue, value, StringComparison.OrdinalIgnoreCase))
+                    caseInsensitiveMatch = member.Value;
+                if (trimmedValue != null && trimmedCaseInsensitiveMatch is null && string.Equals(member.StringValue, trimmedValue, StringComparison.OrdinalIgnoreCase))
+                    trimmedCaseInsensitiveMatch = member.Value;
+            }
+
+            return trimmedMatch ?? caseInsensitiveMatch ?? trimmedCaseInsensitiveMatch;
         }
 
         // An exact (ordinal) match wins. Otherwise, when ignoring case, the first member in member order whose name matches ignoring case.

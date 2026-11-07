@@ -92,6 +92,11 @@ namespace DataStandardizer.Core.Tests
         private const string ValueWithSurroundingSpaces = " pad ";
         private const string ValueWithTrailingSpace = "pad ";
         private const string UpperCaseLeadingWhiteSpaceValue = " PAD";
+        private const string UpperCaseValueWithSurroundingSpaces = " PAD ";
+        private const string MixedCaseLeadingWhiteSpaceValue = " Pad";
+        private const string ShoutedValue = "PAD";
+        // Also the name Plain with a space before it.
+        private const string ShadowingValue = " Plain";
 
         [Fact]
         public void GetNameNonGeneric_WithNullEnumType_ThrowsArgumentNullException()
@@ -1272,6 +1277,17 @@ namespace DataStandardizer.Core.Tests
         }
 
         [Theory]
+        [MemberData(nameof(TryParseOverloadsOnWhiteSpaceValueEnumWithOnlyWhiteSpace))]
+        public void TryParseOverloads_WithOnlyWhiteSpaceOnEnumWithEmptyValue_ReturnsFalse(Func<bool> tryParse)
+        {
+            // act
+            var testResult = tryParse();
+
+            // assert
+            testResult.Should().BeFalse();
+        }
+
+        [Theory]
         [MemberData(nameof(ParseIgnoreCaseOverloadsOnWhiteSpaceValueEnum))]
         public void ParseIgnoreCaseOverloads_WithValueMatchingAsGivenIgnoringCase_ReturnsThatMember(Func<string, object> parse, string value, WhiteSpaceValueEnum expectedResult)
         {
@@ -1374,22 +1390,42 @@ namespace DataStandardizer.Core.Tests
             () => StringEnum.TryParse<CaseVariantNameEnum>(null, true, out _),
         };
 
-        // Each input with the member it resolves to, whether or not case is ignored: white space around a name is ignored; a value is compared as given first, then without the white space around it.
+        // Each input with the member it resolves to, whether or not case is ignored: names are compared before values, and white space around a name is ignored; a value is
+        // compared as given first, then without the white space around it, and an exact match wins over a match ignoring case.
         private static readonly (string Value, WhiteSpaceValueEnum ExpectedResult)[] WhiteSpaceValueEnumCases =
         {
             (NameWithSurroundingSpaces, WhiteSpaceValueEnum.Plain),
             (NameWithSurroundingTabAndLineBreak, WhiteSpaceValueEnum.Plain),
             (PaddedNameWithSurroundingSpaces, WhiteSpaceValueEnum.Padded),
+            (ShadowingValue, WhiteSpaceValueEnum.Plain),
             (PlainValue, WhiteSpaceValueEnum.Plain),
             (LeadingWhiteSpaceValue, WhiteSpaceValueEnum.Padded),
             (ValueWithSurroundingSpaces, WhiteSpaceValueEnum.Plain),
             (ValueWithTrailingSpace, WhiteSpaceValueEnum.Plain),
+            (UpperCaseLeadingWhiteSpaceValue, WhiteSpaceValueEnum.Shouted),
+            (UpperCaseValueWithSurroundingSpaces, WhiteSpaceValueEnum.Shouted),
         };
 
-        // A value that matches a member's value as given, ignoring case, resolves to that member before white space is removed.
+        // When no value matches exactly, as given or without white space, a match ignoring case on the value as given wins over one on the value without white space.
         private static readonly (string Value, WhiteSpaceValueEnum ExpectedResult)[] WhiteSpaceValueEnumIgnoreCaseCases =
         {
-            (UpperCaseLeadingWhiteSpaceValue, WhiteSpaceValueEnum.Padded),
+            (MixedCaseLeadingWhiteSpaceValue, WhiteSpaceValueEnum.Padded),
+        };
+
+        public static TheoryData<Func<bool>> TryParseOverloadsOnWhiteSpaceValueEnumWithOnlyWhiteSpace => new TheoryData<Func<bool>>
+        {
+            () => StringEnum.TryParse(typeof(WhiteSpaceValueEnum), SpaceValue, out _),
+            () => StringEnum.TryParse(typeof(WhiteSpaceValueEnum), SpaceValue, false, out _),
+            () => StringEnum.TryParse(typeof(WhiteSpaceValueEnum), SpaceValue, true, out _),
+            () => StringEnum.TryParse<WhiteSpaceValueEnum>(SpaceValue, out _),
+            () => StringEnum.TryParse<WhiteSpaceValueEnum>(SpaceValue, false, out _),
+            () => StringEnum.TryParse<WhiteSpaceValueEnum>(SpaceValue, true, out _),
+            () => StringEnum.TryParse(typeof(WhiteSpaceValueEnum), TabValue, out _),
+            () => StringEnum.TryParse(typeof(WhiteSpaceValueEnum), TabValue, false, out _),
+            () => StringEnum.TryParse(typeof(WhiteSpaceValueEnum), TabValue, true, out _),
+            () => StringEnum.TryParse<WhiteSpaceValueEnum>(TabValue, out _),
+            () => StringEnum.TryParse<WhiteSpaceValueEnum>(TabValue, false, out _),
+            () => StringEnum.TryParse<WhiteSpaceValueEnum>(TabValue, true, out _),
         };
 
         public static TheoryData<Func<string, object>, string, WhiteSpaceValueEnum> ParseOverloadsOnWhiteSpaceValueEnum =>
@@ -2675,7 +2711,8 @@ namespace DataStandardizer.Core.Tests
             ulong IConvertible.ToUInt64(IFormatProvider? provider) => ((IConvertible)_value).ToUInt64(provider);
         }
 
-        // One member's value is another member's value with white space before it.
+        // One member's value is another member's value with white space before it, one differs from that by case, one is another member's name with white space before it,
+        // and one is the empty string.
         public readonly struct WhiteSpaceValueEnum : IStringEnum
         {
             private readonly string _value;
@@ -2692,6 +2729,12 @@ namespace DataStandardizer.Core.Tests
             public static readonly WhiteSpaceValueEnum Plain = new WhiteSpaceValueEnum(PlainValue);
 
             public static readonly WhiteSpaceValueEnum Padded = new WhiteSpaceValueEnum(LeadingWhiteSpaceValue);
+
+            public static readonly WhiteSpaceValueEnum Shouted = new WhiteSpaceValueEnum(ShoutedValue);
+
+            public static readonly WhiteSpaceValueEnum Shadowed = new WhiteSpaceValueEnum(ShadowingValue);
+
+            public static readonly WhiteSpaceValueEnum Blank = new WhiteSpaceValueEnum(EmptyValue);
 
             public override bool Equals(object? obj) => obj is WhiteSpaceValueEnum other && string.Equals(_value, other._value, StringComparison.Ordinal);
 
