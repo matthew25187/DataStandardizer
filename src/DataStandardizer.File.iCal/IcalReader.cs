@@ -298,8 +298,8 @@ namespace DataStandardizer.File.iCal
         /// <remarks>
         /// The task completes synchronously when the buffers of the content-line reader already hold the whole calendar.
         /// </remarks>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests.  If the read is canceled, the reader cannot
-        /// continue.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.  The read is canceled only if this token is
+        /// canceled, and the reader then cannot continue.</param>
         /// <returns>A task whose result is the calendar, or <c>null</c> if the end of the data has been reached.</returns>
         /// <exception cref="ObjectDisposedException">The reader has been disposed.  Thrown by this call, or by the task if the reader is disposed
         /// while the read is in progress.</exception>
@@ -308,7 +308,10 @@ namespace DataStandardizer.File.iCal
         /// An earlier read failed or was canceled, so the reader cannot continue.</exception>
         /// <exception cref="IcalFileException">By the task: the data is not valid iCalendar, or the calendar breaks a rule of RFC 5545 that the
         /// options do not accept.</exception>
-        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.</exception>
+        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled before the call, or the
+        /// read failed with an <see cref="OperationCanceledException"/>, whatever token it carries, while <paramref name="cancellationToken"/>
+        /// was canceled.  The task is canceled.  An <see cref="OperationCanceledException"/> from the source while the token isn't canceled
+        /// faults the task, as any other failure of the source does.  Either way, the reader then cannot continue.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public ValueTask<IcalCalendar?> ReadCalendarAsync(CancellationToken cancellationToken = default)
 #else
@@ -318,21 +321,25 @@ namespace DataStandardizer.File.iCal
             // Errors in how the reader is used are thrown now; errors in the data, and cancellation, go to the task.
             ThrowIfDisposed();
             BeginRead();
-            return ReadCalendarCoreAsync(cancellationToken);
+            return AsyncOutcome.Unwrap(ReadCalendarOutcomeAsync(cancellationToken));
         }
 
         /// <summary>
         /// Reads the remaining calendars asynchronously.
         /// </summary>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.  It is combined with any token passed to
-        /// <see cref="IAsyncEnumerable{T}.GetAsyncEnumerator"/>.  If a read is canceled, the reader cannot continue.</param>
+        /// <see cref="IAsyncEnumerable{T}.GetAsyncEnumerator"/>.  A read is canceled only if this token is canceled, and the reader then
+        /// cannot continue.</param>
         /// <returns>The calendars, read as the sequence is enumerated.</returns>
         /// <exception cref="ObjectDisposedException">The reader has been disposed, either before this call or during enumeration.</exception>
         /// <exception cref="IcalFileException">During enumeration: the data is not valid iCalendar, or a calendar breaks a rule of RFC 5545 that
         /// the options do not accept.</exception>
         /// <exception cref="InvalidOperationException">During enumeration: another read is in progress, or an earlier read failed or was
         /// canceled.</exception>
-        /// <exception cref="OperationCanceledException">During enumeration: the read was canceled.</exception>
+        /// <exception cref="OperationCanceledException">During enumeration: a read was canceled, which it is only if the token is canceled; or
+        /// the source failed with one while the token isn't canceled.  Either one leaves the reader unable to continue.  On every target, the
+        /// task of <see cref="IAsyncEnumerator{T}.MoveNextAsync"/> is canceled for either, as an async iterator's always is for an
+        /// <see cref="OperationCanceledException"/>, so check the token to tell which it was.</exception>
         public IAsyncEnumerable<IcalCalendar> ReadCalendarsAsync(CancellationToken cancellationToken = default)
         {
             // Check now, so the exception comes from this call and not from the first MoveNextAsync.
@@ -373,12 +380,12 @@ namespace DataStandardizer.File.iCal
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
         /// <summary>
         /// Continues <see cref="ReadCalendarAsync"/>, and ends the read.  Completes synchronously, without allocating a task, while the
-        /// content-line reader completes synchronously.
+        /// content-line reader completes synchronously.  Returns the read's outcome; see <see cref="AsyncOutcome"/>.
         /// </summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-        private async ValueTask<IcalCalendar?> ReadCalendarCoreAsync(CancellationToken cancellationToken)
+        private async ValueTask<ValueTask<IcalCalendar?>> ReadCalendarOutcomeAsync(CancellationToken cancellationToken)
 #else
-        private async ValueTask<IcalCalendar> ReadCalendarCoreAsync(CancellationToken cancellationToken)
+        private async ValueTask<ValueTask<IcalCalendar>> ReadCalendarOutcomeAsync(CancellationToken cancellationToken)
 #endif
         {
             try
@@ -400,8 +407,23 @@ namespace DataStandardizer.File.iCal
                         throw;
                     }
 
-                    if (AddLine(line)) return TakeCalendar();
+                    if (AddLine(line))
+                    {
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+                        return new ValueTask<IcalCalendar?>(TakeCalendar());
+#else
+                        return new ValueTask<IcalCalendar>(TakeCalendar());
+#endif
+                    }
                 }
+            }
+            catch (Exception exception)
+            {
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+                return AsyncOutcome.Fail<IcalCalendar?>(exception, cancellationToken);
+#else
+                return AsyncOutcome.Fail<IcalCalendar>(exception, cancellationToken);
+#endif
             }
             finally
             {
@@ -554,6 +576,8 @@ namespace DataStandardizer.File.iCal
                 {
                     if (_isFinished) return false;
 
+                    // As an async iterator's does, the task is canceled for any OperationCanceledException, whether or not the token is
+                    // canceled, so that MoveNextAsync behaves the same on every target.
                     var calendar = await _reader.ReadCalendarAsync(_cancellationToken).ConfigureAwait(false);
                     Current = calendar;
                     _isFinished = calendar is null;
