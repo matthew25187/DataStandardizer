@@ -98,8 +98,7 @@ started, so a canceled write never leaves part of a calendar. An asynchronous op
 That leaves the writer unable to continue, and later calls throw
 `InvalidOperationException`. An `OperationCanceledException` while that token isn't
 canceled, whether from the `XmlWriter`, the calendars being enumerated or the
-progress callback, is handled as an I/O error: the task faults with it, and the
-writer can continue.
+progress callback, faults the task, as an I/O error does.
 If the document is ended at the end of an operation, because the writer was disposed
 during it, or by `DisposeAsync`, and that throws, the task faults with the exception,
 an `OperationCanceledException` included.

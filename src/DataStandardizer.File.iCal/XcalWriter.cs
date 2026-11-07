@@ -396,8 +396,7 @@ namespace DataStandardizer.File.iCal
         /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled before the call, or the
         /// flush failed with an <see cref="OperationCanceledException"/>, whatever token it carries, while <paramref name="cancellationToken"/>
         /// was canceled.  The task is canceled.  Any other exception faults the task even while <paramref name="cancellationToken"/> is canceled,
-        /// and an <see cref="OperationCanceledException"/> while it isn't faults the task too, as an I/O error does, and the writer can
-        /// continue.</exception>
+        /// and an <see cref="OperationCanceledException"/> while it isn't faults the task too, as an I/O error does.</exception>
         public Task FlushAsync(CancellationToken cancellationToken = default)
         {
             ThrowIfDisposed();
@@ -426,8 +425,7 @@ namespace DataStandardizer.File.iCal
         /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled before the call, or the
         /// write failed with an <see cref="OperationCanceledException"/>, whatever token it carries, while <paramref name="cancellationToken"/>
         /// was canceled.  The task is canceled.  Any other exception faults the task even while <paramref name="cancellationToken"/> is canceled,
-        /// and an <see cref="OperationCanceledException"/> while it isn't faults the task too, as an I/O error does, and the writer can
-        /// continue.</exception>
+        /// and an <see cref="OperationCanceledException"/> while it isn't faults the task too, as an I/O error does.</exception>
         public ValueTask WriteCalendarAsync(IcalCalendar calendar, CancellationToken cancellationToken = default)
         {
             // Errors in how the writer is used are thrown now; errors in the calendar or the I/O, and cancellation, go to the task.
@@ -469,7 +467,7 @@ namespace DataStandardizer.File.iCal
         /// write failed with an <see cref="OperationCanceledException"/>, whatever token it carries, while <paramref name="cancellationToken"/>
         /// was canceled.  The task is canceled.  Any other exception faults the task even while <paramref name="cancellationToken"/> is canceled,
         /// and an <see cref="OperationCanceledException"/> while it isn't faults the task too, whether from the underlying writer,
-        /// <paramref name="calendars"/> or <paramref name="progress"/>, and the writer can continue.</exception>
+        /// <paramref name="calendars"/> or <paramref name="progress"/>, as an I/O error does.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public Task WriteCalendarsAsync(IEnumerable<IcalCalendar> calendars, IProgress<IcalWriteProgress>? progress = null,
 #else
@@ -515,7 +513,7 @@ namespace DataStandardizer.File.iCal
         /// write failed with an <see cref="OperationCanceledException"/>, whatever token it carries, while <paramref name="cancellationToken"/>
         /// was canceled.  The task is canceled.  Any other exception faults the task even while <paramref name="cancellationToken"/> is canceled,
         /// and an <see cref="OperationCanceledException"/> while it isn't faults the task too, whether from the underlying writer,
-        /// <paramref name="calendars"/> or <paramref name="progress"/>, and the writer can continue.</exception>
+        /// <paramref name="calendars"/> or <paramref name="progress"/>, as an I/O error does.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public Task WriteCalendarsAsync(IAsyncEnumerable<IcalCalendar> calendars, IProgress<IcalWriteProgress>? progress = null,
 #else
