@@ -368,8 +368,8 @@ namespace DataStandardizer.File.vCard
         /// <remarks>
         /// The task completes synchronously when the reader's buffer already holds the whole line.
         /// </remarks>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests.  If the read is canceled, the reader cannot
-        /// continue.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.  The read is canceled only if this token is
+        /// canceled, and the reader then cannot continue.</param>
         /// <returns>A task whose result is <c>true</c> if a line was read, or <c>false</c> if the end of the data has been reached.</returns>
         /// <exception cref="ObjectDisposedException">The reader has been disposed.  Thrown by this call, or by the task if the reader is disposed
         /// while the read is in progress.</exception>
@@ -379,7 +379,10 @@ namespace DataStandardizer.File.vCard
         /// continue.</exception>
         /// <exception cref="VcardFileException">By the task: the line does not follow the content line syntax of RFC 6350 §3.3, has a line break
         /// that is not accepted, or is longer than <see cref="VcardOptions.MaxLineLength"/>.</exception>
-        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.</exception>
+        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled before the call, or the
+        /// read failed with an <see cref="OperationCanceledException"/>, whatever token it carries, while <paramref name="cancellationToken"/>
+        /// was canceled.  The task is canceled.  An <see cref="OperationCanceledException"/> from the source while the token isn't canceled
+        /// faults the task, as any other failure of the source does, and the reader then cannot continue.</exception>
         public ValueTask<bool> ReadContentLineAsync(CancellationToken cancellationToken = default)
         {
             return ReadAsync(LineReadResult, cancellationToken);
@@ -391,8 +394,8 @@ namespace DataStandardizer.File.vCard
         /// <remarks>
         /// The task completes synchronously when the reader's buffer already holds the whole line.
         /// </remarks>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests.  If the read is canceled, the reader cannot
-        /// continue.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.  The read is canceled only if this token is
+        /// canceled, and the reader then cannot continue.</param>
         /// <returns>A task whose result is the line, or <c>null</c> if the end of the data has been reached.</returns>
         /// <exception cref="ObjectDisposedException">The reader has been disposed.  Thrown by this call, or by the task if the reader is disposed
         /// while the read is in progress.</exception>
@@ -402,7 +405,10 @@ namespace DataStandardizer.File.vCard
         /// continue.</exception>
         /// <exception cref="VcardFileException">By the task: the line does not follow the content line syntax of RFC 6350 §3.3, has a line break
         /// that is not accepted, or is longer than <see cref="VcardOptions.MaxLineLength"/>.</exception>
-        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.</exception>
+        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled before the call, or the
+        /// read failed with an <see cref="OperationCanceledException"/>, whatever token it carries, while <paramref name="cancellationToken"/>
+        /// was canceled.  The task is canceled.  An <see cref="OperationCanceledException"/> from the source while the token isn't canceled
+        /// faults the task, as any other failure of the source does, and the reader then cannot continue.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public ValueTask<VcardContentLine?> ReadLineAsync(CancellationToken cancellationToken = default)
 #else
@@ -416,14 +422,18 @@ namespace DataStandardizer.File.vCard
         /// Reads the remaining content lines asynchronously.
         /// </summary>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.  It is combined with any token passed to
-        /// <see cref="IAsyncEnumerable{T}.GetAsyncEnumerator"/>.  If a read is canceled, the reader cannot continue.</param>
+        /// <see cref="IAsyncEnumerable{T}.GetAsyncEnumerator"/>.  A read is canceled only if this token is canceled, and the
+        /// reader then cannot continue.</param>
         /// <returns>The lines, read as the sequence is enumerated.</returns>
         /// <exception cref="ObjectDisposedException">The reader has been disposed, either before this call or during enumeration.</exception>
         /// <exception cref="VcardFileException">During enumeration: a line does not follow the content line syntax, has a line break that is not
         /// accepted, or is too long.</exception>
         /// <exception cref="InvalidOperationException">During enumeration: another read is in progress, or an earlier read found a line break,
         /// line length or decoding error or was canceled.</exception>
-        /// <exception cref="OperationCanceledException">During enumeration: the read was canceled.</exception>
+        /// <exception cref="OperationCanceledException">During enumeration: a read was canceled, which it is only if the token is canceled; or
+        /// the source failed with one while the token isn't canceled, which leaves the reader unable to continue, as any other failure of the
+        /// source does.  On every target, the task of <see cref="IAsyncEnumerator{T}.MoveNextAsync"/> is canceled for either, as an async
+        /// iterator's always is for an <see cref="OperationCanceledException"/>, so check the token to tell which it was.</exception>
         public IAsyncEnumerable<VcardContentLine> ReadLinesAsync(CancellationToken cancellationToken = default)
         {
             // Check now, so the exception comes from this call and not from the first MoveNextAsync.
@@ -586,7 +596,7 @@ namespace DataStandardizer.File.vCard
                 }
 
                 isPending = true;
-                return ReadWithRefillAsync(result, cancellationToken);
+                return AsyncOutcome.Unwrap(ReadWithRefillAsync(result, cancellationToken));
             }
             finally
             {
@@ -600,8 +610,9 @@ namespace DataStandardizer.File.vCard
         /// <summary>
         /// Continues <see cref="ReadAsync{TResult}"/> once the scanner needs more input, and ends the read.
         /// </summary>
-        private async ValueTask<TResult> ReadWithRefillAsync<TResult>(Func<VcardContentLineReader, bool, TResult> result, CancellationToken cancellationToken)
+        private async ValueTask<ValueTask<TResult>> ReadWithRefillAsync<TResult>(Func<VcardContentLineReader, bool, TResult> result, CancellationToken cancellationToken)
         {
+            ValueTask<TResult> outcome;
             try
             {
                 ContentLineScanner.ScanStatus status;
@@ -632,21 +643,36 @@ namespace DataStandardizer.File.vCard
                     status = _scanner.Scan();
                 } while (status == ContentLineScanner.ScanStatus.NeedMoreInput);
 
-                return result(this, CompleteLine(status));
+                outcome = new ValueTask<TResult>(result(this, CompleteLine(status)));
             }
             catch (DecoderFallbackException exception) when (_isInternalReader)
             {
-                throw FaultDecoding(exception);
+                outcome = new ValueTask<TResult>(Task.FromException<TResult>(FaultDecoding(exception)));
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
+                // A cancellation, whatever token the exception carries, or if it carries none.
                 _isCanceled = true;
-                throw;
+                outcome = new ValueTask<TResult>(Task.FromCanceled<TResult>(cancellationToken));
+            }
+            catch (OperationCanceledException exception)
+            {
+                // Only the text reader throws one while the token isn't canceled.  That is a failure of the source, as any other exception
+                // from it is: characters may have been lost, so a later read could join what follows them onto this line.
+                _isSourceFaulted = true;
+                outcome = new ValueTask<TResult>(Task.FromException<TResult>(exception));
+            }
+            catch (Exception exception)
+            {
+                outcome = new ValueTask<TResult>(Task.FromException<TResult>(exception));
             }
             finally
             {
+                // The release disposes only a file that the reader opened itself, which doesn't throw an OperationCanceledException.
                 EndRead();
             }
+
+            return outcome;
         }
 #endif
 

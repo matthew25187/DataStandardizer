@@ -59,6 +59,12 @@ A card is checked as `VcardCard.Validate(VcardVersion.V4_0)` does before it is w
 thrown and nothing of that card is written. A card that jCard can't hold throws too, before any of it is written: a name or group that isn't letters, digits and hyphens, a `BEGIN`
 or `END` property, a repeated parameter other than `TYPE`, `PID` or `SORT-AS`, a `GROUP` parameter, or a value with a lone surrogate.
 
+An asynchronous operation is canceled only when the token passed to it is canceled, whatever token the `OperationCanceledException` carries, or if it carries
+none. The task is then canceled, and the writer can't continue: later calls throw `InvalidOperationException`. An `OperationCanceledException` while that token
+isn't canceled, whether from the stream, the cards being enumerated or the progress callback, faults the task as an I/O error does. If the document is ended at the end
+of an operation, because the writer was disposed during it, or by `DisposeAsync`, and that throws, the task faults with the exception, an
+`OperationCanceledException` included.
+
 Only one operation may be in progress at a time.
 
 ## Applies to

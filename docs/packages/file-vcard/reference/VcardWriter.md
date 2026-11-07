@@ -58,6 +58,11 @@ A card is checked as `VcardCard.Validate(version)` does before it is written. If
 
 A check doesn't see every character of a line. A line that can't be written, such as one with a group that isn't valid, throws `VcardFileException` when it is reached, and the lines before it have been written.
 
+An asynchronous operation is canceled only when the token passed to it is canceled, whatever token the `OperationCanceledException` carries, or if it carries
+none. The task is then canceled, and the writer can't continue: later calls throw `InvalidOperationException`. An `OperationCanceledException` while that token
+isn't canceled, whether from the underlying text writer, the cards being enumerated or the progress callback, faults the task as an I/O error does. If `DisposeAsync` fails, the task faults with
+that exception, an `OperationCanceledException` included.
+
 Only one operation may be in progress at a time.
 
 ## Applies to

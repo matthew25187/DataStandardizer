@@ -64,6 +64,12 @@ thrown and nothing of that card is written. A card that xCard can't hold throws 
 `END` or `GROUP` property, a property with two `VALUE` parameters, a `VALUE` parameter on a DATE of a year alone, which xCard has no form for, or a value with a character XML can't
 hold. A write that fails leaves the writer unable to continue.
 
+An asynchronous operation is canceled only when the token passed to it is canceled, whatever token the `OperationCanceledException` carries, or if it carries
+none. The task is then canceled, and the writer can't continue: later calls throw `InvalidOperationException`. An `OperationCanceledException` while that token
+isn't canceled, whether from the XML writer, the cards being enumerated or the progress callback, faults the task as an I/O error does. If the document is ended at the end
+of an operation, because the writer was disposed during it, or by `DisposeAsync`, and that throws, the task faults with the exception, an
+`OperationCanceledException` included.
+
 Only one operation may be in progress at a time.
 
 ## Applies to
