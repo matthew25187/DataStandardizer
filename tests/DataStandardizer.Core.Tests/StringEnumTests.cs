@@ -22,7 +22,7 @@ namespace DataStandardizer.Core.Tests
         private const string IsNameOfEnumValueReason = "{0} is the name of enum value {1}";
         private const string IsMemberReason = "{0} is a member of {1}";
         private const string IsNotMemberReason = "{0} is not a member of {1}";
-        private const string NotStringEnumReason = "{0} does not represent a string enum";
+        private const string NullValueReason = "a null value represents no member";
         private const string DoesNotRepresentMemberReason = "{0} does not represent a member of {1}";
         private const string IsNameOfMemberReason = "{0} is the name of a member of {1}";
         private const string IsValueOfMemberReason = "{0} is the value of a member of {1}";
@@ -426,6 +426,16 @@ namespace DataStandardizer.Core.Tests
             testResult.Should().BeTrue(IsMemberReason, enumMemberValue, nameof(SimpleEnum));
         }
 
+        [Fact]
+        public void IsDefinedGeneric_WithNullValue_ThrowsArgumentNullException()
+        {
+            // act
+            Action testAction = () => StringEnum.IsDefined<SimpleEnum>(null!);
+
+            // assert
+            testAction.Should().Throw<ArgumentNullException>().WithParameterName(ValueParameterName);
+        }
+
         [Theory]
         [InlineData(ZeroName), InlineData("Two"), InlineData(LizardName), InlineData("Purple")]
         public void IsDefinedGeneric_WithHierarchicalStringEnumNonMember_ReturnsFalse(string enumValue)
@@ -810,13 +820,13 @@ namespace DataStandardizer.Core.Tests
 
         [Theory]
         [InlineData(typeof(DayOfWeek), nameof(DayOfWeek.Sunday)), InlineData(typeof(UriBuilder), nameof(UriBuilder.Scheme))]
-        public void TryParseNonGeneric_WithNonStringEnumType_ReturnsFalse(Type enumType, string value)
+        public void TryParseNonGeneric_WithNonStringEnumType_ThrowsArgumentException(Type enumType, string value)
         {
             // act
-            var testResult = StringEnum.TryParse(enumType, value, out _);
+            Action testAction = () => StringEnum.TryParse(enumType, value, out _);
 
             // assert
-            testResult.Should().BeFalse(NotStringEnumReason, nameof(enumType));
+            testAction.Should().Throw<ArgumentException>().WithMessage(NotStringEnumerationMessage).WithParameterName(EnumTypeParameterName);
         }
 
         [Theory]
@@ -856,13 +866,13 @@ namespace DataStandardizer.Core.Tests
 
         [Theory]
         [InlineData(typeof(DayOfWeek), nameof(DayOfWeek.Sunday)), InlineData(typeof(UriBuilder), nameof(UriBuilder.Scheme))]
-        public void TryParseNonGenericIgnoreCaseOverload_WithNonStringEnumType_ReturnsFalse(Type enumType, string value)
+        public void TryParseNonGenericIgnoreCaseOverload_WithNonStringEnumType_ThrowsArgumentException(Type enumType, string value)
         {
             // act
-            var testResult = StringEnum.TryParse(enumType, value, false, out _);
+            Action testAction = () => StringEnum.TryParse(enumType, value, false, out _);
 
             // assert
-            testResult.Should().BeFalse(NotStringEnumReason, nameof(enumType));
+            testAction.Should().Throw<ArgumentException>().WithMessage(NotStringEnumerationMessage).WithParameterName(EnumTypeParameterName);
         }
 
         [Theory]
@@ -1117,6 +1127,50 @@ namespace DataStandardizer.Core.Tests
         }
 
         [Theory]
+        [MemberData(nameof(TryParseOverloadsWithNullEnumType))]
+        public void TryParseNonGeneric_WithNullEnumType_ThrowsArgumentNullException(Action tryParse)
+        {
+            // act
+            var testAction = tryParse;
+
+            // assert
+            testAction.Should().Throw<ArgumentNullException>().WithParameterName(EnumTypeParameterName);
+        }
+
+        [Theory]
+        [MemberData(nameof(NonGenericMembersOnTypesThatAreNotStringEnumerations))]
+        public void NonGenericMembers_OnTypeThatIsNotStringEnumeration_ThrowArgumentException(Action member)
+        {
+            // act
+            var testAction = member;
+
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithMessage(NotStringEnumerationMessage).WithParameterName(EnumTypeParameterName);
+        }
+
+        [Theory]
+        [MemberData(nameof(NonGenericMembersWithNullEnumTypeAndNullValue))]
+        public void NonGenericMembers_WithNullEnumTypeAndNullValue_ThrowArgumentNullExceptionNamingSameParameterAsSystemEnum(Action member, string expectedParameterName)
+        {
+            // act
+            var testAction = member;
+
+            // assert
+            testAction.Should().Throw<ArgumentNullException>().WithParameterName(expectedParameterName);
+        }
+
+        [Theory]
+        [MemberData(nameof(TryParseOverloadsWithNullValueAndInvalidEnumType))]
+        public void TryParseNonGeneric_WithNullValueAndInvalidEnumType_ReturnsFalse(Func<bool> tryParse)
+        {
+            // act
+            var testResult = tryParse();
+
+            // assert
+            testResult.Should().BeFalse(NullValueReason);
+        }
+
+        [Theory]
         [MemberData(nameof(ParseIgnoreCaseOverloadsOnCaseVariantNameEnum))]
         public void ParseIgnoreCaseOverloads_OnEnumWithNamesDifferingOnlyByCase_ReturnsMatchingMember(Func<string, object> parse, string value, CaseVariantNameEnum expectedResult)
         {
@@ -1308,6 +1362,60 @@ namespace DataStandardizer.Core.Tests
             () => StringEnum.TryParse(typeof(DuplicateNameEnum), RedName, true, out _),
             () => StringEnum.TryParse<DuplicateNameEnum>(RedName, out _),
             () => StringEnum.TryParse<DuplicateNameEnum>(RedName, true, out _),
+        };
+
+        public static TheoryData<Action> TryParseOverloadsWithNullEnumType => new TheoryData<Action>
+        {
+            () => StringEnum.TryParse(null!, AValue, out _),
+            () => StringEnum.TryParse(null!, AValue, true, out _),
+        };
+
+        // Each non-generic member, given a type that isn't a string enumeration and a value that isn't null.
+        public static TheoryData<Action> NonGenericMembersOnTypesThatAreNotStringEnumerations
+        {
+            get
+            {
+                var theoryData = new TheoryData<Action>();
+                var cases = new (Type EnumType, object Value)[]
+                {
+                    (typeof(ForeignInterfaceEnum), ForeignInterfaceEnum.A),
+                    (typeof(OpenGenericEnum<>), AValue),
+                    (typeof(ClassEnum), ClassEnum.A),
+                };
+                foreach (var (enumType, value) in cases)
+                {
+                    theoryData.Add(() => StringEnum.GetName(enumType, value));
+                    theoryData.Add(() => StringEnum.GetNames(enumType));
+                    theoryData.Add(() => StringEnum.GetValues(enumType));
+                    theoryData.Add(() => StringEnum.IsDefined(enumType, AValue));
+                    theoryData.Add(() => StringEnum.Parse(enumType, AValue));
+                    theoryData.Add(() => StringEnum.Parse(enumType, AValue, true));
+                    theoryData.Add(() => StringEnum.ToObject(enumType, AValue));
+                    theoryData.Add(() => StringEnum.TryParse(enumType, AValue, out _));
+                    theoryData.Add(() => StringEnum.TryParse(enumType, AValue, true, out _));
+                }
+
+                return theoryData;
+            }
+        }
+
+        // The parameter System.Enum names when both are null: GetName and IsDefined check enumType first, Parse and ToObject check value first.
+        public static TheoryData<Action, string> NonGenericMembersWithNullEnumTypeAndNullValue => new TheoryData<Action, string>
+        {
+            { () => StringEnum.GetName(null!, null!), EnumTypeParameterName },
+            { () => StringEnum.IsDefined(null!, null!), EnumTypeParameterName },
+            { () => StringEnum.Parse(null!, null!), ValueParameterName },
+            { () => StringEnum.Parse(null!, null!, true), ValueParameterName },
+            { () => StringEnum.ToObject(null!, null!), ValueParameterName },
+        };
+
+        // Like Enum.TryParse, a null value fails before enumType is checked.
+        public static TheoryData<Func<bool>> TryParseOverloadsWithNullValueAndInvalidEnumType => new TheoryData<Func<bool>>
+        {
+            () => StringEnum.TryParse(null!, null, out _),
+            () => StringEnum.TryParse(null!, null, true, out _),
+            () => StringEnum.TryParse(typeof(DayOfWeek), null, out _),
+            () => StringEnum.TryParse(typeof(DayOfWeek), null, true, out _),
         };
 
         public class GetNameNonGeneric_WithStringEnumValue_TestCaseFactory : IEnumerable<object[]>
@@ -2618,6 +2726,107 @@ namespace DataStandardizer.Core.Tests
             ushort IConvertible.ToUInt16(IFormatProvider? provider) => ((IConvertible)_value).ToUInt16(provider);
             uint IConvertible.ToUInt32(IFormatProvider? provider) => ((IConvertible)_value).ToUInt32(provider);
             ulong IConvertible.ToUInt64(IFormatProvider? provider) => ((IConvertible)_value).ToUInt64(provider);
+        }
+
+        // A generic definition has open type parameters, so its static fields have no values to read.
+        public readonly struct OpenGenericEnum<T> : IStringEnum
+        {
+            private readonly string _value;
+
+            private OpenGenericEnum(string value)
+            {
+                _value = value;
+            }
+
+            public static explicit operator OpenGenericEnum<T>(string value) => new OpenGenericEnum<T>(value);
+
+            public static implicit operator string(OpenGenericEnum<T> value) => value._value;
+
+            public static readonly OpenGenericEnum<T> A = new OpenGenericEnum<T>(AValue);
+
+            public int CompareTo(object? obj) => _value.CompareTo(obj);
+
+            public TypeCode GetTypeCode() => _value.GetTypeCode();
+
+            bool IConvertible.ToBoolean(IFormatProvider? provider) => ((IConvertible)_value).ToBoolean(provider);
+            byte IConvertible.ToByte(IFormatProvider? provider) => ((IConvertible)_value).ToByte(provider);
+            char IConvertible.ToChar(IFormatProvider? provider) => ((IConvertible)_value).ToChar(provider);
+            DateTime IConvertible.ToDateTime(IFormatProvider? provider) => ((IConvertible)_value).ToDateTime(provider);
+            decimal IConvertible.ToDecimal(IFormatProvider? provider) => ((IConvertible)_value).ToDecimal(provider);
+            double IConvertible.ToDouble(IFormatProvider? provider) => ((IConvertible)_value).ToDouble(provider);
+            short IConvertible.ToInt16(IFormatProvider? provider) => ((IConvertible)_value).ToInt16(provider);
+            int IConvertible.ToInt32(IFormatProvider? provider) => ((IConvertible)_value).ToInt32(provider);
+            long IConvertible.ToInt64(IFormatProvider? provider) => ((IConvertible)_value).ToInt64(provider);
+            sbyte IConvertible.ToSByte(IFormatProvider? provider) => ((IConvertible)_value).ToSByte(provider);
+            float IConvertible.ToSingle(IFormatProvider? provider) => ((IConvertible)_value).ToSingle(provider);
+            string IConvertible.ToString(IFormatProvider? provider) => _value.ToString(provider);
+            object IConvertible.ToType(Type conversionType, IFormatProvider? provider) => ((IConvertible)_value).ToType(conversionType, provider);
+            ushort IConvertible.ToUInt16(IFormatProvider? provider) => ((IConvertible)_value).ToUInt16(provider);
+            uint IConvertible.ToUInt32(IFormatProvider? provider) => ((IConvertible)_value).ToUInt32(provider);
+            ulong IConvertible.ToUInt64(IFormatProvider? provider) => ((IConvertible)_value).ToUInt64(provider);
+        }
+
+        // A class that implements IStringEnum isn't a string enumeration, which has to be a struct.
+        public sealed class ClassEnum : IStringEnum
+        {
+            private readonly string _value;
+
+            private ClassEnum(string value)
+            {
+                _value = value;
+            }
+
+            public static explicit operator ClassEnum(string value) => new ClassEnum(value);
+
+            public static implicit operator string(ClassEnum value) => value._value;
+
+            public static readonly ClassEnum A = new ClassEnum(AValue);
+
+            public int CompareTo(object? obj) => _value.CompareTo(obj);
+
+            public TypeCode GetTypeCode() => _value.GetTypeCode();
+
+            bool IConvertible.ToBoolean(IFormatProvider? provider) => ((IConvertible)_value).ToBoolean(provider);
+            byte IConvertible.ToByte(IFormatProvider? provider) => ((IConvertible)_value).ToByte(provider);
+            char IConvertible.ToChar(IFormatProvider? provider) => ((IConvertible)_value).ToChar(provider);
+            DateTime IConvertible.ToDateTime(IFormatProvider? provider) => ((IConvertible)_value).ToDateTime(provider);
+            decimal IConvertible.ToDecimal(IFormatProvider? provider) => ((IConvertible)_value).ToDecimal(provider);
+            double IConvertible.ToDouble(IFormatProvider? provider) => ((IConvertible)_value).ToDouble(provider);
+            short IConvertible.ToInt16(IFormatProvider? provider) => ((IConvertible)_value).ToInt16(provider);
+            int IConvertible.ToInt32(IFormatProvider? provider) => ((IConvertible)_value).ToInt32(provider);
+            long IConvertible.ToInt64(IFormatProvider? provider) => ((IConvertible)_value).ToInt64(provider);
+            sbyte IConvertible.ToSByte(IFormatProvider? provider) => ((IConvertible)_value).ToSByte(provider);
+            float IConvertible.ToSingle(IFormatProvider? provider) => ((IConvertible)_value).ToSingle(provider);
+            string IConvertible.ToString(IFormatProvider? provider) => _value.ToString(provider);
+            object IConvertible.ToType(Type conversionType, IFormatProvider? provider) => ((IConvertible)_value).ToType(conversionType, provider);
+            ushort IConvertible.ToUInt16(IFormatProvider? provider) => ((IConvertible)_value).ToUInt16(provider);
+            uint IConvertible.ToUInt32(IFormatProvider? provider) => ((IConvertible)_value).ToUInt32(provider);
+            ulong IConvertible.ToUInt64(IFormatProvider? provider) => ((IConvertible)_value).ToUInt64(provider);
+        }
+
+        // An unrelated interface that shares its name with DataStandardizer.Core.IStringEnum.
+        public static class Foreign
+        {
+            public interface IStringEnum
+            {
+            }
+        }
+
+        // It implements Foreign.IStringEnum, not DataStandardizer.Core.IStringEnum, so it isn't a string enumeration.
+        public readonly struct ForeignInterfaceEnum : Foreign.IStringEnum
+        {
+            private readonly string _value;
+
+            private ForeignInterfaceEnum(string value)
+            {
+                _value = value;
+            }
+
+            public static explicit operator ForeignInterfaceEnum(string value) => new ForeignInterfaceEnum(value);
+
+            public static implicit operator string(ForeignInterfaceEnum value) => value._value;
+
+            public static readonly ForeignInterfaceEnum A = new ForeignInterfaceEnum(AValue);
         }
 
         #endregion
