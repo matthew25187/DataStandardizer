@@ -80,6 +80,7 @@ namespace DataStandardizer.File.InternetMessage
         private const int EncodedBlockSize = 16 * 1024;
 
         private readonly int _blockSize;
+        private readonly ArrayPool<byte> _bufferPool;
         private readonly Func<string> _boundaryGenerator;
         private readonly bool _lineFeedIsLineBreak;
         private readonly ImfOptions _options;
@@ -138,11 +139,19 @@ namespace DataStandardizer.File.InternetMessage
 #endif
 
         /// <summary>
-        /// Creates a writer with a specific block size, line break setting and source of boundaries.  Allows tests to force a body to be split at chosen
-        /// points and to choose the boundaries, and the writers of container formats to write the LF line breaks of their messages.
+        /// Creates a writer with a specific block size, line break setting and source of boundaries, and optionally a pool to rent its buffers from.  Allows
+        /// tests to force a body to be split at chosen points, to choose the boundaries, and to give the writer a pool that returns arrays longer than asked
+        /// for, as <see cref="ArrayPool{T}.Rent"/> may; and the writers of container formats to write the LF line breaks of their messages.
         /// </summary>
-        internal ImfEntityWriter(Stream messageStream, ImfOptions options, int blockSize, bool lineFeedIsLineBreak, Func<string> boundaryGenerator)
-            : this(CheckOptions(options), new ImfOutput(ImfOutput.ValidateStream(messageStream), false, nameof(ImfEntityWriter)), blockSize, lineFeedIsLineBreak, boundaryGenerator)
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal ImfEntityWriter(Stream messageStream, ImfOptions options, int blockSize, bool lineFeedIsLineBreak, Func<string> boundaryGenerator,
+            ArrayPool<byte>? bufferPool = null)
+#else
+        internal ImfEntityWriter(Stream messageStream, ImfOptions options, int blockSize, bool lineFeedIsLineBreak, Func<string> boundaryGenerator,
+            ArrayPool<byte> bufferPool = null)
+#endif
+            : this(CheckOptions(options), new ImfOutput(ImfOutput.ValidateStream(messageStream), false, nameof(ImfEntityWriter)), blockSize, lineFeedIsLineBreak, boundaryGenerator,
+                bufferPool)
         {
         }
 
@@ -150,7 +159,13 @@ namespace DataStandardizer.File.InternetMessage
         /// Creates a writer on an output, which an <see cref="ImfWriter"/> shares, and which owns the operation that <see cref="WriteEntities"/> runs in.  The options come first, so
         /// that bad options are found before a file is opened.
         /// </summary>
-        internal ImfEntityWriter(ImfOptions options, ImfOutput output, int blockSize, bool lineFeedIsLineBreak, Func<string> boundaryGenerator)
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        internal ImfEntityWriter(ImfOptions options, ImfOutput output, int blockSize, bool lineFeedIsLineBreak, Func<string> boundaryGenerator,
+            ArrayPool<byte>? bufferPool = null)
+#else
+        internal ImfEntityWriter(ImfOptions options, ImfOutput output, int blockSize, bool lineFeedIsLineBreak, Func<string> boundaryGenerator,
+            ArrayPool<byte> bufferPool = null)
+#endif
         {
             if (blockSize < 1)
                 throw new ArgumentOutOfRangeException(nameof(blockSize));
@@ -158,6 +173,7 @@ namespace DataStandardizer.File.InternetMessage
             _options = options;
             _output = output;
             _blockSize = blockSize;
+            _bufferPool = bufferPool ?? ArrayPool<byte>.Shared;
             _lineFeedIsLineBreak = lineFeedIsLineBreak;
             _boundaryGenerator = boundaryGenerator;
         }
@@ -306,8 +322,8 @@ namespace DataStandardizer.File.InternetMessage
         internal void WriteEntities(ImfEntitySource message, IProgress<ImfWriteProgress> progress)
 #endif
         {
-            var readBlock = ArrayPool<byte>.Shared.Rent(_blockSize);
-            var encodedBlock = ArrayPool<byte>.Shared.Rent(EncodedBlockSize);
+            var readBlock = _bufferPool.Rent(_blockSize);
+            var encodedBlock = _bufferPool.Rent(EncodedBlockSize);
             try
             {
                 var plan = new ImfEntityWritePlan(message, _options, _lineFeedIsLineBreak, _boundaryGenerator);
@@ -347,8 +363,8 @@ namespace DataStandardizer.File.InternetMessage
             }
             finally
             {
-                ArrayPool<byte>.Shared.Return(encodedBlock);
-                ArrayPool<byte>.Shared.Return(readBlock);
+                _bufferPool.Return(encodedBlock);
+                _bufferPool.Return(readBlock);
             }
         }
 
@@ -463,8 +479,8 @@ namespace DataStandardizer.File.InternetMessage
 #endif
             CancellationToken cancellationToken)
         {
-            var readBlock = ArrayPool<byte>.Shared.Rent(_blockSize);
-            var encodedBlock = ArrayPool<byte>.Shared.Rent(EncodedBlockSize);
+            var readBlock = _bufferPool.Rent(_blockSize);
+            var encodedBlock = _bufferPool.Rent(EncodedBlockSize);
             var hasStartedOutput = false;
             try
             {
@@ -510,8 +526,8 @@ namespace DataStandardizer.File.InternetMessage
             }
             finally
             {
-                ArrayPool<byte>.Shared.Return(encodedBlock);
-                ArrayPool<byte>.Shared.Return(readBlock);
+                _bufferPool.Return(encodedBlock);
+                _bufferPool.Return(readBlock);
             }
         }
 
@@ -675,7 +691,8 @@ namespace DataStandardizer.File.InternetMessage
 
         private OperationStatus EncodeBlock(ImfBodyEncoder encoder, ReadOnlySpan<byte> source, byte[] encodedBlock, bool isFinalBlock, out int consumed, out int length)
         {
-            var status = encoder.Encode(source, encodedBlock, out consumed, out length, isFinalBlock);
+            // A rented array may be longer than the block, so the encoder is given only the block, and its output is written one block at a time.
+            var status = encoder.Encode(source, new Span<byte>(encodedBlock, 0, EncodedBlockSize), out consumed, out length, isFinalBlock);
             if (_lineFeedIsLineBreak)
             {
                 length = RemoveCarriageReturns(encodedBlock, length);

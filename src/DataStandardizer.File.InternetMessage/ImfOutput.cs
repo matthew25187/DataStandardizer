@@ -152,7 +152,8 @@ namespace DataStandardizer.File.InternetMessage
                 {
                     for (var remaining = bytes; !remaining.IsEmpty;)
                     {
-                        var count = Math.Min(remaining.Length, block.Length);
+                        // A rented array may be longer than asked for, so each write is bounded by the block, not by the array.
+                        var count = Math.Min(remaining.Length, CopyBlockSize);
                         remaining.Slice(0, count).CopyTo(block);
                         _stream.Write(block, 0, count);
                         remaining = remaining.Slice(count);
@@ -287,7 +288,8 @@ namespace DataStandardizer.File.InternetMessage
             {
                 for (var remaining = bytes; !remaining.IsEmpty;)
                 {
-                    var count = Math.Min(remaining.Length, block.Length);
+                    // A rented array may be longer than asked for, so each write is bounded by the block, not by the array.
+                    var count = Math.Min(remaining.Length, CopyBlockSize);
                     remaining.Slice(0, count).CopyTo(block);
                     await _stream.WriteAsync(block, 0, count, cancellationToken).ConfigureAwait(false);
                     remaining = remaining.Slice(count);
