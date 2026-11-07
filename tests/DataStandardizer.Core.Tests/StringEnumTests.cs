@@ -69,7 +69,7 @@ namespace DataStandardizer.Core.Tests
         private const string NonPublicNestedFieldName = "Default";
 
         // Exception message thrown for DuplicateNameEnum.
-        private const string RepeatedMemberNameMessage = "*+DuplicateNameEnum has more than one member named Red.";
+        private const string RepeatedMemberNameMessage = "The string enumeration DataStandardizer.Core.Tests.StringEnumTests+DuplicateNameEnum has more than one member named Red.";
 
         [Fact]
         public void GetNameNonGeneric_WithNullEnumType_ThrowsArgumentNullException()
@@ -1041,6 +1041,36 @@ namespace DataStandardizer.Core.Tests
             testResult.Should().Be(DeeplyNestedEnum.Outer.Inner.C);
         }
 
+        [Fact]
+        public void GetNamesGeneric_WithFieldInGenericNestedClass_OmitsGenericClassField()
+        {
+            // arrange
+            var expectedResult = new[] { nameof(GenericNestedClassEnum.A) };
+
+            // act
+            var testResult = StringEnum.GetNames<GenericNestedClassEnum>();
+
+            // assert
+            testResult.Should().BeEquivalentTo(expectedResult);
+        }
+
+        [Fact]
+        public void GetNamesGeneric_AfterAnotherTypeFailsToCache_ReturnsNamesOfRequestedType()
+        {
+            // arrange
+            var expectedResult = new[] { nameof(SimpleEnum.One), nameof(SimpleEnum.Two), nameof(SimpleEnum.Three) };
+
+            // act
+            var firstResult = StringEnum.GetNames<SimpleEnum>();
+            var failure = Record.Exception(() => StringEnum.GetNames<HashThrowingEnum>());
+            var testResult = StringEnum.GetNames<SimpleEnum>();
+
+            // assert
+            firstResult.Should().BeEquivalentTo(expectedResult);
+            failure.Should().BeOfType<NotSupportedException>();
+            testResult.Should().BeEquivalentTo(expectedResult);
+        }
+
         [Theory]
         [MemberData(nameof(MembersOfEnumWithRepeatedMemberName))]
         public void Members_OfEnumWithRepeatedMemberName_ThrowInvalidOperationException(Action member)
@@ -1049,7 +1079,7 @@ namespace DataStandardizer.Core.Tests
             var testAction = member;
 
             // assert
-            testAction.Should().Throw<InvalidOperationException>().WithMessage(RepeatedMemberNameMessage);
+            testAction.Should().Throw<InvalidOperationException>().Which.Message.Should().Be(RepeatedMemberNameMessage);
         }
 
         #region Test Data
@@ -2146,6 +2176,95 @@ namespace DataStandardizer.Core.Tests
             public override bool Equals(object? obj) => obj is DuplicateNameEnum other && _value == other._value;
 
             public override int GetHashCode() => _value.GetHashCode();
+
+            public int CompareTo(object? obj) => _value.CompareTo(obj);
+
+            public TypeCode GetTypeCode() => _value.GetTypeCode();
+
+            bool IConvertible.ToBoolean(IFormatProvider? provider) => ((IConvertible)_value).ToBoolean(provider);
+            byte IConvertible.ToByte(IFormatProvider? provider) => ((IConvertible)_value).ToByte(provider);
+            char IConvertible.ToChar(IFormatProvider? provider) => ((IConvertible)_value).ToChar(provider);
+            DateTime IConvertible.ToDateTime(IFormatProvider? provider) => ((IConvertible)_value).ToDateTime(provider);
+            decimal IConvertible.ToDecimal(IFormatProvider? provider) => ((IConvertible)_value).ToDecimal(provider);
+            double IConvertible.ToDouble(IFormatProvider? provider) => ((IConvertible)_value).ToDouble(provider);
+            short IConvertible.ToInt16(IFormatProvider? provider) => ((IConvertible)_value).ToInt16(provider);
+            int IConvertible.ToInt32(IFormatProvider? provider) => ((IConvertible)_value).ToInt32(provider);
+            long IConvertible.ToInt64(IFormatProvider? provider) => ((IConvertible)_value).ToInt64(provider);
+            sbyte IConvertible.ToSByte(IFormatProvider? provider) => ((IConvertible)_value).ToSByte(provider);
+            float IConvertible.ToSingle(IFormatProvider? provider) => ((IConvertible)_value).ToSingle(provider);
+            string IConvertible.ToString(IFormatProvider? provider) => _value.ToString(provider);
+            object IConvertible.ToType(Type conversionType, IFormatProvider? provider) => ((IConvertible)_value).ToType(conversionType, provider);
+            ushort IConvertible.ToUInt16(IFormatProvider? provider) => ((IConvertible)_value).ToUInt16(provider);
+            uint IConvertible.ToUInt32(IFormatProvider? provider) => ((IConvertible)_value).ToUInt32(provider);
+            ulong IConvertible.ToUInt64(IFormatProvider? provider) => ((IConvertible)_value).ToUInt64(provider);
+        }
+
+        // A public nested generic class declares a field of the enumeration's type, which has no single value, so it isn't a member.
+        public readonly struct GenericNestedClassEnum : IStringEnum
+        {
+            private readonly string _value;
+
+            private GenericNestedClassEnum(string value)
+            {
+                _value = value;
+            }
+
+            public static explicit operator GenericNestedClassEnum(string value) => new GenericNestedClassEnum(value);
+
+            public static implicit operator string(GenericNestedClassEnum value) => value._value;
+
+            public static readonly GenericNestedClassEnum A = new GenericNestedClassEnum(AValue);
+
+            public static class Of<T>
+            {
+                public static readonly GenericNestedClassEnum B = new GenericNestedClassEnum(BValue);
+            }
+
+            public override bool Equals(object? obj) => obj is GenericNestedClassEnum other && _value == other._value;
+
+            public override int GetHashCode() => _value.GetHashCode();
+
+            public int CompareTo(object? obj) => _value.CompareTo(obj);
+
+            public TypeCode GetTypeCode() => _value.GetTypeCode();
+
+            bool IConvertible.ToBoolean(IFormatProvider? provider) => ((IConvertible)_value).ToBoolean(provider);
+            byte IConvertible.ToByte(IFormatProvider? provider) => ((IConvertible)_value).ToByte(provider);
+            char IConvertible.ToChar(IFormatProvider? provider) => ((IConvertible)_value).ToChar(provider);
+            DateTime IConvertible.ToDateTime(IFormatProvider? provider) => ((IConvertible)_value).ToDateTime(provider);
+            decimal IConvertible.ToDecimal(IFormatProvider? provider) => ((IConvertible)_value).ToDecimal(provider);
+            double IConvertible.ToDouble(IFormatProvider? provider) => ((IConvertible)_value).ToDouble(provider);
+            short IConvertible.ToInt16(IFormatProvider? provider) => ((IConvertible)_value).ToInt16(provider);
+            int IConvertible.ToInt32(IFormatProvider? provider) => ((IConvertible)_value).ToInt32(provider);
+            long IConvertible.ToInt64(IFormatProvider? provider) => ((IConvertible)_value).ToInt64(provider);
+            sbyte IConvertible.ToSByte(IFormatProvider? provider) => ((IConvertible)_value).ToSByte(provider);
+            float IConvertible.ToSingle(IFormatProvider? provider) => ((IConvertible)_value).ToSingle(provider);
+            string IConvertible.ToString(IFormatProvider? provider) => _value.ToString(provider);
+            object IConvertible.ToType(Type conversionType, IFormatProvider? provider) => ((IConvertible)_value).ToType(conversionType, provider);
+            ushort IConvertible.ToUInt16(IFormatProvider? provider) => ((IConvertible)_value).ToUInt16(provider);
+            uint IConvertible.ToUInt32(IFormatProvider? provider) => ((IConvertible)_value).ToUInt32(provider);
+            ulong IConvertible.ToUInt64(IFormatProvider? provider) => ((IConvertible)_value).ToUInt64(provider);
+        }
+
+        // Its members can't be hashed, so StringEnum fails while it caches them.
+        public readonly struct HashThrowingEnum : IStringEnum
+        {
+            private readonly string _value;
+
+            private HashThrowingEnum(string value)
+            {
+                _value = value;
+            }
+
+            public static explicit operator HashThrowingEnum(string value) => new HashThrowingEnum(value);
+
+            public static implicit operator string(HashThrowingEnum value) => value._value;
+
+            public static readonly HashThrowingEnum A = new HashThrowingEnum(AValue);
+
+            public override bool Equals(object? obj) => obj is HashThrowingEnum other && _value == other._value;
+
+            public override int GetHashCode() => throw new NotSupportedException();
 
             public int CompareTo(object? obj) => _value.CompareTo(obj);
 

@@ -16,8 +16,8 @@ namespace DataStandardizer.Core
     /// <remarks>
     /// <para>
     /// The members of a string enumeration are its public static fields of its own type. They may be declared on the enumeration's struct, or on a public nested class at any
-    /// depth, where every class between the field and the struct is public. Instance fields, non-public fields, and fields of compiler-generated types, such as the closure classes
-    /// of lambdas, aren't members. A member is named by its field name alone, without the names of the classes that enclose it, so no two members may share a name. If two do,
+    /// depth, where every class between the field and the struct is public. Instance fields, non-public fields, fields of generic nested classes, which have no single value, and fields of
+    /// compiler-generated types, such as the closure classes of lambdas, aren't members. A member is named by its field name alone, without the names of the classes that enclose it, so no two members may share a name. If two do,
     /// every method that reads the members, including <c>TryParse</c>, throws an <see cref="InvalidOperationException"/>.
     /// </para>
     /// <para>
@@ -767,7 +767,7 @@ namespace DataStandardizer.Core
             memberFields.AddRange(declaringType.DeclaredFields.Where(field => field.IsPublic && field.IsStatic && field.FieldType == enumType));
 
             var nestedTypes = declaringType.DeclaredNestedTypes
-                .Where(nestedType => nestedType.IsClass && nestedType.IsNestedPublic && !nestedType.IsDefined(typeof(CompilerGeneratedAttribute), false));
+                .Where(nestedType => nestedType.IsClass && nestedType.IsNestedPublic && !nestedType.ContainsGenericParameters && !nestedType.IsDefined(typeof(CompilerGeneratedAttribute), false));
             foreach (var nestedType in nestedTypes)
             {
                 AddMemberFields(nestedType, enumType, memberFields);
@@ -795,8 +795,10 @@ namespace DataStandardizer.Core
                 members.Add(new KeyValuePair<string, object>(field.Name, fieldValue));
             }
 
+            // Build everything before publishing any of it, so that a failure leaves the cache as it was.
+            var fieldsByValue = members.ToLookup(member => member.Value, member => member.Key);
             _cacheFieldsByName = fieldsByName;
-            _cacheFieldsByValue = members.ToLookup(member => member.Value, member => member.Key);
+            _cacheFieldsByValue = fieldsByValue;
             _cacheFieldsType = type;
         }
 
