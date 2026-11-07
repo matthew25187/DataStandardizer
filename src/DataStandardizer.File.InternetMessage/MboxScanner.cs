@@ -77,7 +77,10 @@ namespace DataStandardizer.File.InternetMessage
             internal const string TooManyMessagesTemplate = "The file has more than the maximum of {0} messages.";
         }
 
-        private const int BlockSize = 16 * 1024;
+        /// <summary>
+        /// The length of the block.  The rented array may be longer, but the scanner never uses more than this of it.
+        /// </summary>
+        internal const int BlockSize = 16 * 1024;
 
         // ref. RFC 5322 §2.1.1.  The two octets are the line break.
         private const int MaxLineWindow = 998 + 2;
@@ -113,6 +116,7 @@ namespace DataStandardizer.File.InternetMessage
         // What has been decided on and not yet passed on: at most the held line break and the line break of an empty line.
         private readonly byte[] _queue = new byte[MaxHeldBytes];
 
+        private readonly ArrayPool<byte> _pool;
         private byte[] _buffer;
         private bool _checksContent;
         private byte _previousOctet;
@@ -158,6 +162,14 @@ namespace DataStandardizer.File.InternetMessage
         private bool _skippingLine;
 
         internal MboxScanner(MboxVariant variant, ImfOptions options)
+            : this(variant, options, ArrayPool<byte>.Shared)
+        {
+        }
+
+        /// <summary>
+        /// Creates a scanner that rents its block from the given pool.  This is a seam for tests, which give a pool that hands back longer arrays than asked for.
+        /// </summary>
+        internal MboxScanner(MboxVariant variant, ImfOptions options, ArrayPool<byte> pool)
         {
             _variant = variant;
             _usesContentLength = variant == MboxVariant.Mboxcl || variant == MboxVariant.Mboxcl2;
@@ -168,7 +180,8 @@ namespace DataStandardizer.File.InternetMessage
             _allowMissingBlankLine = options.AllowMissingMboxBlankLine;
             _allowMissingSeparator = options.AllowMissingMboxSeparator;
             _maxMessageCount = options.MaxMessageCount;
-            _buffer = ArrayPool<byte>.Shared.Rent(BlockSize);
+            _pool = pool;
+            _buffer = pool.Rent(BlockSize);
         }
 
         /// <summary>
@@ -242,7 +255,7 @@ namespace DataStandardizer.File.InternetMessage
             _position = 0;
             _bufferEnd = retained;
             offset = retained;
-            count = _buffer.Length - retained;
+            count = BlockSize - retained;
         }
 
         /// <summary>
@@ -266,7 +279,7 @@ namespace DataStandardizer.File.InternetMessage
         /// </summary>
         internal void ReturnBuffers()
         {
-            ArrayPool<byte>.Shared.Return(_buffer);
+            _pool.Return(_buffer);
             _buffer = new byte[0];
             _position = _bufferEnd = 0;
         }
