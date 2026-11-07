@@ -630,6 +630,162 @@ namespace DataStandardizer.File.iCal.Tests
 
         #endregion
 
+        #region Cancellation precedence
+
+        private const string SourceFailureMessage = "*failure reading*";
+
+        // Each asynchronous read.
+        private static readonly (string Name, Func<IcalContentLineReader, CancellationToken, Task> Run)[] AsyncReads =
+        {
+            ("ReadLineAsync", (reader, token) => reader.ReadLineAsync(token).AsTask()),
+            ("ReadContentLineAsync", (reader, token) => reader.ReadContentLineAsync(token).AsTask()),
+            ("ReadLinesAsync", (reader, token) => AsyncEnumerables.ToListAsync(reader.ReadLinesAsync(token))),
+        };
+
+        // Each way the text reader can report a failure.
+        private static readonly FailureTiming[] FailureTimings =
+        {
+            FailureTiming.FromCall, FailureTiming.AsFaultedTask, FailureTiming.AsCanceledTask, FailureTiming.AfterYielding
+        };
+
+        // Each read that returns a task, with each way the text reader can report a failure, each OperationCanceledException it can fail with
+        // while the caller's token isn't canceled, and the exception the task then faults with.  A canceled task carries no exception of its own,
+        // so awaiting it gives a TaskCanceledException, whatever exception the text reader was given.  ReadLinesAsync is left out: an async
+        // iterator reports any OperationCanceledException as a cancellation of its MoveNextAsync.
+        public static TheoryData<string, Func<IcalContentLineReader, CancellationToken, Task>, FailureTiming, Func<Exception>, Type> ReadsWithSourceCancellationFaults()
+        {
+            var exceptions = new (string, Func<Exception>)[]
+            {
+                ("no token", () => new OperationCanceledException()),
+                ("another, canceled token", () => new OperationCanceledException(new CancellationToken(true))),
+            };
+            var data = new TheoryData<string, Func<IcalContentLineReader, CancellationToken, Task>, FailureTiming, Func<Exception>, Type>();
+            foreach (var (name, run) in AsyncReads.Take(2))
+            {
+                foreach (var timing in FailureTimings)
+                {
+                    foreach (var (exceptionName, createException) in exceptions)
+                    {
+                        var expectedType = timing == FailureTiming.AsCanceledTask ? typeof(TaskCanceledException) : typeof(OperationCanceledException);
+                        data.Add(name + ", " + timing + ", " + exceptionName, run, timing, createException, expectedType);
+                    }
+                }
+            }
+
+            return data;
+        }
+
+        // Each asynchronous read, with each way the text reader can report a failure.
+        public static TheoryData<string, Func<IcalContentLineReader, CancellationToken, Task>, FailureTiming> ReadsWithSourceFailures()
+        {
+            var data = new TheoryData<string, Func<IcalContentLineReader, CancellationToken, Task>, FailureTiming>();
+            foreach (var (name, run) in AsyncReads)
+            {
+                foreach (var timing in FailureTimings)
+                {
+                    data.Add(name + ", " + timing, run, timing);
+                }
+            }
+
+            return data;
+        }
+
+        // Each read that returns a task, with each way the text reader can report a failure.
+        public static TheoryData<string, Func<IcalContentLineReader, CancellationToken, Task>, FailureTiming> TaskReadsWithSourceFailures()
+        {
+            var data = new TheoryData<string, Func<IcalContentLineReader, CancellationToken, Task>, FailureTiming>();
+            foreach (var (name, run) in AsyncReads.Take(2))
+            {
+                foreach (var timing in FailureTimings)
+                {
+                    data.Add(name + ", " + timing, run, timing);
+                }
+            }
+
+            return data;
+        }
+
+        [Theory]
+        [MemberData(nameof(ReadsWithSourceCancellationFaults), DisableDiscoveryEnumeration = true)]
+        public async Task AsyncRead_TextReaderFailsWithOperationCanceledWhileTokenIsNotCanceled_FaultsTask(string scenario,
+            Func<IcalContentLineReader, CancellationToken, Task> run, FailureTiming timing, Func<Exception> createException, Type expectedExceptionType)
+        {
+            // arrange
+            _ = scenario;
+            var reader = new IcalContentLineReader(new FailingTextReader(createException, timing));
+
+            // act: wait for the read to finish without throwing, so that its status can be checked.
+            var task = run(reader, CancellationToken.None);
+            await Task.WhenAny(task);
+
+            // assert
+            task.IsFaulted.Should().BeTrue();
+            task.Exception.InnerException.Should().BeOfType(expectedExceptionType);
+        }
+
+        [Theory]
+        [MemberData(nameof(ReadsWithSourceFailures), DisableDiscoveryEnumeration = true)]
+        public async Task ReadLine_AfterOperationCanceledWhileTokenIsNotCanceled_ThrowsInvalidOperationForTheSource(string scenario,
+            Func<IcalContentLineReader, CancellationToken, Task> run, FailureTiming timing)
+        {
+            // arrange
+            _ = scenario;
+            var reader = new IcalContentLineReader(new FailingTextReader(() => new OperationCanceledException(), timing));
+            await Record.ExceptionAsync(() => run(reader, CancellationToken.None));
+
+            // act
+            Action testAction = () => reader.ReadLine();
+
+            // assert
+            testAction.Should().Throw<InvalidOperationException>().WithMessage(SourceFailureMessage);
+        }
+
+        [Theory]
+        [MemberData(nameof(TaskReadsWithSourceFailures), DisableDiscoveryEnumeration = true)]
+        public async Task AsyncRead_TokenCanceledAndTextReaderFailsWithCancellationOfAnotherToken_CancelsTask(string scenario,
+            Func<IcalContentLineReader, CancellationToken, Task> run, FailureTiming timing)
+        {
+            // arrange
+            _ = scenario;
+            var source = new FailingTextReader(() => new OperationCanceledException(new CancellationToken(true)), timing);
+            var reader = new IcalContentLineReader(source);
+            using (var cancellationTokenSource = new CancellationTokenSource())
+            {
+                source.OnFailure = cancellationTokenSource.Cancel;
+
+                // act: wait for the read to finish without throwing, so that its status can be checked.
+                var task = run(reader, cancellationTokenSource.Token);
+                await Task.WhenAny(task);
+
+                // assert
+                task.IsCanceled.Should().BeTrue();
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(ReadsWithSourceFailures), DisableDiscoveryEnumeration = true)]
+        public async Task ReadLine_AfterTokenCanceledAndTextReaderFailsWithCancellationOfNoToken_ThrowsInvalidOperationForTheCancellation(string scenario,
+            Func<IcalContentLineReader, CancellationToken, Task> run, FailureTiming timing)
+        {
+            // arrange
+            _ = scenario;
+            var source = new FailingTextReader(() => new OperationCanceledException(), timing);
+            var reader = new IcalContentLineReader(source);
+            using (var cancellationTokenSource = new CancellationTokenSource())
+            {
+                source.OnFailure = cancellationTokenSource.Cancel;
+                await Record.ExceptionAsync(() => run(reader, cancellationTokenSource.Token));
+
+                // act
+                Action testAction = () => reader.ReadLine();
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>().WithMessage(CanceledMessage);
+            }
+        }
+
+        #endregion
+
         private static IcalContentLineReader CreateAsyncOnlyReader(string text, int bufferSize = 16 * 1024)
         {
             return new IcalContentLineReader(new AsyncOnlyTextReader(text, CharactersPerRead), new IcalOptions(), bufferSize);
