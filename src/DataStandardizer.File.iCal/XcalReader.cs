@@ -159,6 +159,12 @@ namespace DataStandardizer.File.iCal
         /// Reading starts at the XML reader's current node, or at its first node if it has not started, and stops at the end of the
         /// <c>icalendar</c> element, leaving the XML reader on that element's end tag.  The XML reader's settings apply, such as whether it allows
         /// a DTD.
+        /// <para>
+        /// On .NET Framework, the XML reader's own <see cref="XmlReader.ReadAsync"/> overflows the stack, which ends the process, when the
+        /// stream or text reader it reads from fails a read with an <see cref="OperationCanceledException"/> without yielding: by throwing it,
+        /// or by returning a task that has already been canceled or faulted with one.  The asynchronous members can't prevent that for an XML
+        /// reader the caller creates, so give it a source that doesn't fail a read that way.  The other constructors guard against it.
+        /// </para>
         /// </remarks>
         /// <param name="reader">The XML reader.  It is left open when the reader is disposed.  For the asynchronous members, its
         /// <see cref="XmlReaderSettings.Async"/> setting must be <c>true</c>.</param>
@@ -174,6 +180,12 @@ namespace DataStandardizer.File.iCal
         /// Reading starts at the XML reader's current node, or at its first node if it has not started, and stops at the end of the
         /// <c>icalendar</c> element, leaving the XML reader on that element's end tag.  The XML reader's settings apply, such as whether it allows
         /// a DTD.
+        /// <para>
+        /// On .NET Framework, the XML reader's own <see cref="XmlReader.ReadAsync"/> overflows the stack, which ends the process, when the
+        /// stream or text reader it reads from fails a read with an <see cref="OperationCanceledException"/> without yielding: by throwing it,
+        /// or by returning a task that has already been canceled or faulted with one.  The asynchronous members can't prevent that for an XML
+        /// reader the caller creates, so give it a source that doesn't fail a read that way.  The other constructors guard against it.
+        /// </para>
         /// </remarks>
         /// <param name="reader">The XML reader.  It is left open when the reader is disposed.  For the asynchronous members, its
         /// <see cref="XmlReaderSettings.Async"/> setting must be <c>true</c>.</param>
@@ -486,9 +498,9 @@ namespace DataStandardizer.File.iCal
             catch (Exception exception)
             {
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-                return AsyncOutcome.Fail<IcalCalendar?>(exception, cancellationToken);
+                return AsyncOutcome.Fail<IcalCalendar?>(XmlSourceGuard.Unwrap(exception), cancellationToken);
 #else
-                return AsyncOutcome.Fail<IcalCalendar>(exception, cancellationToken);
+                return AsyncOutcome.Fail<IcalCalendar>(XmlSourceGuard.Unwrap(exception), cancellationToken);
 #endif
             }
             finally
@@ -749,11 +761,11 @@ namespace DataStandardizer.File.iCal
             if (!stream.CanRead)
                 throw new ArgumentException("Expected a stream supporting read.", "xcalStream");
 
-            if (options.Encoding is null) return XmlReader.Create(stream, CreateSettings(ownsStream));
+            if (options.Encoding is null) return XmlReader.Create(XmlSourceGuard.Guard(stream), CreateSettings(ownsStream));
 
             // The text reader decodes the data, so the encoding the document declares is not used.
             var textReader = new StreamReader(stream, options.Encoding, true, 4096, !ownsStream);
-            return XmlReader.Create(textReader, CreateSettings(true));
+            return XmlReader.Create(XmlSourceGuard.Guard(textReader), CreateSettings(true));
         }
 
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
@@ -786,7 +798,7 @@ namespace DataStandardizer.File.iCal
             if (options.Encoding != null)
                 throw new ArgumentException("Unable to apply an encoding to an existing reader.  Specify the encoding when creating the reader.", nameof(options));
 
-            return XmlReader.Create(reader, CreateSettings(false));
+            return XmlReader.Create(XmlSourceGuard.Guard(reader), CreateSettings(false));
         }
 
         private static XmlReader ValidateXmlReader(XmlReader reader, IcalOptions options)

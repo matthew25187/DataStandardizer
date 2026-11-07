@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -18,14 +19,6 @@ namespace DataStandardizer.File.vCard.Tests
             FailureTiming.FromCall, FailureTiming.AsFaultedTask, FailureTiming.AsCanceledTask, FailureTiming.AfterYielding
         };
 
-        // Each way the source of an XcardReader can report a failure.  On .NET Framework, XmlReader.ReadAsync overflows the stack when its
-        // source's read completes synchronously with an OperationCanceledException, or as a canceled task (#719), so only a failure after
-        // yielding is used there.
-#if NETFRAMEWORK
-        private static readonly FailureTiming[] XcardFailureTimings = { FailureTiming.AfterYielding };
-#else
-        private static readonly FailureTiming[] XcardFailureTimings = FailureTimings;
-#endif
 
         // Each card reader, created over a source that fails with the given exception, at the given time, after running the given callback.
         // Each gives the asynchronous read, which returns a task, for that reader.
@@ -41,9 +34,19 @@ namespace DataStandardizer.File.vCard.Tests
                 var reader = new JcardReader(new FailingReadStream(createException, timing) { OnFailure = onFailure });
                 return token => reader.ReadCardAsync(token).AsTask();
             }),
-            ("XcardReader", XcardFailureTimings, (createException, timing, onFailure) =>
+            ("XcardReader over a text reader", FailureTimings, (createException, timing, onFailure) =>
             {
                 var reader = new XcardReader(new FailingTextReader(createException, timing) { OnFailure = onFailure });
+                return token => reader.ReadCardAsync(token).AsTask();
+            }),
+            ("XcardReader over a stream", FailureTimings, (createException, timing, onFailure) =>
+            {
+                var reader = new XcardReader(new FailingReadStream(createException, timing) { OnFailure = onFailure });
+                return token => reader.ReadCardAsync(token).AsTask();
+            }),
+            ("XcardReader over a stream, with an encoding", FailureTimings, (createException, timing, onFailure) =>
+            {
+                var reader = new XcardReader(new FailingReadStream(createException, timing) { OnFailure = onFailure }, new VcardOptions { Encoding = Encoding.UTF8 });
                 return token => reader.ReadCardAsync(token).AsTask();
             }),
         };
@@ -61,9 +64,19 @@ namespace DataStandardizer.File.vCard.Tests
                 var reader = new JcardReader(new FailingReadStream(createException, timing) { OnFailure = onFailure });
                 return token => reader.ReadCardsAsync(token).GetAsyncEnumerator().MoveNextAsync().AsTask();
             }),
-            ("XcardReader", XcardFailureTimings, (createException, timing, onFailure) =>
+            ("XcardReader over a text reader", FailureTimings, (createException, timing, onFailure) =>
             {
                 var reader = new XcardReader(new FailingTextReader(createException, timing) { OnFailure = onFailure });
+                return token => reader.ReadCardsAsync(token).GetAsyncEnumerator().MoveNextAsync().AsTask();
+            }),
+            ("XcardReader over a stream", FailureTimings, (createException, timing, onFailure) =>
+            {
+                var reader = new XcardReader(new FailingReadStream(createException, timing) { OnFailure = onFailure });
+                return token => reader.ReadCardsAsync(token).GetAsyncEnumerator().MoveNextAsync().AsTask();
+            }),
+            ("XcardReader over a stream, with an encoding", FailureTimings, (createException, timing, onFailure) =>
+            {
+                var reader = new XcardReader(new FailingReadStream(createException, timing) { OnFailure = onFailure }, new VcardOptions { Encoding = Encoding.UTF8 });
                 return token => reader.ReadCardsAsync(token).GetAsyncEnumerator().MoveNextAsync().AsTask();
             }),
         };
