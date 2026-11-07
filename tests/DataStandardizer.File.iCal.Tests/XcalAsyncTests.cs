@@ -24,6 +24,7 @@ namespace DataStandardizer.File.iCal.Tests
 
         private const string AsyncMessage = "*Async*";
         private const string CanceledMessage = "*canceled*";
+        private const string WriteFailedMessage = "*write failed*";
 
         // A document whose SUMMARY has a second value, with the line and position of that value.
         private const long SecondValueLineNumber = 1;
@@ -507,6 +508,58 @@ namespace DataStandardizer.File.iCal.Tests
                     // assert
                     testAction.Should().Throw<InvalidOperationException>().WithMessage(CanceledMessage);
                 }
+            });
+        }
+
+        [Fact]
+        public async Task WriteCalendarAsync_WriteToTheXmlWriterFails_FaultsTaskWithTheException()
+        {
+            // arrange
+            var calendar = ReadCalendar(Example1Ical);
+            var writer = new XcalWriter(new FailOnceXmlWriter());
+            await AsyncDisposal.UsingAsync(writer, async () =>
+            {
+                // act
+                Func<Task> testAction = () => writer.WriteCalendarAsync(calendar).AsTask();
+
+                // assert
+                await testAction.Should().ThrowAsync<IOException>();
+            });
+        }
+
+        [Fact]
+        public async Task WriteCalendarAsync_AfterAWriteToTheXmlWriterFailed_ThrowsInvalidOperation()
+        {
+            // arrange: the XML writer fails part way through the calendar, and could still be written to.
+            var calendar = ReadCalendar(Example1Ical);
+            var writer = new XcalWriter(new FailOnceXmlWriter());
+            await AsyncDisposal.UsingAsync(writer, async () =>
+            {
+                await Record.ExceptionAsync(() => writer.WriteCalendarAsync(calendar).AsTask());
+
+                // act
+                Action testAction = () => writer.WriteCalendarAsync(calendar);
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>().WithMessage(WriteFailedMessage);
+            });
+        }
+
+        [Fact]
+        public async Task WriteCalendarAsync_AfterAFlushOfTheXmlWriterFailed_ThrowsInvalidOperation()
+        {
+            // arrange: the XML writer fails the flush, and could still be written to.
+            var calendar = ReadCalendar(Example1Ical);
+            var writer = new XcalWriter(new FailOnceXmlWriter());
+            await AsyncDisposal.UsingAsync(writer, async () =>
+            {
+                await Record.ExceptionAsync(() => writer.FlushAsync());
+
+                // act
+                Action testAction = () => writer.WriteCalendarAsync(calendar);
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>().WithMessage(WriteFailedMessage);
             });
         }
 

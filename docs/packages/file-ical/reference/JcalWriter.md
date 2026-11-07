@@ -82,6 +82,12 @@ a name isn't a valid iCalendar name, a property has two parameters of the same n
 error the writer can go on to the next calendar, and a calendar already held is
 kept.
 
+A write to the stream that fails, or a flush of it, leaves what reached it unknown,
+so the writer can't continue: later calls throw `InvalidOperationException`, and
+disposal writes nothing more to the stream. The failed call throws the stream's
+exception, or its task faults with it, except that an `OperationCanceledException`
+cancels the task when the caller's token is canceled.
+
 **Allocation.** Each calendar is encoded in full with `Utf8JsonWriter` into pooled
 blocks of bytes before any of it is written to the stream.
 
@@ -105,8 +111,8 @@ calendar is written, so a canceled write never leaves part of a calendar. An asy
 That leaves the writer unable to continue, and later calls throw
 `InvalidOperationException`. An `OperationCanceledException` while that token isn't
 canceled, whether from the stream, the calendars being enumerated or the
-progress callback, is handled as an I/O error: the task faults with it, and the
-writer can continue.
+progress callback, is handled as an I/O error: the task faults with it. The writer
+can then continue, unless it came from a write to the stream or a flush of it.
 If the document is ended at the end of an operation, because the writer was disposed
 during it, or by `DisposeAsync`, and that throws, the task faults with the exception,
 an `OperationCanceledException` included.
@@ -141,15 +147,15 @@ calendar it was reporting has been written.
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `Flush()` | `void` | Flushes the stream. A first calendar that is still held isn't written. Throws `ObjectDisposedException` after disposal, or `InvalidOperationException` if another operation is in progress or an earlier one was canceled. |
-| `WriteCalendar(IcalCalendar calendar)` | `void` | Writes a calendar, or holds it if it is the first. Throws `ArgumentNullException` if `calendar` is `null`; `IcalFileException` if the calendar breaks a rule the options don't accept or can't be written in jCal, in which case nothing has been written; `ObjectDisposedException` after disposal; or `InvalidOperationException` if another operation is in progress or an earlier one was canceled. |
+| `Flush()` | `void` | Flushes the stream. A first calendar that is still held isn't written. Throws `ObjectDisposedException` after disposal, or `InvalidOperationException` if another operation is in progress, an earlier one was canceled, or a write to the stream or a flush of it failed. |
+| `WriteCalendar(IcalCalendar calendar)` | `void` | Writes a calendar, or holds it if it is the first. Throws `ArgumentNullException` if `calendar` is `null`; `IcalFileException` if the calendar breaks a rule the options don't accept or can't be written in jCal, in which case nothing has been written; `ObjectDisposedException` after disposal; or `InvalidOperationException` if another operation is in progress, an earlier one was canceled, or a write to the stream or a flush of it failed. |
 | `WriteCalendars(IEnumerable<IcalCalendar> calendars, IProgress<IcalWriteProgress>? progress = null)` | `void` | Writes each calendar in turn. Throws `ArgumentNullException` if `calendars` is `null`, or `ArgumentException` if it contains `null`. Throws `IcalFileException` as `WriteCalendar` does; the calendars before the one at fault have been written. Throws `ObjectDisposedException` if the writer is disposed before or during the call, or `InvalidOperationException` as `WriteCalendar` does. |
 
 ### Asynchronous writing
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `FlushAsync(CancellationToken cancellationToken = default)` | `Task` | Flushes the stream asynchronously. A first calendar that is still held isn't written. This call throws `ObjectDisposedException` after disposal, and `InvalidOperationException` if another operation is in progress or an earlier one was canceled. The task throws `OperationCanceledException` if canceled. |
+| `FlushAsync(CancellationToken cancellationToken = default)` | `Task` | Flushes the stream asynchronously. A first calendar that is still held isn't written. This call throws `ObjectDisposedException` after disposal, and `InvalidOperationException` if another operation is in progress, an earlier one was canceled, or a write to the stream or a flush of it failed. The task throws `OperationCanceledException` if canceled. |
 | `WriteCalendarAsync(IcalCalendar calendar, CancellationToken cancellationToken = default)` | `ValueTask` | Writes a calendar, or holds it if it is the first. This call throws `ArgumentNullException` if `calendar` is `null`, and `ObjectDisposedException` or `InvalidOperationException` as `FlushAsync` does. The task throws `IcalFileException` as `WriteCalendar` does, `OperationCanceledException` if canceled, or `ObjectDisposedException` if the writer is disposed during the write. |
 | `WriteCalendarsAsync(IEnumerable<IcalCalendar> calendars, IProgress<IcalWriteProgress>? progress = null, CancellationToken cancellationToken = default)` | `Task` | Writes each calendar in turn. This call throws `ArgumentNullException` if `calendars` is `null`, and `ObjectDisposedException` or `InvalidOperationException` as `FlushAsync` does. The task throws `ArgumentException` if `calendars` contains `null`, `IcalFileException` as `WriteCalendars` does, or `OperationCanceledException` if canceled. |
 | `WriteCalendarsAsync(IAsyncEnumerable<IcalCalendar> calendars, IProgress<IcalWriteProgress>? progress = null, CancellationToken cancellationToken = default)` | `Task` | As the `IEnumerable` overload. `cancellationToken` is also passed to the calendars' enumerator. |

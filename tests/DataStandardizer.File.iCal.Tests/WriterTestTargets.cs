@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml;
 
 namespace DataStandardizer.File.iCal.Tests
 {
@@ -601,6 +602,126 @@ namespace DataStandardizer.File.iCal.Tests
         {
             IsDisposed = true;
             base.Dispose(disposing);
+        }
+    }
+
+    /// <summary>
+    /// An XML writer, as a caller might supply one, whose first call of <see cref="WriteString"/>, <see cref="WriteStringAsync"/>,
+    /// <see cref="Flush"/> or <see cref="FlushAsync"/>, whichever comes first, fails with <see cref="IOException"/> and does nothing, and
+    /// which can still be written to afterwards, unlike an XML writer that
+    /// <see cref="XmlWriter.Create(TextWriter, XmlWriterSettings)"/> creates.  Every other member is passed to an XML writer of a fragment,
+    /// which allows asynchronous writes.
+    /// </summary>
+    internal sealed class FailOnceXmlWriter : XmlWriter
+    {
+        private readonly XmlWriter _inner;
+        private readonly StringBuilder _text = new StringBuilder();
+        private bool _hasFailed;
+
+        public FailOnceXmlWriter()
+        {
+            _inner = Create(_text, new XmlWriterSettings { Async = true, ConformanceLevel = ConformanceLevel.Fragment, OmitXmlDeclaration = true });
+        }
+
+        public override XmlWriterSettings Settings => _inner.Settings;
+
+        public override WriteState WriteState => _inner.WriteState;
+
+        /// <summary>
+        /// Flushes the inner XML writer, and returns what it has written.
+        /// </summary>
+        public override string ToString()
+        {
+            _inner.Flush();
+            return _text.ToString();
+        }
+
+        public override void Flush()
+        {
+            FailTheFirstTime();
+            _inner.Flush();
+        }
+
+        public override Task FlushAsync()
+        {
+            FailTheFirstTime();
+            return _inner.FlushAsync();
+        }
+
+        public override string LookupPrefix(string ns) => _inner.LookupPrefix(ns);
+
+        public override void WriteBase64(byte[] buffer, int index, int count) => _inner.WriteBase64(buffer, index, count);
+
+        public override void WriteCData(string text) => _inner.WriteCData(text);
+
+        public override void WriteCharEntity(char ch) => _inner.WriteCharEntity(ch);
+
+        public override void WriteChars(char[] buffer, int index, int count) => _inner.WriteChars(buffer, index, count);
+
+        public override void WriteComment(string text) => _inner.WriteComment(text);
+
+        public override void WriteDocType(string name, string pubid, string sysid, string subset) => _inner.WriteDocType(name, pubid, sysid, subset);
+
+        public override void WriteEndAttribute() => _inner.WriteEndAttribute();
+
+        public override void WriteEndDocument() => _inner.WriteEndDocument();
+
+        public override void WriteEndElement() => _inner.WriteEndElement();
+
+        public override Task WriteEndElementAsync() => _inner.WriteEndElementAsync();
+
+        public override void WriteEntityRef(string name) => _inner.WriteEntityRef(name);
+
+        public override void WriteFullEndElement() => _inner.WriteFullEndElement();
+
+        public override void WriteProcessingInstruction(string name, string text) => _inner.WriteProcessingInstruction(name, text);
+
+        public override void WriteRaw(char[] buffer, int index, int count) => _inner.WriteRaw(buffer, index, count);
+
+        public override void WriteRaw(string data) => _inner.WriteRaw(data);
+
+        public override void WriteStartAttribute(string prefix, string localName, string ns) => _inner.WriteStartAttribute(prefix, localName, ns);
+
+        public override void WriteStartDocument() => _inner.WriteStartDocument();
+
+        public override void WriteStartDocument(bool standalone) => _inner.WriteStartDocument(standalone);
+
+        public override void WriteStartElement(string prefix, string localName, string ns) => _inner.WriteStartElement(prefix, localName, ns);
+
+        public override Task WriteStartElementAsync(string prefix, string localName, string ns) => _inner.WriteStartElementAsync(prefix, localName, ns);
+
+        public override void WriteString(string text)
+        {
+            FailTheFirstTime();
+            _inner.WriteString(text);
+        }
+
+        public override Task WriteStringAsync(string text)
+        {
+            FailTheFirstTime();
+            return _inner.WriteStringAsync(text);
+        }
+
+        public override void WriteSurrogateCharEntity(char lowChar, char highChar) => _inner.WriteSurrogateCharEntity(lowChar, highChar);
+
+        public override void WriteWhitespace(string ws) => _inner.WriteWhitespace(ws);
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _inner.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
+
+        private void FailTheFirstTime()
+        {
+            if (_hasFailed) return;
+
+            _hasFailed = true;
+            throw new IOException("The test XML writer fails its first write of text or flush.");
         }
     }
 

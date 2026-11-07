@@ -27,6 +27,11 @@ namespace DataStandardizer.File.iCal.Tests
         private const long Example2LineCount = 40;
         private const long Example2AndExample1LineCount = 51;
 
+        private const string WriteFailedMessage = "*write to the stream or a flush of it failed*";
+
+        // The start of the array of calendars, ref. RFC 7265 §3.2.
+        private static readonly byte[] ArrayStartOnly = { (byte)'[' };
+
         private static readonly IcalOptions MissingRequiredProperties = new IcalOptions { AllowMissingRequiredProperties = true };
 
         public static TheoryData<Func<JcalWriter, object>> DisposedWriterMembers()
@@ -418,6 +423,72 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         [Fact]
+        public void Dispose_AfterARefusedCalendarThenAnother_WritesTheOther()
+        {
+            // arrange: a calendar refused before any of it is written leaves the writer able to continue.
+            var expected = JsonNode.Parse(Example1Jcal);
+            var stream = new MemoryStream();
+            var writer = new JcalWriter(stream);
+            Record.Exception(() => writer.WriteCalendar(CreateCalendarWithBadPropertyName()));
+            writer.WriteCalendar(ReadCalendar(Example1Ical));
+
+            // act
+            writer.Dispose();
+
+            // assert: the same JSON, ignoring formatting.
+            JsonNode.DeepEquals(JsonNode.Parse(stream.ToArray()), expected).Should().BeTrue();
+        }
+
+        [Fact]
+        public void WriteCalendar_AfterAWriteToTheStreamFailed_ThrowsInvalidOperation()
+        {
+            // arrange: the first calendar is held, and the second writes the start of the array, then fails to write the first.
+            var calendar = ReadCalendar(Example1Ical);
+            var writer = new JcalWriter(new SecondWriteFailingStream());
+            writer.WriteCalendar(calendar);
+            Record.Exception(() => writer.WriteCalendar(calendar));
+
+            // act
+            Action testAction = () => writer.WriteCalendar(calendar);
+
+            // assert
+            testAction.Should().Throw<InvalidOperationException>().WithMessage(WriteFailedMessage);
+        }
+
+        [Fact]
+        public void WriteCalendar_AfterAFlushOfTheStreamFailed_ThrowsInvalidOperation()
+        {
+            // arrange
+            var calendar = ReadCalendar(Example1Ical);
+            var writer = new JcalWriter(new FlushFailingStream());
+            writer.WriteCalendar(calendar);
+            Record.Exception(() => writer.Flush());
+
+            // act
+            Action testAction = () => writer.WriteCalendar(calendar);
+
+            // assert
+            testAction.Should().Throw<InvalidOperationException>().WithMessage(WriteFailedMessage);
+        }
+
+        [Fact]
+        public void Dispose_AfterAWriteToTheStreamFailed_WritesNothingMore()
+        {
+            // arrange
+            var calendar = ReadCalendar(Example1Ical);
+            var stream = new SecondWriteFailingStream();
+            var writer = new JcalWriter(stream);
+            writer.WriteCalendar(calendar);
+            Record.Exception(() => writer.WriteCalendar(calendar));
+
+            // act
+            writer.Dispose();
+
+            // assert: only the start of the array, which was written before the failure.
+            stream.ToArray().Should().Equal(ArrayStartOnly);
+        }
+
+        [Fact]
         public void WriteCalendar_RepeatedParameter_Throws()
         {
             // arrange: RFC 5545 §3.8.8.2 lets a non-standard property repeat a parameter, which a key of a JSON object can't.
@@ -546,6 +617,34 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             testAction.Should().NotThrow();
+        }
+
+        /// <summary>
+        /// A stream whose second write fails with <see cref="IOException"/> and writes nothing; the others succeed.
+        /// </summary>
+        private sealed class SecondWriteFailingStream : MemoryStream
+        {
+            private int _writes;
+
+            public override void Write(byte[] buffer, int offset, int count)
+            {
+                _writes++;
+                if (_writes == 2)
+                    throw new IOException("The test stream fails its second write.");
+
+                base.Write(buffer, offset, count);
+            }
+        }
+
+        /// <summary>
+        /// A stream whose every flush fails with <see cref="IOException"/>; its writes succeed.
+        /// </summary>
+        private sealed class FlushFailingStream : MemoryStream
+        {
+            public override void Flush()
+            {
+                throw new IOException("The test stream fails every flush.");
+            }
         }
 
         private static IcalCalendar CreateCalendarWithBadPropertyName()

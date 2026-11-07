@@ -51,7 +51,9 @@ namespace DataStandardizer.File.iCal
     /// </para>
     /// <para>
     /// Only one operation may be in progress at a time.  Synchronous and asynchronous calls may follow one another, but a call made while another
-    /// is in progress throws <see cref="InvalidOperationException"/>.
+    /// is in progress throws <see cref="InvalidOperationException"/>.  A write to the XML writer that fails, or a flush of it, leaves what reached
+    /// it unknown, so later calls throw <see cref="InvalidOperationException"/>, and disposal ends no element of its own.  A calendar that is
+    /// refused before any of it is written, such as one that breaks a rule of RFC 5545, leaves the writer able to continue.
     /// </para>
     /// </remarks>
     public sealed class XcalWriter : IDisposable
@@ -69,6 +71,7 @@ namespace DataStandardizer.File.iCal
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
         private bool _isCanceled;
 #endif
+        private bool _isFaulted;
         private readonly bool _isInternalWriter;
         private bool _isRootStarted;
         private long _linesWritten;
@@ -278,7 +281,7 @@ namespace DataStandardizer.File.iCal
         /// <exception cref="ObjectDisposedException">The writer has been disposed.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, so the writer cannot continue.</exception>
+        /// An earlier asynchronous operation was canceled, or a write failed, so the writer cannot continue.</exception>
         public void Flush()
         {
             ThrowIfDisposed();
@@ -286,6 +289,11 @@ namespace DataStandardizer.File.iCal
             try
             {
                 _writer.Flush();
+            }
+            catch
+            {
+                _isFaulted = true;
+                throw;
             }
             finally
             {
@@ -306,7 +314,7 @@ namespace DataStandardizer.File.iCal
         /// xCal, and nothing has been written.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, so the writer cannot continue.</exception>
+        /// An earlier asynchronous operation was canceled, or a write failed, so the writer cannot continue.</exception>
         public void WriteCalendar(IcalCalendar calendar)
         {
             ThrowIfDisposed();
@@ -346,7 +354,7 @@ namespace DataStandardizer.File.iCal
         /// xCal.  The calendars before it have been written.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, so the writer cannot continue.</exception>
+        /// An earlier asynchronous operation was canceled, or a write failed, so the writer cannot continue.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public void WriteCalendars(IEnumerable<IcalCalendar> calendars, IProgress<IcalWriteProgress>? progress = null)
 #else
@@ -390,7 +398,7 @@ namespace DataStandardizer.File.iCal
         /// while the flush is in progress.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, so the writer cannot continue.
+        /// An earlier asynchronous operation was canceled, or a write failed, so the writer cannot continue.
         /// -or-
         /// The writer was created from an XML writer whose <see cref="XmlWriterSettings.Async"/> setting is <c>false</c>.</exception>
         /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled before the call, or the
@@ -417,7 +425,7 @@ namespace DataStandardizer.File.iCal
         /// <exception cref="ArgumentNullException"><paramref name="calendar"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, so the writer cannot continue.
+        /// An earlier asynchronous operation was canceled, or a write failed, so the writer cannot continue.
         /// -or-
         /// The writer was created from an XML writer whose <see cref="XmlWriterSettings.Async"/> setting is <c>false</c>.</exception>
         /// <exception cref="IcalFileException">By the task: the calendar breaks a rule of RFC 5545 that the options do not accept, or cannot be
@@ -456,7 +464,7 @@ namespace DataStandardizer.File.iCal
         /// <exception cref="ArgumentNullException"><paramref name="calendars"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, so the writer cannot continue.
+        /// An earlier asynchronous operation was canceled, or a write failed, so the writer cannot continue.
         /// -or-
         /// The writer was created from an XML writer whose <see cref="XmlWriterSettings.Async"/> setting is <c>false</c>.</exception>
         /// <exception cref="ArgumentException">By the task: <paramref name="calendars"/> contains <c>null</c>.  The calendars before it have
@@ -502,7 +510,7 @@ namespace DataStandardizer.File.iCal
         /// <exception cref="ArgumentNullException"><paramref name="calendars"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, so the writer cannot continue.
+        /// An earlier asynchronous operation was canceled, or a write failed, so the writer cannot continue.
         /// -or-
         /// The writer was created from an XML writer whose <see cref="XmlWriterSettings.Async"/> setting is <c>false</c>.</exception>
         /// <exception cref="ArgumentException">By the task: <paramref name="calendars"/> contains <c>null</c>.  The calendars before it have
@@ -536,7 +544,16 @@ namespace DataStandardizer.File.iCal
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                await _writer.FlushAsync().ConfigureAwait(false);
+                try
+                {
+                    await _writer.FlushAsync().ConfigureAwait(false);
+                }
+                catch
+                {
+                    _isFaulted = true;
+                    throw;
+                }
+
                 outcome = Task.CompletedTask;
             }
             catch (Exception exception)
@@ -645,19 +662,29 @@ namespace DataStandardizer.File.iCal
             cancellationToken.ThrowIfCancellationRequested();
             int componentCount, propertyCount;
             var element = PrepareCalendar(calendar, out componentCount, out propertyCount);
-            if (!_isRootStarted)
+            try
             {
-                if (_isInternalWriter)
+                if (!_isRootStarted)
                 {
-                    await _writer.WriteStartDocumentAsync().ConfigureAwait(false);
+                    if (_isInternalWriter)
+                    {
+                        await _writer.WriteStartDocumentAsync().ConfigureAwait(false);
+                    }
+
+                    await _writer.WriteStartElementAsync(null, XcalNames.ICalendar, XcalNames.Namespace).ConfigureAwait(false);
+                    _openElementCount++;
+                    _isRootStarted = true;
                 }
 
-                await _writer.WriteStartElementAsync(null, XcalNames.ICalendar, XcalNames.Namespace).ConfigureAwait(false);
-                _openElementCount++;
-                _isRootStarted = true;
+                await WriteElementAsync(element).ConfigureAwait(false);
+            }
+            catch
+            {
+                // What reached the XML writer is now unknown.
+                _isFaulted = true;
+                throw;
             }
 
-            await WriteElementAsync(element).ConfigureAwait(false);
             CountCalendar(componentCount, propertyCount);
         }
 
@@ -692,7 +719,7 @@ namespace DataStandardizer.File.iCal
 
             try
             {
-                if (_writer.WriteState != WriteState.Error && _writer.WriteState != WriteState.Closed)
+                if (!_isFaulted && _writer.WriteState != WriteState.Error && _writer.WriteState != WriteState.Closed)
                 {
                     while (_openElementCount > 0)
                     {
@@ -743,19 +770,29 @@ namespace DataStandardizer.File.iCal
         {
             int componentCount, propertyCount;
             var element = PrepareCalendar(calendar, out componentCount, out propertyCount);
-            if (!_isRootStarted)
+            try
             {
-                if (_isInternalWriter)
+                if (!_isRootStarted)
                 {
-                    _writer.WriteStartDocument();
+                    if (_isInternalWriter)
+                    {
+                        _writer.WriteStartDocument();
+                    }
+
+                    _writer.WriteStartElement(XcalNames.ICalendar, XcalNames.Namespace);
+                    _openElementCount++;
+                    _isRootStarted = true;
                 }
 
-                _writer.WriteStartElement(XcalNames.ICalendar, XcalNames.Namespace);
-                _openElementCount++;
-                _isRootStarted = true;
+                WriteElement(element);
+            }
+            catch
+            {
+                // What reached the XML writer is now unknown.
+                _isFaulted = true;
+                throw;
             }
 
-            WriteElement(element);
             CountCalendar(componentCount, propertyCount);
         }
 
@@ -879,7 +916,7 @@ namespace DataStandardizer.File.iCal
         /// <summary>
         /// Marks an operation as in progress.
         /// </summary>
-        /// <exception cref="InvalidOperationException">Another operation is in progress, or an earlier one was canceled.</exception>
+        /// <exception cref="InvalidOperationException">Another operation is in progress, or an earlier one was canceled or failed to write.</exception>
         /// <exception cref="ObjectDisposedException">The writer has been disposed.</exception>
         private void BeginOperation()
         {
@@ -908,6 +945,16 @@ namespace DataStandardizer.File.iCal
                 throw new InvalidOperationException("The writer cannot continue after an operation was canceled.");
             }
 #endif
+
+            if (_isFaulted)
+            {
+                if (EndOperation())
+                {
+                    Release();
+                }
+
+                throw new InvalidOperationException("The writer cannot continue after a write failed.");
+            }
         }
 
         /// <summary>
@@ -936,7 +983,7 @@ namespace DataStandardizer.File.iCal
         {
             try
             {
-                if (_writer.WriteState != WriteState.Error && _writer.WriteState != WriteState.Closed)
+                if (!_isFaulted && _writer.WriteState != WriteState.Error && _writer.WriteState != WriteState.Closed)
                 {
                     while (_openElementCount > 0)
                     {

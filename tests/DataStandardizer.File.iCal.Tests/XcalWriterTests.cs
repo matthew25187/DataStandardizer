@@ -27,6 +27,12 @@ namespace DataStandardizer.File.iCal.Tests
 
         private static readonly XNamespace Ns = "urn:ietf:params:xml:ns:icalendar-2.0";
 
+        private const string WriteFailedMessage = "*write failed*";
+
+        // RFC 6321 Appendix B.1 as written to a caller's XML writer of a fragment, up to the text of its first property, CALSCALE.
+        private const string Example1StartBeforeFirstValue =
+            "<icalendar xmlns=\"urn:ietf:params:xml:ns:icalendar-2.0\"><vcalendar><properties><calscale><text";
+
         private static readonly IcalOptions MissingRequiredProperties = new IcalOptions { AllowMissingRequiredProperties = true };
 
         public static TheoryData<string, string> RfcExamples => new TheoryData<string, string>
@@ -318,6 +324,68 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             text.ToString().Should().BeEmpty();
+        }
+
+        [Fact]
+        public void Dispose_AfterARefusedCalendarThenAnother_WritesTheOther()
+        {
+            // arrange: a calendar refused before any of it is written leaves the writer able to continue.
+            var expected = Normalize(XDocument.Parse(Example1Xcal));
+            var text = new StringWriter();
+            var writer = new XcalWriter(text);
+            Record.Exception(() => writer.WriteCalendar(CreateCalendarWithProperty("1X", "value")));
+            writer.WriteCalendar(ReadCalendar(Example1Ical));
+
+            // act
+            writer.Dispose();
+
+            // assert: the same XML, ignoring formatting.
+            Normalize(XDocument.Parse(text.ToString())).Should().Be(expected);
+        }
+
+        [Fact]
+        public void WriteCalendar_AfterAWriteToTheXmlWriterFailed_ThrowsInvalidOperation()
+        {
+            // arrange: the XML writer fails part way through the calendar, and could still be written to.
+            var calendar = ReadCalendar(Example1Ical);
+            var writer = new XcalWriter(new FailOnceXmlWriter());
+            Record.Exception(() => writer.WriteCalendar(calendar));
+
+            // act
+            Action testAction = () => writer.WriteCalendar(calendar);
+
+            // assert
+            testAction.Should().Throw<InvalidOperationException>().WithMessage(WriteFailedMessage);
+        }
+
+        [Fact]
+        public void WriteCalendar_AfterAFlushOfTheXmlWriterFailed_ThrowsInvalidOperation()
+        {
+            // arrange: the XML writer fails the flush, and could still be written to.
+            var calendar = ReadCalendar(Example1Ical);
+            var writer = new XcalWriter(new FailOnceXmlWriter());
+            Record.Exception(() => writer.Flush());
+
+            // act
+            Action testAction = () => writer.WriteCalendar(calendar);
+
+            // assert
+            testAction.Should().Throw<InvalidOperationException>().WithMessage(WriteFailedMessage);
+        }
+
+        [Fact]
+        public void Dispose_AfterAWriteToTheXmlWriterFailed_EndsNoElement()
+        {
+            // arrange
+            var xml = new FailOnceXmlWriter();
+            var writer = new XcalWriter(xml);
+            Record.Exception(() => writer.WriteCalendar(ReadCalendar(Example1Ical)));
+
+            // act
+            writer.Dispose();
+
+            // assert: what was written before the failure, and nothing more.
+            xml.ToString().Should().Be(Example1StartBeforeFirstValue);
         }
 
         [Fact]
