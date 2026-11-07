@@ -124,9 +124,18 @@ Errors in how the reader is used (`ObjectDisposedException`, `InvalidOperationEx
 are thrown by the call. Errors in the data (`IcalFileException`) and cancellation
 (`OperationCanceledException`) are thrown by the task.
 
+A read is canceled when its `cancellationToken` is canceled before the call, or when
+the read fails with an `OperationCanceledException` while that token is canceled,
+whatever token the exception carries, or if it carries none. The task is then canceled.
+An `OperationCanceledException` while the token isn't canceled faults the task, as any
+other failure of the source does. Either one leaves the reader unable to continue. During
+`ReadCalendarsAsync`, awaiting `MoveNextAsync` throws either one, but its task is
+canceled for both on every target, as an async iterator's always is for an
+`OperationCanceledException`, so check the token to tell which it was.
+
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `ReadCalendarAsync(CancellationToken cancellationToken = default)` | `ValueTask<IcalCalendar?>` | As `ReadCalendar`. If canceled, the reader cannot continue. |
+| `ReadCalendarAsync(CancellationToken cancellationToken = default)` | `ValueTask<IcalCalendar?>` | As `ReadCalendar`. If the read is canceled, or fails with an `OperationCanceledException` while the token isn't canceled, the reader cannot continue. |
 | `ReadCalendarsAsync(CancellationToken cancellationToken = default)` | `IAsyncEnumerable<IcalCalendar>` | The remaining calendars. The token is combined with any token passed to `GetAsyncEnumerator`. Throws `ObjectDisposedException` from the call itself if the reader is disposed. |
 | `DisposeAsync()` | `ValueTask` | Same as `Dispose`; returns a completed task. |
 

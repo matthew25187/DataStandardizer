@@ -96,6 +96,15 @@ throws `InvalidOperationException`. A read completes synchronously, without
 allocating a task, while the `XmlReader` completes synchronously. Cancellation is
 checked before each node of the XML document is read.
 
+A read is canceled when its `cancellationToken` is canceled before the call, or when
+the read fails with an `OperationCanceledException` while that token is canceled,
+whatever token the exception carries, or if it carries none. The task is then canceled.
+An `OperationCanceledException` while the token isn't canceled faults the task, as any
+other failure of the XML reader does. Either one leaves the reader unable to continue. During
+`ReadCalendarsAsync`, awaiting `MoveNextAsync` throws either one, but its task is
+canceled for both on every target, as an async iterator's always is for an
+`OperationCanceledException`, so check the token to tell which it was.
+
 ## Constructors
 
 | Constructor | Notes |
