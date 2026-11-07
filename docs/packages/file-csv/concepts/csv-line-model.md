@@ -74,6 +74,12 @@ duplicate names (throwing a `CsvFileException` if any are found). Its
 `FieldNames` property exposes the names as an `IReadOnlyList<string>`, which the
 reader then uses to name the fields of subsequent record lines.
 
+Records can't be read without valid field names. If reading the header line
+fails, for example because of duplicate names or an invalid value, or a
+`CsvFileHeader` delegate throws, every later `ReadLine` call throws the same
+exception and reads no further lines. The reader never treats a record as the
+header line in place of the one that failed.
+
 How the header is treated is governed by the `CsvFileHeaderHandling` enum:
 
 | Value | Meaning |
