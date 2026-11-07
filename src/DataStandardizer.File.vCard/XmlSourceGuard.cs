@@ -22,8 +22,8 @@ namespace DataStandardizer.File.vCard
     /// So on the <c>netstandard2.0</c> build, the only one that runs on .NET Framework, the source is wrapped, and such a failure reaches the XML
     /// reader as a <see cref="SourceCanceledException"/> in a faulted task, which it reports as it does any other failure of its source.  The
     /// read then completes with the <see cref="OperationCanceledException"/> it holds, through <see cref="Unwrap"/>, as it does on every other
-    /// target.  A read that completes later is passed on as it is, since the XML reader then waits for it and reports its failure.  Other builds
-    /// use the source as it is.
+    /// target.  A read that hasn't completed when it is returned is shielded the same way once it completes, since it could complete before the
+    /// XML reader looks at its task.  Other builds use the source as it is.
     /// </para>
     /// </remarks>
     internal static class XmlSourceGuard
@@ -67,28 +67,34 @@ namespace DataStandardizer.File.vCard
         }
 
 #if NETSTANDARD2_0
-
         /// <summary>
-        /// Returns a task faulted with a <see cref="SourceCanceledException"/> in place of a read that has already failed with an
-        /// <see cref="OperationCanceledException"/>; otherwise <paramref name="read"/> itself.
+        /// Returns <paramref name="read"/> itself if it has succeeded; otherwise a task that completes as it does, except that it faults with a
+        /// <see cref="SourceCanceledException"/> where <paramref name="read"/> fails with an <see cref="OperationCanceledException"/>, so it is
+        /// never canceled.
         /// </summary>
         private static Task<int> Shield(Task<int> read)
         {
-            if (!read.IsCanceled && !(read.IsFaulted && read.Exception.InnerException is OperationCanceledException)) return read;
+            return read.Status == TaskStatus.RanToCompletion ? read : ShieldAsync(read);
+        }
 
+        private static async Task<int> ShieldAsync(Task<int> read)
+        {
             try
             {
                 // Observe the failure as awaiting the read would: a canceled read gives a TaskCanceledException.
-                read.GetAwaiter().GetResult();
+                return await read.ConfigureAwait(false);
             }
             catch (OperationCanceledException exception)
             {
-                return Task.FromException<int>(new SourceCanceledException(exception));
+                // An async method faults its task for any exception that isn't an OperationCanceledException, even when it completes
+                // synchronously.
+                throw new SourceCanceledException(exception);
             }
-
-            return read;
         }
 
+        /// <summary>
+        /// Returns a task faulted with a <see cref="SourceCanceledException"/> for a read that threw <paramref name="exception"/>.
+        /// </summary>
         private static Task<int> Shield(OperationCanceledException exception)
         {
             return Task.FromException<int>(new SourceCanceledException(exception));
@@ -105,6 +111,9 @@ namespace DataStandardizer.File.vCard
             }
         }
 
+        /// <summary>
+        /// A read-only stream that passes each call to another, shielding its asynchronous reads.  Disposing it disposes the other stream.
+        /// </summary>
         private sealed class GuardedStream : Stream
         {
             private readonly Stream _stream;
@@ -183,6 +192,9 @@ namespace DataStandardizer.File.vCard
             }
         }
 
+        /// <summary>
+        /// A text reader that passes each call to another, shielding its asynchronous reads.  Disposing it disposes the other text reader.
+        /// </summary>
         private sealed class GuardedTextReader : TextReader
         {
             private readonly TextReader _reader;
