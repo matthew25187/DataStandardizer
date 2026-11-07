@@ -27,6 +27,12 @@ namespace DataStandardizer.File.vCard.Tests
         public Action OnWrite { get; set; }
 
         /// <summary>
+        /// Gets or sets an exception that the first write throws, after <see cref="OnWrite"/> and without yielding; or <c>null</c>.  Later writes
+        /// succeed.
+        /// </summary>
+        public Exception FirstWriteException { get; set; }
+
+        /// <summary>
         /// Gets or sets a callback that each flush runs first.  A test uses it to dispose of the writer during a flush.
         /// </summary>
         public Action OnFlush { get; set; }
@@ -114,6 +120,11 @@ namespace DataStandardizer.File.vCard.Tests
 #endif
         {
             OnWrite?.Invoke();
+            var exception = FirstWriteException;
+            FirstWriteException = null;
+            if (exception != null)
+                throw exception;
+
             if (!_completeSynchronously)
             {
                 await Task.Yield();
@@ -410,13 +421,18 @@ namespace DataStandardizer.File.vCard.Tests
         /// <summary>By a task that has already faulted when it is returned.</summary>
         AsFaultedTask,
 
-        /// <summary>By a task that faults after yielding.</summary>
+        /// <summary>By a task that has already been canceled, for another token, when it is returned, as a <see cref="StreamWriter"/> does for
+        /// a canceled token.  The exception the test supplies isn't used.</summary>
+        AsCanceledTask,
+
+        /// <summary>By an async method that throws after yielding.  Its task is canceled for an <see cref="OperationCanceledException"/>, as
+        /// the async method builder does, and faulted for any other exception.</summary>
         AfterYielding
     }
 
     /// <summary>
-    /// A text writer whose first asynchronous write or flush fails with an exception the test supplies.  Later writes and flushes succeed without
-    /// waiting.
+    /// A text writer whose first asynchronous write or flush fails with an exception the test supplies, at the time <see cref="FailureTiming"/>
+    /// says.  Later writes and flushes succeed without waiting.
     /// </summary>
     internal sealed class FailingTextWriter : TextWriter
     {
@@ -492,6 +508,8 @@ namespace DataStandardizer.File.vCard.Tests
                     throw _createException();
                 case FailureTiming.AsFaultedTask:
                     return Task.FromException(_createException());
+                case FailureTiming.AsCanceledTask:
+                    return Task.FromCanceled(new CancellationToken(true));
                 default:
                     return FailAfterYieldingAsync();
             }

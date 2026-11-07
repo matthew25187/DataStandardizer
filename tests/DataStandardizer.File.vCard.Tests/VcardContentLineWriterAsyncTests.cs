@@ -424,19 +424,6 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Fact]
-        public void WriteLineAsync_OperationCanceledWithoutCanceledTokenFromTextWriter_FaultsTask()
-        {
-            // arrange
-            var writer = new VcardContentLineWriter(new SynchronouslyThrowingTextWriter(() => new OperationCanceledException()));
-
-            // act
-            var write = writer.WriteLineAsync(LineA);
-
-            // assert
-            write.IsFaulted.Should().BeTrue();
-        }
-
-        [Fact]
         public async Task Dispose_DuringOperationCanceledWithoutCanceledTokenFromTextWriter_FaultsTask()
         {
             // arrange
@@ -635,38 +622,56 @@ namespace DataStandardizer.File.vCard.Tests
         }
 #endif
 
-        [Fact]
-        public async Task WriteLineAsync_TextWriterThrowsCancellationOfAnotherTokenFromCall_FaultsTask()
+        // Each asynchronous operation.
+        private static readonly (string Name, Func<VcardContentLineWriter, CancellationToken, Task> Run)[] AsyncOperations =
         {
-            // arrange: the exception's token is canceled, but the caller's isn't.
-            var writer = new VcardContentLineWriter(new SynchronouslyThrowingTextWriter(() => new OperationCanceledException(new CancellationToken(true))));
+            ("WriteLineAsync", (writer, token) => writer.WriteLineAsync(LineA, token).AsTask()),
+            ("WriteLinesAsync", (writer, token) => writer.WriteLinesAsync(new[] { LineA }, cancellationToken: token)),
+            ("WriteLinesAsync from an asynchronous sequence", (writer, token) => writer.WriteLinesAsync(ToAsyncEnumerable(new[] { LineA }), cancellationToken: token)),
+            ("FlushAsync", (writer, token) => writer.FlushAsync(token)),
+        };
 
-            // act: wait for the write to finish without throwing, so that its status can be checked.
-            var write = writer.WriteLineAsync(LineA).AsTask();
-            await Task.WhenAny(write);
-
-            // assert
-            write.IsFaulted.Should().BeTrue();
-            write.Exception.InnerException.Should().BeOfType<OperationCanceledException>();
-        }
+        // Each way the text writer can report a failure.
+        private static readonly FailureTiming[] FailureTimings =
+        {
+            FailureTiming.FromCall, FailureTiming.AsFaultedTask, FailureTiming.AsCanceledTask, FailureTiming.AfterYielding
+        };
 
         // Each asynchronous operation, with each way the text writer can report a failure.
         public static TheoryData<string, Func<VcardContentLineWriter, CancellationToken, Task>, FailureTiming> OperationsWithTextWriterFailures()
         {
-            var operations = new List<(string, Func<VcardContentLineWriter, CancellationToken, Task>)>
-            {
-                ("WriteLineAsync", (writer, token) => writer.WriteLineAsync(LineA, token).AsTask()),
-                ("WriteLinesAsync", (writer, token) => writer.WriteLinesAsync(new[] { LineA }, cancellationToken: token)),
-                ("WriteLinesAsync from an asynchronous sequence", (writer, token) => writer.WriteLinesAsync(ToAsyncEnumerable(new[] { LineA }), cancellationToken: token)),
-                ("FlushAsync", (writer, token) => writer.FlushAsync(token)),
-            };
-            var timings = new[] { FailureTiming.FromCall, FailureTiming.AsFaultedTask, FailureTiming.AfterYielding };
             var data = new TheoryData<string, Func<VcardContentLineWriter, CancellationToken, Task>, FailureTiming>();
-            foreach (var (name, operation) in operations)
+            foreach (var (name, run) in AsyncOperations)
             {
-                foreach (var timing in timings)
+                foreach (var timing in FailureTimings)
                 {
-                    data.Add(name, operation, timing);
+                    data.Add(name, run, timing);
+                }
+            }
+
+            return data;
+        }
+
+        // Each asynchronous operation, with each way the text writer can report a failure, each OperationCanceledException it can fail with while
+        // the caller's token isn't canceled, and the exception the task then faults with.  A canceled task carries no exception of its own, so
+        // awaiting it gives a TaskCanceledException, whatever exception the text writer was given.
+        public static TheoryData<string, Func<VcardContentLineWriter, CancellationToken, Task>, FailureTiming, Func<Exception>, Type> OperationsWithTextWriterCancellationFaults()
+        {
+            var exceptions = new (string, Func<Exception>)[]
+            {
+                ("no token", () => new OperationCanceledException()),
+                ("another, canceled token", () => new OperationCanceledException(new CancellationToken(true))),
+            };
+            var data = new TheoryData<string, Func<VcardContentLineWriter, CancellationToken, Task>, FailureTiming, Func<Exception>, Type>();
+            foreach (var (name, run) in AsyncOperations)
+            {
+                foreach (var timing in FailureTimings)
+                {
+                    foreach (var (exceptionName, createException) in exceptions)
+                    {
+                        var expectedType = timing == FailureTiming.AsCanceledTask ? typeof(TaskCanceledException) : typeof(OperationCanceledException);
+                        data.Add(name + ", " + exceptionName, run, timing, createException, expectedType);
+                    }
                 }
             }
 
@@ -674,13 +679,13 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Theory]
-        [MemberData(nameof(OperationsWithTextWriterFailures), DisableDiscoveryEnumeration = true)]
-        public async Task AsyncOperation_TextWriterFailsWithOperationCanceledWhileTokenIsNotCanceled_FaultsTask(string operation,
-            Func<VcardContentLineWriter, CancellationToken, Task> run, FailureTiming timing)
+        [MemberData(nameof(OperationsWithTextWriterCancellationFaults), DisableDiscoveryEnumeration = true)]
+        public async Task AsyncOperation_TextWriterFailsWithOperationCanceledWhileTokenIsNotCanceled_FaultsTask(string scenario,
+            Func<VcardContentLineWriter, CancellationToken, Task> run, FailureTiming timing, Func<Exception> createException, Type expectedExceptionType)
         {
             // arrange
-            _ = operation;
-            var writer = new VcardContentLineWriter(new FailingTextWriter(() => new OperationCanceledException(), timing));
+            _ = scenario;
+            var writer = new VcardContentLineWriter(new FailingTextWriter(createException, timing));
 
             // act: wait for the operation to finish without throwing, so that its status can be checked.
             var task = run(writer, CancellationToken.None);
@@ -688,7 +693,7 @@ namespace DataStandardizer.File.vCard.Tests
 
             // assert
             task.IsFaulted.Should().BeTrue();
-            task.Exception.InnerException.Should().BeOfType<OperationCanceledException>();
+            task.Exception.InnerException.Should().BeOfType(expectedExceptionType);
         }
 
         [Theory]
@@ -1112,18 +1117,13 @@ namespace DataStandardizer.File.vCard.Tests
         // As CreateDisposalDuringWrite, but the first write to the stream also fails, without waiting.
         private static WriterOperation CreateDisposalDuringFailedWrite()
         {
-            var stream = new AsyncOnlyWriteStream(completeSynchronously: true) { CreateFlushException = () => new OperationCanceledException() };
-            var writer = new VcardContentLineWriter(stream, new VcardOptions(), StreamBufferSmallerThanALine);
-            var hasFailed = false;
-            stream.OnWrite = () =>
+            var stream = new AsyncOnlyWriteStream(completeSynchronously: true)
             {
-                writer.Dispose();
-                if (!hasFailed)
-                {
-                    hasFailed = true;
-                    throw new IOException(DiskFullMessage);
-                }
+                CreateFlushException = () => new OperationCanceledException(),
+                FirstWriteException = new IOException(DiskFullMessage),
             };
+            var writer = new VcardContentLineWriter(stream, new VcardOptions(), StreamBufferSmallerThanALine);
+            stream.OnWrite = writer.Dispose;
             return new WriterOperation(writer, () => writer.WriteLineAsync(LongLineWrittenThrough).AsTask());
         }
 
