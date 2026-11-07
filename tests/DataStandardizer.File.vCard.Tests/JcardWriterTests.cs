@@ -15,6 +15,7 @@ namespace DataStandardizer.File.vCard.Tests
     {
         private const string MinimalVcard = "BEGIN:VCARD\r\nVERSION:4.0\r\nFN:A\r\nEND:VCARD\r\n";
         private const string MinimalJcard = "[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"A\"]]]";
+        private const string WriteFailedMessage = "*write to the stream or a flush of it failed*";
 
         public static TheoryData<string, string> Properties() => new TheoryData<string, string>
         {
@@ -350,6 +351,38 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Fact]
+        public void WriteCard_AfterAFlushOfTheStreamFailed_ThrowsInvalidOperation()
+        {
+            // arrange
+            var cards = ReadVcards(MinimalVcard + MinimalVcard);
+            var writer = new JcardWriter(new FailingFlushStream());
+            writer.WriteCard(cards[0]);
+            FlushPastIOFailure(writer);
+
+            // act
+            Action testAction = () => writer.WriteCard(cards[1]);
+
+            // assert
+            testAction.Should().Throw<InvalidOperationException>().WithMessage(WriteFailedMessage);
+        }
+
+        [Fact]
+        public void Dispose_AfterAFlushOfTheStreamFailed_DoesNotWriteTheHeldCard()
+        {
+            // arrange
+            var stream = new FailingFlushStream();
+            var writer = new JcardWriter(stream);
+            writer.WriteCard(ReadVcards(MinimalVcard)[0]);
+            FlushPastIOFailure(writer);
+
+            // act
+            writer.Dispose();
+
+            // assert
+            stream.ToArray().Should().BeEmpty();
+        }
+
+        [Fact]
         public void Flush_OneCard_HoldsItUntilDisposed()
         {
             // arrange
@@ -379,6 +412,34 @@ namespace DataStandardizer.File.vCard.Tests
             }
 
             Assert.Fail("The write was expected to fail.");
+        }
+
+        /// <summary>
+        /// Flushes, and leaves the <see cref="IOException"/> of the stream for the test to go on from.
+        /// </summary>
+        private static void FlushPastIOFailure(JcardWriter writer)
+        {
+            try
+            {
+                writer.Flush();
+            }
+            catch (IOException)
+            {
+                return;
+            }
+
+            Assert.Fail("The flush was expected to fail.");
+        }
+
+        /// <summary>
+        /// A stream whose every flush fails; its writes succeed.
+        /// </summary>
+        private sealed class FailingFlushStream : MemoryStream
+        {
+            public override void Flush()
+            {
+                throw new IOException("The test stream fails every flush.");
+            }
         }
 
         /// <summary>
