@@ -160,6 +160,155 @@ namespace DataStandardizer.File.vCard.Tests
 
         #endregion
 
+        #region FailingStream
+
+        [Fact]
+        public void FailingStream_WriteAsyncFromCall_ThrowsFromTheCall()
+        {
+            // arrange
+            var stream = new FailingStream(() => new IOException(), FailureTiming.FromCall);
+
+            // act
+            Action testAction = () => stream.WriteAsync(OneByte, 0, OneByte.Length);
+
+            // assert
+            testAction.Should().Throw<IOException>();
+        }
+
+        [Theory]
+        [MemberData(nameof(TaskFailures), DisableDiscoveryEnumeration = true)]
+        public async Task FailingStream_WriteAsyncByTask_EndsWithStatus(FailureTiming timing, Func<Exception> createException, TaskStatus expected)
+        {
+            // arrange
+            var stream = new FailingStream(createException, timing);
+
+            // act: wait for the write to finish without throwing, so that its status can be checked.
+            var write = stream.WriteAsync(OneByte, 0, OneByte.Length);
+            await Task.WhenAny(write);
+
+            // assert
+            write.Status.Should().Be(expected);
+        }
+
+        [Fact]
+        public void FailingStream_FirstFlushAsync_Fails()
+        {
+            // arrange
+            var stream = new FailingStream(() => new IOException(), FailureTiming.AsFaultedTask);
+
+            // act
+            var flush = stream.FlushAsync();
+
+            // assert
+            flush.IsFaulted.Should().BeTrue();
+        }
+
+        [Fact]
+        public void FailingStream_WriteAsyncAfterFailedWrite_WritesTheBytesWithoutWaiting()
+        {
+            // arrange
+            var stream = new FailingStream(() => new IOException(), FailureTiming.AsFaultedTask);
+            _ = stream.WriteAsync(OneByte, 0, OneByte.Length);
+
+            // act
+            var write = stream.WriteAsync(OneByte, 0, OneByte.Length);
+
+            // assert
+            write.Status.Should().Be(TaskStatus.RanToCompletion);
+            stream.ToArray().Should().Equal(OneByte);
+        }
+
+        [Fact]
+        public void FailingStream_FlushAsyncAfterFailedWrite_SucceedsWithoutWaiting()
+        {
+            // arrange
+            var stream = new FailingStream(() => new IOException(), FailureTiming.AsFaultedTask);
+            _ = stream.WriteAsync(OneByte, 0, OneByte.Length);
+
+            // act
+            var flush = stream.FlushAsync();
+
+            // assert
+            flush.Status.Should().Be(TaskStatus.RanToCompletion);
+        }
+
+        [Fact]
+        public void FailingStream_TwoWrites_RunsOnFailureOnceBeforeCreatingTheException()
+        {
+            // arrange
+            var events = new List<string>();
+            var stream = new FailingStream(() => RecordAndCreate(events), FailureTiming.AsFaultedTask) { OnFailure = () => events.Add(FailureCallback) };
+
+            // act
+            _ = stream.WriteAsync(OneByte, 0, OneByte.Length);
+            _ = stream.WriteAsync(OneByte, 0, OneByte.Length);
+
+            // assert
+            events.Should().Equal(FailureCallback, ExceptionCreated);
+        }
+
+        #endregion
+
+        #region FailingTextReader
+
+        [Fact]
+        public void FailingTextReader_ReadAsyncFromCall_ThrowsFromTheCall()
+        {
+            // arrange
+            var reader = new FailingTextReader(() => new IOException(), FailureTiming.FromCall);
+
+            // act
+            Action testAction = () => reader.ReadAsync(new char[1], 0, 1);
+
+            // assert
+            testAction.Should().Throw<IOException>();
+        }
+
+        [Theory]
+        [MemberData(nameof(TaskFailures), DisableDiscoveryEnumeration = true)]
+        public async Task FailingTextReader_ReadAsyncByTask_EndsWithStatus(FailureTiming timing, Func<Exception> createException, TaskStatus expected)
+        {
+            // arrange
+            var reader = new FailingTextReader(createException, timing);
+
+            // act: wait for the read to finish without throwing, so that its status can be checked.
+            var read = reader.ReadAsync(new char[1], 0, 1);
+            await Task.WhenAny(read);
+
+            // assert
+            read.Status.Should().Be(expected);
+        }
+
+        [Fact]
+        public void FailingTextReader_SecondReadAsync_FailsAgain()
+        {
+            // arrange
+            var reader = new FailingTextReader(() => new IOException(), FailureTiming.AsFaultedTask);
+            _ = reader.ReadAsync(new char[1], 0, 1);
+
+            // act
+            var read = reader.ReadAsync(new char[1], 0, 1);
+
+            // assert
+            read.IsFaulted.Should().BeTrue();
+        }
+
+        [Fact]
+        public void FailingTextReader_ReadAsync_RunsOnFailureBeforeCreatingTheException()
+        {
+            // arrange
+            var events = new List<string>();
+            var reader = new FailingTextReader(() => RecordAndCreate(events), FailureTiming.AsFaultedTask) { OnFailure = () => events.Add(FailureCallback) };
+
+            // act
+            _ = reader.ReadAsync(new char[1], 0, 1);
+
+            // assert
+            events.Should().Equal(FailureCallback, ExceptionCreated);
+        }
+
+        #endregion
+
         #region AsyncOnlyWriteStream
 
         [Fact]

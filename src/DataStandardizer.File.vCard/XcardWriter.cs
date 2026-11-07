@@ -250,7 +250,7 @@ namespace DataStandardizer.File.vCard
         /// <remarks>
         /// May be called more than once, and shares its state with <see cref="Dispose"/>.  If an operation is in progress, it completes with <see cref="ObjectDisposedException"/>, and
         /// the document is ended once that operation has finished, so the task this returns has completed before then; await the operation as well before using the output.  The XML
-        /// writer is disposed even if ending the document throws.
+        /// writer is disposed even if ending the document throws, and the task then faults with that exception, even an <see cref="OperationCanceledException"/>.
         /// </remarks>
         /// <returns>A task that completes once the document has been ended and the writer released; or a task that has already completed, if an operation is in progress, which then
         /// ends the document.</returns>
@@ -260,7 +260,7 @@ namespace DataStandardizer.File.vCard
 
             if (Volatile.Read(ref _isOperationInProgress) == 0 && MarkReleased())
             {
-                return ReleaseAsync();
+                return new ValueTask(AsyncOutcome.Unwrap(AsyncOutcome.ReleaseThenReportAsync(ReleaseAsync(), Task.CompletedTask)));
             }
 
             return default(ValueTask);
@@ -380,7 +380,8 @@ namespace DataStandardizer.File.vCard
         /// <summary>
         /// Flushes the XML writer asynchronously, whether the writer created it or it was supplied by the caller.  The <c>vcards</c> element is not ended.
         /// </summary>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests.  If the flush is canceled, the writer cannot continue.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.  The flush is canceled only if this token is canceled, and the writer then
+        /// cannot continue.</param>
         /// <returns>A task that completes once the XML writer has been flushed.</returns>
         /// <exception cref="ObjectDisposedException">The writer has been disposed.  Thrown by this call, or by the task if the writer is disposed while the flush is in
         /// progress.</exception>
@@ -389,13 +390,16 @@ namespace DataStandardizer.File.vCard
         /// An earlier asynchronous operation was canceled, or a write failed, so the writer cannot continue.
         /// -or-
         /// The writer was created from an XML writer whose <see cref="XmlWriterSettings.Async"/> setting is <c>false</c>.</exception>
-        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.</exception>
+        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled before the call, or the
+        /// flush failed with an <see cref="OperationCanceledException"/>, whatever token it carries, while <paramref name="cancellationToken"/>
+        /// was canceled.  The task is canceled.  Any other exception faults the task even while <paramref name="cancellationToken"/> is canceled,
+        /// and an <see cref="OperationCanceledException"/> while it isn't faults the task too, as an I/O error does.</exception>
         public Task FlushAsync(CancellationToken cancellationToken = default)
         {
             ThrowIfDisposed();
             CheckAsync();
             BeginOperation();
-            return FlushCoreAsync(cancellationToken);
+            return AsyncOutcome.Unwrap(FlushCoreAsync(cancellationToken));
         }
 
         /// <summary>
@@ -403,7 +407,8 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="card">The card.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.  It is checked before the card is written, so that a canceled write never leaves part of a
-        /// card.  If the write is canceled, the writer cannot continue.</param>
+        /// card.  The write is canceled only if this token is canceled, and the writer then
+        /// cannot continue.</param>
         /// <returns>A task that completes once the card has been handed to the XML writer.</returns>
         /// <exception cref="ObjectDisposedException">The writer has been disposed.  Thrown by this call, or by the task if the writer is disposed while the write is in
         /// progress.</exception>
@@ -415,7 +420,10 @@ namespace DataStandardizer.File.vCard
         /// The writer was created from an XML writer whose <see cref="XmlWriterSettings.Async"/> setting is <c>false</c>.</exception>
         /// <exception cref="VcardFileException">By the task: the card breaks a rule of RFC 6350 that the options do not accept, or cannot be written in xCard, and nothing has been
         /// written.</exception>
-        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.</exception>
+        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled before the call, or the
+        /// write failed with an <see cref="OperationCanceledException"/>, whatever token it carries, while <paramref name="cancellationToken"/>
+        /// was canceled.  The task is canceled.  Any other exception faults the task even while <paramref name="cancellationToken"/> is canceled,
+        /// and an <see cref="OperationCanceledException"/> while it isn't faults the task too, as an I/O error does.</exception>
         public ValueTask WriteCardAsync(VcardCard card, CancellationToken cancellationToken = default)
         {
             // Errors in how the writer is used are thrown now; errors in the card or the I/O, and cancellation, go to the task.
@@ -425,7 +433,7 @@ namespace DataStandardizer.File.vCard
 
             CheckAsync();
             BeginOperation();
-            return WriteCardOperationAsync(card, cancellationToken);
+            return new ValueTask(AsyncOutcome.Unwrap(WriteCardOperationAsync(card, cancellationToken)));
         }
 
         /// <summary>
@@ -438,8 +446,8 @@ namespace DataStandardizer.File.vCard
         /// <param name="progress">Receives the progress after each card has been handed to the XML writer, synchronously on the writing thread; or <c>null</c>.  Its
         /// <see cref="VcardWriteProgress.LinesWritten"/> is the number of content lines the cards written so far would have in <c>.vcf</c> form.  An exception it throws ends the
         /// call; the card it was reporting has been written.</param>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests.  It is checked between cards.  If the write is canceled, the writer cannot
-        /// continue.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.  It is checked between cards.  The write is canceled only if this token is
+        /// canceled, and the writer then cannot continue.</param>
         /// <returns>A task that completes once every card has been handed to the XML writer.</returns>
         /// <exception cref="ObjectDisposedException">The writer has been disposed.  Thrown by this call, or by the task if the writer is disposed while the write is in
         /// progress.</exception>
@@ -452,7 +460,11 @@ namespace DataStandardizer.File.vCard
         /// <exception cref="ArgumentException">By the task: <paramref name="cards"/> contains <c>null</c>.  The cards before it have been written.</exception>
         /// <exception cref="VcardFileException">By the task: a card breaks a rule of RFC 6350 that the options do not accept, or cannot be written in xCard.  The cards before it have
         /// been written.</exception>
-        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.</exception>
+        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled before the call, or the
+        /// write failed with an <see cref="OperationCanceledException"/>, whatever token it carries, while <paramref name="cancellationToken"/>
+        /// was canceled.  The task is canceled.  Any other exception faults the task even while <paramref name="cancellationToken"/> is canceled,
+        /// and an <see cref="OperationCanceledException"/> while it isn't faults the task too, whether from the underlying writer,
+        /// <paramref name="cards"/> or <paramref name="progress"/>, as an I/O error does.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public Task WriteCardsAsync(IEnumerable<VcardCard> cards, IProgress<VcardWriteProgress>? progress = null,
 #else
@@ -466,7 +478,7 @@ namespace DataStandardizer.File.vCard
 
             CheckAsync();
             BeginOperation();
-            return WriteCardsCoreAsync(cards, progress, cancellationToken);
+            return AsyncOutcome.Unwrap(WriteCardsCoreAsync(cards, progress, cancellationToken));
         }
 
         /// <summary>
@@ -479,8 +491,8 @@ namespace DataStandardizer.File.vCard
         /// <param name="progress">Receives the progress after each card has been handed to the XML writer, synchronously on the writing thread; or <c>null</c>.  Its
         /// <see cref="VcardWriteProgress.LinesWritten"/> is the number of content lines the cards written so far would have in <c>.vcf</c> form.  An exception it throws ends the
         /// call; the card it was reporting has been written.</param>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests.  It is checked between cards.  If the write is canceled, the writer cannot
-        /// continue.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.  It is checked between cards.  The write is canceled only if this token is
+        /// canceled, and the writer then cannot continue.</param>
         /// <returns>A task that completes once every card has been handed to the XML writer.</returns>
         /// <exception cref="ObjectDisposedException">The writer has been disposed.  Thrown by this call, or by the task if the writer is disposed while the write is in
         /// progress.</exception>
@@ -493,7 +505,11 @@ namespace DataStandardizer.File.vCard
         /// <exception cref="ArgumentException">By the task: <paramref name="cards"/> contains <c>null</c>.  The cards before it have been written.</exception>
         /// <exception cref="VcardFileException">By the task: a card breaks a rule of RFC 6350 that the options do not accept, or cannot be written in xCard.  The cards before it have
         /// been written.</exception>
-        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.</exception>
+        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled before the call, or the
+        /// write failed with an <see cref="OperationCanceledException"/>, whatever token it carries, while <paramref name="cancellationToken"/>
+        /// was canceled.  The task is canceled.  Any other exception faults the task even while <paramref name="cancellationToken"/> is canceled,
+        /// and an <see cref="OperationCanceledException"/> while it isn't faults the task too, whether from the underlying writer,
+        /// <paramref name="cards"/> or <paramref name="progress"/>, as an I/O error does.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public Task WriteCardsAsync(IAsyncEnumerable<VcardCard> cards, IProgress<VcardWriteProgress>? progress = null,
 #else
@@ -507,11 +523,12 @@ namespace DataStandardizer.File.vCard
 
             CheckAsync();
             BeginOperation();
-            return WriteAsyncCardsCoreAsync(cards, progress, cancellationToken);
+            return AsyncOutcome.Unwrap(WriteAsyncCardsCoreAsync(cards, progress, cancellationToken));
         }
 
-        private async Task FlushCoreAsync(CancellationToken cancellationToken)
+        private async ValueTask<Task> FlushCoreAsync(CancellationToken cancellationToken)
         {
+            Task outcome;
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -527,45 +544,36 @@ namespace DataStandardizer.File.vCard
 
                 // The writer may have been disposed while the flush was in progress.
                 ThrowIfDisposed();
+                outcome = Task.CompletedTask;
             }
-            catch (OperationCanceledException)
+            catch (Exception exception)
             {
-                _isCanceled = true;
-                throw;
+                outcome = AsyncOutcome.Fail(exception, cancellationToken, ref _isCanceled);
             }
-            finally
-            {
-                if (EndOperation())
-                {
-                    await ReleaseAsync().ConfigureAwait(false);
-                }
-            }
+
+            return EndOperation() ? await AsyncOutcome.ReleaseThenReportAsync(ReleaseAsync(), outcome).ConfigureAwait(false) : outcome;
         }
 
-        private async ValueTask WriteCardOperationAsync(VcardCard card, CancellationToken cancellationToken)
+        private async ValueTask<Task> WriteCardOperationAsync(VcardCard card, CancellationToken cancellationToken)
         {
+            Task outcome;
             try
             {
                 await WriteCardCoreAsync(card, cancellationToken).ConfigureAwait(false);
 
                 // The writer may have been disposed while the card was being written.
                 ThrowIfDisposed();
+                outcome = Task.CompletedTask;
             }
-            catch (OperationCanceledException)
+            catch (Exception exception)
             {
-                _isCanceled = true;
-                throw;
+                outcome = AsyncOutcome.Fail(exception, cancellationToken, ref _isCanceled);
             }
-            finally
-            {
-                if (EndOperation())
-                {
-                    await ReleaseAsync().ConfigureAwait(false);
-                }
-            }
+
+            return EndOperation() ? await AsyncOutcome.ReleaseThenReportAsync(ReleaseAsync(), outcome).ConfigureAwait(false) : outcome;
         }
 
-        private async Task WriteCardsCoreAsync(IEnumerable<VcardCard> cards,
+        private async ValueTask<Task> WriteCardsCoreAsync(IEnumerable<VcardCard> cards,
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             IProgress<VcardWriteProgress>? progress,
 #else
@@ -573,6 +581,7 @@ namespace DataStandardizer.File.vCard
 #endif
             CancellationToken cancellationToken)
         {
+            Task outcome;
             try
             {
                 // Check here as well, so that a canceled token cancels the call when there are no cards, as it does for an asynchronous sequence.
@@ -585,22 +594,17 @@ namespace DataStandardizer.File.vCard
                 }
 
                 ThrowIfDisposed();
+                outcome = Task.CompletedTask;
             }
-            catch (OperationCanceledException)
+            catch (Exception exception)
             {
-                _isCanceled = true;
-                throw;
+                outcome = AsyncOutcome.Fail(exception, cancellationToken, ref _isCanceled);
             }
-            finally
-            {
-                if (EndOperation())
-                {
-                    await ReleaseAsync().ConfigureAwait(false);
-                }
-            }
+
+            return EndOperation() ? await AsyncOutcome.ReleaseThenReportAsync(ReleaseAsync(), outcome).ConfigureAwait(false) : outcome;
         }
 
-        private async Task WriteAsyncCardsCoreAsync(IAsyncEnumerable<VcardCard> cards,
+        private async ValueTask<Task> WriteAsyncCardsCoreAsync(IAsyncEnumerable<VcardCard> cards,
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             IProgress<VcardWriteProgress>? progress,
 #else
@@ -608,6 +612,7 @@ namespace DataStandardizer.File.vCard
 #endif
             CancellationToken cancellationToken)
         {
+            Task outcome;
             try
             {
                 var enumerator = cards.GetAsyncEnumerator(cancellationToken);
@@ -630,19 +635,14 @@ namespace DataStandardizer.File.vCard
                 }
 
                 ThrowIfDisposed();
+                outcome = Task.CompletedTask;
             }
-            catch (OperationCanceledException)
+            catch (Exception exception)
             {
-                _isCanceled = true;
-                throw;
+                outcome = AsyncOutcome.Fail(exception, cancellationToken, ref _isCanceled);
             }
-            finally
-            {
-                if (EndOperation())
-                {
-                    await ReleaseAsync().ConfigureAwait(false);
-                }
-            }
+
+            return EndOperation() ? await AsyncOutcome.ReleaseThenReportAsync(ReleaseAsync(), outcome).ConfigureAwait(false) : outcome;
         }
 
         /// <summary>
