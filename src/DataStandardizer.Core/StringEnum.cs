@@ -28,10 +28,12 @@ namespace DataStandardizer.Core
     {
 #if NETCOREAPP3_0_OR_GREATER
         private static Dictionary<string, object>? _cacheFieldsByName;
+        private static List<KeyValuePair<string, object>>? _cacheMembers;
         private static ILookup<object, string>? _cacheFieldsByValue;
         private static Type? _cacheFieldsType;
 #else
         private static Dictionary<string, object> _cacheFieldsByName;
+        private static List<KeyValuePair<string, object>> _cacheMembers;
         private static ILookup<object, string> _cacheFieldsByValue;
         private static Type _cacheFieldsType;
 #endif
@@ -307,6 +309,11 @@ namespace DataStandardizer.Core
         /// <paramref name="value"/> is a name, but not one of the named constants defined for the enumeration.
         /// </exception>
         /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
+        /// <remarks>
+        /// <paramref name="value"/> is compared with the members' names first, then with their values. When <paramref name="ignoreCase"/> is <c>true</c> and <paramref name="value"/> matches
+        /// more than one name, or more than one value, ignoring case, the member whose name or value matches it exactly (ordinal comparison) wins. If none matches exactly, the first
+        /// matching member in declaration order is returned.
+        /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static object Parse(Type enumType, string value, bool ignoreCase)
 #else
@@ -323,28 +330,15 @@ namespace DataStandardizer.Core
             if (string.IsNullOrWhiteSpace(value))
                 throw new ArgumentException($"{nameof(value)} is either an empty string (\"\") or only contains white space.", nameof(value));
 
-            var comparisonType = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
             lock (SyncRoot)
             {
-                var cachedFieldsByName = GetCachedTypeFieldsByName(enumType);
-                if (ignoreCase)
+                var memberValueByNames = FindMemberByName(enumType, value, ignoreCase);
+                if (memberValueByNames != null)
                 {
-                    var cachedFieldsByCaseInsensitiveName = new Dictionary<string, object>(cachedFieldsByName, StringComparer.OrdinalIgnoreCase);
-                    if (cachedFieldsByCaseInsensitiveName.TryGetValue(value, out var memberValueByNames))
-                    {
-                        return memberValueByNames;
-                    }
-                }
-                else
-                {
-                    if (cachedFieldsByName.TryGetValue(value, out var memberValueByNames))
-                    {
-                        return memberValueByNames;
-                    }
+                    return memberValueByNames;
                 }
 
-                var cachedFieldsByValue = GetCachedTypeFieldsByValue(enumType);
-                var memberValueByValues = cachedFieldsByValue.Where(grp => string.Equals(Cast(grp.Key), value, comparisonType)).Select(grp => grp.Key).FirstOrDefault();
+                var memberValueByValues = FindMemberByValue(enumType, value, ignoreCase);
                 if (memberValueByValues != null)
                 {
                     return memberValueByValues;
@@ -411,6 +405,11 @@ namespace DataStandardizer.Core
         /// <paramref name="value"/> is a name, but not one of the named constants defined for the enumeration.
         /// </exception>
         /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
+        /// <remarks>
+        /// <paramref name="value"/> is compared with the members' names first, then with their values. When <paramref name="ignoreCase"/> is <c>true</c> and <paramref name="value"/> matches
+        /// more than one name, or more than one value, ignoring case, the member whose name or value matches it exactly (ordinal comparison) wins. If none matches exactly, the first
+        /// matching member in declaration order is returned.
+        /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static TEnum Parse<TEnum>(string value, bool ignoreCase) where TEnum : struct, IStringEnum
 #else
@@ -422,33 +421,16 @@ namespace DataStandardizer.Core
             if (string.IsNullOrWhiteSpace(value))
                 throw new ArgumentException($"{nameof(value)} is either an empty string or only contains white space.", nameof(value));
 
-            var comparisonType = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
             lock (SyncRoot)
             {
-                var cachedFieldsByName = GetCachedTypeFieldsByName(typeof(TEnum));
-                if (ignoreCase)
+                if (FindMemberByName(typeof(TEnum), value, ignoreCase) is TEnum resultByName)
                 {
-                    var cachedFieldsByCaseInsensitiveName = new Dictionary<string, object>(cachedFieldsByName, StringComparer.OrdinalIgnoreCase);
-                    if (cachedFieldsByCaseInsensitiveName.TryGetValue(value, out var memberValueByNames) && memberValueByNames is TEnum result)
-                    {
-                        return result;
-                    }
-                }
-                else
-                {
-                    if (cachedFieldsByName.TryGetValue(value, out var memberValueByNames) && memberValueByNames is TEnum result)
-                    {
-                        return result;
-                    }
+                    return resultByName;
                 }
 
-                var cachedFieldsByValue = GetCachedTypeFieldsByValue(typeof(TEnum));
-                var memberValueByValues = cachedFieldsByValue.Where(grp => string.Equals(Cast(grp.Key), value, comparisonType)).Select(grp => grp.Key).FirstOrDefault();
+                if (FindMemberByValue(typeof(TEnum), value, ignoreCase) is TEnum resultByValue)
                 {
-                    if (memberValueByValues is TEnum result)
-                    {
-                        return result;
-                    }
+                    return resultByValue;
                 }
             }
 
@@ -556,6 +538,11 @@ namespace DataStandardizer.Core
         /// <param name="result">When this method returns <c>true</c>, contains an enumeration constant that represents the parsed value.</param>
         /// <returns><c>true</c> if the conversion succeeded; <c>false</c> otherwise.</returns>
         /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
+        /// <remarks>
+        /// <paramref name="value"/> is compared with the members' names first, then with their values. When <paramref name="ignoreCase"/> is <c>true</c> and <paramref name="value"/> matches
+        /// more than one name, or more than one value, ignoring case, the member whose name or value matches it exactly (ordinal comparison) wins. If none matches exactly, the first
+        /// matching member in declaration order is returned.
+        /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryParse(Type enumType, string? value, bool ignoreCase, out object? result)
 #else
@@ -568,19 +555,16 @@ namespace DataStandardizer.Core
                 return false;
             }
 
-            var comparisonType = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
             lock (SyncRoot)
             {
-                var memberFieldsByName = GetCachedTypeFieldsByName(enumType);
-                var memberFieldsByCaseInsensitiveName = new Dictionary<string, object>(memberFieldsByName, ignoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
-                if (value != null && memberFieldsByCaseInsensitiveName.TryGetValue(value, out var memberValueByNames))
+                var memberValueByNames = value is null ? null : FindMemberByName(enumType, value, ignoreCase);
+                if (memberValueByNames != null)
                 {
                     result = memberValueByNames;
                     return true;
                 }
 
-                var memberFieldsByValue = GetCachedTypeFieldsByValue(enumType);
-                var memberValueByValues = memberFieldsByValue.Where(grp => string.Equals(Cast(grp.Key), value, comparisonType)).Select(grp => grp.Key).FirstOrDefault();
+                var memberValueByValues = FindMemberByValue(enumType, value, ignoreCase);
                 if (memberValueByValues != null)
                 {
                     result = memberValueByValues;
@@ -641,33 +625,29 @@ namespace DataStandardizer.Core
         /// <param name="result">When this method returns, contains an object of type <typeparamref name="TEnum"/> whose value is represented by <paramref name="value"/>. This parameter is passed uninitialized.</param>
         /// <returns><c>true</c> if the <paramref name="value"/> parameter was converted successfully; otherwise, <c>false</c>.</returns>
         /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
+        /// <remarks>
+        /// <paramref name="value"/> is compared with the members' names first, then with their values. When <paramref name="ignoreCase"/> is <c>true</c> and <paramref name="value"/> matches
+        /// more than one name, or more than one value, ignoring case, the member whose name or value matches it exactly (ordinal comparison) wins. If none matches exactly, the first
+        /// matching member in declaration order is returned.
+        /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryParse<TEnum>(string? value, bool ignoreCase, out TEnum result) where TEnum : struct, IStringEnum
 #else
         public static bool TryParse<TEnum>([AllowNull] string value, bool ignoreCase, out TEnum result) where TEnum : struct, IStringEnum
 #endif
         {
-            var comparisonType = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
             lock (SyncRoot)
             {
-                var memberFieldsByName = GetCachedTypeFieldsByName(typeof(TEnum));
-                var memberFieldsByCaseInsensitiveName = new Dictionary<string, object>(memberFieldsByName, ignoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+                if (value != null && FindMemberByName(typeof(TEnum), value, ignoreCase) is TEnum resultByName)
                 {
-                    if (value != null && memberFieldsByCaseInsensitiveName.TryGetValue(value, out var memberValueByNames) && memberValueByNames is TEnum memberValueResult)
-                    {
-                        result = memberValueResult;
-                        return true;
-                    }
+                    result = resultByName;
+                    return true;
                 }
 
-                var memberFieldsByValue = GetCachedTypeFieldsByValue(typeof(TEnum));
-                var memberValueByValues = memberFieldsByValue.Where(grp => string.Equals(Cast(grp.Key), value, comparisonType)).Select(grp => grp.Key).FirstOrDefault();
+                if (FindMemberByValue(typeof(TEnum), value, ignoreCase) is TEnum resultByValue)
                 {
-                    if (memberValueByValues is TEnum memberValueResult)
-                    {
-                        result = memberValueResult;
-                        return true;
-                    }
+                    result = resultByValue;
+                    return true;
                 }
             }
 
@@ -704,6 +684,53 @@ namespace DataStandardizer.Core
             return e(value);
         }
 
+        // An exact (ordinal) match wins. Otherwise, when ignoring case, the first member in declaration order whose name matches ignoring case.
+#if NETCOREAPP3_0_OR_GREATER
+        private static object? FindMemberByName(Type type, string value, bool ignoreCase)
+#else
+        [return: MaybeNull]
+        private static object FindMemberByName(Type type, string value, bool ignoreCase)
+#endif
+        {
+            if (GetCachedTypeFieldsByName(type).TryGetValue(value, out var exactMatch))
+                return exactMatch;
+            if (!ignoreCase)
+                return null;
+
+            foreach (var member in GetCachedTypeMembers(type))
+            {
+                if (string.Equals(member.Key, value, StringComparison.OrdinalIgnoreCase))
+                    return member.Value;
+            }
+
+            return null;
+        }
+
+        // An exact (ordinal) match wins. Otherwise, when ignoring case, the first member in declaration order whose value matches ignoring case.
+#if NETCOREAPP3_0_OR_GREATER
+        private static object? FindMemberByValue(Type type, string? value, bool ignoreCase)
+#else
+        [return: MaybeNull]
+        private static object FindMemberByValue(Type type, [AllowNull] string value, bool ignoreCase)
+#endif
+        {
+#if NETCOREAPP3_0_OR_GREATER
+            object? caseInsensitiveMatch = null;
+#else
+            object caseInsensitiveMatch = null;
+#endif
+            foreach (var grp in GetCachedTypeFieldsByValue(type))
+            {
+                var memberValue = Cast(grp.Key);
+                if (string.Equals(memberValue, value, StringComparison.Ordinal))
+                    return grp.Key;
+                if (ignoreCase && caseInsensitiveMatch is null && string.Equals(memberValue, value, StringComparison.OrdinalIgnoreCase))
+                    caseInsensitiveMatch = grp.Key;
+            }
+
+            return caseInsensitiveMatch;
+        }
+
         private static IDictionary<string, object> GetCachedTypeFieldsByName(Type type)
         {
             if (type != _cacheFieldsType)
@@ -715,6 +742,20 @@ namespace DataStandardizer.Core
             return _cacheFieldsByName!;
 #else
             return _cacheFieldsByName;
+#endif
+        }
+
+        private static List<KeyValuePair<string, object>> GetCachedTypeMembers(Type type)
+        {
+            if (type != _cacheFieldsType)
+            {
+                RefreshCachedTypeFields(type);
+            }
+
+#if NETCOREAPP3_0_OR_GREATER
+            return _cacheMembers!;
+#else
+            return _cacheMembers;
 #endif
         }
 
@@ -775,6 +816,7 @@ namespace DataStandardizer.Core
             // Build everything before publishing any of it, so that a failure leaves the cache as it was.
             var fieldsByValue = members.ToLookup(member => member.Value, member => member.Key);
             _cacheFieldsByName = fieldsByName;
+            _cacheMembers = members;
             _cacheFieldsByValue = fieldsByValue;
             _cacheFieldsType = type;
         }
