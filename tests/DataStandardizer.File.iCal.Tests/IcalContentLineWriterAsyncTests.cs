@@ -363,11 +363,11 @@ namespace DataStandardizer.File.iCal.Tests
         #region Cancellation
 
         /// <summary>
-        /// A writer with an operation on it that is canceled.
+        /// A writer with an operation on it.
         /// </summary>
-        public sealed class CanceledOperation
+        public sealed class WriterOperation
         {
-            public CanceledOperation(IcalContentLineWriter writer, Func<Task> operation)
+            public WriterOperation(IcalContentLineWriter writer, Func<Task> operation)
             {
                 Writer = writer;
                 Operation = operation;
@@ -379,9 +379,9 @@ namespace DataStandardizer.File.iCal.Tests
         }
 
         // Each way an operation is canceled, with each member that the writer then rejects.
-        public static TheoryData<string, Func<CanceledOperation>, Action<IcalContentLineWriter>> MembersAfterCancellation()
+        public static TheoryData<string, Func<WriterOperation>, Action<IcalContentLineWriter>> MembersAfterCancellation()
         {
-            var scenarios = new List<(string, Func<CanceledOperation>)>
+            var scenarios = new List<(string, Func<WriterOperation>)>
             {
                 ("WriteLineAsync", () => CreateCanceledOperation(writer => writer.WriteLineAsync(LineA, new CancellationToken(true)).AsTask())),
                 ("WriteLinesAsync", () => CreateCanceledOperation(writer => writer.WriteLinesAsync(new[] { LineA }, cancellationToken: new CancellationToken(true)))),
@@ -398,7 +398,7 @@ namespace DataStandardizer.File.iCal.Tests
                 writer => _ = writer.WriteLineAsync(LineA),
                 writer => _ = writer.FlushAsync(),
             };
-            var data = new TheoryData<string, Func<CanceledOperation>, Action<IcalContentLineWriter>>();
+            var data = new TheoryData<string, Func<WriterOperation>, Action<IcalContentLineWriter>>();
             foreach (var (name, scenario) in scenarios)
             {
                 foreach (var member in members)
@@ -424,20 +424,6 @@ namespace DataStandardizer.File.iCal.Tests
             // assert
             await testAction.Should().ThrowAsync<OperationCanceledException>();
             text.ToString().Should().BeEmpty();
-        }
-
-        [Fact]
-        public void WriteLineAsync_OperationCanceledWithoutCanceledTokenFromTextWriter_FaultsTask()
-        {
-            // arrange
-            var writer = new IcalContentLineWriter(new SynchronouslyThrowingTextWriter(() => new OperationCanceledException()));
-
-            // act
-            var write = writer.WriteLineAsync(LineA).AsTask();
-
-            // assert
-            write.IsFaulted.Should().BeTrue();
-            write.Exception.InnerException.Should().BeOfType<OperationCanceledException>();
         }
 
         [Fact]
@@ -530,28 +516,175 @@ namespace DataStandardizer.File.iCal.Tests
         }
 #endif
 
-        [Fact]
-        public async Task WriteLineAsync_TextWriterThrowsCancellationFromCall_CancelsTask()
+        // Each asynchronous operation.
+        private static readonly (string Name, Func<IcalContentLineWriter, CancellationToken, Task> Run)[] AsyncOperations =
+        {
+            ("WriteLineAsync", (writer, token) => writer.WriteLineAsync(LineA, token).AsTask()),
+            ("WriteLinesAsync", (writer, token) => writer.WriteLinesAsync(new[] { LineA }, cancellationToken: token)),
+            ("WriteLinesAsync from an asynchronous sequence", (writer, token) => writer.WriteLinesAsync(ToAsyncEnumerable(new[] { LineA }), cancellationToken: token)),
+            ("FlushAsync", (writer, token) => writer.FlushAsync(token)),
+        };
+
+        // Each way the text writer can report a failure.
+        private static readonly FailureTiming[] FailureTimings =
+        {
+            FailureTiming.FromCall, FailureTiming.AsFaultedTask, FailureTiming.AsCanceledTask, FailureTiming.AfterYielding
+        };
+
+        // Each asynchronous operation, with each way the text writer can report a failure.
+        public static TheoryData<string, Func<IcalContentLineWriter, CancellationToken, Task>, FailureTiming> OperationsWithTextWriterFailures()
+        {
+            var data = new TheoryData<string, Func<IcalContentLineWriter, CancellationToken, Task>, FailureTiming>();
+            foreach (var (name, run) in AsyncOperations)
+            {
+                foreach (var timing in FailureTimings)
+                {
+                    data.Add(name, run, timing);
+                }
+            }
+
+            return data;
+        }
+
+        // Each asynchronous operation, with each way the text writer can report a failure, each OperationCanceledException it can fail with while
+        // the caller's token isn't canceled, and the exception the task then faults with.  A canceled task carries no exception of its own, so
+        // awaiting it gives a TaskCanceledException, whatever exception the text writer was given.
+        public static TheoryData<string, Func<IcalContentLineWriter, CancellationToken, Task>, FailureTiming, Func<Exception>, Type> OperationsWithTextWriterCancellationFaults()
+        {
+            var exceptions = new (string, Func<Exception>)[]
+            {
+                ("no token", () => new OperationCanceledException()),
+                ("another, canceled token", () => new OperationCanceledException(new CancellationToken(true))),
+            };
+            var data = new TheoryData<string, Func<IcalContentLineWriter, CancellationToken, Task>, FailureTiming, Func<Exception>, Type>();
+            foreach (var (name, run) in AsyncOperations)
+            {
+                foreach (var timing in FailureTimings)
+                {
+                    foreach (var (exceptionName, createException) in exceptions)
+                    {
+                        var expectedType = timing == FailureTiming.AsCanceledTask ? typeof(TaskCanceledException) : typeof(OperationCanceledException);
+                        data.Add(name + ", " + exceptionName, run, timing, createException, expectedType);
+                    }
+                }
+            }
+
+            return data;
+        }
+
+        [Theory]
+        [MemberData(nameof(OperationsWithTextWriterCancellationFaults), DisableDiscoveryEnumeration = true)]
+        public async Task AsyncOperation_TextWriterFailsWithOperationCanceledWhileTokenIsNotCanceled_FaultsTask(string scenario,
+            Func<IcalContentLineWriter, CancellationToken, Task> run, FailureTiming timing, Func<Exception> createException, Type expectedExceptionType)
         {
             // arrange
+            _ = scenario;
+            var writer = new IcalContentLineWriter(new FailingTextWriter(createException, timing));
+
+            // act: wait for the operation to finish without throwing, so that its status can be checked.
+            var task = run(writer, CancellationToken.None);
+            await Task.WhenAny(task);
+
+            // assert
+            task.IsFaulted.Should().BeTrue();
+            task.Exception.InnerException.Should().BeOfType(expectedExceptionType);
+        }
+
+        [Theory]
+        [MemberData(nameof(OperationsWithTextWriterFailures), DisableDiscoveryEnumeration = true)]
+        public async Task WriteLineAsync_AfterOperationCanceledWhileTokenIsNotCanceled_WritesTheLine(string operation,
+            Func<IcalContentLineWriter, CancellationToken, Task> run, FailureTiming timing)
+        {
+            // arrange
+            _ = operation;
+            var text = new FailingTextWriter(() => new OperationCanceledException(), timing);
+            var writer = new IcalContentLineWriter(text);
+            await Record.ExceptionAsync(() => run(writer, CancellationToken.None));
+
+            // act
+            await writer.WriteLineAsync(LineA);
+
+            // assert
+            text.ToString().Should().Be(LineAWithCrlf);
+        }
+
+        [Theory]
+        [MemberData(nameof(OperationsWithTextWriterFailures), DisableDiscoveryEnumeration = true)]
+        public async Task AsyncOperation_TokenCanceledAndTextWriterFailsWithCancellationOfAnotherToken_CancelsTask(string operation,
+            Func<IcalContentLineWriter, CancellationToken, Task> run, FailureTiming timing)
+        {
+            // arrange
+            _ = operation;
+            var text = new FailingTextWriter(() => new OperationCanceledException(new CancellationToken(true)), timing);
+            var writer = new IcalContentLineWriter(text);
             using (var cancellationTokenSource = new CancellationTokenSource())
             {
-                await TestTasks.CancelAsync(cancellationTokenSource);
-                var writer = new IcalContentLineWriter(new SynchronouslyThrowingTextWriter(() => new OperationCanceledException(cancellationTokenSource.Token)));
+                text.OnFailure = cancellationTokenSource.Cancel;
 
-                // act
-                var task = writer.WriteLineAsync(LineA);
-                Func<Task> testAction = async () => await task;
+                // act: wait for the operation to finish without throwing, so that its status can be checked.
+                var task = run(writer, cancellationTokenSource.Token);
+                await Task.WhenAny(task);
 
                 // assert
-                await testAction.Should().ThrowAsync<OperationCanceledException>();
                 task.IsCanceled.Should().BeTrue();
             }
         }
 
         [Theory]
+        [MemberData(nameof(OperationsWithTextWriterFailures), DisableDiscoveryEnumeration = true)]
+        public async Task WriteLine_AfterTokenCanceledAndTextWriterFailsWithCancellationOfNoToken_ThrowsInvalidOperation(string operation,
+            Func<IcalContentLineWriter, CancellationToken, Task> run, FailureTiming timing)
+        {
+            // arrange
+            _ = operation;
+            var text = new FailingTextWriter(() => new OperationCanceledException(), timing);
+            var writer = new IcalContentLineWriter(text);
+            using (var cancellationTokenSource = new CancellationTokenSource())
+            {
+                text.OnFailure = cancellationTokenSource.Cancel;
+                await Record.ExceptionAsync(() => run(writer, cancellationTokenSource.Token));
+
+                // act
+                Action testAction = () => writer.WriteLine(LineA);
+
+                // assert
+                testAction.Should().Throw<InvalidOperationException>().WithMessage(CanceledMessage);
+            }
+        }
+
+        // Each asynchronous operation that releases the writer, on a writer over a stream whose flush throws an OperationCanceledException when the
+        // writer is released.  Each but DisposeAsync disposes of the writer during the operation.
+        public static TheoryData<string, Func<WriterOperation>> OperationsWhoseReleaseFailsWithOperationCanceled => new TheoryData<string, Func<WriterOperation>>
+        {
+            { "WriteLineAsync that doesn't wait", () => CreateDisposalDuringWrite(true, writer => writer.WriteLineAsync(LongLineWrittenThrough).AsTask()) },
+            { "WriteLineAsync that fails without waiting", CreateDisposalDuringFailedWrite },
+            { "WriteLineAsync that waits", () => CreateDisposalDuringWrite(false, writer => writer.WriteLineAsync(LongLineWrittenThrough).AsTask()) },
+            { "WriteLinesAsync", () => CreateDisposalDuringWrite(false, writer => writer.WriteLinesAsync(new[] { LongLineWrittenThrough })) },
+            { "WriteLinesAsync from an asynchronous sequence", () => CreateDisposalDuringWrite(false, writer => writer.WriteLinesAsync(ToAsyncEnumerable(new[] { LongLineWrittenThrough }))) },
+            { "FlushAsync", CreateDisposalDuringFlush },
+            { "DisposeAsync", CreateFailingDisposeAsync },
+        };
+
+        [Theory]
+        [MemberData(nameof(OperationsWhoseReleaseFailsWithOperationCanceled), DisableDiscoveryEnumeration = true)]
+        public async Task AsyncOperation_ReleaseFailsWithOperationCanceled_FaultsTask(string scenario, Func<WriterOperation> createOperation)
+        {
+            // arrange
+            _ = scenario;
+            var operation = createOperation();
+
+            // act: wait for the operation to finish without throwing, so that its status can be checked.
+            var task = operation.Operation();
+            await Task.WhenAny(task);
+
+            // assert
+            task.IsFaulted.Should().BeTrue();
+            task.Exception.InnerException.Should().BeOfType<OperationCanceledException>();
+        }
+
+        [Theory]
         [MemberData(nameof(MembersAfterCancellation), DisableDiscoveryEnumeration = true)]
-        public async Task Member_AfterCancellation_ThrowsInvalidOperation(string scenario, Func<CanceledOperation> createCanceledOperation,
+        public async Task Member_AfterCancellation_ThrowsInvalidOperation(string scenario, Func<WriterOperation> createCanceledOperation,
             Action<IcalContentLineWriter> member)
         {
             // arrange
@@ -833,26 +966,27 @@ namespace DataStandardizer.File.iCal.Tests
             await second.DisposeAsync();
         }
 
-        private static CanceledOperation CreateCanceledOperation(Func<IcalContentLineWriter, Task> operation)
+        private static WriterOperation CreateCanceledOperation(Func<IcalContentLineWriter, Task> operation)
         {
             var writer = new IcalContentLineWriter(new AsyncOnlyTextWriter());
-            return new CanceledOperation(writer, () => operation(writer));
+            return new WriterOperation(writer, () => operation(writer));
         }
 
-        private static CanceledOperation CreateTextWriterCancellation()
+        // The caller's token is canceled during the write, and the text writer then throws an exception that carries no token.
+        private static WriterOperation CreateTextWriterCancellation()
         {
             var cancellationTokenSource = new CancellationTokenSource();
-            cancellationTokenSource.Cancel();
-            var writer = new IcalContentLineWriter(new SynchronouslyThrowingTextWriter(() => new OperationCanceledException(cancellationTokenSource.Token)));
-            return new CanceledOperation(writer, () => writer.WriteLineAsync(LineA).AsTask());
+            var text = new FailingTextWriter(() => new OperationCanceledException(), FailureTiming.FromCall) { OnFailure = cancellationTokenSource.Cancel };
+            var writer = new IcalContentLineWriter(text);
+            return new WriterOperation(writer, () => writer.WriteLineAsync(LineA, cancellationTokenSource.Token).AsTask());
         }
 
 #if NETCOREAPP2_1_OR_GREATER
-        private static CanceledOperation CreateCancellationDuringWrite()
+        private static WriterOperation CreateCancellationDuringWrite()
         {
             var text = new GatedTextWriter();
             var writer = new IcalContentLineWriter(text);
-            return new CanceledOperation(writer, async () =>
+            return new WriterOperation(writer, async () =>
             {
                 using (var cancellationTokenSource = new CancellationTokenSource())
                 {
@@ -864,6 +998,47 @@ namespace DataStandardizer.File.iCal.Tests
             });
         }
 #endif
+
+        // A writer over a stream that disposes of the writer as it is written, and whose flush, when the writer is then released, throws.
+        private static WriterOperation CreateDisposalDuringWrite(bool completeSynchronously, Func<IcalContentLineWriter, Task> operation)
+        {
+            var stream = new AsyncOnlyWriteStream(completeSynchronously) { CreateFlushException = () => new OperationCanceledException() };
+            var writer = new IcalContentLineWriter(stream, new IcalOptions(), StreamBufferSmallerThanALine);
+            stream.OnWrite = writer.Dispose;
+            return new WriterOperation(writer, () => operation(writer));
+        }
+
+        // As CreateDisposalDuringWrite, but the first write to the stream also fails, without waiting.
+        private static WriterOperation CreateDisposalDuringFailedWrite()
+        {
+            var stream = new AsyncOnlyWriteStream(completeSynchronously: true)
+            {
+                CreateFlushException = () => new OperationCanceledException(),
+                FirstWriteException = new IOException(DiskFullMessage),
+            };
+            var writer = new IcalContentLineWriter(stream, new IcalOptions(), StreamBufferSmallerThanALine);
+            stream.OnWrite = writer.Dispose;
+            return new WriterOperation(writer, () => writer.WriteLineAsync(LongLineWrittenThrough).AsTask());
+        }
+
+        // A writer over a stream that disposes of the writer as it is flushed.  That flush succeeds, and the flush when the writer is then released
+        // throws.
+        private static WriterOperation CreateDisposalDuringFlush()
+        {
+            var flushExceptions = new Queue<Exception>(new Exception[] { null, new OperationCanceledException() });
+            var stream = new AsyncOnlyWriteStream { CreateFlushException = flushExceptions.Dequeue };
+            var writer = new IcalContentLineWriter(stream, new IcalOptions(), StreamBufferSmallerThanALine);
+            stream.OnFlush = writer.Dispose;
+            return new WriterOperation(writer, () => writer.FlushAsync());
+        }
+
+        // A writer over a stream whose flush, when the writer is disposed, throws.
+        private static WriterOperation CreateFailingDisposeAsync()
+        {
+            var stream = new AsyncOnlyWriteStream { CreateFlushException = () => new OperationCanceledException() };
+            var writer = new IcalContentLineWriter(stream);
+            return new WriterOperation(writer, () => writer.DisposeAsync().AsTask());
+        }
 
         private static IAsyncEnumerable<IcalContentLine> ToAsyncEnumerable(IEnumerable<IcalContentLine> lines)
         {

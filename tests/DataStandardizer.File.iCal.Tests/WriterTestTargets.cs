@@ -27,6 +27,22 @@ namespace DataStandardizer.File.iCal.Tests
         /// </summary>
         public Action OnWrite { get; set; }
 
+        /// <summary>
+        /// Gets or sets an exception that the first write throws, after <see cref="OnWrite"/> and without yielding; or <c>null</c>.  Later writes
+        /// succeed.
+        /// </summary>
+        public Exception FirstWriteException { get; set; }
+
+        /// <summary>
+        /// Gets or sets a callback that each flush runs first.  A test uses it to dispose of the writer during a flush.
+        /// </summary>
+        public Action OnFlush { get; set; }
+
+        /// <summary>
+        /// Gets or sets a function that each flush calls after yielding, for the exception to fail with, or <c>null</c> to succeed.
+        /// </summary>
+        public Func<Exception> CreateFlushException { get; set; }
+
         public override bool CanRead => false;
 
         public override bool CanSeek => false;
@@ -57,7 +73,12 @@ namespace DataStandardizer.File.iCal.Tests
 
         public override async Task FlushAsync(CancellationToken cancellationToken)
         {
+            OnFlush?.Invoke();
             await Task.Yield();
+            var exception = CreateFlushException?.Invoke();
+            if (exception != null)
+                throw exception;
+
             FlushCount++;
         }
 
@@ -100,6 +121,11 @@ namespace DataStandardizer.File.iCal.Tests
 #endif
         {
             OnWrite?.Invoke();
+            var exception = FirstWriteException;
+            FirstWriteException = null;
+            if (exception != null)
+                throw exception;
+
             if (!_completeSynchronously)
             {
                 await Task.Yield();
@@ -311,6 +337,118 @@ namespace DataStandardizer.File.iCal.Tests
             throw _createException();
         }
 #endif
+    }
+
+    /// <summary>
+    /// When <see cref="FailingTextWriter"/> reports its failure.
+    /// </summary>
+    public enum FailureTiming
+    {
+        /// <summary>Thrown from the call, before a task is returned.</summary>
+        FromCall,
+
+        /// <summary>By a task that has already faulted when it is returned.</summary>
+        AsFaultedTask,
+
+        /// <summary>By a task that has already been canceled, for another token, when it is returned, as a <see cref="StreamWriter"/> does for
+        /// a canceled token.  The exception the test supplies isn't used.</summary>
+        AsCanceledTask,
+
+        /// <summary>By an async method that throws after yielding.  Its task is canceled for an <see cref="OperationCanceledException"/>, as
+        /// the async method builder does, and faulted for any other exception.</summary>
+        AfterYielding
+    }
+
+    /// <summary>
+    /// A text writer whose first asynchronous write or flush fails with an exception the test supplies, at the time <see cref="FailureTiming"/>
+    /// says.  Later writes and flushes succeed without waiting.
+    /// </summary>
+    internal sealed class FailingTextWriter : TextWriter
+    {
+        private readonly Func<Exception> _createException;
+        private readonly StringBuilder _text = new StringBuilder();
+        private readonly FailureTiming _timing;
+        private bool _hasFailed;
+
+        public FailingTextWriter(Func<Exception> createException, FailureTiming timing)
+        {
+            _createException = createException;
+            _timing = timing;
+        }
+
+        /// <summary>
+        /// Gets or sets a callback that the failing write or flush runs first.  A test uses it to cancel the caller's token during the call.
+        /// </summary>
+        public Action OnFailure { get; set; }
+
+        public override Encoding Encoding => new UTF8Encoding(false);
+
+        public override string ToString() => _text.ToString();
+
+        public override void Write(char value)
+        {
+            throw new InvalidOperationException(AsyncPathMessages.SynchronousWrite);
+        }
+
+        public override void Flush()
+        {
+            throw new InvalidOperationException(AsyncPathMessages.SynchronousFlush);
+        }
+
+        public override Task WriteAsync(char[] buffer, int index, int count)
+        {
+            return WriteAsync(buffer.AsMemory(index, count));
+        }
+
+#if NETCOREAPP2_1_OR_GREATER
+        public override Task WriteAsync(ReadOnlyMemory<char> buffer, CancellationToken cancellationToken = default)
+#else
+        public Task WriteAsync(ReadOnlyMemory<char> buffer, CancellationToken cancellationToken = default)
+#endif
+        {
+            if (!_hasFailed)
+            {
+                return Fail();
+            }
+
+            _text.Append(buffer.ToString());
+            return Task.CompletedTask;
+        }
+
+        public override Task FlushAsync()
+        {
+            return _hasFailed ? Task.CompletedTask : Fail();
+        }
+
+#if NET8_0_OR_GREATER
+        public override Task FlushAsync(CancellationToken cancellationToken)
+        {
+            return FlushAsync();
+        }
+#endif
+
+        private Task Fail()
+        {
+            _hasFailed = true;
+            OnFailure?.Invoke();
+            switch (_timing)
+            {
+                case FailureTiming.FromCall:
+                    throw _createException();
+                case FailureTiming.AsFaultedTask:
+                    return Task.FromException(_createException());
+                case FailureTiming.AsCanceledTask:
+                    return Task.FromCanceled(new CancellationToken(true));
+                default:
+                    return FailAfterYieldingAsync();
+            }
+        }
+
+        private async Task FailAfterYieldingAsync()
+        {
+            await Task.Yield();
+            throw _createException();
+        }
     }
 
     /// <summary>
