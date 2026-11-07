@@ -67,17 +67,12 @@ namespace DataStandardizer.File.vCard.Tests
             write.Status.Should().Be(expected);
         }
 
-        // Each timing that reports the failure by the task, and whether the task has completed when it is returned.
-        public static TheoryData<FailureTiming, bool> CompletionOnReturn => new TheoryData<FailureTiming, bool>
-        {
-            { FailureTiming.AsFaultedTask, true },
-            { FailureTiming.AsCanceledTask, true },
-            { FailureTiming.AfterYielding, false },
-        };
-
+        // Each timing that reports the failure by a task that has already completed when it is returned.  Whether a task that yields has completed
+        // by the time it is returned depends on the thread pool, so AfterYielding isn't checked.
         [Theory]
-        [MemberData(nameof(CompletionOnReturn))]
-        public void FailingTextWriter_WriteAsyncByTask_IsCompletedOnReturnAsTimingSays(FailureTiming timing, bool expected)
+        [InlineData(FailureTiming.AsFaultedTask)]
+        [InlineData(FailureTiming.AsCanceledTask)]
+        public void FailingTextWriter_WriteAsyncByCompletedTask_IsCompletedOnReturn(FailureTiming timing)
         {
             // arrange
             var text = new FailingTextWriter(() => new IOException(), timing);
@@ -86,7 +81,7 @@ namespace DataStandardizer.File.vCard.Tests
             var write = text.WriteAsync(TextChars, 0, TextChars.Length);
 
             // assert
-            write.IsCompleted.Should().Be(expected);
+            write.IsCompleted.Should().BeTrue();
         }
 
         [Fact]
