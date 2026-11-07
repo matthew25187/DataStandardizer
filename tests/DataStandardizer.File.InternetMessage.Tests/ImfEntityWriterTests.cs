@@ -22,6 +22,9 @@ namespace DataStandardizer.File.InternetMessage.Tests
         // The most the writer hands to the stream at once when it encodes a body, and an input block whose base64 is longer than that.
         private const int EncodedBlockSize = 16 * 1024;
         private const int LargeBlockSize = 64 * 1024;
+
+        // Longer than either block the writer rents, as ArrayPool<T>.Rent may give.
+        private const int RentedArrayLength = 128 * 1024;
         private const string FixedBoundaryType = "multipart/mixed;boundary=given";
 
         // ref. RFC 5322 §2.1.1
@@ -270,6 +273,24 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var source = ImfEntitySource.FromContent(MimeMediaType.TextPlain, BodyLargerThanTheEncodedBlock);
             source.TransferEncoding = MimeTransferEncoding.Base64;
             using (var writer = new ImfEntityWriter(new MemoryStream(), new ImfOptions(), LargeBlockSize, false, MessageWrites.NextBoundary()))
+            {
+                // act
+                writer.WriteMessage(source, progress);
+            }
+
+            // assert
+            progress.LargestStep.Should().BeLessOrEqualTo(EncodedBlockSize);
+        }
+
+        [Fact]
+        public void WriteMessage_RentedArraysLongerThanTheBlocks_ReportsEachBlockOfOutput()
+        {
+            // arrange
+            var progress = new RecordingProgress();
+            var source = ImfEntitySource.FromContent(MimeMediaType.TextPlain, BodyLargerThanTheEncodedBlock);
+            source.TransferEncoding = MimeTransferEncoding.Base64;
+            using (var writer = new ImfEntityWriter(new MemoryStream(), new ImfOptions(), LargeBlockSize, false, MessageWrites.NextBoundary(),
+                       new FixedLengthArrayPool(RentedArrayLength)))
             {
                 // act
                 writer.WriteMessage(source, progress);

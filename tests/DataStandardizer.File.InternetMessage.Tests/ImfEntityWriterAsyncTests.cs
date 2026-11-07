@@ -21,6 +21,9 @@ namespace DataStandardizer.File.InternetMessage.Tests
         // The most the writer hands to the stream at once when it encodes a body, and an input block whose base64 is longer than that.
         private const int EncodedBlockSize = 16 * 1024;
         private const int LargeBlockSize = 64 * 1024;
+
+        // Longer than either block the writer rents, as ArrayPool<T>.Rent may give.
+        private const int RentedArrayLength = 128 * 1024;
         private const string OneByteBody = "x";
 
         public static TheoryData<string, string> RoundTrips => ImfEntityWriterTests.RoundTrips;
@@ -326,6 +329,23 @@ namespace DataStandardizer.File.InternetMessage.Tests
             var source = ImfEntitySource.FromContent(MimeMediaType.TextPlain, new byte[LargeBlockSize]);
             source.TransferEncoding = MimeTransferEncoding.Base64;
             var writer = new ImfEntityWriter(new ModeWriteStream(BlockStreamMode.AsynchronousOnly), new ImfOptions(), LargeBlockSize, false, MessageWrites.NextBoundary());
+
+            // act
+            await AsyncDisposal.UsingAsync(writer, () => writer.WriteMessageAsync(source, progress));
+
+            // assert
+            progress.LargestStep.Should().BeLessOrEqualTo(EncodedBlockSize);
+        }
+
+        [Fact]
+        public async Task WriteMessageAsync_RentedArraysLongerThanTheBlocks_ReportsEachBlockOfOutput()
+        {
+            // arrange
+            var progress = new RecordingProgress();
+            var source = ImfEntitySource.FromContent(MimeMediaType.TextPlain, new byte[LargeBlockSize]);
+            source.TransferEncoding = MimeTransferEncoding.Base64;
+            var writer = new ImfEntityWriter(new ModeWriteStream(BlockStreamMode.AsynchronousOnly), new ImfOptions(), LargeBlockSize, false, MessageWrites.NextBoundary(),
+                new FixedLengthArrayPool(RentedArrayLength));
 
             // act
             await AsyncDisposal.UsingAsync(writer, () => writer.WriteMessageAsync(source, progress));

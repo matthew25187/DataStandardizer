@@ -1,5 +1,4 @@
-﻿using System.Buffers;
-using FluentAssertions;
+﻿using FluentAssertions;
 using Xunit;
 
 namespace DataStandardizer.File.InternetMessage.Tests
@@ -27,28 +26,6 @@ namespace DataStandardizer.File.InternetMessage.Tests
             // assert
             offset.Should().Be(0);
             count.Should().Be(BlockLength);
-        }
-
-        /// <summary>
-        /// A pool that rents a new array of one fixed length, whatever length is asked for, and keeps nothing that is returned.
-        /// </summary>
-        private sealed class FixedLengthArrayPool : ArrayPool<byte>
-        {
-            private readonly int _length;
-
-            public FixedLengthArrayPool(int length)
-            {
-                _length = length;
-            }
-
-            public override byte[] Rent(int minimumLength)
-            {
-                return new byte[_length];
-            }
-
-            public override void Return(byte[] array, bool clearArray = false)
-            {
-            }
         }
     }
 }
