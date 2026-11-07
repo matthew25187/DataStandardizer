@@ -232,8 +232,9 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <remarks>
         /// May be called more than once, and shares its state with <see cref="Dispose"/>.  If an operation is in progress, it completes with
-        /// <see cref="ObjectDisposedException"/>, unless it fails for another reason, and the writer is flushed and released once that operation has finished.  The writer is
-        /// disposed even if the flush throws.
+        /// <see cref="ObjectDisposedException"/>, unless it fails for another reason, and the writer is flushed and released once that operation
+        /// has finished.  The writer is disposed even if the flush throws, and the task then faults with the flush's exception, even an
+        /// <see cref="OperationCanceledException"/>.
         /// </remarks>
         /// <returns>A task that completes once the writer has been flushed and released, or immediately if an operation is in progress.</returns>
         public ValueTask DisposeAsync()
@@ -242,7 +243,7 @@ namespace DataStandardizer.File.vCard
 
             if (Volatile.Read(ref _isOperationInProgress) == 0 && MarkReleased())
             {
-                return ReleaseAsync();
+                return ReleaseThenCompleteAsync(Task.CompletedTask);
             }
 
             return default(ValueTask);
@@ -357,21 +358,23 @@ namespace DataStandardizer.File.vCard
         /// <summary>
         /// Flushes the underlying text writer asynchronously, whether the writer created it or it was supplied by the caller.
         /// </summary>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests.  If the flush is canceled, the writer cannot
-        /// continue.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.  The flush is canceled only if this token is
+        /// canceled, and the writer then cannot continue.</param>
         /// <returns>A task that completes once the text writer has been flushed.</returns>
         /// <exception cref="ObjectDisposedException">The writer has been disposed.  Thrown by this call, or by the task if the writer is disposed
         /// while the flush is in progress.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
         /// An earlier asynchronous operation was canceled, so the writer cannot continue.</exception>
-        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.</exception>
+        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.  The task is canceled,
+        /// whatever token the exception carries.  If <paramref name="cancellationToken"/> isn't canceled, an <see cref="OperationCanceledException"/>
+        /// from the underlying text writer faults the task, as an I/O error does, and the writer can continue.</exception>
         public Task FlushAsync(CancellationToken cancellationToken = default)
         {
             // Errors in how the writer is used are thrown now; errors in the I/O, and cancellation, go to the task.
             ThrowIfDisposed();
             BeginOperation();
-            return FlushCoreAsync(cancellationToken);
+            return FlushCoreAsync(cancellationToken).Unwrap();
         }
 
         /// <summary>
@@ -383,8 +386,8 @@ namespace DataStandardizer.File.vCard
         /// flushed and released.
         /// </remarks>
         /// <param name="line">The line.</param>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests.  If the write is canceled, the writer cannot
-        /// continue.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.  The write is canceled only if this token is
+        /// canceled, and the writer then cannot continue.</param>
         /// <returns>A task that completes once the line has been handed to the underlying text writer.</returns>
         /// <exception cref="ObjectDisposedException">The writer has been disposed.  Thrown by this call, or by the task if the writer is disposed
         /// while the write is in progress.</exception>
@@ -395,7 +398,9 @@ namespace DataStandardizer.File.vCard
         /// <exception cref="VcardFileException">By the task: the line cannot be written: the group or a name is not valid, or a parameter value or
         /// the value holds a character that is not allowed, or that only caret encoding can represent outside a vCard 4.0 card.  Nothing has been
         /// written.</exception>
-        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.</exception>
+        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.  The task is canceled,
+        /// whatever token the exception carries.  If <paramref name="cancellationToken"/> isn't canceled, an <see cref="OperationCanceledException"/>
+        /// from the underlying text writer faults the task, as an I/O error does, and the writer can continue.</exception>
         public ValueTask WriteLineAsync(VcardContentLine line, CancellationToken cancellationToken = default)
         {
             // Errors in how the writer is used are thrown now; errors in the line or the I/O, and cancellation, go to the task.
@@ -405,47 +410,37 @@ namespace DataStandardizer.File.vCard
 
             BeginOperation();
             ValueTask write;
-            var isCanceled = false;
             try
             {
                 if (cancellationToken.IsCancellationRequested)
                 {
-                    isCanceled = true;
+                    _isCanceled = true;
                     write = new ValueTask(Task.FromCanceled(cancellationToken));
                 }
                 else
                 {
                     write = WriteLineCoreAsync(line, cancellationToken);
+                    if (write.IsCompleted && !write.IsCompletedSuccessfully)
+                    {
+                        // The text writer's task failed without waiting.  Take its exception, so that it is decided as one thrown by the call.
+                        write.GetAwaiter().GetResult();
+                    }
                 }
-            }
-            catch (OperationCanceledException exception)
-            {
-                // Thrown by the call when the text writer, or the netstandard2.0 check before the write, sees the cancellation first.
-                isCanceled = true;
-                write = new ValueTask(exception.CancellationToken.IsCancellationRequested
-                    ? Task.FromCanceled(exception.CancellationToken)
-                    : Task.FromException(exception));
             }
             catch (Exception exception)
             {
-                write = new ValueTask(Task.FromException(exception));
+                // A line that can't be written, which writing continues past, costs nothing more than this failed task.
+                write = new ValueTask(FailOperation(exception, cancellationToken));
             }
 
             if (!write.IsCompleted)
             {
-                return CompleteOperationAsync(write);
+                return CompleteOperationAsync(write, cancellationToken);
             }
 
             if (!write.IsCompletedSuccessfully)
             {
-                // A write that failed without waiting is returned as it is, so that a line that can't be written, which writing continues past,
-                // costs nothing more.
-                if (isCanceled || write.IsCanceled)
-                {
-                    _isCanceled = true;
-                }
-
-                return EndOperation() ? CompleteFailedOperationAsync(write) : write;
+                return EndOperation() ? ReleaseThenCompleteAsync(write.AsTask()) : write;
             }
 
             // Read before the operation ends, as WriteLine and CompleteOperationAsync check, so that a Dispose that began during the write is
@@ -454,12 +449,11 @@ namespace DataStandardizer.File.vCard
             var mustRelease = EndOperation();
             if (isDisposed)
             {
-                return mustRelease
-                    ? CompleteDisposedOperationAsync()
-                    : new ValueTask(Task.FromException(new ObjectDisposedException(GetType().Name)));
+                var disposed = Task.FromException(new ObjectDisposedException(GetType().Name));
+                return mustRelease ? ReleaseThenCompleteAsync(disposed) : new ValueTask(disposed);
             }
 
-            return mustRelease ? ReleaseAsync() : default(ValueTask);
+            return mustRelease ? ReleaseThenCompleteAsync(Task.CompletedTask) : default(ValueTask);
         }
 
         /// <summary>
@@ -471,8 +465,8 @@ namespace DataStandardizer.File.vCard
         /// <param name="lines">The lines.</param>
         /// <param name="progress">Receives the progress after each line has been handed to the underlying text writer, synchronously on the
         /// writing thread; or <c>null</c>.  An exception it throws ends the call; the line it was reporting has been written.</param>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests.  If the write is canceled, the writer cannot
-        /// continue.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.  The write is canceled only if this token is
+        /// canceled, and the writer then cannot continue.</param>
         /// <returns>A task that completes once every line has been handed to the underlying text writer.</returns>
         /// <exception cref="ObjectDisposedException">The writer has been disposed.  Thrown by this call, or by the task if the writer is disposed
         /// while the write is in progress.</exception>
@@ -483,7 +477,9 @@ namespace DataStandardizer.File.vCard
         /// <exception cref="ArgumentException">By the task: <paramref name="lines"/> contains <c>null</c>.  The lines before it have been
         /// written.</exception>
         /// <exception cref="VcardFileException">By the task: a line cannot be written.  The lines before it have been written.</exception>
-        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.</exception>
+        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.  The task is canceled,
+        /// whatever token the exception carries.  If <paramref name="cancellationToken"/> isn't canceled, an <see cref="OperationCanceledException"/>
+        /// from the underlying text writer faults the task, as an I/O error does, and the writer can continue.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public Task WriteLinesAsync(IEnumerable<VcardContentLine> lines, IProgress<VcardWriteProgress>? progress = null,
 #else
@@ -496,7 +492,7 @@ namespace DataStandardizer.File.vCard
                 throw new ArgumentNullException(nameof(lines));
 
             BeginOperation();
-            return WriteLinesCoreAsync(lines, progress, cancellationToken);
+            return WriteLinesCoreAsync(lines, progress, cancellationToken).Unwrap();
         }
 
         /// <summary>
@@ -508,8 +504,8 @@ namespace DataStandardizer.File.vCard
         /// <param name="lines">The lines.  <paramref name="cancellationToken"/> is passed to their enumerator.</param>
         /// <param name="progress">Receives the progress after each line has been handed to the underlying text writer, synchronously on the
         /// writing thread; or <c>null</c>.  An exception it throws ends the call; the line it was reporting has been written.</param>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests.  If the write is canceled, the writer cannot
-        /// continue.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.  The write is canceled only if this token is
+        /// canceled, and the writer then cannot continue.</param>
         /// <returns>A task that completes once every line has been handed to the underlying text writer.</returns>
         /// <exception cref="ObjectDisposedException">The writer has been disposed.  Thrown by this call, or by the task if the writer is disposed
         /// while the write is in progress.</exception>
@@ -520,7 +516,9 @@ namespace DataStandardizer.File.vCard
         /// <exception cref="ArgumentException">By the task: <paramref name="lines"/> contains <c>null</c>.  The lines before it have been
         /// written.</exception>
         /// <exception cref="VcardFileException">By the task: a line cannot be written.  The lines before it have been written.</exception>
-        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.</exception>
+        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.  The task is canceled,
+        /// whatever token the exception carries.  If <paramref name="cancellationToken"/> isn't canceled, an <see cref="OperationCanceledException"/>
+        /// from the underlying text writer faults the task, as an I/O error does, and the writer can continue.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public Task WriteLinesAsync(IAsyncEnumerable<VcardContentLine> lines, IProgress<VcardWriteProgress>? progress = null,
 #else
@@ -533,7 +531,7 @@ namespace DataStandardizer.File.vCard
                 throw new ArgumentNullException(nameof(lines));
 
             BeginOperation();
-            return WriteAsyncLinesCoreAsync(lines, progress, cancellationToken);
+            return WriteAsyncLinesCoreAsync(lines, progress, cancellationToken).Unwrap();
         }
 #endif
 
@@ -649,70 +647,98 @@ namespace DataStandardizer.File.vCard
         /// <summary>
         /// Continues <see cref="WriteLineAsync"/> once the write has to wait, and ends the operation.
         /// </summary>
-        private async ValueTask CompleteOperationAsync(ValueTask write)
+        private ValueTask CompleteOperationAsync(ValueTask write, CancellationToken cancellationToken)
         {
+            return new ValueTask(CompleteOperationCoreAsync(write, cancellationToken).Unwrap());
+        }
+
+        private async Task<Task> CompleteOperationCoreAsync(ValueTask write, CancellationToken cancellationToken)
+        {
+            Task outcome;
             try
             {
                 await write.ConfigureAwait(false);
                 ThrowIfDisposed();
+                outcome = Task.CompletedTask;
             }
-            catch (OperationCanceledException)
+            catch (Exception exception)
             {
-                _isCanceled = true;
-                throw;
+                outcome = FailOperation(exception, cancellationToken);
             }
-            finally
-            {
-                if (EndOperation())
-                {
-                    await ReleaseAsync().ConfigureAwait(false);
-                }
-            }
+
+            return await EndOperationAsync(outcome).ConfigureAwait(false);
         }
 
         /// <summary>
-        /// Finishes a write that completed without waiting, during which the writer was disposed: releases the writer, then reports the disposal.
-        /// </summary>
-        private async ValueTask CompleteDisposedOperationAsync()
-        {
-            await ReleaseAsync().ConfigureAwait(false);
-            ThrowIfDisposed();
-        }
-
-        /// <summary>
-        /// Finishes a write that failed without waiting, during which the writer was disposed: releases the writer, then reports the failure.
+        /// Decides how an asynchronous operation that threw <paramref name="exception"/> completes, and returns a task that completes that way.
         /// </summary>
         /// <remarks>
-        /// The failed write's own task is returned once the writer has been released, faulted or canceled as it is.  Rethrowing its exception from
-        /// an async method would cancel the task for any <see cref="OperationCanceledException"/>, even one whose token isn't canceled.  If the
-        /// release fails, that failure is reported instead.
+        /// <para>
+        /// An <see cref="OperationCanceledException"/> is a cancellation only if the caller's <paramref name="cancellationToken"/> is canceled,
+        /// whatever token the exception carries.  The task is then canceled, and the writer cannot continue.  Any other exception, including an
+        /// <see cref="OperationCanceledException"/> while the caller's token isn't canceled, faults the task, and the writer can continue.
+        /// </para>
+        /// <para>
+        /// An async method can't be used to report the outcome, since it cancels its task for any <see cref="OperationCanceledException"/>.  The
+        /// operations return the task this method returns, unwrapped from their own where they have to wait.
+        /// </para>
         /// </remarks>
-        private ValueTask CompleteFailedOperationAsync(ValueTask write)
+        private Task FailOperation(Exception exception, CancellationToken cancellationToken)
         {
-            return new ValueTask(ReleaseThenReportAsync(write.AsTask()).Unwrap());
+            if (exception is OperationCanceledException && cancellationToken.IsCancellationRequested)
+            {
+                _isCanceled = true;
+                return Task.FromCanceled(cancellationToken);
+            }
+
+            return Task.FromException(exception);
         }
 
         /// <summary>
-        /// Releases the writer, then returns <paramref name="failed"/> for <see cref="CompleteFailedOperationAsync"/> to report.
+        /// Ends an asynchronous operation that completes as <paramref name="outcome"/>.  If the writer was disposed during the operation, releases
+        /// it first.
         /// </summary>
-        private async Task<Task> ReleaseThenReportAsync(Task failed)
+        /// <returns><paramref name="outcome"/>, or a task faulted with the release's exception if the release fails.</returns>
+        private ValueTask<Task> EndOperationAsync(Task outcome)
+        {
+            return EndOperation() ? ReleaseThenReportAsync(outcome) : new ValueTask<Task>(outcome);
+        }
+
+        /// <summary>
+        /// Releases the writer, then completes as <paramref name="outcome"/>, or faults with the release's exception if the release fails.
+        /// </summary>
+        private ValueTask ReleaseThenCompleteAsync(Task outcome)
+        {
+            var report = ReleaseThenReportAsync(outcome);
+            return report.IsCompletedSuccessfully ? new ValueTask(report.Result) : new ValueTask(report.AsTask().Unwrap());
+        }
+
+        /// <summary>
+        /// Releases the writer, then returns <paramref name="outcome"/>, or a task faulted with the release's exception if the release fails.
+        /// </summary>
+        /// <remarks>
+        /// The release takes no cancellation token, so an <see cref="OperationCanceledException"/> from it faults the task, as any other
+        /// exception does.
+        /// </remarks>
+        private async ValueTask<Task> ReleaseThenReportAsync(Task outcome)
         {
             try
             {
                 await ReleaseAsync().ConfigureAwait(false);
             }
-            catch
+            catch (Exception exception)
             {
-                // The release failure is reported; observe the write's, so that it isn't reported as unobserved.
-                _ = failed.Exception;
-                throw;
+                // The release failure is reported; observe the operation's, so that it isn't reported as unobserved.
+                _ = outcome.Exception;
+                return Task.FromException(exception);
             }
 
-            return failed;
+            return outcome;
         }
 
-        private async Task FlushCoreAsync(CancellationToken cancellationToken)
+        private async Task<Task> FlushCoreAsync(CancellationToken cancellationToken)
         {
+            Task outcome;
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -723,22 +749,17 @@ namespace DataStandardizer.File.vCard
                 await _writer.FlushAsync().ConfigureAwait(false);
 #endif
                 ThrowIfDisposed();
+                outcome = Task.CompletedTask;
             }
-            catch (OperationCanceledException)
+            catch (Exception exception)
             {
-                _isCanceled = true;
-                throw;
+                outcome = FailOperation(exception, cancellationToken);
             }
-            finally
-            {
-                if (EndOperation())
-                {
-                    await ReleaseAsync().ConfigureAwait(false);
-                }
-            }
+
+            return await EndOperationAsync(outcome).ConfigureAwait(false);
         }
 
-        private async Task WriteLinesCoreAsync(IEnumerable<VcardContentLine> lines,
+        private async Task<Task> WriteLinesCoreAsync(IEnumerable<VcardContentLine> lines,
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             IProgress<VcardWriteProgress>? progress,
 #else
@@ -746,6 +767,7 @@ namespace DataStandardizer.File.vCard
 #endif
             CancellationToken cancellationToken)
         {
+            Task outcome;
             try
             {
                 // Check here as well, so that a canceled token cancels the call when there are no lines, as it does for an asynchronous sequence.
@@ -759,22 +781,17 @@ namespace DataStandardizer.File.vCard
                 }
 
                 ThrowIfDisposed();
+                outcome = Task.CompletedTask;
             }
-            catch (OperationCanceledException)
+            catch (Exception exception)
             {
-                _isCanceled = true;
-                throw;
+                outcome = FailOperation(exception, cancellationToken);
             }
-            finally
-            {
-                if (EndOperation())
-                {
-                    await ReleaseAsync().ConfigureAwait(false);
-                }
-            }
+
+            return await EndOperationAsync(outcome).ConfigureAwait(false);
         }
 
-        private async Task WriteAsyncLinesCoreAsync(IAsyncEnumerable<VcardContentLine> lines,
+        private async Task<Task> WriteAsyncLinesCoreAsync(IAsyncEnumerable<VcardContentLine> lines,
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             IProgress<VcardWriteProgress>? progress,
 #else
@@ -782,6 +799,7 @@ namespace DataStandardizer.File.vCard
 #endif
             CancellationToken cancellationToken)
         {
+            Task outcome;
             try
             {
                 var enumerator = lines.GetAsyncEnumerator(cancellationToken);
@@ -805,19 +823,14 @@ namespace DataStandardizer.File.vCard
                 }
 
                 ThrowIfDisposed();
+                outcome = Task.CompletedTask;
             }
-            catch (OperationCanceledException)
+            catch (Exception exception)
             {
-                _isCanceled = true;
-                throw;
+                outcome = FailOperation(exception, cancellationToken);
             }
-            finally
-            {
-                if (EndOperation())
-                {
-                    await ReleaseAsync().ConfigureAwait(false);
-                }
-            }
+
+            return await EndOperationAsync(outcome).ConfigureAwait(false);
         }
 
         /// <summary>
