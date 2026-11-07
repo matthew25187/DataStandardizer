@@ -433,10 +433,11 @@ namespace DataStandardizer.File.iCal.Tests
             var writer = new IcalContentLineWriter(new SynchronouslyThrowingTextWriter(() => new OperationCanceledException()));
 
             // act
-            var write = writer.WriteLineAsync(LineA);
+            var write = writer.WriteLineAsync(LineA).AsTask();
 
             // assert
             write.IsFaulted.Should().BeTrue();
+            write.Exception.InnerException.Should().BeOfType<OperationCanceledException>();
         }
 
         [Fact]
@@ -453,6 +454,7 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             write.IsFaulted.Should().BeTrue();
+            write.Exception.InnerException.Should().BeOfType<OperationCanceledException>();
         }
 
         [Fact]

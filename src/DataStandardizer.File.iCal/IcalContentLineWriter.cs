@@ -195,8 +195,8 @@ namespace DataStandardizer.File.iCal
         /// </summary>
         /// <remarks>
         /// May be called more than once, and shares its state with <see cref="Dispose"/>.  If an operation is in progress, it completes with
-        /// <see cref="ObjectDisposedException"/>, unless it fails for another reason, and the writer is flushed and released once that operation has finished.  The writer is
-        /// disposed even if the flush throws.
+        /// <see cref="ObjectDisposedException"/>, unless it fails for another reason, and the writer is flushed and released once that operation
+        /// has finished.  The writer is disposed even if the flush throws.
         /// </remarks>
         /// <returns>A task that completes once the writer has been flushed and released, or immediately if an operation is in progress.</returns>
         public ValueTask DisposeAsync()
