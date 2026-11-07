@@ -75,6 +75,13 @@ a name can't be an XML element name, or a value holds a character that XML can't
 hold. The writer builds every element of a calendar before it writes any of them.
 After such an error the writer can go on to the next calendar.
 
+A write to the `XmlWriter` that fails, or a flush of it, leaves what reached it
+unknown, so the writer can't continue: later calls throw `InvalidOperationException`,
+and disposal ends no element of its own. This matters for a caller-supplied
+`XmlWriter` that can still be written to after an error; one the writer creates
+itself can't. The failed call throws the `XmlWriter`'s exception, or its task faults
+with it.
+
 **Disposal.** `Dispose` and `DisposeAsync` may be called more than once and share
 their state. They end the `icalendar` element and any element left open. Then they
 flush and close the `XmlWriter` the writer created, with a file it opened. A
@@ -137,15 +144,15 @@ calendar it was reporting has been written.
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `Flush()` | `void` | Flushes the `XmlWriter`, whether the writer created it or not. The `icalendar` element isn't ended. Throws `ObjectDisposedException` after disposal, or `InvalidOperationException` if another operation is in progress or an earlier one was canceled. |
-| `WriteCalendar(IcalCalendar calendar)` | `void` | Writes a calendar. Throws `ArgumentNullException` if `calendar` is `null`; `IcalFileException` if the calendar breaks a rule the options don't accept or can't be written in xCal, in which case nothing has been written; `ObjectDisposedException` after disposal; or `InvalidOperationException` if another operation is in progress or an earlier one was canceled. |
+| `Flush()` | `void` | Flushes the `XmlWriter`, whether the writer created it or not. The `icalendar` element isn't ended. Throws `ObjectDisposedException` after disposal, or `InvalidOperationException` if another operation is in progress, an earlier one was canceled, or a write failed. |
+| `WriteCalendar(IcalCalendar calendar)` | `void` | Writes a calendar. Throws `ArgumentNullException` if `calendar` is `null`; `IcalFileException` if the calendar breaks a rule the options don't accept or can't be written in xCal, in which case nothing has been written; `ObjectDisposedException` after disposal; or `InvalidOperationException` if another operation is in progress, an earlier one was canceled, or a write failed. |
 | `WriteCalendars(IEnumerable<IcalCalendar> calendars, IProgress<IcalWriteProgress>? progress = null)` | `void` | Writes each calendar in turn. Throws `ArgumentNullException` if `calendars` is `null`, or `ArgumentException` if it contains `null`. Throws `IcalFileException` as `WriteCalendar` does; the calendars before the one at fault have been written. Throws `ObjectDisposedException` if the writer is disposed before or during the call, or `InvalidOperationException` as `WriteCalendar` does. |
 
 ### Asynchronous writing
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `FlushAsync(CancellationToken cancellationToken = default)` | `Task` | *(netstandard2.0+/.NET)* Flushes the `XmlWriter` asynchronously. This call throws `ObjectDisposedException` after disposal, and `InvalidOperationException` if another operation is in progress, an earlier one was canceled, or the `XmlWriter` doesn't allow asynchronous writes. The task throws `OperationCanceledException` if canceled. |
+| `FlushAsync(CancellationToken cancellationToken = default)` | `Task` | *(netstandard2.0+/.NET)* Flushes the `XmlWriter` asynchronously. This call throws `ObjectDisposedException` after disposal, and `InvalidOperationException` if another operation is in progress, an earlier one was canceled, a write failed, or the `XmlWriter` doesn't allow asynchronous writes. The task throws `OperationCanceledException` if canceled. |
 | `WriteCalendarAsync(IcalCalendar calendar, CancellationToken cancellationToken = default)` | `ValueTask` | *(netstandard2.0+/.NET)* Writes a calendar. The task completes once the calendar has been handed to the `XmlWriter`. This call throws `ArgumentNullException`, `ObjectDisposedException` and `InvalidOperationException` as `FlushAsync` does. The task throws `IcalFileException` as `WriteCalendar` does, `OperationCanceledException` if canceled, or `ObjectDisposedException` if the writer is disposed during the write. |
 | `WriteCalendarsAsync(IEnumerable<IcalCalendar> calendars, IProgress<IcalWriteProgress>? progress = null, CancellationToken cancellationToken = default)` | `Task` | *(netstandard2.0+/.NET)* Writes each calendar in turn. This call throws `ArgumentNullException` if `calendars` is `null`, and `ObjectDisposedException` or `InvalidOperationException` as `FlushAsync` does. The task throws `ArgumentException` if `calendars` contains `null`, `IcalFileException` as `WriteCalendars` does, or `OperationCanceledException` if canceled. |
 | `WriteCalendarsAsync(IAsyncEnumerable<IcalCalendar> calendars, IProgress<IcalWriteProgress>? progress = null, CancellationToken cancellationToken = default)` | `Task` | *(netstandard2.0+/.NET)* As the `IEnumerable` overload. `cancellationToken` is also passed to the calendars' enumerator. |

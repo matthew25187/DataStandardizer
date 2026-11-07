@@ -14,6 +14,11 @@ namespace DataStandardizer.File.iCal.Tests
     public class WriterTestTargetsTests
     {
         private const string Text = "x";
+        private const string FailedText = "y";
+        private const string ElementName = "a";
+
+        // An element named ElementName, started and holding Text.
+        private const string TextInElement = "<a>x";
 
         private static readonly char[] TextChars = Text.ToCharArray();
 
@@ -383,6 +388,68 @@ namespace DataStandardizer.File.iCal.Tests
 
             // assert
             stream.FlushCount.Should().Be(OneFlush);
+        }
+
+        #endregion
+
+        #region FailOnceXmlWriter
+
+        [Fact]
+        public void FailOnceXmlWriter_FirstWriteString_ThrowsIOException()
+        {
+            // arrange
+            var writer = new FailOnceXmlWriter();
+            writer.WriteStartElement(ElementName);
+
+            // act
+            Action testAction = () => writer.WriteString(Text);
+
+            // assert
+            testAction.Should().Throw<IOException>();
+        }
+
+        [Fact]
+        public async Task FailOnceXmlWriter_FirstWriteStringAsync_ThrowsIOException()
+        {
+            // arrange
+            var writer = new FailOnceXmlWriter();
+            await writer.WriteStartElementAsync(null, ElementName, null);
+
+            // act
+            Func<Task> testAction = () => writer.WriteStringAsync(Text);
+
+            // assert
+            await testAction.Should().ThrowAsync<IOException>();
+        }
+
+        [Fact]
+        public void FailOnceXmlWriter_WriteStringAfterTheFailure_WritesTheText()
+        {
+            // arrange
+            var writer = new FailOnceXmlWriter();
+            writer.WriteStartElement(ElementName);
+            Record.Exception(() => writer.WriteString(FailedText));
+
+            // act
+            writer.WriteString(Text);
+
+            // assert
+            writer.ToString().Should().Be(TextInElement);
+        }
+
+        [Fact]
+        public async Task FailOnceXmlWriter_WriteStringAsyncAfterTheFailure_WritesTheText()
+        {
+            // arrange
+            var writer = new FailOnceXmlWriter();
+            await writer.WriteStartElementAsync(null, ElementName, null);
+            await Record.ExceptionAsync(() => writer.WriteStringAsync(FailedText));
+
+            // act
+            await writer.WriteStringAsync(Text);
+
+            // assert
+            writer.ToString().Should().Be(TextInElement);
         }
 
         #endregion
