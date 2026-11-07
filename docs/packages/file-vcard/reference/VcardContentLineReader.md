@@ -94,6 +94,8 @@ that some older software writes, throws `VcardFileException`.
 | The source throws an exception, including an `OperationCanceledException` while the read's token isn't canceled | That exception, which faults the task of an asynchronous read. Later reads throw `InvalidOperationException`, as characters may have been lost. |
 | A read is canceled: its token is canceled, before the read or when it fails with an `OperationCanceledException` that carries any token or none | `OperationCanceledException`, and the task is canceled. Later reads throw `InvalidOperationException`. |
 
+During `ReadLinesAsync`, awaiting `MoveNextAsync` throws an `OperationCanceledException` from either of the last two rows, but its task is canceled in both cases, on every target, as an async iterator's always is for an `OperationCanceledException`. Check the token to tell which it was.
+
 ### Concurrency
 
 Only one read may be in progress at a time. Synchronous and asynchronous reads may follow

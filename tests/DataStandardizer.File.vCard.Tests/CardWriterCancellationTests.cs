@@ -17,6 +17,9 @@ namespace DataStandardizer.File.vCard.Tests
     {
         private const string CanceledMessage = "*canceled*";
 
+        // The card of an operation whose progress callback failed, which was written before the callback was called, and the next one.
+        private const long TwoCards = 2;
+
         // A value long enough that writing it reaches the target of each writer as the card is written, rather than waiting in a buffer: it
         // is longer than the XML writer's buffer.
         private const int ValueLongerThanEveryBuffer = 64 * 1024;
@@ -26,11 +29,12 @@ namespace DataStandardizer.File.vCard.Tests
         /// </summary>
         public sealed class WriterOperation
         {
-            public WriterOperation(Func<CancellationToken, Task> run, Func<Task> writeCardAsync, Action writeCard)
+            public WriterOperation(Func<CancellationToken, Task> run, Func<Task> writeCardAsync, Action writeCard, Func<long> cardsWritten)
             {
                 Run = run;
                 WriteCardAsync = writeCardAsync;
                 WriteCard = writeCard;
+                CardsWritten = cardsWritten;
             }
 
             /// <summary>
@@ -47,6 +51,11 @@ namespace DataStandardizer.File.vCard.Tests
             /// Gets an action that writes another card to the same writer synchronously.
             /// </summary>
             public Action WriteCard { get; }
+
+            /// <summary>
+            /// Gets a function that gives the writer's <c>CardsWritten</c>.
+            /// </summary>
+            public Func<long> CardsWritten { get; }
         }
 
         #region The target fails
@@ -226,42 +235,42 @@ namespace DataStandardizer.File.vCard.Tests
                 var writer = new VcardWriter(new AsyncOnlyTextWriter());
                 var progress = CreateFailingProgress(onReport, createException);
                 return new WriterOperation(token => writer.WriteCardsAsync(new[] { CreateCard() }, progress, token),
-                    () => writer.WriteCardAsync(CreateCard()).AsTask(), () => writer.WriteCard(CreateCard()));
+                    () => writer.WriteCardAsync(CreateCard()).AsTask(), () => writer.WriteCard(CreateCard()), () => writer.CardsWritten);
             }),
             ("VcardWriter.WriteCardsAsync from an asynchronous sequence", (onReport, createException) =>
             {
                 var writer = new VcardWriter(new AsyncOnlyTextWriter());
                 var progress = CreateFailingProgress(onReport, createException);
                 return new WriterOperation(token => writer.WriteCardsAsync(AsyncEnumerables.Yielding(new[] { CreateCard() }), progress, token),
-                    () => writer.WriteCardAsync(CreateCard()).AsTask(), () => writer.WriteCard(CreateCard()));
+                    () => writer.WriteCardAsync(CreateCard()).AsTask(), () => writer.WriteCard(CreateCard()), () => writer.CardsWritten);
             }),
             ("JcardWriter.WriteCardsAsync", (onReport, createException) =>
             {
                 var writer = new JcardWriter(new AsyncOnlyWriteStream());
                 var progress = CreateFailingProgress(onReport, createException);
                 return new WriterOperation(token => writer.WriteCardsAsync(new[] { CreateCard() }, progress, token),
-                    () => writer.WriteCardAsync(CreateCard()).AsTask(), () => writer.WriteCard(CreateCard()));
+                    () => writer.WriteCardAsync(CreateCard()).AsTask(), () => writer.WriteCard(CreateCard()), () => writer.CardsWritten);
             }),
             ("JcardWriter.WriteCardsAsync from an asynchronous sequence", (onReport, createException) =>
             {
                 var writer = new JcardWriter(new AsyncOnlyWriteStream());
                 var progress = CreateFailingProgress(onReport, createException);
                 return new WriterOperation(token => writer.WriteCardsAsync(AsyncEnumerables.Yielding(new[] { CreateCard() }), progress, token),
-                    () => writer.WriteCardAsync(CreateCard()).AsTask(), () => writer.WriteCard(CreateCard()));
+                    () => writer.WriteCardAsync(CreateCard()).AsTask(), () => writer.WriteCard(CreateCard()), () => writer.CardsWritten);
             }),
             ("XcardWriter.WriteCardsAsync", (onReport, createException) =>
             {
                 var writer = new XcardWriter(new AsyncOnlyTextWriter());
                 var progress = CreateFailingProgress(onReport, createException);
                 return new WriterOperation(token => writer.WriteCardsAsync(new[] { CreateCard() }, progress, token),
-                    () => writer.WriteCardAsync(CreateCard()).AsTask(), () => writer.WriteCard(CreateCard()));
+                    () => writer.WriteCardAsync(CreateCard()).AsTask(), () => writer.WriteCard(CreateCard()), () => writer.CardsWritten);
             }),
             ("XcardWriter.WriteCardsAsync from an asynchronous sequence", (onReport, createException) =>
             {
                 var writer = new XcardWriter(new AsyncOnlyTextWriter());
                 var progress = CreateFailingProgress(onReport, createException);
                 return new WriterOperation(token => writer.WriteCardsAsync(AsyncEnumerables.Yielding(new[] { CreateCard() }), progress, token),
-                    () => writer.WriteCardAsync(CreateCard()).AsTask(), () => writer.WriteCard(CreateCard()));
+                    () => writer.WriteCardAsync(CreateCard()).AsTask(), () => writer.WriteCard(CreateCard()), () => writer.CardsWritten);
             }),
         };
 
@@ -306,10 +315,51 @@ namespace DataStandardizer.File.vCard.Tests
             await Record.ExceptionAsync(() => operation.Run(CancellationToken.None));
 
             // act
-            Func<Task> testAction = operation.WriteCardAsync;
+            await operation.WriteCardAsync();
 
             // assert
-            await testAction.Should().NotThrowAsync();
+            operation.CardsWritten().Should().Be(TwoCards);
+        }
+
+        [Theory]
+        [MemberData(nameof(ProgressFailures), DisableDiscoveryEnumeration = true)]
+        public async Task WriteCardsAsync_TokenCanceledAndProgressThrowsIOException_FaultsTask(string scenario,
+            Func<Action, Func<Exception>, WriterOperation> create)
+        {
+            // arrange
+            _ = scenario;
+            using (var cancellationTokenSource = new CancellationTokenSource())
+            {
+                var operation = create(cancellationTokenSource.Cancel, () => new IOException());
+
+                // act: wait for the operation to finish without throwing, so that its status can be checked.
+                var task = operation.Run(cancellationTokenSource.Token);
+                await Task.WhenAny(task);
+
+                // assert
+                task.IsFaulted.Should().BeTrue();
+                task.Exception.InnerException.Should().BeOfType<IOException>();
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(ProgressFailures), DisableDiscoveryEnumeration = true)]
+        public async Task WriteCardAsync_AfterTokenCanceledAndProgressThrowsIOException_WritesTheCard(string scenario,
+            Func<Action, Func<Exception>, WriterOperation> create)
+        {
+            // arrange
+            _ = scenario;
+            using (var cancellationTokenSource = new CancellationTokenSource())
+            {
+                var operation = create(cancellationTokenSource.Cancel, () => new IOException());
+                await Record.ExceptionAsync(() => operation.Run(cancellationTokenSource.Token));
+
+                // act
+                await operation.WriteCardAsync();
+
+                // assert
+                operation.CardsWritten().Should().Be(TwoCards);
+            }
         }
 
         [Theory]
