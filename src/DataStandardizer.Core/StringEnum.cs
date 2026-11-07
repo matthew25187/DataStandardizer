@@ -39,15 +39,22 @@ namespace DataStandardizer.Core
         /// Retrieves the name of the constant in a string enumeration that has the specified value.
         /// </summary>
         /// <param name="enumType">A string enumeration type.</param>
-        /// <param name="value">The value of a particular enumerated constant in terms of its underlying type.</param>
+        /// <param name="value">
+        /// The value of a particular enumerated constant: a value of <paramref name="enumType"/>, a <see cref="string"/> (its underlying type), or a value of another string
+        /// enumeration, whose string value is looked up.
+        /// </param>
         /// <returns>A string containing the name of the enumerated constant in <paramref name="enumType"/> whose value is <paramref name="value"/>, or a <c>null</c> if no such constant is found.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="enumType"/> or <paramref name="value"/> is a null.</exception>
         /// <exception cref="ArgumentException">
         /// <paramref name="enumType"/> is not a string enumeration.
         /// -or-
-        /// <paramref name="value"/> is neither of type <paramref name="enumType"/> nor does it have the same underlying type as <paramref name="enumType"/>.
+        /// <paramref name="value"/> is neither a string enumeration value nor a <see cref="string"/>.
         /// </exception>
         /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
+        /// <remarks>
+        /// As <see cref="Enum.GetName(Type, object)"/> does, a value of another enumeration is looked up by its underlying value. When more than one member has the value, the name of
+        /// the first of them, in the order in which <see cref="GetNames(Type)"/> returns the names, is returned.
+        /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static string? GetName(Type enumType, object value)
 #else
@@ -60,12 +67,31 @@ namespace DataStandardizer.Core
             if (value is null)
                 throw new ArgumentNullException(nameof(value));
             ThrowIfNotStringEnumType(enumType);
-            if (value.GetType() != enumType)
-                throw new ArgumentException($"{nameof(value)} is not of type {nameof(enumType)}.", nameof(value));
+
+            var valueType = value.GetType();
+            if (valueType == enumType)
+            {
+                lock (SyncRoot)
+                {
+                    return GetCache(enumType).FieldsByValue[value].FirstOrDefault();
+                }
+            }
+
+#if NETCOREAPP3_0_OR_GREATER
+            string? stringValue;
+#else
+            string stringValue;
+#endif
+            if (value is string valueString)
+                stringValue = valueString;
+            else if (IsStringEnumType(valueType))
+                stringValue = Cast(value);
+            else
+                throw new ArgumentException($"{nameof(value)} is neither a string enumeration value nor a string.", nameof(value));
 
             lock (SyncRoot)
             {
-                return GetCache(enumType).FieldsByValue[value].FirstOrDefault();
+                return GetCache(enumType).GetNameByStringValue(stringValue);
             }
         }
 
@@ -93,7 +119,10 @@ namespace DataStandardizer.Core
         /// Retrieves an array of the names of the constants in a specified enumeration.
         /// </summary>
         /// <param name="enumType">A string enumeration type.</param>
-        /// <returns>A string array of the names of the constants in <paramref name="enumType"/>.</returns>
+        /// <returns>
+        /// A string array of the names of the constants in <paramref name="enumType"/>, sorted by their values (ordinal comparison), as <see cref="Enum.GetNames(Type)"/> sorts
+        /// them by their binary values. Members with the same value are in the order in which they are declared.
+        /// </returns>
         /// <exception cref="ArgumentNullException"><paramref name="enumType"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="enumType"/> is not a string enumeration.</exception>
         /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
@@ -118,7 +147,10 @@ namespace DataStandardizer.Core
         /// Retrieves an array of the names of the constants in a specified enumeration.
         /// </summary>
         /// <typeparam name="TEnum">A string enumeration type.</typeparam>
-        /// <returns>A string array of the names of the constants in <typeparamref name="TEnum"/>.</returns>
+        /// <returns>
+        /// A string array of the names of the constants in <typeparamref name="TEnum"/>, sorted by their values (ordinal comparison), as <see cref="Enum.GetNames(Type)"/> sorts
+        /// them by their binary values. Members with the same value are in the order in which they are declared.
+        /// </returns>
         /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static string[] GetNames<TEnum>() where TEnum : struct, IStringEnum
@@ -137,15 +169,18 @@ namespace DataStandardizer.Core
         /// Retrieves an array of the values of the constants in a specified enumeration.
         /// </summary>
         /// <param name="enumType">A string enumeration type.</param>
-        /// <returns>An array that contains the values of the constants in <paramref name="enumType"/>.</returns>
+        /// <returns>
+        /// An array of <paramref name="enumType"/> that contains the value of each constant in <paramref name="enumType"/>, in the order in which <see cref="GetNames(Type)"/> returns
+        /// their names. As with <see cref="Enum.GetValues(Type)"/>, a value that more than one constant has appears once for each of them.
+        /// </returns>
         /// <exception cref="ArgumentNullException"><paramref name="enumType"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="enumType"/> is not a string enumeration.</exception>
         /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
 #if NETCOREAPP3_0_OR_GREATER
-        public static object[] GetValues(Type enumType)
+        public static Array GetValues(Type enumType)
 #else
         [return: NotNull]
-        public static object[] GetValues([DisallowNull] Type enumType)
+        public static Array GetValues([DisallowNull] Type enumType)
 #endif
         {
             if (enumType is null)
@@ -154,7 +189,14 @@ namespace DataStandardizer.Core
 
             lock (SyncRoot)
             {
-                return GetCache(enumType).FieldsByValue.Select(grp => grp.Key).ToArray();
+                var members = GetCache(enumType).Members;
+                var values = Array.CreateInstance(enumType, members.Count);
+                for (var index = 0; index < members.Count; index++)
+                {
+                    values.SetValue(members[index].Value, index);
+                }
+
+                return values;
             }
         }
 
@@ -162,7 +204,10 @@ namespace DataStandardizer.Core
         /// Retrieves an array of the values of the constants in a specified enumeration.
         /// </summary>
         /// <typeparam name="TEnum">A string enumeration type.</typeparam>
-        /// <returns>An array that contains the values of the constants in <typeparamref name="TEnum"/>.</returns>
+        /// <returns>
+        /// An array that contains the value of each constant in <typeparamref name="TEnum"/>, in the order in which <see cref="GetNames{TEnum}"/> returns their names. As with
+        /// <see cref="Enum.GetValues(Type)"/>, a value that more than one constant has appears once for each of them.
+        /// </returns>
         /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static TEnum[] GetValues<TEnum>() where TEnum : struct, IStringEnum
@@ -173,7 +218,7 @@ namespace DataStandardizer.Core
         {
             lock (SyncRoot)
             {
-                return GetCache(typeof(TEnum)).FieldsByValue.Select(grp => grp.Key).Cast<TEnum>().ToArray();
+                return GetCache(typeof(TEnum)).Members.Select(member => (TEnum)member.Value).ToArray();
             }
         }
 
@@ -803,7 +848,7 @@ namespace DataStandardizer.Core
         private static MemberCache BuildCache(Type type)
         {
             var fieldsByName = new Dictionary<string, object>(StringComparer.Ordinal);
-            var members = new List<Member>();
+            var declaredMembers = new List<Member>();
             foreach (var field in GetMemberFields(type))
             {
                 var fieldValue = field.GetValue(null);
@@ -813,11 +858,32 @@ namespace DataStandardizer.Core
                     throw new InvalidOperationException($"The string enumeration {type.FullName} has more than one member named {field.Name}.");
 
                 fieldsByName.Add(field.Name, fieldValue);
-                members.Add(new Member(field.Name, fieldValue, Cast(fieldValue)));
+                declaredMembers.Add(new Member(field.Name, fieldValue, Cast(fieldValue)));
+            }
+
+            // Like Enum, whose members are sorted by their binary values, members are sorted by their values (ordinal comparison, a null value first). OrderBy is a stable sort, so
+            // members with the same value keep the order in which they're declared.
+            var members = declaredMembers.OrderBy(member => member.StringValue, StringComparer.Ordinal).ToList();
+
+            var namesByStringValue = new Dictionary<string, string>(StringComparer.Ordinal);
+#if NETCOREAPP3_0_OR_GREATER
+            string? nullValueName = null;
+#else
+            string nullValueName = null;
+#endif
+            foreach (var member in members)
+            {
+                if (member.StringValue is null)
+                {
+                    if (nullValueName is null)
+                        nullValueName = member.Name;
+                }
+                else if (!namesByStringValue.ContainsKey(member.StringValue))
+                    namesByStringValue.Add(member.StringValue, member.Name);
             }
 
             var fieldsByValue = members.ToLookup(member => member.Value, member => member.Name);
-            return new MemberCache(type, fieldsByName, members, fieldsByValue);
+            return new MemberCache(type, fieldsByName, members, fieldsByValue, namesByStringValue, nullValueName);
         }
 
         #endregion
@@ -826,22 +892,52 @@ namespace DataStandardizer.Core
 
         private sealed class MemberCache
         {
-            public MemberCache(Type type, Dictionary<string, object> fieldsByName, List<Member> members, ILookup<object, string> fieldsByValue)
+#if NETCOREAPP3_0_OR_GREATER
+            private readonly string? _nullValueName;
+#else
+            private readonly string _nullValueName;
+#endif
+            private readonly Dictionary<string, string> _namesByStringValue;
+
+#if NETCOREAPP3_0_OR_GREATER
+            public MemberCache(Type type, Dictionary<string, object> fieldsByName, List<Member> members, ILookup<object, string> fieldsByValue,
+                Dictionary<string, string> namesByStringValue, string? nullValueName)
+#else
+            public MemberCache(Type type, Dictionary<string, object> fieldsByName, List<Member> members, ILookup<object, string> fieldsByValue,
+                Dictionary<string, string> namesByStringValue, string nullValueName)
+#endif
             {
                 Type = type;
                 FieldsByName = fieldsByName;
                 Members = members;
                 FieldsByValue = fieldsByValue;
+                _namesByStringValue = namesByStringValue;
+                _nullValueName = nullValueName;
             }
 
             public Type Type { get; }
 
             public Dictionary<string, object> FieldsByName { get; }
 
-            // The members in the order GetNames returns them.
+            // The members in the order GetNames returns them: sorted by value.
             public List<Member> Members { get; }
 
+            // The names of the members with each value, in the order GetNames returns them.
             public ILookup<object, string> FieldsByValue { get; }
+
+            // The name of the first member, in the order GetNames returns them, whose string value is stringValue, or null if there is none.
+#if NETCOREAPP3_0_OR_GREATER
+            public string? GetNameByStringValue(string? stringValue)
+#else
+            [return: MaybeNull]
+            public string GetNameByStringValue([AllowNull] string stringValue)
+#endif
+            {
+                if (stringValue is null)
+                    return _nullValueName;
+
+                return _namesByStringValue.TryGetValue(stringValue, out var name) ? name : null;
+            }
         }
 
         private readonly struct Member
