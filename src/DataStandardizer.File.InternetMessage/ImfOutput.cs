@@ -14,6 +14,9 @@ namespace DataStandardizer.File.InternetMessage
     /// writes once output has been left incomplete.
     /// </summary>
     internal sealed class ImfOutput
+#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
+        : ICancellationRecorder
+#endif
     {
         /// <summary>
         /// Size of the buffer of the file stream that a file-path constructor opens.
@@ -129,6 +132,13 @@ namespace DataStandardizer.File.InternetMessage
         {
             _isBroken = true;
         }
+
+#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
+        void ICancellationRecorder.RecordCancellation()
+        {
+            MarkBroken();
+        }
+#endif
 
         internal void Write(ReadOnlySpan<byte> bytes)
         {

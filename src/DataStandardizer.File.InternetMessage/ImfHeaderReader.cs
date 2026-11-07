@@ -48,7 +48,7 @@ namespace DataStandardizer.File.InternetMessage
     /// </remarks>
     public sealed class ImfHeaderReader : IDisposable, IImfHeaderFieldSource
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
-        , IAsyncDisposable
+        , IAsyncDisposable, ICancellationRecorder
 #endif
     {
         private const int DefaultBufferSize = 16 * 1024;
@@ -259,7 +259,7 @@ namespace DataStandardizer.File.InternetMessage
         /// Reads the next field of the section asynchronously, without allocation when the task completes synchronously, which it does when the
         /// reader's buffer already holds the whole field.
         /// </summary>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests.  If the read is canceled, the reader cannot
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.  The read is canceled only if this token is canceled, and the reader then cannot
         /// continue.</param>
         /// <returns>A task whose result is a view of the field, valid until the next read; or <c>null</c> if the section has ended.</returns>
         /// <exception cref="ObjectDisposedException">The reader has been disposed.  Thrown by this call, or by the task if the reader is disposed
@@ -270,7 +270,10 @@ namespace DataStandardizer.File.InternetMessage
         /// cannot continue.</exception>
         /// <exception cref="ImfFileException">By the task: the field does not follow the syntax of RFC 5322, has a line break that is not accepted,
         /// or passes a limit.</exception>
-        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.</exception>
+        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled before the call, or the read failed with an
+        /// <see cref="OperationCanceledException"/>, whatever token it carries, while <paramref name="cancellationToken"/> was canceled.  The task is canceled.  An
+        /// <see cref="OperationCanceledException"/> from the stream while <paramref name="cancellationToken"/> isn't canceled faults the task, as any other exception from
+        /// it does.</exception>
         public ValueTask<ImfHeaderFieldView?> ReadFieldAsync(CancellationToken cancellationToken = default)
         {
             // Errors in how the reader is used are thrown now; errors in the data, and cancellation, go to the task.
@@ -300,7 +303,7 @@ namespace DataStandardizer.File.InternetMessage
                 }
 
                 isPending = true;
-                return ReadWithRefillAsync(cancellationToken);
+                return AsyncOutcome.Decide(ReadWithRefillAsync(cancellationToken), cancellationToken, this);
             }
             finally
             {
@@ -335,7 +338,7 @@ namespace DataStandardizer.File.InternetMessage
 
                 return CompleteField(status);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 _isCanceled = true;
                 throw;
@@ -356,6 +359,13 @@ namespace DataStandardizer.File.InternetMessage
 
             return _scanner;
         }
+
+#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP2_0_OR_GREATER
+        void ICancellationRecorder.RecordCancellation()
+        {
+            _isCanceled = true;
+        }
+#endif
 
         /// <summary>
         /// Marks a read as in progress.
