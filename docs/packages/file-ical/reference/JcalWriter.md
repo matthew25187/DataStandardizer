@@ -101,9 +101,15 @@ enumerated nor the progress callback may call the writer.
 
 **Asynchronous writes.** The asynchronous members write each encoded calendar with
 `Stream.WriteAsync`, and do no synchronous I/O. Cancellation is checked before each
-calendar is written, so a canceled write never leaves part of a calendar. A canceled
-operation leaves the writer unable to continue: later calls throw
-`InvalidOperationException`.
+calendar is written, so a canceled write never leaves part of a calendar. An asynchronous operation is canceled only when the token passed to it is canceled.
+That leaves the writer unable to continue, and later calls throw
+`InvalidOperationException`. An `OperationCanceledException` while that token isn't
+canceled, whether from the stream, the calendars being enumerated or the
+progress callback, is handled as an I/O error: the task faults with it, and the
+writer can continue.
+If the document is ended at the end of an operation, because the writer was disposed
+during it, or by `DisposeAsync`, and that throws, the task faults with the exception,
+an `OperationCanceledException` included.
 
 **Progress.** `WriteCalendars` and `WriteCalendarsAsync` report an
 [IcalWriteProgress](IcalWriteProgress.md) after each calendar has been written or

@@ -96,8 +96,11 @@ buffers are released once it has finished with them.
 **Thread safety and async rules.** A single reader instance is not thread-safe. Only
 one read may be in progress at a time. Synchronous and asynchronous reads may follow
 one another, but a read started while another is in progress throws
-`InvalidOperationException`. A canceled asynchronous read leaves the reader unable to
-continue, and later reads throw `InvalidOperationException`. The asynchronous methods
+`InvalidOperationException`. An asynchronous read is canceled only when the token
+passed to it is canceled. That leaves the reader unable to continue, and later reads
+throw `InvalidOperationException`. An `OperationCanceledException` from the text reader
+while that token isn't canceled is a failure of the source, as any other exception from
+it is: the task faults with it, and the reader cannot continue. The asynchronous methods
 complete synchronously when the buffer already holds the whole line.
 
 ## Constructors
@@ -136,6 +139,12 @@ Errors in how the reader is used (`ObjectDisposedException`, `InvalidOperationEx
 are thrown by the call. Errors in the data (`IcalFileException`) and cancellation
 (`OperationCanceledException`) are thrown by the task. If the reader is disposed while
 a read is pending, the task throws `ObjectDisposedException`.
+
+A read is canceled when its `cancellationToken` is canceled before the call, or when
+the read fails with an `OperationCanceledException` while that token is canceled,
+whatever token the exception carries, or if it carries none. The task is then canceled.
+An `OperationCanceledException` while the token isn't canceled faults the task. During
+`ReadLinesAsync`, either one is thrown by `MoveNextAsync`.
 
 | Method | Returns | Notes |
 | --- | --- | --- |
