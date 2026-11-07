@@ -265,7 +265,8 @@ namespace DataStandardizer.File.InternetMessage
         /// </summary>
         /// <param name="partResolver">Supplies the content of a part that a partial file stores elsewhere, or <c>null</c> to read the message without it.  It is called on the reading thread, and
         /// the streams it gives are read asynchronously.</param>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests.  If the read is canceled, the reader cannot continue.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.  The read is canceled only if this token is canceled, and the reader then
+        /// cannot continue.</param>
         /// <returns>A task whose result is the entry.</returns>
         /// <exception cref="ObjectDisposedException">The reader has been disposed.  Thrown by this call, or by the task if the reader is disposed
         /// while the read is in progress.</exception>
@@ -274,7 +275,10 @@ namespace DataStandardizer.File.InternetMessage
         /// The file has already been read, or an earlier read failed or was canceled.</exception>
         /// <exception cref="ImfFileException">By the task: the file breaks a rule of its layout, or the message a rule of its format, that the options don't accept, or something passes a
         /// limit.</exception>
-        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled.</exception>
+        /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled before the call, or the read failed with an
+        /// <see cref="OperationCanceledException"/>, whatever token it carries, while <paramref name="cancellationToken"/> was canceled.  The task is canceled.  An
+        /// <see cref="OperationCanceledException"/> from the stream, from <paramref name="partResolver"/> or from a stream it gives, while <paramref name="cancellationToken"/>
+        /// isn't canceled faults the task, as any other exception from them does.</exception>
         public Task<EmlxEntry> ReadEntryAsync([AllowNull] EmlxPartResolver partResolver = null, CancellationToken cancellationToken = default)
         {
             // Errors in how the reader is used are thrown now; errors in the data, and cancellation, go to the task.
@@ -285,7 +289,7 @@ namespace DataStandardizer.File.InternetMessage
             {
                 Start();
                 isPending = true;
-                return ReadEntryCoreAsync(partResolver, cancellationToken);
+                return AsyncOutcome.Decide(ReadEntryCoreAsync(partResolver, cancellationToken), cancellationToken);
             }
             finally
             {

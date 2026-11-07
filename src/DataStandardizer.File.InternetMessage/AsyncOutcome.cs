@@ -52,6 +52,15 @@ namespace DataStandardizer.File.InternetMessage
                 TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default).Unwrap();
         }
 
+        /// <summary>
+        /// Decides an operation of a reader that keeps no record of a cancellation, such as one whose data can be read only once, so that any failure
+        /// already ends reading.
+        /// </summary>
+        internal static Task<TResult> Decide<TResult>(Task<TResult> operation, CancellationToken cancellationToken)
+        {
+            return Decide(operation, cancellationToken, NoCancellationRecorder.Instance);
+        }
+
         internal static ValueTask Decide(ValueTask operation, CancellationToken cancellationToken, ICancellationRecorder recorder)
         {
             return operation.IsCompletedSuccessfully ? operation : new ValueTask(Decide(operation.AsTask(), cancellationToken, recorder));
@@ -107,6 +116,18 @@ namespace DataStandardizer.File.InternetMessage
 
             // A canceled task always throws when it is awaited.
             throw new InvalidOperationException("A canceled task completed without an exception.");
+        }
+
+        /// <summary>
+        /// Records nothing, for <see cref="Decide{TResult}(Task{TResult}, CancellationToken)"/>.
+        /// </summary>
+        private sealed class NoCancellationRecorder : ICancellationRecorder
+        {
+            internal static readonly NoCancellationRecorder Instance = new NoCancellationRecorder();
+
+            public void RecordCancellation()
+            {
+            }
         }
 
         /// <summary>
