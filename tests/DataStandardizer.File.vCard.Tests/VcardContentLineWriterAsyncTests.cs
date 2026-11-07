@@ -25,6 +25,8 @@ namespace DataStandardizer.File.vCard.Tests
 
         private static readonly VcardContentLine LineA = new VcardContentLine("A", "1");
 
+        private static readonly VcardContentLine[] NoLines = new VcardContentLine[0];
+
         // The stream of a writer that owns its stream writer is flushed once, when the writer is disposed.
         private const int OneFlush = 1;
 
@@ -422,6 +424,35 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Fact]
+        public void WriteLineAsync_OperationCanceledWithoutCanceledTokenFromTextWriter_FaultsTask()
+        {
+            // arrange
+            var writer = new VcardContentLineWriter(new SynchronouslyThrowingTextWriter(() => new OperationCanceledException()));
+
+            // act
+            var write = writer.WriteLineAsync(LineA);
+
+            // assert
+            write.IsFaulted.Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task Dispose_DuringOperationCanceledWithoutCanceledTokenFromTextWriter_FaultsTask()
+        {
+            // arrange
+            var text = new SynchronouslyThrowingTextWriter(() => new OperationCanceledException());
+            var writer = new VcardContentLineWriter(text);
+            text.OnWrite = writer.Dispose;
+
+            // act: wait for the write to finish without throwing, so that its status can be checked.
+            var write = writer.WriteLineAsync(LineA).AsTask();
+            await Task.WhenAny(write);
+
+            // assert
+            write.IsFaulted.Should().BeTrue();
+        }
+
+        [Fact]
         public async Task WriteLineAsync_DisposedStreamWriter_FaultsTask()
         {
             // arrange
@@ -547,8 +578,8 @@ namespace DataStandardizer.File.vCard.Tests
         // Each overload given no lines to write.
         public static TheoryData<Func<VcardContentLineWriter, CancellationToken, Task>> WritesOfNoLines => new TheoryData<Func<VcardContentLineWriter, CancellationToken, Task>>
         {
-            (writer, token) => writer.WriteLinesAsync(new VcardContentLine[0], cancellationToken: token),
-            (writer, token) => writer.WriteLinesAsync(ToAsyncEnumerable(new VcardContentLine[0]), cancellationToken: token),
+            (writer, token) => writer.WriteLinesAsync(NoLines, cancellationToken: token),
+            (writer, token) => writer.WriteLinesAsync(ToAsyncEnumerable(NoLines), cancellationToken: token),
         };
 
         [Theory]
@@ -754,24 +785,42 @@ namespace DataStandardizer.File.vCard.Tests
         public async Task Dispose_DuringWriteThatDoesNotWait_CompletesWriteWithObjectDisposed()
         {
             // arrange
-            var text = new CallbackOnWriteTextWriter();
+            var text = new AsyncOnlyTextWriter(completeSynchronously: true);
             var writer = new VcardContentLineWriter(text);
             text.OnWrite = writer.Dispose;
 
             // act
-            var task = writer.WriteLineAsync(LineA);
-            Func<Task> testAction = async () => await task;
+            Func<Task> testAction = () => writer.WriteLineAsync(LineA).AsTask();
 
             // assert
             await testAction.Should().ThrowAsync<ObjectDisposedException>();
             text.ToString().Should().Be(LineAWithCrlf);
         }
 
+        // Shows that the next test disposes of the writer during a write that doesn't wait: the stream writer writes the line through to the stream
+        // within the call, and the write completes synchronously.
+        [Fact]
+        public void WriteLineAsync_OwnedWriterOverStreamThatDoesNotWait_WritesThroughAndCompletesSynchronously()
+        {
+            // arrange
+            var stream = new AsyncOnlyWriteStream(completeSynchronously: true);
+            var writer = new VcardContentLineWriter(stream, new VcardOptions(), StreamBufferSmallerThanALine);
+            var wroteThrough = false;
+            stream.OnWrite = () => wroteThrough = true;
+
+            // act
+            var write = writer.WriteLineAsync(LongLineWrittenThrough);
+
+            // assert
+            write.IsCompletedSuccessfully.Should().BeTrue();
+            wroteThrough.Should().BeTrue();
+        }
+
         [Fact]
         public async Task Dispose_DuringWriteThatDoesNotWaitOnOwnedWriter_FlushesWithoutSynchronousIo()
         {
             // arrange: the stream's synchronous members throw, so a synchronous flush would escape from the call and not from the task.
-            var stream = new CallbackOnWriteStream();
+            var stream = new AsyncOnlyWriteStream(completeSynchronously: true);
             var writer = new VcardContentLineWriter(stream, new VcardOptions(), StreamBufferSmallerThanALine);
             stream.OnWrite = writer.Dispose;
 
