@@ -239,14 +239,18 @@ namespace DataStandardizer.Core
         }
 
         /// <summary>
-        /// Returns an indication whether a constant with a specified value exists in a specified enumeration.
+        /// Returns an indication whether a constant with a specified name or value exists in a specified enumeration.
         /// </summary>
         /// <param name="enumType">A string enumeration type.</param>
-        /// <param name="value">The value or name of a constant in <paramref name="enumType"/>.</param>
-        /// <returns><c>true</c> if a constant in <paramref name="enumType"/> has a value equal to <paramref name="value"/>; otherwise, <c>false</c>.</returns>
+        /// <param name="value">The name or value of a constant in <paramref name="enumType"/>.</param>
+        /// <returns><c>true</c> if a constant in <paramref name="enumType"/> has a name or a value equal to <paramref name="value"/>; otherwise, <c>false</c>.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="enumType"/> or <paramref name="value"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="enumType"/> is not a string enumeration.</exception>
         /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
+        /// <remarks>
+        /// <see cref="Enum.IsDefined(Type, object)"/> compares a string with the names only. A string enumeration's underlying type is <see cref="string"/>, so
+        /// <paramref name="value"/> is compared with both the names and the values. Both comparisons are exact (ordinal, case-sensitive), and white space isn't removed.
+        /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool IsDefined(Type enumType, string value)
 #else
@@ -261,18 +265,91 @@ namespace DataStandardizer.Core
 
             lock (SyncRoot)
             {
-                return FindMemberByName(enumType, value, false) != null || FindMemberByValue(enumType, value, false) != null;
+                return IsNameOrValueDefined(GetCache(enumType), value);
             }
         }
 
         /// <summary>
-        /// Returns an indication whether a constant with a specified value exists in a specified enumeration.
+        /// Returns an indication whether a constant with a specified name or value exists in a specified enumeration.
+        /// </summary>
+        /// <param name="enumType">A string enumeration type.</param>
+        /// <param name="value">A value of <paramref name="enumType"/>, or the name or value of a constant in <paramref name="enumType"/>, as a <see cref="string"/>.</param>
+        /// <returns>
+        /// <c>true</c> if a constant in <paramref name="enumType"/> has the value of <paramref name="value"/>, or, when <paramref name="value"/> is a <see cref="string"/>, a name
+        /// or a value equal to it; otherwise, <c>false</c>.
+        /// </returns>
+        /// <exception cref="ArgumentNullException"><paramref name="enumType"/> or <paramref name="value"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="enumType"/> is not a string enumeration.
+        /// -or-
+        /// <paramref name="value"/> is a value of a string enumeration other than <paramref name="enumType"/>.
+        /// </exception>
+        /// <exception cref="InvalidOperationException">
+        /// <paramref name="value"/> is neither a string enumeration value nor a <see cref="string"/>.
+        /// -or-
+        /// The string enumeration has more than one member with the same name.
+        /// -or-
+        /// <paramref name="enumType"/> defines no conversion to <see cref="string"/>.
+        /// </exception>
+        /// <remarks>
+        /// <para>
+        /// As <see cref="Enum.IsDefined(Type, object)"/> does, this checks a value of <paramref name="enumType"/> by its value, rejects a value of another enumeration, and throws
+        /// <see cref="InvalidOperationException"/> for a value of a type that can't be an enumeration's underlying type. A <see cref="string"/> is compared as
+        /// <see cref="IsDefined(Type, string)"/> compares it.
+        /// </para>
+        /// <para>
+        /// A string enumeration usually converts implicitly to <see cref="string"/>, so a call whose <paramref name="value"/> has a string enumeration type at compile time binds to
+        /// <see cref="IsDefined(Type, string)"/> instead. Pass the value as an <see cref="object"/> to have its type checked.
+        /// </para>
+        /// </remarks>
+#if NETCOREAPP3_0_OR_GREATER
+        public static bool IsDefined(Type enumType, object value)
+#else
+        public static bool IsDefined([DisallowNull] Type enumType, [DisallowNull] object value)
+#endif
+        {
+            if (enumType is null)
+                throw new ArgumentNullException(nameof(enumType));
+            if (value is null)
+                throw new ArgumentNullException(nameof(value));
+            ThrowIfNotStringEnumType(enumType);
+
+            var valueType = value.GetType();
+            if (value is string valueString)
+            {
+                lock (SyncRoot)
+                {
+                    return IsNameOrValueDefined(GetCache(enumType), valueString);
+                }
+            }
+
+            if (valueType != enumType)
+            {
+                if (IsStringEnumType(valueType))
+                    throw new ArgumentException($"The value is of the string enumeration {valueType.FullName}, not of {enumType.FullName}.");
+
+                throw new InvalidOperationException($"{nameof(value)} is neither a string enumeration value nor a string.");
+            }
+
+            lock (SyncRoot)
+            {
+                var cache = GetCache(enumType);
+                return cache.GetNameByStringValue(cache.ToStringValue(value)) != null;
+            }
+        }
+
+        /// <summary>
+        /// Returns an indication whether a constant with a specified name or value exists in a specified enumeration.
         /// </summary>
         /// <typeparam name="TEnum">A string enumeration type.</typeparam>
-        /// <param name="value">The value or name of a constant in <typeparamref name="TEnum"/>.</param>
-        /// <returns><c>true</c> if a constant in <typeparamref name="TEnum"/> has a value equal to <paramref name="value"/>; otherwise, <c>false</c>.</returns>
+        /// <param name="value">The name or value of a constant in <typeparamref name="TEnum"/>.</param>
+        /// <returns><c>true</c> if a constant in <typeparamref name="TEnum"/> has a name or a value equal to <paramref name="value"/>; otherwise, <c>false</c>.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="value"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
+        /// <remarks>
+        /// <see cref="Enum.IsDefined(Type, object)"/> compares a string with the names only. A string enumeration's underlying type is <see cref="string"/>, so
+        /// <paramref name="value"/> is compared with both the names and the values. Both comparisons are exact (ordinal, case-sensitive), and white space isn't removed.
+        /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool IsDefined<TEnum>(string value) where TEnum : struct, IStringEnum
 #else
@@ -284,12 +361,33 @@ namespace DataStandardizer.Core
 
             lock (SyncRoot)
             {
-                return FindMemberByName(typeof(TEnum), value, false) != null || FindMemberByValue(typeof(TEnum), value, false) != null;
+                return IsNameOrValueDefined(GetCache(typeof(TEnum)), value);
             }
         }
 
         /// <summary>
-        /// Converts the string representation of the name or numeric value of one or more enumerated constants to an equivalent enumerated object.
+        /// Returns an indication whether a constant with a specified value exists in a specified enumeration.
+        /// </summary>
+        /// <typeparam name="TEnum">A string enumeration type.</typeparam>
+        /// <param name="value">A value of <typeparamref name="TEnum"/>.</param>
+        /// <returns><c>true</c> if a constant in <typeparamref name="TEnum"/> has the value of <paramref name="value"/>; otherwise, <c>false</c>.</returns>
+        /// <exception cref="InvalidOperationException">
+        /// The string enumeration has more than one member with the same name.
+        /// -or-
+        /// <typeparamref name="TEnum"/> defines no conversion to <see cref="string"/>.
+        /// </exception>
+        /// <remarks><paramref name="value"/> is compared with the members' values by its string value (ordinal comparison).</remarks>
+        public static bool IsDefined<TEnum>(TEnum value) where TEnum : struct, IStringEnum
+        {
+            lock (SyncRoot)
+            {
+                var cache = GetCache(typeof(TEnum));
+                return cache.GetNameByStringValue(cache.ToStringValue(value)) != null;
+            }
+        }
+
+        /// <summary>
+        /// Converts the string representation of the name or value of an enumerated constant to an equivalent enumerated object.
         /// </summary>
         /// <param name="enumType">A string enumeration type.</param>
         /// <param name="value">A string containing the name or value to convert.</param>
@@ -300,13 +398,25 @@ namespace DataStandardizer.Core
         /// -or-
         /// <paramref name="value"/> is either an empty string or only contains white space.
         /// -or-
-        /// <paramref name="value"/> is a name, but not one of the named constants defined for the enumeration.
+        /// <paramref name="value"/> is neither the name nor the value of a constant defined for the enumeration.
         /// </exception>
         /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
         /// <remarks>
-        /// <paramref name="value"/> is compared with the members' names first, then with their values. White space before or after <paramref name="value"/> is ignored when it is compared
-        /// with the names, as <see cref="Enum"/> does. It is compared with the values as given, and then, if no value matches, with the white space removed, so a member whose value
-        /// begins or ends with white space can still be parsed. A <paramref name="value"/> that is only white space is never compared as an empty string.
+        /// <para>
+        /// <paramref name="value"/> is a single name or value. Unlike <see cref="Enum"/>, a list of names separated by commas isn't combined, as the values of a string
+        /// enumeration can't be combined, and a value may itself contain a comma.
+        /// </para>
+        /// <para>
+        /// <paramref name="value"/> is compared with the members' names first, then with their values. White space before or after <paramref name="value"/> is ignored when it is
+        /// compared with the names, as <see cref="Enum"/> does. It is compared with the values as given, and then, if no value matches, with the white space removed, so a member
+        /// whose value begins or ends with white space can still be parsed. When case is ignored, each of those comparisons returns the first member that matches, in the order in
+        /// which <see cref="GetNames(Type)"/> returns the names, as <see cref="Enum"/> does, even when another member matches exactly.
+        /// </para>
+        /// <para>
+        /// <see cref="Enum"/> returns a value that isn't defined when the text is a number. A string enumeration's underlying type is <see cref="string"/>, so any text could be such
+        /// a value, and it couldn't be told apart from a name. So this throws <see cref="ArgumentException"/> for a <paramref name="value"/> that is neither the name nor the value of a member. Use <see cref="ToObject(Type, string)"/> to get a
+        /// value that isn't defined.
+        /// </para>
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static object Parse(Type enumType, string value)
@@ -320,25 +430,15 @@ namespace DataStandardizer.Core
             if (enumType is null)
                 throw new ArgumentNullException(nameof(enumType));
             ThrowIfNotStringEnumType(enumType);
-            if (string.IsNullOrWhiteSpace(value))
-                throw new ArgumentException($"{nameof(value)} is either an empty string or only contains white space.", nameof(value));
 
-            lock (SyncRoot)
-            {
-                var member = FindMember(enumType, value, false);
-                if (member != null)
-                {
-                    return member;
-                }
-            }
-
-            throw new ArgumentException($"{nameof(value)} is a name, but not one of the named constants defined for the enumeration.", nameof(value));
+            return ParseCore(enumType, value, false);
         }
 
         /// <summary>
-        /// Converts the string representation of the name or numeric value of one or more enumerated constants to an equivalent enumerated object.
+        /// Converts the string representation of the name or value of an enumerated constant to an equivalent enumerated object. A parameter specifies whether the operation
+        /// is case-insensitive.
         /// </summary>
-        /// <param name="enumType">The <see cref="Type"/> of the enumeration.</param>
+        /// <param name="enumType">A string enumeration type.</param>
         /// <param name="value">A string containing the name or value to convert.</param>
         /// <param name="ignoreCase">If <c>true</c>, ignore case; otherwise, regard case.</param>
         /// <returns>An object of type <paramref name="enumType"/> whose value is represented by <paramref name="value"/>.</returns>
@@ -346,19 +446,27 @@ namespace DataStandardizer.Core
         /// <exception cref="ArgumentException">
         /// <paramref name="enumType"/> is not a string enumeration.
         /// -or-
-        /// <paramref name="value"/> is either an empty string ("") or only contains white space.
+        /// <paramref name="value"/> is either an empty string or only contains white space.
         /// -or-
-        /// <paramref name="value"/> is a name, but not one of the named constants defined for the enumeration.
+        /// <paramref name="value"/> is neither the name nor the value of a constant defined for the enumeration.
         /// </exception>
         /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
         /// <remarks>
-        /// <paramref name="value"/> is compared with the members' names first, then with their values. White space before or after <paramref name="value"/> is ignored when it is compared
-        /// with the names, as <see cref="Enum"/> does. It is compared with the values as given, and then with the white space removed, so a member whose value begins or ends with white
-        /// space can still be parsed. A <paramref name="value"/> that is only white space is never compared as an empty string.
-        /// When <paramref name="ignoreCase"/> is <c>true</c> and <paramref name="value"/> matches more than one name, or more than one value, ignoring case, the member whose name or value
-        /// matches it exactly (ordinal comparison) wins: for values, an exact match on <paramref name="value"/> as given, then an exact match with the white space removed. If none
-        /// matches exactly, a match on <paramref name="value"/> as given wins over one with the white space removed, and among those the first matching member is returned, in the order
-        /// in which <see cref="GetNames(Type)"/> returns the members' names.
+        /// <para>
+        /// <paramref name="value"/> is a single name or value. Unlike <see cref="Enum"/>, a list of names separated by commas isn't combined, as the values of a string
+        /// enumeration can't be combined, and a value may itself contain a comma.
+        /// </para>
+        /// <para>
+        /// <paramref name="value"/> is compared with the members' names first, then with their values. White space before or after <paramref name="value"/> is ignored when it is
+        /// compared with the names, as <see cref="Enum"/> does. It is compared with the values as given, and then, if no value matches, with the white space removed, so a member
+        /// whose value begins or ends with white space can still be parsed. When case is ignored, each of those comparisons returns the first member that matches, in the order in
+        /// which <see cref="GetNames(Type)"/> returns the names, as <see cref="Enum"/> does, even when another member matches exactly.
+        /// </para>
+        /// <para>
+        /// <see cref="Enum"/> returns a value that isn't defined when the text is a number. A string enumeration's underlying type is <see cref="string"/>, so any text could be such
+        /// a value, and it couldn't be told apart from a name. So this throws <see cref="ArgumentException"/> for a <paramref name="value"/> that is neither the name nor the value of a member. Use <see cref="ToObject(Type, string)"/> to get a
+        /// value that isn't defined.
+        /// </para>
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static object Parse(Type enumType, string value, bool ignoreCase)
@@ -372,23 +480,12 @@ namespace DataStandardizer.Core
             if (enumType is null)
                 throw new ArgumentNullException(nameof(enumType));
             ThrowIfNotStringEnumType(enumType);
-            if (string.IsNullOrWhiteSpace(value))
-                throw new ArgumentException($"{nameof(value)} is either an empty string (\"\") or only contains white space.", nameof(value));
 
-            lock (SyncRoot)
-            {
-                var member = FindMember(enumType, value, ignoreCase);
-                if (member != null)
-                {
-                    return member;
-                }
-            }
-
-            throw new ArgumentException($"{nameof(value)} is a name, but not one of the named constants defined for the enumeration.", nameof(value));
+            return ParseCore(enumType, value, ignoreCase);
         }
 
         /// <summary>
-        /// Converts the string representation of the name or numeric value of one or more enumerated constants to an equivalent enumerated object.
+        /// Converts the string representation of the name or value of an enumerated constant to an equivalent enumerated object.
         /// </summary>
         /// <typeparam name="TEnum">A string enumeration type.</typeparam>
         /// <param name="value">A string containing the name or value to convert.</param>
@@ -397,13 +494,25 @@ namespace DataStandardizer.Core
         /// <exception cref="ArgumentException">
         /// <paramref name="value"/> is either an empty string or only contains white space.
         /// -or-
-        /// <paramref name="value"/> is a name, but not one of the named constants defined for the enumeration.
+        /// <paramref name="value"/> is neither the name nor the value of a constant defined for the enumeration.
         /// </exception>
         /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
         /// <remarks>
-        /// <paramref name="value"/> is compared with the members' names first, then with their values. White space before or after <paramref name="value"/> is ignored when it is compared
-        /// with the names, as <see cref="Enum"/> does. It is compared with the values as given, and then, if no value matches, with the white space removed, so a member whose value
-        /// begins or ends with white space can still be parsed. A <paramref name="value"/> that is only white space is never compared as an empty string.
+        /// <para>
+        /// <paramref name="value"/> is a single name or value. Unlike <see cref="Enum"/>, a list of names separated by commas isn't combined, as the values of a string
+        /// enumeration can't be combined, and a value may itself contain a comma.
+        /// </para>
+        /// <para>
+        /// <paramref name="value"/> is compared with the members' names first, then with their values. White space before or after <paramref name="value"/> is ignored when it is
+        /// compared with the names, as <see cref="Enum"/> does. It is compared with the values as given, and then, if no value matches, with the white space removed, so a member
+        /// whose value begins or ends with white space can still be parsed. When case is ignored, each of those comparisons returns the first member that matches, in the order in
+        /// which <see cref="GetNames{TEnum}"/> returns the names, as <see cref="Enum"/> does, even when another member matches exactly.
+        /// </para>
+        /// <para>
+        /// <see cref="Enum"/> returns a value that isn't defined when the text is a number. A string enumeration's underlying type is <see cref="string"/>, so any text could be such
+        /// a value, and it couldn't be told apart from a name. So this throws <see cref="ArgumentException"/> for a <paramref name="value"/> that is neither the name nor the value of a member. Use <see cref="ToObject{TEnum}(string)"/> to get a
+        /// value that isn't defined.
+        /// </para>
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static TEnum Parse<TEnum>(string value) where TEnum : struct, IStringEnum
@@ -413,42 +522,41 @@ namespace DataStandardizer.Core
         {
             if (value is null)
                 throw new ArgumentNullException(nameof(value));
-            if (string.IsNullOrWhiteSpace(value))
-                throw new ArgumentException($"{nameof(value)} is either an empty string or only contains white space.", nameof(value));
 
-            lock (SyncRoot)
-            {
-                if (FindMember(typeof(TEnum), value, false) is TEnum member)
-                {
-                    return member;
-                }
-            }
-
-            throw new ArgumentException($"{nameof(value)} does not contain enumeration information.", nameof(value));
+            return (TEnum)ParseCore(typeof(TEnum), value, false);
         }
 
         /// <summary>
-        /// Converts the string representation of the name or numeric value of one or more enumerated constants to an equivalent enumerated object.
+        /// Converts the string representation of the name or value of an enumerated constant to an equivalent enumerated object. A parameter specifies whether the operation
+        /// is case-insensitive.
         /// </summary>
-        /// <typeparam name="TEnum">The <see cref="Type"/>> of the enumeration.</typeparam>
+        /// <typeparam name="TEnum">A string enumeration type.</typeparam>
         /// <param name="value">A string containing the name or value to convert.</param>
         /// <param name="ignoreCase">If <c>true</c>, ignore case; otherwise, regard case.</param>
         /// <returns>An object of type <typeparamref name="TEnum"/> whose value is represented by <paramref name="value"/>.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="value"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException">
-        /// <paramref name="value"/> is either an empty string ("") or only contains white space.
+        /// <paramref name="value"/> is either an empty string or only contains white space.
         /// -or-
-        /// <paramref name="value"/> is a name, but not one of the named constants defined for the enumeration.
+        /// <paramref name="value"/> is neither the name nor the value of a constant defined for the enumeration.
         /// </exception>
         /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
         /// <remarks>
-        /// <paramref name="value"/> is compared with the members' names first, then with their values. White space before or after <paramref name="value"/> is ignored when it is compared
-        /// with the names, as <see cref="Enum"/> does. It is compared with the values as given, and then with the white space removed, so a member whose value begins or ends with white
-        /// space can still be parsed. A <paramref name="value"/> that is only white space is never compared as an empty string.
-        /// When <paramref name="ignoreCase"/> is <c>true</c> and <paramref name="value"/> matches more than one name, or more than one value, ignoring case, the member whose name or value
-        /// matches it exactly (ordinal comparison) wins: for values, an exact match on <paramref name="value"/> as given, then an exact match with the white space removed. If none
-        /// matches exactly, a match on <paramref name="value"/> as given wins over one with the white space removed, and among those the first matching member is returned, in the order
-        /// in which <see cref="GetNames(Type)"/> returns the members' names.
+        /// <para>
+        /// <paramref name="value"/> is a single name or value. Unlike <see cref="Enum"/>, a list of names separated by commas isn't combined, as the values of a string
+        /// enumeration can't be combined, and a value may itself contain a comma.
+        /// </para>
+        /// <para>
+        /// <paramref name="value"/> is compared with the members' names first, then with their values. White space before or after <paramref name="value"/> is ignored when it is
+        /// compared with the names, as <see cref="Enum"/> does. It is compared with the values as given, and then, if no value matches, with the white space removed, so a member
+        /// whose value begins or ends with white space can still be parsed. When case is ignored, each of those comparisons returns the first member that matches, in the order in
+        /// which <see cref="GetNames{TEnum}"/> returns the names, as <see cref="Enum"/> does, even when another member matches exactly.
+        /// </para>
+        /// <para>
+        /// <see cref="Enum"/> returns a value that isn't defined when the text is a number. A string enumeration's underlying type is <see cref="string"/>, so any text could be such
+        /// a value, and it couldn't be told apart from a name. So this throws <see cref="ArgumentException"/> for a <paramref name="value"/> that is neither the name nor the value of a member. Use <see cref="ToObject{TEnum}(string)"/> to get a
+        /// value that isn't defined.
+        /// </para>
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static TEnum Parse<TEnum>(string value, bool ignoreCase) where TEnum : struct, IStringEnum
@@ -458,18 +566,8 @@ namespace DataStandardizer.Core
         {
             if (value is null)
                 throw new ArgumentNullException(nameof(value));
-            if (string.IsNullOrWhiteSpace(value))
-                throw new ArgumentException($"{nameof(value)} is either an empty string or only contains white space.", nameof(value));
 
-            lock (SyncRoot)
-            {
-                if (FindMember(typeof(TEnum), value, ignoreCase) is TEnum member)
-                {
-                    return member;
-                }
-            }
-
-            throw new ArgumentException($"{nameof(value)} does not contain enumeration information.", nameof(value));
+            return (TEnum)ParseCore(typeof(TEnum), value, ignoreCase);
         }
 
         /// <summary>
@@ -522,19 +620,33 @@ namespace DataStandardizer.Core
         }
 
         /// <summary>
-        /// Converts the string representation of the name or value of one or more enumerated constants to an equivalent enumerated object.
+        /// Converts the string representation of the name or value of an enumerated constant to an equivalent enumerated object. The return value indicates whether the
+        /// conversion succeeded.
         /// </summary>
-        /// <param name="enumType">The enum type to use for parsing.</param>
-        /// <param name="value">The string representation of the name or value of one or more enumerated constants.</param>
+        /// <param name="enumType">A string enumeration type.</param>
+        /// <param name="value">The string representation of the name or value of an enumerated constant.</param>
         /// <param name="result">When this method returns <c>true</c>, contains an enumeration constant that represents the parsed value.</param>
         /// <returns><c>true</c> if the conversion succeeded; <c>false</c> otherwise.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="enumType"/> is <c>null</c> and <paramref name="value"/> is not <c>null</c>.</exception>
         /// <exception cref="ArgumentException"><paramref name="enumType"/> is not a string enumeration and <paramref name="value"/> is not <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
         /// <remarks>
-        /// <paramref name="value"/> is compared with the members' names first, then with their values. White space before or after <paramref name="value"/> is ignored when it is compared
-        /// with the names, as <see cref="Enum"/> does. It is compared with the values as given, and then, if no value matches, with the white space removed, so a member whose value
-        /// begins or ends with white space can still be parsed. A <paramref name="value"/> that is only white space is never compared as an empty string.
+        /// <para>An empty <paramref name="value"/>, or one that is only white space, fails, as it does for <see cref="Enum"/>.</para>
+        /// <para>
+        /// <paramref name="value"/> is a single name or value. Unlike <see cref="Enum"/>, a list of names separated by commas isn't combined, as the values of a string
+        /// enumeration can't be combined, and a value may itself contain a comma.
+        /// </para>
+        /// <para>
+        /// <paramref name="value"/> is compared with the members' names first, then with their values. White space before or after <paramref name="value"/> is ignored when it is
+        /// compared with the names, as <see cref="Enum"/> does. It is compared with the values as given, and then, if no value matches, with the white space removed, so a member
+        /// whose value begins or ends with white space can still be parsed. When case is ignored, each of those comparisons returns the first member that matches, in the order in
+        /// which <see cref="GetNames(Type)"/> returns the names, as <see cref="Enum"/> does, even when another member matches exactly.
+        /// </para>
+        /// <para>
+        /// <see cref="Enum"/> returns a value that isn't defined when the text is a number. A string enumeration's underlying type is <see cref="string"/>, so any text could be such
+        /// a value, and it couldn't be told apart from a name. So this returns <c>false</c> for a <paramref name="value"/> that is neither the name nor the value of a member. Use <see cref="ToObject(Type, string)"/> to get a
+        /// value that isn't defined.
+        /// </para>
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryParse(Type enumType, string? value, out object? result)
@@ -542,36 +654,15 @@ namespace DataStandardizer.Core
         public static bool TryParse([DisallowNull] Type enumType, [AllowNull] string value, [MaybeNullWhen(false)] out object result)
 #endif
         {
-            // Like Enum.TryParse, a null value fails before enumType is checked.
-            if (value is null)
-            {
-                result = null;
-                return false;
-            }
-
-            if (enumType is null)
-                throw new ArgumentNullException(nameof(enumType));
-            ThrowIfNotStringEnumType(enumType);
-
-            lock (SyncRoot)
-            {
-                var member = FindMember(enumType, value, false);
-                if (member != null)
-                {
-                    result = member;
-                    return true;
-                }
-            }
-
-            result = null;
-            return false;
+            return TryParse(enumType, value, false, out result);
         }
 
         /// <summary>
-        /// Converts the string representation of the name or value of one or more enumerated constants to an equivalent enumerated object.
+        /// Converts the string representation of the name or value of an enumerated constant to an equivalent enumerated object. A parameter specifies whether the operation
+        /// is case-insensitive. The return value indicates whether the conversion succeeded.
         /// </summary>
-        /// <param name="enumType">The enum type to use for parsing.</param>
-        /// <param name="value">The string representation of the name or numeric value of one or more enumerated constants.</param>
+        /// <param name="enumType">A string enumeration type.</param>
+        /// <param name="value">The string representation of the name or value of an enumerated constant.</param>
         /// <param name="ignoreCase"><c>true</c> to read <paramref name="value"/> in case-insensitive mode; <c>false</c> to read <paramref name="value"/> in case-sensitive mode.</param>
         /// <param name="result">When this method returns <c>true</c>, contains an enumeration constant that represents the parsed value.</param>
         /// <returns><c>true</c> if the conversion succeeded; <c>false</c> otherwise.</returns>
@@ -579,13 +670,22 @@ namespace DataStandardizer.Core
         /// <exception cref="ArgumentException"><paramref name="enumType"/> is not a string enumeration and <paramref name="value"/> is not <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
         /// <remarks>
-        /// <paramref name="value"/> is compared with the members' names first, then with their values. White space before or after <paramref name="value"/> is ignored when it is compared
-        /// with the names, as <see cref="Enum"/> does. It is compared with the values as given, and then with the white space removed, so a member whose value begins or ends with white
-        /// space can still be parsed. A <paramref name="value"/> that is only white space is never compared as an empty string.
-        /// When <paramref name="ignoreCase"/> is <c>true</c> and <paramref name="value"/> matches more than one name, or more than one value, ignoring case, the member whose name or value
-        /// matches it exactly (ordinal comparison) wins: for values, an exact match on <paramref name="value"/> as given, then an exact match with the white space removed. If none
-        /// matches exactly, a match on <paramref name="value"/> as given wins over one with the white space removed, and among those the first matching member is returned, in the order
-        /// in which <see cref="GetNames(Type)"/> returns the members' names.
+        /// <para>An empty <paramref name="value"/>, or one that is only white space, fails, as it does for <see cref="Enum"/>.</para>
+        /// <para>
+        /// <paramref name="value"/> is a single name or value. Unlike <see cref="Enum"/>, a list of names separated by commas isn't combined, as the values of a string
+        /// enumeration can't be combined, and a value may itself contain a comma.
+        /// </para>
+        /// <para>
+        /// <paramref name="value"/> is compared with the members' names first, then with their values. White space before or after <paramref name="value"/> is ignored when it is
+        /// compared with the names, as <see cref="Enum"/> does. It is compared with the values as given, and then, if no value matches, with the white space removed, so a member
+        /// whose value begins or ends with white space can still be parsed. When case is ignored, each of those comparisons returns the first member that matches, in the order in
+        /// which <see cref="GetNames(Type)"/> returns the names, as <see cref="Enum"/> does, even when another member matches exactly.
+        /// </para>
+        /// <para>
+        /// <see cref="Enum"/> returns a value that isn't defined when the text is a number. A string enumeration's underlying type is <see cref="string"/>, so any text could be such
+        /// a value, and it couldn't be told apart from a name. So this returns <c>false</c> for a <paramref name="value"/> that is neither the name nor the value of a member. Use <see cref="ToObject(Type, string)"/> to get a
+        /// value that isn't defined.
+        /// </para>
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryParse(Type enumType, string? value, bool ignoreCase, out object? result)
@@ -604,32 +704,36 @@ namespace DataStandardizer.Core
                 throw new ArgumentNullException(nameof(enumType));
             ThrowIfNotStringEnumType(enumType);
 
-            lock (SyncRoot)
-            {
-                var member = FindMember(enumType, value, ignoreCase);
-                if (member != null)
-                {
-                    result = member;
-                    return true;
-                }
-            }
-
-            result = null;
-            return false;
+            result = TryParseCore(enumType, value, ignoreCase);
+            return result != null;
         }
 
         /// <summary>
-        /// Converts the string representation of the name or value of one or more enumerated constants to an equivalent enumerated object. The return value indicates whether the conversion succeeded.
+        /// Converts the string representation of the name or value of an enumerated constant to an equivalent enumerated object. The return value indicates whether the
+        /// conversion succeeded.
         /// </summary>
-        /// <typeparam name="TEnum">The enumeration type to which to convert <paramref name="value"/>>.</typeparam>
-        /// <param name="value">The string representation of the enumeration name or underlying value to convert.</param>
+        /// <typeparam name="TEnum">The enumeration type to which to convert <paramref name="value"/>.</typeparam>
+        /// <param name="value">The string representation of the enumeration name or value to convert.</param>
         /// <param name="result">When this method returns, contains an object of type <typeparamref name="TEnum"/> whose value is represented by <paramref name="value"/>. This parameter is passed uninitialized.</param>
         /// <returns><c>true</c> if the <paramref name="value"/> parameter was converted successfully; otherwise, <c>false</c>.</returns>
         /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
         /// <remarks>
-        /// <paramref name="value"/> is compared with the members' names first, then with their values. White space before or after <paramref name="value"/> is ignored when it is compared
-        /// with the names, as <see cref="Enum"/> does. It is compared with the values as given, and then, if no value matches, with the white space removed, so a member whose value
-        /// begins or ends with white space can still be parsed. A <paramref name="value"/> that is only white space is never compared as an empty string.
+        /// <para>An empty <paramref name="value"/>, or one that is only white space, fails, as it does for <see cref="Enum"/>.</para>
+        /// <para>
+        /// <paramref name="value"/> is a single name or value. Unlike <see cref="Enum"/>, a list of names separated by commas isn't combined, as the values of a string
+        /// enumeration can't be combined, and a value may itself contain a comma.
+        /// </para>
+        /// <para>
+        /// <paramref name="value"/> is compared with the members' names first, then with their values. White space before or after <paramref name="value"/> is ignored when it is
+        /// compared with the names, as <see cref="Enum"/> does. It is compared with the values as given, and then, if no value matches, with the white space removed, so a member
+        /// whose value begins or ends with white space can still be parsed. When case is ignored, each of those comparisons returns the first member that matches, in the order in
+        /// which <see cref="GetNames{TEnum}"/> returns the names, as <see cref="Enum"/> does, even when another member matches exactly.
+        /// </para>
+        /// <para>
+        /// <see cref="Enum"/> returns a value that isn't defined when the text is a number. A string enumeration's underlying type is <see cref="string"/>, so any text could be such
+        /// a value, and it couldn't be told apart from a name. So this returns <c>false</c> for a <paramref name="value"/> that is neither the name nor the value of a member. Use <see cref="ToObject{TEnum}(string)"/> to get a
+        /// value that isn't defined.
+        /// </para>
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryParse<TEnum>(string? value, out TEnum result) where TEnum : struct, IStringEnum
@@ -637,36 +741,36 @@ namespace DataStandardizer.Core
         public static bool TryParse<TEnum>([AllowNull] string value, out TEnum result) where TEnum : struct, IStringEnum
 #endif
         {
-            lock (SyncRoot)
-            {
-                if (value != null && FindMember(typeof(TEnum), value, false) is TEnum member)
-                {
-                    result = member;
-                    return true;
-                }
-            }
-
-            result = default;
-            return false;
+            return TryParse(value, false, out result);
         }
 
         /// <summary>
-        /// Converts the string representation of the name or value of one or more enumerated constants to an equivalent enumerated object. A parameter specifies whether the operation is case-sensitive. The return value indicates whether the conversion succeeded.
+        /// Converts the string representation of the name or value of an enumerated constant to an equivalent enumerated object. A parameter specifies whether the operation
+        /// is case-insensitive. The return value indicates whether the conversion succeeded.
         /// </summary>
         /// <typeparam name="TEnum">The enumeration type to which to convert <paramref name="value"/>.</typeparam>
-        /// <param name="value">The string representation of the enumeration name or underlying value to convert.</param>
+        /// <param name="value">The string representation of the enumeration name or value to convert.</param>
         /// <param name="ignoreCase"><c>true</c> to ignore case; <c>false</c> to consider case.</param>
         /// <param name="result">When this method returns, contains an object of type <typeparamref name="TEnum"/> whose value is represented by <paramref name="value"/>. This parameter is passed uninitialized.</param>
         /// <returns><c>true</c> if the <paramref name="value"/> parameter was converted successfully; otherwise, <c>false</c>.</returns>
         /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
         /// <remarks>
-        /// <paramref name="value"/> is compared with the members' names first, then with their values. White space before or after <paramref name="value"/> is ignored when it is compared
-        /// with the names, as <see cref="Enum"/> does. It is compared with the values as given, and then with the white space removed, so a member whose value begins or ends with white
-        /// space can still be parsed. A <paramref name="value"/> that is only white space is never compared as an empty string.
-        /// When <paramref name="ignoreCase"/> is <c>true</c> and <paramref name="value"/> matches more than one name, or more than one value, ignoring case, the member whose name or value
-        /// matches it exactly (ordinal comparison) wins: for values, an exact match on <paramref name="value"/> as given, then an exact match with the white space removed. If none
-        /// matches exactly, a match on <paramref name="value"/> as given wins over one with the white space removed, and among those the first matching member is returned, in the order
-        /// in which <see cref="GetNames(Type)"/> returns the members' names.
+        /// <para>An empty <paramref name="value"/>, or one that is only white space, fails, as it does for <see cref="Enum"/>.</para>
+        /// <para>
+        /// <paramref name="value"/> is a single name or value. Unlike <see cref="Enum"/>, a list of names separated by commas isn't combined, as the values of a string
+        /// enumeration can't be combined, and a value may itself contain a comma.
+        /// </para>
+        /// <para>
+        /// <paramref name="value"/> is compared with the members' names first, then with their values. White space before or after <paramref name="value"/> is ignored when it is
+        /// compared with the names, as <see cref="Enum"/> does. It is compared with the values as given, and then, if no value matches, with the white space removed, so a member
+        /// whose value begins or ends with white space can still be parsed. When case is ignored, each of those comparisons returns the first member that matches, in the order in
+        /// which <see cref="GetNames{TEnum}"/> returns the names, as <see cref="Enum"/> does, even when another member matches exactly.
+        /// </para>
+        /// <para>
+        /// <see cref="Enum"/> returns a value that isn't defined when the text is a number. A string enumeration's underlying type is <see cref="string"/>, so any text could be such
+        /// a value, and it couldn't be told apart from a name. So this returns <c>false</c> for a <paramref name="value"/> that is neither the name nor the value of a member. Use <see cref="ToObject{TEnum}(string)"/> to get a
+        /// value that isn't defined.
+        /// </para>
         /// </remarks>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryParse<TEnum>(string? value, bool ignoreCase, out TEnum result) where TEnum : struct, IStringEnum
@@ -674,13 +778,10 @@ namespace DataStandardizer.Core
         public static bool TryParse<TEnum>([AllowNull] string value, bool ignoreCase, out TEnum result) where TEnum : struct, IStringEnum
 #endif
         {
-            lock (SyncRoot)
+            if (value != null && TryParseCore(typeof(TEnum), value, ignoreCase) is TEnum member)
             {
-                if (value != null && FindMember(typeof(TEnum), value, ignoreCase) is TEnum member)
-                {
-                    result = member;
-                    return true;
-                }
+                result = member;
+                return true;
             }
 
             result = default;
@@ -735,104 +836,102 @@ namespace DataStandardizer.Core
             return e(value);
         }
 
-        // Like Enum.Parse, white space around a name is ignored. A member's value may itself begin or end with white space, so value is compared with the values both as given
-        // and with the white space around it removed. A value that is only white space is never trimmed to the empty string.
-#if NETCOREAPP3_0_OR_GREATER
-        private static object? FindMember(Type type, string value, bool ignoreCase)
-#else
-        [return: MaybeNull]
-        private static object FindMember(Type type, string value, bool ignoreCase)
-#endif
+        // The work of the Parse overloads, once their arguments are checked.
+        private static object ParseCore(Type enumType, string value, bool ignoreCase)
         {
-            var trimmedValue = value.Trim();
-            var hasTrimmedValue = trimmedValue.Length != 0 && trimmedValue.Length != value.Length;
+            if (string.IsNullOrWhiteSpace(value))
+                throw new ArgumentException($"{nameof(value)} is either an empty string or only contains white space.", nameof(value));
 
-            return FindMemberByName(type, trimmedValue, ignoreCase) ?? FindMemberByValue(type, value, hasTrimmedValue ? trimmedValue : null, ignoreCase);
-        }
-
-        // In one pass over the members, in member order: an exact (ordinal) match on value wins, then one on trimmedValue; then, when ignoring case, a match on value ignoring case,
-        // then one on trimmedValue ignoring case. A null trimmedValue matches nothing.
-#if NETCOREAPP3_0_OR_GREATER
-        private static object? FindMemberByValue(Type type, string value, string? trimmedValue, bool ignoreCase)
-#else
-        [return: MaybeNull]
-        private static object FindMemberByValue(Type type, string value, [AllowNull] string trimmedValue, bool ignoreCase)
-#endif
-        {
-#if NETCOREAPP3_0_OR_GREATER
-            object? trimmedMatch = null;
-            object? caseInsensitiveMatch = null;
-            object? trimmedCaseInsensitiveMatch = null;
-#else
-            object trimmedMatch = null;
-            object caseInsensitiveMatch = null;
-            object trimmedCaseInsensitiveMatch = null;
-#endif
-            foreach (var member in GetCache(type).Members)
+            lock (SyncRoot)
             {
-                if (string.Equals(member.StringValue, value, StringComparison.Ordinal))
-                    return member.Value;
-                if (trimmedValue != null && trimmedMatch is null && string.Equals(member.StringValue, trimmedValue, StringComparison.Ordinal))
-                    trimmedMatch = member.Value;
-                if (!ignoreCase)
-                    continue;
-                if (caseInsensitiveMatch is null && string.Equals(member.StringValue, value, StringComparison.OrdinalIgnoreCase))
-                    caseInsensitiveMatch = member.Value;
-                if (trimmedValue != null && trimmedCaseInsensitiveMatch is null && string.Equals(member.StringValue, trimmedValue, StringComparison.OrdinalIgnoreCase))
-                    trimmedCaseInsensitiveMatch = member.Value;
+                var member = FindMember(GetCache(enumType), value, ignoreCase);
+                if (member != null)
+                    return member;
             }
 
-            return trimmedMatch ?? caseInsensitiveMatch ?? trimmedCaseInsensitiveMatch;
+            // Like Enum.Parse, which gives no parameter name for a value it doesn't find.
+            throw new ArgumentException($"Requested value '{value}' was not found.");
         }
 
-        // An exact (ordinal) match wins. Otherwise, when ignoring case, the first member in member order whose name matches ignoring case.
+        // The work of the TryParse overloads, once their arguments are checked: the member value represents, or null. Like Enum.TryParse, an empty value or one that is only
+        // white space fails.
 #if NETCOREAPP3_0_OR_GREATER
-        private static object? FindMemberByName(Type type, string value, bool ignoreCase)
+        private static object? TryParseCore(Type enumType, string value, bool ignoreCase)
 #else
         [return: MaybeNull]
-        private static object FindMemberByName(Type type, string value, bool ignoreCase)
+        private static object TryParseCore(Type enumType, string value, bool ignoreCase)
 #endif
         {
-            var cache = GetCache(type);
-            if (cache.FieldsByName.TryGetValue(value, out var exactMatch))
-                return exactMatch;
-            if (!ignoreCase)
+            if (string.IsNullOrWhiteSpace(value))
                 return null;
 
-            foreach (var member in cache.Members)
+            lock (SyncRoot)
             {
-                if (string.Equals(member.Name, value, StringComparison.OrdinalIgnoreCase))
-                    return member.Value;
+                return FindMember(GetCache(enumType), value, ignoreCase);
+            }
+        }
+
+        // Like Enum.Parse, white space around a name is ignored. A member's value may itself begin or end with white space, so value is compared with the values as given, and
+        // then, if none matches, with the white space around it removed. Like Enum.Parse, each comparison returns the first member that matches, in GetNames order, whether or
+        // not another member matches exactly when case is ignored. Callers hold SyncRoot, and value isn't empty or only white space.
+#if NETCOREAPP3_0_OR_GREATER
+        private static object? FindMember(MemberCache cache, string value, bool ignoreCase)
+#else
+        [return: MaybeNull]
+        private static object FindMember(MemberCache cache, string value, bool ignoreCase)
+#endif
+        {
+            var comparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            var trimmedValue = value.Trim();
+
+            var member = FindMemberByName(cache, trimmedValue, comparison) ?? FindMemberByValue(cache, value, comparison);
+            if (member is null && trimmedValue.Length != value.Length)
+                member = FindMemberByValue(cache, trimmedValue, comparison);
+
+            return member;
+        }
+
+        // Whether value is the name or the value of a member, compared exactly (ordinal, case-sensitive). Callers hold SyncRoot.
+        private static bool IsNameOrValueDefined(MemberCache cache, string value)
+        {
+            return FindMemberByName(cache, value, StringComparison.Ordinal) != null || FindMemberByValue(cache, value, StringComparison.Ordinal) != null;
+        }
+
+        // The first member, in GetNames order, whose name matches value. Names are unique, so an ordinal match is a lookup.
+#if NETCOREAPP3_0_OR_GREATER
+        private static object? FindMemberByName(MemberCache cache, string value, StringComparison comparison)
+#else
+        [return: MaybeNull]
+        private static object FindMemberByName(MemberCache cache, string value, StringComparison comparison)
+#endif
+        {
+            if (comparison == StringComparison.Ordinal)
+                return cache.FieldsByName.TryGetValue(value, out var member) ? member : null;
+
+            foreach (var candidate in cache.Members)
+            {
+                if (string.Equals(candidate.Name, value, comparison))
+                    return candidate.Value;
             }
 
             return null;
         }
 
-        // An exact (ordinal) match wins. Otherwise, when ignoring case, the first member in member order whose value matches ignoring case. A null value matches nothing.
+        // The first member, in GetNames order, whose value matches value.
 #if NETCOREAPP3_0_OR_GREATER
-        private static object? FindMemberByValue(Type type, string? value, bool ignoreCase)
+        private static object? FindMemberByValue(MemberCache cache, string value, StringComparison comparison)
 #else
         [return: MaybeNull]
-        private static object FindMemberByValue(Type type, [AllowNull] string value, bool ignoreCase)
+        private static object FindMemberByValue(MemberCache cache, string value, StringComparison comparison)
 #endif
         {
-            if (value is null)
-                return null;
-
-#if NETCOREAPP3_0_OR_GREATER
-            object? caseInsensitiveMatch = null;
-#else
-            object caseInsensitiveMatch = null;
-#endif
-            foreach (var member in GetCache(type).Members)
+            foreach (var candidate in cache.Members)
             {
-                if (string.Equals(member.StringValue, value, StringComparison.Ordinal))
-                    return member.Value;
-                if (ignoreCase && caseInsensitiveMatch is null && string.Equals(member.StringValue, value, StringComparison.OrdinalIgnoreCase))
-                    caseInsensitiveMatch = member.Value;
+                if (string.Equals(candidate.StringValue, value, comparison))
+                    return candidate.Value;
             }
 
-            return caseInsensitiveMatch;
+            return null;
         }
 
         // Callers hold SyncRoot.

@@ -15,8 +15,10 @@ namespace DataStandardizer.Core.Tests
         // Exception messages thrown by StringEnum.
         private const string NotStringEnumerationMessage = "enumType is not a string enumeration.*";
         private const string EmptyOrWhiteSpaceValueMessage = "value is either an empty string or only contains white space.*";
-        private const string NotNamedConstantMessage = "value is a name, but not one of the named constants defined for the enumeration.*";
-        private const string NoEnumerationInformationMessage = "value does not contain enumeration information.*";
+        // Like Enum.Parse, whose ArgumentException for a value it doesn't find has no parameter name.
+        private const string NotFoundMessage = "Requested value '*' was not found.";
+        private const string OtherStringEnumValueMessage = "The value is of the string enumeration *, not of *.";
+        private const string NeitherStringEnumNorStringIsDefinedMessage = "value is neither a string enumeration value nor a string.";
         private const string NeitherStringEnumNorStringMessage = "value is neither a string enumeration value nor a string.*";
         private const string NoConversionToStringValueMessage = "value is of a string enumeration that defines no conversion to string.*";
         private const string NoConversionToStringTypeMessage = "The string enumeration DataStandardizer.Core.Tests.StringEnumTests+NoStringConversionEnum defines no conversion to string.";
@@ -105,6 +107,7 @@ namespace DataStandardizer.Core.Tests
         private const string ZuluValue = "z";
         private const string UpperCaseBravoValue = "B";
         private const string AlphaValue = "a";
+        private const string UndefinedUnorderedEnumValue = "q";
 
         [Fact]
         public void GetNameNonGeneric_WithNullEnumType_ThrowsArgumentNullException()
@@ -400,6 +403,68 @@ namespace DataStandardizer.Core.Tests
             testResult.Should().Equal(expectedResult);
         }
 
+        [Theory]
+        [ClassData(typeof(IsDefinedObjectOverload_TestCaseFactory))]
+        public void IsDefinedObjectOverload_WithEnumValueOrString_ReturnsWhetherDefined(object value, bool expectedResult)
+        {
+            // act
+            var testResult = StringEnum.IsDefined(typeof(UnorderedEnum), value);
+
+            // assert
+            testResult.Should().Be(expectedResult);
+        }
+
+        [Fact]
+        public void IsDefinedObjectOverload_WithNullValue_ThrowsArgumentNullException()
+        {
+            // act
+            Action testAction = () => StringEnum.IsDefined(typeof(UnorderedEnum), (object)null!);
+
+            // assert
+            testAction.Should().Throw<ArgumentNullException>().WithParameterName(ValueParameterName);
+        }
+
+        [Fact]
+        public void IsDefinedObjectOverload_WithNonStringEnumType_ThrowsArgumentException()
+        {
+            // act
+            Action testAction = () => StringEnum.IsDefined(typeof(DayOfWeek), (object)UnorderedEnum.Alpha);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithMessage(NotStringEnumerationMessage).WithParameterName(EnumTypeParameterName);
+        }
+
+        [Fact]
+        public void IsDefinedObjectOverload_WithValueOfOtherStringEnum_ThrowsArgumentException()
+        {
+            // act
+            Action testAction = () => StringEnum.IsDefined(typeof(UnorderedEnum), (object)SimpleEnum.One);
+
+            // assert
+            testAction.Should().Throw<ArgumentException>().WithMessage(OtherStringEnumValueMessage).Which.ParamName.Should().BeNull();
+        }
+
+        [Fact]
+        public void IsDefinedObjectOverload_WithValueNeitherStringEnumNorString_ThrowsInvalidOperationException()
+        {
+            // act
+            Action testAction = () => StringEnum.IsDefined(typeof(UnorderedEnum), 1);
+
+            // assert
+            testAction.Should().Throw<InvalidOperationException>().WithMessage(NeitherStringEnumNorStringIsDefinedMessage);
+        }
+
+        [Theory]
+        [ClassData(typeof(IsDefinedEnumValueOverload_TestCaseFactory))]
+        public void IsDefinedEnumValueOverload_WithEnumValue_ReturnsWhetherDefined(UnorderedEnum value, bool expectedResult)
+        {
+            // act
+            var testResult = StringEnum.IsDefined(value);
+
+            // assert
+            testResult.Should().Be(expectedResult);
+        }
+
         [Fact]
         public void IsDefinedNonGeneric_WithNullEnumType_ThrowsArgumentNullException()
         {
@@ -624,7 +689,7 @@ namespace DataStandardizer.Core.Tests
             Action testAction = () => StringEnum.Parse(enumType, enumValue);
 
             // assert
-            testAction.Should().Throw<ArgumentException>().WithMessage(NotNamedConstantMessage).WithParameterName(ValueParameterName);
+            testAction.Should().Throw<ArgumentException>().WithMessage(NotFoundMessage).Which.ParamName.Should().BeNull();
         }
 
         [Theory]
@@ -690,7 +755,7 @@ namespace DataStandardizer.Core.Tests
             Action testAction = () => StringEnum.Parse(enumType, enumValue, false);
 
             // assert
-            testAction.Should().Throw<ArgumentException>().WithMessage("value is either an empty string (\"\") or only contains white space.*").WithParameterName(ValueParameterName);
+            testAction.Should().Throw<ArgumentException>().WithMessage(EmptyOrWhiteSpaceValueMessage).WithParameterName(ValueParameterName);
         }
 
         [Theory]
@@ -701,7 +766,7 @@ namespace DataStandardizer.Core.Tests
             Action testAction = () => StringEnum.Parse(enumType, enumValue, ignoreCase);
 
             // assert
-            testAction.Should().Throw<ArgumentException>().WithMessage(NotNamedConstantMessage).WithParameterName(ValueParameterName);
+            testAction.Should().Throw<ArgumentException>().WithMessage(NotFoundMessage).Which.ParamName.Should().BeNull();
         }
 
         [Theory]
@@ -755,7 +820,7 @@ namespace DataStandardizer.Core.Tests
             Action testAction = () => StringEnum.Parse<SimpleEnum>(enumValue);
 
             // assert
-            testAction.Should().Throw<ArgumentException>().WithMessage(NoEnumerationInformationMessage).WithParameterName(ValueParameterName);
+            testAction.Should().Throw<ArgumentException>().WithMessage(NotFoundMessage).Which.ParamName.Should().BeNull();
         }
 
         [Theory]
@@ -810,7 +875,7 @@ namespace DataStandardizer.Core.Tests
             Action testAction = () => StringEnum.Parse<SimpleEnum>(enumValue, ignoreCase);
 
             // assert
-            testAction.Should().Throw<ArgumentException>().WithMessage(NoEnumerationInformationMessage).WithParameterName(ValueParameterName);
+            testAction.Should().Throw<ArgumentException>().WithMessage(NotFoundMessage).Which.ParamName.Should().BeNull();
         }
 
         [Theory]
@@ -1303,7 +1368,7 @@ namespace DataStandardizer.Core.Tests
             var testAction = parse;
 
             // assert
-            testAction.Should().Throw<ArgumentException>().WithParameterName(ValueParameterName);
+            testAction.Should().Throw<ArgumentException>().WithMessage(NotFoundMessage).Which.ParamName.Should().BeNull();
         }
 
         [Theory]
@@ -1366,7 +1431,7 @@ namespace DataStandardizer.Core.Tests
 
         [Theory]
         [MemberData(nameof(TryParseOverloadsOnWhiteSpaceValueEnumWithOnlyWhiteSpace))]
-        public void TryParseOverloads_WithOnlyWhiteSpaceOnEnumWithEmptyValue_ReturnsFalse(Func<bool> tryParse)
+        public void TryParseOverloads_WithEmptyOrOnlyWhiteSpaceOnEnumWithEmptyValue_ReturnsFalse(Func<bool> tryParse)
         {
             // act
             var testResult = tryParse();
@@ -1377,7 +1442,7 @@ namespace DataStandardizer.Core.Tests
 
         [Theory]
         [MemberData(nameof(ParseIgnoreCaseOverloadsOnWhiteSpaceValueEnum))]
-        public void ParseIgnoreCaseOverloads_WithValueMatchingAsGivenIgnoringCase_ReturnsThatMember(Func<string, object> parse, string value, WhiteSpaceValueEnum expectedResult)
+        public void ParseIgnoreCaseOverloads_WithWhiteSpaceOrCaseDifference_ReturnsFirstMatchInGetNamesOrder(Func<string, object> parse, string value, WhiteSpaceValueEnum expectedResult)
         {
             // act
             var testResult = parse(value);
@@ -1388,7 +1453,7 @@ namespace DataStandardizer.Core.Tests
 
         [Theory]
         [MemberData(nameof(TryParseIgnoreCaseOverloadsOnWhiteSpaceValueEnum))]
-        public void TryParseIgnoreCaseOverloads_WithValueMatchingAsGivenIgnoringCase_ReturnsTrueAndThatMember(Func<string, (bool Success, object? Result)> tryParse, string value, WhiteSpaceValueEnum expectedResult)
+        public void TryParseIgnoreCaseOverloads_WithWhiteSpaceOrCaseDifference_ReturnsTrueAndFirstMatchInGetNamesOrder(Func<string, (bool Success, object? Result)> tryParse, string value, WhiteSpaceValueEnum expectedResult)
         {
             // act
             var testResult = tryParse(value);
@@ -1400,14 +1465,14 @@ namespace DataStandardizer.Core.Tests
 
         #region Test Data
 
-        // Each input with the member it resolves to when ignoring case: names are compared before values, an exact (ordinal) match wins, otherwise the first member that matches ignoring
-        // case, in GetNames order. That order is by value, so ABC (XYZ) comes before Abc (xyz).
+        // Each input with the member it resolves to when ignoring case: names are compared before values, and, as with Enum, the first member that matches ignoring case, in
+        // GetNames order, wins, even when a later member matches exactly. That order is by value: ABC (XYZ), Uvw (ghi), Ghi (jkl), Abc (xyz).
         private static readonly (string Value, CaseVariantNameEnum ExpectedResult)[] CaseVariantNameEnumIgnoreCaseCases =
         {
-            (MixedCaseName, CaseVariantNameEnum.Abc),
+            (MixedCaseName, CaseVariantNameEnum.ABC),
             (UpperCaseName, CaseVariantNameEnum.ABC),
             (LowerCaseName, CaseVariantNameEnum.ABC),
-            (LowerCaseValue, CaseVariantNameEnum.Abc),
+            (LowerCaseValue, CaseVariantNameEnum.ABC),
             (UpperCaseValue, CaseVariantNameEnum.ABC),
             (MixedCaseValue, CaseVariantNameEnum.ABC),
             (UvwValue, CaseVariantNameEnum.Ghi),
@@ -1479,8 +1544,8 @@ namespace DataStandardizer.Core.Tests
             () => StringEnum.TryParse<CaseVariantNameEnum>(null, true, out _),
         };
 
-        // Each input with the member it resolves to, whether or not case is ignored: names are compared before values, and white space around a name is ignored; a value is
-        // compared as given first, then without the white space around it, and an exact match wins over a match ignoring case.
+        // Each input with the member it resolves to when case is regarded: names are compared before values, and white space around a name is ignored; a value is compared as
+        // given first, then without the white space around it.
         private static readonly (string Value, WhiteSpaceValueEnum ExpectedResult)[] WhiteSpaceValueEnumCases =
         {
             (NameWithSurroundingSpaces, WhiteSpaceValueEnum.Plain),
@@ -1495,14 +1560,32 @@ namespace DataStandardizer.Core.Tests
             (UpperCaseValueWithSurroundingSpaces, WhiteSpaceValueEnum.Shouted),
         };
 
-        // When no value matches exactly, as given or without white space, a match ignoring case on the value as given wins over one on the value without white space.
+        // Each input with the member it resolves to when case is ignored. Names are compared first, then values as given, then values without the white space around them, and
+        // each comparison returns the first member that matches ignoring case, in GetNames order: Blank (""), Shadowed (" Plain"), Padded (" pad"), Shouted ("PAD"), Plain ("pad").
         private static readonly (string Value, WhiteSpaceValueEnum ExpectedResult)[] WhiteSpaceValueEnumIgnoreCaseCases =
         {
+            (NameWithSurroundingSpaces, WhiteSpaceValueEnum.Plain),
+            (NameWithSurroundingTabAndLineBreak, WhiteSpaceValueEnum.Plain),
+            (PaddedNameWithSurroundingSpaces, WhiteSpaceValueEnum.Padded),
+            (ShadowingValue, WhiteSpaceValueEnum.Plain),
+            (PlainValue, WhiteSpaceValueEnum.Shouted),
+            (LeadingWhiteSpaceValue, WhiteSpaceValueEnum.Padded),
+            (ValueWithSurroundingSpaces, WhiteSpaceValueEnum.Shouted),
+            (ValueWithTrailingSpace, WhiteSpaceValueEnum.Shouted),
+            (UpperCaseLeadingWhiteSpaceValue, WhiteSpaceValueEnum.Padded),
+            (UpperCaseValueWithSurroundingSpaces, WhiteSpaceValueEnum.Shouted),
             (MixedCaseLeadingWhiteSpaceValue, WhiteSpaceValueEnum.Padded),
         };
 
+        // WhiteSpaceValueEnum.Blank's value is the empty string, but, as with Enum, an empty value or one that is only white space fails.
         public static TheoryData<Func<bool>> TryParseOverloadsOnWhiteSpaceValueEnumWithOnlyWhiteSpace => new TheoryData<Func<bool>>
         {
+            () => StringEnum.TryParse(typeof(WhiteSpaceValueEnum), EmptyValue, out _),
+            () => StringEnum.TryParse(typeof(WhiteSpaceValueEnum), EmptyValue, false, out _),
+            () => StringEnum.TryParse(typeof(WhiteSpaceValueEnum), EmptyValue, true, out _),
+            () => StringEnum.TryParse<WhiteSpaceValueEnum>(EmptyValue, out _),
+            () => StringEnum.TryParse<WhiteSpaceValueEnum>(EmptyValue, false, out _),
+            () => StringEnum.TryParse<WhiteSpaceValueEnum>(EmptyValue, true, out _),
             () => StringEnum.TryParse(typeof(WhiteSpaceValueEnum), SpaceValue, out _),
             () => StringEnum.TryParse(typeof(WhiteSpaceValueEnum), SpaceValue, false, out _),
             () => StringEnum.TryParse(typeof(WhiteSpaceValueEnum), SpaceValue, true, out _),
@@ -1522,10 +1605,8 @@ namespace DataStandardizer.Core.Tests
             {
                 value => StringEnum.Parse(typeof(WhiteSpaceValueEnum), value),
                 value => StringEnum.Parse(typeof(WhiteSpaceValueEnum), value, false),
-                value => StringEnum.Parse(typeof(WhiteSpaceValueEnum), value, true),
                 value => StringEnum.Parse<WhiteSpaceValueEnum>(value),
                 value => StringEnum.Parse<WhiteSpaceValueEnum>(value, false),
-                value => StringEnum.Parse<WhiteSpaceValueEnum>(value, true),
             }, WhiteSpaceValueEnumCases);
 
         public static TheoryData<Func<string, (bool Success, object? Result)>, string, WhiteSpaceValueEnum> TryParseOverloadsOnWhiteSpaceValueEnum =>
@@ -1533,10 +1614,8 @@ namespace DataStandardizer.Core.Tests
             {
                 value => (StringEnum.TryParse(typeof(WhiteSpaceValueEnum), value, out var result), result),
                 value => (StringEnum.TryParse(typeof(WhiteSpaceValueEnum), value, false, out var result), result),
-                value => (StringEnum.TryParse(typeof(WhiteSpaceValueEnum), value, true, out var result), result),
                 value => (StringEnum.TryParse<WhiteSpaceValueEnum>(value, out var result), result),
                 value => (StringEnum.TryParse<WhiteSpaceValueEnum>(value, false, out var result), result),
-                value => (StringEnum.TryParse<WhiteSpaceValueEnum>(value, true, out var result), result),
             }, WhiteSpaceValueEnumCases);
 
         public static TheoryData<Func<string, object>, string, WhiteSpaceValueEnum> ParseIgnoreCaseOverloadsOnWhiteSpaceValueEnum =>
@@ -1663,6 +1742,42 @@ namespace DataStandardizer.Core.Tests
                 yield return new object[] { typeof(ComplexEnum), ComplexEnum.First, nameof(ComplexEnum.First) };
                 yield return new object[] { typeof(ComplexEnum), ComplexEnum.Animal.Cat, nameof(ComplexEnum.Animal.Cat) };
                 yield return new object[] { typeof(ComplexEnum), ComplexEnum.Color.Black, nameof(ComplexEnum.Color.Black) };
+            }
+
+            IEnumerator IEnumerable.GetEnumerator()
+            {
+                return GetEnumerator();
+            }
+        }
+
+        public class IsDefinedObjectOverload_TestCaseFactory : IEnumerable<object[]>
+        {
+            public IEnumerator<object[]> GetEnumerator()
+            {
+                // A value of the enumeration is checked by its value.
+                yield return new object[] { UnorderedEnum.Alpha, true };
+                yield return new object[] { (UnorderedEnum)UndefinedUnorderedEnumValue, false };
+                yield return new object[] { default(UnorderedEnum), false };
+                // A string is compared with the names and the values, as IsDefined(Type, string) compares it.
+                yield return new object[] { nameof(UnorderedEnum.Zulu), true };
+                yield return new object[] { ZuluValue, true };
+                yield return new object[] { UndefinedUnorderedEnumValue, false };
+            }
+
+            IEnumerator IEnumerable.GetEnumerator()
+            {
+                return GetEnumerator();
+            }
+        }
+
+        public class IsDefinedEnumValueOverload_TestCaseFactory : IEnumerable<object[]>
+        {
+            public IEnumerator<object[]> GetEnumerator()
+            {
+                yield return new object[] { UnorderedEnum.Alias, true };
+                yield return new object[] { UnorderedEnum.Bravo, true };
+                yield return new object[] { (UnorderedEnum)UndefinedUnorderedEnumValue, false };
+                yield return new object[] { default(UnorderedEnum), false };
             }
 
             IEnumerator IEnumerable.GetEnumerator()
