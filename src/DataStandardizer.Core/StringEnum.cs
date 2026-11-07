@@ -43,7 +43,7 @@ namespace DataStandardizer.Core
         /// <returns>A string containing the name of the enumerated constant in <paramref name="enumType"/> whose value is <paramref name="value"/>, or a <c>null</c> if no such constant is found.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="enumType"/> or <paramref name="value"/> is a null.</exception>
         /// <exception cref="ArgumentException">
-        /// <paramref name="enumType"/> is not a string enum.
+        /// <paramref name="enumType"/> is not a string enumeration.
         /// -or-
         /// <paramref name="value"/> is neither of type <paramref name="enumType"/> nor does it have the same underlying type as <paramref name="enumType"/>.
         /// </exception>
@@ -59,8 +59,7 @@ namespace DataStandardizer.Core
                 throw new ArgumentNullException(nameof(enumType));
             if (value is null)
                 throw new ArgumentNullException(nameof(value));
-            if (!IsStringEnumType(enumType))
-                throw new ArgumentException($"{nameof(enumType)} is not a string enumeration.", nameof(enumType));
+            ThrowIfNotStringEnumType(enumType);
             if (value.GetType() != enumType)
                 throw new ArgumentException($"{nameof(value)} is not of type {nameof(enumType)}.", nameof(value));
 
@@ -96,7 +95,7 @@ namespace DataStandardizer.Core
         /// <param name="enumType">A string enumeration type.</param>
         /// <returns>A string array of the names of the constants in <paramref name="enumType"/>.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="enumType"/> is <c>null</c>.</exception>
-        /// <exception cref="ArgumentException"><paramref name="enumType"/> is not a string enum.</exception>
+        /// <exception cref="ArgumentException"><paramref name="enumType"/> is not a string enumeration.</exception>
         /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static string[] GetNames(Type enumType)
@@ -107,8 +106,7 @@ namespace DataStandardizer.Core
         {
             if (enumType is null)
                 throw new ArgumentNullException(nameof(enumType));
-            if (!IsStringEnumType(enumType))
-                throw new ArgumentException($"{nameof(enumType)} is not a string enum.", nameof(enumType));
+            ThrowIfNotStringEnumType(enumType);
 
             lock (SyncRoot)
             {
@@ -141,7 +139,7 @@ namespace DataStandardizer.Core
         /// <param name="enumType">A string enumeration type.</param>
         /// <returns>An array that contains the values of the constants in <paramref name="enumType"/>.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="enumType"/> is <c>null</c>.</exception>
-        /// <exception cref="ArgumentException"><paramref name="enumType"/> is not a string enum.</exception>
+        /// <exception cref="ArgumentException"><paramref name="enumType"/> is not a string enumeration.</exception>
         /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static object[] GetValues(Type enumType)
@@ -152,8 +150,7 @@ namespace DataStandardizer.Core
         {
             if (enumType is null)
                 throw new ArgumentNullException(nameof(enumType));
-            if (!IsStringEnumType(enumType))
-                throw new ArgumentException($"{nameof(enumType)} is not a string enumeration.", nameof(enumType));
+            ThrowIfNotStringEnumType(enumType);
 
             lock (SyncRoot)
             {
@@ -187,7 +184,7 @@ namespace DataStandardizer.Core
         /// <param name="value">The value or name of a constant in <paramref name="enumType"/>.</param>
         /// <returns><c>true</c> if a constant in <paramref name="enumType"/> has a value equal to <paramref name="value"/>; otherwise, <c>false</c>.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="enumType"/> or <paramref name="value"/> is <c>null</c>.</exception>
-        /// <exception cref="ArgumentException"><paramref name="enumType"/> is not a string enum.</exception>
+        /// <exception cref="ArgumentException"><paramref name="enumType"/> is not a string enumeration.</exception>
         /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool IsDefined(Type enumType, string value)
@@ -199,8 +196,7 @@ namespace DataStandardizer.Core
                 throw new ArgumentNullException(nameof(enumType));
             if (value is null)
                 throw new ArgumentNullException(nameof(value));
-            if (!IsStringEnumType(enumType))
-                throw new ArgumentException($"{nameof(enumType)} is not a string enumeration.", nameof(enumType));
+            ThrowIfNotStringEnumType(enumType);
 
             lock (SyncRoot)
             {
@@ -214,6 +210,7 @@ namespace DataStandardizer.Core
         /// <typeparam name="TEnum">A string enumeration type.</typeparam>
         /// <param name="value">The value or name of a constant in <typeparamref name="TEnum"/>.</param>
         /// <returns><c>true</c> if a constant in <typeparamref name="TEnum"/> has a value equal to <paramref name="value"/>; otherwise, <c>false</c>.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="value"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool IsDefined<TEnum>(string value) where TEnum : struct, IStringEnum
@@ -221,6 +218,9 @@ namespace DataStandardizer.Core
         public static bool IsDefined<TEnum>([DisallowNull] string value) where TEnum : struct, IStringEnum
 #endif
         {
+            if (value is null)
+                throw new ArgumentNullException(nameof(value));
+
             lock (SyncRoot)
             {
                 return FindMemberByName(typeof(TEnum), value, false) != null || FindMemberByValue(typeof(TEnum), value, false) != null;
@@ -249,12 +249,11 @@ namespace DataStandardizer.Core
         public static object Parse([DisallowNull] Type enumType, [DisallowNull] string value)
 #endif
         {
-            if (enumType is null)
-                throw new ArgumentNullException(nameof(enumType));
             if (value is null)
                 throw new ArgumentNullException(nameof(value));
-            if (!IsStringEnumType(enumType))
-                throw new ArgumentException($"{nameof(enumType)} is not a string enumeration.", nameof(enumType));
+            if (enumType is null)
+                throw new ArgumentNullException(nameof(enumType));
+            ThrowIfNotStringEnumType(enumType);
             if (string.IsNullOrWhiteSpace(value))
                 throw new ArgumentException($"{nameof(value)} is either an empty string or only contains white space.", nameof(value));
 
@@ -304,12 +303,11 @@ namespace DataStandardizer.Core
         public static object Parse([DisallowNull] Type enumType, [DisallowNull] string value, bool ignoreCase)
 #endif
         {
-            if (enumType is null)
-                throw new ArgumentNullException(nameof(enumType));
             if (value is null)
                 throw new ArgumentNullException(nameof(value));
-            if (!IsStringEnumType(enumType))
-                throw new ArgumentException($"{nameof(enumType)} is not a string enumeration.", nameof(enumType));
+            if (enumType is null)
+                throw new ArgumentNullException(nameof(enumType));
+            ThrowIfNotStringEnumType(enumType);
             if (string.IsNullOrWhiteSpace(value))
                 throw new ArgumentException($"{nameof(value)} is either an empty string (\"\") or only contains white space.", nameof(value));
 
@@ -435,12 +433,11 @@ namespace DataStandardizer.Core
         public static object ToObject([DisallowNull] Type enumType, [DisallowNull] string value)
 #endif
         {
-            if (enumType is null)
-                throw new ArgumentNullException(nameof(enumType));
             if (value is null)
                 throw new ArgumentNullException(nameof(value));
-            if (!IsStringEnumType(enumType))
-                throw new ArgumentException($"{nameof(enumType)} is not a string enumeration.", nameof(enumType));
+            if (enumType is null)
+                throw new ArgumentNullException(nameof(enumType));
+            ThrowIfNotStringEnumType(enumType);
 
             return Cast(enumType, value);
         }
@@ -474,6 +471,8 @@ namespace DataStandardizer.Core
         /// <param name="value">The string representation of the name or value of one or more enumerated constants.</param>
         /// <param name="result">When this method returns <c>true</c>, contains an enumeration constant that represents the parsed value.</param>
         /// <returns><c>true</c> if the conversion succeeded; <c>false</c> otherwise.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="enumType"/> is <c>null</c> and <paramref name="value"/> is not <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="enumType"/> is not a string enumeration and <paramref name="value"/> is not <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
 #if NETCOREAPP3_0_OR_GREATER
         public static bool TryParse(Type enumType, string? value, out object? result)
@@ -481,15 +480,20 @@ namespace DataStandardizer.Core
         public static bool TryParse([DisallowNull] Type enumType, [AllowNull] string value, [MaybeNullWhen(false)] out object result)
 #endif
         {
-            if (!IsStringEnumType(enumType))
+            // Like Enum.TryParse, a null value fails before enumType is checked.
+            if (value is null)
             {
                 result = null;
                 return false;
             }
 
+            if (enumType is null)
+                throw new ArgumentNullException(nameof(enumType));
+            ThrowIfNotStringEnumType(enumType);
+
             lock (SyncRoot)
             {
-                var memberValueByNames = value is null ? null : FindMemberByName(enumType, value, false);
+                var memberValueByNames = FindMemberByName(enumType, value, false);
                 if (memberValueByNames != null)
                 {
                     result = memberValueByNames;
@@ -516,6 +520,8 @@ namespace DataStandardizer.Core
         /// <param name="ignoreCase"><c>true</c> to read <paramref name="value"/> in case-insensitive mode; <c>false</c> to read <paramref name="value"/> in case-sensitive mode.</param>
         /// <param name="result">When this method returns <c>true</c>, contains an enumeration constant that represents the parsed value.</param>
         /// <returns><c>true</c> if the conversion succeeded; <c>false</c> otherwise.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="enumType"/> is <c>null</c> and <paramref name="value"/> is not <c>null</c>.</exception>
+        /// <exception cref="ArgumentException"><paramref name="enumType"/> is not a string enumeration and <paramref name="value"/> is not <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">The string enumeration has more than one member with the same name.</exception>
         /// <remarks>
         /// <paramref name="value"/> is compared with the members' names first, then with their values. When <paramref name="ignoreCase"/> is <c>true</c> and <paramref name="value"/> matches
@@ -528,15 +534,20 @@ namespace DataStandardizer.Core
         public static bool TryParse([DisallowNull] Type enumType, [AllowNull] string value, bool ignoreCase, [MaybeNullWhen(false)] out object result)
 #endif
         {
-            if (!IsStringEnumType(enumType))
+            // Like Enum.TryParse, a null value fails before enumType is checked.
+            if (value is null)
             {
                 result = null;
                 return false;
             }
 
+            if (enumType is null)
+                throw new ArgumentNullException(nameof(enumType));
+            ThrowIfNotStringEnumType(enumType);
+
             lock (SyncRoot)
             {
-                var memberValueByNames = value is null ? null : FindMemberByName(enumType, value, ignoreCase);
+                var memberValueByNames = FindMemberByName(enumType, value, ignoreCase);
                 if (memberValueByNames != null)
                 {
                     result = memberValueByNames;
@@ -740,7 +751,14 @@ namespace DataStandardizer.Core
 
         private static bool IsStringEnumType(Type candidateType)
         {
-            return candidateType.GetTypeInfo().IsValueType && candidateType.GetTypeInfo().ImplementedInterfaces.Any(type => type.Name == nameof(IStringEnum));
+            var candidateTypeInfo = candidateType.GetTypeInfo();
+            return candidateTypeInfo.IsValueType && !candidateTypeInfo.ContainsGenericParameters && typeof(IStringEnum).GetTypeInfo().IsAssignableFrom(candidateTypeInfo);
+        }
+
+        private static void ThrowIfNotStringEnumType(Type enumType)
+        {
+            if (!IsStringEnumType(enumType))
+                throw new ArgumentException($"{nameof(enumType)} is not a string enumeration.", nameof(enumType));
         }
 
         // Builds the whole cache before it's published, so that a failure leaves the previous cache in place.
