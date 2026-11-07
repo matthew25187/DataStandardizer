@@ -55,7 +55,7 @@ namespace DataStandardizer.File.vCard
         private static readonly VcardPropertyCodec<string> XmlCodec = VcardPropertyCodecs.Xml();
         private static readonly VcardPropertyCodec<string> FormattedNamesCodec = VcardPropertyCodecs.Text(VcardPropertyNames.FormattedName);
         private static readonly VcardPropertyCodec<IReadOnlyList<string>> NicknamesCodec = VcardPropertyCodecs.TextList(VcardPropertyNames.Nickname);
-        private static readonly VcardPropertyCodec<Uri> PhotosCodec = VcardPropertyCodecs.Uri(VcardPropertyNames.Photo);
+        private static readonly VcardPropertyCodec<VcardMediaUri> PhotosCodec = VcardPropertyCodecs.MediaUri(VcardPropertyNames.Photo);
         private static readonly VcardPropertyCodec<VcardAddress> AddressesCodec = VcardPropertyCodecs.Address();
         private static readonly VcardPropertyCodec<VcardTypedValue> TelephonesCodec = VcardPropertyCodecs.Typed(VcardPropertyNames.Telephone);
         private static readonly VcardPropertyCodec<string> EmailsCodec = VcardPropertyCodecs.Text(VcardPropertyNames.Email);
@@ -65,13 +65,13 @@ namespace DataStandardizer.File.vCard
         private static readonly VcardPropertyCodec<Uri> GeoLocationsCodec = VcardPropertyCodecs.Uri(VcardPropertyNames.Geo);
         private static readonly VcardPropertyCodec<string> TitlesCodec = VcardPropertyCodecs.Text(VcardPropertyNames.Title);
         private static readonly VcardPropertyCodec<string> RolesCodec = VcardPropertyCodecs.Text(VcardPropertyNames.Role);
-        private static readonly VcardPropertyCodec<Uri> LogosCodec = VcardPropertyCodecs.Uri(VcardPropertyNames.Logo);
+        private static readonly VcardPropertyCodec<VcardMediaUri> LogosCodec = VcardPropertyCodecs.MediaUri(VcardPropertyNames.Logo);
         private static readonly VcardPropertyCodec<VcardOrganization> OrganizationsCodec = VcardPropertyCodecs.Organization();
         private static readonly VcardPropertyCodec<Uri> MembersCodec = VcardPropertyCodecs.Uri(VcardPropertyNames.Member);
         private static readonly VcardPropertyCodec<VcardTypedValue> RelatedCodec = VcardPropertyCodecs.Typed(VcardPropertyNames.Related);
         private static readonly VcardPropertyCodec<IReadOnlyList<string>> CategoriesCodec = VcardPropertyCodecs.TextList(VcardPropertyNames.Categories);
         private static readonly VcardPropertyCodec<string> NotesCodec = VcardPropertyCodecs.Text(VcardPropertyNames.Note);
-        private static readonly VcardPropertyCodec<Uri> SoundsCodec = VcardPropertyCodecs.Uri(VcardPropertyNames.Sound);
+        private static readonly VcardPropertyCodec<VcardMediaUri> SoundsCodec = VcardPropertyCodecs.MediaUri(VcardPropertyNames.Sound);
         private static readonly VcardPropertyCodec<VcardClientPidMap> ClientPidMapsCodec = VcardPropertyCodecs.ClientPidMap();
         private static readonly VcardPropertyCodec<Uri> UrlsCodec = VcardPropertyCodecs.Uri(VcardPropertyNames.Url);
         private static readonly VcardPropertyCodec<VcardTypedValue> KeysCodec = VcardPropertyCodecs.Typed(VcardPropertyNames.Key);
@@ -110,7 +110,7 @@ namespace DataStandardizer.File.vCard
             Xml = new VcardPropertyList<string>(this, XmlCodec);
             FormattedNames = new VcardPropertyList<string>(this, FormattedNamesCodec);
             Nicknames = new VcardPropertyList<IReadOnlyList<string>>(this, NicknamesCodec);
-            Photos = new VcardPropertyList<Uri>(this, PhotosCodec);
+            Photos = new VcardPropertyList<VcardMediaUri>(this, PhotosCodec);
             Addresses = new VcardPropertyList<VcardAddress>(this, AddressesCodec);
             Telephones = new VcardPropertyList<VcardTypedValue>(this, TelephonesCodec);
             Emails = new VcardPropertyList<string>(this, EmailsCodec);
@@ -120,13 +120,13 @@ namespace DataStandardizer.File.vCard
             GeoLocations = new VcardPropertyList<Uri>(this, GeoLocationsCodec);
             Titles = new VcardPropertyList<string>(this, TitlesCodec);
             Roles = new VcardPropertyList<string>(this, RolesCodec);
-            Logos = new VcardPropertyList<Uri>(this, LogosCodec);
+            Logos = new VcardPropertyList<VcardMediaUri>(this, LogosCodec);
             Organizations = new VcardPropertyList<VcardOrganization>(this, OrganizationsCodec);
             Members = new VcardPropertyList<Uri>(this, MembersCodec);
             Related = new VcardPropertyList<VcardTypedValue>(this, RelatedCodec);
             Categories = new VcardPropertyList<IReadOnlyList<string>>(this, CategoriesCodec);
             Notes = new VcardPropertyList<string>(this, NotesCodec);
-            Sounds = new VcardPropertyList<Uri>(this, SoundsCodec);
+            Sounds = new VcardPropertyList<VcardMediaUri>(this, SoundsCodec);
             ClientPidMaps = new VcardPropertyList<VcardClientPidMap>(this, ClientPidMapsCodec);
             Urls = new VcardPropertyList<Uri>(this, UrlsCodec);
             Keys = new VcardPropertyList<VcardTypedValue>(this, KeysCodec);
@@ -212,10 +212,9 @@ namespace DataStandardizer.File.vCard
         /// Gets the <c>PHOTO</c> properties (RFC 6350 §6.2.4).
         /// </summary>
         /// <remarks>
-        /// <see cref="Uri"/> on .NET Framework can't hold more than 65519 characters, so an inline photo longer than that isn't here on that runtime.  It stays in <see cref="Properties"/>, and is read and written
-        /// as usual.
+        /// <see cref="VcardMediaUri"/> holds an inline photo of any length on every runtime.
         /// </remarks>
-        public VcardPropertyList<Uri> Photos { get; }
+        public VcardPropertyList<VcardMediaUri> Photos { get; }
 
         /// <summary>
         /// Gets the <c>ADR</c> properties (RFC 6350 §6.3.1).
@@ -265,7 +264,7 @@ namespace DataStandardizer.File.vCard
         /// <summary>
         /// Gets the <c>LOGO</c> properties (RFC 6350 §6.6.3).
         /// </summary>
-        public VcardPropertyList<Uri> Logos { get; }
+        public VcardPropertyList<VcardMediaUri> Logos { get; }
 
         /// <summary>
         /// Gets the <c>ORG</c> properties (RFC 6350 §6.6.4).
@@ -295,7 +294,7 @@ namespace DataStandardizer.File.vCard
         /// <summary>
         /// Gets the <c>SOUND</c> properties (RFC 6350 §6.7.5).
         /// </summary>
-        public VcardPropertyList<Uri> Sounds { get; }
+        public VcardPropertyList<VcardMediaUri> Sounds { get; }
 
         /// <summary>
         /// Gets the <c>CLIENTPIDMAP</c> properties (RFC 6350 §6.7.7).
@@ -625,7 +624,7 @@ namespace DataStandardizer.File.vCard
 
         IVcard40PropertyList<IReadOnlyList<string>> IVcard40Card.Nicknames => Nicknames.Version40;
 
-        IVcard40PropertyList<Uri> IVcard40Card.Photos => Photos.Version40;
+        IVcard40PropertyList<VcardMediaUri> IVcard40Card.Photos => Photos.Version40;
 
         IVcard40PropertyList<VcardAddress> IVcard40Card.Addresses => Addresses.Version40;
 
@@ -645,7 +644,7 @@ namespace DataStandardizer.File.vCard
 
         IVcard40PropertyList<string> IVcard40Card.Roles => Roles.Version40;
 
-        IVcard40PropertyList<Uri> IVcard40Card.Logos => Logos.Version40;
+        IVcard40PropertyList<VcardMediaUri> IVcard40Card.Logos => Logos.Version40;
 
         IVcard40PropertyList<VcardOrganization> IVcard40Card.Organizations => Organizations.Version40;
 
@@ -657,7 +656,7 @@ namespace DataStandardizer.File.vCard
 
         IVcard40PropertyList<string> IVcard40Card.Notes => Notes.Version40;
 
-        IVcard40PropertyList<Uri> IVcard40Card.Sounds => Sounds.Version40;
+        IVcard40PropertyList<VcardMediaUri> IVcard40Card.Sounds => Sounds.Version40;
 
         IVcard40PropertyList<VcardClientPidMap> IVcard40Card.ClientPidMaps => ClientPidMaps.Version40;
 

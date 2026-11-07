@@ -80,7 +80,7 @@ namespace DataStandardizer.File.vCard.Tests
             testResult.Emails.Single().Pref.Should().Be(1);
             testResult.Emails.Single().Types.Should().Equal("INTERNET", "HOME");
             testResult.Addresses.Single().Group.Should().Be("item1");
-            testResult.Photos.Single().Value.OriginalString.Should().Be("data:image/jpeg;base64,AQID");
+            testResult.Photos.Single().Value.Text.Should().Be("data:image/jpeg;base64,AQID");
             testResult.ExtensionProperties.Should().HaveCount(3);
         }
 

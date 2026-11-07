@@ -47,7 +47,8 @@ namespace DataStandardizer.File.vCard
         /// </summary>
         /// <param name="uri">The URI, which must be absolute.</param>
         /// <exception cref="ArgumentNullException"><paramref name="uri"/> is <c>null</c>.</exception>
-        /// <exception cref="ArgumentException"><paramref name="uri"/> is not absolute, or was given with characters a URI value can't hold, such as a space.</exception>
+        /// <exception cref="ArgumentException"><paramref name="uri"/> is not absolute, was given with characters a URI value can't hold, such as a space, or has more than 65519
+        /// characters, which <see cref="Uri"/> on .NET Framework can't hold.</exception>
         public VcardTypedValue(Uri uri)
         {
             if (uri is null)

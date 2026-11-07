@@ -63,16 +63,20 @@ namespace DataStandardizer.File.vCard
             return value.IsDefinedIn(VcardVersion.V2_1);
         }
 
-        private static bool GetVersion21Media(VcardProperty<Uri> property, out VcardMediaValue value)
+        private static bool GetVersion21Media(VcardProperty<VcardMediaUri> property, out VcardMediaValue value)
         {
+            value = null;
             MimeDataUri data;
-            if (MimeDataUri.TryParse(property.Value.OriginalString, out data))
+            if (property.Value.TryGetData(out data))
             {
                 value = VcardMediaValue.FromData(data.GetData(), GetVersion21DataToken(data.MediaType, property.Types));
                 return true;
             }
 
-            value = VcardMediaValue.FromUri(property.Value, GetVersion21UriToken(property.MediaType, property.Types));
+            // ref. VcardValue.MaxUriLengthOnEveryRuntime: a longer URI has no Uri on any runtime.
+            if (property.Value.Uri is null) return false;
+
+            value = VcardMediaValue.FromUri(property.Value.Uri, GetVersion21UriToken(property.MediaType, property.Types));
             return true;
         }
 
@@ -137,30 +141,30 @@ namespace DataStandardizer.File.vCard
             return VcardLegacyTokens.IsFormatType(token.AsSpan()) && !VcardLegacyMediaTypes.TryGetMediaType(token.AsSpan(), out mediaType);
         }
 
-        private static Uri Version21MediaToUri(VcardMediaValue value)
+        private static VcardMediaUri Version21MediaToCanonical(VcardMediaValue value)
         {
-            if (value.Uri != null) return value.Uri;
+            if (value.Uri != null) return VcardMediaUri.FromUri(value.Uri);
 
+            return VcardMediaUri.FromData(Version21MediaToData(value));
+        }
+
+        private static MimeDataUri Version21MediaToData(VcardMediaValue value)
+        {
             var data = value.GetData();
             if (data is null)
                 throw new ArgumentException("Only a sound or a key can be text.", nameof(value));
 
             var isUntyped = value.TypeToken is null || IsFormatWithoutMediaType(value.TypeToken);
             var mediaType = isUntyped ? MimeMediaType.Parse("application/octet-stream".AsSpan()) : GetVersion21MediaType(value.TypeToken);
-            try
-            {
-                return new Uri(DataUriText(mediaType, data));
-            }
-            catch (FormatException exception)
-            {
-                // ref. #619: Uri on .NET Framework holds no more than 65519 characters.
-                throw new ArgumentException("The data is too long for a Uri on this runtime.  Add a line to VcardCard.Properties instead.", nameof(value), exception);
-            }
+            return MimeDataUri.Create(mediaType, data);
         }
 
         private static VcardTypedValue Version21MediaToTyped(VcardMediaValue value)
         {
-            return value.Text != null ? new VcardTypedValue(value.Text) : new VcardTypedValue(Version21MediaToUri(value));
+            if (value.Text != null) return new VcardTypedValue(value.Text);
+            if (value.Uri != null) return new VcardTypedValue(value.Uri);
+
+            return new VcardTypedValue(DataToUri(Version21MediaToData(value), nameof(value)));
         }
 
         private static MimeMediaType GetVersion21MediaType(string token)
@@ -192,9 +196,9 @@ namespace DataStandardizer.File.vCard
             }
         }
 
-        private IVcard21PropertyList<VcardMediaValue> Version21MediaView(VcardPropertyList<Uri> list)
+        private IVcard21PropertyList<VcardMediaValue> Version21MediaView(VcardPropertyList<VcardMediaUri> list)
         {
-            return new Vcard21PropertyList<Uri, VcardMediaValue>(this, list, GetVersion21Media, Version21MediaToUri, PrepareVersion21MediaParameters);
+            return new Vcard21PropertyList<VcardMediaUri, VcardMediaValue>(this, list, GetVersion21Media, Version21MediaToCanonical, PrepareVersion21MediaParameters);
         }
 
         private IVcard21PropertyList<VcardMediaValue> Version21TypedMediaView(VcardPropertyList<VcardTypedValue> list)

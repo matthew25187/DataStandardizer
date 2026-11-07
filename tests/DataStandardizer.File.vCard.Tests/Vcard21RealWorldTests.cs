@@ -120,7 +120,7 @@ namespace DataStandardizer.File.vCard.Tests
 
             // assert
             testResult.FormattedNames.Single().Value.Should().Be("Ay\x015Fe \x00D6zt\x00FCrk");
-            testResult.Photos.Single().Value.Should().Be(new Uri("data:image/jpeg;base64,/9j/4AAQSkZJRgAB"));
+            testResult.Photos.Single().Value.Text.Should().Be("data:image/jpeg;base64,/9j/4AAQSkZJRgAB");
         }
 
         [Fact]

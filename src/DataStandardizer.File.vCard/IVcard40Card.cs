@@ -52,7 +52,7 @@ namespace DataStandardizer.File.vCard
         /// <summary>
         /// Gets the <c>PHOTO</c> properties (RFC 6350 §6.2.4).
         /// </summary>
-        IVcard40PropertyList<Uri> Photos { get; }
+        IVcard40PropertyList<VcardMediaUri> Photos { get; }
 
         /// <summary>
         /// Gets the <c>ADR</c> properties (RFC 6350 §6.3.1).
@@ -102,7 +102,7 @@ namespace DataStandardizer.File.vCard
         /// <summary>
         /// Gets the <c>LOGO</c> properties (RFC 6350 §6.6.3).
         /// </summary>
-        IVcard40PropertyList<Uri> Logos { get; }
+        IVcard40PropertyList<VcardMediaUri> Logos { get; }
 
         /// <summary>
         /// Gets the <c>ORG</c> properties (RFC 6350 §6.6.4).
@@ -132,7 +132,7 @@ namespace DataStandardizer.File.vCard
         /// <summary>
         /// Gets the <c>SOUND</c> properties (RFC 6350 §6.7.5).
         /// </summary>
-        IVcard40PropertyList<Uri> Sounds { get; }
+        IVcard40PropertyList<VcardMediaUri> Sounds { get; }
 
         /// <summary>
         /// Gets the <c>CLIENTPIDMAP</c> properties (RFC 6350 §6.7.7).

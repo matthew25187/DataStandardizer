@@ -411,7 +411,7 @@ namespace DataStandardizer.File.vCard.Tests
             testResult.GeoLocations.Single().Value.OriginalString.Should().Be("geo:37.386013,-122.082932");
             testResult.TimeZones.Single().Value.ValueType.Should().Be(VcardValueType.UtcOffset);
             testResult.Birthday.Value.ValueType.Should().Be(VcardValueType.DateAndOrTime);
-            testResult.Photos.Single().Value.Scheme.Should().Be("data");
+            testResult.Photos.Single().Value.IsData.Should().BeTrue();
         }
 
         public static TheoryData<string, string[], VcardDiagnosticKind> StrictDefaultData()

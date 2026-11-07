@@ -11,7 +11,7 @@ nav_exclude: true
 
 Namespace: `DataStandardizer.File.vCard`
 
-The value of a `PHOTO`, `LOGO`, `SOUND` or `KEY` in the shape of vCard 3.0 or 2.1: inline data with a `TYPE` that says its format, a URI, or for a key, and a sound in vCard 2.1, text. The canonical form of inline data is an RFC 2397 `data:` URI. See [IVcard30Card](IVcard30Card.md) and [IVcard21Card](IVcard21Card.md).
+The value of a `PHOTO`, `LOGO`, `SOUND` or `KEY` in the shape of vCard 3.0 or 2.1: inline data with a `TYPE` that says its format, a URI, or for a key, and a sound in vCard 2.1, text. The canonical form of inline data is an RFC 2397 `data:` URI, held in a [VcardMediaUri](VcardMediaUri.md). See [IVcard30Card](IVcard30Card.md) and [IVcard21Card](IVcard21Card.md).
 
 **Syntax**
 

@@ -198,6 +198,14 @@ namespace DataStandardizer.File.vCard
             return new VcardPropertyCodec<Uri>(name, ParseUri, FormatUri, value => VcardValueType.Uri);
         }
 
+        /// <summary>
+        /// Gets the codec of a property whose value is a URI of media, which can be longer than <see cref="System.Uri"/> holds on .NET Framework.
+        /// </summary>
+        internal static VcardPropertyCodec<VcardMediaUri> MediaUri(string name)
+        {
+            return new VcardPropertyCodec<VcardMediaUri>(name, ParseMediaUri, FormatMediaUri, value => VcardValueType.Uri);
+        }
+
         internal static VcardPropertyCodec<VcardTypedValue> Typed(string name)
         {
             return new VcardPropertyCodec<VcardTypedValue>(name, ParseTyped, FormatTyped, value => value.ValueType);
@@ -344,6 +352,40 @@ namespace DataStandardizer.File.vCard
         {
             VcardValue.CheckUri(value, nameof(value));
             return VcardValue.EscapeUri(value.OriginalString);
+        }
+
+        private static bool ParseMediaUri(string text, VcardValueType valueType, out VcardMediaUri value)
+        {
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            value = null!;
+#else
+            value = null;
+#endif
+            if (text.Length <= VcardValue.MaxUriLengthOnEveryRuntime)
+            {
+                Uri uri;
+                if (!ParseUri(text, valueType, out uri)) return false;
+
+                value = VcardMediaUri.FromParsedUri(uri);
+                return true;
+            }
+
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+            string? uriText;
+            VcardMediaUri? parsed;
+#else
+            string uriText;
+            VcardMediaUri parsed;
+#endif
+            if (!VcardValue.TryGetUriText(text, out uriText) || !VcardMediaUri.TryFromText(uriText, out parsed)) return false;
+
+            value = parsed;
+            return true;
+        }
+
+        private static string FormatMediaUri(VcardMediaUri value)
+        {
+            return VcardValue.EscapeUri(value.Text);
         }
 
         private static bool ParseTyped(string text, VcardValueType valueType, out VcardTypedValue value)

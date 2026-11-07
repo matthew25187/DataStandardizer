@@ -35,8 +35,11 @@ namespace DataStandardizer.File.vCard
         private const string JsonFalseText = "false";
         private const string GeoScheme = "GEO";
 
-        // The longest text that Uri holds on .NET Framework.
-        private const int MaxUriLengthOnEveryRuntime = 65519;
+        /// <summary>
+        /// The longest text that <see cref="Uri"/> holds on .NET Framework.  Every member that takes or gives a <see cref="Uri"/> keeps to it on every runtime, so that they all give the same
+        /// answers.
+        /// </summary>
+        internal const int MaxUriLengthOnEveryRuntime = 65519;
 
         #region TEXT
 
@@ -424,6 +427,10 @@ namespace DataStandardizer.File.vCard
         /// In the <see cref="VcardValueFormat.Json"/> form the value has no escaping of vCard.  In the <see cref="VcardValueFormat.Xml"/> form it is an <c>xsd:anyURI</c>
         /// (RFC 6351 Appendix A), which has no escaping of vCard either, and may have XML white space around it.
         /// </para>
+        /// <para>
+        /// A URI of more than 65519 characters gives <c>false</c> on every runtime, because <see cref="Uri"/> on .NET Framework can't hold one.  Neither RFC 6350 nor RFC 3986 sets a limit,
+        /// so such a value is valid, and a content line keeps it; <see cref="VcardMediaUri"/> holds one as text.
+        /// </para>
         /// </remarks>
         /// <param name="value">The value, such as <c>http://www.example.com/my/picture.jpg</c>.</param>
         /// <param name="format">The lexical form of the value.</param>
@@ -464,8 +471,8 @@ namespace DataStandardizer.File.vCard
         /// <param name="format">The lexical form to write.</param>
         /// <returns><c>true</c> if the value was written; <c>false</c> if <paramref name="destination"/> is too short.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="value"/> is <c>null</c>.</exception>
-        /// <exception cref="ArgumentException"><paramref name="value"/> is not absolute, or was given with characters a URI value can't hold, such as a space, which
-        /// <see cref="Uri"/> accepts and <see cref="TryParseUri"/> doesn't.</exception>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is not absolute, was given with characters a URI value can't hold, such as a space, which
+        /// <see cref="Uri"/> accepts and <see cref="TryParseUri"/> doesn't, or has more than 65519 characters, which <see cref="Uri"/> on .NET Framework can't hold.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> is not a <see cref="VcardValueFormat"/> member.</exception>
         public static bool TryFormatUri(Uri value, Span<char> destination, out int charsWritten, VcardValueFormat format)
         {
@@ -707,17 +714,20 @@ namespace DataStandardizer.File.vCard
         /// <summary>
         /// Checks that a URI is one a URI value can hold.
         /// </summary>
-        /// <exception cref="ArgumentException"><paramref name="uri"/> is not absolute, or its text is not that of a URI value.</exception>
+        /// <exception cref="ArgumentException"><paramref name="uri"/> is not absolute, its text is not that of a URI value, or it is longer than <see cref="MaxUriLengthOnEveryRuntime"/>.</exception>
         internal static void CheckUri(Uri uri, string parameterName)
         {
             if (!uri.IsAbsoluteUri)
                 throw new ArgumentException("The URI must be absolute.", parameterName);
+            if (uri.OriginalString.Length > MaxUriLengthOnEveryRuntime)
+                throw new ArgumentException("The URI has more than " + MaxUriLengthOnEveryRuntime + " characters, which a Uri on .NET Framework can't hold.", parameterName);
             if (!IsUriText(uri.OriginalString.AsSpan()))
                 throw new ArgumentException("The URI was given with characters that a URI value can't hold.", parameterName);
         }
 
         /// <summary>
-        /// Parses the text of a URI that has no escaping of a content line, such as the value of a <c>GEO</c> parameter, or the text a <see cref="Uri"/> was given.
+        /// Parses the text of a URI that has no escaping of a content line, such as the value of a <c>GEO</c> parameter, or the text a <see cref="Uri"/> was given.  Text longer than
+        /// <see cref="MaxUriLengthOnEveryRuntime"/> gives <c>false</c> on every runtime.
         /// </summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         internal static bool TryParseUriText(ReadOnlySpan<char> text, [NotNullWhen(true)] out Uri? result)
@@ -726,7 +736,7 @@ namespace DataStandardizer.File.vCard
 #endif
         {
             result = null;
-            return IsUriText(text) && Uri.TryCreate(text.ToString(), UriKind.Absolute, out result);
+            return text.Length <= MaxUriLengthOnEveryRuntime && IsUriText(text) && Uri.TryCreate(text.ToString(), UriKind.Absolute, out result);
         }
 
         /// <summary>

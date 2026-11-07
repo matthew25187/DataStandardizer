@@ -74,7 +74,7 @@ Each is a [VcardPropertyList](VcardPropertyList.md), a live view of `Properties`
 | `Xml` | `XML` | `string` |
 | `FormattedNames` | `FN` | `string` |
 | `Nicknames` | `NICKNAME` | `IReadOnlyList<string>` |
-| `Photos` | `PHOTO` | `Uri` |
+| `Photos` | `PHOTO` | [VcardMediaUri](VcardMediaUri.md) |
 | `Addresses` | `ADR` | `VcardAddress` |
 | `Telephones` | `TEL` | `VcardTypedValue` (text or URI) |
 | `Emails` | `EMAIL` | `string` |
@@ -84,13 +84,13 @@ Each is a [VcardPropertyList](VcardPropertyList.md), a live view of `Properties`
 | `GeoLocations` | `GEO` | `Uri` |
 | `Titles` | `TITLE` | `string` |
 | `Roles` | `ROLE` | `string` |
-| `Logos` | `LOGO` | `Uri` |
+| `Logos` | `LOGO` | [VcardMediaUri](VcardMediaUri.md) |
 | `Organizations` | `ORG` | `VcardOrganization` |
 | `Members` | `MEMBER` | `Uri` |
 | `Related` | `RELATED` | `VcardTypedValue` (URI or text) |
 | `Categories` | `CATEGORIES` | `IReadOnlyList<string>` |
 | `Notes` | `NOTE` | `string` |
-| `Sounds` | `SOUND` | `Uri` |
+| `Sounds` | `SOUND` | [VcardMediaUri](VcardMediaUri.md) |
 | `ClientPidMaps` | `CLIENTPIDMAP` | `VcardClientPidMap` |
 | `Urls` | `URL` | `Uri` |
 | `Keys` | `KEY` | `VcardTypedValue` (URI or text) |
@@ -107,6 +107,8 @@ Each is a [VcardPropertyList](VcardPropertyList.md), a live view of `Properties`
 | `SocialProfiles` | `SOCIALPROFILE` (RFC 9554 §3.5) | `VcardTypedValue` (URI or text) |
 
 The typed members leave out a property whose value isn't valid, which `AllowInvalidValues` lets a reader accept, and one with a `CALSCALE` other than `gregorian`, which RFC 6350 §5.8 says to ignore. Both stay in `Properties`.
+
+`System.Uri` can't hold more than 65519 characters on .NET Framework, so a member that gives a `Uri`, or a `VcardTypedValue` that holds one, leaves out a longer URI on every runtime, and adding one throws `ArgumentException`. It stays in `Properties`, and is read and written as usual. `Photos`, `Logos` and `Sounds` give a [VcardMediaUri](VcardMediaUri.md), which holds a URI of any length, such as the `data:` URI of a large photo.
 
 ## Methods
 

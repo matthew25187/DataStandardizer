@@ -367,6 +367,46 @@ namespace DataStandardizer.File.vCard.Tests
             testResult.GetProperties(VcardPropertyNames.Photo).Should().ContainSingle();
         }
 
+        [Fact]
+        public void ReadCard_Version40PhotoLongerThanUriHoldsOnNetFramework_IsInPhotos()
+        {
+            // arrange: ref. #619.
+            var text = VcardCardTestData.Card(Vcard30TestData.LargeVersion40PhotoLine);
+
+            // act
+            var testResult = VcardCardTestData.Read(text);
+
+            // assert
+            testResult.Photos.Should().ContainSingle();
+        }
+
+        [Fact]
+        public void ReadCard_Version40PhotoLongerThanUriHoldsOnNetFramework_HasNoUri()
+        {
+            // arrange: ref. #619.
+            var text = VcardCardTestData.Card(Vcard30TestData.LargeVersion40PhotoLine);
+
+            // act
+            var testResult = VcardCardTestData.Read(text);
+
+            // assert
+            testResult.Photos.Single().Value.Uri.Should().BeNull();
+        }
+
+        [Fact]
+        public void ReadCard_Version40UrlLongerThanUriHoldsOnNetFramework_IsLeftOutOfUrls()
+        {
+            // arrange: ref. #619.
+            var text = VcardCardTestData.Card(Vcard30TestData.LargeVersion40UrlLine);
+
+            // act
+            var testResult = VcardCardTestData.Read(text);
+
+            // assert
+            testResult.Urls.Should().BeEmpty();
+            testResult.GetProperties(VcardPropertyNames.Url).Should().ContainSingle();
+        }
+
         public static TheoryData<string> UnsupportedVersionData()
         {
             return new TheoryData<string> { "VERSION:2.0", "VERSION:5.0", "VERSION:4" };

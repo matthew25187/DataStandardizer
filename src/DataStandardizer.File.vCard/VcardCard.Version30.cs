@@ -246,17 +246,21 @@ namespace DataStandardizer.File.vCard
             return property.Phonetic is null && value.IsDefinedIn(VcardVersion.V3_0);
         }
 
-        private static bool GetMedia(VcardProperty<Uri> property, out VcardMediaValue value)
+        private static bool GetMedia(VcardProperty<VcardMediaUri> property, out VcardMediaValue value)
         {
+            value = null;
             var name = property.Name;
             MimeDataUri data;
-            if (MimeDataUri.TryParse(property.Value.OriginalString, out data))
+            if (property.Value.TryGetData(out data))
             {
                 value = VcardMediaValue.FromData(data.GetData(), GetDataToken(data, name));
                 return true;
             }
 
-            value = VcardMediaValue.FromUri(property.Value, property.MediaType.HasValue ? VcardVersion30Mapping.GetToken(property.MediaType.Value, name) : null);
+            // ref. VcardValue.MaxUriLengthOnEveryRuntime: a longer URI has no Uri on any runtime.
+            if (property.Value.Uri is null) return false;
+
+            value = VcardMediaValue.FromUri(property.Value.Uri, property.MediaType.HasValue ? VcardVersion30Mapping.GetToken(property.MediaType.Value, name) : null);
             return true;
         }
 
@@ -282,24 +286,35 @@ namespace DataStandardizer.File.vCard
             return VcardVersion30Mapping.IsUntyped(data.MediaType) ? null : VcardVersion30Mapping.GetToken(data.MediaType, name);
         }
 
-        private static Uri MediaToUri(VcardMediaValue value, string name)
+        private static VcardMediaUri MediaToCanonical(VcardMediaValue value, string name)
         {
-            if (value.Uri != null) return value.Uri;
+            if (value.Uri != null) return VcardMediaUri.FromUri(value.Uri);
 
+            return VcardMediaUri.FromData(MediaToData(value, name));
+        }
+
+        private static MimeDataUri MediaToData(VcardMediaValue value, string name)
+        {
             var data = value.GetData();
             if (data is null)
                 throw new ArgumentException("Only a key can have text.", nameof(value));
 
             var mediaType = value.TypeToken is null ? MimeMediaType.Parse("application/octet-stream".AsSpan()) : GetMediaTypeOfToken(value.TypeToken, name);
-            try
-            {
-                return new Uri(DataUriText(mediaType, data));
-            }
-            catch (FormatException exception)
-            {
-                // ref. #619: Uri on .NET Framework holds no more than 65519 characters.
-                throw new ArgumentException("The data is too long for a Uri on this runtime.  Add a line to VcardCard.Properties instead.", nameof(value), exception);
-            }
+            return MimeDataUri.Create(mediaType, data);
+        }
+
+        /// <summary>
+        /// Gets the <see cref="Uri"/> of inline data, for a property whose canonical value is a <see cref="VcardTypedValue"/>.
+        /// </summary>
+        /// <exception cref="ArgumentException">The <c>data:</c> URI has more than <see cref="VcardValue.MaxUriLengthOnEveryRuntime"/> characters, on every runtime.</exception>
+        private static Uri DataToUri(MimeDataUri data, string parameterName)
+        {
+            var text = data.ToString();
+            if (text.Length > VcardValue.MaxUriLengthOnEveryRuntime)
+                throw new ArgumentException("The data is too long for a Uri, which holds no more than " + VcardValue.MaxUriLengthOnEveryRuntime +
+                                            " characters on .NET Framework.  Add a line to VcardCard.Properties instead.", parameterName);
+
+            return new Uri(text, UriKind.Absolute);
         }
 
         private static MimeMediaType GetMediaTypeOfToken(string token, string name)
@@ -311,11 +326,6 @@ namespace DataStandardizer.File.vCard
             return mediaType;
         }
 
-        private static string DataUriText(MimeMediaType mediaType, byte[] data)
-        {
-            return "data:" + mediaType + ";base64," + Convert.ToBase64String(data);
-        }
-
         private static void PrepareMediaParameters(VcardMediaValue value, VcardPropertyParameters parameters, string name)
         {
             if (value.Uri != null && value.TypeToken != null)
@@ -324,16 +334,19 @@ namespace DataStandardizer.File.vCard
             }
         }
 
-        private IVcard30PropertyList<VcardMediaValue> MediaView(VcardPropertyList<Uri> list, string name)
+        private IVcard30PropertyList<VcardMediaValue> MediaView(VcardPropertyList<VcardMediaUri> list, string name)
         {
-            return new Vcard30PropertyList<Uri, VcardMediaValue>(this, list, GetMedia, value => MediaToUri(value, name), (value, parameters) => PrepareMediaParameters(value, parameters, name));
+            return new Vcard30PropertyList<VcardMediaUri, VcardMediaValue>(this, list, GetMedia, value => MediaToCanonical(value, name),
+                (value, parameters) => PrepareMediaParameters(value, parameters, name));
         }
 
         private static VcardTypedValue KeyToCanonical(VcardMediaValue value)
         {
             if (value.Text != null) return new VcardTypedValue(value.Text);
 
-            return new VcardTypedValue(MediaToUri(value, VcardPropertyNames.Key));
+            if (value.Uri != null) return new VcardTypedValue(value.Uri);
+
+            return new VcardTypedValue(DataToUri(MediaToData(value, VcardPropertyNames.Key), nameof(value)));
         }
 
         private static void PrepareKeyParameters(VcardMediaValue value, VcardPropertyParameters parameters)
