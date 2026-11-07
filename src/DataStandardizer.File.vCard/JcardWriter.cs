@@ -59,7 +59,7 @@ namespace DataStandardizer.File.vCard
     /// </para>
     /// <para>
     /// Only one operation may be in progress at a time.  Synchronous and asynchronous calls may follow one another, but a call made while another is in progress throws
-    /// <see cref="InvalidOperationException"/>.  A write to the stream that fails leaves what reached it unknown, so later calls throw <see cref="InvalidOperationException"/>, and
+    /// <see cref="InvalidOperationException"/>.  A write to the stream that fails, or a flush of it, leaves what reached it unknown, so later calls throw <see cref="InvalidOperationException"/>, and
     /// disposal writes nothing more to the stream.
     /// </para>
     /// <para>
@@ -222,7 +222,7 @@ namespace DataStandardizer.File.vCard
         /// <exception cref="ObjectDisposedException">The writer has been disposed.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, or a write to the stream failed, so the writer cannot continue.</exception>
+        /// An earlier asynchronous operation was canceled, or a write to the stream or a flush of it failed, so the writer cannot continue.</exception>
         public void Flush()
         {
             ThrowIfDisposed();
@@ -230,6 +230,12 @@ namespace DataStandardizer.File.vCard
             try
             {
                 _stream.Flush();
+            }
+            catch
+            {
+                // What reached the stream is now unknown.
+                _isFaulted = true;
+                throw;
             }
             finally
             {
@@ -250,7 +256,7 @@ namespace DataStandardizer.File.vCard
         /// written.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, or a write to the stream failed, so the writer cannot continue.</exception>
+        /// An earlier asynchronous operation was canceled, or a write to the stream or a flush of it failed, so the writer cannot continue.</exception>
         public void WriteCard(VcardCard card)
         {
             ThrowIfDisposed();
@@ -288,7 +294,7 @@ namespace DataStandardizer.File.vCard
         /// written.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, or a write to the stream failed, so the writer cannot continue.</exception>
+        /// An earlier asynchronous operation was canceled, or a write to the stream or a flush of it failed, so the writer cannot continue.</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         public void WriteCards(IEnumerable<VcardCard> cards, IProgress<VcardWriteProgress>? progress = null)
 #else
@@ -330,11 +336,12 @@ namespace DataStandardizer.File.vCard
         /// progress.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, or a write to the stream failed, so the writer cannot continue.</exception>
+        /// An earlier asynchronous operation was canceled, or a write to the stream or a flush of it failed, so the writer cannot continue.</exception>
         /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled before the call, or the
         /// flush failed with an <see cref="OperationCanceledException"/>, whatever token it carries, while <paramref name="cancellationToken"/>
         /// was canceled.  The task is canceled.  Any other exception faults the task even while <paramref name="cancellationToken"/> is canceled,
-        /// and an <see cref="OperationCanceledException"/> while it isn't faults the task too, as an I/O error does.</exception>
+        /// and an <see cref="OperationCanceledException"/> while it isn't faults the task too, as an I/O error does.  Either way, the writer
+        /// then cannot continue.</exception>
         public Task FlushAsync(CancellationToken cancellationToken = default)
         {
             ThrowIfDisposed();
@@ -355,7 +362,7 @@ namespace DataStandardizer.File.vCard
         /// <exception cref="ArgumentNullException"><paramref name="card"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, or a write to the stream failed, so the writer cannot continue.</exception>
+        /// An earlier asynchronous operation was canceled, or a write to the stream or a flush of it failed, so the writer cannot continue.</exception>
         /// <exception cref="VcardFileException">By the task: the card breaks a rule of RFC 6350 that the options do not accept, or cannot be written in jCard, and nothing has been
         /// written.</exception>
         /// <exception cref="OperationCanceledException">By the task: <paramref name="cancellationToken"/> was canceled before the call, or the
@@ -391,7 +398,7 @@ namespace DataStandardizer.File.vCard
         /// <exception cref="ArgumentNullException"><paramref name="cards"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, or a write to the stream failed, so the writer cannot continue.</exception>
+        /// An earlier asynchronous operation was canceled, or a write to the stream or a flush of it failed, so the writer cannot continue.</exception>
         /// <exception cref="ArgumentException">By the task: <paramref name="cards"/> contains <c>null</c>.  The cards before it have been written.</exception>
         /// <exception cref="VcardFileException">By the task: a card breaks a rule of RFC 6350 that the options do not accept, or cannot be written in jCard.  The cards before it have
         /// been written.</exception>
@@ -433,7 +440,7 @@ namespace DataStandardizer.File.vCard
         /// <exception cref="ArgumentNullException"><paramref name="cards"/> is <c>null</c>.</exception>
         /// <exception cref="InvalidOperationException">Another operation is in progress.
         /// -or-
-        /// An earlier asynchronous operation was canceled, or a write to the stream failed, so the writer cannot continue.</exception>
+        /// An earlier asynchronous operation was canceled, or a write to the stream or a flush of it failed, so the writer cannot continue.</exception>
         /// <exception cref="ArgumentException">By the task: <paramref name="cards"/> contains <c>null</c>.  The cards before it have been written.</exception>
         /// <exception cref="VcardFileException">By the task: a card breaks a rule of RFC 6350 that the options do not accept, or cannot be written in jCard.  The cards before it have
         /// been written.</exception>
@@ -463,7 +470,16 @@ namespace DataStandardizer.File.vCard
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                await _stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    await _stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // What reached the stream is now unknown.
+                    _isFaulted = true;
+                    throw;
+                }
 
                 // The writer may have been disposed while the flush was in progress.
                 ThrowIfDisposed();
@@ -789,7 +805,7 @@ namespace DataStandardizer.File.vCard
                     Release();
                 }
 
-                throw new InvalidOperationException("The writer cannot continue after a write to the stream failed.");
+                throw new InvalidOperationException("The writer cannot continue after a write to the stream or a flush of it failed.");
             }
         }
 

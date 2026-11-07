@@ -18,6 +18,7 @@ namespace DataStandardizer.File.vCard.Tests
         private const string MinimalVcard = "BEGIN:VCARD\r\nVERSION:4.0\r\nFN:A\r\nEND:VCARD\r\n";
         private const string MinimalJcard = "[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"A\"]]]";
         private const string TwoMinimalJcards = "[" + MinimalJcard + "," + MinimalJcard + "]";
+        private const string WriteFailedMessage = "*write to the stream or a flush of it failed*";
 
         // A block smaller than most JSON tokens, so that each read is split across blocks.
         private const int SmallReadLength = 7;
@@ -218,6 +219,38 @@ namespace DataStandardizer.File.vCard.Tests
         }
 
         [Fact]
+        public async Task WriteCardAsync_AfterAFlushOfTheStreamFailed_ThrowsInvalidOperation()
+        {
+            // arrange
+            var cards = ReadVcards(MinimalVcard + MinimalVcard);
+            var writer = new JcardWriter(new AsyncOnlyWriteStream { CreateFlushException = () => new IOException() });
+            await writer.WriteCardAsync(cards[0]);
+            await FlushPastIOFailureAsync(writer);
+
+            // act
+            Action testAction = () => writer.WriteCardAsync(cards[1]);
+
+            // assert
+            testAction.Should().Throw<InvalidOperationException>().WithMessage(WriteFailedMessage);
+        }
+
+        [Fact]
+        public async Task DisposeAsync_AfterAFlushOfTheStreamFailed_DoesNotWriteTheHeldCard()
+        {
+            // arrange
+            var stream = new AsyncOnlyWriteStream { CreateFlushException = () => new IOException() };
+            var writer = new JcardWriter(stream);
+            await writer.WriteCardAsync(ReadVcards(MinimalVcard)[0]);
+            await FlushPastIOFailureAsync(writer);
+
+            // act
+            await writer.DisposeAsync();
+
+            // assert
+            stream.ToArray().Should().BeEmpty();
+        }
+
+        [Fact]
         public async Task FlushAsync_DisposedWhileTheStreamIsBeingFlushed_ThrowsObjectDisposed()
         {
             // arrange
@@ -250,6 +283,23 @@ namespace DataStandardizer.File.vCard.Tests
             }
 
             Assert.Fail("The write was expected to be canceled.");
+        }
+
+        /// <summary>
+        /// Flushes, and leaves the <see cref="IOException"/> of the stream for the test to go on from.
+        /// </summary>
+        private static async Task FlushPastIOFailureAsync(JcardWriter writer)
+        {
+            try
+            {
+                await writer.FlushAsync();
+            }
+            catch (IOException)
+            {
+                return;
+            }
+
+            Assert.Fail("The flush was expected to fail.");
         }
 
         /// <summary>
