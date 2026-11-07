@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -18,6 +18,9 @@ namespace DataStandardizer.File.InternetMessage.Tests
     {
         private const string CanceledMessage = "*canceled*";
         private const string FieldName = "A";
+
+        // The sender in the separator line of Mailbox.
+        private const string MailboxSender = "a@b.test";
 
         // ref. RFC 5322 §2.2 and §2.1: a header section of one field, and the empty line that ends it.
         private const string HeaderSection = "A: 1\r\n\r\n";
@@ -259,42 +262,73 @@ namespace DataStandardizer.File.InternetMessage.Tests
             }
         }
 
+        [Fact]
+        public async Task WriteMessagesAsync_NoEntriesAndCanceledToken_CancelsTask()
+        {
+            // arrange
+            var writer = new MboxWriter(new MemoryStream());
+
+            // act: wait for the operation to finish without throwing, so that its status can be checked.
+            var task = writer.WriteMessagesAsync(new MboxEntry[0], cancellationToken: new CancellationToken(true));
+            await Task.WhenAny(task);
+
+            // assert
+            task.IsCanceled.Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task WriteMessage_AfterWriteMessagesAsyncOfNoEntriesWithCanceledToken_ThrowsInvalidOperation()
+        {
+            // arrange
+            var writer = new MboxWriter(new MemoryStream());
+            await Record.ExceptionAsync(() => writer.WriteMessagesAsync(new MboxEntry[0], cancellationToken: new CancellationToken(true)));
+
+            // act
+            Action testAction = () => writer.WriteMessage(Envelope, ImfMessages.Read(Rfc5322Messages.A11));
+
+            // assert
+            testAction.Should().Throw<InvalidOperationException>().WithMessage(CanceledMessage);
+        }
+
         #endregion
 
         #region Readers
 
-        // Each asynchronous read of each reader, over the given stream, which holds the data the reader expects.
-        private static readonly (string Name, string Data, Func<Stream, (Func<CancellationToken, Task> Run, Func<Task> ReadAgain)> Create)[] ReaderOperations =
+        // Each asynchronous read of each reader, over the given stream, which holds the data the reader expects.  Each also gives a read of
+        // the same reader that describes what it reads, and what that read is expected to give after the first read failed and consumed
+        // nothing: the name of a field, the kind of an event, or the sender of a message.
+        private static readonly (string Name, string Data, Func<Stream, (Func<CancellationToken, Task> Run, Func<Task<string>> ReadAgain, string Expected)> Create)[] ReaderOperations =
         {
             ("ImfHeaderReader.ReadFieldAsync", HeaderSection, stream =>
             {
                 var reader = new ImfHeaderReader(stream);
-                return (token => reader.ReadFieldAsync(token).AsTask(), () => reader.ReadFieldAsync().AsTask());
+                return (token => reader.ReadFieldAsync(token).AsTask(), async () => (await reader.ReadFieldAsync()).Value.GetName(), FieldName);
             }),
             ("ImfEntityReader.ReadEventAsync", Message, stream =>
             {
                 // The event that starts the message needs no data, so the read after it is the first to reach the stream.
                 var reader = new ImfEntityReader(stream);
                 reader.ReadEvent();
-                return (token => reader.ReadEventAsync(token).AsTask(), () => reader.ReadEventAsync().AsTask());
+                return (token => reader.ReadEventAsync(token).AsTask(), async () => (await reader.ReadEventAsync()).Value.Kind.ToString(),
+                    nameof(ImfEntityEventKind.HeaderField));
             }),
             ("MboxReader.ReadMessageAsync", Mailbox, stream =>
             {
                 var reader = new MboxReader(stream);
-                return (token => reader.ReadMessageAsync(token), () => reader.ReadMessageAsync());
+                return (token => reader.ReadMessageAsync(token), async () => (await reader.ReadMessageAsync()).Envelope.Sender.Address, MailboxSender);
             }),
             ("MboxReader.ReadEntityEventsAsync", Mailbox, stream =>
             {
                 var reader = new MboxReader(stream);
-                return (token => reader.ReadEntityEventsAsync(token), () => reader.ReadMessageAsync());
+                return (token => reader.ReadEntityEventsAsync(token), async () => (await reader.ReadMessageAsync()).Envelope.Sender.Address, MailboxSender);
             }),
         };
 
         // Each read, with each way the stream can report a failure, each OperationCanceledException it can fail with while the caller's token
         // isn't canceled, and the exception the task then faults with.
-        public static TheoryData<string, string, Func<Stream, (Func<CancellationToken, Task> Run, Func<Task> ReadAgain)>, FailureTiming, Func<Exception>, Type> ReaderStreamCancellationFaults()
+        public static TheoryData<string, string, Func<Stream, (Func<CancellationToken, Task> Run, Func<Task<string>> ReadAgain, string Expected)>, FailureTiming, Func<Exception>, Type> ReaderStreamCancellationFaults()
         {
-            var data = new TheoryData<string, string, Func<Stream, (Func<CancellationToken, Task> Run, Func<Task> ReadAgain)>, FailureTiming, Func<Exception>, Type>();
+            var data = new TheoryData<string, string, Func<Stream, (Func<CancellationToken, Task> Run, Func<Task<string>> ReadAgain, string Expected)>, FailureTiming, Func<Exception>, Type>();
             foreach (var (name, text, create) in ReaderOperations)
             {
                 foreach (var timing in FailureTimings)
@@ -311,9 +345,9 @@ namespace DataStandardizer.File.InternetMessage.Tests
         }
 
         // Each read, with each way the stream can report a failure.
-        public static TheoryData<string, string, Func<Stream, (Func<CancellationToken, Task> Run, Func<Task> ReadAgain)>, FailureTiming> ReaderStreamFailures()
+        public static TheoryData<string, string, Func<Stream, (Func<CancellationToken, Task> Run, Func<Task<string>> ReadAgain, string Expected)>, FailureTiming> ReaderStreamFailures()
         {
-            var data = new TheoryData<string, string, Func<Stream, (Func<CancellationToken, Task> Run, Func<Task> ReadAgain)>, FailureTiming>();
+            var data = new TheoryData<string, string, Func<Stream, (Func<CancellationToken, Task> Run, Func<Task<string>> ReadAgain, string Expected)>, FailureTiming>();
             foreach (var (name, text, create) in ReaderOperations)
             {
                 foreach (var timing in FailureTimings)
@@ -328,7 +362,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         [Theory]
         [MemberData(nameof(ReaderStreamCancellationFaults), DisableDiscoveryEnumeration = true)]
         public async Task AsyncRead_StreamFailsWithOperationCanceledWhileTokenIsNotCanceled_FaultsTask(string scenario, string text,
-            Func<Stream, (Func<CancellationToken, Task> Run, Func<Task> ReadAgain)> create, FailureTiming timing, Func<Exception> createException,
+            Func<Stream, (Func<CancellationToken, Task> Run, Func<Task<string>> ReadAgain, string Expected)> create, FailureTiming timing, Func<Exception> createException,
             Type expectedExceptionType)
         {
             // arrange
@@ -347,7 +381,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         [Theory]
         [MemberData(nameof(ReaderStreamFailures), DisableDiscoveryEnumeration = true)]
         public async Task AsyncRead_AfterStreamFailsWithOperationCanceledWhileTokenIsNotCanceled_ReadsTheData(string scenario, string text,
-            Func<Stream, (Func<CancellationToken, Task> Run, Func<Task> ReadAgain)> create, FailureTiming timing)
+            Func<Stream, (Func<CancellationToken, Task> Run, Func<Task<string>> ReadAgain, string Expected)> create, FailureTiming timing)
         {
             // arrange
             _ = scenario;
@@ -355,16 +389,16 @@ namespace DataStandardizer.File.InternetMessage.Tests
             await Record.ExceptionAsync(() => operation.Run(CancellationToken.None));
 
             // act
-            Func<Task> testAction = operation.ReadAgain;
+            var testResult = await operation.ReadAgain();
 
             // assert
-            await testAction.Should().NotThrowAsync();
+            testResult.Should().Be(operation.Expected);
         }
 
         [Theory]
         [MemberData(nameof(ReaderStreamFailures), DisableDiscoveryEnumeration = true)]
         public async Task AsyncRead_TokenCanceledAndStreamFailsWithCancellationOfAnotherToken_CancelsTask(string scenario, string text,
-            Func<Stream, (Func<CancellationToken, Task> Run, Func<Task> ReadAgain)> create, FailureTiming timing)
+            Func<Stream, (Func<CancellationToken, Task> Run, Func<Task<string>> ReadAgain, string Expected)> create, FailureTiming timing)
         {
             // arrange
             _ = scenario;
@@ -386,7 +420,7 @@ namespace DataStandardizer.File.InternetMessage.Tests
         [Theory]
         [MemberData(nameof(ReaderStreamFailures), DisableDiscoveryEnumeration = true)]
         public async Task AsyncRead_AfterTokenCanceledAndStreamFailsWithCancellationOfNoToken_ThrowsInvalidOperation(string scenario, string text,
-            Func<Stream, (Func<CancellationToken, Task> Run, Func<Task> ReadAgain)> create, FailureTiming timing)
+            Func<Stream, (Func<CancellationToken, Task> Run, Func<Task<string>> ReadAgain, string Expected)> create, FailureTiming timing)
         {
             // arrange
             _ = scenario;

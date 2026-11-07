@@ -469,6 +469,8 @@ namespace DataStandardizer.File.InternetMessage
         {
             try
             {
+                // Check here as well, so that a canceled token cancels the call when there are no messages.
+                cancellationToken.ThrowIfCancellationRequested();
                 foreach (var entry in entries)
                 {
                     _output.ThrowIfDisposed();
